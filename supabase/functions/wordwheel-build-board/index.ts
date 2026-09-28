@@ -60,7 +60,7 @@
  *   - wordwheel.pangrams + common.words are authenticated-readable.
  *   - wordwheel.games is RLS-gated on club membership.
  *   - wordwheel.create_game runs security definer and re-checks
- *     membership via common.require_club_member.
+ *     membership via common._require_club_member.
  * No service-role needed anywhere.
  *
  * Calling shape (from the FE):

@@ -13,8 +13,8 @@
 --   **club membership gates VIEWING; game-playership gates ACTING.**
 --
 -- A club member who is NOT one of this game's players can still
--- read the game (read-RLS = is_club_member) but cannot make a move
--- (the move RPCs gate on common.require_game_player). The existing
+-- read the game (read-RLS = _is_club_member) but cannot make a move
+-- (the move RPCs gate on common._require_game_player). The existing
 -- gate tests use the outsider `dee`; this one uses `cade`, an
 -- in-club member who simply wasn't dealt into this game.
 
@@ -70,7 +70,7 @@ select is(
   'cade (member, not a player) CAN read the game — viewing is club-gated'
 );
 
--- …but cannot ACT (move RPCs gate on require_game_player).
+-- …but cannot ACT (move RPCs gate on _require_game_player).
 select pg_temp.envelope_is(
   spellingbee.submit_word((select id from g), 'face', 1, false, false),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN253"}'::jsonb,

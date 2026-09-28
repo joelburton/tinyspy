@@ -138,7 +138,7 @@ export const waffleCoopGame: GameManifest = {
   help: helpLoader,
 
   // Solo or coop up to 6. Must agree with
-  // require_player_count_max(6) in waffle.create_game.
+  // _require_player_count_max(6) in waffle.create_game.
   numberOfPlayers: [1, 6],
 
   PlayArea: playAreaLoader,
@@ -169,7 +169,7 @@ export const waffleCompeteGame: GameManifest = {
 
   // Compete needs an opposing PLAYER — racing yourself is degenerate.
   // Lower bound 2 hides the Start button in solo clubs; the RPC also
-  // enforces it. Must agree with require_player_count_max(6).
+  // enforces it. Must agree with _require_player_count_max(6).
   numberOfPlayers: [2, 6],
 
   PlayArea: playAreaLoader,

@@ -232,7 +232,7 @@ table comment in the baseline migration.)
 ### RPCs (all security-definer; no table write policies — writes go through these)
 
 - `bananagrams.create_game(target_club, setup, player_user_ids)` — calls
-  `common.create_game` (header), shuffles the standard 144-tile Bananagrams set
+  `common._create_game` (header), shuffles the standard 144-tile Bananagrams set
   and **splits it at `setup.bunch_size`** (1..144 — a smaller bunch is a shorter
   game on a random subset): the first `bunch_size` tiles are the immutable
   `games.bunch_seed`, and **the remaining `144 − bunch_size` seed the
@@ -245,9 +245,9 @@ table comment in the baseline migration.)
   FE disables Start on the same check; see SetupForm), `word_check ∈ {off, win,
   strict}`, and — unless `word_check` is `off` — `dict_2 ∈ [2,6]` and
   `dict_3plus ∈ [1,6]`. Compete-only, so no `mode` param. Gated by
-  `require_club_member`.
+  `_require_club_member`.
 - `bananagrams.save_player_board(target_game, board)` — the snapshot endpoint.
-  `require_game_player`; writes the caller's own `player_boards.board` (only —
+  `_require_game_player`; writes the caller's own `player_boards.board` (only —
   `tiles` is server-owned) and recomputes their `progress` (`placed = filled
   cells`, `unplaced = length(tiles) − placed`). Length guard (board must be 625
   chars). Called **debounced during play and on player-board unmount** (the
@@ -263,7 +263,7 @@ table comment in the baseline migration.)
   separate vocabulary, so they get their own band; single tiles aren't words, so
   never checked).
 - `bananagrams.peel(target_game) → jsonb` — the draw/endgame, and the game's
-  *win* terminal. `require_game_player`; rejects unless the hand is empty
+  *win* terminal. `_require_game_player`; rejects unless the hand is empty
   (`placed == length(tiles)`), and rejects a **conceded** caller (`you have
   conceded` — they're out of the race). **Active-player aware:** the table to
   refill and the win threshold count only the still-active players
@@ -274,7 +274,7 @@ table comment in the baseline migration.)
   word check when `setup.word_check` is `win` or `strict`); a non-empty result
   leaves the game in progress and returns `{result: 'illegal', invalid_cells}`**
   for the FE to paint red. Otherwise the peeler **goes out and wins**
-  (`common.end_game('won', …)`, returns `{result: 'won'}`). If the bunch *can*
+  (`common._end_game('won', …)`, returns `{result: 'won'}`). If the bunch *can*
   refill, **every active player draws `peel_count`** from the front of the bunch
   (ranks are dense over the active set), the bunch advances,
   `status.bunch_remaining` updates (`{result: 'dealt'}`). A continuing peel is
@@ -286,7 +286,7 @@ table comment in the baseline migration.)
   so concurrent peels serialize; a peel on a non-`playing` game is rejected
   (`game is not active`).
 - `bananagrams.dump(target_game, tile)` *(v2)* — swap one held tile for
-  `dump_count` (setup, default 3). `require_game_player`; rejects if the game's
+  `dump_count` (setup, default 3). `_require_game_player`; rejects if the game's
   over, if **`length(bunch) + length(bag) < dump_count`**, or if the caller
   doesn't hold `tile`. Draws `dump_count` from the FRONT of the **bunch**,
   topping up from the FRONT of the **bag** if the bunch is short (the bag can
@@ -304,7 +304,7 @@ table comment in the baseline migration.)
   out, GamePage fires this and the race ends as a **collective loss**:
   `play_state='lost'`, `status={reason:'timeout'}` (NO `winner_username`), and
   **every** player's result `{"won": false}`. The RPC is timer-agnostic (it just
-  ends the in-progress game; the FE decides *when*). `require_game_player`,
+  ends the in-progress game; the FE decides *when*). `_require_game_player`,
   gametype-row lock, `P0001 'game is not in progress'` idempotency. The PlayArea
   renders the no-winner timeout as a red "⏰ Time's up — nobody went out." pgTAP:
   `submit_timeout_test.sql`.
@@ -333,7 +333,7 @@ table comment in the baseline migration.)
   (not `bananagrams.progress`), so `peel` / `save_player_board` read it from
   there to skip a dropped-out player, and the FE reads it off `ctx.players`;
   `useCommonGame`'s `common.game_players` realtime listener nudges peers, and
-  the terminal `common.end_game` write rides the `common.games` subscription to
+  the terminal `common._end_game` write rides the `common.games` subscription to
   flip everyone's terminal UI. pgTAP: `concede_test.sql`. `save_player_board`
   no-ops for a conceded caller (their board is frozen).
 
@@ -362,7 +362,7 @@ The **New game** button in the terminal action row + the matching menu item: a
 FRESH game (new id, a newly dealt bunch) with this game's setup + roster, in the
 same club. A direct `create_game` RPC — bananagrams deals inline (no edge
 function) and takes no `mode` argument, being compete-only. Non-destructive:
-`common.create_game` un-currents this game into the club's list, so there's no
+`common._create_game` un-currents this game into the club's list, so there's no
 confirm.
 
 **Restart** (added 2026-08-03) is its twin, and bananagrams is the game where it
@@ -383,7 +383,7 @@ still going, so offering to start a different game there would be a distraction.
 
 A pure **identifier**: `'#'` + the first six hex digits of the game's own uuid,
 uppercased (`#3F9A2C`), written by `create_game` right after
-`common.create_game` returns the id.
+`common._create_game` returns the id.
 
 bananagrams is the one game on the roster with no shareable content to name
 itself after: every player builds a private grid from a private hand, so
@@ -584,7 +584,7 @@ recompute it).
   a query that leaned on the policy for correctness (`useGame` selected by
   `game_id` alone and used `maybeSingle()`, which started matching every row and
   erroring — no board, no hand, no print menu, for everyone in a finished game),
-  and a comment that credited the wrong mechanism (the explicit `is_club_member`
+  and a comment that credited the wrong mechanism (the explicit `_is_club_member`
   line reads as the thing keeping outsiders out; planting showed the block
   actually comes from `bananagrams.games`'s own club policy filtering the
   subquery — the line stays as belt-and-braces, but it isn't what's holding).

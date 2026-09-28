@@ -27,7 +27,7 @@
 --      self-limiting the way `user_id = auth.uid()` is. NB this pins the
 --      OUTCOME, not a mechanism: planting showed the block comes from
 --      `bananagrams.games`'s own club policy filtering the subquery, not
---      from the policy's explicit is_club_member line (which is kept as
+--      from the policy's explicit _is_club_member line (which is kept as
 --      belt-and-braces). Either way, an outsider must see nothing.
 -- ============================================================
 

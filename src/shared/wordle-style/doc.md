@@ -8,7 +8,7 @@ about each letter of a guess, and how that is drawn on screen and on paper.
 A hidden-target game answers a guess with a string — one character per letter,
 `g` for right-letter-right-spot, `y` for in-the-word-wrong-spot, `x` for not in
 the word at all. That string is the whole of the feedback, and it belongs to the
-server: it is computed by `common.wordle_colors` from an answer the browser does
+server: it is computed by `common._wordle_colors` from an answer the browser does
 not hold, and the frontend never recomputes it. This folder is everything that
 happens once it arrives.
 

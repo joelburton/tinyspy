@@ -110,7 +110,7 @@ export const scrabbleCoopGame: GameManifest = {
   shortDescription: 'Build words together on one board',
   logoUrl,
   help: helpLoader,
-  // Solo or coop up to 4. Must agree with require_player_count_max(4).
+  // Solo or coop up to 4. Must agree with _require_player_count_max(4).
   numberOfPlayers: [1, 4],
   // Pre-play: a waiting player may lay a move out; only committing waits.
   draftsOffTurn: true,

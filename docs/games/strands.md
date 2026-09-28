@@ -686,7 +686,7 @@ racing" and leave the game stuck in `playing` with nobody left to end it. Lock
 order is `strands.games` → `common.games` on every path, so no deadlock.
 
 Its refusals are `common`'s, like every other game's: "no such game" and "not
-compete" are what `common.require_compete` and `common._set_conceded` already
+compete" are what `common._require_compete` and `common._set_conceded` already
 say, so a null mode falls through the first and is refused by the second. See
 [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
 

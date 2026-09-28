@@ -647,17 +647,17 @@ reason map moved there with them. What stays here:
   `isGameStopped`, never `isStopped`.
   **Left alone as unsure, to judge with Joel** (not yet worked):
   1. `docs/games/stackdown.md` (the coop title paragraph): "(`end_game`
-     doesn't touch the title)" — `common.end_game` or `stackdown.stop_game`.
+     doesn't touch the title)" — `common._end_game` or `stackdown.stop_game`.
   2. `docs/games/wordiply.md`: "`common.concede` / `end_game` / timers" —
-     probably `common.end_game`.
+     probably `common._end_game`.
   3. `e2e/gallery/verdict.ts` (header): "where every `end_game` writes its
-     per-player verdict" — probably `common.end_game`, the only writer.
+     per-player verdict" — probably `common._end_game`, the only writer.
   4. `docs/games/letterboxed.md` (the `_end_game` wrapper paragraph): "the
-     shared `end_game`" — probably `common.end_game`.
+     shared `end_game`" — probably `common._end_game`.
   5. `src/common/club/useClubGames.ts` (two comments) and
      `src/common/game-page/useCommonGame.test.ts` (the bot test): "end_game
      wrote a terminal play_state" / "writes it a result" — only
-     `common.end_game` writes those.
+     `common._end_game` writes those.
   6. Ten games' `todo.md` quote the ruling "you cannot end a game that has
      ended" — possibly about Stop; a quote, so unchanged.
   7. `src/bananagrams/todo.md`: "A conceded racer's Stop game has no
@@ -714,7 +714,7 @@ everywhere (question 1).
    game's reason pair already opens every game's end paths. They are
    `common.game_players` columns now, not `result` keys (common-tables).
 3. ~~**How the pair is written.**~~ **Decided** (Joel, 2026-09-26):
-   required parameters on `common.end_game`. A call without them fails when
+   required parameters on `common._end_game`. A call without them fails when
    it runs, and a misspelled category is refused there, in one place.
 4. **Compete games that end when every player is done** (wordle, waffle,
    strands: `ends-when-all-done`). **Decided** (Joel, 2026-09-27): the
@@ -881,7 +881,7 @@ says. **N8 built 2026-09-27** as its row says. §4 has nothing left.
 | N6 | psychicnum, the control, is the odd one: `turnHolderName` / `turnHolderColor`; `useGame` returns budget rows as `players`; the move answers `verdict` + `found_all` | `holderName` / `holderColor`; `useGame` returns `playerBudgets`; the answer is `{ result: 'hit' \| 'miss', found_all }` — `found_all` stays (Joel, 2026-09-27) |
 | N7 | the print model's `setup: SetupRow[]` (`common/pdf/eventLog.ts` and four game models) where the columns say `setupRows` | `setupRows` |
 | N8 | "Game over" and "Already conceded" inside moves, written by hand at 55 SQL sites (35 and 20) in the sixteen games, each with its own code; `common._raise_game_over()` exists but only Stop and the timeout call it. wordle's missing check is closed (§3) | **Its own item, after §4's renames** (Joel, 2026-09-27). Every site calls a common helper: `common._raise_game_over()`, and a new `common._raise_already_conceded()`; the per-site codes go (players never see a code). **Every race is one color**: `race`'s default, `warning`, from `SEVERITY_TO_OUTCOME` in `src/common/supabase/dbResult.ts` — a move that changed nothing warns, it is not a note. So no race raise sets a `constraint`: the four `noted` in `common.sql` (`_raise_game_over`, and `_set_conceded`'s PN482 / PN483 / PN508) go. The one exception, kept (Joel): a deleted game is `lost` (red) — `delete_game`'s PN010 and `common._raise_game_deleted`'s PN485. docs/envelopes.md stops giving colors (its Appearance table, and "a race that is news … takes `noted`") and points at the map in code |
-| N9 | Restart rewinds `current_turn_user_id` by hand in eight games' `replay_board`; docs/common-schema.md counts it as the common turn mechanism | move it into `common.reset_game`, **in this pass** (Joel, 2026-09-27); the eight copies go. codenamesduet's `_point_turn` still runs after it and always writes while `playing`, so its turn is unchanged |
+| N9 | Restart rewinds `current_turn_user_id` by hand in eight games' `replay_board`; docs/common-schema.md counts it as the common turn mechanism | move it into `common._reset_game`, **in this pass** (Joel, 2026-09-27); the eight copies go. codenamesduet's `_point_turn` still runs after it and always writes while `playing`, so its turn is unchanged |
 | N10 | `picked` (state) renamed `selected` on psychicnum's `Board` | §1b, with its names (in this pass) |
 | N11 | wordle's `players: members` rename, with no stated reason (codenamesduet states one) | `players` |
 | N12 | `totalGuesses` (psychicnum) vs `maxGuesses` (wordle); connections' print model `mistakes` / `maxMistakes` vs its columns' `mistakeCount` / `mistakeBudget`; codenamesduet's `turns` / `turnBudget` / `turnCap` and `turnNumber` / `currentTurn` | `maxGuesses`; `mistakeCount` / `mistakeBudget`; `turnBudget` / `turnNumber` |
@@ -894,7 +894,7 @@ says. **N8 built 2026-09-27** as its row says. §4 has nothing left.
 | N19 | `PlayArea` exported in wordle, spellingbee, wordwheel, codenamesduet; nothing imports it | unexported |
 | N20 | the End / Concede / Restart section header in `PlayArea.tsx`, worded four ways (wordle's says "Replay") | psychicnum's wording, `// ─── The commands, bound ───` — done in the six; the other ten in this pass (Joel, 2026-09-27), crosswords' two sections under one header |
 | N21 | SQL: `wordle.submit_guess` names locals `p_…`, the prefix common keeps for parameters; codenamesduet's `submit_guess` takes `target_position` for the `guess_position` column, and its answers still use old keys (`word`, `count`, `from_ai`, `by_seat`); "You are not in this game" means two things (PN253 vs psychicnum PN271, connections PN250) | `wordle.submit_guess`'s `p_used` / `p_solved` → `caller_used` / `caller_solved`. codenamesduet's answer keys match the columns — `clue_word`, `clue_count`, `clue_from_ai`, `seat` — in `give_clue`, the AI's previous clues, `ClueStrip` and the suggest-clue edge function (Joel, 2026-09-27). PN271 / PN250 read "BUG: you are not in this game": a fault's message is still for a person, and the technical words stay in `detail` (Joel, 2026-09-27). codenamesduet's `submit_guess` parameter `target_position` → `guess_position`, with the front end's call (Joel, 2026-09-27); the `target_` prefix on every other RPC input stays — it keeps a parameter from sharing a column's name, which PL/pgSQL refuses |
-| ~~N23~~ | Done 2026-09-27 (7c). the Stop action (`stopped`) is still named End: `act-end-game` labeled "End game", `actEndGame`, `END_GAME_CONFIRM`, Concede's "Concede / End game", each game's `end_game` RPC | Stop: `act-stop-game`, "Stop game", `actStopGame`, `STOP_GAME_CONFIRM`, and each game's RPC `stop_game`, with a `DROP` of the retired `end_game` beside it. Stop names only: `ended`, `ended_at`, `common.end_game` (which ends a game any way) and every other "end" stay |
+| ~~N23~~ | Done 2026-09-27 (7c). the Stop action (`stopped`) is still named End: `act-end-game` labeled "End game", `actEndGame`, `END_GAME_CONFIRM`, Concede's "Concede / End game", each game's `end_game` RPC | Stop: `act-stop-game`, "Stop game", `actStopGame`, `STOP_GAME_CONFIRM`, and each game's RPC `stop_game`, with a `DROP` of the retired `end_game` beside it. Stop names only: `ended`, `ended_at`, `common._end_game` (which ends a game any way) and every other "end" stay |
 | ~~N24~~ | Done 2026-09-27 (7c). `terminalOutcomeVerb` returns `'Quit'` (the strip's "Quit at 12"); the terms say never "quit" | `'Conceded'` |
 | N25 | "race" / "racer" for games that aren't `race-game`s: wordle's and waffle's compete, their SQL (`racers_with_budget`), FE and docs (the game cards' Mismatches) | player; "race" only for a `race-game` |
 | N26 | "clock" for the timer: wordle's `wonByClock` / `clock_ran_out`, and comments across the games | timer, timeout (`wonByTimeout`, `timed_out`) |
@@ -943,7 +943,7 @@ worked). "Done" means the pass made the change and it may want undoing;
 
 - *A change beyond the letter of the ruling:*
   1. Done — scrabble compete's `replay_board` picked a random opener before
-     `common.reset_game`, which now rewinds the turn to seat 0 and would undo
+     `common._reset_game`, which now rewinds the turn to seat 0 and would undo
      it; the pick moved after `reset_game`. Same behavior.
   2. Done — psychicnum's and connections' `BoardCol.tsx` (`wordAt`,
      `handleTileClick`, the cursor toggle) and codenamesduet's PDF printer use
@@ -961,7 +961,7 @@ worked). "Done" means the pass made the change and it may want undoing;
      LastSet files that don't import it yet.
   6. Done — comment fixes beside renamed keys: psychicnum's "says `won`" →
      `hit` (two pgTAP comments, doc.md), its `replay_board` header now one
-     line pointing at `common.reset_game`; wordwheel/spellingbee todos and
+     line pointing at `common._reset_game`; wordwheel/spellingbee todos and
      doc trees say `Hive`.
 - *Names:*
   7. psychicnum `BoardCol.tsx`: the drawn pick is `drawnPick`, because
@@ -1034,7 +1034,7 @@ verb too — `makeRosterRow`, `makeCoopRows`, `makeCenterLettersRow`,
 
 **The shared doc is wrong and the game is right.** Fix the owner:
 
-- The `common.end_game` header in `common.sql` says status is assigned; the
+- The `common._end_game` header in `common.sql` says status is assigned; the
   body merges it.
 - `usePeerFeedback`'s docstring says delta signals "stay hand-rolled"; wordle
   sends its `solved` flag through it.

@@ -42,7 +42,7 @@ export type CommonGame = {
   // value; some gametypes have additional non-terminal states. Gate on
   // `is_terminal` below — it's the materialized "any terminal play_state".
   play_state: string
-  // Materialized "is any terminal play_state" — `common.end_game` flips this to
+  // Materialized "is any terminal play_state" — `common._end_game` flips this to
   // true alongside writing the terminal play_state, so consumers can gate on a
   // uniform boolean without knowing each gametype's vocabulary.
   is_terminal: boolean
@@ -54,7 +54,7 @@ export type CommonGame = {
   // Free-form per-gametype outcome detail. Each gametype writes its own shape;
   // the matching manifest's `labelFor` reads it back to render the club-page
   // listing row. Kept current by every state-transitioning RPC via
-  // common.update_state / common.end_game — not just a terminal-time snapshot.
+  // common.update_state / common._end_game — not just a terminal-time snapshot.
   status: Record<string, unknown> | null
   started_at: string
   ended_at: string | null
@@ -90,13 +90,13 @@ type SuspendEvent = { type: 'suspend' }
 
 /** What `common.unset_current_view` puts in `data` when it cleared the
  *  pointer. Nullable because its other `ok` — PA001, the game is gone —
- *  arrives through a raise, and `common.raised_envelope` builds `data: null`.
+ *  arrives through a raise, and `common._raised_envelope` builds `data: null`.
  *  ClubPage's heal declares the same shape for the same RPC. */
 type UnsetAnswer = { result: 'cleared' } | null
 
 /** What `common.set_current_view` puts in `data` when it flipped the pointer.
  *  Nullable for the same reason as its twin above: its other `ok` — PA003, the
- *  game is gone — arrives through a raise, and `common.raised_envelope` builds
+ *  game is gone — arrives through a raise, and `common._raised_envelope` builds
  *  `data: null`. */
 type SetAnswer = { result: 'set' } | null
 
@@ -492,7 +492,7 @@ export function useCommonGame(
           //
           // A console line is the whole response, and the severity below is
           // what buys that: a fault is the only not-ok this RPC can give
-          // (PN011 / PN012, from require_club_member) and `runRpc` has already
+          // (PN011 / PN012, from _require_club_member) and `runRpc` has already
           // raised its modal. Nobody asked for this write — it rides on the
           // subscribe ack — so there is no surface owed an answer, and the RPC
           // is idempotent, so a transient failure self-heals at the next
@@ -566,7 +566,7 @@ export function useCommonGame(
           if (res.type === 'not-ok' && res.severity === 'fault') {
             // The severity is asserted, not assumed, and it is the reason a
             // console line is enough: a fault is the only not-ok this RPC can
-            // give (PN011 / PN012, from require_club_member) and `runRpc` has
+            // give (PN011 / PN012, from _require_club_member) and `runRpc` has
             // already put its modal up. This tab is on its way out and has no
             // surface left to say anything on, so a race or a service-error
             // would have nowhere to go — better the scream below than a quiet

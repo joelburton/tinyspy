@@ -4,8 +4,8 @@
 -- Test: waffle color-feedback algorithm
 -- ============================================================
 --
--- The per-tile green/yellow/gray feedback (waffle.board_colors and
--- its per-word helper common.wordle_colors). The highest-correctness-risk
+-- The per-tile green/yellow/gray feedback (waffle._board_colors and
+-- its per-word helper common._wordle_colors). The highest-correctness-risk
 -- piece of the game — the Wordle duplicate-letter accounting plus the
 -- intersection merge — and one of two files pinning it: wordle's
 -- colors_test.sql holds the rest, on inputs that share nothing with these.
@@ -27,33 +27,33 @@ set search_path = waffle, common, public, extensions;
 select plan(10);
 
 -- ============================================================
--- common.wordle_colors — one 5-letter word, Wordle-style
+-- common._wordle_colors — one 5-letter word, Wordle-style
 -- ============================================================
 
-select is(common.wordle_colors('abcde', 'abcde'), 'ggggg',
+select is(common._wordle_colors('abcde', 'abcde'), 'ggggg',
   'all correct → all green');
 
-select is(common.wordle_colors('fghij', 'abcde'), 'xxxxx',
+select is(common._wordle_colors('fghij', 'abcde'), 'xxxxx',
   'no shared letters → all gray');
 
-select is(common.wordle_colors('bacde', 'abcde'), 'yyggg',
+select is(common._wordle_colors('bacde', 'abcde'), 'yyggg',
   'two adjacent letters swapped → two yellows, rest green');
 
-select is(common.wordle_colors('edcba', 'abcde'), 'yygyy',
+select is(common._wordle_colors('edcba', 'abcde'), 'yygyy',
   'fully reversed (one fixed point) → green in the middle, yellows around');
 
 -- Duplicate accounting: the guess has three b's but the answer has
 -- only one. One earns a yellow; the extras gray.
-select is(common.wordle_colors('aabbb', 'abxyz'), 'gxyxx',
+select is(common._wordle_colors('aabbb', 'abxyz'), 'gxyxx',
   'duplicate guess letters only claim as many yellows as the answer has');
 
 -- ============================================================
--- board_colors — the whole board, with the intersection merge
+-- _board_colors — the whole board, with the intersection merge
 -- ============================================================
 
 -- Solved: board == solution → every filled cell green, holes '.'.
 select is(
-  waffle.board_colors('abcdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
+  waffle._board_colors('abcdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
   (select string_agg(
      case when i = any(array[6,8,16,18]) then '.' else 'g' end,
      '' order by i)
@@ -69,7 +69,7 @@ select is(
 -- so cell 0 merges yellow(a0) vs gray(d0) → YELLOW (stronger wins),
 -- cell 1 is yellow, and every other cell stays green.
 select is(
-  waffle.board_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
+  waffle._board_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
   (select string_agg(
      case when i = any(array[6,8,16,18]) then '.'
           when i in (0,1) then 'y'
@@ -84,7 +84,7 @@ select is(
 -- intersection cell 12 (in a2 and d2): gray + gray → gray.
 select is(
   substr(
-    waffle.board_colors('abcdef.g.hijzlmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
+    waffle._board_colors('abcdef.g.hijzlmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
     13, 1),                                            -- cell 12, 1-based 13
   'x',
   'a letter in neither of an intersection''s words → gray in the merge'
@@ -94,7 +94,7 @@ select is(
 select is(
   array_to_string(array(
     select substr(
-      waffle.board_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
+      waffle._board_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
       p + 1, 1)
     from unnest(array[6,8,16,18]) p), ''),
   '....',
@@ -103,9 +103,9 @@ select is(
 
 -- The result is always 25 characters.
 select is(
-  length(waffle.board_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu')),
+  length(waffle._board_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu')),
   25,
-  'board_colors returns a 25-char string'
+  '_board_colors returns a 25-char string'
 );
 
 select * from finish();

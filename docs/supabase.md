@@ -238,15 +238,15 @@ RPCs](common-schema.md#rpcs)):
   policies anywhere; RLS grants reads only.
 - A callable RPC is `security definer` with a pinned `search_path`; a read-only
   helper that should run as the caller says so.
-- Authorization is `common.require_game_player` for a move and
-  `common.require_club_member` for club-level actions like `set_current_view`
+- Authorization is `common._require_game_player` for a move and
+  `common._require_club_member` for club-level actions like `set_current_view`
   and `tick_timer`.
 - **A move locks its game row** (`select … for update`) so concurrent moves
   serialize, and so does a `replay_board`: a replay interleaved with a move
   could leave a stray log row on the fresh board, or let a game-ending move land
   after the reset and re-end it.
 - A state-changing RPC updates the game's own row and the `common.games` header
-  (`common.update_state` / `common.end_game`) in one transaction, so the club
+  (`common.update_state` / `common._end_game`) in one transaction, so the club
   list never lags the game.
 - It answers in an envelope ([envelopes.md → How SQL builds
   one](envelopes.md#how-sql-builds-one)).
@@ -259,7 +259,7 @@ model](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-c
 [common-schema.md → Row-level security](common-schema.md#row-level-security)):
 
 - **Viewing is club-gated, acting is player-gated.** SELECT policies use
-  `common.is_club_member`; moves use `require_game_player`.
+  `common._is_club_member`; moves use `_require_game_player`.
 - **A hidden answer is shielded** by a column grant, a `security definer` helper
   and a `security_invoker` view
   ([code-conventions.md](code-conventions.md#security-definer-helper--security_invoker-view)).

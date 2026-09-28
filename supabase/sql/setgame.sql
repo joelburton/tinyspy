@@ -30,7 +30,7 @@ grant select (id, club_handle, mode, deck_kind, deck_pos, board, created_at)
 drop policy if exists games_select on setgame.games;
 create policy games_select on setgame.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 grant select on setgame.players to authenticated;
 drop policy if exists players_select on setgame.players;
@@ -40,7 +40,7 @@ create policy players_select on setgame.players
     exists (
       select 1 from setgame.games g
        where g.id = players.game_id
-         and common.is_club_member(g.club_handle)
+         and common._is_club_member(g.club_handle)
     )
   );
 
@@ -56,7 +56,7 @@ create policy events_select on setgame.events
     exists (
       select 1 from setgame.games g
        where g.id = events.game_id
-         and common.is_club_member(g.club_handle)
+         and common._is_club_member(g.club_handle)
     )
   );
 
@@ -285,12 +285,12 @@ declare
   v_deck_pos   int;
   first_turn   uuid;
 begin
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
   -- Must agree with numberOfPlayers in src/setgame/manifest.ts ([1,6]/[2,6]).
-  perform common.require_player_count_max(player_user_ids, 6);
+  perform common._require_player_count_max(player_user_ids, 6);
 
-  perform common.require_valid_mode(mode);
-  perform common.require_valid_timer(setup->'timer');
+  perform common._require_valid_mode(mode);
+  perform common._require_valid_timer(setup->'timer');
 
   v_deck_kind := coalesce(setup->>'deck', 'full');
   if v_deck_kind not in ('full', 'junior') then
@@ -312,10 +312,10 @@ begin
   select * into v_board, v_deck_pos
     from setgame._deal_to_playable(v_board, v_deck_pos, v_deck, v_deck_kind);
 
-  new_id := common.create_game(
+  new_id := common._create_game(
     target_club, 'setgame_' || mode, player_user_ids,
     -- Placeholder: the real title needs the game's id, which only exists once
-    -- common.create_game has inserted the row (rewritten just below).
+    -- common._create_game has inserted the row (rewritten just below).
     'New game',
     setup,
     -- saved_default strips first_turn_user_id: who goes first is a per-game
@@ -372,7 +372,7 @@ begin
   -- though this is the only `ok` — a call site cannot assert a case the payload
   -- does not carry, and the alternative it is left with (`typeof data.id ===
   -- 'string'`) is a shape test rather than equality against a value.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -383,7 +383,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function setgame.create_game(text, jsonb, uuid[], text) from public;
@@ -452,7 +452,7 @@ begin
       from setgame.players p
      where p.game_id = target_game;
 
-    perform common.end_game(
+    perform common._end_game(
       target_game,
       case when reason = 'timeout' then 'lost' else 'won' end,
       jsonb_build_object(
@@ -511,7 +511,7 @@ begin
         on gp.game_id = p.game_id and gp.user_id = p.user_id
      where p.game_id = target_game;
 
-    perform common.end_game(
+    perform common._end_game(
       target_game,
       -- A game nobody scored in has no one to crown, whatever ended it.
       case when best > 0 then 'won_compete' else 'lost_compete' end,
@@ -577,7 +577,7 @@ begin
     perform common._raise_game_deleted('setgame');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
@@ -710,7 +710,7 @@ begin
 
   -- No message: a claim that lands shows itself, in the cards leaving the
   -- board.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'claimed', 'terminal', out_terminal), 'won');
 
 exception when others then
@@ -719,7 +719,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function setgame.submit_set(uuid, smallint[]) from public;
@@ -785,7 +785,7 @@ begin
     perform common._raise_game_deleted('setgame');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   if g_row.mode <> 'coop' then
     -- Mode is fixed at create_game and never changes, so no unbroken client
@@ -857,7 +857,7 @@ begin
   --
   -- No message and no outcome: asking for a hint shows itself, in the ring the
   -- client already drew.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'recorded', 'hints_used', v_used));
 
 exception when others then
@@ -866,7 +866,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function setgame.record_hint(uuid, smallint[]) from public;
@@ -904,7 +904,7 @@ begin
     perform common._raise_game_deleted('setgame');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
@@ -913,10 +913,10 @@ begin
 
   perform setgame._finish(target_game, 'timeout');
 
-  -- Realtime touch: common.end_game writes common.games, not setgame.*, so a
+  -- Realtime touch: common._end_game writes common.games, not setgame.*, so a
   -- no-op self-update wakes the FE's setgame subscription.
   update setgame.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -924,7 +924,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function setgame.submit_timeout(uuid) from public;
@@ -958,7 +958,7 @@ begin
     perform common._raise_game_deleted('setgame');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
@@ -972,7 +972,7 @@ begin
     from setgame.players p
    where p.game_id = target_game;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game, 'ended',
     jsonb_build_object(
       'mode', g_row.mode,
@@ -984,7 +984,7 @@ begin
   );
 
   update setgame.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -992,7 +992,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function setgame.stop_game(uuid) from public;
@@ -1023,9 +1023,9 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   v_answer jsonb;
 begin
-  perform common.require_compete((select mode from setgame.games where id = target_game));
+  perform common._require_compete((select mode from setgame.games where id = target_game));
   -- common.concede answers in an envelope and catches its own raises, so its
-  -- refusals relay untouched; the handler below is for require_compete's.
+  -- refusals relay untouched; the handler below is for _require_compete's.
   v_answer := common.concede(target_game);
   -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
   -- → Concede).
@@ -1038,7 +1038,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function setgame.concede(uuid) from public;
@@ -1083,7 +1083,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   -- Re-deal from the top of the same deck, including the opening deal-three
   -- fixpoint, so the board matches the one create_game produced exactly.
@@ -1104,7 +1104,7 @@ begin
   -- No title to restore: it is the game's own id, which a replay does not
   -- change. (The games that rewrite their title from play have to put it back
   -- here, or a replayed game keeps advertising the last run's result.)
-  perform common.reset_game(
+  perform common._reset_game(
     target_game,
     jsonb_build_object(
       'mode', g_row.mode,
@@ -1112,7 +1112,7 @@ begin
       'deck_left', setgame._deck_size(g_row.deck_kind) - v_pos
     )
   );
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1120,7 +1120,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function setgame.replay_board(uuid) from public;

@@ -180,7 +180,7 @@ select pg_temp.envelope_is(
 
 -- 'none' is accepted (no seconds needed). lives_ok creates a real
 -- game; the partial unique index allows one is_current_view=true
--- game per club, but common.create_game moves the club's current
+-- game per club, but common._create_game moves the club's current
 -- view to the new game, so chained lives_ok calls below are safe.
 select lives_ok(
   format(

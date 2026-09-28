@@ -2,7 +2,7 @@
 
 -- ============================================================
 -- Test: a player's ending while the game plays on
---       (common._set_player_ended + common.reset_game)
+--       (common._set_player_ended + common._reset_game)
 -- ============================================================
 -- common.game_players.player_ended_at says "this player is DONE, the
 -- game is not". The presence-pause roster is the players with no
@@ -15,7 +15,7 @@
 --   2. It does not end the game
 --   3. Idempotent, keeping the first ending: the calling branch never
 --      has to ask whether it already fired
---   4. common.reset_game clears it, so Restart puts everyone back
+--   4. common._reset_game clears it, so Restart puts everyone back
 --      in the race
 --
 -- Each gametype's OWN test proves it calls the helper at the right
@@ -23,7 +23,7 @@
 -- a solve in wordle / waffle / strands, wordiply's fifth guess);
 -- this file is the helper itself.
 --
--- Uses common.create_game directly — the helper is gametype-agnostic.
+-- Uses common._create_game directly — the helper is gametype-agnostic.
 -- See common/concede_test.sql for the pgTAP / auth-simulation primer.
 -- ============================================================
 
@@ -37,7 +37,7 @@ select plan(7);
 \ir ../_shared/envelope.psql
 
 -- Set JWT claims WITHOUT switching role away from postgres — keeps execute
--- privilege on common.create_game, which is revoked from `authenticated`.
+-- privilege on common._create_game, which is revoked from `authenticated`.
 create function pg_temp.as_jwt_only(uid uuid) returns void
 language plpgsql as $$
 begin
@@ -57,7 +57,7 @@ select set_config('request.jwt.claims', '', true);
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select set_config(
   'test.game_id',
-  (common.create_game(
+  (common._create_game(
     (select handle from club),
     'spellingbee_compete',
     'compete',
@@ -127,7 +127,7 @@ select is(
 );
 
 -- ─── (5) A restart puts everyone back in the race ───
-select common.reset_game(current_setting('test.game_id')::uuid);
+select common._reset_game(current_setting('test.game_id')::uuid);
 select is(
   (select count(*) from common.game_players
     where game_id = current_setting('test.game_id')::uuid

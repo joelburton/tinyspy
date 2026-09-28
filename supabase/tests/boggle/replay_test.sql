@@ -85,7 +85,7 @@ select is(
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
--- 42501 = common.require_game_player's 'not-a-player|'.
+-- 42501 = common._require_game_player's 'not-a-player|'.
 select pg_temp.envelope_is(
   boggle.replay_board((select id from g1)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",

@@ -137,7 +137,7 @@ Asked of each answer an RPC can give:
 
 **A message always comes with an outcome**, so no call site guesses how it
 reads. The `ok` type is two shapes (a message and an `Outcome`, or none and
-perhaps an outcome), the guard refuses an `ok_envelope` with words and no
+perhaps an outcome), the guard refuses an `_ok_envelope` with words and no
 outcome, and the wrappers fault on one at runtime.
 
 **A fault says what reached the server, not the rule.** "BUG: guess that was
@@ -271,7 +271,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 ```
 
 Anything not ours re-raises and reaches the client in Postgres's own shape — a
@@ -292,7 +292,7 @@ raw fault. **Each clause of a raise carries one thing:**
 - **Errcodes stay bare literals**, so a classification that differs by mode is
   two raises in an `if/else`, never a `case`.
 - **A function that never raises still returns an envelope**
-  (`common.ok_envelope`, with a `data` that names the answer — never with no
+  (`common._ok_envelope`, with a `data` that names the answer — never with no
   arguments), so the call shape doesn't depend on whether it raises today.
 - **Order the checks so the truest sentence wins.** **A missing game row is
   PN485**, the shared race from `common._raise_game_deleted`, in every game RPC
@@ -304,7 +304,7 @@ raw fault. **Each clause of a raise carries one thing:**
 has a well-formed code, used once; the hints match the TypeScript vocabularies;
 a form-validation names a column; a fault's message opens `BUG:` unless it
 describes a state; a constraint written is read back by its handler, walking
-out from helpers to their callers; and no `ok_envelope` has words without an
+out from helpers to their callers; and no `_ok_envelope` has words without an
 outcome.
 
 ## How edge functions build one

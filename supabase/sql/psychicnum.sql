@@ -44,7 +44,7 @@ create policy games_select on psychicnum.games
     exists (
       select 1 from common.games cg
        where cg.id = games.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
     )
   );
 
@@ -59,7 +59,7 @@ create policy players_select on psychicnum.players
     exists (
       select 1 from common.games cg
        where cg.id = players.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
     )
   );
 
@@ -82,7 +82,7 @@ create policy events_select on psychicnum.events
     exists (
       select 1 from common.games cg
        where cg.id = events.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
          and (cg.mode = 'coop' or events.user_id = (select auth.uid()) or cg.ended_at is not null)
     )
   );
@@ -275,7 +275,7 @@ declare
   first_turn uuid;
 begin
   -- ─── Validate mode + player-count ───────────────────
-  perform common.require_valid_mode(p_mode);
+  perform common._require_valid_mode(p_mode);
 
   if p_mode = 'compete' then
     -- Compete needs an opposing PLAYER. A solo race is just a
@@ -293,7 +293,7 @@ begin
   -- `numberOfPlayers: [1, 6]` (coop) / `[2, 6]` (compete)
   -- declarations in src/psychicnum/manifest.ts. See
   -- docs/code-conventions.md → "Per-game player counts".
-  perform common.require_player_count_max(p_player_user_ids, 6);
+  perform common._require_player_count_max(p_player_user_ids, 6);
 
   -- ─── Validate setup shape ────────────────────────────
   if (p_setup->>'max_guesses') is null then
@@ -337,7 +337,7 @@ begin
       detail = 'setup.band must be 1..6';
   end if;
 
-  perform common.require_valid_timer(p_setup->'timer');
+  perform common._require_valid_timer(p_setup->'timer');
 
   -- The board: `word_count` distinct words sampled from the dictionary under a
   -- clean (no crude/slur), american, non-slang, difficulty-≤-band filter —
@@ -390,7 +390,7 @@ begin
       limit 3
     ) first3;
 
-  -- Common-side coordination — see common.create_game for the
+  -- Common-side coordination — see common._create_game for the
   -- full responsibilities (auth, membership, vacate prior
   -- current-view game, insert common.games + game_players,
   -- return canonical id).
@@ -398,7 +398,7 @@ begin
   -- first" pick is a per-game choice, not a per-club preference (same
   -- treatment codenamesduet gives first_clue_giver_user_id). The coop_style
   -- toggle itself DOES round-trip, so a club that likes turns keeps it.
-  new_id := common.create_game(
+  new_id := common._create_game(
     p_club_handle, 'psychicnum_' || p_mode, p_mode, p_player_user_ids,
     game_title,
     p_setup,
@@ -410,7 +410,7 @@ begin
   -- so submit_guess gates each guess on whose turn it is. Free-for-all
   -- (the default, or any compete game) leaves the pointer null — inert.
   -- The players + the pointer live on the common tables that
-  -- common.create_game just populated, so this runs after it.
+  -- common._create_game just populated, so this runs after it.
   if p_mode = 'coop' and p_setup->>'coop_style' = 'turns' then
     first_turn := (p_setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(p_player_user_ids)) then
@@ -437,7 +437,7 @@ begin
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on — without it the branch would match by
   -- merely being `ok` and would draw a second answer as this one.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -448,7 +448,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -544,7 +544,7 @@ begin
   end if;
 
   -- Auth + game-player gate.
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   select ended_at, mode into v_ended_at, v_mode
     from common.games where id = p_game_id;
@@ -576,7 +576,7 @@ begin
     from psychicnum.players
    where game_id = p_game_id and user_id = caller_id;
   if caller_used is null then
-    -- Shouldn't happen — require_game_player passed, so the row
+    -- Shouldn't happen — _require_game_player passed, so the row
     -- exists. Defensive.
     raise exception 'BUG: you are not in this game'
       using errcode = 'PN271', hint = 'fault', column = '_',
@@ -683,14 +683,14 @@ begin
       v_rankings := jsonb_build_object(caller_id::text, 1);
     end if;
 
-    perform common.end_game(
+    perform common._end_game(
       p_game_id, 'reached_goal', 'solved', caller_id,
       p_is_no_result => false,
       p_final_rankings => v_rankings
     );
   elsif racers_with_budget = 0 then
     -- ─── Every budget spent before the set was complete: a loss ───
-    perform common.end_game(
+    perform common._end_game(
       p_game_id, 'resource_exhausted', 'exhausted', caller_id,
       p_is_no_result => false,
       p_final_rankings => '{}'::jsonb
@@ -705,7 +705,7 @@ begin
   end if;
 
   perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(v_answer);
+  return common._ok_envelope(v_answer);
 
 exception when others then
   get stacked diagnostics
@@ -713,7 +713,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -758,7 +758,7 @@ begin
     return false;
   end if;
 
-  perform common.end_game(
+  perform common._end_game(
     p_game_id, 'resource_exhausted', 'exhausted', p_ended_by_user_id,
     p_is_no_result => false,
     p_final_rankings => '{}'::jsonb
@@ -801,13 +801,13 @@ begin
     perform common._raise_game_deleted('psychicnum');
   end if;
 
-  perform common.require_compete((select mode from common.games where id = p_game_id));
+  perform common._require_compete((select mode from common.games where id = p_game_id));
 
   caller_id := common._concede(p_game_id);
   perform psychicnum._maybe_finish_compete(p_game_id, caller_id);
 
   perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
   get stacked diagnostics
@@ -815,7 +815,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -889,7 +889,7 @@ begin
     perform common._raise_game_deleted('psychicnum');
   end if;
 
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   if (select ended_at from common.games where id = p_game_id) is not null then
     -- A race: in coop a teammate ended the game, or the clock ran out, while
@@ -915,7 +915,7 @@ begin
   values (p_game_id, caller_id, secret_word, true, 'spoiler', false);
 
   perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'spoiler', 'word', secret_word));
 
 -- One block, and it has never heard of any specific condition: it reads the
@@ -927,7 +927,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -974,7 +974,7 @@ begin
     perform common._raise_game_deleted('psychicnum');
   end if;
 
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   if (select ended_at from common.games where id = p_game_id) is not null then
     -- A race: in coop a teammate ended the game, or the clock ran out, while
@@ -1003,7 +1003,7 @@ begin
   values (p_game_id, caller_id, clue_text, true, 'hint', false);
 
   perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object(
       'result', case when dict_hint is null then 'no-hint' else 'hint' end,
       'hint', clue_text));
@@ -1017,7 +1017,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1054,7 +1054,7 @@ begin
     perform common._raise_game_deleted('psychicnum');
   end if;
 
-  perform common.require_game_player(p_game_id);
+  perform common._require_game_player(p_game_id);
 
   select ended_at, current_turn_user_id into v_ended_at, v_turn_holder
     from common.games where id = p_game_id;
@@ -1063,14 +1063,14 @@ begin
     perform common._raise_game_over();
   end if;
 
-  perform common.end_game(
+  perform common._end_game(
     p_game_id, 'timeout', 'timeout', v_turn_holder,
     p_is_no_result => false,
     p_final_rankings => '{}'::jsonb
   );
 
   perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1078,7 +1078,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1113,7 +1113,7 @@ begin
   perform common._stop(p_game_id);
 
   perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1121,7 +1121,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1141,7 +1141,7 @@ drop function if exists psychicnum.replay_board(uuid);
 -- it's a restart). Both modes reset ALL players (a group "run it back",
 -- per the friends trust model).
 --
--- Turn-order coop goes back to the player seated first; common.reset_game
+-- Turn-order coop goes back to the player seated first; common._reset_game
 -- rewinds the pointer.
 --
 -- The secrets re-hide on their own: games_state gates them on
@@ -1169,7 +1169,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(p_game_id);
+  perform common._require_game_player(p_game_id);
 
   update psychicnum.players
      set guesses_used = 0,
@@ -1178,10 +1178,10 @@ begin
 
   delete from psychicnum.events where game_id = p_game_id;
 
-  perform common.reset_game(p_game_id);
+  perform common._reset_game(p_game_id);
 
   perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1189,7 +1189,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

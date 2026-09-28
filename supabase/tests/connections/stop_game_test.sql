@@ -21,7 +21,7 @@
 --   - every player unranked and neutral
 --   - idempotency: a second call is the game-over race
 --   - auth: a club outsider is rejected (PN253) via
---     require_game_player
+--     _require_game_player
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP / auth-
 -- simulation primer; ../spellingbee/gameplay_test.sql for the
@@ -157,7 +157,7 @@ select is(
 -- ============================================================
 -- (11) auth: a club outsider cannot end a game they're not in
 -- ============================================================
--- require_game_player treats stop_game the same as submit_guess —
+-- _require_game_player treats stop_game the same as submit_guess —
 -- dee is not a player on a fresh game, so PN253. (We use a fresh
 -- game because both games above have ended and would answer the
 -- game-over race before the auth gate's effect is observable here.)

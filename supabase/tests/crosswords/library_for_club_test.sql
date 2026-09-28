@@ -87,7 +87,7 @@ select set_config('request.jwt.claims', '', true);
 
 create function pg_temp.xw_end(p_game uuid, p_state text)
 returns void language sql as $$
-  select common.end_game(p_game, p_state, '{}'::jsonb, '{}'::jsonb);
+  select common._end_game(p_game, p_state, '{}'::jsonb, '{}'::jsonb);
 $$;
 
 select pg_temp.xw_end(:'g_solved',  'won');

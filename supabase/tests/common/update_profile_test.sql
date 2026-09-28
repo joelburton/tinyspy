@@ -15,7 +15,7 @@
 -- `profiles_theme_test.sql`: this RPC never touches it.
 --
 -- The pgTAP + persona conventions are docs/testing.md's. `_shared/setup.psql`
--- seeds each persona's color as common.color_for_username(<name>).
+-- seeds each persona's color as common._color_for_username(<name>).
 
 begin;
 
@@ -48,13 +48,13 @@ select is(
   false, 'the sound setting is updated');
 
 -- ── Caller-scoped: bea's row is untouched. Checked as the test role
---    (reset out of `authenticated`) so we can call color_for_username
+--    (reset out of `authenticated`) so we can call _color_for_username
 --    — bea's stored color still equals her seeded default. ──────────
 reset role;
 select is(
   (select (color, sounds_enabled) from common.profiles
      where user_id = 'bea22222-2222-2222-2222-222222222222'),
-  (common.color_for_username('bea'), true),
+  (common._color_for_username('bea'), true),
   'saving ada''s profile leaves bea''s unchanged');
 
 -- ── Off-palette color → a fault, and nothing changes ───────────────

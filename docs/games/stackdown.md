@@ -285,8 +285,8 @@ it's self-contained; `board_id` is provenance only.
   cheats — a replay is a genuine second try), puts `common.games.title` back to
   `"New game"` (else a replayed coop game would still advertise the previous
   run's cleared words, spoiling the board it just reset), then hands the common
-  half to `common.reset_game`, and writes the statuses. The solution re-hides
-  on its own: `games_state` gates it on `ended_at`, which `reset_game` clears.
+  half to `common._reset_game`, and writes the statuses. The solution re-hides
+  on its own: `games_state` gates it on `ended_at`, which `_reset_game` clears.
   pgTAP: `replay_test.sql`.
 - **`concede(p_game_id)`** — the compete per-player drop-out. stackdown is a
   race to clear (first to clear wins, no elimination), so a player can end no
@@ -371,7 +371,7 @@ would just be noise).
 word: the first three, uppercased and `-`-joined, with a trailing `…` once a
 fourth is cleared — `EAGLE`, `EAGLE-TABLE`, `EAGLE-TABLE-PLANS`,
 `EAGLE-TABLE-PLANS…`. The club list reads a coop game's progress at a glance,
-and the final value persists into history (`end_game` doesn't touch the title).
+and the final value persists into history (`_end_game` doesn't touch the title).
 This reveals nothing new — coop's cleared words are shared and already on the
 GameEventLog panel. The formula is `stackdown._found_title(solution, n)`.
 

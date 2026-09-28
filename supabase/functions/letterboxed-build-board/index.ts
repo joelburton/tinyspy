@@ -53,7 +53,7 @@
  * The caller's JWT carries every authorization signal we need:
  *   - letterboxed.seeds + common.words are authenticated-readable.
  *   - letterboxed.create_game runs security definer and re-checks membership
- *     via common.require_club_member.
+ *     via common._require_club_member.
  * No service-role needed anywhere.
  *
  * Calling shape (from the FE):

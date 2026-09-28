@@ -22,7 +22,7 @@
  * reset, and `gmake db-sql ENV=prod` against the hosted project.
  *
  * **`common.sql` goes first.** Every game's functions and policies call into
- * `common` (`is_club_member`, `require_game_player`, `create_game`, …) and a
+ * `common` (`_is_club_member`, `_require_game_player`, `_create_game`, …) and a
  * policy can only reference a function that already exists. The games have no
  * ordering between themselves — the removability invariant (docs/common.md)
  * forbids one game referencing another — so alphabetical is fine for the rest.

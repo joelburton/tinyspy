@@ -69,7 +69,7 @@ type OkCommon<T> = {
  * optional in the "might not be there" sense, and that is the point: an envelope
  * has defined fields, so a caller reads one rather than first checking whether
  * it exists (Joel, 2026-08-28). All three builders emit the same nine keys —
- * `common.ok_envelope` / `common.raised_envelope` in SQL, `_shared/envelope.ts`
+ * `common._ok_envelope` / `common._raised_envelope` in SQL, `_shared/envelope.ts`
  * in Deno, `faultEnvelope` and its neighbors in `dbEnvelope.ts` here.
  *
  * It also buys back a distinction a lookup needs. While SQL stripped its nulls,
@@ -84,7 +84,7 @@ export type Envelope<T = unknown> =
   //
   // The rule is enforced three ways besides the type (docs/envelopes.md → Who
   // writes the words): every `PA` raise must carry a HINT, `raiseCodes.test.ts`
-  // refuses an `ok_envelope` built with one and not the other, and `runRpc`
+  // refuses an `_ok_envelope` built with one and not the other, and `runRpc`
   // faults on the pair at runtime for anything neither can see.
   | (OkCommon<T> & {
       message: string
@@ -113,7 +113,7 @@ export type Envelope<T = unknown> =
       message: string
       // Which control this message is about, from the raise's `COLUMN`. Any
       // severity may name one — a fault about one field is still about that
-      // field (`require_valid_timer`), and the form files it there either way.
+      // field (`_require_valid_timer`), and the form files it there either way.
       //
       //     'letters'   the message belongs under that field
       //     '_'         deliberately not about one field — the form's own line

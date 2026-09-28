@@ -63,18 +63,21 @@ as $$
 $$;
 revoke execute on function waffle._color_rank(text) from public;
 
+-- Its name before a leading `_` came to mean "only SQL calls it".
+drop function if exists waffle.board_colors(text, text);
+
 -- ============================================================
--- waffle.board_colors — color a whole board against the solution
+-- waffle._board_colors — color a whole board against the solution
 -- ============================================================
 -- Pure function of (board, solution): both 25-char strings. Colors
--- each of the 6 words independently with common.wordle_colors, then merges
+-- each of the 6 words independently with common._wordle_colors, then merges
 -- per cell — an intersection cell (in two words) shows the STRONGER
 -- of its two colors (green > yellow > gray). Holes stay '.'.
 --
 -- This is the single source of truth for feedback; submit_swap returns it
 -- and the read-view exposes it, both reading the hidden solution
 -- server-side so the FE never holds the answer.
-create or replace function waffle.board_colors(board text, solution text)
+create or replace function waffle._board_colors(board text, solution text)
 returns text
 language plpgsql
 immutable
@@ -111,7 +114,7 @@ begin
       sw := sw || substr(solution, cell, 1);
     end loop;
 
-    wc := common.wordle_colors(bw, sw);
+    wc := common._wordle_colors(bw, sw);
 
     -- Merge each cell's color, keeping the stronger of the two words.
     for k in 1..5 loop
@@ -126,7 +129,7 @@ begin
   return array_to_string(res, '');
 end;
 $$;
-revoke execute on function waffle.board_colors(text, text) from public;
+revoke execute on function waffle._board_colors(text, text) from public;
 
 -- Column-level grant: everything EXCEPT `solution`. The presence of
 -- any column grant flips the table from "all columns visible" to
@@ -144,7 +147,7 @@ create policy games_select on waffle.games
     exists (
       select 1 from common.games cg
        where cg.id = games.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
     )
   );
 
@@ -165,7 +168,7 @@ create policy players_select on waffle.players
     exists (
       select 1 from common.games cg
        where cg.id = players.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
     )
   );
 
@@ -190,7 +193,7 @@ create policy events_select on waffle.events
     exists (
       select 1 from common.games cg
        where cg.id = events.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
          and (cg.mode = 'coop' or events.user_id = (select auth.uid()) or cg.ended_at is not null)
     )
   );
@@ -279,7 +282,7 @@ security definer
 set search_path = waffle, common, public, extensions
 as $$
   select case when waffle._board_visible(cg, row_user)
-              then waffle.board_colors(wp.board, wg.solution) else null end
+              then waffle._board_colors(wp.board, wg.solution) else null end
     from waffle.players wp
     join waffle.games wg on wg.game_id = wp.game_id
     join common.games cg on cg.id = wp.game_id
@@ -582,11 +585,11 @@ declare
   game_title   text;
   first_turn   uuid;
 begin
-  perform common.require_club_member(p_club_handle);
+  perform common._require_club_member(p_club_handle);
   -- Must agree with numberOfPlayers in src/waffle/manifest.ts ([1,6]).
-  perform common.require_player_count_max(p_player_user_ids, 6);
+  perform common._require_player_count_max(p_player_user_ids, 6);
 
-  perform common.require_valid_mode(p_mode);
+  perform common._require_valid_mode(p_mode);
 
   -- ─── Validate setup.extra_swaps (the swap-budget knob) ───
   s_extra := coalesce((p_setup->>'extra_swaps')::int, 5);
@@ -608,7 +611,7 @@ begin
       detail = 'setup.difficulty must be 1..6';
   end if;
 
-  perform common.require_valid_timer(p_setup->'timer');
+  perform common._require_valid_timer(p_setup->'timer');
 
   -- ─── Validate the passed board (structure, not content) ──────
   b_solution := p_board->>'solution';
@@ -653,7 +656,7 @@ begin
   -- which kind of game is sitting there.
   game_title := case p_mode when 'coop' then 'New game' else 'New compete' end;
 
-  new_id := common.create_game(
+  new_id := common._create_game(
     p_club_handle, 'waffle_' || p_mode, p_mode, p_player_user_ids, game_title, p_setup,
     -- The saved default strips first_turn_user_id (per-game "who goes first"
     -- pick, not a per-club preference; coop_style rides).
@@ -662,7 +665,7 @@ begin
 
   -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common
   -- rotation so submit_swap gates each swap. Free-for-all / compete leave the
-  -- pointer null. Runs after common.create_game seeds game_players.
+  -- pointer null. Runs after common._create_game seeds game_players.
   if p_mode = 'coop' and p_setup->>'coop_style' = 'turns' then
     first_turn := (p_setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(p_player_user_ids)) then
@@ -687,7 +690,7 @@ begin
   -- `result` NAMES the answer; `id` is the game to go to. It travels through
   -- `waffle-build-board` untouched — `invokeCreateGame` forwards this envelope
   -- verbatim — so naming it here is what gives BOTH call sites a case to assert.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.
@@ -697,7 +700,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -743,7 +746,7 @@ begin
        where wp.game_id = p_game_id and gp.solved_at is not null
     ) ranked;
 
-  perform common.end_game(
+  perform common._end_game(
     p_game_id, p_reason, p_reason_detail, p_ended_by_user_id,
     p_is_no_result => false,
     p_final_rankings => v_rankings
@@ -850,7 +853,7 @@ begin
     perform common._raise_game_deleted('waffle');
   end if;
 
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   select ended_at, mode into v_ended_at, v_mode
     from common.games where id = p_game_id;
@@ -943,7 +946,7 @@ begin
   values
     (p_game_id, caller_id, 'swap', p_pos_a, p_pos_b,
      substr(cur_board, a1, 1), substr(cur_board, b1, 1), true,
-     waffle.board_colors(new_board, g_row.solution));
+     waffle._board_colors(new_board, g_row.solution));
 
   if v_mode = 'coop' then
     -- Lock-step: every player's row mirrors the shared board + count.
@@ -959,14 +962,14 @@ begin
        where game_id = p_game_id;
       select jsonb_object_agg(user_id::text, 1) into v_rankings
         from common.game_players where game_id = p_game_id;
-      perform common.end_game(
+      perform common._end_game(
         p_game_id, 'reached_goal', 'solved', caller_id,
         p_is_no_result => false,
         p_final_rankings => v_rankings
       );
       out_terminal := true;
     elsif new_swaps >= g_row.max_swaps then
-      perform common.end_game(
+      perform common._end_game(
         p_game_id, 'resource_exhausted', 'exhausted', caller_id,
         p_is_no_result => false,
         p_final_rankings => '{}'::jsonb
@@ -1013,10 +1016,10 @@ begin
   -- `result` NAMES the answer, and it is the one field the call site DOES read:
   -- everything beside it is ignored on purpose, so without a name the branch
   -- would match by being `ok` and would draw a second answer as this one.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object(
       'result',     'swapped',
-      'colors',     waffle.board_colors(new_board, g_row.solution),
+      'colors',     waffle._board_colors(new_board, g_row.solution),
       'swaps_used', new_swaps,
       'solved',     did_solve,
       'terminal',   out_terminal
@@ -1028,7 +1031,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1066,7 +1069,7 @@ begin
     perform common._raise_game_deleted('waffle');
   end if;
 
-  perform common.require_compete((select mode from common.games where id = p_game_id));
+  perform common._require_compete((select mode from common.games where id = p_game_id));
 
   caller_id := common._concede(p_game_id);
   perform waffle._maybe_finish_compete(p_game_id, 'conceded', 'conceded', caller_id);
@@ -1075,7 +1078,7 @@ begin
   perform waffle._sync_title(p_game_id);
 
   perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
   get stacked diagnostics
@@ -1083,7 +1086,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1117,7 +1120,7 @@ begin
     perform common._raise_game_deleted('waffle');
   end if;
 
-  perform common.require_game_player(p_game_id);
+  perform common._require_game_player(p_game_id);
 
   select mode, ended_at, current_turn_user_id
     into v_mode, v_ended_at, v_turn_holder
@@ -1127,7 +1130,7 @@ begin
   end if;
 
   if v_mode = 'coop' then
-    perform common.end_game(
+    perform common._end_game(
       p_game_id, 'timeout', 'timeout', v_turn_holder,
       p_is_no_result => false,
       p_final_rankings => '{}'::jsonb
@@ -1140,7 +1143,7 @@ begin
   perform waffle._sync_title(p_game_id);
 
   perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1148,7 +1151,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1188,7 +1191,7 @@ begin
   perform waffle._sync_title(p_game_id);
 
   perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1196,7 +1199,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1217,7 +1220,7 @@ drop function if exists waffle.replay_board(uuid);
 --
 -- Resets the waffle-specific working state (every player's board → the
 -- dealt board, swaps zeroed; the swap log cleared), then hands the
--- common-layer reset to common.reset_game (the ending, each player's
+-- common-layer reset to common._reset_game (the ending, each player's
 -- ending, solve and result).
 create or replace function waffle.replay_board(p_game_id uuid)
 returns jsonb
@@ -1243,7 +1246,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(p_game_id);
+  perform common._require_game_player(p_game_id);
 
   update waffle.players
      set board = g_row.board_at_setup,
@@ -1252,7 +1255,7 @@ begin
 
   delete from waffle.events where game_id = p_game_id;
 
-  perform common.reset_game(p_game_id);
+  perform common._reset_game(p_game_id);
 
   -- Back to the placeholder: every board is the dealt board again (no word is
   -- correct) and reset_game cleared the ending, so the title must stop
@@ -1260,7 +1263,7 @@ begin
   perform waffle._sync_title(p_game_id);
 
   perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1268,7 +1271,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

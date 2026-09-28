@@ -103,7 +103,7 @@ Three different trust postures coexist here, each for its own reason:
   the twelve with *any* chain inside the cap, so unlike waffle (the solved grid
   is the answer) or wordle (you typed the target) a win does **not** put the
   seeded pair on screen. That used to need a whole `letterboxed._end_game`
-  wrapper, because the shared `end_game` opened the solution on any win; with no
+  wrapper, because the shared `_end_game` opened the solution on any win; with no
   flag to open, the wrapper is gone (§5). Gating it server-side would guard
   nothing, since any two-word solution is one BFS away from the shipped list;
   the seeded pair is stored because it's the *gettable* one (band ≤ 2 by
@@ -180,14 +180,14 @@ coverage, whatever the coverage) / `lost_compete` (all conceded) / `ended` (manu
 | `log_hint_or_spoiler(target_game, word_shown, kind)` | Records that a hint or a spoiler was taken (§6). The suggestion is computed on the FE; the server's only job is making the event log agree with what happened. Coop-only — refused in compete, where either rung is a win button. |
 | `submit_timeout(target_game)` | Coop → **`lost`** (one chain, it didn't reach twelve; nothing to rank). Compete → resolve on **most letters covered → fewest words → co-winners** (the wordiply comparator shape: a shared win beats an arbitrary one). Both ranking numbers were already public during the race, so the resolution reveals nothing new. |
 | `stop_game(target_game)` | The neutral manual stop, `ended` in **both** modes — a group agreeing to stop is agreeing not to have a result. |
-| `concede(target_game)` | A wrapper over `common.concede` — the generic helper is right here because letterboxed is **not** an elimination game (undo refunds, so the only way a non-conceded player stops racing is winning, which already ends the game). A conceder is out in both directions: the move RPCs refuse them, and the timeout ranking excludes them. It also refuses a coop caller (`common.require_compete`, PN484); the menu never offers Concede in coop, but this wrapper was the only one with a coop sibling and no such check until 2026-09-01. |
-| `replay_board(target_game)` | The cheapest replay on the roster — the board is immutable data, so there's nothing to rebuild: clear the chains, drop the log, `reset_game` a fresh status blob (which also rewinds the turn pointer). Nothing is re-revealed (no ending opens the pair by itself, so a replay is a genuine second try). |
-| ~~`_end_game(...)`~~ | **Removed 2026-08-15.** It wrapped `common.end_game` for one reason: the shared helper opened the solution on any winning `play_state`, on the premise that a win *is* the solution produced — true for waffle and wordle, false here (§4). Revealing is now local FE state and nothing autoreveals, so there is no flag to put back and every terminal write calls `common.end_game` directly. The `drop function` stays in `supabase/sql/letterboxed.sql`: that file is re-applied rather than diffed, so deleting the definition alone would strand the old function in every database that ran it. |
+| `concede(target_game)` | A wrapper over `common.concede` — the generic helper is right here because letterboxed is **not** an elimination game (undo refunds, so the only way a non-conceded player stops racing is winning, which already ends the game). A conceder is out in both directions: the move RPCs refuse them, and the timeout ranking excludes them. It also refuses a coop caller (`common._require_compete`, PN484); the menu never offers Concede in coop, but this wrapper was the only one with a coop sibling and no such check until 2026-09-01. |
+| `replay_board(target_game)` | The cheapest replay on the roster — the board is immutable data, so there's nothing to rebuild: clear the chains, drop the log, `_reset_game` a fresh status blob (which also rewinds the turn pointer). Nothing is re-revealed (no ending opens the pair by itself, so a replay is a genuine second try). |
+| ~~`_end_game(...)`~~ | **Removed 2026-08-15.** It wrapped `common._end_game` for one reason: the shared helper opened the solution on any winning `play_state`, on the premise that a win *is* the solution produced — true for waffle and wordle, false here (§4). Revealing is now local FE state and nothing autoreveals, so there is no flag to put back and every terminal write calls `common._end_game` directly. The `drop function` stays in `supabase/sql/letterboxed.sql`: that file is re-applied rather than diffed, so deleting the definition alone would strand the old function in every database that ran it. |
 
 Every mid-game transition calls `_sync_status` (the wordle `_sync_title`
 pattern: derived, not remembered per-writer), so the club-page label is correct
 after a word, an undo, a clear, a hint or a spoiler. Terminal transitions build
-their own blob for `common.end_game` — status **merges**, so every value a
+their own blob for `common._end_game` — status **merges**, so every value a
 terminal asserts is restated ([status blob merges](../supabase.md)). Compete's
 mid-game/terminal blobs carry a `_leaderboard` of the two public numbers, with
 usernames cached in (never joined at read time).

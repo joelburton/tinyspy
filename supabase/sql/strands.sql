@@ -94,7 +94,7 @@ grant select
 drop policy if exists games_select on strands.games;
 create policy games_select on strands.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 -- ============================================================
 -- strands.players
@@ -126,7 +126,7 @@ create policy players_select on strands.players
     exists (
       select 1 from strands.games sg
        where sg.id = strands.players.game_id
-         and common.is_club_member(sg.club_handle)
+         and common._is_club_member(sg.club_handle)
     )
   );
 
@@ -232,7 +232,7 @@ create policy events_select on strands.events
         from strands.games sg
         join common.games cg on cg.id = sg.id
        where sg.id = strands.events.game_id
-         and common.is_club_member(sg.club_handle)
+         and common._is_club_member(sg.club_handle)
          and (
            sg.mode = 'coop'
            or strands.events.user_id = (select auth.uid())
@@ -391,7 +391,7 @@ begin
       detail = 'no puzzle unseen by every uid in seen_by';
   end if;
 
-  return common.ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
+  return common._ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
 
 exception when others then
   get stacked diagnostics
@@ -399,7 +399,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -450,7 +450,7 @@ begin
       detail = 'no strands.puzzles row with that puzzle_date';
   end if;
 
-  return common.ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
+  return common._ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
 
 exception when others then
   get stacked diagnostics
@@ -458,7 +458,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -513,7 +513,7 @@ declare
   effective_gametype text;
   first_turn         uuid;
 begin
-  perform common.require_valid_mode(mode);
+  perform common._require_valid_mode(mode);
 
   -- Compete needs an opposing PLAYER. The manifest hides its Start button in a
   -- one-player club; this is the server-side catch.
@@ -524,7 +524,7 @@ begin
   end if;
 
   -- Upper bound must agree with `numberOfPlayers` in the manifest.
-  perform common.require_player_count_max(player_user_ids, 6);
+  perform common._require_player_count_max(player_user_ids, 6);
 
   -- ─── Which puzzle ────────────────────────────────────────
   -- Absent means "you choose" — the setup dialog has no picker any more, so
@@ -587,7 +587,7 @@ begin
       detail = 'setup.min_word_length must be 3..8';
   end if;
 
-  perform common.require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(setup->'timer');
 
   -- Load the puzzle. The FK would catch a bad id at INSERT, but "puzzle not
   -- found" is friendlier than a foreign-key violation.
@@ -607,7 +607,7 @@ begin
 
   effective_gametype := 'strands_' || mode;
 
-  new_id := common.create_game(
+  new_id := common._create_game(
     target_club, effective_gametype, player_user_ids, game_title,
     setup,
     -- saved_default strips the per-GAME picks: which puzzle (a date you choose
@@ -672,7 +672,7 @@ begin
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on — without it the branch would match by
   -- merely being `ok` and would draw a second answer as this one.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -683,7 +683,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -827,7 +827,7 @@ begin
     select jsonb_object_agg(user_id::text, jsonb_build_object('won', won))
       into player_results from ranked;
 
-    perform common.end_game(
+    perform common._end_game(
       target_game, 'won_compete',
       jsonb_build_object('reason', 'solved', 'best_hints', best_hints),
       player_results);
@@ -836,7 +836,7 @@ begin
       into player_results
       from common.game_players where game_id = target_game;
 
-    perform common.end_game(
+    perform common._end_game(
       target_game, 'lost_compete',
       jsonb_build_object(
         'reason',
@@ -932,7 +932,7 @@ begin
     perform common._raise_game_deleted('strands');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
@@ -1167,7 +1167,7 @@ begin
       into player_results
       from common.game_players where game_id = target_game;
 
-    perform common.end_game(
+    perform common._end_game(
       target_game, 'won',
       jsonb_build_object('reason', 'solved', 'words_found', v_found),
       player_results);
@@ -1223,7 +1223,7 @@ begin
   -- `message` stays null because the pill copy is the shared `WORD — body`
   -- format four other games speak through `useWordSubmit`, and composing it in
   -- SQL would fork a format whose whole point is being identical.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object(
       'result', v_result,
       'word', v_word,
@@ -1255,7 +1255,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1296,7 +1296,7 @@ begin
     perform common._raise_game_deleted('strands');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
@@ -1391,7 +1391,7 @@ begin
   -- bad play, and coloring it would adjudicate something the player did not do
   -- (docs/outcomes.md). `coords` and `hint_points` are the fields this RPC has
   -- always returned.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'hinted', 'coords', coords, 'hint_points', 0),
     'warning');
 
@@ -1404,7 +1404,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1444,7 +1444,7 @@ begin
   -- Row check before the membership gate: `delete_game` takes this row,
   -- `common.games` and every `game_players` row together, so gate-first
   -- answered "You are not in this game" for a game that was simply deleted.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
@@ -1465,13 +1465,13 @@ begin
   -- nobody won. Compete does NOT crown the best solver here — a race called off
   -- early didn't finish, and handing the trophy to whoever was ahead would
   -- reward stopping at the right moment.
-  perform common.end_game(
+  perform common._end_game(
     target_game, 'ended',
     jsonb_build_object('reason', 'manual', 'words_found', v_found),
     player_results);
   -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update strands.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1479,7 +1479,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1519,16 +1519,16 @@ begin
   -- game sticks in `playing` with nobody left to end it. Lock order is
   -- strands.games → common.games on every path, so no deadlock.
   select mode into g_mode from strands.games where id = target_game for update;
-  -- A null mode (no strands row) falls straight through `require_compete` and is
+  -- A null mode (no strands row) falls straight through `_require_compete` and is
   -- refused by `_set_conceded` as the missing game it is — the same path the
   -- five other games that decide their own terminal take. strands used to raise
   -- both of these itself, which cost two codes to say what common already says.
-  perform common.require_compete(g_mode);
+  perform common._require_compete(g_mode);
 
   perform common._set_conceded(target_game);
   perform strands._maybe_finish_compete(target_game);
 
-  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
   get stacked diagnostics
@@ -1536,7 +1536,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1552,7 +1552,7 @@ grant execute on function strands.concede(uuid) to authenticated;
 -- a terminal action.
 --
 -- The solution re-hides itself: _solution_for reads is_terminal, which
--- common.reset_game puts back to false.
+-- common._reset_game puts back to false.
 drop function if exists strands.replay_board(uuid);
 
 create or replace function strands.replay_board(target_game uuid)
@@ -1580,7 +1580,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   delete from strands.events where game_id = target_game;
 
@@ -1594,14 +1594,14 @@ begin
 
   -- The same status shape create_game seeds, mode for mode — a restart must be
   -- indistinguishable from a fresh game, including compete's silence.
-  perform common.reset_game(
+  perform common._reset_game(
     target_game,
     case when g_row.mode = 'coop'
          then jsonb_build_object('mode', g_row.mode, 'words_found', 0)
          else jsonb_build_object('mode', g_row.mode)
     end
   );
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1609,7 +1609,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1652,7 +1652,7 @@ begin
   -- Row check before the membership gate: `delete_game` takes this row,
   -- `common.games` and every `game_players` row together, so gate-first
   -- answered "You are not in this game" for a game that was simply deleted.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
@@ -1664,7 +1664,7 @@ begin
     -- to whoever HAD solved. A player mid-board simply didn't finish — the
     -- winner is still "solved, on the fewest hints", never "got furthest".
     perform strands._maybe_finish_compete(target_game, true);
-    return common.ok_envelope(jsonb_build_object('result', 'ended'));
+    return common._ok_envelope(jsonb_build_object('result', 'ended'));
   end if;
 
   select count(*) into v_found
@@ -1675,13 +1675,13 @@ begin
     into player_results
     from common.game_players where game_id = target_game;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game, 'lost',
     jsonb_build_object('reason', 'timeout', 'words_found', v_found),
     player_results);
   -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update strands.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1689,7 +1689,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

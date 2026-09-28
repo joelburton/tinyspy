@@ -100,7 +100,7 @@ select pg_temp.envelope_is(
                            array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'wrong', null),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'dee cannot call submit_guess on a game she didn''t play (via require_game_player)'
+  'dee cannot call submit_guess on a game she didn''t play (via _require_game_player)'
 );
 
 select pg_temp.envelope_is(

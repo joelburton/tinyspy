@@ -358,7 +358,7 @@ type Suggested =
   // New game — a FRESH game (new id, new shuffle) with THIS game's setup +
   // roster + mode, in the same club. scrabble's create_game is a direct RPC (no
   // edge function — the only per-game randomness is the bag shuffle), so this
-  // mirrors the manifest's startGameInClub. Non-destructive (common.create_game
+  // mirrors the manifest's startGameInClub. Non-destructive (common._create_game
   // un-currents this game into the club list), so no confirm.
   //
   // `setup` is passed through verbatim, AI seats included — "same again" means

@@ -414,7 +414,7 @@ until the game is terminal, then all.
   and the terminal button (spellingbee's twin — [ui.md → Terminal
   results](../ui.md#terminal-results--the-moment-vs-the-record)): restart the
   SAME board (same faces + word lists) for everyone. Clears `boggle.found_words`
-  (the only working state), then `common.reset_game` un-terminals with the exact
+  (the only working state), then `common._reset_game` un-terminals with the exact
   initial status `create_game` seeds and zeroes the shared clock. Confirmed
   mid-game; unconfirmed at terminal. **The realtime touch is LOAD-BEARING**:
   replay only DELETEs rows and realtime filters don't reliably match DELETE

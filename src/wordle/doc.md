@@ -53,7 +53,7 @@ comes back colored letter by letter:
 - **gray** — not in the word.
 
 A letter earns a yellow only while the target still has an unclaimed copy of
-it after the greens are taken (`common.wordle_colors`, which waffle shares).
+it after the greens are taken (`common._wordle_colors`, which waffle shares).
 Win by guessing the word within the **budget** — five to eight guesses, chosen
 at setup, six being the classic.
 
@@ -125,8 +125,8 @@ is the server-side catch rather than a refusal anyone sees.
 
 ### How a game ends
 
-Whichever RPC ends the game passes `common.end_game` the reason pair and the
-rankings ([common-schema.md → `common.end_game`](../../docs/common-schema.md#commonend_game--the-one-way-a-game-ends)):
+Whichever RPC ends the game passes `common._end_game` the reason pair and the
+rankings ([common-schema.md → `common._end_game`](../../docs/common-schema.md#common_end_game--the-one-way-a-game-ends)):
 
 | the ending | reason / detail | ranked |
 |---|---|---|
@@ -455,7 +455,7 @@ winning guess or five that miss:
 | `reveal_test` | the target unshields at terminal whatever the outcome; `_sync_title` never spells the answer of a game the players may still replay blind |
 | `legal_band_test` · `banded_answer_test` | the same word is `notAWord` under a strict band and legal under a loose one; an answer banded out from under a live game still solves it |
 
-`colors_test` sits in the folder too, but pins `common.wordle_colors` and
+`colors_test` sits in the folder too, but pins `common._wordle_colors` and
 belongs to `shared/wordle-style`.
 
 Vitest, beside the code:

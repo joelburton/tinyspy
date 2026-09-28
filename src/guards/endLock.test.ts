@@ -3,7 +3,7 @@
 /**
  * **Stop and the timeout lock the game's own row before ending it.**
  *
- * `common.end_game` updates `common.games` unconditionally. So a Stop (or a
+ * `common._end_game` updates `common.games` unconditionally. So a Stop (or a
  * timeout) that reads the play state WITHOUT holding the game's own row can
  * race the winning move: it reads `playing` from before the move committed,
  * then waits on `common.games` and overwrites the win with a neutral `ended`,
@@ -18,7 +18,7 @@
  * race; the SQL can still be read.
  *
  * **The rule, as checked:** every `<game>.stop_game` and `<game>.submit_timeout`
- * reads `<game>.games … for update` before it calls `common.end_game` or any
+ * reads `<game>.games … for update` before it calls `common._end_game` or any
  * function of its own game (which is how a helper ends it).
  */
 import { readFileSync, readdirSync } from 'node:fs'

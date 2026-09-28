@@ -61,7 +61,7 @@ create policy games_select on connections.games
     exists (
       select 1 from common.games cg
        where cg.id = games.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
     )
   );
 
@@ -86,7 +86,7 @@ create policy events_select on connections.events
     exists (
       select 1 from common.games cg
        where cg.id = events.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
          and (
                cg.mode = 'coop'
             or events.user_id = (select auth.uid())
@@ -106,7 +106,7 @@ create policy players_select on connections.players
     exists (
       select 1 from common.games cg
        where cg.id = players.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
     )
   );
 
@@ -217,7 +217,7 @@ begin
       detail = 'no puzzle unseen by every uid in p_seen_by';
   end if;
 
-  return common.ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
+  return common._ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
 
 exception when others then
   get stacked diagnostics
@@ -225,7 +225,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -296,7 +296,7 @@ begin
       detail = 'no connections.puzzles row with that puzzle_date';
   end if;
 
-  return common.ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
+  return common._ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
 
 exception when others then
   get stacked diagnostics
@@ -304,13 +304,13 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
 -- `security invoker` (the default), unlike its twin — it filters nothing, so it
 -- needs no elevated view of other clubs' games. That makes the grant below
--- load-bearing: running as the caller, it needs `common.ok_envelope` to be
+-- load-bearing: running as the caller, it needs `common._ok_envelope` to be
 -- callable by `authenticated`, which is granted where the builder is defined.
 revoke execute on function connections.puzzle_for_date(date) from public;
 grant execute on function connections.puzzle_for_date(date) to authenticated;
@@ -400,7 +400,7 @@ drop function if exists connections.create_game(text, jsonb, uuid[], text);
 -- Starts a game in a club: validates the mode + setup shape, looks up the
 -- puzzle by id (or picks the next one nobody here has played), builds the
 -- per-game board (the puzzle's categories + a freshly-shuffled tileOrder),
--- writes the common header through common.create_game, then its own row and
+-- writes the common header through common._create_game, then its own row and
 -- one connections.players row per player (mistake_count defaults to 0), and
 -- writes the statuses.
 --
@@ -451,7 +451,7 @@ declare
   first_turn uuid;
 begin
   -- ─── Validate mode + player-count ────────────────────────
-  perform common.require_valid_mode(p_mode);
+  perform common._require_valid_mode(p_mode);
 
   if p_mode = 'compete' then
     -- Compete needs an opposing PLAYER. The FE manifest hides the
@@ -467,7 +467,7 @@ begin
   -- Player-count upper bound. Must agree with the
   -- `numberOfPlayers: [1, 6]` (coop) / `[2, 6]` (compete)
   -- declarations in src/connections/manifest.ts.
-  perform common.require_player_count_max(p_player_user_ids, 6);
+  perform common._require_player_count_max(p_player_user_ids, 6);
 
   -- ─── Which puzzle ────────────────────────────────────────
   -- ABSENT is the normal case, and it means "you choose": the setup dialog
@@ -511,9 +511,9 @@ begin
     end;
   end if;
 
-  -- Canonical timer-shape validation. See common.require_valid_timer
+  -- Canonical timer-shape validation. See common._require_valid_timer
   -- for the accepted shapes and the exact raise messages.
-  perform common.require_valid_timer(p_setup->'timer');
+  perform common._require_valid_timer(p_setup->'timer');
 
   -- Load the puzzle. The FK on connections.games.puzzle_id would also
   -- catch a bad id at INSERT time, but a clear "puzzle not found"
@@ -567,7 +567,7 @@ begin
   -- re-pin an already-played one over the derivation, and
   -- `first_turn_user_id` because it is a per-game "who goes first" pick, not
   -- a per-club preference. The coop_style toggle rides.
-  new_id := common.create_game(
+  new_id := common._create_game(
     p_club_handle, 'connections_' || p_mode, p_mode, p_player_user_ids, game_title,
     p_setup,
     p_setup - 'first_turn_user_id' - 'puzzle_id'
@@ -575,7 +575,7 @@ begin
 
   -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common
   -- rotation so submit_guess gates each guess. Free-for-all / compete leave
-  -- the pointer null. Runs after common.create_game seeds game_players.
+  -- the pointer null. Runs after common._create_game seeds game_players.
   if p_mode = 'coop' and p_setup->>'coop_style' = 'turns' then
     first_turn := (p_setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(p_player_user_ids)) then
@@ -610,7 +610,7 @@ begin
   -- left with (`typeof data.id === 'string'`) is a shape test rather than
   -- equality against a value. SetupGameModal branches on exactly this; without
   -- it the game was created and the player got the chain's scream.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -621,7 +621,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -666,7 +666,7 @@ begin
     return false;
   end if;
 
-  perform common.end_game(
+  perform common._end_game(
     p_game_id, p_reason, p_reason_detail, p_ended_by_user_id,
     p_is_no_result => false,
     p_final_rankings => '{}'::jsonb
@@ -744,11 +744,11 @@ begin
   end if;
 
   -- Auth + game-player gate (deferred to after the lock). See
-  -- common.require_game_player — checks the caller is actually
+  -- common._require_game_player — checks the caller is actually
   -- IN this game (per common.game_players), not just a club
   -- member. A club member who didn't sit down at this game can
   -- still WATCH it (club-wide RLS) but can't act.
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   select ended_at, mode into v_ended_at, v_mode
     from common.games where id = p_game_id;
@@ -809,7 +809,7 @@ begin
     from connections.players
    where game_id = p_game_id and user_id = caller_id;
   if caller_mistakes is null then
-    -- require_game_player passed but there's no players row;
+    -- _require_game_player passed but there's no players row;
     -- shouldn't happen since create_game seeds them. Defensive.
     raise exception 'BUG: you are not in this game'
       using errcode = 'PN250', hint = 'fault', column = '_',
@@ -879,7 +879,7 @@ begin
          where game_id = p_game_id;
         select jsonb_object_agg(user_id::text, 1) into v_rankings
           from common.game_players where game_id = p_game_id;
-        perform common.end_game(
+        perform common._end_game(
           p_game_id, 'reached_goal', 'solved', caller_id,
           p_is_no_result => false,
           p_final_rankings => v_rankings
@@ -896,7 +896,7 @@ begin
         update common.game_players
            set solved_at = now()
          where game_id = p_game_id and user_id = caller_id;
-        perform common.end_game(
+        perform common._end_game(
           p_game_id, 'reached_goal', 'solved', caller_id,
           p_is_no_result => false,
           p_final_rankings => jsonb_build_object(caller_id::text, 1)
@@ -909,7 +909,7 @@ begin
     -- The match is written. `result` NAMES THE CASE, in the wire word the
     -- column stores; what it is worth is the frontend's (lib/answer.ts), so
     -- no outcome rides here.
-    return common.ok_envelope(jsonb_build_object('result', 'correct'));
+    return common._ok_envelope(jsonb_build_object('result', 'correct'));
   end if;
 
   -- ─── Wrong / oneAway: cost a mistake ─────────────────────
@@ -968,7 +968,7 @@ begin
      limit 1;
 
     if caller_mistakes >= 4 then
-      perform common.end_game(
+      perform common._end_game(
         p_game_id, 'resource_exhausted', 'mistakes', caller_id,
         p_is_no_result => false,
         p_final_rankings => '{}'::jsonb
@@ -1001,7 +1001,7 @@ begin
   -- recorded: an `ok` branch is chosen by `data` (docs/envelopes.md →
   -- Choosing which `ok` branch), never by the value the caller sent. No
   -- outcome rides — what a verdict is worth is lib/answer.ts's.
-  return common.ok_envelope(jsonb_build_object('result', p_result));
+  return common._ok_envelope(jsonb_build_object('result', p_result));
 
 exception when others then
   get stacked diagnostics
@@ -1009,7 +1009,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1046,13 +1046,13 @@ begin
     perform common._raise_game_deleted('connections');
   end if;
 
-  perform common.require_compete((select mode from common.games where id = p_game_id));
+  perform common._require_compete((select mode from common.games where id = p_game_id));
 
   caller_id := common._concede(p_game_id);
   perform connections._maybe_finish_compete(p_game_id, 'conceded', 'conceded', caller_id);
 
   perform connections._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
   get stacked diagnostics
@@ -1060,7 +1060,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1101,8 +1101,8 @@ begin
     perform common._raise_game_deleted('connections');
   end if;
 
-  -- Auth + game-player gate. See common.require_game_player.
-  perform common.require_game_player(p_game_id);
+  -- Auth + game-player gate. See common._require_game_player.
+  perform common._require_game_player(p_game_id);
 
   select ended_at, current_turn_user_id into v_ended_at, v_turn_holder
     from common.games where id = p_game_id;
@@ -1110,14 +1110,14 @@ begin
     perform common._raise_game_over();
   end if;
 
-  perform common.end_game(
+  perform common._end_game(
     p_game_id, 'timeout', 'timeout', v_turn_holder,
     p_is_no_result => false,
     p_final_rankings => '{}'::jsonb
   );
 
   perform connections._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1125,7 +1125,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1163,7 +1163,7 @@ begin
   perform common._stop(p_game_id);
 
   perform connections._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1171,7 +1171,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1195,7 +1195,7 @@ drop function if exists connections.replay_board(uuid);
 -- matched count zeroed; the guess log cleared, which is also what un-matches
 -- the categories — a matched category IS a `result='correct'` guess row, so
 -- deleting the log rebuilds the board by construction), then hands the
--- common-layer reset to common.reset_game and writes the statuses.
+-- common-layer reset to common._reset_game and writes the statuses.
 create or replace function connections.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1219,7 +1219,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(p_game_id);
+  perform common._require_game_player(p_game_id);
 
   update connections.players
      set mistake_count = 0,
@@ -1228,10 +1228,10 @@ begin
 
   delete from connections.events where game_id = p_game_id;
 
-  perform common.reset_game(p_game_id);
+  perform common._reset_game(p_game_id);
 
   perform connections._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1239,7 +1239,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

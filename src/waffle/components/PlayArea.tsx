@@ -295,7 +295,7 @@ export function PlayArea({
   // after a solve, without a trip through the club page's setup dialog. Goes
   // through the same `waffle-build-board` edge function the manifest's
   // startGameInClub uses (it builds a board for the band and calls
-  // create_game). Non-destructive — common.create_game un-currents THIS game
+  // create_game). Non-destructive — common._create_game un-currents THIS game
   // (it shelves into the club's games list, resumable) — so no confirm. The
   // creator jumps straight in; peers arrive via the game-invitation toast.
   //

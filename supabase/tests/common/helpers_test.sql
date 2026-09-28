@@ -1,7 +1,7 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: common helpers (require_club_member, require_valid_timer,
+-- Test: common helpers (_require_club_member, _require_valid_timer,
 --       _raise_already_conceded)
 -- ============================================================
 --
@@ -51,7 +51,7 @@ end;
 $$;
 
 -- ============================================================
--- Set up a club so the require_club_member happy path has a
+-- Set up a club so the _require_club_member happy path has a
 -- membership to point at.
 -- ============================================================
 
@@ -64,43 +64,43 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 -- ============================================================
--- common.require_club_member
+-- common._require_club_member
 -- ============================================================
 
 -- (1) Empty claims (auth.uid() returns null) → 'must be authenticated'
 select set_config('request.jwt.claims', '', true);
 select throws_ok(
   format(
-    $$ select common.require_club_member(%L) $$,
+    $$ select common._require_club_member(%L) $$,
     (select handle from club)
   ),
   'PN011',
   'Signed out; try refresh',
-  'require_club_member: null auth.uid() raises 42501'
+  '_require_club_member: null auth.uid() raises 42501'
 );
 
 -- (2) Authenticated non-member → 'not a member of this club'
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select common.require_club_member(%L) $$,
+    $$ select common._require_club_member(%L) $$,
     (select handle from club)
   ),
   'PN012',
   'You are not a member of this club',
-  'require_club_member: non-member raises 42501'
+  '_require_club_member: non-member raises 42501'
 );
 
 -- (3) Authenticated member → returns caller_id
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select common.require_club_member((select handle from club))),
+  (select common._require_club_member((select handle from club))),
   'ada11111-1111-1111-1111-111111111111'::uuid,
-  'require_club_member: member call returns caller_id'
+  '_require_club_member: member call returns caller_id'
 );
 
 -- ============================================================
--- common.require_valid_timer
+-- common._require_valid_timer
 -- ============================================================
 -- No auth or role dependency — pure shape validation.
 
@@ -108,73 +108,73 @@ select set_config('request.jwt.claims', '', true);
 
 -- (4) Null timer object
 select throws_ok(
-  $$ select common.require_valid_timer(null::jsonb) $$,
+  $$ select common._require_valid_timer(null::jsonb) $$,
   'PN035',
   'BUG: game with no timer setting',
-  'require_valid_timer: null raises setup.timer is required'
+  '_require_valid_timer: null raises setup.timer is required'
 );
 
 -- (5) Bogus timer.kind
 select throws_ok(
-  $$ select common.require_valid_timer('{"kind":"fast"}'::jsonb) $$,
+  $$ select common._require_valid_timer('{"kind":"fast"}'::jsonb) $$,
   'PN037',
   'BUG: timer setting of ''fast''',
-  'require_valid_timer: bogus kind raises with the value in the message'
+  '_require_valid_timer: bogus kind raises with the value in the message'
 );
 
 -- (6) Missing timer.kind (empty object) → 'setup.timer.kind is required'
 select throws_ok(
-  $$ select common.require_valid_timer('{}'::jsonb) $$,
+  $$ select common._require_valid_timer('{}'::jsonb) $$,
   'PN036',
   'BUG: timer with no setting',
-  'require_valid_timer: missing kind raises with its own message'
+  '_require_valid_timer: missing kind raises with its own message'
 );
 
 -- (7) Countdown missing seconds
 select throws_ok(
-  $$ select common.require_valid_timer('{"kind":"countdown"}'::jsonb) $$,
+  $$ select common._require_valid_timer('{"kind":"countdown"}'::jsonb) $$,
   'PN038',
   'BUG: countdown with no length',
-  'require_valid_timer: countdown without seconds raises the right error'
+  '_require_valid_timer: countdown without seconds raises the right error'
 );
 
 -- (8) Countdown seconds=0 (below min)
 select throws_ok(
-  $$ select common.require_valid_timer('{"kind":"countdown","seconds":0}'::jsonb) $$,
+  $$ select common._require_valid_timer('{"kind":"countdown","seconds":0}'::jsonb) $$,
   'PN039',
   'BUG: countdown of 0 seconds',
-  'require_valid_timer: countdown seconds=0 is rejected'
+  '_require_valid_timer: countdown seconds=0 is rejected'
 );
 
 -- (9) Countdown seconds=3601 (above 60-min cap)
 select throws_ok(
-  $$ select common.require_valid_timer('{"kind":"countdown","seconds":3601}'::jsonb) $$,
+  $$ select common._require_valid_timer('{"kind":"countdown","seconds":3601}'::jsonb) $$,
   'PN039',
   'BUG: countdown of 3601 seconds',
-  'require_valid_timer: countdown seconds=3601 is rejected'
+  '_require_valid_timer: countdown seconds=3601 is rejected'
 );
 
 -- (10) kind=none accepted
 select lives_ok(
-  $$ select common.require_valid_timer('{"kind":"none"}'::jsonb) $$,
-  'require_valid_timer: kind=none is accepted'
+  $$ select common._require_valid_timer('{"kind":"none"}'::jsonb) $$,
+  '_require_valid_timer: kind=none is accepted'
 );
 
 -- (11) kind=countup accepted (no seconds needed)
 select lives_ok(
-  $$ select common.require_valid_timer('{"kind":"countup"}'::jsonb) $$,
-  'require_valid_timer: kind=countup is accepted'
+  $$ select common._require_valid_timer('{"kind":"countup"}'::jsonb) $$,
+  '_require_valid_timer: kind=countup is accepted'
 );
 
 -- (12) Countdown at the boundaries (1 and 3600)
 select lives_ok(
-  $$ select common.require_valid_timer('{"kind":"countdown","seconds":1}'::jsonb) $$,
-  'require_valid_timer: countdown seconds=1 is accepted (lower boundary)'
+  $$ select common._require_valid_timer('{"kind":"countdown","seconds":1}'::jsonb) $$,
+  '_require_valid_timer: countdown seconds=1 is accepted (lower boundary)'
 );
 
 select lives_ok(
-  $$ select common.require_valid_timer('{"kind":"countdown","seconds":3600}'::jsonb) $$,
-  'require_valid_timer: countdown seconds=3600 is accepted (upper boundary)'
+  $$ select common._require_valid_timer('{"kind":"countdown","seconds":3600}'::jsonb) $$,
+  '_require_valid_timer: countdown seconds=3600 is accepted (upper boundary)'
 );
 
 -- ============================================================
@@ -195,8 +195,8 @@ select throws_ok(
 -- (set_club_active_game tests removed)
 -- ============================================================
 -- The set_club_active_game helper and the club_active_game table
--- are gone. Their job is now done by `common.create_game` (which
--- flips is_active on common.games) and `common.end_game` (which
+-- are gone. Their job is now done by `common._create_game` (which
+-- flips is_active on common.games) and `common._end_game` (which
 -- flips it back off). Coverage for the auto-suspend / flip
 -- behavior lives in games_test.sql alongside the create_game and
 -- end_game tests.

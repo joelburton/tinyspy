@@ -324,9 +324,9 @@ describe('the raise codes', () => {
   })
 
   // The same contract from the OTHER side. A raise cannot break it — every `PA`
-  // raise must carry a HINT, checked above — but `common.ok_envelope` takes its
+  // raise must carry a HINT, checked above — but `common._ok_envelope` takes its
   // data, outcome and message as three independent arguments, so nothing stops
-  // a plain `ok_envelope(x, null, 'some words')`. A non-null message means
+  // a plain `_ok_envelope(x, null, 'some words')`. A non-null message means
   // "render this" and the outcome is how it renders; without one a call site
   // has nothing to do but guess, which is how a server bug becomes a pill
   // nobody questions (`dbResult.ts` faults on it at runtime; this stops it
@@ -335,17 +335,17 @@ describe('the raise codes', () => {
     const offenders: string[] = []
     for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
       const sql = readFileSync(join(SQL_DIR, file), 'utf8')
-      for (const m of sql.matchAll(/common\.ok_envelope\(([\s\S]{0,400}?)\);/g)) {
+      for (const m of sql.matchAll(/common\._ok_envelope\(([\s\S]{0,400}?)\);/g)) {
         const args = m[1]!
         // Named form: `message => …` with no `outcome => …` beside it.
         if (/\bmessage\s*=>/.test(args) && !/\boutcome\s*=>/.test(args)) {
-          offenders.push(`${file}: ok_envelope(… message => …) with no outcome`)
+          offenders.push(`${file}: _ok_envelope(… message => …) with no outcome`)
           continue
         }
         // Positional form: (data, outcome, message) — a third argument with a
         // literal `null` in the second slot.
         if (/^\s*[^,]+,\s*null\s*,\s*'/.test(args)) {
-          offenders.push(`${file}: ok_envelope(…, null, '…') — a message with no outcome`)
+          offenders.push(`${file}: _ok_envelope(…, null, '…') — a message with no outcome`)
         }
       }
     }

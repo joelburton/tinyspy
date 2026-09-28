@@ -55,7 +55,7 @@ never fire in development. An effect runs once per commit, which is why
 **Local ticks merge forward-only — except against a big drop.** Several players
 poll the same clock, so responses land out of order and differ by a tick or
 two; those are floored with `Math.max` so the display never rewinds. A drop
-bigger than that is not reordering, it is `common.reset_game` zeroing the clock
+bigger than that is not reordering, it is `common._reset_game` zeroing the clock
 on a replay, and the display has to follow it back down to a fresh countdown.
 `mergeTicks` splits the two by size, and a stale high response landing just
 after a reset is re-detected by the next round-trip a second later.
@@ -75,8 +75,8 @@ attempts.
 ticks, last_tick)` is its own table rather than a column on `common.games`, so
 the per-second UPDATE does not churn the games realtime stream. `tick_timer`'s
 `now() - last_tick >= 1 second` is the whole of dedup, pause and idle in one
-line. `common.reset_game` zeroes the row on a replay, the view-state RPCs are
-pointer flips that do no timer work, and `common.require_valid_timer` validates
+line. `common._reset_game` zeroes the row on a replay, the view-state RPCs are
+pointer flips that do no timer work, and `common._require_valid_timer` validates
 the setup shape at create time — its five raises are all faults (PN035–PN039),
 because the timer control cannot produce any of them. The conditional is pinned
 by `supabase/tests/common/tick_timer_test.sql`, which rewinds `last_tick` by

@@ -18,7 +18,7 @@
   interleaved with an in-flight move can let that move land on the fresh
   board, or let a game-ending move land after the reset and re-end the game
   (docs/supabase.md → Server conventions). `crosswords.replay_board` doesn't,
-  and `common.reset_game` doesn't lock for it. psychicnum's `replay_board` is
+  and `common._reset_game` doesn't lock for it. psychicnum's `replay_board` is
   the model.
 - **The cell RPCs take no game-row lock** (`set_cell`, `set_mark`,
   `check_cells`, `reveal_cells`). Per-cell writes carry their own `version`

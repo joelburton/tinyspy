@@ -48,7 +48,7 @@ export const bananagramsGame: GameManifest = {
   ),
 
   // Solo race up to a 6-player table. MUST AGREE with the
-  // require_player_count_max(6) call in bananagrams.create_game. See
+  // _require_player_count_max(6) call in bananagrams.create_game. See
   // docs/code-conventions.md → "Per-game player counts".
   numberOfPlayers: [1, 6],
 

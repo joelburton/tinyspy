@@ -54,7 +54,7 @@
  *     previous-board fetch only returns rows for clubs the
  *     caller belongs to.
  *   - spellingbee.create_game runs as security definer and
- *     re-checks membership via common.require_club_member.
+ *     re-checks membership via common._require_club_member.
  * No service-role needed anywhere.
  *
  * Calling shape (from the FE):

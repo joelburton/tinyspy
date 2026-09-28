@@ -9,13 +9,13 @@ import type { TimerMode } from '../manifest/gameManifest'
 
 /** What `common.tick_timer` puts in `data`. Nullable because its other `ok` —
  *  PA004, the game is gone — arrives through a raise, and
- *  `common.raised_envelope` builds `data: null`. */
+ *  `common._raised_envelope` builds `data: null`. */
 type Ticked = { result: 'ticked'; ticks: number } | null
 
 /** Merge a server-reported tick count into local state. Concurrent players'
  *  in-flight responses can land out of order, differing by a tick or two —
  *  those stay forward-only (`Math.max`). A drop bigger than that isn't
- *  reordering: it's the server clock being RESET (`common.reset_game` on
+ *  reordering: it's the server clock being RESET (`common._reset_game` on
  *  replay-board), and the display follows it down. (If a stale high response
  *  lands right after a reset, the next 1s round-trip re-detects the drop —
  *  self-healing.) */

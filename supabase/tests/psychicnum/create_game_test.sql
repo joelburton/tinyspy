@@ -181,7 +181,7 @@ select pg_temp.envelope_is(
   'word_count out of range names the word_count field'
 );
 
--- A SHARED guard's raise (common.require_valid_timer), caught by this
+-- A SHARED guard's raise (common._require_valid_timer), caught by this
 -- function's handler. A FAULT rather than a validation: the timer control
 -- always sends a kind and keeps the last VALID seconds, so neither of these
 -- can come from the form — arriving means something else is wrong.

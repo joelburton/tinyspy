@@ -135,7 +135,7 @@ select pg_temp.envelope_is(
   wordle.stop_game((select id from g2)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'a non-player cannot end the game (require_game_player)');
+  'a non-player cannot end the game (_require_game_player)');
 
 select * from finish();
 rollback;

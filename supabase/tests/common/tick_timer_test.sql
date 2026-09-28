@@ -48,12 +48,12 @@ select set_config('request.jwt.claims', '', true);
 -- ============================================================
 -- create_game seeds a timers row at 0
 -- ============================================================
--- Called as postgres + ada's JWT (common.create_game isn't granted
+-- Called as postgres + ada's JWT (common._create_game isn't granted
 -- to authenticated — gametype RPCs call it — but it needs a real
 -- auth.uid()). The point is the `insert into common.timers` it does.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 create temp table seeded on commit drop as
-select common.create_game(
+select common._create_game(
   (select handle from club),
   'codenamesduet',
   'coop',

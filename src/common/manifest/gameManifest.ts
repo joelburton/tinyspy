@@ -192,11 +192,11 @@ export type GameManifest = {
   //     every current club member and locks the caller's own row on — you
   //     cannot start a game you are not in.
   //
-  //     That rule is the DIALOG's, not the server's. `common.create_game`
+  //     That rule is the DIALOG's, not the server's. `common._create_game`
   //     requires the caller to be a club member and every listed player to be
   //     one, and never that the caller is among them — so a hand-built request
   //     can seat a game its own caller cannot then open, since the game page
-  //     gates on `require_game_player`. Left permissive on purpose: friends do
+  //     gates on `_require_game_player`. Left permissive on purpose: friends do
   //     not hand-build requests, and the lock is a UX decision rather than a
   //     defense (docs/common-schema.md → Membership gates viewing).
   //
@@ -303,7 +303,7 @@ export type CommonGameListRow = {
   // percentage, setgame the deck.
   //
   // A create-time value cannot simply be written into `status` instead:
-  // `common.update_state` MERGES into that blob, but `common.reset_game`
+  // `common.update_state` MERGES into that blob, but `common._reset_game`
   // ASSIGNS a fresh one, so a restart would drop the key. `setup` is immutable
   // and already on the row, so the listing query just selects it.
   setup: Record<string, unknown> | null

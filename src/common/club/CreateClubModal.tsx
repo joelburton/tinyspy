@@ -24,14 +24,14 @@ type Props = {
 /**
  * Slugify a user-typed name into the club's URL handle.
  *
- * Mirrors `common.slugify_club_name` in the SQL baseline — same
+ * Mirrors `common._slugify_club_name` in the SQL baseline — same
  * shape (lowercase → strip non-alphanumeric → collapse to single
  * hyphens → trim ends → cap at 40 chars). Used to pre-validate the
  * derived handle on the FE (see `getErrorTextForSlug`) and to name the handle
  * in the "name is taken" message; the server runs the canonical
  * version before insert.
  *
- * Keep in sync with `common.slugify_club_name` in `supabase/sql/common.sql`.
+ * Keep in sync with `common._slugify_club_name` in `supabase/sql/common.sql`.
  */
 function slugify(name: string): string {
   return name

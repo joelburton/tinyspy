@@ -61,7 +61,7 @@ export type LetterboxedValues = CoopTurnSetup & {
    * division wordiply's `customBaseError` makes.
    *
    * Not saved as the club's next default: `create_game` strips it before
-   * handing the setup to `common.create_game`. A one-off, not a baseline —
+   * handing the setup to `common._create_game`. A one-off, not a baseline —
    * otherwise every later Start would silently rebuild this same board.
    */
   custom_sides?: string

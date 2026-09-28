@@ -7,7 +7,7 @@
 -- DEFINER, so it can hand the edge function the grant-hidden dictionary
 -- bands — which makes its own gates the whole security story:
 --   a deleted game (the shared race, PN485, asked first), membership
---   (require_game_player), play_state = playing, mode = coop.
+--   (_require_game_player), play_state = playing, mode = coop.
 -- The happy path must return all five keys atomically.
 
 begin;

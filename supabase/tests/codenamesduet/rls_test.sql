@@ -63,7 +63,7 @@ select is(
 -- ============================================================
 -- Dee's SELECTs against game-scoped tables must return zero rows.
 -- Visibility is club-wide: every policy gates on
--- is_club_member(club_handle), which is false for her, hiding the row
+-- _is_club_member(club_handle), which is false for her, hiding the row
 -- entirely (no error, empty result — the standard RLS behavior).
 -- ============================================================
 
@@ -90,7 +90,7 @@ select is(
 -- ============================================================
 -- Dee's mutating RPCs are refused.
 -- ============================================================
--- The RPCs use common.require_game_player as the auth gate.
+-- The RPCs use common._require_game_player as the auth gate.
 -- Since dee isn't in common.game_players for this game, she's rejected there —
 -- a FAULT, because create_game seats every player and the FE knows the roster,
 -- so a caller without a seat is a broken client rather than a lost race.

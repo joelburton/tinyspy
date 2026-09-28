@@ -41,7 +41,7 @@ Joel, 2026-09-27 and -28. The numbers are what the tables below refer to.
     `finished_at`, are dropped. Separate from `player_ended_at`, because with
     a chosen goal a player may solve and play on.
 12. **Who ended the game is recorded:** `common.games.game_ended_by_user_id`.
-13. **`common.end_game`'s signature** is agreed (below).
+13. **`common._end_game`'s signature** is agreed (below).
 14. **The views stay and follow their tables** (below); what the database
     hides is a later plan's question.
 15. **codenamesduet's sudden-death miss** has detail `neutral`, not `turns`.
@@ -166,7 +166,7 @@ above 1.
 | `kind`      | text        | new  | `none`, `countup` or `countdown`; copied from `setup.timer` at create |
 | `countdown_seconds_at_setup` | integer | new | the countdown's length as chosen in setup, never changed (the live count is `ticks`); null unless `kind = 'countdown'` |
 
-## What `common.end_game` takes and does
+## What `common._end_game` takes and does
 
 **Agreed** (Joel, 2026-09-28). A game calls it once, when its game `ended`.
 Whether the ending is a `no-result` or `timeout-no-result` is the game's own

@@ -87,8 +87,8 @@ make a game compete.
 
 ### How a game ends
 
-Whichever RPC ends the game passes `common.end_game` the reason pair and the
-rankings ([common-schema.md → `common.end_game`](../../docs/common-schema.md#commonend_game--the-one-way-a-game-ends)),
+Whichever RPC ends the game passes `common._end_game` the reason pair and the
+rankings ([common-schema.md → `common._end_game`](../../docs/common-schema.md#common_end_game--the-one-way-a-game-ends)),
 so no reader works the ending out from the clock or the roster:
 
 | the ending | reason / detail | ranked | outcome |

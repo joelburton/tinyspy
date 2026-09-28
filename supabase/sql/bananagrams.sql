@@ -25,7 +25,7 @@ grant usage on schema bananagrams to authenticated;
 drop policy if exists games_select on bananagrams.games;
 create policy games_select on bananagrams.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 -- Player boards: OWNER ONLY WHILE THE RACE IS ON, then open to the club.
 -- A rival must not read your grid (or your rack) while it could help them —
@@ -40,7 +40,7 @@ create policy games_select on bananagrams.games
 --
 -- The club gate is stated EXPLICITLY even though it is redundant today:
 -- this subquery reads `bananagrams.games`, which carries its own
--- `is_club_member` policy, so a non-member's subquery already finds nothing.
+-- `_is_club_member` policy, so a non-member's subquery already finds nothing.
 -- Verified by planting — removing this line does NOT let an outsider in.
 -- It stays because a policy whose safety depends on ANOTHER table's policy is
 -- a hidden coupling: relax games_select some day and this silently becomes the
@@ -55,7 +55,7 @@ create policy player_boards_select on bananagrams.player_boards
       select 1 from bananagrams.games bg
         join common.games cg on cg.id = bg.id
        where bg.id = player_boards.game_id
-         and common.is_club_member(bg.club_handle)
+         and common._is_club_member(bg.club_handle)
          and cg.is_terminal
     )
   );
@@ -69,7 +69,7 @@ create policy progress_select on bananagrams.progress
     exists (
       select 1 from bananagrams.games g
        where g.id = progress.game_id
-         and common.is_club_member(g.club_handle)
+         and common._is_club_member(g.club_handle)
     )
   );
 
@@ -170,7 +170,7 @@ begin
   -- MUST AGREE with numberOfPlayers: [1, 6] in
   -- src/bananagrams/manifest.ts. See docs/code-conventions.md →
   -- "Per-game player counts".
-  perform common.require_player_count_max(player_user_ids, 6);
+  perform common._require_player_count_max(player_user_ids, 6);
   player_count := coalesce(array_length(player_user_ids, 1), 0);
 
   -- ─── Validate setup shape ────────────────────────────
@@ -252,7 +252,7 @@ begin
     end if;
   end if;
 
-  perform common.require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(setup->'timer');
 
   -- ─── Build the bunch: shuffle the 144-tile bag, take bunch_size ──
   -- Standard Bananagrams letter distribution. string_to_array(_, NULL)
@@ -274,10 +274,10 @@ begin
   s_bag := coalesce(array_to_string(shuffled[s_bunch_size + 1:144], ''), '');
 
   -- ─── Common header + gametype rows ───────────────────
-  new_id := common.create_game(
+  new_id := common._create_game(
     target_club, 'bananagrams', player_user_ids,
     -- Placeholder: the real title needs the game's id, which only exists once
-    -- common.create_game has inserted the row (rewritten just below).
+    -- common._create_game has inserted the row (rewritten just below).
     'New game',
     setup,
     setup
@@ -341,7 +341,7 @@ begin
   -- though this is the only `ok` — a call site cannot assert a case the payload
   -- does not carry, and without it the branch would match by being `ok` and draw
   -- a second answer as this one.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -352,7 +352,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -411,7 +411,7 @@ declare
   is_conceded boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   select is_terminal into is_term from common.games where id = target_game;
   -- (The raise this replaces said "no bananagrams.games row", which was wrong
@@ -422,14 +422,14 @@ begin
       detail = 'no common.games row for target_game';
   end if;
   if is_term then
-    return common.ok_envelope(jsonb_build_object('result', 'game-over'));
+    return common._ok_envelope(jsonb_build_object('result', 'game-over'));
   end if;
 
   select conceded into is_conceded
     from common.game_players
    where game_id = target_game and user_id = caller_id;
   if is_conceded then
-    return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+    return common._ok_envelope(jsonb_build_object('result', 'conceded'));
   end if;
 
   -- The FE builds the 625-char grid itself; a player cannot hand over another
@@ -456,7 +456,7 @@ begin
          placed = n_placed
    where game_id = target_game and user_id = caller_id;
 
-  return common.ok_envelope(jsonb_build_object('result', 'saved'));
+  return common._ok_envelope(jsonb_build_object('result', 'saved'));
 
 exception when others then
   get stacked diagnostics
@@ -464,7 +464,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -636,7 +636,7 @@ begin
     perform common._raise_game_deleted('bananagrams');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   select play_state, setup into current_play_state, s_setup
     from common.games where id = target_game;
@@ -660,7 +660,7 @@ begin
     into v_board, n_tiles, n_placed
     from bananagrams.player_boards
    where game_id = target_game and user_id = caller_id;
-  -- The board row is written at deal, and `require_game_player` above has
+  -- The board row is written at deal, and `_require_game_player` above has
   -- already established membership — so a member with no board is an
   -- inconsistency of ours.
   if v_board is null then
@@ -707,7 +707,7 @@ begin
     -- hand the FE the offending cells to paint red; the player fixes + re-peels.
     v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, v_word_check <> 'off');
     if array_length(v_blockers, 1) > 0 then
-      return common.ok_envelope(jsonb_build_object(
+      return common._ok_envelope(jsonb_build_object(
         'result', 'illegal', 'invalid_cells', to_jsonb(v_blockers)));
     end if;
 
@@ -727,14 +727,14 @@ begin
       into player_results
       from common.game_players where game_id = target_game;
 
-    perform common.end_game(
+    perform common._end_game(
       target_game,
       'won',
       jsonb_build_object('reason', 'complete', 'winner_username', winner_name,
                          'bunch_remaining', length(s_bunch)),
       player_results
     );
-    return common.ok_envelope(jsonb_build_object(
+    return common._ok_envelope(jsonb_build_object(
       'result', 'won', 'invalid_cells', '[]'::jsonb));
   end if;
 
@@ -747,7 +747,7 @@ begin
   if v_word_check = 'strict' then
     v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, true);
     if array_length(v_blockers, 1) > 0 then
-      return common.ok_envelope(jsonb_build_object(
+      return common._ok_envelope(jsonb_build_object(
         'result', 'illegal', 'invalid_cells', to_jsonb(v_blockers)));
     end if;
   end if;
@@ -789,7 +789,7 @@ begin
     jsonb_build_object('bunch_remaining', length(s_bunch) - needed,
                        'bag_remaining', length(s_bag)));
 
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'dealt', 'invalid_cells', '[]'::jsonb));
 
 exception when others then
@@ -798,7 +798,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -842,12 +842,12 @@ declare
   v_blockers   int[];
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
-  v_caller := common.require_game_player(target_game);
+  v_caller := common._require_game_player(target_game);
 
   select board into v_board
     from bananagrams.player_boards
    where game_id = target_game and user_id = v_caller;
-  -- The board row is written at deal, and `require_game_player` above has
+  -- The board row is written at deal, and `_require_game_player` above has
   -- already established membership — so a member with no board is an
   -- inconsistency of ours, not something a player reached.
   --
@@ -875,18 +875,18 @@ begin
   -- count. A converted RPC keeps everything it used to return (see the plan's
   -- §6) — the FE may want it, and it is worth having in the log either way.
   if array_length(v_blockers, 1) > 0 then
-    return common.ok_envelope(jsonb_build_object(
+    return common._ok_envelope(jsonb_build_object(
       'result', 'invalid',
       'invalid_cells', to_jsonb(v_blockers),
       'placed', length(replace(v_board, '.', ''))));
   end if;
   if length(replace(v_board, '.', '')) = 0 then
-    return common.ok_envelope(jsonb_build_object(
+    return common._ok_envelope(jsonb_build_object(
       'result', 'empty',
       'invalid_cells', to_jsonb(v_blockers),
       'placed', 0));
   end if;
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'clean',
     'invalid_cells', to_jsonb(v_blockers),
     'placed', length(replace(v_board, '.', ''))));
@@ -897,7 +897,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -974,7 +974,7 @@ begin
     perform common._raise_game_deleted('bananagrams');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   select play_state, setup into current_play_state, s_setup
     from common.games where id = target_game;
@@ -1068,7 +1068,7 @@ begin
     jsonb_build_object('bunch_remaining', length(new_bunch),
                        'bag_remaining', length(new_bag)));
 
-  return common.ok_envelope(jsonb_build_object('result', 'dumped'));
+  return common._ok_envelope(jsonb_build_object('result', 'dumped'));
 
 exception when others then
   get stacked diagnostics
@@ -1076,7 +1076,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1120,7 +1120,7 @@ begin
     perform common._raise_game_deleted('bananagrams');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1133,20 +1133,20 @@ begin
     into player_results
     from common.game_players where game_id = target_game;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game, 'lost',
     jsonb_build_object('reason', 'timeout'),
     player_results
   );
 
-  -- Realtime touch — same trick as bananagrams.stop_game: common.end_game
+  -- Realtime touch — same trick as bananagrams.stop_game: common._end_game
   -- writes common.games (wakes the terminal modal via useCommonGame), but
   -- the bananagrams channels watch player_boards / progress, so nudge
   -- progress with a no-op self-set to produce a WAL entry for them.
   update bananagrams.progress
      set unplaced = unplaced
    where game_id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1154,7 +1154,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1213,7 +1213,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select count(*) into n_players
     from common.game_players where game_id = target_game;
@@ -1263,12 +1263,12 @@ begin
      set unplaced = g_row.hand_size, placed = 0, solved = false, finished_at = null
    where game_id = target_game;
 
-  perform common.reset_game(
+  perform common._reset_game(
     target_game,
     jsonb_build_object('bunch_remaining', length(new_bunch),
                        'bag_remaining', length(new_bag))
   );
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1276,7 +1276,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1293,7 +1293,7 @@ grant execute on function bananagrams.replay_board(uuid) to authenticated;
 -- collective loss (play_state 'lost', status.reason 'conceded', every
 -- player {"won": false}, no winner). The conceded flag now lives on
 -- common.game_players (was bananagrams.progress); the FE reads it off
--- ctx.players and common.end_game wakes the terminal via useCommonGame.
+-- ctx.players and common._end_game wakes the terminal via useCommonGame.
 -- This wrapper just keeps the FE uniform (`db.rpc('concede')`).
 drop function if exists bananagrams.concede(uuid);
 
@@ -1306,7 +1306,7 @@ as $$
 declare
   v_answer jsonb;
 begin
-  -- No `require_compete`: bananagrams has no coop sibling, so there is no mode
+  -- No `_require_compete`: bananagrams has no coop sibling, so there is no mode
   -- to refuse. Every other wrapper checks, and every other wrapper needs to.
   v_answer := common.concede(target_game);
   -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
@@ -1356,7 +1356,7 @@ begin
     perform common._raise_game_deleted('bananagrams');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1372,17 +1372,17 @@ begin
     from common.game_players
    where game_id = target_game;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game, 'ended',
     jsonb_build_object('reason', 'manual'),
     player_results
   );
 
-  -- Realtime touch: common.end_game writes common.games, not bananagrams.*,
+  -- Realtime touch: common._end_game writes common.games, not bananagrams.*,
   -- so the FE's useGame subscription would never wake. A no-op self-update
   -- produces a WAL entry it picks up. Same trick as submit_timeout.
   update bananagrams.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1390,7 +1390,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

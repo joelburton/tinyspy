@@ -21,7 +21,7 @@
 --   6. A solo game ends the same way on its one concession
 --   7. A player who has already ended another way cannot concede (PN508)
 --
--- Uses common.create_game directly (concede is gametype-agnostic — it
+-- Uses common._create_game directly (concede is gametype-agnostic — it
 -- only reads game_players + common.games.ended_at), so this test
 -- doesn't couple to any one game's create_game. `_concede` returns the
 -- caller's id and RAISES a refusal (the game's own concede turns it into
@@ -38,7 +38,7 @@ select plan(17);
 \ir ../_shared/envelope.psql
 
 -- Set JWT claims WITHOUT switching role away from postgres — keeps
--- execute privilege on common.create_game, which is revoked from
+-- execute privilege on common._create_game, which is revoked from
 -- `authenticated` (see games_test.sql for the same trick).
 create function pg_temp.as_jwt_only(uid uuid) returns void
 language plpgsql as $$
@@ -58,14 +58,14 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   perform common._concede(game);
-  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -83,7 +83,7 @@ select set_config('request.jwt.claims', '', true);
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select set_config(
   'test.game_id',
-  (common.create_game(
+  (common._create_game(
     (select handle from club),
     'spellingbee_compete',
     'compete',
@@ -204,7 +204,7 @@ select pg_temp.envelope_is(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select set_config(
   'test.solo_id',
-  (common.create_game(
+  (common._create_game(
     (select handle from club),
     'bananagrams',
     'compete',
@@ -232,7 +232,7 @@ select is(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select set_config(
   'test.out_id',
-  (common.create_game(
+  (common._create_game(
     (select handle from club),
     'spellingbee_compete',
     'compete',

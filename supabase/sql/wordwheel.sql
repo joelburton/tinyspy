@@ -61,7 +61,7 @@ grant select on wordwheel.found_words to authenticated;
 drop policy if exists games_select on wordwheel.games;
 create policy games_select on wordwheel.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 -- found_words RLS is the load-bearing piece for compete. Reads
 -- the mode off wordwheel.games.mode directly (denormalized), so
@@ -88,7 +88,7 @@ create policy found_words_select on wordwheel.found_words
       select 1 from wordwheel.games fg
        join common.games cg on cg.id = fg.id
        where fg.id = found_words.game_id
-         and common.is_club_member(fg.club_handle)
+         and common._is_club_member(fg.club_handle)
          and (
                fg.mode = 'coop'
             or found_words.user_id = (select auth.uid())
@@ -321,11 +321,11 @@ revoke execute on function wordwheel._leaderboard(uuid, int) from public;
 --   - not authenticated / not a member of this club
 --   - mode must be 'coop' or 'compete'
 --   - compete mode requires at least 2 players
---   - more than 6 players (require_player_count_max)
+--   - more than 6 players (_require_player_count_max)
 --   - setup.target_rank is required when mode='compete' / must be 0..6
 --     (coop may set it too: it becomes the coop WIN threshold)
 --   - the bands out of range or not a number, or legal below required
---   - timer shape errors (delegated to common.require_valid_timer)
+--   - timer shape errors (delegated to common._require_valid_timer)
 --   - board.outer_letters must be 8 lowercase ASCII letters
 --     (duplicates allowed — the wheel is a multiset; 's' is allowed
 --     — see the candidate_words note)
@@ -369,10 +369,10 @@ declare
   -- built from the player's own letters, not a random seed. Relaxes the ≥15 gate.
   is_custom_board boolean;
 begin
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
 
   -- ─── Validate mode + player-count ────────────────────────
-  perform common.require_valid_mode(mode);
+  perform common._require_valid_mode(mode);
 
   if mode = 'compete' then
     -- Compete needs an opposing PLAYER. The FE manifest hides the
@@ -385,7 +385,7 @@ begin
     end if;
   end if;
 
-  perform common.require_player_count_max(player_user_ids, 6);
+  perform common._require_player_count_max(player_user_ids, 6);
 
 
   -- ─── Validate setup.target_rank (BOTH modes) ─────────────
@@ -447,7 +447,7 @@ begin
       detail = 'setup.legal_band must be between required_band and 6';
   end if;
 
-  perform common.require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(setup->'timer');
 
   -- ─── Board structure validation ──────────────────────────
   b_outer := board->>'outer_letters';
@@ -528,7 +528,7 @@ begin
   -- Mode-suffixed gametype string for common.games.gametype.
   effective_gametype := 'wordwheel_' || mode;
 
-  -- ─── Coordinate with common.create_game ──────────────────
+  -- ─── Coordinate with common._create_game ──────────────────
   -- Inserts common.games (is_current_view=true, play_state=
   -- 'playing'), validates player_user_ids are all in
   -- clubs_members, inserts common.game_players. Returns the
@@ -540,7 +540,7 @@ begin
   -- asking again next time. BUT strip the one-off custom letters — a hand-picked board is a one-time choice, so the
   -- NEXT game should start from a random board again (the SetupForm shows the
   -- custom fields blank).
-  new_id := common.create_game(
+  new_id := common._create_game(
     target_club, effective_gametype, player_user_ids, game_title, setup,
     setup - 'custom_letters' - 'custom_center'
   );
@@ -603,7 +603,7 @@ begin
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on, and it reaches both — the edge function
   -- relays this envelope untouched.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.
@@ -613,7 +613,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -659,7 +659,7 @@ grant execute on function wordwheel.create_game(text, jsonb, uuid[], text, jsonb
 -- Refused (each a not-ok envelope): a game with no wordwheel row (the
 -- shared deleted-game race), a game no longer playing, a caller who has
 -- conceded, and the duplicate below (each a race); a non-player is
--- refused by require_game_player.
+-- refused by _require_game_player.
 --
 -- ───────────────────────────────────────────────────────────
 -- Concurrency
@@ -714,7 +714,7 @@ begin
     perform common._raise_game_deleted('wordwheel');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   -- target_rank still lives on setup (it's per-game config, not a
   -- gametype-axis); play_state still lives on common.games.
@@ -803,7 +803,7 @@ begin
       -- team chose a finish line, so this is it. `_rank_idx` is monotonic in the
       -- score, so this fires exactly once: the first word that crosses the line
       -- ends the game and every later submit_word hits the not-in-progress gate.
-      perform common.end_game(
+      perform common._end_game(
         target_game,
         'won',
         jsonb_build_object(
@@ -821,7 +821,7 @@ begin
           where gp.game_id = target_game));
       -- Its OWN answer, in both modes: "this word ended the game and you won"
       -- is one case, so it gets one name.
-      return common.ok_envelope(jsonb_build_object(
+      return common._ok_envelope(jsonb_build_object(
         'result', 'won', 'points', coalesce(points, 0)));
     end if;
 
@@ -853,7 +853,7 @@ begin
       -- leaderboard at the moment of victory.
       status_leaderboard := wordwheel._leaderboard(target_game, g_row.required_words_score);
 
-      perform common.end_game(
+      perform common._end_game(
         target_game, 'won_compete',
         jsonb_build_object(
           'reason', 'target',
@@ -874,7 +874,7 @@ begin
           where gp.game_id = target_game));
 
       -- Same answer the coop win gives, for the same event.
-      return common.ok_envelope(jsonb_build_object(
+      return common._ok_envelope(jsonb_build_object(
         'result', 'won', 'points', coalesce(points, 0)));
     else
       -- The full leaderboard, for the status label and the Rank strip.
@@ -895,7 +895,7 @@ begin
 
   -- Echo back a classification (the FE drives its own optimistic feedback, so this
   -- is mostly for tests / debugging). `points` is the trusted value on the row.
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result',
     case
       when coalesce(is_pangram, false) then 'pangram'
@@ -911,7 +911,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -930,7 +930,7 @@ grant execute on function wordwheel.submit_word(uuid, text, int, boolean, boolea
 -- and the post-lock play_state check answers everyone after
 -- the first with the shared game-over race.
 --
--- Mode comes off wordwheel.games.mode. common.end_game flips common.games
+-- Mode comes off wordwheel.games.mode. common._end_game flips common.games
 -- to terminal; the FE's useCommonGame hook (subscribed to common.games) sees
 -- that and enters review mode.
 --
@@ -967,7 +967,7 @@ begin
     perform common._raise_game_deleted('wordwheel');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1001,7 +1001,7 @@ begin
     -- With no target there was nothing to fail at, so the same expiry is just
     -- the neutral stop ('ended'). (A team that had already REACHED its target
     -- can't be here: submit_word ends the game the moment they cross.)
-    perform common.end_game(
+    perform common._end_game(
       target_game,
       case when current_target_rank is not null then 'lost' else 'ended' end,
       jsonb_build_object(
@@ -1018,7 +1018,7 @@ begin
   else
     -- compete: freeze the leaderboard at timeout, no winner. The status merges,
     -- so target_rank and the last leaderboard would survive on their own; the
-    -- ending states its final tally anyway, as common.end_game's header says a
+    -- ending states its final tally anyway, as common._end_game's header says a
     -- terminal write does. Same array shape as submit_word's win path.
     select (setup->>'target_rank')::int into current_target_rank
       from common.games where id = target_game;
@@ -1029,7 +1029,7 @@ begin
     -- without), so the clock beating everyone to it is a real LOSS for the
     -- table — the same rule coop applies when it set a target, and the same
     -- rule boggle applies to its score target.
-    perform common.end_game(
+    perform common._end_game(
       target_game,
       'lost_compete',
       jsonb_build_object(
@@ -1048,7 +1048,7 @@ begin
   -- opponents' finds appear (see header). Harmless in coop (teammates already
   -- see each other's words live); load-bearing in compete.
   update wordwheel.found_words set user_id = user_id where game_id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1056,7 +1056,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1110,7 +1110,7 @@ begin
     perform common._raise_game_deleted('wordwheel');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1144,7 +1144,7 @@ begin
 
     -- Stop is NEUTRAL even when a target was set and missed: the friends
     -- chose to stop, which isn't losing (only the clock running out is).
-    perform common.end_game(
+    perform common._end_game(
       target_game, 'ended',
       jsonb_build_object(
         'reason', 'manual',
@@ -1166,7 +1166,7 @@ begin
 
     status_leaderboard := wordwheel._leaderboard(target_game, g_row.required_words_score);
 
-    perform common.end_game(
+    perform common._end_game(
       target_game, 'ended',
       jsonb_build_object(
         'reason', 'manual',
@@ -1183,7 +1183,7 @@ begin
   -- Realtime touch on found_words so compete peers refetch the now-RLS-visible
   -- opponents' finds (see submit_timeout's header for the full rationale).
   update wordwheel.found_words set user_id = user_id where game_id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1191,7 +1191,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1207,7 +1207,7 @@ drop function if exists wordwheel.end_game(uuid);
 -- The Restart action — a menu row all game, a button at terminal.
 -- Restarts the SAME board — same
 -- letters + word lists — for everyone: the found-words log (the game's
--- only working state) is cleared, and common.reset_game un-terminals the
+-- only working state) is cleared, and common._reset_game un-terminals the
 -- row with the same initial status create_game seeds (mode-branched; the
 -- compete target_rank re-read from the frozen common.games.setup) and
 -- zeroes the shared clock. Any game player may call it, mid-game or after
@@ -1246,7 +1246,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   delete from wordwheel.found_words where game_id = target_game;
 
@@ -1276,11 +1276,11 @@ begin
     );
   end if;
 
-  perform common.reset_game(target_game, new_status);
+  perform common._reset_game(target_game, new_status);
 
   -- Realtime touch (see the header) — wakes useGame's games subscription.
   update wordwheel.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1288,7 +1288,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1318,7 +1318,7 @@ declare
   v_res jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common.require_compete((select mode from wordwheel.games where id = target_game));
+  perform common._require_compete((select mode from wordwheel.games where id = target_game));
   v_res := common.concede(target_game);
   -- The reveal below keys off the game having gone terminal, and PN486 refuses
   -- on a game that ALREADY was — so a refusal has to stop here or the touch
@@ -1341,7 +1341,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

@@ -3,7 +3,7 @@
 /**
  * **A function that can end a game must wake the board.**
  *
- * `common.end_game` writes `common.games` alone. Whatever the game's own read
+ * `common._end_game` writes `common.games` alone. Whatever the game's own read
  * releases at the end — wordle's answer (Reveal had nothing to show), a race's
  * rivals' guesses — arrives only if the board re-reads, and the page is right
  * after a reload and wrong until then. An ending wakes it one of two ways:
@@ -21,7 +21,7 @@
  * reads the SQL.
  *
  * **The rule, as checked:** every function in a game's `supabase/sql/<game>.sql`
- * that ends the game — calls `common.end_game`, `common.concede`,
+ * that ends the game — calls `common._end_game`, `common.concede`,
  * `common._concede` or `common._stop`, or calls a function of its own game that
  * does — must call `<game>._write_statuses` or write the game's schema
  * (`update`, `insert into` or `delete from` a `<game>.` table), itself or
@@ -40,7 +40,7 @@ import { describe, expect, it } from 'vitest'
 const SQL_DIR = 'supabase/sql'
 
 /** The common functions that end a game, writing only `common.*`. */
-const ENDS = /\bcommon\.(end_game|concede|_concede|_stop)\s*\(/
+const ENDS = /\bcommon\.(_end_game|concede|_concede|_stop)\s*\(/
 
 /** Every function in one game's SQL, by name: its text after the header (so it
  *  never reads as calling itself), comments stripped. */

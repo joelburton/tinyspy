@@ -37,7 +37,7 @@ lets a button behind an open question read gray rather than live.
 
 ## Details
 
-- **The sharp case, concretely.** `common.create_game` vacates the club's
+- **The sharp case, concretely.** `common._create_game` vacates the club's
   current-view pointer and inserts a new current game, so two calls really do
   produce two games — and a club that reaches that state stays there.
 - **A second shape uses it directly**: a control that stays live across a

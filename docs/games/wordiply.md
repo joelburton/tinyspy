@@ -231,7 +231,7 @@ validated-guess RPC.
   mode text, board jsonb) → table(id uuid)`**
   - Validates: membership; player counts (coop `[1,6]`, compete `[2,6]`);
     `mode`; **rejects `setup.target_rank`** (wordiply isn't a race-to-rank); one
-    `difficulty` band 1..6; timer via `common.require_valid_timer`; and the
+    `difficulty` band 1..6; timer via `common._require_valid_timer`; and the
     optional **`setup.custom_base`** — its shape, plus the cross-check that
     `board.base` matches it ([§5b](#5b-a-player-chosen-base-setupcustom_base)).
     It is stripped from the club's saved default.
@@ -793,7 +793,7 @@ fixture in `setup.psql`):
 ## 9. Reuse map (don't rebuild these)
 
 - **Shell / lifecycle:** `<GamePage>`, `useCommonGame`, the manifest/registry +
-  sibling pattern, `common.concede` / `end_game` / timers / presence-pause
+  sibling pattern, `common.concede` / `_end_game` / timers / presence-pause
   (inherited).
 - **Setup:** `<SetupGameModal>`, `<SetupSection>`, `<DictBandField>`,
   `<SetupTimerSection>`.

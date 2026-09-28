@@ -60,7 +60,7 @@ grant select on letterboxed.events to authenticated;
 drop policy if exists games_select on letterboxed.games;
 create policy games_select on letterboxed.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 -- players rows are visible to the whole club in both modes; it is the
 -- CHAIN COLUMN that compete hides, and the column grant above does
@@ -74,7 +74,7 @@ create policy players_select on letterboxed.players
     exists (
       select 1 from letterboxed.games lg
        where lg.id = players.game_id
-         and common.is_club_member(lg.club_handle)
+         and common._is_club_member(lg.club_handle)
     )
   );
 
@@ -94,7 +94,7 @@ create policy events_select on letterboxed.events
       select 1 from letterboxed.games lg
        join common.games cg on cg.id = lg.id
        where lg.id = events.game_id
-         and common.is_club_member(lg.club_handle)
+         and common._is_club_member(lg.club_handle)
          and (
                lg.mode = 'coop'
             or events.user_id = (select auth.uid())
@@ -157,7 +157,7 @@ as $$
     join letterboxed.games lg on lg.id = lp.game_id
     join common.games cg on cg.id = lg.id
    where lp.game_id = g_id and lp.user_id = u_id
-     and common.is_club_member(lg.club_handle);
+     and common._is_club_member(lg.club_handle);
 $$;
 
 revoke execute on function letterboxed._chain_for(uuid, uuid) from public;
@@ -193,7 +193,7 @@ as $$
     from letterboxed.players lp
     join letterboxed.games lg on lg.id = lp.game_id
    where lp.game_id = g_id and lp.user_id = u_id
-     and common.is_club_member(lg.club_handle);
+     and common._is_club_member(lg.club_handle);
 $$;
 
 revoke execute on function letterboxed._word_count_for(uuid, uuid) from public;
@@ -210,7 +210,7 @@ as $$
     from letterboxed.players lp
     join letterboxed.games lg on lg.id = lp.game_id
    where lp.game_id = g_id and lp.user_id = u_id
-     and common.is_club_member(lg.club_handle);
+     and common._is_club_member(lg.club_handle);
 $$;
 
 revoke execute on function letterboxed._covered_for(uuid, uuid) from public;
@@ -454,7 +454,7 @@ grant execute on function letterboxed.pick_seed(int) to authenticated;
 -- The parameter is NOT called `letters`: that is the column's name, and
 -- PL/pgSQL would have to guess which one `where letters = letters` meant.
 -- (This one is `language sql`, but the naming rule is worth keeping
--- uniform — see the note on common.create_game's `saved_default`.)
+-- uniform — see the note on common._create_game's `saved_default`.)
 create or replace function letterboxed.seed_for(board_letters text)
 returns table(letters text, word_a text, word_b text, difficulty int)
 language sql
@@ -524,7 +524,7 @@ revoke execute on function letterboxed._leaderboard(uuid) from public;
 -- in-progress game is not worth a second query).
 --
 -- Terminal transitions do NOT call this: common.update_state forces
--- is_terminal false. They build their own blob and call common.end_game.
+-- is_terminal false. They build their own blob and call common._end_game.
 create or replace function letterboxed._sync_status(g_id uuid)
 returns void
 language plpgsql
@@ -571,7 +571,7 @@ revoke execute on function letterboxed._sync_status(uuid) from public;
 -- ============================================================
 -- letterboxed._end_game — REMOVED 2026-08-15
 -- ============================================================
--- It wrapped common.end_game for one reason: the shared rule revealed the
+-- It wrapped common._end_game for one reason: the shared rule revealed the
 -- solution on any winning play_state, and that premise ("you can only win by
 -- producing the solution, so it's already in front of you") is false here — a
 -- letterboxed win covers the twelve letters with ANY chain inside the cap,
@@ -580,7 +580,7 @@ revoke execute on function letterboxed._sync_status(uuid) from public;
 --
 -- There is no flag now: revealing is a local, per-player display toggle in the
 -- FE (docs/ui.md → Terminal results), and no game autoreveals. Every terminal
--- transition below calls common.end_game directly again.
+-- transition below calls common._end_game directly again.
 --
 -- The drop is explicit because supabase/sql is re-applied, not diffed: deleting
 -- the definition alone would leave the old function sitting in every database
@@ -657,10 +657,10 @@ declare
   game_title text;
   effective_gametype text;
 begin
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
 
   -- ─── Validate mode + player count ────────────────────────
-  perform common.require_valid_mode(mode);
+  perform common._require_valid_mode(mode);
 
   if mode = 'compete' then
     -- Compete needs an opposing PLAYER. The FE manifest hides the
@@ -673,7 +673,7 @@ begin
     end if;
   end if;
 
-  perform common.require_player_count_max(player_user_ids, 6);
+  perform common._require_player_count_max(player_user_ids, 6);
 
   -- ─── Validate setup ──────────────────────────────────────
   s_extra_words := coalesce((setup->>'extra_words')::int, 3);
@@ -696,7 +696,7 @@ begin
       detail = 'setup.legal_band must be 1..6';
   end if;
 
-  perform common.require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(setup->'timer');
 
   -- ─── Validate the board ──────────────────────────────────
   b_sides := board->>'sides';
@@ -801,7 +801,7 @@ begin
 
   effective_gametype := 'letterboxed_' || mode;
 
-  -- ─── Coordinate with common.create_game ──────────────────
+  -- ─── Coordinate with common._create_game ──────────────────
   -- Inserts common.games (is_current_view=true, play_state='playing'),
   -- validates player_user_ids are all in clubs_members, inserts
   -- common.game_players. Returns the canonical id we FK from.
@@ -814,14 +814,14 @@ begin
   -- and every later Start would silently rebuild this same board until
   -- somebody noticed the field was populated and cleared it. Same reason
   -- boggle strips custom_board and spellingbee strips custom_letters.
-  new_id := common.create_game(
+  new_id := common._create_game(
     target_club, effective_gametype, player_user_ids, game_title, setup,
     setup - 'first_turn_user_id' - 'custom_sides'
   );
 
   -- Opt-in turn-by-turn coop: seat the common rotation so submit_word
   -- and undo_word gate each move. Free-for-all / compete leave the
-  -- pointer null (inert). Runs after common.create_game seeds
+  -- pointer null (inert). Runs after common._create_game seeds
   -- game_players.
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
@@ -848,7 +848,7 @@ begin
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on, and it reaches both — the edge function
   -- relays this envelope untouched.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.
@@ -865,7 +865,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -908,7 +908,7 @@ begin
     perform common._raise_game_deleted('letterboxed');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   if (select is_terminal from common.games where id = target_game) then
     -- A race: a teammate solved it or ended it, or the clock ran out, while
@@ -1021,9 +1021,9 @@ begin
       select jsonb_object_agg(user_id::text, '{"won": true}'::jsonb)
         into winner_results
         from common.game_players where game_id = target_game;
-      perform common.end_game(
+      perform common._end_game(
         target_game, 'won',
-        -- status MERGES (see common.end_game), so every value the terminal
+        -- status MERGES (see common._end_game), so every value the terminal
         -- asserts must be spelled out here — a missing letters_covered
         -- would leave the previous move's count showing under the win.
         jsonb_build_object('mode', 'coop', 'solved', true,
@@ -1042,7 +1042,7 @@ begin
                jsonb_build_object('won', gp.user_id = caller_id))
         into winner_results
         from common.game_players gp where gp.game_id = target_game;
-      perform common.end_game(
+      perform common._end_game(
         target_game, 'won_compete',
         jsonb_build_object('mode', 'compete', 'solved', true,
                            'winner_id', caller_id,
@@ -1062,7 +1062,7 @@ begin
     -- `result` NAMES the ending; `accepted`, `letters_covered` and `solved`
     -- are the fields this RPC has always returned and they stay exactly as
     -- they were.
-    return common.ok_envelope(
+    return common._ok_envelope(
       jsonb_build_object('result', 'solved',
                          'accepted', true, 'letters_covered', 12, 'solved', true),
       'won');
@@ -1072,7 +1072,7 @@ begin
   perform common._advance_turn(target_game);
   perform letterboxed._sync_status(target_game);
 
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'accepted',
                        'accepted', true, 'letters_covered', v_covered, 'solved', false),
     'won');
@@ -1086,7 +1086,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1137,7 +1137,7 @@ begin
     perform common._raise_game_deleted('letterboxed');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   if (select is_terminal from common.games where id = target_game) then
     perform common._raise_game_over();
@@ -1189,7 +1189,7 @@ begin
   -- which is the blue word, not the gray one: the chain is shorter than it was
   -- and the player who did it is telling the table so. The frontend's
   -- lib/answer.ts says the same word for the row this wrote.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'undone', 'word', v_popped,
                        'letters_covered', v_covered),
     'noted');
@@ -1203,7 +1203,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1243,7 +1243,7 @@ begin
     perform common._raise_game_deleted('letterboxed');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   if (select is_terminal from common.games where id = target_game) then
     perform common._raise_game_over();
@@ -1279,7 +1279,7 @@ begin
 
   -- `noted` for the same reason undo is: emptying the chain is news about the
   -- chain rather than a move anything adjudicates.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'cleared', 'letters_covered', 0), 'noted');
 
 -- One block, and it has never heard of any specific condition: it reads the
@@ -1291,7 +1291,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1342,7 +1342,7 @@ begin
     perform common._raise_game_deleted('letterboxed');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   if g_row.mode <> 'coop' then
     -- A fault: the mode is fixed at create_game and the FE renders neither
@@ -1382,7 +1382,7 @@ begin
   -- No outcome: the FE has already shown the hint or the word itself, in its own pill, and
   -- this answer only says the log agrees. Its job is to be a not-ok when the
   -- log does NOT agree.
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'logged',
     'kind', log_hint_or_spoiler.kind,
     'word', lower(trim(word_shown))));
@@ -1396,7 +1396,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1440,7 +1440,7 @@ begin
   -- Row check before the membership gate: `delete_game` takes this row,
   -- `common.games` and every `game_players` row together, so gate-first
   -- answered "You are not in this game" for a game that was simply deleted.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
   if (select is_terminal from common.games where id = target_game) then
     perform common._raise_game_over();
   end if;
@@ -1449,7 +1449,7 @@ begin
     select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
       into player_results
       from common.game_players where game_id = target_game;
-    perform common.end_game(
+    perform common._end_game(
       target_game, 'lost',
       jsonb_build_object(
         'mode', 'coop', 'solved', false, 'timed_out', true,
@@ -1460,7 +1460,7 @@ begin
     );
     -- Wake the boards (src/guards/endingTouchesGame.test.ts).
     update letterboxed.games set club_handle = club_handle where id = target_game;
-    return common.ok_envelope(jsonb_build_object('result', 'ended'));
+    return common._ok_envelope(jsonb_build_object('result', 'ended'));
   end if;
 
   -- Compete: rank on coverage, breaking ties on a shorter chain. Both
@@ -1498,7 +1498,7 @@ begin
   -- the per-row verdict. That flag is what the FE reads for "did I win" —
   -- co-winners mean there is no single winner_id to trust, and among tied
   -- rows the display order is arbitrary, so leaderboard[0] is not it.
-  perform common.end_game(
+  perform common._end_game(
     target_game, 'won_compete',
     jsonb_build_object('mode', 'compete', 'solved', false, 'timed_out', true,
                        'best_letters_covered', best_covered,
@@ -1524,7 +1524,7 @@ begin
   );
   -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update letterboxed.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1532,7 +1532,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1571,7 +1571,7 @@ begin
   -- Row check before the membership gate: `delete_game` takes this row,
   -- `common.games` and every `game_players` row together, so gate-first
   -- answered "You are not in this game" for a game that was simply deleted.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
   if (select is_terminal from common.games where id = target_game) then
     perform common._raise_game_over();
   end if;
@@ -1580,7 +1580,7 @@ begin
     into player_results
     from common.game_players where game_id = target_game;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game,
     'ended',
     jsonb_build_object('mode', g_row.mode, 'solved', false, 'stopped', true)
@@ -1595,7 +1595,7 @@ begin
   );
   -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update letterboxed.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1603,7 +1603,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1637,9 +1637,9 @@ begin
   -- letterboxed has a coop mode, where dropping out is not a thing a player can
   -- do — the chain is shared and ending it ends the table. Every other wrapper
   -- with a coop sibling refuses this; this one did not until 2026-09-01.
-  perform common.require_compete((select mode from letterboxed.games where id = target_game));
+  perform common._require_compete((select mode from letterboxed.games where id = target_game));
   -- common.concede answers in an envelope and catches its own raises, so its
-  -- refusals relay untouched; the handler below is for require_compete's.
+  -- refusals relay untouched; the handler below is for _require_compete's.
   v_answer := common.concede(target_game);
   -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
   -- → Concede).
@@ -1652,7 +1652,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1693,7 +1693,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   update letterboxed.players
      set chain = '{}', hints_used = 0, solved = false, solved_at = null
@@ -1706,7 +1706,7 @@ begin
   -- see docs/supabase.md. Reusing _sync_status would be wrong here: it
   -- writes play_state 'playing' via update_state without clearing
   -- is_terminal / ended_at, which is reset_game's job.
-  perform common.reset_game(
+  perform common._reset_game(
     target_game,
     case g_row.mode
       when 'coop' then jsonb_build_object(
@@ -1717,7 +1717,7 @@ begin
         'leaderboard', '[]'::jsonb)
     end
   );
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1725,7 +1725,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

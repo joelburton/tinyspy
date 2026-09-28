@@ -148,7 +148,7 @@ export const psychicnumCoopGame: GameManifest = {
   help: helpLoader,
 
   // Solo or coop up to 6. Must agree with the server-side
-  // require_player_count_max(6) call in psychicnum.create_game.
+  // _require_player_count_max(6) call in psychicnum.create_game.
   numberOfPlayers: [1, 6],
 
   PlayArea: playAreaLoader,

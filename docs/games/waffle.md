@@ -149,7 +149,7 @@ edge function and stored here, so the game is self-contained. There is **no**
 - **`waffle.players_state`** — `game_id`, `user_id`, `swaps_used`, `board`, **+
   computed `colors`** (a `SECURITY DEFINER` helper
   `_player_colors_for(p_game_id, row_user)` that reads the hidden
-  `games.solution` and wraps the pure `board_colors(board, solution)`). Colors
+  `games.solution` and wraps the pure `_board_colors(board, solution)`). Colors
   are visible during play (they *are* the gameplay); the full solution is not.
 
 ### The statuses
@@ -201,7 +201,7 @@ Two consequences worth knowing:
 
 ### RLS (mode-aware)
 
-Read gating on club membership (`common.is_club_member`), like every game. The
+Read gating on club membership (`common._is_club_member`), like every game. The
 mode-aware twist (spellingbee precedent): in **compete**, an opponent's
 `board`/`colors` are hidden mid-game — expose only their `swaps_used` (a lean
 opponent-progress projection, like spellingbee's rank-only visibility) — and
@@ -214,7 +214,7 @@ members.
   sibling-manifest signature plus a `p_board` jsonb (`{solution, scramble,
   par_swaps}`, `scramble` being the dealt board) built by the
   `waffle-build-board` edge function. Validates
-  `require_club_member`, `require_player_count_max`, `require_valid_timer`;
+  `_require_club_member`, `_require_player_count_max`, `_require_valid_timer`;
   validates `setup.extra_swaps` (0..15, default 5) and `setup.difficulty` (band
   **1–6**, default 2 — the dialog's `DictBandField` offers the same full 1–6
   range); sanity-checks the board structure (25-char strings, holes at the four
@@ -229,7 +229,7 @@ members.
   `setup.first_turn_user_id` is one of the players — so `submit_swap` can gate
   each swap.
 - **`submit_swap(p_game_id, p_pos_a, p_pos_b) → jsonb`** — the core move. Guards: the
-  game still exists, `require_game_player`, the game not ended, both positions filled
+  game still exists, `_require_game_player`, the game not ended, both positions filled
   (non-hole) and distinct, swaps remaining. Then it appends a `waffle.events`
   log row (swapper, positions, pre-swap letters, the colors after), and:
   - **coop:** applies the swap to **all** players' rows (lock-step),
@@ -275,7 +275,7 @@ members.
   state). Restarts the SAME board from scratch for everyone: resets every
   `waffle.players` row to the dealt board (`swaps_used=0`), clears the
   `waffle.events` log, and hands the common-layer reset to
-  `common.reset_game` (the inverse of `end_game` — the ending cleared, each
+  `common._reset_game` (the inverse of `_end_game` — the ending cleared, each
   player's ending, solve and result cleared, and **the shared clock zeroed** —
   a timed game restarts from the full countdown;
   the FE's tick-merge accepts the big backward jump as a deliberate reset, and
@@ -334,12 +334,12 @@ members.
 | a Stop | `stopped` / `stopped` | nobody (`neutral`) |
 
 A solved player is locked (can't keep swapping). The finite swap budget bounds
-the game even without a timer. Every ending goes through `common.end_game`,
+the game even without a timer. Every ending goes through `common._end_game`,
 which records the reason pair, who ended it, and each player's
 `final_ranking` and `outcome`.
 
 Timer is optional (`none` / `countup` / `countdown`, via
-`common.require_valid_timer`). A countdown is a pace/cap: on expiry, coop
+`common._require_valid_timer`). A countdown is a pace/cap: on expiry, coop
 loses; compete simply ends the race where it stands, ranking the players who
 had already **solved**. Unfinished boards are left as-is; being mid-solve at
 the buzzer just means you're not in the running.
@@ -471,7 +471,7 @@ Mirrors the other game folders:
   class key); the server is authoritative for the actual colors.
 - `lib/colors.ts` — `allGreen` alone: the colors of a board that IS the
   solution, for the reveal and the printed word list. Every other colored board
-  the FE draws was colored by `waffle.board_colors` — the live one off
+  the FE draws was colored by `waffle._board_colors` — the live one off
   `players_state`, a past one off the swap row that stored it. Nothing here
   recomputes feedback, and the coloring algorithm lives only in SQL.
 - `lib/history.ts` — the coop turn-history replay (pure + unit-tested): given

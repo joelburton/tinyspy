@@ -92,7 +92,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (4) Non-player is rejected (uses require_game_player now)
+-- (4) Non-player is rejected (uses _require_game_player now)
 -- ============================================================
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
@@ -101,7 +101,7 @@ select pg_temp.envelope_is(
                            array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'wrong', null),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'submit_guess: non-player is rejected (via require_game_player)'
+  'submit_guess: non-player is rejected (via _require_game_player)'
 );
 
 -- ============================================================

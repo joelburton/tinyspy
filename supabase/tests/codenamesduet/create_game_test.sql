@@ -9,7 +9,7 @@
 -- validates them, seats both players (user_a_id/user_b_id
 -- columns), picks the 25 words, generates the Duet key card,
 -- sets play_state='playing'. The common.games row created by
--- common.create_game gets is_current_view=true.
+-- common._create_game gets is_current_view=true.
 --
 -- Coverage:
 --   - rejection: not authenticated
@@ -208,14 +208,14 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- Timer-shape validation (via common.require_valid_timer)
+-- Timer-shape validation (via common._require_valid_timer)
 -- ============================================================
 -- The shared validator's full case grid is exercised in
 -- connections' create_game_test. Here we only spot-check that this
 -- gametype's create_game actually wires the helper up — one
 -- missing-timer, one bad-kind, one missing-seconds, one
 -- countup-accepted. Point: "the call is hooked up," not "re-test
--- every branch of require_valid_timer."
+-- every branch of _require_valid_timer."
 
 -- missing timer
 select pg_temp.envelope_is(

@@ -128,7 +128,7 @@ insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, c
 -- ('=<username>' handle), a clubs_members row joining the user
 -- to their solo club, and a clubs_gametypes row per SOLO-PLAYABLE
 -- gametype (min_players <= 1 — a solo club never enrolls in a
--- two-player game; see common.default_gametypes_for_club).
+-- two-player game; see common._default_gametypes_for_club).
 --
 -- Why direct INSERTs instead of calling the RPC five times: the
 -- RPC reads auth.uid() and runs SECURITY DEFINER, so we'd have
@@ -144,11 +144,11 @@ insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, c
 -- needs the same addition to keep tests representative.
 
 insert into common.profiles (user_id, username, color) values
-  ('ada11111-1111-1111-1111-111111111111', 'ada',  common.color_for_username('ada')),
-  ('bea22222-2222-2222-2222-222222222222', 'bea',  common.color_for_username('bea')),
-  ('cade3333-3333-3333-3333-333333333333', 'cade', common.color_for_username('cade')),
-  ('dee44444-4444-4444-4444-444444444444', 'dee',  common.color_for_username('dee')),
-  ('eda55555-5555-5555-5555-555555555555', 'eda',  common.color_for_username('eda'));
+  ('ada11111-1111-1111-1111-111111111111', 'ada',  common._color_for_username('ada')),
+  ('bea22222-2222-2222-2222-222222222222', 'bea',  common._color_for_username('bea')),
+  ('cade3333-3333-3333-3333-333333333333', 'cade', common._color_for_username('cade')),
+  ('dee44444-4444-4444-4444-444444444444', 'dee',  common._color_for_username('dee')),
+  ('eda55555-5555-5555-5555-555555555555', 'eda',  common._color_for_username('eda'));
 
 -- The bot's profile, with the `ai_member` mark that is the only thing telling
 -- it from a person. `db-add-user AI=1` sets it in a second statement after the
@@ -156,7 +156,7 @@ insert into common.profiles (user_id, username, color) values
 -- bots; here it is one insert.
 insert into common.profiles (user_id, username, color, ai_member) values
   ('abe66666-6666-6666-6666-666666666666', 'abe-bot',
-   common.color_for_username('abe-bot'), true);
+   common._color_for_username('abe-bot'), true);
 
 insert into common.clubs (handle, name, created_by) values
   ('=ada',  'ada',  'ada11111-1111-1111-1111-111111111111'),
@@ -181,7 +181,7 @@ insert into common.clubs_members (club_handle, user_id) values
 insert into common.clubs_gametypes (club_handle, gametype)
   select c.handle, gt.gametype
     from (values ('=ada'), ('=bea'), ('=cade'), ('=dee'), ('=eda'), ('=abe-bot')) as c(handle)
-   cross join lateral common.default_gametypes_for_club(c.handle) as gt(gametype);
+   cross join lateral common._default_gametypes_for_club(c.handle) as gt(gametype);
 
 -- ============================================================
 -- pg_temp.as_user — switch the session to "I am this user"

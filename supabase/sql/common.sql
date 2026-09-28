@@ -1,26 +1,99 @@
 -- cs-unmet
 
 -- ============================================================
--- common — the REPEATABLE half
+-- common
 -- ============================================================
--- Functions, views, RLS policies, triggers and grants for common. Everything
--- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
--- delta. Edit it in place forever; it never becomes a migration.
+-- What is called from outside SQL (no leading `_`):
 --
--- Its other half is the one-shot schema migration
--- `supabase/migrations/20260615000000_common.sql` — tables, constraints, indexes,
--- the Realtime publication and seed rows. That one is applied once and then
--- frozen, because `alter table` cannot be re-run.
+--   claim_username             creates a new player's profile and solo club
+--   update_profile             changes your color and sound setting
+--   create_club                makes a club of named friends, the caller
+--                              included
+--   set_club_gametypes         sets which games a club can start
+--   get_club_page              everything the club page draws, in one read
+--   send_message               posts to a club's chat
+--   set_current_view           makes a game the club's current game
+--   unset_current_view         clears the club's current game when its last
+--                              viewer leaves
+--   tick_timer                 advances a game's clock by at most a second
+--   delete_game                deletes a game and everything under it
+--   set_scratchpad             saves a scratchpad
+--   anagrams                   the dictionary words a set of letters spells
+--   update_word                edits a dictionary word (word editors only)
+--   delete_word                deletes a dictionary word (word editors only)
+--   add_word                   adds a dictionary word (word editors only)
+--   cache_definition           saves a word's definition (the definitions
+--                              edge function)
 --
--- Order is load-bearing: a policy can only reference a function that already
--- exists, so statements stay in the order they were written. See
+-- What each game's own SQL calls:
+--
+--   _create_game               the common half of starting a game
+--   _end_game                  ends a game, recording its reason and rankings
+--   _reset_game                the common half of a Restart
+--   _concede                   records a concession; ends the game once
+--                              everyone has conceded
+--   _stop                      the Stop: ends the game with no result
+--   _set_player_ended          ends one player while the game plays on
+--   _assign_turn_order         seats a turn-order game
+--   _advance_turn              hands the turn to the next player still in
+--   _require_turn              refuses a move out of turn
+--   _require_club_member       the caller is signed in and in this club
+--   _require_game_player       the caller is signed in and in this game
+--   _require_valid_timer       the setup's timer is well formed
+--   _require_valid_mode        the mode is coop or compete
+--   _require_compete           the game is a compete game
+--   _require_player_count_max  no more players than the game takes
+--   _raise_game_deleted        the "That game was already deleted" race
+--   _raise_game_over           the "Game over" race
+--   _raise_already_conceded    the "Already conceded" race
+--   _wordle_colors             colors one word against an answer,
+--                              Wordle-style
+--   _rank_idx                  the rank ladder, 0..6
+--   _ok_envelope               builds an `ok` answer
+--   _raised_envelope           builds the answer for a raise we authored
+--
+-- and the rest: `_is_club_member` for the security rules,
+-- `_default_gametypes_for_club`, `_slugify_club_name` and `_color_for_username`
+-- for making clubs and profiles, and two triggers, `_stamp_games_updated_at`
+-- and `_bump_scratchpad_version`.
+--
+-- What is particular to common: it may never name a game. Everything a game
+-- shares — the game row and its players, turn order, conceding, stopping,
+-- ending, the clock, the current-view pointer — is here, and each game's
+-- file calls it (docs/common-schema.md).
+--
+-- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
 -- ============================================================
 
 -- Authenticated users need usage on the schema so PostgREST can
 -- expose tables and RPCs under it.
 grant usage on schema common to authenticated;
+
+-- The names these functions had before a leading `_` came to mean "only SQL
+-- calls it" (docs/code-conventions.md → RPC functions). This file is
+-- re-applied, not diffed, so each old name is dropped here. `is_club_member`
+-- takes the security rules that use it with it (`cascade`): every one of them
+-- is in supabase/sql/, recreated over `_is_club_member` by the file that owns
+-- it later in the same apply.
+drop function if exists common.create_game(text, text, text, uuid[], text, jsonb, jsonb);
+drop function if exists common.end_game(uuid, text, text, uuid, boolean, jsonb);
+drop function if exists common.reset_game(uuid);
+drop function if exists common.require_club_member(text);
+drop function if exists common.require_game_player(uuid);
+drop function if exists common.require_valid_timer(jsonb);
+drop function if exists common.require_valid_mode(text);
+drop function if exists common.require_compete(text);
+drop function if exists common.require_player_count_max(uuid[], int);
+drop function if exists common.wordle_colors(text, text);
+drop function if exists common.ok_envelope(jsonb, text, text, jsonb);
+drop function if exists common.raised_envelope(text, text, text, text, text, text);
+drop function if exists common.is_club_member(text) cascade;
+drop function if exists common.default_gametypes_for_club(text);
+drop function if exists common.slugify_club_name(text);
+drop function if exists common.color_for_username(text);
+drop trigger if exists games_stamp_updated_at on common.games;
+drop function if exists common.stamp_games_updated_at();
 
 -- ============================================================
 -- The result envelope — what every RPC hands back
@@ -49,7 +122,7 @@ grant usage on schema common to authenticated;
 --       v_hint = pg_exception_hint, v_code = returned_sqlstate,
 --       v_col = column_name;
 --     if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
---     return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+--     return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 --
 -- COLUMN is the fifth channel, and it says WHICH FIELD the message is about.
 -- The other four are spoken for (message/detail/errcode/hint), and packing two
@@ -59,7 +132,7 @@ grant usage on schema common to authenticated;
 -- the handler converts the raise to jsonb before any response is built.
 --
 -- **It is not a validation-only channel.** A fault can be about one control
--- too — `require_valid_timer` is — and naming it is what puts the sentence
+-- too — `_require_valid_timer` is — and naming it is what puts the sentence
 -- under that control once the fault modal is dismissed. What decides the value
 -- is whether one field is what the message is about, not the severity.
 --
@@ -99,7 +172,7 @@ grant usage on schema common to authenticated;
 -- It also cost the one distinction a lookup needs: `data` null and `data` absent
 -- became the same JSON, so an RPC could not say "there is no next puzzle" as a
 -- value. Now it can.
-create or replace function common.ok_envelope(
+create or replace function common._ok_envelope(
   data jsonb default null,
   outcome text default null,
   message text default null,
@@ -121,16 +194,16 @@ as $$
     'detail', null);
 $$;
 
--- The envelope for a raise we authored. Called only from an exception handler,
--- with the values `get stacked diagnostics` just produced.
---
 -- Every superseded ARITY is dropped, because `create or replace` only replaces
 -- a function of the SAME signature — adding a defaulted parameter leaves the
 -- shorter one behind as an overload, and then every existing call site matches
 -- both and fails as ambiguous. One line per arity this function has ever had.
 drop function if exists common.raised_envelope(text, text, text, text);
 drop function if exists common.raised_envelope(text, text, text, text, text);
-create or replace function common.raised_envelope(
+
+-- The envelope for a raise we authored. Called only from an exception handler,
+-- with the values `get stacked diagnostics` just produced.
+create or replace function common._raised_envelope(
   sqlstate_code text,
   message text,
   hint text,
@@ -175,11 +248,11 @@ $$;
 -- to be. A plain function runs as the CALLER, who must therefore be able to
 -- call these. They are pure and take no arguments they do not return, so there
 -- is nothing to protect.
-grant execute on function common.ok_envelope(jsonb, text, text, jsonb) to authenticated;
-grant execute on function common.raised_envelope(text, text, text, text, text, text) to authenticated;
+grant execute on function common._ok_envelope(jsonb, text, text, jsonb) to authenticated;
+grant execute on function common._raised_envelope(text, text, text, text, text, text) to authenticated;
 
-revoke execute on function common.ok_envelope(jsonb, text, text, jsonb) from public;
-revoke execute on function common.raised_envelope(text, text, text, text, text, text) from public;
+revoke execute on function common._ok_envelope(jsonb, text, text, jsonb) from public;
+revoke execute on function common._raised_envelope(text, text, text, text, text, text) from public;
 
 -- Which gametypes a freshly-created club should be enrolled in
 -- (i.e. which Start buttons it should offer). Two filters:
@@ -193,10 +266,10 @@ revoke execute on function common.raised_envelope(text, text, text, text, text, 
 -- Centralizing both rules here keeps claim_username, create_club, and
 -- the per-game backfills from drifting apart.
 -- Returns a one-column `gametype` set so callers can `select ...,
--- gametype from common.default_gametypes_for_club(handle)` directly
+-- gametype from common._default_gametypes_for_club(handle)` directly
 -- (a bare `returns setof text` would expose the column under the
 -- function's name, not `gametype`).
-create or replace function common.default_gametypes_for_club(target_handle text)
+create or replace function common._default_gametypes_for_club(target_handle text)
 returns table(gametype text)
 language sql
 stable
@@ -208,16 +281,17 @@ as $$
    where gt.default_enroll
      and (not c.is_solo or gt.min_players <= 1)
 $$;
-revoke execute on function common.default_gametypes_for_club(text) from public;
+revoke execute on function common._default_gametypes_for_club(text) from public;
 
--- `updated_at` is when a games row was last written, by anything — a move, a
--- builder run, the current-view pointer, a data pass — so it is stamped here
--- and nowhere else. It is not when the game was last played: that is
--- `status_changed_at`, which only the game's status builder writes.
 drop trigger if exists games_touch_last_active on common.games;
 drop function if exists common.touch_games_last_active();
 
-create or replace function common.stamp_games_updated_at()
+-- The trigger that stamps `common.games.updated_at`: when a games row was last
+-- written, by anything — a move, a builder run, the current-view pointer, a
+-- data pass — so it is stamped here and nowhere else. It is not when the game
+-- was last played: that is `status_changed_at`, which only the game's status
+-- builder writes.
+create or replace function common._stamp_games_updated_at()
 returns trigger
 language plpgsql
 as $$
@@ -226,22 +300,28 @@ begin
   return new;
 end;
 $$;
-revoke execute on function common.stamp_games_updated_at() from public;
+revoke execute on function common._stamp_games_updated_at() from public;
 
 drop trigger if exists games_stamp_updated_at on common.games;
 create trigger games_stamp_updated_at
   before update on common.games
   for each row
-  execute function common.stamp_games_updated_at();
+  execute function common._stamp_games_updated_at();
 
 -- Read-only to members (the FE seeds its initial display from
 -- `ticks`); writes go exclusively through common.tick_timer. RLS
 -- (members-of-the-game's-club) is enabled in the policy section
--- below, alongside the other tables — it gates on is_club_member,
+-- below, alongside the other tables — it gates on _is_club_member,
 -- which isn't defined yet here.
 grant select on common.timers to authenticated;
 
-create or replace function common.is_club_member(target_club text)
+-- Whether the caller is a member of the club: the check every security rule
+-- makes. A definer, so the membership lookup bypasses RLS (a policy on
+-- clubs_members calling back into itself would recurse). GRANTED to
+-- authenticated: every gametype's RLS policy calls this, and a policy runs
+-- as the INVOKER — so without the grant every club-scoped select fails
+-- outright.
+create or replace function common._is_club_member(target_club text)
 returns boolean
 language sql
 security definer
@@ -253,11 +333,8 @@ as $$
     where club_handle = target_club and user_id = auth.uid()
   );
 $$;
--- GRANTED to authenticated: every gametype's RLS policy calls this
--- (`using (common.is_club_member(club_handle))`), and a policy runs as the
--- INVOKER — so without the grant every club-scoped select fails outright.
-revoke execute on function common.is_club_member(text) from public;
-grant execute on function common.is_club_member(text) to authenticated;
+revoke execute on function common._is_club_member(text) from public;
+grant execute on function common._is_club_member(text) to authenticated;
 
 -- INTENTIONAL: any signed-in user can read any profile. Username
 -- is public; there's no sensitive data on profiles today. Required
@@ -301,7 +378,7 @@ create policy timers_select on common.timers
     exists (
       select 1 from common.games g
        where g.id = timers.game_id
-         and common.is_club_member(g.club_handle)
+         and common._is_club_member(g.club_handle)
     )
   );
 
@@ -314,27 +391,27 @@ create policy timers_select on common.timers
 drop policy if exists clubs_select on common.clubs;
 create policy clubs_select on common.clubs
   for select to authenticated
-  using (common.is_club_member(handle));
+  using (common._is_club_member(handle));
 
 -- `user_id = auth.uid()` covers your OWN membership rows in addition to
--- the club-wide roster. It's mostly redundant with is_club_member (your
+-- the club-wide roster. It's mostly redundant with _is_club_member (your
 -- row is in a club you're in) — except for the one case that matters for
 -- the HomePage live clubs list: when you're REMOVED from a club, Realtime
 -- evaluates this policy against the DELETE event as the now-ex-member, so
--- is_club_member(club_handle) is already false and you'd never see your
+-- _is_club_member(club_handle) is already false and you'd never see your
 -- own removal. Matching on your user_id (carried in the PK / replica
 -- identity) lets the DELETE through so the list updates without a refresh.
--- Seeing your own membership facts is never a leak. is_club_member is
+-- Seeing your own membership facts is never a leak. _is_club_member is
 -- SECURITY DEFINER (bypasses this policy) so there's no recursion.
 drop policy if exists clubs_members_select on common.clubs_members;
 create policy clubs_members_select on common.clubs_members
   for select to authenticated
-  using (user_id = (select auth.uid()) or common.is_club_member(club_handle));
+  using (user_id = (select auth.uid()) or common._is_club_member(club_handle));
 
 drop policy if exists messages_select on common.messages;
 create policy messages_select on common.messages
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 -- Permissive read on gametypes — gametype identifiers are not
 -- sensitive, and the FE needs to discover them anyway (the
@@ -347,7 +424,7 @@ create policy gametypes_select on common.gametypes
 drop policy if exists clubs_gametypes_select on common.clubs_gametypes;
 create policy clubs_gametypes_select on common.clubs_gametypes
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 -- Game records are club-wide: any club member can see every game
 -- ever played in the club, regardless of whether they were one of
@@ -357,7 +434,7 @@ create policy clubs_gametypes_select on common.clubs_gametypes
 drop policy if exists games_select on common.games;
 create policy games_select on common.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 -- Game-player records inherit visibility from their parent game.
 -- The EXISTS subquery mirrors the per-gametype `*_select` policy
@@ -369,13 +446,13 @@ create policy game_players_select on common.game_players
     exists (
       select 1 from common.games g
        where g.id = game_players.game_id
-         and common.is_club_member(g.club_handle)
+         and common._is_club_member(g.club_handle)
     )
   );
 
 -- No insert/update/delete policies on any of these tables. Writes
 -- go through the security-definer RPCs defined below (create_club,
--- send_message, the create_game/end_game game-lifecycle helpers
+-- send_message, the _create_game/_end_game game-lifecycle helpers
 -- called from each gametype's RPCs).
 
 grant select on common.profiles                to authenticated;
@@ -388,6 +465,9 @@ grant select on common.clubs_gametypes         to authenticated;
 grant select on common.messages                to authenticated;
 grant select on common.game_scratchpads to authenticated;
 
+-- The trigger that counts a scratchpad's versions: every update bumps
+-- `version` by one, which is how set_scratchpad's caller recognizes its own
+-- write coming back.
 create or replace function common._bump_scratchpad_version()
 returns trigger
 language plpgsql
@@ -418,15 +498,15 @@ create policy game_scratchpads_select on common.game_scratchpads
     )
   );
 
+-- Dropped, not replaced: `create or replace` cannot change a return type.
+drop function if exists common.set_scratchpad(uuid, uuid, text);
+
 -- Replace the pad body for (game, owner). The shared pad (p_owner_id null) is
 -- writable by any player; a private pad only by its owner. Guarded on
 -- membership only — the notes outlive the game, so a finished game's pad
 -- stays writable. The FE debounces this full-text flush (the pad is small +
 -- one-writer-at-a-time, so no OT/CRDT). Returns the new version so the FE
 -- adopts it and its own CDC echo is a no-op.
--- Dropped, not replaced: this returned `bigint` (the version) before it
--- answered in an envelope, and `create or replace` cannot change a return type.
-drop function if exists common.set_scratchpad(uuid, uuid, text);
 create or replace function common.set_scratchpad(target_game uuid, p_owner_id uuid, p_body text)
 returns jsonb
 language plpgsql
@@ -438,7 +518,7 @@ declare
   v_version bigint;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
   -- The FE sends its own id or null (the shared pad) and has no control that
   -- offers a third value, so anything else got past us rather than past a
   -- player.
@@ -463,7 +543,7 @@ begin
 
   -- `version` rides in `data` because the caller acts on it: it keeps the
   -- highest one seen so a slow flush's reply cannot roll the pad backwards.
-  return common.ok_envelope(jsonb_build_object('result', 'saved', 'version', v_version));
+  return common._ok_envelope(jsonb_build_object('result', 'saved', 'version', v_version));
 
 exception when others then
   get stacked diagnostics
@@ -471,14 +551,14 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function common.set_scratchpad(uuid, uuid, text) from public;
 grant execute on function common.set_scratchpad(uuid, uuid, text) to authenticated;
 
 -- ============================================================
--- common.slugify_club_name — user-typed name → URL handle
+-- common._slugify_club_name — user-typed name → URL handle
 -- ============================================================
 --
 -- Rules:
@@ -496,8 +576,7 @@ grant execute on function common.set_scratchpad(uuid, uuid, text) to authenticat
 --
 -- Marked `immutable` so Postgres can use it in indexed expressions
 -- if we ever want a generated column or expression index.
-
-create or replace function common.slugify_club_name(name text)
+create or replace function common._slugify_club_name(name text)
 returns text
 language sql
 immutable
@@ -510,10 +589,10 @@ as $$
     1, 40
   );
 $$;
-revoke execute on function common.slugify_club_name(text) from public;
+revoke execute on function common._slugify_club_name(text) from public;
 
 -- ============================================================
--- common.color_for_username — deterministic palette pick
+-- common._color_for_username — deterministic palette pick
 -- ============================================================
 --
 -- Maps a username to one of the 8 profile palette names by
@@ -536,8 +615,7 @@ revoke execute on function common.slugify_club_name(text) from public;
 --
 -- Marked `immutable` so it composes cleanly into INSERT
 -- expressions (used by claim_username below).
-
-create or replace function common.color_for_username(username text)
+create or replace function common._color_for_username(username text)
 returns text
 language sql
 immutable
@@ -546,7 +624,7 @@ as $$
     'red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink'
   ])[(abs(hashtext(username)) % 8) + 1];
 $$;
-revoke execute on function common.color_for_username(text) from public;
+revoke execute on function common._color_for_username(text) from public;
 
 -- ============================================================
 -- Helpers for game RPCs
@@ -568,7 +646,7 @@ revoke execute on function common.color_for_username(text) from public;
 -- three callers are codenamesduet, psychicnum, connections. A future
 -- gametype follows the same pattern.
 
--- ─── common.require_club_member ────────────────────────
+-- ─── common._require_club_member ────────────────────────
 -- "Caller must be authenticated AND a member of target_club."
 -- Returns the caller's user_id — the calling RPC typically
 -- needs it for downstream inserts.
@@ -585,9 +663,8 @@ revoke execute on function common.color_for_username(text) from public;
 -- instruction, not a line on a form.
 --
 -- security definer so the membership lookup bypasses RLS, the
--- same way is_club_member does.
-
-create or replace function common.require_club_member(target_club text)
+-- same way _is_club_member does.
+create or replace function common._require_club_member(target_club text)
 returns uuid
 language plpgsql
 security definer
@@ -620,9 +697,9 @@ $$;
 -- this helper) run with the helper-owner's privileges and can
 -- call it; direct authenticated calls are blocked, keeping the
 -- function out of PostgREST's exposed surface.
-revoke execute on function common.require_club_member(text) from public;
+revoke execute on function common._require_club_member(text) from public;
 
--- ─── common.require_valid_timer ─────────────────────────────
+-- ─── common._require_valid_timer ─────────────────────────────
 -- Validates a jsonb timer object against the canonical shape
 -- shared across games:
 --
@@ -654,8 +731,7 @@ revoke execute on function common.require_club_member(text) from public;
 -- game places the timer there. A future game nesting it elsewhere
 -- would either accept the mismatch or write its own validator —
 -- the canonical *shape* is the contract here, not the path.
-
-create or replace function common.require_valid_timer(timer jsonb)
+create or replace function common._require_valid_timer(timer jsonb)
 returns void
 language plpgsql
 immutable
@@ -703,10 +779,10 @@ end;
 $$;
 
 -- No grant to authenticated; internal helper (see
--- require_club_member's note).
-revoke execute on function common.require_valid_timer(jsonb) from public;
+-- _require_club_member's note).
+revoke execute on function common._require_valid_timer(jsonb) from public;
 
--- ─── common.require_valid_mode ──────────────────────────────
+-- ─── common._require_valid_mode ──────────────────────────────
 -- Guard: a game's mode must be one of the two we support. Every
 -- open (coop/compete) gametype's create_game repeated this exact
 -- check; centralizing keeps the allowed-mode set — and the error
@@ -718,8 +794,7 @@ revoke execute on function common.require_valid_timer(jsonb) from public;
 -- Only the sizing rules (compete needs ≥2, codenamesduet is
 -- exactly-2, bananagrams is compete-only) stay per-gametype — those
 -- genuinely differ; the coop-or-compete membership check does not.
-
-create or replace function common.require_valid_mode(p_mode text)
+create or replace function common._require_valid_mode(p_mode text)
 returns void
 language plpgsql
 immutable
@@ -733,9 +808,9 @@ begin
 end;
 $$;
 
-revoke execute on function common.require_valid_mode(text) from public;
+revoke execute on function common._require_valid_mode(text) from public;
 
--- ─── common.require_compete ────────────────────────────
+-- ─── common._require_compete ────────────────────────────
 -- Guard: concede is a compete-only action. In coop the players are
 -- a team, so a game ends via stop_game (a mutual "we're done"), not
 -- a per-player drop-out — conceding makes no sense. Every gametype's
@@ -750,8 +825,7 @@ revoke execute on function common.require_valid_mode(text) from public;
 -- the original inline semantics exactly — a null mode (missing game)
 -- falls through unraised, as before, and the surrounding
 -- existence/lock check handles that case.
-
-create or replace function common.require_compete(p_mode text)
+create or replace function common._require_compete(p_mode text)
 returns void
 language plpgsql
 immutable
@@ -767,7 +841,7 @@ begin
 end;
 $$;
 
-revoke execute on function common.require_compete(text) from public;
+revoke execute on function common._require_compete(text) from public;
 
 -- ─── common._raise_game_deleted ────────────────────────────
 -- The one sentence for "the game you are acting on is gone",
@@ -819,7 +893,7 @@ revoke execute on function common._raise_game_deleted(text) from public;
 -- (`SEVERITY_TO_OUTCOME` in src/common/supabase/dbResult.ts): a
 -- move that changed nothing is worth noticing.
 --
--- ONE code for every site, like `require_game_player`'s PN253:
+-- ONE code for every site, like `_require_game_player`'s PN253:
 -- what a code distinguishes is WHICH QUESTION failed, and this is
 -- one question. The caller always knows which RPC it called.
 create or replace function common._raise_game_over()
@@ -859,47 +933,8 @@ $$;
 
 revoke execute on function common._raise_already_conceded() from public;
 
--- ─── common.create_game ────────────────────────────────
--- The common (header) half of starting a new game. Called by
--- every gametype's `<gametype>.create_game` first to get the
--- canonical game id; the gametype then inserts its detail row
--- using that id.
---
--- Responsibilities:
---   - Auth + caller membership in p_club_handle (via
---     require_club_member). The caller must be a club member to
---     start a game in this club; they do NOT have to appear in
---     p_player_user_ids (the "Ada facilitates a game between Bea
---     and Cade" case is supported).
---   - Validate every uid in p_player_user_ids is a member of
---     the club at game-create time. Players are frozen at
---     creation; later membership changes to clubs_members don't
---     affect this game's roster.
---   - Vacate any prior current-view game for this club (UPDATE
---     is_current_view = false on whichever row currently holds
---     it). This is the "auto-suspend the previous game" behavior;
---     the prior game stays in common.games but loses its
---     current-view flag.
---   - Insert the new common.games row with is_current_view = true.
---     The partial unique index on (club_handle) where is_current_view
---     = true guarantees the just-cleared step worked.
---   - Insert its common.timers row, with the timer's kind and
---     countdown length copied from `setup.timer`.
---   - Insert one common.game_players row per uid.
---   - Return the new game id.
---
--- Size constraints (exactly-2 for codenamesduet, at-least-1 for the
--- open games) live in the gametype's `<gametype>.create_game`,
--- not here — common doesn't know each gametype's rules. This
--- helper just enforces "all listed players are club members."
---
--- Raises:
---   - PN011 / PN012 via require_club_member
---   - PN059 'BUG: game with no players'
---   - PN060 'BUG: player not in this club: X, Y'
-
 -- ============================================================
--- common.wordle_colors — color ONE word against an answer, Wordle-style
+-- common._wordle_colors — color ONE word against an answer, Wordle-style
 --
 -- KEEP THE NAME. It looks like a game codename in the shared layer — the one
 -- thing naming.md's headline rule forbids — but it isn't: "Wordle colors" is
@@ -916,7 +951,7 @@ revoke execute on function common._raise_already_conceded() from public;
 -- their answer letter), yellows second from the leftover pool.
 --
 -- THE ONLY implementation of this algorithm, and it stays that way:
--- wordle.submit_guess and waffle.board_colors (per word) both call it instead
+-- wordle.submit_guess and waffle._board_colors (per word) both call it instead
 -- of keeping a copy, and no frontend recomputes feedback — each game reads the
 -- string the server stored. Pinned by a test per caller, `colors_test.sql`
 -- under both wordle/ and waffle/, on inputs that share nothing, so a change
@@ -927,7 +962,7 @@ revoke execute on function common._raise_already_conceded() from public;
 -- had already drifted when `waffle.events` began storing each swap's colors
 -- and the copy went. The lesson is the obvious one: this is exactly the kind of
 -- subtle algorithm that must live in one place.
-create or replace function common.wordle_colors(guess text, answer text)
+create or replace function common._wordle_colors(guess text, answer text)
 returns text
 language plpgsql
 immutable
@@ -972,7 +1007,7 @@ begin
   return array_to_string(res, '');
 end;
 $$;
-revoke execute on function common.wordle_colors(text, text) from public;
+revoke execute on function common._wordle_colors(text, text) from public;
 
 -- ============================================================
 -- common._rank_idx — the rank ladder (0..6) as integer math
@@ -1008,7 +1043,6 @@ revoke execute on function common.wordle_colors(text, text) from public;
 -- a rank target calls this instead of keeping a copy. Pinned by each caller's
 -- `rank_idx_test.sql`.
 -- ============================================================
-
 create or replace function common._rank_idx(score int, total int)
 returns int
 language sql
@@ -1024,11 +1058,50 @@ $$;
 revoke execute on function common._rank_idx(int, int) from public;
 
 drop function if exists common.create_game(text, text, uuid[], text, jsonb, jsonb);
-create or replace function common.create_game(
+
+-- ─── common._create_game ────────────────────────────────
+-- The common (header) half of starting a new game. Called by
+-- every gametype's `<gametype>.create_game` first to get the
+-- canonical game id; the gametype then inserts its detail row
+-- using that id.
+--
+-- Responsibilities:
+--   - Auth + caller membership in p_club_handle (via
+--     _require_club_member). The caller must be a club member to
+--     start a game in this club; they do NOT have to appear in
+--     p_player_user_ids (the "Ada facilitates a game between Bea
+--     and Cade" case is supported).
+--   - Validate every uid in p_player_user_ids is a member of
+--     the club at game-create time. Players are frozen at
+--     creation; later membership changes to clubs_members don't
+--     affect this game's roster.
+--   - Vacate any prior current-view game for this club (UPDATE
+--     is_current_view = false on whichever row currently holds
+--     it). This is the "auto-suspend the previous game" behavior;
+--     the prior game stays in common.games but loses its
+--     current-view flag.
+--   - Insert the new common.games row with is_current_view = true.
+--     The partial unique index on (club_handle) where is_current_view
+--     = true guarantees the just-cleared step worked.
+--   - Insert its common.timers row, with the timer's kind and
+--     countdown length copied from `setup.timer`.
+--   - Insert one common.game_players row per uid.
+--   - Return the new game id.
+--
+-- Size constraints (exactly-2 for codenamesduet, at-least-1 for the
+-- open games) live in the gametype's `<gametype>.create_game`,
+-- not here — common doesn't know each gametype's rules. This
+-- helper just enforces "all listed players are club members."
+--
+-- Raises:
+--   - PN011 / PN012 via _require_club_member
+--   - PN059 'BUG: game with no players'
+--   - PN060 'BUG: player not in this club: X, Y'
+create or replace function common._create_game(
   p_club_handle text,
   p_gametype text,
   -- 'coop' or 'compete', which the gametype's create_game has checked
-  -- (common.require_valid_mode). Passed, never read off the gametype's name.
+  -- (common._require_valid_mode). Passed, never read off the gametype's name.
   p_mode text,
   p_player_user_ids uuid[],
   p_title text,
@@ -1051,7 +1124,7 @@ declare
   non_members text[];
 begin
   -- Caller must be a club member (raises if not auth/not member).
-  perform common.require_club_member(p_club_handle);
+  perform common._require_club_member(p_club_handle);
 
   if p_player_user_ids is null
      or array_length(p_player_user_ids, 1) is null
@@ -1102,7 +1175,7 @@ begin
    where club_handle = p_club_handle and is_current_view = true;
 
   -- Setup is passed in as-validated (each gametype's create_game
-  -- does field-level checks + common.require_valid_timer before calling
+  -- does field-level checks + common._require_valid_timer before calling
   -- here). We just persist what we're handed; a new row has no
   -- `ended_at`, so it is being played.
   insert into common.games (club_handle, gametype, mode, created_by, title, setup, is_current_view)
@@ -1113,7 +1186,7 @@ begin
   -- first tick_timer call doesn't immediately jump (it needs a full
   -- real second to elapse before the first +1). The kind and the
   -- countdown's length are the game's to read from here on, never
-  -- `setup` (require_valid_timer has checked the shape).
+  -- `setup` (_require_valid_timer has checked the shape).
   insert into common.timers (game_id, kind, countdown_seconds_at_setup)
   values (
     new_id,
@@ -1129,7 +1202,7 @@ begin
   -- clubs_gametypes so the next setup dialog can pre-fill it.
   -- NULL opts this call out of saving (a gametype that doesn't
   -- want a saved-defaults UX passes NULL). On every successful
-  -- create_game, the row's default_setup overwrites — there's
+  -- _create_game, the row's default_setup overwrites — there's
   -- no "save as default" gesture; the click on Start is the save.
   if p_default_setup is not null then
     update common.clubs_gametypes
@@ -1143,9 +1216,9 @@ end;
 $$;
 
 -- No grant to authenticated; internal helper.
-revoke execute on function common.create_game(text, text, text, uuid[], text, jsonb, jsonb) from public;
+revoke execute on function common._create_game(text, text, text, uuid[], text, jsonb, jsonb) from public;
 
--- ─── common.require_game_player ───────────────────────
+-- ─── common._require_game_player ───────────────────────
 -- "Caller must be authenticated AND have a game_players row for
 -- target_game." Used by mid-game RPCs (submit_guess, submit_clue,
 -- etc.) where the question is "is this caller actually playing
@@ -1161,8 +1234,7 @@ revoke execute on function common.create_game(text, text, text, uuid[], text, js
 --   - PN252 'Signed out; try refresh'   when auth.uid() is null
 --   - PN253 'You are not in this game'  when the caller isn't in
 --                                        common.game_players
-
-create or replace function common.require_game_player(target_game uuid)
+create or replace function common._require_game_player(target_game uuid)
 returns uuid
 language plpgsql
 security definer
@@ -1184,7 +1256,7 @@ begin
     select 1 from common.game_players
     where game_id = target_game and user_id = caller_id
   ) then
-    -- `create_game` seeds a row for every player and the FE knows the roster,
+    -- `_create_game` seeds a row for every player and the FE knows the roster,
     -- so a caller without one is a broken client or a hand-rolled call.
     raise exception 'You are not in this game'
       using errcode = 'PN253', hint = 'fault', column = '_',
@@ -1196,7 +1268,7 @@ end;
 $$;
 
 -- No grant to authenticated; internal helper.
-revoke execute on function common.require_game_player(uuid) from public;
+revoke execute on function common._require_game_player(uuid) from public;
 
 -- ============================================================
 -- Turn-order primitive — opt-in turn-by-turn
@@ -1247,12 +1319,13 @@ $$;
 
 revoke execute on function common._assign_turn_order(uuid, uuid) from public;
 
+drop function if exists common._advance_turn(uuid);
+
 -- Advance the pointer to the next player by turn_seat (wraps; skips any player
 -- who has ended, conceders included). No-op when the game isn't a turn game
 -- (pointer null ⇒ no seats ⇒ nothing to advance), so it's safe to call
 -- unconditionally on a game's accepted-move path. The skip is what steps the
 -- rotation past a scrabble compete player who conceded.
-drop function if exists common._advance_turn(uuid);
 create or replace function common._advance_turn(p_game_id uuid)
 returns void
 language plpgsql
@@ -1311,7 +1384,7 @@ revoke execute on function common._advance_turn(uuid) from public;
 -- is a turn game (pointer set) and the caller isn't the current player. No-op
 -- for free-for-all (pointer null) and for solo (the sole player is always the
 -- current player). Call it right after the move RPC locks the game row and
--- resolves the caller (common.require_game_player).
+-- resolves the caller (common._require_game_player).
 -- `_`-prefixed unlike the rest of the require_* gates, and deliberately so:
 -- it belongs to the turn-order PRIMITIVES (_assign_turn_order / _advance_turn /
 -- _require_turn), which share the prefix because they're the opt-in mechanism's
@@ -1348,7 +1421,9 @@ revoke execute on function common._require_turn(uuid, uuid) from public;
 -- re-applied, not diffed.
 drop function if exists common.update_state(uuid, text, jsonb);
 
--- ─── common.end_game ───────────────────────────────────
+drop function if exists common.end_game(uuid, text, jsonb, jsonb);
+
+-- ─── common._end_game ───────────────────────────────────
 -- Ends a game. Each gametype's RPC calls it once, at the moment its own rule
 -- says the game is over — connections' fourth mistake, the assassin, the
 -- countdown, the Stop. Everything about the ending is the game's to decide
@@ -1374,8 +1449,7 @@ drop function if exists common.update_state(uuid, text, jsonb);
 --
 -- A second call on an ended game keeps the first `ended_at` and overwrites
 -- the rest; an ending fires once from one RPC, so it doesn't arise.
-drop function if exists common.end_game(uuid, text, jsonb, jsonb);
-create or replace function common.end_game(
+create or replace function common._end_game(
   p_game_id uuid,
   p_reason text,
   p_reason_detail text,
@@ -1437,7 +1511,7 @@ end;
 $$;
 
 -- No grant to authenticated; internal helper.
-revoke execute on function common.end_game(uuid, text, text, uuid, boolean, jsonb) from public;
+revoke execute on function common._end_game(uuid, text, text, uuid, boolean, jsonb) from public;
 
 -- ─── common.reveal_solution — REMOVED 2026-08-15 ───────────
 -- Seeing the solution is a LOCAL, per-player display choice now, made in the FE
@@ -1458,8 +1532,10 @@ revoke execute on function common.end_game(uuid, text, text, uuid, boolean, json
 -- a forward migration (20260815000000_drop_solution_revealed.sql).
 drop function if exists common.reveal_solution(uuid);
 
--- ─── common.reset_game ─────────────────────────────────────
--- The INVERSE of end_game: return a game to fresh, in-progress
+drop function if exists common.reset_game(uuid, jsonb);
+
+-- ─── common._reset_game ─────────────────────────────────────
+-- The INVERSE of _end_game: return a game to fresh, in-progress
 -- state on the SAME row (no new game). For a gametype's "replay
 -- this board" feature — the frozen puzzle/setup stays; only the
 -- ending and each player's bookkeeping is undone. Writes:
@@ -1481,12 +1557,11 @@ drop function if exists common.reveal_solution(uuid);
 --
 -- The gametype's OWN working-state reset (its per-game tables +
 -- event log) happens in the calling RPC; this helper only owns the
--- common-layer half, exactly as end_game does; the statuses are the
+-- common-layer half, exactly as _end_game does; the statuses are the
 -- game's builder's, which the caller runs after its own reset. Internal
 -- helper — no grant to authenticated; the gametype's `replay_*` RPC is
 -- the membership-guarded caller.
-drop function if exists common.reset_game(uuid, jsonb);
-create or replace function common.reset_game(p_game_id uuid)
+create or replace function common._reset_game(p_game_id uuid)
 returns void
 language plpgsql
 security definer
@@ -1538,7 +1613,10 @@ begin
 end;
 $$;
 
-revoke execute on function common.reset_game(uuid) from public;
+revoke execute on function common._reset_game(uuid) from public;
+
+drop function if exists common.concede(uuid);
+drop function if exists common._set_conceded(uuid);
 
 -- ─── common._concede ───────────────────────────────────────
 -- The shared part of "a player concedes", called by every game's own
@@ -1563,8 +1641,6 @@ revoke execute on function common.reset_game(uuid) from public;
 -- Returns the caller's user_id (the concede RPCs use it downstream). Not
 -- granted to `authenticated`: a direct call would end a game without its
 -- builder.
-drop function if exists common.concede(uuid);
-drop function if exists common._set_conceded(uuid);
 create or replace function common._concede(p_game_id uuid)
 returns uuid
 language plpgsql
@@ -1577,7 +1653,7 @@ declare
   v_player_ended_at timestamptz;
   v_player_ended_reason text;
 begin
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   select ended_at into v_ended_at from common.games where id = p_game_id;
   if v_ended_at is not null then
@@ -1620,7 +1696,7 @@ begin
      where game_id = p_game_id
        and player_ended_reason is distinct from 'conceded'
   ) then
-    perform common.end_game(
+    perform common._end_game(
       p_game_id, 'conceded', 'conceded', caller_id,
       p_is_no_result => false,
       p_final_rankings => '{}'::jsonb
@@ -1655,7 +1731,7 @@ as $$
 declare
   caller_id uuid;
 begin
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   if (select ended_at from common.games where id = p_game_id) is not null then
     -- A RACE: a winning move, a teammate's Stop or the timer landed between
@@ -1663,7 +1739,7 @@ begin
     perform common._raise_game_over();
   end if;
 
-  perform common.end_game(
+  perform common._end_game(
     p_game_id, 'stopped', 'stopped', caller_id,
     p_is_no_result => false,
     p_final_rankings => '{}'::jsonb
@@ -1676,6 +1752,8 @@ $$;
 -- No grant to authenticated; internal helper (reached via the
 -- games' stop_game RPCs).
 revoke execute on function common._stop(uuid) from public;
+
+drop function if exists common._set_locally_terminal(uuid, uuid);
 
 -- ─── common._set_player_ended ──────────────────────────────
 -- Mark one player ended while the game plays on, for a reason that is
@@ -1697,7 +1775,6 @@ revoke execute on function common._stop(uuid) from public;
 -- to a question already settled. Idempotent — a player who has ended
 -- keeps their first time and reason — so the branch that calls it
 -- does not have to ask whether it already did.
-drop function if exists common._set_locally_terminal(uuid, uuid);
 create or replace function common._set_player_ended(
   p_game_id uuid,
   p_user_id uuid,
@@ -1722,6 +1799,11 @@ $$;
 revoke execute on function common._set_player_ended(uuid, uuid, text, text) from public;
 
 
+-- Dropped, not replaced: this returned `void` before it answered in an
+-- envelope, and `create or replace` cannot change a return type. Same as its
+-- twin below.
+drop function if exists common.set_current_view(uuid);
+
 -- ─── common.set_current_view ───────────────────────────────
 -- Fired from the FE when the first viewer mounts a game's
 -- GamePage. Sets common.games.is_current_view=true on this game
@@ -1736,7 +1818,7 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text) from
 -- realtime auto-nav pulls them into the winner's game.
 --
 -- Auth: caller must be a member of the game's club. We use
--- require_club_member rather than require_game_player so a
+-- _require_club_member rather than _require_game_player so a
 -- non-player club member can still view (and become the
 -- current viewer of) a game they weren't seated in. Today's
 -- seating model puts every club member in game_players for
@@ -1745,11 +1827,6 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text) from
 -- Companion to unset_current_view (called when the last viewer
 -- leaves). See docs/states.md → "Lifecycle: when
 -- is_current_view flips" for the full story.
-
--- Dropped, not replaced: this returned `void` before it answered in an
--- envelope, and `create or replace` cannot change a return type. Same as its
--- twin below.
-drop function if exists common.set_current_view(uuid);
 create or replace function common.set_current_view(target_game uuid)
 returns jsonb
 language plpgsql
@@ -1781,7 +1858,7 @@ begin
       detail = 'no common.games row for target_game';
   end if;
 
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
 
   -- Vacate any other current-view game for this club. Done first
   -- so the partial unique index doesn't reject the target's write.
@@ -1802,7 +1879,7 @@ begin
    where id = target_game
      and is_current_view = false;
 
-  return common.ok_envelope(jsonb_build_object('result', 'set'));
+  return common._ok_envelope(jsonb_build_object('result', 'set'));
 
 exception when others then
   get stacked diagnostics
@@ -1810,12 +1887,14 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
 revoke execute on function common.set_current_view(uuid) from public;
 grant execute on function common.set_current_view(uuid) to authenticated;
+
+drop function if exists common.unset_current_view(uuid);
 
 -- ─── common.unset_current_view ─────────────────────────────
 -- Fired from the FE when the last viewer's tab is leaving a
@@ -1831,7 +1910,7 @@ grant execute on function common.set_current_view(uuid) to authenticated;
 -- Outcomes:
 --   - ok           {"result": "cleared"} — the flag is false (or already was)
 --   - ok / noted   PA001 — the game itself is gone
---   - not-ok/fault PN011 / PN012, from require_club_member
+--   - not-ok/fault PN011 / PN012, from _require_club_member
 --
 -- The success carries a `result` rather than an empty `data`, because the two
 -- `ok`s have to be told apart at the call site and only one of them can be
@@ -1839,8 +1918,6 @@ grant execute on function common.set_current_view(uuid) to authenticated;
 -- `data: null`. Leaving this one empty would make "no dbcode" its identity —
 -- an absence, which a second wordless `ok` added later would match too, and be
 -- drawn as this one (docs/envelopes.md → Choosing which `ok` branch).
-
-drop function if exists common.unset_current_view(uuid);
 create or replace function common.unset_current_view(target_game uuid)
 returns jsonb
 language plpgsql
@@ -1867,7 +1944,7 @@ begin
       detail = 'no common.games row for target_game';
   end if;
 
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
 
   -- Pure pointer flip. No timer work — the tick clock in
   -- common.timers stops advancing on its own once no one's viewing
@@ -1877,7 +1954,7 @@ begin
    where id = target_game
      and is_current_view = true;
 
-  return common.ok_envelope(jsonb_build_object('result', 'cleared'));
+  return common._ok_envelope(jsonb_build_object('result', 'cleared'));
 
 exception when others then
   get stacked diagnostics
@@ -1885,12 +1962,16 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
 revoke execute on function common.unset_current_view(uuid) from public;
 grant execute on function common.unset_current_view(uuid) to authenticated;
+
+-- Dropped, not replaced: this returned `int` (the tick count) before it
+-- answered in an envelope, and `create or replace` cannot change a return type.
+drop function if exists common.tick_timer(uuid);
 
 -- ─── common.tick_timer ─────────────────────────────────────
 -- The game clock's one writer. Every actively-playing client calls
@@ -1915,9 +1996,6 @@ grant execute on function common.unset_current_view(uuid) to authenticated;
 --
 -- Returns the current ticks either way, so the same call the FE
 -- uses to advance the clock also reads it back.
--- Dropped, not replaced: this returned `int` (the tick count) before it
--- answered in an envelope, and `create or replace` cannot change a return type.
-drop function if exists common.tick_timer(uuid);
 create or replace function common.tick_timer(target_game uuid)
 returns jsonb
 language plpgsql
@@ -1944,7 +2022,7 @@ begin
       using errcode = 'PA004', hint = 'noted',
       detail = 'no common.games row for target_game';
   end if;
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
 
   update common.timers
      set ticks = ticks + 1,
@@ -1962,7 +2040,7 @@ begin
   -- The authoritative count. Every viewer polls once a second and the guard
   -- above lets only the first of them advance it, so three players do not make
   -- three ticks — the rest fall through to this read.
-  return common.ok_envelope(jsonb_build_object('result', 'ticked', 'ticks', coalesce(current_ticks, 0)));
+  return common._ok_envelope(jsonb_build_object('result', 'ticked', 'ticks', coalesce(current_ticks, 0)));
 
 exception when others then
   get stacked diagnostics
@@ -1970,12 +2048,14 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
 revoke execute on function common.tick_timer(uuid) from public;
 grant execute on function common.tick_timer(uuid) to authenticated;
+
+drop function if exists common.delete_game(uuid);
 
 -- ─── common.delete_game ────────────────────────────────────
 -- Permanently remove a game and everything that belongs to it.
@@ -2007,10 +2087,8 @@ grant execute on function common.tick_timer(uuid) to authenticated;
 -- Outcomes:
 --   - ok               {"result": "deleted"} — the row (and its subtree) is gone
 --   - not-ok / race    PN010 — it was already gone (reads red: constraint lost)
---   - not-ok/fault     PN011 / PN012, from require_club_member — not
+--   - not-ok/fault     PN011 / PN012, from _require_club_member — not
 --                      signed in, or not a member of this club
-
-drop function if exists common.delete_game(uuid);
 create or replace function common.delete_game(target_game uuid)
 returns jsonb
 language plpgsql
@@ -2042,7 +2120,7 @@ begin
   end if;
 
   -- Raises PN011 / PN012, which the handler below turns into a fault envelope.
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
 
   delete from common.games where id = target_game;
 
@@ -2050,7 +2128,7 @@ begin
   -- `data` still names the answer, because a bare envelope would leave the call
   -- site nothing to test but what the answer lacks (docs/envelopes.md → How SQL
   -- builds one).
-  return common.ok_envelope(jsonb_build_object('result', 'deleted'));
+  return common._ok_envelope(jsonb_build_object('result', 'deleted'));
 
 exception when others then
   get stacked diagnostics
@@ -2058,12 +2136,14 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
 revoke execute on function common.delete_game(uuid) from public;
 grant execute on function common.delete_game(uuid) to authenticated;
+
+drop function if exists common.create_club(text, text[]);
 
 -- ============================================================
 -- common.create_club RPC
@@ -2088,13 +2168,11 @@ grant execute on function common.delete_game(uuid) to authenticated;
 -- so a UI that lets the creator type only their friends doesn't
 -- have to remember to also include themselves.
 --
--- clubs_gametypes is seeded via common.default_gametypes_for_club:
+-- clubs_gametypes is seeded via common._default_gametypes_for_club:
 -- a friend club (always ≥2 members) gets every default-enroll
 -- gametype (psychicnum opts out — it's the architecture toy).
 -- Members can edit the set afterward from the club-settings UI
 -- (common.set_club_gametypes), including opting INTO the opt-outs.
-
-drop function if exists common.create_club(text, text[]);
 create or replace function common.create_club(
   club_name text,
   member_usernames text[]
@@ -2131,7 +2209,7 @@ begin
       detail = 'club name length cap';
   end if;
 
-  new_handle := common.slugify_club_name(club_name);
+  new_handle := common._slugify_club_name(club_name);
   -- PN004. Prevented by the form's `handleError`; see PN003 on the wording.
   if length(new_handle) = 0 then
     raise exception 'BUG: club name with no letter or digit'
@@ -2219,13 +2297,13 @@ begin
   -- through the club-settings UI (common.set_club_gametypes).
   insert into common.clubs_gametypes (club_handle, gametype)
   select new_handle, gametype
-    from common.default_gametypes_for_club(new_handle);
+    from common._default_gametypes_for_club(new_handle);
 
   -- `result` beside the handle, not instead of it. The handle is what the
   -- caller USES; `result` is what tells it which answer it got, and a payload
   -- that carries only a value leaves a call site matching on `ok` alone
   -- (docs/envelopes.md → Choosing which `ok` branch).
-  return common.ok_envelope(
+  return common._ok_envelope(
     data => jsonb_build_object('result', 'created', 'handle', new_handle));
 
 exception when others then
@@ -2234,12 +2312,14 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
 revoke execute on function common.create_club(text, text[]) from public;
 grant execute on function common.create_club(text, text[]) to authenticated;
+
+drop function if exists common.set_club_gametypes(text, text[]);
 
 -- ============================================================
 -- common.set_club_gametypes RPC — the club-settings "which games
@@ -2266,12 +2346,11 @@ grant execute on function common.create_club(text, text[]) to authenticated;
 --
 -- Outcomes:
 --   - ok           {"result": "saved"} — the set is now exactly `gametypes`
---   - not-ok/fault PN011 / PN012, from require_club_member
+--   - not-ok/fault PN011 / PN012, from _require_club_member
 --   - a RAW fault  the FK above
 --
 -- It authors no outcome of its own; what the handler below catches is
--- require_club_member's PN011 / PN012.
-drop function if exists common.set_club_gametypes(text, text[]);
+-- _require_club_member's PN011 / PN012.
 create or replace function common.set_club_gametypes(
   target_club text,
   gametypes text[]
@@ -2288,7 +2367,7 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- Auth + membership gate (raises PN011 / PN012 on either failure).
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
 
   -- Delete-by-difference rather than truncate-and-refill so an
   -- unchanged row keeps its default_setup (the saved setup-form
@@ -2309,7 +2388,7 @@ begin
   -- No message: the dialog closes on success and says nothing. `data` still
   -- names the answer — an `ok` a call site can only match by being `ok` is one
   -- a second answer would be drawn as (docs/envelopes.md → How SQL builds one).
-  return common.ok_envelope(jsonb_build_object('result', 'saved'));
+  return common._ok_envelope(jsonb_build_object('result', 'saved'));
 
 exception when others then
   get stacked diagnostics
@@ -2317,12 +2396,14 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
 revoke execute on function common.set_club_gametypes(text, text[]) from public;
 grant execute on function common.set_club_gametypes(text, text[]) to authenticated;
+
+drop function if exists common.get_club_page(text);
 
 -- ============================================================
 -- common.get_club_page RPC — everything ClubPage needs to render
@@ -2380,11 +2461,9 @@ grant execute on function common.set_club_gametypes(text, text[]) to authenticat
 -- change between loads.
 --
 -- Checks run auth → existence → membership, and that order is the
--- point: `require_club_member` is not used here precisely because
+-- point: `_require_club_member` is not used here precisely because
 -- it answers "not a member" for a club that does not exist, which
 -- is the distinction this function was written to draw.
-
-drop function if exists common.get_club_page(text);
 create or replace function common.get_club_page(target_handle text)
 returns jsonb
 language plpgsql
@@ -2428,7 +2507,7 @@ begin
     select 1 from common.clubs_members
     where club_handle = target_handle and user_id = caller_id
   ) then
-    -- Word for word `require_club_member`'s PN012: the same fact, and one
+    -- Word for word `_require_club_member`'s PN012: the same fact, and one
     -- sentence for it wherever it is said.
     raise exception 'You are not a member of this club'
       using errcode = 'PN495', hint = 'fault', column = '_',
@@ -2458,7 +2537,7 @@ begin
   -- reason `create_club` says 'created': a call site's ok branch asserts
   -- something POSITIVE about the payload, so an answer added later cannot sail
   -- into it on the strength of `type` alone (docs/envelopes.md → The shape).
-  return common.ok_envelope(data => jsonb_build_object(
+  return common._ok_envelope(data => jsonb_build_object(
     'result', 'loaded',
     'club', jsonb_build_object(
       'handle', v_club.handle, 'name', v_club.name, 'is_solo', v_club.is_solo),
@@ -2471,12 +2550,14 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
 revoke execute on function common.get_club_page(text) from public;
 grant execute on function common.get_club_page(text) to authenticated;
+
+drop function if exists common.send_message(text, text);
 
 -- ============================================================
 -- common.send_message RPC
@@ -2488,10 +2569,8 @@ grant execute on function common.get_club_page(text) to authenticated;
 --
 -- Outcomes:
 --   - ok                     {"result": "sent"} — the row is in
---   - not-ok/fault           PN011 / PN012 (require_club_member), PN030
+--   - not-ok/fault           PN011 / PN012 (_require_club_member), PN030
 --   - not-ok/form-validation PN031 — over the 1000-char cap, on `content`
-
-drop function if exists common.send_message(text, text);
 create or replace function common.send_message(target_club text, content text)
 returns jsonb
 language plpgsql
@@ -2504,7 +2583,7 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- Auth + membership gate: PN011 / PN012, caught by the handler below.
-  caller_id := common.require_club_member(target_club);
+  caller_id := common._require_club_member(target_club);
 
   -- PN030. The chat form returns early on an empty box, so this is a bug
   -- rather than an empty message.
@@ -2531,7 +2610,7 @@ begin
   -- No message: the sent line appears in the log, which says it better than a
   -- sentence would. `result` is still what a call site branches on
   -- (docs/envelopes.md → How SQL builds one).
-  return common.ok_envelope(jsonb_build_object('result', 'sent'));
+  return common._ok_envelope(jsonb_build_object('result', 'sent'));
 
 exception when others then
   get stacked diagnostics
@@ -2539,12 +2618,14 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
 revoke execute on function common.send_message(text, text) from public;
 grant execute on function common.send_message(text, text) to authenticated;
+
+drop function if exists common.claim_username(text, text);
 
 -- ============================================================
 -- common.claim_username RPC
@@ -2559,12 +2640,12 @@ grant execute on function common.send_message(text, text) to authenticated;
 --      chosen username, color derived deterministically).
 --   2. Creates a solo club with handle '=<username>',
 --      single-membered. The '=' prefix puts solo clubs in a
---      slug-space user-typed names cannot reach (slugify_club_name
+--      slug-space user-typed names cannot reach (_slugify_club_name
 --      strips '='), so there's no risk of collision with
 --      friend-club handles.
 --   3. clubs_gametypes rows for the solo club, covering only the
 --      gametypes a single player can actually play (min_players <=
---      1, via common.default_gametypes_for_club). A solo club has
+--      1, via common._default_gametypes_for_club). A solo club has
 --      one member forever, so two-player games like codenamesduet would
 --      never be startable there — we don't enroll the club in them.
 --      The member can still add them later from the club-settings UI
@@ -2585,8 +2666,6 @@ grant execute on function common.send_message(text, text) to authenticated;
 --
 -- The CHECK on profiles.username would catch a bad regex too; the explicit
 -- raise earns its place by naming the condition and pointing at one line.
-
-drop function if exists common.claim_username(text, text);
 create or replace function common.claim_username(desired text, chosen_color text)
 returns jsonb
 language plpgsql
@@ -2631,7 +2710,7 @@ begin
 
   -- PN015. The picker offers the eight palette swatches and nothing else. (The
   -- DB requires a color and has no default; direct SQL inserts such as the test
-  -- personas supply their own via common.color_for_username.)
+  -- personas supply their own via common._color_for_username.)
   if chosen_color not in
        ('red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink') then
     raise exception 'BUG: color outside the palette'
@@ -2670,12 +2749,12 @@ begin
 
   insert into common.clubs_gametypes (club_handle, gametype)
   select '=' || desired, gametype
-    from common.default_gametypes_for_club('=' || desired);
+    from common._default_gametypes_for_club('=' || desired);
 
   -- `result` beside the username, not instead of it: the name is what a caller
   -- would USE, `result` is what says which answer this is (docs/envelopes.md →
   -- Choosing which `ok` branch).
-  return common.ok_envelope(
+  return common._ok_envelope(
     data => jsonb_build_object('result', 'claimed', 'username', desired));
 
 exception when others then
@@ -2684,12 +2763,18 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
 revoke execute on function common.claim_username(text, text) from public;
 grant execute on function common.claim_username(text, text) to authenticated;
+
+-- Dropped here because this file is re-applied rather than diffed, so a
+-- retired signature has to say so: `update_profile_color(text)` is the
+-- color-only write this function replaced.
+drop function if exists common.update_profile_color(text);
+drop function if exists common.update_profile(text, boolean);
 
 -- ============================================================
 -- common.update_profile — save your own profile settings
@@ -2705,12 +2790,6 @@ grant execute on function common.claim_username(text, text) to authenticated;
 -- is a validation — the picker offers the eight palette swatches and the sound
 -- setting is a checkbox, so every way this can refuse is a bug or a dead
 -- session rather than a choice a player made.
---
--- RETIRED: `update_profile_color(text)`, the color-only write this replaced.
--- Dropped here because this file is re-applied rather than diffed, so a
--- retired signature has to say so.
-drop function if exists common.update_profile_color(text);
-drop function if exists common.update_profile(text, boolean);
 create or replace function common.update_profile(new_color text, new_sounds_enabled boolean)
 returns jsonb
 language plpgsql
@@ -2764,7 +2843,7 @@ begin
   -- No message: the dialog closes and the settings take effect, which says it.
   -- `result` is what a call site branches on (docs/envelopes.md → How SQL
   -- builds one).
-  return common.ok_envelope(jsonb_build_object('result', 'saved'));
+  return common._ok_envelope(jsonb_build_object('result', 'saved'));
 
 exception when others then
   get stacked diagnostics
@@ -2772,7 +2851,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -2804,38 +2883,12 @@ create policy words_select on common.words
 
 
 -- ============================================================
--- common.anagrams — the ⌥` anagram finder's search
+-- common._anagram_fits
 -- ============================================================
--- The dictionary tool behind the global anagram popup: given a letters
--- pattern, return every word of EXACTLY that length the pattern can spell,
--- with its difficulty band. The pattern's syntax (the dialog teaches it):
---
---   - lowercase letter — a tile that can land anywhere ("floats")
---   - '?'              — a floating wildcard, pays any one letter
---   - UPPERCASE letter — pinned: the word must have this letter at this
---                        exact position ("Acer" finds acer + acre, not race)
---
--- All-uppercase degenerates to an exact-word check, which is a feature.
---
--- **No content filter, ruled deliberately (2026-08-07):** the player typed
--- the letters, so the whole dictionary answers — crude/slur/slang words
--- included. This is the opposite of the app-surfaces tier the scrabble AI
--- uses (docs/word-list.md → Which words a game may use), on purpose; a pgTAP
--- test pins it so a future cleanup doesn't quietly re-filter.
---
--- Match runs in three stages, cheapest first, over the len-exact subset:
---   1. the PIN check as a LIKE pattern (pinned letters literal, every
---      floating slot '_') — free positional filtering;
---   2. the letter_mask prefilter: distinct letters the input doesn't hold
---      at all must be payable by wildcards (bit_count ≤ k) — the same
---      subset trick the stackdown builder uses, k=0 collapsing to
---      mask & ~input_mask = 0;
---   3. the exact multiset fold (_anagram_fits) on the few survivors: each
---      UNPINNED word position consumes a floating letter or a wildcard.
---
--- Ordered difficulty then word — familiar words first, the useful order
--- when hunting a word you might actually know.
-
+-- The last stage of `anagrams`' match: whether word `w` can be spelled from
+-- the floating letters and wildcards, the pinned positions having already
+-- matched through the LIKE pattern `pat`. Each unpinned position consumes a
+-- floating letter or, failing that, a wildcard.
 create or replace function common._anagram_fits(
   w text,
   pat text,          -- the LIKE pattern: pinned letters literal, '_' = floating slot
@@ -2872,14 +2925,46 @@ end;
 $$;
 revoke execute on function common._anagram_fits(text, text, int[], int) from public;
 
+-- DROP first: `create or replace` cannot change a function's return type, and
+-- `if exists` keeps the file re-appliable in full on every deploy.
+drop function if exists common.anagrams(text);
+
+-- ============================================================
+-- common.anagrams — the ⌥` anagram finder's search
+-- ============================================================
+-- The dictionary tool behind the global anagram popup: given a letters
+-- pattern, return every word of EXACTLY that length the pattern can spell,
+-- with its difficulty band. The pattern's syntax (the dialog teaches it):
+--
+--   - lowercase letter — a tile that can land anywhere ("floats")
+--   - '?'              — a floating wildcard, pays any one letter
+--   - UPPERCASE letter — pinned: the word must have this letter at this
+--                        exact position ("Acer" finds acer + acre, not race)
+--
+-- All-uppercase degenerates to an exact-word check, which is a feature.
+--
+-- **No content filter, ruled deliberately (2026-08-07):** the player typed
+-- the letters, so the whole dictionary answers — crude/slur/slang words
+-- included. This is the opposite of the app-surfaces tier the scrabble AI
+-- uses (docs/word-list.md → Which words a game may use), on purpose; a pgTAP
+-- test pins it so a future cleanup doesn't quietly re-filter.
+--
+-- Match runs in three stages, cheapest first, over the len-exact subset:
+--   1. the PIN check as a LIKE pattern (pinned letters literal, every
+--      floating slot '_') — free positional filtering;
+--   2. the letter_mask prefilter: distinct letters the input doesn't hold
+--      at all must be payable by wildcards (bit_count ≤ k) — the same
+--      subset trick the stackdown builder uses, k=0 collapsing to
+--      mask & ~input_mask = 0;
+--   3. the exact multiset fold (_anagram_fits) on the few survivors: each
+--      UNPINNED word position consumes a floating letter or a wildcard.
+--
+-- Ordered difficulty then word — familiar words first, the useful order
+-- when hunting a word you might actually know.
+--
 -- SECURITY DEFINER (house pattern): the internal _anagram_fits helper is
 -- revoked from callers, so an invoker-rights version 403s the moment an
 -- authenticated player's call reaches it.
--- DROP first: `create or replace` cannot change a function's return type, and
--- this one moved from `returns table` to the jsonb envelope. Every conversion
--- in this sprint needs the same line, and `if exists` keeps the file
--- re-appliable in full on every deploy.
-drop function if exists common.anagrams(text);
 create or replace function common.anagrams(letters text)
 returns jsonb
 language plpgsql
@@ -2950,7 +3035,7 @@ begin
   -- The words sit UNDER a key rather than being `data` outright. A bare array
   -- leaves a call site nothing to assert but its shape, and `Array.isArray` is
   -- not a case (docs/envelopes.md → Choosing which `ok` branch); `result` is.
-  return common.ok_envelope(
+  return common._ok_envelope(
     data => jsonb_build_object('result', 'searched', 'words', found));
 
 exception when others then
@@ -2959,7 +3044,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function common.anagrams(text) from public;
@@ -3054,10 +3139,11 @@ end;
 $$;
 revoke execute on function common._validate_word_fields(jsonb) from public;
 
+drop function if exists common.update_word(text, jsonb, text);
+
 -- Patch an existing word. `patch` holds ONLY the changed fields (that's
 -- what the journal's `new` records); a key present with a null value
 -- clears the column (definition/hint).
-drop function if exists common.update_word(text, jsonb, text);
 create or replace function common.update_word(
   target_word text,
   patch jsonb,
@@ -3114,7 +3200,7 @@ begin
 
   -- `result` reuses the journal's own vocabulary (`words_edits.kind`), so the
   -- answer and the row it wrote say the same word.
-  return common.ok_envelope(jsonb_build_object('result', 'updated'));
+  return common._ok_envelope(jsonb_build_object('result', 'updated'));
 
 exception when others then
   get stacked diagnostics
@@ -3122,11 +3208,13 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function common.update_word(text, jsonb, text) from public;
 grant execute on function common.update_word(text, jsonb, text) to authenticated;
+
+drop function if exists common.delete_word(text, text);
 
 -- Remove a word — a hard DELETE, deliberately (2026-08-08): nothing
 -- foreign-keys into common.words, games snapshot their lists at creation,
@@ -3137,7 +3225,6 @@ grant execute on function common.update_word(text, jsonb, text) to authenticated
 -- path and the upstream export. (Soft edge: words.root_word is a plain
 -- text pointer, so deleting a lemma leaves inflections naming a word that
 -- no longer exists — a dangling STRING, harmless.)
-drop function if exists common.delete_word(text, text);
 create or replace function common.delete_word(
   target_word text,
   note text default null
@@ -3168,7 +3255,7 @@ begin
   values (w.word, 'delete', to_jsonb(w), null, note, ed.editor_id, ed.editor_username);
 
   -- As in add_word / update_word: `result` is the journal's own `kind`.
-  return common.ok_envelope(jsonb_build_object('result', 'deleted'));
+  return common._ok_envelope(jsonb_build_object('result', 'deleted'));
 
 exception when others then
   get stacked diagnostics
@@ -3176,16 +3263,17 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function common.delete_word(text, text) from public;
 grant execute on function common.delete_word(text, text) to authenticated;
 
+drop function if exists common.add_word(text, jsonb, text);
+
 -- Add a word. `fields` uses the same editable set; difficulty is required
 -- (there is no sensible default band), everything else defaults to the
 -- import's defaults. len derives, letter_mask generates.
-drop function if exists common.add_word(text, jsonb, text);
 create or replace function common.add_word(
   new_word text,
   fields jsonb,
@@ -3252,7 +3340,7 @@ begin
   values (w.word, 'add', null, to_jsonb(w), note, ed.editor_id, ed.editor_username);
 
   -- As in update_word: the journal's `kind` is the vocabulary.
-  return common.ok_envelope(jsonb_build_object('result', 'added'));
+  return common._ok_envelope(jsonb_build_object('result', 'added'));
 
 exception when others then
   get stacked diagnostics
@@ -3260,7 +3348,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function common.add_word(text, jsonb, text) from public;
@@ -3330,15 +3418,14 @@ revoke execute on function common.cache_definition(text, text, text) from public
 grant execute on function common.cache_definition(text, text, text) to service_role;
 
 -- ============================================================
--- common.require_player_count_max — player-count upper bound
+-- common._require_player_count_max — player-count upper bound
 -- ============================================================
 -- Centralizes the "max N players" check that each open-N game's
--- create_game calls near the top (mirrors require_club_member +
--- require_valid_timer). 6 isn't a global rule — each create_game passes its
+-- create_game calls near the top (mirrors _require_club_member +
+-- _require_valid_timer). 6 isn't a global rule — each create_game passes its
 -- own cap; codenamesduet keeps its inline exactly-2 check. No grant to
 -- authenticated: only callable from other SECURITY DEFINER RPCs.
-
-create or replace function common.require_player_count_max(
+create or replace function common._require_player_count_max(
   player_user_ids uuid[],
   max_count int
 )
@@ -3356,4 +3443,4 @@ begin
 end;
 $$;
 
-revoke execute on function common.require_player_count_max(uuid[], int) from public;
+revoke execute on function common._require_player_count_max(uuid[], int) from public;

@@ -115,7 +115,7 @@ export const stackdownCoopGame: GameManifest = {
 
   help: helpLoader,
 
-  // Solo or coop up to 6. Must agree with require_player_count_max(6).
+  // Solo or coop up to 6. Must agree with _require_player_count_max(6).
   numberOfPlayers: [1, 6],
 
   PlayArea: playAreaLoader,

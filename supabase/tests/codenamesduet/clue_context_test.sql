@@ -43,7 +43,7 @@ select pg_temp.envelope_is(
   get_clue_context((select id from g)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'get_clue_context rejects a non-player caller (via require_game_player)'
+  'get_clue_context rejects a non-player caller (via _require_game_player)'
 );
 
 -- ============================================================

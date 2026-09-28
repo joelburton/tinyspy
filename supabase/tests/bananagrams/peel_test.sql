@@ -102,7 +102,7 @@ select is(
   'status.bunch_remaining tracks the bunch for the FE'
 );
 
--- (3) Non-player cannot peel — `common.require_game_player`'s shared PN253.
+-- (3) Non-player cannot peel — `common._require_game_player`'s shared PN253.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
   bananagrams.peel((select id from g1)),

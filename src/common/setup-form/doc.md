@@ -104,7 +104,7 @@ the game's InfoCol ──> SetupDisclosure ──> the rows setupRows.ts builds 
 
 - **The timer's box holds text the setup never sees.** An unparseable MM:SS
   does not reach `setup.timer`, which keeps the last valid seconds; the
-  complaint comes from the field itself. That is why `require_valid_timer`
+  complaint comes from the field itself. That is why `_require_valid_timer`
   refusing a timer is a fault rather than a validation — see
   [docs/envelopes.md](../../../docs/envelopes.md) → Who writes
   the words.

@@ -27,7 +27,7 @@ export type CodenamesduetValues = {
   // `countup` (informational) are display-only; `countdown`
   // loses the game, reason `timeout`, when the clock hits 0 (via
   // codenamesduet.submit_timeout). Validated server-side by
-  // `common.require_valid_timer`.
+  // `common._require_valid_timer`.
   //
   // Distinct from the rulebook's `turns` above — that's the
   // in-game turn budget (the `turns_remaining` clock); this is the

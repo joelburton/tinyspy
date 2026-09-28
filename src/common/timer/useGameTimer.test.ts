@@ -202,7 +202,7 @@ describe('useGameTimer', () => {
   it('accepts a LARGE backward jump — the server clock was reset (replay-board)', async () => {
     rpcMock
       .mockResolvedValueOnce(ticked(70)) // past the duration → expired
-      .mockResolvedValue(ticked(1)) // common.reset_game zeroed the clock
+      .mockResolvedValue(ticked(1)) // common._reset_game zeroed the clock
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countdown', seconds: 60 }, paused: false, running: true }),
     )

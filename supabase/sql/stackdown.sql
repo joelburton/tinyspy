@@ -50,7 +50,7 @@ create policy games_select on stackdown.games
     exists (
       select 1 from common.games cg
        where cg.id = games.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
     )
   );
 
@@ -63,7 +63,7 @@ create policy players_select on stackdown.players
     exists (
       select 1 from common.games cg
        where cg.id = players.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
     )
   );
 
@@ -78,7 +78,7 @@ create policy events_select on stackdown.events
     exists (
       select 1 from common.games cg
        where cg.id = events.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
          and (cg.mode = 'coop' or events.user_id = (select auth.uid()) or cg.ended_at is not null)
     )
   );
@@ -291,12 +291,12 @@ declare
   v_band int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
-  perform common.require_club_member(p_club_handle);
+  perform common._require_club_member(p_club_handle);
   -- Must agree with numberOfPlayers in src/stackdown/manifest.ts ([1,6]/[2,6]).
-  perform common.require_player_count_max(p_player_user_ids, 6);
+  perform common._require_player_count_max(p_player_user_ids, 6);
 
-  perform common.require_valid_mode(p_mode);
-  perform common.require_valid_timer(p_setup->'timer');
+  perform common._require_valid_mode(p_mode);
+  perform common._require_valid_timer(p_setup->'timer');
 
   -- Word-difficulty band (a common.words.difficulty ceiling). Defaults to 1
   -- (the everyday set); the setup form offers 1..2 today, but any 1..6 the
@@ -323,7 +323,7 @@ begin
   -- "New game" until words start clearing. Coop rewrites this title to the
   -- cleared words as it plays (submit_word); compete leaves it untouched
   -- so it never leaks the hidden solution to the trailing racer.
-  new_id := common.create_game(
+  new_id := common._create_game(
     p_club_handle, 'stackdown_' || p_mode, p_mode, p_player_user_ids, 'New game', p_setup, p_setup
   );
 
@@ -339,7 +339,7 @@ begin
   -- though this is the only `ok` — a call site cannot assert a case the payload
   -- does not carry, and without it the branch would match by being `ok` and draw
   -- a second answer as this one.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -350,7 +350,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function stackdown.create_game(text, jsonb, uuid[], text) from public;
@@ -405,7 +405,7 @@ begin
     perform common._raise_game_deleted('stackdown');
   end if;
 
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   select ended_at, mode into v_ended_at, v_mode from common.games where id = p_game_id;
   if v_ended_at is not null then
@@ -493,7 +493,7 @@ begin
     -- cleared. `data` carries the case; the sentence names the word, because by
     -- the time it is read the tiles are back on the board and the word is gone
     -- from the screen.
-    v_answer := common.ok_envelope(
+    v_answer := common._ok_envelope(
       jsonb_build_object('result', 'invalid', 'word', w, 'terminal', false),
       'lost', format('Not a word: %s', upper(w)));
   else
@@ -520,7 +520,7 @@ begin
          where game_id = p_game_id;
         select jsonb_object_agg(user_id::text, 1) into v_rankings
           from common.game_players where game_id = p_game_id;
-        perform common.end_game(
+        perform common._end_game(
           p_game_id, 'reached_goal', 'cleared', caller_id,
           p_is_no_result => false,
           p_final_rankings => v_rankings
@@ -533,7 +533,7 @@ begin
         update common.game_players
            set solved_at = now()
          where game_id = p_game_id and user_id = caller_id;
-        perform common.end_game(
+        perform common._end_game(
           p_game_id, 'reached_goal', 'cleared', caller_id,
           p_is_no_result => false,
           p_final_rankings => jsonb_build_object(caller_id::text, 1)
@@ -542,7 +542,7 @@ begin
     end if;
 
     -- No message: the tiles clearing is the answer.
-    v_answer := common.ok_envelope(
+    v_answer := common._ok_envelope(
       jsonb_build_object('result', 'accepted', 'word', w, 'terminal', out_terminal), 'won');
   end if;
 
@@ -555,7 +555,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function stackdown.submit_word(uuid, int[]) from public;
@@ -601,7 +601,7 @@ begin
     perform common._raise_game_deleted('stackdown');
   end if;
 
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   select ended_at, mode into v_ended_at, v_mode from common.games where id = p_game_id;
   if v_ended_at is not null then
@@ -654,7 +654,7 @@ begin
   -- be rendered as this one, silently. The word is the row's own `kind`, so the
   -- envelope and the row it wrote say the same thing — and "reveal" is taken on
   -- this page by the action that shows the WHOLE solution at game over.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'spoiler', 'word', next_word), 'lost');
 
 exception when others then
@@ -663,7 +663,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function stackdown.reveal_next_word(uuid) from public;
@@ -709,7 +709,7 @@ begin
     perform common._raise_game_deleted('stackdown');
   end if;
 
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   select ended_at, mode, setup->>'band' into v_ended_at, v_mode, v_band
     from common.games where id = p_game_id;
@@ -765,7 +765,7 @@ begin
   -- is red, because it ends the hunt rather than nudging it). No message — the
   -- clue IS the answer. `result` names the case for the same reason as
   -- reveal_next_word's.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'hint', 'hint', hint_text), 'warning');
 
 exception when others then
@@ -774,7 +774,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function stackdown.reveal_next_hint(uuid) from public;
@@ -806,7 +806,7 @@ begin
     perform common._raise_game_deleted('stackdown');
   end if;
 
-  perform common.require_game_player(p_game_id);
+  perform common._require_game_player(p_game_id);
 
   select ended_at, current_turn_user_id into v_ended_at, v_turn_holder
     from common.games where id = p_game_id;
@@ -814,14 +814,14 @@ begin
     perform common._raise_game_over();
   end if;
 
-  perform common.end_game(
+  perform common._end_game(
     p_game_id, 'timeout', 'timeout', v_turn_holder,
     p_is_no_result => false,
     p_final_rankings => '{}'::jsonb
   );
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -829,7 +829,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function stackdown.submit_timeout(uuid) from public;
@@ -861,7 +861,7 @@ begin
   perform common._stop(p_game_id);
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -869,7 +869,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function stackdown.stop_game(uuid) from public;
@@ -901,12 +901,12 @@ begin
     perform common._raise_game_deleted('stackdown');
   end if;
 
-  perform common.require_compete((select mode from common.games where id = p_game_id));
+  perform common._require_compete((select mode from common.games where id = p_game_id));
 
   perform common._concede(p_game_id);
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
   get stacked diagnostics
@@ -914,7 +914,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -943,7 +943,7 @@ drop function if exists stackdown.replay_board(uuid);
 --     and, in a game whose whole point is that the solution is hidden,
 --     spoil the board it just reset.
 --
--- Then the common-layer reset (common.reset_game: the ending, each
+-- Then the common-layer reset (common._reset_game: the ending, each
 -- player's ending, solve and result) and the statuses. The solution
 -- re-hides on its own — games_state gates it on common.games.ended_at,
 -- which reset_game clears.
@@ -970,7 +970,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(p_game_id);
+  perform common._require_game_player(p_game_id);
 
   update stackdown.players
      set found_count = 0
@@ -980,10 +980,10 @@ begin
 
   update common.games set title = 'New game' where id = p_game_id;
 
-  perform common.reset_game(p_game_id);
+  perform common._reset_game(p_game_id);
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -991,7 +991,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

@@ -19,7 +19,7 @@ closeContextsAfterEach()
 
 /**
  * Restart must hand back a board the player can play BLIND — the rule
- * `common.reset_game` states outright ("the same board, hunted blind again — a
+ * `common._reset_game` states outright ("the same board, hunted blind again — a
  * replay whose answer is still on screen isn't a second try").
  *
  * Why this file exists: the DB half was well covered — every game has a pgTAP

@@ -75,7 +75,7 @@ export function wonBy(username: string | null | undefined): string {
  * `dict Familiar` reads like a typo; the band names aren't self-evident.
  *
  * Read off `setup` rather than `status`, unlike everything else a status line
- * says: `common.reset_game` assigns the status blob wholesale, so a key written
+ * says: `common._reset_game` assigns the status blob wholesale, so a key written
  * at create time would not survive a restart.
  */
 export function dictLabel(band: number | null | undefined): string | null {

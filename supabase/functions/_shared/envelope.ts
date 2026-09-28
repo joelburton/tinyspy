@@ -1,8 +1,8 @@
 // cs-blessed-supabase
 
 /**
- * THE ENVELOPE, WRITTEN IN DENO — the same shape `common.ok_envelope` and
- * `common.raised_envelope` build in SQL, for what an edge function decides on
+ * THE ENVELOPE, WRITTEN IN DENO — the same shape `common._ok_envelope` and
+ * `common._raised_envelope` build in SQL, for what an edge function decides on
  * its own. The contract is docs/envelopes.md → How edge functions build one:
  * **everything here answers 200**, faults included, because the status says
  * whether the function RAN and the envelope says what it decided.

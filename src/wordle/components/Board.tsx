@@ -67,7 +67,7 @@ type Props = {
 /**
  * The wordle board: `maxGuesses` rows of five tiles. A submitted row shows each
  * letter on its server-computed color; the active row shows what is being
- * typed, uncolored; the rest are empty. The colors are `common.wordle_colors`'s
+ * typed, uncolored; the rest are empty. The colors are `common._wordle_colors`'s
  * — this board draws them and never holds the target.
  *
  * **The reveal flip.** A row that LANDS while you are watching turns its tiles

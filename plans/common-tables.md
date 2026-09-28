@@ -144,7 +144,7 @@ Decided 2026-09-27:
   `setup` today get the value through `clubpage_info`. Restated 2026-09-27
   from the two bullets this replaces, which said the same for SQL alone.
 - **`common.timers` gains `kind` and `seconds`** (`seconds` null unless a
-  countdown), copied from `setup.timer` at create, which `require_valid_timer`
+  countdown), copied from `setup.timer` at create, which `_require_valid_timer`
   keeps checking. Every game has the row already. The kind is a game fact:
   it decides whether the clients tick at all, what the clock shows, and
   whether a countdown can end the game; the length only the front end reads,
@@ -239,7 +239,7 @@ was the compete players' numbers and is now a subset of their
   home of anything; any of their values can go stale, which is what the
   builder is for.
 - **A status has one shape per game, and every key is always present**, null
-  when it has no value (as `common.ok_envelope` keeps its keys): a ranking
+  when it has no value (as `common._ok_envelope` keeps its keys): a ranking
   not decided until the end is a `null` key until then, never an absent one.
   So the TypeScript type has no optional keys, and the test checks the exact
   key set at the start, mid-game and at the end.
@@ -311,7 +311,7 @@ Joel, while writing common SQL.
   step of its own, calls its builder, and answers:
   - **`common._concede(p_game_id)`** replaces `common.concede` and
     `common._set_conceded`: the guards, the concession written, and — once
-    every player has conceded — `end_game` as a `conceded` collective loss.
+    every player has conceded — `_end_game` as a `conceded` collective loss.
     A game where a player can end some other way runs its own end check
     after it, skipping a game `_concede` already ended. It is not granted to
     `authenticated`: the front end always calls the game's `concede`, and a
@@ -324,8 +324,8 @@ Joel, while writing common SQL.
     nine a concession ends the game only once everyone has conceded, the
     mover included, so there is nothing to race; they take it so every
     `concede` has one shape.
-- **`end_game` takes the rankings as jsonb keyed by user id**
-  (common-tables-schema.md → What `common.end_game` takes and does).
+- **`_end_game` takes the rankings as jsonb keyed by user id**
+  (common-tables-schema.md → What `common._end_game` takes and does).
 
 ## Bugs the survey found
 
@@ -354,7 +354,7 @@ rest of that plan falls before or after it.
 
 **Replanned (Joel, 2026-09-27, later): schema first, one deploy.** The
 staged order below made each stage work against a half-changed schema, so
-`end_game` and its callers changed a little per stage — hard to picture.
+`_end_game` and its callers changed a little per stage — hard to picture.
 Nothing has to keep working in development or prod until the end (prod's
 data must survive; a maintenance notice covers the window), so the work is
 now ordered by layer, and the stages below are its content, not its order:
@@ -365,9 +365,9 @@ now ordered by layer, and the stages below are its content, not its order:
    from `setup`, and the columns the game cards add), each column marked
    new / changed / kept / dropped.
 2. **One migration** for all of it, with the backfills; applied locally.
-3. **Common SQL** on the new schema: `end_game` once, in its final form;
-   `concede`, `reset_game`, the timers, the policies and views. Done
-   (2026-09-28): `create_game`, `end_game`, `reset_game`,
+3. **Common SQL** on the new schema: `_end_game` once, in its final form;
+   `concede`, `_reset_game`, the timers, the policies and views. Done
+   (2026-09-28): `_create_game`, `_end_game`, `_reset_game`,
    `_set_player_ended`, `_advance_turn`, `_concede` and `_stop` ([Decided →
    Step 3](#step-3-2026-09-28)); `update_state`, `concede` and
    `_set_conceded` dropped; the `updated_at` trigger in place of
@@ -451,7 +451,7 @@ it once the front end lands. Before it:
       (§3b question 1).
    2. **The game's lifecycle.** `common.games` gains the reason pair,
       `game_ended_outcome` and `mode`, and loses `play_state`,
-      `is_terminal` and `paused`. `common.end_game` takes the reason pair as
+      `is_terminal` and `paused`. `common._end_game` takes the reason pair as
       required parameters (§3b question 3); the Stop writes `stopped`, not
       `manual`; codenamesduet works out sudden death. `isTerminal` →
       `isGameEnded`, `TerminalOutcome` → `EndOutcome`, and every other

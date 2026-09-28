@@ -255,7 +255,7 @@ select is(
   false, 'reveal_solved_word (compete): a non-solver gets solved=false for the same cells');
 reset role;
 
--- Non-player cannot probe at all (require_game_player).
+-- Non-player cannot probe at all (_require_game_player).
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
   crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0}]'::jsonb),

@@ -83,7 +83,7 @@ terms have no word for.
 | 4 | Clean up `win-lose.md`'s vocabulary | Rewrite the older text above the terms section and the Vocabulary table: each word current, a synonym retired to its better name, or dead. After this the doc has one vocabulary. Needs step 2's answers. |
 | 5 | Update the naming plan | cross-game-consistency §1 and §3b's draft terms (`myEnding`, `'quit'`, `hasSolved` …), brought to step 4's vocabulary before anything is renamed. |
 | 6 | Fix the mismatches | One prose sweep, facts only — every mismatch is a doc or comment wrong against running code. Wording waits for steps 7–8. The race/racer wording is identifiers too, so it goes with 7–8. |
-| 7 | Change vocabulary in common and shared code | `common.end_game` / `concede`, `useStandardGameActions`, `terminalOutcomeVerb`, `docs/states.md` and the other cross-game docs. Done once; every game reads it. |
+| 7 | Change vocabulary in common and shared code | `common._end_game` / `concede`, `useStandardGameActions`, `terminalOutcomeVerb`, `docs/states.md` and the other cross-game docs. Done once; every game reads it. |
 | 8 | List each game's vocabulary changes | Recorded per game, not made: picked up when app-audit opens that game. Each game's doc gains its **nomenclature** section then — the game's own words (theme word, spangram, par, hint bar), each meaning exactly one thing. Doing all sixteen now would reopen closed, blessed areas outside the audit. |
 | 9 | Change game behavior | The rulings, filed as todos in each game's `todo.md`, worked as its area opens. |
 

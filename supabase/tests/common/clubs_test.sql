@@ -5,7 +5,7 @@
 -- ============================================================
 --
 -- Coverage:
---   1. slugify_club_name produces the expected handles
+--   1. _slugify_club_name produces the expected handles
 --      (lowercase, non-alnum → '-', solo-namespace '=' stripped)
 --   2. create_club rejection paths:
 --        - not authenticated
@@ -49,19 +49,19 @@ select plan(27);
 \ir ../_shared/setup.psql
 
 -- ============================================================
--- Block 1: slugify_club_name
+-- Block 1: _slugify_club_name
 -- ============================================================
 
-select is(common.slugify_club_name('Joel and Leah'), 'joel-and-leah',
+select is(common._slugify_club_name('Joel and Leah'), 'joel-and-leah',
   'slugify: spaces → hyphens, lowercased');
 
-select is(common.slugify_club_name('=joel'), 'joel',
+select is(common._slugify_club_name('=joel'), 'joel',
   'slugify: leading "=" stripped → user input cannot reach solo-club namespace');
 
-select is(common.slugify_club_name('  Trailing & whitespace!  '), 'trailing-whitespace',
+select is(common._slugify_club_name('  Trailing & whitespace!  '), 'trailing-whitespace',
   'slugify: trim + punctuation → hyphen, no trailing hyphen');
 
-select is(common.slugify_club_name('!!!'), '',
+select is(common._slugify_club_name('!!!'), '',
   'slugify: all-punctuation produces empty handle (caller rejects)');
 
 -- ============================================================

@@ -52,7 +52,7 @@ create policy games_select on wordle.games
     exists (
       select 1 from common.games cg
        where cg.id = games.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
     )
   );
 
@@ -67,7 +67,7 @@ create policy players_select on wordle.players
     exists (
       select 1 from common.games cg
        where cg.id = players.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
     )
   );
 
@@ -83,7 +83,7 @@ create policy events_select on wordle.events
     exists (
       select 1 from common.games cg
        where cg.id = events.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
          and (
                cg.mode = 'coop'
             or events.user_id = (select auth.uid())
@@ -317,11 +317,11 @@ declare
   v_target        char(5);
   first_turn      uuid;
 begin
-  perform common.require_club_member(p_club_handle);
+  perform common._require_club_member(p_club_handle);
   -- Must agree with numberOfPlayers in src/wordle/manifest.ts.
-  perform common.require_player_count_max(p_player_user_ids, 6);
+  perform common._require_player_count_max(p_player_user_ids, 6);
 
-  perform common.require_valid_mode(p_mode);
+  perform common._require_valid_mode(p_mode);
 
   if p_mode = 'compete' then
     -- Compete needs an opposing PLAYER. A solo race is just a coop game with
@@ -373,7 +373,7 @@ begin
       detail = 'legal_band must be >= the answer band';
   end if;
 
-  perform common.require_valid_timer(p_setup->'timer');
+  perform common._require_valid_timer(p_setup->'timer');
 
   -- ─── Pick a random target ────────────────────────────────
   -- BOTH branches use the app-wide CLEAN filter — `slur = 0 AND crude = 0 AND
@@ -412,7 +412,7 @@ begin
       detail = 'common.words has no clean 5-letter answer candidates; run gmake all-words';
   end if;
 
-  new_id := common.create_game(
+  new_id := common._create_game(
     -- The starting value of common.games.title (the club card heading); play
     -- rewrites it — see wordle._sync_title, which owns both placeholders.
     -- Compete says 'New compete' because it KEEPS the placeholder for the whole
@@ -429,7 +429,7 @@ begin
 
   -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common
   -- rotation so submit_guess gates each guess. Free-for-all / compete leave the
-  -- pointer null (inert). Runs after common.create_game seeds game_players.
+  -- pointer null (inert). Runs after common._create_game seeds game_players.
   if p_mode = 'coop' and p_setup->>'coop_style' = 'turns' then
     first_turn := (p_setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(p_player_user_ids)) then
@@ -452,7 +452,7 @@ begin
   -- though this is the only `ok` — a call site cannot assert a case the payload
   -- does not carry, and without it the branch would match by being `ok` and draw
   -- a second answer as this one.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -463,7 +463,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -509,7 +509,7 @@ begin
        where wp.game_id = p_game_id and gp.solved_at is not null
     ) ranked;
 
-  perform common.end_game(
+  perform common._end_game(
     p_game_id, p_reason, p_reason_detail, p_ended_by_user_id,
     p_is_no_result => false,
     p_final_rankings => v_rankings
@@ -627,7 +627,7 @@ begin
     perform common._raise_game_deleted('wordle');
   end if;
 
-  caller_id := common.require_game_player(p_game_id);
+  caller_id := common._require_game_player(p_game_id);
 
   select ended_at, mode into v_ended_at, v_mode
     from common.games where id = p_game_id;
@@ -710,7 +710,7 @@ begin
     -- `ok`: a game-rule refusal is the rules being applied, and nothing was
     -- burned. `result` names the case; the frontend picks its branch by it and
     -- says the words.
-    return common.ok_envelope(
+    return common._ok_envelope(
       jsonb_build_object('result', 'duplicate', 'guesses_used', caller_used,
                          'solved', false, 'terminal', false));
   end if;
@@ -731,13 +731,13 @@ begin
     select 1 from common.words
      where word = norm and len = 5 and difficulty <= g_row.legal_band
   ) then
-    return common.ok_envelope(
+    return common._ok_envelope(
       jsonb_build_object('result', 'notAWord', 'guesses_used', caller_used,
                          'solved', false, 'terminal', false));
   end if;
 
   -- ─── Accept: color, log, count, resolve ──────────────────
-  v_colors  := common.wordle_colors(norm, g_row.target);
+  v_colors  := common._wordle_colors(norm, g_row.target);
   did_solve := (norm = lower(g_row.target));
   new_used  := caller_used + 1;
 
@@ -762,14 +762,14 @@ begin
        where game_id = p_game_id;
       select jsonb_object_agg(user_id::text, 1) into v_rankings
         from common.game_players where game_id = p_game_id;
-      perform common.end_game(
+      perform common._end_game(
         p_game_id, 'reached_goal', 'solved', caller_id,
         p_is_no_result => false,
         p_final_rankings => v_rankings
       );
       out_terminal := true;
     elsif new_used >= g_row.max_guesses then
-      perform common.end_game(
+      perform common._end_game(
         p_game_id, 'resource_exhausted', 'exhausted', caller_id,
         p_is_no_result => false,
         p_final_rankings => '{}'::jsonb
@@ -810,7 +810,7 @@ begin
   -- The fact alone. What an accepted guess shows is composed from the colors
   -- and the board, and what it is worth is lib/answer.ts's for the row this
   -- wrote.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object(
       'result',       case when did_solve then 'correct' else 'incorrect' end,
       'colors',       v_colors,
@@ -825,7 +825,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -864,7 +864,7 @@ begin
     perform common._raise_game_deleted('wordle');
   end if;
 
-  perform common.require_compete((select mode from common.games where id = p_game_id));
+  perform common._require_compete((select mode from common.games where id = p_game_id));
 
   caller_id := common._concede(p_game_id);
   perform wordle._maybe_finish_compete(p_game_id, 'conceded', 'conceded', caller_id);
@@ -874,7 +874,7 @@ begin
   perform wordle._sync_title(p_game_id);
 
   perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
   get stacked diagnostics
@@ -882,7 +882,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -917,7 +917,7 @@ begin
     perform common._raise_game_deleted('wordle');
   end if;
 
-  perform common.require_game_player(p_game_id);
+  perform common._require_game_player(p_game_id);
 
   select mode, ended_at, current_turn_user_id
     into v_mode, v_ended_at, v_turn_holder
@@ -927,7 +927,7 @@ begin
   end if;
 
   if v_mode = 'coop' then
-    perform common.end_game(
+    perform common._end_game(
       p_game_id, 'timeout', 'timeout', v_turn_holder,
       p_is_no_result => false,
       p_final_rankings => '{}'::jsonb
@@ -941,7 +941,7 @@ begin
   perform wordle._sync_title(p_game_id);
 
   perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -949,7 +949,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -989,7 +989,7 @@ begin
   perform wordle._sync_title(p_game_id);
 
   perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -997,7 +997,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1017,7 +1017,7 @@ drop function if exists wordle.replay_board(uuid);
 -- friends trust model).
 --
 -- Resets the wordle-specific working state (players zeroed, the guess log
--- cleared), then hands the common-layer reset to common.reset_game (the
+-- cleared), then hands the common-layer reset to common._reset_game (the
 -- ending, each player's ending, solve and result). The target re-hides on
 -- its own: _target_for gates on common.games.ended_at, which reset_game
 -- clears.
@@ -1044,7 +1044,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(p_game_id);
+  perform common._require_game_player(p_game_id);
 
   update wordle.players
      set guesses_used = 0
@@ -1052,7 +1052,7 @@ begin
 
   delete from wordle.events where game_id = p_game_id;
 
-  perform common.reset_game(p_game_id);
+  perform common._reset_game(p_game_id);
 
   -- Back to "New game": the guess log is empty and reset_game cleared the
   -- ending, so the title must stop advertising the answer (the whole point
@@ -1060,7 +1060,7 @@ begin
   perform wordle._sync_title(p_game_id);
 
   perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1068,7 +1068,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

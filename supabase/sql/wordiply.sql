@@ -37,7 +37,7 @@ grant select on wordiply.events to authenticated;
 drop policy if exists games_select on wordiply.games;
 create policy games_select on wordiply.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 -- guesses RLS is the load-bearing piece for compete. Reads mode off
 -- wordiply.games.mode (denormalized). Three OR branches inside the
@@ -56,7 +56,7 @@ create policy events_select on wordiply.events
       select 1 from wordiply.games fg
        join common.games cg on cg.id = fg.id
        where fg.id = events.game_id
-         and common.is_club_member(fg.club_handle)
+         and common._is_club_member(fg.club_handle)
          and (
                fg.mode = 'coop'
             or events.user_id = (select auth.uid())
@@ -304,10 +304,10 @@ declare
   init_status jsonb;
   first_turn uuid;
 begin
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
 
   -- ─── Validate mode + player-count ────────────────────────
-  perform common.require_valid_mode(mode);
+  perform common._require_valid_mode(mode);
   if mode = 'compete' then
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
       raise exception 'BUG: race with fewer than two players'
@@ -315,7 +315,7 @@ begin
       detail = 'compete needs >= 2 players';
     end if;
   end if;
-  perform common.require_player_count_max(player_user_ids, 6);
+  perform common._require_player_count_max(player_user_ids, 6);
 
   -- ─── Reject deprecated / inapplicable setup fields ───────
   if setup ? 'target_rank' then
@@ -332,7 +332,7 @@ begin
       detail = 'setup.difficulty must be 1..6';
   end if;
 
-  perform common.require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(setup->'timer');
 
   -- ─── Validate the optional player-chosen starter ─────────
   -- setup.custom_base is the "try wordiply with MOTH" challenge: the player
@@ -398,12 +398,12 @@ begin
 
   effective_gametype := 'wordiply_' || mode;
 
-  -- ─── Coordinate with common.create_game ──────────────────
+  -- ─── Coordinate with common._create_game ──────────────────
   -- Inserts common.games (is_current_view=true, play_state='playing'),
   -- validates players are club members, inserts common.game_players,
   -- returns the canonical id. Persist the whole setup as the club's next
   -- default (bands + timer are things a friend group settles on).
-  new_id := common.create_game(
+  new_id := common._create_game(
     target_club, effective_gametype, player_user_ids, game_title, setup,
     -- saved_default strips first_turn_user_id (per-game "who goes first" pick,
     -- not a per-club preference; coop_style rides) and custom_base (a one-off
@@ -415,7 +415,7 @@ begin
 
   -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common
   -- rotation so submit_guess gates each guess. Free-for-all / compete leave
-  -- the pointer null. Runs after common.create_game seeds game_players.
+  -- the pointer null. Runs after common._create_game seeds game_players.
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
@@ -466,7 +466,7 @@ begin
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on, and it reaches both — the edge function
   -- relays this envelope untouched.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.
@@ -476,7 +476,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -528,7 +528,7 @@ begin
   -- countdown expiring on guess three is a real failure to finish — the same
   -- reading scrabble coop gives its own clock. Spending the guesses, or
   -- stopping on purpose, are just finishing: neutral 'ended'.
-  perform common.end_game(
+  perform common._end_game(
     target_game,
     case when reason = 'timeout' then 'lost' else 'ended' end,
     jsonb_build_object(
@@ -667,7 +667,7 @@ begin
     else 'lost_compete'
   end;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game, terminal_state,
     jsonb_build_object(
       'mode', 'compete',
@@ -753,7 +753,7 @@ begin
     perform common._raise_game_deleted('wordiply');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -872,7 +872,7 @@ begin
     -- the guesses realtime publication.
     -- An ok answer, NOT a raise: the row above is the point of the call, and a
     -- raise would take the savepoint down with it.
-    return common.ok_envelope(jsonb_build_object('result', 'rejected', 'reason', reject_reason));
+    return common._ok_envelope(jsonb_build_object('result', 'rejected', 'reason', reject_reason));
   end if;
 
   -- ─── Accepted (trusted word) ─────────────────────────────
@@ -960,7 +960,7 @@ begin
       'letter_count', letters_now
     );
   end if;
-  return common.ok_envelope(result);
+  return common._ok_envelope(result);
 
 exception when others then
   get stacked diagnostics
@@ -968,7 +968,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1006,7 +1006,7 @@ begin
     perform common._raise_game_deleted('wordiply');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1022,7 +1022,7 @@ begin
 
   -- Realtime touch so peers refetch the now-visible opponents' guesses.
   update wordiply.events set user_id = user_id where game_id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1030,7 +1030,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1065,7 +1065,7 @@ begin
     perform common._raise_game_deleted('wordiply');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1080,7 +1080,7 @@ begin
   end if;
 
   update wordiply.events set user_id = user_id where game_id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1088,7 +1088,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1134,7 +1134,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   delete from wordiply.events where game_id = target_game;
 
@@ -1158,11 +1158,11 @@ begin
     );
   end if;
 
-  perform common.reset_game(target_game, new_status);
+  perform common._reset_game(target_game, new_status);
 
   -- Realtime touch — wakes useGame's games subscription.
   update wordiply.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1170,7 +1170,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1201,7 +1201,7 @@ declare
   v_res jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common.require_compete((select mode from wordiply.games where id = target_game));
+  perform common._require_compete((select mode from wordiply.games where id = target_game));
   v_res := common.concede(target_game);
   -- Both blocks below key off the game's play_state, and PN486 refuses on a
   -- game that was terminal before the click — so a refusal has to stop here
@@ -1243,7 +1243,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

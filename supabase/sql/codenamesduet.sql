@@ -23,7 +23,7 @@ grant usage on schema codenamesduet to authenticated;
 drop policy if exists games_select on codenamesduet.games;
 create policy games_select on codenamesduet.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 drop policy if exists words_select on codenamesduet.words;
 create policy words_select on codenamesduet.words
@@ -32,7 +32,7 @@ create policy words_select on codenamesduet.words
     exists (
       select 1 from codenamesduet.games g
        where g.id = words.game_id
-         and common.is_club_member(g.club_handle)
+         and common._is_club_member(g.club_handle)
     )
   );
 
@@ -43,7 +43,7 @@ create policy events_select on codenamesduet.events
     exists (
       select 1 from codenamesduet.games g
        where g.id = events.game_id
-         and common.is_club_member(g.club_handle)
+         and common._is_club_member(g.club_handle)
     )
   );
 
@@ -276,7 +276,7 @@ revoke execute on function codenamesduet._end_turn(uuid) from public;
 -- overloads view-state and play-state.)
 --
 -- player_user_ids must contain exactly 2 uuids — both must be
--- members of target_club (validated by common.create_game). For
+-- members of target_club (validated by common._create_game). For
 -- codenamesduet this matches the 2-player-only invariant; the manifest
 -- declares `numberOfPlayers: [2, 2]`. See
 -- docs/code-conventions.md → "Per-game player counts".
@@ -285,7 +285,7 @@ revoke execute on function codenamesduet._end_turn(uuid) from public;
 --   {
 --     "turns": 7..15,
 --     "first_clue_giver_user_id": "<uuid; must be one of player_user_ids>",
---     "timer": { "kind": ... }   (common.require_valid_timer)
+--     "timer": { "kind": ... }   (common._require_valid_timer)
 --   }
 --
 -- The starting budget is read back from setup wherever it is needed
@@ -360,12 +360,12 @@ begin
   end;
 
   -- Timer is a per-game setup choice. Shape validation is shared
-  -- across gametypes — see common.require_valid_timer for the exact
+  -- across gametypes — see common._require_valid_timer for the exact
   -- message set ('setup.timer is required', 'kind must be ...',
   -- 'seconds must be 1..3600 (got X)', etc.). When kind=countdown,
   -- the FE's wall-clock timer counts down; expiry fires
   -- codenamesduet.submit_timeout (below).
-  perform common.require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(setup->'timer');
 
   -- ─── Validate player_user_ids size + first-clue-giver ─
   -- codenamesduet is intrinsically 2-player.
@@ -389,7 +389,7 @@ begin
                          else player_user_ids[1] end;
 
   -- ─── Pick 25 words ────────────────────────────────────
-  -- Pulled forward (before common.create_game) so we can use the
+  -- Pulled forward (before common._create_game) so we can use the
   -- picked words to build the title.
   select array_agg(word) into picked_words
     from (select word from codenamesduet.word_pool order by random() limit 25) sub;
@@ -427,7 +427,7 @@ begin
   -- preferences (turns count, timer mode) round-trip cleanly. The
   -- dialog's auto-pick logic for first_clue_giver_user_id fills the
   -- gap on next open.
-  new_id := common.create_game(
+  new_id := common._create_game(
     target_club, 'codenamesduet', player_user_ids, game_title, setup,
     setup - 'first_clue_giver_user_id'
   );
@@ -509,7 +509,7 @@ begin
   -- decorative: it is the only thing a call site can filter the `ok` on, and
   -- without it the branch would match by merely being `ok` and would draw a
   -- second answer as this one.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -520,7 +520,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -597,10 +597,10 @@ begin
     perform common._raise_game_over();
   end if;
 
-  -- Auth + game-player gate. See common.require_game_player —
+  -- Auth + game-player gate. See common._require_game_player —
   -- a club member who didn't sit down at this game can't submit
   -- clues, but can still watch via club-wide RLS.
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   -- The seat is a column read on codenamesduet.games.
   caller_seat := case caller_id
@@ -657,7 +657,7 @@ begin
   -- back from the row that now exists rather than from the request — which is
   -- the difference between "here is what you sent" and "here is what is
   -- stored".
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'clued',
     'clue_word', stored.clue_word,
     'clue_count', stored.clue_count,
@@ -675,7 +675,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -761,7 +761,7 @@ begin
     perform common._raise_game_over();
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
   caller_seat := case caller_id
                    when g_row.user_a_id then 'A'
                    when g_row.user_b_id then 'B'
@@ -900,10 +900,10 @@ begin
   );
 
   -- Terminal-transition check. The three terminal cases share a
-  -- common.end_game call shape — building player_results once and
+  -- common._end_game call shape — building player_results once and
   -- branching on end_state keeps the branches focused.
   -- Each branch nulls out current_clue_giver on codenamesduet.games but the
-  -- play_state write goes through common.end_game.
+  -- play_state write goes through common._end_game.
   --
   -- `end_state` is the verdict and `end_reason` the cause (docs/states.md →
   -- `status.reason` names the CAUSE). 'turns' is the Duet turn budget, spent
@@ -944,7 +944,7 @@ begin
     select (setup->>'turns')::int - g_row.turns_remaining into turns_used
       from common.games where id = target_game;
 
-    perform common.end_game(
+    perform common._end_game(
       target_game,
       end_state,
       jsonb_build_object(
@@ -952,7 +952,7 @@ begin
         'turns_used', turns_used,
         -- Stated here rather than left to the merge. This branch can BE a green
         -- reveal — the 15th agent is what wins — and it returns before the
-        -- update_state below that bumps the count. common.end_game MERGES its
+        -- update_state below that bumps the count. common._end_game MERGES its
         -- status object, so leaving this out would keep the previous value and
         -- list a won game as "14/15 agents". Every terminal write states its
         -- own number (docs/common-schema.md → Title, status and last activity).
@@ -966,7 +966,7 @@ begin
     -- ending. Like every answer here, it states the fact and carries no
     -- outcome: nothing shows a single guess's verdict, because the tile turning
     -- over says it.
-    return common.ok_envelope(
+    return common._ok_envelope(
       jsonb_build_object(
         'result', end_state,
         'reason', end_reason,
@@ -985,7 +985,7 @@ begin
     -- left of the budget, who clues next, and whether that spent the last turn
     -- and dropped the game into sudden death.
     turn_state := codenamesduet._end_turn(target_game);
-    return common.ok_envelope(
+    return common._ok_envelope(
       jsonb_build_object(
         'result', 'bystander',
         'revealed', revealed_label,
@@ -1029,7 +1029,7 @@ begin
   -- the turn state unchanged — the same four keys the bystander answer carries,
   -- which is what lets a reader compare the two answers rather than the two
   -- shapes. In sudden death the number it reports is the next one.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object(
       'result', 'agent',
       'revealed', revealed_label,
@@ -1050,7 +1050,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1062,7 +1062,7 @@ grant execute on function codenamesduet.submit_guess(uuid, int) to authenticated
 -- ============================================================
 -- The clock is common.timers, advanced by common.tick_timer; when
 -- the countdown derived from it hits zero, the FE fires this. We call
--- common.end_game with play_state 'lost' and reason 'timeout' — distinct from
+-- common._end_game with play_state 'lost' and reason 'timeout' — distinct from
 -- 'turns', the turns-spent Duet ending (the play_state carries the verdict;
 -- the reason names only the cause — states.md).
 --
@@ -1095,8 +1095,8 @@ begin
     perform common._raise_game_deleted('codenamesduet');
   end if;
 
-  -- Auth + game-player gate. See common.require_game_player.
-  perform common.require_game_player(target_game);
+  -- Auth + game-player gate. See common._require_game_player.
+  perform common._require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1117,7 +1117,7 @@ begin
 
   -- turns_used reads from common.games.setup (canonical setup
   -- location) minus what's left.
-  perform common.end_game(
+  perform common._end_game(
     target_game,
     'lost',
     jsonb_build_object(
@@ -1129,7 +1129,7 @@ begin
     ),
     player_results
   );
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1137,7 +1137,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1184,7 +1184,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first would tell them "You are not in this
   -- game", which is wrong — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   -- The turn budget is re-read from setup, not from the row: turns_remaining
   -- has been decremented all game, so it can't say what the budget WAS.
@@ -1203,13 +1203,13 @@ begin
          current_clue_giver = 'A'
    where id = target_game;
 
-  perform common.reset_game(
+  perform common._reset_game(
     target_game,
     jsonb_build_object('turn_number', 1, 'turns_remaining', s_turns, 'found_agents_count', 0)
   );
   -- Back to seat A, who owes the first clue.
   perform codenamesduet._point_turn(target_game);
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1217,7 +1217,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1272,8 +1272,8 @@ begin
     perform common._raise_game_deleted('codenamesduet');
   end if;
 
-  -- Auth + game-player gate. See common.require_game_player.
-  perform common.require_game_player(target_game);
+  -- Auth + game-player gate. See common._require_game_player.
+  perform common._require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1292,7 +1292,7 @@ begin
     from common.game_players
    where game_id = target_game;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game,
     'ended',
     jsonb_build_object('reason', 'manual'),
@@ -1300,7 +1300,7 @@ begin
   );
 
   -- Realtime touch — submit_timeout gets the same wake from its
-  -- current_clue_giver write. common.end_game
+  -- current_clue_giver write. common._end_game
   -- writes to common.games, but the FE's useGame subscription listens
   -- on the `codenamesduet` schema (codenamesduet.games), so without a write here
   -- it would never wake up to refetch and flip into review mode. The
@@ -1309,7 +1309,7 @@ begin
   update codenamesduet.games
      set turn_number = turn_number
    where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1317,7 +1317,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1381,7 +1381,7 @@ begin
     perform common._raise_game_over();
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
   caller_seat := case caller_id
                    when g_row.user_a_id then 'A'
                    when g_row.user_b_id then 'B'
@@ -1424,7 +1424,7 @@ begin
   -- passing does.
   turn_state := codenamesduet._end_turn(target_game);
 
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'passed',
     'turn_number', turn_state->'turn_number',
     'turns_remaining', turn_state->'turns_remaining',
@@ -1441,7 +1441,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1449,7 +1449,7 @@ revoke execute on function codenamesduet.pass_turn(uuid) from public;
 grant execute on function codenamesduet.pass_turn(uuid) to authenticated;
 
 -- Terminal-transition cleanup happens inline: submit_guess,
--- submit_timeout and end_game call common.end_game explicitly at the
+-- submit_timeout and end_game call common._end_game explicitly at the
 -- moment the game is decided over. No trigger-on-status-change
 -- side effect — single write path keeps the termination
 -- coordination (ended_at, play_state, is_terminal, status,
@@ -1488,7 +1488,7 @@ begin
     perform common._raise_game_deleted('codenamesduet');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
   caller_seat := case caller_id
                    when g_row.user_a_id then 'A'
                    when g_row.user_b_id then 'B'
@@ -1619,7 +1619,7 @@ begin
   -- `result` NAMES the answer, beside the five lists that ARE it. The edge
   -- function unwraps this rather than relaying it: the board is the first step
   -- of its work, not its answer.
-  return common.ok_envelope(ctx || jsonb_build_object('result', 'context'));
+  return common._ok_envelope(ctx || jsonb_build_object('result', 'context'));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -1630,7 +1630,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1670,7 +1670,7 @@ begin
   insert into codenamesduet.events (game_id, user_id, kind, took_turn, turn_number, seat)
   values (target_game, auth.uid(), 'hint', false, g_row.turn_number, caller_seat);
 
-  return common.ok_envelope(jsonb_build_object('result', 'logged'));
+  return common._ok_envelope(jsonb_build_object('result', 'logged'));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -1681,7 +1681,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

@@ -46,7 +46,7 @@ export type WordiplyValues = CoopTurnSetup & {
    * Start — the same deal boggle's generation constraints get.
    *
    * Not saved as the club's next default: `create_game` strips it before
-   * handing the setup to `common.create_game`. A one-off, not a baseline.
+   * handing the setup to `common._create_game`. A one-off, not a baseline.
    */
   custom_base?: string
   /** WHO IS PLAYING — a field like any other, and the only one that is not

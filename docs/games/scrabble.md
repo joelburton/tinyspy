@@ -365,7 +365,7 @@ The FE reads `games_state` / `players_state`, never the base tables.
 ### 5.1 `create_game(target_club, setup, player_user_ids, mode)`
 
 Club-member + player-count + timer validation. The count rules speak in
-**humans and AI seats**: `require_player_count_max` caps the *humans* at 4 (and
+**humans and AI seats**: `_require_player_count_max` caps the *humans* at 4 (and
 at least one human always — an empty roster is rejected); compete additionally
 requires the **total** (humans + `setup.ai_count`) to be 2–4, so a solo human
 vs an AI is a legal compete table but a 1-seat "race" is not. Reads
@@ -389,7 +389,7 @@ and computed `words` + `score` with `lib/play.ts`; it passes them in along with
 `[{x, y, letter, blank}]` (`letter` is the played letter — for a blank, its
 declared letter).
 
-1. Lock `games` `for update`; `require_game_player`.
+1. Lock `games` `for update`; `_require_game_player`.
 2. **Optimistic-concurrency gate:** if `games.version <> base_version`, someone
    moved first → **`PN437`, a `race`, "Board changed"**. This is the race
    handler — it also rejects a *stale* client that computed against an old
@@ -510,16 +510,16 @@ every seat. Three subtleties:
   move was for the old deal.
 - **Compete re-randomizes the opener**, matching `create_game`: the deal is
   new, so who opens is drawn afresh (`scrabble._seat_turn_order`, called after
-  `common.reset_game`, which rewinds the turn to seat 0).
+  `common._reset_game`, which rewinds the turn to seat 0).
 - **Coop turn-order rewinds** to the player seated first
-  (`game_players.turn_seat = 0`) — `common.reset_game` does it. The rotation
+  (`game_players.turn_seat = 0`) — `common._reset_game` does it. The rotation
   was assigned at create time and doesn't change, so this restores the original
   opener without re-reading `setup.first_turn_user_id`. A free-for-all game's
   null pointer stays null.
 
 It also puts `common.games.title` back to `"New game"` (the title is the first
 three words played — see §7 — so it would otherwise advertise the old deal),
-then hands the common half to `common.reset_game`. Takes the row `FOR UPDATE`: a
+then hands the common half to `common._reset_game`. Takes the row `FOR UPDATE`: a
 replay racing a move must not interleave with it. pgTAP: `replay_test.sql`.
 
 ### 5.6 `stop_game` / `concede` / `submit_timeout`
@@ -994,7 +994,7 @@ POST /functions/v1/scrabble-suggest-move   { game_id }
 DEFINER RPC (the `codenamesduet.get_clue_context` shape), because the dictionary
 bands are **grant-hidden** on `scrabble.games` and this is the one sanctioned
 door. It asks that the game still exists (a friend may have deleted it: the
-shared race), then enforces membership (`require_game_player`), `play_state =
+shared race), then enforces membership (`_require_game_player`), `play_state =
 'playing'`, and **coop only** (in compete the rack is private — the gate is also
 what keeps the suggester from becoming a rack-reading side channel), then
 returns `{board, rack, dict_2, dict_3plus, version}` from one SELECT — an atomic

@@ -40,9 +40,9 @@ F-12).
 ## What is true today, by layer
 
 **SQL.** Reads are club-gated: `games`, `players` and the events tables' select
-policies use `common.is_club_member`. Moves are player-gated
-(`require_game_player`). The viewing-adjacent RPCs — `set_current_view`,
-`unset_current_view`, `tick_timer` — use `require_club_member` on purpose
+policies use `common._is_club_member`. Moves are player-gated
+(`_require_game_player`). The viewing-adjacent RPCs — `set_current_view`,
+`unset_current_view`, `tick_timer` — use `_require_club_member` on purpose
 (docs/common.md), so a watcher can drive the club's current-view pointer and
 the clock. **Hidden information holds for a watcher exactly as for a rival**: a
 compete game's per-player rows are `user_id = auth.uid() or is_terminal`, so a

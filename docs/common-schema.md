@@ -17,7 +17,7 @@ carry each function's full contract and outcomes. How every RPC answers is
 | `clubs` | a fixed-membership room: `handle` (the URL key and primary key), `name` (at most 20 characters), `created_by`, and `is_solo`, generated from the handle |
 | `clubs_members` | who is in each club. Fixed at creation |
 | `gametypes` | the registered gametypes, one row per sibling (`wordle_coop`, `wordle_compete`), each registered by its game's migration: `min_players` and `default_enroll` |
-| `clubs_gametypes` | which gametypes a club can start, and `default_setup`, the club's last-used setup for each — written by `common.create_game` on every start |
+| `clubs_gametypes` | which gametypes a club can start, and `default_setup`, the club's last-used setup for each — written by `common._create_game` on every start |
 | `games` | the shared header of every game: its club, gametype, `mode`, `title`, `setup`, `is_current_view`, `created_by`, `current_turn_user_id`, `restart_count`; `started_at`, and the ending — `ended_at`, the reason pair (`game_ended_reason`, `game_ended_reason_detail`), `game_ended_outcome`, `game_ended_by_user_id`; the copies the status builder writes (`game_status`, `clubpage_info`); and the two dates, `status_changed_at` and `updated_at` ([Title, statuses and the two dates](#title-statuses-and-the-two-dates)). A game's own detail row shares its id |
 | `game_players` | who plays each game, frozen at creation: `turn_seat`, `joined_at`; the player's ending while the game goes on (`player_ended_at` and its reason pair); `solved_at`; `final_ranking` and `outcome`, written at the game's end; and `player_status`, the builder's copy |
 | `timers` | the game clock, one row per game ([The game clock](#the-game-clock)) |
@@ -51,7 +51,7 @@ is_current_view` allows one per club, across every gametype.
 
 The pointer moves with presence: the first viewer to arrive calls
 `common.set_current_view`, the last to leave `common.unset_current_view`, and
-`common.create_game` moves it to the new game. It never pulls anyone into a
+`common._create_game` moves it to the new game. It never pulls anyone into a
 game, and ending a game does not clear it — a finished game stays current
 while someone is reviewing it. Pause is computed by the clients.
 
@@ -96,8 +96,8 @@ bookkeeping — they are seconds when nobody ticks. The frontend half is
 ## Starting a game
 
 A game's own `<game>.create_game` validates its setup (the shared checks are
-helpers — `require_valid_timer`, `require_valid_mode`,
-`require_player_count_max`), then calls **`common.create_game`** for the
+helpers — `_require_valid_timer`, `_require_valid_mode`,
+`_require_player_count_max`), then calls **`common._create_game`** for the
 header, passing the mode it checked: it checks the caller and every player
 are in the club (AI accounts exempt), moves the current-game pointer to the
 new game, inserts the `common.games` row, the clock (its kind and length
@@ -108,15 +108,15 @@ id }`. psychicnum's is the model to copy (`supabase/sql/psychicnum.sql`).
 
 ## Ending a game
 
-### `common.end_game` — the one way a game ends
+### `common._end_game` — the one way a game ends
 
-A game calls **`common.end_game`** once, when its own rule says the game is
+A game calls **`common._end_game`** once, when its own rule says the game is
 over. It passes the reason pair (one of `reached_goal`, `resource_exhausted`,
 `all_passed`, `fatal_move`, `conceded`, `timeout`, `stopped`, and the game's
 own word for the act), the player whose act ended it (null only for a timeout
 nobody's turn covers), whether its rule makes this a no-result, and each
 player's `final_ranking` as `{"<user id>": 1, …}` — a player left out is
-unranked. `end_game` decides only the two outcomes
+unranked. `_end_game` decides only the two outcomes
 ([win-lose.md](win-lose.md)):
 
 - **the game's**: `won` if anyone ranked 1; otherwise `neutral` for a Stop or
@@ -147,9 +147,9 @@ The shape every game's `stop_game` follows:
    table. `src/guards/endLock.test.ts` holds it for every `stop_game` and
    `submit_timeout`.
 2. **`common._stop`**: checks the caller is a player
-   (`common.require_game_player`), answers a game already over with the shared
+   (`common._require_game_player`), answers a game already over with the shared
    race (`common._raise_game_over`), so a double click or a click racing a
-   timeout is harmless, and calls `end_game` with reason `stopped`, the caller
+   timeout is harmless, and calls `_end_game` with reason `stopped`, the caller
    as who ended it, and nobody ranked. It returns the caller's id.
 3. Any step of the game's own (scrabble coop's leftover-tiles penalty, a
    title), then its status builder.
@@ -170,7 +170,7 @@ with reason `conceded`, which is what lets a verdict say "Conceded" rather than
 The front end always calls the game's own `<game>.concede`, and every one has
 the same shape:
 
-1. `common.require_compete` where the game has a co-op sibling, then lock the
+1. `common._require_compete` where the game has a co-op sibling, then lock the
    game's own row, as Stop does. It matters in a game whose "is anyone still
    racing?" check reads its own rows as well as `game_players`: a final move
    and a concession both ask it, and without the move's lock each could read
@@ -181,7 +181,7 @@ the same shape:
    over, not already conceded ("Already conceded"), not ended some other way
    ("Already out": a loss is already a loss, and a finisher would only throw
    away a win they may hold) — then the concession, and, once **every** player
-   has conceded, `end_game` as a `conceded` collective loss. That holds in
+   has conceded, `_end_game` as a `conceded` collective loss. That holds in
    every game: if everyone conceded, nobody solved, won or finished.
 3. **A game where a player can end some other way** (solved, out of guesses,
    eliminated) runs its own "is anyone still racing?" check next, skipping a
@@ -202,7 +202,7 @@ records it, with the player's reason pair (`reached_goal`,
 `resource_exhausted`, `fatal_move`, `conceded`, `timeout`, and the game's own
 word). The game RPC that detects it calls `common._set_player_ended`, which
 keeps a player's first ending; `common._concede` writes a concession itself;
-`common.reset_game` clears it on Restart. A player who ended without
+`common._reset_game` clears it on Restart. A player who ended without
 conceding may be the WINNER. The pause watches the players who haven't ended,
 and `common._advance_turn` skips a seat that has. The terms are defined in
 [win-lose.md → Where a player
@@ -227,7 +227,7 @@ and only *who may act now* changing. The mechanism is all common:
 - **`common._advance_turn`**, after an **accepted, non-terminal** move only: a
   refused word must not cost the turn, and a move that ends the game has no one
   to hand it to. It skips any player who has ended.
-- **`common.reset_game`**, on Restart, rewinds a set pointer to seat 0; a null
+- **`common._reset_game`**, on Restart, rewinds a set pointer to seat 0; a null
   one stays null. A game that opens elsewhere points the turn itself after the
   call.
 
@@ -237,7 +237,7 @@ Two setup keys carry the choice, both written by the shared
 The rule is general: a style or mode preference is worth remembering, a pick of
 a specific person is not. Each game's `create_game` does the strip itself
 (`setup - 'first_turn_user_id'`), since it chooses what to pass
-`common.create_game` as the saved default; codenamesduet drops
+`common._create_game` as the saved default; codenamesduet drops
 `first_clue_giver_user_id` the same way. The pointer is not the record of whose
 go it was — the event log's `took_turn` is
 ([supabase.md](supabase.md#every-games-log-is-gameevents)). **A bot can take a
@@ -254,7 +254,7 @@ player with words left, or nobody when either may guess.
 setup says. scrabble compete does, with its own seating: `scrabble._seat_turn_order`
 sets each player's `turn_seat` to their scrabble seat (humans, then bots), so
 the turn walks the opponent strip, and points the turn at a random seat — on a
-restart too, after `reset_game` has rewound it. It advances, gates and skips conceders with the common three.
+restart too, after `_reset_game` has rewound it. It advances, gates and skips conceders with the common three.
 
 ## Players and clubs
 
@@ -299,11 +299,11 @@ Every `common` function is `security definer`. What the client calls:
 | `anagrams`, `update_word`, `delete_word`, `add_word` | [word-list.md](word-list.md) |
 
 The rest are **helpers**, revoked from `authenticated` and called only from
-other security-definer functions: the gates (`require_club_member`,
-`require_game_player`, `require_valid_timer`, `require_valid_mode`,
-`require_compete`, `require_player_count_max`), the shared races
+other security-definer functions: the gates (`_require_club_member`,
+`_require_game_player`, `_require_valid_timer`, `_require_valid_mode`,
+`_require_compete`, `_require_player_count_max`), the shared races
 (`_raise_game_deleted`, `_raise_game_over`), and the halves every game calls
-(`create_game`, `end_game`, `reset_game`, `_concede`, `_stop`,
+(`_create_game`, `_end_game`, `_reset_game`, `_concede`, `_stop`,
 `_set_player_ended`, and the turn-order three). Tests for the helpers are
 `supabase/tests/common/helpers_test.sql`.
 
@@ -322,7 +322,7 @@ so the gate never keys on per-player doneness.
 RLS is on for every `common` table and there are no insert, update or delete
 policies: every write is an RPC. Reads:
 
-- **Club membership** gates most tables (`is_club_member`), and `game_players`
+- **Club membership** gates most tables (`_is_club_member`), and `game_players`
   and `timers` through their game.
 - **Profiles are readable by anyone signed in**, because creating a club means
   finding a friend by username before you share a club with them.
@@ -333,7 +333,7 @@ policies: every write is an RPC. Reads:
 
 A game's players are a subset of the club, frozen at creation. **Any member may
 watch** any of the club's games — the read policies are club-gated — while
-**only a player may act**: every move RPC gates on `require_game_player`. The
+**only a player may act**: every move RPC gates on `_require_game_player`. The
 exceptions are viewing-adjacent (`set_current_view`, `unset_current_view`,
 `tick_timer` take a club member, since a watcher drives the pointer and the
 clock too). What a watcher sees is

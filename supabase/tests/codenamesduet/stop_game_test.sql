@@ -17,7 +17,7 @@
 --   - the realtime wake: the codenamesduet.games row is written
 --   - idempotency: a second call on the now-terminal game answers the
 --     shared game-over race
---   - require_game_player: a non-player is rejected
+--   - _require_game_player: a non-player is rejected
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer and
 -- ./submit_timeout_test.sql for the sibling timer-driven terminal.
@@ -125,7 +125,7 @@ select pg_temp.envelope_is(
   'stop_game: rejects on already-terminal games');
 
 -- ============================================================
--- (3) Non-player rejected (require_game_player gate)
+-- (3) Non-player rejected (_require_game_player gate)
 -- ============================================================
 -- dee is signed in but isn't in common.game_players for this game —
 -- the player roster is frozen at create_game time. Use a fresh game
@@ -144,7 +144,7 @@ select pg_temp.envelope_is(
   codenamesduet.stop_game((select id from g2)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'stop_game: non-player rejected via require_game_player');
+  'stop_game: non-player rejected via _require_game_player');
 
 -- ============================================================
 select * from finish();

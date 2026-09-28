@@ -13,7 +13,7 @@
 --
 -- The grant is only for functions the CALLER runs: player-facing RPCs, plus
 -- the handful of helpers reached through an RLS policy or a security_invoker
--- view (a policy runs as the invoker, so `common.is_club_member` genuinely
+-- view (a policy runs as the invoker, so `common._is_club_member` genuinely
 -- needs it). Everything else is reached from inside a SECURITY DEFINER
 -- function, which runs as the owner and needs no grant at all.
 --

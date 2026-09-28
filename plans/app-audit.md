@@ -364,7 +364,7 @@ from a field note takes a read.
 
 ### A restart REMOUNTS — assume nothing in a game still has to clear itself
 
-`common.reset_game` bumps `common.games.restarts` and `GamePage` renders
+`common._reset_game` bumps `common.games.restarts` and `GamePage` renders
 `<PlayArea key={restarts}>`, so a restart unmounts the whole play surface on
 every client — a half-typed word, an optimistic row, a mark mid-beat, the refs
 inside shared hooks. **A finding that some state survives a restart is wrong by

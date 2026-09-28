@@ -9,10 +9,10 @@
 --   - common.games: RLS (club members see all club games), base
 --     shape
 --   - common.game_players: RLS via parent games, base shape
---   - common.create_game: caller membership, player-uid
+--   - common._create_game: caller membership, player-uid
 --     membership, both rows landed
---   - common.require_game_player: auth + game-player gate
---   - common.end_game: ended_at, the reason pair, who ended it, the
+--   - common._require_game_player: auth + game-player gate
+--   - common._end_game: ended_at, the reason pair, who ended it, the
 --     game's outcome, and each player's final_ranking + outcome;
 --     is_current_view left alone
 --   - updated_at stamped by trigger on every update; status_changed_at
@@ -65,7 +65,7 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 -- ============================================================
--- common.create_game — happy path
+-- common._create_game — happy path
 -- ============================================================
 -- Caller is ada; players are [ada, bea]; gametype 'connections_coop'.
 -- The new game_id goes into session-config so we can read it
@@ -79,7 +79,7 @@ select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 -- assertions in *this* section).
 select set_config(
   'test.created_game_id',
-  (common.create_game(
+  (common._create_game(
     (select handle from club),
     'connections_coop',
     'coop',
@@ -126,14 +126,14 @@ select is(
 );
 
 -- ============================================================
--- common.create_game — rejects on caller not a club member
+-- common._create_game — rejects on caller not a club member
 -- ============================================================
 -- Dee tries to start a game in ada+bea's club.
 
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select common.create_game(%L, 'connections_coop', 'coop',
+    $$ select common._create_game(%L, 'connections_coop', 'coop',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid],
        'test-title', '{"timer": {"kind": "none"}}'::jsonb, null) $$,
@@ -141,17 +141,17 @@ select throws_ok(
   ),
   'PN012',
   'You are not a member of this club',
-  'create_game: non-member caller is rejected (via require_club_member)'
+  'create_game: non-member caller is rejected (via _require_club_member)'
 );
 
 -- ============================================================
--- common.create_game — rejects on empty player_user_ids
+-- common._create_game — rejects on empty player_user_ids
 -- ============================================================
 
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select common.create_game(%L, 'connections_coop', 'coop', array[]::uuid[], 'test-title', '{"timer": {"kind": "none"}}'::jsonb, null) $$,
+    $$ select common._create_game(%L, 'connections_coop', 'coop', array[]::uuid[], 'test-title', '{"timer": {"kind": "none"}}'::jsonb, null) $$,
     (select handle from club)
   ),
   'PN059',
@@ -160,13 +160,13 @@ select throws_ok(
 );
 
 -- ============================================================
--- common.create_game — rejects when a listed uid isn't a club member
+-- common._create_game — rejects when a listed uid isn't a club member
 -- ============================================================
 -- ada lists dee (an outsider) as a player.
 
 select throws_ok(
   format(
-    $$ select common.create_game(%L, 'connections_coop', 'coop',
+    $$ select common._create_game(%L, 'connections_coop', 'coop',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'dee44444-4444-4444-4444-444444444444'::uuid],
        'test-title', '{"timer": {"kind": "none"}}'::jsonb, null) $$,
@@ -215,7 +215,7 @@ select is(
 );
 
 -- ============================================================
--- common.require_game_player
+-- common._require_game_player
 -- ============================================================
 
 reset role;
@@ -223,36 +223,36 @@ select set_config('request.jwt.claims', '', true);
 
 select throws_ok(
   format(
-    $$ select common.require_game_player(%L::uuid) $$,
+    $$ select common._require_game_player(%L::uuid) $$,
     current_setting('test.created_game_id')::uuid
   ),
   'PN252',
   'Signed out; try refresh',
-  'require_game_player: null auth.uid() raises 42501'
+  '_require_game_player: null auth.uid() raises 42501'
 );
 
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select common.require_game_player(%L::uuid) $$,
+    $$ select common._require_game_player(%L::uuid) $$,
     current_setting('test.created_game_id')::uuid
   ),
   'PN253',
   'You are not in this game',
-  'require_game_player: outsider raises 42501'
+  '_require_game_player: outsider raises 42501'
 );
 
 select pg_temp.as_jwt_only('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select common.require_game_player(current_setting('test.created_game_id')::uuid)),
+  (select common._require_game_player(current_setting('test.created_game_id')::uuid)),
   'bea22222-2222-2222-2222-222222222222'::uuid,
-  'require_game_player: in-game player gets back their caller_id'
+  '_require_game_player: in-game player gets back their caller_id'
 );
 
 -- ============================================================
--- common.end_game
+-- common._end_game
 -- ============================================================
--- Precondition: common.create_game left this row in is_current_view=true
+-- Precondition: common._create_game left this row in is_current_view=true
 -- (the create_game RPC's transition). end_game writes the ending and
 -- each player's result; is_current_view stays true until the FE
 -- explicitly closes the post-game review. So this test pins what
@@ -270,10 +270,10 @@ select is(
 
 -- Now end the game: a reason, the game's own word for it, who ended it, and
 -- the rankings (ada 1, bea 2). The detail string is DELIBERATELY fake:
--- common.end_game doesn't validate the game's own word (each gametype owns
+-- common._end_game doesn't validate the game's own word (each gametype owns
 -- its own), and a real one here would read as if it did. The two outcomes
 -- are end_game's to decide from the rankings.
-select common.end_game(
+select common._end_game(
   current_setting('test.created_game_id')::uuid,
   'reached_goal',
   'test_detail',
@@ -331,11 +331,11 @@ select is(
 );
 
 -- ============================================================
--- common.end_game — unknown game
+-- common._end_game — unknown game
 -- ============================================================
 
 select throws_ok(
-  $$ select common.end_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
+  $$ select common._end_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
                             'stopped', 'stopped', null, false, '{}'::jsonb) $$,
   'P0002',
   'game-not-found|',
@@ -359,7 +359,7 @@ select throws_ok(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select set_config(
   'test.second_game_id',
-  (common.create_game(
+  (common._create_game(
     (select handle from club),
     'connections_coop',
     'coop',
@@ -551,7 +551,7 @@ select throws_ok(
 -- ============================================================
 -- Saved-defaults auto-save: clubs_gametypes.default_setup
 -- ============================================================
--- common.create_game's `saved_default` parameter overwrites the
+-- common._create_game's `saved_default` parameter overwrites the
 -- (club, gametype) row in clubs_gametypes on every successful
 -- call. The contract: non-NULL writes; NULL skips (the gametype
 -- opted out for this call). The intent is "next time the setup
@@ -577,7 +577,7 @@ select is(
 -- different from a real connections setup to make the test self-
 -- evident: we're checking the plumbing, not the semantic.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select common.create_game(
+select common._create_game(
   (select handle from club),
   'connections_coop',
   'coop',
@@ -602,7 +602,7 @@ select is(
 -- or "must equal previous" semantics — the FE owns the policy
 -- of when to call create_game; the DB just records the latest.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
-select common.create_game(
+select common._create_game(
   (select handle from club),
   'connections_coop',
   'coop',
@@ -680,11 +680,11 @@ select is(
 -- ============================================================
 -- delete_game — authorization + bad input
 -- ============================================================
--- Non-member rejected (RLS-equivalent gate via require_club_member);
+-- Non-member rejected (RLS-equivalent gate via _require_club_member);
 -- an unknown game comes back as a not-ok/error envelope.
 --
 -- The non-member case still THROWS, and deliberately so: 42501 comes
--- from common.require_club_member, a shared helper with no handler of its
+-- from common._require_club_member, a shared helper with no handler of its
 -- own (docs/envelopes.md → How SQL builds one), so
 -- it fails delete_game's ownership test and is re-raised untouched.
 

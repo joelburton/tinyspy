@@ -199,7 +199,7 @@ select is(
 -- of turn count. play_state flips to lost, the reason is the assassin, and
 -- current_clue_giver is cleared.
 
--- Game 2 reuses the same club. common.create_game flips the prior
+-- Game 2 reuses the same club. common._create_game flips the prior
 -- current-view row to is_current_view=false before inserting the new one with
 -- is_current_view=true, so g1 implicitly stops being the current view — fine
 -- for this test, which doesn't poke at the is_current_view state directly.

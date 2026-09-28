@@ -137,7 +137,7 @@ select is(
 -- ============================================================
 -- (8) Dee (outsider) cannot SELECT the m2m rows
 -- ============================================================
--- clubs_gametypes_select is gated on common.is_club_member.
+-- clubs_gametypes_select is gated on common._is_club_member.
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
@@ -266,7 +266,7 @@ select is(
 -- ============================================================
 -- (17) A non-member cannot edit the club's gametypes
 -- ============================================================
--- Same membership gate as every other club RPC (require_club_member),
+-- Same membership gate as every other club RPC (_require_club_member),
 -- whose raise this function's handler catches like any other.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(

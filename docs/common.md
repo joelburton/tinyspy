@@ -74,7 +74,7 @@ Each step is one or two sentences here; the folder named has the rest.
   ([`common/club`](../src/common/club/doc.md)).
 - **Starting a game.** The setup dialog collects the options
   ([`common/setup-form`](../src/common/setup-form/doc.md)); the game's own
-  `create_game` validates them, calls `common.create_game` for the shared
+  `create_game` validates them, calls `common._create_game` for the shared
   header row (the club, the players, the title, the clock), and adds its own
   detail rows. The new game becomes the club's current one, and every other
   player gets an **invitation toast** — nobody is pulled into a game

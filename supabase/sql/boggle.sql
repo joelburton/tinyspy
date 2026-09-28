@@ -31,7 +31,7 @@ grant select on boggle.found_words to authenticated;
 drop policy if exists games_select on boggle.games;
 create policy games_select on boggle.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 -- Found-words visibility, mode-aware (the load-bearing piece for compete):
 --   (1) coop          — everyone in the club sees everyone's finds.
@@ -45,7 +45,7 @@ create policy found_words_select on boggle.found_words
       select 1 from boggle.games fg
        join common.games cg on cg.id = fg.id
        where fg.id = found_words.game_id
-         and common.is_club_member(fg.club_handle)
+         and common._is_club_member(fg.club_handle)
          and (
                fg.mode = 'coop'
             or found_words.user_id = (select auth.uid())
@@ -90,19 +90,19 @@ declare
   -- out of the club's saved default.
   is_custom_board boolean;
 begin
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
 
   -- ─── Mode + player-count ─────────────────────────────────
-  perform common.require_valid_mode(mode);
+  perform common._require_valid_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
     raise exception 'BUG: race with fewer than two players'
       using errcode = 'PN136', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
   end if;
-  perform common.require_player_count_max(player_user_ids, 8);
+  perform common._require_player_count_max(player_user_ids, 8);
 
   -- ─── Setup validation ────────────────────────────────────
-  perform common.require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(setup->'timer');
 
   s_min_word_length := coalesce((setup->>'min_word_length')::int, 3);
   if s_min_word_length < 3 or s_min_word_length > 9 then
@@ -217,7 +217,7 @@ begin
   -- hand-typed board is a "here, try these letters" for one game, not the club's
   -- new baseline, so the next dialog opens with the field blank and rolls again
   -- (freebee + word wheel strip their custom letters the same way).
-  new_id := common.create_game(
+  new_id := common._create_game(
     target_club, effective_gametype, player_user_ids, game_title, setup,
     setup - 'custom_board'
   );
@@ -251,7 +251,7 @@ begin
   -- second answer as this one. It travels through `boggle-build-board`
   -- untouched — `invokeCreateGame` forwards this envelope verbatim — so naming
   -- it here reaches both call sites.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.
@@ -261,7 +261,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -360,7 +360,7 @@ begin
     perform common._raise_game_deleted('boggle');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
 
   select bg.mode, cg.play_state
     into g_mode, g_playstate
@@ -447,7 +447,7 @@ begin
     end if;
   end if;
 
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', case when coalesce(is_bonus, false) then 'bonus' else 'accepted' end,
     'points', coalesce(points, 0)));
 
@@ -457,7 +457,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -625,9 +625,9 @@ begin
      where p.game_id = target_game;
   end if;
 
-  perform common.end_game(target_game, term_state, final_status, results);
+  perform common._end_game(target_game, term_state, final_status, results);
 
-  -- Wake the boards: every ending passes through here, and common.end_game
+  -- Wake the boards: every ending passes through here, and common._end_game
   -- writes only common.games (src/guards/endingTouchesGame.test.ts).
   update boggle.games set club_handle = club_handle where id = target_game;
 end;
@@ -660,13 +660,13 @@ begin
     perform common._raise_game_deleted('boggle');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
   select play_state into g_playstate from common.games where id = target_game;
   if g_playstate is distinct from 'playing' then
     perform common._raise_game_over();
   end if;
   perform boggle._finish(target_game, 'manual');
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -674,7 +674,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -690,7 +690,7 @@ drop function if exists boggle.end_game(uuid);
 -- The "Replay board" game-menu item / terminal RestartButton (spellingbee's
 -- twin). Restarts the
 -- SAME board — same faces + word lists — for everyone: the found-words
--- log (the game's only working state) is cleared, and common.reset_game
+-- log (the game's only working state) is cleared, and common._reset_game
 -- un-terminals the row with the same initial status create_game seeds
 -- (mode-branched) and zeroes the shared clock. Any game player may call
 -- it, mid-game or after game-over (no play_state guard — it's a restart).
@@ -727,7 +727,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   delete from boggle.found_words where game_id = target_game;
 
@@ -746,11 +746,11 @@ begin
     );
   end if;
 
-  perform common.reset_game(target_game, new_status);
+  perform common._reset_game(target_game, new_status);
 
   -- Realtime touch (see the header) — wakes useGame's games subscription.
   update boggle.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -758,7 +758,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -787,9 +787,9 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   v_answer jsonb;
 begin
-  perform common.require_compete((select mode from boggle.games where id = target_game));
+  perform common._require_compete((select mode from boggle.games where id = target_game));
   -- common.concede answers in an envelope and catches its own raises, so its
-  -- refusals relay untouched; the handler below is for require_compete's.
+  -- refusals relay untouched; the handler below is for _require_compete's.
   v_answer := common.concede(target_game);
   -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
   -- → Concede).
@@ -802,7 +802,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -827,13 +827,13 @@ begin
     perform common._raise_game_deleted('boggle');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
   select play_state into g_playstate from common.games where id = target_game;
   if g_playstate is distinct from 'playing' then
     perform common._raise_game_over();
   end if;
   perform boggle._finish(target_game, 'timeout');
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -841,7 +841,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

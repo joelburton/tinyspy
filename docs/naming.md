@@ -531,14 +531,14 @@ but correctly aren't (recorded so a future consistency pass doesn't "fix" them):
   early-returns if the game *isn't* over, where `_finish` returns `void` and
   unconditionally finalizes.
 
-- **`common.wordle_colors`** — looks like a game codename in the shared layer,
+- **`common._wordle_colors`** — looks like a game codename in the shared layer,
   which the headline rule forbids. It isn't: "Wordle colors" is the *term of
   art* for the green/yellow/gray scheme, and waffle calls it because that's the
   recognizable convention, not because it borrowed from our wordle. The name
   describes the OUTPUT. (waffle's board-level wrapper was `compute_colors` — the
   repo's lone `compute_` verb — and DID get tidied, to `board_colors`.) Ratified
   2026-08-02.
-- **`common.create_game`'s `saved_default` param vs the
+- **`common._create_game`'s `saved_default` param vs the
   `clubs_gametypes.default_setup` column it feeds** — the mismatch is
   load-bearing, not drift. Naming the param `default_setup` makes the UPDATE
   inside the function ambiguous: PL/pgSQL sees a parameter and a column of that

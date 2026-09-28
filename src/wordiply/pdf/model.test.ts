@@ -69,7 +69,7 @@ describe('buildWordiplyPrintModel — the terminal-only rule', () => {
     const m = buildWordiplyPrintModel({
       ...base,
       isTerminal: true,
-      // wordiply never hides its answer, so common.end_game sets the flag at
+      // wordiply never hides its answer, so common._end_game sets the flag at
       // every ending — the printout reads it, not `isTerminal`.
       solutionRevealed: true,
       guessesUsed: 5,

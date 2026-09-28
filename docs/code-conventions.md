@@ -436,6 +436,14 @@ event log is `<game>.events` in the standard shape ([supabase.md](supabase.md)).
   search-path hijacking.
 - They answer in an envelope ([envelopes.md → How SQL builds
   one](envelopes.md#how-sql-builds-one)).
+- **A leading `_` means only SQL calls it**: a helper called by other
+  functions, a security rule, a view or a trigger (`common._end_game`,
+  `common._require_game_player`, `common._is_club_member`). A name without
+  one is called from outside SQL — the frontend, or an edge function — and is
+  granted to `authenticated` or `service_role`.
+  `src/guards/underscoreMeansInternal.test.ts` holds the half a grant can
+  show: every function without an `_` is granted. (`common.word_letter_mask`
+  keeps its name: a migration defines it, for generated columns.)
 - **Every parameter is `p_` plus what it holds**, named as its column would
   be: `p_game_id`, `p_club_handle`, `p_final_rankings`. A reader never has to
   ask whether a name is a column or a parameter, and a column added later
@@ -443,9 +451,9 @@ event log is `<game>.events` in the standard shape ([supabase.md](supabase.md)).
   (`{ p_game_id: id }`). Renaming a parameter needs `drop function if exists`
   first, since `create or replace` refuses it. Older functions still say
   `target_game` and the like; each is renamed when it is next rewritten.
-- Authorization is `common.require_game_player(p_game_id)`, which returns the
+- Authorization is `common._require_game_player(p_game_id)`, which returns the
   caller's id or raises; the RPC derives seat or role from its own state after
-  that. SELECT policies gate on `common.is_club_member(club_handle)`, because a
+  that. SELECT policies gate on `common._is_club_member(club_handle)`, because a
   common helper can't read a game's table. Helpers read by policies are
   `STABLE`, so Postgres can cache them within one query.
 
@@ -518,7 +526,7 @@ A game's player range is stated in three places, and nothing syncs them:
 - `common.gametypes.min_players`, which answers only "can this be played solo?"
   for new-club enrollment and solo clubs;
 - the game's `create_game`, which enforces the cap with
-  `common.require_player_count_max` (codenamesduet checks exactly 2 inline) and
+  `common._require_player_count_max` (codenamesduet checks exactly 2 inline) and
   the compete floor of 2 with its own check.
 
 Comments on each side name the partner; edit them together. A mismatch reaches
@@ -537,7 +545,7 @@ pattern](common.md#the-sibling-manifest-pattern)):
   denormalized at create time; RLS reads it rather than joining to
   `common.games.gametype`.
 - **One `<base>.create_game(…, mode)`** routes both; it composes
-  `'<base>_' || mode`, validates the mode with `common.require_valid_mode`, and
+  `'<base>_' || mode`, validates the mode with `common._require_valid_mode`, and
   holds any per-mode validation. A game whose board is built in an edge
   function reaches it through that function.
 - **Mid-game RPCs branch on `mode` in one function**, both paths visible.

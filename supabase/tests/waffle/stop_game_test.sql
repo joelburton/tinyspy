@@ -9,7 +9,7 @@
 -- verdicts), every player unranked and `neutral`. ended_at is set (so the
 -- FE reveals the solution). A second click finds the game ended and is
 -- the game-over race. Non-players are rejected by
--- common.require_game_player.
+-- common._require_game_player.
 
 begin;
 
@@ -108,7 +108,7 @@ select pg_temp.envelope_is(
   'compete: a second end on a finished game raises (idempotent)');
 
 -- ── Non-player rejected ─────────────────────────────────────
--- dee is not a member/player of g2 → require_game_player rejects.
+-- dee is not a member/player of g2 → _require_game_player rejects.
 -- (Use a fresh game being played so the rejection isn't masked by the
 -- game-over race above.)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

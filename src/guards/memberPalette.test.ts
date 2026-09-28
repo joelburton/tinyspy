@@ -5,7 +5,7 @@
  *
  * The eight color NAMES are written out in `MEMBER_COLORS` and in four separate
  * SQL sites: the CHECK on `common.profiles.color`, the array
- * `common.color_for_username` picks from, and the allow-lists that
+ * `common._color_for_username` picks from, and the allow-lists that
  * `claim_username` (PN015) and `update_profile` (PN033) reject against.
  * Two of them carried a comment asking a human to keep them in sync — the
  * arrangement that works right up until it doesn't, and the reason this is a
@@ -16,11 +16,11 @@
  * `var(--member-NAME-fill-color)` against a token that does not exist, so the
  * disc takes the body-text fallback and merely looks wrong. A name the picker
  * offers but an allow-list rejects works all the way to the moment a player
- * saves it, then fails as a fault. A name missing from `color_for_username`
+ * saves it, then fails as a fault. A name missing from `_color_for_username`
  * alone is quietest of all: nothing breaks, one color just never gets handed
  * out.
  *
- * **`color_for_username` also carries the palette's LENGTH**, as the `% 8` that
+ * **`_color_for_username` also carries the palette's LENGTH**, as the `% 8` that
  * indexes its array. A ninth name added everywhere else would still leave that
  * function unable to return it, so the modulo is asserted alongside the names.
  *
@@ -45,7 +45,7 @@ const SPELLINGS = [
     anchor: 'color text not null check (color in',
   },
   {
-    what: "common.color_for_username's array",
+    what: "common._color_for_username's array",
     file: BEHAVIOR,
     anchor: 'select (array[',
   },
@@ -110,12 +110,12 @@ describe('the member palette', () => {
     ).toEqual([])
   })
 
-  it('sizes color_for_username to the palette', () => {
+  it('sizes _color_for_username to the palette', () => {
     const m = read(BEHAVIOR).match(/abs\(hashtext\(username\)\) % (\d+)/)
-    expect(m, 'the modulo in common.color_for_username moved or was rewritten').not.toBeNull()
+    expect(m, 'the modulo in common._color_for_username moved or was rewritten').not.toBeNull()
     expect(
       Number(m![1]),
-      'color_for_username buckets usernames into a different number of colors than the palette has',
+      '_color_for_username buckets usernames into a different number of colors than the palette has',
     ).toBe(MEMBER_COLORS.length)
   })
 })

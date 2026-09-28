@@ -123,7 +123,7 @@ select ok(
   'compete replay → every leaderboard entry is back to 0 guesses used');
 
 -- ── Non-player rejected ─────────────────────────────────────
--- 42501 = common.require_game_player's 'not-a-player|'.
+-- 42501 = common._require_game_player's 'not-a-player|'.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
   wordiply.replay_board((select id from g1)),

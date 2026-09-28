@@ -4,7 +4,7 @@
  * `allGreen` is all that is left of this file's frontend coloring, and the only
  * color string waffle still works out for itself.
  *
- * What used to be here — a TypeScript port of `common.wordle_colors` plus
+ * What used to be here — a TypeScript port of `common._wordle_colors` plus
  * waffle's board merge, pinned against the pgTAP oracle by hand-copied vectors
  * — is gone, because `waffle.events` now stores each swap's colors and the
  * history viewer reads them. The vectors stay where they were always the

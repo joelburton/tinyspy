@@ -74,7 +74,7 @@ corner as every other announcement and an open chat panel never covers it.
 - **There is no way to decline.** Friends always join eventually, and the game
   waits for them, paused, until every seated player has arrived.
 - **"Moth added you" names `common.games.created_by`**, the player who pressed
-  Start, which `common.create_game` records.
+  Start, which `common._create_game` records.
 - **Nothing else pulls a player in.** The club's current-game pointer drives the
   club page and nothing more; entering a game is always the player's own click,
   and joining one while playing another simply leaves the first, which pauses

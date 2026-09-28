@@ -104,8 +104,8 @@ racer. Compete needs an opposing **player**, which is why its manifest takes
 
 ### How a game ends
 
-Whichever RPC ends the game passes `common.end_game` the reason pair and the
-rankings ([common-schema.md → `common.end_game`](../../docs/common-schema.md#commonend_game--the-one-way-a-game-ends)),
+Whichever RPC ends the game passes `common._end_game` the reason pair and the
+rankings ([common-schema.md → `common._end_game`](../../docs/common-schema.md#common_end_game--the-one-way-a-game-ends)),
 and both surfaces that name the ending read those columns: the club-list
 label and the below-board pill (`lib/terminal.ts`).
 

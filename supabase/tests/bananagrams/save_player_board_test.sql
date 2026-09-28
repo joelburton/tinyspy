@@ -92,7 +92,7 @@ select pg_temp.envelope_is(
 -- ─── Terminal game: snapshot is a no-op ───
 reset role;
 select set_config('request.jwt.claims', '', true);
-select common.end_game((select id from mg_game), 'won', '{}'::jsonb, '{}'::jsonb);
+select common._end_game((select id from mg_game), 'won', '{}'::jsonb, '{}'::jsonb);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- Named, not silent: the snapshot is discarded ON PURPOSE so a late unmount

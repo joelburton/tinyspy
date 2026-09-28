@@ -50,7 +50,7 @@ confirm broadcasts to the room so every peer navigates too.
 ## Details
 
 **A restart mounts a NEW play surface.** `common.games.restarts` counts the runs
-of a board — `common.reset_game` bumps it — and the page keys the game's
+of a board — `common._reset_game` bumps it — and the page keys the game's
 `<PlayArea>` on it. So a restart unmounts the finished run and mounts a fresh
 one, and every piece of local state goes with it: a half-typed word, an
 optimistic row, a mark mid-beat, a history viewer, and the refs inside shared

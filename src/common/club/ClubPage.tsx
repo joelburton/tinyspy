@@ -70,7 +70,7 @@ export type ClubPageData = {
 
 /** What `common.unset_current_view` puts in `data` when it cleared the pointer.
  *  Nullable because its other `ok` — PA001, the game is gone — comes through a
- *  raise, and `common.raised_envelope` always builds `data: null`. */
+ *  raise, and `common._raised_envelope` always builds `data: null`. */
 type UnsetAnswer = { result: 'cleared' } | null
 
 /** What `common.delete_game` puts in `data`. One `ok` answer, named anyway —
@@ -212,7 +212,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
           //
           // The severity is asserted rather than assumed, because it is the
           // whole reason a console line is enough. A fault is the only not-ok
-          // this RPC can give today (PN011 / PN012, from require_club_member),
+          // this RPC can give today (PN011 / PN012, from _require_club_member),
           // and it is the only one this page can safely leave unsaid — the
           // modal has said it. A race or a service-error would need a surface,
           // and this page has none for news nobody asked for, so rather than
@@ -245,7 +245,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // Saved setup defaults per gametype — what the friends played last time,
   // handed to SetupGameModal as `savedDefault` so the form pre-fills. A
   // gametype with none falls through to the manifest's static defaults. See
-  // common.create_game's saved_default arg for the write side.
+  // common._create_game's saved_default arg for the write side.
   //
   // Derived, not state: unlike the enrolled set beside it, nothing on this
   // page changes a saved default. Editing the club can only remove a gametype,

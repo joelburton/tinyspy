@@ -463,7 +463,7 @@ function PlayArea({
   // New game — a FRESH game (new id, a new random board + secrets) with THIS
   // game's setup + roster + mode, in the same club. psychicnum's create_game
   // samples its board inline, so this is a direct RPC — no edge function.
-  // Non-destructive (common.create_game un-currents this game into the club
+  // Non-destructive (common._create_game un-currents this game into the club
   // list), so no confirm; the creator jumps in via ctx.goToGame, peers arrive
   // via the game-invitation toast.
   async function createNewGame() {

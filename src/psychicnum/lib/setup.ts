@@ -35,7 +35,7 @@ export type PsychicnumValues = CoopTurnSetup & {
   // Browser-side timer mode. `none` and `countup` are
   // informational; `countdown` ends the game as a loss when the
   // clock hits 0 (via psychicnum.submit_timeout). Validated
-  // server-side by `common.require_valid_timer`.
+  // server-side by `common._require_valid_timer`.
   timer: TimerMode
   // WHO IS PLAYING — a field like any other, and the only one that is not
   // part of the setup blob: `create_game` takes it as its own argument and

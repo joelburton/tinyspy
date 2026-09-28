@@ -35,7 +35,7 @@
   interleaved with an in-flight move can leave a stray row on the fresh board,
   or let a game-ending move land after the reset and re-end the game
   (docs/supabase.md → Server conventions). `bananagrams.replay_board` doesn't,
-  and `common.reset_game` doesn't lock for it. psychicnum's `replay_board` is
+  and `common._reset_game` doesn't lock for it. psychicnum's `replay_board` is
   the model.
 - **`save_player_board` takes no game-row lock.** It writes only the caller's
   own board, so it may be deliberately unlocked; if so, say so in the function.

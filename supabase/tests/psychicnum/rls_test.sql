@@ -192,7 +192,7 @@ select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_g), 'alpha'),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'dee cannot call submit_guess (require_game_player gate)'
+  'dee cannot call submit_guess (_require_game_player gate)'
 );
 
 -- ============================================================

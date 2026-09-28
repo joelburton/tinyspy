@@ -406,7 +406,7 @@ function PlayArea({
   // New game — a FRESH game (a new id, a newly sampled board) with THIS game's
   // setup and roster, in the same club. `create_game` samples its board inline,
   // so this is a direct RPC, and it takes no `mode` (the game is coop-only).
-  // `common.create_game` un-currents THIS game into the club's list, so it
+  // `common._create_game` un-currents THIS game into the club's list, so it
   // stays resumable. The creator jumps in via `goToGame`; the partner arrives
   // via the game-invitation toast.
   const createNewGame = async () => {

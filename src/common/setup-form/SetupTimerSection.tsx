@@ -9,7 +9,7 @@ import type { TimerMode } from '../manifest/gameManifest'
 import styles from './SetupTimerSection.module.css'
 
 // Bounds for the count-down picker, kept in lockstep with the server-side range
-// check in `common.require_valid_timer` (1..3600): no zero-length games, and an
+// check in `common._require_valid_timer` (1..3600): no zero-length games, and an
 // hour is plenty for any gametype here.
 const MIN_COUNTDOWN_SECONDS = 1
 const MAX_COUNTDOWN_SECONDS = 60 * 60
@@ -21,7 +21,7 @@ type Props = {
   onChange: (next: TimerMode) => void
   // The form's errors. This section reads the key for the field it draws:
   // `timer`, which is both where its own MM:SS complaint goes and what
-  // `common.require_valid_timer` names when it refuses one.
+  // `common._require_valid_timer` names when it refuses one.
   errors: FormErrors
 }
 
@@ -31,7 +31,7 @@ type Props = {
  * Renders the **None / Up / Down** radio triple plus an MM:SS
  * input that's only editable when "Down" (countdown) is selected.
  * Used by every gametype whose `setup.timer` is server-validated
- * by `common.require_valid_timer`.
+ * by `common._require_valid_timer`.
  *
  * The MM:SS text is parsed on every keystroke. When the input is
  * well-formed and in [1s, 60min], the underlying setup value
@@ -39,7 +39,7 @@ type Props = {
  * displayed text reflects what the user typed but the setup
  * still carries the most recent *valid* value — so hitting Start
  * always sends something the server will accept. Which is why
- * `require_valid_timer` refusing one is a FAULT: getting there
+ * `_require_valid_timer` refusing one is a FAULT: getting there
  * means a bug, not a setting typed wrong. It names `timer` all
  * the same, so its words land under this section.
  *
@@ -108,7 +108,7 @@ export function SetupTimerSection({ value, onChange, help, errors }: Props) {
     <SetupSection label={`Timer: ${timerLabel(value)}`} help={help}>
       <RadioRow
         // Named for the SETUP KEY it writes, not for the control. The timer is
-        // one field holding one compound value, so `require_valid_timer`'s
+        // one field holding one compound value, so `_require_valid_timer`'s
         // raises — which say `column = 'timer'` — land here. They are FAULTS,
         // so the modal comes first and this is what is left behind it.
         name="timer"

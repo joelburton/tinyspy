@@ -5,7 +5,7 @@
 -- ============================================================
 --
 -- The FE fires this RPC when its count-down timer hits 0. The
--- server-side gate is the non-terminal-play_state check; common.end_game
+-- server-side gate is the non-terminal-play_state check; common._end_game
 -- records play_state='lost' + status.reason='timeout'. Idempotent
 -- on the gate — a second call (the partner's timer hitting 0 too) answers
 -- the shared game-over race.
@@ -15,7 +15,7 @@
 --     status.reason
 --   - happy path from sudden_death (the other non-terminal state)
 --   - idempotency: second call on a terminal game answers the race
---   - require_game_player: non-player is rejected
+--   - _require_game_player: non-player is rejected
 --   - after a turn is spent: both players' results are {won: false}, and
 --     status.turns_used is the budget less what is left
 --
@@ -97,7 +97,7 @@ select pg_temp.envelope_is(
   'submit_timeout: rejects on already-terminal games');
 
 -- ============================================================
--- (3) Non-player rejected (require_game_player gate)
+-- (3) Non-player rejected (_require_game_player gate)
 -- ============================================================
 -- dee is signed in but isn't in common.game_players for this
 -- game — the player roster is frozen at create_game time. Use a
@@ -116,7 +116,7 @@ select pg_temp.envelope_is(
   codenamesduet.submit_timeout((select id from g2)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'submit_timeout: non-player rejected via require_game_player');
+  'submit_timeout: non-player rejected via _require_game_player');
 
 -- ============================================================
 -- (4) Happy path from sudden_death

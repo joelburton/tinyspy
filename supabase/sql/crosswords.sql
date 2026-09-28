@@ -49,7 +49,7 @@ grant select (id, club_handle, mode, puzzle_id, meta, created_at)
 drop policy if exists games_select on crosswords.games;
 create policy games_select on crosswords.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 grant select on crosswords.cells to authenticated;
 
@@ -69,7 +69,7 @@ create policy cells_select on crosswords.cells
         from crosswords.games cg
         join common.games g on g.id = cg.id
        where cg.id = cells.game_id
-         and common.is_club_member(cg.club_handle)
+         and common._is_club_member(cg.club_handle)
          and (cg.mode = 'coop' or cells.owner_id = (select auth.uid()) or g.is_terminal)
     )
   );
@@ -305,7 +305,7 @@ begin
       detail = format('no unplayed puzzle for dow %s back to the 2015 floor', dow);
   end if;
 
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'found', 'puzzle_date', v_date));
 exception when others then
   get stacked diagnostics
@@ -313,7 +313,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -396,7 +396,7 @@ begin
                  p.created_at desc
     ) r;
 
-  return common.ok_envelope(jsonb_build_object('result', 'library', 'puzzles', v_rows));
+  return common._ok_envelope(jsonb_build_object('result', 'library', 'puzzles', v_rows));
 end;
 $$;
 revoke execute on function crosswords.library_for_club(text) from public;
@@ -421,7 +421,7 @@ begin
     from common.game_players
    where game_id = target_game;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game, 'won',
     jsonb_build_object('mode', 'coop', 'reason', 'solved'),
     v_results
@@ -445,7 +445,7 @@ begin
     from common.game_players
    where game_id = target_game;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game, 'won_compete',
     jsonb_build_object(
       'mode', 'compete',
@@ -530,15 +530,15 @@ declare
   v_meta      jsonb;
   v_solution  jsonb;
 begin
-  perform common.require_club_member(target_club);
-  perform common.require_valid_mode(mode);
+  perform common._require_club_member(target_club);
+  perform common._require_valid_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
     raise exception 'BUG: race with fewer than two players'
       using errcode = 'PN219', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
   end if;
-  perform common.require_player_count_max(player_user_ids, 8);
-  perform common.require_valid_timer(coalesce(setup -> 'timer', '{"kind":"none"}'::jsonb));
+  perform common._require_player_count_max(player_user_ids, 8);
+  perform common._require_valid_timer(coalesce(setup -> 'timer', '{"kind":"none"}'::jsonb));
   -- Backstop the FE's strip: the inline puzzle rides as the separate `board`
   -- arg, so `board`/`filename` never belong in the persisted setup. Dropping
   -- them here keeps a stale upload (e.g. a parsed board left in the setup after
@@ -591,7 +591,7 @@ begin
   -- game after the loaded puzzle — e.g. "NYT Sat 1/1/22: <theme>" or a library
   -- puzzle's embedded title — instead of a generic "New crossword". Falls back to
   -- "Crossword" for an untitled puzzle. Shown in the club game list + the header.
-  new_id := common.create_game(
+  new_id := common._create_game(
     target_club, 'crosswords_' || mode, player_user_ids,
     coalesce(nullif(btrim(v_meta ->> 'title'), ''), 'Crossword'), setup,
     setup - 'puzzle_id' - 'date'
@@ -653,7 +653,7 @@ begin
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing
   -- a call site can filter the `ok` on, and it reaches all three start paths —
   -- the two import edge functions relay this envelope untouched.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.
@@ -668,7 +668,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 revoke execute on function crosswords.create_game(text, jsonb, uuid[], text, jsonb) from public;
@@ -711,7 +711,7 @@ declare
   v_solved    boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  v_caller := common.require_game_player(target_game);
+  v_caller := common._require_game_player(target_game);
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
@@ -762,7 +762,7 @@ begin
 
   -- No outcome: typing a letter is not adjudicated, and the cell is already on
   -- screen optimistically. Both columns this used to return survive as fields.
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'set', 'version', v_version, 'solved', v_solved));
 
 exception when others then
@@ -771,7 +771,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.set_cell(uuid, int, int, text, boolean) from public;
@@ -813,7 +813,7 @@ declare
   v_version   bigint;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  v_caller := common.require_game_player(target_game);
+  v_caller := common._require_game_player(target_game);
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
@@ -851,14 +851,14 @@ begin
       detail = 'that cell is a block or a given';
   end if;
 
-  return common.ok_envelope(jsonb_build_object('result', 'marked', 'version', v_version));
+  return common._ok_envelope(jsonb_build_object('result', 'marked', 'version', v_version));
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.set_mark(uuid, int, int, text, text) from public;
@@ -895,7 +895,7 @@ declare
   v_wrong int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  v_caller := common.require_game_player(target_game);
+  v_caller := common._require_game_player(target_game);
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
@@ -936,7 +936,7 @@ begin
         where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col
      );
 
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'checked', 'wrong_count', v_wrong));
 exception when others then
   get stacked diagnostics
@@ -944,7 +944,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.check_cells(uuid, jsonb) from public;
@@ -970,7 +970,7 @@ declare
   v_solved boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
   select mode into v_mode from crosswords.games where id = target_game;
   if v_mode <> 'coop' then
     -- A fault: mode is fixed at create_game and the FE hides the reveal items
@@ -1013,7 +1013,7 @@ begin
   -- whether this one did.
   v_solved := crosswords._maybe_finish(target_game, null, 'coop', null);
 
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'revealed', 'solved', v_solved));
 
 exception when others then
@@ -1022,7 +1022,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.reveal_cells(uuid, jsonb) from public;
@@ -1039,7 +1039,7 @@ grant execute on function crosswords.reveal_cells(uuid, jsonb) to authenticated;
 --
 -- Wipes every cell of the puzzle — fill, pencil, wrong/revealed marks, and the
 -- scribbled edge marks — for EVERY owner, then hands the common half to
--- `common.reset_game` (un-terminal, fresh status, results + concede cleared,
+-- `common._reset_game` (un-terminal, fresh status, results + concede cleared,
 -- clock zeroed). Note the widening from `clear_board`: that cleared only the
 -- CALLER's grid in compete, because it was a mid-race convenience. A restart is
 -- a whole-table thing in every game, so a compete restart re-opens the race for
@@ -1076,7 +1076,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
   -- The status blob create_game seeds, rebuilt: `reset_game` ASSIGNS status, so
   -- anything the listing label reads has to be restated here or it's lost.
   select status ->> 'title' into v_title from common.games where id = target_game;
@@ -1086,11 +1086,11 @@ begin
          mark_right = null, mark_bottom = null
    where c.game_id = target_game;
 
-  perform common.reset_game(
+  perform common._reset_game(
     target_game,
     jsonb_build_object('mode', v_mode, 'title', coalesce(v_title, 'Crossword'))
   );
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1098,7 +1098,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.replay_board(uuid) from public;
@@ -1153,7 +1153,7 @@ begin
   if not found then
     perform common._raise_game_deleted('crosswords');
   end if;
-  v_caller := common.require_game_player(target_game);
+  v_caller := common._require_game_player(target_game);
   v_owner := case when v_mode = 'coop' then null else v_caller end;
   v_note := v_meta ->> 'note';
 
@@ -1193,10 +1193,10 @@ begin
   -- a name. `unsolved` is an ordinary answer, not a refusal: the menu item is
   -- live on any clue because the frontend cannot see which are solved.
   if v_solved then
-    return common.ok_envelope(jsonb_build_object(
+    return common._ok_envelope(jsonb_build_object(
       'result', 'solved', 'answer', v_answer, 'solved', true, 'note', v_note));
   end if;
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'unsolved', 'answer', null, 'solved', false, 'note', v_note));
 
 exception when others then
@@ -1205,7 +1205,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.reveal_solved_word(uuid, jsonb) from public;
@@ -1246,9 +1246,9 @@ begin
     perform common._raise_game_deleted('crosswords');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'exported', 'solution', v_solution));
 exception when others then
   get stacked diagnostics
@@ -1256,7 +1256,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.export_solution(uuid) from public;
@@ -1299,7 +1299,7 @@ begin
     perform common._raise_game_deleted('crosswords');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
@@ -1313,14 +1313,14 @@ begin
     from common.game_players
    where game_id = target_game;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game, 'ended',
     jsonb_build_object('mode', v_mode, 'reason', 'manual'),
     v_results
   );
   -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update crosswords.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1328,7 +1328,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.stop_game(uuid) from public;
@@ -1353,9 +1353,9 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   v_answer jsonb;
 begin
-  perform common.require_compete((select mode from crosswords.games where id = target_game));
+  perform common._require_compete((select mode from crosswords.games where id = target_game));
   -- common.concede answers in an envelope and catches its own raises, so its
-  -- refusals relay untouched; the handler below is for require_compete's.
+  -- refusals relay untouched; the handler below is for _require_compete's.
   v_answer := common.concede(target_game);
   -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
   -- → Concede).
@@ -1368,7 +1368,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.concede(uuid) from public;
@@ -1397,7 +1397,7 @@ begin
     perform common._raise_game_deleted('crosswords');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
@@ -1409,7 +1409,7 @@ begin
     from common.game_players
    where game_id = target_game;
 
-  perform common.end_game(
+  perform common._end_game(
     target_game,
     case when v_mode = 'coop' then 'lost' else 'lost_compete' end,
     jsonb_build_object('mode', v_mode, 'reason', 'timeout'),
@@ -1417,7 +1417,7 @@ begin
   );
   -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update crosswords.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1425,7 +1425,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 revoke execute on function crosswords.submit_timeout(uuid) from public;

@@ -8,7 +8,7 @@
  * and it takes three things at once: the `<schema>.games` row, `common.games`,
  * and every `common.game_players` row (both of the others cascade from it). So
  * a player whose game was just deleted has no membership left either — and an
- * RPC that gates on membership first answers `require_game_player`'s "You are
+ * RPC that gates on membership first answers `_require_game_player`'s "You are
  * not in this game", which is true of the rows and false of the player. They
  * WERE in it. It is gone, and that is the only useful thing to say.
  *
@@ -103,7 +103,7 @@ describe('a deleted game says so', () => {
   it('asks it BEFORE asking whether the caller is a player', () => {
     const wrong = callers
       .filter((f) => {
-        const gate = f.body.indexOf('require_game_player')
+        const gate = f.body.indexOf('_require_game_player')
         // No gate at all is fine — nothing can preempt the sentence.
         return gate !== -1 && gate < f.body.indexOf('_raise_game_deleted(')
       })

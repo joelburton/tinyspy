@@ -114,7 +114,7 @@ grant select
 drop policy if exists games_select on scrabble.games;
 create policy games_select on scrabble.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (common._is_club_member(club_handle));
 
 -- Everything except the hidden `rack` (ai_level is public — the FE marks which
 -- seats are playing at an AI strength).
@@ -126,7 +126,7 @@ create policy players_select on scrabble.players
     exists (
       select 1 from scrabble.games g
        where g.id = players.game_id
-         and common.is_club_member(g.club_handle)
+         and common._is_club_member(g.club_handle)
     )
   );
 
@@ -138,7 +138,7 @@ create policy events_select on scrabble.events
     exists (
       select 1 from scrabble.games g
        where g.id = events.game_id
-         and common.is_club_member(g.club_handle)
+         and common._is_club_member(g.club_handle)
     )
   );
 
@@ -406,7 +406,7 @@ begin
 
     v_status := jsonb_build_object('mode', 'coop', 'reason', reason,
                                    'team_score', v_team_final);
-    perform common.end_game(
+    perform common._end_game(
       g_id,
       case when reason = 'timeout' then 'lost' else 'ended' end,
       v_status, player_results);
@@ -500,9 +500,9 @@ begin
     -- game; scrabble hand-rolls this path (it needs final scoring first) but
     -- lands the same terminal.
     if v_max is null then
-      perform common.end_game(g_id, 'lost_compete', v_status, player_results);
+      perform common._end_game(g_id, 'lost_compete', v_status, player_results);
     else
-      perform common.end_game(g_id, 'won_compete', v_status, player_results);
+      perform common._end_game(g_id, 'won_compete', v_status, player_results);
     end if;
   end if;
 end;
@@ -553,16 +553,16 @@ declare
   v_bot_ids     uuid[] := array[]::uuid[];
   first_turn    uuid;
 begin
-  perform common.require_club_member(target_club);
+  perform common._require_club_member(target_club);
   -- Up to 4 players; compete needs at least 2 (a 1-player race is degenerate).
-  perform common.require_player_count_max(player_user_ids, 4);
+  perform common._require_player_count_max(player_user_ids, 4);
   if array_length(player_user_ids, 1) is null then
     raise exception 'BUG: game with no players'
       using errcode = 'PN077', hint = 'fault', column = '_',
       detail = 'player_user_ids was empty';
   end if;
 
-  perform common.require_valid_mode(mode);
+  perform common._require_valid_mode(mode);
 
   s_dict_2     := coalesce((setup->>'dict_2')::int, 3);
   s_dict_3plus := coalesce((setup->>'dict_3plus')::int, 3);
@@ -651,7 +651,7 @@ begin
     end if;
   end if;
 
-  perform common.require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(setup->'timer');
 
   -- Shuffle the bag (the only per-game randomness).
   select array_agg(t order by random()) into v_bag
@@ -661,10 +661,10 @@ begin
   select jsonb_agg(null::jsonb) into v_empty_board from generate_series(1, 225);
 
   -- The bots ride in the player list: they hold a seat, they can win, and
-  -- common.end_game writes a result for every game_players row. They are
+  -- common._end_game writes a result for every game_players row. They are
   -- exempt from that function's club-membership gate — a bot is in no human's
   -- club by design.
-  new_id := common.create_game(
+  new_id := common._create_game(
     target_club, 'scrabble_' || mode, player_user_ids || v_bot_ids, 'New game', setup,
     -- saved_default strips first_turn_user_id (per-game "who goes first" pick,
     -- not a per-club preference; coop_style rides).
@@ -729,7 +729,7 @@ begin
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on — without it the branch would match by
   -- merely being `ok` and would draw a second answer as this one.
-  return common.ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
+  return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -740,7 +740,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 end;
 $$;
 
@@ -899,7 +899,7 @@ begin
     -- Free reject: nothing written, no version bump, no log. An `ok`, because
     -- the dictionary is the ONLY validation the client cannot do — asking is
     -- what the move was for, and this is the answer.
-    return common.ok_envelope(
+    return common._ok_envelope(
       jsonb_build_object('result', 'invalid', 'bad_words', to_jsonb(bad_words)),
       'lost');
   end if;
@@ -953,7 +953,7 @@ begin
     perform common.update_state(target_game, 'playing', scrabble._status(target_game));
   end if;
 
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object(
       'result', 'accepted',
       'drawn', to_jsonb(v_drawn),
@@ -973,7 +973,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1004,7 +1004,7 @@ begin
   if not exists (select 1 from scrabble.games where id = target_game) then
     perform common._raise_game_deleted('scrabble');
   end if;
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
     -- create_game seats every player, so a member without one is a broken
@@ -1020,7 +1020,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1055,7 +1055,7 @@ begin
   if not exists (select 1 from scrabble.games where id = target_game) then
     perform common._raise_game_deleted('scrabble');
   end if;
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
     raise exception 'BUG: an AI move on a human seat'
@@ -1069,7 +1069,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1189,7 +1189,7 @@ begin
   -- counts and that nothing adjudicates; `won` would make trading tiles read
   -- like scoring. The frontend's lib/answer.ts says the same word for the row
   -- this wrote.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'exchanged', 'drawn', to_jsonb(v_drawn),
                        'version', g.version + 1, 'terminal', v_terminal),
     'neutral');
@@ -1202,7 +1202,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1226,7 +1226,7 @@ begin
   if not exists (select 1 from scrabble.games where id = target_game) then
     perform common._raise_game_deleted('scrabble');
   end if;
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
     raise exception 'BUG: a swap from a player with no seat'
@@ -1240,7 +1240,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1263,7 +1263,7 @@ begin
   if not exists (select 1 from scrabble.games where id = target_game) then
     perform common._raise_game_deleted('scrabble');
   end if;
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
     raise exception 'BUG: an AI swap on a human seat'
@@ -1277,7 +1277,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1367,7 +1367,7 @@ begin
   end if;
 
   -- `neutral`: a pass is a turn that counts and that nothing adjudicates.
-  return common.ok_envelope(
+  return common._ok_envelope(
     jsonb_build_object('result', 'passed', 'version', g.version + 1,
                        'terminal', v_terminal),
     'neutral');
@@ -1379,7 +1379,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1403,7 +1403,7 @@ begin
   if not exists (select 1 from scrabble.games where id = target_game) then
     perform common._raise_game_deleted('scrabble');
   end if;
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
     raise exception 'BUG: a pass from a player with no seat'
@@ -1417,7 +1417,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1440,7 +1440,7 @@ begin
   if not exists (select 1 from scrabble.games where id = target_game) then
     perform common._raise_game_deleted('scrabble');
   end if;
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
     raise exception 'BUG: an AI pass on a human seat'
@@ -1454,7 +1454,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1528,7 +1528,7 @@ declare
   is_current boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common.require_compete((select mode from scrabble.games where id = target_game));
+  perform common._require_compete((select mode from scrabble.games where id = target_game));
 
   -- Lock this game's scrabble.games row FIRST so concede serializes against a
   -- concurrent move (which also locks this row before common.games). Without it
@@ -1540,7 +1540,7 @@ begin
   caller_id := common._set_conceded(target_game);
 
   if scrabble._maybe_finish_compete(target_game) then
-    return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+    return common._ok_envelope(jsonb_build_object('result', 'conceded'));
   end if;
 
   -- Others are still playing. If it was the conceder's turn, hand off to the
@@ -1554,7 +1554,7 @@ begin
   update scrabble.games set version = version + 1 where id = target_game;
   perform common.update_state(target_game, 'playing', scrabble._status(target_game));
 
-  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
   get stacked diagnostics
@@ -1562,7 +1562,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1601,7 +1601,7 @@ begin
   if not found then
     perform common._raise_game_deleted('scrabble');
   end if;
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
@@ -1612,9 +1612,9 @@ begin
   perform scrabble._finish(target_game, 'timeout', null);
 
   -- Realtime touch so the FE's scrabble.* subscription wakes to reveal the
-  -- final racks (common.end_game writes only common.games).
+  -- final racks (common._end_game writes only common.games).
   update scrabble.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1622,7 +1622,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1664,7 +1664,7 @@ begin
   -- Row check before the membership gate: `delete_game` takes this row,
   -- `common.games` and every `game_players` row together, so gate-first
   -- answered "You are not in this game" for a game that was simply deleted.
-  caller_id := common.require_game_player(target_game);
+  caller_id := common._require_game_player(target_game);
   -- Reads `caller_id`, so it stays BELOW the gate that assigns it.
   v_seat    := scrabble._seat_of(target_game, caller_id);
 
@@ -1689,14 +1689,14 @@ begin
     select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
       into player_results
       from common.game_players where game_id = target_game;
-    perform common.end_game(
+    perform common._end_game(
       target_game, 'ended', jsonb_build_object('reason', 'manual'), player_results);
   end if;
 
   -- Realtime touch (see submit_timeout) — wakes the games subscription so the
   -- FE reveals the final racks even on the compete neutral path.
   update scrabble.games set club_handle = club_handle where id = target_game;
-  return common.ok_envelope(jsonb_build_object('result', 'ended'));
+  return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
   get stacked diagnostics
@@ -1704,7 +1704,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1750,7 +1750,7 @@ begin
     perform common._raise_game_deleted('scrabble');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1774,7 +1774,7 @@ begin
 
   -- Unwrapped by `scrabble-suggest-move`, not relayed: the board it carries is
   -- the first step of that function's work, not its answer.
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'context',
     'board', g.board,
     'rack', to_jsonb(g.shared_rack),
@@ -1789,7 +1789,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1832,7 +1832,7 @@ begin
     perform common._raise_game_deleted('scrabble');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select cg.play_state, cg.current_turn_user_id into cur_state, turn_holder
     from common.games cg where cg.id = target_game;
@@ -1842,16 +1842,16 @@ begin
   -- new `result` is what lets the edge function branch on the answer rather
   -- than on the presence of a key.
   if g.mode <> 'compete' or cur_state <> 'playing' or turn_holder is null then
-    return common.ok_envelope(jsonb_build_object('result', 'done', 'done', true));
+    return common._ok_envelope(jsonb_build_object('result', 'done', 'done', true));
   end if;
 
   select * into pl from scrabble.players where game_id = target_game and user_id = turn_holder;
   if pl.ai_level is null then
     -- A human seat holds the turn.
-    return common.ok_envelope(jsonb_build_object('result', 'done', 'done', true));
+    return common._ok_envelope(jsonb_build_object('result', 'done', 'done', true));
   end if;
 
-  return common.ok_envelope(jsonb_build_object(
+  return common._ok_envelope(jsonb_build_object(
     'result', 'context',
     'seat', pl.seat,
     'board', g.board,
@@ -1869,7 +1869,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -1943,7 +1943,7 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common._require_game_player(target_game);
 
   select array_agg(t order by random()) into v_bag from unnest(scrabble._new_bag()) t;
   select jsonb_agg(null::jsonb) into v_board from generate_series(1, 225);
@@ -1980,7 +1980,7 @@ begin
   -- replayed game would otherwise still advertise the previous deal's words.
   update common.games set title = 'New game' where id = target_game;
 
-  perform common.reset_game(target_game, scrabble._status(target_game));
+  perform common._reset_game(target_game, scrabble._status(target_game));
 
   -- Compete opens on a random seat, so it points the turn after reset_game
   -- has rewound it to seat 0.
@@ -1990,7 +1990,7 @@ begin
     perform scrabble._seat_turn_order(target_game, v_first);
   end if;
 
-  return common.ok_envelope(jsonb_build_object('result', 'replayed'));
+  return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
   get stacked diagnostics
@@ -1998,7 +1998,7 @@ exception when others then
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
     v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

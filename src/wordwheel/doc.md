@@ -375,7 +375,7 @@ it does not write, every racer conceding, is `common.concede`'s, which adds
 only its reason over the race's last readout.
 
 Three of them end by touching `found_words` in place. A compete client cannot
-see an opponent's finds until the game is over, and `common.end_game` writes
+see an opponent's finds until the game is over, and `common._end_game` writes
 only `common.games`, so without that no-op write nothing would wake the found
 list and every opponent word would show as missed. `replay_board` touches
 `games` instead: it only deletes, and a filtered subscription does not reliably

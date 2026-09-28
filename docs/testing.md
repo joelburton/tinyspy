@@ -616,8 +616,9 @@ before trusting a green run. The full set:
 | `dbCallWrapped` | every `.rpc(` / `.from(` in `src/` reaches a wrapper at all |
 | `callSiteShape` | every call site asks `=== 'not-ok'`, never the negated form |
 | `gameDeletedFirst` | a deleted game is checked BEFORE membership, at every player-callable site |
-| `concedeLock` | each elimination game locks its own row before `_set_conceded` |
-| `endingTouchesGame` | every RPC that can end a game writes one of its own rows, so open boards re-read |
+| `concedeLock` | a game's concede locks its own row before recording the concession (`common._concede`) |
+| `endingTouchesGame` | every RPC that can end a game wakes the board: it runs the game's `_write_statuses`, or (a game step 4 has not rewritten) writes one of its own rows |
+| `underscoreMeansInternal` | every function in `supabase/sql/` without a leading `_` is granted to a caller outside SQL |
 | `endLock` | every `stop_game` and `submit_timeout` locks its own games row before ending the game |
 | `schemaExposure.e2e` | the running PostgREST stack, per registered schema |
 | `docLinks` | link targets in `docs/`, `plans/`, every folder's `doc.md` / `todo.md`, `CLAUDE.md`, `README.md` |

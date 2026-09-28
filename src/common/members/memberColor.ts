@@ -5,7 +5,7 @@
  *
  * Each user's `common.profiles.color` is a name from a fixed
  * 8-entry palette (the column's check constraint holds the eight;
- * `common.color_for_username` picks one, in `supabase/sql/common.sql`). The FE
+ * `common._color_for_username` picks one, in `supabase/sql/common.sql`). The FE
  * never hard-codes the hex — it asks `colorVarFor(name)` for a
  * `var(--member-NAME-fill-color)` reference, and `core-css/fixed.css` owns the
  * actual shade. The point of that indirection is that the hex lives in ONE
@@ -19,7 +19,7 @@
  * only values `common.profiles.color` will hold.
  *
  * The same names the SQL writes out in four places: the CHECK on that column,
- * the array `color_for_username` picks from, and the two allow-lists that
+ * the array `_color_for_username` picks from, and the two allow-lists that
  * reject anything else. They are held together by
  * `src/guards/memberPalette.test.ts`, not by remembering.
  *
@@ -85,7 +85,7 @@ export function defaultColorFor(username: string): string {
   // A simple hash, deliberately not Postgres' `hashtext`. The server doesn't
   // derive a color any more — `claim_username` stores whatever the form sends
   // — so this only has to be stable and reasonably spread across the eight,
-  // not agree with any DB function. (`common.color_for_username` still exists,
+  // not agree with any DB function. (`common._color_for_username` still exists,
   // for direct SQL inserts such as the test personas.)
   let h = 0
   for (let i = 0; i < username.length; i++) {

@@ -402,7 +402,7 @@ export function PlayArea({
   // setup + roster + mode, in the same club. stackdown's create_game claims a
   // random board from the pre-generated library, so this is a direct RPC — no
   // edge function — mirroring the manifest's startGameInClub. Non-destructive
-  // (common.create_game un-currents this game into the club list), so no
+  // (common._create_game un-currents this game into the club list), so no
   // confirm; the creator jumps in via ctx.goToGame, peers arrive via the
   // game-invitation toast.
   //

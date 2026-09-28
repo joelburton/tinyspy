@@ -81,7 +81,7 @@ mechanism:
 | bound | who | how |
 |---|---|---|
 | at least 1 | every game | `common.create_game_row` raises **PN059** |
-| the max | 15 games | `common.require_player_count_max(ids, cap)` raises **PN041**; codenamesduet keeps its inline exactly-2 instead |
+| the max | 15 games | `common._require_player_count_max(ids, cap)` raises **PN041**; codenamesduet keeps its inline exactly-2 instead |
 | compete's min of 2 | 10 games | each `create_game`'s own `< 2` check. **setgame, stackdown and waffle have none** — their manifests say `[2, 6]` and their servers accept 1. bananagrams and scrabble need none (their min is 1) |
 
 Every manifest max agrees with its server cap. The compete-minimum row is where
