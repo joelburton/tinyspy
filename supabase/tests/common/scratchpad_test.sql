@@ -14,8 +14,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.create_club('SP Club', array['ada', 'bea', 'cade']) as club_handle \gset
 reset role;
 
-insert into common.games (club_handle, gametype, created_by, title, setup)
-values (:'club_handle', 'crosswords_coop',
+insert into common.games (club_handle, gametype, mode, created_by, title, setup)
+values (:'club_handle', 'crosswords_coop', 'coop',
         'ada11111-1111-1111-1111-111111111111', 'Scratchpad game', '{}'::jsonb)
 returning id as game_id \gset
 insert into common.game_players (game_id, user_id) values
@@ -117,7 +117,10 @@ reset role;
 -- ── A finished game's pad stays writable ─────────────────────────────
 -- The notes outlive the game: players keep jotting after the verdict, and a
 -- write debounced across the finish line lands like any other.
-update common.games set play_state = 'won' where id = :'game_id';
+update common.games
+   set ended_at = now(), game_ended_reason = 'reached_goal',
+       game_ended_reason_detail = 'solved', game_ended_outcome = 'won'
+ where id = :'game_id';
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.set_scratchpad(:'game_id'::uuid, null::uuid, 'typed after it ended'),

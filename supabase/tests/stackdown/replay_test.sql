@@ -4,7 +4,7 @@
 -- Test: stackdown.replay_board (restart this stack from scratch)
 -- ============================================================
 -- The "Replay board" game-menu item. Resets the working state on the SAME
--- game row — the frozen puzzle (tiles / solution / band) stays, everything
+-- game row — the frozen puzzle (tiles / solution) stays, everything
 -- the players did is wiped. Both modes reset ALL players. Available from a
 -- finished game OR mid-game; any game player may call it; a non-player is
 -- rejected.
@@ -38,8 +38,9 @@ select (stackdown.create_game(
   'coop')->'data'->>'id')::uuid as id;
 
 -- Play the six words in order → coop win. Now there are six submissions, a
--- rewritten title, found_count 6, solved, and a terminal game: the full state
--- a replay must undo. (A hint is taken too, so the cheat log is exercised.)
+-- rewritten title, found_count 6, every player solved, and an ended game: the
+-- full state a replay must undo. (A hint is taken too, so the cheat log is
+-- exercised.)
 select stackdown.reveal_next_hint((select id from g1));
 select stackdown.submit_word((select id from g1), pg_temp.sd_seq(1));
 select stackdown.submit_word((select id from g1), pg_temp.sd_seq(2));
@@ -49,10 +50,10 @@ select stackdown.submit_word((select id from g1), pg_temp.sd_seq(5));
 select stackdown.submit_word((select id from g1), pg_temp.sd_seq(6));
 reset role;
 
--- Sanity: we really did reach terminal, and the title carries the solution.
-select is(
-  (select is_terminal from common.games where id = (select id from g1)),
-  true, 'coop: precondition — a cleared stack is terminal');
+-- Sanity: the game really did end, and the title carries the solution.
+select isnt(
+  (select ended_at from common.games where id = (select id from g1)),
+  null, 'coop: precondition — a cleared stack has ended the game');
 select isnt(
   (select title from common.games where id = (select id from g1)),
   'New game', 'coop: precondition — the title was rewritten to the cleared words');
@@ -65,17 +66,19 @@ select stackdown.replay_board((select id from g1));
 reset role;
 
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'playing', 'coop: replay → play_state back to playing');
-select is(
-  (select is_terminal from common.games where id = (select id from g1)),
-  false, 'coop: replay → is_terminal cleared');
-select is(
   (select ended_at from common.games where id = (select id from g1)),
-  null, 'coop: replay → ended_at cleared');
+  null, 'coop: replay → ended_at cleared, the game is played again');
 select is(
-  (select (status->>'found_words_count')::int from common.games where id = (select id from g1)),
-  0, 'coop: replay → status.found reset to 0');
+  (select array[game_ended_reason, game_ended_reason_detail, game_ended_outcome,
+                game_ended_by_user_id::text]
+     from common.games where id = (select id from g1)),
+  array[null, null, null, null]::text[], 'coop: replay → the ending''s reason, outcome and who ended it cleared');
+select is(
+  (select restart_count from common.games where id = (select id from g1)),
+  1, 'coop: replay → restart_count up by one');
+select is(
+  (select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from g1)),
+  0, 'coop: replay → the club line''s found_words_count reset to 0');
 select is(
   (select title from common.games where id = (select id from g1)),
   'New game', 'coop: replay → the title stops advertising the solution');
@@ -85,17 +88,19 @@ select is(
 select is(
   (select count(*) from stackdown.players
      where game_id = (select id from g1)
-       and found_count = 0 and solved = false and solved_at is null),
-  2::bigint, 'coop: replay → both players zeroed + unsolved');
+       and found_count = 0),
+  2::bigint, 'coop: replay → both players zeroed');
 select is(
   (select count(*) from common.game_players
-     where game_id = (select id from g1) and result is null and not conceded),
-  2::bigint, 'coop: replay → per-player results + concede cleared');
+     where game_id = (select id from g1)
+       and player_ended_at is null and final_ranking is null and outcome is null
+       and solved_at is null),
+  2::bigint, 'coop: replay → per-player endings, results and solves cleared');
 select is(
   (select ticks from common.timers where game_id = (select id from g1)),
   0, 'coop: replay → the shared clock is zeroed (a timed game restarts full)');
 
--- ── Compete: a concede-terminal game replays clean too ──────
+-- ── Compete: a game ended by concessions replays clean too ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club2 on commit drop as
 select pg_temp.create_club('Stackdown rp2', array['ada', 'bea']) as handle;
@@ -119,13 +124,14 @@ select stackdown.replay_board((select id from g2));
 reset role;
 
 select is(
-  (select is_terminal from common.games where id = (select id from g2)),
-  false, 'compete: replay → is_terminal cleared');
+  (select ended_at from common.games where id = (select id from g2)),
+  null, 'compete: replay → ended_at cleared');
 select is(
   (select count(*) from common.game_players
-     where game_id = (select id from g2) and result is null
-       and not conceded and conceded_at is null),
-  2::bigint, 'compete: replay → results + concede (incl. conceded_at) cleared');
+     where game_id = (select id from g2)
+       and player_ended_at is null and player_ended_reason is null
+       and final_ranking is null and outcome is null),
+  2::bigint, 'compete: replay → results and the concessions cleared');
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

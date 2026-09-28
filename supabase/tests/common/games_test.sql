@@ -12,8 +12,11 @@
 --   - common.create_game: caller membership, player-uid
 --     membership, both rows landed
 --   - common.require_game_player: auth + game-player gate
---   - common.end_game: ended_at + play_state + is_terminal + status +
---     per-player results + is_current_view flipped to false
+--   - common.end_game: ended_at, the reason pair, who ended it, the
+--     game's outcome, and each player's final_ranking + outcome;
+--     is_current_view left alone
+--   - updated_at stamped by trigger on every update; status_changed_at
+--     left alone by the current-view pointer
 --
 -- Per-game tests (codenamesduet/psychicnum/connections) exercise these
 -- helpers indirectly through their own create_game RPCs; this
@@ -33,7 +36,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(48);
+select plan(49);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -79,12 +82,13 @@ select set_config(
   (common.create_game(
     (select handle from club),
     'connections_coop',
+    'coop',
     array[
       'ada11111-1111-1111-1111-111111111111'::uuid,
       'bea22222-2222-2222-2222-222222222222'::uuid
     ],
     'test-title',
-    '{}'::jsonb,
+    '{"timer": {"kind": "none"}}'::jsonb,
     null
   ))::text,
   true
@@ -129,10 +133,10 @@ select is(
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select common.create_game(%L, 'connections_coop',
+    $$ select common.create_game(%L, 'connections_coop', 'coop',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid],
-       'test-title', '{}'::jsonb, null) $$,
+       'test-title', '{"timer": {"kind": "none"}}'::jsonb, null) $$,
     (select handle from club)
   ),
   'PN012',
@@ -147,7 +151,7 @@ select throws_ok(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select common.create_game(%L, 'connections_coop', array[]::uuid[], 'test-title', '{}'::jsonb, null) $$,
+    $$ select common.create_game(%L, 'connections_coop', 'coop', array[]::uuid[], 'test-title', '{"timer": {"kind": "none"}}'::jsonb, null) $$,
     (select handle from club)
   ),
   'PN059',
@@ -162,10 +166,10 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select common.create_game(%L, 'connections_coop',
+    $$ select common.create_game(%L, 'connections_coop', 'coop',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'dee44444-4444-4444-4444-444444444444'::uuid],
-       'test-title', '{}'::jsonb, null) $$,
+       'test-title', '{"timer": {"kind": "none"}}'::jsonb, null) $$,
     (select handle from club)
   ),
   'PN060',
@@ -249,11 +253,10 @@ select is(
 -- common.end_game
 -- ============================================================
 -- Precondition: common.create_game left this row in is_current_view=true
--- (the create_game RPC's transition). end_game should flip it off
--- only indirectly — actually, end_game only flips play_state /
--- is_terminal / ended_at / status; is_current_view stays true
--- until the FE explicitly closes the post-game review. So this
--- test pins what end_game *does* write.
+-- (the create_game RPC's transition). end_game writes the ending and
+-- each player's result; is_current_view stays true until the FE
+-- explicitly closes the post-game review. So this test pins what
+-- end_game *does* write.
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -265,17 +268,19 @@ select is(
   'precondition: game starts is_current_view=true after create_game'
 );
 
--- Now end the game with play_state + status + per-player results.
--- The new signature is (target_game, play_state, status, player_results).
--- The play_state / reason strings are DELIBERATELY fake: common.end_game
--- doesn't validate vocabulary (each gametype owns its own — states.md), and
--- a real roster value here would read as if it did.
+-- Now end the game: a reason, the game's own word for it, who ended it, and
+-- the rankings (ada 1, bea 2). The detail string is DELIBERATELY fake:
+-- common.end_game doesn't validate the game's own word (each gametype owns
+-- its own), and a real one here would read as if it did. The two outcomes
+-- are end_game's to decide from the rankings.
 select common.end_game(
   current_setting('test.created_game_id')::uuid,
-  'test_terminal',
-  '{"reason": "test_cause", "matched": 4, "mistakes": 1}'::jsonb,
-  format(
-    '{"%s": {"won": true}, "%s": {"won": true}}',
+  'reached_goal',
+  'test_detail',
+  'ada11111-1111-1111-1111-111111111111',
+  p_is_no_result => false,
+  p_final_rankings => format(
+    '{"%s": 1, "%s": 2}',
     'ada11111-1111-1111-1111-111111111111',
     'bea22222-2222-2222-2222-222222222222'
   )::jsonb
@@ -289,40 +294,40 @@ select isnt(
 );
 
 select is(
-  (select status->>'reason' from common.games
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games
     where id = current_setting('test.created_game_id')::uuid),
-  'test_cause',
-  'end_game: status persisted'
+  'reached_goal/test_detail',
+  'end_game: the reason and the game''s own word persisted'
 );
 
 select is(
-  (select play_state from common.games
+  (select game_ended_outcome from common.games
     where id = current_setting('test.created_game_id')::uuid),
-  'test_terminal',
-  'end_game: play_state written from the new 2nd arg'
+  'won',
+  'end_game: someone ranked 1 makes the game won'
 );
 
 select is(
-  (select is_terminal from common.games
+  (select game_ended_by_user_id from common.games
     where id = current_setting('test.created_game_id')::uuid),
-  true,
-  'end_game: is_terminal flipped to true'
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'end_game: who ended it persisted'
 );
 
 select is(
-  (select result->>'won' from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = current_setting('test.created_game_id')::uuid
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'true',
-  'end_game: ada''s per-player result persisted'
+  '1/won',
+  'end_game: ada, ranked 1, won'
 );
 
 select is(
-  (select result->>'won' from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = current_setting('test.created_game_id')::uuid
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  'true',
-  'end_game: bea''s per-player result persisted'
+  '2/near',
+  'end_game: bea, ranked 2, near'
 );
 
 -- ============================================================
@@ -331,7 +336,7 @@ select is(
 
 select throws_ok(
   $$ select common.end_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
-                            'won', '{}'::jsonb, '{}'::jsonb) $$,
+                            'stopped', 'stopped', null, false, '{}'::jsonb) $$,
   'P0002',
   'game-not-found|',
   'end_game: unknown game raises P0002'
@@ -346,7 +351,7 @@ select throws_ok(
 -- useCommonGame. See docs/states.md → "Lifecycle: when
 -- is_current_view flips".
 --
--- The game from the create_game block above is terminal now
+-- The game from the create_game block above has ended now
 -- (end_game ran). is_current_view stays true (end_game leaves
 -- it alone). Start a second game in the same club to exercise
 -- the "vacate prior current" behavior.
@@ -357,9 +362,10 @@ select set_config(
   (common.create_game(
     (select handle from club),
     'connections_coop',
+    'coop',
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'second',
-    '{}'::jsonb,
+    '{"timer": {"kind": "none"}}'::jsonb,
     null
   ))::text,
   true
@@ -574,6 +580,7 @@ select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select common.create_game(
   (select handle from club),
   'connections_coop',
+  'coop',
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'third',
   '{"timer": {"kind": "none"}, "puzzle_id": "marker-1"}'::jsonb,
@@ -598,6 +605,7 @@ select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select common.create_game(
   (select handle from club),
   'connections_coop',
+  'coop',
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'fourth',
   '{"timer": {"kind": "none"}, "puzzle_id": "marker-2"}'::jsonb,
@@ -697,29 +705,46 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- games_touch_last_active trigger: every UPDATE stamps now()
+-- games_stamp_updated_at trigger: every UPDATE stamps now()
 -- ============================================================
--- last_active_at is maintained by a BEFORE UPDATE trigger, not by
--- hand — so no RPC can forget it. Prove it the blunt way: write an
--- ancient timestamp directly and watch the trigger override it to
--- now(). (now() is the transaction clock — "this test run" — which is
--- comfortably after 2020.) That the column comes back recent, despite
--- the UPDATE explicitly setting it to 2000, is the whole guarantee:
--- the trigger fires on the row write regardless of what was set.
+-- updated_at is maintained by a BEFORE UPDATE trigger, not by hand —
+-- so no write can forget it. Prove it the blunt way: write an ancient
+-- timestamp directly and watch the trigger override it to now(). (now()
+-- is the transaction clock — "this test run" — which is comfortably
+-- after 2020.) That the column comes back recent, despite the UPDATE
+-- explicitly setting it to 2000, is the whole guarantee: the trigger
+-- fires on the row write regardless of what was set.
 --
 -- second_game_id is still live here (only created_game_id was deleted).
 reset role;
 select set_config('request.jwt.claims', '', true);
 
 update common.games
-   set last_active_at = '2000-01-01T00:00:00Z'
+   set updated_at = '2000-01-01T00:00:00Z'
  where id = current_setting('test.second_game_id')::uuid;
 
 select ok(
-  (select last_active_at from common.games
+  (select updated_at from common.games
      where id = current_setting('test.second_game_id')::uuid)
     > '2020-01-01T00:00:00Z'::timestamptz,
-  'games_touch_last_active: an UPDATE that sets an old last_active_at is overridden to now() (forget-proof)'
+  'games_stamp_updated_at: an UPDATE that sets an old updated_at is overridden to now() (forget-proof)'
+);
+
+-- …and status_changed_at is NOT the trigger's: it is when the game was last
+-- played, which only the game's status builder writes. Opening a game (the
+-- current-view pointer) writes the row but plays nothing, so it stays put.
+update common.games
+   set status_changed_at = '2000-01-01T00:00:00Z'
+ where id = current_setting('test.second_game_id')::uuid;
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select common.set_current_view(current_setting('test.second_game_id')::uuid);
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select status_changed_at from common.games
+     where id = current_setting('test.second_game_id')::uuid),
+  '2000-01-01T00:00:00Z'::timestamptz,
+  'set_current_view: opening a game leaves status_changed_at alone'
 );
 
 -- ============================================================

@@ -4,9 +4,10 @@
 -- Test: stackdown.concede(target_game)
 -- ============================================================
 -- stackdown compete is a race to clear the stack (first to clear wins),
--- with no per-player "eliminated" state — so concede is a thin wrapper
--- over the generic common.concede. Covers the mode guard + that the
--- wrapper delegates. Full matrix: common/concede_test.sql.
+-- with no other way for a player to end — so concede locks its row and
+-- hands the rest to common._concede, which ends the game once everyone has
+-- conceded. Covers the mode guard + that the wrapper delegates. Full
+-- matrix: common/concede_test.sql.
 -- ============================================================
 
 begin;
@@ -32,12 +33,12 @@ select lives_ok(
   format($$ select stackdown.concede(%L) $$, (select id from g)),
   'a compete player can concede');
 select is(
-  (select conceded from common.game_players
+  (select player_ended_reason from common.game_players
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'the conceder is marked conceded');
+  'conceded', 'the conceder has ended, by conceding');
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  false, 'the game continues while bea races');
+  (select ended_at from common.games where id = (select id from g)),
+  null, 'the game continues while bea races');
 
 -- (2) bea (last racer) concedes → collective loss.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -45,8 +46,11 @@ select stackdown.concede((select id from g));
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select status->>'reason' from common.games where id = (select id from g)),
-  'conceded', 'the last concede ends the game as a collective loss');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+          || '/' || game_ended_by_user_id::text
+     from common.games where id = (select id from g)),
+  'conceded/conceded/lost/bea22222-2222-2222-2222-222222222222',
+  'the last concede ends the game as a collective loss, ended by the last conceder');
 
 -- (3) coop concede rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

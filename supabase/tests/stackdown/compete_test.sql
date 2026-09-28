@@ -4,7 +4,8 @@
 -- Test: stackdown compete — race to clear, opponent hidden mid-game
 -- ============================================================
 -- Compete: same starting board, played independently. The FIRST player to
--- clear all six words wins immediately. An opponent's submissions are
+-- clear all six words wins immediately, ranked 1; everyone else is short of
+-- the goal, unranked and lost. An opponent's submissions are
 -- hidden mid-game (only the found_count tally is public) and revealed once
 -- the game ends.
 
@@ -64,18 +65,22 @@ select is((select (res->'data'->>'terminal')::boolean from win), true,
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won_compete', 'a winner emerged → won_compete');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+          || '/' || game_ended_by_user_id::text
+     from common.games where id = (select id from g)),
+  'reached_goal/cleared/won/ada11111-1111-1111-1111-111111111111',
+  'a winner emerged → reached_goal/cleared, won, ended by the clearer');
 select is(
-  (select (result->>'won')::boolean from common.game_players
+  (select final_ranking || '/' || outcome || '/' || (solved_at is not null)::text
+     from common.game_players
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'ada won (first to clear)');
+  '1/won/true', 'ada won (first to clear): ranked 1, solved');
 select is(
-  (select (result->>'won')::boolean from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  false, 'bea did not win');
+  'unranked/lost', 'bea did not win: unranked, lost');
 
 select * from finish();
 rollback;

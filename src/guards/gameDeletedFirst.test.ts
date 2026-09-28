@@ -84,7 +84,7 @@ describe('a deleted game says so', () => {
       'setgame.submit_set', 'setgame.submit_timeout',
       'spellingbee.replay_board', 'spellingbee.stop_game',
       'spellingbee.submit_timeout', 'spellingbee.submit_word',
-      'stackdown.replay_board', 'stackdown.reveal_next_hint',
+      'stackdown.concede', 'stackdown.replay_board', 'stackdown.reveal_next_hint',
       'stackdown.reveal_next_word', 'stackdown.stop_game', 'stackdown.submit_timeout',
       'stackdown.submit_word',
       'strands.replay_board', 'strands.spend_hint', 'strands.stop_game',

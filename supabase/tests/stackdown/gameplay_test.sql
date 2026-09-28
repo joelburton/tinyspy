@@ -88,12 +88,14 @@ select is((select (res->'data'->>'terminal')::boolean from w6), true,
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won', 'coop: all six found → play_state won');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g)),
+  'reached_goal/cleared/won', 'coop: all six found → reached_goal/cleared, won');
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g) and (result->>'won')::boolean),
-  2::bigint, 'both players recorded as won');
+    where game_id = (select id from g) and final_ranking = 1 and outcome = 'won'
+      and solved_at is not null),
+  2::bigint, 'both players ranked 1, won, and solved');
 
 -- Six words cleared → the title caps at three with an ellipsis. end_game
 -- leaves the title alone, so this final value persists into the history.
@@ -104,8 +106,8 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select array_length(solution, 1) from stackdown.games_state where id = (select id from g)),
-  6, 'post-terminal: the solution (six words) is revealed');
+  (select array_length(solution, 1) from stackdown.games_state where game_id = (select id from g)),
+  6, 'once ended: the solution (six words) is revealed');
 
 -- ── A word into a game a friend just deleted ──
 -- The delete takes the game's rows and every membership together, so this is

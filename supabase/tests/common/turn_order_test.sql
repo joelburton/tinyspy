@@ -14,8 +14,8 @@
 --      at the first player
 --   2. _advance_turn walks the rotation by seat and WRAPS back to 0
 --   3. _require_turn passes the current player, rejects anyone else
---      with P0001 'not your turn'; _advance_turn skips a player who is
---      locally terminal
+--      with PN243 'Not your turn'; _advance_turn skips a player who has
+--      ended (player_ended_at set)
 --   4. Free-for-all (never assigned, pointer null) ⇒ _require_turn
 --      passes EVERYONE; _advance_turn is a no-op
 --   5. Solo (1 player) ⇒ pointer is that player; advance wraps to self;
@@ -76,13 +76,14 @@ select set_config(
   (common.create_game(
     (select handle from club),
     'spellingbee_coop',
+    'coop',
     array[
       'ada11111-1111-1111-1111-111111111111'::uuid,
       'bea22222-2222-2222-2222-222222222222'::uuid,
       'cade3333-3333-3333-3333-333333333333'::uuid
     ],
     'turn-title',
-    '{"coop_style": "turns"}'::jsonb,
+    '{"coop_style": "turns", "timer": {"kind": "none"}}'::jsonb,
     null
   ))::text,
   true
@@ -143,16 +144,17 @@ select throws_ok(
 );
 
 -- ─── (3a) Advance skips a player who is out ──────────────────
--- Pointer is on seat 0. Seat 1 goes locally terminal (finished, eliminated,
--- out of budget, or conceded), so the turn passes from seat 0 straight to 2.
-select common._set_locally_terminal(
+-- Pointer is on seat 0. Seat 1 ends (finished, eliminated, out of budget, or
+-- conceded), so the turn passes from seat 0 straight to 2.
+select common._set_player_ended(
   current_setting('test.turn_game')::uuid,
   (select user_id from common.game_players
-    where game_id = current_setting('test.turn_game')::uuid and turn_seat = 1)
+    where game_id = current_setting('test.turn_game')::uuid and turn_seat = 1),
+  'resource_exhausted', 'exhausted'
 );
 select common._advance_turn(current_setting('test.turn_game')::uuid);
 select is(pg_temp.current_seat(current_setting('test.turn_game')::uuid), 2,
-  'advance skips a locally terminal player');
+  'advance skips a player who has ended');
 
 -- ─── (4) Free-for-all: never assigned ⇒ pointer null ⇒ all pass ──
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
@@ -161,12 +163,13 @@ select set_config(
   (common.create_game(
     (select handle from club),
     'spellingbee_coop',
+    'coop',
     array[
       'ada11111-1111-1111-1111-111111111111'::uuid,
       'bea22222-2222-2222-2222-222222222222'::uuid
     ],
     'ffa-title',
-    '{}'::jsonb,
+    '{"timer": {"kind": "none"}}'::jsonb,
     null
   ))::text,
   true
@@ -206,9 +209,10 @@ select set_config(
   (common.create_game(
     (select handle from club),
     'spellingbee_coop',
+    'coop',
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'solo-title',
-    '{"coop_style": "turns"}'::jsonb,
+    '{"coop_style": "turns", "timer": {"kind": "none"}}'::jsonb,
     null
   ))::text,
   true
@@ -231,10 +235,10 @@ select is(
 -- ─── (6) reset_game rewinds the pointer to seat 0 ────────────
 -- The turn game's pointer is on seat 2 after (3a); the free-for-all game's
 -- is null.
-select common.reset_game(current_setting('test.turn_game')::uuid, '{}'::jsonb);
+select common.reset_game(current_setting('test.turn_game')::uuid);
 select is(pg_temp.current_seat(current_setting('test.turn_game')::uuid), 0,
   'reset_game rewinds the turn to seat 0');
-select common.reset_game(current_setting('test.ffa_game')::uuid, '{}'::jsonb);
+select common.reset_game(current_setting('test.ffa_game')::uuid);
 select is(
   (select current_turn_user_id from common.games
     where id = current_setting('test.ffa_game')::uuid),

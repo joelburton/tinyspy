@@ -56,10 +56,11 @@ create temp table seeded on commit drop as
 select common.create_game(
   (select handle from club),
   'codenamesduet',
+  'coop',
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'Seeded game',
-  '{}'::jsonb,
+  '{"timer": {"kind": "countup"}}'::jsonb,
   null
 ) as id;
 
@@ -74,10 +75,10 @@ select is(
 -- ============================================================
 create temp table g on commit drop as select gen_random_uuid() as id;
 grant select on g to authenticated;
-insert into common.games (id, club_handle, gametype, title, setup)
-  select id, (select handle from club), 'codenamesduet', 'Tick test', '{}'::jsonb from g;
-insert into common.timers (game_id, ticks, last_tick)
-  select id, 0, now() from g;
+insert into common.games (id, club_handle, gametype, mode, title, setup)
+  select id, (select handle from club), 'codenamesduet', 'coop', 'Tick test', '{}'::jsonb from g;
+insert into common.timers (game_id, ticks, last_tick, kind)
+  select id, 0, now(), 'countup' from g;
 
 -- (2) A second hasn't passed yet → no advance, returns 0.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');

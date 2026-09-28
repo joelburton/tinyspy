@@ -4,7 +4,7 @@
 -- Test: stackdown.create_game
 -- ============================================================
 -- Claims a board from the library, copies its tiles (public) + solution
--- (hidden), seeds one players row each, flips to 'playing'. The solution
+-- (hidden), seeds one players row each, and starts the game. The solution
 -- stays hidden via games_state until the game ends.
 
 begin;
@@ -43,26 +43,26 @@ select is(
   'common.games row gets the stackdown_coop gametype');
 
 select is(
-  (select mode from stackdown.games where id = (select id from g)),
+  (select mode from common.games where id = (select id from g)),
   'coop',
-  'stackdown.games stores mode coop');
+  'common.games stores mode coop');
 
 select is(
-  (select jsonb_array_length(tiles) from stackdown.games where id = (select id from g)),
+  (select jsonb_array_length(tiles) from stackdown.games where game_id = (select id from g)),
   30,
   'the 30-tile board was copied onto the game');
 
 select isnt(
-  (select board_id from stackdown.games where id = (select id from g)),
+  (select board_id from stackdown.games where game_id = (select id from g)),
   null,
   'board_id records which library board was claimed');
 
--- No band in setup → defaults to band 1 (the everyday set), copied from
--- the fixture board (which is band 1).
+-- No band in setup → defaults to band 1 (the everyday set), and the club
+-- line names it.
 select is(
-  (select band from stackdown.games where id = (select id from g)),
+  (select (clubpage_info->>'band')::int from common.games where id = (select id from g)),
   1,
-  'the word-difficulty band is recorded (defaults to 1)');
+  'the word-difficulty band reaches the club line (defaults to 1)');
 
 select is(
   (select count(*)::int from stackdown.players where game_id = (select id from g)),
@@ -70,9 +70,9 @@ select is(
   'one players row per player');
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing',
-  'play_state is playing');
+  (select ended_at from common.games where id = (select id from g)),
+  null,
+  'the game is being played: it has not ended');
 
 -- A fresh game is titled "New game"; coop rewrites this to the cleared
 -- words as it plays (see gameplay_test), compete keeps it.
@@ -92,17 +92,17 @@ select is(stackdown._found_title(array['a','b','c','d'], 4), 'A-B-C…',
 -- The solution is HIDDEN mid-game: games_state returns NULL.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select ok(
-  (select solution from stackdown.games_state where id = (select id from g)) is null,
+  (select solution from stackdown.games_state where game_id = (select id from g)) is null,
   'mid-game: games_state.solution is NULL (hidden)');
 
 -- The raw solution column is not selectable by an authenticated player.
 select throws_ok(
-  format($$ select solution from stackdown.games where id = %L $$, (select id from g)),
+  format($$ select solution from stackdown.games where game_id = %L $$, (select id from g)),
   '42501', null,
   'stackdown.games.solution is column-excluded from authenticated');
 
 -- ── Word-difficulty band routing ───────────────────────────────
--- setup.psql seeded ONE band-1 board (claimed by g above → g.band = 1,
+-- setup.psql seeded ONE band-1 board (claimed by g above, whose band is 1,
 -- asserted). Add a band-2 board and prove create_game claims BY band.
 reset role;
 insert into stackdown.boards (tiles, words, band)
@@ -118,11 +118,11 @@ select (stackdown.create_game(
 reset role;
 
 select is(
-  (select band from stackdown.games where id = (select id from g2)),
+  (select (clubpage_info->>'band')::int from common.games where id = (select id from g2)),
   2,
-  'create_game with band:2 records band 2 on the game');
+  'create_game with band:2 names band 2 on the club line');
 select is(
-  (select board_id from stackdown.games where id = (select id from g2)),
+  (select board_id from stackdown.games where game_id = (select id from g2)),
   (select id from stackdown.boards where band = 2),
   'create_game with band:2 claims the band-2 board, not the band-1 one');
 
@@ -147,17 +147,17 @@ select pg_temp.envelope_is(
 reset role;
 
 -- Retiring a board (deleting it) must NOT delete games built from it: the
--- game is self-contained (tiles/solution/band copied), board_id is just
--- provenance and goes NULL via ON DELETE SET NULL.
+-- game is self-contained (tiles/solution copied, the band in its setup),
+-- board_id is just provenance and goes NULL via ON DELETE SET NULL.
 reset role;
 delete from stackdown.boards
- where id = (select board_id from stackdown.games where id = (select id from g));
+ where id = (select board_id from stackdown.games where game_id = (select id from g));
 select is(
-  (select count(*) from stackdown.games where id = (select id from g)),
+  (select count(*) from stackdown.games where game_id = (select id from g)),
   1::bigint,
   'the game survives deleting its source board');
 select ok(
-  (select board_id from stackdown.games where id = (select id from g)) is null,
+  (select board_id from stackdown.games where game_id = (select id from g)) is null,
   'board_id is nulled (ON DELETE SET NULL), the game is not cascaded away');
 
 select * from finish();

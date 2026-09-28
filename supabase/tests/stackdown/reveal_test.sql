@@ -124,17 +124,17 @@ select stackdown.submit_word((select id from g), pg_temp.sd_seq(4));
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(5));
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(6));
 
--- The game is terminal now, so reveal is rejected (not in progress) —
--- the post-game reveal lives in games_state.solution instead.
+-- The game has ended now, so reveal is the game-over race — the post-game
+-- reveal lives in games_state.solution instead.
 select pg_temp.envelope_is(
   stackdown.reveal_next_word((select id from g)),
   '{"type":"not-ok","severity":"race","message":"Game over"}'::jsonb,
-  'once the board is cleared the game is terminal → reveal is closed');
+  'once the board is cleared the game has ended → reveal is closed');
 
 -- And the solution is now openly revealed via games_state.
 select is(
-  (select solution[6] from stackdown.games_state where id = (select id from g)),
-  'lemon', 'post-terminal: the full solution is readable via games_state');
+  (select solution[6] from stackdown.games_state where game_id = (select id from g)),
+  'lemon', 'once ended: the full solution is readable via games_state');
 
 -- ── Both reveals, asked of a game a friend just deleted ──
 -- The delete takes the game's rows and every membership together, so this is

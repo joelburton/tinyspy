@@ -9,11 +9,11 @@
 -- ROW-visibility policies, which had no test:
 --
 --   games_select       club-member gate (both modes identical).
---   players_select     club-member gate (found_count/solved are public tallies).
+--   players_select     club-member gate (found_count is a public tally).
 --   events_select       the load-bearing mode-aware one (mirrors wordle.events):
 --        (a) mode = 'coop'          — the whole log is club-readable (shared board)
 --        (b) user_id = auth.uid()   — compete: own rows only, mid-game
---        (c) is_terminal = true     — compete: opponents' words reveal post-game
+--        (c) ended_at is not null   — compete: opponents' words reveal post-game
 --
 -- Direct-INSERT setup (as postgres) so the read policy is exercised on its own.
 -- Personas: ada + bea + cade in the club; dee is the outsider.
@@ -38,15 +38,14 @@ reset role;
 create temp table coop_game (id uuid) on commit drop;
 grant select on coop_game to authenticated;
 with ins as (
-  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, mode, title, setup)
   values (
     gen_random_uuid(),
     (select handle from club),
     'stackdown_coop',
+    'coop',
     'Stack',
-    '{"timer": {"kind": "none"}}'::jsonb,
-    'playing',
-    false
+    '{"timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )
@@ -54,10 +53,10 @@ insert into coop_game (id) select id from ins;
 
 -- tiles/solution are required-not-null; their exact values don't matter to
 -- the row-visibility policies (solution is column-hidden anyway).
-insert into stackdown.games (id, club_handle, mode, tiles, solution, band)
+insert into stackdown.games (game_id, tiles, solution)
 values (
-  (select id from coop_game), (select handle from club), 'coop',
-  '[]'::jsonb, array['eagle','table','plans','apple','juice','lemon'], 1
+  (select id from coop_game),
+  '[]'::jsonb, array['eagle','table','plans','apple','juice','lemon']
 );
 
 insert into stackdown.players (game_id, user_id, found_count) values
@@ -94,7 +93,7 @@ select is(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 select is(
-  (select count(*) from stackdown.games where id = (select id from coop_game)),
+  (select count(*) from stackdown.games where game_id = (select id from coop_game)),
   0::bigint,
   'dee (outsider): zero rows from stackdown.games'
 );
@@ -136,24 +135,23 @@ reset role;
 create temp table compete_game (id uuid) on commit drop;
 grant select on compete_game to authenticated;
 with ins as (
-  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, mode, title, setup)
   values (
     gen_random_uuid(),
     (select handle from club),
     'stackdown_compete',
+    'compete',
     'Stack compete',
-    '{"timer": {"kind": "none"}}'::jsonb,
-    'playing',
-    false
+    '{"timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )
 insert into compete_game (id) select id from ins;
 
-insert into stackdown.games (id, club_handle, mode, tiles, solution, band)
+insert into stackdown.games (game_id, tiles, solution)
 values (
-  (select id from compete_game), (select handle from club), 'compete',
-  '[]'::jsonb, array['eagle','table','plans','apple','juice','lemon'], 1
+  (select id from compete_game),
+  '[]'::jsonb, array['eagle','table','plans','apple','juice','lemon']
 );
 
 insert into stackdown.events (game_id, user_id, kind, word, tile_ids, valid, took_turn) values
@@ -182,18 +180,23 @@ select is(
 );
 
 -- ============================================================
--- Compete mode + terminal: branch (c) opens the reveal
+-- Compete mode + ended: branch (c) opens the reveal
 -- ============================================================
 
 reset role;
-update common.games set is_terminal = true, play_state = 'won_compete'
+update common.games
+   set ended_at = now(),
+       game_ended_reason = 'reached_goal',
+       game_ended_reason_detail = 'cleared',
+       game_ended_by_user_id = 'bea22222-2222-2222-2222-222222222222',
+       game_ended_outcome = 'won'
  where id = (select id from compete_game);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from stackdown.events where game_id = (select id from compete_game)),
   3::bigint,
-  'compete post-terminal / ada: sees all 3 submissions (branch c: is_terminal)'
+  'compete once ended / ada: sees all 3 submissions (branch c: ended_at)'
 );
 
 -- ============================================================

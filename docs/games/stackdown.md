@@ -226,8 +226,8 @@ Built as the standard sibling-manifest pair (`stackdown_coop`,
 | table | what it holds | visibility |
 |---|---|---|
 | `stackdown.boards` | the pre-generated library: `tiles` jsonb, `words text[]` (the six, in clearing order), `band int` (word-difficulty 1..6; the pool `create_game` filters on) | **definer-only** — `words` is the full spoiler; no grant to `authenticated` |
-| `stackdown.games` | one row per game: `tiles` jsonb (PUBLIC), `solution text[]` (HIDDEN), `band`, `mode`, `board_id` (provenance) | `tiles` granted; `solution` **column-excluded** |
-| `stackdown.players` | `(game_id, user_id)` → `found_count` (public tally), `solved` / `solved_at` (compete winner) | club members |
+| `stackdown.games` | one row per game, keyed `game_id` to `common.games`: `tiles` jsonb (PUBLIC), `solution text[]` (HIDDEN), `board_id` (provenance). The band is `setup.band`; the mode is `common.games.mode` | `tiles` granted; `solution` **column-excluded** |
+| `stackdown.players` | `(game_id, user_id)` → `found_count` (public tally). A solve is `common.game_players.solved_at` | club members |
 | `stackdown.events` | the durable game log, keyed by a `bigint identity` and read `order by id`. `kind`: `'word'` (a played word → `word` / `tile_ids` / `valid`) or `'hint'` / `'spoiler'` (a logged cheat request → `for_word_index`, plus the revealed text in `word`: the hint clue or the word itself, for the log to show). `took_turn` is true on a `word` — accepted or refused — and on a `spoiler`, false on a `hint`: stackdown has no rotation, and the column is the record of turns taken regardless. | coop: all; compete: own (until terminal) |
 
 The hidden-solution pattern is the standard [SECURITY DEFINER helper +
@@ -235,30 +235,31 @@ security_invoker
 view](../code-conventions.md#security-definer-helper--security_invoker-view)
 shared with the other answer-hiding games (waffle, wordle): a column-grant
 excludes `solution`, and the `games_state` view exposes it via
-`_solution_for(id)`, which returns NULL until `common.games.is_terminal`. The FE
-reads `games_state`, never the base table.
+`_solution_for(p_game_id)`, which returns NULL until `common.games.ended_at`
+is set. The FE reads `games_state`, never the base table.
 
 `board_id` is `on delete set null` — **retiring a board does not delete games
-built from it**. A game copies the board's `tiles` / `words` / `band` at
-creation, so it's self-contained; `board_id` is provenance only.
+built from it**. A game copies the board's `tiles` / `words` at creation, so
+it's self-contained; `board_id` is provenance only.
 
 ### 5.2 RPCs (all `security definer`)
 
-- **`create_game(target_club, setup, player_user_ids, mode)`** — club-member +
+- **`create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)`** — club-member +
   player-count (≤6) + timer + band (1..6) checks, then claims a random board
   **of the chosen band** (`where band = <setup.band, default 1> order by
   random() limit 1`, raising if no board of that band exists), copies its
-  tiles/words/ band onto a new `stackdown.games`, seeds one `players` row each,
-  flips to `playing`.
-- **`submit_word(target_game, tile_ids int[]) → jsonb`** — the core move. Locks
+  tiles/words onto a new `stackdown.games`, seeds one `players` row each, and
+  writes the statuses.
+- **`submit_word(p_game_id, p_tile_ids int[]) → jsonb`** — the core move. Locks
   the games row (`for update`); computes the already-removed set (coop = every
   valid submission, compete = the caller's); validates the five tiles are
   distinct, unremoved, and **reachable in the given order** (replaying
   `_is_exposed` tile-by-tile — the server is the authority on legality, not the
   FE); logs the submission (valid OR invalid — both are durable rows); on a
-  valid word bumps `found_count` and, on the sixth, ends the game (coop → `won`,
-  compete → `won_compete` with the caller recorded in `status.winner_user_id` +
-  `winner_username`). Answers with an [envelope](../envelopes.md) whose `data`
+  valid word bumps `found_count` and, on the sixth, ends the game
+  `reached_goal` / `cleared` — coop ranks every teammate 1, compete the
+  clearer alone (the race ends when decided, so the rest are short of the
+  goal and unranked). Answers with an [envelope](../envelopes.md) whose `data`
   is `{result: 'accepted'|'invalid', word, terminal}` — a non-word is an
   **`ok`**, because the rules were applied and nothing was cleared; the server
   writes `Not a word: EBATL`, naming the word because the tiles have just gone
@@ -267,35 +268,36 @@ creation, so it's self-contained; `board_id` is provenance only.
   and four faults the frontend should have prevented. On a valid **coop** word
   it also rewrites `common.games.title` to the cleared words (see [Title
   formula](#title-formula)).
-- **`submit_timeout(target_game)`** — countdown expiry: coop → `lost`, compete →
-  `lost_compete` (a race, so no winner if it gets here).
-- **`stop_game(target_game)`** — manual neutral stop → `ended`, **both modes**
-  (the RPC doesn't branch on mode; any game player, idempotent on the
-  `playing` check). Coop's action row and menu show Stop; compete's show Concede,
+- **`submit_timeout(p_game_id)`** — countdown expiry: reason `timeout`, nobody
+  ranked, so the game and every player `lost` (a race, so no winner if it
+  gets here).
+- **`stop_game(p_game_id)`** — the neutral Stop, **both modes**, through
+  `common._stop` (reason `stopped`, everyone `neutral`; any game player; a
+  second call answers the game-over race). Coop's action row and menu show Stop; compete's show Concede,
   whose question offers stopping for everyone as its second answer
-  (`useStandardGameActions`, for every race) — so the
-  `stackdown_compete | ended — manual end` labels row is reachable from the
-  board.
-- **`replay_board(target_game)`** — the "Restart" menu item / terminal-row
+  (`useStandardGameActions`, for every race) — so a compete Stop is reachable
+  from the board.
+- **`replay_board(p_game_id)`** — the "Restart" menu item / terminal-row
   Restart: reset the working state on the SAME game row. The frozen puzzle
-  (tiles / solution / band / mode) stays — the same stack, cleared again. Any
+  (tiles / solution) stays — the same stack, cleared again. Any
   game player, from a finished game OR mid-game; both modes reset ALL players.
   Zeroes `players`, deletes every `events` row (words AND the hint/spoiler
   cheats — a replay is a genuine second try), puts `common.games.title` back to
   `"New game"` (else a replayed coop game would still advertise the previous
   run's cleared words, spoiling the board it just reset), then hands the common
-  half to `common.reset_game`. The solution re-hides on its own: `games_state`
-  gates it on `is_terminal`, which `reset_game` clears. pgTAP:
-  `replay_test.sql`.
-- **`concede(target_game)`** — the compete per-player drop-out. stackdown is a
-  race to clear (first to clear wins, no elimination), so it's a **thin wrapper
-  over `common.concede`** (compete-only guard): marks the caller out, ends as a
+  half to `common.reset_game`, and writes the statuses. The solution re-hides
+  on its own: `games_state` gates it on `ended_at`, which `reset_game` clears.
+  pgTAP: `replay_test.sql`.
+- **`concede(p_game_id)`** — the compete per-player drop-out. stackdown is a
+  race to clear (first to clear wins, no elimination), so a player can end no
+  other way and `common._concede` decides it all (after the compete-only
+  guard and the row lock): it marks the caller out, and ends the game as a
   collective loss only when the last racer drops. FE: `act-concede` (hidden in
   coop) in compete, conceder "out" in the OpponentStrip, "You conceded"
   locally-terminal look. See [common-schema.md →
   Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
-- **`reveal_next_word(target_game) → jsonb`** — a **cheat**: answers with an
+- **`reveal_next_word(p_game_id) → jsonb`** — a **cheat**: answers with an
   envelope carrying `{result: 'spoiler', word}` — the next solution word the
   caller still has to clear (`solution[cleared + 1]`) — defeating the
   hidden-solution invariant on purpose. The `lost` outcome rides with it,
@@ -321,7 +323,7 @@ creation, so it's self-contained; `board_id` is provenance only.
   per `(player, for_word_index)` so repeated clicks don't spam, and serialized
   by the games-row `for update` lock, which is what keeps two coop players from
   clearing the same word.
-- **`reveal_next_hint(target_game) → jsonb`** — the softer sibling: an envelope
+- **`reveal_next_hint(p_game_id) → jsonb`** — the softer sibling: an envelope
   carrying `{result: 'hint', hint}` — the next word's clue (`common.words.hint`,
   which points at the word without naming it) — under an amber `warning`. Same
   gating + next-word math as `reveal_next_word`, but the word never reaches the
@@ -337,32 +339,27 @@ creation, so it's self-contained; `board_id` is provenance only.
   "Hint: <clue>") the same way. Both requests ride the events RLS, so a coop
   request shows to everyone and a compete one only to the requester.
 
-`submit_timeout` / `stop_game` go through `common.end_game` (which writes
-`common.games`, not `stackdown.*`), so each does a realtime "touch"
-(`update stackdown.games set club_handle = club_handle`) to wake the FE's
-per-schema subscription.
+Every RPC that changes the game ends by running the builder,
+`stackdown._write_statuses`, whose write to `common.games` is what every page
+learns of the change from — an ending included.
 
-### The status blob (`common.games.status`)
+### The statuses
 
-The club-list label's data ride in the shared `status` jsonb. `create_game`
-seeds `{mode, found_words_count: 0, required_words_count: 6}` (via
-`common.update_state`), and the write paths keep it current — remembering that
-`update_state` / `end_game` **merge** into the blob (an omitted key survives)
-while `reset_game` **assigns** a fresh one:
+Written by `stackdown._write_statuses` at create, at Restart and at the end of
+every move, each assigned whole with every key present:
 
-| key | written by | meaning |
-|---|---|---|
-| `mode` | every write path | `'coop'` / `'compete'` |
-| `found_words_count` | seeded 0 at create; **coop only** — `submit_word` merges the fresh team count on every valid word (the coop win writes the final 6) | the club-list "3/6 words" tally. Compete never updates it: this column is club-wide readable, so a live tally would leak the leader's progress. |
-| `required_words_count` | create / replay only | always 6 (the fixed geometry); stored so the tally isn't a magic number in the FE |
-| `reason` | terminal writes | why it ended: `'cleared'` (coop win, alongside `solved: true`), `'timeout'`, `'manual'`, or `'conceded'` (the last racer dropping, via `common.concede`) |
-| `winner_user_id` / `winner_username` | the compete win (`submit_word`'s sixth word) | who cleared it first — the username cached so the label needs no join |
+| status | keys |
+|---|---|
+| `game_status` | none — the six words to clear is a constant of every board |
+| each `player_status` | `found_words_count`, `hints_count`, `spoilers_count`, `player_ended_reason` |
+| `clubpage_info` | `found_words_count`, `band`, `winner_user_id` |
 
-`replay_board` hands `common.reset_game` the same initial blob create_game
-seeds, so a restarted game's tally starts honest rather than inheriting the
-previous run's. The consumer is the manifest's `labelFor`
-(`src/stackdown/manifest.ts`): the coop tally, `Won by <winner_username>`, and
-the `reason`-keyed loss phrasing.
+A player's counts are their own; in coop the page sums them for the team. The
+club line's `found_words_count` is coop's team count and null in compete,
+where a live tally would leak the leader's progress; `winner_user_id` names
+the clearer once a race is won. The consumer is the manifest's `labelFor`
+(`src/stackdown/manifest.ts`), which reads the ending off `common.games`'
+reason pair.
 
 ### Title formula
 
@@ -609,10 +606,12 @@ re-run `g-stackdown-genpuzzles` when you actually want NEW boards.)
 
 pgTAP under `supabase/tests/stackdown/`: `create_game` (board claim + hidden
 solution + board-deletion survival), `gameplay` (a full coop solve), `compete`
-(the race + per-player tally), `stop_game` (manual stop), `reveal` (the cheat
-tracks solution order + is player/in-progress gated), `concede` (the thin
-wrapper over the generic `common.concede`: the compete-only mode guard + that it
-delegates — the full matrix lives in `common/concede_test.sql`), `replay`
+(the race + per-player tally, the clearer alone ranked), `stop_game` (the
+neutral Stop, and the timeout), `reveal` (the cheat tracks solution order + is
+player/in-progress gated), `concede` (the compete-only mode guard, and that
+`common._concede` ends it when the last racer drops — the full matrix lives in
+`common/concede_test.sql`), `statuses` (the exact key set of every status at
+the start, mid-game and at the end in both modes, and a rebuild), `replay`
 (replay_board resets both modes on the same game row, any state, non-player
 rejected — incl. the stackdown-specific bit: the club-list title goes back to
 `'New game'`, since a replayed coop title would spoil the board it just reset),

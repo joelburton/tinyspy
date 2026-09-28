@@ -1307,7 +1307,7 @@ $$;
 
 revoke execute on function common._advance_turn(uuid) from public;
 
--- Gate a move on whose-turn-it-is. Raises P0001 'not your turn' when the game
+-- Gate a move on whose-turn-it-is. Raises PN243 'Not your turn' when the game
 -- is a turn game (pointer set) and the caller isn't the current player. No-op
 -- for free-for-all (pointer null) and for solo (the sole player is always the
 -- current player). Call it right after the move RPC locks the game row and
