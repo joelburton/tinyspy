@@ -449,7 +449,7 @@ and that is why "Game over" and "Not your turn" are races too.
 | | | |
 |---|---|---|
 | `PN437` / `PN447` / `PN456` "Board changed" | `race` | the version gate, one per core |
-| `PN436` / `PN446` / `PN455` "Game over" | `race` | `play_state`, which bumps no version |
+| `PN486` "Game over" | `race` | `play_state`, which bumps no version; `common._raise_game_over` |
 | `PN243` "Not your turn" | `race` | the turn pointer, from `common._require_turn` |
 | `PN439`–`PN442` `BUG: …` | `fault` | no word formed, a tile off the board, on an occupied square, not in the rack |
 | `PN449` / `PN450` `BUG: a swap of no tiles` / `…against a bag under seven` | `fault` | |

@@ -92,6 +92,12 @@
 
 ## Someday
 
+- **Let the table choose how many tiles a Peel and a Dump draw.** Friends
+  playing face to face often tweak these (Peel 1, Dump 3 by the rules). Today
+  they are fixed constants in `peel` and `dump`. Building it means two setup
+  form items, two `bananagrams.games` columns copied at create, and a
+  migration that fills 1 and 3 for existing games.
+
 ## Maybe
 
 ## Won't do

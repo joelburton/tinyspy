@@ -572,9 +572,7 @@ begin
   if current_play_state <> 'playing' then
     -- A race: a teammate ended it, or the clock ran out, while this guess was
     -- in flight.
-    raise exception 'Game over'
-      using errcode = 'PN255', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
@@ -589,9 +587,7 @@ begin
   -- no-op there.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN507', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   -- ─── Malformed entry: a fault ────────────────────────────

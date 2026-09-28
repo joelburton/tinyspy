@@ -227,8 +227,8 @@ members.
     structural.
   - Every refusal is a raise, and only three are races: `PN485` "That game was
     already deleted" (a friend deleted it from the club list; asked before the
-    membership gate), `PN261` "Game over" (a teammate ended it, or the clock ran
-    out) and `PN262` "Already conceded". The rest are faults, because the board
+    membership gate), `PN486` "Game over" (a teammate ended it, or the clock ran
+    out) and `PN483` "Already conceded". The rest are faults, because the board
     cannot produce them: `PN263` a square swapped with itself, `PN264` an empty
     square, `PN265` already solved and `PN266` no swaps left. The last two look
     like shared-budget races and are not — spending the last coop swap, or

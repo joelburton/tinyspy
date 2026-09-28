@@ -63,7 +63,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- A RACE: a teammate can end the game while the suggest button is on screen.
 select pg_temp.envelope_is(
   scrabble.get_suggest_context((select id from gco)),
-  '{"type":"not-ok","severity":"race","dbcode":"PN461",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'a non-playing game is rejected');
 reset role;

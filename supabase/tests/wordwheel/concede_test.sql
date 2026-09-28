@@ -10,7 +10,7 @@
 -- the compete-only mode guard; that the wrapper delegates (marks the
 -- caller conceded, keeps the game going while others race, and — via
 -- common.concede — ends it as a collective loss when the last racer drops
--- out); that a conceder's next word is refused (PN358), so they cannot go
+-- out); that a conceder's next word is refused (PN483), so they cannot go
 -- on to win; and that only the concede that ENDS the game touches the found
 -- rows, which is what wakes the reveal. The full common.concede matrix is
 -- in common/concede_test.sql.
@@ -56,7 +56,7 @@ select is(
 -- go on to reach the target and be recorded the winner.
 select pg_temp.envelope_is(
   wordwheel.submit_word((select id from g), 'bead', 1, false, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN358",
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN483",
     "message":"Already conceded"}'::jsonb,
   'a conceder cannot submit a word');
 

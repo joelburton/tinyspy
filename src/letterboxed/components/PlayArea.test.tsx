@@ -418,7 +418,7 @@ describe('letterboxed PlayArea — a refused undo, and who wrote the words', () 
       data: {
         type: 'not-ok', data: null, outcome: null, severity: 'race',
         message: 'Game over', field: null, meta: null,
-        dbcode: 'PN405', detail: null, ...over,
+        dbcode: 'PN486', detail: null, ...over,
       },
       error: null,
       status: 200,

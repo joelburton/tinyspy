@@ -492,9 +492,7 @@ begin
   if current_play_state <> 'playing' then
     -- A race: a teammate ended it, or the clock ran out, while this guess was
     -- in flight.
-    raise exception 'Game over'
-      using errcode = 'PN269', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
@@ -510,9 +508,7 @@ begin
   -- complete the win condition and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN270', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   -- Per-mode budget check on the caller's row.
@@ -941,9 +937,7 @@ begin
   if current_play_state <> 'playing' then
     -- A race: in coop a teammate ended the game, or the clock ran out, while
     -- the button was still on screen.
-    raise exception 'Game over'
-      using errcode = 'PN394', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   secret_word := psychicnum._unfound_secret(g, caller_id);
@@ -1037,9 +1031,7 @@ begin
   if current_play_state <> 'playing' then
     -- A race: in coop a teammate ended the game, or the clock ran out, while
     -- the button was still on screen.
-    raise exception 'Game over'
-      using errcode = 'PN391', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   secret_word := psychicnum._unfound_secret(g, caller_id);

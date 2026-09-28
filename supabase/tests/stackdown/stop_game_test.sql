@@ -43,7 +43,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   stackdown.stop_game((select id from g1)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'ending an already-ended game is rejected');
 

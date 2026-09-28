@@ -45,7 +45,7 @@ describe('makeRpcDispatcher', () => {
     // timed multiplayer game reaches it as PN486, and it passes it up intact so
     // GamePage — which knows whether anyone is looking — decides to swallow it.
     const rpc = vi.fn().mockResolvedValue(envelope({
-      type: 'not-ok', severity: 'race', outcome: 'noted',
+      type: 'not-ok', severity: 'race',
       message: 'Game over', dbcode: 'PN486', field: '_',
     }))
     const stopGame = makeRpcDispatcher({ rpc }, 'stop_game')

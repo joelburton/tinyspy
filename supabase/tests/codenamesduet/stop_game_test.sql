@@ -120,7 +120,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   codenamesduet.stop_game((select id from g)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'stop_game: rejects on already-terminal games');
 

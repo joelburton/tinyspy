@@ -170,7 +170,7 @@ select pg_temp.envelope_is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   bananagrams.concede((select id from g1)),
-  '{"type":"not-ok","severity":"race","dbcode":"PN482",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'conceding a finished game is rejected');
 

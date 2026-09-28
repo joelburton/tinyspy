@@ -52,14 +52,14 @@ select strands.concede((select id from g_guard));
 
 select pg_temp.envelope_is(
   strands.submit_path((select id from g_guard), pg_temp.strands_row_path(0)),
-  '{"type":"not-ok","severity":"race","dbcode":"PN420",
+  '{"type":"not-ok","severity":"race","dbcode":"PN483",
     "message":"Already conceded"}'::jsonb,
   'a conceded player''s trace is refused — she is out of the race'
 );
 
 select pg_temp.envelope_is(
   strands.spend_hint((select id from g_guard)),
-  '{"type":"not-ok","severity":"race","dbcode":"PN430",
+  '{"type":"not-ok","severity":"race","dbcode":"PN483",
     "message":"Already conceded"}'::jsonb,
   'and so is her hint spend'
 );

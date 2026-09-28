@@ -78,7 +78,7 @@ update codenamesduet.games set current_clue_giver = null
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   get_clue_context((select id from done_game)),
-  '{"type":"not-ok","severity":"race","dbcode":"PN388",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'get_clue_context rejects when game is terminal'
 );

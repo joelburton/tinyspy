@@ -166,7 +166,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   bananagrams.peel((select id from g2)),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN339","message":"Game over"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN486","message":"Game over"}'::jsonb,
   'peeling after the game is over is rejected'
 );
 
@@ -198,7 +198,7 @@ select lives_ok(
 -- concede, so this is a race (a second tab that has not heard), not a bug.
 select pg_temp.envelope_is(
   bananagrams.peel((select id from g3)),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN340","message":"Already conceded"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN483","message":"Already conceded"}'::jsonb,
   'a conceded player cannot peel'
 );
 

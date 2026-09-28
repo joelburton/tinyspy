@@ -185,9 +185,9 @@ describe('the raise codes', () => {
   // it untouched and lands in whichever caller catches. So for those the
   // question moves outward: every function that calls it has to read the field,
   // and a caller that is itself handler-less passes the question on again.
-  // `common._set_conceded` is the shape that forced this: it writes
-  // `constraint='noted'` for the two concede races and SEVENTEEN handlers read
-  // it back, none of them its own.
+  // `common._raise_game_deleted` is that shape: it writes `constraint='lost'`
+  // for a deleted game, and every game RPC that calls it reads it back in a
+  // handler that is not its own.
   it('reads back every outcome override a raise writes', () => {
     const missing: string[] = []
     const badWord: string[] = []

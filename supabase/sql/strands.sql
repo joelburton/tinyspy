@@ -938,9 +938,7 @@ begin
   if play <> 'playing' then
     -- A race: a teammate finished the board, or the clock ran out, while this
     -- trace was in flight.
-    raise exception 'Game over'
-      using errcode = 'PN419', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- A conceded player is out of the race — no more traces. The FE freezes the
@@ -949,9 +947,7 @@ begin
   -- complete the win condition and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN420', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   -- Turn-order gate (no-op for free-for-all). Before classification, so an
@@ -1304,17 +1300,13 @@ begin
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN429', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- Same guard as submit_path: a conceded player has no race left to hint.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN430', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   -- ─── The three the SHARED POOL makes racy ──────────────

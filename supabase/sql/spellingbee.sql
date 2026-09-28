@@ -704,9 +704,7 @@ begin
   -- A RACE: entry is gated on isTerminal, but the timer can expire or a rival
   -- can reach the target rank while this submission is in flight.
   if current_play_state <> 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN354', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- A conceded player is out of the race — no more words. The FE gates
@@ -715,9 +713,7 @@ begin
   -- reach the target rank and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN355', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   -- Normalize for storage + dedup (the FE already validated legality).
@@ -1305,7 +1301,7 @@ declare
 begin
   perform common.require_compete((select mode from spellingbee.games where id = target_game));
   v_res := common.concede(target_game);
-  -- The reveal below keys off the game having gone terminal, and PN482 refuses
+  -- The reveal below keys off the game having gone terminal, and PN486 refuses
   -- on a game that ALREADY was — so a refusal has to stop here or the touch
   -- fires on a concede that did nothing.
   if v_res->>'type' = 'not-ok' then return v_res; end if;

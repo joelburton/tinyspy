@@ -760,16 +760,12 @@ begin
   -- A RACE: entry is gated on isTerminal, but the last active player can spend
   -- their fifth guess while this one is in flight.
   if current_play_state <> 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN363', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN364', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
@@ -1207,7 +1203,7 @@ declare
 begin
   perform common.require_compete((select mode from wordiply.games where id = target_game));
   v_res := common.concede(target_game);
-  -- Both blocks below key off the game's play_state, and PN482 refuses on a
+  -- Both blocks below key off the game's play_state, and PN486 refuses on a
   -- game that was terminal before the click — so a refusal has to stop here
   -- rather than re-finish a finished game.
   if v_res->>'type' = 'not-ok' then return v_res; end if;

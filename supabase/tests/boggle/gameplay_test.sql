@@ -91,7 +91,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- not recorded — so it refuses rather than answering.
 select pg_temp.envelope_is(
   boggle.submit_word((select id from g), 'arc', 1, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN368","message":"Game over"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN486","message":"Game over"}'::jsonb,
   'submitting after the game ends is refused');
 
 -- ── (6) compete dedup: per-player, not per-team ───────────
@@ -122,7 +122,7 @@ select pg_temp.envelope_is(
 select boggle.concede((select id from cg));
 select pg_temp.envelope_is(
   boggle.submit_word((select id from cg), 'car', 1, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN352","message":"Already conceded"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN483","message":"Already conceded"}'::jsonb,
   'compete: a conceded player cannot submit');
 
 -- ── (7) submit_timeout → terminal, idempotent ─────────────

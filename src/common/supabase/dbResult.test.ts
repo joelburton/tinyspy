@@ -824,10 +824,10 @@ describe('notOkOutcome', () => {
     expect(notOkOutcome(notOk('race'))).toBe('warning')
   })
 
-  // What the `outcome` key on a not-ok is FOR: one race that reads as news
-  // rather than as a rejection, without inventing a severity for it.
+  // What the `outcome` key on a not-ok is FOR: a deleted game (PN010, PN485)
+  // is a race that reads as a loss, without inventing a severity for it.
   it("prefers the author's outcome over the default", () => {
-    expect(notOkOutcome(notOk('race', 'noted'))).toBe('noted')
+    expect(notOkOutcome(notOk('race', 'lost'))).toBe('lost')
     expect(notOkOutcome(notOk('fault', 'lost'))).toBe('lost')
   })
 

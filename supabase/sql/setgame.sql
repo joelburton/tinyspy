@@ -583,18 +583,14 @@ begin
   if cur_state <> 'playing' then
     -- A race: a teammate ended the game, or the countdown expired, while this
     -- claim was in flight.
-    raise exception 'Game over'
-      using errcode = 'PN274', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- A conceded player is out of the race. The FE gates on this too, so it only
   -- fires on a genuine race (a claim in flight when concede commits).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN275', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
@@ -802,9 +798,7 @@ begin
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
     -- A race: the game ended under you while the hint request was in flight.
-    raise exception 'Game over'
-      using errcode = 'PN281', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- In turn-by-turn coop a hint is part of YOUR TURN: you may ask, then claim,

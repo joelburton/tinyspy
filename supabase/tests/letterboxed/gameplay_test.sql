@@ -254,7 +254,7 @@ select is(
 
 select pg_temp.envelope_is(
   letterboxed.submit_word((select id from g), 'adg'),
-  '{"type":"not-ok","severity":"race","dbcode":"PN397",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'no further moves once it is over'
 );

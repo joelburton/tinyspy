@@ -373,7 +373,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   connections.submit_timeout((select id from g3)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'submit_timeout: rejects on already-terminal games');
 

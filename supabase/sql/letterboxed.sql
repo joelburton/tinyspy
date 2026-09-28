@@ -913,9 +913,7 @@ begin
   if (select is_terminal from common.games where id = target_game) then
     -- A race: a teammate solved it or ended it, or the clock ran out, while
     -- this word was in flight.
-    raise exception 'Game over'
-      using errcode = 'PN397', hint = 'race', column = '_',
-      detail = 'common.games.play_state is terminal';
+    perform common._raise_game_over();
   end if;
 
   -- A conceded player's chain is frozen. The FE already disables the board
@@ -925,9 +923,7 @@ begin
   -- branch below would crown them. A drop-out forfeits (strands' ruling).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN398', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   -- No-op when the game isn't turn-based (the pointer is null).
@@ -1144,17 +1140,13 @@ begin
   caller_id := common.require_game_player(target_game);
 
   if (select is_terminal from common.games where id = target_game) then
-    raise exception 'Game over'
-      using errcode = 'PN405', hint = 'race', column = '_',
-      detail = 'common.games.play_state is terminal';
+    perform common._raise_game_over();
   end if;
 
   -- Same guard as submit_word: a conceded player's chain is frozen.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN406', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   perform common._require_turn(target_game, caller_id);
@@ -1254,17 +1246,13 @@ begin
   caller_id := common.require_game_player(target_game);
 
   if (select is_terminal from common.games where id = target_game) then
-    raise exception 'Game over'
-      using errcode = 'PN409', hint = 'race', column = '_',
-      detail = 'common.games.play_state is terminal';
+    perform common._raise_game_over();
   end if;
 
   -- Same guard as submit_word: a conceded player's chain is frozen.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN410', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   if (select current_turn_user_id from common.games where id = target_game) is not null then
@@ -1371,9 +1359,7 @@ begin
   if (select is_terminal from common.games where id = target_game) then
     -- A race: a teammate solved it, or the clock ran out, between the FE
     -- computing the word and telling the server the rung was taken.
-    raise exception 'Game over'
-      using errcode = 'PN413', hint = 'race', column = '_',
-      detail = 'common.games.play_state is terminal';
+    perform common._raise_game_over();
   end if;
 
   -- Per-PLAYER, even in coop where the chain is shared: this counts who

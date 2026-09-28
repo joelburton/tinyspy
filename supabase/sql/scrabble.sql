@@ -806,9 +806,7 @@ begin
     -- A RACE, because `play_state` lives on
     -- common.games and a teammate ending the game does NOT bump this game's
     -- `version` — so the gate below cannot catch it first.
-    raise exception 'Game over'
-      using errcode = 'PN436', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- ─── Optimistic-concurrency gate: THE race, and it decides the rest ──
@@ -1118,9 +1116,7 @@ begin
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN446', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- The same gate, the same reasoning, as _commit_word's: this is the race, and
@@ -1328,9 +1324,7 @@ begin
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN455', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- The same gate, the same reasoning, as _commit_word's.
@@ -1763,9 +1757,7 @@ begin
   if current_play_state <> 'playing' then
     -- A race: a teammate finished the game, or the clock ran out, while the
     -- suggest button was still on screen.
-    raise exception 'Game over'
-      using errcode = 'PN461', hint = 'race', column = '_',
-      detail = 'the AI suggester requires an active play_state';
+    perform common._raise_game_over();
   end if;
 
   -- Compete hints are a house-rules question, deliberately deferred

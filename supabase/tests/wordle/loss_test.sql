@@ -99,7 +99,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g_coop), (select word from valw where rn = 1)),
-  '{"type":"not-ok","severity":"race","dbcode":"PN255","message":"Game over"}'::jsonb,
+  '{"type":"not-ok","severity":"race","dbcode":"PN486","message":"Game over"}'::jsonb,
   'coop: guessing after a lost game is a lost race'
 );
 

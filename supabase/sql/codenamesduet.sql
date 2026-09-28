@@ -594,9 +594,7 @@ begin
     -- A race: the partner pressed Stop, or the countdown expired, while this
     -- clue was being composed. Their action reaches this client by
     -- subscription, so the form is still up when the game is already over.
-    raise exception 'Game over'
-      using errcode = 'PN370', hint = 'race', column = '_',
-      detail = 'clues require an active play_state';
+    perform common._raise_game_over();
   end if;
 
   -- Auth + game-player gate. See common.require_game_player —
@@ -760,9 +758,7 @@ begin
     -- A race: the partner ended the game — pressed Stop, ran the clock out, or
     -- in sudden death turned over the word that lost it — while this guess was
     -- in flight.
-    raise exception 'Game over'
-      using errcode = 'PN379', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -1382,9 +1378,7 @@ begin
   if current_play_state <> 'playing' then
     -- A race: the partner ended the game, or the countdown expired, while the
     -- Pass button was still on screen.
-    raise exception 'Game over'
-      using errcode = 'PN374', hint = 'race', column = '_',
-      detail = 'passing requires an active play_state';
+    perform common._raise_game_over();
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -1511,11 +1505,9 @@ begin
       detail = 'the AI suggester has no clue to give in sudden_death';
   end if;
   if current_play_state <> 'playing' then
-    -- A race, and submit_clue's PN370 word for word: the partner ended the
-    -- game, or the clock ran out, while the form was still up.
-    raise exception 'Game over'
-      using errcode = 'PN388', hint = 'race', column = '_',
-      detail = 'the AI suggester requires an active play_state';
+    -- A race, as in submit_clue: the partner ended the game, or the clock ran
+    -- out, while the form was still up.
+    perform common._raise_game_over();
   end if;
 
   -- `is distinct from` rather than `<>`, and load-bearing: a caller seated in

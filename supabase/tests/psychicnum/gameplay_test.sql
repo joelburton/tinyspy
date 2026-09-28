@@ -247,7 +247,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zecho'),
-  '{"type":"not-ok","severity":"race","dbcode":"PN269",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'coop: submit_guess on terminal game rejected'
 );
@@ -423,7 +423,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_g), 'zalpha'),
-  '{"type":"not-ok","severity":"race","dbcode":"PN269",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'compete: game ends for everyone on the win, even those with budget left'
 );

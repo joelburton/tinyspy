@@ -118,7 +118,7 @@ select is(
 -- A RACE, not a bug: the game can end while a submission is in flight.
 select pg_temp.envelope_is(
   wordwheel.submit_word((select id from g), 'cafe', 1, false, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN357","message":"Game over"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN486","message":"Game over"}'::jsonb,
   'coop: no more words after the team wins'
 );
 

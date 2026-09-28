@@ -94,7 +94,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   psychicnum.stop_game((select id from coop_g)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'coop: second stop_game on terminal game is refused as the game-over race');
 
@@ -148,7 +148,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.stop_game((select id from comp_g)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'compete: second stop_game on terminal game is refused as the game-over race');
 

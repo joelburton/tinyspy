@@ -58,21 +58,21 @@ select letterboxed.concede((select id from ga));
 -- ── 1. The frozen chain ─────────────────────────────────────
 select pg_temp.envelope_is(
   letterboxed.submit_word((select id from ga), 'kcf'),
-  '{"type":"not-ok","severity":"race","dbcode":"PN398",
+  '{"type":"not-ok","severity":"race","dbcode":"PN483",
     "message":"Already conceded"}'::jsonb,
   'a conceded player cannot submit a word'
 );
 
 select pg_temp.envelope_is(
   letterboxed.undo_word((select id from ga)),
-  '{"type":"not-ok","severity":"race","dbcode":"PN406",
+  '{"type":"not-ok","severity":"race","dbcode":"PN483",
     "message":"Already conceded"}'::jsonb,
   'a conceded player cannot undo'
 );
 
 select pg_temp.envelope_is(
   letterboxed.clear_chain((select id from ga)),
-  '{"type":"not-ok","severity":"race","dbcode":"PN410",
+  '{"type":"not-ok","severity":"race","dbcode":"PN483",
     "message":"Already conceded"}'::jsonb,
   'a conceded player cannot clear'
 );

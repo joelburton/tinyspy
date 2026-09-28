@@ -728,7 +728,7 @@ describe('waffle PlayArea — a swap in flight', () => {
       error: null,
       data: {
         type: 'not-ok', data: null, outcome: null, severity: 'race',
-        message: 'Game over', field: '_', meta: null, dbcode: 'PN261', detail: null,
+        message: 'Game over', field: '_', meta: null, dbcode: 'PN486', detail: null,
       },
     })
     h.result = loaded(coopGame, [{ ...me, colors: ALL_GREEN }])

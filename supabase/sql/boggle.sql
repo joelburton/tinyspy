@@ -327,7 +327,8 @@ revoke execute on function boggle._refresh_status(uuid) from public;
 -- Two ok answers, each carrying the points the row was written with:
 --   { result: 'accepted', points } | { result: 'bonus', points }
 -- Neither a duplicate nor a post-terminal submit is among them: neither records
--- the word, so both REFUSE (PN359, PN368) rather than answering.
+-- the word, so both REFUSE (PN359, and the shared game-over race) rather than
+-- answering.
 -- The `points` every shape used to echo is gone — it was the number the caller
 -- had just sent, and nothing read it back.
 create or replace function boggle.submit_word(
@@ -365,26 +366,20 @@ begin
     into g_mode, g_playstate
     from boggle.games bg join common.games cg on cg.id = bg.id
    where bg.id = target_game;
-  -- A RACE, and on the NOT-OK arm like every sibling's (spellingbee PN354,
-  -- wordwheel PN357, wordiply PN363). This used to answer ok/'gameOver', which
-  -- was wrong in a way nothing noticed: the word is NOT recorded here, so an ok
-  -- answer left useWordSubmit's optimistic `+N` pill standing over a word that
-  -- never landed.
+  -- A RACE, refused rather than answered ok: the word is NOT recorded here, so
+  -- an ok answer would leave useWordSubmit's optimistic `+N` pill standing over
+  -- a word that never landed.
   if g_playstate <> 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN368', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- A conceded player is out of the race — no more words. The FE gates on
   -- myConceded, so this only fires on a race (a submit in flight when concede
-  -- commits, or a stale second tab). NOT the soft 'gameOver' return above: a
-  -- refusal is what releases the optimistically-accepted word.
+  -- commits, or a stale second tab). A refusal, like the one above, is what
+  -- releases the optimistically-accepted word.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN352', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   w_lower := lower(coalesce(word, ''));

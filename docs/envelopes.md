@@ -82,8 +82,8 @@ Connections' `submit_guess` has most of the kinds:
 | raise | kind | why |
 |---|---|---|
 | PN485 "That game was already deleted" | race | a friend deleted it while the guess was in flight |
-| PN245 "Game over" | race | a teammate ended it while the guess was in flight |
-| PN246 "Already conceded" | race | your concede landed first; your client hadn't heard |
+| PN486 "Game over" | race | a teammate ended it while the guess was in flight |
+| PN483 "Already conceded" | race | your concede landed first; your client hadn't heard |
 | PN251 "Out of mistakes" | race | your own fourth mistake landed; the row saying so hadn't |
 | PN243 "Not your turn" | race | the turn moved on |
 | PN247 "BUG: guess that was not four tiles" | fault | the board only ever selects four |
@@ -113,18 +113,13 @@ Every `not-ok` says what kind of failure it is:
 
 ### Appearance
 
-A severity has a default look; an outcome on the raise overrides it.
+A severity's default look is set in one place, `SEVERITY_TO_OUTCOME` in
+`src/common/supabase/dbResult.ts`, and read through `notOkOutcome`. A raise
+overrides it only for a deleted game (PN010, PN485), which is `lost`; every
+other race wears the race's default.
 
-| severity | default | reads as |
-|---|---|---|
-| `fault` | `error` (red) | something is broken |
-| `form-validation` | `error` | fix this and try again |
-| `service-error` | `error` | not us, not you — try later |
-| `race` | `warning` (orange) | we're not taking it, and you should notice |
-
-The default is resolved once, in `notOkOutcome`, and never written back into
-the envelope — so a not-ok's `outcome` keeps one meaning: *the author overrode
-the default*.
+The default is never written back into the envelope — so a not-ok's `outcome`
+keeps one meaning: *the author overrode the default*.
 
 ## Who writes the words
 
@@ -294,8 +289,6 @@ raw fault. **Each clause of a raise carries one thing:**
 - **A handler that omits `v_out` drops the override silently** — the pill just
   wears the default. And a helper that raises with a constraint has no handler
   of its own, so whichever caller catches must read it back.
-- **A race that is news rather than a setback** ("Game over", "Already
-  conceded") takes `constraint = 'noted'`.
 - **Errcodes stay bare literals**, so a classification that differs by mode is
   two raises in an `if/else`, never a `case`.
 - **A function that never raises still returns an envelope**

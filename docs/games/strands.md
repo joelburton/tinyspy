@@ -283,7 +283,7 @@ somebody else overtook:
 | | | |
 |---|---|---|
 | `PN421` "Crosses a found word" | `race` | the one path check a TEAMMATE can cause: their find consumed tiles you were drawing through. The FE drops a trace when a peer's find touches it, but a find landing mid-flight beats that |
-| `PN419` "Game over" · `PN420` "Already conceded" · `PN243` "Not your turn" | `race` | |
+| `PN486` "Game over" · `PN483` "Already conceded" · `PN243` "Not your turn" | `race` | |
 | `PN422`–`PN427` `BUG: …` | `fault` | not a path, empty, a cell that isn't `[row, col]`, off the board, a jump, a self-crossing |
 | `PN485` "That game was already deleted" | `race` | a friend deleted the game from the club list; `common._raise_game_deleted`, asked before the membership gate — `spend_hint` answers the same |
 

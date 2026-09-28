@@ -93,7 +93,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 -- is the win-race guard the plan asked to pin.
 select pg_temp.envelope_is(
   crosswords.set_cell(:'gp_id', 0, 0, 'c', false),
-  '{"type":"not-ok","severity":"race","dbcode":"PN464",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'compete: set_cell is rejected once the game is terminal');
 reset role;

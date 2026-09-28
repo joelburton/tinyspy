@@ -145,7 +145,7 @@ select isnt(
 
 select pg_temp.envelope_is(
   strands.stop_game((select id from game2)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'ending twice raises — idempotency the FE swallows, as elsewhere');
 

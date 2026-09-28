@@ -288,9 +288,8 @@ export function GamePage({
   const stopTheGameFromTheOverlay = async () => {
     const res = await manifest.stopGame(gameId)
     if (res.type === 'not-ok') {
-      // A lost Stop race shows PN486's "Game over" in its own words and its
-      // own tone — the same sentence the in-game Stop action shows, because it
-      // is the same raise.
+      // A lost Stop race shows PN486's "Game over" — the same sentence the
+      // in-game Stop action shows, because it is the same raise.
       globalFeedbackSlot.show(FeedbackMessage.notOk(res))
     } else if (res.type === 'ok' && res.data?.result === 'ended') {
       // Nothing here: the terminal arrives by subscription and the overlay

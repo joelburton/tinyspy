@@ -11,13 +11,15 @@
 --   1. Concede marks JUST the caller (game_players.conceded +
 --      conceded_at, and locally_terminal), game stays non-terminal
 --      while others race
---   2. Idempotency: a second concede by the same player raises P0001
+--   2. Idempotency: a second concede by the same player is the
+--      PN483 race (`common._raise_already_conceded`)
 --   3. A middle concede keeps the game going (one racer left)
 --   4. The LAST active player conceding ends the game as a COLLECTIVE
 --      loss (is_terminal, status.reason 'conceded', every result
 --      {"won": false}, no winner) — named 'lost_compete' for a
 --      `*_compete` gametype, plain 'lost' for a single-mode one
---   5. Non-players rejected; conceding a finished game rejected
+--   5. Non-players rejected; conceding a finished game is the PN486
+--      race (`common._raise_game_over`)
 --   6. A single-mode gametype ends plain 'lost'
 --   7. A player who is already out (locally terminal) cannot concede
 --
@@ -122,7 +124,7 @@ select is(
 select pg_temp.envelope_is(
   common.concede(current_setting('test.game_id')::uuid),
   '{"type":"not-ok","severity":"race","dbcode":"PN483",
-    "message":"Already conceded"}'::jsonb,
+    "message":"Already conceded","outcome":null}'::jsonb,
   'conceding twice is rejected');
 
 -- ─── (3) bea concedes; cade alone is still active ───
@@ -174,8 +176,8 @@ select pg_temp.envelope_is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.concede(current_setting('test.game_id')::uuid),
-  '{"type":"not-ok","severity":"race","dbcode":"PN482",
-    "message":"Game over"}'::jsonb,
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
+    "message":"Game over","outcome":null}'::jsonb,
   'conceding a finished game is rejected');
 
 -- ─── (6) A single-mode gametype ends plain 'lost' ───
@@ -241,7 +243,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.concede(current_setting('test.out_id')::uuid),
   '{"type":"not-ok","severity":"race","dbcode":"PN508",
-    "message":"Already out"}'::jsonb,
+    "message":"Already out","outcome":null}'::jsonb,
   'a player who is already out cannot concede');
 reset role;
 select set_config('request.jwt.claims', '', true);

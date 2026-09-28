@@ -77,7 +77,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.concede(:'gp2_id');
 select pg_temp.envelope_is(
   crosswords.check_cells(:'gp2_id', '[{"row":0,"col":0}]'::jsonb),
-  '{"type":"not-ok","severity":"race","dbcode":"PN474",
+  '{"type":"not-ok","severity":"race","dbcode":"PN483",
     "message":"Already conceded"}'::jsonb,
   'check_cells is rejected for a conceded compete player');
 reset role;

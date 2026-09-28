@@ -299,9 +299,7 @@ begin
   if cur_state <> 'playing' then
     -- A race: a teammate ended it, or the clock ran out, while this word was
     -- in flight.
-    raise exception 'Game over'
-      using errcode = 'PN287', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- A conceded player is out of the race — no more words. The FE gates
@@ -310,9 +308,7 @@ begin
   -- word could crown them the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN288', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
 
   -- Compete: a finished player can't keep submitting.
@@ -508,9 +504,7 @@ begin
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
     -- A race: the game ended under you while the request was in flight.
-    raise exception 'Game over'
-      using errcode = 'PN294', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   select count(*) into cleared
@@ -613,9 +607,7 @@ begin
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
     -- A race: the game ended under you while the request was in flight.
-    raise exception 'Game over'
-      using errcode = 'PN296', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   select count(*) into cleared

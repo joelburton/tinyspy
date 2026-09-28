@@ -501,8 +501,8 @@ at the site that knows the condition. What the four turn RPCs can say:
 | `PN401` "Chain is full" | `race` | |
 | `PN402` "Already played" | `race` | |
 | `PN407` "Nothing to undo" | `race` | |
-| `PN397` / `PN405` / `PN409` / `PN413` "Game over" | `race` | one per RPC |
-| `PN398` / `PN406` / `PN410` "Already conceded" | `race` | |
+| `PN486` "Game over" | `race` | the shared race (`common._raise_game_over`) |
+| `PN483` "Already conceded" | `race` | the shared race (`common._raise_already_conceded`) |
 | `PN243` "Not your turn" | `race` | from `common._require_turn` |
 | `PN399` "BUG: a word under three letters" | `fault` | |
 | `PN403` "BUG: a word this board cannot play" | `fault` | |
@@ -786,7 +786,7 @@ genuinely unpartitionable pair), `isPlayable`, `isOneWordSolvable`,
   that union. Its absence from the UI is a decision rather than an oversight
   (§5 → "Undo and clear"), which is why it was left standing — but an
   unreachable RPC still has to be designed, converted, tested and carried, and
-  it now has three raise codes of its own (PN409–PN411). Removing it would take
+  it has a raise code of its own (PN411). Removing it would take
   the function, its grant, the union member and its roster row together;
   keeping it means keeping all four.
 

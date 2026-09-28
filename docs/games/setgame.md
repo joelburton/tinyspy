@@ -623,8 +623,8 @@ for a hint shows itself in the ring the client already drew.
 one of them is why: `PN277` "Someone got there first" is the contention check,
 and setgame is the only board on the roster where losing a race is ordinary
 rather than exotic — one table, everyone claiming off it, and the cards leave by
-realtime so no local gate can see it coming. `PN274`/`PN281` "Game over" and
-`PN275` "Already conceded" are the usual two. Everything else is a fault the
+realtime so no local gate can see it coming. `PN486` "Game over" and
+`PN483` "Already conceded" are the usual two. Everything else is a fault the
 client should have prevented and says so: `BUG: bad set` (the board is face-up
 and `lib/cards.ts` runs the same algebra before submitting), `BUG: claim that
 was not three different cards`, `BUG: hint request in a race` (compete offers no

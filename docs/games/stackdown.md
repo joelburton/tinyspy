@@ -392,7 +392,7 @@ prettier title here.
 | `reveal_next_word` → `reveal` | `ok`, `lost` | a spoiler ends the hunt for its word |
 | `reveal_next_hint` → `hint` | `ok`, `warning` | a hint is a nudge — neither good nor bad play |
 | `PN291` "Someone cleared those tiles" | `race` | coop's stack is one shared object, so a teammate's word takes your tiles between your pick and your submit. They leave by realtime, so no local gate can see it coming. It rendered as the FAULT modal until 2026-09-01, when the severity moved to the raise |
-| `PN287` · `PN294` · `PN296` "Game over" · `PN288` "Already conceded" | `race` | |
+| `PN486` "Game over" · `PN483` "Already conceded" | `race` | from `common._raise_game_over` and `common._raise_already_conceded` |
 | `PN289` `BUG: submit after solving` · `PN290` `BUG: word that was not five distinct tiles` · `PN292` `BUG: word using a covered tile` | `fault` | the board only ever offers exposed, unremoved tiles, five at a time |
 | `PN298` · `PN299` `BUG: reveal/hint after the stack was cleared` · `PN297` `BUG: no hint for a band-N word` | `fault` | both buttons disappear at terminal |
 | `PN485` "That game was already deleted" | `race` | from `common._raise_game_deleted`, asked before the membership gate: a friend may delete the game from the club list mid-move |

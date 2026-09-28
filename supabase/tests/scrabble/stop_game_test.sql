@@ -64,7 +64,7 @@ select isnt((select ctid from scrabble.games where id = (select id from gm)),
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   scrabble.stop_game((select id from gm)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'ending an already-terminal game is rejected');
 reset role;

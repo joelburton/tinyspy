@@ -716,15 +716,11 @@ begin
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
     -- A race: a teammate finished the grid, or the clock ran out, mid-keystroke.
-    raise exception 'Game over'
-      using errcode = 'PN464', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
   if (select conceded from common.game_players
         where game_id = target_game and user_id = v_caller) then
-    raise exception 'Already conceded'
-      using errcode = 'PN465', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
   v_owner := case when v_mode = 'coop' then null else v_caller end;
 
@@ -821,15 +817,11 @@ begin
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN468', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
   if (select conceded from common.game_players
         where game_id = target_game and user_id = v_caller) then
-    raise exception 'Already conceded'
-      using errcode = 'PN469', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
   if p_side not in ('right', 'bottom') then
     -- Both this and the mark below are faults for connections' `bad-result`
@@ -907,17 +899,13 @@ begin
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN473', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
   -- A conceded compete player is out — no checking their (frozen) grid, same
   -- guard set_cell has (reveal_cells is coop-only, where nobody concedes).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = v_caller) then
-    raise exception 'Already conceded'
-      using errcode = 'PN474', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this compete race';
+    perform common._raise_already_conceded();
   end if;
   v_owner := case when v_mode = 'coop' then null else v_caller end;
 
@@ -993,9 +981,7 @@ begin
   end if;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN476', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   update crosswords.cells c

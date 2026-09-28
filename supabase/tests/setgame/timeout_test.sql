@@ -55,7 +55,7 @@ select ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   setgame.submit_timeout((select id from gc)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'the timeout is idempotent — every client fires it, only the first counts');
 

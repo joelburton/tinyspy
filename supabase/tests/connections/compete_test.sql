@@ -260,7 +260,7 @@ select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select pg_temp.envelope_is(
   connections.submit_guess((select id from g),
                            array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'correct', 0),
-  '{"type":"not-ok","severity":"race","dbcode":"PN245",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'submit_guess (compete): post-win opponent submit is rejected'
 );
@@ -413,7 +413,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   connections.submit_timeout((select id from g3)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'submit_timeout (compete): second call on already-terminal game is the game-over race');
 

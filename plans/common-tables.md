@@ -212,16 +212,35 @@ Decided 2026-09-27. This plan builds cross-game-consistency's step 7 — its
 old stages 7a, 7b and 7d changed the very columns this plan reshapes — and the
 rest of that plan falls before or after it.
 
-**Deploying: once per stage** (Joel, 2026-09-27; it was once at the end).
-Each stage is a migration plus the code that reads its columns, complete in
-itself, so nothing needs to read both shapes and there are no shims; the
-front end and the database ship together. "Together" is `gmake deploy`'s
+**Replanned (Joel, 2026-09-27, later): schema first, one deploy.** The
+staged order below made each stage work against a half-changed schema, so
+`end_game` and its callers changed a little per stage — hard to picture.
+Nothing has to keep working in development or prod until the end (prod's
+data must survive; a maintenance notice covers the window), so the work is
+now ordered by layer, and the stages below are its content, not its order:
+
+1. **The target schema, written down** —
+   [common-tables-schema.md](common-tables-schema.md): every table as it ends
+   up, `<game>.games` included (its typed columns for what the logic reads
+   from `setup`, and the columns the game cards add), each column marked
+   new / changed / kept / dropped.
+2. **One migration** for all of it, with the backfills; applied locally.
+3. **Common SQL** on the new schema: `end_game` once, in its final form;
+   `concede`, `reset_game`, the timers, the policies and views.
+4. **Each game's SQL**, one game at a time — its ending, `clubpage_info`,
+   `_leaderboard()` and its full `final_ranking`s (so rankings below first
+   come here, not in a later stage).
+5. **The front end:** types, the common pieces, then each game.
+6. Tests and docs move with each step.
+7. Rehearse against prod's data, re-read prod, the maintenance notice,
+   **one deploy**. Then cross-game-consistency §5.
+
+The deploy below is that one deploy. "Together" is `gmake deploy`'s
 order — the migrations, then `supabase/sql/`, then the edge functions, then
 the front end — so for the minutes between the first step and the last, a
 tab left open runs the old front end against the new columns (its club-page
 select names `play_state` and gets a 400) until `reloadOnStaleBuild` reloads
-it once the front end lands. That is every deploy's window; it needs a quiet
-hour, not a shim. Before each stage's deploy:
+it once the front end lands. Before it:
 
 - **The backfills handle every case, not today's rows.** Prod today holds one
   compete game and no concession; friends keep playing while the work goes
@@ -240,15 +259,19 @@ hour, not a shim. Before each stage's deploy:
      what those values are built from touches `whereIStand` and
      `useCommonGame`, not sixteen PlayAreas.
    - §3b's 7c, the Stop names (done 2026-09-27), and §4's cheap renames
-     (built 2026-09-27; N8 is its own item, next). Neither touches stored
-     data.
+     (built 2026-09-27, N8 included). Neither touches stored data. Next:
+     stage 1.
 2. **This plan, in three stages and a per-game debt** — each commit leaves
    the tests green, and each stage deploys when it is done:
    1. **The players.** `common.game_players` gains `player_ended_at`, the
       player's reason pair, `outcome`, `final_ranking` and `solved`, and
       loses `result`, `conceded`, `conceded_at` and `locally_terminal`.
       `EndOutcome` gains `near`, and every two-way check is audited
-      (cross-game-consistency §3b → the `near` item). `isLocallyTerminal` →
+      (cross-game-consistency §3b → the `near` item). **Rankings below first
+      wait for stage 3** (Joel, 2026-09-27): stage 1 writes what the games
+      know today — the winners `final_ranking` 1 and `won`, everyone else no
+      ranking and `lost` or `neutral` — and each game's `_leaderboard()`
+      brings the full ranking, so no game produces `near` until then. `isLocallyTerminal` →
       `isPlayerEnded`, and every other "terminal" about a player, everywhere
       (§3b question 1).
    2. **The game's lifecycle.** `common.games` gains the reason pair,

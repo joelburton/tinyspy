@@ -184,7 +184,7 @@ Each needs a failing test before its fix.
 
 - ~~**wordle lets a conceded racer guess.**~~ Fixed 2026-09-24: a conceder's
   guess — the target itself, in the failing test — was accepted; it now
-  answers the "Already conceded" race (PN507), as the other four do
+  answers the "Already conceded" race (PN483, the shared helper), as the other four do
   (`wordle/concede_test.sql`).
 - ~~**An ending some games' FE does not hear.**~~ Fixed 2026-09-24: the last
   concede in wordle (Reveal had no answer) and in connections, and
@@ -869,8 +869,7 @@ Most worth fixing first.
 
 **Built 2026-09-27:** N6, N7, N9, N10 (§1b's names), N11, N12, N14, N15,
 N16, N19, N20, N21, N22 and the shared-code decisions below, as each row
-says. Left: **N8, its own item, next**; then the unsure list at the end of
-this section.
+says. **N8 built 2026-09-27** as its row says. §4 has nothing left.
 
 | # | today | settle on |
 |---|---|---|
@@ -1026,7 +1025,7 @@ two comments; 19 strands' dangling comment gone; 20 spellingbee's
 is today's stored word until stage 2); 22 the baseline's two keys renamed.
 Following from 11 (Joel, 2026-09-27): common's row builders lead with a
 verb too — `makeRosterRow`, `makeCoopRows`, `makeCenterLettersRow`,
-`makeTimerRow`; each game's `lib/setupSummary.ts` is `lib/setupRows.ts`; and
+`makeTimerRow`; each game's module of them is `lib/setupRows.ts`; and
 "recap" is retired — the place is **the Setup options list**
 (`<SetupDisclosure>`), the data **the setup rows**.
 1–7 accepted as done (Joel, 2026-09-27). Nothing on this list is open.

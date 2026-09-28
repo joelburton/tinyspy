@@ -349,8 +349,8 @@ races are all against the game ENDING under you.
 | `check_board` → `clean` · `invalid` · `empty` | `ok` | `empty` is the server's answer, not a `placed` count read at the call site |
 | `save_player_board` → `saved` · `game-over` · `conceded` | `ok` | the two no-ops are named, not silent. An autosave discarded because the game ended is not a refusal — nothing was asked for that did not happen |
 | `dump` → `dumped`, `create_game` → `created`, `stop_game`/`submit_timeout` → `ended`, `replay_board` → `replayed` | `ok` | |
-| `PN339` · `PN344` "Game over" | `race` | peel and dump, against a game a peer just ended |
-| `PN340` · `PN345` "Already conceded" | `race` | your own concede landing first |
+| `PN486` "Game over" | `race` | peel and dump, against a game a peer just ended — the shared race (`common._raise_game_over`) |
+| `PN483` "Already conceded" | `race` | your own concede landing first — the shared race (`common._raise_already_conceded`) |
 | `PN347` "Bunch too low to dump" · `PN348` "You don't have that tile" | `race` | both are the FE's own gates losing to a peer's peel or to its own in-flight state |
 | `PN485` "That game was already deleted" | `race` | peel and dump, against a game a friend deleted mid-call — the shared race (`common._raise_game_deleted`), asked before the membership gate |
 | `PN337`, `PN341`–`PN342`, `PN346`, `PN349`–`PN350` `BUG: …` | `fault` | a peel with tiles still in hand, a dump of something that is not a tile, a board save with the wrong grid size — each is a shape the board itself cannot produce |

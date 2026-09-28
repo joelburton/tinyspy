@@ -271,14 +271,14 @@ select is(
 );
 
 -- ============================================================
--- (8) Post-terminal submission is the game-over race (PN354)
+-- (8) Post-terminal submission is the game-over race (PN486)
 -- ============================================================
 
 -- A RACE, not a bug: the timer can expire or a rival can hit the target while
 -- a submission is in flight.
 select pg_temp.envelope_is(
   spellingbee.submit_word((select id from compete_g), 'face', 1, false, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN354","message":"Game over"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN486","message":"Game over"}'::jsonb,
   'post-terminal submit_word is refused'
 );
 
@@ -408,7 +408,7 @@ select is(
 -- Idempotency: a second call is the game-over race (peers racing the countdown).
 select pg_temp.envelope_is(
   spellingbee.submit_timeout((select id from timeout_g)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'submit_timeout: a second call is the game-over race');
 
@@ -488,7 +488,7 @@ select is(
 -- Idempotency: a second call is the game-over race.
 select pg_temp.envelope_is(
   spellingbee.stop_game((select id from end_g)),
-  '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
+  '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'stop_game: a second call is the game-over race');
 

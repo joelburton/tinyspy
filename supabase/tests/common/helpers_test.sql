@@ -1,7 +1,8 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: common helpers (require_club_member, require_valid_timer)
+-- Test: common helpers (require_club_member, require_valid_timer,
+--       _raise_already_conceded)
 -- ============================================================
 --
 -- These helpers are the canonical building blocks for every
@@ -31,7 +32,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(13);
+select plan(14);
 
 \ir ../_shared/setup.psql
 
@@ -174,6 +175,20 @@ select lives_ok(
 select lives_ok(
   $$ select common.require_valid_timer('{"kind":"countdown","seconds":3600}'::jsonb) $$,
   'require_valid_timer: countdown seconds=3600 is accepted (upper boundary)'
+);
+
+-- ============================================================
+-- common._raise_already_conceded
+-- ============================================================
+-- The shared race every compete move and `common._set_conceded`
+-- raise for a caller who has conceded.
+
+-- (14) Raises PN483 with the one sentence
+select throws_ok(
+  $$ select common._raise_already_conceded() $$,
+  'PN483',
+  'Already conceded',
+  '_raise_already_conceded: raises PN483 "Already conceded"'
 );
 
 -- ============================================================

@@ -808,25 +808,20 @@ revoke execute on function common._raise_game_deleted(text) from public;
 
 -- ─── common._raise_game_over ───────────────────────────────
 -- The one sentence for "this game is not accepting moves any
--- more", raised from the twenty-nine `stop_game` / `submit_timeout`
--- sites that check `play_state` and find it terminal.
+-- more", raised by every RPC that checks `play_state` and finds
+-- the game ended: each game's moves, `stop_game`,
+-- `submit_timeout`, and `common._set_conceded`.
 --
 -- **A RACE**, and the ordinary one: the game ended between the
 -- frontend's gate reading `isTerminal` off the subscription and
--- the call landing. For `stop_game` a person clicked Stop on a game
--- somebody else had just stopped; for `submit_timeout` every
--- connected client fires on the same countdown edge and all but
--- one arrive to find the work done. Neither is a malfunction.
+-- the call landing — a teammate's winning move, a Stop, the
+-- timer. Not a malfunction. It wears the race's own look
+-- (`SEVERITY_TO_OUTCOME` in src/common/supabase/dbResult.ts): a
+-- move that changed nothing is worth noticing.
 --
--- `noted`, not the severity's default `warning`: the game being
--- over is news, not a setback — the words and the tone
--- `ERROR_COPY` carried for `game-not-in-play`, kept as the last
--- entry in that table was converted away.
---
--- ONE code for all twenty-nine, like `require_game_player`'s
--- PN253: what a code distinguishes is WHICH QUESTION failed, and
--- across both RPCs this is one question. The caller always knows
--- which RPC it called.
+-- ONE code for every site, like `require_game_player`'s PN253:
+-- what a code distinguishes is WHICH QUESTION failed, and this is
+-- one question. The caller always knows which RPC it called.
 create or replace function common._raise_game_over()
 returns void
 language plpgsql
@@ -834,12 +829,35 @@ immutable
 as $$
 begin
   raise exception 'Game over'
-    using errcode = 'PN486', hint = 'race', column = '_', constraint = 'noted',
+    using errcode = 'PN486', hint = 'race', column = '_',
     detail = 'play_state is not an active state';
 end;
 $$;
 
 revoke execute on function common._raise_game_over() from public;
+
+-- ─── common._raise_already_conceded ────────────────────────
+-- The one sentence for "you conceded, so this move is refused",
+-- raised by every compete move that checks the caller's concession,
+-- and by `common._set_conceded` for a second concession.
+--
+-- **A RACE**, like `_raise_game_over`: the frontend hides the
+-- controls once the subscription says you conceded, so reaching
+-- here takes a move in flight when the concession landed, or a
+-- second tab. One code for every site, for the same reason.
+create or replace function common._raise_already_conceded()
+returns void
+language plpgsql
+immutable
+as $$
+begin
+  raise exception 'Already conceded'
+    using errcode = 'PN483', hint = 'race', column = '_',
+    detail = 'the caller has already conceded';
+end;
+$$;
+
+revoke execute on function common._raise_already_conceded() from public;
 
 -- ─── common.create_game ────────────────────────────────
 -- The common (header) half of starting a new game. Called by
@@ -1630,9 +1648,7 @@ begin
     -- A RACE: the last other racer finished, or a peer ended the game, between
     -- the menu opening and this click. `isTerminal` is fed by the subscription,
     -- so losing that gap is ordinary.
-    raise exception 'Game over'
-      using errcode = 'PN482', hint = 'race', column = '_', constraint = 'noted',
-      detail = 'play_state is already terminal';
+    perform common._raise_game_over();
   end if;
 
   select conceded, locally_terminal into already, is_out
@@ -1642,9 +1658,7 @@ begin
     -- Also a RACE, and for the same reason: `isConceded` is fed by the
     -- subscription rather than set locally when the call returns, so a second
     -- click — or a second tab — inside that window reaches here.
-    raise exception 'Already conceded'
-      using errcode = 'PN483', hint = 'race', column = '_', constraint = 'noted',
-      detail = 'this player''s conceded flag is already set';
+    perform common._raise_already_conceded();
   end if;
   if is_out then
     -- Out without conceding — finished, eliminated or out of budget — so
@@ -1652,7 +1666,7 @@ begin
     -- would only throw away a win they may hold. The frontend hides Concede
     -- once `isLocallyTerminal`, fed by the same subscription, so this is a race.
     raise exception 'Already out'
-      using errcode = 'PN508', hint = 'race', column = '_', constraint = 'noted',
+      using errcode = 'PN508', hint = 'race', column = '_',
       detail = 'this player is already locally terminal';
   end if;
 

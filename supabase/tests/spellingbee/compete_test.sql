@@ -210,7 +210,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 -- A RACE, not a bug: the game can end while a submission is in flight.
 select pg_temp.envelope_is(
   spellingbee.submit_word((select id from g), 'face', 1, false, false),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN354","message":"Game over"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN486","message":"Game over"}'::jsonb,
   'compete: post-win opponent submit is rejected'
 );
 

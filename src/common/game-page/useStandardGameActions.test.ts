@@ -73,9 +73,7 @@ const CONCEDED_OK = {
   error: null,
 }
 const ALREADY_CONCEDED = {
-  // `outcome: 'noted'` is the raise's own choice, not the severity's default:
-  // `race` alone reads as `warning`, and this is news rather than a setback.
-  data: { type: 'not-ok', data: null, outcome: 'noted', severity: 'race',
+  data: { type: 'not-ok', data: null, outcome: null, severity: 'race',
           message: 'Already conceded', field: '_', meta: null,
           dbcode: 'PN483', detail: null },
   error: null,

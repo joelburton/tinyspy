@@ -643,9 +643,7 @@ begin
   -- A RACE, not a bug: the Peel button is gone at terminal, but someone else's
   -- winning peel can land while this click is in flight.
   if current_play_state <> 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN339', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- A conceded player is out of the race — they can't peel. Conceded now
@@ -654,9 +652,7 @@ begin
   -- second tab that has not heard yet.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN340', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this race';
+    perform common._raise_already_conceded();
   end if;
 
   -- Gate: the caller's hand must be empty (every held tile placed).
@@ -985,9 +981,7 @@ begin
   -- A RACE: the dump zone is gone at terminal, but a rival's winning peel can
   -- land while this drop is in flight.
   if current_play_state <> 'playing' then
-    raise exception 'Game over'
-      using errcode = 'PN344', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
+    perform common._raise_game_over();
   end if;
 
   -- A conceded player is out of the race — they can't drain the shared
@@ -996,9 +990,7 @@ begin
   -- or a stale second tab).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'Already conceded'
-      using errcode = 'PN345', hint = 'race', column = '_',
-      detail = 'caller already dropped out of this race';
+    perform common._raise_already_conceded();
   end if;
 
   -- The letter always comes off a tile the FE rendered — there is no way to

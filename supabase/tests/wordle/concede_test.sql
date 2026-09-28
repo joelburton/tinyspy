@@ -60,7 +60,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g), (select w from tgt)),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN507",
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN483",
     "message":"Already conceded"}'::jsonb,
   'a conceder cannot guess');
 reset role;

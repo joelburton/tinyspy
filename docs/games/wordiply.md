@@ -274,7 +274,7 @@ validated-guess RPC.
   | `{ result: 'accepted', length, … }` | `ok` | the guess landed and spent a line |
   | `{ result: 'rejected', … }` | `ok` | a guard refused it, a `guesses` row was written, and a line may have been spent. A verdict on a move that happened |
   | `PN365` `<WORD> — already found` | `race` | records NOTHING, so it refuses. `useFoundWordSubmit` dedups locally first, so reaching this means that list was stale |
-  | `PN363` "Game over" · `PN364` "Already conceded" · `PN366` "No guesses left" | `race` | the frontend's own gates losing to the subscription that feeds them |
+  | `PN486` "Game over" · `PN483` "Already conceded" · `PN366` "No guesses left" | `race` | the frontend's own gates losing to the subscription that feeds them |
   | `PN485` "That game was already deleted" | `race` | a friend deleted the game mid-call — the shared race (`common._raise_game_deleted`), asked before the membership gate |
   | `PN367` `BUG: a guess the client called legal breaks the base rules` | `fault` | |
 

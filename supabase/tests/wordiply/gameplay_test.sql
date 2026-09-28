@@ -231,7 +231,7 @@ select (wordiply.create_game(
 select wordiply.concede((select id from cg));
 select pg_temp.envelope_is(
   wordiply.submit_guess((select id from cg), 'arxx'),
-  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN364","message":"Already conceded"}'::jsonb,
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN483","message":"Already conceded"}'::jsonb,
   'a conceded player cannot submit a guess'
 );
 

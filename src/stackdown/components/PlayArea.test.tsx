@@ -280,7 +280,7 @@ describe('stackdown PlayArea — hint', () => {
     rpc.mockResolvedValueOnce({
       data: {
         type: 'not-ok', data: null, outcome: null, severity: 'race',
-        message: 'Game over', field: null, meta: null, dbcode: 'PN296', detail: null,
+        message: 'Game over', field: null, meta: null, dbcode: 'PN486', detail: null,
       },
       error: null,
     })

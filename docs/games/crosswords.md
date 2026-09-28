@@ -135,8 +135,8 @@ produced**.
 
 | | | |
 |---|---|---|
-| `PN464` / `PN468` / `PN473` / `PN476` "Game over" | `race` | a teammate finished the grid, or the clock ran out, mid-keystroke |
-| `PN465` / `PN469` / `PN474` "Already conceded" | `race` | your own concede landed first |
+| `PN486` "Game over" | `race` | a teammate finished the grid, or the clock ran out, mid-keystroke — the shared race (`common._raise_game_over`) |
+| `PN483` "Already conceded" | `race` | your own concede landed first — the shared race (`common._raise_already_conceded`) |
 | `PN466` `BUG: a fill that is not letters` | `fault` | the FE mirrors `^[A-Z]{1,8}$` first |
 | `PN467` / `PN472` `BUG: a write/mark on a block or a given` | `fault` | the grid renders those non-focusable |
 | `PN470` / `PN471` `BUG: a mark on an unknown edge / of an unknown kind` | `fault` | both values come from the FE's own typed union |
