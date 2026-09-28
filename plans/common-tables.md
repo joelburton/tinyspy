@@ -31,7 +31,8 @@ Every fact has one home. A copy is allowed only where this section names it.
   - They hold data, not text: the RPC does the counting, the front end the
     wording.
   - Both are written by one builder per game (its name is settled in step
-    4), called at the end of every move that changes them.
+    4), called at create, at Restart, and at the end of every move that
+    changes them — so a live game never shows `{}`.
 - **`common.games.clubpage_info`** is what the club page shows beyond
   `common.games`' columns: a small subset of the statuses' numbers, since the
   club page reads nothing else.
@@ -149,9 +150,19 @@ Decided 2026-09-27:
   whether a countdown can end the game; the length only the front end reads,
   since no game verifies a timeout against it.
 - **The name is `clubpage_info`.**
-- **A move that changes the game's status writes `common.games`**
-  (`clubpage_info`, and `last_active_at` rides along through its trigger); a
-  move that doesn't, doesn't. Opening or leaving a game writes
+- **Every move RPC ends by calling the game's status builder** (Joel,
+  2026-09-28; this replaces "a move that changes the status writes
+  `common.games`, a move that doesn't, doesn't"). The builder assigns both
+  statuses and `clubpage_info` whether or not they changed, so every move
+  writes `common.games` (`last_active_at` rides along through its trigger)
+  and `common.game_players`, and the page's subscriptions fire for every
+  move — psychicnum's hint, which only adds an events row the partner's log
+  shows, reaches the partner this way. No RPC judges whether a status
+  changed. The two writes with a path of their own are the exceptions:
+  crosswords' `set_cell` and `set_mark` (the cells subscription) and
+  bananagrams' board save (the page's own board). A game may later drop the
+  call from a move that changes nothing another player's page shows — one
+  game at a time, checked carefully then. Opening or leaving a game writes
   `is_current_view`, so "last active" still moves for a game whose moves
   change nothing the club sees (bananagrams' board edits, crosswords' cells).
   Whether crosswords should update its club line now and then is its own
@@ -318,6 +329,10 @@ now ordered by layer, and the stages below are its content, not its order:
 5. **The front end:** types, the common pieces (the reload off
    `common.games`), then each game — its status types, its info column and
    strip reading the statuses, and its hook dropping its own subscriptions.
+   Also the three build-board edge functions (spellingbee, wordwheel,
+   wordiply): their last-board lookup filters the game table on
+   `club_handle` and orders by `created_at`, both dropped, so it finds the
+   club's last game through `common.games` instead.
 6. Tests and docs move with each step.
 7. Rehearse against prod's data, re-read prod, the maintenance notice,
    **one deploy**, and, once its `supabase/sql/` step has landed, every
@@ -337,7 +352,24 @@ it once the front end lands. Before it:
 - **Re-read prod** (the survey's Prod queries) and check the maps still cover
   every stored value.
 - **Rehearse** the migrations against prod's data (`gmake db-rehearse`), so
-  a migration cannot fail partway through the real deploy.
+  a migration cannot fail partway through the real deploy. The rehearsal
+  restores the dump's functions, views, policies and triggers before the
+  migrations run, since a `drop column` fails while a policy or view still
+  names the column (found 2026-09-28: the rehearsal had run over a database
+  with none of them).
+- **The pre-flight queries** (Joel, 2026-09-28). Two rows the migration
+  raises on rather than maps can appear in a game played after the last
+  rehearsal: a crosswords or stackdown compete win with no `reason`, and a
+  player `locally_terminal` without conceding. After the maintenance notice
+  and before `db push`, both must return 0 on prod:
+
+  ```sql
+  select count(*) from common.games
+   where ended_at is not null and status ->> 'reason' is null
+     and gametype not like 'letterboxed%';
+  select count(*) from common.game_players
+   where locally_terminal and not conceded;
+  ```
 
 **The order:**
 

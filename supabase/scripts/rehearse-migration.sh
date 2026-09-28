@@ -18,12 +18,18 @@
 #   1. hold back the migrations production has not applied yet
 #   2. `supabase db reset` — the database is now at PRODUCTION's shape, empty
 #   3. restore the dump — production's actual rows, in their old shape
-#   4. put the migrations back and apply them, one at a time, over those rows
+#   4. restore the dump's functions, views, policies and triggers — what
+#      `supabase/sql/` put on production, which the reset does not build
+#   5. put the migrations back and apply them, one at a time, over those rows
 #
 # Step 1 is the non-obvious one. A file left in `supabase/migrations/` during
 # step 2 is applied by the reset, and then the dump — written against the old
 # shape — cannot be restored at all: pg_restore's COPY names a table or a
 # column that the migration just renamed away.
+#
+# Step 4 is the other trap. A `drop column` fails while a policy or a view
+# still names the column, and on production they do; a rehearsal without them
+# lets a migration through that production would refuse.
 #
 # WHAT IT DOES NOT COVER. The dump excludes the dictionary and seed bulk
 # (see BACKUP_EXCLUDE in the Makefile), so those tables come back empty and
@@ -126,7 +132,29 @@ rm -f "$toc"
 count_rows > "$WORK/before.tsv"
 echo "── restored $(awk -F'\t' '{n += $2} END {print n+0}' "$WORK/before.tsv") rows in $(wc -l < "$WORK/before.tsv" | tr -d ' ') tables"
 
-# ── 3. the migrations, over those rows ──────────────────────────
+# ── 3. production's functions, views, policies and triggers ─────
+# The app schemas' only; auth's belong to the local stack. A function a
+# migration itself defines is already there from the reset and is left out.
+# TOC line shape:
+#   217; 1255 98331 FUNCTION letterboxed _chain_for(uuid, uuid) postgres
+# so $4 is the kind, $5 the schema and $6 the name with its argument list.
+echo "── restoring production's functions, views, policies and triggers"
+migration_functions=$(grep -hoiE "create (or replace )?function [a-z_]+\.[a-z_]+" "$MIGRATIONS"/*.sql \
+  | awk '{print $NF}' | grep -v '^pg_temp\.' | sort -u)
+objects=$(mktemp)
+pg_restore -l "$DUMP" \
+  | grep -E '^[0-9]+; [0-9]+ [0-9]+ (FUNCTION|VIEW|POLICY|TRIGGER) ' \
+  | grep -vE ' (FUNCTION|VIEW|POLICY|TRIGGER) auth ' \
+  | awk -v skip="$migration_functions" '
+      BEGIN { n = split(skip, list, "\n"); for (i = 1; i <= n; i++) known[list[i]] = 1 }
+      $4 == "FUNCTION" { name = $6; sub(/\(.*/, "", name); if (($5 "." name) in known) next }
+      { print }
+    ' > "$objects"
+pg_restore --single-transaction -L "$objects" -d "$DB_URL" "$DUMP"
+echo "── restored $(wc -l < "$objects" | tr -d ' ') objects"
+rm -f "$objects"
+
+# ── 4. the migrations, over those rows ──────────────────────────
 restore_migrations
 trap - EXIT
 echo "── applying the held-back migration(s)"
@@ -147,7 +175,7 @@ else
 fi
 rm -rf "$HELD_DIR" "$WORK"
 
-# ── 4. the behavior half, which the reset does not apply ────────
+# ── 5. the behavior half, over production's — as the deploy does ─
 echo "── supabase/sql/ (functions, views, policies, grants)"
 npm run _sql:apply
 

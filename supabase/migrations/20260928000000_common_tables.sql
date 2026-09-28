@@ -98,6 +98,37 @@ update common.games g
   ) m
  where m.id = g.id;
 
+-- The suffix is a name, not a rule (plans/common-tables.md → Decided), but a
+-- stored mode that disagrees with it is a row to look at, not to carry.
+do $$
+declare
+  disagreeing int;
+begin
+  select count(*) into disagreeing
+    from common.games
+   where gametype like '%\_coop' and mode <> 'coop'
+      or gametype like '%\_compete' and mode <> 'compete';
+  if disagreeing > 0 then
+    raise exception 'common tables: % games whose mode disagrees with the gametype suffix', disagreeing;
+  end if;
+end $$;
+
+-- ─── is_terminal must still agree with ended_at ────────────
+-- `ended_at is not null` replaces it, and every backfill below reads
+-- `ended_at`; a row where the two disagree would be carried across as the
+-- wrong kind of game (plans/common-tables.md → The other backfills).
+do $$
+declare
+  disagreeing int;
+begin
+  select count(*) into disagreeing
+    from common.games
+   where is_terminal <> (ended_at is not null);
+  if disagreeing > 0 then
+    raise exception 'common tables: % games where is_terminal disagrees with ended_at', disagreeing;
+  end if;
+end $$;
+
 -- ─── The reason pair and the outcome ───────────────────────
 -- `word` is today's stored reason; letterboxed stored none and kept flags
 -- instead. crosswords' and stackdown's compete wins also stored none
@@ -251,6 +282,23 @@ update common.game_players
  where conceded;
 
 -- ─── outcome and final_ranking, for every ended game ───────
+-- A player recorded as having won a game that was not won is a row to look
+-- at: the map below would rank them first in a game whose outcome says
+-- nobody was.
+do $$
+declare
+  disagreeing int;
+begin
+  select count(*) into disagreeing
+    from common.game_players gp
+    join common.games g on g.id = gp.game_id
+   where (gp.result ->> 'won')::boolean
+     and g.game_ended_outcome <> 'won';
+  if disagreeing > 0 then
+    raise exception 'common tables: % players marked won in a game that was not won', disagreeing;
+  end if;
+end $$;
+
 -- From `result.won` and the game's ending. A player whose `result` has no
 -- `won` (wordiply coop's `{finished: true}`, boggle coop's null, the old bee
 -- rows) takes the game's own outcome — never a compete game's `won`, which
