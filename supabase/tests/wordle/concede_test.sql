@@ -1,18 +1,18 @@
 -- cs-blessed-wordle
 
 -- ============================================================
--- Test: wordle.concede(target_game)  (elimination-game concede)
+-- Test: wordle.concede(p_game_id)  (elimination-game concede)
 -- ============================================================
 -- wordle is an ELIMINATION game (a player can be done — solved or out
--- of guesses — without the table ending), so it can't use the generic
--- common.concede. wordle.concede flips the shared conceded flag
--- (common._set_conceded) then re-runs its own terminal check
--- (_maybe_finish_compete), which counts a conceder as done; the ending it
--- hands to _finish_compete excludes them from the win. Covers:
+-- of guesses — without the table ending). wordle.concede records the
+-- concession through common._concede, which ends the game once everyone has
+-- conceded, then runs its own end check (_maybe_finish_compete), which counts
+-- a conceder as ended; the ranking _finish_compete passes leaves them
+-- unranked. Covers:
 --   1. A concede while an opponent still races keeps the game going, and the
 --      conceder's own next guess is refused
 --   2. When the last racer finishes, the game ends and the CONCEDER
---      forfeits (recorded a loss even though the game had a winner)
+--      forfeits (unranked and lost, though the game had a winner)
 --   3. Everyone conceding ends it as a collective loss (no winner), and the
 --      reason says everyone walked away — where a MIXED table, one quit and
 --      one played it out, reads as the guesses running out
@@ -40,20 +40,20 @@ select (wordle.create_game(
 
 reset role;
 create temp table tgt on commit drop as
-select target::text as w from wordle.games where id = (select id from g);
+select target::text as w from wordle.games where game_id = (select id from g);
 grant select on tgt to authenticated;
 
 -- ─── (1) ada concedes; bea is still racing → game continues ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select wordle.concede((select id from g));
 select is(
-  (select conceded from common.game_players
+  (select player_ended_reason from common.game_players
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'the conceder is marked conceded');
+  'conceded', 'the conceder has ended, by conceding');
 reset role;
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  false, 'the game continues while bea still races');
+  (select ended_at from common.games where id = (select id from g)),
+  null, 'the game continues while bea still races');
 
 -- A guess in flight when the concede committed (or a stale second tab) must
 -- not land: the conceder could otherwise solve and be recorded the winner.
@@ -69,20 +69,20 @@ reset role;
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select wordle.submit_guess((select id from g), (select w from tgt));
 reset role;
+select isnt(
+  (select ended_at from common.games where id = (select id from g)),
+  null, 'the game ends when the last racer finishes');
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  true, 'the game ends when the last racer finishes');
+  (select game_ended_reason || '/' || game_ended_outcome from common.games where id = (select id from g)),
+  'reached_goal/won', 'the last racer''s solve ends it, and there is a winner');
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won_compete', 'there is a winner');
-select is(
-  (select result->>'won' from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  'true', 'bea wins');
+  '1/won', 'bea wins');
 select is(
-  (select result->>'won' from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'false', 'ada (conceded) forfeits — recorded a loss');
+  'unranked/lost', 'ada (conceded) forfeits — unranked, lost');
 
 -- ─── (3) both players concede → collective loss, no winner ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -93,30 +93,27 @@ select (wordle.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete')->'data'->>'id')::uuid as id;
 select wordle.concede((select id from g2)); -- ada out, bea still racing
-reset role;
--- The row's physical address before the ending: any write to it moves it, and
--- a write is what wakes useGame's subscription so the answer reaches the board.
-create temp table g2_before on commit drop as
-select ctid::text as at from wordle.games where id = (select id from g2);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select wordle.concede((select id from g2)); -- last racer out
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'lost_compete', 'everyone conceding → no winner (lost_compete)');
-select isnt(
-  (select ctid::text from wordle.games where id = (select id from g2)),
-  (select at from g2_before),
-  'the ending concede writes wordle.games, so open boards re-read and can reveal the answer');
+  (select game_ended_outcome from common.games where id = (select id from g2)),
+  'lost', 'everyone conceding → no winner, a collective loss');
+-- common._concede ends the game; the builder must still run after it, so the
+-- page's copies catch up with the ending.
 select is(
-  (select status->>'winner_user_id' from common.games where id = (select id from g2)),
+  (select player_status->>'player_ended_reason' from common.game_players
+    where game_id = (select id from g2) and user_id = 'bea22222-2222-2222-2222-222222222222'),
+  'conceded', 'the ending concede runs the builder: the last conceder''s player_status says conceded');
+select is(
+  (select clubpage_info->>'winner_user_id' from common.games where id = (select id from g2)),
   null, 'no winner recorded when all conceded');
--- The two ways a race ends with nobody winning both write lost_compete; the
--- reason is what lets the club list tell "everyone burned their guesses" from
--- "everyone walked away".
+-- The two ways a race ends with nobody winning are both `lost`; the reason is
+-- what lets the club list tell "everyone burned their guesses" from "everyone
+-- walked away".
 select is(
-  (select status->>'reason' from common.games where id = (select id from g2)),
-  'conceded', 'an all-conceded race is labeled conceded, not exhausted');
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g2)),
+  'conceded/conceded', 'an all-conceded race ends conceded, not exhausted');
 
 -- ─── (3b) a MIXED table: ada concedes, bea burns her budget → exhausted ───
 -- Somebody played it to the end, so the race did not end by everyone walking
@@ -130,7 +127,7 @@ select (wordle.create_game(
   'compete')->'data'->>'id')::uuid as id;
 reset role;
 create temp table tgt3 on commit drop as
-select target::text as w from wordle.games where id = (select id from g3);
+select target::text as w from wordle.games where game_id = (select id from g3);
 create temp table valw3 on commit drop as
 select word, row_number() over (order by word) as rn
   from common.words
@@ -147,13 +144,13 @@ select wordle.submit_guess((select id from g3), (select word from valw3 where rn
 select wordle.submit_guess((select id from g3), (select word from valw3 where rn = 5));
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g3)),
-  'lost_compete', 'mixed table: the last racer running out ends it with no winner');
+  (select game_ended_outcome from common.games where id = (select id from g3)),
+  'lost', 'mixed table: the last racer running out ends it with no winner');
 select is(
-  (select status->>'reason' from common.games where id = (select id from g3)),
-  'exhausted', 'mixed table: one quit and one ran out reads exhausted, not conceded');
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g3)),
+  'resource_exhausted/exhausted', 'mixed table: one quit and one ran out reads exhausted, not conceded');
 select is(
-  (select status->>'winner_user_id' from common.games where id = (select id from g3)),
+  (select clubpage_info->>'winner_user_id' from common.games where id = (select id from g3)),
   null, 'mixed table: nobody won');
 
 -- ─── (4) concede is rejected in coop ───

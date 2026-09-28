@@ -5,7 +5,7 @@
 -- ============================================================
 -- The Restart action. Resets the working state on the SAME game row — the frozen puzzle (target / budgets) stays, everything
 -- the players did is wiped, and the target re-shields (it's gated on
--- is_terminal, which the reset clears). Available from a finished game
+-- ended_at, which the reset clears). Available from a finished game
 -- OR mid-game; any game player may call it; a non-player is rejected.
 
 begin;
@@ -29,11 +29,11 @@ select (wordle.create_game(
 
 -- Five distinct valid guesses that miss the target (read back as the
 -- superuser — the target is a hidden column), burning the whole budget
--- → a real coop LOSS: guess rows, guesses_used=5, terminal, target
+-- → a real coop LOSS: guess rows, guesses_used=5, ended, target
 -- revealed. The full state a replay must undo.
 reset role;
 create temp table tgt on commit drop as
-select target::text as w from wordle.games where id = (select id from g1);
+select target::text as w from wordle.games where game_id = (select id from g1);
 create temp table valw on commit drop as
 select word, row_number() over (order by word) as rn
   from common.words
@@ -51,7 +51,7 @@ select wordle.submit_guess((select id from g1), (select word from valw where rn 
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g1)),
+  (select game_ended_outcome from common.games where id = (select id from g1)),
   'lost', 'coop: precondition — budget burned, game lost');
 -- A LOST game must NOT be titled with the answer: wordle hides it on a loss so
 -- Restart stays a genuine second try, and the club-list title would undo that
@@ -74,36 +74,39 @@ select wordle.replay_board((select id from g1));
 -- The replayer sees a clean slate (still as ada — games_state is the
 -- caller's view, which is exactly where the re-shield must hold).
 select is(
-  (select target from wordle.games_state where id = (select id from g1)),
-  null, 'coop: replay → the target is SHIELDED again (is_terminal cleared)');
+  (select target from wordle.games_state where game_id = (select id from g1)),
+  null, 'coop: replay → the target is SHIELDED again (ended_at cleared)');
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'playing', 'coop: replay → play_state back to playing');
-select is(
-  (select is_terminal from common.games where id = (select id from g1)),
-  false, 'coop: replay → is_terminal cleared');
-select is(
   (select ended_at from common.games where id = (select id from g1)),
-  null, 'coop: replay → ended_at cleared');
+  null, 'coop: replay → ended_at cleared, the game is played again');
 select is(
-  (select (status->>'guesses_used')::int from common.games where id = (select id from g1)),
-  0, 'coop: replay → status.guesses_used reset to 0');
+  (select array[game_ended_reason, game_ended_reason_detail, game_ended_outcome,
+                game_ended_by_user_id::text]
+     from common.games where id = (select id from g1)),
+  array[null, null, null, null]::text[], 'coop: replay → the ending''s reason, outcome and who ended it cleared');
+select is(
+  (select restart_count from common.games where id = (select id from g1)),
+  1, 'coop: replay → restart_count up by one');
+select is(
+  (select (clubpage_info->>'guesses_used')::int from common.games where id = (select id from g1)),
+  0, 'coop: replay → the club line''s guesses_used reset to 0');
 select is(
   (select count(*) from wordle.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the guess log is cleared');
 select is(
   (select count(*) from wordle.players
-     where game_id = (select id from g1)
-       and guesses_used = 0 and solved = false and solved_at is null),
-  2::bigint, 'coop: replay → both players zeroed + unsolved');
+     where game_id = (select id from g1) and guesses_used = 0),
+  2::bigint, 'coop: replay → both players zeroed');
 select is(
   (select count(*) from common.game_players
-     where game_id = (select id from g1) and result is null and not conceded),
-  2::bigint, 'coop: replay → per-player results + concede cleared');
+     where game_id = (select id from g1)
+       and player_ended_at is null and final_ranking is null and outcome is null
+       and solved_at is null),
+  2::bigint, 'coop: replay → per-player endings, results and solves cleared');
 select is(
-  (select target from wordle.games where id = (select id from g1))::text,
+  (select target from wordle.games where game_id = (select id from g1))::text,
   (select w from tgt), 'coop: replay → the SAME target survives (run it back)');
 select is(
   (select ticks from common.timers where game_id = (select id from g1)),
@@ -114,7 +117,7 @@ select is(
   (select title from common.games where id = (select id from g1)),
   'New game', 'coop: replay → the title stops advertising the answer');
 
--- ── Mid-game replay (no play_state guard) ────────────────────
+-- ── Mid-game replay (no game-ended guard) ────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select wordle.submit_guess((select id from g1), (select word from valw where rn = 1));
 select wordle.replay_board((select id from g1));

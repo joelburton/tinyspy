@@ -109,10 +109,12 @@ race back, board by board.
 A racer is **done** when they solve it, spend their budget, or concede, and
 the game marks them so on the common roster, which is what stops the
 presence-pause waiting on them (docs/common-schema.md → Not playing any more). The race
-ends when nobody is still racing. The winner is whoever solved in the fewest
-guesses, the earliest solve breaking a tie; a conceder forfeits any win, and
-a race nobody solved is a loss for everyone. A countdown running out resolves
-the race by the same rule among those who had solved it.
+ends when nobody is still racing. Every racer who solved it is ranked, by
+fewest guesses, the earliest solve breaking a tie: the first is the winner,
+the rest are `near`. A racer who didn't solve it is unranked, a conceder
+forfeits any win, and a race nobody solved is a loss for everyone. A
+countdown running out ranks the race the same way among those who had solved
+it.
 
 Compete needs an opposing **player**, which is why its manifest takes 2–6
 where coop takes 1–6. `create_game` checks both ends of that: a race with
@@ -121,65 +123,72 @@ player can do reaches the lower one — the club page hides a gametype the
 roster cannot fill, and the players picker refuses a short selection — so it
 is the server-side catch rather than a refusal anyone sees.
 
-### The play states
+### How a game ends
 
-Each mode writes its own pair, so a reader of `common.games.play_state` can
-tell which was played without joining anything:
+Whichever RPC ends the game passes `common.end_game` the reason pair and the
+rankings ([common-schema.md → `common.end_game`](../../docs/common-schema.md#commonend_game--the-one-way-a-game-ends)):
 
-| | coop | compete |
+| the ending | reason / detail | ranked |
 |---|---|---|
-| the word found | `won` | `won_compete` |
-| the budget, or the clock, or everyone out | `lost` | `lost_compete` |
+| coop: the word found | `reached_goal` / `solved` | every teammate 1 |
+| coop: the budget spent | `resource_exhausted` / `exhausted` | nobody |
+| compete: the last racer ends | that racer's act — `reached_goal` / `solved`, `resource_exhausted` / `exhausted`, or `conceded` / `conceded` | every solver, by fewest guesses then earliest solve |
+| the countdown | `timeout` / `timeout` | coop nobody; compete every solver |
+| somebody stopped it | `stopped` / `stopped` | nobody |
 
-Plus `playing`, and `ended` when somebody stopped it — neutral in every mode.
-WHY it ended is written into `common.games.status.reason` by the RPC that ends
-the game — `solved`, `exhausted`, `timeout`, `conceded` (every racer walked
-away), or `manual` — and the club-list label reads it. A compete win also
-freezes the winner's name and guess count onto `status`, since the winning
-number is a secret until then. The below-board verdict reads the same word, so
-the two surfaces cannot name the ending differently; what `lib/terminal.ts`
-works out for itself is a clock win from a count win, by comparing the players'
-rows, which `status` does not say.
+The game is `won` when anyone is ranked 1, so a race someone solved is won
+whichever act ended it; a Stop is neutral in every mode. The below-board
+verdict and the club line read the same columns, so the two surfaces cannot
+name the ending differently.
 
 ## Schema
 
-Three tables and a view, in `supabase/migrations/20260625000000_wordle.sql`
-(shape; the events rename is `20260917000001_wordle_events.sql`) and
-`supabase/sql/wordle.sql` (behavior).
+Three tables and a view: shape in `supabase/migrations/`, behavior in
+`supabase/sql/wordle.sql`.
 
 | | |
 |---|---|
-| `wordle.games` | one row per game: the `mode`, the `target`, the budget as `max_guesses`, and `legal_band` — stored so `submit_guess` reads the band off the row it locks. `answer_band` is not kept; it is spent picking the target |
-| `wordle.players` | one row per player: `guesses_used`, `solved`, `solved_at`. **Club-wide readable in both modes** — compete's Guesses strip and its winner are built on it. Coop keeps every row identical |
+| `wordle.games` | one row per game, keyed `game_id` to `common.games`: the `target`, the budget as `max_guesses`, and `legal_band` — stored so `submit_guess` reads the band off the row it locks. `answer_band` is not kept; it is spent picking the target |
+| `wordle.players` | one row per player: `guesses_used`. **Club-wide readable in both modes** — compete's Guesses strip is built on it. Coop keeps every row identical. A solve is `common.game_players.solved_at` |
 | `wordle.events` | the guess log, append-only: `word`, `colors`, `is_correct`; `kind` is `guess` and `took_turn` is true, since the table holds accepted guesses only and an accepted guess spends a go. Read `order by id` — that is the order of play |
-| `wordle.games_state` | the view the frontend reads: every readable column of `games`, plus `target` through `_target_for()`, which is null until the game is terminal |
+| `wordle.games_state` | the view the frontend reads: every readable column of `games`, plus `target` through `_target_for()`, which is null until the game has ended |
 
 **The target is hidden by a column GRANT, not by a policy.** A client asking
 `wordle.games` for `target` gets SQLSTATE 42501 whatever any policy says, and
-the view hands it over only once `is_terminal` is set. So the frontend never
+the view hands it over only once `ended_at` is set. So the frontend never
 holds the answer during play — not in a prop, not in a store, not there at all
-— and a Restart, which clears `is_terminal`, hides it again without anybody
+— and a Restart, which clears `ended_at`, hides it again without anybody
 asking. `_target_for` is where the mechanism is commented.
 
 **`events` carries the mode-aware policy**, and its third arm carries three
 rules at once: coop shows everyone every row, compete shows a racer only their
-own, and terminal opens everybody's. `players` needs none — a count and a
-solved flag are exactly what a rival is allowed to see.
+own, and the game's end opens everybody's. `players` needs none — a count is
+exactly what a rival is allowed to see.
+
+**The statuses** are written by `wordle._write_statuses` at create, at
+Restart and at the end of every move, each assigned whole with every key
+present:
+
+| status | keys |
+|---|---|
+| `game_status` | `max_guesses` |
+| each `player_status` | `guesses_used`, `player_ended_reason` |
+| `clubpage_info` | `guesses_used`, `max_guesses`, `answer_band`, `winner_user_id`, `winner_guesses_count` |
+
+The club line's `guesses_used` is coop's shared count and null in compete,
+where a live count would leak how close a racer is; the winner and their
+count are compete's, written once the race is won.
 
 **The club-list title is a readout of the latest guess**, recomputed by
 `_sync_title` after every write: coop's all game, compete's only once the race
 is over, since a racer's guesses are private until then. It spells the answer
 only when the last guess was the winning one, never of its own accord, so a
 lost game that the players may still replay blind is titled with its last
-guess. `status` carries the guess counters in coop and none in compete, where
-a live count would leak how close a racer is; the winner's count is written
-at terminal instead.
+guess.
 
-**Realtime is one room per game**, `wordle:<id>`, postgres-changes on the
-three tables, and every change refetches all three reads. `common.end_game`
-writes only `common.games`, so the two RPCs that end a game from outside a
-guess — the timeout and the manual end — touch `wordle.games` on the way out,
-which is what wakes the room to refetch the now-revealed target.
+**Every RPC that changes the game ends by running the builder**, whose write
+to `common.games` is what every page learns of the change from — the ending
+included, and with it the now-revealed target.
 
 ## RPCs
 
@@ -188,7 +197,7 @@ one answers [the envelope](../../docs/envelopes.md). The examples below are
 what `data` carries on an `ok`; `result` names the answer, and a call site
 picks its branch by that word and nothing else.
 
-### `wordle.create_game(target_club, setup, player_user_ids, mode)`
+### `wordle.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)`
 
 Starts a game on a fresh random word. It checks the setup — a guess budget of
 five to eight, an answer source, and a legal-guess band that must reach the
@@ -197,10 +206,8 @@ Wordle answer list when `answer_band` is `0`, otherwise any five-letter
 dictionary word of that difficulty band or easier. Either way the word is
 clean, and the frontend is never told it. It writes the `common.games` row
 titled `New game` (coop) or `New compete`, a `wordle.games` row holding the
-target and the legal band, one `wordle.players` row per player, and seeds the
-club-list readout — `{ mode, solved: false }` plus the guess counters in coop,
-where the count is the team's; compete's counters are each racer's own and
-never published. A coop game with `coop_style: 'turns'` also seats the turn
+target and the legal band, one `wordle.players` row per player, and writes the
+statuses. A coop game with `coop_style: 'turns'` also seats the turn
 order, starting at `first_turn_user_id`. Either mode takes up to six players
 and a race needs two; the server checks both.
 
@@ -208,8 +215,8 @@ and a race needs two; the server checks both.
 
 ```json
 {
-  "target_club": "moths",
-  "setup": {
+  "p_club_handle": "moths",
+  "p_setup": {
     "max_guesses": 6,
     "answer_band": 0,
     "legal_band": 4,
@@ -217,8 +224,8 @@ and a race needs two; the server checks both.
     "coop_style": "turns",
     "first_turn_user_id": "7b1e…"
   },
-  "player_user_ids": ["7b1e…", "c904…"],
-  "mode": "coop"
+  "p_player_user_ids": ["7b1e…", "c904…"],
+  "p_mode": "coop"
 }
 ```
 
@@ -232,7 +239,7 @@ source's own band — and the setup dialog will not offer Start below it.
 { "result": "created", "id": "3f2a…" }
 ```
 
-### `wordle.submit_guess(target_game, guess)`
+### `wordle.submit_guess(p_game_id, p_guess)`
 
 The only mid-game move, and the only thing that writes a `kind = 'guess'`
 row. The guess is folded to lowercase; five letters. Two refusals are an
@@ -249,15 +256,15 @@ that does not loses. In compete only the caller's row moves; a racer who has
 solved it or spent their budget is marked done for the shared roster, so the
 presence-pause stops waiting on them (docs/common-schema.md → Not playing any more), and
 the race ends when nobody is still racing — `_maybe_finish_compete` is the one
-place that rule is written — and `_finish_compete` writes the ending, picking
-the winner by fewest guesses, then earliest solve, conceders excluded. **The
+place that rule is written — and `_finish_compete` ranks it, every solver by
+fewest guesses, then earliest solve. **The
 answer is about the caller's guess
 and never about the game's fate**: the win or the loss reaches every client
 over realtime, and the reply's `terminal` flag only says whether this guess
 was the move that ended it. In turn-order coop an accepted guess that did not
 end the game hands the turn on.
 
-**Passed:** `{ "target_game": "3f2a…", "guess": "crane" }`
+**Passed:** `{ "p_game_id": "3f2a…", "p_guess": "crane" }`
 
 **Returned — kind: `guess`.** Four shapes; the fact only, and what each is
 worth — the words the two refusals show included — is the frontend's
@@ -281,12 +288,12 @@ all.
 
 `concede`, `stop_game`, `submit_timeout` and `replay_board` — the common shape
 every game has, doing here what they do everywhere. What is this game's:
-`concede` re-runs `_maybe_finish_compete`, since a drop-out can be the last
-racer, and a conceder forfeits any win; `submit_timeout` resolves a race by
-the same fewest-guesses rule among those who had solved it; and
-`replay_board` zeroes every player and clears the guess log, and the word
-re-hides on its own, because the view that reveals it reads the game's
-terminal flag and the reset clears that. Every one of them, and `submit_guess`
+`concede` runs `_maybe_finish_compete` after `common._concede`, since a
+drop-out can be the last racer, and a conceder forfeits any win;
+`submit_timeout` ranks a race by the same fewest-guesses rule among those who
+had solved it; and `replay_board` zeroes every player and clears the guess
+log, and the word re-hides on its own, because the view that reveals it reads
+the game's `ended_at` and the reset clears that. Every one of them, and `submit_guess`
 too, ends by recomputing the club-list title, which is a readout of the most
 recent guess: coop's all game, compete's only once the race is over, since a
 racer's guesses are private until then. It spells the answer only when the
@@ -439,11 +446,12 @@ winning guess or five that miss:
 |---|---|
 | `create_game_test` | both modes; every setup fault by the field it names; the target picked from the list or the band; `target` denied by the grant and null in the view mid-game; an empty word pool is a fault |
 | `gameplay_test` | `submit_guess` in coop: a short word is a fault; the two soft rejects spend nothing and write nothing; every accepted row carries colors and spent a go; every `ok` carries no outcome; the title reads the latest guess, then the answer on a win; a guess into a deleted game is the shared race, asked before membership |
-| `compete_test` | independent rows; an opponent's guesses hidden mid-race and open at terminal; the title and the status leak nothing mid-race; fewest guesses wins once everyone is done, the earlier solve breaking a tie |
+| `compete_test` | independent rows; an opponent's guesses hidden mid-race and open once it ends; the title and the club line leak nothing mid-race; every solver ranked once everyone is done, by fewest guesses, the earlier solve breaking a tie, and the last racer recorded as who ended it |
+| `statuses_test` | the exact key set of every status at the start, mid-game and at the end in both modes; the club line's winner and count; a rebuild drops a stale key and leaves `status_changed_at` alone; a Restart writes the statuses fresh |
 | `loss_test` | coop's last wrong guess is the loss and reveals the target; a racer spending their own budget ends nothing, and their next guess is a fault |
-| `concede_test` | a conceder counts as done and forfeits; the last one out ends the race; everyone out is `conceded`, a mixed table is `exhausted`; coop is refused |
+| `concede_test` | a conceder counts as done and forfeits, unranked; the last one out ends the race, and its reason is their act — everyone conceding is `conceded`, a concession then the other racer running out is `exhausted`; the builder runs after an ending concession; coop is refused |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, an accepted guess advances, a soft reject does not, free-for-all leaves the pointer null |
-| `stop_game_test` · `replay_test` | the timeout in both modes — coop's loss, a race ended as it stands with and without a solver, the winner's count named — and the manual end, each idempotent and each revealing the target; Restart undoes everything a loss wrote — rows, counts, the clock, the title, and the target's shield — and keeps the word |
+| `stop_game_test` · `replay_test` | the timeout in both modes — coop's loss, a race ended as it stands with and without a solver — and the Stop, each idempotent and each revealing the target; Restart undoes everything a loss wrote — rows, counts, the clock, the title, and the target's shield — and keeps the word |
 | `reveal_test` | the target unshields at terminal whatever the outcome; `_sync_title` never spells the answer of a game the players may still replay blind |
 | `legal_band_test` · `banded_answer_test` | the same word is `notAWord` under a strict band and legal under a loose one; an answer banded out from under a live game still solves it |
 

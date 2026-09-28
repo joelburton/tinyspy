@@ -31,7 +31,7 @@ select (wordle.create_game(
 -- Read the hidden target + a valid non-target word (as superuser).
 reset role;
 create temp table tgt on commit drop as
-select target::text as w from wordle.games where id = (select id from g);
+select target::text as w from wordle.games where game_id = (select id from g);
 create temp table valw on commit drop as
 select word from common.words
  where len = 5 and difficulty <= 4 and word <> (select w from tgt)
@@ -133,21 +133,23 @@ select is((select (res->'data'->>'terminal')::boolean from winres), true,
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won',
-  'coop solve → play_state won');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g)),
+  'reached_goal/solved/won',
+  'coop solve ends the game reached_goal, won');
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g) and (result->>'won')::boolean),
+    where game_id = (select id from g) and final_ranking = 1 and outcome = 'won'
+      and solved_at is not null),
   2::bigint,
-  'both players recorded as won');
+  'both players ranked 1, won, and solved');
 select is(
-  (select target from wordle.games_state where id = (select id from g))::text,
+  (select target from wordle.games_state where game_id = (select id from g))::text,
   (select w from tgt),
-  'target revealed once the game is terminal');
+  'target revealed once the game has ended');
 -- The solving guess is the most recent one, so the title now reads the answer
--- — by the ordinary latest-guess branch, not because the game is terminal
--- (reveal_test pins that a terminal alone never spells it).
+-- — by the ordinary latest-guess branch, not because the game has ended
+-- (reveal_test pins that an ending alone never spells it).
 select is(
   (select title from common.games where id = (select id from g)),
   (select upper(w) from tgt),

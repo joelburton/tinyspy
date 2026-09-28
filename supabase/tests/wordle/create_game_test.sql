@@ -31,12 +31,12 @@ select pg_temp.envelope_is(
   (select env from created),
   '{"type":"ok","data":{"result":"created"}}'::jsonb,
   'the answer names itself, so a call site has a case to assert');
-select is((select mode from wordle.games where id = (select id from g)), 'coop',
+select is((select mode from common.games where id = (select id from g)), 'coop',
   'game stored with mode coop');
-select is((select max_guesses from wordle.games where id = (select id from g)), 5,
+select is((select max_guesses from wordle.games where game_id = (select id from g)), 5,
   'max_guesses stored from setup');
 select is(
-  (select length(trim(target)) from wordle.games where id = (select id from g)),
+  (select length(trim(target)) from wordle.games where game_id = (select id from g)),
   5, 'a 5-letter target was picked');
 select is(
   (select count(*) from wordle.players where game_id = (select id from g)),
@@ -45,17 +45,17 @@ select is(
   (select max(guesses_used) from wordle.players where game_id = (select id from g)),
   0, 'guesses_used starts at 0');
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing', 'play_state is playing');
+  (select ended_at from common.games where id = (select id from g)),
+  null, 'the game is being played: it has not ended');
 
 -- ── The target is hidden mid-game ───────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ select target from wordle.games where id = %L::uuid $$, (select id from g)),
+  format($$ select target from wordle.games where game_id = %L::uuid $$, (select id from g)),
   '42501', null,
   'direct SELECT of wordle.games.target is denied (column-level grant)');
 select ok(
-  (select target from wordle.games_state where id = (select id from g)) is null,
+  (select target from wordle.games_state where game_id = (select id from g)) is null,
   'games_state.target is NULL while the game is in progress');
 
 -- ── Setup validation ────────────────────────────────────────
@@ -102,7 +102,7 @@ select set_config('request.jwt.claims', '', true);
 select ok(
   exists (
     select 1 from common.words
-     where word = trim((select target from wordle.games where id = (select id from g)))
+     where word = trim((select target from wordle.games where game_id = (select id from g)))
        and wordle),
   'answer_band 0 (default) draws the target from the curated Wordle list');
 
@@ -116,11 +116,11 @@ select (wordle.create_game(
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select legal_band from wordle.games where id = (select id from g1)),
+  (select legal_band from wordle.games where game_id = (select id from g1)),
   6, 'legal_band is stored on the games row');
 select ok(
   (select difficulty from common.words
-     where word = trim((select target from wordle.games where id = (select id from g1)))) <= 1,
+     where word = trim((select target from wordle.games where game_id = (select id from g1)))) <= 1,
   'answer_band 1 draws a band-1-or-easier target');
 
 -- Band validation (as a member).

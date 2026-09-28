@@ -5,7 +5,7 @@
 -- ============================================================
 -- The per-game wiring for the common turn primitive: create_game seats
 -- the rotation when setup.coop_style='turns', and submit_guess gates on
--- _require_turn + advances on an accepted, non-terminal guess.
+-- _require_turn + advances on an accepted guess that doesn't end the game.
 -- Covers:
 --   1. create_game seats the pointer on the chosen first player
 --   2. an out-of-turn guess is rejected ('not your turn')
@@ -55,7 +55,7 @@ select (wordle.create_game(
 -- target grant) — one per player so each accepted guess is 'incorrect'.
 reset role;
 create temp table tgt on commit drop as
-select target::text as w from wordle.games where id = (select id from g);
+select target::text as w from wordle.games where game_id = (select id from g);
 create temp table valws on commit drop as
 select word, row_number() over (order by word) as n
   from common.words

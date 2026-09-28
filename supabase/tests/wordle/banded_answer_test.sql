@@ -33,7 +33,7 @@ select (wordle.create_game(
 -- superuser — exactly what common.update_word does live, minus the gate.
 reset role;
 create temp table t on commit drop as
-select target from wordle.games where id = (select id from g);
+select target from wordle.games where game_id = (select id from g);
 update common.words set difficulty = 6
  where word = (select lower(target) from t);
 -- The temp table was made as postgres; ada reads it below.

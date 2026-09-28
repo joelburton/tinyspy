@@ -93,7 +93,7 @@ describe('a deleted game says so', () => {
       'waffle.submit_timeout',
       'wordiply.replay_board', 'wordiply.stop_game', 'wordiply.submit_guess',
       'wordiply.submit_timeout',
-      'wordle.replay_board', 'wordle.stop_game', 'wordle.submit_guess',
+      'wordle.concede', 'wordle.replay_board', 'wordle.stop_game', 'wordle.submit_guess',
       'wordle.submit_timeout',
       'wordwheel.replay_board', 'wordwheel.stop_game', 'wordwheel.submit_timeout',
       'wordwheel.submit_word',

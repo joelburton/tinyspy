@@ -1,52 +1,73 @@
 -- cs-blessed-wordle
 
 -- ============================================================
--- wordle — the REPEATABLE half
+-- wordle
 -- ============================================================
--- Functions, views, RLS policies, triggers and grants for wordle. Everything
--- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
--- delta. Edit it in place forever; it never becomes a migration.
+-- What the frontend calls:
 --
--- Its other half is the one-shot schema migration
--- `supabase/migrations/20260625000000_wordle.sql` — tables, constraints, indexes,
--- the Realtime publication and seed rows. That one is applied once and then
--- frozen, because `alter table` cannot be re-run.
+--   create_game     picks a hidden five-letter word and starts the game
+--   submit_guess    guesses a word; a legal guess is colored against the
+--                   answer and spends one of the budget
+--   concede         a racer drops out of a compete game
+--   stop_game       stops the game for everyone, with no result
+--   submit_timeout  ends the game when the countdown runs out
+--   replay_board    restarts the same word from scratch
 --
--- Order is load-bearing: a policy can only reference a function that already
--- exists, so statements stay in the order they were written. See
+-- and the view `games_state`, the game row with the answer once it has ended.
+--
+-- What is particular to wordle (src/wordle/doc.md has the rest):
+--   - The answer is hidden by a column grant: no client can select `target`,
+--     and `games_state` hands it over only once the game has ended.
+--   - A guess that isn't a word, or repeats one, costs nothing: it is an `ok`
+--     that names the refusal, and no row is written.
+--   - Coop shares one board and one budget. A compete race plays out: each
+--     racer plays their own board until they solve, run out, or concede, and
+--     the ranking is fewest guesses, then earliest solve. A timeout ranks
+--     whoever had solved.
+--   - The title is a readout (`_sync_title`): coop's latest guess; compete
+--     keeps a placeholder until the race ends, since guesses are private.
+--   - Guesses are the one mode-aware read: coop sees everyone's, compete only
+--     your own until the game ends.
+--
+-- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
 -- ============================================================
 
 grant usage on schema wordle to authenticated;
 
 -- Column-level grant: everything EXCEPT `target`, the secret, and
--- `legal_band`, which the frontend reads off `setup` instead. The presence
--- of any column grant flips the table from "all columns visible" to "only
--- granted columns," so we enumerate the safe ones. games_state exposes
--- the target conditionally via a SECURITY DEFINER helper.
+-- `legal_band`, which only submit_guess reads. The presence of any column
+-- grant flips the table from "all columns visible" to "only granted columns,"
+-- so we enumerate the safe ones. games_state exposes the target conditionally
+-- via a SECURITY DEFINER helper.
 grant select
-  (id, club_handle, mode, max_guesses, created_at)
+  (game_id, max_guesses)
   on wordle.games to authenticated;
 -- Read gating: any club member can read any of the club's games
 -- (viewing is club-gated; acting is player-gated in the RPCs).
 drop policy if exists games_select on wordle.games;
 create policy games_select on wordle.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (
+    exists (
+      select 1 from common.games cg
+       where cg.id = games.game_id
+         and common.is_club_member(cg.club_handle)
+    )
+  );
 
 grant select on wordle.players to authenticated;
--- Club-member-wide read: an opponent's guesses_used / solved is visible
--- (the compete progress strip), but their actual guesses are gated on
--- the wordle.events table below.
+-- Club-member-wide read: an opponent's guesses_used is visible (the compete
+-- progress strip), but their actual guesses are gated on the wordle.events
+-- table below.
 drop policy if exists players_select on wordle.players;
 create policy players_select on wordle.players
   for select to authenticated
   using (
     exists (
-      select 1 from wordle.games g
-       where g.id = players.game_id
-         and common.is_club_member(g.club_handle)
+      select 1 from common.games cg
+       where cg.id = players.game_id
+         and common.is_club_member(cg.club_handle)
     )
   );
 
@@ -60,40 +81,44 @@ create policy events_select on wordle.events
   for select to authenticated
   using (
     exists (
-      select 1 from wordle.games wg
-       join common.games cg on cg.id = wg.id
-       where wg.id = events.game_id
-         and common.is_club_member(wg.club_handle)
+      select 1 from common.games cg
+       where cg.id = events.game_id
+         and common.is_club_member(cg.club_handle)
          and (
-               wg.mode = 'coop'
+               cg.mode = 'coop'
             or events.user_id = (select auth.uid())
-            or cg.is_terminal
+            or cg.ended_at is not null
              )
     )
   );
 
+drop view if exists wordle.games_state;
+drop function if exists wordle._target_for(uuid);
+
 -- ============================================================
--- Hidden-answer helper (SECURITY DEFINER) + read view
+-- wordle._target_for
 -- ============================================================
--- _target_for reveals the target only once the game is terminal (the
--- end-of-game reveal). Runs as definer so it can read the
--- grant-hidden `target` column; the security_invoker view calls it as
--- the caller (so auth.uid() is real) and base-table RLS gates rows.
-create or replace function wordle._target_for(g_id uuid)
+-- The answer once the game has ended (the end-of-game reveal), null while it
+-- is played. Runs as definer so it can read the grant-hidden `target`
+-- column; the security_invoker view calls it as the caller (so auth.uid() is
+-- real) and base-table RLS gates rows.
+create or replace function wordle._target_for(p_game_id uuid)
 returns text
 language sql
 stable
 security definer
 set search_path = wordle, common, public, extensions
 as $$
-  select case when cg.is_terminal then wg.target::text else null end
+  select case when cg.ended_at is not null then wg.target::text else null end
     from wordle.games wg
-    join common.games cg on cg.id = wg.id
-   where wg.id = g_id;
+    join common.games cg on cg.id = wg.game_id
+   where wg.game_id = p_game_id;
 $$;
 
 revoke execute on function wordle._target_for(uuid) from public;
 grant execute on function wordle._target_for(uuid) to authenticated;
+
+drop function if exists wordle._sync_title(uuid);
 
 -- ============================================================
 -- wordle._sync_title — recompute the club-list title from state
@@ -113,10 +138,10 @@ grant execute on function wordle._target_for(uuid) to authenticated;
 -- of game is sitting there (the same choice waffle compete makes).
 --
 -- Derived rather than assigned, so it's correct after ANY transition —
--- a guess, a timeout, a manual end, a concede that finishes the race, or a
+-- a guess, a timeout, a Stop, a concede that finishes the race, or a
 -- replay that rewinds the board (which must un-tell the answer). Every one of
 -- those calls this instead of remembering its own formula.
-create or replace function wordle._sync_title(g_id uuid)
+create or replace function wordle._sync_title(p_game_id uuid)
 returns void
 language sql
 security definer
@@ -125,7 +150,7 @@ as $$
   update common.games cg
      set title = case
            -- The title NEVER spells the answer of its own accord — not on
-           -- is_terminal, which would spoil every lost game the players may
+           -- the game's end, which would spoil every lost game the players may
            -- still replay blind, and not on anybody's reveal, which is a LOCAL
            -- per-player display toggle (docs/ui.md → Terminal results) that a
            -- club-wide title cannot follow: it would tell Moth the word because
@@ -134,46 +159,133 @@ as $$
            --
            -- The most recent guess — a readout of what's been DONE,
            -- which is already on the board in front of the players.
-           when wg.mode = 'coop' then coalesce(
+           when cg.mode = 'coop' then coalesce(
              (select upper(gx.word::text)
                 from wordle.events gx
-               where gx.game_id = g_id
+               where gx.game_id = p_game_id
                order by gx.id desc
                limit 1),
              'New game')
            -- Compete stays deliberately blank WHILE PLAYING: a leader's guess
            -- would leak their progress to the club list. Once the race is over
            -- there's nothing left to protect, so it reads like coop's.
-           when cg.is_terminal then coalesce(
+           when cg.ended_at is not null then coalesce(
              (select upper(gx.word::text)
                 from wordle.events gx
-               where gx.game_id = g_id
+               where gx.game_id = p_game_id
                order by gx.id desc
                limit 1),
              'New compete')
            else 'New compete'
          end
-    from wordle.games wg
-   where cg.id = g_id and wg.id = g_id;
+   where cg.id = p_game_id;
 $$;
 
 revoke execute on function wordle._sync_title(uuid) from public;
 
-drop view if exists wordle.games_state;
+-- ============================================================
+-- wordle.games_state — the game row the frontend reads
+-- ============================================================
+-- The readable columns of wordle.games, plus the answer through
+-- `_target_for`, so it arrives the moment the game ends.
 create view wordle.games_state with (security_invoker = true) as
-  select wg.id,
-         wg.club_handle,
-         wg.mode,
+  select wg.game_id,
          wg.max_guesses,
-         wg.created_at,
-         wordle._target_for(wg.id) as target   -- NULL until terminal
+         wordle._target_for(wg.game_id) as target   -- NULL until the game ends
     from wordle.games wg;
 
 grant select on wordle.games_state to authenticated;
 
 -- ============================================================
--- wordle.create_game — mode is a positional arg
+-- wordle._write_statuses — the page's copies of the game
 -- ============================================================
+-- Writes `common.games.game_status`, every `common.game_players.player_status`
+-- and `common.games.clubpage_info` from wordle's own tables, assigning each
+-- whole (plans/common-tables.md → The statuses). Every key is always
+-- present, null when it has no value:
+--
+--   game_status    { max_guesses }
+--   player_status  { guesses_used, player_ended_reason }
+--                  — in coop `guesses_used` is the team's, the same on every
+--                  row
+--   clubpage_info  { guesses_used, max_guesses, answer_band,
+--                    winner_user_id, winner_guesses_count }
+--                  — `guesses_used` is coop's shared count and null in
+--                  compete, whose club line shows no progress; the winner
+--                  and their count are compete's, null until the end;
+--                  `answer_band` is the setup's, which the line names
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function wordle._write_statuses(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = wordle, common, public, extensions
+as $$
+declare
+  v_mode text;
+  v_max_guesses int;
+  v_answer_band int;
+  v_team_used int;
+  v_winner_id uuid;
+begin
+  select cg.mode, wg.max_guesses, coalesce((cg.setup->>'answer_band')::int, 0)
+    into v_mode, v_max_guesses, v_answer_band
+    from wordle.games wg
+    join common.games cg on cg.id = wg.game_id
+   where wg.game_id = p_game_id;
+
+  update common.game_players gp
+     set player_status = jsonb_build_object(
+           'guesses_used', wp.guesses_used,
+           'player_ended_reason', gp.player_ended_reason)
+    from wordle.players wp
+   where gp.game_id = p_game_id
+     and wp.game_id = gp.game_id
+     and wp.user_id = gp.user_id;
+
+  if v_mode = 'coop' then
+    select max(guesses_used) into v_team_used
+      from wordle.players where game_id = p_game_id;
+  else
+    select user_id into v_winner_id
+      from common.game_players
+     where game_id = p_game_id and final_ranking = 1
+     order by solved_at
+     limit 1;
+  end if;
+
+  update common.games
+     set game_status = jsonb_build_object('max_guesses', v_max_guesses),
+         clubpage_info = jsonb_build_object(
+           'guesses_used', v_team_used,
+           'max_guesses', v_max_guesses,
+           'answer_band', v_answer_band,
+           'winner_user_id', v_winner_id,
+           'winner_guesses_count', (select guesses_used from wordle.players
+                               where game_id = p_game_id and user_id = v_winner_id)),
+         status_changed_at = case when p_update_status_changed_at
+                                  then now() else status_changed_at end
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function wordle._write_statuses(uuid, boolean) from public;
+
+drop function if exists wordle.create_game(text, jsonb, uuid[], text);
+
+-- ============================================================
+-- wordle.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)
+-- ============================================================
+-- Picks a hidden target per `answer_band` (always clean — see the pick below),
+-- seeds one players row per player, and starts the game. `p_mode` ('coop' |
+-- 'compete') routes the gametype string and the working-state semantics.
+--
 -- Setup shape (server validates):
 --   { "max_guesses": 5..8 (default 6),
 --     "answer_band": 0..6 (0 = curated Wordle answer list; 1..6 =
@@ -184,19 +296,11 @@ grant select on wordle.games_state to authenticated;
 --     "coop_style": 'free-for-all' | 'turns' (coop only),
 --     "first_turn_user_id": a player (with 'turns'; stripped from the
 --       club's saved default) }
--- `mode` ('coop' | 'compete') routes the gametype string and the
--- working-state semantics. Picks a hidden target per `answer_band`
--- (always clean — see the pick below) and seeds one players row per player.
--- Dropped first because `create or replace` cannot change a function's return
--- type; `if exists` because this file is re-applied in full on every deploy,
--- so the drop has to be a no-op the second time.
-drop function if exists wordle.create_game(text, jsonb, uuid[], text);
-
 create or replace function wordle.create_game(
-  target_club     text,
-  setup           jsonb,
-  player_user_ids uuid[],
-  mode            text
+  p_club_handle     text,
+  p_setup           jsonb,
+  p_player_user_ids uuid[],
+  p_mode            text
 )
 returns jsonb
 language plpgsql
@@ -213,17 +317,17 @@ declare
   v_target        char(5);
   first_turn      uuid;
 begin
-  perform common.require_club_member(target_club);
+  perform common.require_club_member(p_club_handle);
   -- Must agree with numberOfPlayers in src/wordle/manifest.ts.
-  perform common.require_player_count_max(player_user_ids, 6);
+  perform common.require_player_count_max(p_player_user_ids, 6);
 
-  perform common.require_valid_mode(mode);
+  perform common.require_valid_mode(p_mode);
 
-  if mode = 'compete' then
+  if p_mode = 'compete' then
     -- Compete needs an opposing PLAYER. A solo race is just a coop game with
     -- a timer. The club page hides a gametype the roster cannot fill and the
     -- players picker refuses a short one; this guard is the server-side catch.
-    if coalesce(array_length(player_user_ids, 1), 0) < 2 then
+    if coalesce(array_length(p_player_user_ids, 1), 0) < 2 then
       raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN498', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
@@ -231,7 +335,7 @@ begin
   end if;
 
   -- ─── Validate setup.max_guesses ──────────────────────────
-  s_max_guesses := coalesce((setup->>'max_guesses')::int, 6);
+  s_max_guesses := coalesce((p_setup->>'max_guesses')::int, 6);
   if s_max_guesses < 5 or s_max_guesses > 8 then
     raise exception 'BUG: guess budget of %', s_max_guesses
       using errcode = 'PN053', hint = 'fault', column = '_',
@@ -245,13 +349,13 @@ begin
   -- (0 is not a real band, but every word on the list is at band 2 or
   -- easier), else answer_band. The frontend's `answerMaxBand` (lib/setup.ts)
   -- holds the full explanation.
-  s_answer_band := coalesce((setup->>'answer_band')::int, 0);
+  s_answer_band := coalesce((p_setup->>'answer_band')::int, 0);
   if s_answer_band < 0 or s_answer_band > 6 then
     raise exception 'BUG: answer band of %', s_answer_band
       using errcode = 'PN054', hint = 'fault', column = '_',
       detail = 'setup.answer_band must be 0..6';
   end if;
-  s_legal_band := coalesce((setup->>'legal_band')::int, 4);
+  s_legal_band := coalesce((p_setup->>'legal_band')::int, 4);
   if s_legal_band < 1 or s_legal_band > 6 then
     raise exception 'BUG: legal-guess band of %', s_legal_band
       using errcode = 'PN055', hint = 'fault', column = '_',
@@ -269,7 +373,7 @@ begin
       detail = 'legal_band must be >= the answer band';
   end if;
 
-  perform common.require_valid_timer(setup->'timer');
+  perform common.require_valid_timer(p_setup->'timer');
 
   -- ─── Pick a random target ────────────────────────────────
   -- BOTH branches use the app-wide CLEAN filter — `slur = 0 AND crude = 0 AND
@@ -315,19 +419,20 @@ begin
     -- race (its guesses are private), so the label may as well say which kind
     -- of game is sitting there. The brand is shown from the FE manifest, not
     -- stored.
-    -- saved_default strips first_turn_user_id (the turn-order "who goes first"
-    -- pick is a per-game choice, not a per-club preference; coop_style rides).
-    target_club, 'wordle_' || mode, player_user_ids,
-    case mode when 'coop' then 'New game' else 'New compete' end, setup,
-    setup - 'first_turn_user_id'
+    -- The saved default strips first_turn_user_id (the turn-order "who goes
+    -- first" pick is a per-game choice, not a per-club preference; coop_style
+    -- rides).
+    p_club_handle, 'wordle_' || p_mode, p_mode, p_player_user_ids,
+    case p_mode when 'coop' then 'New game' else 'New compete' end, p_setup,
+    p_setup - 'first_turn_user_id'
   );
 
   -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common
   -- rotation so submit_guess gates each guess. Free-for-all / compete leave the
   -- pointer null (inert). Runs after common.create_game seeds game_players.
-  if mode = 'coop' and setup->>'coop_style' = 'turns' then
-    first_turn := (setup->>'first_turn_user_id')::uuid;
-    if first_turn is null or not (first_turn = any(player_user_ids)) then
+  if p_mode = 'coop' and p_setup->>'coop_style' = 'turns' then
+    first_turn := (p_setup->>'first_turn_user_id')::uuid;
+    if first_turn is null or not (first_turn = any(p_player_user_ids)) then
       raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN058', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
@@ -335,25 +440,13 @@ begin
     perform common._assign_turn_order(new_id, first_turn);
   end if;
 
-  insert into wordle.games (id, club_handle, mode, target, max_guesses, legal_band)
-  values (new_id, target_club, mode, v_target, s_max_guesses, s_legal_band);
+  insert into wordle.games (game_id, target, max_guesses, legal_band)
+  values (new_id, v_target, s_max_guesses, s_legal_band);
 
   insert into wordle.players (game_id, user_id)
-  select new_id, uid from unnest(player_user_ids) uid;
+  select new_id, uid from unnest(p_player_user_ids) uid;
 
-  -- The listing-label payload. The guess COUNTERS are coop-only: compete
-  -- deliberately never updates them (a live count leaks how close a racer is —
-  -- see submit_guess), so seeding them there would leave a permanent 0 for a
-  -- label to read as fact. Absent is honest; the label omits what isn't there.
-  perform common.update_state(
-    new_id,
-    'playing',
-    jsonb_build_object('mode', mode, 'solved', false)
-      || case when mode = 'coop'
-              then jsonb_build_object('max_guesses', s_max_guesses, 'guesses_used', 0)
-              else '{}'::jsonb
-         end
-  );
+  perform wordle._write_statuses(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The name is here even
   -- though this is the only `ok` — a call site cannot assert a case the payload
@@ -377,137 +470,102 @@ $$;
 revoke execute on function wordle.create_game(text, jsonb, uuid[], text) from public;
 grant execute on function wordle.create_game(text, jsonb, uuid[], text) to authenticated;
 
+drop function if exists wordle._finish_compete(uuid, boolean);
+
 -- ============================================================
 -- wordle._finish_compete — end a compete game, whatever ended it
 -- ============================================================
--- The ONE place a race's ending is written: the winner, every player's
--- result, the play state and the status. Two callers — _maybe_finish_compete
--- when nobody is still racing, submit_timeout when the clock runs out — and
--- neither builds any of it itself, so the status cannot carry a key in one
--- ending and lack it in the other.
+-- The ONE place a race's ending is ranked. Two callers pass the act that
+-- ended it — _maybe_finish_compete the last racer's (a solve, a spent
+-- budget, a concession), submit_timeout the clock — and neither ranks
+-- anything itself.
 --
--- Winner = the player who solved in the FEWEST guesses (tie-break earliest
--- solved_at), EXCLUDING conceders — a drop-out forfeits any win. NULL if
--- nobody eligible solved → a collective loss.
---
--- `clock_ran_out` picks the reason: 'timeout' when the clock ended it, else
--- the race's own — 'solved' with a winner; with none, 'conceded' only when
--- EVERY player conceded, since a mixed table (one quit, one ran out) had
--- somebody play it to the end, which is 'exhausted'.
-create or replace function wordle._finish_compete(target_game uuid, clock_ran_out boolean)
+-- The ranking (docs/win-lose.md → final-ranking): every player who solved,
+-- by fewest guesses, then earliest solve; ties on both share a ranking. A
+-- player who didn't solve — out of guesses, conceded, or still going at the
+-- timeout — is unranked. Nobody solved is a collective loss.
+create or replace function wordle._finish_compete(
+  p_game_id uuid,
+  p_reason text,
+  p_reason_detail text,
+  p_ended_by_user_id uuid
+)
 returns void
 language plpgsql
 security definer
 set search_path = wordle, common, public, extensions
 as $$
 declare
-  winner_id      uuid;
-  player_results jsonb;
-  term_state     text;
-  v_reason       text;
+  v_rankings jsonb;
 begin
-  select wp.user_id into winner_id
-    from wordle.players wp
-    join common.game_players gp
-      on gp.game_id = wp.game_id and gp.user_id = wp.user_id
-   where wp.game_id = target_game and wp.solved and not gp.conceded
-   order by wp.guesses_used asc, wp.solved_at asc
-   limit 1;
-
-  select jsonb_object_agg(
-           wp.user_id::text,
-           jsonb_build_object(
-             'won',     coalesce(wp.user_id = winner_id, false),
-             'solved',  wp.solved,
-             'guesses', wp.guesses_used
-           )
-         )
-    into player_results
-    from wordle.players wp
-   where wp.game_id = target_game;
-
-  term_state := case when winner_id is not null
-                     then 'won_compete' else 'lost_compete' end;
-
-  select case
-           when clock_ran_out then 'timeout'
-           when winner_id is not null then 'solved'
-           when not exists (select 1 from common.game_players gp
-                             where gp.game_id = target_game and not gp.conceded)
-             then 'conceded'
-           else 'exhausted'
-         end
-    into v_reason;
+  select coalesce(jsonb_object_agg(user_id::text, ranking), '{}'::jsonb)
+    into v_rankings
+    from (
+      select gp.user_id,
+             rank() over (order by wp.guesses_used, gp.solved_at) as ranking
+        from wordle.players wp
+        join common.game_players gp
+          on gp.game_id = wp.game_id and gp.user_id = wp.user_id
+       where wp.game_id = p_game_id and gp.solved_at is not null
+    ) ranked;
 
   perform common.end_game(
-    target_game, term_state,
-    jsonb_build_object('mode', 'compete', 'reason', v_reason,
-                       'winner_user_id', winner_id,
-                       'winner_username', (select username from common.profiles where user_id = winner_id),
-                       -- The WINNER's own count. `guesses_used` in a compete
-                       -- status is meaningless (each racer has their own, and
-                       -- publishing a live one would leak how close they are),
-                       -- so the club-list label needs the winning number named
-                       -- separately — at terminal, when it's no longer a secret.
-                       'winner_guesses', (select wp.guesses_used from wordle.players wp
-                                           where wp.game_id = target_game
-                                             and wp.user_id = winner_id)),
-    player_results
+    p_game_id, p_reason, p_reason_detail, p_ended_by_user_id,
+    p_is_no_result => false,
+    p_final_rankings => v_rankings
   );
-
-  -- Wake the boards: every way a race ends passes through here, and the last
-  -- concede writes no wordle row of its own — without this, open boards never
-  -- re-read and the answer never reaches Reveal
-  -- (src/guards/endingTouchesGame.test.ts).
-  update wordle.games set club_handle = club_handle where id = target_game;
 end;
 $$;
 
-revoke execute on function wordle._finish_compete(uuid, boolean) from public;
+revoke execute on function wordle._finish_compete(uuid, text, text, uuid) from public;
+
+drop function if exists wordle._maybe_finish_compete(uuid);
 
 -- ============================================================
 -- wordle._maybe_finish_compete — end the compete game if it's over
 -- ============================================================
--- A compete game ends when NO player is still racing. A player is
--- racing while they're not conceded, not solved, and have guesses
--- left. Shared by submit_guess (a guess can be the last move) and
--- wordle.concede (a drop-out can be — if everyone else already
--- finished, the concede is what empties the racing set). The ending
--- itself is _finish_compete's.
+-- A compete game ends when NO player is still racing — every one has ended,
+-- by solving, running out of guesses, or conceding. Shared by submit_guess
+-- (a guess can be the last move) and wordle.concede (a drop-out can be — if
+-- everyone else already finished, the concede is what empties the racing
+-- set). The act passed is the last racer's, and becomes the game's reason
+-- (plans/common-tables.md → The game's reason is the act that ended the game).
+-- Everyone conceding is `common._concede`'s ending, so this skips a game
+-- that has already ended.
 --
--- Returns true when it ended the game (submit_guess surfaces this as
--- its `terminal` flag), false when someone is still racing.
-create or replace function wordle._maybe_finish_compete(target_game uuid)
+-- Returns true when it ended the game (submit_guess surfaces this as its
+-- `terminal` flag), false when someone is still racing.
+create or replace function wordle._maybe_finish_compete(
+  p_game_id uuid,
+  p_reason text,
+  p_reason_detail text,
+  p_ended_by_user_id uuid
+)
 returns boolean
 language plpgsql
 security definer
 set search_path = wordle, common, public, extensions
 as $$
-declare
-  v_max int;
 begin
-  select max_guesses into v_max from wordle.games where id = target_game;
+  if (select ended_at from common.games where id = p_game_id) is not null then
+    return false;
+  end if;
 
-  -- Anyone still racing? (not conceded, not solved, guesses left)
   if exists (
-    select 1
-      from wordle.players wp
-      join common.game_players gp
-        on gp.game_id = wp.game_id and gp.user_id = wp.user_id
-     where wp.game_id = target_game
-       and not gp.conceded
-       and not wp.solved
-       and wp.guesses_used < v_max
+    select 1 from common.game_players
+     where game_id = p_game_id and player_ended_at is null
   ) then
     return false;
   end if;
 
-  perform wordle._finish_compete(target_game, false);
+  perform wordle._finish_compete(p_game_id, p_reason, p_reason_detail, p_ended_by_user_id);
   return true;
 end;
 $$;
 
-revoke execute on function wordle._maybe_finish_compete(uuid) from public;
+revoke execute on function wordle._maybe_finish_compete(uuid, text, text, uuid) from public;
+
+drop function if exists wordle.submit_guess(uuid, text);
 
 -- ============================================================
 -- wordle.submit_guess — the core move
@@ -516,10 +574,15 @@ revoke execute on function wordle._maybe_finish_compete(uuid) from public;
 -- no row written) are the word already guessed on this board
 -- ('duplicate') and the word not in the legal slice ('notAWord'). A
 -- valid, fresh word is colored, logged, and counts against the budget. Hard
--- rejections (raised): not a player, game not playing, out of turn in a
+-- rejections (raised): not a player, the game has ended, out of turn in a
 -- turn-order coop game, a malformed entry (PN256 — the client refuses a
 -- short word before it calls), the caller already solved, or out of
 -- guesses.
+--
+-- The endings it can reach: coop solves (`reached_goal`/'solved', the team
+-- ranked 1) or runs out (`resource_exhausted`/'exhausted'); a compete guess
+-- that solves or spends the caller's last guess ends that player, and ends
+-- the race if nobody is left racing.
 --
 -- The `for update` lock on the games row serializes concurrent coop
 -- guesses against the shared budget.
@@ -530,10 +593,9 @@ revoke execute on function wordle._maybe_finish_compete(uuid) from public;
 -- four: what each is worth, and the words the two soft rejects show, is
 -- decided once in the frontend's lib/answer.ts (docs/outcomes.md → How a
 -- game does it), and gameplay_test.sql pins the nulls.
-drop function if exists wordle.submit_guess(uuid, text);
 create or replace function wordle.submit_guess(
-  target_game uuid,
-  guess       text
+  p_game_id uuid,
+  p_guess   text
 )
 returns jsonb
 language plpgsql
@@ -543,7 +605,8 @@ as $$
 declare
   caller_id          uuid;
   g_row              wordle.games%rowtype;
-  current_play_state text;
+  v_mode             text;
+  v_ended_at         timestamptz;
   norm               text;
   caller_used        int;
   caller_solved      boolean;
@@ -552,24 +615,23 @@ declare
   did_solve          boolean;
   new_used           int;
   out_terminal       boolean := false;
-  term_state         text;
-  player_results     jsonb;
+  v_rankings         jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- The row first: a friend may have deleted the game, and the delete takes
   -- every membership with it, so the membership gate would answer "You are
   -- not in this game" to a player who was (docs/envelopes.md → a missing game
   -- row is PN485).
-  select * into g_row from wordle.games where id = target_game for update;
+  select * into g_row from wordle.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('wordle');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common.require_game_player(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
+  select ended_at, mode into v_ended_at, v_mode
+    from common.games where id = p_game_id;
+  if v_ended_at is not null then
     -- A race: a teammate ended it, or the clock ran out, while this guess was
     -- in flight.
     perform common._raise_game_over();
@@ -578,22 +640,22 @@ begin
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
   -- (pointer null) and compete; raises 'not your turn' otherwise. Placed
   -- before the soft-rejects so an out-of-turn guess is rejected outright.
-  perform common._require_turn(target_game, caller_id);
+  perform common._require_turn(p_game_id, caller_id);
 
   -- A conceded player is out of the race — no more guesses. The FE hides the
   -- entry once you concede, so this only fires on a race (a guess in flight
   -- when the concede commits, or a stale second tab). Without it a conceder
   -- could solve and be recorded the winner. Coop never concedes, so it is a
   -- no-op there.
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = caller_id) then
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
     perform common._raise_already_conceded();
   end if;
 
   -- ─── Malformed entry: a fault ────────────────────────────
   -- Not a soft reject: `doSubmit` refuses a short word before it calls, so a
   -- malformed one arriving means a broken client.
-  norm := lower(trim(coalesce(guess, '')));
+  norm := lower(trim(coalesce(p_guess, '')));
   if norm !~ '^[a-z]{5}$' then
     raise exception 'BUG: guess that was not five letters'
       using errcode = 'PN256', hint = 'fault', column = '_',
@@ -602,13 +664,16 @@ begin
 
   -- The caller's working state (coop rows are identical; compete is the
   -- caller's own).
-  select guesses_used, solved into caller_used, caller_solved
+  select guesses_used into caller_used
     from wordle.players
-   where game_id = target_game and user_id = caller_id;
+   where game_id = p_game_id and user_id = caller_id;
+  select solved_at is not null into caller_solved
+    from common.game_players
+   where game_id = p_game_id and user_id = caller_id;
   if caller_solved then
     -- A fault, in both modes, for the same reason as the budget guard below.
-    -- COOP: solving ENDS the game, so a later guess meets the play_state guard
-    -- forty lines above and reads "Game over" — this is unreachable there.
+    -- COOP: solving ENDS the game, so a later guess meets the ended check
+    -- above and reads "Game over" — this is unreachable there.
     -- COMPETE: it is your own row, and the board stays locked until that row
     -- lands, so getting here means a broken client or a stale second tab.
     raise exception 'Already solved'
@@ -617,7 +682,7 @@ begin
   end if;
   if caller_used >= g_row.max_guesses then
     -- COMPETE-ONLY in practice, and a fault. Spending the last COOP guess ends
-    -- the game, so a coop player who guesses again meets the play_state guard
+    -- the game, so a coop player who guesses again meets the ended check
     -- above and reads "Game over"; only compete keeps playing with an exhausted
     -- player at the table. There the budget is the caller's own and the board
     -- stays locked until their row lands, so reaching this means a broken
@@ -630,15 +695,15 @@ begin
   -- ─── Soft reject: duplicate (no burn) ────────────────────
   -- Coop: anyone's earlier guess on the shared board. Compete: the
   -- caller's own earlier guesses.
-  if g_row.mode = 'coop' then
+  if v_mode = 'coop' then
     select exists (
       select 1 from wordle.events gx
-       where gx.game_id = target_game and gx.word = norm
+       where gx.game_id = p_game_id and gx.word = norm
     ) into is_dup;
   else
     select exists (
       select 1 from wordle.events gx
-       where gx.game_id = target_game and gx.user_id = caller_id and gx.word = norm
+       where gx.game_id = p_game_id and gx.user_id = caller_id and gx.word = norm
     ) into is_dup;
   end if;
   if is_dup then
@@ -682,85 +747,65 @@ begin
   insert into wordle.events
     (game_id, user_id, word, colors, is_correct, kind, took_turn)
   values
-    (target_game, caller_id, norm, v_colors, did_solve, 'guess', true);
+    (p_game_id, caller_id, norm, v_colors, did_solve, 'guess', true);
 
-  if g_row.mode = 'coop' then
-    -- Lock-step: every player's row mirrors the shared count + solved.
+  if v_mode = 'coop' then
+    -- Lock-step: every player's row mirrors the shared count.
     update wordle.players
-       set guesses_used = new_used,
-           solved       = did_solve,
-           solved_at    = case when did_solve then now() else solved_at end
-     where game_id = target_game;
+       set guesses_used = new_used
+     where game_id = p_game_id;
 
     if did_solve then
-      term_state := 'won';
+      -- The team solves, so every teammate solved at this guess.
+      update common.game_players
+         set solved_at = now()
+       where game_id = p_game_id;
+      select jsonb_object_agg(user_id::text, 1) into v_rankings
+        from common.game_players where game_id = p_game_id;
+      perform common.end_game(
+        p_game_id, 'reached_goal', 'solved', caller_id,
+        p_is_no_result => false,
+        p_final_rankings => v_rankings
+      );
       out_terminal := true;
     elsif new_used >= g_row.max_guesses then
-      term_state := 'lost';
-      out_terminal := true;
-    end if;
-
-    if out_terminal then
-      select jsonb_object_agg(user_id::text, jsonb_build_object('won', did_solve))
-        into player_results
-        from common.game_players
-       where game_id = target_game;
-      -- Every terminal write states its `reason` explicitly: under the
-      -- merging common.end_game an omitted key inherits whatever was on the
-      -- row, so "no reason" can't mean "solved normally".
       perform common.end_game(
-        target_game, term_state,
-        jsonb_build_object('mode', 'coop', 'solved', did_solve,
-                           'reason', case when did_solve then 'solved' else 'exhausted' end,
-                           'guesses_used', new_used, 'max_guesses', g_row.max_guesses),
-        player_results
+        p_game_id, 'resource_exhausted', 'exhausted', caller_id,
+        p_is_no_result => false,
+        p_final_rankings => '{}'::jsonb
       );
-    end if;
-
-    -- Turn-order: an accepted, non-terminal coop guess hands the turn to the
-    -- next player (no-op for free-for-all). Skipped when this guess ended the
-    -- game (a won/lost board leaves the pointer as-is at terminal).
-    if not out_terminal then
-      perform common._advance_turn(target_game);
-      -- Keep the club-list readout current. Only the guess COUNT moves, so
-      -- that's all this states — common.update_state merges.
-      --
-      -- Coop only: compete's guesses are private until the end-of-game reveal
-      -- and this column is club-wide readable, so a shared count would leak
-      -- how close an opponent is.
-      perform common.update_state(
-        target_game, 'playing',
-        jsonb_build_object('guesses_used', new_used));
+      out_terminal := true;
+    else
+      -- Turn-order: an accepted, non-final coop guess hands the turn to the
+      -- next player (no-op for free-for-all).
+      perform common._advance_turn(p_game_id);
     end if;
   else
     -- Compete: apply to the caller's own row only.
     update wordle.players
-       set guesses_used = new_used,
-           solved       = did_solve,
-           solved_at    = case when did_solve then now() else solved_at end
-     where game_id = target_game and user_id = caller_id;
+       set guesses_used = new_used
+     where game_id = p_game_id and user_id = caller_id;
 
-    -- Solved, or out of guesses: either way this racer is done while the
+    -- Solved, or out of guesses: either way this racer has ended while the
     -- others play their boards out, so the common roster has to hear about it
-    -- — a player nothing is waiting for must not hold the presence-pause open
-    -- (see the flag's migration). The SOLVER is the common case here, and
-    -- `conceded` could never have carried it: a drop-out forfeits the win.
-    if did_solve or new_used >= g_row.max_guesses then
-      perform common._set_locally_terminal(target_game, caller_id);
+    -- — a player nothing is waiting for must not hold the presence-pause open.
+    if did_solve then
+      update common.game_players
+         set solved_at = now()
+       where game_id = p_game_id and user_id = caller_id;
+      perform common._set_player_ended(p_game_id, caller_id, 'reached_goal', 'solved');
+      out_terminal := wordle._maybe_finish_compete(p_game_id, 'reached_goal', 'solved', caller_id);
+    elsif new_used >= g_row.max_guesses then
+      perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'exhausted');
+      out_terminal := wordle._maybe_finish_compete(p_game_id, 'resource_exhausted', 'exhausted', caller_id);
     end if;
-
-    -- The game ends when EVERY player is done — solved, out of
-    -- guesses, or conceded (each player plays their board out even
-    -- once they can't win). Shared with wordle.concede, which also
-    -- has to run this check because a drop-out can be the move that
-    -- leaves nobody racing. Returns true when it ended the game.
-    out_terminal := wordle._maybe_finish_compete(target_game);
   end if;
 
   -- Club-list title: coop reads the guess just made, and a race that just
-  -- ended opens its readout. Runs after the terminal branches so it sees the
-  -- settled is_terminal.
-  perform wordle._sync_title(target_game);
+  -- ended opens its readout. Runs after the endings so it sees the settled
+  -- `ended_at`.
+  perform wordle._sync_title(p_game_id);
+  perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
 
   -- The fact alone. What an accepted guess shows is composed from the colors
   -- and the board, and what it is worth is lib/answer.ts's for the row this
@@ -787,44 +832,48 @@ $$;
 revoke execute on function wordle.submit_guess(uuid, text) from public;
 grant execute on function wordle.submit_guess(uuid, text) to authenticated;
 
--- ============================================================
--- wordle.concede — a player drops out of a compete race
--- ============================================================
--- The per-player quit (compete only — coop is a team, so it ends via
--- the shared Stop → common.end_game, never a concede). wordle is an
--- ELIMINATION game (a player can be "done" without the table ending),
--- so it can't use the generic common.concede: after flipping the
--- flag, it re-runs its own terminal check, which now counts a
--- conceder as done. The conceder takes a real loss; the others keep
--- racing (or, if this was the last racer, the game ends here).
 drop function if exists wordle.concede(uuid);
 
-create or replace function wordle.concede(target_game uuid)
+-- ============================================================
+-- wordle.concede — a racer drops out of a compete game
+-- ============================================================
+-- The per-player quit (compete only — coop is a team, so it ends via the
+-- shared Stop, never a concede). wordle is an ELIMINATION game (a player
+-- can be done without the table ending): `common._concede` records the
+-- concession and ends the game if everyone has conceded; otherwise the race
+-- ends here if every other racer has already solved or run out, with the
+-- concession as the act that ended it. The conceder takes a real loss; the
+-- others keep racing.
+create or replace function wordle.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = wordle, common, public, extensions
 as $$
 declare
+  caller_id uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common.require_compete((select mode from wordle.games where id = target_game));
-
-  -- Lock this game's wordle.games row FIRST so concede serializes against a
-  -- concurrent submit_guess (which also locks this row before common.games).
-  -- Without it concede locks only common.games (via _set_conceded) and a final
-  -- move locks wordle.games — they don't serialize, each reads the other's
+  -- Lock this game's wordle.games row FIRST so the concession serializes
+  -- against a concurrent submit_guess (which also locks this row before
+  -- common.games). Without it the two don't serialize, each reads the other's
   -- uncommitted "still racing" state (READ COMMITTED), both decline to end the
-  -- game, and it wedges in 'playing'. Same lock order as the move path (no
-  -- deadlock). Mirrors connections.concede.
-  perform 1 from wordle.games where id = target_game for update;
-  perform common._set_conceded(target_game);
-  perform wordle._maybe_finish_compete(target_game);
+  -- game, and it wedges. Same lock order as the move path (no deadlock).
+  perform 1 from wordle.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('wordle');
+  end if;
+
+  perform common.require_compete((select mode from common.games where id = p_game_id));
+
+  caller_id := common._concede(p_game_id);
+  perform wordle._maybe_finish_compete(p_game_id, 'conceded', 'conceded', caller_id);
   -- A concede can be the move that empties the racing set, ending the game —
   -- in which case the race's readout opens (compete's title holds its
   -- placeholder only while the race runs).
-  perform wordle._sync_title(target_game);
+  perform wordle._sync_title(p_game_id);
 
+  perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -840,17 +889,18 @@ $$;
 revoke execute on function wordle.concede(uuid) from public;
 grant execute on function wordle.concede(uuid) to authenticated;
 
+drop function if exists wordle.submit_timeout(uuid);
+
 -- ============================================================
 -- wordle.submit_timeout — countdown-timer expiry
 -- ============================================================
--- Fired by the FE when a countdown hits 0 (every player races to call
--- it). Idempotent on the play_state check. Coop: not solved → lost.
--- Compete: time's up — _finish_compete ends the race as it stands, the
--- winner being whoever solved in the fewest guesses (the same rule as when
--- every player is done) and the reason 'timeout' either way.
-drop function if exists wordle.submit_timeout(uuid);
-
-create or replace function wordle.submit_timeout(target_game uuid)
+-- Fired by the FE when a countdown hits 0 (every player races to call it);
+-- a second call finds the game ended and answers the game-over race. Coop:
+-- not solved → lost, nobody ranked. Compete: the race ends as it stands,
+-- ranking whoever had solved (_finish_compete's rule) — a timeout that
+-- ranks by goal. Who ended it is the turn-holder in turn-order coop, nobody
+-- otherwise.
+create or replace function wordle.submit_timeout(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -858,46 +908,39 @@ set search_path = wordle, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row              wordle.games%rowtype;
-  current_play_state text;
-  player_results     jsonb;
+  v_mode        text;
+  v_ended_at    timestamptz;
+  v_turn_holder uuid;
 begin
-  select * into g_row from wordle.games where id = target_game for update;
+  perform 1 from wordle.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('wordle');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common.require_game_player(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
+  select mode, ended_at, current_turn_user_id
+    into v_mode, v_ended_at, v_turn_holder
+    from common.games where id = p_game_id;
+  if v_ended_at is not null then
     perform common._raise_game_over();
   end if;
 
-  if g_row.mode = 'coop' then
-    select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
-      into player_results
-      from common.game_players
-     where game_id = target_game;
+  if v_mode = 'coop' then
     perform common.end_game(
-      target_game, 'lost',
-      jsonb_build_object('mode', 'coop', 'solved', false, 'reason', 'timeout'),
-      player_results
+      p_game_id, 'timeout', 'timeout', v_turn_holder,
+      p_is_no_result => false,
+      p_final_rankings => '{}'::jsonb
     );
   else
-    perform wordle._finish_compete(target_game, true);
+    perform wordle._finish_compete(p_game_id, 'timeout', 'timeout', null);
   end if;
 
   -- The game is over either way — the title re-reads the latest guess, which
   -- compete publishes only now.
-  perform wordle._sync_title(target_game);
+  perform wordle._sync_title(p_game_id);
 
-  -- Realtime touch — common.end_game writes common.games, not wordle.*,
-  -- so the FE's wordle.{games,...} subscription would never wake. A
-  -- no-op self-update produces a WAL entry it picks up, refetching
-  -- games_state (now revealing the target).
-  update wordle.games set club_handle = club_handle where id = target_game;
+  perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -913,17 +956,16 @@ $$;
 revoke execute on function wordle.submit_timeout(uuid) from public;
 grant execute on function wordle.submit_timeout(uuid) to authenticated;
 
--- ============================================================
--- wordle.stop_game — manual stop
--- ============================================================
--- The friends' explicit "we're done" action, in BOTH modes. Writes the
--- uniform neutral terminal 'ended' (nobody wins or loses), everyone
--- {"won": false}, status.reason = 'manual'. Any game player may fire
--- it; idempotent on the play_state check (a second click, or a race with
--- submit_timeout, answers a race — the work is already done).
 drop function if exists wordle.stop_game(uuid);
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists wordle.end_game(uuid);
 
-create or replace function wordle.stop_game(target_game uuid)
+-- ============================================================
+-- wordle.stop_game — the Stop
+-- ============================================================
+-- Any player stops the game for the whole table, in either mode. It is
+-- neutral: nobody won, nobody lost (docs/common-schema.md → Stop).
+create or replace function wordle.stop_game(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -931,41 +973,22 @@ set search_path = wordle, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  current_play_state text;
-  player_results     jsonb;
 begin
   -- Locked, so a Stop racing the winning move waits for it and then reads the
   -- game as over, rather than overwriting the win (docs/common-schema.md →
   -- Stop, step 1).
-  perform 1 from wordle.games where id = target_game for update;
+  perform 1 from wordle.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('wordle');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._stop(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
-    perform common._raise_game_over();
-  end if;
+  -- The game has ended, so a race's readout opens (see _sync_title — the
+  -- title never spells an answer nobody guessed).
+  perform wordle._sync_title(p_game_id);
 
-  select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
-    into player_results
-    from common.game_players
-   where game_id = target_game;
-  perform common.end_game(
-    target_game, 'ended',
-    jsonb_build_object('reason', 'manual'),
-    player_results
-  );
-
-  -- Terminal now, so a race's readout opens (see _sync_title — the title never
-  -- spells an answer nobody guessed).
-  perform wordle._sync_title(target_game);
-
-  -- Realtime touch (see submit_timeout).
-  update wordle.games set club_handle = club_handle where id = target_game;
+  perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -981,32 +1004,24 @@ $$;
 revoke execute on function wordle.stop_game(uuid) from public;
 grant execute on function wordle.stop_game(uuid) to authenticated;
 
--- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
-drop function if exists wordle.end_game(uuid);
+drop function if exists wordle.replay_board(uuid);
 
 -- ============================================================
 -- wordle.replay_board — restart this game from scratch
 -- ============================================================
--- The Restart action: reset the working state on the SAME game row. The frozen puzzle (target / max_guesses / legal_band
--- / mode) stays — the same word, played again; everything the players
--- did is wiped. Any game player may call it, from a finished game OR
--- mid-game (no play_state guard — it's a restart). Both modes reset
--- ALL players (a group "run it back", per the friends trust model).
+-- The Restart action: reset the working state on the SAME game row. The
+-- frozen puzzle (target / max_guesses / legal_band) stays — the same word,
+-- played again; everything the players did is wiped. Any game player may
+-- call it, from a finished game OR mid-game (no ended check — it's a
+-- restart). Both modes reset ALL players (a group "run it back", per the
+-- friends trust model).
 --
--- Resets the wordle-specific working state (players zeroed + unsolved,
--- the guess log cleared), then hands the common-layer reset to
--- common.reset_game (un-terminal, fresh initial status matching
--- create_game's, clear per-player results + concede). The target
--- re-hides on its own: _target_for gates on common.games.is_terminal,
--- which reset_game clears.
---
--- No realtime touch needed: the players update + events delete wake
--- useGame (subscribed to wordle.{games,players,events}), and
--- reset_game's common.games write wakes useCommonGame — the board,
--- log, and terminal state all reset live for every player.
-drop function if exists wordle.replay_board(uuid);
-
-create or replace function wordle.replay_board(target_game uuid)
+-- Resets the wordle-specific working state (players zeroed, the guess log
+-- cleared), then hands the common-layer reset to common.reset_game (the
+-- ending, each player's ending, solve and result). The target re-hides on
+-- its own: _target_for gates on common.games.ended_at, which reset_game
+-- clears.
+create or replace function wordle.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1014,13 +1029,12 @@ set search_path = wordle, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row wordle.games;
 begin
   -- FOR UPDATE: a replay racing a move must not interleave with it (the move
   -- RPCs lock the same row), or the reset could land on a half-applied move —
   -- a stray log row in the "fresh" game, or worse, an in-flight game-ENDING
-  -- move re-terminalling the board that was just reset.
-  select * into g_row from wordle.games where id = target_game for update;
+  -- move ending the board that was just reset.
+  perform 1 from wordle.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('wordle');
   end if;
@@ -1030,31 +1044,22 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common.require_game_player(p_game_id);
 
   update wordle.players
-     set guesses_used = 0,
-         solved = false,
-         solved_at = null
-   where game_id = target_game;
+     set guesses_used = 0
+   where game_id = p_game_id;
 
-  delete from wordle.events where game_id = target_game;
+  delete from wordle.events where game_id = p_game_id;
 
-  -- Same shape create_game seeds (counters coop-only) — a restart must land on
-  -- a status indistinguishable from a fresh game's.
-  perform common.reset_game(
-    target_game,
-    jsonb_build_object('mode', g_row.mode, 'solved', false)
-      || case when g_row.mode = 'coop'
-              then jsonb_build_object('max_guesses', g_row.max_guesses, 'guesses_used', 0)
-              else '{}'::jsonb
-         end
-  );
+  perform common.reset_game(p_game_id);
 
-  -- Back to "New game": the guess log is empty and reset_game cleared
-  -- is_terminal, so the title must stop advertising the answer (the whole
-  -- point of a replay is that the word is a secret again).
-  perform wordle._sync_title(target_game);
+  -- Back to "New game": the guess log is empty and reset_game cleared the
+  -- ending, so the title must stop advertising the answer (the whole point
+  -- of a replay is that the word is a secret again).
+  perform wordle._sync_title(p_game_id);
+
+  perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

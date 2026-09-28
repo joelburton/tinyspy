@@ -7,14 +7,14 @@
 -- stop_game_test covers the timeout loss. The natural Wordle loss — burn
 -- every guess without solving — was the remaining gap. This file pins:
 --
---   Coop: the 5th wrong guess (max_guesses=5) flips the shared board to
---   `lost` with everyone {won:false}, reveals the target, and a further
---   guess is a race ("Game over").
+--   Coop: the 5th wrong guess (max_guesses=5) ends the shared board
+--   `resource_exhausted`, lost, with nobody ranked, reveals the target, and a
+--   further guess is a race ("Game over").
 --
 --   Compete: a player who exhausts their OWN budget while an opponent is
 --   still playing does NOT end the game, and a further guess from that
 --   player is a fault ("No guesses left" — a guard only compete can reach;
---   in coop, exhaustion makes the game terminal first).
+--   in coop, exhaustion ends the game first).
 --
 -- Both games are created up front so we can read both random targets and
 -- pick guess words that miss BOTH — otherwise a guess could accidentally
@@ -50,8 +50,8 @@ select (wordle.create_game(
 -- the superuser (the targets are hidden columns).
 reset role;
 create temp table tgts on commit drop as
-select (select target::text from wordle.games where id = (select id from g_coop)) as coop_w,
-       (select target::text from wordle.games where id = (select id from g_comp)) as comp_w;
+select (select target::text from wordle.games where game_id = (select id from g_coop)) as coop_w,
+       (select target::text from wordle.games where game_id = (select id from g_comp)) as comp_w;
 create temp table valw on commit drop as
 select word, row_number() over (order by word) as rn
   from common.words
@@ -74,28 +74,29 @@ select wordle.submit_guess((select id from g_coop), (select word from valw where
 select is((select res->'data'->>'result' from c5), 'incorrect',
   'coop: the 5th wrong guess is still incorrect (no fluke solve)');
 select is((select (res->'data'->>'terminal')::boolean from c5), true,
-  'coop: exhausting the budget is terminal');
+  'coop: exhausting the budget ends the game');
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g_coop)),
-  'lost',
-  'coop: all guesses burned, none solved → play_state lost');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g_coop)),
+  'resource_exhausted/exhausted/lost',
+  'coop: all guesses burned, none solved → ended exhausted, lost');
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g_coop) and (result->>'won')::boolean),
-  0::bigint,
-  'coop loss: nobody is recorded as won');
+    where game_id = (select id from g_coop) and final_ranking is null and outcome = 'lost'),
+  2::bigint,
+  'coop loss: every player is unranked and lost');
 select is(
   (select max(guesses_used) from wordle.players where game_id = (select id from g_coop)),
   5,
   'coop: exactly max_guesses (5) were used');
 select is(
-  (select target from wordle.games_state where id = (select id from g_coop))::text,
+  (select target from wordle.games_state where game_id = (select id from g_coop))::text,
   (select coop_w from tgts),
-  'coop loss: the target is revealed post-terminal');
+  'coop loss: the target is revealed once the game has ended');
 
--- A further guess on the now-terminal game is rejected.
+-- A further guess on the ended game is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g_coop), (select word from valw where rn = 1)),
@@ -114,11 +115,11 @@ select wordle.submit_guess((select id from g_comp), (select word from valw where
 select is((select (res->'data'->>'terminal')::boolean from p5), false,
   'compete: one player exhausting her budget does NOT end the game (bea still playing)');
 
--- ada is out of guesses while the game is still 'playing'. In COMPETE the
+-- ada is out of guesses while the game is still being played. In COMPETE the
 -- budget is her own and the board stays locked until her row lands, so getting
 -- here means a broken client — a fault. Coop never reaches this guard: a
 -- teammate spending the last shared guess ends the game, and the next guess
--- meets the play_state guard as a race.
+-- meets the game-ended guard as a race.
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g_comp), (select word from valw where rn = 1)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN259",
