@@ -132,25 +132,40 @@ the 25-char board redundantly across a handful of rows; trivial.
 
 | table | purpose |
 |---|---|
-| `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (grant-hidden** — column-grant revoked; read only via
-`_solution_for`, which exposes it in coop always / compete post-terminal). The
-board (solution/scramble/par) is built on demand by the `waffle-build-board`
+| `waffle.games`, keyed `game_id` → `common.games(id)` | `board_at_setup` (the board as dealt, exposed), `par_swaps`, `max_swaps`, and **`solution` (grant-hidden** — column-grant revoked; read only via
+`_solution_for`, which exposes it in coop always / compete once the game has ended). The
+board (solution, dealt board, par) is built on demand by the `waffle-build-board`
 edge function and stored here, so the game is self-contained. There is **no**
-`waffle.puzzles` table — boards aren't pre-generated. |
-| `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
+`waffle.puzzles` table — boards aren't pre-generated. The mode is `common.games.mode`. |
+| `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts as `board_at_setup`), `swaps_used`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. A solve is `common.game_players.solved_at`. |
 | `waffle.events` PK `(id)`, a `bigint identity` | The move log, **both modes** (compete gained one 2026-08-02): one row per swap — `user_id`, `kind` ('swap' — the check allows no other value), `pos_a`/`pos_b`, `letter_a`/`letter_b` (the letters on those cells *before* the swap, so the entry is self-contained), `took_turn` (true on every row: only an accepted swap is written, and a swap spends one of the budget), `created_at`. Read `order by id` — one game-wide order, which in compete interleaves two players' swaps by when they happened. The caller's own count is `players.swaps_used`. RLS is mode-aware: see [The compete swap log](#the-compete-swap-log-and-why-it-is-private) below. |
 
 ### Views (`security_invoker`)
 
-- **`waffle.games_state`** — `mode`, `scramble`, `par_swaps`, `max_swaps`;
-  `solution` via the `SECURITY DEFINER` `_solution_for` helper — exposed in
-  **coop** always (the turn-history viewer needs it) and in **compete** only
-  once `common.games.is_terminal`.
-- **`waffle.players_state`** — `board`, `swaps_used`, `solved`, `solved_at`, **+
+- **`waffle.games_state`** — `game_id`, `board_at_setup`, `par_swaps`,
+  `max_swaps`; `solution` via the `SECURITY DEFINER` `_solution_for` helper —
+  exposed in **coop** always and in **compete** only once
+  `common.games.ended_at` is set.
+- **`waffle.players_state`** — `game_id`, `user_id`, `swaps_used`, `board`, **+
   computed `colors`** (a `SECURITY DEFINER` helper
-  `_player_colors_for(g_id, row_user)` that reads the hidden `games.solution`
-  and wraps the pure `board_colors(board, solution)`). Colors are visible
-  during play (they *are* the gameplay); the full solution is not.
+  `_player_colors_for(p_game_id, row_user)` that reads the hidden
+  `games.solution` and wraps the pure `board_colors(board, solution)`). Colors
+  are visible during play (they *are* the gameplay); the full solution is not.
+
+### The statuses
+
+Written by `waffle._write_statuses` at create, at Restart and at the end of
+every move, each assigned whole with every key present:
+
+| status | keys |
+|---|---|
+| `game_status` | `max_swaps`, `par_swaps` |
+| each `player_status` | `swaps_used`, `player_ended_reason` |
+| `clubpage_info` | `swaps_used`, `max_swaps`, `band` (the dictionary band, `setup.difficulty`), `winner_user_id`, `winner_swaps_count` |
+
+The club line's `swaps_used` is coop's shared count and null in compete, where
+a live count would leak how far along a racer is; the winner and their count
+are compete's, written once the race is won.
 
 ### The compete swap log, and why it is private
 
@@ -188,16 +203,17 @@ Two consequences worth knowing:
 
 Read gating on club membership (`common.is_club_member`), like every game. The
 mode-aware twist (spellingbee precedent): in **compete**, an opponent's
-`board`/`colors` are hidden mid-game — expose only their `swaps_used` + `solved`
-(a lean opponent-progress projection, like spellingbee's rank-only visibility) —
-and everything reveals post-terminal. **Coop** shows the shared board to all
+`board`/`colors` are hidden mid-game — expose only their `swaps_used` (a lean
+opponent-progress projection, like spellingbee's rank-only visibility) — and
+everything reveals once the game has ended. **Coop** shows the shared board to all
 members.
 
 ## RPCs
 
-- **`create_game(target_club, setup, player_user_ids, mode, board)`** —
-  sibling-manifest signature plus a `board` jsonb (`{solution, scramble,
-  par_swaps}`) built by the `waffle-build-board` edge function. Validates
+- **`create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)`** —
+  sibling-manifest signature plus a `p_board` jsonb (`{solution, scramble,
+  par_swaps}`, `scramble` being the dealt board) built by the
+  `waffle-build-board` edge function. Validates
   `require_club_member`, `require_player_count_max`, `require_valid_timer`;
   validates `setup.extra_swaps` (0..15, default 5) and `setup.difficulty` (band
   **1–6**, default 2 — the dialog's `DictBandField` offers the same full 1–6
@@ -205,20 +221,21 @@ members.
   interior cells, scramble is a rearrangement of the solution); stores it on
   `waffle.games`; sets `max_swaps = par_swaps + setup.extra_swaps`; seeds the
   title placeholder (see [Title formula](#title-formula)); seeds one
-  `waffle.players` row per player with `board = scramble`. Two common-layer
+  `waffle.players` row per player on the dealt board; writes the statuses. Two common-layer
   details: the saved per-club setup default is `setup - 'first_turn_user_id'`
   ("who goes first" is a per-game pick, not a club preference; `coop_style`
   rides along), and when `setup.coop_style = 'turns'` (coop only) it seats the
   common turn rotation via `common._assign_turn_order` — after validating that
   `setup.first_turn_user_id` is one of the players — so `submit_swap` can gate
   each swap.
-- **`submit_swap(game, pos_a, pos_b) → jsonb`** — the core move. Guards: the
-  game still exists, `require_game_player`, playing state, both positions filled
-  (non-hole) and distinct, swaps remaining. Then:
-  - **coop:** apply the swap to **all** players' rows (lock-step),
-    `swaps_used++`, and append a `waffle.events` log row (swapper, positions,
-    pre-swap letters).
-  - **compete:** apply to the caller's row only (no log row).
+- **`submit_swap(p_game_id, p_pos_a, p_pos_b) → jsonb`** — the core move. Guards: the
+  game still exists, `require_game_player`, the game not ended, both positions filled
+  (non-hole) and distinct, swaps remaining. Then it appends a `waffle.events`
+  log row (swapper, positions, pre-swap letters, the colors after), and:
+  - **coop:** applies the swap to **all** players' rows (lock-step),
+    `swaps_used++`.
+  - **compete:** applies it to the caller's row only; a racer who solves or
+    spends their last swap has ended (`_set_player_ended`).
   - Returns [an envelope](../envelopes.md) carrying `{ colors, swaps_used,
     solved, terminal }` in `data`, with **no outcome and no message**: an
     accepted swap shows the swapper nothing until the colors reach everyone
@@ -232,7 +249,7 @@ members.
     cannot produce them: `PN263` a square swapped with itself, `PN264` an empty
     square, `PN265` already solved and `PN266` no swaps left. The last two look
     like shared-budget races and are not — spending the last coop swap, or
-    solving, ENDS the game, so a later swap meets the play_state guard instead;
+    solving, ENDS the game, so a later swap meets the ended check instead;
     only compete keeps playing with a finished player at the table.
   - **Opt-in turn-by-turn coop** (setup `coop_style = 'turns'`): after the
     lock + caller, `submit_swap` gates on `common._require_turn`, and calls
@@ -240,51 +257,45 @@ members.
     guard reject (bad position, hole, out of swaps) or the swap that solves /
     exhausts the board. See [common-schema.md →
     Turn-order](../common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
-- **`submit_timeout(game)`** — only when a countdown timer is set; reuse the
-  spellingbee "realtime touch" pattern so the FE wakes up on expiry.
-- **`concede(game)`** — the compete "Concede" action-row button: a per-player "I
+- **`submit_timeout(p_game_id)`** — only when a countdown timer is set; see
+  [Terminal logic](#terminal-logic).
+- **`concede(p_game_id)`** — the compete "Concede" action-row button: a per-player "I
   quit, the others keep racing". waffle is an **elimination** game (a player is
-  done when solved or out of swaps without the table ending), so concede calls
-  `common._set_conceded` then re-runs `waffle._maybe_finish_compete`, which
-  counts a conceder as done and **forfeits their win** (fewest-swaps winner is
-  picked among solved, non-conceded players). The FE shows Concede in compete /
+  done when solved or out of swaps without the table ending), so concede locks
+  the game row, calls `common._concede` (which ends the game if everyone has
+  conceded), then runs `waffle._maybe_finish_compete`, which ends the race if
+  every other racer has already ended, with the concession as the act that
+  ended it. A conceder is never ranked. The FE shows Concede in compete /
   Stop in coop, marks a conceder "out" in the OpponentStrip, and folds them into
   the existing solved/out-of-swaps locally-terminal look. Full mechanism:
   [common-schema.md →
   Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
-- **`replay_board(game)`** — the **"Restart"** game-menu item (both modes, any
+- **`replay_board(p_game_id)`** — the **"Restart"** game-menu item (both modes, any
   state). Restarts the SAME board from scratch for everyone: resets every
-  `waffle.players` row to the scramble (`swaps_used=0`, unsolved), clears the
-  coop `waffle.events` log, and hands the common-layer reset to the new
-  `common.reset_game` helper (the inverse of `end_game` —
-  `play_state='playing'`, `is_terminal=false`, `ended_at=null`, fresh initial
-  `status`, clears every `game_players.{result, conceded, conceded_at}`, and
-  **zeroes the shared clock** — a timed game restarts from the full countdown;
+  `waffle.players` row to the dealt board (`swaps_used=0`), clears the
+  `waffle.events` log, and hands the common-layer reset to
+  `common.reset_game` (the inverse of `end_game` — the ending cleared, each
+  player's ending, solve and result cleared, and **the shared clock zeroed** —
+  a timed game restarts from the full countdown;
   the FE's tick-merge accepts the big backward jump as a deliberate reset, and
   the timeout fires on the expired *edge* so a stale flag can't re-end the fresh
-  game). The frozen puzzle/setup (solution/scramble/par/max_swaps/mode) is
-  untouched. Any game player may call it. No realtime touch needed — the
-  `players` update + `swaps` delete wake `useGame`, and `reset_game`'s
-  `common.games` write wakes `useCommonGame`, so the board, event log, and
-  terminal state reset **live for every player**. Two FE entry points, one
+  game), then writes the statuses. The frozen puzzle (solution, dealt board,
+  par, max_swaps) is untouched. Any game player may call it. Two FE entry points, one
   handler: the game-menu item (any state) and the terminal action row's
   **Restart** (`act-restart`) (`SkipBack` glyph, the normal tone, left of
   Back-to-Club). Mid-game it confirms first (it wipes the whole group's
   progress); at terminal it fires unconfirmed — the game is over, there's
   nothing left to lose. pgTAP: `replay_test.sql`.
-- **`stop_game(game)`** — the manual "Stop" action-row button in the info column.
+- **`stop_game(p_game_id)`** — the "Stop" action-row button in the info column.
   Any player may Stop, in either mode: in compete, Concede's question offers
-  it, and Stop shows once the player is locally terminal. A
-  *neutral* terminal: writes the uniform `play_state='ended'` (not waffle's
-  intrinsic `won`/`lost`/`*_compete`), every player `{"won": false}`, and
-  `status = {reason:'manual', mode}`. Any game player can call it; idempotent
-  (a second call raises `P0001 'game is not in progress'`, swallowed by the FE).
-  Same "realtime touch" tail as `submit_timeout` so the FE refetches and reveals
-  the solution. The FE renders a plain "Game ended" outcome line
-  (`outcome: 'neutral'` — no win green, no loss red; the text says there's no
-  winner). `buildOver` / `labelFor` both branch on `'ended'` before their
-  win/lose branches. Modeled exactly on `spellingbee.stop_game`.
+  it, and Stop shows once the player is locally terminal. It locks the game
+  row and calls `common._stop`: reason `stopped`, nobody ranked, so the game
+  and every player are `neutral` ([common-schema.md →
+  Stop](../common-schema.md#stop--every-gametypes-stop_game)). A second call
+  answers the shared game-over race. The FE renders a plain "Game ended"
+  outcome line (`outcome: 'neutral'` — no win green, no loss red; the text
+  says there's no winner).
 - **"New game"** (game-menu item, FE-only — no waffle RPC): start a **fresh
   game** — new id, new randomly-built board — with THIS game's setup + roster +
   mode, in the same club. Calls the same `waffle-build-board` edge function the
@@ -314,24 +325,24 @@ members.
 
 ### Terminal logic
 
-| | Coop | Compete |
+| the ending | reason / detail | ranked |
 |---|---|---|
-| **Win** | shared board == solution → `won` (all win) | ends when **all players are done** (solved or out of swaps); winner = solved with **fewest swaps**, tie-break **earliest `solved_at`** → winner `won_compete`, others `lost_compete` |
-| **Lose** | `swaps_used == max_swaps` & unsolved → `lost` | nobody solved → all `lost_compete` |
+| coop: shared board == solution | `reached_goal` / `solved` | every teammate 1 (`won`) |
+| coop: `swaps_used == max_swaps`, unsolved | `resource_exhausted` / `exhausted` | nobody (`lost`) |
+| compete: the last racer ends (solved, out of swaps, or conceded) | that racer's act | every solver, by **fewest swaps**, tie-break **earliest `solved_at`** — the first `won`, the rest `near`; the others unranked |
+| the countdown | `timeout` / `timeout` | coop nobody; compete every solver, as above |
+| a Stop | `stopped` / `stopped` | nobody (`neutral`) |
 
 A solved player is locked (can't keep swapping). The finite swap budget bounds
-the game even without a timer. Per-player outcome →
-`common.game_players.result`; game-level terminal → `play_state` (the `_compete`
-suffix convention from [`states.md`](../states.md)). All terminal transitions go
-through `common.end_game`.
+the game even without a timer. Every ending goes through `common.end_game`,
+which records the reason pair, who ended it, and each player's
+`final_ranking` and `outcome`.
 
 Timer is optional (`none` / `countup` / `countdown`, via
-`common.require_valid_timer`). A countdown is a pace/cap: on expiry, coop →
-`lost`; compete simply ends the race where it stands — `submit_timeout` picks
-the fewest-swaps winner (then earliest `solved_at`) among players who had
-already **solved** and not conceded, → `won_compete`, or `lost_compete` if
-nobody had. Unfinished boards are left as-is; being mid-solve at the buzzer just
-means you're not in the running.
+`common.require_valid_timer`). A countdown is a pace/cap: on expiry, coop
+loses; compete simply ends the race where it stands, ranking the players who
+had already **solved**. Unfinished boards are left as-is; being mid-solve at
+the buzzer just means you're not in the running.
 
 ## Board generation: `waffle-build-board` (edge function)
 
@@ -381,7 +392,7 @@ can't drift). `minSwaps` is covered by `gen_test.ts` (`deno test`).
    ever swap the other 16), and the board shows **5–8 total greens** (the 5
    anchors plus ≤3 incidental). Keep only scrambles whose par lands in a band (≈
    9–11).
-4. Call `waffle.create_game(target_club, setup, players, mode, board)` with
+4. Call `waffle.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)` with
    `board = { solution, scramble, par_swaps }`. The RPC sanity-checks structure
    (25-char strings, holes at the four interior cells, scramble is a
    rearrangement of the solution) but takes `par_swaps` at face value — it never
@@ -617,13 +628,17 @@ The **six answer words are terminal-only**, twice over: the server gates
   `create_game_test`, `validation_test` (create_game's reject paths — one broken
   field per case, the board-integrity guards being the point),
   `gameplay_test` (coop lock-step + compete independence),
-  `compete_test` (fewest-swaps winner + `solved_at` tie-break + all-fail),
-  `timeout_test`, `stop_game_test` (manual neutral end → `'ended'`, both modes:
-  `is_terminal`, `status.reason='manual'`, all players `{"won":false}`,
-  idempotency, non-player rejected), `concede_test` (elimination-game concede: a
-  drop-out keeps the race going but forfeits any win; everyone conceding is a
-  collective loss; coop rejected), `replay_test` (replay_board resets both modes
-  to the scramble on the same game row, any state, non-player rejected),
+  `compete_test` (every solver ranked by fewest swaps, `solved_at` breaking a
+  tie; the last racer recorded as who ended it; all-fail),
+  `timeout_test`, `stop_game_test` (the Stop, both modes: reason `stopped`,
+  every player unranked and `neutral`, idempotency, non-player rejected),
+  `concede_test` (elimination-game concede: a drop-out keeps the race going
+  but is never ranked; everyone conceding is a collective loss; coop
+  rejected), `replay_test` (replay_board resets both modes to the dealt board
+  on the same game row, any state, non-player rejected), `statuses_test` (the
+  exact key set of every status at the start, mid-game and at the end in both
+  modes; the club line's winner and count; a rebuild drops a stale key and
+  leaves `status_changed_at` alone),
   `boards_untouched_test` (ending a game never rewrites `waffle.players.board`
   — the invariant the old give-up broke, and what makes Hide able to bring the
   finished board back — plus the solution unshielding at terminal),

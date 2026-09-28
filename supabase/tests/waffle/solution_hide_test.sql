@@ -11,8 +11,9 @@
 --   2. COOP exposes it during play: it's a collaborative solve and the
 --      turn-history viewer recomputes past boards' colors on the FE (which needs
 --      the answer). Per the trust model we don't gate this against friends.
---   3. COMPETE hides it mid-game (players race on independent boards; no swap log,
---      so no history feature needs it there) and reveals it once terminal.
+--   3. COMPETE hides it mid-game (players race on independent boards, and each
+--      colored swap row is stored, so nothing needs it there) and reveals it
+--      once the game ends.
 --
 -- The mirror of wordle's target test, updated when coop turn-history landed.
 
@@ -47,32 +48,32 @@ select (waffle.create_game(
 
 -- (1) The raw column is not selectable by an authenticated player (either mode).
 select throws_ok(
-  format($$ select solution from waffle.games where id = %L $$, (select id from gc)),
+  format($$ select solution from waffle.games where game_id = %L $$, (select id from gc)),
   '42501', null,
   'waffle.games.solution is column-excluded from authenticated'
 );
 
 -- (2) COOP mid-game: games_state exposes the solution (turn-history needs it).
 select is(
-  (select solution from waffle.games_state where id = (select id from gc))::text,
+  (select solution from waffle.games_state where game_id = (select id from gc))::text,
   'abcdef.g.hijklmn.o.pqrstu',
   'mid-game coop: games_state.solution is exposed'
 );
 
 -- (3) COMPETE mid-game: still hidden.
 select ok(
-  (select solution from waffle.games_state where id = (select id from gp)) is null,
+  (select solution from waffle.games_state where game_id = (select id from gp)) is null,
   'mid-game compete: games_state.solution is NULL'
 );
 
 -- ada solves the coop game (coop → the solve ends it); the compete game stays open.
 select waffle.submit_swap((select id from gc), 0, 1);
 
--- (4) Post-terminal coop, the answer key is (still) revealed.
+-- (4) An ended coop game: the answer key is (still) revealed.
 select is(
-  (select solution from waffle.games_state where id = (select id from gc))::text,
+  (select solution from waffle.games_state where game_id = (select id from gc))::text,
   'abcdef.g.hijklmn.o.pqrstu',
-  'post-terminal coop: games_state.solution is revealed'
+  'ended coop: games_state.solution is revealed'
 );
 
 select * from finish();

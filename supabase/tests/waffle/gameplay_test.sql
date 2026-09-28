@@ -83,8 +83,8 @@ select is(
   1,
   'swaps_used incremented for all players');
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'playing',
+  (select ended_at from common.games where id = (select id from g1)),
+  null,
   'game still in progress after a non-solving swap');
 -- The club-list title becomes a progress readout: the correct words so far,
 -- alphabetical, capped at three. ada's swap of cells 2,3 broke the across
@@ -99,7 +99,7 @@ select is(
 -- boards' colors on the FE, which needs the answer; we don't gate this against
 -- friends). Compete's mid-game hiding lives in solution_hide_test.
 select is(
-  (select solution from waffle.games_state where id = (select id from g1))::text,
+  (select solution from waffle.games_state where game_id = (select id from g1))::text,
   'abcdef.g.hijklmn.o.pqrstu',
   'coop exposes the solution while playing (turn-history needs it)');
 
@@ -116,18 +116,20 @@ select is((select (res->'data'->>'terminal')::boolean from win), true,
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'won',
-  'coop solve → play_state won');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g1)),
+  'reached_goal/solved/won',
+  'coop solve ends the game reached_goal, won');
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g1) and (result->>'won')::boolean),
+    where game_id = (select id from g1) and final_ranking = 1 and outcome = 'won'
+      and solved_at is not null),
   2::bigint,
-  'both players recorded as won');
+  'both players ranked 1, won, and solved');
 select is(
-  (select solution from waffle.games_state where id = (select id from g1))::text,
+  (select solution from waffle.games_state where game_id = (select id from g1))::text,
   'abcdef.g.hijklmn.o.pqrstu',
-  'solution revealed once the game is terminal');
+  'solution readable once the game has ended');
 -- A solved board has all six words correct, so the title settles on the
 -- alphabetical first three of the puzzle itself.
 select is(
@@ -180,9 +182,10 @@ select is((select (res->'data'->>'solved')::boolean from lose), false,
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'lost',
-  'running out of swaps without solving → play_state lost');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g2)),
+  'resource_exhausted/exhausted/lost',
+  'running out of swaps without solving → ended exhausted, lost');
 
 -- ── A swap into a game a friend just deleted ──
 -- The delete takes the game's rows and every membership together, so this is

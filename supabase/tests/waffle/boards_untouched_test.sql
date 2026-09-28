@@ -4,7 +4,7 @@
 -- Test: ending a waffle game leaves the players' boards alone
 -- ============================================================
 -- Seeing the answer is a DISPLAY decision, top to bottom: the solution
--- unshields at terminal via the ordinary is_terminal gate, the FE swaps what it
+-- unshields at the end via the ordinary ended_at gate, the FE swaps what it
 -- DRAWS when a player asks (locally — docs/ui.md → Terminal results), and
 -- `waffle.players.board` is never rewritten by any of it.
 --
@@ -27,7 +27,7 @@ set search_path = waffle, common, public, extensions;
 
 select plan(7);
 
--- ── Coop: reveal from an in-progress game → answer board + neutral terminal ──
+-- ── Coop: Stop an in-progress game → neutral ending, boards untouched ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club1 on commit drop as
 select pg_temp.create_club('Waffle rv1', array['ada', 'bea']) as handle;
@@ -44,8 +44,8 @@ reset role;
 -- Precondition: fresh game is in progress, and boards start as the SCRAMBLE
 -- (not the solution) — so the reveal has something to change.
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'playing', 'coop: precondition — new game is in progress');
+  (select ended_at from common.games where id = (select id from g1)),
+  null, 'coop: precondition — new game is in progress');
 select is(
   (select count(*) from waffle.players
      where game_id = (select id from g1) and board = 'bacdef.g.hijklmn.o.pqrstu'),
@@ -57,25 +57,25 @@ select waffle.stop_game((select id from g1));
 reset role;
 
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'ended', 'end → neutral ''ended'' terminal');
-select is(
-  (select is_terminal from common.games where id = (select id from g1)),
-  true, 'end → game is terminal');
+  (select game_ended_reason || '/' || game_ended_outcome from common.games where id = (select id from g1)),
+  'stopped/neutral', 'end → the neutral Stop');
+select isnt(
+  (select ended_at from common.games where id = (select id from g1)),
+  null, 'end → the game has ended');
 select is(
   (select count(*) from waffle.players
      where game_id = (select id from g1) and board = 'bacdef.g.hijklmn.o.pqrstu'),
   2::bigint, 'end → the players'' boards are UNTOUCHED (nothing rewrites them)');
 select is(
   (select count(*) from common.game_players
-     where game_id = (select id from g1) and (result->>'won')::boolean = false),
-  2::bigint, 'manual end → nobody won');
+     where game_id = (select id from g1) and final_ranking is null and outcome = 'neutral'),
+  2::bigint, 'manual end → nobody won: every player unranked, neutral');
 
--- The solution is readable now (the is_terminal gate lifted) — which is what
+-- The solution is readable now (the ended_at gate lifted) — which is what
 -- makes the FE's local swap possible without any server round trip.
 select isnt(
-  (select solution from waffle.games_state where id = (select id from g1)),
-  null, 'terminal → the solution unshields (is_terminal gate)');
+  (select solution from waffle.games_state where game_id = (select id from g1)),
+  null, 'ended → the solution unshields (ended_at gate)');
 
 select * from finish();
 rollback;

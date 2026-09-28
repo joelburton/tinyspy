@@ -5,7 +5,7 @@
 -- ============================================================
 -- create_game takes the freshly-built board, stores it on the game,
 -- sets the swap budget (par + extra), seeds one players row per player
--- at the scramble, and flips the game to 'playing'.
+-- at the dealt board, and starts the game.
 
 begin;
 
@@ -46,21 +46,21 @@ select pg_temp.envelope_is(
 );
 
 select is(
-  (select mode from waffle.games where id = (select id from g)),
+  (select mode from common.games where id = (select id from g)),
   'coop',
   'game stored with mode coop'
 );
 
 select is(
-  (select max_swaps from waffle.games where id = (select id from g)),
+  (select max_swaps from waffle.games where game_id = (select id from g)),
   6,
   'max_swaps = par (1) + extra (5)'
 );
 
 select is(
-  (select scramble from waffle.games where id = (select id from g))::text,
+  (select board_at_setup from waffle.games where game_id = (select id from g))::text,
   'bacdef.g.hijklmn.o.pqrstu',
-  'scramble stored from the board'
+  'the board''s scramble is stored as board_at_setup'
 );
 
 select is(
@@ -74,7 +74,7 @@ select is(
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111')::text,
   'bacdef.g.hijklmn.o.pqrstu',
-  'each player board starts at the scramble'
+  'each player board starts at the dealt board'
 );
 
 select is(
@@ -84,9 +84,9 @@ select is(
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing',
-  'play_state is playing'
+  (select ended_at from common.games where id = (select id from g)),
+  null,
+  'the game is being played: it has not ended'
 );
 
 select * from finish();

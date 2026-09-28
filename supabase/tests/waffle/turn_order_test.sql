@@ -5,7 +5,7 @@
 -- ============================================================
 -- The per-game wiring for the common turn primitive: create_game seats
 -- the rotation when setup.coop_style='turns', and submit_swap gates on
--- _require_turn + advances on an accepted, non-terminal swap.
+-- _require_turn + advances on an accepted swap that doesn't end the game.
 -- Covers:
 --   1. create_game seats the pointer on the chosen first player
 --   2. an out-of-turn swap is rejected ('not your turn')
@@ -14,7 +14,7 @@
 --   5. free-for-all (no coop_style) leaves the pointer null and ungated
 --   6. a first player who isn't in the game is refused
 --
--- A generous swap budget (extra=5) keeps every swap non-terminal.
+-- A generous swap budget (extra=5) keeps every swap from ending the game.
 -- Positions 2,3 are non-hole cells (holes are 6,8,16,18).
 -- ============================================================
 

@@ -4,12 +4,12 @@
 -- Test: waffle.stop_game (manual stop)
 -- ============================================================
 -- The friends' explicit "we're done" button. Available in BOTH modes.
--- Unlike submit_swap / submit_timeout, stop_game is a NEUTRAL terminal:
--- it writes the uniform play_state='ended' (not waffle's intrinsic
--- won/lost verdicts), records every player {"won": false}, and stamps
--- status.reason='manual'. is_terminal flips true (so the FE reveals
--- the solution). Idempotent on the play_state check (a second click
--- raises P0001). Non-players are rejected by common.require_game_player.
+-- Unlike submit_swap / submit_timeout, stop_game is a NEUTRAL ending:
+-- reason `stopped`, outcome `neutral` (not waffle's own won/lost
+-- verdicts), every player unranked and `neutral`. ended_at is set (so the
+-- FE reveals the solution). A second click finds the game ended and is
+-- the game-over race. Non-players are rejected by
+-- common.require_game_player.
 
 begin;
 
@@ -38,25 +38,25 @@ select waffle.stop_game((select id from g1));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'ended',
-  'coop: manual end → play_state=ended');
+  (select game_ended_outcome from common.games where id = (select id from g1)),
+  'neutral',
+  'coop: manual end → the game ends neutral');
+select isnt(
+  (select ended_at from common.games where id = (select id from g1)),
+  null,
+  'coop: manual end → ended_at set (reveals the solution)');
 select is(
-  (select is_terminal from common.games where id = (select id from g1)),
-  true,
-  'coop: manual end → is_terminal=true (reveals the solution)');
-select is(
-  (select status->>'reason' from common.games where id = (select id from g1)),
-  'manual',
-  'coop: status.reason=manual');
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g1)),
+  'stopped/stopped',
+  'coop: the reason is stopped');
 select is(
   (select count(*) from common.game_players
     where game_id = (select id from g1)
-      and result = '{"won": false}'::jsonb),
+      and final_ranking is null and outcome = 'neutral'),
   2::bigint,
-  'coop: both players recorded {"won": false}');
+  'coop: both players unranked, neutral');
 
--- Idempotent: a second stop_game raises (already terminal).
+-- Idempotent: a second stop_game raises (already ended).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   waffle.stop_game((select id from g1)),
@@ -81,25 +81,25 @@ select waffle.stop_game((select id from g2));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'ended',
-  'compete: manual end → play_state=ended');
+  (select game_ended_outcome from common.games where id = (select id from g2)),
+  'neutral',
+  'compete: manual end → the game ends neutral');
+select isnt(
+  (select ended_at from common.games where id = (select id from g2)),
+  null,
+  'compete: manual end → ended_at set');
 select is(
-  (select is_terminal from common.games where id = (select id from g2)),
-  true,
-  'compete: manual end → is_terminal=true');
-select is(
-  (select status->>'reason' from common.games where id = (select id from g2)),
-  'manual',
-  'compete: status.reason=manual');
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g2)),
+  'stopped/stopped',
+  'compete: the reason is stopped');
 select is(
   (select count(*) from common.game_players
     where game_id = (select id from g2)
-      and result = '{"won": false}'::jsonb),
+      and final_ranking is null and outcome = 'neutral'),
   2::bigint,
-  'compete: both players recorded {"won": false} (no winner)');
+  'compete: both players unranked, neutral (no winner)');
 
--- Idempotent: a second stop_game raises (already terminal).
+-- Idempotent: a second stop_game raises (already ended).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   waffle.stop_game((select id from g2)),
@@ -109,8 +109,8 @@ select pg_temp.envelope_is(
 
 -- ── Non-player rejected ─────────────────────────────────────
 -- dee is not a member/player of g2 → require_game_player rejects.
--- (Use a fresh playing game so the rejection isn't masked by the
--- already-terminal P0001 above.)
+-- (Use a fresh game being played so the rejection isn't masked by the
+-- game-over race above.)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club3 on commit drop as
 select pg_temp.create_club('Waffle eg3', array['ada', 'bea']) as handle;

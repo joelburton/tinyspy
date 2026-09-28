@@ -383,7 +383,10 @@ now ordered by layer, and the stages below are its content, not its order:
    Also the three build-board edge functions (spellingbee, wordwheel,
    wordiply): their last-board lookup filters the game table on
    `club_handle` and orders by `created_at`, both dropped, so it finds the
-   club's last game through `common.games` instead.
+   club's last game through `common.games` instead. Every call to an RPC
+   that step 4 gave `p_` parameters passes the new keys — the front end's
+   and the edge functions' alike (each build-board function calls its
+   game's `create_game` by name, through `_shared/startGame.ts`).
 6. Tests and docs move with each step.
 7. Rehearse against prod's data, re-read prod, the maintenance notice,
    **one deploy**, and, once its `supabase/sql/` step has landed, every

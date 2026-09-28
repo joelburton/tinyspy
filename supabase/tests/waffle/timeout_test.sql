@@ -4,9 +4,9 @@
 -- Test: waffle.submit_timeout (countdown expiry)
 -- ============================================================
 -- Coop: the shared board wasn't solved in time → lost. Compete: time's
--- up — the winner is whoever solved in the fewest swaps (same rule as
--- when every player is done); a non-solver loses. Idempotent on the play_state
--- check (a peer racing to fire it gets "not in progress").
+-- up — whoever solved is ranked, fewest swaps first (same rule as when
+-- every player is done); a non-solver is unranked and loses. A second call
+-- finds the game ended (a peer racing to fire it gets the game-over race).
 
 begin;
 
@@ -34,17 +34,20 @@ select (waffle.create_game(
 select waffle.submit_timeout((select id from g1));
 
 reset role;
+-- Free-for-all coop has no turn holder, so nobody ended it.
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'lost',
-  'coop: countdown expiry → lost');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+          || '/' || coalesce(game_ended_by_user_id::text, 'nobody')
+     from common.games where id = (select id from g1)),
+  'timeout/timeout/lost/nobody',
+  'coop: countdown expiry → timeout, lost, ended by nobody');
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g1) and not (result->>'won')::boolean),
+    where game_id = (select id from g1) and final_ranking is null and outcome = 'lost'),
   2::bigint,
-  'coop: both players recorded as not-won');
+  'coop: both players unranked, lost');
 
--- Idempotent: a second timeout raises (already terminal).
+-- Idempotent: a second timeout raises (already ended).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   waffle.submit_timeout((select id from g1)),
@@ -71,19 +74,21 @@ select waffle.submit_timeout((select id from g2));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'won_compete',
-  'compete: timeout with a solver → won_compete');
+  (select game_ended_reason || '/' || game_ended_outcome
+          || '/' || coalesce(game_ended_by_user_id::text, 'nobody')
+     from common.games where id = (select id from g2)),
+  'timeout/won/nobody',
+  'compete: timeout with a solver → timeout, won, ended by nobody');
 select is(
-  (select (result->>'won')::boolean from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from g2)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'compete: the solver (ada) wins on timeout');
+  '1/won', 'compete: the solver (ada) is ranked 1 on timeout');
 select is(
-  (select (result->>'won')::boolean from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from g2)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  false, 'compete: the non-solver (bea) loses');
+  'unranked/lost', 'compete: the non-solver (bea) is unranked and loses');
 
 select * from finish();
 rollback;

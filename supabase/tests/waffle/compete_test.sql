@@ -5,9 +5,9 @@
 --        fewest-swaps winner
 -- ============================================================
 --
--- Compete: each player solves their own copy; the winner is whoever
--- solved in the FEWEST swaps (tie-break: earliest solved_at — not
--- exercised here since now() is constant within a test transaction).
+-- Compete: each player solves their own copy; every solver is ranked by
+-- FEWEST swaps (tie-break: earliest solved_at — not exercised here since
+-- now() is constant within a test transaction).
 -- The game ends only once EVERY player is done (solved or out of
 -- swaps). An opponent's board is hidden until the game ends.
 
@@ -19,7 +19,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(29);
+select plan(30);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -49,26 +49,28 @@ select is(
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1, 'ada used 1 swap');
 select is(
-  (select solved from waffle.players
+  (select solved_at from common.game_players
     where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  false, 'bea is not solved');
+  null, 'bea is not solved');
 
 -- The solver is DONE while bea plays her board out, and the common roster has
--- to hear it: ada's closed tab must not pause the game for bea. Not
--- `conceded` — ada is in fact about to win this one.
+-- to hear it: ada's closed tab must not pause the game for bea. Her ending is
+-- the solve, not a concession — ada is in fact about to win this one.
 select is(
-  (select array[locally_terminal, conceded] from common.game_players
+  (select player_ended_reason || '/' || player_ended_reason_detail
+     from common.game_players
     where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
-  array[true, false],
-  'compete: a solve sets locally_terminal, not conceded'
+      and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid
+      and player_ended_at is not null and solved_at is not null),
+  'reached_goal/solved',
+  'compete: a solve ends the solver, reached_goal/solved'
 );
 select is(
-  (select locally_terminal from common.game_players
+  (select player_ended_at from common.game_players
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
-  false,
-  'compete: a racer still swapping is not locally terminal'
+  null,
+  'compete: a racer still swapping has not ended'
 );
 select is(
   (select swaps_used from waffle.players
@@ -82,12 +84,13 @@ select is(
   (select title from common.games where id = (select id from g)),
   'New compete',
   'compete: a solved leader does NOT leak their words into the title');
--- …and no swap counter on the status either. It used to seed `swaps_used: 0`
--- at create and never update it in compete (the update is coop-only, same leak
--- reason), so the club card read a permanent "0 swaps" on a won race.
-select ok(
-  (select not (status ? 'swaps_used') from common.games where id = (select id from g)),
-  'compete: no swaps_used on the status — absent, not a stale 0');
+-- …and no swap counter on the club line either. The count is coop's alone for
+-- the same leak reason, so in compete the key is always present and always
+-- null.
+select is(
+  (select clubpage_info->'swaps_used' from common.games where id = (select id from g)),
+  'null'::jsonb,
+  'compete: swaps_used on the club line is null, not a count');
 
 -- ── Opponent visibility mid-game (as ada) ───────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -140,34 +143,40 @@ select is((select (res->'data'->>'terminal')::boolean from b_solve), true,
   'once every player is done → terminal');
 
 reset role;
+-- The last racer's act is the game's reason: bea's solve.
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won_compete',
-  'a winner emerged → won_compete');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g)),
+  'reached_goal/solved/won',
+  'the last racer solving ends the race reached_goal, won');
 select is(
-  (select (result->>'won')::boolean from common.game_players
+  (select game_ended_by_user_id from common.games where id = (select id from g)),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
+  'the last racer to finish ended the game');
+select is(
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'ada won — fewest swaps (1 vs 3)');
+  '1/won', 'ada ranked 1 — fewest swaps (1 vs 3)');
 select is(
-  (select (result->>'won')::boolean from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  false, 'bea did not win');
--- The WINNER's own count, named at terminal — the number the club-list label
+  '2/near', 'bea solved too, so she is ranked 2, near');
+-- The WINNER's own count, named at the end — the number the club-list label
 -- prints ("Won by ada · 1 swap"). ada solved in one.
 select is(
-  (select (status->>'winner_swaps')::int from common.games where id = (select id from g)),
-  1, 'the terminal status names the winner''s swap count');
+  (select (clubpage_info->>'winner_swaps_count')::int from common.games where id = (select id from g)),
+  1, 'the club line names the winner''s swap count');
 
--- ── Post-terminal: the opponent board is now revealed ───────
+-- ── After the end: the opponent board is now revealed ───────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select board from waffle.players_state
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222')::text,
   'abcdef.g.hijklmn.o.pqrstu',
-  'post-terminal: the opponent board is revealed');
+  'after the end: the opponent board is revealed');
 
--- ── The compete move log (added 2026-08-02) ─────────────────
+-- ── The compete move log ────────────────────────────────────
 -- Compete logs swaps too. ada made 1, bea made 3 — four rows in ONE game-wide
 -- order, since the key is the log's own id rather than a per-player count.
 reset role;
@@ -176,13 +185,13 @@ select is(
   4::bigint,
   'compete logs every swap (ada 1 + bea 3)');
 
--- …and at TERMINAL both players' logs open up — the point of logging them, and
+-- …and at the END both players' logs open up — the point of logging them, and
 -- safe because the boards themselves are revealed by then anyway.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(distinct user_id) from waffle.events where game_id = (select id from g)),
   2::bigint,
-  'at terminal: a player sees BOTH logs');
+  'at the end: a player sees BOTH logs');
 reset role;
 
 -- Four rows, four ids: two players' swaps share one sequence rather than each
@@ -199,13 +208,11 @@ select is(
   1::bigint,
   'ada''s single swap is logged too');
 
--- ── The terminal title must not spoil an unsolved race ──────
--- common.games.title is readable club-wide. It used to read
--- `_correct_words(solution, solution)` at terminal — the full six, whatever
--- happened — which spoiled a race nobody solved: waffle hides the answer on a
--- loss so Restart stays a genuine second try, and the title undid that from the
--- outside. It now names the correct words on the FURTHEST player's own board,
--- so it can never name a word nobody actually had.
+-- ── The ended title must not spoil an unsolved race ─────────
+-- common.games.title is readable club-wide, and waffle hides the answer on a
+-- loss so Restart stays a genuine second try. So an ended race is titled with
+-- the correct words on the FURTHEST player's own board, never the solution's
+-- six — it can never name a word nobody actually had.
 
 -- (a) The race above was won by ada, whose board IS the solution — so the six
 --     words are legitimately hers and the title says them.
@@ -213,7 +220,7 @@ reset role;
 select isnt(
   (select title from common.games where id = (select id from g)),
   'New compete',
-  'terminal compete: a SOLVED race is titled with the winner''s words');
+  'ended compete: a SOLVED race is titled with the winner''s words');
 
 -- (b) A race nobody solves. The title must name what a PLAYER'S BOARD actually
 --     has, not the solution's six.
@@ -237,27 +244,27 @@ select waffle.concede((select id from g2));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'lost_compete',
+  (select game_ended_outcome from common.games where id = (select id from g2)),
+  'lost',
   'precondition: nobody solved it');
 select is(
   (select title from common.games where id = (select id from g2)),
   (select waffle._format_title(
             waffle._correct_words(wp.board, wg.solution), 'New compete')
      from waffle.players wp
-     join waffle.games wg on wg.id = wp.game_id
+     join waffle.games wg on wg.game_id = wp.game_id
     where wp.game_id = (select id from g2)
     limit 1),
-  'terminal compete: the title names a real board''s correct words');
+  'ended compete: the title names a real board''s correct words');
 
--- …and that is genuinely NOT the all-six title the old code produced. Without
--- this the assertion above would pass on any board that happened to be solved.
+-- …and that is genuinely NOT the solution's all-six title. Without this the
+-- assertion above would pass on any board that happened to be solved.
 select isnt(
   (select title from common.games where id = (select id from g2)),
   (select waffle._format_title(
             waffle._correct_words(wg.solution, wg.solution), 'New compete')
-     from waffle.games wg where wg.id = (select id from g2)),
-  'terminal compete: an unsolved race is NOT titled with the solution''s words');
+     from waffle.games wg where wg.game_id = (select id from g2)),
+  'ended compete: an unsolved race is NOT titled with the solution''s words');
 
 
 select * from finish();

@@ -4,12 +4,12 @@
 -- Test: waffle.concede(target_game)  (elimination-game concede)
 -- ============================================================
 -- waffle is an ELIMINATION game (a player is done when solved or out of
--- swaps, without the table ending), so waffle.concede flips the shared
--- conceded flag then re-runs its own terminal check
--- (_maybe_finish_compete), which counts a conceder as done and excludes
--- them from the win. Covers: a concede keeps the game going while an
--- opponent races; both conceding ends it as a collective loss (no
--- winner, since a conceder forfeits); coop is rejected.
+-- swaps, without the table ending), so waffle.concede records the
+-- concession through common._concede, which ends the game once everyone has
+-- conceded, then runs its own end check (_maybe_finish_compete), which
+-- counts a conceder as ended and leaves them unranked. Covers: a concede
+-- keeps the game going while an opponent races; both conceding ends it as a
+-- collective loss (no winner, since a conceder forfeits); coop is rejected.
 -- ============================================================
 
 begin;
@@ -37,30 +37,30 @@ select lives_ok(
   format($$ select waffle.concede(%L) $$, (select id from g)),
   'a compete player can concede');
 select is(
-  (select conceded from common.game_players
+  (select player_ended_reason from common.game_players
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'the conceder is marked conceded');
+  'conceded', 'the conceder has ended, by conceding');
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  false, 'the game continues while bea races');
+  (select ended_at from common.games where id = (select id from g)),
+  null, 'the game continues while bea races');
 
--- (2) bea (last racer) concedes → nobody eligible to win → lost_compete.
+-- (2) bea (last racer) concedes → nobody eligible to win → a collective loss.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select waffle.concede((select id from g));
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'lost_compete', 'both conceding ends the game as a collective loss');
+  (select game_ended_outcome from common.games where id = (select id from g)),
+  'lost', 'both conceding ends the game as a collective loss');
 select is(
-  (select status->>'winner_user_id' from common.games where id = (select id from g)),
+  (select clubpage_info->>'winner_user_id' from common.games where id = (select id from g)),
   null, 'no winner when everyone conceded (a conceder forfeits)');
--- The two ways a race ends with nobody winning used to be indistinguishable on
--- the row (both wrote lost_compete with NO outcome key), so the club list
--- couldn't tell "everyone spent their swaps" from "everyone walked away".
+-- The two ways a race ends with nobody winning are both `lost`; the reason is
+-- what lets the club list tell "everyone spent their swaps" from "everyone
+-- walked away".
 select is(
-  (select status->>'reason' from common.games where id = (select id from g)),
-  'conceded', 'an all-conceded race is labeled conceded, not exhausted');
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g)),
+  'conceded/conceded', 'an all-conceded race ends conceded, not exhausted');
 
 -- (3) coop concede rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

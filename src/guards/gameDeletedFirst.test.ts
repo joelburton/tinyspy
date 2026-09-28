@@ -89,7 +89,7 @@ describe('a deleted game says so', () => {
       'stackdown.submit_word',
       'strands.replay_board', 'strands.spend_hint', 'strands.stop_game',
       'strands.submit_path', 'strands.submit_timeout',
-      'waffle.replay_board', 'waffle.stop_game', 'waffle.submit_swap',
+      'waffle.concede', 'waffle.replay_board', 'waffle.stop_game', 'waffle.submit_swap',
       'waffle.submit_timeout',
       'wordiply.replay_board', 'wordiply.stop_game', 'wordiply.submit_guess',
       'wordiply.submit_timeout',
