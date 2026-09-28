@@ -10,7 +10,7 @@
  * rewriting every player's result to `{ won: false }`. Holding
  * `<game>.games FOR UPDATE` first — the lock every move takes — makes it wait
  * for the move instead, read `won`, and answer the game-over race
- * (docs/common-schema.md → Manual end, step 1).
+ * (docs/common-schema.md → Stop, step 1).
  *
  * **This exists because the rule was a step in a doc.** 26 of 32 of these
  * functions took the lock; six only checked the row existed (found

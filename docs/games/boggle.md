@@ -551,8 +551,8 @@ flower.
     selects).
 
 **Stop game** is surfaced in both places per the common convention (see
-[common-schema.md → Manual
-end](../common-schema.md#manual-end--every-gametypes-stop_gametarget_game)): an
+[common-schema.md →
+Stop](../common-schema.md#stop--every-gametypes-stop_game)): an
 info-column action-row button *and* a GamePage menu row — the SAME bound action
 in both, arranged by `buildGameMenu`. The terminal message comes from a unified
 `buildOver` — the shared `TerminalMessage` shape (`{pillText, infoColText,

@@ -23,7 +23,8 @@
 -- `games_touch_last_active` stamps `last_active_at` on every update, and the
 -- club page sorts and dates games by it; left on, every game would move to the
 -- deploy's date. It is defined in `supabase/sql/`, so on a fresh `db reset` it
--- does not exist yet and the guard skips it.
+-- does not exist yet and the guard skips it. The column becomes
+-- `status_changed_at` below, and the trigger is dropped at the end.
 do $$
 begin
   if exists (select 1 from pg_trigger
@@ -72,6 +73,21 @@ alter table common.games
 -- → Decided → The statuses).
 
 alter table common.games rename column restarts to restart_count;
+
+-- ─── status_changed_at and updated_at ──────────────────────
+-- `last_active_at` keeps its values under the name of the one thing that now
+-- moves it, the game's status builder (plans/common-tables.md → Decided →
+-- Step 3). `updated_at` is stamped by a trigger in `supabase/sql/` on every
+-- update; past rows have no truer value than the old stamp.
+alter table common.games rename column last_active_at to status_changed_at;
+alter index common.common_games_club_handle_last_active_idx
+  rename to common_games_club_handle_status_changed_idx;
+
+alter table common.games add column updated_at timestamptz;
+update common.games set updated_at = status_changed_at;
+alter table common.games
+  alter column updated_at set not null,
+  alter column updated_at set default now();
 
 -- ─── mode: from each game's own table ──────────────────────
 -- Fourteen games store it; bananagrams is a race and codenamesduet a team, and
@@ -781,11 +797,5 @@ alter table common.game_players
   drop column locally_terminal;
 
 
-do $$
-begin
-  if exists (select 1 from pg_trigger
-              where tgname = 'games_touch_last_active'
-                and tgrelid = 'common.games'::regclass) then
-    alter table common.games enable trigger games_touch_last_active;
-  end if;
-end $$;
+-- Its column is renamed, so it goes; `supabase/sql/` stamps `updated_at` instead.
+drop trigger if exists games_touch_last_active on common.games;

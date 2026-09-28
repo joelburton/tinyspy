@@ -4,12 +4,11 @@
  * **A function that can end a game must write one of the game's own rows.**
  *
  * A game's board re-reads (`useGame`) only when a row in the game's OWN tables
- * changes. `common.end_game` and `common.concede` write `common.games` alone,
- * which wakes the shared page — the verdict shows — but not the board. So
- * whatever the game's own read releases at the end never arrives: wordle's
- * answer (Reveal had nothing to show), a race's rivals' guesses. The page is
- * right after a reload and wrong until then (docs/common-schema.md → Manual end,
- * step 5; → Concede).
+ * changes. `common.end_game` writes `common.games` alone, which wakes the
+ * shared page — the verdict shows — but not the board. So whatever the game's
+ * own read releases at the end never arrives: wordle's answer (Reveal had
+ * nothing to show), a race's rivals' guesses. The page is right after a reload
+ * and wrong until then.
  *
  * **This exists because the rule was a step in a doc.** Stop followed it
  * everywhere; three concede and timeout paths did not (found 2026-09-24).

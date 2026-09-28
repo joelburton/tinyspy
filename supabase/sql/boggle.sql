@@ -628,7 +628,7 @@ begin
   perform common.end_game(target_game, term_state, final_status, results);
 
   -- Wake the boards: every ending passes through here, and common.end_game
-  -- writes only common.games (docs/common-schema.md → Manual end, step 5).
+  -- writes only common.games (src/guards/endingTouchesGame.test.ts).
   update boggle.games set club_handle = club_handle where id = target_game;
 end;
 $$;

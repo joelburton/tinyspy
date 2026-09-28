@@ -184,8 +184,8 @@ Two natural end triggers, plus the universal manual / timeout paths:
   **Coop has no blocked-end** (and no turns/passes): it ends *only* on going-out
   or **Stop game**.
 - **Manual end** (`stop_game`): any player stops the game. **Compete** is the
-  uniform neutral stop ([common-schema.md → Manual
-  end](../common-schema.md#manual-end--every-gametypes-stop_gametarget_game)) —
+  uniform neutral stop ([common-schema.md →
+  Stop](../common-schema.md#stop--every-gametypes-stop_game)) —
   no winner, no scoring. **Coop deviates** (see below): it *forfeits* the
   leftover-tile value.
 - **Timeout** (`submit_timeout`): a countdown clock hit 0.

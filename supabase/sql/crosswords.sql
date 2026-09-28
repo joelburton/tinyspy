@@ -1293,7 +1293,7 @@ begin
   -- Row check before the gate, and a check at all — crosswords had neither, so
   -- a deleted game read `mode` as null, failed the coop test, and reported the
   -- WRONG refusal. See boggle.stop_game for the ordering rule. Locked, so a Stop
-  -- racing the winning move waits for it (docs/common-schema.md → Manual end).
+  -- racing the winning move waits for it (docs/common-schema.md → Stop).
   select mode into v_mode from crosswords.games where id = target_game for update;
   if v_mode is null then
     perform common._raise_game_deleted('crosswords');
@@ -1318,7 +1318,7 @@ begin
     jsonb_build_object('mode', v_mode, 'reason', 'manual'),
     v_results
   );
-  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update crosswords.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -1415,7 +1415,7 @@ begin
     jsonb_build_object('mode', v_mode, 'reason', 'timeout'),
     v_results
   );
-  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update crosswords.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 

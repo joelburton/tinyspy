@@ -1350,7 +1350,7 @@ declare
 begin
   -- Locked, so a Stop racing the winning move waits for it and then reads the
   -- game as over, rather than overwriting the win (docs/common-schema.md →
-  -- Manual end, step 1).
+  -- Stop, step 1).
   perform 1 from bananagrams.games where id = target_game for update;
   if not found then
     perform common._raise_game_deleted('bananagrams');

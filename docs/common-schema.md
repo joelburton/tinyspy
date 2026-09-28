@@ -18,8 +18,8 @@ carry each function's full contract and outcomes. How every RPC answers is
 | `clubs_members` | who is in each club. Fixed at creation |
 | `gametypes` | the registered gametypes, one row per sibling (`wordle_coop`, `wordle_compete`), each registered by its game's migration: `min_players` and `default_enroll` |
 | `clubs_gametypes` | which gametypes a club can start, and `default_setup`, the club's last-used setup for each — written by `common.create_game` on every start |
-| `games` | the shared header of every game: its club, gametype, `title`, `setup`, the view-state pair (`is_current_view`, `paused`), the play-state pair (`play_state`, `is_terminal`), `status` (the club-list readout), `created_by`, `current_turn_user_id`, `restarts`, and `started_at` / `ended_at` / `last_active_at`. A game's own detail row shares its id |
-| `game_players` | who plays each game, frozen at creation: each player's `result` at the end, `conceded`, `locally_terminal`, `turn_seat`, `joined_at` |
+| `games` | the shared header of every game: its club, gametype, `mode`, `title`, `setup`, `is_current_view`, `created_by`, `current_turn_user_id`, `restart_count`; `started_at`, and the ending — `ended_at`, the reason pair (`game_ended_reason`, `game_ended_reason_detail`), `game_ended_outcome`, `game_ended_by_user_id`; the copies the status builder writes (`game_status`, `clubpage_info`); and the two dates, `status_changed_at` and `updated_at` ([Title, statuses and the two dates](#title-statuses-and-the-two-dates)). A game's own detail row shares its id |
+| `game_players` | who plays each game, frozen at creation: `turn_seat`, `joined_at`; the player's ending while the game goes on (`player_ended_at` and its reason pair); `solved_at`; `final_ranking` and `outcome`, written at the game's end; and `player_status`, the builder's copy |
 | `timers` | the game clock, one row per game ([The game clock](#the-game-clock)) |
 | `messages` | club chat: one thread per club across every game, 1–1000 characters; a message starting `!` is important and force-opens chat for the others |
 | `game_scratchpads` | the opt-in scratchpad: one row per pad, shared (no owner) or a player's own |
@@ -40,93 +40,120 @@ removes a whole game in one statement. Both halves are pinned by
 
 ## The game row
 
-### View state and play state
+### View state and the ending
 
-Two independent pairs on `common.games` ([states.md](states.md) has the full
-picture). **Play state** is where the game stands — `play_state` in the game's
-own vocabulary, and `is_terminal`. **View state** is whether it is the club's
-**current** game: a partial unique index on `(club_handle) where
+Two independent facts on `common.games` ([states.md](states.md) has the full
+picture). **Whether the game has ended** is `ended_at`: null while it is
+played; once set, the reason pair says why and `game_ended_outcome` how it
+came out ([Ending a game](#ending-a-game)). **View state** is whether it is
+the club's **current** game: a partial unique index on `(club_handle) where
 is_current_view` allows one per club, across every gametype.
 
 The pointer moves with presence: the first viewer to arrive calls
 `common.set_current_view`, the last to leave `common.unset_current_view`, and
 `common.create_game` moves it to the new game. It never pulls anyone into a
 game, and ending a game does not clear it — a finished game stays current
-while someone is reviewing it. `paused` is reserved; pause is computed by the
-clients today.
+while someone is reviewing it. Pause is computed by the clients.
 
 | on the club page | derived from |
 |---|---|
 | **current** | `is_current_view` |
-| **shelved** | not current, not terminal |
-| **finished** | not current, terminal |
+| **shelved** | not current, `ended_at` null |
+| **finished** | not current, `ended_at` set |
 
 ### The game clock
 
-`common.timers (game_id, ticks, last_tick)`, its own table so the tick doesn't
-churn the games stream. `ticks` counts whole seconds of **active play**: every
+`common.timers (game_id, ticks, last_tick, kind, countdown_seconds_at_setup)`,
+its own table so the tick doesn't churn the games stream. `kind` (`none`,
+`countup`, `countdown`) and the countdown's length are copied from
+`setup.timer` at create, and are what the game reads from then on. `ticks`
+counts whole seconds of **active play**: every
 playing client calls `common.tick_timer` once a second, and it advances by at
 most one per real second, which removes duplicates across players and makes a
 pause cost one second rather than its length. Pause and "nobody here" need no
 bookkeeping — they are seconds when nobody ticks. The frontend half is
 [`common/timer`](../src/common/timer/doc.md).
 
-### Title, status and last activity
+### Title, statuses and the two dates
 
 - **`title`** is built by each game's `create_game` (and rewritten by its moves
   where the game says so); the rules every title follows are
   [game-status-labels.md](game-status-labels.md).
-- **`status` merges.** `common.update_state` (mid-game) and `common.end_game`
-  (terminal) both write `status || new`, so a caller passes only the keys it
-  changes and a terminal write adds to the mid-game readout. Every terminal
-  write still states its own `reason`, since under a merge an omitted key
-  inherits. `status` is club-readable, so it carries only what every player
-  already sees.
-- **`last_active_at`** is stamped by a trigger on every update to the row, so
-  the club list orders games by when they were last touched and no RPC can
-  forget to bump it.
+- **The statuses** — `games.game_status`, each `game_players.player_status`,
+  and `games.clubpage_info` for the club page — are copies of the game's own
+  tables, written by one status builder per game, which assigns the whole
+  object and never merges. The game calls it at create, at Restart and at the
+  end of every move. They are club-readable, so they carry only what every
+  player already sees.
+- **`status_changed_at`** is when the game's status last changed, and the club
+  list sorts and dates games by it. Only the builder writes it, and only when
+  its caller passes `p_update_status_changed_at` true — a create, a Restart, a
+  move — so rebuilding a status by hand or over every game leaves the dates
+  alone, and opening or leaving a game never moves it.
+- **`updated_at`** is when the row was last written, by anything: a trigger
+  stamps it on every update and nothing else writes it.
 
 ## Starting a game
 
 A game's own `<game>.create_game` validates its setup (the shared checks are
 helpers — `require_valid_timer`, `require_valid_mode`,
 `require_player_count_max`), then calls **`common.create_game`** for the
-header: it checks the caller and every player are in the club (AI accounts
-exempt), moves the current-game pointer to the new game, inserts the
-`common.games` row, the clock and one `game_players` row per player, and saves
-the club's `default_setup`. The game then inserts its own detail rows under the
-returned id and answers `{ result: 'created', id }`. psychicnum's is the model
-to copy (`supabase/sql/psychicnum.sql`).
+header, passing the mode it checked: it checks the caller and every player
+are in the club (AI accounts exempt), moves the current-game pointer to the
+new game, inserts the `common.games` row, the clock (its kind and length
+copied from `setup.timer`) and one `game_players` row per player, and saves
+the club's `default_setup`. The game then inserts its own detail rows under
+the returned id, runs its status builder, and answers `{ result: 'created',
+id }`. psychicnum's is the model to copy (`supabase/sql/psychicnum.sql`).
 
 ## Ending a game
 
-### Manual end — every gametype's `stop_game(target_game)`
+### `common.end_game` — the one way a game ends
 
-Every gametype has a player-callable stop — the friends agree they've played
-enough — and it is **neutral**: `play_state = 'ended'`, `status.reason =
-'manual'`, and every player's result `{ "won": false }`. It is the co-op stop;
-a race's is [Concede](#concede--per-player-drop-out). Three endings stay
-distinct: **timeout** is a loss, fired by the clients when a countdown reaches
-zero; **stop** is neutral; **leaving the page** isn't terminal at all.
+A game calls **`common.end_game`** once, when its own rule says the game is
+over. It passes the reason pair (one of `reached_goal`, `resource_exhausted`,
+`all_passed`, `fatal_move`, `conceded`, `timeout`, `stopped`, and the game's
+own word for the act), the player whose act ended it (null only for a timeout
+nobody's turn covers), whether its rule makes this a no-result, and each
+player's `final_ranking` as `{"<user id>": 1, …}` — a player left out is
+unranked. `end_game` decides only the two outcomes
+([win-lose.md](win-lose.md)):
 
-The contract every game's `stop_game` mirrors:
+- **the game's**: `won` if anyone ranked 1; otherwise `neutral` for a Stop or
+  a no-result, and `lost` for the rest.
+- **each player's**: 1 is `won`, lower is `near`; an unranked player is `lost`
+  if they conceded or the ending has a result, `neutral` otherwise.
 
-1. Lock the game's own row `for update`; a missing row answers the shared
-   deleted-game race (`common._raise_game_deleted`) — asked BEFORE membership,
-   because a deleted game has no players left to be one of. The lock is what
-   makes a Stop racing the winning move wait for it and read the game as over;
-   `common.end_game` itself overwrites whatever ending came first.
-   `src/guards/endLock.test.ts` holds it for every `stop_game` and
+`solved_at` is not its business: the game writes it at the solve.
+`is_current_view` is not cleared, since a finished game stays current while
+someone is reviewing it. The game then runs its status builder, whose write to
+`common.games` is what every page learns the ending from.
+
+### Stop — every gametype's `stop_game`
+
+Every gametype has a player-callable Stop — the friends agree they've played
+enough — and it is **neutral**: reason `stopped`, nobody ranked, so the game
+and every player come out `neutral`. It is the co-op stop; a race's is
+[Concede](#concede--per-player-drop-out). Three endings stay distinct:
+**timeout**, fired by the clients when a countdown reaches zero; **stop**; and
+**leaving the page**, which ends nothing.
+
+The shape every game's `stop_game` follows:
+
+1. Lock the game's own row `for update`, the row its moves lock; a missing row
+   answers the shared deleted-game race (`common._raise_game_deleted`). The
+   lock is what makes a Stop racing the winning move wait for it and then read
+   the game as over. `common` can't take it, since it can't name a game's
+   table. `src/guards/endLock.test.ts` holds it for every `stop_game` and
    `submit_timeout`.
-2. `common.require_game_player` — playership gates acting.
-3. A game already over answers the shared race (`common._raise_game_over`), so
-   a double click or a click racing a timeout is harmless.
-4. `common.end_game(target_game, 'ended', { reason: 'manual', … },
-   every player won: false)`.
-5. **Touch a row the game's frontend subscribes to** (a no-op self-update),
-   because `common.end_game` writes only `common.games` and a game whose hooks
-   watch its own tables would not otherwise wake to refetch its board.
-6. Answer `{ result: 'ended' }` through the envelope handler, and grant to
+2. **`common._stop`**: checks the caller is a player
+   (`common.require_game_player`), answers a game already over with the shared
+   race (`common._raise_game_over`), so a double click or a click racing a
+   timeout is harmless, and calls `end_game` with reason `stopped`, the caller
+   as who ended it, and nobody ranked. It returns the caller's id.
+3. Any step of the game's own (scrabble coop's leftover-tiles penalty, a
+   title), then its status builder.
+4. Answer `{ result: 'ended' }` through the envelope handler, and grant to
    `authenticated`.
 
 `submit_timeout` answers the same way; it fires from every connected client at
@@ -136,67 +163,49 @@ once, so all but the first find the game already over.
 
 **Concede is the compete counterpart to Stop**: "I quit; the others play on." It
 is a real loss for the conceder and never a mutual stop — the last player to
-concede ends the game as a collective loss. `game_players.conceded` is the flag,
-the one per-player terminal state that exists before the game ends, which is
-what lets a verdict say "Conceded" rather than "Lost". Every compete game has one;
-co-op never does.
+concede ends the game as a collective loss. A concession is a player's ending
+with reason `conceded`, which is what lets a verdict say "Conceded" rather than
+"Lost". Every compete game has one; co-op never does.
 
-Two shapes, by how a player can stop racing:
+The front end always calls the game's own `<game>.concede`, and every one has
+the same shape:
 
-- **`common.concede`** — for a game where the only way to stop racing is to
-  WIN, which already ends it. "Still racing" is then just "not conceded", so the
-  helper marks the caller out and ends the game iff nobody is left. It names
-  that ending in the game's own vocabulary (`lost_compete` for a sibling
-  compete gametype, `lost` for a single-mode one). The game's `<game>.concede`
-  wraps it, with `common.require_compete` where the game has a co-op sibling.
-- **`common._set_conceded` + the game's own check** — for a game where a
-  player can be done without the table ending: eliminated, out of budget, or
-  simply not on turn. The game decides whether anyone is still racing in its
-  `<game>._maybe_finish_compete`, shared by its move RPC and its concede, and a
-  conceder never wins.
+1. `common.require_compete` where the game has a co-op sibling, then lock the
+   game's own row, as Stop does. It matters in a game whose "is anyone still
+   racing?" check reads its own rows as well as `game_players`: a final move
+   and a concession both ask it, and without the move's lock each could read
+   a snapshot from before the other's write, both see someone still racing,
+   and the game would wedge with nobody left. `src/guards/concedeLock.test.ts`
+   holds it. The other games take it too, so every `concede` has one shape.
+2. **`common._concede`**: the guards — a player of this game, the game not
+   over, not already conceded ("Already conceded"), not ended some other way
+   ("Already out": a loss is already a loss, and a finisher would only throw
+   away a win they may hold) — then the concession, and, once **every** player
+   has conceded, `end_game` as a `conceded` collective loss. That holds in
+   every game: if everyone conceded, nobody solved, won or finished.
+3. **A game where a player can end some other way** (solved, out of guesses,
+   eliminated) runs its own "is anyone still racing?" check next, skipping a
+   game `_concede` already ended; a conceder never wins.
+4. Its status builder, and the answer `{ result: 'conceded' }`. Whether the
+   concession also ended the game is not in the answer; every client, the
+   conceder's included, learns that from the builder's write.
 
-Either way, only a player still racing may concede. `_set_conceded` refuses a
-second concede ("Already conceded") and a player who is out some other way —
-finished, eliminated, out of budget ("Already out"): a loss is already a loss,
-and a finisher would only throw away a win they may hold. Anyone may still Stop
-the game for all.
+Anyone may still Stop the game for all. `_concede` is not granted to
+`authenticated`: a direct call would end a game without its builder.
 
-**A game whose "anyone still racing?" test reads its own tables must lock its
-own games row before `common.games`.** That test reads two tables at once — the
-game's progress rows and `game_players` — and a final move and a concede both
-ask it. The move locks the game's row; if concede locked only `common.games`,
-the two would never serialize: each reads a snapshot from before the other's
-write, both see someone still racing, neither ends the game, and it wedges in
-`playing` with nobody left. So such a concede opens by locking its own row, in
-the move path's order. It can't be shared into `common`, which cannot lock
-another schema's table without dynamic SQL; `src/guards/concedeLock.test.ts`
-holds it for every game that calls `_set_conceded`.
-
-Concede answers `{ result: 'conceded' }`. Whether it also ended the game is not
-in the answer; every client, the conceder's included, learns that by
-subscription.
-
-**The concede that ends the game touches a row the frontend subscribes to**,
-for the reason Stop does (step 5 above): it writes nothing of the game's own,
-and a board that never re-reads never gets what the ending releases — wordle's
-answer, a race's rivals' guesses. The game's `_finish_compete` (or
-`_maybe_finish_compete`, where the ending is there) does it once, for every
-path that ends the race through it; a game that hands the ending to
-`common.concede` touches in its own `<game>.concede` wrapper.
-`src/guards/endingTouchesGame.test.ts` holds the rule for every RPC that can
-end a game.
-
-### Not playing any more — `locally_terminal`
+### Not playing any more — `player_ended_at`
 
 **A racer can stop playing while the game goes on** — out of guesses,
 eliminated, solved in a race that plays on to rank everyone, or conceded — and
-the presence-pause must not wait for them. `game_players.locally_terminal` is
-that flag, set by `common._set_locally_terminal` from inside the game RPC that
-detects it, set by `common._set_conceded` along with `conceded`, and cleared on
-restart. `conceded` is the separate fact that forfeits a win: a locally
-terminal player who did not concede may be the WINNER. Compete only; the pause
-watches `not locally_terminal`, and `common._advance_turn` skips a locally
-terminal seat. The terms are defined in [win-lose.md → Where a player
+the presence-pause must not wait for them. `game_players.player_ended_at`
+records it, with the player's reason pair (`reached_goal`,
+`resource_exhausted`, `fatal_move`, `conceded`, `timeout`, and the game's own
+word). The game RPC that detects it calls `common._set_player_ended`, which
+keeps a player's first ending; `common._concede` writes a concession itself;
+`common.reset_game` clears it on Restart. A player who ended without
+conceding may be the WINNER. The pause watches the players who haven't ended,
+and `common._advance_turn` skips a seat that has. The terms are defined in
+[win-lose.md → Where a player
 stands](win-lose.md#where-a-player-stands--the-terms-as-formulas).
 
 ## Turn-order — opt-in turn-by-turn for coop games
@@ -217,7 +226,7 @@ and only *who may act now* changing. The mechanism is all common:
   when the pointer is null.
 - **`common._advance_turn`**, after an **accepted, non-terminal** move only: a
   refused word must not cost the turn, and a move that ends the game has no one
-  to hand it to. It skips anyone locally terminal.
+  to hand it to. It skips any player who has ended.
 - **`common.reset_game`**, on Restart, rewinds a set pointer to seat 0; a null
   one stays null. A game that opens elsewhere points the turn itself after the
   call.
@@ -285,7 +294,6 @@ Every `common` function is `security definer`. What the client calls:
 | `get_club_page` | everything the club page draws, in one read — and the one read that can tell "no such club" from "not yours" |
 | `send_message` | post to a club's chat; the table itself has no insert grant |
 | `set_current_view`, `unset_current_view`, `tick_timer` | the presence-driven pointer and the clock |
-| `concede` | the shared concede ([above](#concede--per-player-drop-out)) |
 | `delete_game` | remove a game and everything under it; any club member may |
 | `set_scratchpad` | write a scratchpad |
 | `anagrams`, `update_word`, `delete_word`, `add_word` | [word-list.md](word-list.md) |
@@ -295,8 +303,8 @@ other security-definer functions: the gates (`require_club_member`,
 `require_game_player`, `require_valid_timer`, `require_valid_mode`,
 `require_compete`, `require_player_count_max`), the shared races
 (`_raise_game_deleted`, `_raise_game_over`), and the halves every game calls
-(`create_game`, `update_state`, `end_game`, `reset_game`, `_set_conceded`,
-`_set_locally_terminal`, and the turn-order three). Tests for the helpers are
+(`create_game`, `end_game`, `reset_game`, `_concede`, `_stop`,
+`_set_player_ended`, and the turn-order three). Tests for the helpers are
 `supabase/tests/common/helpers_test.sql`.
 
 ## Revealing the solution
@@ -304,7 +312,7 @@ other security-definer functions: the gates (`require_club_member`,
 Whether a player is looking at the answer is a local display choice in the
 frontend ([`common/reveal`](../src/common/reveal/doc.md)) — nothing is written.
 **What the server owes is the shield**: each game's column grant and its
-`_x_for()` helper hand the solution over at `is_terminal`, over for EVERYONE.
+`_x_for()` helper hand the solution over once `ended_at` is set, over for EVERYONE.
 That is the part that bites in compete: a player who conceded or finished early
 is done while the others race on, and must not be able to read the answer out,
 so the gate never keys on per-player doneness.

@@ -626,7 +626,7 @@ begin
 
   -- Wake the boards: the last concede writes no connections row of its own —
   -- without this, open boards never re-read and the rivals' guesses, released
-  -- at terminal, never load (docs/common-schema.md → Manual end, step 5).
+  -- at terminal, never load (src/guards/endingTouchesGame.test.ts).
   update connections.games set club_handle = club_handle where id = target_game;
   return true;
 end;
@@ -1195,7 +1195,7 @@ begin
 
   -- Wake the boards: common.end_game writes only common.games, so without
   -- this open boards never re-read and a race's rivals' guesses, released at
-  -- terminal, never load (docs/common-schema.md → Manual end, step 5).
+  -- terminal, never load (src/guards/endingTouchesGame.test.ts).
   update connections.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 

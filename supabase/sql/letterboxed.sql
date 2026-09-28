@@ -1458,7 +1458,7 @@ begin
                              where p.game_id = target_game limit 1)),
       player_results
     );
-    -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+    -- Wake the boards (src/guards/endingTouchesGame.test.ts).
     update letterboxed.games set club_handle = club_handle where id = target_game;
     return common.ok_envelope(jsonb_build_object('result', 'ended'));
   end if;
@@ -1522,7 +1522,7 @@ begin
                          where p.game_id = target_game)),
     player_results
   );
-  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update letterboxed.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -1543,7 +1543,7 @@ grant execute on function letterboxed.submit_timeout(uuid) to authenticated;
 -- letterboxed.stop_game — "we've played as much as we want"
 -- ============================================================
 -- The player-callable stop, uniform across the roster (see
--- docs/common-schema.md → Manual end). It writes `ended` in BOTH
+-- docs/common-schema.md → Stop). It writes `ended` in BOTH
 -- modes — the roster's neutral terminal — and that is the difference
 -- from submit_timeout: the clock running out on a race is a RESULT
 -- (compete resolves on coverage), but a group agreeing to stop is a
@@ -1593,7 +1593,7 @@ begin
          end,
     player_results
   );
-  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update letterboxed.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 

@@ -1469,7 +1469,7 @@ begin
     target_game, 'ended',
     jsonb_build_object('reason', 'manual', 'words_found', v_found),
     player_results);
-  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update strands.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -1679,7 +1679,7 @@ begin
     target_game, 'lost',
     jsonb_build_object('reason', 'timeout', 'words_found', v_found),
     player_results);
-  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  -- Wake the boards (src/guards/endingTouchesGame.test.ts).
   update strands.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 

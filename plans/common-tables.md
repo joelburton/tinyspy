@@ -318,9 +318,12 @@ Joel, while writing common SQL.
     direct call would end a game without its builder.
   - **`common._stop(p_game_id)`**: the player check, the ended check, and
     `end_game(…, 'stopped', 'stopped', caller, false, '{}')`.
-  - The lock closes a race today's code has: `_set_conceded` locks
-    `common.games`, not the game row a move locks, so a concession could end
-    the game between a move's "has it ended?" check and its own `end_game`.
+  - The lock is needed where a game's own end check reads its own rows as
+    well as `common.game_players` — the six that call `_set_conceded` today,
+    which take it already (`src/guards/concedeLock.test.ts`). In the other
+    nine a concession ends the game only once everyone has conceded, the
+    mover included, so there is nothing to race; they take it so every
+    `concede` has one shape.
 - **`end_game` takes the rankings as jsonb keyed by user id**
   (common-tables-schema.md → What `common.end_game` takes and does).
 
@@ -363,12 +366,13 @@ now ordered by layer, and the stages below are its content, not its order:
    new / changed / kept / dropped.
 2. **One migration** for all of it, with the backfills; applied locally.
 3. **Common SQL** on the new schema: `end_game` once, in its final form;
-   `concede`, `reset_game`, the timers, the policies and views. Written:
-   `create_game`, `end_game`, `reset_game`, `_set_player_ended`,
-   `_advance_turn`, `update_state` dropped. Left: `_concede` and `_stop`
-   ([Decided → Step 3](#step-3-2026-09-28)); the `updated_at` trigger in
-   place of `last_active_at`'s, with the migration renaming the column to
-   `status_changed_at` and adding `updated_at`; docs/common-schema.md.
+   `concede`, `reset_game`, the timers, the policies and views. Done
+   (2026-09-28): `create_game`, `end_game`, `reset_game`,
+   `_set_player_ended`, `_advance_turn`, `_concede` and `_stop` ([Decided →
+   Step 3](#step-3-2026-09-28)); `update_state`, `concede` and
+   `_set_conceded` dropped; the `updated_at` trigger in place of
+   `last_active_at`'s, and the migration's rename to `status_changed_at`;
+   docs/common-schema.md.
 4. **Each game's SQL**, one game at a time — its ending, its status
    builder (both statuses and `clubpage_info`, and the pgTAP test of its
    keys), and its full `final_ranking`s (so rankings below first come here,

@@ -457,8 +457,8 @@ begin
 
   -- Wake the boards: every way a race ends passes through here, and the last
   -- concede writes no wordle row of its own — without this, open boards never
-  -- re-read and the answer never reaches Reveal (docs/common-schema.md →
-  -- Manual end, step 5).
+  -- re-read and the answer never reaches Reveal
+  -- (src/guards/endingTouchesGame.test.ts).
   update wordle.games set club_handle = club_handle where id = target_game;
 end;
 $$;
@@ -936,7 +936,7 @@ declare
 begin
   -- Locked, so a Stop racing the winning move waits for it and then reads the
   -- game as over, rather than overwriting the win (docs/common-schema.md →
-  -- Manual end, step 1).
+  -- Stop, step 1).
   perform 1 from wordle.games where id = target_game for update;
   if not found then
     perform common._raise_game_deleted('wordle');

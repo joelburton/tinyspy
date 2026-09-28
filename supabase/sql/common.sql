@@ -210,29 +210,29 @@ as $$
 $$;
 revoke execute on function common.default_gametypes_for_club(text) from public;
 
--- Keep `last_active_at` current on EVERY update to a games row, without any
--- RPC having to remember to. A BEFORE UPDATE trigger that stamps now() is
--- forget-proof in a way imperative `set last_active_at = now()` is not — the
--- prompt for this was a stackdown move path that wrote its own schema and
--- updated the games row's title (so the timestamp rode along) but had no
--- imperative bump of its own. now() (= transaction_timestamp) matches
--- started_at / ended_at, so all three read consistently within a transaction.
-create or replace function common.touch_games_last_active()
+-- `updated_at` is when a games row was last written, by anything — a move, a
+-- builder run, the current-view pointer, a data pass — so it is stamped here
+-- and nowhere else. It is not when the game was last played: that is
+-- `status_changed_at`, which only the game's status builder writes.
+drop trigger if exists games_touch_last_active on common.games;
+drop function if exists common.touch_games_last_active();
+
+create or replace function common.stamp_games_updated_at()
 returns trigger
 language plpgsql
 as $$
 begin
-  new.last_active_at := now();
+  new.updated_at := now();
   return new;
 end;
 $$;
-revoke execute on function common.touch_games_last_active() from public;
+revoke execute on function common.stamp_games_updated_at() from public;
 
-drop trigger if exists games_touch_last_active on common.games;
-create trigger games_touch_last_active
+drop trigger if exists games_stamp_updated_at on common.games;
+create trigger games_stamp_updated_at
   before update on common.games
   for each row
-  execute function common.touch_games_last_active();
+  execute function common.stamp_games_updated_at();
 
 -- Read-only to members (the FE seeds its initial display from
 -- `ticks`); writes go exclusively through common.tick_timer. RLS
@@ -809,8 +809,8 @@ revoke execute on function common._raise_game_deleted(text) from public;
 -- ─── common._raise_game_over ───────────────────────────────
 -- The one sentence for "this game is not accepting moves any
 -- more", raised by every RPC that finds `ended_at` set: each
--- game's moves, `stop_game`,
--- `submit_timeout`, and `common._set_conceded`.
+-- game's moves, `submit_timeout`, `common._stop` and
+-- `common._concede`.
 --
 -- **A RACE**, and the ordinary one: the game ended between the
 -- frontend's gate reading the game's end off the subscription and
@@ -839,7 +839,7 @@ revoke execute on function common._raise_game_over() from public;
 -- ─── common._raise_already_conceded ────────────────────────
 -- The one sentence for "you conceded, so this move is refused",
 -- raised by every compete move that checks the caller's concession,
--- and by `common._set_conceded` for a second concession.
+-- and by `common._concede` for a second concession.
 --
 -- **A RACE**, like `_raise_game_over`: the frontend hides the
 -- controls once the subscription says you conceded, so reaching
@@ -1402,8 +1402,6 @@ begin
     v_outcome := 'lost';
   end if;
 
-  -- last_active_at rides along automatically (games_touch_last_active), so
-  -- a finished game dates by its end time.
   update common.games
      set ended_at = coalesce(ended_at, now()),
          game_ended_reason = p_reason,
@@ -1542,29 +1540,32 @@ $$;
 
 revoke execute on function common.reset_game(uuid) from public;
 
--- ─── common._set_conceded ──────────────────────────────────
--- The shared first half of "a player concedes": guard the action
--- and record that the player ended by conceding. Split out from
--- common.concede so that gametypes whose game-over rule is
--- game-specific (a game where a player can be "done" without the
--- table ending — eliminated, out of budget, or not on turn) can
--- reuse the exact same guarded flag-flip and then run their OWN
--- terminal check + winner computation. A game where the only way to
--- stop racing is to win doesn't need that and calls common.concede
--- below, which pairs this with the generic "everyone's out" end.
+-- ─── common._concede ───────────────────────────────────────
+-- The shared part of "a player concedes", called by every game's own
+-- `<game>.concede` (the RPC the front end calls). That RPC has already
+-- locked its game row, the row its moves lock, so a concession and a move
+-- wait for each other, and has raised on a deleted game; it runs any end
+-- check of its own after this, then its status builder.
 --
 -- Guards, in order:
---   - game exists + is locked FOR UPDATE (serialize concurrent
---     concedes / a concede racing a move that ends the game); a missing
---     game is the shared deleted-game race, asked before membership
 --   - caller is a player of this game
 --   - the game hasn't already ended
 --   - the caller hasn't already conceded (idempotency: concede once)
 --   - the caller hasn't otherwise ended: nothing to concede
 --
--- Returns the caller's user_id (the concede RPCs use it downstream).
+-- Then it records the concession, and once EVERY player has conceded it ends
+-- the game as a collective loss: reason `conceded`, nobody ranked, so the game
+-- and every player come out `lost`. That holds in every game — if everyone
+-- conceded, nobody solved, won or finished. A game where a player can end
+-- another way (solved, out of guesses) never gets there through that
+-- player, and its own check decides; it skips a game this already ended.
+--
+-- Returns the caller's user_id (the concede RPCs use it downstream). Not
+-- granted to `authenticated`: a direct call would end a game without its
+-- builder.
+drop function if exists common.concede(uuid);
 drop function if exists common._set_conceded(uuid);
-create or replace function common._set_conceded(p_game_id uuid)
+create or replace function common._concede(p_game_id uuid)
 returns uuid
 language plpgsql
 security definer
@@ -1576,15 +1577,9 @@ declare
   v_player_ended_at timestamptz;
   v_player_ended_reason text;
 begin
-  select ended_at into v_ended_at from common.games where id = p_game_id for update;
-  if not found then
-    -- Any club member may delete a game, taking its rows and every membership
-    -- with it, so a player still on the page can concede into one that is gone.
-    perform common._raise_game_deleted('common');
-  end if;
-
   caller_id := common.require_game_player(p_game_id);
 
+  select ended_at into v_ended_at from common.games where id = p_game_id;
   if v_ended_at is not null then
     -- A RACE: the last other racer finished, or a peer ended the game, between
     -- the menu opening and this click. The frontend learns the game ended from
@@ -1620,13 +1615,67 @@ begin
          player_ended_reason_detail = 'conceded'
    where game_id = p_game_id and user_id = caller_id;
 
+  if not exists (
+    select 1 from common.game_players
+     where game_id = p_game_id
+       and player_ended_reason is distinct from 'conceded'
+  ) then
+    perform common.end_game(
+      p_game_id, 'conceded', 'conceded', caller_id,
+      p_is_no_result => false,
+      p_final_rankings => '{}'::jsonb
+    );
+  end if;
+
   return caller_id;
 end;
 $$;
 
 -- No grant to authenticated; internal helper (reached via the
--- concede RPCs).
-revoke execute on function common._set_conceded(uuid) from public;
+-- games' concede RPCs).
+revoke execute on function common._concede(uuid) from public;
+
+-- ─── common._stop ──────────────────────────────────────────
+-- The shared part of the Stop, called by every game's own
+-- `<game>.stop_game`. That RPC has already locked its game row and raised on
+-- a deleted game; it adds any step of its own after this (a leftover-tiles
+-- penalty, a title), then runs its status builder.
+--
+-- Checks the caller is a player and the game hasn't ended, then ends it:
+-- reason `stopped`, the caller as who ended it, nobody ranked — so the game
+-- and every player come out `neutral`.
+--
+-- Returns the caller's user_id.
+create or replace function common._stop(p_game_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  caller_id uuid;
+begin
+  caller_id := common.require_game_player(p_game_id);
+
+  if (select ended_at from common.games where id = p_game_id) is not null then
+    -- A RACE: a winning move, a teammate's Stop or the timer landed between
+    -- the button drawing and this click.
+    perform common._raise_game_over();
+  end if;
+
+  perform common.end_game(
+    p_game_id, 'stopped', 'stopped', caller_id,
+    p_is_no_result => false,
+    p_final_rankings => '{}'::jsonb
+  );
+
+  return caller_id;
+end;
+$$;
+
+-- No grant to authenticated; internal helper (reached via the
+-- games' stop_game RPCs).
+revoke execute on function common._stop(uuid) from public;
 
 -- ─── common._set_player_ended ──────────────────────────────
 -- Mark one player ended while the game plays on, for a reason that is
@@ -1636,7 +1685,7 @@ revoke execute on function common._set_conceded(uuid) from public;
 -- here. `p_reason` is one of the player's five reasons and
 -- `p_reason_detail` the game's own word for it ('mistakes',
 -- 'exhausted', 'solved'). Conceding is the one reason `common` knows
--- itself: `_set_conceded` writes it directly.
+-- itself: `_concede` writes it directly.
 --
 -- The roster that presence-pause watches is the players who haven't
 -- ended: a finished player's closed tab must not stop the game for
@@ -1672,84 +1721,6 @@ $$;
 -- gametype RPCs, which are themselves definers).
 revoke execute on function common._set_player_ended(uuid, uuid, text, text) from public;
 
--- ─── common.concede ────────────────────────────────────────
--- The player-drops-out action for compete games whose game-over
--- rule is NOT game-specific — i.e. games with no independent
--- per-player "eliminated" state, where the only reason a
--- non-conceded player isn't still racing is that they already
--- WON (which would have ended the game). For those the
--- active set is exactly "not conceded", so the whole game ends
--- precisely when the LAST active player concedes.
---
--- Semantics (docs/common-schema.md → Concede): mark the caller out; if
--- anyone is still racing, return and let them finish (concede
--- NEVER ends the table for others). Only when the caller was the
--- last one standing does the game end — as a collective loss (reason
--- 'conceded', nobody ranked, so the game and every player `lost`), the
--- same shape as a whole-table timeout. That's not "we all agreed to
--- stop": each player who wants out clicks Concede, and the final
--- click happens to be the one that ends it.
---
--- A game where a player can be done without the table ending does NOT
--- use this — it calls common._set_conceded and then its own terminal
--- check (which counts conceded as "done" alongside solved /
--- out-of-guesses). See wordle.concede.
---
--- Answers in an ENVELOPE, and catches for the wrappers that delegate
--- to it: most are `return common.concede(...)` and have nothing of
--- their own to catch, so putting the handler here is what keeps them
--- one line. The wrappers still carry their own, because
--- `require_compete` raises BEFORE this is reached.
-drop function if exists common.concede(uuid);
-
-create or replace function common.concede(p_game_id uuid)
-returns jsonb
-language plpgsql
-security definer
-set search_path = common, public, extensions
-as $$
-declare
-  caller_id uuid;
-  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-begin
-  caller_id := common._set_conceded(p_game_id);
-
-  -- Anyone still in the race? If so, the game continues for them. A player
-  -- who ended some other way still counts: wordiply's spent players have,
-  -- and wordiply.concede runs its own end check after this one.
-  if exists (
-    select 1 from common.game_players
-     where game_id = p_game_id
-       and player_ended_reason is distinct from 'conceded'
-  ) then
-    return common.ok_envelope(jsonb_build_object('result', 'conceded'));
-  end if;
-
-  -- The caller was the last one racing → collective loss.
-  perform common.end_game(
-    p_game_id, 'conceded', 'conceded', caller_id,
-    p_is_no_result => false,
-    p_final_rankings => '{}'::jsonb
-  );
-
-  -- The SAME ok as the other branch. Whether the drop-out also ended the game
-  -- is not something the conceder acts on — the terminal arrives at every
-  -- client alike, by subscription — so the answer says what the caller asked
-  -- for and nothing about the others.
-  return common.ok_envelope(jsonb_build_object('result', 'conceded'));
-
-exception when others then
-  get stacked diagnostics
-    v_msg = message_text, v_detail = pg_exception_detail,
-    v_hint = pg_exception_hint, v_code = returned_sqlstate,
-    v_col = column_name, v_out = constraint_name;
-  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
-end;
-$$;
-revoke execute on function common.concede(uuid) from public;
-
-grant execute on function common.concede(uuid) to authenticated;
 
 -- ─── common.set_current_view ───────────────────────────────
 -- Fired from the FE when the first viewer mounts a game's
