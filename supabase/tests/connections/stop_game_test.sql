@@ -1,26 +1,26 @@
 -- cs-blessed-connections
 
 -- ============================================================
--- Test: connections.stop_game — manual "Stop game" terminal
+-- Test: connections.stop_game — the manual "Stop game" ending
 -- ============================================================
 --
 -- stop_game is the per-game menu's "Stop game" action. Unlike
 -- submit_guess (which decides a winner/loser) or submit_timeout
--- (which writes a "you lost" timeout terminal), stop_game is the
--- NEUTRAL stop: the friends agreed to quit, so nobody won and
--- nobody lost. It writes:
---   - play_state = 'ended'
---   - status = {reason:'manual', mode:<coop|compete>}
---   - every player's game_players.result = {"won": false}
+-- (which ends the game lost), stop_game is the NEUTRAL stop: the
+-- friends agreed to quit, so nobody won and nobody lost. It ends the
+-- game with:
+--   - reason `stopped`/'stopped', outcome `neutral`
+--   - the caller as who ended it
+--   - every player unranked and `neutral`
 -- in BOTH modes (the per-player result is identical coop vs
 -- compete — there's nothing "achieved" to snapshot).
 --
 -- Coverage (both modes):
---   - stop_game → play_state 'ended', is_terminal true
---   - status.reason='manual', status.mode echoes g_row.mode
---   - every player gets {"won": false}
+--   - stop_game → ended_at set, outcome neutral
+--   - reason stopped, ended by the caller
+--   - every player unranked and neutral
 --   - idempotency: a second call is the game-over race
---   - auth: a club outsider is rejected with 42501 via
+--   - auth: a club outsider is rejected (PN253) via
 --     require_game_player
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP / auth-
@@ -65,44 +65,44 @@ select (connections.create_game(
   'compete')->'data'->>'id')::uuid as id;
 
 -- ============================================================
--- (1)–(5) coop stop_game: neutral terminal, no winner
+-- (1)–(5) coop stop_game: neutral ending, no winner
 -- ============================================================
 
 select connections.stop_game((select id from g_coop));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g_coop)),
-  'ended',
-  'coop stop_game: play_state flips to "ended"'
+  (select game_ended_outcome from common.games where id = (select id from g_coop)),
+  'neutral',
+  'coop stop_game: the game ends neutral'
+);
+
+select isnt(
+  (select ended_at from common.games where id = (select id from g_coop)),
+  null,
+  'coop stop_game: ended_at is set'
 );
 
 select is(
-  (select is_terminal from common.games where id = (select id from g_coop)),
-  true,
-  'coop stop_game: is_terminal=true'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g_coop)),
+  'stopped/stopped',
+  'coop stop_game: reason stopped (distinguishes from timeout/solve)'
 );
 
 select is(
-  (select status->>'reason' from common.games where id = (select id from g_coop)),
-  'manual',
-  'coop stop_game: status.reason=manual (distinguishes from timeout/solve)'
-);
-
-select is(
-  (select status->>'mode' from common.games where id = (select id from g_coop)),
-  'coop',
-  'coop stop_game: status.mode echoes the game mode'
+  (select game_ended_by_user_id from common.games where id = (select id from g_coop)),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'coop stop_game: the caller ended it'
 );
 
 select is(
   (
     select count(*) from common.game_players
      where game_id = (select id from g_coop)
-       and (result->>'won') = 'false'
+       and final_ranking is null and outcome = 'neutral'
   ),
   2::bigint,
-  'coop stop_game: every player gets {won: false} (friends agreed to stop)'
+  'coop stop_game: every player is unranked and neutral (friends agreed to stop)'
 );
 
 -- ============================================================
@@ -119,7 +119,7 @@ select pg_temp.envelope_is(
   'coop stop_game: second call is the game-over race');
 
 -- ============================================================
--- (7)–(10) compete stop_game: same neutral terminal, no winner
+-- (7)–(10) compete stop_game: same neutral ending, no winner
 -- ============================================================
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -127,41 +127,40 @@ select connections.stop_game((select id from g_compete));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g_compete)),
-  'ended',
-  'compete stop_game: play_state flips to "ended"'
+  (select game_ended_outcome from common.games where id = (select id from g_compete)),
+  'neutral',
+  'compete stop_game: the game ends neutral'
 );
 
 select is(
-  (select status->>'reason' from common.games where id = (select id from g_compete)),
-  'manual',
-  'compete stop_game: status.reason=manual'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g_compete)),
+  'stopped/stopped',
+  'compete stop_game: reason stopped'
 );
 
 select is(
-  (select status->>'mode' from common.games where id = (select id from g_compete)),
-  'compete',
-  'compete stop_game: status.mode echoes the game mode'
+  (select game_ended_by_user_id from common.games where id = (select id from g_compete)),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
+  'compete stop_game: the caller ended it'
 );
 
 select is(
   (
     select count(*) from common.game_players
      where game_id = (select id from g_compete)
-       and (result->>'won') = 'false'
+       and final_ranking is null and outcome = 'neutral'
   ),
   2::bigint,
-  'compete stop_game: every player gets {won: false} (no winner on manual end)'
+  'compete stop_game: every player is unranked and neutral (no winner on manual end)'
 );
 
 -- ============================================================
 -- (11) auth: a club outsider cannot end a game they're not in
 -- ============================================================
 -- require_game_player treats stop_game the same as submit_guess —
--- dee is not a player on a fresh game, so 42501. (We use a fresh
--- game because both games above are now terminal and would
--- short-circuit on the play_state check before the auth gate's
--- effect is observable here.)
+-- dee is not a player on a fresh game, so PN253. (We use a fresh
+-- game because both games above have ended and would answer the
+-- game-over race before the auth gate's effect is observable here.)
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_auth on commit drop as
@@ -177,7 +176,7 @@ select pg_temp.envelope_is(
   connections.stop_game((select id from g_auth)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'stop_game: non-player (dee, outsider) is rejected with 42501');
+  'stop_game: non-player (dee, outsider) is rejected with PN253');
 
 -- ============================================================
 select * from finish();

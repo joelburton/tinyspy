@@ -95,42 +95,42 @@ a rival is two counts — mistakes, and categories **found** (the Found strip)
 ends. At the end every row opens, which is what lets the event log's player
 picker read a finished race back.
 
-First to four bands wins, and the race ends for everyone at that moment. Four
-mistakes eliminates a racer; the others play on, and the game ends as a loss
-when nobody is left alive — alive is not conceded and under four mistakes.
-Concede is per racer and counts as not alive. Compete needs an opposing
-**player**, which is why its manifest takes 2–6 where coop takes 1–6.
+First to four bands wins, and the race ends for everyone at that moment: the
+winner is ranked 1 and the rest, short of the goal, are unranked. Four
+mistakes put a racer out; the others play on, and the game ends as a loss
+when nobody is left — every racer out on mistakes or conceded. Concede is per
+racer. Compete needs an opposing **player**, which is why its manifest takes
+2–6 where coop takes 1–6.
 
-### The play states
+### How a game ends
 
-Each mode writes its own pair, so a reader of `common.games.play_state` can
-tell which was played without joining anything:
+Whichever RPC ends the game passes `common.end_game` the reason pair and the
+rankings ([common-schema.md → `common.end_game`](../../docs/common-schema.md#commonend_game--the-one-way-a-game-ends)),
+and both surfaces that name the ending read those columns: the club-list
+label and the below-board pill (`lib/terminal.ts`).
 
-| | coop | compete |
+| the ending | reason / detail | ranked |
 |---|---|---|
-| four bands | `won` | `won_compete` |
-| the budget, or the clock, or everyone out | `lost` | `lost_compete` |
+| four bands | `reached_goal` / `solved` | coop: every teammate 1; compete: the finder alone |
+| coop: the fourth mistake | `resource_exhausted` / `mistakes` | nobody |
+| compete: the last racer out | that racer's act — `resource_exhausted` / `mistakes` or `conceded` / `conceded` | nobody |
+| the countdown | `timeout` / `timeout` | nobody |
+| somebody stopped it | `stopped` / `stopped` | nobody |
 
-Plus `playing`, and `ended` when somebody stopped it — neutral in every mode.
-WHY it ended is the server's word: the RPC that ends the game writes the
-reason into `common.games.status.reason` — `solved`, `mistakes`, `timeout`,
-`conceded` (every racer walked away), or `manual` — and both surfaces that
-name a reason read it: the club-list label and the below-board pill
-(`lib/terminal.ts`). A compete win also freezes the winner's name onto
-`status`.
+A Stop is neutral in every mode; every other ending with nobody ranked is a
+loss.
 
 ## Schema
 
-Four tables, in `supabase/migrations/20260615000003_connections.sql` (shape;
-the events rename is `20260917000005_connections_events.sql`) and
-`supabase/sql/connections.sql` (behavior).
+Four tables: shape in `supabase/migrations/`, behavior in
+`supabase/sql/connections.sql`.
 
 | | |
 |---|---|
 | `connections.puzzles` | the archive: `source_id` (the NYT number), `puzzle_date`, `categories` jsonb. Imported daily by `.github/workflows/connections-import.yml`; public, and pristine — a game copies from it |
-| `connections.games` | one row per game: the `board`, the `mode`, and the puzzle's date frozen as `puzzle_date`. `puzzle_id` is a soft, provenance-only FK (`on delete set null`): everything needed to play is on the row |
+| `connections.games` | one row per game, keyed `game_id` to `common.games`: the `board`, and the puzzle's date frozen as `puzzle_date`. `puzzle_id` is a soft, provenance-only FK (`on delete set null`): everything needed to play is on the row |
 | `connections.players` | one row per player: `mistake_count` and `found_categories_count`. **Club-wide readable in both modes** — compete's Found strip is built on it |
-| `connections.events` | the guess log, append-only: `kind` is `guess`, `took_turn` is true, `result` is the wire word (`correct` · `oneAway` · `wrong`), `matched_category_rank` is set iff correct. `mode` is copied from the game so the indexes and the policy need no join |
+| `connections.events` | the guess log, append-only: `kind` is `guess`, `took_turn` is true, `result` is the wire word (`correct` · `oneAway` · `wrong`), `matched_category_rank` is set iff correct |
 
 The `board`:
 
@@ -143,10 +143,25 @@ The `board`:
 
 **There is no tiles table and no matched-categories table.** A matched
 category IS a `result = 'correct'` row, joined by its rank to the board; a
-tile is on the grid until its category has one. Two partial unique indexes
-on `events` hold the rule: coop allows one correct row per rank per game,
-compete one per rank per player. Deleting the log un-matches everything,
-which is how Restart works.
+tile is on the grid until its category has one. `submit_guess` holds the
+rule, under the game row's lock: coop allows one correct row per rank per
+game, compete one per rank per player. Deleting the log un-matches
+everything, which is how Restart works.
+
+**The statuses** are written by `connections._write_statuses` at create, at
+Restart and at the end of every move, each assigned whole with every key
+present:
+
+| status | keys |
+|---|---|
+| `game_status` | `required_categories_count`, `max_mistakes` |
+| each `player_status` | `found_categories_count`, `mistake_count`, `player_ended_reason` |
+| `clubpage_info` | `found_categories_count`, `mistake_count`, `winner_user_id` |
+
+In coop a player's `mistake_count` is the team's, the same on every row, and
+the club line's counts are the team's (the matches summed). Compete's club
+line carries no progress, so its two counts are null, and `winner_user_id`
+names the finder once the race is won.
 
 **What stays server-authoritative** is what has to be atomic: the mistake
 count, the one-correct-per-rank rule (a second correct for a rank is a race,
@@ -168,7 +183,7 @@ one answers [the envelope](../../docs/envelopes.md). The examples below are
 what `data` carries on an `ok`; `result` names the answer, and a call site
 picks its branch by that word and nothing else.
 
-### `connections.create_game(target_club, setup, player_user_ids, mode)`
+### `connections.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)`
 
 Starts a game on a puzzle. With no `puzzle_id` in the setup it asks
 `next_puzzle_for_club` for the earliest date none of these players has
@@ -177,9 +192,8 @@ date field in the setup dialog is that override, and it is how the pgTAP and
 e2e fixtures pin a board). It copies the puzzle's categories onto the game,
 shuffles the sixteen tiles into this game's `tileOrder`, titles the game
 `<date>: <TILE1>-<TILE2>` from the first two tiles alphabetically, writes the
-`common.games` row and one `connections.players` row per player, and seeds
-the club-list readout — `{ found_categories_count: 0, mistake_count: 0 }` in coop,
-`{}` in compete, where each racer's counts are their own. A coop game with
+`common.games` row and one `connections.players` row per player, and writes
+the statuses. A coop game with
 `coop_style: 'turns'` also seats the turn order, starting at
 `first_turn_user_id`. Compete needs two or more players; either mode takes
 up to six.
@@ -188,15 +202,15 @@ up to six.
 
 ```json
 {
-  "target_club": "moths",
-  "setup": {
+  "p_club_handle": "moths",
+  "p_setup": {
     "puzzle_id": "9c41…",
     "timer": { "kind": "countdown", "seconds": 300 },
     "coop_style": "turns",
     "first_turn_user_id": "7b1e…"
   },
-  "player_user_ids": ["7b1e…", "c904…"],
-  "mode": "coop"
+  "p_player_user_ids": ["7b1e…", "c904…"],
+  "p_mode": "coop"
 }
 ```
 
@@ -209,7 +223,7 @@ with `coop_style: 'turns'`.
 { "result": "created", "id": "3f2a…" }
 ```
 
-### `connections.submit_guess(target_game, tiles, result, matched_category_rank)`
+### `connections.submit_guess(p_game_id, p_tiles, p_result, p_matched_category_rank)`
 
 The only mid-game move, and the only one that writes a `kind = 'guess'` row.
 `tiles` is the four picked, `result` is the frontend's own verdict in the wire
@@ -224,18 +238,19 @@ the fourth one wins for the team; in compete, the caller's fourth wins the
 race for them and ends it for everyone. A wrong or one-away guess writes the
 row and charges a mistake — the team's one shared count in coop, the
 caller's own in compete — and the fourth mistake loses the coop game, or
-eliminates the racer while the others play on; the race ends when nobody is
-left alive, and `_maybe_finish_compete` is the one place that rule is written
-(a conceder counts as not alive). An elimination also sets
-`common.game_players.locally_terminal`, which is how the shared presence-pause
-learns to stop waiting on that racer (docs/common-schema.md → Not playing any more). In turn-order coop every recorded guess
-hands the turn on.
+puts the racer out while the others play on; the race ends when nobody is
+left, and `_maybe_finish_compete` is the one place that rule is written (a
+conceder counts as out). A racer out on mistakes has ended
+(`common._set_player_ended`), which is how the shared presence-pause learns
+to stop waiting on them (docs/common-schema.md → Not playing any more). In
+turn-order coop every recorded guess that doesn't end the game hands the
+turn on.
 
 **Passed:**
 
 ```json
-{ "target_game": "3f2a…", "tiles": ["BASS", "FLOUNDER", "SOLE", "PIKE"],
-  "result": "correct", "matched_category_rank": 2 }
+{ "p_game_id": "3f2a…", "p_tiles": ["BASS", "FLOUNDER", "SOLE", "PIKE"],
+  "p_result": "correct", "p_matched_category_rank": 2 }
 ```
 
 **Returned — kind: `guess`.** Three shapes, one per verdict recorded; the
@@ -248,16 +263,16 @@ fact only, and what each is worth is the frontend's (`lib/answer.ts`):
 A guess that wrote nothing is not an `ok` at all: a category somebody else
 matched first, or a set of four already tried, comes back as a race.
 
-### `connections.next_puzzle_for_club(seen_by)`
+### `connections.next_puzzle_for_club(p_seen_by)`
 
-The queue's one question: the earliest `puzzle_date` no player in `seen_by`
+The queue's one question: the earliest `puzzle_date` no player in `p_seen_by`
 has a game on, in any club. The setup dialog previews it, `create_game`
 derives it when no `puzzle_id` is sent, and New game on the play surface
 asks it before creating so that running out can be a notice rather than a
 failed click. It runs as the definer on purpose, since another player's
 solo-club games are invisible to you under RLS and still have to count.
 
-**Passed:** `{ "seen_by": ["7b1e…", "c904…"] }`
+**Passed:** `{ "p_seen_by": ["7b1e…", "c904…"] }`
 
 **Returned:** `{ "result": "found", "puzzle": { "id": "9c41…",
 "puzzle_date": "2026-06-15", "label": "2026-06-15: BASS, FLOUNDER" } }`.
@@ -420,12 +435,13 @@ fixture puzzle whose date and source id are alien to the real archive:
 
 | file | pins |
 |---|---|
-| `create_game_test` | both modes' gates (players, the timer, a bad or missing puzzle), the board shape, the title, the seeded status |
+| `create_game_test` | both modes' gates (players, the timer, a bad or missing puzzle), the board shape, the title, the statuses written at create |
 | `gameplay_test` | `submit_guess` in coop: the payload faults, the two verdicts that cost a mistake, the band, the two races (a matched rank, a repeated set), the two endings, every `ok` carrying no outcome, and a guess into a deleted game answered as the shared race |
-| `compete_test` | the compete delta: per-player mistakes and bands, first to four ends it, elimination and the collective loss, an eliminated racer's guess is a race, timeout, and the RLS that scopes rows to the caller |
-| `concede_test` | a conceder counts as not alive; the last one out ends the race as `conceded` |
+| `compete_test` | the compete delta: per-player mistakes and bands, first to four ends it with the finder alone ranked, a racer out on mistakes and the collective loss with the last one out as who ended it, an out racer's guess is a race, timeout, and the RLS that scopes rows to the caller |
+| `concede_test` | a conceder counts as out; the last one out ends the race, everyone conceding as `conceded`; the builder runs after an ending concession |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, a fresh guess advances, a race does not |
-| `stop_game_test` · `replay_test` · `rls_test` | the neutral stop and its realtime touch; Restart un-matches by deleting the log; an outsider sees nothing and can change nothing |
+| `stop_game_test` · `replay_test` · `rls_test` | the neutral Stop, the stopper recorded as who ended it; Restart un-matches by deleting the log; an outsider sees nothing and can change nothing |
+| `statuses_test` | the exact key set of every status at the start, mid-game and at the end in both modes; the team's numbers on the club line; a rebuild drops a stale key and leaves `status_changed_at` alone |
 | `next_puzzle_test` | the queue is per player and across clubs; a spent archive and an empty date are not-oks naming `puzzle_id`; the override filters nothing |
 
 Vitest, beside the code:

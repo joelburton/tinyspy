@@ -12,20 +12,18 @@
 --     <2-players rejected, happy compete path
 --   - per-player mistake increment: caller's row only, opponents
 --     untouched
---   - per-player partial unique index: same rank can be matched
---     once per player (ada and bea both match rank 0 → both rows
+--   - "already matched" is per player: the same rank can be matched
+--     once per player (ada and bea both match rank 1 → both rows
 --     persist)
---   - first-to-all-4 ends the race: caller's 4th correct flips
---     play_state to won_compete, caller's result {won: true},
---     opponents' result {won: false}; surviving players can no
---     longer submit
---   - elimination + collective loss: each player's 4 mistakes
---     eliminates them (and sets common.game_players.locally_terminal,
---     so the presence-pause stops waiting on them); once all are
---     eliminated, play_state flips to lost_compete
+--   - first-to-all-4 ends the race: the caller's 4th correct ends the
+--     game reached_goal, the caller ranked 1 and `won`, everyone else
+--     unranked and `lost`; surviving players can no longer submit
+--   - elimination + collective loss: each player's 4 mistakes ends
+--     them (player_ended_reason resource_exhausted, so the
+--     presence-pause stops waiting on them); once all have ended, the
+--     game ends resource_exhausted/'mistakes', lost
 --   - eliminated-player submit answered as a race
---   - submit_timeout writes the compete-mode terminal state
---     (lost_compete, reason timeout)
+--   - submit_timeout's compete ending (timeout, lost, nobody ranked)
 --
 -- See create_game_test.sql for the pgTAP / auth-simulation primer.
 
@@ -96,7 +94,7 @@ select pg_temp.envelope_is(
 -- ============================================================
 -- (3)–(5) Happy compete path
 -- ============================================================
--- Create a 3-player compete game; assert mode column, gametype
+-- Create a 3-player compete game; assert the mode, the gametype
 -- string, and per-player rows.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -111,9 +109,9 @@ select (connections.create_game(
 
 reset role;
 select is(
-  (select mode from connections.games where id = (select id from g)),
+  (select mode from common.games where id = (select id from g)),
   'compete',
-  'create_game: connections.games.mode = compete'
+  'create_game: common.games.mode = compete'
 );
 
 select is(
@@ -157,13 +155,12 @@ select is(
 );
 
 -- ============================================================
--- (7) Per-player partial unique index: different players can
+-- (7) "Already matched" is per player: different players can
 --     both match the same rank
 -- ============================================================
--- The compete index is (game_id, user_id, matched_category_rank)
--- where result='correct' AND mode='compete', so ada matching
--- rank-1 and bea matching rank-1 produce two rows, not a
--- unique_violation.
+-- In compete, submit_guess asks only whether the CALLER already
+-- matched the rank, so ada matching rank-1 and bea matching rank-1
+-- produce two rows, not a race.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select connections.submit_guess(
@@ -192,9 +189,9 @@ select is(
 -- ============================================================
 -- (8) Same player double-matching a rank: still a race
 -- ============================================================
--- The compete index does include user_id, so ada trying to
--- re-submit rank-1 (her own already-matched category) is caught
--- by unique_violation just like the coop race-idempotency check.
+-- ada trying to re-submit rank-1 (her own already-matched
+-- category) is caught by the same already-matched check as coop's,
+-- scoped to her own rows.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
@@ -220,8 +217,8 @@ select is(
 -- ============================================================
 -- (9)–(11) First-to-all-4 ends the race
 -- ============================================================
--- Ada matches the remaining 3 categories. Her 4th correct flips
--- play_state to won_compete; bea and cade can no longer submit.
+-- Ada matches the remaining 3 categories. Her 4th correct ends the
+-- race with her the winner; bea and cade can no longer submit.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select connections.submit_guess((select id from g),
@@ -233,29 +230,32 @@ select connections.submit_guess((select id from g),
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won_compete',
-  'submit_guess (compete): ada''s 4th correct flips play_state to won_compete'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+          || '/' || game_ended_by_user_id::text
+     from common.games where id = (select id from g)),
+  'reached_goal/solved/won/ada11111-1111-1111-1111-111111111111',
+  'submit_guess (compete): ada''s 4th correct ends the race reached_goal, won, by ada'
 );
 
 select is(
-  (select result->>'won' from common.game_players
+  (select final_ranking || '/' || outcome || '/' || (solved_at is not null)::text
+     from common.game_players
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
-  'true',
-  'submit_guess (compete): winner gets {won: true}'
+  '1/won/true',
+  'submit_guess (compete): the winner is ranked 1, won, and solved'
 );
 
 select is(
-  (select result->>'won' from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
-  'false',
-  'submit_guess (compete): opponent gets {won: false} (race ended)'
+  'unranked/lost',
+  'submit_guess (compete): an opponent is unranked and lost (the race ended when decided)'
 );
 
 -- Surviving player tries to submit after the race ended; the
--- play_state guard rejects.
+-- game-ended guard rejects.
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select pg_temp.envelope_is(
   connections.submit_guess((select id from g),
@@ -266,11 +266,10 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (12)–(14) All-eliminated → lost_compete
+-- (12)–(14) All-eliminated → a collective loss
 -- ============================================================
 -- Fresh 2-player game. Bea racks up 4 mistakes (eliminated), ada
--- racks up 4 mistakes (also eliminated, MIN(mistake_count) >= 4
--- triggers collective loss).
+-- racks up 4 mistakes (also eliminated; nobody left ends the game).
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
@@ -302,27 +301,30 @@ select is(
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'playing',
-  'submit_guess (compete): one eliminated player leaves game playing'
+  (select ended_at from common.games where id = (select id from g2)),
+  null,
+  'submit_guess (compete): one eliminated player leaves the game being played'
 );
 
 -- …and the common roster hears about it, which is what keeps bea's closed tab
--- from pausing the game for ada. Not `conceded`: bea did not walk away.
+-- from pausing the game for ada. Her ending is the mistakes, not a concession:
+-- bea did not walk away.
 select is(
-  (select array[locally_terminal, conceded] from common.game_players
+  (select player_ended_reason || '/' || player_ended_reason_detail
+     from common.game_players
     where game_id = (select id from g2)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
-  array[true, false],
-  'submit_guess (compete): elimination sets locally_terminal, not conceded'
+      and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid
+      and player_ended_at is not null),
+  'resource_exhausted/mistakes',
+  'submit_guess (compete): elimination ends the player resource_exhausted/mistakes'
 );
 
 select is(
-  (select locally_terminal from common.game_players
+  (select player_ended_at from common.game_players
     where game_id = (select id from g2)
       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
-  false,
-  'submit_guess (compete): a racer still going is not locally terminal'
+  null,
+  'submit_guess (compete): a racer still going has not ended'
 );
 
 -- Eliminated bea tries to submit → rejected.
@@ -348,29 +350,30 @@ select connections.submit_guess((select id from g2),
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'lost_compete',
-  'submit_guess (compete): everyone eliminated flips play_state to lost_compete'
+  (select game_ended_outcome from common.games where id = (select id from g2)),
+  'lost',
+  'submit_guess (compete): everyone eliminated ends the game, lost'
 );
 
+-- The last player's act is the game's reason: ada's fourth mistake.
 select is(
-  (select (status->>'reason') from common.games where id = (select id from g2)),
-  'mistakes',
-  'submit_guess (compete): collective loss reason = mistakes (the cause)'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_by_user_id::text
+     from common.games where id = (select id from g2)),
+  'resource_exhausted/mistakes/ada11111-1111-1111-1111-111111111111',
+  'submit_guess (compete): the collective loss ends resource_exhausted/mistakes, by the last player out'
 );
 
--- Every player gets {won: false}.
+-- Every player is unranked and lost.
 select is(
   (select count(*) from common.game_players
     where game_id = (select id from g2)
-      and (result->>'won') = 'false'),
+      and final_ranking is null and outcome = 'lost'),
   2::bigint,
-  'submit_guess (compete): every player gets {won: false} on collective loss'
+  'submit_guess (compete): every player is unranked and lost on a collective loss'
 );
 
 -- ============================================================
--- (15)–(16) submit_timeout writes lost_compete + the right
---           terminal reason
+-- (15)–(16) submit_timeout's compete ending
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -382,31 +385,34 @@ select (connections.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete')->'data'->>'id')::uuid as id;
 
--- The row's physical address before the ending: any write to it moves it, and
--- a write is what wakes useGame's subscription so the rivals' guesses load.
+-- Backdate status_changed_at, which only the status builder writes: `now()`
+-- is fixed inside the test transaction, so this is how the timeout's builder
+-- call shows.
 reset role;
-create temp table g3_before on commit drop as
-select ctid::text as at from connections.games where id = (select id from g3);
+update common.games set status_changed_at = now() - interval '1 hour'
+ where id = (select id from g3);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select connections.submit_timeout((select id from g3));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g3)),
-  'lost_compete',
-  'submit_timeout (compete): writes lost_compete play_state'
-);
-
-select isnt(
-  (select ctid::text from connections.games where id = (select id from g3)),
-  (select at from g3_before),
-  'submit_timeout (compete): writes connections.games, so open boards re-read'
+  (select game_ended_outcome from common.games where id = (select id from g3)),
+  'lost',
+  'submit_timeout (compete): the game ends lost, nobody ranked'
 );
 
 select is(
-  (select (status->>'reason') from common.games where id = (select id from g3)),
-  'timeout',
-  'submit_timeout (compete): reason = timeout (the cause)'
+  (select status_changed_at from common.games where id = (select id from g3)),
+  now(),
+  'submit_timeout (compete): runs the builder, so the page''s copies catch up'
+);
+
+select is(
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/'
+          || coalesce(game_ended_by_user_id::text, 'nobody')
+     from common.games where id = (select id from g3)),
+  'timeout/timeout/nobody',
+  'submit_timeout (compete): reason timeout, ended by nobody'
 );
 
 -- Idempotency: a second concurrent fire is the game-over race.
@@ -415,7 +421,7 @@ select pg_temp.envelope_is(
   connections.submit_timeout((select id from g3)),
   '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'submit_timeout (compete): second call on already-terminal game is the game-over race');
+  'submit_timeout (compete): second call on an ended game is the game-over race');
 
 -- ============================================================
 -- (17)–(20) RLS sanity for compete
@@ -472,7 +478,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
   (select count(*) from connections.players where game_id = (select id from g4))
   + (select count(*) from connections.events where game_id = (select id from g4))
-  + (select count(*) from connections.games where id = (select id from g4)),
+  + (select count(*) from connections.games where game_id = (select id from g4)),
   0::bigint,
   'rls (compete): non-club-member sees zero rows across all three tables'
 );

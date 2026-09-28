@@ -16,7 +16,7 @@
 --   - rejection: bad setup.timer shapes (missing, bad kind,
 --     missing seconds, out-of-range seconds)
 --   - acceptance: timer.kind in {none, countup}
---   - happy path: returns one row, play_state='playing',
+--   - happy path: returns one row, the game not ended,
 --     mistake_count=0, setup persists, board sourced from the
 --     puzzle (4 categories × 4 tiles), tile order is a shuffle
 --     of all 16 tiles, the common.games row is_current_view=true,
@@ -179,9 +179,9 @@ select pg_temp.envelope_is(
   'create_game: countdown over 60min is rejected');
 
 -- 'none' is accepted (no seconds needed). lives_ok creates a real
--- game; the partial unique index would reject a second
--- is_active=true row, but common.create_game auto-suspends the
--- prior one, so chained lives_ok calls below are safe.
+-- game; the partial unique index allows one is_current_view=true
+-- game per club, but common.create_game moves the club's current
+-- view to the new game, so chained lives_ok calls below are safe.
 select lives_ok(
   format(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"none"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
@@ -232,14 +232,13 @@ select is(
 reset role;
 
 select is(
-  (select play_state from common.games where id = (select id from created)),
-  'playing',
-  'create_game: new game starts in playing play_state'
+  (select ended_at from common.games where id = (select id from created)),
+  null,
+  'create_game: new game starts being played, not ended'
 );
 
 select is(
-  -- Post-compete-mode-migration: mistake_count moved off
-  -- connections.games and onto connections.players (one row per player,
+  -- mistake_count lives on connections.players (one row per player,
   -- lock-step in coop). Reading any row gives the canonical
   -- shared value in coop; here we assert both rows are at 0.
   (select coalesce(max(mistake_count), -1) from connections.players
@@ -250,7 +249,7 @@ select is(
 
 -- connections.games.puzzle_id is set to the fixture puzzle.
 select is(
-  (select puzzle_id from connections.games where id = (select id from created)),
+  (select puzzle_id from connections.games where game_id = (select id from created)),
   (select id from puzzle),
   'create_game: connections.games.puzzle_id references the source puzzle'
 );
@@ -260,7 +259,7 @@ select is(
 -- assert shape + tile sum.
 select is(
   (select jsonb_array_length(board->'categories')
-     from connections.games where id = (select id from created)),
+     from connections.games where game_id = (select id from created)),
   4,
   'create_game: board.categories has exactly 4 categories'
 );
@@ -271,7 +270,7 @@ select is(
     select sum(jsonb_array_length(c->'tiles'))::int
       from connections.games gm,
            jsonb_array_elements(gm.board->'categories') c
-     where gm.id = (select id from created)
+     where gm.game_id = (select id from created)
   ),
   16,
   'create_game: board.categories tiles sum to 16'
@@ -281,7 +280,7 @@ select is(
 -- shuffled-display-order field it expects to render from.
 select is(
   (select jsonb_array_length(board->'tileOrder')
-     from connections.games where id = (select id from created)),
+     from connections.games where game_id = (select id from created)),
   16,
   'create_game: board.tileOrder has 16 entries'
 );
@@ -316,7 +315,7 @@ select is(
   (select array(
      select e from
        (select jsonb_array_elements_text(board->'tileOrder') as e
-          from connections.games where id = (select id from created)) t
+          from connections.games where game_id = (select id from created)) t
       order by e
    )),
   (select array(
@@ -324,7 +323,7 @@ select is(
        (select jsonb_array_elements_text(c->'tiles') as e
           from connections.games gm,
                jsonb_array_elements(gm.board->'categories') c
-         where gm.id = (select id from created)) t
+         where gm.game_id = (select id from created)) t
       order by e
    )),
   'create_game: tileOrder is exactly a permutation of the category tiles'
@@ -396,12 +395,13 @@ select pg_temp.envelope_is(
   'create_game: rejects player_user_ids with > 6 entries (max 6)');
 
 -- ============================================================
--- Status is SEEDED at create (not left NULL until the first guess)
+-- The club line is SEEDED at create (not left NULL until the first guess)
 -- ============================================================
--- Coop seeds the 0/4 tallies the club-list label prints. Compete seeds an
--- EMPTY object deliberately — each racer's matched/mistake counts are their
--- own and this column is club-wide readable, so the compete writer publishes
--- nothing either. The point is that `status` is never NULL.
+-- Coop seeds the 0/4 tallies the club-list label prints. Compete seeds the
+-- same keys as null deliberately — each racer's matched/mistake counts are
+-- their own and this column is club-wide readable, so the compete builder
+-- publishes no progress. The point is that `clubpage_info` is never NULL and
+-- always carries every key.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table seeded_coop on commit drop as
   select (connections.create_game((select handle from club),
@@ -415,13 +415,13 @@ create temp table seeded_cmp on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select is(
-  (select status from common.games where id = (select id from seeded_coop)),
-  '{"found_categories_count": 0, "mistake_count": 0}'::jsonb,
+  (select clubpage_info from common.games where id = (select id from seeded_coop)),
+  '{"found_categories_count": 0, "mistake_count": 0, "winner_user_id": null}'::jsonb,
   'coop seeds the 0/4 tallies at create');
 select is(
-  (select status from common.games where id = (select id from seeded_cmp)),
-  '{}'::jsonb,
-  'compete seeds an empty (but non-NULL) status — no per-racer progress leaks');
+  (select clubpage_info from common.games where id = (select id from seeded_cmp)),
+  '{"found_categories_count": null, "mistake_count": null, "winner_user_id": null}'::jsonb,
+  'compete seeds every key as null (but non-NULL clubpage_info) — no per-racer progress leaks');
 
 -- ============================================================
 select * from finish();

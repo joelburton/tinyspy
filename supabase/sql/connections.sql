@@ -1,20 +1,33 @@
 -- cs-blessed-connections
 
 -- ============================================================
--- connections — the REPEATABLE half
+-- connections
 -- ============================================================
--- Functions, views, RLS policies, triggers and grants for connections. Everything
--- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
--- delta. Edit it in place forever; it never becomes a migration.
+-- What the frontend calls:
 --
--- Its other half is the one-shot schema migration
--- `supabase/migrations/20260615000003_connections.sql` — tables, constraints, indexes,
--- the Realtime publication and seed rows. That one is applied once and then
--- frozen, because `alter table` cannot be re-run.
+--   next_puzzle_for_club  the earliest puzzle none of the players has played,
+--                         for the setup dialog and create_game
+--   puzzle_for_date       the puzzle published on a date, whoever has played it
+--   create_game           deals a puzzle's sixteen tiles and starts the game
+--   submit_guess          records a guess the frontend has already judged
+--   concede               a racer drops out of a compete game
+--   stop_game             stops the game for everyone, with no result
+--   submit_timeout        ends the game when the countdown runs out
+--   replay_board          restarts the same tiles from scratch
 --
--- Order is load-bearing: a policy can only reference a function that already
--- exists, so statements stay in the order they were written. See
+-- What is particular to connections (src/connections/doc.md has the rest):
+--   - The frontend knows the answer: the categories are on the public board,
+--     the frontend judges each guess, and submit_guess checks only the
+--     payload's shape and the game's state (the trust model).
+--   - Puzzles come from an imported archive, taken in order: the earliest
+--     date nobody about to be seated has played, in any club.
+--   - A player is out on the fourth mistake. Coop shares the mistakes; in
+--     compete each racer has their own, and the first to find all four
+--     categories wins at once.
+--   - Guesses are the one mode-aware read: coop sees everyone's, compete only
+--     your own until the game ends.
+--
+-- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
 -- ============================================================
 
@@ -44,7 +57,13 @@ grant insert, select on connections.puzzles to service_role;
 drop policy if exists games_select on connections.games;
 create policy games_select on connections.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (
+    exists (
+      select 1 from common.games cg
+       where cg.id = games.game_id
+         and common.is_club_member(cg.club_handle)
+    )
+  );
 
 -- Events: mode-aware visibility, mirroring wordle.
 --   coop    — every club member sees every guess.
@@ -53,30 +72,25 @@ create policy games_select on connections.games
 --             reverse-engineer the answer from a peer's oneAway guess
 --             plus the public board. That privacy is a GAME RULE, not
 --             just etiquette — it's what makes the race a race.
---   compete AT TERMINAL — everyone's guesses open up. The
+--   compete, ONCE THE GAME ENDS — everyone's guesses open up. The
 --             rule exists to stop you learning the answer while you can
 --             still use it; once the game is over there's nothing left to
 --             protect, and comparing lines afterwards is most of the fun.
 --             This is what backs the event log's "whose guesses?" picker,
 --             which is empty for an opponent until the game ends. Same
 --             shape wordle and wordiply already use.
---
--- events.mode is read directly from the row — denormalized expressly to
--- avoid a join on every visibility check. The terminal arm does need the
--- common.games join (is_terminal lives there, not on the per-game row).
 drop policy if exists events_select on connections.events;
 create policy events_select on connections.events
   for select to authenticated
   using (
     exists (
-      select 1 from connections.games g
-       join common.games cg on cg.id = g.id
-       where g.id = events.game_id
-         and common.is_club_member(g.club_handle)
+      select 1 from common.games cg
+       where cg.id = events.game_id
+         and common.is_club_member(cg.club_handle)
          and (
-               events.mode = 'coop'
+               cg.mode = 'coop'
             or events.user_id = (select auth.uid())
-            or cg.is_terminal
+            or cg.ended_at is not null
              )
     )
   );
@@ -90,9 +104,9 @@ create policy players_select on connections.players
   for select to authenticated
   using (
     exists (
-      select 1 from connections.games g
-       where g.id = players.game_id
-         and common.is_club_member(g.club_handle)
+      select 1 from common.games cg
+       where cg.id = players.game_id
+         and common.is_club_member(cg.club_handle)
     )
   );
 
@@ -106,13 +120,15 @@ grant select on connections.players to authenticated;
 -- remove it.
 drop view if exists connections.club_game_status;
 
+drop function if exists connections.next_puzzle_for_club(uuid[]);
+
 -- ============================================================
 -- connections.next_puzzle_for_club — the only puzzle choice there is
 -- ============================================================
 -- The archive is a queue (src/connections/doc.md → Game rules): the earliest
--- `puzzle_date` that no player in `seen_by` has a game on, in ANY club.
--- `seen_by` is the people about to be seated — create_game's
--- `player_user_ids`, and the same array the setup dialog passes for its
+-- `puzzle_date` that no player in `p_seen_by` has a game on, in ANY club.
+-- `p_seen_by` is the people about to be seated — create_game's
+-- `p_player_user_ids`, and the same array the setup dialog passes for its
 -- preview — so a puzzle one of them played alone elsewhere is out, and one
 -- played by four OTHER people in a big club is not.
 --
@@ -132,11 +148,8 @@ drop view if exists connections.club_game_status;
 -- — is a form-validation not-ok (the raise below says why), so there is no
 -- `ok` arm for it; the handler at the bottom turns the raise into an
 -- envelope, and a raw Postgres error still reaches `runRpc` as a fault.
-drop function if exists connections.next_puzzle_for_club(uuid[]);
-
--- `plpgsql`, not `sql`, because the empty case RAISES (PN302 below) and a raise
--- needs a handler to become an envelope.
-create or replace function connections.next_puzzle_for_club(seen_by uuid[])
+-- `plpgsql`, not `sql`, because the empty case RAISES.
+create or replace function connections.next_puzzle_for_club(p_seen_by uuid[])
 returns jsonb
 language plpgsql
 stable
@@ -171,9 +184,9 @@ begin
            and not exists (
                  select 1
                    from connections.games g
-                   join common.game_players gp on gp.game_id = g.id
+                   join common.game_players gp on gp.game_id = g.game_id
                   where g.puzzle_date = p.puzzle_date
-                    and gp.user_id = any(seen_by)
+                    and gp.user_id = any(p_seen_by)
                )
          order by p.puzzle_date
          limit 1
@@ -201,7 +214,7 @@ begin
   if found is null then
     raise exception 'Everyone here has played every puzzle. You can open one already played by its date.'
       using errcode = 'PN302', hint = 'form-validation', column = 'puzzle_id',
-      detail = 'no puzzle unseen by every uid in seen_by';
+      detail = 'no puzzle unseen by every uid in p_seen_by';
   end if;
 
   return common.ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
@@ -218,6 +231,8 @@ $$;
 
 revoke execute on function connections.next_puzzle_for_club(uuid[]) from public;
 grant execute on function connections.next_puzzle_for_club(uuid[]) to authenticated;
+
+drop function if exists connections.puzzle_for_date(date);
 
 -- ============================================================
 -- connections.puzzle_for_date — the deliberate override
@@ -241,11 +256,8 @@ grant execute on function connections.next_puzzle_for_club(uuid[]) to authentica
 -- this is one puzzle or none; none means nothing was published that day —
 -- PN303, a VALIDATION for the same reason PN302 is one: it blocks Start, and
 -- the thing that fixes it is the box you just typed in. Here
--- `column = 'puzzle_id'` is the field literally being edited.
-drop function if exists connections.puzzle_for_date(date);
-
--- `plpgsql`, not `sql`, because the empty case RAISES and a raise needs a
--- handler to become an envelope.
+-- `column = 'puzzle_id'` is the field literally being edited. `plpgsql`, not
+-- `sql`, because the empty case RAISES.
 create or replace function connections.puzzle_for_date(target_date date)
 returns jsonb
 language plpgsql
@@ -304,31 +316,99 @@ revoke execute on function connections.puzzle_for_date(date) from public;
 grant execute on function connections.puzzle_for_date(date) to authenticated;
 
 -- ============================================================
--- connections.create_game — start a new game in a club
+-- connections._write_statuses — the page's copies of the game
 -- ============================================================
--- Validates the mode + setup shape, looks up the puzzle by id,
--- builds the per-game board (the puzzle's categories + a freshly-
--- shuffled tileOrder), then coordinates the two-write game-creation:
+-- Writes `common.games.game_status`, every `common.game_players.player_status`
+-- and `common.games.clubpage_info` from connections' own tables, assigning
+-- each whole (plans/common-tables.md → The statuses). Every key is always
+-- present, null when it has no value:
 --
---   1. common.create_game(target_club, 'connections_<mode>',
---                          player_user_ids, title, setup)
---      — validates caller is in the club, validates every uid in
---      player_user_ids is in clubs_members, vacates any prior
---      current-view game for this club, inserts the common.games
---      header row (with is_current_view=true, play_state='playing')
---      + one common.game_players row per uid, returns the
---      canonical game id.
---   2. INSERT INTO connections.games using that id — landing the
---      gametype-specific board + puzzle reference + mode.
---   3. INSERT one connections.players row per player_user_ids entry
---      (mistake_count defaults to 0).
+--   game_status    { required_categories_count, max_mistakes }
+--   player_status  { found_categories_count, mistake_count,
+--                    player_ended_reason }
+--                  — in coop `mistake_count` is the team's, the same on
+--                  every row; `found_categories_count` is what that player
+--                  matched
+--   clubpage_info  { found_categories_count, mistake_count, winner_user_id }
+--                  — the counts are the team's in coop and null in compete,
+--                  whose club line shows no progress; the winner is
+--                  compete's, null until the end
 --
--- player_user_ids is the explicit list of who's actually playing
--- THIS game. Defaults are not enforced server-side; the FE's
--- setup dialog defaults to all current club members but lets the
--- player pick a subset. The caller does NOT have to be in
--- player_user_ids (the "Ada facilitates a game between Bea and
--- Cade" case is supported).
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function connections._write_statuses(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = connections, common, public, extensions
+as $$
+declare
+  v_mode text;
+  v_team_found int;
+  v_team_mistakes int;
+begin
+  select mode into v_mode from common.games where id = p_game_id;
+
+  update common.game_players gp
+     set player_status = jsonb_build_object(
+           'found_categories_count', cp.found_categories_count,
+           'mistake_count', cp.mistake_count,
+           'player_ended_reason', gp.player_ended_reason)
+    from connections.players cp
+   where gp.game_id = p_game_id
+     and cp.game_id = gp.game_id
+     and cp.user_id = gp.user_id;
+
+  -- Coop's team numbers: each match is one player's and a category can be
+  -- matched once, so the team's matches are the sum; the mistakes are shared,
+  -- so every row holds them.
+  if v_mode = 'coop' then
+    select sum(found_categories_count), max(mistake_count)
+      into v_team_found, v_team_mistakes
+      from connections.players
+     where game_id = p_game_id;
+  end if;
+
+  update common.games
+     set game_status = jsonb_build_object(
+           'required_categories_count', 4,
+           'max_mistakes', 4),
+         clubpage_info = jsonb_build_object(
+           'found_categories_count', v_team_found,
+           'mistake_count', v_team_mistakes,
+           'winner_user_id', case when v_mode = 'compete' then (
+             select user_id from common.game_players
+              where game_id = p_game_id and final_ranking = 1
+              limit 1) end),
+         status_changed_at = case when p_update_status_changed_at
+                                  then now() else status_changed_at end
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function connections._write_statuses(uuid, boolean) from public;
+
+drop function if exists connections.create_game(text, jsonb, uuid[], text);
+
+-- ============================================================
+-- connections.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)
+-- ============================================================
+-- Starts a game in a club: validates the mode + setup shape, looks up the
+-- puzzle by id (or picks the next one nobody here has played), builds the
+-- per-game board (the puzzle's categories + a freshly-shuffled tileOrder),
+-- writes the common header through common.create_game, then its own row and
+-- one connections.players row per player (mistake_count defaults to 0), and
+-- writes the statuses.
+--
+-- `p_player_user_ids` is the explicit list of who's actually playing THIS
+-- game. Defaults are not enforced server-side; the FE's setup dialog
+-- defaults to all current club members but lets the player pick a subset.
+-- The caller does NOT have to be in it (the "Ada facilitates a game between
+-- Bea and Cade" case is supported).
 --
 -- Setup shape:
 --   {
@@ -346,17 +426,11 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 -- are the first 2 alphabetical tiles across all 16.
 -- A puzzle is hard to remember by date alone; the tiles ground it
 -- in something memorable ("oh, that one with BUCKS and HAIL").
-
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists connections.create_game(text, jsonb, uuid[], text);
-
 create or replace function connections.create_game(
-  target_club text,
-  setup jsonb,
-  player_user_ids uuid[],
-  mode text
+  p_club_handle text,
+  p_setup jsonb,
+  p_player_user_ids uuid[],
+  p_mode text
 )
 returns jsonb
 language plpgsql
@@ -374,17 +448,16 @@ declare
   tmp text;
   first_two_tiles text;
   game_title text;
-  effective_gametype text;
   first_turn uuid;
 begin
   -- ─── Validate mode + player-count ────────────────────────
-  perform common.require_valid_mode(mode);
+  perform common.require_valid_mode(p_mode);
 
-  if mode = 'compete' then
+  if p_mode = 'compete' then
     -- Compete needs an opposing PLAYER. The FE manifest hides the
     -- compete Start button in 1-player clubs; this guard is the
     -- server-side catch. Matches psychicnum's pattern.
-    if coalesce(array_length(player_user_ids, 1), 0) < 2 then
+    if coalesce(array_length(p_player_user_ids, 1), 0) < 2 then
       raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN061', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
@@ -394,15 +467,15 @@ begin
   -- Player-count upper bound. Must agree with the
   -- `numberOfPlayers: [1, 6]` (coop) / `[2, 6]` (compete)
   -- declarations in src/connections/manifest.ts.
-  perform common.require_player_count_max(player_user_ids, 6);
+  perform common.require_player_count_max(p_player_user_ids, 6);
 
   -- ─── Which puzzle ────────────────────────────────────────
-  -- ABSENT is the normal case now, and it means "you choose": the setup
-  -- dialog has no picker, so the server derives the next puzzle nobody being
-  -- seated has played (next_puzzle_for_club above). Deriving HERE rather
-  -- than trusting a value the dialog computed is what makes the preview and
-  -- the actual start impossible to disagree — if someone else starts the
-  -- same puzzle while your dialog sits open, you get the genuinely-next one
+  -- ABSENT is the normal case, and it means "you choose": the setup dialog
+  -- has no picker, so the server derives the next puzzle nobody being seated
+  -- has played (next_puzzle_for_club above). Deriving HERE rather than
+  -- trusting a value the dialog computed is what makes the preview and the
+  -- actual start impossible to disagree — if someone else starts the same
+  -- puzzle while your dialog sits open, you get the genuinely-next one
   -- instead of a duplicate.
   --
   -- PRESENT still wins, and that is not a leftover: every test fixture pins
@@ -410,12 +483,12 @@ begin
   -- the assertions are about THAT puzzle's categories. A server that always
   -- chose would make those tests assert against whatever the fixture club
   -- happened not to have played.
-  if (setup->>'puzzle_id') is null then
+  if (p_setup->>'puzzle_id') is null then
     -- Reading the ENVELOPE's `data`, which names its answer: `{"result":
     -- "found", "puzzle": {…}}`. A spent archive is PN302, a not-ok, whose
     -- `data` is null — so this stays null and the next branch raises this
     -- function's own PN062 for it.
-    s_puzzle_id := (connections.next_puzzle_for_club(player_user_ids)
+    s_puzzle_id := (connections.next_puzzle_for_club(p_player_user_ids)
                       -> 'data' -> 'puzzle' ->> 'id')::uuid;
     if s_puzzle_id is null then
       -- It names the PICKER, not the puzzle box: the archive is exhausted
@@ -430,7 +503,7 @@ begin
     end if;
   else
     begin
-      s_puzzle_id := (setup->>'puzzle_id')::uuid;
+      s_puzzle_id := (p_setup->>'puzzle_id')::uuid;
     exception when invalid_text_representation then
       raise exception 'BUG: puzzle reference the server cannot read'
         using errcode = 'PN063', hint = 'fault', column = '_',
@@ -440,7 +513,7 @@ begin
 
   -- Canonical timer-shape validation. See common.require_valid_timer
   -- for the accepted shapes and the exact raise messages.
-  perform common.require_valid_timer(setup->'timer');
+  perform common.require_valid_timer(p_setup->'timer');
 
   -- Load the puzzle. The FK on connections.games.puzzle_id would also
   -- catch a bad id at INSERT time, but a clear "puzzle not found"
@@ -486,30 +559,26 @@ begin
     tile_order[j] := tmp;
   end loop;
 
-  -- Mode-suffixed gametype string for common.games.gametype.
-  effective_gametype := 'connections_' || mode;
-
   -- Common-side coordination: validates auth + caller membership +
-  -- player_user_ids membership, inserts common.games (with title +
-  -- setup) + game_players, returns the canonical id we'll use
-  -- below.
+  -- player membership, inserts common.games (with title + setup) +
+  -- game_players, returns the canonical id we'll use below.
   --
-  -- Saved-default arg: `puzzle_id` is stripped so a remembered puzzle can
-  -- never re-pin an already-played one over the derivation, and
+  -- The saved default strips `puzzle_id` so a remembered puzzle can never
+  -- re-pin an already-played one over the derivation, and
   -- `first_turn_user_id` because it is a per-game "who goes first" pick, not
   -- a per-club preference. The coop_style toggle rides.
   new_id := common.create_game(
-    target_club, effective_gametype, player_user_ids, game_title,
-    setup,
-    setup - 'first_turn_user_id' - 'puzzle_id'
+    p_club_handle, 'connections_' || p_mode, p_mode, p_player_user_ids, game_title,
+    p_setup,
+    p_setup - 'first_turn_user_id' - 'puzzle_id'
   );
 
   -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common
   -- rotation so submit_guess gates each guess. Free-for-all / compete leave
   -- the pointer null. Runs after common.create_game seeds game_players.
-  if mode = 'coop' and setup->>'coop_style' = 'turns' then
-    first_turn := (setup->>'first_turn_user_id')::uuid;
-    if first_turn is null or not (first_turn = any(player_user_ids)) then
+  if p_mode = 'coop' and p_setup->>'coop_style' = 'turns' then
+    first_turn := (p_setup->>'first_turn_user_id')::uuid;
+    if first_turn is null or not (first_turn = any(p_player_user_ids)) then
       raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN064', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
@@ -517,43 +586,24 @@ begin
     perform common._assign_turn_order(new_id, first_turn);
   end if;
 
-  -- Insert with the canonical id. Note: id NOT default-generated;
-  -- it comes from common.create_game above and FKs to
-  -- common.games(id). Setup lives on common.games.setup, not
-  -- duplicated here.
   -- Copy the puzzle's categories AND date onto the game (board + puzzle_date),
   -- so the game is self-contained — playable + self-describing even if the
   -- puzzle is later deleted (puzzle_id is a soft, provenance-only FK).
-  insert into connections.games (id, club_handle, mode, puzzle_id, puzzle_date, board)
+  insert into connections.games (game_id, puzzle_id, puzzle_date, board)
   values (
     new_id,
-    target_club,
-    mode,
     s_puzzle_id,
     puzzle_row.puzzle_date,
     jsonb_build_object('categories', board_categories,
                        'tileOrder',  to_jsonb(tile_order))
   );
 
-  -- One player row per player_user_ids entry, mistake_count=0.
-  -- Coop will increment all of them in lock-step on each wrong
-  -- guess; compete only the guesser's. Same seeding either way.
+  -- One player row per player, mistake_count=0. Coop will increment all of
+  -- them in lock-step on each wrong guess; compete only the guesser's.
   insert into connections.players (game_id, user_id)
-  select new_id, uid from unnest(player_user_ids) as uid;
+  select new_id, uid from unnest(p_player_user_ids) as uid;
 
-  -- Seed the club-list readout, in the SAME shape submit_guess maintains.
-  -- Without this `status` stays NULL until the first guess. Coop carries the
-  -- 0/4 tallies; compete stays deliberately EMPTY — each racer's matched and
-  -- mistake counts are their own, and this column is club-wide readable, so
-  -- the compete writer publishes nothing either (see submit_guess).
-  perform common.update_state(
-    new_id,
-    'playing',
-    case when mode = 'coop'
-         then jsonb_build_object('found_categories_count', 0, 'mistake_count', 0)
-         else '{}'::jsonb
-    end
-  );
+  perform connections._write_statuses(new_id, p_update_status_changed_at => true);
 
   -- `result` even though this is the only `ok` this function has — a call site
   -- cannot assert a case the payload does not carry, and the alternative it is
@@ -578,61 +628,56 @@ $$;
 revoke execute on function connections.create_game(text, jsonb, uuid[], text) from public;
 grant execute on function connections.create_game(text, jsonb, uuid[], text) to authenticated;
 
+drop function if exists connections._maybe_finish_compete(uuid);
+
 -- ============================================================
 -- connections._maybe_finish_compete — end the game if nobody's alive
 -- ============================================================
--- A compete game ends when NO player is still alive — alive means not
--- conceded and fewer than 4 mistakes (a solve is an immediate win,
--- handled inline in submit_guess). Shared by submit_guess (a 4th
--- mistake can eliminate the last player) and connections.concede (a
--- drop-out can leave nobody alive). Ends as a collective loss (nobody
--- solved). Returns true when it ended the game.
-create or replace function connections._maybe_finish_compete(target_game uuid)
+-- A compete game ends when NO player is still in it — every one has ended,
+-- by four mistakes or by conceding (a solve is an immediate win, handled in
+-- submit_guess). Shared by submit_guess (a 4th mistake can knock out the
+-- last player) and connections.concede (a drop-out can leave nobody). It is
+-- a collective loss, nobody ranked; the act passed is the last player's and
+-- becomes the game's reason (plans/common-tables.md → The game's reason is
+-- the act that ended the game). Everyone conceding is `common._concede`'s
+-- ending, so this skips a game that has already ended.
+--
+-- Returns true when it ended the game.
+create or replace function connections._maybe_finish_compete(
+  p_game_id uuid,
+  p_reason text,
+  p_reason_detail text,
+  p_ended_by_user_id uuid
+)
 returns boolean
 language plpgsql
 security definer
 set search_path = connections, common, public, extensions
 as $$
-declare
-  player_results jsonb;
 begin
+  if (select ended_at from common.games where id = p_game_id) is not null then
+    return false;
+  end if;
+
   if exists (
-    select 1
-      from connections.players cp
-      join common.game_players gp
-        on gp.game_id = cp.game_id and gp.user_id = cp.user_id
-     where cp.game_id = target_game
-       and not gp.conceded
-       and cp.mistake_count < 4
+    select 1 from common.game_players
+     where game_id = p_game_id and player_ended_at is null
   ) then
     return false;
   end if;
 
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players where game_id = target_game;
-
-  -- Two ways to reach here and they read very differently in the club list:
-  -- every racer hit four mistakes, or everyone walked away. 'conceded' only
-  -- when EVERY player conceded — a mixed table is 'mistakes', because somebody
-  -- did play it out.
   perform common.end_game(
-    target_game, 'lost_compete',
-    jsonb_build_object('reason',
-      case when not exists (select 1 from common.game_players gp
-                             where gp.game_id = target_game and not gp.conceded)
-           then 'conceded' else 'mistakes' end),
-    player_results);
-
-  -- Wake the boards: the last concede writes no connections row of its own —
-  -- without this, open boards never re-read and the rivals' guesses, released
-  -- at terminal, never load (src/guards/endingTouchesGame.test.ts).
-  update connections.games set club_handle = club_handle where id = target_game;
+    p_game_id, p_reason, p_reason_detail, p_ended_by_user_id,
+    p_is_no_result => false,
+    p_final_rankings => '{}'::jsonb
+  );
   return true;
 end;
 $$;
 
-revoke execute on function connections._maybe_finish_compete(uuid) from public;
+revoke execute on function connections._maybe_finish_compete(uuid, text, text, uuid) from public;
+
+drop function if exists connections.submit_guess(uuid, text[], text, int);
 
 -- ============================================================
 -- connections.submit_guess — record a submission (mode-aware)
@@ -643,35 +688,39 @@ revoke execute on function connections._maybe_finish_compete(uuid) from public;
 -- payload shape and the game state, then records and branches on mode.
 --
 -- Coop branch:
---   - correct → insert the events row (the coop partial unique index makes a
---     rank already matched a race); count correct rows; 4 → won.
+--   - correct → a rank anyone already matched is a race; otherwise insert
+--     the events row; 4 matched → reached_goal/'solved', the team ranked 1.
 --   - wrong/oneAway → a repeat of a tile set anyone already tried is a race;
 --     otherwise insert the row and mistake_count++ on EVERY players row;
---     4 → lost.
+--     4 → resource_exhausted/'mistakes'.
 --
 -- Compete branch:
 --   - a caller with mistake_count >= 4 is out: a race.
---   - correct → insert the row (the compete index is per player, so only the
---     caller's own repeat is a race); count the caller's correct rows;
---     4 → won_compete — the caller wins, the race ends for everyone.
+--   - correct → a rank the caller already matched is a race; otherwise
+--     insert the row; the caller's 4th match ends the race at once, the
+--     caller alone ranked 1 (the rest are short of the goal).
 --   - wrong/oneAway → a repeat of the caller's own tile set is a race;
---     otherwise insert the row and mistake_count++ on the caller's row only.
---     Then _maybe_finish_compete: nobody alive → lost_compete.
+--     otherwise insert the row and mistake_count++ on the caller's row only;
+--     the 4th mistake ends that player, and _maybe_finish_compete ends the
+--     game if nobody is left.
 --
--- Turn-order coop advances the turn on every recorded guess; a race records
--- nothing and advances nothing.
+-- "Already matched" is checked here rather than by an index, since the games
+-- row lock below makes the check safe against a concurrent guess
+-- (plans/common-tables-schema.md → The database describes a row's shape, not
+-- the game's rules).
+--
+-- Turn-order coop advances the turn on every recorded guess that doesn't end
+-- the game; a race records nothing and advances nothing.
 --
 -- Concurrency: SELECT FOR UPDATE on connections.games serializes concurrent
 -- submits across both modes. Two racers submitting the same correct guess:
--- the first commits as the winner, the second sees play_state != 'playing'
--- on its read and answers the game-over race.
-
-drop function if exists connections.submit_guess(uuid, text[], text, int);
+-- the first commits as the winner, the second finds the game ended and
+-- answers the game-over race.
 create or replace function connections.submit_guess(
-  target_game uuid,
-  tiles text[],
-  result text,
-  matched_category_rank int default null
+  p_game_id uuid,
+  p_tiles text[],
+  p_result text,
+  p_matched_category_rank int default null
 )
 returns jsonb
 language plpgsql
@@ -680,20 +729,16 @@ set search_path = connections, common, public, extensions
 as $$
 declare
   caller_id uuid;
-  g_row connections.games%rowtype;
-  current_play_state text;
+  v_mode text;
+  v_ended_at timestamptz;
   caller_mistakes int;
   caller_matched int;
   found_categories_count int;
-  player_results jsonb;
-  winner_name text;
+  v_rankings jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  -- Lock the game row for atomic mistake_count++ and play_state
-  -- flips.
-  select * into g_row from connections.games
-   where connections.games.id = target_game
-   for update;
+  -- Lock the game row: every guess, match and mistake serializes on it.
+  perform 1 from connections.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('connections');
   end if;
@@ -703,33 +748,33 @@ begin
   -- IN this game (per common.game_players), not just a club
   -- member. A club member who didn't sit down at this game can
   -- still WATCH it (club-wide RLS) but can't act.
-  caller_id := common.require_game_player(target_game);
+  caller_id := common.require_game_player(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
+  select ended_at, mode into v_ended_at, v_mode
+    from common.games where id = p_game_id;
 
-  if current_play_state <> 'playing' then
+  if v_ended_at is not null then
     -- A race: a teammate ended the game (or it timed out) while this guess was
-    -- in flight. The FE hides the board at terminal, so the only way here is a
-    -- client that has not heard yet.
+    -- in flight. The FE hides the board once the game ends, so the only way
+    -- here is a client that has not heard yet.
     perform common._raise_game_over();
   end if;
 
-  -- A conceded player is out of the race — no more guesses. The FE gates
-  -- on myConceded, so this only fires on a race (a guess in flight when
-  -- concede commits, or a stale second tab). Without it a conceder could
-  -- complete the win condition and be recorded the winner.
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = caller_id) then
+  -- A conceded player is out of the race — no more guesses. The FE hides the
+  -- board from a conceder, so this only fires on a race (a guess in flight
+  -- when the concession commits, or a stale second tab). Without it a
+  -- conceder could complete the win condition and be recorded the winner.
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
     perform common._raise_already_conceded();
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
   -- (pointer null) and compete; raises 'not your turn' otherwise. The
-  -- turn ADVANCES only on the two coop non-terminal continue paths below
+  -- turn ADVANCES only on the two coop continue paths below
   -- (a fresh correct-but-not-won guess, a fresh wrong-but-not-lost guess)
   -- — a duplicate raises before either.
-  perform common._require_turn(target_game, caller_id);
+  perform common._require_turn(p_game_id, caller_id);
 
   -- ─── Light payload validation (mode-independent) ─────────
   -- Server-side checks for shape, not for rule correctness — the
@@ -737,22 +782,22 @@ begin
   -- trust model (see CLAUDE.md). These guards catch malformed
   -- payloads (lengths, enum values) so the data we persist is at
   -- least well-typed.
-  if tiles is null or array_length(tiles, 1) <> 4 then
+  if p_tiles is null or array_length(p_tiles, 1) <> 4 then
     raise exception 'BUG: guess that was not four tiles'
       using errcode = 'PN247', hint = 'fault', column = '_',
       detail = format('a guess is exactly 4 tile ids; got %s',
-                      coalesce(array_length(tiles, 1), 0));
+                      coalesce(array_length(p_tiles, 1), 0));
   end if;
 
-  if result not in ('correct', 'oneAway', 'wrong') then
+  if p_result not in ('correct', 'oneAway', 'wrong') then
     raise exception 'BUG: unknown guess result'
       using errcode = 'PN248', hint = 'fault', column = '_',
-      detail = format('result must be correct, oneAway or wrong; got %L', result);
+      detail = format('result must be correct, oneAway or wrong; got %L', p_result);
   end if;
 
-  if result = 'correct' then
-    if matched_category_rank is null
-       or matched_category_rank not between 0 and 3 then
+  if p_result = 'correct' then
+    if p_matched_category_rank is null
+       or p_matched_category_rank not between 0 and 3 then
       raise exception 'BUG: correct guess with no category'
         using errcode = 'PN249', hint = 'fault', column = '_',
         detail = 'a correct guess must name a category rank 0..3';
@@ -762,7 +807,7 @@ begin
   -- ─── Caller's per-player row (compete needs the elim check) ─
   select mistake_count into caller_mistakes
     from connections.players
-   where game_id = target_game and user_id = caller_id;
+   where game_id = p_game_id and user_id = caller_id;
   if caller_mistakes is null then
     -- require_game_player passed but there's no players row;
     -- shouldn't happen since create_game seeds them. Defensive.
@@ -771,10 +816,10 @@ begin
       detail = 'no connections.players row for the caller';
   end if;
 
-  -- Compete-only: eliminated players can't submit. (In coop the
-  -- whole game would already be terminal at mistake_count=4, so
-  -- the play_state guard above catches it.)
-  if g_row.mode = 'compete' and caller_mistakes >= 4 then
+  -- Compete-only: a player out on mistakes can't submit. (In coop the whole
+  -- game would already have ended at mistake_count=4, so the ended check
+  -- above catches it.)
+  if v_mode = 'compete' and caller_mistakes >= 4 then
     -- A race: your own fourth mistake landed and the row saying so has not
     -- arrived — milliseconds usually, unbounded in a deaf window, permanent in
     -- a stale second tab.
@@ -784,123 +829,82 @@ begin
   end if;
 
   -- ─── Correct guess ───────────────────────────────────────
-  if result = 'correct' then
-    -- Insert. The mode-aware partial unique indexes catch dup races: in coop
-    -- a peer beat us to this rank; in compete the same player
-    -- double-submitted. Either way the insert raises, and the handler makes
-    -- it the race below.
-    begin
-      insert into connections.events
-        (game_id, user_id, kind, tiles, result, matched_category_rank, mode, took_turn)
-      values
-        (target_game, caller_id, 'guess', tiles, result, matched_category_rank,
-         g_row.mode, true);
-    exception when unique_violation then
-      -- PN300 — a RACE, and the textbook one. The rank was
-      -- taken between this caller's read and their insert: in coop by a peer
-      -- who matched the same category, in compete by this player twice. Nothing
-      -- was written, so the guess did not happen — which is exactly what `race`
-      -- means, and what an `ok` here could not say.
+  if p_result = 'correct' then
+    if exists (
+      select 1 from connections.events e
+       where e.game_id = p_game_id
+         and e.result = 'correct'
+         and e.matched_category_rank = p_matched_category_rank
+         and (v_mode = 'coop' or e.user_id = caller_id)
+    ) then
+      -- PN300 — a RACE, and the textbook one. The rank was taken between this
+      -- caller's read and their submit: in coop by a peer who matched the same
+      -- category, in compete by this player twice. Nothing was written, so the
+      -- guess did not happen — which is exactly what `race` means, and what an
+      -- `ok` here could not say.
       --
       -- The message covers both modes: in coop somebody got there first, in
       -- compete you did, and either way the category is already matched.
-      --
-      -- Raising from inside this handler propagates to the function's own
-      -- handler below, like any other raise.
       raise exception 'That category is already matched'
         using errcode = 'PN300', hint = 'race', column = '_',
-        detail = 'unique_violation on the mode-aware matched-rank index';
-    end;
+        detail = 'this category rank is already matched (coop: by anyone; compete: by the caller)';
+    end if;
+
+    insert into connections.events
+      (game_id, user_id, kind, tiles, result, matched_category_rank, took_turn)
+    values
+      (p_game_id, caller_id, 'guess', p_tiles, p_result, p_matched_category_rank, true);
 
     -- Persist the caller's own found count to their (public) players row so a
     -- compete opponent strip can show race progress (the "Found" metric).
     -- Computed once here; the compete win check below reuses caller_matched.
     select count(*) into caller_matched
       from connections.events gu
-     where gu.game_id = target_game
+     where gu.game_id = p_game_id
        and gu.user_id = caller_id
        and gu.result = 'correct';
     update connections.players
        set found_categories_count = caller_matched
-     where game_id = target_game and user_id = caller_id;
+     where game_id = p_game_id and user_id = caller_id;
 
-    if g_row.mode = 'coop' then
-      -- Coop win check: 4 correct rows total ⇒ won.
+    if v_mode = 'coop' then
+      -- Coop win check: 4 correct rows total ⇒ the team solved it.
       select count(*) into found_categories_count
         from connections.events gu
-       where gu.game_id = target_game and gu.result = 'correct';
+       where gu.game_id = p_game_id and gu.result = 'correct';
 
       if found_categories_count >= 4 then
-        select jsonb_object_agg(user_id::text, '{"won": true}'::jsonb)
-          into player_results
-          from common.game_players
-         where game_id = target_game;
-
-        -- The verdict is the roster's `won`; connections' own word for HOW it
-        -- ended rides in `reason` (docs/states.md → status.reason names the
-        -- CAUSE).
+        update common.game_players
+           set solved_at = now()
+         where game_id = p_game_id;
+        select jsonb_object_agg(user_id::text, 1) into v_rankings
+          from common.game_players where game_id = p_game_id;
         perform common.end_game(
-          target_game,
-          'won',
-          jsonb_build_object(
-            'reason', 'solved',
-            'mistake_count', caller_mistakes,
-            'found_categories_count', 4
-          ),
-          player_results);
-      else
-        -- Turn-order: an accepted, non-terminal coop guess (a fresh correct
-        -- group that doesn't yet complete the puzzle) hands the turn on
-        -- (no-op for free-for-all). Fires only here — a duplicate raised
-        -- above, and the terminal win branch doesn't reach it.
-        perform common._advance_turn(target_game);
-        perform common.update_state(
-          target_game,
-          'playing',
-          jsonb_build_object(
-            'mistake_count', caller_mistakes,
-            'found_categories_count', found_categories_count
-          )
+          p_game_id, 'reached_goal', 'solved', caller_id,
+          p_is_no_result => false,
+          p_final_rankings => v_rankings
         );
+      else
+        -- Turn-order: an accepted coop guess that doesn't yet complete the
+        -- puzzle hands the turn on (no-op for free-for-all).
+        perform common._advance_turn(p_game_id);
       end if;
     else
-      -- Compete win check: caller's own correct count = 4 ⇒
-      -- won_compete, caller wins, everyone else loses. The
-      -- race ends instantly — opponents with remaining lives
-      -- don't get to keep trying. (caller_matched computed above.)
+      -- Compete win check: the caller's 4th match ends the race at once —
+      -- opponents with mistakes left don't get to keep trying.
       if caller_matched >= 4 then
-        select username into winner_name
-          from common.profiles where user_id = caller_id;
-
-        select jsonb_object_agg(
-                 user_id::text,
-                 case when user_id = caller_id
-                      then '{"won": true}'::jsonb
-                      else '{"won": false}'::jsonb
-                 end)
-          into player_results
-          from common.game_players
-         where game_id = target_game;
-
+        update common.game_players
+           set solved_at = now()
+         where game_id = p_game_id and user_id = caller_id;
         perform common.end_game(
-          target_game,
-          'won_compete',
-          jsonb_build_object(
-            'reason', 'solved',
-            'winner_username', winner_name
-          ),
-          player_results);
-      else
-        -- Mid-game compete status stays EMPTY: each racer's counts are their
-        -- own, and this column is club-wide readable, so the listing carries
-        -- no per-player numbers (create_game seeds it the same way).
-        perform common.update_state(
-          target_game,
-          'playing',
-          '{}'::jsonb
+          p_game_id, 'reached_goal', 'solved', caller_id,
+          p_is_no_result => false,
+          p_final_rankings => jsonb_build_object(caller_id::text, 1)
         );
       end if;
     end if;
+
+    perform connections._write_statuses(p_game_id, p_update_status_changed_at => true);
 
     -- The match is written. `result` NAMES THE CASE, in the wire word the
     -- column stores; what it is worth is the frontend's (lib/answer.ts), so
@@ -910,7 +914,7 @@ begin
 
   -- ─── Wrong / oneAway: cost a mistake ─────────────────────
   -- Dedup a repeat of the same (order-insensitive) tile set — the wrong/
-  -- oneAway analog of the correct branch's unique-index guard. Coop's
+  -- oneAway analog of the correct branch's already-matched check. Coop's
   -- selection is a shared union, so two players can Submit the identical 4
   -- tiles at once; the games-row lock serializes us, so this SELECT sees the
   -- first transaction's committed row. Without it one wrong guess costs TWO
@@ -919,13 +923,11 @@ begin
   -- FE already blocks repeats ("You already tried that"); this is the
   -- authoritative, race-safe backstop. (Each guess is 4 distinct tiles, so
   -- mutual containment `@>`/`<@` is exact set-equality.)
-  -- `submit_guess.tiles` qualifies the function PARAMETER: bare `tiles` is
-  -- ambiguous against `connections.events.tiles` inside this query.
   if exists (
     select 1 from connections.events gu
-     where gu.game_id = target_game
-       and (g_row.mode = 'coop' or gu.user_id = caller_id)
-       and gu.tiles @> submit_guess.tiles and gu.tiles <@ submit_guess.tiles
+     where gu.game_id = p_game_id
+       and (v_mode = 'coop' or gu.user_id = caller_id)
+       and gu.tiles @> p_tiles and gu.tiles <@ p_tiles
   ) then
     -- PN301 — the same race as PN300 above, one branch earlier in the guess's
     -- life. Nothing was written and no mistake was counted, so the guess did
@@ -948,92 +950,58 @@ begin
 
   -- A miss is still the player having a go — the fourth mistake included.
   insert into connections.events
-    (game_id, user_id, kind, tiles, result, matched_category_rank, mode, took_turn)
+    (game_id, user_id, kind, tiles, result, matched_category_rank, took_turn)
   values
-    (target_game, caller_id, 'guess', tiles, result, null, g_row.mode, true);
+    (p_game_id, caller_id, 'guess', p_tiles, p_result, null, true);
 
-  if g_row.mode = 'coop' then
+  if v_mode = 'coop' then
     -- Lock-step increment across every player row. Reading any
     -- one row after this UPDATE gives the canonical shared
     -- mistake_count.
     update connections.players
        set mistake_count = mistake_count + 1
-     where game_id = target_game;
+     where game_id = p_game_id;
 
-    -- Pick up the post-update value from any row (they're equal).
     select mistake_count into caller_mistakes
       from connections.players
-     where game_id = target_game
+     where game_id = p_game_id
      limit 1;
 
-    select count(*) into found_categories_count
-      from connections.events gu
-     where gu.game_id = target_game and gu.result = 'correct';
-
     if caller_mistakes >= 4 then
-      select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-        into player_results
-        from common.game_players
-       where game_id = target_game;
-
       perform common.end_game(
-        target_game,
-        'lost',
-        jsonb_build_object(
-          'reason', 'mistakes',
-          'mistake_count', caller_mistakes,
-          'found_categories_count', found_categories_count
-        ),
-        player_results);
-    else
-      -- Turn-order: an accepted, non-terminal coop guess (a fresh wrong/
-      -- oneAway that costs a mistake but doesn't hit the 4th) hands the turn
-      -- on (no-op for free-for-all). A duplicate raised above, and the
-      -- terminal lost branch doesn't reach it.
-      perform common._advance_turn(target_game);
-      perform common.update_state(
-        target_game,
-        'playing',
-        jsonb_build_object(
-          'mistake_count', caller_mistakes,
-          'found_categories_count', found_categories_count
-        )
+        p_game_id, 'resource_exhausted', 'mistakes', caller_id,
+        p_is_no_result => false,
+        p_final_rankings => '{}'::jsonb
       );
+    else
+      -- Turn-order: an accepted coop guess that costs a mistake but not the
+      -- 4th hands the turn on (no-op for free-for-all).
+      perform common._advance_turn(p_game_id);
     end if;
   else
     -- Compete: only the caller's row increments.
     update connections.players
        set mistake_count = mistake_count + 1
-     where game_id = target_game and user_id = caller_id;
-
-    -- Re-read caller's count for the elimination check below.
-    select mistake_count into caller_mistakes
-      from connections.players
-     where game_id = target_game and user_id = caller_id;
+     where game_id = p_game_id and user_id = caller_id
+    returning mistake_count into caller_mistakes;
 
     -- The fourth mistake puts this racer out while the others keep going, so
     -- the common roster has to hear about it: a player nothing is waiting for
-    -- must not hold the presence-pause open (see the flag's migration).
+    -- must not hold the presence-pause open. Then the collective-loss check:
+    -- nobody left and nobody won ends the game.
     if caller_mistakes >= 4 then
-      perform common._set_locally_terminal(target_game, caller_id);
-    end if;
-
-    -- Collective-loss check: nobody alive (every player is eliminated
-    -- — mistake_count >= 4 — or conceded) and nobody won ⇒ lost_compete.
-    -- Shared with connections.concede (a drop-out can be the move that
-    -- leaves nobody alive). If someone's still alive the game continues;
-    -- the just-eliminated caller's FE reads that they are out from their own
-    -- row.
-    if not connections._maybe_finish_compete(target_game) then
-      perform common.update_state(target_game, 'playing', '{}'::jsonb);
+      perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'mistakes');
+      perform connections._maybe_finish_compete(p_game_id, 'resource_exhausted', 'mistakes', caller_id);
     end if;
   end if;
+
+  perform connections._write_statuses(p_game_id, p_update_status_changed_at => true);
 
   -- The mistake is counted, and the answer says which of the two verdicts it
   -- recorded: an `ok` branch is chosen by `data` (docs/envelopes.md →
   -- Choosing which `ok` branch), never by the value the caller sent. No
   -- outcome rides — what a verdict is worth is lib/answer.ts's.
-  return common.ok_envelope(jsonb_build_object('result', result));
+  return common.ok_envelope(jsonb_build_object('result', p_result));
 
 exception when others then
   get stacked diagnostics
@@ -1048,37 +1016,42 @@ $$;
 revoke execute on function connections.submit_guess(uuid, text[], text, int) from public;
 grant execute on function connections.submit_guess(uuid, text[], text, int) to authenticated;
 
--- ============================================================
--- connections.concede — a player drops out of a compete race
--- ============================================================
--- connections is an ELIMINATION game (a player can be out — 4 mistakes
--- — without the table ending), so it can't use the generic
--- common.concede: after flipping the shared flag it re-runs its own
--- terminal check, which counts a conceder as "not alive" alongside the
--- eliminated. Compete only (coop is a team; it ends via the shared Stop).
 drop function if exists connections.concede(uuid);
 
-create or replace function connections.concede(target_game uuid)
+-- ============================================================
+-- connections.concede — a racer drops out of a compete game
+-- ============================================================
+-- connections is an ELIMINATION game (a player can be out — 4 mistakes —
+-- without the table ending): `common._concede` records the concession and
+-- ends the game if everyone has conceded; otherwise the game ends here if
+-- every other player is already out, with the concession as the act that
+-- ended it. Compete only (coop is a team; it ends via the shared Stop).
+create or replace function connections.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = connections, common, public, extensions
 as $$
 declare
+  caller_id uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common.require_compete((select mode from connections.games where id = target_game));
-  -- Lock this game's connections.games row FIRST so concede serializes against a
-  -- concurrent submit_guess (which also locks this row before common.games).
-  -- Without it concede locks only common.games (via _set_conceded) and a final
-  -- move locks connections.games — they don't serialize, each reads the other's
-  -- uncommitted "still racing" state (READ COMMITTED), both decline to end the
-  -- game, and it wedges in 'playing'. Same lock order as the move path (no
-  -- deadlock). Mirrors scrabble.concede.
-  perform 1 from connections.games where id = target_game for update;
-  perform common._set_conceded(target_game);
-  perform connections._maybe_finish_compete(target_game);
+  -- Lock this game's connections.games row FIRST so the concession serializes
+  -- against a concurrent submit_guess (which also locks this row before
+  -- common.games). Without it the two don't serialize, each reads the other's
+  -- uncommitted "still in it" state (READ COMMITTED), both decline to end the
+  -- game, and it wedges. Same lock order as the move path (no deadlock).
+  perform 1 from connections.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('connections');
+  end if;
 
+  perform common.require_compete((select mode from common.games where id = p_game_id));
+
+  caller_id := common._concede(p_game_id);
+  perform connections._maybe_finish_compete(p_game_id, 'conceded', 'conceded', caller_id);
+
+  perform connections._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -1094,32 +1067,25 @@ $$;
 revoke execute on function connections.concede(uuid) from public;
 grant execute on function connections.concede(uuid) to authenticated;
 
+drop function if exists connections.submit_timeout(uuid);
+
 -- ============================================================
--- connections.submit_timeout — countdown expiry handler (mode-aware)
+-- connections.submit_timeout — countdown expiry handler
 -- ============================================================
 -- Fired by the FE when the count-down timer hits 0. Everyone loses
--- regardless of mode — in coop it's the team losing the clock; in
--- compete the race ended with nobody having all-4'd, which we
--- treat as a collective loss (psychicnum-compete does the same).
---
--- Terminal play_state values: 'lost' (coop) / 'lost_compete' (compete). In
--- coop, 'lost' is the same terminal as a 4-mistakes loss; the CAUSE rides in
--- status.reason ('timeout'), which the club-list label and the below-board
--- pill both read.
+-- regardless of mode — in coop it's the team losing the clock; in compete
+-- the race ended with nobody having found all four, and a race that ends
+-- when decided has nobody at the goal, so it ranks nobody (psychicnum does
+-- the same). Who ended it is the turn-holder in turn-order coop, nobody
+-- otherwise.
 --
 -- Concurrency: multiple clients may fire submit_timeout at the same instant
 -- because each client's local timer hits 0 around the same wall-clock moment.
 -- The `SELECT ... FOR UPDATE` lock serializes them; whichever transaction
--- commits first flips play_state to terminal, and the rest see play_state !=
--- 'playing' and answer the game-over race — a peer beat them to it, and
--- realtime carries the loss to every client.
---
--- common.end_game handles the cross-cutting termination work
--- (play_state + is_terminal + status + per-player results).
-
-drop function if exists connections.submit_timeout(uuid);
-
-create or replace function connections.submit_timeout(target_game uuid)
+-- commits first ends the game, and the rest find it ended and answer the
+-- game-over race — a peer beat them to it, and realtime carries the loss to
+-- every client.
+create or replace function connections.submit_timeout(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1127,76 +1093,30 @@ set search_path = connections, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row connections.games%rowtype;
-  current_play_state text;
-  player_results jsonb;
-  terminal_state text;
-  terminal_reason text;
-  found_categories_count int;
-  caller_mistakes int;
+  v_ended_at timestamptz;
+  v_turn_holder uuid;
 begin
-  select * into g_row from connections.games
-   where connections.games.id = target_game
-   for update;
+  perform 1 from connections.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('connections');
   end if;
 
   -- Auth + game-player gate. See common.require_game_player.
-  perform common.require_game_player(target_game);
+  perform common.require_game_player(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-
-  if current_play_state <> 'playing' then
+  select ended_at, current_turn_user_id into v_ended_at, v_turn_holder
+    from common.games where id = p_game_id;
+  if v_ended_at is not null then
     perform common._raise_game_over();
   end if;
 
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players
-   where game_id = target_game;
+  perform common.end_game(
+    p_game_id, 'timeout', 'timeout', v_turn_holder,
+    p_is_no_result => false,
+    p_final_rankings => '{}'::jsonb
+  );
 
-  if g_row.mode = 'coop' then
-    terminal_state := 'lost';
-    terminal_reason := 'timeout';
-
-    -- Coop final snapshot: mistake_count + found_categories_count for the
-    -- listing label.
-    select count(*) into found_categories_count
-      from connections.events gu
-     where gu.game_id = target_game and gu.result = 'correct';
-    select mistake_count into caller_mistakes
-      from connections.players
-     where game_id = target_game
-     limit 1;
-
-    perform common.end_game(
-      target_game,
-      terminal_state,
-      jsonb_build_object(
-        'reason', terminal_reason,
-        'mistake_count', caller_mistakes,
-        'found_categories_count', found_categories_count
-      ),
-      player_results);
-  else
-    terminal_state := 'lost_compete';
-    terminal_reason := 'timeout';
-
-    perform common.end_game(
-      target_game,
-      terminal_state,
-      jsonb_build_object(
-        'reason', terminal_reason
-      ),
-      player_results);
-  end if;
-
-  -- Wake the boards: common.end_game writes only common.games, so without
-  -- this open boards never re-read and a race's rivals' guesses, released at
-  -- terminal, never load (src/guards/endingTouchesGame.test.ts).
-  update connections.games set club_handle = club_handle where id = target_game;
+  perform connections._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1212,42 +1132,21 @@ $$;
 revoke execute on function connections.submit_timeout(uuid) from public;
 grant execute on function connections.submit_timeout(uuid) to authenticated;
 
--- ============================================================
--- connections.stop_game — manual stop
--- ============================================================
---
--- The intrinsic connections terminals are all "decided" outcomes: coop
--- solves/loses (4 matches / 4 mistakes / timeout), compete has a winner
--- (first to 4 matches) or a no-winner loss. There is no built-in "the friends
--- just want to quit" path — so this RPC is that explicit stop, the Stop
--- action.
---
--- Unlike submit_timeout (which writes a "you lost" terminal), stop_game is
--- deliberately NEUTRAL: nobody won, nobody lost — the group agreed to stop.
--- We encode that as:
---   - play_state = 'ended' (a terminal the FE and labelFor render as
---     neutral, distinct from coop's 'lost' / compete's 'lost_compete')
---   - status = {reason:'manual', mode:<coop|compete>}
---   - every player's result = {"won": false}  (no winner — and the FE's
---     "Game ended" pill is neutral, because "ended" is not a defeat)
---
--- Distinct from suspend (which leaves play_state='playing' and is
--- the "back to club, start something else later" path): stop_game
--- writes a real terminal, so the game lands in the club's
--- completed section forever and the terminal verdict renders.
---
--- Same shape as submit_timeout with three differences:
---   - one branch for both modes (the per-player result is the bare
---     {"won": false}, identical coop and compete — there's no
---     mistake_count/found_categories_count snapshot to take because nothing
---     was "achieved", the friends just stopped)
---   - status.reason = 'manual' (vs submit_timeout's 'timeout')
---   - an EXPLICIT Realtime touch at the tail — see the long
---     comment there; this is the one wrinkle that submit_timeout
---     doesn't need but stop_game does.
 drop function if exists connections.stop_game(uuid);
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists connections.end_game(uuid);
 
-create or replace function connections.stop_game(target_game uuid)
+-- ============================================================
+-- connections.stop_game — the Stop
+-- ============================================================
+-- connections' own endings are all decided ones: coop solves or loses (4
+-- matches / 4 mistakes / timeout), compete has a winner or a no-winner loss.
+-- This is the friends' "we just want to quit": any player stops the game
+-- for the whole table, in either mode, and it is neutral — nobody won,
+-- nobody lost (docs/common-schema.md → Stop). Distinct from suspending,
+-- which leaves the game being played; a Stopped game lands in the club's
+-- finished games.
+create or replace function connections.stop_game(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1255,70 +1154,15 @@ set search_path = connections, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row connections.games%rowtype;
-  current_play_state text;
-  player_results jsonb;
 begin
-  select * into g_row from connections.games
-   where connections.games.id = target_game
-   for update;
+  perform 1 from connections.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('connections');
   end if;
 
-  -- Auth + game-player gate. Same as submit_timeout: any current
-  -- game player can end the game (it's a group decision, not an
-  -- owner-only action), but a club outsider can't.
-  perform common.require_game_player(target_game);
+  perform common._stop(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-
-  if current_play_state <> 'playing' then
-    -- Idempotency: a second click (or a click racing a timeout /
-    -- a solve) raises this and the FE swallows it the same way it
-    -- does for submit_timeout's "already terminal" race.
-    perform common._raise_game_over();
-  end if;
-
-  -- Every player gets the bare {"won": false}. Identical in coop
-  -- and compete — manual end has no winner in either mode. The
-  -- neutral-vs-loss distinction lives entirely in play_state
-  -- ('ended', not 'lost'/'lost_compete') + status.reason
-  -- ('manual'), which is what the FE branches on for the neutral
-  -- terminal.
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players
-   where game_id = target_game;
-
-  perform common.end_game(
-    target_game,
-    'ended',
-    jsonb_build_object(
-      'reason', 'manual',
-      'mode', g_row.mode
-    ),
-    player_results);
-
-  -- Realtime touch — REQUIRED here, and the one place connections'
-  -- termination path differs from submit_guess/submit_timeout.
-  --
-  -- submit_guess and submit_timeout each also write a connections
-  -- table (events / players) on their way to common.end_game, so
-  -- the FE's useGame subscription (postgres_changes on
-  -- connections.{games,events,players}) wakes up naturally. stop_game
-  -- writes ONLY common.games via common.end_game — no connections-
-  -- schema write — so without this touch the FE would never
-  -- refetch and the terminal verdict would never render until a reload.
-  --
-  -- The self-set (club_handle = club_handle, a real not-null
-  -- column on connections.games) is a semantic no-op but produces a
-  -- WAL entry on connections.games that Realtime delivers to the
-  -- games-table subscription. Same trick spellingbee.stop_game uses.
-  update connections.games
-     set club_handle = club_handle
-   where id = target_game;
+  perform connections._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1334,36 +1178,25 @@ $$;
 revoke execute on function connections.stop_game(uuid) from public;
 grant execute on function connections.stop_game(uuid) to authenticated;
 
--- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
-drop function if exists connections.end_game(uuid);
+drop function if exists connections.replay_board(uuid);
 
 -- ============================================================
 -- connections.replay_board — restart this puzzle from scratch
 -- ============================================================
 -- The Restart action: reset the working state on the SAME game row. The
 -- frozen puzzle (`board` — the categories AND this game's shuffled tileOrder —
--- plus `puzzle_date` / `mode`) stays, so it's the same sixteen tiles in the
--- same arrangement, solved again;
--- everything the players did is wiped. Any game player may call it, from a
--- finished game OR mid-game (no play_state guard — it's a restart). Both
--- modes reset ALL players (a group "run it back", per the friends trust
--- model).
+-- plus `puzzle_date`) stays, so it's the same sixteen tiles in the same
+-- arrangement, solved again; everything the players did is wiped. Any game
+-- player may call it, from a finished game OR mid-game (no ended check —
+-- it's a restart). Both modes reset ALL players (a group "run it back", per
+-- the friends trust model).
 --
 -- Resets the connections-specific working state (every player's mistakes +
 -- matched count zeroed; the guess log cleared, which is also what un-matches
 -- the categories — a matched category IS a `result='correct'` guess row, so
 -- deleting the log rebuilds the board by construction), then hands the
--- common-layer reset to common.reset_game, which writes the `status` passed
--- here. Note that's NOT identical to a brand-new game: common.create_game omits
--- `status` from its insert, so a fresh game's is NULL where a replayed one's is
--- '{}'. No behavioral difference — both `labelFor`s read `row.status ?? {}`.
---
--- No realtime touch needed: the players update + events delete wake useGame
--- (subscribed to connections.{games,players,events}), and reset_game's
--- common.games write wakes useCommonGame.
-drop function if exists connections.replay_board(uuid);
-
-create or replace function connections.replay_board(target_game uuid)
+-- common-layer reset to common.reset_game and writes the statuses.
+create or replace function connections.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1371,14 +1204,12 @@ set search_path = connections, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row connections.games;
 begin
   -- FOR UPDATE: a replay racing a move must not interleave with it (the move
   -- RPCs lock the same row), or the reset could land on a half-applied move —
   -- a stray guess row in the "fresh" game, or worse, an in-flight game-ENDING
-  -- move re-terminalling the board that was just reset. `g_row` is unused
-  -- beyond the existence check; the LOCK is the point.
-  select * into g_row from connections.games where id = target_game for update;
+  -- move ending the board that was just reset.
+  perform 1 from connections.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('connections');
   end if;
@@ -1388,16 +1219,18 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common.require_game_player(p_game_id);
 
   update connections.players
      set mistake_count = 0,
          found_categories_count = 0
-   where game_id = target_game;
+   where game_id = p_game_id;
 
-  delete from connections.events where game_id = target_game;
+  delete from connections.events where game_id = p_game_id;
 
-  perform common.reset_game(target_game, '{}'::jsonb);
+  perform common.reset_game(p_game_id);
+
+  perform connections._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

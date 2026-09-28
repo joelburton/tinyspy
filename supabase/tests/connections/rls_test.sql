@@ -62,7 +62,7 @@ select connections.submit_guess(
 -- ============================================================
 
 select is(
-  (select count(*) from connections.games where id = (select id from g)),
+  (select count(*) from connections.games where game_id = (select id from g)),
   1::bigint,
   'sanity: ada (a member) sees her connections game'
 );
@@ -80,7 +80,7 @@ select is(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 select is(
-  (select count(*) from connections.games where id = (select id from g)),
+  (select count(*) from connections.games where game_id = (select id from g)),
   0::bigint,
   'dee cannot SELECT a connections game for a club she is outside'
 );
@@ -131,7 +131,7 @@ select throws_ok(
 
 -- ============================================================
 -- COMPETE: opponents' guesses are private DURING PLAY, and open
--- at terminal
+-- once the game ends
 -- ============================================================
 -- The privacy is a GAME RULE, not etiquette: a peer's oneAway guess plus the
 -- public board would hand you the answer while you can still use it. Once the
@@ -162,30 +162,30 @@ select is(
   'compete mid-game: a player sees only their OWN guesses'
 );
 
--- End it. (stop_game is the neutral mutual stop; the rule keys on is_terminal,
+-- End it. (stop_game is the neutral mutual stop; the rule keys on ended_at,
 -- not on how the game ended.)
 select connections.stop_game((select id from cg));
 
 select is(
   (select count(*) from connections.events where game_id = (select id from cg)),
   2::bigint,
-  'compete AT TERMINAL: everyone''s guesses open up'
+  'compete ONCE ENDED: everyone''s guesses open up'
 );
 
 -- …and the opponent's row is the one that appeared, not a duplicate of mine.
 select is(
   (select count(distinct user_id) from connections.events where game_id = (select id from cg)),
   2::bigint,
-  'compete at terminal: both players'' rows are visible'
+  'compete once ended: both players'' rows are visible'
 );
 
--- The club boundary still holds — terminal opens the game to its PLAYERS'
+-- The club boundary still holds — the ending opens the game to its PLAYERS'
 -- club, not to the world.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
   (select count(*) from connections.events where game_id = (select id from cg)),
   0::bigint,
-  'compete at terminal: a non-member still sees nothing'
+  'compete once ended: a non-member still sees nothing'
 );
 
 -- ============================================================

@@ -8,16 +8,14 @@
 --   - payload rejections (wrong tile count, bad result enum,
 --     bad matched_category_rank)
 --   - phase rejections (unauth, non-member, finished game)
---   - wrong path: mistake_count++, play_state stays playing
+--   - wrong path: mistake_count++, the game goes on
 --   - oneAway path: also counts as mistake
 --   - correct path: an events row with result='correct' lands
---   - the partial unique index on (game_id,
---     matched_category_rank) where result='correct' makes a
---     second 'correct' for the same rank a race: nothing written
---   - 4 mistakes flips play_state to 'lost', clears
---     is_current_view flipped via common.end_game
---   - 4 matched categories flips play_state to 'won', clears
---     is_current_view flipped via common.end_game
+--   - submit_guess's already-matched check makes a second
+--     'correct' for the same rank a race: nothing written
+--   - 4 mistakes ends the game resource_exhausted/'mistakes', lost
+--   - 4 matched categories ends the game reached_goal/'solved',
+--     every teammate ranked 1
 --   - a guess into a game a friend just deleted is the shared race (PN485)
 --
 -- Every envelope is asserted to carry NO outcome, which is half of one rule:
@@ -164,9 +162,9 @@ select is(
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing',
-  'submit_guess: wrong guess leaves play_state playing'
+  (select ended_at from common.games where id = (select id from g)),
+  null,
+  'submit_guess: wrong guess leaves the game being played'
 );
 
 -- ============================================================
@@ -211,7 +209,7 @@ select is(
 
 -- ============================================================
 -- (9) A second 'correct' for the same rank is a race — the
---     partial unique index catches it, and nothing is written
+--     already-matched check catches it, and nothing is written
 -- ============================================================
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -257,17 +255,19 @@ select connections.submit_guess(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won',
-  'submit_guess: 4 matched categories flips play_state to won (outcome names the solve)'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g)),
+  'reached_goal/solved/won',
+  'submit_guess: 4 matched categories ends the game reached_goal, won'
 );
 
--- end_game marks the row terminal (is_current_view is left alone
--- — the post-game review still lives on the current-view row).
+-- The team solves together: every teammate ranked 1, won, and solved.
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  true,
-  'submit_guess: end_game sets is_terminal=true on win'
+  (select count(*) from common.game_players
+    where game_id = (select id from g) and final_ranking = 1 and outcome = 'won'
+      and solved_at is not null),
+  2::bigint,
+  'submit_guess: every teammate is ranked 1, won, and solved on the win'
 );
 
 -- ============================================================
@@ -302,19 +302,19 @@ select connections.submit_guess(
 );
 
 reset role;
--- After 3 wrong, mistake_count = 3, play_state still playing.
+-- After 3 wrong, mistake_count = 3, and the game goes on.
 select is(
   (select max(mistake_count) from connections.players where game_id = (select id from g2)),
   3,
   'submit_guess: 3 wrong guesses leaves mistake_count at 3'
 );
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'playing',
-  'submit_guess: 3 wrong guesses leaves play_state playing'
+  (select ended_at from common.games where id = (select id from g2)),
+  null,
+  'submit_guess: 3 wrong guesses leaves the game being played'
 );
 
--- The 4th wrong takes mistake_count to 4 and flips play_state to lost.
+-- The 4th wrong takes mistake_count to 4 and ends the game, lost.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select connections.submit_guess(
   (select id from g2),
@@ -324,19 +324,19 @@ select connections.submit_guess(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'lost',
-  'submit_guess: 4th wrong guess flips play_state to lost'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g2)),
+  'resource_exhausted/mistakes/lost',
+  'submit_guess: 4th wrong guess ends the game resource_exhausted/mistakes, lost'
 );
 
 -- ============================================================
 -- (15)–(18) submit_timeout — timeout-loss path
 -- ============================================================
--- The FE fires this when the count-down timer hits 0. Sets
--- play_state='lost' just like a 4-mistakes-loss (the timeout
--- distinction lives in status->>'reason'). Idempotent: a
--- second concurrent call from a racing client answers the
--- game-over race.
+-- The FE fires this when the count-down timer hits 0. The game
+-- ends lost just like a 4-mistakes loss; the reason is what tells
+-- them apart. Idempotent: a second concurrent call from a racing
+-- client answers the game-over race.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
@@ -355,17 +355,21 @@ select lives_ok(
 );
 
 reset role;
+-- Free-for-all coop has no turn holder, so nobody ended it.
 select is(
-  (select play_state from common.games where id = (select id from g3)),
-  'lost',
-  'submit_timeout: flips play_state to lost'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+          || '/' || coalesce(game_ended_by_user_id::text, 'nobody')
+     from common.games where id = (select id from g3)),
+  'timeout/timeout/lost/nobody',
+  'submit_timeout: ends the game timeout, lost, ended by nobody'
 );
 
--- end_game marks the row terminal on timeout-loss too.
+-- Nobody is ranked on a timeout loss.
 select is(
-  (select is_terminal from common.games where id = (select id from g3)),
-  true,
-  'submit_timeout: end_game sets is_terminal=true on timeout-loss'
+  (select count(*) from common.game_players
+    where game_id = (select id from g3) and final_ranking is null and outcome = 'lost'),
+  2::bigint,
+  'submit_timeout: every player is unranked and lost'
 );
 
 -- Idempotency: a second call from any caller on the already-
@@ -375,7 +379,7 @@ select pg_temp.envelope_is(
   connections.submit_timeout((select id from g3)),
   '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'submit_timeout: rejects on already-terminal games');
+  'submit_timeout: rejects on games that have ended');
 
 -- ============================================================
 -- A guess into a game a friend deleted

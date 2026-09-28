@@ -4,12 +4,12 @@
 -- Test: connections.concede(target_game)  (elimination-game concede)
 -- ============================================================
 -- connections is an ELIMINATION game (a player is out at 4 mistakes,
--- without the table ending), so connections.concede flips the shared
--- conceded flag then re-runs its own terminal check
--- (_maybe_finish_compete), which counts a conceder as "not alive"
--- alongside the eliminated. Covers: a concede keeps the game going while
--- an opponent is still alive; both conceding ends it (nobody alive,
--- nobody solved → lost_compete); coop is rejected.
+-- without the table ending), so connections.concede records the
+-- concession through common._concede, which ends the game once everyone
+-- has conceded, then runs its own end check (_maybe_finish_compete),
+-- which counts a conceder as ended alongside the eliminated. Covers: a
+-- concede keeps the game going while an opponent is still alive; both
+-- conceding ends it (conceded, nobody ranked, lost); coop is rejected.
 -- ============================================================
 
 begin;
@@ -38,30 +38,28 @@ select lives_ok(
   format($$ select connections.concede(%L) $$, (select id from g)),
   'a compete player can concede');
 select is(
-  (select conceded from common.game_players
+  (select player_ended_reason from common.game_players
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'the conceder is marked conceded');
+  'conceded', 'the conceder has ended, by conceding');
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  false, 'the game continues while bea is alive');
+  (select ended_at from common.games where id = (select id from g)),
+  null, 'the game continues while bea is alive');
 
--- (2) bea (last alive) concedes → nobody alive, nobody solved → lost_compete.
--- The row's physical address before the ending: any write to it moves it, and
--- a write is what wakes useGame's subscription so the rivals' guesses load.
-reset role;
-create temp table g_before on commit drop as
-select ctid::text as at from connections.games where id = (select id from g);
+-- (2) bea (last alive) concedes → everyone conceded → a collective loss.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select connections.concede((select id from g));
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'lost_compete', 'both conceding ends the game as a collective loss');
-select isnt(
-  (select ctid::text from connections.games where id = (select id from g)),
-  (select at from g_before),
-  'the ending concede writes connections.games, so open boards re-read');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g)),
+  'conceded/conceded/lost', 'both conceding ends the game as a collective loss');
+-- common._concede ends the game; the builder must still run after it, so the
+-- page's copies catch up with the ending.
+select is(
+  (select player_status->>'player_ended_reason' from common.game_players
+    where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
+  'conceded', 'the ending concede runs the builder: the last conceder''s player_status says conceded');
 
 -- (3) coop concede rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

@@ -40,7 +40,7 @@ select (connections.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- One correct category, then four wrong → out of mistakes → coop loss. That
--- leaves five guess rows, a matched category, mistake_count 4 and a terminal
+-- leaves five guess rows, a matched category, mistake_count 4 and an ended
 -- game: the full state a replay must undo.
 select connections.submit_guess((select id from g1),
   array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'correct', 0);
@@ -54,7 +54,7 @@ select connections.submit_guess((select id from g1),
   array['BANANA','BIRCH','BREAD','CROWN']::text[], 'wrong', null);
 reset role;
 
-select ok((select is_terminal from common.games where id = (select id from g1)),
+select ok((select ended_at is not null from common.games where id = (select id from g1)),
   'coop: precondition — four mistakes ended the game');
 select is((select count(*) from connections.events where game_id = (select id from g1)),
   5::bigint, 'coop: precondition — five guesses are logged (one correct)');
@@ -62,16 +62,19 @@ select is((select count(*) from connections.events where game_id = (select id fr
 update common.timers set ticks = 99 where game_id = (select id from g1);
 -- Snapshot the frozen puzzle so the assertion below is a real before/after.
 create temp table b1 on commit drop as
-select board from connections.games where id = (select id from g1);
+select board from connections.games where game_id = (select id from g1);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select connections.replay_board((select id from g1));
 reset role;
 
-select is((select play_state from common.games where id = (select id from g1)),
-  'playing', 'coop: replay → play_state back to playing');
-select ok((select not is_terminal from common.games where id = (select id from g1)),
-  'coop: replay → is_terminal cleared');
+select is((select ended_at from common.games where id = (select id from g1)),
+  null, 'coop: replay → ended_at cleared, the game is played again');
+select is(
+  (select array[game_ended_reason, game_ended_reason_detail, game_ended_outcome,
+                game_ended_by_user_id::text]
+     from common.games where id = (select id from g1)),
+  array[null, null, null, null]::text[], 'coop: replay → the ending''s reason, outcome and who ended it cleared');
 select is((select count(*) from connections.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the guess log is cleared (so no category is matched)');
 select is(
@@ -80,17 +83,19 @@ select is(
   2::bigint, 'coop: replay → both players back to zero mistakes + zero matches');
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g1) and result is null and not conceded),
-  2::bigint, 'coop: replay → per-player results + concede cleared');
+    where game_id = (select id from g1)
+      and player_ended_at is null and final_ranking is null and outcome is null
+      and solved_at is null),
+  2::bigint, 'coop: replay → per-player endings and results cleared');
 select is((select ticks from common.timers where game_id = (select id from g1)),
   0, 'coop: replay → the shared clock is zeroed');
 -- The frozen puzzle is untouched: same tiles, same shuffle.
 select is(
-  (select board from connections.games where id = (select id from g1)),
+  (select board from connections.games where game_id = (select id from g1)),
   (select board from b1),
   'coop: replay → the board (categories + tileOrder) is left alone');
 
--- ── Compete: a conceded-terminal game replays clean ─────────
+-- ── Compete: a game ended by concessions replays clean ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (connections.create_game(
@@ -108,13 +113,14 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select connections.replay_board((select id from g2));
 reset role;
 
-select ok((select not is_terminal from common.games where id = (select id from g2)),
-  'compete: replay → is_terminal cleared');
+select ok((select ended_at is null from common.games where id = (select id from g2)),
+  'compete: replay → ended_at cleared');
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g2) and result is null
-      and not conceded and conceded_at is null),
-  2::bigint, 'compete: replay → results + concede (incl. conceded_at) cleared');
+    where game_id = (select id from g2)
+      and player_ended_at is null and player_ended_reason is null
+      and final_ranking is null and outcome is null),
+  2::bigint, 'compete: replay → results and the concessions cleared');
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

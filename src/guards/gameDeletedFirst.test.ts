@@ -64,7 +64,7 @@ describe('a deleted game says so', () => {
       'codenamesduet.pass_turn', 'codenamesduet.replay_board',
       'codenamesduet.stop_game', 'codenamesduet.submit_clue',
       'codenamesduet.submit_guess', 'codenamesduet.submit_timeout',
-      'connections.replay_board', 'connections.stop_game', 'connections.submit_guess',
+      'connections.concede', 'connections.replay_board', 'connections.stop_game', 'connections.submit_guess',
       'connections.submit_timeout',
       'crosswords.export_solution', 'crosswords.replay_board',
       'crosswords.reveal_solved_word', 'crosswords.stop_game', 'crosswords.submit_timeout',
