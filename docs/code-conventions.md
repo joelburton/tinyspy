@@ -436,7 +436,14 @@ event log is `<game>.events` in the standard shape ([supabase.md](supabase.md)).
   search-path hijacking.
 - They answer in an envelope ([envelopes.md → How SQL builds
   one](envelopes.md#how-sql-builds-one)).
-- Authorization is `common.require_game_player(target_game)`, which returns the
+- **Every parameter is `p_` plus what it holds**, named as its column would
+  be: `p_game_id`, `p_club_handle`, `p_final_rankings`. A reader never has to
+  ask whether a name is a column or a parameter, and a column added later
+  can't collide with one. The prefix is also the key the front end passes
+  (`{ p_game_id: id }`). Renaming a parameter needs `drop function if exists`
+  first, since `create or replace` refuses it. Older functions still say
+  `target_game` and the like; each is renamed when it is next rewritten.
+- Authorization is `common.require_game_player(p_game_id)`, which returns the
   caller's id or raises; the RPC derives seat or role from its own state after
   that. SELECT policies gate on `common.is_club_member(club_handle)`, because a
   common helper can't read a game's table. Helpers read by policies are

@@ -154,19 +154,17 @@ Decided 2026-09-27:
   2026-09-28; this replaces "a move that changes the status writes
   `common.games`, a move that doesn't, doesn't"). The builder assigns both
   statuses and `clubpage_info` whether or not they changed, so every move
-  writes `common.games` (`last_active_at` rides along through its trigger)
-  and `common.game_players`, and the page's subscriptions fire for every
+  writes `common.games` (and `status_changed_at`, [Decided → Step
+  3](#step-3-2026-09-28)) and `common.game_players`, and the page's subscriptions fire for every
   move — psychicnum's hint, which only adds an events row the partner's log
   shows, reaches the partner this way. No RPC judges whether a status
   changed. The two writes with a path of their own are the exceptions:
   crosswords' `set_cell` and `set_mark` (the cells subscription) and
   bananagrams' board save (the page's own board). A game may later drop the
   call from a move that changes nothing another player's page shows — one
-  game at a time, checked carefully then. Opening or leaving a game writes
-  `is_current_view`, so "last active" still moves for a game whose moves
-  change nothing the club sees (bananagrams' board edits, crosswords' cells).
-  Whether crosswords should update its club line now and then is its own
-  todo.
+  game at a time, checked carefully then. Those two writes don't call the
+  builder, so they don't move the club card's date; whether crosswords
+  should update its club line now and then is its own todo.
 - **`current_turn_user_id` stays on `common.games`.** A shared fact that not
   every game uses is still one meaning in one place.
 - **`common.games.paused` is deleted.** Nothing sets it; pause works without
@@ -261,7 +259,8 @@ was the compete players' numbers and is now a subset of their
   only caller: the RPCs stay short, every game has the same shape, and it
   can be called by hand — after a repair in psql (deleting a mis-clicked move
   and fixing the counts it changed), one call rebuilds every copy. So it
-  takes only the game id, reads only the game's tables, and **assigns the
+  takes the game id and `p_update_status_changed_at` ([Decided → Step
+  3](#step-3-2026-09-28)), reads only the game's tables, and **assigns the
   whole object, never merges**.
 - **A TypeScript type per game** gives each status its shape on the front
   end (generated types say only `Json`), and **a pgTAP test per game** runs
@@ -281,6 +280,49 @@ was the compete players' numbers and is now a subset of their
 - **The names are `game_status` and `player_status`.** When this lands,
   docs/game-status-labels.md stops calling the club card's second line the
   game's status.
+
+### Step 3 (2026-09-28)
+
+Joel, while writing common SQL.
+
+- **Parameters are `p_` plus the column name**
+  ([docs/code-conventions.md → RPC
+  functions](../docs/code-conventions.md#rpc-functions)); every function
+  this plan rewrites is renamed as it is rewritten, the rest when next
+  touched.
+- **`last_active_at` becomes `status_changed_at`**: when the game's status
+  last changed. "Active" read like the club's active game, and opening a
+  game never meant it changed. Its trigger goes. The builder is its only
+  writer: it takes `p_update_status_changed_at`, a required boolean with no
+  default, true from create, Restart and every move, false from the
+  post-deploy pass over every game and from a repair by hand, so neither
+  direction can be forgotten. Opening a game, leaving it and the
+  current-view pointer's moves no longer re-date anything (opening game B
+  used to re-date the game it displaced). The club list sorts and dates by
+  it until Joel says otherwise.
+- **`common.games.updated_at` is new**, stamped by a trigger on every update
+  of the row and written by nothing else — the audit column, which a data
+  pass can trust. Backfilled from `last_active_at`.
+- **`last_opened_at` is not in this plan**: a todo in
+  src/common/club/todo.md.
+- **Each game keeps its own `concede` and `stop_game`, and the shared part
+  moves into two helpers.** The game's RPC locks its own game row (the row
+  its moves lock, which `common` can't name), calls the helper, adds any
+  step of its own, calls its builder, and answers:
+  - **`common._concede(p_game_id)`** replaces `common.concede` and
+    `common._set_conceded`: the guards, the concession written, and — once
+    every player has conceded — `end_game` as a `conceded` collective loss.
+    A game where a player can end some other way runs its own end check
+    after it, skipping a game `_concede` already ended. It is not granted to
+    `authenticated`: the front end always calls the game's `concede`, and a
+    direct call would end a game without its builder.
+  - **`common._stop(p_game_id)`**: the player check, the ended check, and
+    `end_game(…, 'stopped', 'stopped', caller, false, '{}')`.
+  - The lock closes a race today's code has: `_set_conceded` locks
+    `common.games`, not the game row a move locks, so a concession could end
+    the game between a move's "has it ended?" check and its own `end_game`.
+- **`end_game` takes the rankings as jsonb keyed by user id**
+  (common-tables-schema.md → What `common.end_game` takes and does).
 
 ## Bugs the survey found
 
@@ -321,7 +363,12 @@ now ordered by layer, and the stages below are its content, not its order:
    new / changed / kept / dropped.
 2. **One migration** for all of it, with the backfills; applied locally.
 3. **Common SQL** on the new schema: `end_game` once, in its final form;
-   `concede`, `reset_game`, the timers, the policies and views.
+   `concede`, `reset_game`, the timers, the policies and views. Written:
+   `create_game`, `end_game`, `reset_game`, `_set_player_ended`,
+   `_advance_turn`, `update_state` dropped. Left: `_concede` and `_stop`
+   ([Decided → Step 3](#step-3-2026-09-28)); the `updated_at` trigger in
+   place of `last_active_at`'s, with the migration renaming the column to
+   `status_changed_at` and adding `updated_at`; docs/common-schema.md.
 4. **Each game's SQL**, one game at a time — its ending, its status
    builder (both statuses and `clubpage_info`, and the pgTAP test of its
    keys), and its full `final_ranking`s (so rankings below first come here,

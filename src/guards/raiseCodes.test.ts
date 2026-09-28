@@ -198,7 +198,10 @@ describe('the raise codes', () => {
       const sql = readFileSync(join(SQL_DIR, file), 'utf8')
       // Split on function boundaries so "does the handler read it" is asked of
       // the SAME function that raised it, not of the file.
-      for (const body of sql.split(/create or replace function /).slice(1)) {
+      // A `drop function` names the next function without calling it, so it
+      // is left out of the body it trails.
+      for (const chunk of sql.split(/create or replace function /).slice(1)) {
+        const body = chunk.replace(/^drop function [^;]*;/gm, '')
         bodies.set(body.slice(0, body.indexOf('(')).trim(), { file, body })
       }
     }

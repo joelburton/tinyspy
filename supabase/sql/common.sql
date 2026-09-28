@@ -808,12 +808,12 @@ revoke execute on function common._raise_game_deleted(text) from public;
 
 -- ─── common._raise_game_over ───────────────────────────────
 -- The one sentence for "this game is not accepting moves any
--- more", raised by every RPC that checks `play_state` and finds
--- the game ended: each game's moves, `stop_game`,
+-- more", raised by every RPC that finds `ended_at` set: each
+-- game's moves, `stop_game`,
 -- `submit_timeout`, and `common._set_conceded`.
 --
 -- **A RACE**, and the ordinary one: the game ended between the
--- frontend's gate reading `isTerminal` off the subscription and
+-- frontend's gate reading the game's end off the subscription and
 -- the call landing — a teammate's winning move, a Stop, the
 -- timer. Not a malfunction. It wears the race's own look
 -- (`SEVERITY_TO_OUTCOME` in src/common/supabase/dbResult.ts): a
@@ -830,7 +830,7 @@ as $$
 begin
   raise exception 'Game over'
     using errcode = 'PN486', hint = 'race', column = '_',
-    detail = 'play_state is not an active state';
+    detail = 'the game has ended';
 end;
 $$;
 
@@ -866,13 +866,13 @@ revoke execute on function common._raise_already_conceded() from public;
 -- using that id.
 --
 -- Responsibilities:
---   - Auth + caller membership in target_club (via
+--   - Auth + caller membership in p_club_handle (via
 --     require_club_member). The caller must be a club member to
 --     start a game in this club; they do NOT have to appear in
---     player_user_ids (the "Ada facilitates a game between Bea
+--     p_player_user_ids (the "Ada facilitates a game between Bea
 --     and Cade" case is supported).
---   - Validate every uid in player_user_ids is a member of
---     target_club at game-create time. Players are frozen at
+--   - Validate every uid in p_player_user_ids is a member of
+--     the club at game-create time. Players are frozen at
 --     creation; later membership changes to clubs_members don't
 --     affect this game's roster.
 --   - Vacate any prior current-view game for this club (UPDATE
@@ -883,6 +883,8 @@ revoke execute on function common._raise_already_conceded() from public;
 --   - Insert the new common.games row with is_current_view = true.
 --     The partial unique index on (club_handle) where is_current_view
 --     = true guarantees the just-cleared step worked.
+--   - Insert its common.timers row, with the timer's kind and
+--     countdown length copied from `setup.timer`.
 --   - Insert one common.game_players row per uid.
 --   - Return the new game id.
 --
@@ -893,9 +895,8 @@ revoke execute on function common._raise_already_conceded() from public;
 --
 -- Raises:
 --   - PN011 / PN012 via require_club_member
---                                          (via require_club_member)
---   - P0001  'player_user_ids must not be empty'
---   - P0001  'player_user_ids contains non-members: X, Y'
+--   - PN059 'BUG: game with no players'
+--   - PN060 'BUG: player not in this club: X, Y'
 
 -- ============================================================
 -- common.wordle_colors — color ONE word against an answer, Wordle-style
@@ -1022,24 +1023,23 @@ $$;
 
 revoke execute on function common._rank_idx(int, int) from public;
 
+drop function if exists common.create_game(text, text, uuid[], text, jsonb, jsonb);
 create or replace function common.create_game(
-  target_club text,
-  gametype text,
-  player_user_ids uuid[],
-  title text,
-  setup jsonb,
+  p_club_handle text,
+  p_gametype text,
+  -- 'coop' or 'compete', which the gametype's create_game has checked
+  -- (common.require_valid_mode). Passed, never read off the gametype's name.
+  p_mode text,
+  p_player_user_ids uuid[],
+  p_title text,
+  p_setup jsonb,
   -- The savable subset of `setup` for the saved-defaults feature
   -- (see common.clubs_gametypes.default_setup). Each gametype's
   -- create_game decides what to pass: most pass `setup` verbatim;
   -- codenamesduet strips its `first_clue_giver_user_id` (per-game decision,
   -- not a per-club preference). Pass NULL to opt out of auto-save
   -- entirely for this call.
-  --
-  -- NAMED DELIBERATELY UNLIKE the column it feeds. Calling it `default_setup`
-  -- to "match" makes the UPDATE below ambiguous — PL/pgSQL sees a parameter and
-  -- a column of that name in the same statement and errors out. (Tried
-  -- 2026-08-02; the whole suite went red.) The distinct name is load-bearing.
-  saved_default jsonb
+  p_default_setup jsonb
 )
 returns uuid
 language plpgsql
@@ -1051,11 +1051,11 @@ declare
   non_members text[];
 begin
   -- Caller must be a club member (raises if not auth/not member).
-  perform common.require_club_member(target_club);
+  perform common.require_club_member(p_club_handle);
 
-  if player_user_ids is null
-     or array_length(player_user_ids, 1) is null
-     or array_length(player_user_ids, 1) = 0 then
+  if p_player_user_ids is null
+     or array_length(p_player_user_ids, 1) is null
+     or array_length(p_player_user_ids, 1) = 0 then
     raise exception 'BUG: game with no players'
       using errcode = 'PN059', hint = 'fault', column = 'player_user_ids',
       detail = 'player_user_ids was empty';
@@ -1072,10 +1072,10 @@ begin
   -- `profiles.ai_member` is the discriminator rather than the handle's shape;
   -- see docs/common.md.
   select coalesce(array_agg(uid::text), array[]::text[]) into non_members
-  from unnest(player_user_ids) as uid
+  from unnest(p_player_user_ids) as uid
   where not exists (
     select 1 from common.clubs_members
-     where club_handle = target_club and user_id = uid
+     where club_handle = p_club_handle and user_id = uid
   )
   and not exists (
     select 1 from common.profiles p
@@ -1099,26 +1099,31 @@ begin
   -- pointer flip — no timer bookkeeping (see common.timers).
   update common.games
      set is_current_view = false
-   where club_handle = target_club and is_current_view = true;
+   where club_handle = p_club_handle and is_current_view = true;
 
   -- Setup is passed in as-validated (each gametype's create_game
   -- does field-level checks + common.require_valid_timer before calling
-  -- here). We just persist what we're handed. play_state defaults
-  -- to 'playing'; is_terminal defaults to false. (The `gametype`
-  -- on the right of VALUES resolves to the function parameter,
-  -- not the column on the left — PostgreSQL knows column-list
-  -- positions from value-list positions.)
-  insert into common.games (club_handle, gametype, created_by, title, setup, is_current_view)
-  values (target_club, gametype, auth.uid(), title, setup, true)
+  -- here). We just persist what we're handed; a new row has no
+  -- `ended_at`, so it is being played.
+  insert into common.games (club_handle, gametype, mode, created_by, title, setup, is_current_view)
+  values (p_club_handle, p_gametype, p_mode, auth.uid(), p_title, p_setup, true)
   returning id into new_id;
 
   -- Seed the additive game clock at zero. last_tick = now() so the
   -- first tick_timer call doesn't immediately jump (it needs a full
-  -- real second to elapse before the first +1).
-  insert into common.timers (game_id) values (new_id);
+  -- real second to elapse before the first +1). The kind and the
+  -- countdown's length are the game's to read from here on, never
+  -- `setup` (require_valid_timer has checked the shape).
+  insert into common.timers (game_id, kind, countdown_seconds_at_setup)
+  values (
+    new_id,
+    p_setup -> 'timer' ->> 'kind',
+    case when p_setup -> 'timer' ->> 'kind' = 'countdown'
+         then (p_setup -> 'timer' ->> 'seconds')::int end
+  );
 
   insert into common.game_players (game_id, user_id)
-  select new_id, uid from unnest(player_user_ids) as uid;
+  select new_id, uid from unnest(p_player_user_ids) as uid;
 
   -- Auto-save the saved subset to the (club, gametype) row in
   -- clubs_gametypes so the next setup dialog can pre-fill it.
@@ -1126,17 +1131,11 @@ begin
   -- want a saved-defaults UX passes NULL). On every successful
   -- create_game, the row's default_setup overwrites — there's
   -- no "save as default" gesture; the click on Start is the save.
-  --
-  -- The `create_game.gametype` qualifier (function-name, NOT
-  -- schema.function-name) disambiguates the parameter from the
-  -- column on the left of `=` in the WHERE clause — both are
-  -- valid identifiers in scope here. Without it, PL/pgSQL would
-  -- match the column.
-  if saved_default is not null then
+  if p_default_setup is not null then
     update common.clubs_gametypes
-       set default_setup = saved_default
-     where club_handle = target_club
-       and clubs_gametypes.gametype = create_game.gametype;
+       set default_setup = p_default_setup
+     where club_handle = p_club_handle
+       and gametype = p_gametype;
   end if;
 
   return new_id;
@@ -1144,7 +1143,7 @@ end;
 $$;
 
 -- No grant to authenticated; internal helper.
-revoke execute on function common.create_game(text, text, uuid[], text, jsonb, jsonb) from public;
+revoke execute on function common.create_game(text, text, text, uuid[], text, jsonb, jsonb) from public;
 
 -- ─── common.require_game_player ───────────────────────
 -- "Caller must be authenticated AND have a game_players row for
@@ -1248,12 +1247,13 @@ $$;
 
 revoke execute on function common._assign_turn_order(uuid, uuid) from public;
 
--- Advance the pointer to the next player by turn_seat (wraps; skips anyone
--- locally terminal, conceders included). No-op when the game isn't a turn game
+-- Advance the pointer to the next player by turn_seat (wraps; skips any player
+-- who has ended, conceders included). No-op when the game isn't a turn game
 -- (pointer null ⇒ no seats ⇒ nothing to advance), so it's safe to call
 -- unconditionally on a game's accepted-move path. The skip is what steps the
 -- rotation past a scrabble compete player who conceded.
-create or replace function common._advance_turn(target_game uuid)
+drop function if exists common._advance_turn(uuid);
+create or replace function common._advance_turn(p_game_id uuid)
 returns void
 language plpgsql
 security definer
@@ -1271,14 +1271,14 @@ begin
   select gp.turn_seat into cur_seat
     from common.game_players gp
     join common.games g on g.id = gp.game_id
-   where gp.game_id = target_game
+   where gp.game_id = p_game_id
      and gp.user_id = g.current_turn_user_id;
   if cur_seat is null then
     return;
   end if;
 
   select count(*) into n_players
-    from common.game_players where game_id = target_game;
+    from common.game_players where game_id = p_game_id;
 
   -- Walk forward to the next seat still playing. With nobody out this is just
   -- (cur_seat + 1) % n. The loop is bounded by n: if everyone else is out it
@@ -1288,9 +1288,9 @@ begin
   for i in 1..n_players loop
     select gp.turn_seat into next_seat
       from common.game_players gp
-     where gp.game_id = target_game
+     where gp.game_id = p_game_id
        and gp.turn_seat = (cur_seat + i) % n_players
-       and not gp.locally_terminal;
+       and gp.player_ended_at is null;
     exit when next_seat is not null;
   end loop;
 
@@ -1298,9 +1298,9 @@ begin
     update common.games
        set current_turn_user_id = (
          select user_id from common.game_players
-          where game_id = target_game and turn_seat = next_seat
+          where game_id = p_game_id and turn_seat = next_seat
        )
-     where id = target_game;
+     where id = p_game_id;
   end if;
 end;
 $$;
@@ -1342,117 +1342,46 @@ $$;
 
 revoke execute on function common._require_turn(uuid, uuid) from public;
 
--- ─── common.update_state ───────────────────────────────
--- The mid-game state-write helper. Per-gametype RPCs call this
--- after any state transition that's NOT a game-end — connections'
--- mistake-count bump, codenamesduet's sudden-death entry, psychicnum's
--- guesses_used count, etc. Updates `play_state` (the
--- gametype's enum value) + `status` (the listing-label jsonb) +
--- `is_terminal` (always false here by definition; the column
--- exists so the same write-pattern works for both mid-game and
--- end-game).
---
--- This is half of the "duplicate-write discipline": each
--- per-gametype RPC that mutates state writes BOTH its own
--- foo.games row (mistake_count, key_card, etc.) AND calls this
--- helper to mirror the listing-visible bits into common.games.
--- Same transaction; readers see a coherent snapshot.
---
--- Why play_state lives on common.games (not on the per-gametype
--- foo.games row): the club-page listing needs to query play_state
--- without joining to per-gametype tables. See docs/states.md →
--- "Where the two tables sit."
---
--- `status` MERGES (`||`), it does not replace. A caller passes only the
--- keys it is changing and everything else on the row survives. This is
--- forget-proofing of the same kind as the last_active_at trigger: the
--- replace-everything version silently DROPPED any key a later write
--- forgot to repeat, and it did — codenamesduet seeded `found_agents_count` at
--- create and the first `_end_turn` write erased it, so the club card
--- could never show how many agents were found. Merging means "add a
--- field to the listing label" is a one-line change at the one site that
--- knows the value, not an edit to every write in the gametype.
---
--- The merge is shallow (jsonb `||` replaces a key wholesale, it doesn't
--- deep-merge objects) — which is what we want: `leaderboard` arrays and
--- nested blobs are replaced as a unit.
---
--- A RESTART must not merge: a replayed game has to shed the finished
--- game's readouts entirely, so `common.reset_game` ASSIGNS the fresh
--- status rather than calling through here.
-
-create or replace function common.update_state(
-  target_game uuid,
-  play_state text,
-  status jsonb
-)
-returns void
-language plpgsql
-security definer
-set search_path = common, public, extensions
-as $$
-begin
-  -- last_active_at rides along automatically (games_touch_last_active).
-  -- The status MERGE (see the header) — qualified as `games.status` to read
-  -- the row's current value, since the bare name is the parameter.
-  update common.games games
-     set play_state = update_state.play_state,
-         status = coalesce(games.status, '{}'::jsonb) || update_state.status,
-         is_terminal = false
-   where games.id = target_game;
-
-  if not found then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no common.games row for target_game';
-  end if;
-end;
-$$;
-
--- No grant to authenticated; internal helper.
-revoke execute on function common.update_state(uuid, text, jsonb) from public;
+-- ─── common.update_state — dropped ─────────────────────────
+-- Every column it wrote is gone; a move's page-visible numbers are each game's
+-- status builder's to write. The drop is explicit because supabase/sql is
+-- re-applied, not diffed.
+drop function if exists common.update_state(uuid, text, jsonb);
 
 -- ─── common.end_game ───────────────────────────────────
--- The terminal-transition counterpart to create_game + the
--- end-game half of the duplicate-write discipline. Called by
--- each gametype's RPC at the moment its game-specific rule says
--- "this game is over" — 4 mistakes in connections, assassin in
--- codenamesduet, last guess used in psychicnum, countdown expired,
--- etc. Writes:
+-- Ends a game. Each gametype's RPC calls it once, at the moment its own rule
+-- says the game is over — connections' fourth mistake, the assassin, the
+-- countdown, the Stop. Everything about the ending is the game's to decide
+-- and pass in; this decides only the two outcomes (docs/win-lose.md).
 --
---   - common.games.ended_at        = now()
---   - common.games.play_state      = play_state (the terminal
---                                     value: 'won', 'lost',
---                                     etc. — gametype-specific)
---   - common.games.is_terminal     = true
---   - common.games.status          = status (manifest-shaped jsonb
---                                     for the listing label)
---   - common.game_players.result for each user in player_results
+--   p_reason, p_reason_detail  why it ended: one of the seven reasons, and
+--                              the game's own word for the act ('solved',
+--                              'assassin', 'mistakes', 'stopped')
+--   p_ended_by_user_id         the player whose act ended it; null only for
+--                              a timeout nobody's turn covers
+--   p_is_no_result             the game's rule says this ending is a
+--                              `no-result` or `timeout-no-result`; never
+--                              stored, only turned into `neutral`
+--   p_final_rankings           {"<user id>": 1, …}; a player left out is
+--                              unranked
 --
--- Note: is_current_view is NOT cleared here. A finished game can
--- still have viewers reviewing it (the "we lost — let's look at
--- the unmatched bands" experience); the view-state lifecycle is
--- separate from terminal transition. is_current_view clears when
--- the last viewer actually leaves the page.
+-- Writes the game's `ended_at`, reason pair, `game_ended_by_user_id` and
+-- `game_ended_outcome`, and each player's `final_ranking` and `outcome`.
+-- `solved_at` is not its business: the game writes it at the solve.
 --
--- player_results is a jsonb object keyed by user_id string:
+-- is_current_view is NOT cleared: a finished game can still have viewers
+-- reviewing it, and it clears when the last viewer leaves the page.
 --
---   { "ada11111-...": {"won": true, "score": 12},
---     "bea22222-...": {"won": false} }
---
--- Each top-level value is the per-player outcome the gametype
--- defines — the helper just persists whatever jsonb it's handed.
---
--- Idempotency: a second call on an already-ended game is a no-op
--- on ended_at (left as the first call's value) and overwrites
--- status / play_state / player_results. The current pattern of
--- "termination fires once from one RPC" makes the idempotency
--- detail moot in practice.
-
+-- A second call on an ended game keeps the first `ended_at` and overwrites
+-- the rest; an ending fires once from one RPC, so it doesn't arise.
+drop function if exists common.end_game(uuid, text, jsonb, jsonb);
 create or replace function common.end_game(
-  target_game uuid,
-  play_state text,
-  status jsonb,
-  player_results jsonb
+  p_game_id uuid,
+  p_reason text,
+  p_reason_detail text,
+  p_ended_by_user_id uuid,
+  p_is_no_result boolean,
+  p_final_rankings jsonb
 )
 returns void
 language plpgsql
@@ -1460,44 +1389,57 @@ security definer
 set search_path = common, public, extensions
 as $$
 declare
-  player_key text;
-  player_result jsonb;
+  v_rankings jsonb := coalesce(p_final_rankings, '{}'::jsonb);
+  v_outcome text;
 begin
+  -- `won` when anyone ranked first; otherwise an ending without a result is
+  -- `neutral` and the rest are `lost`.
+  if exists (select 1 from jsonb_each_text(v_rankings) r where r.value::int = 1) then
+    v_outcome := 'won';
+  elsif p_reason = 'stopped' or p_is_no_result then
+    v_outcome := 'neutral';
+  else
+    v_outcome := 'lost';
+  end if;
+
   -- last_active_at rides along automatically (games_touch_last_active), so
   -- a finished game dates by its end time.
-  --
-  -- `status` MERGES, exactly like common.update_state (see its header for the
-  -- why) — a terminal write states what the ENDING adds (the outcome, the
-  -- winner, a final tally) and the mid-game readouts the last move left on the
-  -- row survive underneath it. Qualified as `games.status` because the bare
-  -- name is the parameter.
-  update common.games games
-     set ended_at = coalesce(games.ended_at, now()),
-         play_state = end_game.play_state,
-         is_terminal = true,
-         status = coalesce(games.status, '{}'::jsonb) || end_game.status
-   where games.id = target_game;
+  update common.games
+     set ended_at = coalesce(ended_at, now()),
+         game_ended_reason = p_reason,
+         game_ended_reason_detail = p_reason_detail,
+         game_ended_by_user_id = p_ended_by_user_id,
+         game_ended_outcome = v_outcome
+   where id = p_game_id;
 
   if not found then
     raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no common.games row for target_game';
+      detail = 'no common.games row for p_game_id';
   end if;
 
-  -- Per-player results — iterate the jsonb object.
-  if player_results is not null then
-    for player_key, player_result in
-      select * from jsonb_each(player_results)
-    loop
-      update common.game_players
-         set result = player_result
-       where game_id = target_game and user_id = player_key::uuid;
-    end loop;
-  end if;
+  -- Every player, ranked or not: 1 is `won`, lower is `near`; an unranked
+  -- player lost if they conceded or the ending has a result, and is
+  -- `neutral` otherwise.
+  update common.game_players gp
+     set final_ranking = ranked.final_ranking,
+         outcome = case
+           when ranked.final_ranking = 1 then 'won'
+           when ranked.final_ranking > 1 then 'near'
+           when gp.player_ended_reason = 'conceded' or v_outcome <> 'neutral' then 'lost'
+           else 'neutral'
+         end
+    from (
+      select user_id, (v_rankings ->> user_id::text)::int as final_ranking
+        from common.game_players
+       where game_id = p_game_id
+    ) ranked
+   where gp.game_id = p_game_id
+     and gp.user_id = ranked.user_id;
 end;
 $$;
 
 -- No grant to authenticated; internal helper.
-revoke execute on function common.end_game(uuid, text, jsonb, jsonb) from public;
+revoke execute on function common.end_game(uuid, text, text, uuid, boolean, jsonb) from public;
 
 -- ─── common.reveal_solution — REMOVED 2026-08-15 ───────────
 -- Seeing the solution is a LOCAL, per-player display choice now, made in the FE
@@ -1508,7 +1450,7 @@ revoke execute on function common.end_game(uuid, text, jsonb, jsonb) from public
 -- mechanism was a shared boolean this function set one way.
 --
 -- What the server still owes is the SHIELD, and every gametype that has one now
--- gates it on `is_terminal` (over for EVERYONE) — see waffle._solution_for et
+-- gates it on `ended_at` (over for EVERYONE) — see waffle._solution_for et
 -- al. That's the part that stops a conceded or already-finished player reading
 -- the answer out to a race still running; who is LOOKING never was.
 --
@@ -1522,16 +1464,14 @@ drop function if exists common.reveal_solution(uuid);
 -- The INVERSE of end_game: return a game to fresh, in-progress
 -- state on the SAME row (no new game). For a gametype's "replay
 -- this board" feature — the frozen puzzle/setup stays; only the
--- terminal + per-player outcome bookkeeping is undone. Writes:
+-- ending and each player's bookkeeping is undone. Writes:
 --
---   - common.games.play_state  = 'playing'
---   - common.games.is_terminal = false
---   - common.games.ended_at    = null (it's in progress again)
---   - common.games.status      = status (the gametype's INITIAL
---                                 status jsonb — the same shape
---                                 create_game seeds)
---   - common.game_players.{result, conceded, conceded_at} cleared
---     for every player (undoes win/lose results + any concede)
+--   - common.games: `ended_at`, the reason pair, `game_ended_by_user_id`
+--     and `game_ended_outcome` back to null (it's being played again),
+--     and `restart_count` up by one
+--   - common.game_players: `player_ended_at` and its reason pair,
+--     `final_ranking`, `outcome` and `solved_at` back to null for every
+--     player (undoes the results, any concession, any solve)
 --   - common.timers.ticks      = 0 — fresh start ⇒ fresh clock: a
 --     countdown replays from the full duration, a countup from
 --     0:00. (The FE's tick-merge accepts the big backward jump as
@@ -1543,67 +1483,68 @@ drop function if exists common.reveal_solution(uuid);
 --
 -- The gametype's OWN working-state reset (its per-game tables +
 -- event log) happens in the calling RPC; this helper only owns the
--- common-layer half, exactly as end_game does. Internal helper —
--- no grant to authenticated; the gametype's `replay_*` RPC is the
--- membership-guarded caller.
-create or replace function common.reset_game(target_game uuid, status jsonb)
+-- common-layer half, exactly as end_game does; the statuses are the
+-- game's builder's, which the caller runs after its own reset. Internal
+-- helper — no grant to authenticated; the gametype's `replay_*` RPC is
+-- the membership-guarded caller.
+drop function if exists common.reset_game(uuid, jsonb);
+create or replace function common.reset_game(p_game_id uuid)
 returns void
 language plpgsql
 security definer
 set search_path = common, public, extensions
 as $$
 begin
-  -- status ASSIGNS here, deliberately — unlike common.update_state, which
-  -- merges. A restart must shed every readout the finished game left behind
-  -- (a final score, a winner's name, an outcome), so the caller passes the
-  -- same fresh blob its create_game seeds and this overwrites wholesale.
   update common.games
-     set play_state = 'playing',
-         is_terminal = false,
-         ended_at = null,
-         status = reset_game.status,
+     set ended_at = null,
+         game_ended_reason = null,
+         game_ended_reason_detail = null,
+         game_ended_by_user_id = null,
+         game_ended_outcome = null,
          -- The frontend keys its play surface on this, so every client drops
          -- the state of the run that just ended: a half-typed word, an
          -- optimistic row, a mark mid-beat, the refs inside shared hooks. It
          -- only goes up, and nothing reads its value — only that it changed.
-         restarts = common.games.restarts + 1
-   where id = target_game;
+         restart_count = restart_count + 1
+   where id = p_game_id;
 
   if not found then
     raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no common.games row for target_game';
+      detail = 'no common.games row for p_game_id';
   end if;
 
   update common.game_players
-     set result = null,
-         conceded = false,
-         conceded_at = null,
-         locally_terminal = false
-   where game_id = target_game;
+     set player_ended_at = null,
+         player_ended_reason = null,
+         player_ended_reason_detail = null,
+         final_ranking = null,
+         outcome = null,
+         solved_at = null
+   where game_id = p_game_id;
 
   -- The turn goes back to the opener; a null pointer (free-for-all) matches
   -- no row, so it stays null.
   update common.games
      set current_turn_user_id = (
            select gp.user_id from common.game_players gp
-            where gp.game_id = target_game and gp.turn_seat = 0
+            where gp.game_id = p_game_id and gp.turn_seat = 0
          )
-   where id = target_game and current_turn_user_id is not null;
+   where id = p_game_id and current_turn_user_id is not null;
 
   -- Fresh start ⇒ fresh clock (see the header comment). last_tick renews so
   -- the next tick_timer call can't instantly advance off a stale anchor.
   update common.timers
      set ticks = 0,
          last_tick = now()
-   where game_id = target_game;
+   where game_id = p_game_id;
 end;
 $$;
 
-revoke execute on function common.reset_game(uuid, jsonb) from public;
+revoke execute on function common.reset_game(uuid) from public;
 
 -- ─── common._set_conceded ──────────────────────────────────
 -- The shared first half of "a player concedes": guard the action
--- and flip the per-player `conceded` flag. Split out from
+-- and record that the player ended by conceding. Split out from
 -- common.concede so that gametypes whose game-over rule is
 -- game-specific (a game where a player can be "done" without the
 -- table ending — eliminated, out of budget, or not on turn) can
@@ -1617,12 +1558,13 @@ revoke execute on function common.reset_game(uuid, jsonb) from public;
 --     concedes / a concede racing a move that ends the game); a missing
 --     game is the shared deleted-game race, asked before membership
 --   - caller is a player of this game
---   - the game isn't already over (is_terminal)
+--   - the game hasn't already ended
 --   - the caller hasn't already conceded (idempotency: concede once)
---   - the caller isn't otherwise out (locally terminal): nothing to concede
+--   - the caller hasn't otherwise ended: nothing to concede
 --
 -- Returns the caller's user_id (the concede RPCs use it downstream).
-create or replace function common._set_conceded(target_game uuid)
+drop function if exists common._set_conceded(uuid);
+create or replace function common._set_conceded(p_game_id uuid)
 returns uuid
 language plpgsql
 security definer
@@ -1630,51 +1572,53 @@ set search_path = common, public, extensions
 as $$
 declare
   caller_id uuid;
-  is_over boolean;
-  already boolean;
-  is_out boolean;
+  v_ended_at timestamptz;
+  v_player_ended_at timestamptz;
+  v_player_ended_reason text;
 begin
-  perform 1 from common.games where id = target_game for update;
+  select ended_at into v_ended_at from common.games where id = p_game_id for update;
   if not found then
     -- Any club member may delete a game, taking its rows and every membership
     -- with it, so a player still on the page can concede into one that is gone.
     perform common._raise_game_deleted('common');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common.require_game_player(p_game_id);
 
-  select is_terminal into is_over from common.games where id = target_game;
-  if is_over then
+  if v_ended_at is not null then
     -- A RACE: the last other racer finished, or a peer ended the game, between
-    -- the menu opening and this click. `isTerminal` is fed by the subscription,
-    -- so losing that gap is ordinary.
+    -- the menu opening and this click. The frontend learns the game ended from
+    -- the subscription, so losing that gap is ordinary.
     perform common._raise_game_over();
   end if;
 
-  select conceded, locally_terminal into already, is_out
+  select player_ended_at, player_ended_reason
+    into v_player_ended_at, v_player_ended_reason
     from common.game_players
-   where game_id = target_game and user_id = caller_id;
-  if already then
-    -- Also a RACE, and for the same reason: `isConceded` is fed by the
-    -- subscription rather than set locally when the call returns, so a second
-    -- click — or a second tab — inside that window reaches here.
+   where game_id = p_game_id and user_id = caller_id;
+  if v_player_ended_reason = 'conceded' then
+    -- Also a RACE, and for the same reason: the concession reaches the page by
+    -- the subscription rather than being set locally when the call returns, so
+    -- a second click — or a second tab — inside that window reaches here.
     perform common._raise_already_conceded();
   end if;
-  if is_out then
-    -- Out without conceding — finished, eliminated or out of budget — so
+  if v_player_ended_at is not null then
+    -- Ended without conceding — finished, eliminated or out of budget — so
     -- there is nothing to concede: a loss is already a loss, and a finisher
     -- would only throw away a win they may hold. The frontend hides Concede
-    -- once `isLocallyTerminal`, fed by the same subscription, so this is a race.
+    -- once the player has ended, fed by the same subscription, so this is a race.
     raise exception 'Already out'
       using errcode = 'PN508', hint = 'race', column = '_',
-      detail = 'this player is already locally terminal';
+      detail = 'this player has already ended';
   end if;
 
-  -- A conceder is out, so locally terminal too (docs/win-lose.md → Where a
-  -- player stands); `conceded` is the separate fact that forfeits a win.
+  -- A concession is one of the ways a player ends (docs/win-lose.md → Where a
+  -- player stands), and the one that forfeits a win.
   update common.game_players
-     set conceded = true, conceded_at = now(), locally_terminal = true
-   where game_id = target_game and user_id = caller_id;
+     set player_ended_at = now(),
+         player_ended_reason = 'conceded',
+         player_ended_reason_detail = 'conceded'
+   where game_id = p_game_id and user_id = caller_id;
 
   return caller_id;
 end;
@@ -1684,37 +1628,49 @@ $$;
 -- concede RPCs).
 revoke execute on function common._set_conceded(uuid) from public;
 
--- ─── common._set_locally_terminal ──────────────────────────
--- Mark one player DONE while the game plays on, for a reason that is
+-- ─── common._set_player_ended ──────────────────────────────
+-- Mark one player ended while the game plays on, for a reason that is
 -- the gametype's own business (connections' fourth mistake,
 -- psychicnum's spent budget, a solve in the best-style races), which
 -- is why the fact has to be told to `common` rather than derived
--- here. Conceding is the one reason `common` knows itself:
--- `_set_conceded` sets the flag directly.
+-- here. `p_reason` is one of the player's five reasons and
+-- `p_reason_detail` the game's own word for it ('mistakes',
+-- 'exhausted', 'solved'). Conceding is the one reason `common` knows
+-- itself: `_set_conceded` writes it directly.
 --
--- The roster that presence-pause watches is `not locally_terminal`:
--- a finished player's closed tab must not stop the game for everyone
--- still playing. The column's migration carries the reasoning.
+-- The roster that presence-pause watches is the players who haven't
+-- ended: a finished player's closed tab must not stop the game for
+-- everyone still playing.
 --
 -- NO GUARDS, deliberately. Every caller is a gametype RPC that has
--- already locked the game, checked membership and decided the local
--- terminal; a second membership check here would be a second answer
--- to a question already settled. Idempotent, so the branch that
--- calls it does not have to ask whether it already did.
-create or replace function common._set_locally_terminal(target_game uuid, p_user_id uuid)
+-- already locked the game, checked membership and decided the player
+-- has ended; a second membership check here would be a second answer
+-- to a question already settled. Idempotent — a player who has ended
+-- keeps their first time and reason — so the branch that calls it
+-- does not have to ask whether it already did.
+drop function if exists common._set_locally_terminal(uuid, uuid);
+create or replace function common._set_player_ended(
+  p_game_id uuid,
+  p_user_id uuid,
+  p_reason text,
+  p_reason_detail text
+)
 returns void
 language sql
 security definer
 set search_path = common, public, extensions
 as $$
   update common.game_players
-     set locally_terminal = true
-   where game_id = target_game and user_id = p_user_id;
+     set player_ended_at = now(),
+         player_ended_reason = p_reason,
+         player_ended_reason_detail = p_reason_detail
+   where game_id = p_game_id and user_id = p_user_id
+     and player_ended_at is null;
 $$;
 
 -- No grant to authenticated; internal helper (reached from the
 -- gametype RPCs, which are themselves definers).
-revoke execute on function common._set_locally_terminal(uuid, uuid) from public;
+revoke execute on function common._set_player_ended(uuid, uuid, text, text) from public;
 
 -- ─── common.concede ────────────────────────────────────────
 -- The player-drops-out action for compete games whose game-over
@@ -1728,9 +1684,8 @@ revoke execute on function common._set_locally_terminal(uuid, uuid) from public;
 -- Semantics (docs/common-schema.md → Concede): mark the caller out; if
 -- anyone is still racing, return and let them finish (concede
 -- NEVER ends the table for others). Only when the caller was the
--- last one standing does the game end — as a collective loss
--- (`lost_compete` for a sibling compete gametype, plain `lost` for a
--- single-mode one; everyone {"won": false}, reason 'conceded'), the
+-- last one standing does the game end — as a collective loss (reason
+-- 'conceded', nobody ranked, so the game and every player `lost`), the
 -- same shape as a whole-table timeout. That's not "we all agreed to
 -- stop": each player who wants out clicks Concede, and the final
 -- click happens to be the one that ends it.
@@ -1747,7 +1702,7 @@ revoke execute on function common._set_locally_terminal(uuid, uuid) from public;
 -- `require_compete` raises BEFORE this is reached.
 drop function if exists common.concede(uuid);
 
-create or replace function common.concede(target_game uuid)
+create or replace function common.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1755,41 +1710,26 @@ set search_path = common, public, extensions
 as $$
 declare
   caller_id uuid;
-  player_results jsonb;
-  lost_state text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common._set_conceded(target_game);
+  caller_id := common._set_conceded(p_game_id);
 
-  -- Anyone still in the race? If so, the game continues for them.
+  -- Anyone still in the race? If so, the game continues for them. A player
+  -- who ended some other way still counts: wordiply's spent players have,
+  -- and wordiply.concede runs its own end check after this one.
   if exists (
     select 1 from common.game_players
-     where game_id = target_game and not conceded
+     where game_id = p_game_id
+       and player_ended_reason is distinct from 'conceded'
   ) then
     return common.ok_envelope(jsonb_build_object('result', 'conceded'));
   end if;
 
-  -- The caller was the last active player → collective loss.
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players where game_id = target_game;
-
-  -- Name the terminal in the caller's own vocabulary. A sibling compete
-  -- gametype is registered as `<codename>_compete` and spells its collective
-  -- loss `lost_compete` — the roster-wide suffix convention (states.md), and
-  -- the same string the elimination games write from their own terminal
-  -- checks. The single-mode games that borrow this RPC (bananagrams) have no
-  -- suffix and no `_compete` half to their vocabulary, so they stay plain
-  -- `lost`. Derived here rather than passed in by each wrapper: there's one
-  -- rule, and a new game can't forget to follow it.
-  select case when right(g.gametype, 8) = '_compete' then 'lost_compete' else 'lost' end
-    into lost_state
-    from common.games g where g.id = target_game;
-
+  -- The caller was the last one racing → collective loss.
   perform common.end_game(
-    target_game, lost_state,
-    jsonb_build_object('reason', 'conceded'),
-    player_results
+    p_game_id, 'conceded', 'conceded', caller_id,
+    p_is_no_result => false,
+    p_final_rankings => '{}'::jsonb
   );
 
   -- The SAME ok as the other branch. Whether the drop-out also ended the game

@@ -12,6 +12,13 @@
 
 ## Someday
 
+- **`common.games.last_opened_at`, and whether the club list sorts by it.**
+  Stamped when a game becomes the club's current view (`is_current_view`
+  flipping false → true in `set_current_view`: opening it from the club
+  page, starting it, a refresh by its only viewer; not a reconnect). Today
+  the list sorts and dates by `status_changed_at`, so a game only opened
+  stays where it was.
+
 ## Maybe
 
 - **The brand-then-coop-first tiebreak is spelled out twice** — `ClubPage`'s
