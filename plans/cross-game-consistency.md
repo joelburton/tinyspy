@@ -1147,7 +1147,18 @@ not.
   connections (mistakes), psychicnum (guesses), wordle (guesses, solved),
   letterboxed (the chain), strands (the hint bar), waffle (board, swaps);
   some games keep a coop value on their own `games` row instead. Audit every
-  game's coop state and settle on one pattern. After common-tables is built.
+  game's coop state and settle on one pattern. Joel leans strongly to
+  summed: each player's row holds their own share (the theme words Moth
+  found, the hints she used), and the team's number is the sum. Right after
+  common-tables deploys, as its own piece of work; its data migration
+  rebuilds each share from the events table, or credits the first player
+  where it can't. The statuses follow the canonical storage
+  (common-tables.md → Decided → The statuses), so only the RPCs and the
+  builders change. A team-fact is stored on the player rows, never a games
+  row (common-tables' terms: table-fact, player-fact, team-fact), so
+  scrabble's `coop_rack` and `coop_score` move from `scrabble.games` to
+  `scrabble.players` here, with any other game the audit finds keeping one
+  on its games row.
 - **"difficulty" as a name for a dictionary band** (Joel, 2026-09-28). The
   schema has been moving to `*_band` (`legal_band`, `required_band`), and
   "difficulty" fails as a name: a game can have two bands; a higher band

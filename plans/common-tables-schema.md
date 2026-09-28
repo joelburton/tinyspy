@@ -74,8 +74,15 @@ Joel, 2026-09-27 and -28. The numbers are what the tables below refer to.
     So `connections.events.mode` and its two partial unique indexes go.
 20. **A column nothing reads after create goes.** stackdown's `games.band`
     only chose the library board at create; afterwards it was read only in
-    one never-fired error's text, which can name `setup.band` instead. If it
-    is ever needed, `setup` has it.
+    one never-fired error's text, which can name `setup.band` instead.
+    wordiply's `games.difficulty` only chose the words at create; the front
+    end loads it and never uses it. If either is ever needed, `setup` has it.
+21. **The statuses replace `status` and the planned `leaderboard`**
+    (Joel, 2026-09-28; common-tables.md → Decided → The statuses):
+    `common.games.game_status` for the board, `common.game_players.player_status`
+    for each player, and `clubpage_info` a subset for the club page — all
+    copies, written by one standalone builder per game that takes only the
+    game id and assigns, never merges.
 
 ## `common.games` — one row per game
 
@@ -95,14 +102,14 @@ Joel, 2026-09-27 and -28. The numbers are what the tables below refer to.
 | `game_ended_reason_detail` | text        | new     | the game's own word for that act (`solved`, `assassin`, `mistakes`, `target`…); null exactly when `ended_at` is                                                                                                                                                                                                                                                                                                                                      |
 | `game_ended_outcome`       | text        | new     | `won`, `lost`, `near` or `neutral`; null exactly when `ended_at` is                                                                                                                                                                                                                                                                                                                                                                                  |
 | `game_ended_by_user_id`    | uuid        | new     | the player whose act ended the game: the Stop-presser, the last to concede, the last passer, the player whose move ended it (a solve, a fatal move, using up a resource, their own or a shared one), or — for a `timeout` in a game played in turns — whoever held the turn. Null only for a `timeout` nobody's turn covers (a game without turns; codenamesduet's sudden death with both players holding words), and while the game is being played |
-| `clubpage_info`            | jsonb       | new     | what the club page shows beyond these columns, as data (the manifest's `labelFor` words it); a copy, written by the game in the move that changes it                                                                                                                                                                                                                                                                                                 |
-| `leaderboard`              | jsonb       | new     | compete: one entry per player — `user_id` and the game's own numbers under its own names; coop: `[]`. A copy, written by `<game>._leaderboard()` in the move that changes it                                                                                                                                                                                                                                                                         |
+| `game_status`              | jsonb       | new     | what the game page shows about the whole board, as data (the front end words it): cards left in the deck, tiles in the bag, a coop number the game keeps on the game. A copy, written by the game's status builder (decision 21)                                                                                                                                                                                                                  |
+| `clubpage_info`            | jsonb       | new     | what the club page shows beyond these columns, as data (the manifest's `labelFor` words it); a copy, written by the same builder                                                                                                                                                                                                                                                                                                                    |
 | `current_turn_user_id`     | uuid        | kept    | whose turn it is, in a game played in turns; null otherwise                                                                                                                                                                                                                                                                                                                                                                                          |
 | `last_active_at`           | timestamptz | kept    | bumped by every update of the row                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `restart_count`            | integer     | changed | how many times it was restarted (renamed from `restarts`)                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `play_state`               | text        | dropped | → `ended_at`, `game_ended_outcome`; codenamesduet's sudden death is worked out from `turns_remaining`                                                                                                                                                                                                                                                                                                                                                |
 | `is_terminal`              | boolean     | dropped | → `ended_at is not null`                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `status`                   | jsonb       | dropped | → `clubpage_info`, `leaderboard`, the reason pair, the game's own tables                                                                                                                                                                                                                                                                                                                                                                             |
+| `status`                   | jsonb       | dropped | → `game_status`, each player's `player_status`, `clubpage_info`, the reason pair, the game's own tables                                                                                                                                                                                                                                                                                                                                                                           |
 | `paused`                   | boolean     | dropped | nothing sets it                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 `game_ended_by_user_id`'s backfill: past games never recorded who ended
@@ -131,6 +138,7 @@ Moth's facts are here).
 | `final_ranking`              | integer     | new     | the player's `final-ranking`: 1, 1, 3…; null for a player not ranked; null until the game ends                                                                                                                                                                                                                                               |
 | `outcome`                    | text        | new     | `won` (ranked 1), `near` (ranked 2 or lower), `lost`, `neutral`; null until the game ends                                                                                                                                                                                                                                                    |
 | `solved_at`                  | timestamptz | new     | when the player `solved`, written at that moment; null if they haven't. In coop the team solves, so every teammate gets the same moment. Separate from `player_ended_at`: with a chosen goal a player may solve and play on. A game with nothing to solve (scrabble) never writes it — that is a fact about the game, not a per-player value |
+| `player_status`              | jsonb       | new     | what the game page shows about this player, as data (the front end words it): their score, guesses, hints. A copy of the game's canonical storage — a coop number kept on every player's row is on every player's status — written by the game's status builder (decision 21) |
 | `result`                     | jsonb       | dropped | → `final_ranking`, `outcome`, `solved_at`; its copied numbers live in the game's own tables                                                                                                                                                                                                                                                  |
 | `conceded`                   | boolean     | dropped | → `player_ended_reason = 'conceded'`                                                                                                                                                                                                                                                                                                         |
 | `conceded_at`                | timestamptz | dropped | → `player_ended_at`                                                                                                                                                                                                                                                                                                                          |
@@ -203,7 +211,7 @@ this one's.
 | `strands.players_state` | `game_id`, `user_id`, `hints_spent`, `hint_points`, `active_hint_coords` |
 | `waffle.games_state` | `game_id`, `board_at_setup`, `par_swaps`, `max_swaps`, `solution` (revealed by `_solution_for`) |
 | `waffle.players_state` | `game_id`, `user_id`, `swaps_used`, `board`, `colors` |
-| `wordiply.games_state` | `game_id`, `base`, `difficulty`, `max_word_length`, `longest_words`, `legal_words` |
+| `wordiply.games_state` | `game_id`, `base`, `max_word_length`, `longest_words`, `legal_words` |
 | `wordle.games_state` | `game_id`, `max_guesses`, `target` (revealed by `_target_for`) |
 | `wordwheel.games_state` | as spellingbee's, with **`target_rank`**, **`required_band`**, **`legal_band`** |
 | `strands.club_game_status` | dropped — unread |
@@ -267,7 +275,7 @@ moment, now `common.game_players.solved_at`); kept `game_id`, `user_id`,
 
 unchanged: `boggle.found_words` (`game_id, user_id, word, points, is_bonus, found_at`).
 
-`status` keys that are not columns: `mode` (`common.games.mode`); `required_words_count` / `_score` (already columns); `found_words_count` / `_score` (live, totaled from `found_words`, copied to `clubpage_info` in coop); `leaderboard` (`common.games.leaderboard`); `reason` (the reason pair); `top_score`, `winner_user_id`, `winner_username` (end summary).
+`status` keys that are not columns: `mode` (`common.games.mode`); `required_words_count` / `_score` (already columns); `found_words_count` / `_score` (live, totaled from `found_words`, copied to `clubpage_info` in coop); `leaderboard` (each player's `player_status`); `reason` (the reason pair); `top_score`, `winner_user_id`, `winner_username` (end summary).
 
 ### codenamesduet
 
@@ -330,7 +338,7 @@ No `setup` value is read after create: `puzzle_id` is already a column, and `coo
 | `solution`    | jsonb       | kept    | the answer grid; secret                                                                                                              |
 | `created_at`  | timestamptz | dropped | `common.games.started_at`                                                                                                            |
 | `mode`        | text        | dropped | `common.games.mode`                                                                                                                  |
-| `club_handle` | text        | dropped | the rules join `common.games`; `library_for_club` and its two `(club_handle, …)` indexes get a replacement that joins `common.games` |
+| `club_handle` | text        | dropped | the rules join `common.games`; `library_for_club` joins `common.games`, whose `(club_handle, last_active_at)` index finds the club's games, and its two `(club_handle, …)` indexes become `(puzzle_id)` and `(puzzle_date)`, as connections and strands have them (Joel, 2026-09-28) |
 
 unchanged: `crosswords.cells` (`id, game_id, owner_id, row, col, fill, pencil, revealed, wrong, mark_right, mark_bottom, version` — `revealed` is the card's `hint-recorded` for a coop reveal).
 `crosswords.puzzles` — changed: `meta` → `puzzle_content`, the same name as
@@ -401,7 +409,9 @@ unchanged: `psychicnum.events` (`id`, `game_id`, `user_id`, `word`, `is_correct`
 | `mode`               | text           | dropped | now `common.games.mode`                                                  |
 | `club_handle`        | text           | dropped | the rules join `common.games`                                            |
 
-No `setup` read after create: `ai_count` and `ai_level` become the bot seats at create, and the front end reads `setup` only for the setup rows and New game. The end keys (`winner_user_id`, `winner_seat`, `winner_username`, `winner_score`) are note only; the leaderboard moves to `common.games.leaderboard`.
+`coop_rack` and `coop_score` are team-facts on the games row; they move to `scrabble.players` with cross-game-consistency §6, after this plan (common-tables.md → Decided → The statuses).
+
+No `setup` read after create: `ai_count` and `ai_level` become the bot seats at create, and the front end reads `setup` only for the setup rows and New game. The end keys (`winner_user_id`, `winner_seat`, `winner_username`, `winner_score`) are note only; the leaderboard moves to each player's `player_status`.
 
 **`scrabble.players`** — changed: `seat` dropped (decision 8). Kept:
 `game_id`, `user_id`, `score`, `rack`, `ai_level`. A player, bot or human, is
@@ -428,7 +438,7 @@ Kept: `id`, `game_id`, `user_id`, `kind`, `placements`, `words`, `score`,
 | `mode`        | text                                | dropped | now `common.games.mode`                                                                                                                 |
 | `club_handle` | text                                | dropped | the rules join `common.games`                                                                                                           |
 
-No SQL reads `setup` after create. `status.sets_found` is the sum of `setgame.players.sets_found`. `winner_user_id`, `winner_username` and `reason` are end keys: note only; the leaderboard moves to `common.games.leaderboard`.
+No SQL reads `setup` after create. `status.sets_found` is the sum of `setgame.players.sets_found`. `winner_user_id`, `winner_username` and `reason` are end keys: note only; the leaderboard moves to each player's `player_status`.
 
 unchanged: `setgame.players` (`game_id`, `user_id`, `sets_found`, `hints_used`) — `hints_used` is the card's `hint-recorded` in coop.
 unchanged: `setgame.events` (`id`, `game_id`, `user_id`, `kind`, `cards`, `board_after`, `created_at`, `took_turn`).
@@ -453,7 +463,7 @@ unchanged: `setgame.events` (`id`, `game_id`, `user_id`, `kind`, `cards`, `board
 | `mode`                 | text                         | dropped | now `common.games.mode`                                                                                                                                                                                                                |
 | `club_handle`          | text                         | dropped | the rules join `common.games`; the build-board edge function finds the club's last board through `common.games`                                                                                                                        |
 
-Live progress (`found_words_count`, `found_words_score`, `rank_idx`) is worked out from `spellingbee.found_words`. `winner_user_id`, `winner_username` and `reason` are end keys: note only; the leaderboard moves to `common.games.leaderboard`.
+Live progress (`found_words_count`, `found_words_score`, `rank_idx`) is worked out from `spellingbee.found_words`. `winner_user_id`, `winner_username` and `reason` are end keys: note only; the leaderboard moves to each player's `player_status`.
 
 unchanged: `spellingbee.found_words` (`game_id`, `user_id`, `word`, `points`, `is_pangram`, `is_bonus`, `found_at`).
 unchanged: `spellingbee.pangrams` (`mask`, `required_words_count`, `has_rare_letters`).
@@ -527,10 +537,10 @@ Not columns: `setup.difficulty` is read only by the club line (through `clubpage
 |-------------------|-------------|---------|--------------------------------------------------------------------------------------|
 | `game_id`         | uuid        | changed | the game: `common.games.id`, one to one (renamed from `id`, decision 18)             |
 | `base`            | text        | kept    | the base every word must contain                                                     |
-| `difficulty`      | smallint    | kept    | the word band, copied from `setup.difficulty` at create                              |
 | `max_word_length` | integer     | kept    | the longest possible word's length                                                   |
 | `longest_words`   | jsonb       | kept    | up to three longest words                                                            |
 | `legal_words`     | jsonb       | kept    | every accepted word                                                                  |
+| `difficulty`      | smallint    | dropped | used only to choose the words at create, from `setup.difficulty` (decision 20)       |
 | `created_at`      | timestamptz | dropped | `common.games.started_at`                                                            |
 | `mode`            | text        | dropped | now `common.games.mode`                                                              |
 | `club_handle`     | text        | dropped | security rules join `common.games`; the build-board edge function's filter joins too |

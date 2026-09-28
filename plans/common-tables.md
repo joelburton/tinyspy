@@ -18,37 +18,43 @@ Every fact has one home. A copy is allowed only where this section names it.
   current view, the turn. It is not "what the club page needs".
 - **`common.games.setup`** is the setup form's record: every item on the form,
   under the form's name, written at create and never changed.
+- **The statuses** are what the game page shows of the game's progress —
+  the info column's numbers and the opponent strip — and replace `status`
+  (Joel, 2026-09-28; [Decided → The statuses](#the-statuses-2026-09-28)).
+  The info column and the strip read the statuses and nothing else. Two
+  columns, each a copy of the game's own tables, never the source:
+  - **`common.games.game_status`**: the table-facts the page shows (cards
+    left in the deck, tiles in the bag, the target rank).
+  - **`common.game_players.player_status`**: that player's player-facts and
+    team-facts the page shows (my score, my guesses, the hints we used), and
+    any common column the page shows about them, such as `final_ranking`.
+  - They hold data, not text: the RPC does the counting, the front end the
+    wording.
+  - Both are written by one builder per game (its name is settled in step
+    4), called at the end of every move that changes them.
 - **`common.games.clubpage_info`** is what the club page shows beyond
-  `common.games`' columns. It replaces `status`.
-  - It is a copy. The game writes it in the same RPC as the move that changes
-    it, and never reads it; the truth is in the game's own tables.
+  `common.games`' columns: a small subset of the statuses' numbers, since the
+  club page reads nothing else.
+  - It is a copy, written by the same builder, and never read by the game.
   - It holds data, not text: each manifest's `labelFor` still words the club
     line.
   - A stale copy shows at once on the club page.
-- **`common.games.leaderboard`** is the compete players' numbers: one array,
-  an entry per player with `user_id` and the game's own numbers under the
-  game's own names, `[]` in coop. A copy of the same kind as `clubpage_info`
-  (written by `<game>._leaderboard()` in the move's RPC, never read by the
-  game's rules) but its own column, because two readers use it: the strip
-  and the club line. The end facts — `final_ranking`, `player_ended_reason`
-  — stay on `common.game_players`, and the front end joins the two rows it
-  already subscribes to. It is a column and not a front-end join because the
-  bee pair, boggle and wordiply have no per-player table: their numbers are
-  totals over rows a rival may not read until the end, and Realtime cannot
-  subscribe to a definer view.
 - **`common.game_players`** holds the per-player facts every game has, as
-  typed columns, with no jsonb: joined, turn seat, when the player ended,
-  outcome, `final_ranking`, `solved`, and the player's reason pair (a
-  concession is one of its reasons). `result` goes.
+  typed columns: joined, turn seat, when the player ended, outcome,
+  `final_ranking`, `solved_at`, and the player's reason pair (a concession is
+  one of its reasons), plus the `player_status` copy. `result` goes.
 - **`<game>.games`** holds the game's own facts and nothing `common.games`
   already has — no `mode`, no `club_handle`. Its jsonb has one shape in every
   row (crosswords' puzzle, a grid), never a bag of keys.
 - **`<game>.players` and the child tables** (events, found words, cells,
-  guesses) keep their roles. The leaderboard is worked out from each game's
-  own per-player fields; how, and whether it is cached, is the game's own
-  business.
+  guesses) keep their roles, and stay the truth the statuses are built from.
 - **The club page reads only `common.games`**: one query and one Realtime
   subscription. Never a game's own tables, and never `common.game_players`.
+- **The game page reloads off `common.games`.** A move writes `common.games`
+  in the same transaction as the game's own tables, so the page's one
+  `common.games` subscription tells it to reload them; a game keeps a
+  subscription of its own only for writes that don't touch `common.games`
+  (crosswords' cells).
 
 ## Why this model
 
@@ -175,7 +181,7 @@ Decided 2026-09-27:
 - **`clubpage_info` holds `winner_user_id`, never `winner_username`.**
   Usernames don't change and the club page has every member's name from
   `get_club_page`, so the copy has no reason to exist. The same rule as no
-  username on a leaderboard entry.
+  username in a `player_status`.
 - **A player's `outcome` and `final_ranking` are written together at the
   game's end**, null before it; until then the strip reads
   `player_ended_reason` ("Conceded at 12").
@@ -186,6 +192,84 @@ Decided 2026-09-27:
   winner is picked among seats that have not conceded, and a bot never does.
   The reason row is `conceded` with a winner, which the reason design allows.
   scrabble's card says so when its area opens.
+
+### The statuses (2026-09-28)
+
+Joel, after weighing how much of the info column and the opponent strip
+`status` could already supply. This replaces the `leaderboard` column, which
+was the compete players' numbers and is now a subset of their
+`player_status`.
+
+- **What was wrong with `status` was how it was written**, not the idea: it
+  merged (so stale keys outlived their writer), each game named its keys its
+  own way, and some keys were written in one mode only or never updated. The
+  rules below remove each cause.
+- **Three kinds of fact**, and where each is stored and copied:
+  - **table-fact** — the same for the whole table in either mode, and no
+    player's: setgame's deck, scrabble's bag, the target rank. Stored on a
+    games row (`common.games` or `<game>.games`); copied, if the page shows
+    it, into `game_status`.
+  - **player-fact** — one player's: a compete score, the categories Moth
+    found in coop connections, the hints we used in strands. Stored on that
+    player's row; copied, if the page shows it, into their `player_status`.
+  - **team-fact** — the same for the whole team, by definition, in coop: the
+    waffle board, strands' hint bar. It is a player-fact in compete, so for
+    consistency it is treated as one in coop: stored on the player rows,
+    never a games row, and copied into `player_status`. A table-wide number
+    is derived from the player rows (a sum or the like) wherever that is
+    sensible.
+- **Whether a team-fact is the same value on every player's row or each
+  player's own share** (summed, Joel leans strongly) is cross-game-consistency
+  §6's question, after this plan ships; until then each game stores it as it
+  does today, and its statuses copy that. scrabble's `coop_rack` and
+  `coop_score`, team-facts on the games row, move to the player rows in the
+  same work.
+- **The info column and the strip read only the statuses.** A fact the page
+  shows is in a status even where it is also a column — `final_ranking` in
+  `player_status` if the page shows it. The statuses are never the canonical
+  home of anything; any of their values can go stale, which is what the
+  builder is for.
+- **A status has one shape per game, and every key is always present**, null
+  when it has no value (as `common.ok_envelope` keeps its keys): a ranking
+  not decided until the end is a `null` key until then, never an absent one.
+  So the TypeScript type has no optional keys, and the test checks the exact
+  key set at the start, mid-game and at the end.
+- **Past games get their statuses from the builders, not the migration.**
+  The migration leaves `game_status`, `player_status` and `clubpage_info`
+  `{}`; once `supabase/sql/` has landed, every game's builder runs over every
+  game, building the old games from their own tables exactly as the new
+  ones (a migration cannot call a `supabase/sql/` function). The club lines
+  are empty only between the two, inside the maintenance window. Every
+  `status` and `result` key is a copy of a game's own tables or worked out
+  from them (common-tables-survey.md), except the three the migration
+  already moves into columns — the ending's reason, who won, letterboxed's
+  flags; a builder in step 4 that needs anything else shows it, and the
+  migration, editable until the deploy, extracts it before `status` goes.
+- **One builder per game writes both statuses and `clubpage_info`.** It is a
+  function of its own, never inlined in a move RPC, even where one RPC is its
+  only caller: the RPCs stay short, every game has the same shape, and it
+  can be called by hand — after a repair in psql (deleting a mis-clicked move
+  and fixing the counts it changed), one call rebuilds every copy. So it
+  takes only the game id, reads only the game's tables, and **assigns the
+  whole object, never merges**.
+- **A TypeScript type per game** gives each status its shape on the front
+  end (generated types say only `Json`), and **a pgTAP test per game** runs
+  the builder and checks its keys against the type — which catches a key
+  still written after it was dropped.
+- **The game page reloads off `common.games`** ([The model](#the-model)):
+  `useCommonGame`'s subscription, with its reconnect and deaf-window
+  handling, triggers each game's reload, and the game's own subscriptions
+  and the no-op pokes go. crosswords keeps its cells subscription;
+  bananagrams' board is the page's own and is only saved back, so it needs
+  none.
+- **Hiding a player's numbers is possible later, without undoing this.** For
+  now `player_status` is visible to the club, which hides no more than
+  today's mix. If it ever matters, a table of private status is added, its
+  rule "your own row, or anyone's once the game has ended"; a column grant
+  can't do it (it is per role, not per row).
+- **The names are `game_status` and `player_status`.** When this lands,
+  docs/game-status-labels.md stops calling the club card's second line the
+  game's status.
 
 ## Bugs the survey found
 
@@ -227,13 +311,18 @@ now ordered by layer, and the stages below are its content, not its order:
 2. **One migration** for all of it, with the backfills; applied locally.
 3. **Common SQL** on the new schema: `end_game` once, in its final form;
    `concede`, `reset_game`, the timers, the policies and views.
-4. **Each game's SQL**, one game at a time — its ending, `clubpage_info`,
-   `_leaderboard()` and its full `final_ranking`s (so rankings below first
-   come here, not in a later stage).
-5. **The front end:** types, the common pieces, then each game.
+4. **Each game's SQL**, one game at a time — its ending, its status
+   builder (both statuses and `clubpage_info`, and the pgTAP test of its
+   keys), and its full `final_ranking`s (so rankings below first come here,
+   not in a later stage).
+5. **The front end:** types, the common pieces (the reload off
+   `common.games`), then each game — its status types, its info column and
+   strip reading the statuses, and its hook dropping its own subscriptions.
 6. Tests and docs move with each step.
 7. Rehearse against prod's data, re-read prod, the maintenance notice,
-   **one deploy**. Then cross-game-consistency §5.
+   **one deploy**, and, once its `supabase/sql/` step has landed, every
+   game's status builder over every game. Then cross-game-consistency §6's
+   coop team-facts, then §5.
 
 The deploy below is that one deploy. "Together" is `gmake deploy`'s
 order — the migrations, then `supabase/sql/`, then the edge functions, then
@@ -270,8 +359,8 @@ it once the front end lands. Before it:
       (cross-game-consistency §3b → the `near` item). **Rankings below first
       wait for stage 3** (Joel, 2026-09-27): stage 1 writes what the games
       know today — the winners `final_ranking` 1 and `won`, everyone else no
-      ranking and `lost` or `neutral` — and each game's `_leaderboard()`
-      brings the full ranking, so no game produces `near` until then. `isLocallyTerminal` →
+      ranking and `lost` or `neutral` — and each game's ending brings the
+      full ranking, so no game produces `near` until then. `isLocallyTerminal` →
       `isPlayerEnded`, and every other "terminal" about a player, everywhere
       (§3b question 1).
    2. **The game's lifecycle.** `common.games` gains the reason pair,
@@ -288,11 +377,10 @@ it once the front end lands. Before it:
       rewritten for the reason pair and `game_ended_outcome`; docs/states.md's
       play-state half is rewritten (it describes `play_state`, `is_terminal`,
       `paused` and `status`).
-   3. **`status` → `clubpage_info` and `leaderboard`**, one game per commit.
-      The club line reads `clubpage_info`, the strip reads `leaderboard`
-      (`readLeaderboard.ts` reads the column instead of the key), and the
-      game stops reading `status`: its verdict reads the first two stages'
-      columns, its live counts its own tables. After stages 1 and 2, because
+   3. **`status` → the statuses and `clubpage_info`**, one game per commit.
+      The club line reads `clubpage_info`, the info column and the strip
+      read `game_status` and `player_status` (`readLeaderboard.ts` goes), and
+      the verdict reads the first two stages' columns. After stages 1 and 2, because
       the verdict needs their columns.
    4. **`<game>.games` — owed per game, not a stage** (Joel, 2026-09-27):
       done one game at a time as app-audit opens its area, since it fixes no
@@ -348,7 +436,7 @@ depends on the game where one word means two things (`cleared`,
 | `target` | spellingbee, wordwheel, boggle | `reached_goal` |
 | `solved` | codenamesduet, connections, crosswords, psychicnum; wordle, waffle and strands coop | `reached_goal` |
 | `solved` | wordle, waffle and strands compete (`ends-when-all-done`) | `reached_goal` — today the word is written whenever anyone solved, whatever act came last (strands writes it at a timeout too), so the stored value cannot say the last player's act; only the new code does (§3b question 4). Prod holds none |
-| (none) | crosswords' and stackdown's compete wins (the bug below) | `reached_goal`, keyed on `play_state = 'won_compete'` |
+| (none) | crosswords' and stackdown's compete wins (the bug below) | not mapped: prod holds none and no compete game is expected before the deploy, so one makes the migration raise (Joel, 2026-09-28) |
 | `cleared` | stackdown | `reached_goal` |
 | `cleared` | setgame coop (the deck cleared is the goal; stored `won`) | `reached_goal` |
 | `cleared` | setgame compete (the deck ran out) | `resource_exhausted` |
@@ -368,8 +456,9 @@ no letterboxed flag) makes the migration raise, not guess: the rehearsal is
 where such a row shows up.
 
 **The other backfills:** `player_ended_at` from `conceded_at` (reason
-`conceded`), else from `locally_terminal` (the game's `ended_at`, or the
-migration's time for a game still running) — prod holds no such row today.
+`conceded`). A player `locally_terminal` without conceding is compete-only,
+prod holds none and no compete game is expected before the deploy, so one
+makes the migration raise (Joel, 2026-09-28).
 Before `is_terminal` goes, the prod count of rows where it disagrees with
 `ended_at is not null` must still be 0.
 
@@ -414,7 +503,7 @@ replaying, everything else is a column, with the timer's `kind` and
 concedes (8). Item 9 was a finding, not a question; it is in the bugs.
 
 **The three the reviewer raised, also decided** (Joel, 2026-09-27; each is
-in the text above): the leaderboard is a `leaderboard` column on
-`common.games` (The model); each stage deploys when it is done (The path →
+in the text above): the compete players' numbers get a home of their own,
+now `player_status` (Decided → The statuses); each stage deploys when it is done (The path →
 Deploying); stage 4 is a per-game debt worked as app-audit opens each area
 (The path → stage 4). Nothing in this plan is open.
