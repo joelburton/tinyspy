@@ -1,7 +1,7 @@
 -- cs-blessed-psychicnum
 
 -- ============================================================
--- Test: psychicnum.create_game(target_club, setup, players, mode)
+-- Test: psychicnum.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)
 -- ============================================================
 --
 -- One RPC, two modes ('coop' and 'compete'). What we cover:
@@ -9,19 +9,21 @@
 --   2. Mode validation: rejected when not in {coop, compete}
 --   3. Compete-mode player-count floor (>= 2 players)
 --   4. Setup-shape validation: max_guesses, word_count, band, timer
---   5. Happy path (coop): writes psychicnum_coop gametype,
---      seeds per-player budget rows, mode='coop' on the row,
---      word_count board words + three distinct secrets drawn from them
+--   5. Happy path (coop): writes psychicnum_coop gametype and
+--      common.games.mode = 'coop', seeds per-player budget rows, copies
+--      max_guesses and the timer, word_count board words + three distinct
+--      secrets drawn from them
 --   6. Happy path (compete): same, with psychicnum_compete
 --      gametype string and mode='compete'
 --   7. The `secrets` column is NOT readable to authenticated
+--   8. The statuses are written at create
 -- ============================================================
 
 begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(33);
+select plan(36);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -243,11 +245,23 @@ select pg_temp.envelope_is(
   'the answer names itself, so a call site has a case to assert'
 );
 
--- (7) Coop write produces a row with mode='coop'
+-- (7) Coop write records mode='coop' on the common row
 select is(
-  (select mode from psychicnum.games where id = (select id from coop_game)),
+  (select mode from common.games where id = (select id from coop_game)),
   'coop',
-  'coop: psychicnum.games.mode = coop'
+  'coop: common.games.mode = coop'
+);
+
+-- (7b) The budget and the timer are copied to their typed columns
+select is(
+  (select max_guesses from psychicnum.games where game_id = (select id from coop_game)),
+  5,
+  'coop: psychicnum.games.max_guesses is copied from setup'
+);
+select is(
+  (select kind from common.timers where game_id = (select id from coop_game)),
+  'none',
+  'coop: common.timers.kind is copied from setup.timer'
 );
 
 -- (8) Coop write registers as psychicnum_coop in common.games
@@ -279,7 +293,7 @@ select ok(
         and array_length(secrets, 1) = 3                   -- three secrets
         and (select count(distinct s) = 3 from unnest(secrets) s)
         and secrets <@ words                               -- secrets ⊆ board
-     from psychicnum.games where id = (select id from coop_game)),
+     from psychicnum.games where game_id = (select id from coop_game)),
   'coop: 8 board words, three distinct secrets drawn from them'
 );
 
@@ -290,7 +304,7 @@ select ok(
 select is(
   (select array_agg(length(w) order by length(w))
      from psychicnum.games, unnest(words) as w
-    where id = (select id from coop_game)),
+    where game_id = (select id from coop_game)),
   array[5, 5, 5, 5, 5, 5, 5, 9],
   'coop: the board is five-letter words plus exactly one nine-letter word'
 );
@@ -300,7 +314,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select secrets from psychicnum.games where id = %L::uuid $$,
+    $$ select secrets from psychicnum.games where game_id = %L::uuid $$,
     (select id from coop_game)
   ),
   '42501',
@@ -320,11 +334,11 @@ select (psychicnum.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete')->'data'->>'id')::uuid as id;
 
--- (12) Compete write produces a row with mode='compete'
+-- (12) Compete write records mode='compete' on the common row
 select is(
-  (select mode from psychicnum.games where id = (select id from compete_game)),
+  (select mode from common.games where id = (select id from compete_game)),
   'compete',
-  'compete: psychicnum.games.mode = compete'
+  'compete: common.games.mode = compete'
 );
 
 -- (13) Compete write registers as psychicnum_compete in common.games
@@ -360,11 +374,11 @@ select is(
   'new game is the club current view; prior is_current_view vacated'
 );
 
--- (17) initial play_state is 'playing'
+-- (17) a new game is being played: no ending
 select is(
-  (select play_state from common.games where id = (select id from compete_game)),
-  'playing',
-  'compete: initial play_state is playing'
+  (select ended_at from common.games where id = (select id from compete_game)),
+  null,
+  'compete: a new game has not ended'
 );
 
 -- (18) Title is the first three BOARD words alphabetically, dash-joined.
@@ -375,7 +389,7 @@ select is(
   (select title from common.games where id = (select id from compete_game)),
   (select string_agg(upper(w), '-' order by w)
      from (select unnest(words) as w
-             from psychicnum.games where id = (select id from compete_game)
+             from psychicnum.games where game_id = (select id from compete_game)
             order by 1 limit 3) first3),
   'title is the first three board words, alphabetical + dash-joined'
 );
@@ -384,12 +398,12 @@ select is(
 select ok(
   (select not exists (
      select 1 from psychicnum.games g, unnest(g.secrets) s
-      where g.id = (select id from compete_game)
-        and (select title from common.games where id = g.id) = upper(s))),
+      where g.game_id = (select id from compete_game)
+        and (select title from common.games where id = g.game_id) = upper(s))),
   'title is never a bare secret word'
 );
 
--- (19) common.game_players seeded with both players, result=null mid-game
+-- (19) common.game_players seeded with both players
 select is(
   (select count(*)::int from common.game_players where game_id = (select id from compete_game)),
   2,
@@ -406,12 +420,11 @@ select is(
 );
 
 -- ============================================================
--- Status is SEEDED at create (not left NULL until the first guess)
+-- The statuses are written at create (a live game never shows `{}`)
 -- ============================================================
--- Every other game on the roster seeds its club-list readout at create; without
--- this a brand-new psychicnum game rendered a bare "Playing". Coop carries the
--- shared budget + the 0/N tally; compete carries only the SUMMED budget (a
--- shared found-count would leak how close an opponent is).
+-- The full key set at every stage is statuses_test.sql's; this pins that
+-- create writes them. Coop's club line carries the team's 0/3 and 0/7;
+-- compete's carries no progress.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table seeded_coop on commit drop as
   select (psychicnum.create_game((select handle from club),
@@ -425,13 +438,22 @@ create temp table seeded_cmp on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select is(
-  (select status from common.games where id = (select id from seeded_coop)),
-  '{"found_secrets_count": 0, "required_secrets_count": 3, "guesses_used": 0}'::jsonb,
-  'coop seeds the shared used count + the 0/3 found tally at create');
+  (select clubpage_info from common.games where id = (select id from seeded_coop)),
+  '{"found_secrets_count": 0, "required_secrets_count": 3, "guesses_used": 0,
+    "max_guesses": 7, "winner_user_id": null}'::jsonb,
+  'coop writes the team''s 0/3 found and 0/7 used for the club line at create');
 select is(
-  (select status from common.games where id = (select id from seeded_cmp)),
-  '{"guesses_used": 0}'::jsonb,
-  'compete seeds only the SUMMED used count — no shared progress');
+  (select clubpage_info from common.games where id = (select id from seeded_cmp)),
+  '{"found_secrets_count": null, "required_secrets_count": 3, "guesses_used": null,
+    "max_guesses": 7, "winner_user_id": null}'::jsonb,
+  'compete writes no progress for the club line');
+select is(
+  (select count(*)::int from common.game_players
+    where game_id = (select id from seeded_cmp)
+      and player_status = '{"found_secrets_count": 0, "guesses_used": 0,
+                            "player_ended_reason": null}'::jsonb),
+  2,
+  'every player''s status is written at create');
 
 -- ── PN049: an unseeded dictionary ──
 -- Emptying the pool is the only way to reach this raise, so it goes LAST —

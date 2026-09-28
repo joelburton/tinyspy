@@ -11,7 +11,7 @@
 --
 -- Two psychicnum-specific things pinned here:
 --   - every player's used count goes back to 0, against the unchanged
---     `setup->>'max_guesses'`;
+--     `psychicnum.games.max_guesses`;
 --   - turn-order coop rewinds the pointer to the player seated first.
 --
 -- Same non-word board as gameplay_test (a `z`-prefixed NATO alphabet), pinned
@@ -43,11 +43,11 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from g1);
+ where game_id = (select id from g1);
 
 -- One right, then two wrong → the shared budget (3) is spent → coop loss.
 -- (EVERY guess spends budget, correct or not.) That leaves guess rows,
--- found_secrets_count = 1, a zeroed budget and a terminal game: the full state a
+-- found_secrets_count = 1, a zeroed budget and an ended game: the full state a
 -- replay must undo.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from g1), 'zalpha');
@@ -55,8 +55,8 @@ select psychicnum.submit_guess((select id from g1), 'zdelta');
 select psychicnum.submit_guess((select id from g1), 'zecho');
 reset role;
 
-select ok((select is_terminal from common.games where id = (select id from g1)),
-  'coop: precondition — the out-of-budget game is terminal');
+select ok((select ended_at is not null from common.games where id = (select id from g1)),
+  'coop: precondition — the out-of-budget game has ended');
 select is((select count(*) from psychicnum.events where game_id = (select id from g1)),
   3::bigint, 'coop: precondition — three guesses are logged');
 
@@ -66,10 +66,12 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.replay_board((select id from g1));
 reset role;
 
-select is((select play_state from common.games where id = (select id from g1)),
-  'playing', 'coop: replay → play_state back to playing');
-select ok((select not is_terminal from common.games where id = (select id from g1)),
-  'coop: replay → is_terminal cleared');
+select is((select ended_at from common.games where id = (select id from g1)),
+  null, 'coop: replay → being played again');
+select ok((select game_ended_reason is null and game_ended_outcome is null
+             and game_ended_by_user_id is null
+             from common.games where id = (select id from g1)),
+  'coop: replay → the ending is cleared');
 select is((select count(*) from psychicnum.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the guess log is cleared');
 select is(
@@ -77,16 +79,17 @@ select is(
     where game_id = (select id from g1) and guesses_used = 0 and found_secrets_count = 0),
   2::bigint, 'coop: replay → both players back to no guesses used, nothing found');
 select is(
-  (select (status->>'guesses_used')::int from common.games where id = (select id from g1)),
-  0, 'coop: replay → status shows no guesses used again');
+  (select (clubpage_info->>'guesses_used')::int from common.games where id = (select id from g1)),
+  0, 'coop: replay → the club line shows no guesses used again');
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g1) and result is null and not conceded),
-  2::bigint, 'coop: replay → per-player results + concede cleared');
+    where game_id = (select id from g1) and outcome is null and final_ranking is null
+      and player_ended_at is null),
+  2::bigint, 'coop: replay → every player''s ending and result cleared');
 select is((select ticks from common.timers where game_id = (select id from g1)),
   0, 'coop: replay → the shared clock is zeroed');
 
--- ── Compete: status sums the per-player budgets ─────────────
+-- ── Compete: both racers' budgets and endings reset ─────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (psychicnum.create_game(
@@ -100,7 +103,7 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from g2);
+ where game_id = (select id from g2);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from g2), 'zdelta');
@@ -114,11 +117,13 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.replay_board((select id from g2));
 reset role;
 
-select ok((select not is_terminal from common.games where id = (select id from g2)),
-  'compete: replay → is_terminal cleared');
+select is((select ended_at from common.games where id = (select id from g2)),
+  null, 'compete: replay → being played again');
 select is(
-  (select (status->>'guesses_used')::int from common.games where id = (select id from g2)),
-  0, 'compete: replay → status sums both players'' used counts, back to 0');
+  (select count(*) from common.game_players
+    where game_id = (select id from g2) and player_ended_at is null
+      and (player_status->>'guesses_used')::int = 0),
+  2::bigint, 'compete: replay → both racers back in, no guesses used');
 
 -- ── Turn-order coop rewinds to the first-seated player ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -137,7 +142,7 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from g3);
+ where game_id = (select id from g3);
 
 -- ada guesses → the turn advances to bea; replay must bring it back to ada.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

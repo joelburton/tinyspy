@@ -1,20 +1,35 @@
 -- cs-blessed-psychicnum
 
 -- ============================================================
--- psychicnum — the REPEATABLE half
+-- psychicnum
 -- ============================================================
--- Functions, views, RLS policies, triggers and grants for psychicnum. Everything
--- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
--- delta. Edit it in place forever; it never becomes a migration.
+-- What the frontend calls:
 --
--- Its other half is the one-shot schema migration
--- `supabase/migrations/20260615000002_psychicnum.sql` — tables, constraints, indexes,
--- the Realtime publication and seed rows. That one is applied once and then
--- frozen, because `alter table` cannot be re-run.
+--   create_game      deals a board of words hiding three secrets, and starts
+--                    the game
+--   submit_guess     guesses a board word; the guess that finds the last
+--                    secret wins, the one that spends the last budget loses
+--   request_hint     logs the dictionary clue for one unfound secret
+--   request_spoiler  hands over one unfound secret word
+--   concede          a racer drops out of a compete game
+--   stop_game        stops the game for everyone, with no result
+--   submit_timeout   ends the game when the countdown runs out
+--   replay_board     restarts the same board from scratch
 --
--- Order is load-bearing: a policy can only reference a function that already
--- exists, so statements stay in the order they were written. See
+-- and the view `games_state`, the game row with the secrets once it has ended.
+--
+-- What is particular to psychicnum (src/psychicnum/doc.md has the rest):
+--   - The secrets are hidden by a column grant, not a policy: no client can
+--     select `secrets`, and `games_state` hands them over only once the game
+--     has ended.
+--   - The guess budget is shared in coop and each racer's own in compete, so
+--     a coop guess counts up every player's row.
+--   - A compete race ends when decided: the first to find all three wins, and
+--     the others are short of the goal and unranked. Its timeout ranks nobody.
+--   - Guesses are the one mode-aware read: coop sees everyone's, compete only
+--     your own until the game ends.
+--
+-- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
 -- ============================================================
 
@@ -25,7 +40,13 @@ grant usage on schema psychicnum to authenticated;
 drop policy if exists games_select on psychicnum.games;
 create policy games_select on psychicnum.games
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (
+    exists (
+      select 1 from common.games cg
+       where cg.id = games.game_id
+         and common.is_club_member(cg.club_handle)
+    )
+  );
 
 -- Players: club-wide visibility in BOTH modes. The compete-mode
 -- requirement is "opponents see my budget but not my guesses" —
@@ -36,24 +57,18 @@ create policy players_select on psychicnum.players
   for select to authenticated
   using (
     exists (
-      select 1 from psychicnum.games g
-       where g.id = players.game_id
-         and common.is_club_member(g.club_handle)
+      select 1 from common.games cg
+       where cg.id = players.game_id
+         and common.is_club_member(cg.club_handle)
     )
   );
 
--- Guesses: branch on the parent game's mode.
+-- Guesses: branch on the game's mode.
 --   coop    — every club member sees every guess (default).
 --   compete — each player sees only their own guesses DURING PLAY;
---             everyone's open once the game is terminal.
+--             everyone's open once the game has ended.
 --
--- The mode test reads `g.mode` from the parent psychicnum.games
--- row — denormalized expressly to avoid joining common.games on
--- every guess select. The terminal arm is what forces the join
--- back in: `is_terminal` lives on common.games and there's no
--- point denormalizing a flag that flips mid-game.
---
--- Why compete opens at terminal (2026-08-02): the event log grew
+-- Why compete opens at the end (2026-08-02): the event log grew
 -- the shared "whose turns?" picker, and its whole value in compete
 -- is the post-game read-through — "how did moth spend their
 -- budget?". Hiding an opponent's guesses DURING play is the real
@@ -65,83 +80,156 @@ create policy events_select on psychicnum.events
   for select to authenticated
   using (
     exists (
-      select 1 from psychicnum.games g
-       join common.games cg on cg.id = g.id
-       where g.id = events.game_id
-         and common.is_club_member(g.club_handle)
-         and (g.mode = 'coop' or events.user_id = (select auth.uid()) or cg.is_terminal)
+      select 1 from common.games cg
+       where cg.id = events.game_id
+         and common.is_club_member(cg.club_handle)
+         and (cg.mode = 'coop' or events.user_id = (select auth.uid()) or cg.ended_at is not null)
     )
   );
 
--- ============================================================
--- Grants — `secrets` is column-excluded
--- ============================================================
--- Same column-level grant pattern as before: every column on
--- psychicnum.games EXCEPT `secrets`. The games_state view below
--- (via `_secrets_for`) is the only authenticated read path for
+-- Grants: every column on psychicnum.games EXCEPT `secrets`. The games_state
+-- view below (via `_secrets_for`) is the only authenticated read path for
 -- `secrets`.
-
 grant select
-  (id, club_handle, mode, words, created_at)
+  (game_id, words, max_guesses)
   on psychicnum.games to authenticated;
 
 grant select on psychicnum.players to authenticated;
 grant select on psychicnum.events to authenticated;
 
--- ============================================================
--- psychicnum.games_state — FE-ready read view
--- ============================================================
--- One read for "the gametype-specific fields of this game,
--- including the secrets IFF the game is terminal."
---
--- Mode-agnostic: the secrets reveal gates on
--- common.games.is_terminal, which becomes true at game-end in
--- BOTH modes. Coop end (team won/lost) and compete end (someone
--- won, or everyone lost) both write is_terminal=true via
--- common.end_game, so both surfaces flip the reveal at the
--- right moment.
---
--- play_state itself lives on common.games and is read by the FE
--- via useCommonGame — this view does NOT include it.
+drop view if exists psychicnum.games_state;
+drop function if exists psychicnum._secrets_for(uuid);
 
-create or replace function psychicnum._secrets_for(g_id uuid)
+-- ============================================================
+-- psychicnum._secrets_for
+-- ============================================================
+-- The game's three secrets once it has ended, in either mode; null while it
+-- is played. A definer, so it can read the column no client is granted; the
+-- games_state view is its one caller.
+create or replace function psychicnum._secrets_for(p_game_id uuid)
 returns text[]
 language sql
 stable
 security definer
 set search_path = psychicnum, common, public, extensions
 as $$
-  select case when c.is_terminal then p.secrets else null end
+  select case when c.ended_at is not null then p.secrets else null end
     from psychicnum.games p
-    join common.games c on c.id = p.id
-   where p.id = g_id
+    join common.games c on c.id = p.game_id
+   where p.game_id = p_game_id
 $$;
 
 revoke execute on function psychicnum._secrets_for(uuid) from public;
 grant execute on function psychicnum._secrets_for(uuid) to authenticated;
 
-drop view if exists psychicnum.games_state;
+-- ============================================================
+-- psychicnum.games_state — the game row the frontend reads
+-- ============================================================
+-- Every readable column of psychicnum.games, plus the secrets through
+-- `_secrets_for`, so they arrive the moment the game ends.
 create view psychicnum.games_state with (security_invoker = true) as
   select
-    id,
-    club_handle,
-    mode,
+    game_id,
     words,
-    created_at,
-    psychicnum._secrets_for(id) as secrets
+    max_guesses,
+    psychicnum._secrets_for(game_id) as secrets
   from psychicnum.games;
 
 grant select on psychicnum.games_state to authenticated;
 revoke insert, update, delete on psychicnum.games_state from authenticated;
 
 -- ============================================================
--- psychicnum.create_game(target_club, setup, player_user_ids, mode)
+-- psychicnum._write_statuses — the page's copies of the game
 -- ============================================================
--- One RPC for both modes. The `mode` parameter:
---   - chooses which gametype string is written to common.games
---     ('psychicnum_coop' or 'psychicnum_compete')
---   - is stored on psychicnum.games.mode for RLS branching
---   - is validated by a CHECK constraint regardless
+-- Writes `common.games.game_status`, every `common.game_players.player_status`
+-- and `common.games.clubpage_info` from psychicnum's own tables, assigning
+-- each whole (plans/common-tables.md → The statuses). Every key is always
+-- present, null when it has no value:
+--
+--   game_status    { required_secrets_count, max_guesses }
+--   player_status  { found_secrets_count, guesses_used, player_ended_reason }
+--                  — in coop `guesses_used` is the team's, the same on every
+--                  row; `found_secrets_count` is what that player found
+--   clubpage_info  { found_secrets_count, required_secrets_count,
+--                    guesses_used, max_guesses, winner_user_id }
+--                  — the found and used counts are the team's in coop and
+--                  null in compete, whose club line shows no progress; the
+--                  winner is compete's, null until the end
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function psychicnum._write_statuses(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = psychicnum, common, public, extensions
+as $$
+declare
+  v_mode text;
+  v_max_guesses int;
+  v_required_secrets_count int;
+  v_team_found int;
+  v_team_used int;
+begin
+  select cg.mode, pg.max_guesses, array_length(pg.secrets, 1)
+    into v_mode, v_max_guesses, v_required_secrets_count
+    from psychicnum.games pg
+    join common.games cg on cg.id = pg.game_id
+   where pg.game_id = p_game_id;
+
+  update common.game_players gp
+     set player_status = jsonb_build_object(
+           'found_secrets_count', pp.found_secrets_count,
+           'guesses_used', pp.guesses_used,
+           'player_ended_reason', gp.player_ended_reason)
+    from psychicnum.players pp
+   where gp.game_id = p_game_id
+     and pp.game_id = gp.game_id
+     and pp.user_id = gp.user_id;
+
+  -- Coop's team numbers: each correct guess is one player's, and no secret can
+  -- be found twice, so the team's finds are the sum; the used count is shared,
+  -- so every row holds it.
+  if v_mode = 'coop' then
+    select sum(found_secrets_count), max(guesses_used)
+      into v_team_found, v_team_used
+      from psychicnum.players
+     where game_id = p_game_id;
+  end if;
+
+  update common.games
+     set game_status = jsonb_build_object(
+           'required_secrets_count', v_required_secrets_count,
+           'max_guesses', v_max_guesses),
+         clubpage_info = jsonb_build_object(
+           'found_secrets_count', v_team_found,
+           'required_secrets_count', v_required_secrets_count,
+           'guesses_used', v_team_used,
+           'max_guesses', v_max_guesses,
+           'winner_user_id', case when v_mode = 'compete' then (
+             select user_id from common.game_players
+              where game_id = p_game_id and final_ranking = 1
+              limit 1) end),
+         status_changed_at = case when p_update_status_changed_at
+                                  then now() else status_changed_at end
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function psychicnum._write_statuses(uuid, boolean) from public;
+
+drop function if exists psychicnum.create_game(text, jsonb, uuid[], text);
+
+-- ============================================================
+-- psychicnum.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)
+-- ============================================================
+-- Deals a game and starts it. One RPC for both modes: `p_mode` chooses which
+-- gametype string is written to common.games ('psychicnum_coop' or
+-- 'psychicnum_compete') and is stored as `common.games.mode`.
 --
 -- Setup shape (same in both modes):
 --   { "max_guesses": 1..9,
@@ -154,7 +242,7 @@ revoke insert, update, delete on psychicnum.games_state from authenticated;
 -- clean + american + difficulty-≤-band filter — five-letter words and one
 -- nine-letter word; three of them become the hidden secrets.
 --
--- max_guesses meaning:
+-- max_guesses meaning, copied to `psychicnum.games.max_guesses`:
 --   - coop: shared budget (every player row's `guesses_used`
 --     counts up together on every guess).
 --   - compete: per-player budget (only the guesser's row's
@@ -164,17 +252,11 @@ revoke insert, update, delete on psychicnum.games_state from authenticated;
 -- compete is "racing yourself" — degenerate, hidden by the FE
 -- manifest's numberOfPlayers range, also enforced here defensively).
 -- Coop allows 1..6.
-
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists psychicnum.create_game(text, jsonb, uuid[], text);
-
 create or replace function psychicnum.create_game(
-  target_club text,
-  setup jsonb,
-  player_user_ids uuid[],
-  mode text
+  p_club_handle text,
+  p_setup jsonb,
+  p_player_user_ids uuid[],
+  p_mode text
 )
 returns jsonb
 language plpgsql
@@ -190,18 +272,17 @@ declare
   s_words text[];
   s_secrets text[];
   game_title text;
-  effective_gametype text;
   first_turn uuid;
 begin
   -- ─── Validate mode + player-count ───────────────────
-  perform common.require_valid_mode(mode);
+  perform common.require_valid_mode(p_mode);
 
-  if mode = 'compete' then
+  if p_mode = 'compete' then
     -- Compete needs an opposing PLAYER. A solo race is just a
     -- coop game with a timer. FE manifest hides the compete
     -- button in 1-player clubs; this guard is the server-side
     -- catch.
-    if coalesce(array_length(player_user_ids, 1), 0) < 2 then
+    if coalesce(array_length(p_player_user_ids, 1), 0) < 2 then
       raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN042', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
@@ -212,15 +293,15 @@ begin
   -- `numberOfPlayers: [1, 6]` (coop) / `[2, 6]` (compete)
   -- declarations in src/psychicnum/manifest.ts. See
   -- docs/code-conventions.md → "Per-game player counts".
-  perform common.require_player_count_max(player_user_ids, 6);
+  perform common.require_player_count_max(p_player_user_ids, 6);
 
   -- ─── Validate setup shape ────────────────────────────
-  if (setup->>'max_guesses') is null then
+  if (p_setup->>'max_guesses') is null then
     raise exception 'BUG: game with no guess budget'
       using errcode = 'PN043', hint = 'fault', column = '_',
       detail = 'setup.max_guesses absent';
   end if;
-  s_guesses := (setup->>'max_guesses')::int;
+  s_guesses := (p_setup->>'max_guesses')::int;
   -- A sane range, not the form's menu: which budgets are offered is the setup
   -- form's choice (GUESS_OPTIONS). 9 is the ceiling of the
   -- `players.guesses_used` column check.
@@ -231,12 +312,12 @@ begin
   end if;
 
   -- ─── Validate the board size (how many words) ──────────────
-  if (setup->>'word_count') is null then
+  if (p_setup->>'word_count') is null then
     raise exception 'BUG: game with no board size'
       using errcode = 'PN045', hint = 'fault', column = '_',
       detail = 'setup.word_count absent';
   end if;
-  s_word_count := (setup->>'word_count')::int;
+  s_word_count := (p_setup->>'word_count')::int;
   if s_word_count < 5 or s_word_count > 20 then
     raise exception 'BUG: board size of %', s_word_count
       using errcode = 'PN046', hint = 'fault', column = '_',
@@ -244,19 +325,19 @@ begin
   end if;
 
   -- ─── Validate the dictionary difficulty band ───────────────
-  if (setup->>'band') is null then
+  if (p_setup->>'band') is null then
     raise exception 'BUG: game with no word difficulty'
       using errcode = 'PN047', hint = 'fault', column = '_',
       detail = 'setup.band absent';
   end if;
-  s_band := (setup->>'band')::int;
+  s_band := (p_setup->>'band')::int;
   if s_band < 1 or s_band > 6 then
     raise exception 'BUG: word difficulty of %', s_band
       using errcode = 'PN048', hint = 'fault', column = '_',
       detail = 'setup.band must be 1..6';
   end if;
 
-  perform common.require_valid_timer(setup->'timer');
+  perform common.require_valid_timer(p_setup->'timer');
 
   -- The board: `word_count` distinct words sampled from the dictionary under a
   -- clean (no crude/slur), american, non-slang, difficulty-≤-band filter —
@@ -309,8 +390,6 @@ begin
       limit 3
     ) first3;
 
-  effective_gametype := 'psychicnum_' || mode;
-
   -- Common-side coordination — see common.create_game for the
   -- full responsibilities (auth, membership, vacate prior
   -- current-view game, insert common.games + game_players,
@@ -320,10 +399,10 @@ begin
   -- treatment codenamesduet gives first_clue_giver_user_id). The coop_style
   -- toggle itself DOES round-trip, so a club that likes turns keeps it.
   new_id := common.create_game(
-    target_club, effective_gametype, player_user_ids,
+    p_club_handle, 'psychicnum_' || p_mode, p_mode, p_player_user_ids,
     game_title,
-    setup,
-    setup - 'first_turn_user_id'
+    p_setup,
+    p_setup - 'first_turn_user_id'
   );
 
   -- Opt-in turn-by-turn coop. When setup.coop_style='turns', seat the
@@ -332,9 +411,9 @@ begin
   -- (the default, or any compete game) leaves the pointer null — inert.
   -- The players + the pointer live on the common tables that
   -- common.create_game just populated, so this runs after it.
-  if mode = 'coop' and setup->>'coop_style' = 'turns' then
-    first_turn := (setup->>'first_turn_user_id')::uuid;
-    if first_turn is null or not (first_turn = any(player_user_ids)) then
+  if p_mode = 'coop' and p_setup->>'coop_style' = 'turns' then
+    first_turn := (p_setup->>'first_turn_user_id')::uuid;
+    if first_turn is null or not (first_turn = any(p_player_user_ids)) then
       raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN050', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
@@ -343,35 +422,17 @@ begin
   end if;
 
   -- Insert the gametype-specific row.
-  insert into psychicnum.games (id, club_handle, mode, words, secrets)
-  values (new_id, target_club, mode, s_words, s_secrets);
+  insert into psychicnum.games (game_id, words, secrets, max_guesses)
+  values (new_id, s_words, s_secrets, s_guesses);
 
-  -- One player row per player_user_ids entry, each with no guesses used yet
-  -- (the column's default). Coop counts all of them up in lock-step; compete
-  -- counts each independently. The budget stays in `setup.max_guesses`.
+  -- One player row per player, each with no guesses used yet (the column's
+  -- default). Coop counts all of them up in lock-step; compete counts each
+  -- independently.
   insert into psychicnum.players (game_id, user_id)
   select new_id, uid
-    from unnest(player_user_ids) as uid;
+    from unnest(p_player_user_ids) as uid;
 
-  -- Seed the club-list readout, in the SAME shape submit_guess maintains.
-  -- Without this `status` stays NULL until the first guess and a brand-new
-  -- game reads as a bare "Playing" while every other game on the roster shows
-  -- its opening state. Coop carries the shared used count + the 0/N found
-  -- tally; compete carries only the SUMMED used count, because this column is
-  -- club-wide readable and a shared found-count would tell you how close your
-  -- opponent is (see the submit_guess writer for the same split). The budget
-  -- itself is `setup.max_guesses`, which the label reads.
-  perform common.update_state(
-    new_id,
-    'playing',
-    case when mode = 'coop'
-         then jsonb_build_object(
-                'guesses_used', 0,
-                'found_secrets_count', 0,
-                'required_secrets_count', array_length(s_secrets, 1))
-         else jsonb_build_object('guesses_used', 0)
-    end
-  );
+  perform psychicnum._write_statuses(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on — without it the branch would match by
@@ -394,6 +455,8 @@ $$;
 revoke execute on function psychicnum.create_game(text, jsonb, uuid[], text) from public;
 grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to authenticated;
 
+drop function if exists psychicnum.submit_guess(uuid, text);
+
 -- ============================================================
 -- psychicnum.submit_guess — the only mid-game guess action
 -- ============================================================
@@ -415,8 +478,8 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 -- fact, and how a fact reads is the frontend's, in one place
 -- (src/psychicnum/lib/answer.ts). A word already in the log is
 -- PN497, a `race` — the board refuses a repeat itself, so the
--- server seeing one means the FE's map was stale. The terminal
--- transition the FE observes via realtime, not the envelope.
+-- server seeing one means the FE's map was stale. The game's ending
+-- the FE observes via realtime, not the envelope.
 --
 -- `result` is the CALLER's, never the game's fate: a correct guess
 -- that happens to empty the budget still says `hit`, and the loss
@@ -428,19 +491,20 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 --   compete — the CALLER's own distinct correct guesses; each
 --             racer must find all three themselves.
 --
--- A correct guess bumps the caller's players.found_secrets_count (the
--- public per-player count that drives compete opponent tension).
+-- The endings it can reach (docs/win-lose.md): all three found is
+-- `reached_goal`/'solved' — the whole team ranked 1 in coop, the caller
+-- alone in compete, since a race that ends when decided leaves everyone
+-- else short of the goal; every budget spent is
+-- `resource_exhausted`/'exhausted', nobody ranked.
 --
 -- A word already guessed (in scope) is rejected. Hint rows don't
 -- count, so a hinted word can still be guessed.
 --
 -- Concurrency: SELECT FOR UPDATE on the game row serializes
 -- concurrent submits. Two simultaneous set-completing guesses in
--- compete: first commits the winner; the second sees play_state
--- != 'playing' and raises 'Game over'.
-
-drop function if exists psychicnum.submit_guess(uuid, text);
-create or replace function psychicnum.submit_guess(target_game uuid, guess text)
+-- compete: first commits the winner; the second finds the game ended
+-- and raises 'Game over'.
+create or replace function psychicnum.submit_guess(p_game_id uuid, p_guess text)
 returns jsonb
 language plpgsql
 security definer
@@ -449,25 +513,22 @@ as $$
 declare
   caller_id uuid;
   g psychicnum.games%rowtype;
+  v_mode text;
+  v_ended_at timestamptz;
   w text;
-  current_play_state text;
-  initial_guesses int;
   is_correct boolean;
   caller_used int;
   racers_with_budget int;
-  total_used int;
   found_count int;
   required_secrets_count int;
-  player_results jsonb;
-  winner_name text;
-  terminal_state text;
-  terminal_reason text;
+  v_rankings jsonb;
+  v_answer jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Lock the gametype row for serialization of concurrent submits. We read it
   -- first so the board-word check can use this game's words.
   select * into g from psychicnum.games
-   where psychicnum.games.id = target_game
+   where psychicnum.games.game_id = p_game_id
    for update;
   if not found then
     perform common._raise_game_deleted('psychicnum');
@@ -475,7 +536,7 @@ begin
 
   -- Normalize, and require the guess to be one of the board words: the board
   -- is face-up, so a word not on it is not a guess anyone could mean.
-  w := lower(trim(coalesce(guess, '')));
+  w := lower(trim(coalesce(p_guess, '')));
   if not (w = any(g.words)) then
     raise exception 'BUG: guess that is not on the board'
       using errcode = 'PN268', hint = 'fault', column = '_',
@@ -483,13 +544,12 @@ begin
   end if;
 
   -- Auth + game-player gate.
-  caller_id := common.require_game_player(target_game);
+  caller_id := common.require_game_player(p_game_id);
 
-  select play_state, (setup->>'max_guesses')::int
-    into current_play_state, initial_guesses
-    from common.games where id = target_game;
+  select ended_at, mode into v_ended_at, v_mode
+    from common.games where id = p_game_id;
 
-  if current_play_state <> 'playing' then
+  if v_ended_at is not null then
     -- A race: a teammate ended it, or the clock ran out, while this guess was
     -- in flight.
     perform common._raise_game_over();
@@ -500,21 +560,21 @@ begin
   -- turn game and someone guesses out of turn. Placed after the active
   -- check so a finished game reads "Game over" for everyone,
   -- not "Not your turn" for the non-current player.
-  perform common._require_turn(target_game, caller_id);
+  perform common._require_turn(p_game_id, caller_id);
 
-  -- A conceded player is out of the race — no more guesses. The FE gates
-  -- on myConceded, so this only fires on a race (a guess in flight when
-  -- concede commits, or a stale second tab). Without it a conceder could
-  -- complete the win condition and be recorded the winner.
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = caller_id) then
+  -- A conceded player is out of the race — no more guesses. The FE hides the
+  -- board from a conceder, so this only fires on a race (a guess in flight
+  -- when the concession commits, or a stale second tab). Without it a
+  -- conceder could complete the win condition and be recorded the winner.
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
     perform common._raise_already_conceded();
   end if;
 
   -- Per-mode budget check on the caller's row.
   select guesses_used into caller_used
     from psychicnum.players
-   where game_id = target_game and user_id = caller_id;
+   where game_id = p_game_id and user_id = caller_id;
   if caller_used is null then
     -- Shouldn't happen — require_game_player passed, so the row
     -- exists. Defensive.
@@ -522,7 +582,7 @@ begin
       using errcode = 'PN271', hint = 'fault', column = '_',
       detail = 'no psychicnum.players budget row for the caller';
   end if;
-  if caller_used >= initial_guesses then
+  if caller_used >= g.max_guesses then
     -- The FE knows your budget, so reaching this is a bug rather than a bad
     -- move.
     raise exception 'No guesses left'
@@ -534,8 +594,8 @@ begin
   -- caller's). Hint rows are excluded — a hinted word can still be guessed.
   if exists (
     select 1 from psychicnum.events
-     where game_id = target_game and kind = 'guess' and word = w
-       and (g.mode = 'coop' or user_id = caller_id)
+     where game_id = p_game_id and kind = 'guess' and word = w
+       and (v_mode = 'coop' or user_id = caller_id)
   ) then
     -- A RACE. The board refuses a repeat itself (`BoardCol.submitGuess` checks
     -- `results` before calling), so reaching here means that map was stale — a
@@ -553,23 +613,23 @@ begin
   is_correct := (w = any(g.secrets));
 
   insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
-  values (target_game, caller_id, w, is_correct, 'guess', true);
+  values (p_game_id, caller_id, w, is_correct, 'guess', true);
 
   -- ─── Count the guess: coop = everyone, compete = caller ──
-  if g.mode = 'coop' then
+  if v_mode = 'coop' then
     update psychicnum.players
        set guesses_used = guesses_used + 1
-     where game_id = target_game;
+     where game_id = p_game_id;
   else
     update psychicnum.players
        set guesses_used = guesses_used + 1
-     where game_id = target_game and user_id = caller_id;
+     where game_id = p_game_id and user_id = caller_id;
 
-    -- A racer whose budget is gone is done while the others play on, so the
+    -- A racer whose budget is gone has ended while the others play on, so the
     -- common roster has to hear about it: a player nothing is waiting for must
-    -- not hold the presence-pause open (see the flag's migration).
-    if caller_used + 1 >= initial_guesses then
-      perform common._set_locally_terminal(target_game, caller_id);
+    -- not hold the presence-pause open.
+    if caller_used + 1 >= g.max_guesses then
+      perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'exhausted');
     end if;
   end if;
 
@@ -578,24 +638,17 @@ begin
   if is_correct then
     update psychicnum.players
        set found_secrets_count = found_secrets_count + 1
-     where game_id = target_game and user_id = caller_id;
+     where game_id = p_game_id and user_id = caller_id;
   end if;
 
-  -- How many players still have budget left. Drives the all-exhausted loss.
-  -- A CONCEDER does not count — they've dropped out, so their leftover budget
-  -- must not keep the game alive (coop never concedes, so this is a no-op there).
+  -- How many players can still guess: not ended (conceded, or spent in
+  -- compete) and with budget left. Drives the all-exhausted loss.
   select count(*) into racers_with_budget
     from psychicnum.players pp
     join common.game_players gp
       on gp.game_id = pp.game_id and gp.user_id = pp.user_id
-   where pp.game_id = target_game and not gp.conceded
-     and pp.guesses_used < initial_guesses;
-
-  -- The used count across the whole game, for compete's status (coop's is the
-  -- shared count, which every row holds).
-  select coalesce(sum(pp.guesses_used), 0) into total_used
-    from psychicnum.players pp
-   where pp.game_id = target_game;
+   where pp.game_id = p_game_id and gp.player_ended_at is null
+     and pp.guesses_used < g.max_guesses;
 
   -- Distinct secrets found in scope (coop: the team; compete: the caller).
   -- Counting real guesses keeps this independent of the found_secrets_count tally.
@@ -604,134 +657,55 @@ begin
   -- unqualified match as an error rather than picking one.
   select count(distinct word) into found_count
     from psychicnum.events
-   where game_id = target_game and kind = 'guess' and events.is_correct
-     and (g.mode = 'coop' or user_id = caller_id);
+   where game_id = p_game_id and kind = 'guess' and events.is_correct
+     and (v_mode = 'coop' or user_id = caller_id);
   required_secrets_count := array_length(g.secrets, 1);
 
-  -- ─── All three found: caller (compete) / team (coop) wins ─
+  -- The caller's own result, NOT the game's: a correct guess that empties the
+  -- budget is still a correct guess to the person who made it, and the game's
+  -- fate travels by realtime.
+  v_answer := jsonb_build_object(
+    'result', case when is_correct then 'hit' else 'miss' end,
+    'found_all', found_count >= required_secrets_count);
+
   if found_count >= required_secrets_count then
-    select username into winner_name
-      from common.profiles where user_id = caller_id;
+    -- ─── All three found: the team (coop) / the caller (compete) wins ─
+    -- The solve is the moment of this guess, for every teammate in coop.
+    update common.game_players
+       set solved_at = now()
+     where game_id = p_game_id
+       and (v_mode = 'coop' or user_id = caller_id);
 
-    if g.mode = 'coop' then
-      -- Team win.
-      select jsonb_object_agg(user_id::text, '{"won": true}'::jsonb)
-        into player_results
-        from common.game_players
-       where game_id = target_game;
-      terminal_state := 'won';
-      terminal_reason := 'solved';
+    if v_mode = 'coop' then
+      select jsonb_object_agg(user_id::text, 1) into v_rankings
+        from common.game_players where game_id = p_game_id;
     else
-      -- Compete: the caller who completed the set wins; everyone else loses.
-      select jsonb_object_agg(
-               user_id::text,
-               case when user_id = caller_id
-                    then '{"won": true}'::jsonb
-                    else '{"won": false}'::jsonb
-               end)
-        into player_results
-        from common.game_players
-       where game_id = target_game;
-      terminal_state := 'won_compete';
-      terminal_reason := 'solved';
+      v_rankings := jsonb_build_object(caller_id::text, 1);
     end if;
 
     perform common.end_game(
-      target_game,
-      terminal_state,
-      jsonb_build_object(
-        'reason', terminal_reason,
-        'winner_username', winner_name
-      ),
-      player_results
+      p_game_id, 'reached_goal', 'solved', caller_id,
+      p_is_no_result => false,
+      p_final_rankings => v_rankings
     );
-    -- Two facts, two fields, so neither has to be decoded out of the other:
-    -- this guess hit, AND it was the last secret.
-    return common.ok_envelope(
-      jsonb_build_object('result', 'hit', 'found_all', true));
-  end if;
-
-  -- ─── Budget exhausted before completing the set = loss ───
-  -- Applies to the guess (right or wrong) that drops the last available
-  -- budget anywhere in the game without the set being complete.
-  if racers_with_budget = 0 then
-    if g.mode = 'coop' then
-      select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-        into player_results
-        from common.game_players
-       where game_id = target_game;
-      terminal_state := 'lost';
-      -- The budget ran out. Named for what happened, not for the state it
-      -- lands in — the label distinguishes it from the timeout loss.
-      terminal_reason := 'exhausted';
-    else
-      select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-        into player_results
-        from common.game_players
-       where game_id = target_game;
-      terminal_state := 'lost_compete';
-      terminal_reason := 'exhausted';
-    end if;
-
+  elsif racers_with_budget = 0 then
+    -- ─── Every budget spent before the set was complete: a loss ───
     perform common.end_game(
-      target_game,
-      terminal_state,
-      jsonb_build_object(
-        'reason', terminal_reason,
-        'guesses_used', initial_guesses
-      )
-      -- Restate the team's tally: this guess may itself have found a secret
-      -- (a correct guess CAN be the one that empties the budget), and the
-      -- mid-game update_state below is never reached on a terminal guess, so
-      -- the merged-in value would otherwise be one behind.
-      || case when g.mode = 'coop'
-              then jsonb_build_object('found_secrets_count', found_count,
-                                      'required_secrets_count', required_secrets_count)
-              else '{}'::jsonb
-         end,
-      player_results
+      p_game_id, 'resource_exhausted', 'exhausted', caller_id,
+      p_is_no_result => false,
+      p_final_rankings => '{}'::jsonb
     );
-    -- The caller's own result, NOT the game's — the game's fate travels by
-    -- realtime (end_game above). A correct guess that empties the budget is
-    -- still a correct guess to the person who made it.
-    --
-    return common.ok_envelope(
-      jsonb_build_object('result', case when is_correct then 'hit' else 'miss' end,
-                         'found_all', false));
+  else
+    -- ─── Game continues ──────────────────────────────────────
+    -- An accepted guess that didn't end the game: hand the turn to the next
+    -- player (no-op for free-for-all / solo). The soft-rejects above all
+    -- `raise` (rolling back), so a rejected guess never advances either — the
+    -- same player retries.
+    perform common._advance_turn(p_game_id);
   end if;
 
-  -- ─── Game continues ──────────────────────────────────────
-  -- An accepted, non-terminal guess: hand the turn to the next player
-  -- (no-op for free-for-all / solo). Only reached past the win/loss
-  -- returns above, so a game-ending guess never advances the pointer;
-  -- and the soft-rejects above all `raise` (rolling back), so a rejected
-  -- guess never advances either — the same player retries.
-  perform common._advance_turn(target_game);
-
-  -- For the listing label, surface (coop) the shared used count, or
-  -- (compete) the sum across racers.
-  perform common.update_state(
-    target_game,
-    'playing',
-    jsonb_build_object('guesses_used',
-      case when g.mode = 'coop'
-           then caller_used + 1
-           else total_used
-      end)
-      -- How far along the team is, for the club-list readout. COOP ONLY: in
-      -- compete each racer hunts the same three secrets on their own, and this
-      -- column is club-wide readable, so a shared count would tell you exactly
-      -- how close your opponent is. `required_secrets_count` rides along so the label
-      -- can render "2/3" without knowing the rules.
-      || case when g.mode = 'coop'
-              then jsonb_build_object('found_secrets_count', found_count,
-                                      'required_secrets_count', required_secrets_count)
-              else '{}'::jsonb
-         end
-  );
-  return common.ok_envelope(
-    jsonb_build_object('result', case when is_correct then 'hit' else 'miss' end,
-                       'found_all', false));
+  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
+  return common.ok_envelope(v_answer);
 
 exception when others then
   get stacked diagnostics
@@ -746,105 +720,93 @@ $$;
 revoke execute on function psychicnum.submit_guess(uuid, text) from public;
 grant execute on function psychicnum.submit_guess(uuid, text) to authenticated;
 
+drop function if exists psychicnum._maybe_finish_compete(uuid);
+
 -- ============================================================
 -- psychicnum._maybe_finish_compete — nobody left racing?
 -- ============================================================
--- The collective-loss check, named as the other five elimination games name
--- theirs. Extracted from `concede` on 2026-09-01: it was the same two-table
--- decision they make, written inline, which hid it from the rule that governs
--- it (common-schema.md → Concede — the lock order).
+-- The collective-loss check after a concession, named as the other five
+-- elimination games name theirs: when no player who hasn't ended has budget
+-- left — some spent, some conceded — the game ends `resource_exhausted`,
+-- nobody ranked. Everyone conceding is `common._concede`'s ending, so this
+-- skips a game that has already ended.
 --
 -- MUST be called with this game's psychicnum.games row already locked — see
 -- the caller. Returns whether it ended the game.
-create or replace function psychicnum._maybe_finish_compete(target_game uuid)
+create or replace function psychicnum._maybe_finish_compete(
+  p_game_id uuid,
+  p_ended_by_user_id uuid
+)
 returns boolean
 language plpgsql
 security definer
 set search_path = psychicnum, common, public, extensions
 as $$
-declare
-  player_results jsonb;
 begin
-  -- Anyone still racing? (not conceded, budget left)
+  if (select ended_at from common.games where id = p_game_id) is not null then
+    return false;
+  end if;
+
   if exists (
     select 1 from psychicnum.players pp
       join common.game_players gp
         on gp.game_id = pp.game_id and gp.user_id = pp.user_id
-      join common.games cg on cg.id = pp.game_id
-     where pp.game_id = target_game and not gp.conceded
-       and pp.guesses_used < (cg.setup->>'max_guesses')::int
+      join psychicnum.games pg on pg.game_id = pp.game_id
+     where pp.game_id = p_game_id and gp.player_ended_at is null
+       and pp.guesses_used < pg.max_guesses
   ) then
     return false;
   end if;
 
-  -- Everyone out (exhausted or conceded), nobody completed the set → loss.
-  -- Which of the two it was is the club-list label's business: everyone burned
-  -- their budget, versus everyone walked away. 'conceded' only when EVERY
-  -- player conceded — a mixed table is 'exhausted', because somebody played
-  -- theirs out.
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players where game_id = target_game;
   perform common.end_game(
-    target_game, 'lost_compete',
-    jsonb_build_object('reason',
-      case when not exists (select 1 from common.game_players gp
-                             where gp.game_id = target_game and not gp.conceded)
-           then 'conceded' else 'exhausted' end),
-    player_results
+    p_game_id, 'resource_exhausted', 'exhausted', p_ended_by_user_id,
+    p_is_no_result => false,
+    p_final_rankings => '{}'::jsonb
   );
   return true;
 end;
 $$;
 
-revoke execute on function psychicnum._maybe_finish_compete(uuid) from public;
+revoke execute on function psychicnum._maybe_finish_compete(uuid, uuid) from public;
+
+drop function if exists psychicnum.concede(uuid);
 
 -- ============================================================
--- psychicnum.concede — a player drops out of a compete race
+-- psychicnum.concede — a racer drops out of a compete game
 -- ============================================================
 -- Each player has an independent guess budget. The compete game ends
 -- when someone completes the set (immediate win, handled in
 -- submit_guess) or when every player is out — budget spent or
--- conceded. So after flipping the shared flag we check whether any
--- NON-conceded player still has budget; if not (and nobody won — a win
--- would have ended the game already), the game ends as a collective loss.
--- Compete only (coop is a team; it ends via the shared Stop).
-drop function if exists psychicnum.concede(uuid);
-
-create or replace function psychicnum.concede(target_game uuid)
+-- conceded. `common._concede` records the concession and ends the game
+-- if everyone has conceded; `_maybe_finish_compete` ends it if the rest
+-- are spent. Compete only (coop is a team; it ends via the shared Stop).
+create or replace function psychicnum.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = psychicnum, common, public, extensions
 as $$
 declare
+  caller_id uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common.require_compete((select mode from psychicnum.games where id = target_game));
-
-  -- Lock this game's psychicnum.games row FIRST so concede serializes against a
-  -- concurrent submit_guess (which also locks this row before common.games).
-  -- Otherwise concede locks only common.games (via _set_conceded) while the move
-  -- locks psychicnum.games, they don't serialize, and each reads the other's
-  -- uncommitted "still racing" state (READ COMMITTED) — both decline to end the
-  -- game and it wedges in 'playing'. Same order (psychicnum.games → common.games)
-  -- as the move path, so no deadlock. Mirrors scrabble.concede.
-  perform 1 from psychicnum.games where id = target_game for update;
-
-  perform common._set_conceded(target_game);
-
-  if not psychicnum._maybe_finish_compete(target_game) then
-    return common.ok_envelope(jsonb_build_object('result', 'conceded'));
+  -- Lock this game's psychicnum.games row FIRST, as submit_guess does, so a
+  -- concession and a final guess serialize: both ask "is anyone still
+  -- racing?" of psychicnum.players and common.game_players, and without the
+  -- shared lock each reads the other's uncommitted state (READ COMMITTED),
+  -- both decline to end the game, and it wedges. Same order as the move path
+  -- (psychicnum.games → common.games), so no deadlock.
+  perform 1 from psychicnum.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('psychicnum');
   end if;
 
-  -- Realtime touch — same as end_game/submit_timeout. common.end_game
-  -- writes only common.games, so without this the psychicnum.games
-  -- subscription never refetches the secrets reveal on the last-player
-  -- concede terminal.
-  update psychicnum.games
-     set club_handle = club_handle
-   where id = target_game;
+  perform common.require_compete((select mode from common.games where id = p_game_id));
 
+  caller_id := common._concede(p_game_id);
+  perform psychicnum._maybe_finish_compete(p_game_id, caller_id);
+
+  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -860,6 +822,8 @@ $$;
 revoke execute on function psychicnum.concede(uuid) from public;
 grant execute on function psychicnum.concede(uuid) to authenticated;
 
+drop function if exists psychicnum._unfound_secret(psychicnum.games, uuid);
+
 -- ============================================================
 -- psychicnum._unfound_secret — pick an as-yet-unfound secret
 -- ============================================================
@@ -867,23 +831,32 @@ grant execute on function psychicnum.concede(uuid) to authenticated;
 -- (compete) / team (coop) hasn't found yet, at random. NULL when
 -- all are found (shouldn't happen mid-game — the game would be
 -- won — but the callers guard for it).
-create or replace function psychicnum._unfound_secret(g psychicnum.games, caller_id uuid)
+create or replace function psychicnum._unfound_secret(p_game_id uuid, p_user_id uuid)
 returns text
 language sql
 stable
 set search_path = psychicnum, common, public, extensions
 as $$
   select s
-    from unnest(g.secrets) as s
-   where s not in (
-     select word from psychicnum.events
-      where game_id = g.id and kind = 'guess' and is_correct
-        and (g.mode = 'coop' or user_id = caller_id)
-   )
+    from psychicnum.games pg
+    join common.games cg on cg.id = pg.game_id,
+         unnest(pg.secrets) as s
+   where pg.game_id = p_game_id
+     and s not in (
+       select word from psychicnum.events e
+        where e.game_id = p_game_id and e.kind = 'guess' and e.is_correct
+          and (cg.mode = 'coop' or e.user_id = p_user_id)
+     )
    order by random()
    limit 1
 $$;
-revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) from public;
+revoke execute on function psychicnum._unfound_secret(uuid, uuid) from public;
+
+drop function if exists psychicnum.request_spoiler(uuid);
+-- A name this RPC once had. The drop stays here for good: this file is the
+-- whole definition of what psychicnum's schema contains, so a database that
+-- still carries that function has nothing else that would ever remove it.
+drop function if exists psychicnum.request_reveal(uuid);
 
 -- ============================================================
 -- psychicnum.request_spoiler — hand over an answer (a secret word)
@@ -900,17 +873,7 @@ revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) fr
 -- spoiler reads is the frontend's, in src/psychicnum/lib/answer.ts, which is
 -- also what colors the row this writes. Its twin is
 -- stackdown.reveal_next_word.
-
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists psychicnum.request_spoiler(uuid);
--- A name this RPC once had. The drop stays here for good: this file is the
--- whole definition of what psychicnum's schema contains, so a database that
--- still carries that function has nothing else that would ever remove it.
-drop function if exists psychicnum.request_reveal(uuid);
-
-create or replace function psychicnum.request_spoiler(target_game uuid)
+create or replace function psychicnum.request_spoiler(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -918,35 +881,29 @@ set search_path = psychicnum, common, public, extensions
 as $$
 declare
   caller_id uuid;
-  g psychicnum.games%rowtype;
-  current_play_state text;
   secret_word text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  select * into g from psychicnum.games
-   where psychicnum.games.id = target_game
-   for update;
+  perform 1 from psychicnum.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('psychicnum');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common.require_game_player(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
+  if (select ended_at from common.games where id = p_game_id) is not null then
     -- A race: in coop a teammate ended the game, or the clock ran out, while
     -- the button was still on screen.
     perform common._raise_game_over();
   end if;
 
-  secret_word := psychicnum._unfound_secret(g, caller_id);
+  secret_word := psychicnum._unfound_secret(p_game_id, caller_id);
   if secret_word is null then
     -- UNREACHABLE, which is what makes it a fault rather than a refusal.
     -- `_unfound_secret` comes back null only when every secret this caller can
     -- still find HAS been found, and submit_guess ends the game the moment
     -- that happens — in both modes, since finding all your own secrets is how
-    -- a compete player wins. So the play_state gate above fires first, and
+    -- a compete player wins. So the ended check above fires first, and
     -- getting here means `secrets` was empty when the game was created.
     -- stackdown's PN298 is the same condition with the same verdict.
     raise exception 'BUG: a spoiler with every secret already found'
@@ -955,8 +912,9 @@ begin
   end if;
 
   insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
-  values (target_game, caller_id, secret_word, true, 'spoiler', false);
+  values (p_game_id, caller_id, secret_word, true, 'spoiler', false);
 
+  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(
     jsonb_build_object('result', 'spoiler', 'word', secret_word));
 
@@ -975,6 +933,8 @@ $$;
 
 revoke execute on function psychicnum.request_spoiler(uuid) from public;
 grant execute on function psychicnum.request_spoiler(uuid) to authenticated;
+
+drop function if exists psychicnum.request_hint(uuid);
 
 -- ============================================================
 -- psychicnum.request_hint — show a clue for an unfound secret
@@ -996,13 +956,7 @@ grant execute on function psychicnum.request_spoiler(uuid) to authenticated;
 -- No outcome and no message on either: how a hint reads is the
 -- frontend's, in src/psychicnum/lib/answer.ts. stackdown.reveal_next_hint is
 -- the same feature in another game.
-
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists psychicnum.request_hint(uuid);
-
-create or replace function psychicnum.request_hint(target_game uuid)
+create or replace function psychicnum.request_hint(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1010,34 +964,28 @@ set search_path = psychicnum, common, public, extensions
 as $$
 declare
   caller_id uuid;
-  g psychicnum.games%rowtype;
-  current_play_state text;
   secret_word text;
   clue_text text;
   dict_hint text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  select * into g from psychicnum.games
-   where psychicnum.games.id = target_game
-   for update;
+  perform 1 from psychicnum.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('psychicnum');
   end if;
 
-  caller_id := common.require_game_player(target_game);
+  caller_id := common.require_game_player(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
+  if (select ended_at from common.games where id = p_game_id) is not null then
     -- A race: in coop a teammate ended the game, or the clock ran out, while
     -- the button was still on screen.
     perform common._raise_game_over();
   end if;
 
-  secret_word := psychicnum._unfound_secret(g, caller_id);
+  secret_word := psychicnum._unfound_secret(p_game_id, caller_id);
   if secret_word is null then
     -- UNREACHABLE — see the same check in request_spoiler (PN395) for why the
-    -- terminal transition in submit_guess always gets here first.
+    -- ending in submit_guess always gets here first.
     raise exception 'BUG: a hint with every secret already found'
       using errcode = 'PN392', hint = 'fault', column = '_',
       detail = 'psychicnum._unfound_secret found no unfound secret for this caller';
@@ -1052,8 +1000,9 @@ begin
   clue_text := coalesce(dict_hint, 'No hint available');
 
   insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
-  values (target_game, caller_id, clue_text, true, 'hint', false);
+  values (p_game_id, caller_id, clue_text, true, 'hint', false);
 
+  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(
     jsonb_build_object(
       'result', case when dict_hint is null then 'no-hint' else 'hint' end,
@@ -1075,26 +1024,21 @@ $$;
 revoke execute on function psychicnum.request_hint(uuid) from public;
 grant execute on function psychicnum.request_hint(uuid) to authenticated;
 
+drop function if exists psychicnum.submit_timeout(uuid);
+
 -- ============================================================
 -- psychicnum.submit_timeout — countdown expired
 -- ============================================================
--- Timer expiry: everyone loses, regardless of mode. In coop it's
--- the same "team lost" message. In compete, even though players
--- were racing, the clock ran out before anyone won — collective
--- loss is the only honest outcome.
+-- Timer expiry: everyone loses, regardless of mode. psychicnum's race ends
+-- when decided, so nobody is at the goal when the clock runs out, and its
+-- timeout ranks by goal (docs/win-lose.md → What a timeout does): nobody is
+-- ranked, and the game and every player come out `lost`. Who ended it is
+-- the turn-holder in a turn-order game, nobody otherwise.
 --
--- Terminal play_state is the per-mode value ('lost' for coop,
--- 'lost_compete' for compete) so the frontend's terminal message
--- can read per mode.
---
--- Idempotency: the `play_state <> 'playing'` guard means a
--- second concurrent fire from another tab is refused as the shared
--- game-over race (`_raise_game_over`), which the frontend shows as
--- a race pill.
-
-drop function if exists psychicnum.submit_timeout(uuid);
-
-create or replace function psychicnum.submit_timeout(target_game uuid)
+-- Idempotency: the ended check means a second concurrent fire from another
+-- tab is refused as the shared game-over race (`_raise_game_over`), which
+-- the frontend shows as a race pill.
+create or replace function psychicnum.submit_timeout(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1102,60 +1046,30 @@ set search_path = psychicnum, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g psychicnum.games%rowtype;
-  current_play_state text;
-  player_results jsonb;
-  terminal_state text;
-  terminal_reason text;
+  v_ended_at timestamptz;
+  v_turn_holder uuid;
 begin
-  select * into g from psychicnum.games
-   where psychicnum.games.id = target_game
-   for update;
+  perform 1 from psychicnum.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('psychicnum');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common.require_game_player(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
+  select ended_at, current_turn_user_id into v_ended_at, v_turn_holder
+    from common.games where id = p_game_id;
 
-  if current_play_state <> 'playing' then
+  if v_ended_at is not null then
     perform common._raise_game_over();
   end if;
 
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players
-   where game_id = target_game;
-
-  if g.mode = 'coop' then
-    terminal_state := 'lost';
-    terminal_reason := 'timeout';
-  else
-    terminal_state := 'lost_compete';
-    terminal_reason := 'timeout';
-  end if;
-
   perform common.end_game(
-    target_game,
-    terminal_state,
-    jsonb_build_object(
-      'reason', terminal_reason,
-      'guesses_used', (
-        select coalesce(sum(guesses_used), 0)::int / greatest(count(*)::int, 1)
-          from psychicnum.players where game_id = target_game)
-    ),
-    player_results
+    p_game_id, 'timeout', 'timeout', v_turn_holder,
+    p_is_no_result => false,
+    p_final_rankings => '{}'::jsonb
   );
 
-  -- Realtime touch — same as end_game. common.end_game writes only
-  -- common.games, so without this no-op self-set the psychicnum.games
-  -- subscription never refetches and games_state.secrets stays null on
-  -- every client — Reveal solution would have nothing to show.
-  update psychicnum.games
-     set club_handle = club_handle
-   where id = target_game;
+  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1171,42 +1085,18 @@ $$;
 revoke execute on function psychicnum.submit_timeout(uuid) from public;
 grant execute on function psychicnum.submit_timeout(uuid) to authenticated;
 
--- ============================================================
--- psychicnum.stop_game — manual stop
--- ============================================================
---
--- psychicnum is a deliberately minimal toy, but it carries the
--- same manual "Stop game" affordance every other game has, for
--- consistency: any friend in the game can decide the group is
--- done and stop it. (The Zoom-call answer to "we're bored, let's
--- move on" — see CLAUDE.md's audience note.)
---
--- Unlike submit_timeout, which uses the per-mode terminal vocab
--- ('lost' / 'lost_compete') because timing out genuinely is a
--- loss, a *manual* stop is neither a win nor a loss — the friends
--- simply agreed to stop. So this writes the UNIFORM terminal
--- play_state 'ended' (the same value spellingbee/the other games use
--- for their manual stops) with status.reason='manual'. The FE
--- has explicit 'ended' branches that render this neutrally (the
--- neutral "Game ended", not the red "you lost" treatment).
---
--- Per-player result is the bare `{"won": false}` for everyone —
--- psychicnum tracks no per-player score or rank, so there's
--- nothing richer to record. Nobody won; nobody is singled out.
---
--- The same shape across both modes; only g.mode is echoed into
--- status so the labelFor / modal can stay mode-aware if it wants.
---
--- The Realtime touch at the end is the same trick documented in
--- the other games' stop_game: common.end_game writes to
--- common.games, but the FE's useGame subscribes to
--- psychicnum.games (filtered id=eq.gameId). A no-op self-set on
--- psychicnum.games produces a WAL entry Realtime picks up, so the
--- FE refetches and the post-terminal number reveal updates.
-
 drop function if exists psychicnum.stop_game(uuid);
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists psychicnum.end_game(uuid);
 
-create or replace function psychicnum.stop_game(target_game uuid)
+-- ============================================================
+-- psychicnum.stop_game — the Stop
+-- ============================================================
+-- Any player stops the game for the whole table, in either mode. It is
+-- neutral: nobody won, nobody lost (docs/common-schema.md → Stop). The
+-- Zoom-call answer to "we're bored, let's move on" — see CLAUDE.md's
+-- audience note.
+create or replace function psychicnum.stop_game(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1214,47 +1104,15 @@ set search_path = psychicnum, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row psychicnum.games%rowtype;
-  current_play_state text;
-  player_results jsonb;
 begin
-  select * into g_row from psychicnum.games
-   where psychicnum.games.id = target_game
-   for update;
+  perform 1 from psychicnum.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('psychicnum');
   end if;
 
-  perform common.require_game_player(target_game);
+  perform common._stop(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-
-  if current_play_state <> 'playing' then
-    -- Idempotency: a second click (or a concurrent click + a
-    -- timer expiry / winning guess in another tab) raises this;
-    -- the FE swallows it the same way it does for submit_timeout's
-    -- "already terminal" race.
-    perform common._raise_game_over();
-  end if;
-
-  -- Manual stop has no winner — every player gets {won:false}.
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players
-   where game_id = target_game;
-
-  perform common.end_game(
-    target_game,
-    'ended',
-    jsonb_build_object('reason', 'manual', 'mode', g_row.mode),
-    player_results
-  );
-
-  -- Realtime touch — wake the psychicnum.games subscription.
-  update psychicnum.games
-     set club_handle = club_handle
-   where id = target_game;
+  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1270,36 +1128,25 @@ $$;
 revoke execute on function psychicnum.stop_game(uuid) from public;
 grant execute on function psychicnum.stop_game(uuid) to authenticated;
 
--- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
-drop function if exists psychicnum.end_game(uuid);
+drop function if exists psychicnum.replay_board(uuid);
 
 -- ============================================================
 -- psychicnum.replay_board — restart this board from scratch
 -- ============================================================
 -- The "Replay board" game-menu item / terminal-row Restart: reset the
 -- working state on the SAME game row. The frozen puzzle (words /
--- secrets / mode) stays — the same board and the same three secrets,
+-- secrets / budget) stays — the same board and the same three secrets,
 -- hunted again; everything the players did is wiped. Any game player
--- may call it, from a finished game OR mid-game (no play_state guard —
+-- may call it, from a finished game OR mid-game (no ended check —
 -- it's a restart). Both modes reset ALL players (a group "run it back",
 -- per the friends trust model).
---
--- Every player's used count goes back to 0; the budget itself is
--- `setup.max_guesses`, which a replay does not touch.
 --
 -- Turn-order coop goes back to the player seated first; common.reset_game
 -- rewinds the pointer.
 --
 -- The secrets re-hide on their own: games_state gates them on
--- common.games.is_terminal, which reset_game clears.
---
--- No realtime touch needed: the players update + guesses delete wake
--- useGame (subscribed to psychicnum.{games,players,guesses}), and
--- reset_game's common.games write wakes useCommonGame — so the board,
--- event log, and terminal state all reset live for every player.
-drop function if exists psychicnum.replay_board(uuid);
-
-create or replace function psychicnum.replay_board(target_game uuid)
+-- common.games.ended_at, which reset_game clears.
+create or replace function psychicnum.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1307,13 +1154,12 @@ set search_path = psychicnum, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row     psychicnum.games;
 begin
   -- FOR UPDATE: a replay racing a move must not interleave with it (the move
   -- RPCs lock the same row), or the reset could land on a half-applied move —
   -- a stray log row in the "fresh" game, or worse, an in-flight game-ENDING
-  -- move re-terminalling the board that was just reset.
-  select * into g_row from psychicnum.games where id = target_game for update;
+  -- move ending the board that was just reset.
+  perform 1 from psychicnum.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('psychicnum');
   end if;
@@ -1323,18 +1169,18 @@ begin
   -- `game_players` row together, so a caller whose game was just deleted has no
   -- membership left either. Gate-first told them "You are not in this game",
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common.require_game_player(target_game);
+  perform common.require_game_player(p_game_id);
 
   update psychicnum.players
      set guesses_used = 0,
          found_secrets_count = 0
-   where game_id = target_game;
+   where game_id = p_game_id;
 
-  delete from psychicnum.events where game_id = target_game;
+  delete from psychicnum.events where game_id = p_game_id;
 
-  -- The club-list label: nothing used yet, in either mode — the same key
-  -- submit_guess writes.
-  perform common.reset_game(target_game, jsonb_build_object('guesses_used', 0));
+  perform common.reset_game(p_game_id);
+
+  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common.ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

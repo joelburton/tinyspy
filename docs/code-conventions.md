@@ -449,6 +449,25 @@ event log is `<game>.events` in the standard shape ([supabase.md](supabase.md)).
   common helper can't read a game's table. Helpers read by policies are
   `STABLE`, so Postgres can cache them within one query.
 
+### A game's SQL file
+
+Each `supabase/sql/<game>.sql` is long, and most of its length is bodies and
+drops, so it is laid out for a reader arriving cold:
+
+- **It opens with a header comment**: every function the frontend calls (no
+  leading `_`), each with one sentence on what it does, and any view the
+  frontend reads; then what is particular to this game — the rules and
+  mechanisms a reader would not expect from the others. What is true of every
+  game's file (the drops, the relationship to the migrations) is not repeated;
+  the header points at [supabase.md → Schema vs
+  code](supabase.md#schema-vs-code) instead. `supabase/sql/psychicnum.sql` is
+  the model.
+- **Every function has a docstring, directly above its `create`.** Its `drop
+  function` lines go above the docstring, so the comment a reader sees last
+  before a function is about that function.
+
+Older files are brought to this shape when each is next rewritten.
+
 ### Every function gets an explicit revoke
 
 Postgres grants EXECUTE to PUBLIC on every new function, so the pair goes right

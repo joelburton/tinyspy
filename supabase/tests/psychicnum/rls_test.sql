@@ -53,7 +53,7 @@ reset role;
 update psychicnum.games
    set words = array['alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel'],
        secrets = array['alpha','bravo','charlie']
- where id = (select id from coop_g);
+ where game_id = (select id from coop_g);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from coop_g), 'delta');
 
@@ -98,7 +98,7 @@ reset role;
 update psychicnum.games
    set words = array['alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel'],
        secrets = array['alpha','bravo','charlie']
- where id = (select id from comp_g);
+ where game_id = (select id from comp_g);
 
 -- Both ada and bea submit one wrong guess each.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -169,7 +169,7 @@ select is(
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
-  (select count(*)::int from psychicnum.games where id = (select id from comp_g)),
+  (select count(*)::int from psychicnum.games where game_id = (select id from comp_g)),
   0,
   'dee cannot SELECT psychicnum.games (RLS)'
 );
@@ -184,7 +184,7 @@ select is(
   'dee cannot SELECT psychicnum.events (RLS)'
 );
 select is(
-  (select count(*)::int from psychicnum.games_state where id = (select id from comp_g)),
+  (select count(*)::int from psychicnum.games_state where game_id = (select id from comp_g)),
   0,
   'dee cannot SELECT games_state (RLS through underlying table)'
 );
@@ -202,7 +202,7 @@ select pg_temp.envelope_is(
 -- opponent's guesses are their strategy. Once the game has ENDED
 -- there's nothing left to protect, and the event log's "whose
 -- turns?" picker exists precisely to read the other player's game
--- back — so events_select carries an `or cg.is_terminal` arm
+-- back — so events_select carries an `or cg.ended_at is not null` arm
 -- (2026-08-02, matching stackdown / connections / waffle).
 --
 -- Deliberately LAST: ending comp_g would change what the earlier
@@ -247,7 +247,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select secrets from psychicnum.games_state where id = (select id from coop_g)),
+  (select secrets from psychicnum.games_state where game_id = (select id from coop_g)),
   null::text[],
   'games_state.secrets is NULL while playing'
 );
@@ -258,7 +258,7 @@ select psychicnum.submit_guess((select id from coop_g), 'charlie');
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select secrets from psychicnum.games_state where id = (select id from coop_g)),
+  (select secrets from psychicnum.games_state where game_id = (select id from coop_g)),
   array['alpha', 'bravo', 'charlie'],
   'games_state.secrets surfaces to ANY club member once terminal'
 );

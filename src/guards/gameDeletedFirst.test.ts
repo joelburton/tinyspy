@@ -72,7 +72,7 @@ describe('a deleted game says so', () => {
       'letterboxed.log_hint_or_spoiler', 'letterboxed.replay_board',
       'letterboxed.stop_game', 'letterboxed.submit_timeout', 'letterboxed.submit_word',
       'letterboxed.undo_word',
-      'psychicnum.replay_board', 'psychicnum.request_hint',
+      'psychicnum.concede', 'psychicnum.replay_board', 'psychicnum.request_hint',
       'psychicnum.request_spoiler', 'psychicnum.stop_game', 'psychicnum.submit_guess',
       'psychicnum.submit_timeout',
       'scrabble._commit_exchange', 'scrabble._commit_pass', 'scrabble._commit_word',

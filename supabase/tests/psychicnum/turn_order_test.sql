@@ -55,7 +55,7 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from turn_g);
+ where game_id = (select id from turn_g);
 
 -- (1) Pointer seated on ada (the chosen first player).
 select is(
@@ -181,7 +181,7 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from ffa_g);
+ where game_id = (select id from ffa_g);
 
 select is(
   (select current_turn_user_id from common.games where id = (select id from ffa_g)),
@@ -215,7 +215,7 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from solo_g);
+ where game_id = (select id from solo_g);
 
 -- ada guesses twice in a row — the rotation of one always returns to her,
 -- so neither guess is ever "out of turn".

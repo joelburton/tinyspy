@@ -30,9 +30,9 @@ Every fact has one home. A copy is allowed only where this section names it.
     any common column the page shows about them, such as `final_ranking`.
   - They hold data, not text: the RPC does the counting, the front end the
     wording.
-  - Both are written by one builder per game (its name is settled in step
-    4), called at create, at Restart, and at the end of every move that
-    changes them — so a live game never shows `{}`.
+  - Both are written by one builder per game, `<game>._write_statuses`
+    (Joel, 2026-09-28), called at create, at Restart, and at the end of
+    every move — so a live game never shows `{}`.
 - **`common.games.clubpage_info`** is what the club page shows beyond
   `common.games`' columns: a small subset of the statuses' numbers, since the
   club page reads nothing else.

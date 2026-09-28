@@ -85,25 +85,26 @@ Compete needs an opposing **player**, which is why its manifest takes 2–6 wher
 coop takes 1–6: a solo club is offered coop only. A countdown timer does not
 make a game compete.
 
-### The play states
+### How a game ends
 
-Each mode writes its own pair, so a reader of `common.games.play_state` can
-tell which was played without joining anything:
+Whichever RPC ends the game passes `common.end_game` the reason pair and the
+rankings ([common-schema.md → `common.end_game`](../../docs/common-schema.md#commonend_game--the-one-way-a-game-ends)),
+so no reader works the ending out from the clock or the roster:
 
-| | coop | compete |
-|---|---|---|
-| all three found | `won` | `won_compete` |
-| budget gone, or the clock | `lost` | `lost_compete` |
+| the ending | reason / detail | ranked | outcome |
+|---|---|---|---|
+| all three found | `reached_goal` / `solved` | coop: every teammate 1; compete: the finder alone | `won` |
+| every budget spent | `resource_exhausted` / `exhausted` | nobody | `lost` |
+| the countdown | `timeout` / `timeout` | nobody | `lost` |
+| every racer conceded | `conceded` / `conceded` | nobody | `lost` |
+| somebody stopped it | `stopped` / `stopped` | nobody | `neutral` |
 
-Plus `playing`, and `ended` when somebody stopped it. **`ended` is neutral in
-every mode**: nobody won and nobody lost, which is not the same as everyone
-losing.
-
-**WHY it ended is the server's word too**: whichever RPC ends the game writes
-the reason into `common.games.status.reason` — `solved`, `exhausted` (the
-last budget spent), `timeout`, `conceded` (every racer dropped out), or
-`manual`. The club-list label and the terminal pill both read that column, so
-neither works the reason out from the clock or the roster.
+A compete race ends when decided, so only the finder reaches the goal; the
+others are short of it and unranked, and its timeout ranks nobody
+([win-lose.md → What a timeout does](../../docs/win-lose.md)). **A Stop is
+neutral in every mode**: nobody won and nobody lost, which is not the same as
+everyone losing. The solve is recorded on the players as `solved_at`, every
+teammate's in coop.
 
 ## Schema
 
@@ -112,22 +113,31 @@ Three tables and a view, in `supabase/migrations/20260615000002_psychicnum.sql`
 
 | | |
 |---|---|
-| `psychicnum.games` | one row per game — the board `words`, the three `secrets`, the `mode`. Keyed to `common.games` |
-| `psychicnum.players` | one row per player: `guesses_used` (counting up against `setup.max_guesses`) and `found_secrets_count`. **Club-wide readable in both modes** — the budget strip and compete's opponent tension are built on it |
+| `psychicnum.games` | one row per game, keyed `game_id` to `common.games` — the board `words`, the three `secrets`, and `max_guesses`, each budget's size, copied from setup |
+| `psychicnum.players` | one row per player: `guesses_used` (counting up against `max_guesses`) and `found_secrets_count`. **Club-wide readable in both modes** — the budget strip and compete's opponent tension are built on it |
 | `psychicnum.events` | the turn log, append-only. `kind` is `guess`, `hint` or `spoiler`; `word` holds the guessed word, the clue, or the spoiled word depending on which |
 | `psychicnum.games_state` | the view the frontend reads. Every readable column of `games`, plus `secrets` through `_secrets_for()` |
 
-**The status's `guesses_used` is a SUM in compete.** `common.games.status`
-carries one number for the listing, and a race has no single count to report —
-so coop writes the shared value and compete writes every player's added
-together. The club page shows coop's against `setup.max_guesses` ("3/7
-guesses"); compete's it never shows, since a racer's count is their own.
+**The statuses** are written by `psychicnum._write_statuses` at create, at
+Restart and at the end of every move, each assigned whole with every key
+present:
+
+| status | keys |
+|---|---|
+| `game_status` | `required_secrets_count`, `max_guesses` |
+| each `player_status` | `found_secrets_count`, `guesses_used`, `player_ended_reason` |
+| `clubpage_info` | `found_secrets_count`, `required_secrets_count`, `guesses_used`, `max_guesses`, `winner_user_id` |
+
+In coop a player's `guesses_used` is the team's, the same on every row, and
+the club line's counts are the team's (the finds summed). Compete's club line
+carries no progress — a racer's count is their own — so its two counts are
+null, and `winner_user_id` names the finder once the race is won.
 
 ### Two things worth knowing before reading the SQL
 
 **The secrets are hidden by a column GRANT, not by a policy** — a client
 asking `psychicnum.games` for `secrets` gets SQLSTATE 42501 whatever any policy
-says, and the view hands them over only once the game is terminal. So the
+says, and the view hands them over only once the game has ended. So the
 frontend never holds the answer key during play: not in a prop, not in a store,
 not there at all. `docs/code-conventions.md` points here as the repo's worked
 example; the mechanism is commented at `_secrets_for` and the `games_select`
@@ -135,7 +145,7 @@ policy.
 
 **`events` is the only mode-aware RLS in this game**, and its third arm carries
 three rules at once: coop shows everyone every row, compete shows a racer only
-their own — and **terminal opens everybody's**, which is what lets the event
+their own — and **the game's end opens everybody's**, which is what lets the event
 log's player picker read a finished race back. Commented at `events_select`.
 
 ## RPCs
@@ -150,13 +160,13 @@ one place: [`lib/answer.ts`](lib/answer.ts). So the examples below are all
 bug and a service outage are not game logic, and they keep their severity and
 their sentence.)
 
-### `psychicnum.create_game(target_club, setup, player_user_ids, mode)`
+### `psychicnum.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)`
 
 Deals a game. It samples `word_count` distinct words from `common.words` under
 a clean + American + difficulty-band filter (five-letter words plus one
 nine-letter word — see Game rules), picks three of them as the
-secrets, writes the `common.games` row and a per-player budget row, and seeds
-the club-list readout. `mode` decides both the gametype string
+secrets, writes the `common.games` row and a per-player budget row, and writes
+the statuses. `p_mode` decides both the gametype string
 (`psychicnum_coop` / `psychicnum_compete`) and how the budget behaves — shared
 in coop, per-racer in compete. Compete needs two or more players; coop takes
 one to six.
@@ -165,15 +175,15 @@ one to six.
 
 ```json
 {
-  "target_club": "moths",
-  "setup": {
+  "p_club_handle": "moths",
+  "p_setup": {
     "max_guesses": 7,
     "word_count": 12,
     "band": 3,
     "timer": { "kind": "countdown", "seconds": 300 }
   },
-  "player_user_ids": ["7b1e…", "c904…"],
-  "mode": "coop"
+  "p_player_user_ids": ["7b1e…", "c904…"],
+  "p_mode": "coop"
 }
 ```
 
@@ -183,7 +193,7 @@ one to six.
 { "result": "created", "id": "3f2a…" }
 ```
 
-### `psychicnum.submit_guess(target_game, guess)`
+### `psychicnum.submit_guess(p_game_id, p_guess)`
 
 The only mid-game move, and the only one that writes a `kind = 'guess'` row.
 The guess must be a board word, compared case-folded. **The answer is about the
@@ -192,7 +202,7 @@ the last of the budget still says `hit`, and that the game just ended reaches
 every client over realtime instead. `found_all` is true only on the guess that
 completes the set.
 
-**Passed:** `{ "target_game": "3f2a…", "guess": "lantern" }`
+**Passed:** `{ "p_game_id": "3f2a…", "p_guess": "lantern" }`
 
 **Returned — kind: `guess`.** Three shapes. `result` is the fact; the words
 and the color come from `answerMessage({ answerType: 'hit' | 'miss', word })`.
@@ -206,7 +216,7 @@ a fourth shape: it is whichever of the first and third it was, unchanged. The
 loss is not in the answer at all — it arrives by realtime, like every other way
 this game ends.
 
-### `psychicnum.request_hint(target_game)`
+### `psychicnum.request_hint(p_game_id)`
 
 Picks one of the caller's (compete) or team's (coop) unfound secrets and logs
 its dictionary CLUE — never the word. Costs no budget. Many words have no clue,
@@ -214,7 +224,7 @@ which is an answer rather than a failure, so `result` says which. Both log a
 `kind = 'hint'` row that reaches the event log over realtime, and in coop gives
 teammates a "got hint" line.
 
-**Passed:** `{ "target_game": "3f2a…" }`
+**Passed:** `{ "p_game_id": "3f2a…" }`
 
 **Returned — kind: `hint`.** Two shapes; `result` is what tells them apart, so
 no call site has to recognize the fallback by its prose.
@@ -222,14 +232,14 @@ no call site has to recognize the fallback by its prose.
 - the secret has a clue — `{ "result": "hint", "hint": "a light you carry" }`
 - it has none — `{ "result": "no-hint", "hint": "No hint available" }`
 
-### `psychicnum.request_spoiler(target_game)`
+### `psychicnum.request_spoiler(p_game_id)`
 
 The same pick, but it hands over the secret WORD itself. Costs no budget and
 does not find the secret — you still have to guess it, or not bother. Logs a
 `kind = 'spoiler'` row; in coop teammates see that a spoiler was taken, never
 which word.
 
-**Passed:** `{ "target_game": "3f2a…" }`
+**Passed:** `{ "p_game_id": "3f2a…" }`
 
 **Returned — kind: `spoiler`.** One shape.
 
@@ -238,7 +248,9 @@ which word.
 ### The rest
 
 `concede`, `stop_game`, `submit_timeout` and `replay_board` — the common
-shape every game has, doing here what they do everywhere.
+shape every game has, doing here what they do everywhere. `concede` checks,
+after `common._concede`, whether everyone left is out of guesses
+(`_maybe_finish_compete`).
 
 ## FE submissions
 

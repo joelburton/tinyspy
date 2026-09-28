@@ -35,18 +35,19 @@
 --   - request_hint logs a kind='hint' row with the secret's CLUE (or the
 --     "No hint available" fallback); request_spoiler logs a kind='spoiler' row
 --     with the answer WORD; neither spends budget or finds the secret
---   - finding the LAST secret carries `found_all` true, play_state='won', team won
---   - the last-budget wrong guess → play_state='lost'
---   - submit_timeout flips to 'lost'
+--   - finding the LAST secret carries `found_all` true and ends the game
+--     reached_goal/won, every teammate ranked 1 and solved
+--   - the last-budget wrong guess → resource_exhausted/lost
+--   - submit_timeout → timeout/lost
 --
 -- Compete assertions:
 --   - wrong guess counts up ONLY the caller's budget
---   - finding all three (caller's own) carries `found_all` true,
---     play_state='won_compete'
+--   - finding all three (caller's own) carries `found_all` true, and the
+--     caller alone is ranked 1 and won
 --   - game ends for everyone on the win, even those with budget left
---   - all-exhausted → play_state='lost_compete', and a spent budget
---     sets common.game_players.locally_terminal so the presence-pause
---     stops waiting on that racer
+--   - all-exhausted → resource_exhausted/lost, and a spent budget ends
+--     that player (`player_ended_at`, reason resource_exhausted) so the
+--     presence-pause stops waiting on that racer
 --
 -- A deleted game: a guess, a hint and a spoiler into a game a friend just
 -- deleted are each the shared race (PN485), not a fault.
@@ -80,7 +81,7 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from coop_g);
+ where game_id = (select id from coop_g);
 
 -- (1) A word not on the board is rejected
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -128,9 +129,9 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from coop_g)),
-  'playing',
-  'coop: one secret found keeps play_state=playing'
+  (select ended_at from common.games where id = (select id from coop_g)),
+  null,
+  'coop: one secret found keeps the game going'
 );
 
 -- (5) ada's found_secrets_count bumped to 1
@@ -231,16 +232,18 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from coop_g)),
-  'won',
-  'coop: finding all three flips play_state to won'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from coop_g)),
+  'reached_goal/solved/won',
+  'coop: finding all three ends the game reached_goal, won'
 );
 
 select is(
   (select count(*)::int from common.game_players
-    where game_id = (select id from coop_g) and (result->>'won')::boolean = true),
+    where game_id = (select id from coop_g) and final_ranking = 1 and outcome = 'won'
+      and solved_at is not null),
   2,
-  'coop: every player gets game_players.result = {won: true} on team win'
+  'coop: every teammate is ranked 1, won, and solved on the team win'
 );
 
 -- (13) submit_guess on a finished game is rejected
@@ -249,7 +252,7 @@ select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zecho'),
   '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'coop: submit_guess on terminal game rejected'
+  'coop: submit_guess on an ended game rejected'
 );
 
 -- ============================================================
@@ -268,18 +271,18 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from coop_loss);
+ where game_id = (select id from coop_loss);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from coop_loss), 'zdelta');
 select psychicnum.submit_guess((select id from coop_loss), 'zecho');
 
--- After 2 wrong, both player budgets at 1, play_state still playing.
+-- After 2 wrong, both player budgets at 1, the game still going.
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from coop_loss)),
-  'playing',
-  'coop: 2 wrong guesses keeps play_state=playing'
+  (select ended_at from common.games where id = (select id from coop_loss)),
+  null,
+  'coop: 2 wrong guesses keeps the game going'
 );
 
 -- 3rd wrong → team loses. The envelope is the CALLER'S result on their own
@@ -295,16 +298,17 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from coop_loss)),
-  'lost',
-  'coop: 3rd wrong flips play_state to lost'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from coop_loss)),
+  'resource_exhausted/exhausted/lost',
+  'coop: 3rd wrong ends the game out of guesses, lost'
 );
 
 -- ── The budget-exhausting CORRECT guess ──
 -- The same loss, reached by a guess that DID find a secret. The envelope is
 -- the caller's own result, so it says `hit` even though the game ends on it:
 -- a loss word here would flash a red "Wrong" for a beat before the
--- terminal verdict landed. The game still ends: one of three found.
+-- verdict landed. The game still ends: one of three found.
 -- (as_user BEFORE the create: a temp table is owned by whoever creates it, and
 -- the reads below run as ada — create it as postgres and they're denied.)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -320,7 +324,7 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from coop_loss_hit);
+ where game_id = (select id from coop_loss_hit);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from coop_loss_hit), 'zdelta');
@@ -334,19 +338,18 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from coop_loss_hit)),
+  (select game_ended_outcome from common.games where id = (select id from coop_loss_hit)),
   'lost',
   'coop: a correct guess that empties the budget still ends the game'
 );
 
--- The terminal status must carry the tally INCLUDING this last find — the
--- mid-game update_state is never reached on a terminal guess, so end_game
--- restates it explicitly. Without that, the final readout says 0/3.
+-- The club line's tally must INCLUDE this last find: the builder runs after
+-- the ending, from the players' rows, so the final readout says 1/3.
 select is(
-  (select status->>'found_secrets_count'
+  (select clubpage_info->>'found_secrets_count'
      from common.games where id = (select id from coop_loss_hit)),
   '1',
-  'coop: the exhausting correct guess is counted in the terminal tally'
+  'coop: the exhausting correct guess is counted in the final tally'
 );
 
 -- ============================================================
@@ -366,7 +369,7 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from comp_g);
+ where game_id = (select id from comp_g);
 
 -- (1) ada submits wrong (zdelta): count up ONLY ada's budget
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -398,25 +401,26 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from comp_g)),
-  'won_compete',
-  'compete: completing the set flips play_state to won_compete'
+  (select game_ended_reason || '/' || game_ended_outcome || '/' || game_ended_by_user_id
+     from common.games where id = (select id from comp_g)),
+  'reached_goal/won/bea22222-2222-2222-2222-222222222222',
+  'compete: completing the set ends the game won, by the finder'
 );
 
 select is(
-  (select result->>'won' from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from comp_g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  'true',
-  'compete: winning caller gets game_players.result = {won: true}'
+  '1/won',
+  'compete: the finder is ranked 1 and won'
 );
 
 select is(
-  (select result->>'won' from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from comp_g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'false',
-  'compete: opposing player gets game_players.result = {won: false}'
+  'unranked/lost',
+  'compete: a racer short of the goal is unranked and lost'
 );
 
 -- (3) ada (with budget remaining=2) cannot guess after bea won
@@ -445,7 +449,7 @@ reset role;
 update psychicnum.games
    set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
        secrets = array['zalpha','zbravo','zcharlie']
- where id = (select id from comp_loss);
+ where game_id = (select id from comp_loss);
 
 -- ada exhausts on wrong guesses (the already-guessed guard is per-caller in
 -- compete, so bea reusing the same words below is fine).
@@ -465,27 +469,27 @@ select pg_temp.envelope_is(
 -- bea still has 3 — game continues.
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from comp_loss)),
-  'playing',
-  'compete: game still playing while opponents have budget'
+  (select ended_at from common.games where id = (select id from comp_loss)),
+  null,
+  'compete: game still going while opponents have budget'
 );
 
--- …and the common roster hears that ada is done, which is what keeps ada's
+-- …and the common roster hears that ada has ended, which is what keeps ada's
 -- closed tab from pausing the game for bea. Not `conceded`: ada played it out.
 select is(
-  (select array[locally_terminal, conceded] from common.game_players
+  (select player_ended_reason || '/' || player_ended_reason_detail from common.game_players
     where game_id = (select id from comp_loss)
       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
-  array[true, false],
-  'compete: a spent budget sets locally_terminal, not conceded'
+  'resource_exhausted/exhausted',
+  'compete: a spent budget ends the player out of guesses, not conceded'
 );
 
 select is(
-  (select locally_terminal from common.game_players
+  (select player_ended_at from common.game_players
     where game_id = (select id from comp_loss)
       and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
-  false,
-  'compete: a racer with budget left is not locally terminal'
+  null,
+  'compete: a racer with budget left has not ended'
 );
 
 -- bea exhausts too. The last wrong guess (total_remaining → 0) ends it.
@@ -501,9 +505,9 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from comp_loss)),
-  'lost_compete',
-  'compete: all-exhausted flips play_state to lost_compete'
+  (select game_ended_reason || '/' || game_ended_outcome from common.games where id = (select id from comp_loss)),
+  'resource_exhausted/lost',
+  'compete: all-exhausted ends the game out of guesses, lost'
 );
 
 -- ============================================================
@@ -538,7 +542,7 @@ reset role;
 update psychicnum.games
    set words = (select words from hinted),
        secrets = (select words[1:3] from hinted)
- where id = (select id from hint_g);
+ where game_id = (select id from hint_g);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select ok(
@@ -577,9 +581,11 @@ select lives_ok(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from coop_to)),
-  'lost',
-  'coop: submit_timeout flips play_state to lost'
+  (select game_ended_reason || '/' || game_ended_outcome
+          || '/' || coalesce(game_ended_by_user_id::text, 'nobody')
+     from common.games where id = (select id from coop_to)),
+  'timeout/lost/nobody',
+  'coop: submit_timeout ends the game lost, ended by nobody in a free-for-all'
 );
 
 -- ============================================================
