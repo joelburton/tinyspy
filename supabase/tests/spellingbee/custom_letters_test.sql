@@ -64,7 +64,7 @@ select (spellingbee.create_game(
 select isnt((select id from g), null,
   'custom board with only 3 required words is accepted (≥30 gate relaxed)');
 select is(
-  (select required_words_count from spellingbee.games where id = (select id from g)),
+  (select required_words_count from spellingbee.games where game_id = (select id from g)),
   3, 'custom board stores its actual (sub-30) required_words_count');
 
 -- ── (2) Saved default strips the one-off custom letters ─────

@@ -17,8 +17,8 @@
 --      are readable directly by `authenticated` (the FE validates
 --      guesses against them locally; the trust model doesn't withhold).
 --   4. The games_state view exposes both word lists unconditionally
---      (during play and at terminal) — the missed-words reveal is a
---      client-side `required − found` at terminal, not a server gate.
+--      (during play and after the end) — the missed-words reveal is a
+--      client-side `required − found` at the end, not a server gate.
 --
 -- RLS membership / coop-vs-compete visibility lives in
 -- rls_test.sql. The two test files together form the
@@ -74,8 +74,8 @@ select is(
 -- Set up: a spellingbee game in ada+bea's club
 -- ============================================================
 -- Direct insert, not the RPC: what is pinned is the shape. Builds a
--- non-terminal game first and flips it to terminal partway through,
--- to show the lists are exposed the same either side of the flip.
+-- game in play first and ends it partway through, to show the lists
+-- are exposed the same either side of the end.
 
 create temp table club on commit drop as
 select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
@@ -99,37 +99,36 @@ reset role;
 create temp table common_g (id uuid) on commit drop;
 grant select on common_g to authenticated;
 with ins as (
-  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, mode, title, setup)
   values (
     gen_random_uuid(),
     (select handle from club),
     'spellingbee_coop',
+    'coop',
     'E·CABDNO',
-    '{"timer": {"kind": "none"}}'::jsonb,
-    'playing',
-    false
+    '{"timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )
 insert into common_g (id) select id from ins;
 
 -- The word lists. Small synthetic ones; they only need to be
--- present + retrievable. `mode` is 'coop' to match the
--- common.games gametype above.
+-- present + retrievable. The bands are the create_game defaults.
 insert into spellingbee.games
-  (id, club_handle, mode, outer_letters, center_letter,
-   required_words_score, required_words_count, required_words, bonus_words)
+  (game_id, outer_letters, center_letter,
+   required_words_score, required_words_count, required_words, bonus_words,
+   required_band, legal_band)
 values (
   (select id from common_g),
-  (select handle from club),
-  'coop',
   'cabdno',
   'e',
   17,
   2,
   '[{"word":"acedone","points":17,"is_pangram":true},
     {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
-  '[{"word":"oceaned","points":7,"is_pangram":false}]'::jsonb
+  '[{"word":"oceaned","points":7,"is_pangram":false}]'::jsonb,
+  3,
+  5
 );
 
 -- ============================================================
@@ -142,20 +141,20 @@ values (
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select is(
-  (select required_words from spellingbee.games where id = (select id from common_g)),
+  (select required_words from spellingbee.games where game_id = (select id from common_g)),
   '[{"word":"acedone","points":17,"is_pangram":true},
     {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
   'authenticated CAN SELECT required_words directly (un-gated)'
 );
 
 select is(
-  (select bonus_words from spellingbee.games where id = (select id from common_g)),
+  (select bonus_words from spellingbee.games where game_id = (select id from common_g)),
   '[{"word":"oceaned","points":7,"is_pangram":false}]'::jsonb,
   'authenticated CAN SELECT bonus_words directly (un-gated)'
 );
 
 select is(
-  (select outer_letters from spellingbee.games where id = (select id from common_g)),
+  (select outer_letters from spellingbee.games where game_id = (select id from common_g)),
   'cabdno'::char(6),
   'authenticated CAN SELECT the non-list columns (outer_letters) too'
 );
@@ -163,39 +162,41 @@ select is(
 -- ============================================================
 -- games_state view: exposes both lists during play
 -- ============================================================
--- No terminal gate anymore — required_words is present from game start (the
--- reveal is a client-side computation at terminal).
+-- No end-of-game gate — required_words is present from game start (the
+-- reveal is a client-side computation at the end).
 
 select is(
-  (select required_words from spellingbee.games_state where id = (select id from common_g)),
+  (select required_words from spellingbee.games_state where game_id = (select id from common_g)),
   '[{"word":"acedone","points":17,"is_pangram":true},
     {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
   'games_state.required_words is present during play (un-gated)'
 );
 
 select is(
-  (select outer_letters from spellingbee.games_state where id = (select id from common_g)),
+  (select outer_letters from spellingbee.games_state where game_id = (select id from common_g)),
   'cabdno'::char(6),
   'games_state surfaces the non-list columns too'
 );
 
 -- ============================================================
--- games_state view: still exposed at terminal
+-- games_state view: still exposed once ended
 -- ============================================================
--- Flip is_terminal to true; required_words stays exposed — the terminal
--- transition changes nothing about what the view returns.
+-- End the game; required_words stays exposed — the ending changes
+-- nothing about what the view returns.
 
 reset role;
-update common.games set is_terminal = true, play_state = 'ended'
+update common.games
+   set ended_at = now(), game_ended_reason = 'stopped',
+       game_ended_reason_detail = 'stopped', game_ended_outcome = 'neutral'
  where id = (select id from common_g);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select is(
-  (select required_words from spellingbee.games_state where id = (select id from common_g)),
+  (select required_words from spellingbee.games_state where game_id = (select id from common_g)),
   '[{"word":"acedone","points":17,"is_pangram":true},
     {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
-  'games_state.required_words remains exposed post-terminal'
+  'games_state.required_words remains exposed once the game has ended'
 );
 
 -- Realtime publication membership for spellingbee.games + found_words is

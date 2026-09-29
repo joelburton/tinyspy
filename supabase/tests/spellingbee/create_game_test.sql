@@ -7,12 +7,12 @@
 -- Coverage:
 --   1. Coop happy path: ada creates a game; common.games +
 --      spellingbee.games rows materialize; mode='coop'; gametype
---      string is 'spellingbee_coop'; title formula correct; status
+--      string is 'spellingbee_coop'; title formula correct; statuses
 --      seeded with coop shape.
 --   2. Compete happy path: separate game with mode='compete'
 --      + target_rank=4; mode column + gametype string match;
---      compete-shape status seeded (target_rank + empty
---      leaderboard).
+--      compete-shape statuses seeded (target_rank, no team score,
+--      every player at 0).
 --   3. Auth + membership: dee (outsider) rejected.
 --   4. mode arg validation: invalid value; compete with <2 players;
 --      target_rank required iff compete; target_rank range.
@@ -82,19 +82,19 @@ select is(
 );
 
 select is(
-  (select mode from spellingbee.games where id = (select id from g)),
+  (select mode from common.games where id = (select id from g)),
   'coop',
-  'spellingbee.games.mode = coop (denormalized for RLS branching)'
+  'common.games.mode = coop (the RLS branches read it)'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing',
-  'common.games.play_state initialized to "playing"'
+  (select ended_at from common.games where id = (select id from g)),
+  null,
+  'the new game has not ended'
 );
 
 select is(
-  (select outer_letters from spellingbee.games where id = (select id from g)),
+  (select outer_letters from spellingbee.games where game_id = (select id from g)),
   'abcdfg'::char(6),
   'spellingbee.games.outer_letters carries the board''s outer letters verbatim'
 );
@@ -110,31 +110,31 @@ select is(
 );
 
 -- ============================================================
--- (3)-(6) Coop status jsonb seeding
+-- (3)-(6) Coop statuses seeding
 -- ============================================================
 
 select is(
-  (select status->>'mode' from common.games where id = (select id from g)),
-  'coop',
-  'coop status.mode = "coop"'
+  (select jsonb_typeof(clubpage_info->'found_words_score') from common.games where id = (select id from g)),
+  'number',
+  'coop clubpage_info carries a team score (the coop shape)'
 );
 
 select is(
-  (select (status->>'required_words_score')::int from common.games where id = (select id from g)),
+  (select (game_status->>'required_words_score')::int from common.games where id = (select id from g)),
   50,
-  'coop status.required_words_score = board.required_words_score'
+  'coop game_status.required_words_score = board.required_words_score'
 );
 
 select is(
-  (select (status->>'required_words_count')::int from common.games where id = (select id from g)),
+  (select (game_status->>'required_words_count')::int from common.games where id = (select id from g)),
   30,
-  'coop status.required_words_count = board.required_words_count'
+  'coop game_status.required_words_count = board.required_words_count'
 );
 
 select is(
-  (select (status->>'found_words_score')::int from common.games where id = (select id from g)),
+  (select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from g)),
   0,
-  'coop status.score = 0 at create time'
+  'coop clubpage_info.found_words_score = 0 at create time'
 );
 
 -- ============================================================
@@ -166,29 +166,30 @@ select is(
 );
 
 select is(
-  (select mode from spellingbee.games where id = (select id from g_compete)),
+  (select mode from common.games where id = (select id from g_compete)),
   'compete',
-  'compete: spellingbee.games.mode = compete'
+  'compete: common.games.mode = compete'
 );
 
 select is(
-  (select status->>'mode' from common.games where id = (select id from g_compete)),
-  'compete',
-  'compete status.mode = "compete"'
+  (select clubpage_info->'found_words_score' from common.games where id = (select id from g_compete)),
+  'null'::jsonb,
+  'compete clubpage_info carries no team score (the compete shape)'
 );
 
 select is(
-  (select (status->>'target_rank')::int from common.games where id = (select id from g_compete)),
+  (select (game_status->>'target_rank')::int from common.games where id = (select id from g_compete)),
   4,
-  'compete status.target_rank seeded from setup'
+  'compete game_status.target_rank seeded from setup'
 );
 
--- The compete status seeds an empty leaderboard array; the first
--- submit_word call populates it.
+-- Every player's status is seeded at 0; the first submit_word moves it.
 select is(
-  (select jsonb_typeof(status->'leaderboard') from common.games where id = (select id from g_compete)),
-  'array',
-  'compete status.leaderboard seeded as a (empty) jsonb array'
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g_compete)
+      and (player_status->>'found_words_score')::int = 0),
+  3,
+  'compete: every player''s status is seeded at a score of 0'
 );
 
 -- ============================================================
@@ -275,13 +276,14 @@ select lives_ok(
 );
 
 select is(
-  (select (status->>'target_rank')::int
-     from common.games
-    where gametype = 'spellingbee_coop'
-      and (status->>'target_rank') is not null
+  (select sg.target_rank
+     from spellingbee.games sg
+     join common.games cg on cg.id = sg.game_id
+    where cg.gametype = 'spellingbee_coop'
+      and sg.target_rank is not null
     limit 1),
   3,
-  'the coop target rank is echoed into status (the FE reads it for the win copy)'
+  'the coop target rank is copied to its column (the FE reads it for the win copy)'
 );
 
 -- ============================================================

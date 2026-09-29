@@ -79,7 +79,7 @@ describe('a deleted game says so', () => {
       'scrabble.replay_board', 'scrabble.stop_game', 'scrabble.submit_timeout',
       'setgame.concede', 'setgame.record_hint', 'setgame.replay_board', 'setgame.stop_game',
       'setgame.submit_set', 'setgame.submit_timeout',
-      'spellingbee.replay_board', 'spellingbee.stop_game',
+      'spellingbee.concede', 'spellingbee.replay_board', 'spellingbee.stop_game',
       'spellingbee.submit_timeout', 'spellingbee.submit_word',
       'stackdown.concede', 'stackdown.replay_board', 'stackdown.reveal_next_hint',
       'stackdown.reveal_next_word', 'stackdown.stop_game', 'stackdown.submit_timeout',

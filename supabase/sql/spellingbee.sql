@@ -1,20 +1,35 @@
 -- cs-blessed-spellingbee
 
 -- ============================================================
--- spellingbee — the REPEATABLE half
+-- spellingbee
 -- ============================================================
--- Functions, views, RLS policies, triggers and grants for spellingbee. Everything
--- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
--- delta. Edit it in place forever; it never becomes a migration.
+-- What the frontend calls:
 --
--- Its other half is the one-shot schema migration
--- `supabase/migrations/20260617000000_spellingbee.sql` — tables, constraints, indexes,
--- the Realtime publication and seed rows. That one is applied once and then
--- frozen, because `alter table` cannot be re-run.
+--   create_game      starts a game on a board the spellingbee-build-board
+--                    edge function built
+--   submit_word      records a word the page has already judged and scored
+--   concede          a racer drops out of a compete game
+--   stop_game        stops the game for everyone, with no result
+--   submit_timeout   ends the game when the countdown runs out
+--   replay_board     restarts the same board from scratch
 --
--- Order is load-bearing: a policy can only reference a function that already
--- exists, so statements stay in the order they were written. See
+-- What the spellingbee-build-board edge function calls:
+--
+--   candidate_words  every legal word a board's letters spell
+--
+-- What is particular to spellingbee (src/spellingbee/doc.md has the rest):
+--   - Both word lists ship to the page, which judges and scores every word
+--     itself; submit_word trusts what it sends (trusting-commit).
+--   - Words are required (at `required_band`, clean and American) or bonus
+--     (up to `legal_band`); both score, and the rank ladder
+--     (common._rank_idx) is measured against the required points.
+--   - Reaching `target_rank` wins at once: the team in coop, the first racer
+--     in compete. A coop game without a target is an open hunt that only the
+--     clock or a Stop ends, with no result.
+--   - Found words are the one mode-aware read: coop sees everyone's, compete
+--     only your own until the game ends.
+--
+-- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
 -- ============================================================
 
@@ -25,10 +40,8 @@ grant usage on schema spellingbee to authenticated;
 -- needs schema USAGE for any incidental PostgREST access.
 grant usage on schema spellingbee to service_role;
 
--- spellingbee.pangrams: public reference data, no RLS. The edge
--- function samples seeds as the caller (authenticated SELECT). The
--- pangram import connects as the superuser and bypasses grants, so
--- no service_role INSERT is needed.
+-- spellingbee.pangrams: public reference data. The edge function samples
+-- seeds as the caller (authenticated SELECT).
 grant select on spellingbee.pangrams to authenticated;
 
 -- RLS is enabled on this table (20260813000000_rls_seed_tables.sql) so it can't
@@ -40,59 +53,53 @@ create policy pangrams_select on spellingbee.pangrams
   for select to authenticated
   using (true);
 
-
 -- Column-level grant. Nothing is hidden (the FE judges every word against
--- the lists), so all columns are readable — but we keep the
--- explicit column list per docs/code-conventions.md → "Avoid SELECT *". `mode` is
--- included so the games_state view's `g.mode` and the found_words_select RLS
--- policy's `fg.mode` resolve for `authenticated` (both run in the caller's context).
+-- the lists), so all columns are readable — but the column list stays
+-- explicit per docs/code-conventions.md → "Avoid SELECT *".
 grant select
-  (id, club_handle, mode, outer_letters, center_letter,
-   required_words_score, required_words_count, created_at,
-   required_words, bonus_words)
+  (game_id, outer_letters, center_letter,
+   required_words_score, required_words_count, required_words, bonus_words,
+   target_rank, required_band, legal_band)
   on spellingbee.games to authenticated;
 
 grant select on spellingbee.found_words to authenticated;
 
--- Membership-gated read on games. Co-op + compete behave
--- identically here: anyone in the club can see the game's
--- header (letters, totals, etc.). The wordlists are gated
--- separately at the column level + games_state view.
+-- Membership-gated read on games. Coop + compete behave identically here:
+-- anyone in the club can see the game's header (letters, totals, lists).
 drop policy if exists games_select on spellingbee.games;
 create policy games_select on spellingbee.games
   for select to authenticated
-  using (common._is_club_member(club_handle));
+  using (
+    exists (
+      select 1 from common.games cg
+       where cg.id = games.game_id
+         and common._is_club_member(cg.club_handle)
+    )
+  );
 
--- found_words RLS is the load-bearing piece for compete. Reads
--- the mode off spellingbee.games.mode directly (denormalized), so
--- the visibility check is a single join to common.games for the
--- is_terminal branch rather than digging into setup. Three OR
--- branches inside the EXISTS, in evaluation order:
+-- found_words RLS is the load-bearing piece for compete. Three OR branches
+-- inside the EXISTS, in evaluation order:
 --
---   (1) mode='coop' — everyone in the club sees everyone's
---       finds.
---   (2) user_id = auth.uid() — you always see your own finds.
---       In compete mid-game, this is your private list.
---   (3) is_terminal — once the game ends, everyone sees
---       everyone's finds (the "what I missed" reveal in
---       compete; harmless in coop since (1) already covered it).
+--   (1) coop — everyone in the club sees everyone's finds.
+--   (2) user_id = auth.uid() — you always see your own finds. In compete
+--       mid-game, this is your private list.
+--   (3) the game has ended — everyone sees everyone's finds (the "what I
+--       missed" reveal in compete; harmless in coop since (1) covered it).
 --
--- Club membership is the outer gate; the mode/visibility
--- discrimination is the inner condition. Mirrors the
--- connections.events_select shape.
+-- Club membership is the outer gate; the mode/visibility discrimination is
+-- the inner condition. Mirrors the connections.events_select shape.
 drop policy if exists found_words_select on spellingbee.found_words;
 create policy found_words_select on spellingbee.found_words
   for select to authenticated
   using (
     exists (
-      select 1 from spellingbee.games fg
-       join common.games cg on cg.id = fg.id
-       where fg.id = found_words.game_id
-         and common._is_club_member(fg.club_handle)
+      select 1 from common.games cg
+       where cg.id = found_words.game_id
+         and common._is_club_member(cg.club_handle)
          and (
-               fg.mode = 'coop'
+               cg.mode = 'coop'
             or found_words.user_id = (select auth.uid())
-            or cg.is_terminal
+            or cg.ended_at is not null
              )
     )
   );
@@ -103,40 +110,34 @@ create policy found_words_select on spellingbee.found_words
 -- ============================================================
 -- games_state view
 -- ============================================================
--- The FE's read path for a spellingbee game header. `security_invoker = true` so
--- RLS on the base table evaluates as the caller (games_select still gates row
--- visibility). Both word lists ship to the FE from game start, so it can judge
--- and score a word locally and compute the missed-words reveal itself at
--- terminal; the view exposes them directly.
+-- The FE's read path for a spellingbee game header. `security_invoker = true`
+-- so RLS on the base table evaluates as the caller. Both word lists ship to
+-- the FE from game start, so it can judge and score a word locally and
+-- compute the missed-words reveal itself once the game ends.
 --
 -- So this is a PURE PASS-THROUGH, and deliberately kept as one: every game's
 -- FE reads `<schema>.games_state`, so the uniform seam is worth a view that
 -- adds nothing but `security_invoker`. If a column ever needs hiding, it goes
 -- here and no FE changes.
-
 drop view if exists spellingbee.games_state;
 create view spellingbee.games_state with (security_invoker = true) as
 select
-  g.id,
-  g.club_handle,
-  g.mode,
+  g.game_id,
   g.outer_letters,
   g.center_letter,
-  g.required_words_score,
-  g.required_words_count,
-  g.created_at,
   g.required_words,
-  g.bonus_words
+  g.bonus_words,
+  g.required_words_count,
+  g.required_words_score,
+  g.target_rank,
+  g.required_band,
+  g.legal_band
   from spellingbee.games g;
 
 grant select on spellingbee.games_state to authenticated;
 
--- RETIRED: the rank ladder moved to common._rank_idx (2026-09-21), one function
--- for both bee games rather than a byte-identical copy each. Dropped here
--- because removing a `create or replace` from this file does NOT remove the
--- object from a database that already has it — this file is re-applied, not
--- diffed, so a retired signature has to say so.
 drop function if exists spellingbee._rank_idx(int, int);
+drop function if exists spellingbee._leaderboard(uuid, int);
 
 -- ============================================================
 -- spellingbee.candidate_words — edge-function board-build helper
@@ -155,10 +156,10 @@ drop function if exists spellingbee._rank_idx(int, int);
 -- list is defined, on the 1..6 recognizability bands. Both bands are now a
 -- per-game setup choice (`required_band` 1..6, `legal_band` required..6), threaded in by
 -- the edge function:
---   - legal      difficulty <= legal_band  (returned at all = enterable). No
+--   - legal      difficulty <= p_legal_band  (returned at all = enterable). No
 --                dialect / slang / crude / slur restriction — anything up
 --                to the legal band counts if you play it.
---   - required   difficulty <= required_band AND american AND NOT slang AND
+--   - required   difficulty <= p_required_band AND american AND NOT slang AND
 --                clean (slur = 0 AND crude = 0) — the is_required flag; counts
 --                toward the displayed goal + rank denominator. Crude/slur
 --                words are legal but never required. Words that are legal
@@ -170,21 +171,24 @@ drop function if exists spellingbee._rank_idx(int, int);
 --   - length     len >= 4  (the Spelling-Bee minimum)
 --
 -- `s`-words need no explicit filter: a board never contains 's', so
--- the 's' bit is never in puzzle_mask and any 's'-word fails the
+-- the 's' bit is never in p_puzzle_mask and any 's'-word fails the
 -- subset test below for free.
 --
--- The function is `security invoker` + `stable`:
+-- `p_puzzle_mask` is the board's seven letters and `p_center_bit` its center,
+-- as common.words.letter_mask bits. The function is `security invoker` +
+-- `stable`:
 --   - invoker so it runs with the caller's access to common.words
 --     (public reference data: a SELECT grant, and RLS on with a permissive
 --     policy) — no privilege escalation.
 --   - stable so a single SELECT can call it once per row of its
 --     enclosing query without repeated re-execution.
 
+drop function if exists spellingbee.candidate_words(bigint, bigint, int, int);
 create or replace function spellingbee.candidate_words(
-  puzzle_mask bigint,
-  center_bit bigint,
-  required_band int,
-  legal_band int
+  p_puzzle_mask bigint,
+  p_center_bit bigint,
+  p_required_band int,
+  p_legal_band int
 )
 returns table(word text, letter_mask bigint, is_required boolean)
 language sql
@@ -194,84 +198,123 @@ set search_path = spellingbee, common, public, extensions
 as $$
   select w.word,
          w.letter_mask,
-         (w.difficulty <= required_band and w.american and not w.slang
+         (w.difficulty <= p_required_band and w.american and not w.slang
             and w.slur = 0 and w.crude = 0)
            as is_required
     from common.words w
    where w.len >= 4
-     and w.difficulty <= legal_band
+     and w.difficulty <= p_legal_band
      -- Subset of puzzle: every letter bit of the word must be
      -- present in the puzzle's bitmask (reads the generated
      -- common.words.letter_mask). Not sargable, so this is a
      -- seq-scan-with-filter — fine at a few calls per board build.
-     and (w.letter_mask & ~puzzle_mask) = 0
+     and (w.letter_mask & ~p_puzzle_mask) = 0
      -- Must contain the center letter — the spellingbee rule.
-     and (w.letter_mask & center_bit) <> 0;
+     and (w.letter_mask & p_center_bit) <> 0;
 $$;
 
 revoke execute on function spellingbee.candidate_words(bigint, bigint, int, int) from public;
 grant execute on function spellingbee.candidate_words(bigint, bigint, int, int) to authenticated;
 
 -- ============================================================
--- spellingbee._leaderboard — every racer's standing, for the status
+-- spellingbee._write_statuses — the page's copies of the game
 -- ============================================================
--- Every player's score, word count and rank, as `status.leaderboard` carries
--- them for the club label and the Rank strip: one entry per seated player,
--- zeros for a player with no finds. Counts ALL of a player's rows, bonus
--- included, to match their own Stats card. Written once for its four
--- readers: submit_word (mid-race and at the win), submit_timeout and
--- stop_game.
+-- Writes `common.games.game_status`, every `common.game_players.player_status`
+-- and `common.games.clubpage_info` from spellingbee's own tables, assigning
+-- each whole (plans/common-tables.md → The statuses). Every key is always
+-- present, null when it has no value:
 --
--- Internal: no grant, so only this schema's definer RPCs reach it.
-
-create or replace function spellingbee._leaderboard(target_game uuid, required_score int)
-returns jsonb
-language sql
-stable
+--   game_status    { required_words_count, required_words_score,
+--                    target_rank }
+--                  — the board's totals, which the rank ladder is measured
+--                  against, and the rank that wins (null for none)
+--   player_status  { found_words_count, found_words_score,
+--                    player_ended_reason }
+--                  — that player's own finds, bonus included; a coop page
+--                  sums them for the team, and the page's own rank ladder
+--                  (src/shared/rank-ladder) turns a score into a rank
+--   clubpage_info  { found_words_count, found_words_score,
+--                    required_words_count, required_words_score,
+--                    target_rank, winner_user_id }
+--                  — the team's finds (coop; null in compete, where a live
+--                  count would say how a racer is doing), the totals and
+--                  the target; a compete winner once there is one
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function spellingbee._write_statuses(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
 set search_path = spellingbee, common, public, extensions
 as $$
-  select jsonb_agg(
-           jsonb_build_object(
-             'user_id', p.user_id,
-             'found_words_score', p.found_words_score,
-             'rank_idx', common._rank_idx(p.found_words_score, required_score),
-             'found_words_count', p.found_words_count
-           )
-         )
+declare
+  g spellingbee.games%rowtype;
+  v_mode text;
+begin
+  select * into g from spellingbee.games where game_id = p_game_id;
+  select mode into v_mode from common.games where id = p_game_id;
+
+  update common.game_players gp
+     set player_status = jsonb_build_object(
+           'found_words_count', coalesce(t.found_count, 0),
+           'found_words_score', coalesce(t.found_score, 0),
+           'player_ended_reason', gp.player_ended_reason)
     from (
-      select gp.user_id,
-             coalesce(sum(fw.points), 0)::int as found_words_score,
-             count(fw.word)::int as found_words_count
-        from common.game_players gp
+      select p.user_id, count(fw.word) as found_count, sum(fw.points) as found_score
+        from common.game_players p
         left join spellingbee.found_words fw
-               on fw.game_id = target_game and fw.user_id = gp.user_id
-       where gp.game_id = target_game
-       group by gp.user_id
-    ) p;
+          on fw.game_id = p.game_id and fw.user_id = p.user_id
+       where p.game_id = p_game_id
+       group by p.user_id
+    ) t
+   where gp.game_id = p_game_id and gp.user_id = t.user_id;
+
+  update common.games
+     set game_status = jsonb_build_object(
+           'required_words_count', g.required_words_count,
+           'required_words_score', g.required_words_score,
+           'target_rank', g.target_rank),
+         clubpage_info = jsonb_build_object(
+           'found_words_count', case when v_mode = 'coop' then (
+             select count(*) from spellingbee.found_words where game_id = p_game_id) end,
+           'found_words_score', case when v_mode = 'coop' then (
+             select coalesce(sum(points), 0) from spellingbee.found_words
+              where game_id = p_game_id) end,
+           'required_words_count', g.required_words_count,
+           'required_words_score', g.required_words_score,
+           'target_rank', g.target_rank,
+           'winner_user_id', case when v_mode = 'compete' then (
+             select user_id from common.game_players
+              where game_id = p_game_id and final_ranking = 1) end),
+         status_changed_at = case when p_update_status_changed_at
+                                  then now() else status_changed_at end
+   where id = p_game_id;
+end;
 $$;
 
-revoke execute on function spellingbee._leaderboard(uuid, int) from public;
+revoke execute on function spellingbee._write_statuses(uuid, boolean) from public;
+
+drop function if exists spellingbee.create_game(text, jsonb, uuid[], text, jsonb);
 
 -- ============================================================
--- spellingbee.create_game — mode is a positional arg
+-- spellingbee.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)
 -- ============================================================
---
 -- Setup shape (server validates):
 --   {
 --     "target_rank": 0..6 | null,           -- compete: required (the race's
 --                                           --   finish line). coop: OPTIONAL —
 --                                           --   reach it together and you WIN;
 --                                           --   null/absent = open-ended hunt.
---     "timer": (
---         { "kind": "none" }
---       | { "kind": "countup" }
---       | { "kind": "countdown", "seconds": int }
---     )
+--     "required_band": 1..6 (default 3), "legal_band": required..6 (default 5),
+--     "custom_letters", "custom_center": a player-picked board (optional),
+--     "timer": (none | countup | countdown{seconds})
 --   }
---
--- `mode` ('coop' | 'compete') is a positional argument, not a
--- setup field — it routes the gametype string ('spellingbee_' ||
--- mode) and drives the per-mode player-count floor.
+-- `target_rank` and the two bands are copied to their columns.
 --
 -- Board shape (built by the spellingbee-build-board edge function):
 --   {
@@ -279,51 +322,25 @@ revoke execute on function spellingbee._leaderboard(uuid, int) from public;
 --     "center_letter": "g",                 -- 1 lowercase
 --     "required_words_score":   int,
 --     "required_words_count":   int,
---     "required_words": [
---       { "word": text, "points": int, "is_pangram": bool },
---       …
---     ],
---     "bonus_words":   [ { "word", "points", "is_pangram" }, … ]  -- legal − required, same shape
+--     "required_words": [ { "word": text, "points": int, "is_pangram": bool }, … ],
+--     "bonus_words":   [ { "word", "points", "is_pangram" }, … ]  -- legal − required
 --   }
 --
--- The board's wordlists are taken at face value: they were
--- computed by the edge function from common.words (via the
--- candidate_words RPC, read under the caller's JWT, so the grant
--- gates still applied). The RPC just sanity-checks structure, not
--- content.
+-- The board's word lists are taken at face value: they were computed by the
+-- edge function from common.words (via candidate_words, read under the
+-- caller's JWT). This checks structure, not content — and the ≥ 30
+-- required-word quality gate the edge function also applies, so a
+-- misbehaving builder can't sneak a degenerate puzzle past; a custom board
+-- (the player picked the letters) relaxes it to ≥ 1.
 --
--- Title formula:  "<CENTER>·<OUTER-SORTED>"  e.g.,  "E·ABCDNO".
--- The center letter, dot, then the 6 outer letters alphabetized.
--- Identifies a board at a glance in the club's history list.
---
--- Reject reasons (all 'P0001' unless noted):
---   - 42501 not authenticated
---   - 42501 not a member of this club
---   - mode must be 'coop' or 'compete'
---   - compete mode requires at least 2 players
---   - more than 6 players (_require_player_count_max)
---   - setup.target_rank is required when mode='compete' / must be 0..6
---     (coop may set it too: it becomes the coop WIN threshold)
---   - timer shape errors (delegated to common._require_valid_timer)
---   - board.outer_letters must be 6 distinct lowercase ASCII
---     letters (not 's')
---   - board.center_letter must be 1 lowercase ASCII letter
---     (not 's', and not present among outer_letters)
---   - board.required_words_count must be ≥ 30 (the puzzle-quality gate
---     the edge function already applies; recheck here so a
---     misbehaving builder can't sneak a degenerate puzzle past) —
---     EXCEPT for a custom board (setup.custom_letters set), where the
---     player picked the letters and the gate relaxes to ≥ 1
---   - board.required_words / board.bonus_words must be arrays
-
-drop function if exists spellingbee.create_game(text, jsonb, uuid[], text, jsonb);
-
+-- Title: "<CENTER>·<OUTER-SORTED>", e.g. "E·ABCDNO" — identifies a board at a
+-- glance in the club's history list.
 create or replace function spellingbee.create_game(
-  target_club text,
-  setup jsonb,
-  player_user_ids uuid[],
-  mode text,
-  board jsonb
+  p_club_handle text,
+  p_setup jsonb,
+  p_player_user_ids uuid[],
+  p_mode text,
+  p_board jsonb
 )
 returns jsonb
 language plpgsql
@@ -341,29 +358,28 @@ declare
   b_required_words_score int;
   b_required_words_count int;
   game_title text;
-  effective_gametype text;
-  -- A player-specified letter set (setup.custom_letters non-empty) — the board was
-  -- built from the player's own letters, not a random seed. Relaxes the ≥30 gate.
+  -- A player-specified letter set (setup.custom_letters non-empty) — the board
+  -- was built from the player's own letters, not a random seed. Relaxes the
+  -- ≥30 gate.
   is_custom_board boolean;
 begin
-  perform common._require_club_member(target_club);
+  perform common._require_club_member(p_club_handle);
 
   -- ─── Validate mode + player-count ────────────────────────
-  perform common._require_valid_mode(mode);
+  perform common._require_valid_mode(p_mode);
 
-  if mode = 'compete' then
+  if p_mode = 'compete' then
     -- Compete needs an opposing PLAYER. The FE manifest hides the
     -- compete Start button in 1-player clubs; this is the
-    -- server-side catch. Matches psychicnum + connections.
-    if coalesce(array_length(player_user_ids, 1), 0) < 2 then
+    -- server-side catch.
+    if coalesce(array_length(p_player_user_ids, 1), 0) < 2 then
       raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN156', hint = 'fault', column = '_',
         detail = 'compete needs >= 2 players';
     end if;
   end if;
 
-  perform common._require_player_count_max(player_user_ids, 6);
-
+  perform common._require_player_count_max(p_player_user_ids, 6);
 
   -- ─── Validate setup.target_rank (BOTH modes) ─────────────
   -- compete: REQUIRED — it's the finish line of the race.
@@ -372,14 +388,14 @@ begin
   --          means the open-ended word hunt that only ends on the clock or the
   --          Stop button. Absent and explicit null are the same thing, so a FE
   --          that always sends the key can send null for "none".
-  if mode = 'compete' and (setup->>'target_rank') is null then
+  if p_mode = 'compete' and (p_setup->>'target_rank') is null then
     raise exception 'BUG: race with no target rank'
       using errcode = 'PN157', hint = 'fault', column = '_',
       detail = 'compete needs a target_rank';
   end if;
-  if (setup->>'target_rank') is not null then
+  if (p_setup->>'target_rank') is not null then
     begin
-      s_target_rank := (setup->>'target_rank')::int;
+      s_target_rank := (p_setup->>'target_rank')::int;
     exception when invalid_text_representation then
       raise exception 'BUG: target rank that is not a number'
         using errcode = 'PN158', hint = 'fault', column = '_',
@@ -400,7 +416,7 @@ begin
   -- The edge function builds the board's word lists from these; create_game is
   -- the authority on the shape.
   begin
-    s_required := coalesce((setup->>'required_band')::int, 3);
+    s_required := coalesce((p_setup->>'required_band')::int, 3);
   exception when invalid_text_representation then
     raise exception 'BUG: required difficulty that is not a number'
       using errcode = 'PN499', hint = 'fault', column = '_',
@@ -412,7 +428,7 @@ begin
       detail = 'setup.required_band must be 1..6';
   end if;
   begin
-    s_legal := coalesce((setup->>'legal_band')::int, 5);
+    s_legal := coalesce((p_setup->>'legal_band')::int, 5);
   exception when invalid_text_representation then
     raise exception 'BUG: legal difficulty that is not a number'
       using errcode = 'PN500', hint = 'fault', column = '_',
@@ -424,11 +440,11 @@ begin
       detail = 'setup.legal_band must be between required_band and 6';
   end if;
 
-  perform common._require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(p_setup->'timer');
 
   -- ─── Board structure validation ──────────────────────────
-  b_outer := board->>'outer_letters';
-  b_center := board->>'center_letter';
+  b_outer := p_board->>'outer_letters';
+  b_center := p_board->>'center_letter';
 
   if b_outer is null or length(b_outer) <> 6 then
     raise exception 'BUG: board with % outer letters',
@@ -469,13 +485,13 @@ begin
       detail = 'center_letter duplicated in outer_letters';
   end if;
 
-  b_required_words_score := (board->>'required_words_score')::int;
-  b_required_words_count := (board->>'required_words_count')::int;
+  b_required_words_score := (p_board->>'required_words_score')::int;
+  b_required_words_count := (p_board->>'required_words_count')::int;
   -- Custom (player-specified) letters skip the ≥30 quality gate — the player
   -- chose these letters, so we build whatever puzzle they yield. It must still
   -- have ≥1 required word, or the rank ladder is degenerate (Genius at 0 pts).
   -- Random boards keep the ≥30 gate the edge function's builder targets.
-  is_custom_board := coalesce(setup->>'custom_letters', '') <> '';
+  is_custom_board := coalesce(p_setup->>'custom_letters', '') <> '';
   if is_custom_board then
     if b_required_words_count < 1 then
       raise exception 'No words for those letters at that difficulty'
@@ -488,98 +504,46 @@ begin
       detail = 'required_words_count must be >= 30; the edge function''s gate must agree';
   end if;
 
-  if jsonb_typeof(board->'required_words') <> 'array' then
+  if jsonb_typeof(p_board->'required_words') <> 'array' then
     raise exception 'BUG: generated board arrived with no word list'
       using errcode = 'PN170', hint = 'fault', column = '_',
       detail = 'board.required_words must be a jsonb array';
   end if;
-  if jsonb_typeof(board->'bonus_words') <> 'array' then
+  if jsonb_typeof(p_board->'bonus_words') <> 'array' then
     raise exception 'BUG: generated board arrived with a malformed bonus list'
       using errcode = 'PN171', hint = 'fault', column = '_',
       detail = 'board.bonus_words must be a jsonb array';
   end if;
 
   -- ─── Title ───────────────────────────────────────────────
-  -- Outer letters alphabetized, uppercased, dot-prefixed by the
-  -- uppercased center.
+  -- Outer letters alphabetized, uppercased, dot-prefixed by the uppercased
+  -- center.
   select upper(b_center) || '·' || string_agg(upper(c), '' order by c)
     into game_title
     from unnest(string_to_array(b_outer, null)) c;
 
-  -- Mode-suffixed gametype string for common.games.gametype.
-  effective_gametype := 'spellingbee_' || mode;
-
-  -- ─── Coordinate with common._create_game ──────────────────
-  -- Inserts common.games (is_current_view=true, play_state=
-  -- 'playing'), validates player_user_ids are all in
-  -- clubs_members, inserts common.game_players. Returns the
-  -- canonical id we'll FK from.
-  --
-  -- Saved-default arg: persist the whole setup as the club's
-  -- next default. The target rank, the two bands and the timer are
-  -- things a friend group settles on; no point asking again next time. BUT strip the
-  -- one-off custom letters — a hand-picked board is a one-time choice, so the
-  -- NEXT game should start from a random board again (the SetupForm shows the
-  -- custom fields blank).
+  -- The saved default: the whole setup, as the club's next default — the
+  -- target rank, the two bands and the timer are things a friend group
+  -- settles on. BUT strip the one-off custom letters: a hand-picked board is
+  -- a one-time choice, so the NEXT game starts from a random board again.
   new_id := common._create_game(
-    target_club, effective_gametype, player_user_ids, game_title, setup,
-    setup - 'custom_letters' - 'custom_center'
+    p_club_handle, 'spellingbee_' || p_mode, p_mode, p_player_user_ids, game_title, p_setup,
+    p_setup - 'custom_letters' - 'custom_center'
   );
 
-  -- ─── Insert the per-gametype row, now with mode ──────────
   insert into spellingbee.games (
-    id, club_handle, mode, outer_letters, center_letter,
-    required_words_score, required_words_count, required_words, bonus_words
+    game_id, outer_letters, center_letter,
+    required_words_score, required_words_count, required_words, bonus_words,
+    target_rank, required_band, legal_band
   )
   values (
-    new_id,
-    target_club,
-    mode,
-    b_outer,
-    b_center,
-    b_required_words_score,
-    b_required_words_count,
-    board->'required_words',
-    -- bonus_words is a jsonb array of { word, points, is_pangram } now (same
-    -- shape as required_words) — stored directly so the FE can score bonus finds.
-    coalesce(board->'bonus_words', '[]'::jsonb)
+    new_id, b_outer, b_center,
+    b_required_words_score, b_required_words_count,
+    p_board->'required_words', coalesce(p_board->'bonus_words', '[]'::jsonb),
+    s_target_rank, s_required, s_legal
   );
 
-  -- ─── Seed common.games.status for the club-page label ────
-  -- Coop label needs found_words_score / required_words_score /
-  -- found_words_count / required_words_count and the target. Compete's
-  -- label reads target_rank (and, at the end, the reason and the
-  -- winner's name); the leaderboard, empty until the first submission,
-  -- is the Rank strip's.
-  if mode = 'coop' then
-    perform common.update_state(
-      new_id,
-      'playing',
-      jsonb_build_object(
-        'mode', 'coop',
-        'found_words_score', 0,
-        'required_words_score', b_required_words_score,
-        'rank_idx', 0,
-        'found_words_count', 0,
-        'required_words_count', b_required_words_count,
-        -- null when the team picked "none" — the FE reads this to know whether
-        -- there's a win condition at all (and the listing label to name it).
-        'target_rank', s_target_rank
-      )
-    );
-  else
-    perform common.update_state(
-      new_id,
-      'playing',
-      jsonb_build_object(
-        'mode', 'compete',
-        'target_rank', s_target_rank,
-        'required_words_score', b_required_words_score,
-        'required_words_count', b_required_words_count,
-        'leaderboard', '[]'::jsonb
-      )
-    );
-  end if;
+  perform spellingbee._write_statuses(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on, and it reaches both — the edge function
@@ -601,64 +565,47 @@ $$;
 revoke execute on function spellingbee.create_game(text, jsonb, uuid[], text, jsonb) from public;
 grant execute on function spellingbee.create_game(text, jsonb, uuid[], text, jsonb) to authenticated;
 
+drop function if exists spellingbee.submit_word(uuid, text, int, boolean, boolean);
+
 -- ============================================================
--- spellingbee.submit_word
+-- spellingbee.submit_word — record a word (trusting-commit)
 -- ============================================================
 -- The only mid-game action, and it is TRUSTING-COMMIT: the word arrives
--- already judged. The legality checks — too short, a letter off the
--- board, the center letter missing, not on the board's list — all run on
--- the FE (src/spellingbee/lib/answer.ts and the shared word-hunt engine),
--- so a refused word never reaches this function. What is left here is the
--- duplicate, REFUSED per mode rule (see below) as a RACE rather than an
--- answer, and the accepted word itself.
+-- already judged. The legality checks — too short, a letter off the board,
+-- the center letter missing, not on the board's list — all run on the FE
+-- (src/spellingbee/lib/answer.ts and the shared word-hunt engine), so a
+-- refused word never reaches this function. What is left here is the
+-- duplicate, REFUSED per mode rule as a RACE rather than an answer, the
+-- accepted word itself, and the target check:
 --
--- "Per mode rule":
---   - coop:    duplicate iff ANY row exists with this game_id
---              and word (anyone can find a word; once found
---              by anyone, it's locked).
---   - compete: duplicate iff a row exists with this game_id,
---              user_id=caller, word (each player has their
---              own list; finding a word someone else has
---              found is still a fresh point for you).
+--   - coop:    duplicate iff ANY row has this word (once found by anyone,
+--              it's locked); the team's score reaching `target_rank` wins
+--              for everyone (reached_goal / target, the team ranked 1)
+--   - compete: duplicate iff the CALLER has this word; the caller's score
+--              reaching `target_rank` wins the race — the race ends when
+--              decided, so the caller alone is ranked 1
 --
--- Mode comes off spellingbee.games.mode (which we already lock with
--- FOR UPDATE) — one fewer cross-schema read per submission than
--- digging into common.games.setup.
+-- A score counts every find, bonus included, so a player who finds bonus
+-- pangrams can reach the target faster than the displayed max suggests.
 --
--- The `ok` carries `{ result, points }` rather than a bare result enum,
--- so the FE can show points earned (and call out a pangram) in the
--- entry feedback WITHOUT re-deriving the point/pangram rules on the
--- client. `result` is `accepted` / `bonus` / `pangram` — a pangram being
--- a required OR bonus word using all 7 letters, which takes precedence
--- over the accepted/bonus distinction the FE doesn't surface anyway —
--- or `won`, the word that reached the target rank. The envelope carries
--- no outcome: the pill is shown from the FE's own table before this call
--- is made (docs/envelopes.md → Who writes the words, per answer).
+-- The `ok` carries `{ result, points }`, so the FE can show points earned
+-- (and call out a pangram) WITHOUT re-deriving the point/pangram rules.
+-- `result` is `accepted` / `bonus` / `pangram` — a pangram being a required
+-- OR bonus word using all 7 letters, which takes precedence — or `won`, the
+-- word that reached the target rank. The envelope carries no outcome: the
+-- pill is shown from the FE's own table before this call is made
+-- (docs/envelopes.md → Who writes the words, per answer).
 --
 -- Refused (each a not-ok envelope, each a race): a game deleted out from
--- under the word, a game no longer playing, a caller who has conceded, and
--- the duplicate below; a non-player is refused by _require_game_player.
---
--- ───────────────────────────────────────────────────────────
--- Concurrency
--- ───────────────────────────────────────────────────────────
--- SELECT … FOR UPDATE on the spellingbee.games row serializes
--- concurrent submissions. The PK on found_words is the
--- (game_id, user_id, word) triple, so a same-player double-
--- submit of the same word is also caught at the constraint
--- level if the lock somehow missed it.
-
--- Trusting-commit: the FE validated the word against the board's shipped legal
--- list (required ∪ bonus) and scored it, so this trusts word + points +
--- is_pangram + is_bonus and only enforces the live-game check, dedups, records,
--- and recomputes aggregates / the compete win. It does NOT re-validate letters /
--- center / min length / dictionary membership (src/spellingbee/doc.md → RPCs).
+-- under the word, a game that has ended, a caller who has conceded, and the
+-- duplicate; a non-player is refused by _require_game_player. The game row's
+-- lock serializes concurrent submissions.
 create or replace function spellingbee.submit_word(
-  target_game uuid,
-  word text,
-  points int,
-  is_pangram boolean,
-  is_bonus boolean
+  p_game_id uuid,
+  p_word text,
+  p_points int,
+  p_is_pangram boolean,
+  p_is_bonus boolean
 )
 returns jsonb
 language plpgsql
@@ -667,74 +614,45 @@ set search_path = spellingbee, common, public, extensions
 as $$
 declare
   caller_id uuid;
-  g_row spellingbee.games%rowtype;
-  current_play_state text;
-  current_target_rank int;
+  g spellingbee.games%rowtype;
+  v_mode text;
   w_lower text;
-  duplicate_count int;
-
-  team_score int;
-  team_found_words_count int;     -- count of ALL rows; for the status display
-  team_rank_idx int;
-  caller_score int;
-  caller_found_words_count int;   -- caller's all-rows count (display + leaderboard)
-  caller_rank_idx int;
-  status_leaderboard jsonb;
+  v_score int;
+  v_rankings jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  -- Lock the gametype row. Mode is on it, so we pick it up "for
-  -- free" in the same SELECT.
-  select * into g_row from spellingbee.games
-   where spellingbee.games.id = target_game
-   for update;
+  select * into g from spellingbee.games where game_id = p_game_id for update;
   -- A friend deleted the game while this word was in flight: the shared race,
   -- asked before the membership gate, which the delete took with it.
   if not found then
     perform common._raise_game_deleted('spellingbee');
   end if;
 
-  caller_id := common._require_game_player(target_game);
+  caller_id := common._require_game_player(p_game_id);
 
-  -- target_rank still lives on setup (it's per-game config, not a
-  -- gametype-axis); play_state still lives on common.games.
-  select play_state, (setup->>'target_rank')::int
-    into current_play_state, current_target_rank
-    from common.games where id = target_game;
-
-  -- A RACE: entry is gated on isTerminal, but the timer can expire or a rival
-  -- can reach the target rank while this submission is in flight.
-  if current_play_state <> 'playing' then
+  -- A RACE: entry is gated on the game being live, but the timer can expire
+  -- or a rival can reach the target rank while this submission is in flight.
+  if (select ended_at from common.games where id = p_game_id) is not null then
     perform common._raise_game_over();
   end if;
 
-  -- A conceded player is out of the race — no more words. The FE gates
-  -- on myConceded, so this only fires on a race (a submit in flight when
-  -- concede commits, or a stale second tab). Without it a conceder could
+  -- A conceded player is out of the race — no more words. The FE gates on
+  -- this too, so it only fires on a race (a submit in flight when the
+  -- concession commits, or a stale second tab). Without it a conceder could
   -- reach the target rank and be recorded the winner.
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = caller_id) then
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
     perform common._raise_already_conceded();
   end if;
 
-  -- Normalize for storage + dedup (the FE already validated legality).
-  w_lower := lower(coalesce(word, ''));
+  select mode into v_mode from common.games where id = p_game_id;
+  w_lower := lower(coalesce(p_word, ''));
 
-  -- alreadyFound (per mode rule, reading off g_row.mode). Table alias `fw` is
-  -- mandatory: the function parameter is also named `word`, and PL/pgSQL's
-  -- column-resolution rule raises "column reference word is ambiguous" without
-  -- the alias even though we mean `w_lower` below.
-  if g_row.mode = 'coop' then
-    select count(*) into duplicate_count
-      from spellingbee.found_words fw
-     where fw.game_id = target_game and fw.word = w_lower;
-  else
-    select count(*) into duplicate_count
-      from spellingbee.found_words fw
-     where fw.game_id = target_game
-       and fw.user_id = caller_id
-       and fw.word = w_lower;
-  end if;
-  if duplicate_count > 0 then
+  if exists (
+    select 1 from spellingbee.found_words fw
+     where fw.game_id = p_game_id and fw.word = w_lower
+       and (v_mode = 'coop' or fw.user_id = caller_id)
+  ) then
     -- A RACE, not an answer: `useFoundWordSubmit` dedups locally and returns
     -- BEFORE committing, so reaching this means its `foundWords` was stale — a
     -- teammate found the word between the render and the submit (coop), or the
@@ -742,148 +660,64 @@ begin
     -- recorded, so this REFUSES; it is not a verdict on a move.
     -- The MESSAGE is the whole line, `WORD — already found`, matching the
     -- frontend's `already_found` answer exactly (src/spellingbee/lib/answer.ts,
-    -- bonus dot included). This rejection is
-    -- the only one that can arrive by BOTH routes — caught locally, or lost as
-    -- a race — and the two must not read differently, so the server composes
-    -- the same string rather than a sentence of its own. The phrase is
-    -- deliberately written twice: it is not going to change, and machinery to
-    -- share it would cost more than it saves.
-    raise exception '% — already found', upper(w_lower) || case when coalesce(is_bonus, false) then ' •' else '' end
+    -- bonus dot included). This rejection is the only one that can arrive by
+    -- BOTH routes — caught locally, or lost as a race — and the two must not
+    -- read differently, so the server composes the same string rather than a
+    -- sentence of its own. The phrase is deliberately written twice: it is not
+    -- going to change, and machinery to share it would cost more than it saves.
+    raise exception '% — already found', upper(w_lower) || case when coalesce(p_is_bonus, false) then ' •' else '' end
       using errcode = 'PN360', hint = 'race', column = '_',
       detail = 'the word is already in found_words under this mode''s dedup rule';
   end if;
 
-  -- ─── Insert the row (trusted word + points + flags) ──────
   insert into spellingbee.found_words
     (game_id, user_id, word, points, is_pangram, is_bonus)
   values
-    (target_game, caller_id, w_lower,
-     coalesce(points, 0), coalesce(is_pangram, false), coalesce(is_bonus, false));
+    (p_game_id, caller_id, w_lower,
+     coalesce(p_points, 0), coalesce(p_is_pangram, false), coalesce(p_is_bonus, false));
 
-  -- ─── Recompute aggregates + status ──────────────────────
-  -- Coop ends on a submission ONLY when the team picked a target rank and this
-  -- word carried them to it. Without a target (the open-ended hunt) coop still
-  -- only ends via timer expiry or the manual Stop button: players keep finding
-  -- bonus words past the displayed `Y / required_words_count` denominator and
-  -- the score overshoots `required_words_score`.
-  if g_row.mode = 'coop' then
-    -- Alias `fw` so `points` resolves to the column, not the same-named function
-    -- parameter (PL/pgSQL would otherwise raise "column reference is ambiguous").
-    select coalesce(sum(fw.points), 0),
-           count(*)
-      into team_score, team_found_words_count
+  -- ─── Did that reach the target? ──────────────────────────
+  -- `_rank_idx` is monotonic in the score, so this fires exactly once: the
+  -- first word that crosses the line ends the game, and every later
+  -- submit_word finds the game over. A coop game with no target is an open
+  -- hunt that only the clock or a Stop ends.
+  if g.target_rank is not null then
+    select coalesce(sum(fw.points), 0) into v_score
       from spellingbee.found_words fw
-     where fw.game_id = target_game;
-    team_rank_idx := common._rank_idx(team_score, g_row.required_words_score);
+     where fw.game_id = p_game_id
+       and (v_mode = 'coop' or fw.user_id = caller_id);
 
-    if current_target_rank is not null and team_rank_idx >= current_target_rank then
-      -- Coop win: the TEAM reached the rank they set out for. Everyone wins
-      -- together (coop has no individual result), and the game is over — the
-      -- team chose a finish line, so this is it. `_rank_idx` is monotonic in the
-      -- score, so this fires exactly once: the first word that crosses the line
-      -- ends the game and every later submit_word hits the not-in-progress gate.
+    if common._rank_idx(v_score, g.required_words_score) >= g.target_rank then
+      if v_mode = 'coop' then
+        select jsonb_object_agg(user_id::text, 1) into v_rankings
+          from common.game_players where game_id = p_game_id;
+      else
+        v_rankings := jsonb_build_object(caller_id::text, 1);
+      end if;
+
       perform common._end_game(
-        target_game,
-        'won',
-        jsonb_build_object(
-          'mode', 'coop',
-          'reason', 'target',
-          'found_words_score', team_score,
-          'required_words_score', g_row.required_words_score,
-          'rank_idx', team_rank_idx,
-          'found_words_count', team_found_words_count,
-          'required_words_count', g_row.required_words_count,
-          'target_rank', current_target_rank
-        ),
-        (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', true))
-           from common.game_players gp
-          where gp.game_id = target_game));
+        p_game_id, 'reached_goal', 'target', caller_id,
+        p_is_no_result => false,
+        p_final_rankings => v_rankings
+      );
+      perform spellingbee._write_statuses(p_game_id, p_update_status_changed_at => true);
       -- Its OWN answer, in both modes: "this word ended the game and you won"
       -- is one case, so it gets one name.
       return common._ok_envelope(jsonb_build_object(
-        'result', 'won', 'points', coalesce(points, 0)));
-    end if;
-
-    perform common.update_state(
-      target_game, 'playing',
-      jsonb_build_object(
-        'mode', 'coop',
-        'found_words_score', team_score,
-        'required_words_score', g_row.required_words_score,
-        'rank_idx', team_rank_idx,
-        'found_words_count', team_found_words_count,
-        'required_words_count', g_row.required_words_count,
-        'target_rank', current_target_rank
-      )
-    );
-
-  else
-    -- compete: per-player aggregates. caller_found_words_count counts
-    -- ALL of caller's rows (required + bonus), matching the Stats card, and
-    -- caller_score includes bonus points, so a player who finds bonus
-    -- pangrams can reach the target faster than the displayed max suggests.
-    select coalesce(sum(fw.points), 0),
-           count(*)
-      into caller_score, caller_found_words_count
-      from spellingbee.found_words fw
-     where fw.game_id = target_game and fw.user_id = caller_id;
-    caller_rank_idx := common._rank_idx(caller_score, g_row.required_words_score);
-
-    if caller_rank_idx >= current_target_rank then
-      -- Compete win: caller hit the target rank first. Freeze the
-      -- leaderboard at the moment of victory.
-      status_leaderboard := spellingbee._leaderboard(target_game, g_row.required_words_score);
-
-      perform common._end_game(
-        target_game, 'won_compete',
-        jsonb_build_object(
-          'reason', 'target',
-          'mode', 'compete',
-          'winner_user_id', caller_id,
-          -- Named, not just id'd: the club-list label can't resolve a uuid
-          -- (labelFor is a pure function of this one row), and the
-          -- leaderboard it would otherwise dig through is privacy-scoped.
-          'winner_username', (select username from common.profiles
-                               where user_id = caller_id),
-          'target_rank', current_target_rank,
-          'leaderboard', status_leaderboard
-        ),
-        -- Each player's result is whether they won, as coop's is; the scores
-        -- and ranks are the status leaderboard's.
-        (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', gp.user_id = caller_id))
-           from common.game_players gp
-          where gp.game_id = target_game));
-
-      -- Same answer the coop win gives, for the same event.
-      return common._ok_envelope(jsonb_build_object(
-        'result', 'won', 'points', coalesce(points, 0)));
-    else
-      -- The full leaderboard, for the status label and the Rank strip.
-      status_leaderboard := spellingbee._leaderboard(target_game, g_row.required_words_score);
-
-      perform common.update_state(
-        target_game, 'playing',
-        jsonb_build_object(
-          'mode', 'compete',
-          'target_rank', current_target_rank,
-          'leaderboard', status_leaderboard,
-          'required_words_score', g_row.required_words_score,
-          'required_words_count', g_row.required_words_count
-        )
-      );
+        'result', 'won', 'points', coalesce(p_points, 0)));
     end if;
   end if;
 
-  -- Echo back a classification (the FE drives its own optimistic feedback, so this
-  -- is mostly for tests / debugging). `points` is the trusted value on the row.
+  perform spellingbee._write_statuses(p_game_id, p_update_status_changed_at => true);
+
   return common._ok_envelope(jsonb_build_object(
     'result',
     case
-      when coalesce(is_pangram, false) then 'pangram'
-      when coalesce(is_bonus, false) then 'bonus'
+      when coalesce(p_is_pangram, false) then 'pangram'
+      when coalesce(p_is_bonus, false) then 'bonus'
       else 'accepted'
     end,
-    'points', coalesce(points, 0)
+    'points', coalesce(p_points, 0)
   ));
 
 exception when others then
@@ -899,33 +733,22 @@ $$;
 revoke execute on function spellingbee.submit_word(uuid, text, int, boolean, boolean) from public;
 grant execute on function spellingbee.submit_word(uuid, text, int, boolean, boolean) to authenticated;
 
--- ============================================================
--- spellingbee.submit_timeout
--- ============================================================
--- Fired by the FE when the count-down timer hits 0. Flips the game terminal
--- with reason='timeout' — play_state 'lost' in a COOP game that set a target
--- rank and didn't reach it (the clock beat them), 'lost_compete' in compete
--- (a race always has a target rank to miss), and 'ended' (neutral) only in
--- the open-ended coop hunt with no target. Multiple peers may
--- race the expiry; the SELECT ... FOR UPDATE serializes them
--- and the post-lock play_state check answers everyone after
--- the first with the shared game-over race.
---
--- Mode comes off spellingbee.games.mode. common._end_game flips common.games
--- to terminal; the FE's useCommonGame hook (subscribed to common.games) sees
--- that and enters review mode.
---
--- A spellingbee-table "realtime touch" on found_words IS needed for compete:
--- opponents' found_words rows are RLS-hidden during play and become SELECT-able
--- only at terminal, and the FE's useGame subscribes to found_words alone. On a
--- non-submit_word terminal (timeout here) no found_words event fires on its own,
--- so peers never refetch and every opponent find renders as a gray "missed" row.
--- A no-op self-update fires the WAL events. (The header word lists ship at game
--- start, so THAT needs no touch — but the per-player finds do.)
-
 drop function if exists spellingbee.submit_timeout(uuid);
 
-create or replace function spellingbee.submit_timeout(target_game uuid)
+-- ============================================================
+-- spellingbee.submit_timeout — countdown expiry
+-- ============================================================
+-- Fired by every connected client when a countdown hits 0; the first ends the
+-- game, the rest find it ended and answer the game-over race. Nobody reached
+-- the target, so nobody is ranked:
+--
+--   - a game with a target (compete always; coop when it set one) — a loss:
+--     the clock beat everyone to the rank, the same rule boggle applies to
+--     its score target
+--   - a coop game with no target — no result: there was nothing to fail at
+--
+-- spellingbee has no turn order, so nobody is recorded as ending it.
+create or replace function spellingbee.submit_timeout(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -933,102 +756,26 @@ set search_path = spellingbee, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row spellingbee.games%rowtype;
-  current_play_state text;
-  current_target_rank int;
-  team_score int;
-  team_found_words_count int;
-  status_leaderboard jsonb;
-  player_results jsonb;
+  g spellingbee.games%rowtype;
 begin
-  select * into g_row from spellingbee.games
-   where spellingbee.games.id = target_game
-   for update;
+  select * into g from spellingbee.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('spellingbee');
   end if;
 
-  perform common._require_game_player(target_game);
+  perform common._require_game_player(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-
-  if current_play_state <> 'playing' then
+  if (select ended_at from common.games where id = p_game_id) is not null then
     perform common._raise_game_over();
   end if;
 
-  if g_row.mode = 'coop' then
-    -- The ALL-rows count, matching the live Stats card.
-    select coalesce(sum(points), 0),
-           count(*)
-      into team_score, team_found_words_count
-      from spellingbee.found_words
-     where game_id = target_game;
+  perform common._end_game(
+    p_game_id, 'timeout', 'timeout', null,
+    p_is_no_result => g.target_rank is null,
+    p_final_rankings => '{}'::jsonb
+  );
 
-    select (setup->>'target_rank')::int into current_target_rank
-      from common.games where id = target_game;
-
-    -- The clock beat a team that set out for a rank → a real LOSS ('lost').
-    -- With no target there was nothing to fail at, so the same expiry is just
-    -- the neutral stop ('ended'). (A team that had already REACHED its target
-    -- can't be here: submit_word ends the game the moment they cross.)
-    select jsonb_object_agg(
-             user_id::text,
-             -- The team's figures are on the status; a player's result says
-             -- only that nobody won, the win's `{ won: true }` inverted.
-             jsonb_build_object('won', false)
-           )
-      into player_results
-      from common.game_players
-     where game_id = target_game;
-
-    perform common._end_game(
-      target_game,
-      case when current_target_rank is not null then 'lost' else 'ended' end,
-      jsonb_build_object(
-        'reason', 'timeout',
-        'mode', 'coop',
-        'found_words_score', team_score,
-        'required_words_score', g_row.required_words_score,
-        'rank_idx', common._rank_idx(team_score, g_row.required_words_score),
-        'found_words_count', team_found_words_count,
-        'required_words_count', g_row.required_words_count,
-        'target_rank', current_target_rank
-      ),
-      player_results);
-  else
-    -- compete: freeze the leaderboard at timeout, no winner. The status merges,
-    -- so target_rank and the last leaderboard would survive on their own; the
-    -- ending states its final tally anyway, as common._end_game's header says a
-    -- terminal write does. Same array shape as submit_word's win path.
-    select (setup->>'target_rank')::int into current_target_rank
-      from common.games where id = target_game;
-
-    status_leaderboard := spellingbee._leaderboard(target_game, g_row.required_words_score);
-
-    -- A compete race always has a target rank (create_game refuses one
-    -- without), so the clock beating everyone to it is a real LOSS for the
-    -- table — the same rule coop applies when it set a target, and the same
-    -- rule boggle applies to its score target.
-    perform common._end_game(
-      target_game,
-      'lost_compete',
-      jsonb_build_object(
-        'reason', 'timeout',
-        'mode', 'compete',
-        'target_rank', current_target_rank,
-        'leaderboard', status_leaderboard
-      ),
-      -- No winner at a timeout: every player's result is `{ won: false }`.
-      (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', false))
-         from common.game_players gp
-        where gp.game_id = target_game));
-  end if;
-
-  -- Realtime touch on found_words so peers refetch and the now-RLS-visible
-  -- opponents' finds appear (see header). Harmless in coop (teammates already
-  -- see each other's words live); load-bearing in compete.
-  update spellingbee.found_words set user_id = user_id where game_id = target_game;
+  perform spellingbee._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1044,31 +791,19 @@ $$;
 revoke execute on function spellingbee.submit_timeout(uuid) from public;
 grant execute on function spellingbee.submit_timeout(uuid) to authenticated;
 
--- ============================================================
--- spellingbee.stop_game — manual stop
--- ============================================================
---
--- The only automatic terminals are a target rank reached (inside
--- submit_word, in either mode) and the countdown expiring
--- (submit_timeout). A coop hunt with no target, and any game the friends
--- are done with, is stopped explicitly — this RPC, the Stop action the
--- play surface binds. Distinct from suspend (which leaves
--- play_state='playing' and is the path "back to club" takes): stop_game
--- writes a terminal play_state='ended' with status.reason='manual', so
--- the game appears in the club's "completed" section forever after and
--- the terminal verdict renders.
---
--- Same shape as submit_timeout, with two differences:
---   - status.reason='manual' (vs 'timeout')
---   - any game player can fire it (vs the FE's timer-driven
---     dispatch)
--- Ends with a found_words realtime touch, same as submit_timeout: the compete
--- opponents'-finds reveal is RLS-gated on terminal and useGame subscribes to
--- found_words alone, so a manual end needs the no-op self-update to wake peers.
-
 drop function if exists spellingbee.stop_game(uuid);
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists spellingbee.end_game(uuid);
 
-create or replace function spellingbee.stop_game(target_game uuid)
+-- ============================================================
+-- spellingbee.stop_game — the Stop
+-- ============================================================
+-- The only automatic endings are a target rank reached (inside submit_word)
+-- and the countdown expiring (submit_timeout). A coop hunt with no target,
+-- and any game the friends are done with, is stopped explicitly — this RPC.
+-- Neutral even when a target was set and missed: the friends chose to stop,
+-- which isn't losing (docs/common-schema.md → Stop).
+create or replace function spellingbee.stop_game(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1076,94 +811,18 @@ set search_path = spellingbee, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row spellingbee.games%rowtype;
-  current_play_state text;
-  current_target_rank int;
-  team_score int;
-  team_found_words_count int;
-  status_leaderboard jsonb;
-  player_results jsonb;
 begin
-  select * into g_row from spellingbee.games
-   where spellingbee.games.id = target_game
-   for update;
+  -- Locked, so a Stop racing the winning word waits for it and then reads the
+  -- game as over. The row check comes before the membership gate — see
+  -- replay_board.
+  perform 1 from spellingbee.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('spellingbee');
   end if;
 
-  perform common._require_game_player(target_game);
+  perform common._stop(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-
-  if current_play_state <> 'playing' then
-    -- A second click, or a click racing the timer's expiry: the shared
-    -- game-over race, as submit_timeout answers it.
-    perform common._raise_game_over();
-  end if;
-
-  if g_row.mode = 'coop' then
-    -- The ALL-rows count, matching the live Stats card.
-    select coalesce(sum(points), 0),
-           count(*)
-      into team_score, team_found_words_count
-      from spellingbee.found_words
-     where game_id = target_game;
-
-    select (setup->>'target_rank')::int into current_target_rank
-      from common.games where id = target_game;
-
-    select jsonb_object_agg(
-             user_id::text,
-             -- The team's figures are on the status; a player's result says
-             -- only that nobody won, the win's `{ won: true }` inverted.
-             jsonb_build_object('won', false)
-           )
-      into player_results
-      from common.game_players
-     where game_id = target_game;
-
-    -- Stop is NEUTRAL even when a target was set and missed: the friends
-    -- chose to stop, which isn't losing (only the clock running out is).
-    perform common._end_game(
-      target_game, 'ended',
-      jsonb_build_object(
-        'reason', 'manual',
-        'mode', 'coop',
-        'found_words_score', team_score,
-        'required_words_score', g_row.required_words_score,
-        'rank_idx', common._rank_idx(team_score, g_row.required_words_score),
-        'found_words_count', team_found_words_count,
-        'required_words_count', g_row.required_words_count,
-        'target_rank', current_target_rank
-      ),
-      player_results);
-  else
-    -- compete: per-player aggregates, no winner (the players agreed to stop).
-    -- Same shape as submit_timeout's compete branch: the ending states its
-    -- final tally, though the merged status would keep the last one anyway.
-    select (setup->>'target_rank')::int into current_target_rank
-      from common.games where id = target_game;
-
-    status_leaderboard := spellingbee._leaderboard(target_game, g_row.required_words_score);
-
-    perform common._end_game(
-      target_game, 'ended',
-      jsonb_build_object(
-        'reason', 'manual',
-        'mode', 'compete',
-        'target_rank', current_target_rank,
-        'leaderboard', status_leaderboard
-      ),
-      -- Nobody won: every player's result is `{ won: false }`.
-      (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', false))
-         from common.game_players gp
-        where gp.game_id = target_game));
-  end if;
-
-  -- Realtime touch on found_words so compete peers refetch the now-RLS-visible
-  -- opponents' finds (see submit_timeout's header for the full rationale).
-  update spellingbee.found_words set user_id = user_id where game_id = target_game;
+  perform spellingbee._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1179,29 +838,18 @@ $$;
 revoke execute on function spellingbee.stop_game(uuid) from public;
 grant execute on function spellingbee.stop_game(uuid) to authenticated;
 
--- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
-drop function if exists spellingbee.end_game(uuid);
+drop function if exists spellingbee.replay_board(uuid);
 
 -- ============================================================
 -- spellingbee.replay_board — restart this board from scratch
 -- ============================================================
--- The Restart action — a menu row all game, a button at terminal.
--- Restarts the SAME board — same
--- letters + word lists — for everyone: the found-words log (the game's
--- only working state) is cleared, and common._reset_game un-terminals the
--- row with the same initial status create_game seeds (mode-branched; the
--- compete target_rank re-read from the frozen common.games.setup) and
--- zeroes the shared clock. Any game player may call it, mid-game or after
--- game-over (no play_state guard — it's a restart).
---
--- The realtime touch at the end is LOAD-BEARING here (unlike waffle,
--- whose players UPDATE wakes its hook for free): replay only DELETEs
--- found_words rows, and realtime filters don't reliably match DELETE
--- events — so useGame also subscribes to spellingbee.games, and this
--- no-op write is what wakes every client to refetch the now-empty list.
-drop function if exists spellingbee.replay_board(uuid);
-
-create or replace function spellingbee.replay_board(target_game uuid)
+-- The Restart action — a menu row all game, a button at the end. Restarts the
+-- SAME board — same letters, word lists and target — for everyone: the
+-- found-words log (the game's only working state) is cleared, and
+-- common._reset_game clears the ending and zeroes the shared clock. Any game
+-- player may call it, mid-game or after the game ends (no ended check — it's
+-- a restart).
+create or replace function spellingbee.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1209,58 +857,27 @@ set search_path = spellingbee, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row spellingbee.games;
-  s_target_rank int;
-  new_status jsonb;
 begin
   -- FOR UPDATE: a replay racing a move must not interleave with it (the move
   -- RPCs lock the same row), or the reset could land on a half-applied move —
   -- a stray log row in the "fresh" game, or worse, an in-flight game-ENDING
-  -- move re-terminalling the board that was just reset.
-  select * into g_row from spellingbee.games where id = target_game for update;
+  -- move ending the board that was just reset.
+  perform 1 from spellingbee.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('spellingbee');
   end if;
 
-  -- The row check comes BEFORE the membership gate, and the order is the whole
-  -- point: `delete_game` takes this row, `common.games` and every
-  -- `game_players` row together, so a caller whose game was just deleted has no
-  -- membership left either. Gate-first told them "You are not in this game",
-  -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common._require_game_player(target_game);
+  -- The row check comes BEFORE the membership gate: `delete_game` takes this
+  -- row, `common.games` and every `game_players` row together, so a caller
+  -- whose game was just deleted has no membership left either, and would be
+  -- told "You are not in this game" — they WERE in it; it is gone.
+  perform common._require_game_player(p_game_id);
 
-  delete from spellingbee.found_words where game_id = target_game;
+  delete from spellingbee.found_words where game_id = p_game_id;
 
-  -- The fresh initial status — the exact shapes create_game seeds.
-  select (setup->>'target_rank')::int into s_target_rank
-    from common.games where id = target_game;
+  perform common._reset_game(p_game_id);
 
-  if g_row.mode = 'coop' then
-    new_status := jsonb_build_object(
-      'mode', 'coop',
-      'found_words_score', 0,
-      'required_words_score', g_row.required_words_score,
-      'rank_idx', 0,
-      'found_words_count', 0,
-      'required_words_count', g_row.required_words_count,
-      -- Carried over: replay re-runs the SAME game (same board, same setup), so
-      -- a coop win target survives the restart.
-      'target_rank', s_target_rank
-    );
-  else
-    new_status := jsonb_build_object(
-      'mode', 'compete',
-      'target_rank', s_target_rank,
-      'required_words_score', g_row.required_words_score,
-      'required_words_count', g_row.required_words_count,
-      'leaderboard', '[]'::jsonb
-    );
-  end if;
-
-  perform common._reset_game(target_game, new_status);
-
-  -- Realtime touch (see the header) — wakes useGame's games subscription.
-  update spellingbee.games set club_handle = club_handle where id = target_game;
+  perform spellingbee._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -1276,45 +893,38 @@ $$;
 revoke execute on function spellingbee.replay_board(uuid) from public;
 grant execute on function spellingbee.replay_board(uuid) to authenticated;
 
--- ============================================================
--- spellingbee.concede — a player drops out of a compete race
--- ============================================================
--- spellingbee has NO independent per-player "eliminated" state (a
--- player is only ever done by winning — first to the target rank —
--- which ends the game, or by conceding), so the active set is exactly
--- "not conceded" and the generic common.concede handles everything:
--- mark the caller out, and if that was the last racer, end the game
--- as a collective loss. This wrapper just keeps the FE uniform (every
--- game calls its own-schema `concede`) and gates concede to compete —
--- coop is a team, it ends via the shared Stop, never a concede.
 drop function if exists spellingbee.concede(uuid);
 
-create or replace function spellingbee.concede(target_game uuid)
+-- ============================================================
+-- spellingbee.concede — a racer drops out of a compete game
+-- ============================================================
+-- spellingbee has no other way for a player to end but winning — first to
+-- the target rank — which ends the game, so `common._concede` decides it all:
+-- it records the concession, and when that was the last racer, ends the game
+-- as a loss for everyone. Compete only — coop is a team, and ends via the
+-- shared Stop.
+create or replace function spellingbee.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = spellingbee, common, public, extensions
 as $$
 declare
-  v_res jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common._require_compete((select mode from spellingbee.games where id = target_game));
-  v_res := common.concede(target_game);
-  -- The reveal below keys off the game having gone terminal, and PN486 refuses
-  -- on a game that ALREADY was — so a refusal has to stop here or the touch
-  -- fires on a concede that did nothing.
-  if v_res->>'type' = 'not-ok' then return v_res; end if;
-
-  -- If that was the last racer, common.concede ended the game. Wake the
-  -- found_words subscription (same reveal as submit_timeout/stop_game) so the
-  -- remaining clients refetch the now-RLS-visible opponents' finds. common.*
-  -- writes only common.games, so without this the reveal never loads.
-  if (select play_state from common.games where id = target_game) <> 'playing' then
-    update spellingbee.found_words set user_id = user_id where game_id = target_game;
+  -- Locked like every move, so every game's concede has one shape
+  -- (docs/common-schema.md → Concede).
+  perform 1 from spellingbee.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('spellingbee');
   end if;
 
-  return v_res;
+  perform common._require_compete((select mode from common.games where id = p_game_id));
+
+  perform common._concede(p_game_id);
+
+  perform spellingbee._write_statuses(p_game_id, p_update_status_changed_at => true);
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
   get stacked diagnostics

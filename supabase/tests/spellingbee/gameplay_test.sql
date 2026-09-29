@@ -13,20 +13,20 @@
 -- is a race not-ok.
 --
 -- Coverage, by section:
---   1. coop happy: required word → 'accepted', row inserted, status updated.
+--   1. coop happy: required word → 'accepted', row inserted, statuses updated.
 --   2. coop pangram: trusted is_pangram → 'pangram', points as given.
 --   3. coop bonus: trusted is_bonus → 'bonus', scored as given;
 --      3b a bonus word with is_pangram=true → 'pangram'.
 --   4. coop duplicate → the race refusal.
 --   5. a non-player is refused.
 --   6. compete duplicate is per-player.
---   7. compete target-rank hit → 'won', terminal 'won_compete', the winner named.
+--   7. compete target-rank hit → 'won', reached_goal / target, the winner named.
 --   8. a submit after the end is the game-over race.
---   9. coop has NO auto-terminal past required_words_count.
---  10. submit_timeout: terminal, reason 'timeout', idempotent, the rows touched,
---      and games_state still exposing the required list.
---  11. stop_game: terminal, reason 'manual', the live tally, idempotent, the rows
---      touched, and a non-player refused.
+--   9. coop has NO automatic ending past required_words_count.
+--  10. submit_timeout: ended, reason 'timeout', idempotent, the statuses
+--      rewritten, and games_state still exposing the required list.
+--  11. stop_game: ended, reason 'stopped', the live tally, idempotent, the
+--      statuses rewritten, and a non-player refused.
 --  12. a word into a game deleted under it is the shared race (PN485).
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
@@ -98,16 +98,16 @@ select is(
   'submit_word: row stores the trusted points'
 );
 
--- Status reflects the accepted word.
+-- The club line reflects the accepted word.
 select is(
-  (select (status->>'found_words_score')::int from common.games where id = (select id from g)),
+  (select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from g)),
   1,
-  'status.found_words_score updated after first accepted word'
+  'clubpage_info.found_words_score updated after first accepted word'
 );
 select is(
-  (select (status->>'found_words_count')::int from common.games where id = (select id from g)),
+  (select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from g)),
   1,
-  'status.found_words_count = 1 after first accepted'
+  'clubpage_info.found_words_count = 1 after first accepted'
 );
 
 -- ============================================================
@@ -153,14 +153,14 @@ select is(
 
 -- Score advances WITH the bonus points; count includes all rows.
 select is(
-  (select (status->>'found_words_score')::int from common.games where id = (select id from g)),
+  (select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from g)),
   24,                                       -- 1 (bead) + 17 (pangram) + 6 (bonus)
-  'status.found_words_score includes bonus-word points'
+  'clubpage_info.found_words_score includes bonus-word points'
 );
 select is(
-  (select (status->>'found_words_count')::int from common.games where id = (select id from g)),
+  (select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from g)),
   3,                                        -- bead + pangram + bonus (all counted)
-  'status.found_words_count counts ALL submissions incl. bonus (overshoot OK)'
+  'clubpage_info.found_words_count counts ALL submissions incl. bonus (overshoot OK)'
 );
 
 -- ── (3b) Bonus pangram: is_bonus AND is_pangram both true ──
@@ -205,7 +205,7 @@ select pg_temp.envelope_is(
 -- (6) Compete duplicate semantics: per-player ownership
 -- ============================================================
 -- target_rank=2 (Solid; ≥12/50=24%) so the pangram below (→18 pts, rank 3) trips
--- the target-rank terminal in one move.
+-- the target-rank ending in one move.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table compete_g on commit drop as
@@ -242,9 +242,9 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (7) Compete win: ada submits the pangram → 'won_compete'
+-- (7) Compete win: ada submits the pangram → reached_goal / target
 -- ============================================================
--- bead (1) + pangram (17) = 18 → rank_idx 3 (Nice) ≥ target_rank 2 → terminal.
+-- bead (1) + pangram (17) = 18 → rank_idx 3 (Nice) ≥ target_rank 2 → the end.
 
 select pg_temp.envelope_is(
   spellingbee.submit_word((select id from compete_g), 'abcdefg', 17, true, false),
@@ -253,25 +253,28 @@ select pg_temp.envelope_is(
 );
 
 select is(
-  (select play_state from common.games where id = (select id from compete_g)),
-  'won_compete',
-  'compete: play_state flips to "won_compete" when caller hits target_rank'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from compete_g)),
+  'reached_goal/target/won',
+  'compete: the game ends reached_goal / target, won, when caller hits target_rank'
 );
 
 select is(
-  (select is_terminal from common.games where id = (select id from compete_g)),
-  true,
-  'compete: is_terminal=true on the target-rank-hit transition'
+  (select final_ranking || '/' || outcome from common.game_players
+    where game_id = (select id from compete_g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  '1/won',
+  'compete: the caller who hit the rank is ranked 1, won'
 );
 
 select is(
-  (select status->>'winner_user_id' from common.games where id = (select id from compete_g)),
+  (select clubpage_info->>'winner_user_id' from common.games where id = (select id from compete_g)),
   'ada11111-1111-1111-1111-111111111111',
-  'compete: status.winner_user_id = caller who triggered the rank hit'
+  'compete: clubpage_info.winner_user_id = caller who triggered the rank hit'
 );
 
 -- ============================================================
--- (8) Post-terminal submission is the game-over race (PN486)
+-- (8) A submission after the end is the game-over race (PN486)
 -- ============================================================
 
 -- A RACE, not a bug: the timer can expire or a rival can hit the target while
@@ -279,11 +282,11 @@ select is(
 select pg_temp.envelope_is(
   spellingbee.submit_word((select id from compete_g), 'face', 1, false, false),
   '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN486","message":"Game over"}'::jsonb,
-  'post-terminal submit_word is refused'
+  'submit_word after the end is refused'
 );
 
 -- ============================================================
--- (9) Coop has NO auto-terminal — players keep going past required_words_count
+-- (9) Coop has NO automatic ending — players keep going past required_words_count
 -- ============================================================
 -- Bulk-insert the rest of the required set directly, drop one, and re-submit it
 -- via the RPC to exercise the aggregate recount at the count-complete boundary.
@@ -317,15 +320,16 @@ select is(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing',
-  'coop: play_state STAYS "playing" past 100%-found (no auto-terminal)'
+  (select ended_at from common.games where id = (select id from g)),
+  null,
+  'coop: the game does not end past 100%-found (no automatic ending)'
 );
 
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  false,
-  'coop: is_terminal stays false past 100%-found'
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g) and player_ended_at is not null),
+  0,
+  'coop: no player has ended past 100%-found'
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -337,20 +341,22 @@ select is(
 
 reset role;
 select is(
-  (select (status->>'found_words_score')::int > (status->>'required_words_score')::int
+  (select (clubpage_info->>'found_words_score')::int > (clubpage_info->>'required_words_score')::int
      from common.games where id = (select id from g)),
   true,
-  'coop: status.score can exceed required_words_score once bonus words are found'
+  'coop: the team score can exceed required_words_score once bonus words are found'
 );
 
 select is(
-  (select (status->>'rank_idx')::int from common.games where id = (select id from g)),
+  (select common._rank_idx((clubpage_info->>'found_words_score')::int,
+                           (clubpage_info->>'required_words_score')::int)
+     from common.games where id = (select id from g)),
   6,
-  'coop: status.rank_idx clamps at 6 (Genius) past required_words_score'
+  'coop: the team rank clamps at 6 (Genius) past required_words_score'
 );
 
 -- ============================================================
--- (10) submit_timeout: terminal 'ended', reason 'timeout'
+-- (10) submit_timeout: ended, reason 'timeout'
 -- ============================================================
 
 reset role;
@@ -373,37 +379,39 @@ select is(
   'submit_word: face accepted in timeout-game setup'
 );
 
--- The row's version before the end, to see the realtime touch land: the no-op
--- update writes a new version (a new ctid; this file is one transaction, so
--- xmin would not move).
-create temp table timeout_before on commit drop as
-select ctid::text as version from spellingbee.found_words where game_id = (select id from timeout_g);
+-- Backdate the statuses' date, to see the ending rewrite them.
+reset role;
+update common.games set status_changed_at = now() - interval '1 hour'
+ where id = (select id from timeout_g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select spellingbee.submit_timeout((select id from timeout_g));
 
+reset role;
+select is(
+  (select status_changed_at from common.games where id = (select id from timeout_g)),
+  now(),
+  'submit_timeout: rewrites the statuses, so every client hears of the ending'
+);
+
+select is(
+  (select game_ended_outcome from common.games where id = (select id from timeout_g)),
+  'neutral',
+  'submit_timeout: a coop game with no target ends neutral'
+);
+
 select isnt(
-  (select ctid::text from spellingbee.found_words where game_id = (select id from timeout_g)),
-  (select version from timeout_before),
-  'submit_timeout: touches the found rows, so a compete client refetches the reveal'
+  (select ended_at from common.games where id = (select id from timeout_g)),
+  null,
+  'submit_timeout: the game has ended'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from timeout_g)),
-  'ended',
-  'submit_timeout: play_state flips to "ended"'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from timeout_g)),
+  'timeout/timeout',
+  'submit_timeout: the reason is timeout'
 );
-
-select is(
-  (select is_terminal from common.games where id = (select id from timeout_g)),
-  true,
-  'submit_timeout: is_terminal=true'
-);
-
-select is(
-  (select status->>'reason' from common.games where id = (select id from timeout_g)),
-  'timeout',
-  'submit_timeout: status.reason=timeout'
-);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 -- Idempotency: a second call is the game-over race (peers racing the countdown).
 select pg_temp.envelope_is(
@@ -412,17 +420,17 @@ select pg_temp.envelope_is(
     "message":"Game over"}'::jsonb,
   'submit_timeout: a second call is the game-over race');
 
--- games_state exposes the full required-words list at terminal as it did in
+-- games_state exposes the full required-words list after the end as it did in
 -- play: the FE ships it from game start.
 select is(
   (select jsonb_array_length(required_words) from spellingbee.games_state
-    where id = (select id from timeout_g)),
+    where game_id = (select id from timeout_g)),
   30,
   'games_state.required_words is exposed (30 required entries)'
 );
 
 -- ============================================================
--- (11) spellingbee.stop_game: manual terminal
+-- (11) spellingbee.stop_game: the Stop
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -444,46 +452,50 @@ select is(
   'submit_word: bead accepted in stop_game setup'
 );
 
-create temp table end_before on commit drop as
-select ctid::text as version from spellingbee.found_words where game_id = (select id from end_g);
+reset role;
+update common.games set status_changed_at = now() - interval '1 hour'
+ where id = (select id from end_g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select spellingbee.stop_game((select id from end_g));
 
-select isnt(
-  (select ctid::text from spellingbee.found_words where game_id = (select id from end_g)),
-  (select version from end_before),
-  'stop_game: touches the found rows, so a compete client refetches the reveal'
+reset role;
+select is(
+  (select status_changed_at from common.games where id = (select id from end_g)),
+  now(),
+  'stop_game: rewrites the statuses, so every client hears of the ending'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from end_g)),
-  'ended',
-  'stop_game: play_state flips to "ended"'
+  (select game_ended_outcome from common.games where id = (select id from end_g)),
+  'neutral',
+  'stop_game: the Stop is neutral'
 );
 
 select is(
-  (select is_terminal from common.games where id = (select id from end_g)),
-  true,
-  'stop_game: is_terminal=true'
+  (select game_ended_by_user_id from common.games where id = (select id from end_g)),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'stop_game: the game has ended, by the caller'
 );
 
 select is(
-  (select status->>'reason' from common.games where id = (select id from end_g)),
-  'manual',
-  'stop_game: status.reason=manual (distinguishes from timeout)'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from end_g)),
+  'stopped/stopped',
+  'stop_game: the reason is stopped (distinguishes from timeout)'
 );
 
 select is(
-  (select (status->>'found_words_score')::int from common.games where id = (select id from end_g)),
+  (select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from end_g)),
   1,
-  'stop_game: status.score reflects the team''s live tally at the moment of end'
+  'stop_game: the club line''s score is the team''s live tally at the moment of end'
 );
 
 select is(
-  (select (status->>'found_words_count')::int from common.games where id = (select id from end_g)),
+  (select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from end_g)),
   1,
-  'stop_game: status.found_words_count reflects the live count'
+  'stop_game: the club line''s found_words_count is the live count'
 );
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 -- Idempotency: a second call is the game-over race.
 select pg_temp.envelope_is(
@@ -493,7 +505,7 @@ select pg_temp.envelope_is(
   'stop_game: a second call is the game-over race');
 
 -- Auth: dee (outsider) cannot end a game they're not in. Fresh game (the previous
--- one is terminal and would short-circuit on play_state).
+-- one has ended and would short-circuit on that).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table auth_g on commit drop as
 select (spellingbee.create_game(

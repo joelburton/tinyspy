@@ -10,9 +10,9 @@
 --      (Same shape as every other gametype's SELECT RLS.)
 --
 --   2. Inner gate, three OR branches (src/spellingbee/doc.md → Schema):
---         (a) games.mode = 'coop'         — everyone sees all
---         (b) user_id = auth.uid()        — see your own
---         (c) is_terminal = true          — post-game reveal
+--         (a) common.games.mode = 'coop'   — everyone sees all
+--         (b) user_id = auth.uid()         — see your own
+--         (c) common.games.ended_at is set — post-game reveal
 --
 -- This file exercises every branch with direct-INSERT setup: the
 -- test sets state by switching to postgres and writing rows
@@ -41,7 +41,7 @@ create temp table club on commit drop as
 select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 reset role;
--- A non-terminal coop game. CTE wrapping the INSERT…RETURNING
+-- A coop game still in play. CTE wrapping the INSERT…RETURNING
 -- because `CREATE TEMP TABLE ... AS INSERT` isn't valid syntax
 -- in Postgres (only AS SELECT is). Temp tables created as
 -- postgres need an explicit grant to authenticated so the
@@ -49,29 +49,27 @@ reset role;
 create temp table coop_game (id uuid) on commit drop;
 grant select on coop_game to authenticated;
 with ins as (
-  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, mode, title, setup)
   values (
     gen_random_uuid(),
     (select handle from club),
     'spellingbee_coop',
+    'coop',
     'E·CABDNO',
-    '{"timer": {"kind": "none"}}'::jsonb,
-    'playing',
-    false
+    '{"timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )
 insert into coop_game (id) select id from ins;
 
 insert into spellingbee.games
-  (id, club_handle, mode, outer_letters, center_letter,
-   required_words_score, required_words_count, required_words, bonus_words)
+  (game_id, outer_letters, center_letter,
+   required_words_score, required_words_count, required_words, bonus_words,
+   required_band, legal_band)
 values (
   (select id from coop_game),
-  (select handle from club),
-  'coop',
   'cabdno', 'e', 17, 2,
-  '[]'::jsonb, '[]'::jsonb
+  '[]'::jsonb, '[]'::jsonb, 3, 5
 );
 
 -- Three found_words rows, one per player. The RLS branch (a)
@@ -114,7 +112,7 @@ select is(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 select is(
-  (select count(*) from spellingbee.games where id = (select id from coop_game)),
+  (select count(*) from spellingbee.games where game_id = (select id from coop_game)),
   0::bigint,
   'dee (outsider): zero rows from spellingbee.games'
 );
@@ -127,7 +125,7 @@ select is(
 );
 
 select is(
-  (select count(*) from spellingbee.games_state where id = (select id from coop_game)),
+  (select count(*) from spellingbee.games_state where game_id = (select id from coop_game)),
   0::bigint,
   'dee (outsider): zero rows from spellingbee.games_state (RLS inherits via security_invoker)'
 );
@@ -156,11 +154,12 @@ select throws_ok(
 select throws_ok(
   format(
     $$ insert into spellingbee.games
-         (id, club_handle, outer_letters, center_letter,
-          required_words_score, required_words_count, required_words, bonus_words)
-       values (gen_random_uuid(), %L,
-               'aaaaaa', 'b', 1, 1, '[]'::jsonb, '[]'::jsonb) $$,
-    (select handle from club)
+         (game_id, outer_letters, center_letter,
+          required_words_score, required_words_count, required_words, bonus_words,
+          required_band, legal_band)
+       values (%L::uuid,
+               'aaaaaa', 'b', 1, 1, '[]'::jsonb, '[]'::jsonb, 3, 5) $$,
+    (select id from coop_game)
   ),
   '42501',
   'permission denied for table games',
@@ -177,29 +176,27 @@ reset role;
 create temp table compete_game (id uuid) on commit drop;
 grant select on compete_game to authenticated;
 with ins as (
-  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, mode, title, setup)
   values (
     gen_random_uuid(),
     (select handle from club),
     'spellingbee_compete',
+    'compete',
     'E·CABDNO compete',
-    '{"target_rank": 5, "timer": {"kind": "none"}}'::jsonb,
-    'playing',
-    false
+    '{"target_rank": 5, "timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )
 insert into compete_game (id) select id from ins;
 
 insert into spellingbee.games
-  (id, club_handle, mode, outer_letters, center_letter,
-   required_words_score, required_words_count, required_words, bonus_words)
+  (game_id, outer_letters, center_letter,
+   required_words_score, required_words_count, required_words, bonus_words, target_rank,
+   required_band, legal_band)
 values (
   (select id from compete_game),
-  (select handle from club),
-  'compete',
   'cabdno', 'e', 17, 2,
-  '[]'::jsonb, '[]'::jsonb
+  '[]'::jsonb, '[]'::jsonb, 5, 3, 5
 );
 
 insert into spellingbee.found_words (game_id, user_id, word, points, is_pangram, is_bonus) values
@@ -237,14 +234,16 @@ select is(
 );
 
 -- ============================================================
--- Compete mode + terminal: branch (c) opens the reveal
+-- Compete mode, ended: branch (c) opens the reveal
 -- ============================================================
--- The "what I missed" post-end view: once is_terminal=true,
+-- The "what I missed" post-end view: once the game has ended,
 -- every member sees every other member's finds, regardless of
--- mode. Flip the compete game to terminal and re-query.
+-- mode. End the compete game and re-query.
 
 reset role;
-update common.games set is_terminal = true, play_state = 'won_compete'
+update common.games
+   set ended_at = now(), game_ended_reason = 'stopped',
+       game_ended_reason_detail = 'stopped', game_ended_outcome = 'neutral'
  where id = (select id from compete_game);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -252,7 +251,7 @@ select is(
   (select count(*) from spellingbee.found_words
     where game_id = (select id from compete_game)),
   3::bigint,
-  'compete post-terminal / ada: sees all 3 finds (branch c: is_terminal)'
+  'compete, ended / ada: sees all 3 finds (branch c: ended_at)'
 );
 
 -- ============================================================

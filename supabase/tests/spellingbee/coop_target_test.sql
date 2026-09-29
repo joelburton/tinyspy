@@ -8,12 +8,12 @@
 -- this rank TOGETHER and you win"; absent/null is the open-ended hunt, which
 -- only the clock or the End button stops.
 --
--- Coverage (the coop terminals a target creates):
---   1. target reached  → play_state 'won',  outcome 'target',  everyone {won:true}
+-- Coverage (the coop endings a target creates):
+--   1. target reached  → reached_goal / target, won, everyone ranked 1
 --   2. …and the game is really over: a later submit_word is rejected
---   3. clock expires with a target set + unreached → 'lost', reason 'timeout'
---   4. clock expires with NO target                → 'ended' (nothing to fail at)
---   5. manual End with a target set + unreached    → 'ended' (stopping ≠ losing)
+--   3. clock expires with a target set + unreached → lost, timeout
+--   4. clock expires with NO target                → neutral (nothing to fail at)
+--   5. manual End with a target set + unreached    → neutral (stopping ≠ losing)
 --
 -- The fixture board scores 50 required points, so rank thresholds are
 -- Good ≥ 6 / Solid ≥ 12 / Nice ≥ 18 (see setup.psql). The synthetic 17-point
@@ -60,8 +60,8 @@ select is(
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing',
+  (select ended_at from common.games where id = (select id from g)),
+  null,
   'coop: still playing below the target rank'
 );
 
@@ -81,35 +81,35 @@ select pg_temp.envelope_is(
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
+  (select game_ended_outcome from common.games where id = (select id from g)),
   'won',
-  'coop: crossing the target rank writes play_state = won'
+  'coop: crossing the target rank wins the game'
 );
 
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  true,
-  'coop: the win is a real terminal'
+  (select game_ended_by_user_id from common.games where id = (select id from g)),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
+  'coop: the win is a real ending, by the word''s submitter'
 );
 
 select is(
-  (select status->>'reason' from common.games where id = (select id from g)),
-  'target',
-  'coop: status.reason = target (distinguishes it from timeout / manual)'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g)),
+  'reached_goal/target',
+  'coop: the reason is reached_goal / target (distinguishes it from timeout / stopped)'
 );
 
 select is(
-  (select (status->>'target_rank')::int from common.games where id = (select id from g)),
+  (select (clubpage_info->>'target_rank')::int from common.games where id = (select id from g)),
   3,
-  'coop: the terminal status carries target_rank'
+  'coop: the ended game''s club line carries target_rank'
 );
 
--- EVERY player wins, including bea who wasn't the one to submit: it's a team.
+-- EVERY player wins, including ada who wasn't the one to submit: it's a team.
 select is(
   (select count(*)::int from common.game_players
-    where game_id = (select id from g) and (result->>'won')::boolean),
+    where game_id = (select id from g) and final_ranking = 1 and outcome = 'won'),
   2,
-  'coop: both players get {won: true} — nobody wins a coop game alone'
+  'coop: both players are ranked 1, won — nobody wins a coop game alone'
 );
 
 -- ============================================================
@@ -143,17 +143,17 @@ select (spellingbee.create_game(
 select spellingbee.submit_timeout((select id from g2));
 
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'lost',
+  (select game_ended_reason || '/' || game_ended_outcome from common.games where id = (select id from g2)),
+  'timeout/lost',
   'coop: the clock beating an unreached target is a LOSS, not a neutral stop'
 );
 
--- A player's result is the win's shape inverted; the team's figures are the
--- status's, not repeated per player.
+-- A player's ending is the win's shape inverted: unranked, lost.
 select is(
-  (select result from common.game_players where game_id = (select id from g2)),
-  '{"won": false}'::jsonb,
-  'coop: a loss writes each player { won: false } and nothing else'
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome
+     from common.game_players where game_id = (select id from g2)),
+  'unranked/lost',
+  'coop: a loss leaves each player unranked, lost'
 );
 
 -- ============================================================
@@ -175,8 +175,8 @@ select (spellingbee.create_game(
 select spellingbee.submit_timeout((select id from g3));
 
 select is(
-  (select play_state from common.games where id = (select id from g3)),
-  'ended',
+  (select game_ended_reason || '/' || game_ended_outcome from common.games where id = (select id from g3)),
+  'timeout/neutral',
   'coop: with no target there is nothing to fail — expiry is the neutral end'
 );
 
@@ -200,8 +200,8 @@ select (spellingbee.create_game(
 select spellingbee.stop_game((select id from g4));
 
 select is(
-  (select play_state from common.games where id = (select id from g4)),
-  'ended',
+  (select game_ended_reason || '/' || game_ended_outcome from common.games where id = (select id from g4)),
+  'stopped/neutral',
   'coop: manual End is neutral even with a target set and missed'
 );
 
