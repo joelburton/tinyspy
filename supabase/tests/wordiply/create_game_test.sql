@@ -1,16 +1,17 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: wordiply.create_game (sibling-manifest era)
+-- Test: wordiply.create_game
 -- ============================================================
 --
--- A fork of wordwheel's create_game_test. Coverage:
+-- Coverage:
 --   1. Coop happy path: ada creates a game; common.games + wordiply.games
---      rows materialize; mode='coop'; gametype 'wordiply_coop'; title is
---      just the uppercased base (no length leak); is_current_view flips on; status seeded
---      with the coop shape {mode,base,max_word_length,guesses_used:0}.
---   2. Compete happy path: mode='compete'; compete-shape status seeded
---      (leaderboard with per-player guesses_used:0). NO target_rank.
+--      rows materialize; mode 'coop'; gametype 'wordiply_coop'; title is
+--      just the uppercased base (no length leak); is_current_view flips on;
+--      the statuses are written: game_status {}, each player_status and the
+--      clubpage_info at zero words used, the scores null until the end.
+--   2. Compete happy path: mode 'compete'; a player_status per player at
+--      zero; clubpage_info carries no team numbers. NO target_rank.
 --   3. Auth: dee (outsider) rejected.
 --   4. mode arg validation: invalid value;
 --      setup.target_rank rejected; compete with <2 players.
@@ -18,6 +19,8 @@
 --   6. Board validation: base not 2–4 lowercase; max_word_length below
 --      base_len+2; empty longest_words; empty legal_words.
 --   7. Player-count upper bound: 7+ entries rejected.
+--   8. setup.custom_base: its shape, the builder honoring it, and its
+--      stripping from the club's saved default.
 --
 -- Fixture board (pg_temp.wordiply_board): base 'ar', max_word_length 7.
 
@@ -25,7 +28,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(31);
+select plan(32);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -75,15 +78,15 @@ select is(
 );
 
 select is(
-  (select mode from wordiply.games where id = (select id from g)),
+  (select mode from common.games where id = (select id from g)),
   'coop',
-  'wordiply.games.mode = coop (denormalized for RLS branching)'
+  'common.games.mode = coop'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing',
-  'common.games.play_state initialized to "playing"'
+  (select ended_at from common.games where id = (select id from g)),
+  null,
+  'common.games.ended_at is null: the game is playing'
 );
 
 select is(
@@ -93,7 +96,7 @@ select is(
 );
 
 select is(
-  (select base from wordiply.games where id = (select id from g)),
+  (select base from wordiply.games where game_id = (select id from g)),
   'ar',
   'wordiply.games.base carries the board base verbatim'
 );
@@ -106,29 +109,33 @@ select is(
   'title is just the uppercased base (no length leak)'
 );
 
--- Coop status shape.
+-- The statuses, written at create. The scores stay null until the game ends.
 select is(
-  (select status->>'mode' from common.games where id = (select id from g)),
-  'coop',
-  'coop status.mode = "coop"'
+  (select game_status from common.games where id = (select id from g)),
+  '{}'::jsonb,
+  'coop game_status is {}'
 );
 
 select is(
-  (select status->>'base' from common.games where id = (select id from g)),
-  'ar',
-  'coop status.base seeded from the board'
-);
-
-select is(
-  (select (status->>'max_word_length')::int from common.games where id = (select id from g)),
+  (select max_word_length from wordiply.games where game_id = (select id from g)),
   7,
-  'coop status.max_word_length seeded from the board'
+  'wordiply.games.max_word_length carries the board''s longest length'
 );
 
 select is(
-  (select (status->>'guesses_used')::int from common.games where id = (select id from g)),
-  0,
-  'coop status.guesses_used = 0 at create time'
+  (select player_status from common.game_players
+    where game_id = (select id from g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  '{"guesses_used": 0, "length_score": null, "letter_count": null,
+    "player_ended_reason": null}'::jsonb,
+  'coop player_status: no words used, scores null, not ended'
+);
+
+select is(
+  (select clubpage_info from common.games where id = (select id from g)),
+  '{"guesses_used": 0, "length_score": null, "letter_count": null,
+    "winner_user_id": null, "winner_length_score": null}'::jsonb,
+  'coop clubpage_info: the team''s words used at 0, scores null, no winner'
 );
 
 -- ============================================================
@@ -156,27 +163,36 @@ select is(
 );
 
 select is(
-  (select status->>'mode' from common.games where id = (select id from g_compete)),
+  (select mode from common.games where id = (select id from g_compete)),
   'compete',
-  'compete status.mode = "compete"'
+  'compete: common.games.mode = compete'
 );
 
--- Compete seeds a per-player leaderboard, each entry guesses_used:0.
+-- Every player gets a player_status of their own, at zero.
 select is(
-  (select jsonb_array_length(status->'leaderboard') from common.games where id = (select id from g_compete)),
-  3,
-  'compete status.leaderboard has one entry per player (ada, bea, cade)'
+  (select count(*) from common.game_players
+    where game_id = (select id from g_compete)
+      and player_status ? 'guesses_used'),
+  3::bigint,
+  'compete: each player (ada, bea, cade) has a player_status'
 );
 
 select is(
   (
-    select bool_and((entry->>'guesses_used')::int = 0)
-      from common.games cg,
-           jsonb_array_elements(cg.status->'leaderboard') entry
-     where cg.id = (select id from g_compete)
+    select bool_and((player_status->>'guesses_used')::int = 0)
+      from common.game_players
+     where game_id = (select id from g_compete)
   ),
   true,
-  'compete status.leaderboard: every player starts at guesses_used = 0'
+  'compete player_status: every player starts at guesses_used = 0'
+);
+
+-- A race's club line shows no progress: no team numbers, no winner yet.
+select is(
+  (select clubpage_info from common.games where id = (select id from g_compete)),
+  '{"guesses_used": null, "length_score": null, "letter_count": null,
+    "winner_user_id": null, "winner_length_score": null}'::jsonb,
+  'compete clubpage_info: no team numbers and no winner at create'
 );
 
 -- ============================================================
@@ -371,7 +387,7 @@ select (wordiply.create_game(
 )->'data'->>'id')::uuid as id;
 
 select is(
-  (select base from wordiply.games where id = (select id from gcustom)),
+  (select base from wordiply.games where game_id = (select id from gcustom)),
   'ar',
   'accepts a setup.custom_base matching the board and keeps that base'
 );

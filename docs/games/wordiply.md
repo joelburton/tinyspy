@@ -50,15 +50,15 @@ not a sum:
 2. Tie → **higher letter count** wins. *(Rewards using long words across all
    five lines, not just landing one lucky long one. Direction was a flagged
    fork, ratified 2026-08-03 — see [Decisions](#10-decisions).)*
-3. Still tied **and the game is timed** → **less time wins** (earlier
-   `finished_at`, i.e. the player who completed their five guesses in less
-   elapsed time).
-4. Still tied → **co-winners** (all tied-at-top marked won).
+3. Still tied → **the earlier last word wins**. Two words never land at the
+   same instant, so this always resolves: there are no co-winners.
 
-The comparator is **authoritative in the RPC**. `src/wordiply/lib/scoring.ts`
+Only a player who didn't concede and scored is ranked; a race nobody scored
+in ranks nobody. The comparator is **authoritative in the RPC**
+(`wordiply._finish_compete`). `src/wordiply/lib/scoring.ts`
 carries a parallel `compareCompetitors` — a **parity reference** pinned to the
 server order by its Vitest, not wired to any live display (the FE reads the
-server-resolved `winner_user_id` / `leaderboard`). It exists so a future
+server-resolved ranking). It exists so a future
 client-side ordering has a ready, tested match; if that never lands, it stays as
 executable documentation of the tiebreak order.
 
@@ -166,22 +166,22 @@ publication → RPCs).
 
 | column | type | notes |
 |---|---|---|
-| `id` | uuid PK → `common.games(id)` on delete cascade | |
-| `club_handle` | text → `common.clubs(handle)` | |
-| `mode` | text check (`coop`/`compete`) | denormalized for RLS + RPC branching |
+| `game_id` | uuid PK → `common.games(id)` on delete cascade | |
 | `base` | text not null, check `^[a-z]{2,4}$` | **public** — the 2–4 letter fragment (NOT a word) |
-| `difficulty` | smallint not null | the dictionary band the legal child words are drawn from |
 | `max_word_length` | int not null | **public** — the length-score denominator / bar target |
 | `longest_words` | jsonb not null | the actual longest matching word(s), capped (top 3); **public** but the FE only *renders* it at terminal |
 | `legal_words` | jsonb not null | the full clean legal matching-word list shipped to the FE for local validation (trusting-commit); club-member-readable |
-| `created_at` | timestamptz default now() | |
+
+The mode, the club and the start time are `common.games`'; the dictionary band
+only chose the words, and stays in `setup.difficulty`.
 
 **No hidden columns.** Because we don't care about cheating (trust model),
 nothing needs the column-grant + terminal-reveal machinery waffle / wordle /
-crosswords use. A plain `security_invoker` `wordiply.games` select (or a thin
-`games_state` view) exposes every column — `max_word_length`, `longest_words`,
-`legal_words` — to club members from the start. The "scores + longest word only
-at the end" rule is enforced in the **FE render**, not the schema (see §2).
+crosswords use. The `security_invoker` `games_state` view exposes every column
+— `max_word_length`, `longest_words`, `legal_words` — to club members from the
+start. The "longest word only at the end" rule is enforced in the **FE
+render**, not the schema (see §2); the scores are kept out of the statuses
+until the end.
 
 ### `wordiply.events` (the wordwheel `found_words` analog)
 
@@ -203,19 +203,18 @@ at the end" rule is enforced in the **FE render**, not the schema (see §2).
 
 ### RLS + realtime
 
-- `games_select` — club members.
-- `events_select` — **mode + terminal aware**, copied from
-  `wordwheel.found_words_select`: coop → all members see all rows; compete → a
-  player sees only their own rows **mid-game**, everyone's **at terminal** (the
-  reveal).
+- `games_select` — club members, joined through `common.games`.
+- `events_select` — **mode + ending aware**: coop → all members see all rows;
+  compete → a player sees only their own rows **mid-game**, everyone's once
+  `common.games.ended_at` is set (the reveal).
 - **⚠ Realtime publication invariant (load-bearing — see the memory +
   CLAUDE.md).** BOTH tables must be in `supabase_realtime`:
   ```sql
   alter publication supabase_realtime add table wordiply.games;
   alter publication supabase_realtime add table wordiply.events;
   ```
-  `useGame` subscribes to `events` (live guesses) **and** `games`
-  (replay/terminal touch); if either is missing the updated Realtime image drops
+  `useGame` subscribes to `events` (live guesses) **and** `games`; if either
+  is missing the updated Realtime image drops
   the **whole** subscription and live updates silently die. Both memberships are
   pinned by the central `supabase/tests/common/realtime_publication_test.sql`
   (which `schema_test.sql` defers to).
@@ -227,8 +226,8 @@ at the end" rule is enforced in the **FE render**, not the schema (see §2).
 Signatures mirror wordwheel one-for-one except the board shape and the
 validated-guess RPC.
 
-- **`wordiply.create_game(target_club text, setup jsonb, player_user_ids uuid[],
-  mode text, board jsonb) → table(id uuid)`**
+- **`wordiply.create_game(p_club_handle text, p_setup jsonb, p_player_user_ids
+  uuid[], p_mode text, p_board jsonb) → jsonb`**
   - Validates: membership; player counts (coop `[1,6]`, compete `[2,6]`);
     `mode`; **rejects `setup.target_rank`** (wordiply isn't a race-to-rank); one
     `difficulty` band 1..6; timer via `common._require_valid_timer`; and the
@@ -240,27 +239,28 @@ validated-guess RPC.
     non-empty. Board content is taken at face value (the edge fn computed it
     under the caller's JWT), structure is sanity-checked here.
   - Inserts `common.games` (gametype `'wordiply_' || mode`) + `wordiply.games`;
-    seeds the `status` jsonb (below). **Title = just the uppercased `<BASE>`**
+    writes the statuses (below). **Title = just the uppercased `<BASE>`**
     (e.g. `"AR"`) — deliberately NOT `"<BASE> · best <N>"`: the club-page title
     shows before/during play, and the longest-word length is secret until
     terminal, so it must not leak there.
 
-- **`wordiply.submit_guess(target_game uuid, word text) → jsonb`** —
-  **trusting-commit** (wordwheel's `submit_word` twin; the FE already validated
+- **`wordiply.submit_guess(p_game_id uuid, p_word text, p_fe_legal boolean
+  default true) → jsonb`** — **trusting-commit** (the FE already validated
   against the shipped legal list):
-  1. Game must be `playing`; caller a player; not conceded; budget remaining
-     (coop: team `< 5`; compete: caller `< 5`).
-  2. **Free server guards** (no dictionary lookup — these catch a stale FE and
-     cost nothing): `char_length(word) > base_len` and **contains base**
-     (`position(base in word) > 0`), plus mode-aware **dedup**. Dictionary
-     legality is **trusted from the FE** (shipped list), exactly as wordwheel
-     trusts its FE. A guess that fails a guard returns `{ok:false, reason}` and
-     records nothing.
-  3. **Insert** the guess, recompute this track's leaderboard entry, check the
-     **end condition**, and if met transition to terminal + (compete) **resolve
-     the winner via the formula**. Return `{ok:true, length, guesses_used,
-     is_terminal, ...}` — `length` (the one live readout); `length_score` /
-     `letter_count` are returned only on the terminal response.
+  1. The game hasn't ended; caller a player; not conceded; the turn; budget
+     remaining (coop: team `< 5`; compete: caller `< 5`).
+  2. Mode-aware **dedup**, then the **free server guards** (no dictionary
+     lookup — these catch a stale FE and cost nothing): `char_length(word) >
+     base_len` and **contains base** (`position(base in word) > 0`). Dictionary
+     legality is **trusted from the FE** (`p_fe_legal`). A guess that fails a
+     guard is recorded as a reject and answers `{result: 'rejected', reason}`.
+  3. **Insert** the guess and check the **ending**: coop's fifth accepted word
+     ends `resource_exhausted` / `complete`, a win with the team ranked 1; a
+     compete fifth word ends that racer (`resource_exhausted` / `complete`), and
+     the race once nobody is left racing, **ranked by the formula**, the reason
+     the last racer's act. Then the statuses. Answers `{result: 'accepted',
+     length, guesses_used, terminal}` — `length` (the one live readout);
+     `length_score` / `letter_count` are added once the game has ended.
   - Because the FE validates locally, an *invalid* guess never reaches the
     server (it never consumes a line) — same retry-Wordiply-style behavior, now
     for free.
@@ -284,72 +284,51 @@ validated-guess RPC.
   (PN133 / PN134), because they belong under the setup dialog's own field.
   - **Opt-in turn-by-turn coop** (setup `coop_style = 'turns'`): after the
     lock + caller, `submit_guess` gates on `common._require_turn`, and calls
-    `common._advance_turn` only on an accepted, non-terminal guess — never on a
-    guard reject (too-short / missing-base / duplicate) or the guess that ends
-    the game. See [common-schema.md →
+    `common._advance_turn` on an accepted guess that doesn't end the game and on
+    a rules break (too-short / missing-base) — never on a dictionary miss or a
+    duplicate. See [common-schema.md →
     Turn-order](../common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
 - **Board-builder SQL helpers** (all `security invoker`, edge-fn-only):
-  - **`wordiply.matching_words(base text, legal_band int) → table(word, len)`**
+  - **`wordiply.matching_words(p_base text, p_legal_band int) → table(word, len)`**
     — legal clean `common.words` **containing `base`** (substring `position()`),
     longer than the base. The one place the "what counts as a legal guess"
     predicate lives. `submit_guess` does NOT use it (it trusts the FE).
-  - **`wordiply.candidate_bases(source_band int, n int) → table(base)`** — N
+  - **`wordiply.candidate_bases(p_source_band int, p_n int) → table(base)`** — N
     random 2–4 letter substrings of common source words (so a base always has
     children, and reads naturally).
-  - **`wordiply.try_base(base, legal_band, min_children, max_children,
-    min_headroom) → table(max_word_length, longest_words, legal_words)`** —
+  - **`wordiply.try_base(p_base, p_legal_band, p_min_children, p_max_children,
+    p_min_headroom) → table(max_word_length, longest_words, legal_words)`** —
     returns the board bits IFF the base clears the gate (child count in
     `[min,max]`, `max_word_length ≥ base_len + headroom`); ZERO rows otherwise
     (so a rejected base transfers nothing). The **max-children bound** is what
     throws out over-generous fragments (`in`/`an`/`ar` have tens of thousands of
     children).
 
-- **`wordiply.submit_timeout(target_game) → jsonb`** — countdown expired →
-  terminal. Coop → **`lost`** (`reason:'timeout'`): the clock is the ONE way a
-  coop table loses, because the team had a reachable end (spend the five shared
-  guesses) and didn't reach it — see [states.md → When the clock is a
-  LOSS](../states.md#when-the-clock-is-a-loss). Spending the guesses or stopping
-  on purpose stay neutral `ended`. Compete → **resolve the formula on current
-  scores** → `won_compete` (whoever leads; ties per the comparator) — **unless
-  nobody guessed at all**, in which case there is no score to crown and it's
-  `lost_compete` with everyone `won:false` (the same guard boggle's score race
-  carries; see [states.md → Compete is
-  different](../states.md#compete-is-different-the-clock-resolves-a-race)).
+- **`wordiply.submit_timeout(p_game_id) → jsonb`** — countdown expired → the
+  end. Coop → `timeout` / `timeout`, **lost**, nobody ranked: the team had a
+  reachable end (spend the five shared words) and didn't reach it. Compete →
+  **the formula on current scores**, ranking whoever leads — and nobody when
+  nobody scored, a collective loss.
 
-- **`wordiply.stop_game(target_game)`** — the manual "we're done" stop, in
-  **both** modes: coop → `_finish_coop(…, 'manual')`, the neutral `ended`;
-  compete → `_finish_compete(…, 'manual', pick_winner => false)` — also `ended`,
-  everyone `won: false`, **no winner crowned** (agreeing to stop isn't a race
-  resolution). **`wordiply.concede(target_game)`** — compete per-player drop = a
-  real loss (via `common.concede`; others race on).
-  **`wordiply.replay_board(target_game)`** — same base word, wipe guesses,
-  un-terminal (wordwheel parity).
+- **`wordiply.stop_game(p_game_id)`** — the Stop, in **both** modes, through
+  `common._stop`: `stopped`, neutral, nobody ranked.
+  **`wordiply.concede(p_game_id)`** — compete per-player drop = a real loss:
+  locks the row, `common._concede`, then ends the race if every other racer has
+  already spent their five (the reason `conceded`).
+  **`wordiply.replay_board(p_game_id)`** — same base word, wipe guesses,
+  `common._reset_game`.
 
-### `status` jsonb
+### The statuses
 
-```jsonc
-{
-  "mode": "compete",
-  "base": "ar",
-  "max_word_length": 9,
-  "leaderboard": [
-    // mid-game each entry carries only user_id + guesses_used — no score leaks early;
-    // length_score / letter_count / finished_at / won are written at terminal.
-    { "user_id": "…", "length_score": 78,
-      "letter_count": 22, "guesses_used": 5, "finished_at": "…", "won": true }
-  ],
-  "winner_user_id": "…",                            // compete terminal (null on co-winners)
-  "winner_username": "alice",                       // cached at finish time — the club-list
-                                                    // label is a pure function of this row
-                                                    // and can't resolve a uuid
-  "reason": "complete" | "timeout" | "manual" | "conceded"
-}
-```
-(coop status is simpler: `{ mode, base, max_word_length, guesses_used }`, plus
-`length_score` / `letter_count` / `longest` / `reason` at terminal. Leaderboard
-usernames are resolved FE-side from the club roster; only the winner's is
-cached, in `winner_username`.)
+`wordiply._write_statuses` writes them at create, Restart, every accepted word
+and every ending. The two scores stay null until the game has ended.
+
+- `game_status` — `{}`: the base and the longest length are columns.
+- `player_status` — `guesses_used`, `length_score`, `letter_count`,
+  `player_ended_reason`: that player's track (the team's, on every coop row).
+- `clubpage_info` — `guesses_used`, `length_score`, `letter_count` (coop's;
+  null in compete), `winner_user_id`, `winner_length_score` (compete's).
 
 `labelFor` (manifest) reads this for the club-page row, in the shared
 status-label vocabulary
@@ -484,7 +463,7 @@ stop *random* boards repeating.
 |---|---|---|
 | guesses | **5 shared** (the whole team fills the five lines together) | **5 per player** (each has their own five-line board) |
 | visibility | everyone sees every guess live (each row shows its length); **scores + longest word revealed at terminal** | opponents' **guesses + scores hidden** mid-game (an opponent shows only **guesses used `n/5`**); full reveal at terminal |
-| ends | after the team's 5th guess / timeout / manual `stop_game` | once every active player has spent 5 / timeout / concede |
+| ends | after the team's 5th guess (a win) / timeout (a loss) / Stop | once every player has spent 5 or conceded / timeout / Stop |
 | terminal verdict | "Ended: **N%**, M letters" — outcome `neutral` (coop has no win, you just did as well as you did; the info column fills in the LengthScoreBar + longest word). The clock is the exception: "Lost: out of time, **N%**" | "Won: N%" (co-winners "Won: tied at N%"); a loser sees who won, with their identity dot — "● moth won at 78%" |
 | players | `[1, 6]` (solo allowed) | `[2, 6]` |
 
@@ -723,18 +702,18 @@ your own rows.
 fixture in `setup.psql`):
 - `schema_test` — both gametypes registered; tables exist with RLS enabled + the
   `authenticated` SELECT grants; nothing is column-hidden — `games_state`
-  exposes `base` / `difficulty` / `max_word_length` / `longest_words` /
+  exposes `base` / `max_word_length` / `longest_words` /
   `legal_words` (the terminal-only reveal is an FE choice, §2). The
   realtime-publication memberships are guarded centrally in
   `common/realtime_publication_test.sql`.
-- `create_game_test` — the coop + compete happy paths (rows, gametypes, seeded
-  `status` shapes, title = just the uppercased base — no length leak); the
+- `create_game_test` — the coop + compete happy paths (rows, gametypes, the
+  statuses, title = just the uppercased base — no length leak); the
   guards: an outsider (42501), an **invalid positional `mode` arg**,
   `setup.target_rank`, compete `< 2` players, difficulty outside 1..6, malformed
   board (`base` not 2–4 lowercase letters, `max_word_length` below `base_len +
   2`, empty `longest_words` / empty `legal_words`), player count over 6.
 - `gameplay_test` — `submit_guess` trusting-commit: a valid guess →
-  `{ok:true}` + one row + status bump; the **free server guards**
+  `accepted` + one row + the statuses; the **free server guards**
   (longer-than-base, contains-base, mode-aware dedup) reject **without inserting
   or spending budget**; dictionary legality is trusted from the FE (guesses in
   the test are synthetic non-words), so a non-word is a **Vitest** concern, not
@@ -754,13 +733,18 @@ fixture in `setup.psql`):
   rejected; an accepted guess advances the pointer, a soft-reject doesn't;
   free-for-all leaves it null.
 - `winner_test` — compete winner by length score; **tiebreak letter count**,
-  then **time**; co-winner case; timeout resolves the formula.
-- `terminal_test` — coop `stop_game` (→ `ended`/`manual`); coop timeout (the one
-  coop loss); `replay_board` wipes guesses + un-terminals; `concede`, including
-  the last-racer's concede resolving the race rather than hanging it.
+  then the **earlier last word**, timed or not; first place `won`, second
+  `near`; timeout resolves the formula.
+- `terminal_test` — the Stop in both modes (`stopped`, neutral); coop timeout
+  (the one coop loss); `concede`, including the last racer's concede ending the
+  race (`conceded`) rather than hanging it, and a fifth word as the last act
+  (`resource_exhausted` / `complete`).
 - `turn_order_test` also pins the **turn-cost split** (below): a structural
   reject ends the caller's go, a dictionary miss doesn't, and neither spends
   budget.
+- `statuses_test` — each status's exact key set at the start, mid-game and at
+  the end in both modes; the scores null until the end; a reject writes
+  nothing; a rebuild neither re-dates nor keeps a stale key.
 - `winner_test`'s last case is the **score-isolation regression** — rejects
   interleaved with accepted guesses, including one LONGER than every accepted
   word, which flips the compete winner if any `where valid` is missed. That's
@@ -768,10 +752,9 @@ fixture in `setup.psql`):
   this.
 - `replay_test` — the dedicated replay suite (the shape every other replay game
   has). Deliberately overlaps `terminal_test` §3's coop pass and adds what it
-  doesn't reach: the **compete** branch (`replay_board` hand-writes a zeroed
-  per-player leaderboard — nothing else exercises that jsonb), `is_terminal`,
-  the shared clock zeroing, that the terminal-only readouts (`length_score` …)
-  do **not** survive into the fresh status, and the non-player rejection pinned
+  doesn't reach: the **compete** branch (every player's ending, ranking and
+  outcome cleared), `restart_count`, the shared clock zeroing, that the
+  end-only scores (`length_score` …) are null again in the statuses, and the non-player rejection pinned
   to `42501`.
 
 **Vitest** (`src/wordiply/`):
@@ -837,12 +820,11 @@ next to the thing it was chosen over. The chosen option is in **bold**.
    word, so rewarding brevity at the tiebreak would contradict the line above
    it. Step 2 of `_finish_compete`'s comparator; changing it means the SQL
    **and** `lib/scoring.ts`'s `compareCompetitors`, which must stay in lockstep.
-4. **Unresolved-tie result** — **resolved 2026-08-03: co-winners.** Everyone
-   tied at the top is marked `won`. The alternative, a seat-order tiebreak,
-   breaks a genuine tie on something arbitrary and invisible to the players —
-   nobody can see the seat order, so the loser of that tiebreak just sees an
-   unexplained loss. Two friends who played identically well both won. Step 4 of
-   the same comparator, same lockstep rule.
+4. **The last tiebreak** — **resolved 2026-09-27: the earlier last word**, in
+   every game, timed or not. It always resolves — two words never land at the
+   same instant — so there are no co-winners. The alternative, a seat-order
+   tiebreak, breaks a tie on something arbitrary and invisible to the players.
+   Step 3 of the same comparator, same lockstep rule.
 5. **Coop budget** — **5 shared** (team fills one board, §6) vs 5-per-player.
    The shared choice is what makes the single five-row board coherent.
 6. **Guess count** — **resolved 2026-08-03: fixed at 5**, a constant rather than
@@ -866,21 +848,3 @@ next to the thing it was chosen over. The chosen option is in **bold**.
     %, letter count, and the longest word appear only at terminal (§2). Compete
     opponents show just guesses used mid-game.
 
-## Deferred
-
-**A way for coop to WIN or LOSE.** Today coop has neither: spending the five
-guesses, or stopping on purpose, both land on the neutral `ended`
-([`supabase/sql/wordiply.sql`](../../supabase/sql/wordiply.sql) — *"Spending the
-guesses, or stopping on purpose, are just finishing"*). Compete resolves
-properly, through the length-score → letter-count comparator, so only the
-shared game has no verdict.
-
-That is arguably right — the game is a score, not a race, and the readouts stay
-hidden until terminal so there's a reveal either way. But it means a coop table
-finishes with no answer to "did we do well?", which every other coop game on the
-roster gives them. Options if it's worth fixing: a target length score the
-setup dialog offers (spellingbee's `target_rank` shape), a par derived from the
-board's `longest_words`, or leaving it neutral and saying so in the rules.
-
-Surfaced 2026-08-06 by the screenshot gallery, which wanted an end-state to
-photograph and found coop had none to show.

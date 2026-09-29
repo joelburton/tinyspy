@@ -18,8 +18,7 @@
 --                                     jsonb (difficulty 5, no timer). Mode is
 --                                     a positional RPC arg, NOT a setup field.
 --   pg_temp.wordiply_setup_timed()    — the same setup with a countdown
---                                     timer, for the timed-tiebreak +
---                                     submit_timeout paths.
+--                                     timer, for the submit_timeout paths.
 --
 -- ─── Why synthetic + why it doesn't matter ───────────────────
 -- wordiply.submit_guess is TRUSTING-COMMIT: it never consults a dictionary.
@@ -45,8 +44,8 @@ as $$
   select jsonb_build_object(
     'base',            'ar',
     'max_word_length', 7,
-    -- The longest legal word(s) — stored, revealed only at terminal by the
-    -- FE. 'hangars' is 7 letters and contains 'ar' (its own length is what
+    -- The longest legal word(s) — stored, revealed by the FE only once
+    -- the game has ended. 'hangars' is 7 letters and contains 'ar' (its own length is what
     -- max_word_length asserts). Synthetic-as-far-as-the-server-cares.
     'longest_words',   jsonb_build_array('hangars'),
     -- The full shipped legal list. Every entry contains 'ar'. Never
@@ -57,11 +56,11 @@ as $$
   );
 $$;
 
--- Default setup: no timer. Mode is a positional create_game arg
--- (sibling-manifest split — the gametype string carries the mode);
--- wordiply.create_game REJECTS a `mode` field on setup (and a `target_rank`
--- field — wordiply is not a race-to-rank) so a stale FE fails fast. Tests
--- that need those rejections build the bad setup inline via jsonb concat.
+-- Default setup: no timer. Mode is a positional create_game arg (the
+-- gametype string carries the mode). wordiply.create_game REJECTS a
+-- `target_rank` field — wordiply is not a race-to-rank — so a stale FE fails
+-- fast. Tests that need that rejection build the bad setup inline via jsonb
+-- concat.
 create function pg_temp.wordiply_setup()
 returns jsonb
 language sql
@@ -72,10 +71,7 @@ as $$
   );
 $$;
 
--- Timed variant: a 60-second countdown. Needed by the timed compete
--- tiebreak (equal length_score AND letter_count → earlier finisher wins,
--- a branch _finish_compete only takes when the game is timed) and by the
--- submit_timeout paths.
+-- Timed variant: a 60-second countdown, for the submit_timeout paths.
 create function pg_temp.wordiply_setup_timed()
 returns jsonb
 language sql

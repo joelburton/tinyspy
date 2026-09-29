@@ -4,7 +4,7 @@
 -- Test: wordiply baseline schema invariants
 -- ============================================================
 --
--- A fork of wordwheel's schema_test. The migration laid down the tables,
+-- The migration laid down the tables,
 -- grants, and view; this file exercises the schema *directly* — inserting
 -- rows as the postgres superuser (bypassing the "no INSERT grant on
 -- authenticated" rule) to set up the state we want to assert about.
@@ -13,17 +13,18 @@
 --   1. Both gametypes (wordiply_coop + wordiply_compete) are registered.
 --   2. wordiply.games + wordiply.events exist with RLS ENABLED and the
 --      authenticated SELECT grants the FE needs.
---   3. Nothing is hidden: the games_state view exposes base / difficulty /
---      max_word_length / longest_words / legal_words (the "reveal scores at
---      terminal" rule is an FE display choice, not a server gate).
+--   3. Nothing is hidden: the games_state view exposes base /
+--      max_word_length / longest_words / legal_words (showing the scores
+--      only once the game has ended is an FE display choice, not a server
+--      gate).
 --
--- RLS membership / coop-vs-compete visibility lives in gameplay_test.sql.
+-- RLS membership / coop-vs-compete visibility lives in rls_test.sql.
 
 begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(10);
+select plan(9);
 
 \ir ../_shared/setup.psql
 
@@ -61,8 +62,8 @@ select is(
 -- ============================================================
 -- Set up: a wordiply game in ada+bea's club (direct insert)
 -- ============================================================
--- A non-terminal game we'll later flip terminal. The FK target row in
--- common.games goes in first, then the wordiply.games row.
+-- A game still in play. The FK target row in common.games goes in first,
+-- then the wordiply.games row.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -73,29 +74,24 @@ reset role;
 create temp table common_g (id uuid) on commit drop;
 grant select on common_g to authenticated;
 with ins as (
-  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, mode, title, setup)
   values (
     gen_random_uuid(),
     (select handle from club),
     'wordiply_coop',
-    'AR · best 7',
-    '{"difficulty": 5, "timer": {"kind": "none"}}'::jsonb,
-    'playing',
-    false
+    'coop',
+    'AR',
+    '{"difficulty": 5, "timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )
 insert into common_g (id) select id from ins;
 
 insert into wordiply.games
-  (id, club_handle, mode, base, difficulty,
-   max_word_length, longest_words, legal_words)
+  (game_id, base, max_word_length, longest_words, legal_words)
 values (
   (select id from common_g),
-  (select handle from club),
-  'coop',
   'ar',
-  5,
   7,
   '["hangars"]'::jsonb,
   '["bar","car","arc","hangars"]'::jsonb
@@ -116,13 +112,13 @@ values (
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select is(
-  (select base from wordiply.games where id = (select id from common_g)),
+  (select base from wordiply.games where game_id = (select id from common_g)),
   'ar',
   'authenticated CAN SELECT wordiply.games.base (nothing hidden)'
 );
 
 select is(
-  (select legal_words from wordiply.games where id = (select id from common_g)),
+  (select legal_words from wordiply.games where game_id = (select id from common_g)),
   '["bar","car","arc","hangars"]'::jsonb,
   'authenticated CAN SELECT legal_words directly (trust model: not withheld)'
 );
@@ -134,31 +130,25 @@ select is(
 );
 
 -- ============================================================
--- games_state view exposes everything (no terminal gate)
+-- games_state view exposes everything (no ended gate)
 -- ============================================================
 
 select is(
-  (select base from wordiply.games_state where id = (select id from common_g)),
+  (select base from wordiply.games_state where game_id = (select id from common_g)),
   'ar',
   'games_state.base is exposed during play'
 );
 
 select is(
-  (select difficulty from wordiply.games_state where id = (select id from common_g)),
-  5::smallint,
-  'games_state.difficulty is exposed'
-);
-
-select is(
-  (select max_word_length from wordiply.games_state where id = (select id from common_g)),
+  (select max_word_length from wordiply.games_state where game_id = (select id from common_g)),
   7,
   'games_state.max_word_length is exposed'
 );
 
 select is(
-  (select longest_words from wordiply.games_state where id = (select id from common_g)),
+  (select longest_words from wordiply.games_state where game_id = (select id from common_g)),
   '["hangars"]'::jsonb,
-  'games_state.longest_words is exposed (FE only RENDERS it at terminal)'
+  'games_state.longest_words is exposed (FE only RENDERS it once ended)'
 );
 
 -- Realtime publication membership for wordiply.games + guesses is guarded

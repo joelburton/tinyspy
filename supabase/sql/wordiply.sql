@@ -1,141 +1,148 @@
 -- cs-unmet
 
 -- ============================================================
--- wordiply — the REPEATABLE half
+-- wordiply
 -- ============================================================
--- Functions, views, RLS policies, triggers and grants for wordiply. Everything
--- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
--- delta. Edit it in place forever; it never becomes a migration.
+-- What the page and the wordiply-build-board edge function call:
 --
--- Its other half is the one-shot schema migration
--- `supabase/migrations/20260713000000_wordiply.sql` — tables, constraints, indexes,
--- the Realtime publication and seed rows. That one is applied once and then
--- frozen, because `alter table` cannot be re-run.
+--   candidate_bases  samples base fragments for the builder to try
+--   try_base         gates one fragment and, if it passes, builds its board
+--   matching_words   every legal word containing a base (the builder's count)
+--   create_game      starts a game on a built board
+--   submit_guess     plays a word that contains the base, or records a reject
+--   concede          a racer drops out of a compete game
+--   stop_game        stops the game for everyone, with no result
+--   submit_timeout   ends the game when the countdown runs out
+--   replay_board     the same base again from scratch
 --
--- Order is load-bearing: a policy can only reference a function that already
--- exists, so statements stay in the order they were written. See
+-- and the view `games_state`, the game row.
+--
+-- What is particular to wordiply (docs/games/wordiply.md has the rest):
+--   - Every word must contain the base and be longer than it. Five accepted
+--     words each — the team's five in coop, each racer's own five in compete.
+--   - Only the length shows during play. The length score (the longest word
+--     against the board's longest possible, `_length_score`) and the letter
+--     count are written to the statuses once the game has ended.
+--   - The frontend holds the legal list and judges the dictionary; the server
+--     re-checks only the two free rules (longer than the base, contains it).
+--     Every submission is logged, rejects included.
+--   - Coop's five words spent is a win. A compete race plays out: it ends once
+--     nobody is left racing, ranked by length score, then letter count, then
+--     the earlier last word.
+--   - Guesses are the one mode-aware read: coop sees everyone's, compete only
+--     your own until the game ends.
+--
+-- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
 -- ============================================================
 
 grant usage on schema wordiply to authenticated;
 grant usage on schema wordiply to service_role;
 
--- All columns readable by club members (no hidden columns — see header).
--- Explicit list per docs/code-conventions.md → "Avoid SELECT *". `mode` is
--- included so the games_state view's g.mode + the events_select RLS
--- policy's fg.mode resolve for `authenticated`.
+-- Every column is readable: nothing on the board is secret, and hiding the
+-- longest word until the end is the page's choice.
 grant select
-  (id, club_handle, mode, base, difficulty,
-   max_word_length, longest_words, legal_words, created_at)
+  (game_id, base, max_word_length, longest_words, legal_words)
   on wordiply.games to authenticated;
 
 grant select on wordiply.events to authenticated;
 
--- Membership-gated read on games (both modes identical: anyone in the
--- club sees the game header — base word, bands, the length bar's target).
+-- Any club member may read any of the club's games.
 drop policy if exists games_select on wordiply.games;
 create policy games_select on wordiply.games
   for select to authenticated
-  using (common._is_club_member(club_handle));
+  using (
+    exists (
+      select 1 from common.games cg
+       where cg.id = games.game_id
+         and common._is_club_member(cg.club_handle)
+    )
+  );
 
--- guesses RLS is the load-bearing piece for compete. Reads mode off
--- wordiply.games.mode (denormalized). Three OR branches inside the
--- EXISTS, in evaluation order:
---   (1) mode='coop' — everyone in the club sees every guess.
---   (2) user_id = auth.uid() — you always see your own guesses (in
---       compete mid-game, this is your private board).
---   (3) is_terminal — once the game ends, everyone sees everyone's
---       guesses (the compete reveal; harmless in coop).
--- Mirrors wordwheel.found_words_select.
+-- Club membership is the outer gate; inside, coop shows everyone's guesses,
+-- you always see your own, and once the game ends everyone sees everyone's
+-- (the compete reveal).
 drop policy if exists events_select on wordiply.events;
 create policy events_select on wordiply.events
   for select to authenticated
   using (
     exists (
-      select 1 from wordiply.games fg
-       join common.games cg on cg.id = fg.id
-       where fg.id = events.game_id
-         and common._is_club_member(fg.club_handle)
+      select 1 from common.games cg
+       where cg.id = events.game_id
+         and common._is_club_member(cg.club_handle)
          and (
-               fg.mode = 'coop'
+               cg.mode = 'coop'
             or events.user_id = (select auth.uid())
-            or cg.is_terminal
+            or cg.ended_at is not null
              )
     )
   );
 
 -- No INSERT/UPDATE/DELETE policies — writes go through the RPCs below.
 
--- ============================================================
--- games_state view
--- ============================================================
--- The FE's read path for a wordiply game header. security_invoker so RLS
--- on the base table evaluates as the caller (games_select gates row
--- visibility). Exposes every column — nothing is terminal-gated (the
--- "reveal at terminal" is an FE display choice).
 drop view if exists wordiply.games_state;
+
+-- ============================================================
+-- wordiply.games_state — the game row the frontend reads
+-- ============================================================
+-- security_invoker, so games_select decides which rows the caller sees.
 create view wordiply.games_state with (security_invoker = true) as
 select
-  g.id,
-  g.club_handle,
-  g.mode,
+  g.game_id,
   g.base,
-  g.difficulty,
   g.max_word_length,
   g.longest_words,
-  g.legal_words,
-  g.created_at
+  g.legal_words
   from wordiply.games g;
 
 grant select on wordiply.games_state to authenticated;
 
+drop function if exists wordiply._length_score(int, int);
+
 -- ============================================================
 -- wordiply._length_score — the length-bar percentage
 -- ============================================================
--- round(100 * longest / max_len), integer-clamped to [0, 100]. Kept as a
--- function so the FE's port (lib/scoring.ts) can match it bit-for-bit —
--- determinism, not performance. max_len <= 0 (degenerate board) → 0.
-create or replace function wordiply._length_score(longest int, max_len int)
+-- round(100 * longest / max_len), clamped to [0, 100]; 0 for a degenerate
+-- board with no length. The frontend's port (lib/scoring.ts) must match it
+-- exactly.
+create or replace function wordiply._length_score(p_longest int, p_max_len int)
 returns int
 language sql
 immutable
 set search_path = wordiply, common, public, extensions
 as $$
   select case
-           when max_len <= 0 then 0
-           else least(100, round(100.0 * longest / max_len)::int)
+           when p_max_len <= 0 then 0
+           else least(100, round(100.0 * p_longest / p_max_len)::int)
          end;
 $$;
 
 revoke execute on function wordiply._length_score(int, int) from public;
 
+drop function if exists wordiply.matching_words(text, int);
+
 -- ============================================================
--- wordiply.matching_words — edge-function board-build helper
+-- wordiply.matching_words — every legal word containing a base
 -- ============================================================
--- Every clean legal word that CONTAINS the base word as a contiguous
--- substring and is longer than it. The edge function reads this back via
--- supabase.rpc(...) to compute max_word_length, the longest_words, the
--- shipped legal_words list, and the playability gate. This is the ONE
--- place the "what counts as a legal guess" predicate lives.
+-- Every clean legal word that CONTAINS the base as a contiguous substring and
+-- is longer than it. try_base builds a board from it and the edge function
+-- counts it; this is the one place the "what counts as a legal guess"
+-- predicate lives.
 --
 -- Word LENGTH is deliberately NOT capped — a long best word like
 -- 'compartmentalizations' (for 'part') is a legitimate, satisfying target.
--- The lever that keeps a board sane is a MAX-CHILDREN gate in the edge
--- function: a base with tens of thousands of matches ('in', 'an') is a
--- non-puzzle (and a huge payload), so those are rejected. Good bases are
--- typically 3–4 letters, or an UNCOMMON 2-letter one ('za', 'rw'); the
--- match-count band is what selects them.
+-- The lever that keeps a board sane is a MAX-CHILDREN gate in try_base: a
+-- base with tens of thousands of matches ('in', 'an') is a non-puzzle (and a
+-- huge payload). Good bases are typically 3–4 letters, or an UNCOMMON 2-letter
+-- one ('za', 'rw').
 --
--- The legal band here is the CLEAN band (american, not slang, no
--- slur/crude) — stricter than wordwheel's permissive legal side — because
--- this set also determines the longest word, and we don't want a slur to
--- be the answer.
+-- The legal band is the CLEAN band (american, not slang, no slur/crude) —
+-- stricter than wordwheel's permissive legal side — because this set also
+-- determines the longest word, and a slur must not be the answer.
 --
--- security invoker + stable: invoker so it runs with the caller's access
--- to common.words (public reference data, readable by every player); stable so a single
--- SELECT can call it without repeated re-execution.
-create or replace function wordiply.matching_words(base text, legal_band int)
+-- security invoker (common.words is readable by every player); stable so one
+-- SELECT can call it without re-running it.
+create or replace function wordiply.matching_words(p_base text, p_legal_band int)
 returns table(word text, len int)
 language sql
 stable
@@ -144,34 +151,33 @@ set search_path = wordiply, common, public, extensions
 as $$
   select w.word, w.len
     from common.words w
-   where w.difficulty <= legal_band
+   where w.difficulty <= p_legal_band
      and w.american
      and not w.slang
      and w.slur = 0
      and w.crude = 0
-     and w.len > char_length(base)
-     -- Contiguous-substring containment — the wordiply rule (position()
-     -- instead of wordwheel's bitmask subset). Not sargable → seq scan,
-     -- fine at a few calls per board build.
-     and position(base in w.word) > 0;
+     and w.len > char_length(p_base)
+     -- Not sargable → a seq scan, fine at a few calls per board build.
+     and position(p_base in w.word) > 0;
 $$;
 
 revoke execute on function wordiply.matching_words(text, int) from public;
 grant execute on function wordiply.matching_words(text, int) to authenticated;
 
+drop function if exists wordiply.candidate_bases(int, int);
+
 -- ============================================================
 -- wordiply.candidate_bases — sample base fragments for the builder
 -- ============================================================
--- The base is a 2–4 letter COMBINATION, not a word, so we can't just pick
--- one from the dictionary. Instead we sample real (common) SOURCE WORDS
--- and hand back every 2–4 letter contiguous substring — a fragment that,
--- by construction, appears in ≥1 real word so it always has children. The
--- edge function then tries these fragments through try_base() until one
--- clears the child-count gate. Sourcing from COMMON words (source_band,
--- ~3) keeps the base natural/recognizable regardless of the legal band.
+-- The base is a 2–4 letter COMBINATION, not a word, so it can't be picked
+-- from the dictionary. Instead this samples `p_n` common SOURCE words and hands
+-- back their 2–4 letter contiguous substrings — each, by construction, in at
+-- least one real word. The edge function tries them through try_base until
+-- one clears the gate. Sourcing from common words (`p_source_band`, ~3) keeps
+-- the base recognizable whatever the legal band.
 --
 -- volatile (random()); security invoker (reads common.words as the caller).
-create or replace function wordiply.candidate_bases(source_band int, n int)
+create or replace function wordiply.candidate_bases(p_source_band int, p_n int)
 returns table(base text)
 language sql
 volatile
@@ -183,43 +189,40 @@ as $$
       from (
         select word from common.words
          where american and not slang and slur = 0 and crude = 0
-           and difficulty <= source_band
+           and difficulty <= p_source_band
            and len between 4 and 9
          order by random()
-         limit n
+         limit p_n
       ) w,
       generate_series(1, 9) i,
       generate_series(2, 4) l
      where i + l - 1 <= length(w.word)
   ) frags
   order by random()
-  limit n;
+  limit p_n;
 $$;
 
 revoke execute on function wordiply.candidate_bases(int, int) from public;
 grant execute on function wordiply.candidate_bases(int, int) to authenticated;
 
+drop function if exists wordiply.try_base(text, int, int, int, int);
+
 -- ============================================================
--- wordiply.try_base — gate + build a board for ONE candidate base
+-- wordiply.try_base — gate and build a board for one candidate base
 -- ============================================================
--- Given a candidate fragment, returns the board bits (max_word_length,
--- longest_words, legal_words) IFF it clears the gate:
---   • child count within [min_children, max_children] — the max bound is
---     what throws out over-generous fragments ('in', 'an', 'ar' have tens
---     of thousands of children → a non-puzzle + a huge payload)
---   • max_word_length ≥ base length + min_headroom — there must be a
---     meaningfully longer word to reach for
--- Returns ZERO rows when the gate fails, so a rejected fragment costs a
--- single common.words scan and transfers nothing (the jsonb aggregation
--- runs only for a passing row). longest_words is the (≤3) words at the max
--- length; legal_words is the full shipped list. One round-trip per tried
--- fragment; the first non-empty result wins in the edge function.
+-- Returns the board's `max_word_length`, `longest_words` (up to three at the
+-- max length) and `legal_words` IF the base clears the gate, else no row:
+--   - the child count is within [p_min_children, p_max_children] — the max
+--     throws out over-generous fragments ('in', 'an', 'ar')
+--   - the longest word beats the base by at least `p_min_headroom` letters
+-- A rejected fragment costs one common.words scan and transfers nothing: the
+-- jsonb aggregation runs only for a passing row.
 create or replace function wordiply.try_base(
-  base text,
-  legal_band int,
-  min_children int,
-  max_children int,
-  min_headroom int
+  p_base text,
+  p_legal_band int,
+  p_min_children int,
+  p_max_children int,
+  p_min_headroom int
 )
 returns table(max_word_length int, longest_words jsonb, legal_words jsonb)
 language sql
@@ -228,7 +231,7 @@ security invoker
 set search_path = wordiply, common, public, extensions
 as $$
   with m as (
-    select word, len from wordiply.matching_words(base, legal_band)
+    select word, len from wordiply.matching_words(p_base, p_legal_band)
   ),
   agg as (
     select count(*)::int as c, coalesce(max(len), 0)::int as mx from m
@@ -239,52 +242,174 @@ as $$
        from (select word from m where len = agg.mx order by word limit 3) t),
     (select jsonb_agg(word) from m)
   from agg
-  where agg.c between min_children and max_children
-    and agg.mx >= char_length(base) + min_headroom;
+  where agg.c between p_min_children and p_max_children
+    and agg.mx >= char_length(p_base) + p_min_headroom;
 $$;
 
 revoke execute on function wordiply.try_base(text, int, int, int, int) from public;
 grant execute on function wordiply.try_base(text, int, int, int, int) to authenticated;
 
+drop function if exists wordiply._track_totals(uuid);
+
 -- ============================================================
--- wordiply.create_game — mode is a positional arg
+-- wordiply._track_totals — each player's numbers so far
 -- ============================================================
--- Setup shape (server validates):
---   {
---     "difficulty": 1..6,   -- dictionary band the legal child words are drawn from (default 5)
---     "custom_base": "moth", -- OPTIONAL player-chosen starter, 2-4 letters
---     "timer": ( {kind:'none'} | {kind:'countup'} | {kind:'countdown',seconds:int} )
---   }
--- `custom_base` is the challenge ("try wordiply with MOTH"): the player names
--- the base instead of letting the edge fn sample one. We validate its SHAPE and
--- cross-check that board.base actually matches it; the edge fn owns whether the
--- letters yield a board (it plays by a looser gate for a chosen base). It is
--- stripped from the club's saved default — a one-off, not a new baseline.
--- `mode` ('coop' | 'compete') is a positional argument, not a setup
--- field. There is NO target_rank — wordiply is not a race-to-rank —
--- so setup.target_rank is rejected if present.
+-- One row per player: the accepted words on their track, the longest one's
+-- length, the letters across them, their length score, and when the last one
+-- landed. A track is the team's in coop (every row the same) and the player's
+-- own in compete. Rejects count for nothing.
 --
--- Board shape (built by the wordiply-build-board edge function):
---   {
---     "base":            "ar",              -- 2–4 letters (NOT a dictionary word)
---     "max_word_length":  9,
---     "longest_words":   ["hangars", ...],  -- top few at the max length
---     "legal_words":     ["arc","cars", ...] -- the full shipped legal list
---   }
--- Board content is taken at face value (the edge fn computed it under the
--- caller's JWT); the RPC sanity-checks STRUCTURE.
+-- The builder and the ranking both read it, so the numbers the page shows
+-- and the numbers a race is decided on are one computation.
+create or replace function wordiply._track_totals(p_game_id uuid)
+returns table(
+  user_id uuid,
+  guesses_used int,
+  longest int,
+  letter_count int,
+  length_score int,
+  last_guess_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = wordiply, common, public, extensions
+as $$
+  select gp.user_id,
+         count(e.id)::int,
+         coalesce(max(e.length), 0)::int,
+         coalesce(sum(e.length), 0)::int,
+         wordiply._length_score(coalesce(max(e.length), 0)::int, g.max_word_length),
+         max(e.created_at)
+    from common.game_players gp
+    join common.games cg on cg.id = gp.game_id
+    join wordiply.games g on g.game_id = gp.game_id
+    left join wordiply.events e
+      on e.game_id = gp.game_id
+     and e.valid
+     and (cg.mode = 'coop' or e.user_id = gp.user_id)
+   where gp.game_id = p_game_id
+   group by gp.user_id, g.max_word_length;
+$$;
+
+revoke execute on function wordiply._track_totals(uuid) from public;
+
+-- ============================================================
+-- wordiply._write_statuses — the page's copies of the game
+-- ============================================================
+-- Writes `common.games.game_status`, every `common.game_players.player_status`
+-- and `common.games.clubpage_info` from wordiply's own tables, assigning each
+-- whole (plans/common-tables.md → The statuses). Every key is always present,
+-- null when it has no value:
 --
--- Title formula: just "<BASE>" (uppercased) — e.g. "AR". Deliberately NOT
--- "<BASE> · best <N>": the club-page title is visible before/during play, and
--- the longest-word length is secret until terminal, so it must not leak here.
+--   game_status    {} — the base and the longest length are columns
+--   player_status  { guesses_used, length_score, letter_count,
+--                    player_ended_reason }
+--                  — that player's track (the team's, in coop): its accepted
+--                  words, and its two scores, which stay null until the game
+--                  has ended; how they ended: out of words, or conceded
+--   clubpage_info  { guesses_used, length_score, letter_count,
+--                    winner_user_id, winner_length_score }
+--                  — coop's shared words used, and its two scores once it
+--                  has ended (null in compete, whose club line shows no
+--                  progress); compete's sole winner and their length score,
+--                  once there is one
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function wordiply._write_statuses(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = wordiply, common, public, extensions
+as $$
+declare
+  v_mode text;
+  v_ended boolean;
+  v_team_used int;
+  v_team_length_score int;
+  v_team_letter_count int;
+  v_winner uuid;
+begin
+  select mode, ended_at is not null into v_mode, v_ended
+    from common.games where id = p_game_id;
+
+  update common.game_players gp
+     set player_status = jsonb_build_object(
+           'guesses_used', t.guesses_used,
+           'length_score', case when v_ended then t.length_score end,
+           'letter_count', case when v_ended then t.letter_count end,
+           'player_ended_reason', gp.player_ended_reason)
+    from wordiply._track_totals(p_game_id) t
+   where gp.game_id = p_game_id
+     and gp.user_id = t.user_id;
+
+  if v_mode = 'coop' then
+    select guesses_used, length_score, letter_count
+      into v_team_used, v_team_length_score, v_team_letter_count
+      from wordiply._track_totals(p_game_id)
+     limit 1;
+  else
+    select min(user_id::text)::uuid into v_winner
+      from common.game_players
+     where game_id = p_game_id and final_ranking = 1
+    having count(*) = 1;
+  end if;
+
+  update common.games
+     set game_status = '{}'::jsonb,
+         clubpage_info = jsonb_build_object(
+           'guesses_used', v_team_used,
+           'length_score', case when v_ended then v_team_length_score end,
+           'letter_count', case when v_ended then v_team_letter_count end,
+           'winner_user_id', v_winner,
+           'winner_length_score', (select t.length_score
+                                     from wordiply._track_totals(p_game_id) t
+                                    where t.user_id = v_winner)),
+         status_changed_at = case when p_update_status_changed_at
+                                  then now() else status_changed_at end
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function wordiply._write_statuses(uuid, boolean) from public;
+
 drop function if exists wordiply.create_game(text, jsonb, uuid[], text, jsonb);
 
+-- ============================================================
+-- wordiply.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)
+-- ============================================================
+-- Starts a game on a board the wordiply-build-board edge function built under
+-- the caller's JWT. The board is taken at face value; only its STRUCTURE is
+-- checked.
+--
+-- Setup shape (server validates):
+--   { "difficulty": 1..6 (the band the legal words are drawn from; default 5),
+--     "custom_base": "moth" (optional, 2–4 letters: the player names the base
+--       instead of the builder sampling one; stripped from the club's saved
+--       default, since it is a one-off challenge, not a new baseline),
+--     "timer": (none | countup | countdown{seconds}),
+--     "coop_style": 'free-for-all' | 'turns' (coop only),
+--     "first_turn_user_id": a player (with 'turns'; stripped from the
+--       club's saved default) }
+-- There is no target_rank; one in the setup is refused.
+--
+-- Board shape:
+--   { "base": "ar", "max_word_length": 9,
+--     "longest_words": ["hangars", …], "legal_words": ["arc", "cars", …] }
+--
+-- The title is the base, uppercased ("AR") — never the best length, which is
+-- secret until the end and the title is visible before and during play.
 create or replace function wordiply.create_game(
-  target_club text,
-  setup jsonb,
-  player_user_ids uuid[],
-  mode text,
-  board jsonb
+  p_club_handle     text,
+  p_setup           jsonb,
+  p_player_user_ids uuid[],
+  p_mode            text,
+  p_board           jsonb
 )
 returns jsonb
 language plpgsql
@@ -297,71 +422,59 @@ declare
   s_difficulty int;
   s_custom_base text;
   b_base text;
-  b_base_len int;
   b_max_word_length int;
-  game_title text;
-  effective_gametype text;
-  init_status jsonb;
   first_turn uuid;
 begin
-  perform common._require_club_member(target_club);
+  perform common._require_club_member(p_club_handle);
 
-  -- ─── Validate mode + player-count ────────────────────────
-  perform common._require_valid_mode(mode);
-  if mode = 'compete' then
-    if coalesce(array_length(player_user_ids, 1), 0) < 2 then
+  perform common._require_valid_mode(p_mode);
+  if p_mode = 'compete' then
+    if coalesce(array_length(p_player_user_ids, 1), 0) < 2 then
       raise exception 'BUG: race with fewer than two players'
         using errcode = 'PN122', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
     end if;
   end if;
-  perform common._require_player_count_max(player_user_ids, 6);
+  perform common._require_player_count_max(p_player_user_ids, 6);
 
-  -- ─── Reject deprecated / inapplicable setup fields ───────
-  if setup ? 'target_rank' then
+  if p_setup ? 'target_rank' then
     raise exception 'BUG: game with a target rank'
       using errcode = 'PN123', hint = 'fault', column = '_',
       detail = 'wordiply has no target_rank; the setup carried one';
   end if;
 
-  -- ─── Validate the dictionary band ────────────────────────
-  s_difficulty := coalesce((setup->>'difficulty')::int, 5);
+  -- The band only chose the words, which the builder has done; it is checked
+  -- here and kept in `setup`, not stored.
+  s_difficulty := coalesce((p_setup->>'difficulty')::int, 5);
   if s_difficulty < 1 or s_difficulty > 6 then
     raise exception 'BUG: word difficulty of %', s_difficulty
       using errcode = 'PN124', hint = 'fault', column = '_',
       detail = 'setup.difficulty must be 1..6';
   end if;
 
-  perform common._require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(p_setup->'timer');
 
-  -- ─── Validate the optional player-chosen starter ─────────
-  -- setup.custom_base is the "try wordiply with MOTH" challenge: the player
-  -- names the base instead of letting the builder sample one. Only the SHAPE
-  -- is checked here (same rule as board.base below); whether those letters
-  -- YIELD a board is the edge function's job, under a looser gate — see
-  -- docs/games/wordiply.md.
-  s_custom_base := nullif(lower(trim(setup->>'custom_base')), '');
+  -- Only the starter's SHAPE is checked here (the same rule as board.base
+  -- below); whether its letters yield a board is the edge function's job,
+  -- under a looser gate — see docs/games/wordiply.md.
+  s_custom_base := nullif(lower(trim(p_setup->>'custom_base')), '');
   if s_custom_base is not null and s_custom_base !~ '^[a-z]{2,4}$' then
     raise exception 'BUG: starter of ''%''', s_custom_base
       using errcode = 'PN125', hint = 'fault', column = '_',
       detail = 'setup.custom_base must be 2-4 lowercase ASCII letters';
   end if;
 
-  -- ─── Board structure validation ──────────────────────────
-  b_base := board->>'base';
+  b_base := p_board->>'base';
   if b_base is null or b_base !~ '^[a-z]{2,4}$' then
     raise exception 'BUG: generated board came with a starter of ''%''',
       coalesce(b_base, 'null')
       using errcode = 'PN126', hint = 'fault', column = '_',
       detail = 'board.base must be 2-4 lowercase ASCII letters';
   end if;
-  b_base_len := char_length(b_base);
 
-  -- The builder must have honored the request. A board whose base isn't the
-  -- one the player asked for is a builder bug, and this is the only place that
-  -- can catch it — every downstream reader (title, board, scoring) trusts
-  -- board.base, and the player would simply be handed a different game than
-  -- the one they set up.
+  -- The builder must have honored the request. This is the only place that
+  -- can catch it: every later reader trusts board.base, and the player would
+  -- simply be handed a different game than the one they set up.
   if s_custom_base is not null and b_base <> s_custom_base then
     raise exception 'BUG: you asked to start with ''%'' and the generated board used ''%''',
       s_custom_base, b_base
@@ -369,56 +482,41 @@ begin
       detail = 'board.base does not match the requested setup.custom_base';
   end if;
 
-  b_max_word_length := (board->>'max_word_length')::int;
-  -- Headroom gate: the best word must beat the base by at least 2 letters,
-  -- or there's nothing to reach for. (The edge fn targets +3; this is the
-  -- looser server floor a misbehaving builder can't sneak past.)
-  if b_max_word_length is null or b_max_word_length < b_base_len + 2 then
+  -- The best word must beat the base by at least 2 letters, or there's
+  -- nothing to reach for. The edge function aims for 3; this is the looser
+  -- floor a misbehaving builder can't sneak past.
+  b_max_word_length := (p_board->>'max_word_length')::int;
+  if b_max_word_length is null or b_max_word_length < char_length(b_base) + 2 then
     raise exception 'BUG: generated board left no room to grow the starter (longest word %)',
       coalesce(b_max_word_length::text, 'none')
       using errcode = 'PN128', hint = 'fault', column = '_',
       detail = 'max_word_length must be >= base length + 2';
   end if;
 
-  if jsonb_typeof(board->'longest_words') <> 'array'
-     or jsonb_array_length(board->'longest_words') < 1 then
+  if jsonb_typeof(p_board->'longest_words') <> 'array'
+     or jsonb_array_length(p_board->'longest_words') < 1 then
     raise exception 'BUG: generated board arrived with no target words'
       using errcode = 'PN129', hint = 'fault', column = '_',
       detail = 'board.longest_words must be a non-empty jsonb array';
   end if;
-  if jsonb_typeof(board->'legal_words') <> 'array'
-     or jsonb_array_length(board->'legal_words') < 1 then
+  if jsonb_typeof(p_board->'legal_words') <> 'array'
+     or jsonb_array_length(p_board->'legal_words') < 1 then
     raise exception 'BUG: generated board arrived with no legal words'
       using errcode = 'PN130', hint = 'fault', column = '_',
       detail = 'board.legal_words must be a non-empty jsonb array';
   end if;
 
-  -- ─── Title ───────────────────────────────────────────────
-  game_title := upper(b_base);
-
-  effective_gametype := 'wordiply_' || mode;
-
-  -- ─── Coordinate with common._create_game ──────────────────
-  -- Inserts common.games (is_current_view=true, play_state='playing'),
-  -- validates players are club members, inserts common.game_players,
-  -- returns the canonical id. Persist the whole setup as the club's next
-  -- default (bands + timer are things a friend group settles on).
   new_id := common._create_game(
-    target_club, effective_gametype, player_user_ids, game_title, setup,
-    -- saved_default strips first_turn_user_id (per-game "who goes first" pick,
-    -- not a per-club preference; coop_style rides) and custom_base (a one-off
-    -- challenge, not a new baseline — the same call spellingbee makes about
-    -- its custom letters; otherwise every later game in the club would silently
-    -- default to MOTH).
-    setup - 'first_turn_user_id' - 'custom_base'
+    p_club_handle, 'wordiply_' || p_mode, p_mode, p_player_user_ids,
+    upper(b_base), p_setup,
+    p_setup - 'first_turn_user_id' - 'custom_base'
   );
 
-  -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common
-  -- rotation so submit_guess gates each guess. Free-for-all / compete leave
-  -- the pointer null. Runs after common._create_game seeds game_players.
-  if mode = 'coop' and setup->>'coop_style' = 'turns' then
-    first_turn := (setup->>'first_turn_user_id')::uuid;
-    if first_turn is null or not (first_turn = any(player_user_ids)) then
+  -- Opt-in turn-by-turn coop: seat the rotation so submit_guess gates each
+  -- guess. Free-for-all and compete leave the pointer null.
+  if p_mode = 'coop' and p_setup->>'coop_style' = 'turns' then
+    first_turn := (p_setup->>'first_turn_user_id')::uuid;
+    if first_turn is null or not (first_turn = any(p_player_user_ids)) then
       raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN131', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
@@ -426,50 +524,15 @@ begin
     perform common._assign_turn_order(new_id, first_turn);
   end if;
 
-  -- ─── Insert the per-gametype row ─────────────────────────
-  insert into wordiply.games (
-    id, club_handle, mode, base, difficulty,
-    max_word_length, longest_words, legal_words
-  )
-  values (
-    new_id, target_club, mode, b_base, s_difficulty,
-    b_max_word_length, board->'longest_words', board->'legal_words'
-  );
+  insert into wordiply.games (game_id, base, max_word_length, longest_words, legal_words)
+  values (new_id, b_base, b_max_word_length, p_board->'longest_words', p_board->'legal_words');
 
-  -- ─── Seed common.games.status for the club-page label ────
-  -- MID-GAME the label shows only guesses used (scores are terminal-only),
-  -- so the seed carries the base word + bar target + a zeroed guess count
-  -- (coop) / per-player leaderboard (compete). length_score / letter_count
-  -- are written at terminal.
-  if mode = 'coop' then
-    init_status := jsonb_build_object(
-      'mode', 'coop',
-      'base', b_base,
-      'max_word_length', b_max_word_length,
-      'guesses_used', 0
-    );
-  else
-    init_status := jsonb_build_object(
-      'mode', 'compete',
-      'base', b_base,
-      'max_word_length', b_max_word_length,
-      'leaderboard', (
-        select coalesce(
-          jsonb_agg(jsonb_build_object('user_id', uid, 'guesses_used', 0)),
-          '[]'::jsonb)
-        from unnest(player_user_ids) uid
-      )
-    );
-  end if;
-  perform common.update_state(new_id, 'playing', init_status);
+  perform wordiply._write_statuses(new_id, p_update_status_changed_at => true);
 
-  -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
-  -- call site can filter the `ok` on, and it reaches both — the edge function
+  -- `result` NAMES the answer; `id` is the game to go to. The edge function
   -- relays this envelope untouched.
   return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
--- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
--- lets the raise itself carry the message, the kind and the field.
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
@@ -483,89 +546,28 @@ $$;
 revoke execute on function wordiply.create_game(text, jsonb, uuid[], text, jsonb) from public;
 grant execute on function wordiply.create_game(text, jsonb, uuid[], text, jsonb) to authenticated;
 
--- ============================================================
--- wordiply._finish_coop — coop terminal transition
--- ============================================================
--- Internal helper (not granted to authenticated — only the definer RPCs
--- below call it). Computes the team's length score + letter count from
--- the shared guesses and ends the game with the given reason
--- ('complete' | 'timeout' | 'manual'; only 'timeout' is a LOSS). This is where the terminal scores
--- (hidden until now on the FE) are finally written to status.
--- `outcome_label` was this parameter's name; it holds a REASON the game ended,
--- and `outcome` is the appearance vocabulary's word (docs/outcomes.md). The
--- drop is what lets the rename land: `create or replace` cannot rename an
--- input parameter.
 drop function if exists wordiply._finish_coop(uuid, text);
-create or replace function wordiply._finish_coop(target_game uuid, reason text)
-returns void
-language plpgsql
-security definer
-set search_path = wordiply, common, public, extensions
-as $$
-declare
-  g_row wordiply.games%rowtype;
-  team_longest int;
-  team_letters int;
-  team_guesses int;
-  ls int;
-  player_results jsonb;
-begin
-  select * into g_row from wordiply.games where id = target_game;
-
-  select coalesce(max(length), 0), coalesce(sum(length), 0), count(*)
-    into team_longest, team_letters, team_guesses
-    from wordiply.events where game_id = target_game and valid;
-
-  ls := wordiply._length_score(team_longest, g_row.max_word_length);
-
-  select jsonb_object_agg(user_id::text, jsonb_build_object('finished', true))
-    into player_results
-    from common.game_players where game_id = target_game;
-
-  -- The clock is the ONE way a coop table loses (2026-08-01). The roster rule:
-  -- you lose if the game had a REACHABLE END and you didn't reach it in time.
-  -- wordiply's end is spending all five shared guesses ('complete'), so a
-  -- countdown expiring on guess three is a real failure to finish — the same
-  -- reading scrabble coop gives its own clock. Spending the guesses, or
-  -- stopping on purpose, are just finishing: neutral 'ended'.
-  perform common._end_game(
-    target_game,
-    case when reason = 'timeout' then 'lost' else 'ended' end,
-    jsonb_build_object(
-      'mode', 'coop',
-      'base', g_row.base,
-      'max_word_length', g_row.max_word_length,
-      'reason', reason,
-      'length_score', ls,
-      'letter_count', team_letters,
-      'longest', team_longest,
-      'guesses_used', team_guesses
-    ),
-    player_results);
-end;
-$$;
-
-revoke execute on function wordiply._finish_coop(uuid, text) from public;
-
--- ============================================================
--- wordiply._finish_compete — compete terminal transition + comparator
--- ============================================================
--- Internal helper. Resolves the compete result via the lexicographic
--- comparator (there is no scalar "final score"):
---   1. higher length score wins
---   2. tie → higher letter count wins
---   3. still tied AND the game is timed → earlier finish (min finished_at)
---   4. still tied → co-winners (every tied-at-top player marked won)
--- A conceded player can't win (they're losers with won=false).
---
--- pick_winner=false is the "players agreed to stop" path (manual compete
--- stop_game): everyone marked won=false, terminal_state 'ended', no winner.
--- The FE's compareCompetitors in lib/scoring.ts MUST match this order.
 drop function if exists wordiply._finish_compete(uuid, text, boolean);
+
+-- ============================================================
+-- wordiply._finish_compete — end a compete game, whatever ended it
+-- ============================================================
+-- The ONE place a race's ending is ranked. Two callers pass the act that
+-- ended it — _maybe_finish_compete the last racer's (a fifth word, a
+-- concession), submit_timeout the clock — and neither ranks anything itself.
+--
+-- The ranking (docs/win-lose.md → final-ranking): every player who didn't
+-- concede and scored, by length score, then letter count, then the earlier
+-- last word. Words land in separate transactions, each with its own time, so
+-- the last step resolves any tie in play. A
+-- race nobody scored in ranks nobody, a collective loss: nobody wins a game
+-- nobody scored in. The frontend's compareCompetitors in lib/scoring.ts
+-- must match this order.
 create or replace function wordiply._finish_compete(
-  target_game uuid,
-  reason text,
-  pick_winner boolean
+  p_game_id uuid,
+  p_reason text,
+  p_reason_detail text,
+  p_ended_by_user_id uuid
 )
 returns void
 language plpgsql
@@ -573,153 +575,108 @@ security definer
 set search_path = wordiply, common, public, extensions
 as $$
 declare
-  g_row wordiply.games%rowtype;
-  timed boolean;
-  status_leaderboard jsonb;
-  player_results jsonb;
-  winner_uid uuid;
-  best_score int;
-  terminal_state text;
+  v_rankings jsonb;
 begin
-  select * into g_row from wordiply.games where id = target_game;
-  timed := coalesce(
-    (select setup->'timer'->>'kind' from common.games where id = target_game),
-    'none') <> 'none';
-
-  with scored as (
-    select gp.user_id,
-           gp.conceded,
-           coalesce(max(gg.length), 0) as longest,
-           coalesce(sum(gg.length), 0) as letter_count,
-           count(gg.id) as guesses_used,
-           max(gg.created_at) as finished_at
-      from common.game_players gp
-      left join wordiply.events gg
-        on gg.game_id = target_game and gg.user_id = gp.user_id and gg.valid
-     where gp.game_id = target_game
-     group by gp.user_id, gp.conceded
-  ),
-  withscore as (
-    select s.*, wordiply._length_score(s.longest, g_row.max_word_length) as length_score
-      from scored s
-  ),
-  -- best (length_score, letter_count) among non-conceded players, then the
-  -- earliest finish among those tied at the top.
-  best as (
-    select max(length_score) as bls from withscore where not conceded
-  ),
-  best2 as (
-    select max(w.letter_count) as blc
-      from withscore w, best b
-     where not w.conceded and w.length_score = b.bls
-  ),
-  besttime as (
-    select min(w.finished_at) as bt
-      from withscore w, best b, best2 b2
-     where not w.conceded and w.length_score = b.bls and w.letter_count = b2.blc
-  ),
-  flagged as (
-    select w.*,
-           (pick_winner
-            and not w.conceded
-            -- Nobody wins a game nobody scored in. Without this floor a timed
-            -- race where no one guessed leaves every player tied on 0 — and
-            -- "your score is the best score" flags them ALL winners at 0%.
-            and w.length_score > 0
-            and w.length_score = b.bls
-            and w.letter_count = b2.blc
-            and (not timed or w.finished_at is not distinct from bt.bt)) as won
-      from withscore w, best b, best2 b2, besttime bt
-  )
-  select
-    coalesce(jsonb_agg(jsonb_build_object(
-      'user_id', user_id,
-      'length_score', length_score,
-      'letter_count', letter_count,
-      'guesses_used', guesses_used,
-      'finished_at', finished_at,
-      'won', won
-    ) order by length_score desc, letter_count desc), '[]'::jsonb),
-    coalesce(jsonb_object_agg(user_id::text, jsonb_build_object(
-      'won', won,
-      'length_score', length_score,
-      'letter_count', letter_count
-    )), '{}'::jsonb),
-    -- winner_user_id names a SINGLE winner; on co-winners (a tie the timed
-    -- tiebreak didn't resolve, or an untimed tie) it is null — every tied
-    -- player is already marked won=true in the leaderboard + player_results,
-    -- and the FE reads its own won flag for the co-winner banner. Picking one
-    -- arbitrary tied player here would tell the others they lost.
-    (select case when count(*) = 1 then (array_agg(f.user_id))[1] end
-       from flagged f where f.won),
-    coalesce(max(length_score) filter (where not conceded), 0)
-  into status_leaderboard, player_results, winner_uid, best_score
-  from flagged;
-
-  -- The clock CROWNS THE LEADER (docs/games/scrabble.md makes the same call:
-  -- a score accumulated over real plays is meaningful, and voiding it would
-  -- reward stalling) — unless there is no leader. A timed race in which nobody
-  -- guessed has no score to crown, and the table had a reachable end (spend
-  -- your five guesses) it didn't reach, so it's a collective loss.
-  terminal_state := case
-    when not pick_winner then 'ended'
-    when best_score > 0  then 'won_compete'
-    else 'lost_compete'
-  end;
+  select coalesce(jsonb_object_agg(user_id::text, ranking), '{}'::jsonb)
+    into v_rankings
+    from (
+      select t.user_id,
+             rank() over (order by t.length_score desc, t.letter_count desc,
+                                   t.last_guess_at) as ranking
+        from wordiply._track_totals(p_game_id) t
+        join common.game_players gp
+          on gp.game_id = p_game_id and gp.user_id = t.user_id
+       where gp.player_ended_reason is distinct from 'conceded'
+         and t.length_score > 0
+    ) ranked;
 
   perform common._end_game(
-    target_game, terminal_state,
-    jsonb_build_object(
-      'mode', 'compete',
-      'base', g_row.base,
-      'max_word_length', g_row.max_word_length,
-      'reason', reason,
-      'winner_user_id', winner_uid,
-      -- Named too: the club-list label is a pure function of this one row, so
-      -- it can't resolve a uuid, and the leaderboard it would otherwise scan
-      -- carries scores rather than names.
-      'winner_username', (select username from common.profiles
-                           where user_id = winner_uid),
-      'leaderboard', status_leaderboard
-    ),
-    player_results);
+    p_game_id, p_reason, p_reason_detail, p_ended_by_user_id,
+    p_is_no_result => false,
+    p_final_rankings => v_rankings
+  );
 end;
 $$;
 
-revoke execute on function wordiply._finish_compete(uuid, text, boolean) from public;
+revoke execute on function wordiply._finish_compete(uuid, text, text, uuid) from public;
+
+drop function if exists wordiply._maybe_finish_compete(uuid, text, text, uuid);
 
 -- ============================================================
--- wordiply.submit_guess — the only mid-game action (trusting-commit)
+-- wordiply._maybe_finish_compete — end the compete game if it's over
 -- ============================================================
--- The FE validated the word against the board's shipped legal list, so
--- this TRUSTS dictionary legality and only:
---   1. gates the live game (playing / player / not conceded / budget)
---   2. re-checks the two FREE guards (no dictionary lookup): the word is
---      longer than the base and CONTAINS the base — these catch a stale
---      FE and cost nothing
---   3. mode-aware dedup
---   4. records the guess, updates status, and checks the end condition
---      (coop: team's 5th guess; compete: every active player has spent 5).
--- Every submission is RECORDED, valid or not — this table is the event log
--- (see the wordiply.events header). `fe_legal` is the FE's dictionary
--- verdict: false means "I checked the shipped legal list and this isn't on
--- it". Trusting that is no weaker than trusting its accepts, which we
--- already do. The server's own free guards still run FIRST and can reject
--- a word the FE called legal (a stale client).
+-- A compete game ends when NO player is still racing — every one has spent
+-- their five words or conceded. Shared by submit_guess (a fifth word can be
+-- the last move) and concede (a drop-out can be, when everyone else has
+-- already spent theirs). The act passed is the last racer's, and becomes the
+-- game's reason. Everyone conceding is `common._concede`'s ending, so this
+-- skips a game that has already ended.
 --
--- Turn cost, in turn-by-turn coop: a STRUCTURAL reject (missing_base /
+-- Returns true when it ended the game, false when someone is still racing.
+create or replace function wordiply._maybe_finish_compete(
+  p_game_id uuid,
+  p_reason text,
+  p_reason_detail text,
+  p_ended_by_user_id uuid
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = wordiply, common, public, extensions
+as $$
+begin
+  if (select ended_at from common.games where id = p_game_id) is not null then
+    return false;
+  end if;
+
+  if exists (
+    select 1 from common.game_players
+     where game_id = p_game_id and player_ended_at is null
+  ) then
+    return false;
+  end if;
+
+  perform wordiply._finish_compete(p_game_id, p_reason, p_reason_detail, p_ended_by_user_id);
+  return true;
+end;
+$$;
+
+revoke execute on function wordiply._maybe_finish_compete(uuid, text, text, uuid) from public;
+
+drop function if exists wordiply.submit_guess(uuid, text, boolean);
+
+-- ============================================================
+-- wordiply.submit_guess — the only move (trusting-commit)
+-- ============================================================
+-- The frontend has judged the word against the board's legal list, so this
+-- TRUSTS dictionary legality and only:
+--   1. gates the live game (ended, a player, not conceded, the turn, budget)
+--   2. dedups by mode (coop: anyone's word; compete: your own)
+--   3. re-checks the two FREE rules — the word is longer than the base and
+--      contains it — which catch a stale page and cost no lookup
+--   4. records the word and checks the ending: coop's fifth accepted word
+--      wins; a compete fifth word ends that racer, and ends the race if
+--      nobody is left racing
+--
+-- Every submission is RECORDED, valid or not: the events table is the log.
+-- `p_fe_legal` is the frontend's dictionary verdict — false means "I checked
+-- the legal list and this isn't on it" — and trusting it is no weaker than
+-- trusting its accepts.
+--
+-- The turn, in turn-by-turn coop: a STRUCTURAL reject (missing_base /
 -- too_short) ends the caller's turn — it's a rules error. A dictionary miss
--- does NOT: the word list may be at fault, or it's a typo, and taxing a
--- reach for a long word is backwards in a game whose whole incentive is
--- reaching. A duplicate ends nothing and records nothing (the row is
--- already there — which is what makes "you already tried that" work).
--- No reject spends budget in any case.
+-- does NOT: the word list may be at fault, or it's a typo, and taxing a reach
+-- for a long word is backwards in a game whose whole incentive is reaching.
+-- No reject spends budget.
 --
--- Returns {ok:true, length, guesses_used, is_terminal, ...}. `length` is
--- the ONE live readout; length_score + letter_count are added to the
--- response ONLY when is_terminal (scores are terminal-only — see the
--- migration header).
-create or replace function wordiply.submit_guess(target_game uuid, word text, fe_legal boolean default true)
+-- The `ok` carries { result, length, guesses_used, terminal } for an
+-- accepted word, with length_score and letter_count added once the game has
+-- ended (scores are hidden until then), and { result, reason } for a reject.
+create or replace function wordiply.submit_guess(
+  p_game_id  uuid,
+  p_word     text,
+  p_fe_legal boolean default true
+)
 returns jsonb
 language plpgsql
 security definer
@@ -728,149 +685,117 @@ as $$
 declare
   caller_id uuid;
   g_row wordiply.games%rowtype;
-  current_play_state text;
-  base_len int;
+  v_mode text;
+  v_ended_at timestamptz;
   w_lower text;
-  track_count int;      -- guesses already in this track (pre-insert)
+  track_count int;      -- words already on this track, before this one
   ins_length int;
-  dup_count int;
-  all_done boolean;
-  used_now int;
-  letters_now int;
-  longest_now int;
-  is_term boolean;
+  is_dup boolean;
+  out_terminal boolean;
+  v_mine record;
   result jsonb;
   reject_reason text;   -- set iff this submission is being recorded as invalid
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  -- Lock the gametype row; mode rides along.
-  select * into g_row from wordiply.games
-   where wordiply.games.id = target_game
-   for update;
-  -- A friend deleted the game while this call was in flight: the shared race,
-  -- asked before the membership gate, which the delete took with it.
+  -- The row first: a friend may have deleted the game, and the delete takes
+  -- every membership with it (docs/envelopes.md → a missing game row is PN485).
+  select * into g_row from wordiply.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('wordiply');
   end if;
 
-  caller_id := common._require_game_player(target_game);
+  caller_id := common._require_game_player(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  -- A RACE: entry is gated on isTerminal, but the last active player can spend
-  -- their fifth guess while this one is in flight.
-  if current_play_state <> 'playing' then
+  select mode, ended_at into v_mode, v_ended_at
+    from common.games where id = p_game_id;
+  -- A RACE: the last active racer can spend their fifth word, or the clock
+  -- run out, while this one is in flight.
+  if v_ended_at is not null then
     perform common._raise_game_over();
   end if;
 
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = caller_id) then
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
     perform common._raise_already_conceded();
   end if;
 
-  -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
-  -- (pointer null) and compete; raises 'not your turn' otherwise. What happens
-  -- to the turn AFTER this depends on the outcome: an accepted non-terminal
-  -- guess advances it, so does a structural reject, a dictionary miss and a
-  -- duplicate don't. See the header.
-  perform common._require_turn(target_game, caller_id);
+  -- Turn-order gate (opt-in turn-by-turn coop); a no-op otherwise.
+  perform common._require_turn(p_game_id, caller_id);
 
-  base_len := char_length(g_row.base);
-  w_lower := lower(coalesce(word, ''));
+  w_lower := lower(coalesce(p_word, ''));
 
-  -- ─── Budget (mode-aware; the FE gates, so this only fires on a race) ─
-  -- `valid` only: a reject costs no budget, and track_count is also how many
-  -- of the five board slots are filled — which rejects don't occupy.
-  if g_row.mode = 'coop' then
-    select count(*) into track_count
-      from wordiply.events where game_id = target_game and valid;
-  else
-    select count(*) into track_count
-      from wordiply.events where game_id = target_game and user_id = caller_id and valid;
-  end if;
+  -- ─── Budget (the frontend gates, so this only fires on a race) ─
+  -- Accepted words only: a reject costs nothing, and the count is also how
+  -- many of the five board slots are filled.
+  select count(*) into track_count
+    from wordiply.events
+   where game_id = p_game_id and valid
+     and (v_mode = 'coop' or user_id = caller_id);
   if track_count >= 5 then
     raise exception 'No guesses left'
       using errcode = 'PN366', hint = 'race', column = '_',
       detail = 'the guess budget for this player/team is spent';
   end if;
 
-  -- ─── Mode-aware dedup, FIRST (alias fw — `word` is also the param name) ──
-  -- Deliberately counts INVALID rows too, and deliberately runs before the
-  -- guards below: a word already in the log — however it got there — is not a
-  -- new turn. Re-submitting it must not log a second row, advance the turn, or
-  -- re-report the original guard's reason. 'duplicate' IS the "you already
-  -- tried that" answer.
-  if g_row.mode = 'coop' then
-    select count(*) into dup_count
-      from wordiply.events fw where fw.game_id = target_game and fw.word = w_lower;
-  else
-    select count(*) into dup_count
-      from wordiply.events fw
-     where fw.game_id = target_game and fw.user_id = caller_id and fw.word = w_lower;
-  end if;
-  -- A RACE, and the one branch here that records NOTHING: `useFoundWordSubmit`
-  -- dedups locally (the log plus a synchronous pending set) and returns before
-  -- calling either call site, so reaching this means its list was stale. Same
-  -- wording and same severity as the other three word games.
-  if dup_count > 0 then
-    -- The MESSAGE is the whole line, `WORD — already found`, matching the
-    -- frontend's `already_found` answer exactly (src/wordiply/lib/answer.ts;
-    -- wordiply has no bonus words, so no dot). This rejection is
-    -- the only one that can arrive by BOTH routes — caught locally, or lost as
-    -- a race — and the two must not read differently, so the server composes
-    -- the same string rather than a sentence of its own. The phrase is
-    -- deliberately written twice (Joel, 2026-09-01): it is not going to change,
+  -- ─── Dedup, FIRST ────────────────────────────────────────
+  -- Counts INVALID rows too, and runs before the free rules: a word already
+  -- in the log, however it got there, is not a new turn — resubmitting it
+  -- must not log a second row, advance the turn, or re-report the first
+  -- reason.
+  select exists (
+    select 1 from wordiply.events e
+     where e.game_id = p_game_id and e.word = w_lower
+       and (v_mode = 'coop' or e.user_id = caller_id)
+  ) into is_dup;
+  -- A RACE, and the one branch that records NOTHING: `useFoundWordSubmit`
+  -- dedups locally before calling, so reaching this means its list was stale.
+  if is_dup then
+    -- The MESSAGE is the whole line, matching the frontend's `already_found`
+    -- answer exactly (src/wordiply/lib/answer.ts): this rejection arrives by
+    -- both routes — caught locally, or lost as a race — and the two must not
+    -- read differently. Written twice on purpose: it is not going to change,
     -- and machinery to share it would cost more than it saves.
     raise exception '% — already found', upper(w_lower)
       using errcode = 'PN365', hint = 'race', column = '_',
       detail = 'the word is already in the log under this mode''s dedup rule';
   end if;
 
-  -- ─── Free guards (no dictionary lookup), then the FE's verdict ──
-  if char_length(w_lower) <= base_len then
+  -- ─── The free rules, then the frontend's verdict ─────────
+  if char_length(w_lower) <= char_length(g_row.base) then
     reject_reason := 'too_short';
   elsif position(g_row.base in w_lower) = 0 then
     reject_reason := 'missing_base';
-  elsif not coalesce(fe_legal, true) then
+  elsif not coalesce(p_fe_legal, true) then
     reject_reason := 'not_a_word';
   end if;
 
   ins_length := char_length(w_lower);
 
-  -- ─── Rejected: record the turn, maybe spend it, and stop ──
+  -- ─── Rejected: record it, maybe spend the turn, and stop ──
   if reject_reason is not null then
-    -- WHO ASKED decides whether a structural reject is an answer or a bug, and
-    -- `fe_legal` already separates them. `recordReject` sends false: it is
-    -- REPORTING a rejection the FE already made, and being told which guard
-    -- applies is the whole point of the call. `commit` leaves it true, which
-    -- claims the word is legal — and the FE holds `legalWords` and checks
-    -- `minWordLength` before committing, so a word that trips a structural
-    -- guard here never passed those checks.
-    --
-    -- (`not_a_word` cannot reach this branch with fe_legal true: it is only
-    -- ever set when fe_legal is false, so the two named here are the whole of
-    -- it. The raise is before the insert, so the savepoint has nothing to undo.)
-    if coalesce(fe_legal, true) and reject_reason in ('too_short', 'missing_base') then
+    -- WHO ASKED decides whether a structural reject is an answer or a bug.
+    -- `recordReject` sends p_fe_legal false: it REPORTS a rejection the page
+    -- already made. `commit` leaves it true, claiming the word is legal — and
+    -- the page checks `legalWords` and `minWordLength` before committing, so a
+    -- word that breaks a free rule here never passed those checks.
+    -- (`not_a_word` is only ever set when p_fe_legal is false.)
+    if coalesce(p_fe_legal, true) and reject_reason in ('too_short', 'missing_base') then
       raise exception 'BUG: a guess the client called legal breaks the base rules'
         using errcode = 'PN367', hint = 'fault', column = '_',
         detail = 'commit sent fe_legal true for a word that is ' || reject_reason;
     end if;
     -- A rules error costs your go; a dictionary miss doesn't. That judgment
-    -- is THIS function's — no predicate over the row recovers it, which is
-    -- why `took_turn` is stored rather than derived — and the `_advance_turn`
-    -- below is the same rule moving the coop pointer (a no-op outside
-    -- turn-by-turn coop, where it is null).
+    -- is this function's — no predicate over the row recovers it, which is
+    -- why `took_turn` is stored rather than derived.
     insert into wordiply.events
       (game_id, user_id, kind, word, length, valid, reason, took_turn)
-      values (target_game, caller_id, 'guess', w_lower, ins_length, false,
+      values (p_game_id, caller_id, 'guess', w_lower, ins_length, false,
               reject_reason, reject_reason in ('too_short', 'missing_base'));
     if reject_reason in ('too_short', 'missing_base') then
-      perform common._advance_turn(target_game);
+      perform common._advance_turn(p_game_id);
     end if;
-    -- No status write: nothing a reject changes is IN the status (budget and
-    -- the scores are all valid-only), and the row itself reaches peers over
-    -- the guesses realtime publication.
-    -- An ok answer, NOT a raise: the row above is the point of the call, and a
+    -- No status write: nothing a reject changes is in a status.
+    -- An `ok`, not a raise: the row above is the point of the call, and a
     -- raise would take the savepoint down with it.
     return common._ok_envelope(jsonb_build_object('result', 'rejected', 'reason', reject_reason));
   end if;
@@ -878,86 +803,47 @@ begin
   -- ─── Accepted (trusted word) ─────────────────────────────
   -- An accepted word always spends the go, the fifth included.
   insert into wordiply.events (game_id, user_id, kind, word, length, took_turn)
-    values (target_game, caller_id, 'guess', w_lower, ins_length, true);
+    values (p_game_id, caller_id, 'guess', w_lower, ins_length, true);
 
-  -- ─── Recompute status + terminal check ───────────────────
-  if g_row.mode = 'coop' then
+  if v_mode = 'coop' then
     if track_count + 1 >= 5 then
-      perform wordiply._finish_coop(target_game, 'complete');
+      -- The team's five words spent is a win: everyone ranked 1.
+      perform common._end_game(
+        p_game_id, 'resource_exhausted', 'complete', caller_id,
+        p_is_no_result => false,
+        p_final_rankings => (select jsonb_object_agg(user_id::text, 1)
+                               from common.game_players where game_id = p_game_id)
+      );
     else
-      -- Turn-order: an accepted, non-terminal coop guess hands the turn to the
-      -- next player (no-op for free-for-all). Skipped on the 5th guess, which
-      -- ends the game just above.
-      perform common._advance_turn(target_game);
-      perform common.update_state(target_game, 'playing',
-        jsonb_build_object(
-          'mode', 'coop',
-          'base', g_row.base,
-          'max_word_length', g_row.max_word_length,
-          'guesses_used', track_count + 1));
+      perform common._advance_turn(p_game_id);
     end if;
-  else
-    -- Refresh the per-player guesses_used leaderboard (the club-label +
-    -- OpponentStrip mid-game readout; no scores leak early).
-    perform common.update_state(target_game, 'playing',
-      jsonb_build_object(
-        'mode', 'compete',
-        'base', g_row.base,
-        'max_word_length', g_row.max_word_length,
-        'leaderboard', (
-          select coalesce(jsonb_agg(jsonb_build_object(
-                   'user_id', gp.user_id,
-                   'guesses_used', (select count(*) from wordiply.events gg
-                                     where gg.game_id = target_game and gg.user_id = gp.user_id
-                                       and gg.valid)
-                 )), '[]'::jsonb)
-            from common.game_players gp where gp.game_id = target_game
-        )));
-
-    -- The fifth guess ends this player's session while the others keep
-    -- theirs, so the common roster has to hear about it: a player nothing is
-    -- waiting for must not hold the presence-pause open (see the flag's
-    -- migration). `track_count` is the caller's spent count before this
-    -- guess, which the insert above has now made one more.
-    if track_count + 1 >= 5 then
-      perform common._set_locally_terminal(target_game, caller_id);
-    end if;
-
-    -- Terminal when every ACTIVE (non-conceded) player has spent 5.
-    select bool_and(used >= 5) into all_done from (
-      select (select count(*) from wordiply.events gg
-               where gg.game_id = target_game and gg.user_id = gp.user_id
-                 and gg.valid) as used
-        from common.game_players gp
-       where gp.game_id = target_game and not gp.conceded
-    ) t;
-    if coalesce(all_done, false) then
-      perform wordiply._finish_compete(target_game, 'complete', true);
-    end if;
+  elsif track_count + 1 >= 5 then
+    -- The fifth word ends this racer while the others play on, so the roster
+    -- has to hear about it: a player nothing is waiting for must not hold
+    -- the presence-pause open.
+    perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'complete');
+    perform wordiply._maybe_finish_compete(p_game_id, 'resource_exhausted', 'complete', caller_id);
   end if;
 
-  -- ─── Build the response ──────────────────────────────────
-  -- The caller's track totals (coop: team; compete: this player).
-  select count(*), coalesce(sum(length), 0), coalesce(max(length), 0)
-    into used_now, letters_now, longest_now
-    from wordiply.events
-   where game_id = target_game and valid
-     and (g_row.mode = 'coop' or user_id = caller_id);
+  perform wordiply._write_statuses(p_game_id, p_update_status_changed_at => true);
 
-  is_term := (select play_state from common.games where id = target_game) <> 'playing';
+  -- The caller's track totals (coop: the team's; compete: their own).
+  select * into v_mine
+    from wordiply._track_totals(p_game_id) t
+   where t.user_id = caller_id;
+
+  out_terminal := (select ended_at from common.games where id = p_game_id) is not null;
 
   result := jsonb_build_object(
     'result', 'accepted',
     'length', ins_length,
-    'guesses_used', used_now,
-    'is_terminal', is_term
+    'guesses_used', v_mine.guesses_used,
+    'terminal', out_terminal
   );
-  -- Scores are terminal-only: attach them to the response only once the
-  -- game is over (the FE won't render them before then anyway).
-  if is_term then
+  if out_terminal then
     result := result || jsonb_build_object(
-      'length_score', wordiply._length_score(longest_now, g_row.max_word_length),
-      'letter_count', letters_now
+      'length_score', v_mine.length_score,
+      'letter_count', v_mine.letter_count
     );
   end if;
   return common._ok_envelope(result);
@@ -975,20 +861,19 @@ $$;
 revoke execute on function wordiply.submit_guess(uuid, text, boolean) from public;
 grant execute on function wordiply.submit_guess(uuid, text, boolean) to authenticated;
 
--- ============================================================
--- wordiply.submit_timeout — countdown expired → terminal
--- ============================================================
--- Fired by the FE when the count-down hits 0. Multiple peers may race the
--- expiry; SELECT ... FOR UPDATE serializes them and the post-lock
--- play_state check rejects everyone after the first (P0001, swallowed by
--- the FE). Coop → lost/timeout with the team score (the clock is a coop
--- loss — _finish_coop). Compete → resolve the comparator on CURRENT scores
--- (whoever leads wins) → won_compete/timeout, or lost_compete/timeout when
--- nobody scored (no leader to crown). Ends with a guesses realtime touch so
--- compete peers refetch the now-RLS-visible opponents' guesses.
 drop function if exists wordiply.submit_timeout(uuid);
 
-create or replace function wordiply.submit_timeout(target_game uuid)
+-- ============================================================
+-- wordiply.submit_timeout — countdown-timer expiry
+-- ============================================================
+-- Fired by the page when a countdown hits 0 (every player races to call it);
+-- a second call finds the game ended and answers the game-over race. Coop:
+-- the five words not spent in time is a loss, nobody ranked, ended by the
+-- turn holder in turn-order coop. Compete: the race ends as it stands,
+-- ranked by _finish_compete's rule — the clock crowns the leader, since a
+-- score built from real plays means something and voiding it would reward
+-- stalling.
+create or replace function wordiply.submit_timeout(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -996,32 +881,35 @@ set search_path = wordiply, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row wordiply.games%rowtype;
-  current_play_state text;
+  v_mode        text;
+  v_ended_at    timestamptz;
+  v_turn_holder uuid;
 begin
-  select * into g_row from wordiply.games
-   where wordiply.games.id = target_game
-   for update;
+  perform 1 from wordiply.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('wordiply');
   end if;
 
-  perform common._require_game_player(target_game);
+  perform common._require_game_player(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
+  select mode, ended_at, current_turn_user_id
+    into v_mode, v_ended_at, v_turn_holder
+    from common.games where id = p_game_id;
+  if v_ended_at is not null then
     perform common._raise_game_over();
   end if;
 
-  if g_row.mode = 'coop' then
-    perform wordiply._finish_coop(target_game, 'timeout');
+  if v_mode = 'coop' then
+    perform common._end_game(
+      p_game_id, 'timeout', 'timeout', v_turn_holder,
+      p_is_no_result => false,
+      p_final_rankings => '{}'::jsonb
+    );
   else
-    perform wordiply._finish_compete(target_game, 'timeout', true);
+    perform wordiply._finish_compete(p_game_id, 'timeout', 'timeout', null);
   end if;
 
-  -- Realtime touch so peers refetch the now-visible opponents' guesses.
-  update wordiply.events set user_id = user_id where game_id = target_game;
+  perform wordiply._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1037,17 +925,16 @@ $$;
 revoke execute on function wordiply.submit_timeout(uuid) from public;
 grant execute on function wordiply.submit_timeout(uuid) to authenticated;
 
--- ============================================================
--- wordiply.stop_game — manual "we're done" stop
--- ============================================================
--- Coop's neutral mutual stop (the "Stop game" menu item): ends with the
--- team score, reason='manual'. In compete this is the "players agreed to
--- stop" path — per-player scores, NO winner (compete's per-player drop is
--- concede, not this). Any game player may fire it; idempotent (a second
--- click / a race with the timer raises P0001, swallowed by the FE).
 drop function if exists wordiply.stop_game(uuid);
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists wordiply.end_game(uuid);
 
-create or replace function wordiply.stop_game(target_game uuid)
+-- ============================================================
+-- wordiply.stop_game — the Stop
+-- ============================================================
+-- Any player stops the game for the whole table, in either mode. It is
+-- neutral: nobody won, nobody lost (docs/common-schema.md → Stop).
+create or replace function wordiply.stop_game(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1055,31 +942,17 @@ set search_path = wordiply, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row wordiply.games%rowtype;
-  current_play_state text;
 begin
-  select * into g_row from wordiply.games
-   where wordiply.games.id = target_game
-   for update;
+  -- Locked, so a Stop racing the last word waits for it and then reads the
+  -- game as over, rather than overwriting the ending.
+  perform 1 from wordiply.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('wordiply');
   end if;
 
-  perform common._require_game_player(target_game);
+  perform common._stop(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
-    perform common._raise_game_over();
-  end if;
-
-  if g_row.mode = 'coop' then
-    perform wordiply._finish_coop(target_game, 'manual');
-  else
-    perform wordiply._finish_compete(target_game, 'manual', false);
-  end if;
-
-  update wordiply.events set user_id = user_id where game_id = target_game;
+  perform wordiply._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1095,21 +968,15 @@ $$;
 revoke execute on function wordiply.stop_game(uuid) from public;
 grant execute on function wordiply.stop_game(uuid) to authenticated;
 
--- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
-drop function if exists wordiply.end_game(uuid);
+drop function if exists wordiply.replay_board(uuid);
 
 -- ============================================================
 -- wordiply.replay_board — restart this board from scratch
 -- ============================================================
--- Same base word, same word lists, wipe the guesses, un-terminal the row
--- with the exact initial status create_game seeds (mode-branched). Any
--- game player may call it, mid-game or after game-over. The realtime touch
--- on games is load-bearing: replay only DELETEs guesses rows and realtime
--- filters don't reliably match DELETEs, so the no-op games write is what
--- wakes every client to refetch the now-empty list.
-drop function if exists wordiply.replay_board(uuid);
-
-create or replace function wordiply.replay_board(target_game uuid)
+-- The same base and word lists; the guesses are wiped and the common half is
+-- reset (common._reset_game: the ending, each player's ending, the clock, the
+-- turn). Any game player may call it, mid-game or after the end.
+create or replace function wordiply.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1117,51 +984,24 @@ set search_path = wordiply, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row wordiply.games%rowtype;
-  new_status jsonb;
 begin
-  -- Lock the games row (as every other mutating RPC does) so a concurrent
-  -- submit_guess can't interleave: without it, a submit committing during the
-  -- delete→reset window could strand a guess on the "fresh" board (a row with
-  -- guesses_used claiming 0). The lock serializes them.
-  select * into g_row from wordiply.games where id = target_game for update;
+  -- Locked, so a guess committing during the reset can't strand a row on the
+  -- fresh board.
+  perform 1 from wordiply.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('wordiply');
   end if;
 
-  -- The row check comes BEFORE the membership gate, and the order is the whole
-  -- point: `delete_game` takes this row, `common.games` and every
-  -- `game_players` row together, so a caller whose game was just deleted has no
-  -- membership left either. Gate-first told them "You are not in this game",
-  -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common._require_game_player(target_game);
+  -- The row check comes BEFORE the membership gate: `delete_game` takes this
+  -- row and every `game_players` row together, so gate-first would tell a
+  -- player whose game was just deleted "You are not in this game".
+  perform common._require_game_player(p_game_id);
 
-  delete from wordiply.events where game_id = target_game;
+  delete from wordiply.events where game_id = p_game_id;
 
-  if g_row.mode = 'coop' then
-    new_status := jsonb_build_object(
-      'mode', 'coop',
-      'base', g_row.base,
-      'max_word_length', g_row.max_word_length,
-      'guesses_used', 0
-    );
-  else
-    new_status := jsonb_build_object(
-      'mode', 'compete',
-      'base', g_row.base,
-      'max_word_length', g_row.max_word_length,
-      'leaderboard', (
-        select coalesce(jsonb_agg(jsonb_build_object('user_id', user_id, 'guesses_used', 0)),
-                        '[]'::jsonb)
-          from common.game_players where game_id = target_game
-      )
-    );
-  end if;
+  perform common._reset_game(p_game_id);
 
-  perform common._reset_game(target_game, new_status);
-
-  -- Realtime touch — wakes useGame's games subscription.
-  update wordiply.games set club_handle = club_handle where id = target_game;
+  perform wordiply._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -1177,65 +1017,41 @@ $$;
 revoke execute on function wordiply.replay_board(uuid) from public;
 grant execute on function wordiply.replay_board(uuid) to authenticated;
 
--- ============================================================
--- wordiply.concede — a player drops out of a compete race
--- ============================================================
--- wordiply has no independent per-player "eliminated" state: a player leaves
--- the race by conceding OR by spending all 5 of their guesses. common.concede
--- marks the caller out and, if that was the last NON-CONCEDED player, ends the
--- game as a collective loss — but it counts a finished-but-not-conceded player
--- as "still active". So a concede can leave every remaining active player out
--- of guesses with nobody able to submit and re-fire submit_guess's end check,
--- hanging the game in `playing` forever. We therefore repeat that end check
--- here after conceding. Gated to compete — coop is a team (it ends via the
--- shared Stop, never a concede).
 drop function if exists wordiply.concede(uuid);
 
-create or replace function wordiply.concede(target_game uuid)
+-- ============================================================
+-- wordiply.concede — a racer drops out of a compete game
+-- ============================================================
+-- The per-player quit (compete only — coop is a team, so it ends via the
+-- shared Stop, never a concede). `common._concede` records the concession and
+-- ends the game if everyone has conceded; otherwise the race ends here if
+-- every other racer has already spent their five words, with the concession
+-- as the act that ended it. The conceder takes a real loss; the others keep
+-- racing.
+create or replace function wordiply.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = wordiply, common, public, extensions
 as $$
 declare
-  v_res jsonb;
+  caller_id uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common._require_compete((select mode from wordiply.games where id = target_game));
-  v_res := common.concede(target_game);
-  -- Both blocks below key off the game's play_state, and PN486 refuses on a
-  -- game that was terminal before the click — so a refusal has to stop here
-  -- rather than re-finish a finished game.
-  if v_res->>'type' = 'not-ok' then return v_res; end if;
-
-  -- If common.concede didn't end the game (the conceder wasn't the last
-  -- active player), the remaining active players may nonetheless ALL be out
-  -- of guesses now — the same terminal condition submit_guess checks after a
-  -- 5th guess. Re-run it here so the race resolves (picking a winner among the
-  -- finishers) instead of stalling with no one left able to act.
-  if (select play_state from common.games where id = target_game) = 'playing'
-     and coalesce((
-       select bool_and(used >= 5) from (
-         select (select count(*) from wordiply.events gg
-                  where gg.game_id = target_game and gg.user_id = gp.user_id
-                    and gg.valid) as used
-           from common.game_players gp
-          where gp.game_id = target_game and not gp.conceded
-       ) t
-     ), false)
-  then
-    perform wordiply._finish_compete(target_game, 'complete', true);
+  -- Locked FIRST, so the concession serializes against a concurrent fifth
+  -- word (src/guards/concedeLock.test.ts has why).
+  perform 1 from wordiply.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('wordiply');
   end if;
 
-  -- If the game is now terminal — via common.concede's last-racer path OR the
-  -- all-finishers check above — wake the guesses subscription so remaining
-  -- clients refetch the now-visible opponents' guesses (common.* and
-  -- _finish_compete both write only common.games, not wordiply.events).
-  if (select play_state from common.games where id = target_game) <> 'playing' then
-    update wordiply.events set user_id = user_id where game_id = target_game;
-  end if;
+  perform common._require_compete((select mode from common.games where id = p_game_id));
 
-  return v_res;
+  caller_id := common._concede(p_game_id);
+  perform wordiply._maybe_finish_compete(p_game_id, 'conceded', 'conceded', caller_id);
+
+  perform wordiply._write_statuses(p_game_id, p_update_status_changed_at => true);
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
   get stacked diagnostics

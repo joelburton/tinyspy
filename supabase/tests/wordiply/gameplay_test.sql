@@ -4,29 +4,31 @@
 -- Test: wordiply.submit_guess
 -- ============================================================
 --
--- A fork of wordwheel's gameplay_test, adapted to wordiply's guess model.
 -- submit_guess is TRUSTING-COMMIT: the FE validated the word against the
 -- board's shipped legal list, so the RPC does NOT consult a dictionary. It
--- gates the live game (playing / player / not conceded / budget), then two
--- FREE guards (word longer than base; word CONTAINS base), then mode-aware
--- dedup, then records + recomputes. An {ok:false} guess records NOTHING and
--- spends NO budget.
+-- gates the live game (ended / player / conceded / turn / budget), dedups by
+-- mode, then applies the two FREE rules (word longer than base; word
+-- CONTAINS base). A reject is RECORDED as an invalid row and spends NO
+-- budget; an accepted word is recorded and the statuses rewritten.
 --
--- All guesses here are synthetic strings that satisfy the two guards
+-- All guesses here are synthetic strings that satisfy the two rules
 -- (contain 'ar', longer than 2) — trusting-commit means they need not be
 -- real words. With max_word_length 7: length_score(L)=round(100*L/7), so
 -- a 7-letter guess scores 100.
 --
 -- Coverage:
---   1. Coop happy: a valid guess → {ok:true}, one guesses row, status bump.
---   2. Free-guard rejections record NOTHING + spend NO budget:
---      too_short ('ar'), missing_base ('zzzz').
+--   1. Coop happy: a valid guess → accepted, one events row, the statuses
+--      count it.
+--   2. Free-rule rejections are recorded as invalid and spend NO budget:
+--      too_short ('ar'), missing_base ('zzzz'); the same break on the commit
+--      path is a fault.
 --   3. Dedup: coop dedups across the team; compete per-user (two players
 --      CAN submit the same word in compete).
---   4. Budget: the 6th guess raises 'no-guesses-left|'.
+--   4. Budget: the team's 6th guess is refused (PN366).
 --   5. A conceded player cannot submit.
---   6. Coop 5th shared guess auto-terminates (ended/complete; scores in status).
---   7. RLS: compete opponent's guesses hidden mid-game, visible at terminal;
+--   6. Coop 5th shared guess ends the game: resource_exhausted/complete, won,
+--      every player ranked 1, the scores in the statuses.
+--   7. RLS: compete opponent's guesses hidden mid-game, visible once ended;
 --      coop everyone sees all.
 --   8. A guess into a game deleted under it is the shared race (PN485).
 
@@ -34,7 +36,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(30);
+select plan(33);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -85,7 +87,7 @@ select is((select ret->>'message' from first_ret), null::text,
   'submit_guess: an accepted guess carries no message');
 
 select is(
-  (select (ret->'data'->>'is_terminal')::boolean from first_ret),
+  (select (ret->'data'->>'terminal')::boolean from first_ret),
   false,
   'submit_guess: not terminal after the first coop guess'
 );
@@ -98,18 +100,26 @@ select is(
 );
 
 select is(
-  (select (status->>'guesses_used')::int from common.games where id = (select id from g)),
+  (select (clubpage_info->>'guesses_used')::int from common.games where id = (select id from g)),
   1,
-  'coop status.guesses_used = 1 after the first accepted guess'
+  'coop clubpage_info.guesses_used = 1 after the first accepted guess'
+);
+
+-- Coop player_status carries the team's track: bea's row counts ada's word.
+select is(
+  (select (player_status->>'guesses_used')::int from common.game_players
+    where game_id = (select id from g)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'),
+  1,
+  'coop player_status.guesses_used is the team''s count, on every player'
 );
 
 -- ============================================================
--- (2) Free-guard rejections: RECORDED as invalid, spend NO budget
+-- (2) Free-rule rejections: RECORDED as invalid, spend NO budget
 -- ============================================================
--- `wordiply.events` is the EVENT LOG (Joel's ruling, 2026-08-02: the rejects
--- are kept), so a rejection lands a row with valid=false + its reason. What it
--- must NOT do is spend budget or take a board slot — the scores and the five
--- rows are valid-only.
+-- `wordiply.events` is the EVENT LOG, so a rejection lands a row with
+-- valid=false + its reason. What it must NOT do is spend budget or take a
+-- board slot — the scores and the five rows are valid-only.
 
 -- too_short: a word not longer than the base ('ar' is exactly base length).
 -- `fe_legal false` because this is `recordReject`'s call: the FE has already
@@ -171,7 +181,7 @@ select is(
 
 -- ...and neither spent budget: guesses_used is still 1.
 select is(
-  (select (status->>'guesses_used')::int from common.games where id = (select id from g)),
+  (select (clubpage_info->>'guesses_used')::int from common.games where id = (select id from g)),
   1,
   'free-guard rejections do NOT advance guesses_used (no budget spent)'
 );
@@ -189,13 +199,11 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (4) Budget: the team's 6th guess raises 'no-guesses-left|'
+-- (4) Budget: the team's 6th guess is refused
 -- ============================================================
--- One guess exists (ada's). Add three more (guesses 2..4), then bea's fifth
--- auto-terminates the game — so instead we prove the budget ceiling by
--- filling to five directly and asserting the 6th throws. Fill guesses 2..5
--- directly (bypassing the auto-terminal branch by inserting), then the RPC's
--- 6th must throw.
+-- One guess exists (ada's). A fifth through the RPC would end the game, so
+-- guesses 2..5 are inserted directly (bypassing the ending) and the RPC's
+-- 6th must be refused.
 
 reset role;
 insert into wordiply.events (game_id, user_id, kind, word, length, took_turn)
@@ -262,7 +270,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (6) Coop 5th shared guess auto-terminates (ended/complete + scores)
+-- (6) Coop 5th shared guess ends the game (a win, with the scores)
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -282,44 +290,60 @@ select wordiply.submit_guess((select id from term_g), 'arxxx');    -- 5
 select wordiply.submit_guess((select id from term_g), 'arxx');     -- 4
 select wordiply.submit_guess((select id from term_g), 'arx');      -- 3
 
--- The 5th shared guess (bea) auto-terminates.
+-- The 5th shared guess (bea) ends the game.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 create temp table fifth on commit drop as
 select wordiply.submit_guess((select id from term_g), 'arw') as ret;  -- 3
 
 select is(
-  (select (ret->'data'->>'is_terminal')::boolean from fifth),
+  (select (ret->'data'->>'terminal')::boolean from fifth),
   true,
-  'coop: the 5th shared guess reports is_terminal=true'
+  'coop: the 5th shared guess reports terminal=true'
 );
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from term_g)),
-  'ended',
-  'coop 5th guess: play_state flips to "ended"'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from term_g)),
+  'resource_exhausted/complete/won',
+  'coop 5th guess: the game ends resource_exhausted/complete, won'
 );
 
 select is(
-  (select status->>'reason' from common.games where id = (select id from term_g)),
-  'complete',
-  'coop 5th guess: status.reason = "complete"'
+  (select game_ended_by_user_id from common.games where id = (select id from term_g)),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
+  'coop 5th guess: bea, who played it, ended the game'
 );
 
 select is(
-  (select (status->>'length_score')::int from common.games where id = (select id from term_g)),
+  (select array_agg(final_ranking || '/' || outcome order by user_id)
+     from common.game_players where game_id = (select id from term_g)),
+  array['1/won', '1/won'],
+  'coop 5th guess: every player is ranked 1 and won'
+);
+
+select is(
+  (select (clubpage_info->>'length_score')::int from common.games where id = (select id from term_g)),
   100,
-  'coop terminal: status.length_score = 100 (longest 7 / max 7)'
+  'coop ended: clubpage_info.length_score = 100 (longest 7 / max 7)'
 );
 
 select is(
-  (select (status->>'letter_count')::int from common.games where id = (select id from term_g)),
+  (select (clubpage_info->>'letter_count')::int from common.games where id = (select id from term_g)),
   22,                                       -- 7 + 5 + 4 + 3 + 3
-  'coop terminal: status.letter_count = sum of all guess lengths'
+  'coop ended: clubpage_info.letter_count = sum of all guess lengths'
+);
+
+select is(
+  (select (player_status->>'length_score')::int from common.game_players
+    where game_id = (select id from term_g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  100,
+  'coop ended: each player_status carries the team''s length score'
 );
 
 -- ============================================================
--- (7) RLS: compete opponent's guesses hidden mid-game, visible at terminal
+-- (7) RLS: compete opponent's guesses hidden mid-game, visible once ended
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -346,20 +370,22 @@ select is(
   'rls (compete mid-game): cade (no guesses) sees zero rows'
 );
 
--- Flip terminal → branch (3) opens the reveal; cade sees both peers' rows.
+-- End the game → the ended branch opens the reveal; cade sees both peers' rows.
 reset role;
-update common.games set is_terminal = true, play_state = 'ended'
+update common.games
+   set ended_at = now(), game_ended_reason = 'stopped',
+       game_ended_reason_detail = 'stopped', game_ended_outcome = 'neutral'
  where id = (select id from rls_g);
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
   (select count(*) from wordiply.events where game_id = (select id from rls_g)),
   2::bigint,
-  'rls (compete post-terminal): cade sees both ada''s + bea''s guesses'
+  'rls (compete ended): cade sees both ada''s + bea''s guesses'
 );
 
--- Coop: everyone sees all guesses mid-game (branch 1). Reuse term_g, which
--- is terminal now, so build a fresh coop game and cross-read.
+-- Coop: everyone sees all guesses mid-game. term_g has ended, so build a
+-- fresh coop game and cross-read.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table coop_rls on commit drop as
 select (wordiply.create_game(

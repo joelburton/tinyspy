@@ -45,11 +45,9 @@ export const wordiplyGallery: GameGallery = {
   cells: [
     { mode: 'coop', phase: 'fresh' },
     { mode: 'coop', phase: 'mid', note: 'two guesses in' },
-    // Coop has no WIN to reach — spending the guesses is just finishing, and
-    // there's no verdict to earn (docs/games/wordiply.md → Deferred). The clock
-    // is the one exception, and the only way a coop table can lose.
+    // Coop wins by spending its five guesses, and loses only to the clock.
     { mode: 'coop', phase: 'lost', note: 'time ran out' },
-    { mode: 'coop', phase: 'ended', note: 'five guesses spent' },
+    { mode: 'coop', phase: 'won', note: 'five guesses spent' },
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'two guesses in' },
     { mode: 'compete', phase: 'won', note: 'best length score' },
@@ -68,7 +66,7 @@ export const wordiplyGallery: GameGallery = {
     // player's five produced a "won" tile that was still mid-race, with no
     // verdict on it at all.) The rival plays a full, legal, LOSING set: five
     // guesses topping out at four letters against the seven-letter `hangars`.
-    if (cell.phase === 'won' || (cell.phase === 'lost' && cell.mode === 'compete')) {
+    if (cell.mode === 'compete' && (cell.phase === 'won' || cell.phase === 'lost')) {
       await play(me, id, LONGEST)
       await play(rival, id, SHORT)
       // Both verdicts come out of the same terminal — which one you see is
@@ -77,9 +75,8 @@ export const wordiplyGallery: GameGallery = {
     }
 
     // Coop shares one budget, so five guesses from one player is the whole
-    // thing — and it finishes NEUTRAL: there's no verdict to earn
-    // (docs/games/wordiply.md → Deferred).
-    if (cell.phase === 'ended' && cell.mode === 'coop') await play(me, id, LONGEST)
+    // thing, and a win.
+    if (cell.phase === 'won' && cell.mode === 'coop') await play(me, id, LONGEST)
 
     // The clock, played a little first so the terminal has something to report.
     // It's the only way a coop table can lose.

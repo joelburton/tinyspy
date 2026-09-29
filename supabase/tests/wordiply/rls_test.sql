@@ -7,15 +7,14 @@
 -- The events_select policy is the load-bearing piece for compete, and it
 -- encodes a GAME RULE, not just privacy: during a compete game a player
 -- sees only their OWN guess words (the FE shows opponents' guesses as
--- lengths only). A regression here leaks the words. wordiply shipped without
--- this test; it mirrors wordwheel/spellingbee's rls_test shape.
+-- lengths only). A regression here leaks the words.
 --
 -- Two layers of access control on wordiply.events:
 --   1. Outer gate: must be a club member of the game's club.
---   2. Inner gate (three OR branches, mirrors wordwheel.found_words_select):
---         (a) mode = 'coop'          — everyone in the club sees all guesses
---         (b) user_id = auth.uid()   — you always see your own (compete board)
---         (c) is_terminal = true     — post-game reveal (harmless in coop)
+--   2. Inner gate (three OR branches):
+--         (a) common.games.mode = 'coop'   — everyone in the club sees all guesses
+--         (b) user_id = auth.uid()         — you always see your own (compete board)
+--         (c) common.games.ended_at is set — post-game reveal (harmless in coop)
 --
 -- Direct-INSERT setup (switch to postgres, write rows) so the read policy is
 -- exercised in isolation from submit_guess.
@@ -39,30 +38,28 @@ create temp table club on commit drop as
 select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 reset role;
--- A non-terminal coop game. common.games is the FK target.
+-- A coop game still in play. common.games is the FK target.
 create temp table coop_game (id uuid) on commit drop;
 grant select on coop_game to authenticated;
 with ins as (
-  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, mode, title, setup)
   values (
     gen_random_uuid(),
     (select handle from club),
     'wordiply_coop',
-    'AR · best 7',
-    '{"difficulty": 5, "timer": {"kind": "none"}}'::jsonb,
-    'playing',
-    false
+    'coop',
+    'AR',
+    '{"difficulty": 5, "timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )
 insert into coop_game (id) select id from ins;
 
 insert into wordiply.games
-  (id, club_handle, mode, base, difficulty, max_word_length, longest_words, legal_words)
+  (game_id, base, max_word_length, longest_words, legal_words)
 values (
   (select id from coop_game),
-  (select handle from club),
-  'coop', 'ar', 5, 7,
+  'ar', 7,
   '["hangars"]'::jsonb, '["bar","car","arc","hangars"]'::jsonb
 );
 
@@ -98,7 +95,7 @@ select is(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 select is(
-  (select count(*) from wordiply.games where id = (select id from coop_game)),
+  (select count(*) from wordiply.games where game_id = (select id from coop_game)),
   0::bigint,
   'dee (outsider): zero rows from wordiply.games'
 );
@@ -110,7 +107,7 @@ select is(
 );
 
 select is(
-  (select count(*) from wordiply.games_state where id = (select id from coop_game)),
+  (select count(*) from wordiply.games_state where game_id = (select id from coop_game)),
   0::bigint,
   'dee (outsider): zero rows from wordiply.games_state (RLS inherits via security_invoker)'
 );
@@ -135,11 +132,9 @@ select throws_ok(
 select throws_ok(
   format(
     $$ insert into wordiply.games
-         (id, club_handle, mode, base, difficulty, max_word_length,
-          longest_words, legal_words)
-       values (gen_random_uuid(), %L, 'coop', 'ar', 5, 7,
-               '["hangars"]'::jsonb, '["bar"]'::jsonb) $$,
-    (select handle from club)
+         (game_id, base, max_word_length, longest_words, legal_words)
+       values (%L::uuid, 'ar', 7, '["hangars"]'::jsonb, '["bar"]'::jsonb) $$,
+    (select id from coop_game)
   ),
   '42501',
   'permission denied for table games',
@@ -154,26 +149,24 @@ reset role;
 create temp table compete_game (id uuid) on commit drop;
 grant select on compete_game to authenticated;
 with ins as (
-  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, mode, title, setup)
   values (
     gen_random_uuid(),
     (select handle from club),
     'wordiply_compete',
-    'AR · best 7 compete',
-    '{"difficulty": 5, "timer": {"kind": "none"}}'::jsonb,
-    'playing',
-    false
+    'compete',
+    'AR',
+    '{"difficulty": 5, "timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )
 insert into compete_game (id) select id from ins;
 
 insert into wordiply.games
-  (id, club_handle, mode, base, difficulty, max_word_length, longest_words, legal_words)
+  (game_id, base, max_word_length, longest_words, legal_words)
 values (
   (select id from compete_game),
-  (select handle from club),
-  'compete', 'ar', 5, 7,
+  'ar', 7,
   '["hangars"]'::jsonb, '["bar","car","arc","hangars"]'::jsonb
 );
 
@@ -205,18 +198,20 @@ select is(
 );
 
 -- ============================================================
--- Compete mode + terminal: branch (c) opens the reveal
+-- Compete mode, ended: branch (c) opens the reveal
 -- ============================================================
 
 reset role;
-update common.games set is_terminal = true, play_state = 'won_compete'
+update common.games
+   set ended_at = now(), game_ended_reason = 'stopped',
+       game_ended_reason_detail = 'stopped', game_ended_outcome = 'neutral'
  where id = (select id from compete_game);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from wordiply.events where game_id = (select id from compete_game)),
   3::bigint,
-  'compete post-terminal / ada: sees all 3 guesses (branch c: is_terminal)'
+  'compete ended / ada: sees all 3 guesses (branch c: ended_at)'
 );
 
 -- ============================================================

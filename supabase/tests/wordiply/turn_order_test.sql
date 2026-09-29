@@ -5,7 +5,7 @@
 -- ============================================================
 -- The per-game wiring for the common turn primitive: create_game seats
 -- the rotation when setup.coop_style='turns', and submit_guess gates on
--- _require_turn + advances on an accepted, non-terminal guess.
+-- _require_turn + advances on an accepted guess that doesn't end the game.
 -- Covers:
 --   1. create_game seats the pointer on the chosen first player
 --   2. an out-of-turn guess is rejected ('not your turn')
@@ -17,6 +17,8 @@
 --      dictionary miss (not_a_word) does NOT — the shipped word list may be
 --      at fault, or it's a typo, and taxing a reach for a long word is
 --      backwards in a game whose whole incentive is reaching.
+--   7. replay rewinds the pointer to the opener
+--   8. a turn game's timeout is ended by the player whose turn it was
 --
 -- Base is 'ar'; any longer word containing it is accepted (trusting-commit).
 -- ============================================================
@@ -27,7 +29,7 @@ set search_path = wordiply, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(17);
+select plan(18);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -214,6 +216,29 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN131",
     "message":"BUG: first player who is not in the game"}'::jsonb,
   'turns: a first player who is not in the game is refused'
+);
+
+-- ── A turn game's timeout names the turn holder ─────────────
+-- The clock ran out on someone's turn, so that player is who ended it.
+create temp table timed on commit drop as
+select (wordiply.create_game(
+  (select handle from club),
+  pg_temp.wordiply_setup_timed()
+    || jsonb_build_object(
+         'coop_style', 'turns',
+         'first_turn_user_id', 'bea22222-2222-2222-2222-222222222222'::text),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'coop',
+  pg_temp.wordiply_board()
+)->'data'->>'id')::uuid as id;
+select wordiply.submit_timeout((select id from timed));
+reset role;
+select is(
+  (select game_ended_reason || '/' || game_ended_by_user_id
+     from common.games where id = (select id from timed)),
+  'timeout/bea22222-2222-2222-2222-222222222222',
+  'turns: a timeout is ended by the player whose turn it was'
 );
 
 select * from finish();
