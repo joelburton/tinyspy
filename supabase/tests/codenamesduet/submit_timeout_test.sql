@@ -5,19 +5,20 @@
 -- ============================================================
 --
 -- The FE fires this RPC when its count-down timer hits 0. The
--- server-side gate is the non-terminal-play_state check; common._end_game
--- records play_state='lost' + status.reason='timeout'. Idempotent
--- on the gate — a second call (the partner's timer hitting 0 too) answers
+-- server-side gate is the game-ended check; common._end_game records the
+-- loss, timeout/'timeout', ended by whoever held the turn. Idempotent on
+-- the gate — a second call (the partner's timer hitting 0 too) answers
 -- the shared game-over race.
 --
 -- Coverage:
---   - happy path from playing: play_state → lost, is_terminal,
---     status.reason
---   - happy path from sudden_death (the other non-terminal state)
---   - idempotency: second call on a terminal game answers the race
+--   - happy path from ordinary play: ended_at set, outcome lost, reason
+--     timeout, ended by the turn holder
+--   - happy path from sudden death, where with words on both sides nobody
+--     holds the turn
+--   - idempotency: second call on an ended game answers the race
 --   - _require_game_player: non-player is rejected
---   - after a turn is spent: both players' results are {won: false}, and
---     status.turns_used is the budget less what is left
+--   - after a turn is spent: both players unranked and lost, and the
+--     turns used are the budget less what is left
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 -- ============================================================
@@ -65,24 +66,24 @@ select lives_ok(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
+  (select game_ended_outcome from common.games where id = (select id from g)),
   'lost',
-  'submit_timeout: flips play_state to lost'
+  'submit_timeout: the game ends lost'
 );
 
--- end_game marks the common.games row terminal.
+-- The clock ran out on ada's clue: she held the turn, so she ended it.
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  true,
-  'submit_timeout: end_game sets is_terminal=true on the common header'
+  (select game_ended_by_user_id from common.games where id = (select id from g)),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'submit_timeout: ended_at set, ended by the player who held the turn'
 );
 
--- Status reason carried through to common.games.
+-- The reason is carried through to common.games.
 select is(
-  (select status->>'reason' from common.games
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games
     where id = (select id from g)),
-  'timeout',
-  'submit_timeout: status.reason names the CAUSE, not the play_state'
+  'timeout/timeout',
+  'submit_timeout: the reason names the CAUSE, not the outcome'
 );
 
 -- ============================================================
@@ -94,14 +95,14 @@ select pg_temp.envelope_is(
   codenamesduet.submit_timeout((select id from g)),
   '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'submit_timeout: rejects on already-terminal games');
+  'submit_timeout: rejects on games that have ended');
 
 -- ============================================================
 -- (3) Non-player rejected (_require_game_player gate)
 -- ============================================================
 -- dee is signed in but isn't in common.game_players for this
 -- game — the player roster is frozen at create_game time. Use a
--- fresh game so the active-state guard doesn't fire first.
+-- fresh game so the game-ended guard doesn't fire first.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
@@ -119,15 +120,17 @@ select pg_temp.envelope_is(
   'submit_timeout: non-player rejected via _require_game_player');
 
 -- ============================================================
--- (4) Happy path from sudden_death
+-- (4) Happy path from sudden death
 -- ============================================================
--- codenamesduet's other non-terminal play_state is `sudden_death`. The
--- timer can expire in that state too — submit_timeout should
--- still lose the game on the timeout, not the spent turns.
+-- Sudden death is `turn_number` past `max_turns` on a game that hasn't ended. The
+-- timer can expire there too — submit_timeout should still lose the game on
+-- the timeout, not the spent turns. Both seats still have words, so the turn
+-- pointer names nobody (`_point_turn`, which every move runs, re-read here).
 
 reset role;
-update common.games set play_state = 'sudden_death'
- where id = (select id from g2);
+update codenamesduet.games set turn_number = max_turns + 1, current_clue_giver = null
+ where game_id = (select id from g2);
+select codenamesduet._point_turn((select id from g2));
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select lives_ok(
@@ -135,14 +138,15 @@ select lives_ok(
     $$ select codenamesduet.submit_timeout(%L::uuid) $$,
     (select id from g2)
   ),
-  'submit_timeout: sudden_death game accepts the call'
+  'submit_timeout: a sudden-death game accepts the call'
 );
 
 reset role;
 select is(
-  (select array[play_state, status->>'reason'] from common.games where id = (select id from g2)),
-  array['lost', 'timeout'],
-  'submit_timeout: sudden_death → lost, reason timeout (not turns)'
+  (select array[game_ended_outcome, game_ended_reason, coalesce(game_ended_by_user_id::text, 'nobody')]
+     from common.games where id = (select id from g2)),
+  array['lost', 'timeout', 'nobody'],
+  'submit_timeout: sudden death → lost, reason timeout (not turns), ended by nobody'
 );
 
 -- ============================================================
@@ -166,15 +170,15 @@ select codenamesduet.submit_timeout((select id from g3));
 reset role;
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g3) and result = '{"won": false}'::jsonb),
+    where game_id = (select id from g3) and final_ranking is null and outcome = 'lost'),
   2::bigint,
-  'submit_timeout: a coop loss writes {won: false} for BOTH players'
+  'submit_timeout: a coop loss leaves BOTH players unranked and lost'
 );
 
 select is(
-  (select (status->>'turns_used')::int from common.games where id = (select id from g3)),
+  (select max_turns - greatest(max_turns - turn_number + 1, 0) from codenamesduet.games where game_id = (select id from g3)),
   1,
-  'submit_timeout: turns_used is the budget less what is left (1 of 9)'
+  'submit_timeout: the turns used are the budget less what is left (1 of 9)'
 );
 
 -- ============================================================

@@ -109,8 +109,8 @@ Agreed 2026-09-26:
   compete: `won`, someone won; `lost`, everyone lost; `neutral`, no result;
   `near` occurs in no game today but is a valid end outcome, so no check
   constraint excludes it.
-- **Sudden death** is worked out in codenamesduet (`turns_remaining = 0`
-  while the game hasn't ended), not stored as a state.
+- **Sudden death** is worked out in codenamesduet (`turn_number` past
+  `max_turns` while the game hasn't ended), not stored as a state.
 - **The game's reason pair and `mode`** are columns on `common.games`;
   `status.mode` goes.
 - **`player_ended_at` replaces `locally_terminal`**: when the player stopped

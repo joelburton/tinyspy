@@ -4,21 +4,24 @@
 -- Test: sudden death rules
 -- ============================================================
 --
--- Sudden death triggers when the last turn is spent and agents remain.
--- The game here is put ONE turn from the end (the budget is the only thing
--- set by hand), and the last turn is spent the real way — a clue and a pass —
--- so what `_end_turn` writes on the way in is what gets checked:
+-- Sudden death triggers when the last turn is spent and agents remain: it is
+-- `turn_number` past `max_turns` on a game that hasn't ended. The game here is
+-- put ONE turn from the end (the turn number is the only thing set by hand),
+-- and the last turn is spent the real way — a clue and a pass — so what
+-- `_end_turn` writes on the way in is what gets checked:
 --
---   1. the pass answers `sudden_death`, with no clue-giver, and both rows say so
+--   1. the pass answers turns_remaining 0, with no clue-giver, and the rows
+--      say so
 --   2. a clue, a pass and the AI suggester are each refused, as races, in
 --      words that say sudden death rather than game over
 --   3. submit_guess works for a player with words left to guess (both have
 --      them here; `turn_pointer_test.sql` covers the side that does not),
 --      and a green reveal keeps the game going
---   4. a bystander loses the game, reason turns
---   5. an assassin loses it, reason assassin, as it does in ordinary play
+--   4. a bystander loses the game, fatal_move / 'neutral'
+--   5. an assassin loses it, fatal_move / 'assassin', as it does in ordinary
+--      play
 --
--- For the reveal label, sudden_death uses the *partner's* view
+-- For the reveal label, sudden death uses the *partner's* view
 -- (the seat opposite the guesser). So when ada guesses, we
 -- look up positions on bea's key view to find a "green for ada
 -- to hit" or "neutral for ada to hit".
@@ -49,8 +52,8 @@ select (codenamesduet.create_game((select handle from club), pg_temp.codenamesdu
 -- The budget is the one thing set by hand, as postgres (the table has no
 -- UPDATE grant for the authenticated role): turn 9 of 9.
 reset role;
-update codenamesduet.games set turns_remaining = 1, turn_number = 9
-  where id = (select id from g);
+update codenamesduet.games set turn_number = 9
+  where game_id = (select id from g);
 
 -- ============================================================
 -- (1) The last pass drops the game into sudden death
@@ -64,18 +67,20 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   pass_turn((select id from g)),
   '{"type":"ok","data":{"result":"passed","turn_number":10,"turns_remaining":0,
-    "clue_giver":null,"play_state":"sudden_death"}}'::jsonb,
-  'the pass that spends the last turn answers sudden_death, with no clue-giver'
+    "clue_giver":null}}'::jsonb,
+  'the pass that spends the last turn answers turns_remaining 0, with no clue-giver'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'sudden_death',
-  'the last pass writes play_state = sudden_death'
+  (select (cg.ended_at is null)::text || '/' || greatest(g.max_turns - g.turn_number + 1, 0)
+     from common.games cg join codenamesduet.games g on g.game_id = cg.id
+    where cg.id = (select id from g)),
+  'true/0',
+  'the last pass drops the game into sudden death: not ended, no turns left'
 );
 
 select is(
-  (select current_clue_giver from codenamesduet.games where id = (select id from g)),
+  (select current_clue_giver from codenamesduet.games where game_id = (select id from g)),
   null,
   'nobody holds the clue seat in sudden death'
 );
@@ -121,18 +126,20 @@ select pg_temp.envelope_is(
     pg_temp.find_position((select id from g), 'B', 'G')
   ),
   '{"type":"ok","outcome":null,"data":{"result":"agent","revealed":"G",
-    "found_agents_count":1,"play_state":"sudden_death"}}'::jsonb,
+    "found_agents_count":1,"turns_remaining":0}}'::jsonb,
   'green reveal in sudden death answers ok/agent and stays in sudden death'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'sudden_death',
-  'play_state stays sudden_death after a green reveal'
+  (select (cg.ended_at is null)::text || '/' || greatest(g.max_turns - g.turn_number + 1, 0)
+     from common.games cg join codenamesduet.games g on g.game_id = cg.id
+    where cg.id = (select id from g)),
+  'true/0',
+  'the game stays in sudden death after a green reveal'
 );
 
 -- ============================================================
--- (4) Any non-green loses the game, reason turns
+-- (4) Any non-green loses the game, fatal_move / neutral
 -- ============================================================
 -- A neutral on the partner's view is enough.
 
@@ -141,15 +148,17 @@ select pg_temp.envelope_is(
     (select id from g),
     pg_temp.find_position((select id from g), 'B', 'N')
   ),
-  '{"type":"ok","outcome":null,"data":{"result":"lost","reason":"turns",
+  '{"type":"ok","outcome":null,"data":{"result":"lost","reason":"neutral",
     "revealed":"N","found_agents_count":1}}'::jsonb,
-  'a neutral in sudden death answers ok/lost, reason turns — the game is over'
+  'a neutral in sudden death answers ok/lost, reason neutral — the game is over'
 );
 
 select is(
-  (select array[play_state, status->>'reason'] from common.games where id = (select id from g)),
-  array['lost', 'turns'],
-  'a non-green reveal in sudden death sets play_state = lost, reason = turns'
+  (select array[game_ended_outcome, game_ended_reason, game_ended_reason_detail,
+                game_ended_by_user_id::text]
+     from common.games where id = (select id from g)),
+  array['lost', 'fatal_move', 'neutral', 'ada11111-1111-1111-1111-111111111111'],
+  'a non-green reveal in sudden death ends the game lost, fatal_move / neutral, by the guesser'
 );
 
 -- ============================================================
@@ -161,8 +170,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
 reset role;
-update codenamesduet.games set turns_remaining = 1, turn_number = 9
-  where id = (select id from g2);
+update codenamesduet.games set turn_number = 9
+  where game_id = (select id from g2);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select submit_clue((select id from g2), 'LAST', 1);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -176,12 +185,12 @@ select pg_temp.envelope_is(
     pg_temp.find_position((select id from g2), 'B', 'A')
   ),
   '{"type":"ok","outcome":null,"data":{"result":"lost","reason":"assassin","revealed":"A"}}'::jsonb,
-  'an assassin in sudden death answers ok/lost, reason assassin, not turns'
+  'an assassin in sudden death answers ok/lost, reason assassin, not neutral'
 );
 
 select is(
-  (select status->>'reason' from common.games where id = (select id from g2)),
-  'assassin',
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g2)),
+  'fatal_move/assassin',
   'and its reason is the assassin, not the spent budget'
 );
 

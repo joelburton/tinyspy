@@ -63,24 +63,18 @@ select pg_temp.envelope_is(
 -- ============================================================
 -- (3) Non-active game is rejected
 -- ============================================================
--- To exercise the "no suggestions outside active play" path, force a
--- fresh game's status to a terminal value via direct UPDATE (RLS-free
--- because tests run as postgres by default — reset role first).
+-- To exercise the "no suggestions outside active play" path, end a fresh
+-- game with the Stop.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table done_game on commit drop as
 select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
-reset role;
-update common.games set play_state = 'won', is_terminal = true, ended_at = now()
-  where id = (select id from done_game);
-update codenamesduet.games set current_clue_giver = null
-  where id = (select id from done_game);
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select stop_game((select id from done_game));
 select pg_temp.envelope_is(
   get_clue_context((select id from done_game)),
   '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'get_clue_context rejects when game is terminal'
+  'get_clue_context rejects when the game has ended'
 );
 
 -- ============================================================

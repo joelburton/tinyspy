@@ -115,24 +115,27 @@ and anything but an agent loses.
 | **agent** · **bystander** · **assassin** | the three labels, stored as `G`, `N` and `A`. The code's `neutral` is a bystander, and the rulebook's "green" is an agent |
 | **contacted** | an agent turned over; the same for both players |
 | **clue-giver** · **guesser** | who holds the clue this turn, `current_clue_giver` — nobody, in sudden death — and the other seat |
-| **turn budget** | `setup.turns`, counted down in `turns_remaining`. Distinct from the wall-clock timer, which is an optional setup of its own |
-| **sudden death** | the budget spent with agents left |
+| **turn budget** | `max_turns`, copied from `setup.turns` at create. The turns left are worked out, `greatest(max_turns − turn_number + 1, 0)` (`_turns_remaining`), never stored. Distinct from the wall-clock timer, which is an optional setup of its own |
+| **sudden death** | the budget spent with agents left: `turn_number` past `max_turns` while the game hasn't ended |
 | **finished player** | a player whose own agents are all contacted; they stop giving clues |
 
-### The play states
+### How a game ends
 
-`playing` and `sudden_death` run; the rest are terminal. WHY a game ended is
-`common.games.status.reason`:
+The ending is `common.games`' reason, detail and outcome
+([docs/win-lose.md](../../docs/win-lose.md)):
 
-| play state | when | reason |
-|---|---|---|
-| `won` | the fifteenth agent is contacted | `solved` |
-| `lost` | an assassin is hit | `assassin` |
-| `lost` | a bystander in sudden death (an assassin there is still `assassin`) | `turns` |
-| `lost` | the wall-clock countdown ran out | `timeout` |
-| `ended` | somebody pressed Stop — neutral, not a loss | `manual` |
+| when | reason | detail | outcome |
+|---|---|---|---|
+| the fifteenth agent is contacted | `reached_goal` | `solved` | `won`, both ranked 1 |
+| an assassin is hit | `fatal_move` | `assassin` | `lost` |
+| a bystander in sudden death (an assassin there is still `assassin`) | `fatal_move` | `neutral` | `lost` |
+| the wall-clock countdown ran out | `timeout` | `timeout` | `lost` |
+| somebody pressed Stop — neutral, not a loss | `stopped` | `stopped` | `neutral` |
 
-Every ending is the same for both players, and only `won` is a win.
+Every ending is the same for both players, and only a solve is a win; it also
+sets both players' `solved_at`. The guess that ends a game names the guesser
+as who ended it; a timeout names whoever held the turn — nobody, in sudden
+death with words on both sides.
 
 ## Schema
 
@@ -142,7 +145,7 @@ Four tables, in `supabase/migrations/20260615000001_codenamesduet.sql` and
 
 | | |
 |---|---|
-| `codenamesduet.games` | one row per game: the two seats (`user_a_id`, `user_b_id`), both key cards (`key_card_a`, `key_card_b`, each 25 labels indexed by board position), the turn state (`turn_number`, `turns_remaining`, `current_clue_giver`). The play state is on `common.games` |
+| `codenamesduet.games` | one row per game: the two seats (`player_a_user_id`, `player_b_user_id`), both key cards (`key_card_a`, `key_card_b`, each 25 labels indexed by board position), the budget (`max_turns`) and the turn state (`turn_number`, `current_clue_giver`). The ending is on `common.games` |
 | `codenamesduet.word_pool` | the word list a board is drawn from, seeded by the migration. No policy and no grant: only `create_game` reads it |
 | `codenamesduet.words` | the board, 25 rows per game: the word, and what has happened to it — `revealed_as` (`G` or `A`, the same for both players) and `neutral_a` / `neutral_b` (a bystander hit by that seat) |
 | `codenamesduet.events` | the log ([supabase.md → Every game's log](../../docs/supabase.md#every-games-log-is-gameevents)): one row per `clue`, `guess`, `pass` and `hint`, `order by id`. Beside the skeleton, `turn_number`, `seat`, and payload columns named for the kind that owns them — `clue_word` / `clue_count` / `clue_from_ai`, `guess_position` / `guess_result` — with a CHECK tying each kind to its own. A partial unique index allows one clue per turn. `took_turn` is true where the turn number moves on: a bystander in ordinary play, a pass, and an agent in sudden death |
@@ -167,11 +170,20 @@ did; `clue_from_ai` is how that clue came about. A second clue kind would have
 to be named by every "is there a clue this turn" check. The clues logged
 before the column existed are all `false`, since nothing recorded it.
 
-**The club-list readout is `common.games.status`**: `turn_number`,
-`turns_remaining` and `found_agents_count` during play, and at the end the
-`reason` and `turns_used`. The three endings a guess causes state
-`found_agents_count` themselves, because the status merges and the winning guess ends
-the game before the ordinary update would have counted it.
+**The statuses** are written by `codenamesduet._write_statuses` at create, at
+Restart and at the end of every move — a hint included, which is how the
+partner hears of it — each assigned whole with every key present:
+
+| status | keys |
+|---|---|
+| `game_status` | `found_agents_count`, `turn_number`, `turns_remaining`, `max_turns` |
+| each `player_status` | none — both players share everything, and there is no strip |
+| `clubpage_info` | `found_agents_count`, `turns_remaining` |
+
+The agents found and the turns are table-facts, not team-facts — the board's and
+the game's, the same whoever is looking — so they sit in `game_status`.
+`turns_remaining` is worked out from `max_turns` and `turn_number`, as is the
+same key in the answers below.
 
 **The club-list title** is the board's first three words in board order,
 `PAGE-CHAIN-EGG`. A duet board never moves, so the top-left three cells always
@@ -179,8 +191,8 @@ match the title, and the words are on every player's screen, so the title
 gives nothing away.
 
 **Realtime** is two rooms per client: the game row, and the board and the log
-together. `stop_game` touches the game row on the way out, so a client wakes
-into the finished game.
+together. `stop_game` clears the clue seat on the way out, so a client watching
+the game row wakes into the finished game.
 
 ## RPCs
 
@@ -190,7 +202,7 @@ what `data` carries on an `ok`; `result` names the answer, and a call site
 picks its branch by that word and nothing else. The examples are one real
 game on the local stack, `PAGE-CHAIN-EGG`, seat A giving the first clue.
 
-### `codenamesduet.create_game(target_club, setup, player_user_ids)`
+### `codenamesduet.create_game(p_club_handle, p_setup, p_player_user_ids)`
 
 Starts a game. It checks the setup — a turn budget of 7 to 15, a
 first clue-giver who is one of the players, the timer — and that there are
@@ -201,8 +213,8 @@ first clue-giver as A and the other player as B — on the common turn order
 too, A first, with the pointer on A — and deals the two key cards
 from the rulebook's fixed joint distribution, shuffled: each card has nine
 agents, three assassins and thirteen bystanders, and three words are agents on
-both. The club-list readout is seeded at turn 1 with the whole budget and no
-agents found. The setup is saved as the club's next default without the first
+both. The statuses start at turn 1 with the whole budget and no agents
+found. The setup is saved as the club's next default without the first
 clue-giver, which is a choice about this round rather than about the club.
 
 The play surface's New game calls it too, with this game's setup and roster.
@@ -211,13 +223,13 @@ The play surface's New game calls it too, with this game's setup and roster.
 
 ```json
 {
-  "target_club": "joel-moth",
-  "setup": {
+  "p_club_handle": "joel-moth",
+  "p_setup": {
     "turns": 9,
     "first_clue_giver_user_id": "deadbeef-…-000000000001",
     "timer": { "kind": "none" }
   },
-  "player_user_ids": ["deadbeef-…-000000000001", "deadbeef-…-000000000002"]
+  "p_player_user_ids": ["deadbeef-…-000000000001", "deadbeef-…-000000000002"]
 }
 ```
 
@@ -227,7 +239,7 @@ The play surface's New game calls it too, with this game's setup and roster.
 { "result": "created", "id": "88ae6f5a…" }
 ```
 
-### `codenamesduet.submit_clue(target_game, clue_word, clue_count, clue_from_ai)`
+### `codenamesduet.submit_clue(p_game_id, p_clue_word, p_clue_count, p_clue_from_ai)`
 
 The clue-giver's move. Under a lock on the game row it checks that the game is
 still in ordinary play, that the caller holds the clue seat, and that this
@@ -239,7 +251,7 @@ suggestion. It does not judge the clue: the word is whatever was typed — a
 board word included — and the count any whole number from zero up. The players
 police their own clues, as they would at a table.
 
-**Passed:** `{ "target_game": "88ae6f5a…", "clue_word": "WORD", "clue_count": 2, "clue_from_ai": false }` — `clue_from_ai` defaults to `false`.
+**Passed:** `{ "p_game_id": "88ae6f5a…", "p_clue_word": "WORD", "p_clue_count": 2, "p_clue_from_ai": false }` — `p_clue_from_ai` defaults to `false`.
 
 **Returned** — one answer, the clue as it was stored:
 
@@ -247,7 +259,7 @@ police their own clues, as they would at a table.
 { "result": "clued", "clue_word": "WORD", "clue_count": 2, "clue_from_ai": false, "turn_number": 1, "seat": "A" }
 ```
 
-### `codenamesduet.submit_guess(target_game, guess_position)`
+### `codenamesduet.submit_guess(p_game_id, p_guess_position)`
 
 The guesser's move, and the one that decides the game. The label a word turns
 over as is read from the CLUE-GIVER's key in ordinary play — the guess answers
@@ -264,50 +276,50 @@ goes on; a bystander in ordinary play ends the turn, and the seat that clues
 next is the partner's unless the partner's agents are all found. In sudden
 death every guess is a turn of its own: an agent moves the turn number on, so
 the next guess — by either player — is the next turn. Three guesses
-end the game: the fifteenth agent (`won`), any assassin (`lost`, reason
-`assassin`), sudden death included, and a bystander in sudden death (`lost`,
-reason `turns`). Each ending records its
-reason, the turns used and the agents found, and both players get the same
-result.
+end the game: the fifteenth agent (`won`, detail `solved`), any assassin
+(`lost`, detail `assassin`), sudden death included, and a bystander in sudden
+death (`lost`, detail `neutral`) — [How a game ends](#how-a-game-ends). Both
+players get the same result.
 
-**Passed:** `{ "target_game": "88ae6f5a…", "guess_position": 5 }`
+**Passed:** `{ "p_game_id": "88ae6f5a…", "p_guess_position": 5 }`
 
 **Returned.** Four answers. The two that leave the game running are named for
 what was turned over and carry the turn state after it — B's first two guesses
 in this game:
 
 - an agent — `{ "result": "agent", "revealed": "G", "found_agents_count": 1,
-  "turn_number": 1, "turns_remaining": 9, "clue_giver": "A", "play_state": "playing" }`
+  "turn_number": 1, "turns_remaining": 9, "clue_giver": "A" }`
   (SMOKE, position 5; the turn goes on)
 - a bystander — `{ "result": "bystander", "revealed": "N", "found_agents_count": 1,
-  "turn_number": 2, "turns_remaining": 8, "clue_giver": "B", "play_state": "playing" }`
+  "turn_number": 2, "turns_remaining": 8, "clue_giver": "B" }`
   (PAGE, position 0; the turn ended). When that spent the last turn,
-  `play_state` is `sudden_death` and `clue_giver` is null — sudden death has no
-  clues, so nobody holds the seat.
+  `turns_remaining` is 0 and `clue_giver` is null — sudden death has no clues,
+  so nobody holds the seat.
 
-The two that end the game are named for the play state they set, and carry
-its reason, the label turned over, the agents found and the turns used:
+The two that end the game are named for its outcome, and carry the ending's
+detail as `reason`, the label turned over, the agents found and the turns
+used (`max_turns` minus the turns left):
 
 - `{ "result": "won", "reason": "solved", "revealed": "G", "found_agents_count": …, "turns_used": … }`
-- `{ "result": "lost", "reason": "assassin" | "turns", "revealed": "A" | "N", "found_agents_count": …, "turns_used": … }`
+- `{ "result": "lost", "reason": "assassin" | "neutral", "revealed": "A" | "N", "found_agents_count": …, "turns_used": … }`
 
 The frontend says nothing about any of the four: each is a reveal, and the
 board shows it when the words row arrives.
 
-### `codenamesduet.pass_turn(target_game)`
+### `codenamesduet.pass_turn(p_game_id)`
 
 The guesser stops guessing and spends the turn — legal before the first guess
 too, for a clue that makes no sense. It refuses a pass from the clue-giver and
 a pass before this turn's clue, both races, and otherwise logs the pass and
 ends the turn exactly as a bystander does.
 
-**Passed:** `{ "target_game": "88ae6f5a…" }`
+**Passed:** `{ "p_game_id": "88ae6f5a…" }`
 
-**Returned** — one answer, the turn state the pass produced, in the same four
-keys the bystander answer carries:
+**Returned** — one answer, the turn state the pass produced, in the same three
+turn keys the bystander answer carries:
 
 ```json
-{ "result": "passed", "turn_number": …, "turns_remaining": …, "clue_giver": "A" | "B" | null, "play_state": "playing" | "sudden_death" }
+{ "result": "passed", "turn_number": …, "turns_remaining": …, "clue_giver": "A" | "B" | null }
 ```
 
 ### `codenamesduet-suggest-clue` — the edge function behind the AI button
@@ -342,12 +354,13 @@ since the model's answer is already in hand; the function logs that failure.
 ### The rest
 
 `stop_game`, `submit_timeout` and `replay_board` — the common shape every game
-has, doing here what they do everywhere. What is this game's: `stop_game` is
-the neutral `ended` with the reason `manual`; `submit_timeout` is `lost` with
-the reason `timeout`, distinct from `turns`, which is the budget running
-out; both reach sudden death as well as ordinary play. `replay_board` is a
+has, doing here what they do everywhere. What is this game's: `stop_game` goes
+through `common._stop`, neutral; `submit_timeout` is a loss on `timeout`,
+distinct from a bystander in sudden death, which is the budget running out;
+both reach sudden death as well as ordinary play. `replay_board` is a
 mulligan: the same twenty-five words and the same two key cards, every reveal
-and every event wiped, seat A clueing turn 1 again. There is no `concede` — the
+and every event wiped, the budget back to `max_turns`, seat A clueing turn 1
+again. There is no `concede` — the
 game is coop, and the shared Concede hides itself.
 
 ## FE submissions
@@ -515,18 +528,19 @@ test finds a position by its label), `pg_temp.codenamesduet_setup()` and
 
 | file | pins |
 |---|---|
-| `create_game_test` | the refusals — no sign-in, an outsider, a roster that is not two, a bad turn budget, a bad timer — the rows written, the club-list status seeded at turn 1, and the key card's joint table exactly |
+| `create_game_test` | the refusals — no sign-in, an outsider, a roster that is not two, a bad turn budget, a bad timer — the rows written, the statuses seeded at turn 1, and the key card's joint table exactly |
 | `game_loop_test` | who may clue, guess and pass in which phase; an agent goes on and the club-list agent count with it, a bystander ends the turn and hands the clue over, a pass spends a turn; the assassin ends the game; no answer carries an outcome; a clue, a guess and a pass into a deleted game are the shared race |
 | `clue_giver_handoff_test` | a finished player gives no more clues, from either seat, and two live seats still alternate |
 | `cross_direction_test` | a bystander locks the guesser's side only; the partner can still contact the word; the two locks answer in different words |
 | `win_test` | the fourteenth agent plays on and the fifteenth wins, both players winning, with the turns spent recorded |
-| `sudden_death_test` | a real last pass enters it, with nobody holding the clue seat; a clue, a pass and the AI refused in its own words; an agent goes on, a bystander loses on `turns` and an assassin on `assassin` |
+| `sudden_death_test` | a real last pass enters it, with nobody holding the clue seat; a clue, a pass and the AI refused in its own words; an agent goes on, a bystander loses on `neutral` and an assassin on `assassin` |
 | `turn_pointer_test` | both players seated on the common turn order; the pointer names the clue-giver, then the guesser, then the next giver, and A again on a restart; in sudden death nobody with words on both sides, else the one player with words — and the other's guess is refused ("No words left to guess") |
 | `submit_timeout_test` | a loss on `timeout` from both running states, the reason, both players losing, the turns spent, and a second call refused |
-| `stop_game_test` | `ended` with the reason `manual`, nobody winning, the game row written for the realtime wake, and a second call refused |
+| `stop_game_test` | a neutral `stopped` ending, nobody winning, the game row written for the realtime wake, and a second call refused |
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
 | `events_test` | what each move writes to the log, `took_turn` included, a hint under the seat that asked; the one-clue index and the payload CHECK |
 | `clue_context_test` | `get_clue_context`'s gate, every agent, bystander and assassin in its answer, the whole board and the clues given so far; a deleted game is the shared race through it and `log_hint` |
+| `statuses_test` | each status's exact key set at the start, mid-game and at the end; the values the page reads; a hint rewrites them; a rebuild leaves `status_changed_at` alone and drops a stale key |
 | `rls_test` | an outsider sees no row of any table and cannot move; a direct insert is refused |
 
 The edge function has no tests; `deno check` is its only net.

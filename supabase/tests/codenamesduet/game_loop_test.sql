@@ -35,7 +35,7 @@ select plan(22);
 -- ============================================================
 -- Ada creates the 2-member club; codenamesduet.create_game seats both
 -- members per the setup (ada as first clue-giver → seat A) and
--- brings the game straight to play_state='playing'.
+-- starts the game straight away.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -105,30 +105,30 @@ select pg_temp.envelope_is(
   ),
   '{"type":"ok","outcome":null,"data":{"result":"agent","revealed":"G",
     "found_agents_count":1,"turn_number":1,"turns_remaining":9,
-    "clue_giver":"A","play_state":"playing"}}'::jsonb,
+    "clue_giver":"A"}}'::jsonb,
   'a green guess answers ok/agent, turn state unchanged'
 );
 
 -- The club list's agent count moves with it.
 select is(
-  (select (status->>'found_agents_count')::int from common.games where id = (select id from g1)),
+  (select (clubpage_info->>'found_agents_count')::int from common.games where id = (select id from g1)),
   1,
-  'a green guess mid-game updates the club-list status found_agents_count'
+  'a green guess mid-game updates the club line''s found_agents_count'
 );
 
 -- Green keeps the turn alive: no turn spent, clue-giver unchanged.
 select is(
-  (select turns_remaining from games where id = (select id from g1)),
+  (select greatest(max_turns - turn_number + 1, 0) from games where game_id = (select id from g1)),
   9,
   'green guess does not spend a turn'
 );
 select is(
-  (select current_clue_giver from games where id = (select id from g1)),
+  (select current_clue_giver from games where game_id = (select id from g1)),
   'A',
   'green guess does not swap the clue-giver'
 );
 select is(
-  (select turn_number from games where id = (select id from g1)),
+  (select turn_number from games where game_id = (select id from g1)),
   1,
   'green guess does not advance the turn number'
 );
@@ -143,22 +143,22 @@ select pg_temp.envelope_is(
   ),
   '{"type":"ok","outcome":null,"data":{"result":"bystander","revealed":"N",
     "found_agents_count":1,"turn_number":2,"turns_remaining":8,
-    "clue_giver":"B","play_state":"playing"}}'::jsonb,
+    "clue_giver":"B"}}'::jsonb,
   'a neutral guess answers ok/bystander with the new turn state'
 );
 
 select is(
-  (select turns_remaining from games where id = (select id from g1)),
+  (select greatest(max_turns - turn_number + 1, 0) from games where game_id = (select id from g1)),
   8,
   'neutral guess spends one turn (9 → 8)'
 );
 select is(
-  (select current_clue_giver from games where id = (select id from g1)),
+  (select current_clue_giver from games where game_id = (select id from g1)),
   'B',
   'neutral guess swaps the clue-giver (A → B)'
 );
 select is(
-  (select turn_number from games where id = (select id from g1)),
+  (select turn_number from games where game_id = (select id from g1)),
   2,
   'neutral guess advances the turn number (1 → 2)'
 );
@@ -174,7 +174,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   pass_turn((select id from g1)),
   '{"type":"ok","outcome":null,"data":{"result":"passed","turn_number":3,
-    "turns_remaining":7,"clue_giver":"A","play_state":"playing"}}'::jsonb,
+    "turns_remaining":7,"clue_giver":"A"}}'::jsonb,
   'pass_turn succeeds for the guesser in the guess phase, carrying no outcome'
 );
 -- `"outcome":null` is written out on purpose: `envelope_is` is containment, so
@@ -182,12 +182,12 @@ select pg_temp.envelope_is(
 -- put there. Ending your own turn is not a move anything adjudicates.
 
 select is(
-  (select turns_remaining from games where id = (select id from g1)),
+  (select greatest(max_turns - turn_number + 1, 0) from games where game_id = (select id from g1)),
   7,
   'pass spends one turn (8 → 7)'
 );
 select is(
-  (select current_clue_giver from games where id = (select id from g1)),
+  (select current_clue_giver from games where game_id = (select id from g1)),
   'A',
   'pass swaps the clue-giver back (B → A)'
 );
@@ -196,7 +196,7 @@ select is(
 -- Game 2: assassin reveal
 -- ============================================================
 -- Bea guesses Ada's assassin cell — game ends immediately, regardless
--- of turn count. play_state flips to lost, the reason is the assassin, and
+-- of turn count. The game ends lost, fatal_move/'assassin', and
 -- current_clue_giver is cleared.
 
 -- Game 2 reuses the same club. common._create_game flips the prior
@@ -221,9 +221,10 @@ select pg_temp.envelope_is(
 );
 
 select is(
-  (select array[play_state, status->>'reason'] from common.games where id = (select id from g2)),
-  array['lost', 'assassin'],
-  'assassin reveal sets play_state = lost, reason = assassin'
+  (select array[game_ended_outcome, game_ended_reason, game_ended_reason_detail]
+     from common.games where id = (select id from g2)),
+  array['lost', 'fatal_move', 'assassin'],
+  'assassin reveal ends the game lost, fatal_move / assassin'
 );
 
 -- ============================================================

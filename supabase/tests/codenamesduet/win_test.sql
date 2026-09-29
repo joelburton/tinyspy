@@ -5,8 +5,8 @@
 -- ============================================================
 --
 -- The win check lives at the end of submit_guess: after a green
--- reveal, count the total greens; if it's ≥ 15, set play_state = won
--- and clear the clue-giver.
+-- reveal, count the total greens; if it's ≥ 15, end the game
+-- reached_goal/'solved', won, and clear the clue-giver.
 --
 -- Of the 15 unique green agents, 9 are visible on Ada's side
 -- and 9 are visible on Bea's side (with 3 overlapping G/G cells).
@@ -80,7 +80,7 @@ end $$;
 -- gives a clue and Ada guesses, the reveal uses Bea's view —
 -- which is 'G' for all 6 of these cells.
 --
--- The 14th green keeps play_state='playing'; the 15th flips it to 'won'.
+-- The 14th green leaves the game being played; the 15th ends it, won.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select submit_clue((select id from g), 'TARGETS', 6);
@@ -99,13 +99,13 @@ begin
     select t.label as la, t.ord
     from codenamesduet.games g,
          jsonb_array_elements_text(g.key_card_a) with ordinality as t(label, ord)
-    where g.id = (select id from g)
+    where g.game_id = (select id from g)
   ),
   b as (
     select t.label as lb, t.ord
     from codenamesduet.games g,
          jsonb_array_elements_text(g.key_card_b) with ordinality as t(label, ord)
-    where g.id = (select id from g)
+    where g.game_id = (select id from g)
   )
   select array_agg((a.ord - 1)::int order by a.ord)
     into bob_unique
@@ -126,14 +126,14 @@ select is(
   '14 greens have been revealed (sanity)'
 );
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing',
-  'play_state stays playing after only 14 of 15 greens'
+  (select ended_at from common.games where id = (select id from g)),
+  null,
+  'the game goes on after only 14 of 15 greens'
 );
 
 -- The 15th and final reveal. The answer is NAMED for the ending it caused —
--- `won`, not `agent` — and inside the same RPC call the win check flips
--- play_state.
+-- `won`, not `agent` — and inside the same RPC call the win check ends the
+-- game.
 select pg_temp.envelope_is(
   submit_guess(
     (select id from g),
@@ -141,7 +141,7 @@ select pg_temp.envelope_is(
      from codenamesduet.games g,
           jsonb_array_elements_text(g.key_card_a) with ordinality as a(label, ord),
           jsonb_array_elements_text(g.key_card_b) with ordinality as b(label, ord)
-     where g.id = (select id from g)
+     where g.game_id = (select id from g)
        and a.ord = b.ord
        and a.label <> 'G' and b.label = 'G'
        and not exists (
@@ -152,48 +152,44 @@ select pg_temp.envelope_is(
        )
      limit 1)
   ),
-  '{"type":"ok","outcome":null,"data":{"result":"won","revealed":"G",
+  '{"type":"ok","outcome":null,"data":{"result":"won","reason":"solved","revealed":"G",
     "found_agents_count":15}}'::jsonb,
-  'the 15th green reveal answers ok/won'
+  'the 15th green reveal answers ok/won, reason solved'
 );
 
--- (4) Play state flips to won.
+-- (4) The game ends won, by the guesser who found the 15th.
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won',
-  'finding the 15th agent sets play_state = won'
+  (select array[game_ended_outcome, game_ended_reason, game_ended_reason_detail,
+                game_ended_by_user_id::text]
+     from common.games where id = (select id from g)),
+  array['won', 'reached_goal', 'solved', 'ada11111-1111-1111-1111-111111111111'],
+  'finding the 15th agent ends the game won, reached_goal / solved, by the guesser'
 );
 
--- (5) …and the LISTING status records that 15th agent.
---
--- The winning reveal is the one place where the terminal write IS the reveal:
--- every other green bumps `found_agents_count` through update_state, but the 15th
--- takes the end_game branch instead. end_game MERGES its status object, so a
--- blob that doesn't mention found_agents_count leaves the previous value — 14 — and
--- the club page reads "Won · 14/15 agents" on a game where all fifteen were
--- found. Terminal writes state their own numbers (docs/common-schema.md →
--- Title, status and last activity), which is what makes this assertable at all.
+-- (5) …and the club line records that 15th agent: the builder runs after the
+-- ending, from the words, so the final count is the full fifteen.
 select is(
-  (select (status->>'found_agents_count')::int from common.games where id = (select id from g)),
+  (select (clubpage_info->>'found_agents_count')::int from common.games where id = (select id from g)),
   15,
-  'the winning reveal records the 15th agent in the listing status'
+  'the winning reveal records the 15th agent on the club line'
 );
 
--- (6) A coop win is both players' — each result is {won: true}.
+-- (6) A coop win is both players' — each ranked 1, won, and solved.
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g) and result = '{"won": true}'::jsonb),
+    where game_id = (select id from g) and final_ranking = 1 and outcome = 'won'
+      and solved_at is not null),
   2::bigint,
-  'the win writes {won: true} for BOTH players'
+  'the win ranks BOTH players 1, won, and solved'
 );
 
--- (7) …and the listing records the turns spent: the budget less what is left.
--- Turn 1 ended on bea's pass; turn 2 is the one the win came in, and a win
--- spends nothing — so one turn of nine.
+-- (7) …and the turns spent: the budget less what is left. Turn 1 ended on
+-- bea's pass; turn 2 is the one the win came in, and a win spends nothing —
+-- so one turn of nine.
 select is(
-  (select (status->>'turns_used')::int from common.games where id = (select id from g)),
+  (select max_turns - greatest(max_turns - turn_number + 1, 0) from codenamesduet.games where game_id = (select id from g)),
   1,
-  'a guess that ends the game records turns_used = budget − turns_remaining (1 of 9)'
+  'a guess that ends the game leaves the turns used at budget − the turns left (1 of 9)'
 );
 
 -- ============================================================

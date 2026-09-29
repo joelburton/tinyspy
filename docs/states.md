@@ -292,7 +292,7 @@ Only gametype-specific gameplay state — things that drive the in-game render a
 the gametype's own RPCs. Examples:
 - **connections**: `board jsonb`, `mistake_count`
 - **codenamesduet**: `key_card_a`, `key_card_b`, `current_clue_giver`,
-  `turns_remaining`, …
+  `turn_number`, …
 
 Nothing about cross-cutting state. Nothing that the listing reads. (If the
 listing wanted to show the number of mistakes in a connections game, we would

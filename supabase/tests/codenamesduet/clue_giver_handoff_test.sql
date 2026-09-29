@@ -67,17 +67,17 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pass_turn((select id from g1));
 
 select is(
-  (select current_clue_giver from games where id = (select id from g1)),
+  (select current_clue_giver from games where game_id = (select id from g1)),
   'A',
   'partner (B) done → clue-giver stays A instead of swapping to B'
 );
 select is(
-  (select turn_number from games where id = (select id from g1)),
+  (select turn_number from games where game_id = (select id from g1)),
   2,
   'the turn still advances (a turn was spent, the turn ended)'
 );
 select is(
-  (select turns_remaining from games where id = (select id from g1)),
+  (select greatest(max_turns - turn_number + 1, 0) from games where game_id = (select id from g1)),
   8,
   'pass still spends a turn even when the clue-giver is unchanged'
 );
@@ -90,12 +90,12 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pass_turn((select id from g1));
 
 select is(
-  (select current_clue_giver from games where id = (select id from g1)),
+  (select current_clue_giver from games where game_id = (select id from g1)),
   'A',
   'still A on the next turn — a done partner never gets the clue back'
 );
 select is(
-  (select turn_number from games where id = (select id from g1)),
+  (select turn_number from games where game_id = (select id from g1)),
   3,
   'turn number keeps advancing across the repeated A turns'
 );
@@ -114,7 +114,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pass_turn((select id from g2));
 
 select is(
-  (select current_clue_giver from games where id = (select id from g2)),
+  (select current_clue_giver from games where game_id = (select id from g2)),
   'B',
   'control: with both seats live, the clue still swaps A → B normally'
 );
@@ -133,7 +133,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pass_turn((select id from g2));
 
 select is(
-  (select current_clue_giver from games where id = (select id from g2)),
+  (select current_clue_giver from games where game_id = (select id from g2)),
   'B',
   'partner (A) done → clue-giver stays B instead of swapping back to A'
 );

@@ -36,7 +36,7 @@ language sql as $$
        jsonb_array_elements_text(
          case s when 'A' then gm.key_card_a else gm.key_card_b end
        ) with ordinality as t(label, ord)
-  where gm.id = g and t.label = target
+  where gm.game_id = g and t.label = target
   limit 1;
 $$;
 
@@ -52,7 +52,7 @@ language sql as $$
        jsonb_array_elements_text(
          case s when 'A' then gm.key_card_a else gm.key_card_b end
        ) with ordinality as t(label, ord)
-  where gm.id = g and t.label = target;
+  where gm.game_id = g and t.label = target;
 $$;
 
 -- ─── codenamesduet_setup ─────────────────────────────────────

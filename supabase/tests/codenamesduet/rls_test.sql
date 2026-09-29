@@ -55,7 +55,7 @@ select submit_clue((select id from g), 'TOOLS', 2);
 -- could just mean no data exists, not that RLS is filtering.
 
 select is(
-  (select count(*) from games where id = (select id from g)),
+  (select count(*) from games where game_id = (select id from g)),
   1::bigint,
   'sanity: ada (a player) sees her own game'
 );
@@ -70,7 +70,7 @@ select is(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 select is(
-  (select count(*) from games where id = (select id from g)),
+  (select count(*) from games where game_id = (select id from g)),
   0::bigint,
   'dee cannot SELECT a games row for a club she is not in'
 );

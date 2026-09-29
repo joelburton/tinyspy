@@ -49,7 +49,7 @@ select
      where (g.key_card_a->>gs) = 'N' and (g.key_card_b->>gs) = 'G' limit 1) as p_ng,
   (select gs from generate_series(0, 24) as gs
      where (g.key_card_a->>gs) = 'N' and (g.key_card_b->>gs) = 'N' limit 1) as q_nn
-from codenamesduet.games g where g.id = (select id from g1);
+from codenamesduet.games g where g.game_id = (select id from g1);
 
 -- ─── Turn 1: ada clues, bea guesses P → neutral on ada's view ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

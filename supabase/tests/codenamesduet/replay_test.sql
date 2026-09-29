@@ -7,11 +7,10 @@
 -- whatever they learned of the key cards. What's pinned here is that shape:
 --   1. the key cards and the 25 words SURVIVE (it's the same board);
 --   2. every reveal, neutral flag and event is wiped;
---   3. the turn budget is re-read from setup (turns_remaining has been
---      decremented all game, so the row can't say what it was) and seat A
---      clues again;
---   4. it works mid-game AND at terminal — no play_state guard, it's a
---      restart — and a non-player is rejected;
+--   3. the turn number goes back to 1, so the whole budget is left, and
+--      seat A clues again;
+--   4. it works mid-game AND after the end — no ended check, it's a
+--      restart, and it clears the ending — and a non-player is rejected;
 --   5. a game deleted under it is the shared race (PN485).
 -- ============================================================
 
@@ -19,7 +18,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(12);
+select plan(13);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -35,7 +34,7 @@ select (codenamesduet.create_game(
 
 -- Snapshot the board + key cards: a restart must not touch either.
 create temp table before_state on commit drop as
-select key_card_a, key_card_b from codenamesduet.games where id = (select id from g1);
+select key_card_a, key_card_b from codenamesduet.games where game_id = (select id from g1);
 create temp table before_words on commit drop as
 select position, word from codenamesduet.words where game_id = (select id from g1);
 
@@ -73,8 +72,8 @@ select is(
       and (revealed_as is not null or neutral_a or neutral_b)),
   0::bigint, 'restart → every tile is unrevealed and un-neutraled again');
 select is(
-  (select turns_remaining || '/' || turn_number || '/' || current_clue_giver
-     from codenamesduet.games where id = (select id from g1)),
+  (select greatest(max_turns - turn_number + 1, 0) || '/' || turn_number || '/' || current_clue_giver
+     from codenamesduet.games where game_id = (select id from g1)),
   '9/1/A', 'restart → the turn budget, counter and clue-giver are back to the start');
 
 -- The MULLIGAN property: same board, same key cards.
@@ -86,16 +85,20 @@ select is(
 select is(
   (select count(*) from codenamesduet.games g
      join before_state b on b.key_card_a = g.key_card_a and b.key_card_b = g.key_card_b
-    where g.id = (select id from g1)),
+    where g.game_id = (select id from g1)),
   1::bigint, 'restart → the key cards are unchanged — a mulligan, not a fresh puzzle');
 
--- ─── Terminal, and non-players ───
+-- ─── After the end, and non-players ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select codenamesduet.stop_game((select id from g1));
 select lives_ok(
   format($$ select codenamesduet.replay_board(%L::uuid) $$, (select id from g1)),
   'a finished game can be restarted too — the whole point of the feature');
 reset role;
+select is(
+  (select (ended_at is null)::text || '/' || coalesce(game_ended_reason, 'none') || '/' || restart_count
+     from common.games where id = (select id from g1)),
+  'true/none/2', 'restart after the Stop → the ending is cleared, restart_count counts both restarts');
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(

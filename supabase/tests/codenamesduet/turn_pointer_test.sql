@@ -91,8 +91,8 @@ select is(pg_temp.pointer((select id from g)), 'ada11111-1111-1111-1111-11111111
 -- ============================================================
 -- (3) Sudden death, words left on both sides: nobody's turn
 -- ============================================================
-update codenamesduet.games set turns_remaining = 1, turn_number = 9
-  where id = (select id from g);
+update codenamesduet.games set turn_number = 9
+  where game_id = (select id from g);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select submit_clue((select id from g), 'LAST', 1);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -113,19 +113,21 @@ select (codenamesduet.create_game((select handle from club), pg_temp.codenamesdu
 reset role;
 update codenamesduet.words w set revealed_as = 'G'
   from codenamesduet.games gm
- where w.game_id = gm.id and gm.id = (select id from g2)
+ where w.game_id = gm.game_id and gm.game_id = (select id from g2)
    and gm.key_card_a ->> w.position = 'G';
-update codenamesduet.games set turns_remaining = 1, turn_number = 9
-  where id = (select id from g2);
+update codenamesduet.games set turn_number = 9
+  where game_id = (select id from g2);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select submit_clue((select id from g2), 'LAST', 1);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pass_turn((select id from g2));
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'sudden_death',
-  'the second game is in sudden death'
+  (select (cg.ended_at is null)::text || '/' || greatest(g.max_turns - g.turn_number + 1, 0)
+     from common.games cg join codenamesduet.games g on g.game_id = cg.id
+    where cg.id = (select id from g2)),
+  'true/0',
+  'the second game is in sudden death: not ended, no turns left'
 );
 select is(pg_temp.pointer((select id from g2)), 'ada11111-1111-1111-1111-111111111111'::uuid,
   'sudden death points at the one player who still has words to guess');
@@ -139,8 +141,10 @@ select pg_temp.envelope_is(
 );
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'sudden_death',
+  (select (cg.ended_at is null)::text || '/' || greatest(g.max_turns - g.turn_number + 1, 0)
+     from common.games cg join codenamesduet.games g on g.game_id = cg.id
+    where cg.id = (select id from g2)),
+  'true/0',
   '…and the refused guess leaves the game in sudden death'
 );
 

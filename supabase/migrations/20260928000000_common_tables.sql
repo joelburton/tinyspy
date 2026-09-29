@@ -497,9 +497,12 @@ alter table codenamesduet.games rename column user_b_id to player_b_user_id;
 alter table codenamesduet.games rename constraint games_id_fkey        to games_game_id_fkey;
 alter table codenamesduet.games rename constraint games_user_a_id_fkey to games_player_a_user_id_fkey;
 alter table codenamesduet.games rename constraint games_user_b_id_fkey to games_player_b_user_id_fkey;
+-- turns_remaining is always greatest(max_turns − turn_number + 1, 0): each
+-- spent turn moved both, and sudden death is turn_number past max_turns.
 alter table codenamesduet.games
   drop column created_at,
-  drop column club_handle;
+  drop column club_handle,
+  drop column turns_remaining;
 
 -- ─── connections ───────────────────────────────────────────
 drop policy if exists games_select   on connections.games;

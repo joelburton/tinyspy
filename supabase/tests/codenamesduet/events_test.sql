@@ -153,7 +153,7 @@ select is(
 select is(
   (select count(*)::int from codenamesduet.events
     where game_id = (select id from g1) and took_turn),
-  (select turn_number - 1 from codenamesduet.games where id = (select id from g1)),
+  (select turn_number - 1 from codenamesduet.games where game_id = (select id from g1)),
   'a game on turn N holds N - 1 events that took a turn'
 );
 
@@ -204,10 +204,10 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
 
+-- Sudden death is `turn_number` past `max_turns` on a game that hasn't ended.
 reset role;
-update common.games set play_state = 'sudden_death' where id = (select id from g2);
-update codenamesduet.games set turns_remaining = 0, turn_number = 10, current_clue_giver = null
-  where id = (select id from g2);
+update codenamesduet.games set turn_number = 10, current_clue_giver = null
+  where game_id = (select id from g2);
 
 -- The budget is 9, so sudden death is turn 10. ada guesses, judged on bea's
 -- key: an agent, then a bystander that loses.
@@ -223,7 +223,7 @@ select is(
   'in sudden death the agent takes a turn and the next guess is the next turn; the losing guess moves nothing'
 );
 select is(
-  (select turn_number from codenamesduet.games where id = (select id from g2)),
+  (select turn_number from codenamesduet.games where game_id = (select id from g2)),
   11,
   'the game ends on the losing guess''s turn'
 );

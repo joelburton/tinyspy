@@ -6,9 +6,9 @@
 --
 -- create_game is the one entry-point RPC for starting a codenamesduet
 -- game: it takes a target_club + a jsonb setup + player_user_ids,
--- validates them, seats both players (user_a_id/user_b_id
--- columns), picks the 25 words, generates the Duet key card,
--- sets play_state='playing'. The common.games row created by
+-- validates them, seats both players (player_a_user_id /
+-- player_b_user_id columns), picks the 25 words, generates the Duet
+-- key card, and starts the game. The common.games row created by
 -- common._create_game gets is_current_view=true.
 --
 -- Coverage:
@@ -19,14 +19,14 @@
 --   - rejection: setup.first_clue_giver_user_id missing, not a uuid,
 --     or not one of the players
 --   - rejection: a bad setup.timer (the helper is wired up)
---   - happy path: answers ok/created, play_state='playing', club_handle
+--   - happy path: answers ok/created, the game not ended, club_handle
 --     correct, both seats filled, 25 words inserted,
 --     common.games row created with is_current_view=true
 --   - setup is persisted on the row (game review can see the
 --     original setup)
---   - turns_remaining initialized from setup.turns (a non-9
---     test value pins the link)
---   - the club-list status seeded at turn 1, the whole budget left and
+--   - max_turns initialized from setup.turns, so all of it is left (a
+--     non-9 test value pins the link)
+--   - the game status seeded at turn 1, the whole budget left and
 --     no agents found
 --   - the roster in common.game_players is exactly the two players
 --   - the title is the first three words in board order
@@ -333,33 +333,33 @@ select is(
 );
 
 select is(
-  (select play_state from common.games where id = (select id from created)),
-  'playing',
-  'create_game: new game starts in playing status (no lobby)'
+  (select ended_at from common.games where id = (select id from created)),
+  null,
+  'create_game: new game starts being played (no lobby)'
 );
 
--- The club list reads this before any move: turn 1, the whole budget (11
+-- The info column reads this before any move: turn 1, the whole budget (11
 -- here), no agents yet.
 select is(
   (select jsonb_build_object(
-            'turn_number', status->'turn_number',
-            'turns_remaining', status->'turns_remaining',
-            'found_agents_count', status->'found_agents_count')
+            'turn_number', game_status->'turn_number',
+            'turns_remaining', game_status->'turns_remaining',
+            'found_agents_count', game_status->'found_agents_count')
      from common.games where id = (select id from created)),
   '{"turn_number": 1, "turns_remaining": 11, "found_agents_count": 0}'::jsonb,
-  'create_game: seeds the club-list status at turn 1, the whole budget, no agents'
+  'create_game: seeds the game status at turn 1, the whole budget, no agents'
 );
 
 select is(
-  (select club_handle from codenamesduet.games where id = (select id from created)),
+  (select club_handle from common.games where id = (select id from created)),
   (select handle from club2),
   'create_game: game is linked to the target club'
 );
 
 select is(
-  (select turns_remaining from codenamesduet.games where id = (select id from created)),
-  11,
-  'create_game: turns_remaining is initialized from setup.turns'
+  (select greatest(max_turns - turn_number + 1, 0) || '/' || max_turns from codenamesduet.games where game_id = (select id from created)),
+  '11/11',
+  'create_game: max_turns is initialized from setup.turns, all of it left'
 );
 
 -- The setup column captures the original intent — used by
@@ -406,15 +406,15 @@ select results_eq(
 -- Ada is the chosen first clue-giver → seat A column. Bea → seat B
 -- column.
 select is(
-  (select user_a_id from codenamesduet.games where id = (select id from created)),
+  (select player_a_user_id from codenamesduet.games where game_id = (select id from created)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
-  'create_game: chosen first-clue-giver lands as user_a_id'
+  'create_game: chosen first-clue-giver lands as player_a_user_id'
 );
 
 select is(
-  (select user_b_id from codenamesduet.games where id = (select id from created)),
+  (select player_b_user_id from codenamesduet.games where game_id = (select id from created)),
   'bea22222-2222-2222-2222-222222222222'::uuid,
-  'create_game: the other player lands as user_b_id'
+  'create_game: the other player lands as player_b_user_id'
 );
 
 select is(
@@ -498,14 +498,14 @@ select (codenamesduet.create_game(
 )->'data'->>'id')::uuid as id;
 
 select is(
-  (select user_a_id from codenamesduet.games
-    where id = (select id from created2)),
+  (select player_a_user_id from codenamesduet.games
+    where game_id = (select id from created2)),
   'bea22222-2222-2222-2222-222222222222'::uuid,
   'create_game: bea is seated as A when chosen as first clue-giver'
 );
 
 select is(
-  (select user_b_id from codenamesduet.games where id = (select id from created2)),
+  (select player_b_user_id from codenamesduet.games where game_id = (select id from created2)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'create_game: ada is seated as B when bea is chosen as first clue-giver'
 );
@@ -527,7 +527,7 @@ select is(
         (g.key_card_b ->> w.position) as b_label,
         count(*) as n
       from codenamesduet.words w
-      join codenamesduet.games g on g.id = w.game_id
+      join codenamesduet.games g on g.game_id = w.game_id
       where w.game_id = (select id from created)
       group by 1, 2
     )
