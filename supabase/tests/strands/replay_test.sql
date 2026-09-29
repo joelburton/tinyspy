@@ -9,8 +9,8 @@
 -- attempt filled, or a hint already ringed on the board.
 --
 -- This file exists because the economy reset had no coverage at all:
--- terminal_test asserts what a replay does to a TERMINAL game (the log emptied,
--- the game un-terminalled, the solution re-hidden), and those assertions stay
+-- terminal_test asserts what a replay does to an ENDED game (the log emptied,
+-- the ending cleared, the solution re-hidden), and those assertions stay
 -- there because that is terminal_test's subject and the fixture it already
 -- builds. What was missing is this — the mid-game path, and the players rows.
 --
@@ -97,21 +97,22 @@ select is(
   'replay zeroes the hint economy on EVERY player row, not just the caller''s'
 );
 select is(
-  (select count(*) from strands.players
-    where game_id = (select id from game) and (solved or solved_at is not null)),
+  (select count(*) from common.game_players
+    where game_id = (select id from game)
+      and (solved_at is not null or player_ended_at is not null)),
   0::bigint,
   'replay clears the per-player finish flags'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from game)),
-  'playing',
+  (select ended_at from common.games where id = (select id from game)),
+  null,
   'replay leaves the game playing'
 );
 
 -- ── The board itself is untouched: same puzzle, hunted again ──
 select isnt(
-  (select board from strands.games where id = (select id from game)),
+  (select board from strands.games where game_id = (select id from game)),
   null,
   'replay keeps the board — a restart re-hunts THIS puzzle, it does not deal a new one'
 );

@@ -87,7 +87,7 @@ create function pg_temp.strands_puzzle() returns uuid
 language plpgsql security definer as $$
 declare new_id uuid;
 begin
-  insert into strands.puzzles (source_id, puzzle_date, board, clue, solution)
+  insert into strands.puzzles (source_id, puzzle_date, board, title, solution)
   -- 1999 is deliberately outside the real archive (which starts 2024-03-04):
   -- puzzle_date is UNIQUE, and these tests run against a database that has the
   -- imported puzzles in it, so a plausible-looking date would collide.
@@ -169,7 +169,7 @@ create function pg_temp.strands_ambiguous_puzzle() returns uuid
 language plpgsql security definer as $$
 declare new_id uuid;
 begin
-  insert into strands.puzzles (source_id, puzzle_date, board, clue, solution)
+  insert into strands.puzzles (source_id, puzzle_date, board, title, solution)
   values (
     'strands-ambiguous-fixture', '1999-01-02', pg_temp.strands_ambiguous_board(),
     'Two ways round',

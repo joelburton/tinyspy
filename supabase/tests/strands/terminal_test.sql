@@ -1,7 +1,7 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: strands terminals — the win, the manual stop, the replay
+-- Test: strands endings — the win, the manual stop, the replay
 -- ============================================================
 --
 -- The win condition is where the tiling invariant becomes a rule the code
@@ -10,11 +10,12 @@
 -- counts words (the cheaper half of that identity), and test (2) checks the
 -- other half actually holds — every cell of the board is spent at the win.
 --
--- Terminal vocabulary follows the shared roster (docs/states.md): a coop win is
--- `won`, and the manual stop is `ended` and NEUTRAL — the friends agreed to
--- stop, so nobody won and nobody lost. Either way the SOLUTION becomes readable
--- (the shield gates on is_terminal); whether a player is looking at it is their
--- own display choice in the FE, so there is nothing here to assert about that.
+-- The ending vocabulary is the shared one (docs/win-lose.md): a coop win is
+-- reached_goal / solved, `won`, and the manual stop is stopped and NEUTRAL —
+-- the friends agreed to stop, so nobody won and nobody lost. Either way the
+-- SOLUTION becomes readable (the shield gates on the game having ended);
+-- whether a player is looking at it is their own display choice in the FE, so
+-- there is nothing here to assert about that.
 
 begin;
 
@@ -40,7 +41,7 @@ select (strands.create_game(
 -- ============================================================
 -- (1)–(5) Finding every word wins
 -- ============================================================
--- Seven of the eight rows first, so the LAST one is what terminalizes — a test
+-- Seven of the eight rows first, so the LAST one is what ends it — a test
 -- that found them in one statement couldn't tell "the win fires on the final
 -- word" from "the win fires whenever the count is checked".
 
@@ -48,8 +49,8 @@ select strands.submit_path((select id from game), pg_temp.strands_row_path(r))
   from generate_series(0, 6) r;
 
 select is(
-  (select play_state from common.games where id = (select id from game)),
-  'playing',
+  (select ended_at from common.games where id = (select id from game)),
+  null,
   'seven of eight words found — still playing'
 );
 
@@ -59,19 +60,19 @@ select strands.submit_path((select id from game), pg_temp.strands_row_path(7)) -
 select is(
   (select payload->>'terminal' from final),
   'true',
-  'the eighth word reports the game terminal'
+  'the eighth word reports the game over'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from game)),
+  (select game_ended_outcome from common.games where id = (select id from game)),
   'won',
-  'coop reaches `won` — the shared roster vocabulary, not a game-specific word'
+  'coop reaches `won` — the shared outcome vocabulary, not a game-specific word'
 );
 
 select is(
-  (select status->>'reason' from common.games where id = (select id from game)),
-  'solved',
-  'status.reason carries strands'' own word for the cause'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from game)),
+  'reached_goal/solved',
+  'the reason is reached_goal, with strands'' own word for the detail'
 );
 
 -- The other half of the tiling identity: counting words was a proxy for
@@ -89,17 +90,18 @@ select is(
 -- ============================================================
 
 select isnt(
-  (select solution from strands.games_state where id = (select id from game)),
+  (select solution from strands.games_state where game_id = (select id from game)),
   null,
   'a win unshields the solution — the board is over for everyone'
 );
 
 select is(
-  (select result from common.game_players
+  (select final_ranking || '/' || outcome || '/' || (solved_at is not null)::text
+     from common.game_players
     where game_id = (select id from game)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  '{"won": true}'::jsonb,
-  'coop wins together — the player who did not trace the last word also won'
+  '1/won/true',
+  'coop wins together — the player who did not trace the last word also won, and solved'
 );
 
 -- ============================================================
@@ -115,22 +117,22 @@ select (strands.create_game(
 select strands.stop_game((select id from game2));
 
 select is(
-  (select play_state from common.games where id = (select id from game2)),
-  'ended',
-  'the manual stop is `ended` — not a loss'
+  (select game_ended_outcome from common.games where id = (select id from game2)),
+  'neutral',
+  'the manual stop is neutral — not a loss'
 );
 
 select is(
-  (select status->>'reason' from common.games where id = (select id from game2)),
-  'manual',
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from game2)),
+  'stopped/stopped',
   'and says so'
 );
 
 select is(
-  (select result from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from game2)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  '{"won": false}'::jsonb,
+  'unranked/neutral',
   'nobody won a game that was simply stopped'
 );
 
@@ -138,9 +140,9 @@ select is(
 -- rule. What a stop does NOT do is put it on anybody's screen: that's the FE's
 -- local reveal toggle, tested in the PlayArea suite.
 select isnt(
-  (select solution from strands.games_state where id = (select id from game2)),
+  (select solution from strands.games_state where game_id = (select id from game2)),
   null,
-  'a manual stop unshields the solution as well — same is_terminal gate'
+  'a manual stop unshields the solution as well — same ended_at gate'
 );
 
 select pg_temp.envelope_is(
@@ -162,14 +164,13 @@ select is(
 );
 
 select is(
-  (select play_state || ':' || is_terminal::text
-     from common.games where id = (select id from game)),
-  'playing:false',
-  'replay un-terminals the game — which re-hides the solution by itself'
+  (select ended_at from common.games where id = (select id from game)),
+  null,
+  'replay clears the ending — which re-hides the solution by itself'
 );
 
 select is(
-  (select solution from strands.games_state where id = (select id from game)),
+  (select solution from strands.games_state where game_id = (select id from game)),
   null,
   'so the answer is a secret again — the point of running a board back'
 );

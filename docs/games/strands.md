@@ -67,7 +67,7 @@ tracing is deliberate and infrequent.
 
 **The shield** is waffle's / crosswords' pattern — a column grant omitting
 `solution`, plus a `SECURITY DEFINER` `_solution_for` surfaced through the
-`security_invoker` `games_state` view, gated on **`common.games.is_terminal`**.
+`security_invoker` `games_state` view, gated on **`common.games.ended_at`**.
 Over for *everyone* is the only thing worth protecting server-side, and compete
 is where that bites: a racer who has solved or conceded is sitting there
 locally-done while the rest are still tracing, and could read the answer out —
@@ -141,9 +141,9 @@ deploy).
 
 | table | purpose |
 |---|---|
-| `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `clue`, and the shielded `solution`. Only `(id, source_id, puzzle_date, clue)` are granted to `authenticated` — enough for the setup dialog to name the puzzle it's offering, not enough to study tomorrow's board. The clue joined that list on 2026-08-13: it's how a person recognizes a puzzle (it's the game's own title, and on screen from the first second), so withholding it mostly meant starting one you'd already played. It was never a cheating control either — studying ahead only ever needed starting the puzzle, revealing, and deleting the game. |
-| `games` | One playthrough. Follows the [library-puzzle provenance rule](../common.md#library-puzzle-games-provenance-not-dependency): everything needed to play *and* identify the game is copied on, and `puzzle_id` is a soft FK (`on delete set null`), so the archive can be re-imported freely. Carries the three setup knobs, denormalized because they're immutable and read on every move. |
-| `players` | One row per player: the hint economy (`hint_points`, `hints_spent`, `active_hint_coords`) plus `solved` / `solved_at`. The **same shape in both modes** — coop moves every row in lock-step (the pool is shared), compete moves only the actor's (see [Compete](#8-compete)). Mid-race a rival's private fields are nulled by `players_state`. |
+| `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `title` (the puzzle's theme clue), and the shielded `solution`. Only `(id, source_id, puzzle_date, title)` are granted to `authenticated` — enough for the setup dialog to name the puzzle it's offering, not enough to study tomorrow's board. The title is how a person recognizes a puzzle (it's the game's own title, and on screen from the first second), so withholding it would mostly mean starting one you'd already played. |
+| `games` | One playthrough, keyed `game_id`, its title in `puzzle_title`; the mode and the club are `common.games`'. Follows the [library-puzzle provenance rule](../common.md#library-puzzle-games-provenance-not-dependency): everything needed to play *and* identify the game is copied on, and `puzzle_id` is a soft FK (`on delete set null`), so the archive can be re-imported freely. Carries the three setup knobs, denormalized because they're immutable and read on every move. |
+| `players` | One row per player: the hint economy (`hint_points`, `hints_spent`, `active_hint_coords`); a solve is `common.game_players.solved_at`. The **same shape in both modes** — coop moves every row in lock-step (the pool is shared), compete moves only the actor's (see [Compete](#8-compete)). Mid-race a rival's private fields are nulled by `players_state`. |
 | `events` | The append-only log — **one table, not two**, and not two *kinds* of table either. `kind` discriminates a **guess** (a submitted path, carrying `word` + `result`) from a **hint** (a cashed token, carrying neither). Keyed by a `bigint identity`, read `order by id`. Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. `took_turn` is true for a trace that found something — `theme`, `spangram` or `hint_word` — and false for a duplicate, a too-short path, a word the dictionary lacks, and a hint. Only state that can't be derived lives as columns — on `players`, above. |
 
 `solution` shape:
@@ -156,12 +156,26 @@ deploy).
 Coordinates are `[row, col]`, 0-based, everywhere — stored solutions, traced
 paths, hint reveals — matching the feed, so there are no adapters.
 
-**`status` carries `words_found` but never the TOTAL.** That blob is readable by
-the whole club, and "this board holds six words" is real information about a
+**The statuses carry the words found but never the TOTAL.** They are readable
+by the whole club, and "this board holds six words" is real information about a
 puzzle whose entire content is shielded — so the readouts count up rather than
 counting down, and `submit_path` doesn't return the total either. The server
-still computes it for the terminal check; the client learns the game is over
-from `terminal` / `common.games`, not by reaching a number it was told.
+still computes it for the solve check; the client learns the game is over from
+`terminal` / `common.games`, not by reaching a number it was told.
+
+**The statuses**, written by `strands._write_statuses` at create, at Restart
+and at the end of every move and ending, a hint included:
+
+| status | keys |
+|---|---|
+| `game_status` | `hint_cost` |
+| each `player_status` | `found_words_count`, `hint_points`, `hints_count`, `player_ended_reason` |
+| `clubpage_info` | `found_words_count`, `winner_user_id`, `winner_hints_count` |
+
+A player's `found_words_count` is the team's in coop, where the board is
+shared, and their own in compete. The club line's count is coop's and null in
+compete; a sole compete winner and the hints they solved on are written once
+the race ends.
 
 **Realtime publishes all three tables** — `games`, `players`, `events` — and
 all three are required: an unpublished table in a `postgres_changes`
@@ -195,21 +209,30 @@ connecting line* — replaying a hint as a traced route would show an order the
 hint never gave.
 
 The one thing this discloses that nothing else did: **the location of a hinted
-word nobody went on to find**, visible once the compete log opens at terminal
+word nobody went on to find**, visible once the compete log opens at the end
 but before an opt-in solution reveal. A narrow, deliberate acceptance — every
-*found* word's coords were already open at terminal via its `theme`/`spangram`
+*found* word's coords were already open at the end via its `theme`/`spangram`
 row. If it ever needs closing, the fix is one expression in a `security_invoker`
 view, the same mechanism `games_state` and `players_state` already use.
 
-### Play states
+### How a game ends
 
-Coop: `playing` → `won` (all found) / `lost` (timer expired) / `ended` (manual,
-neutral).
+The ending is `common.games`' reason, detail and outcome
+([docs/win-lose.md](../win-lose.md)):
 
-The clock is a **loss** under the roster's one test — *you lose if the game had
-a reachable end and you didn't reach it* ([states.md](../states.md)) — so
-strands sits with wordle and connections, not with an untargeted word hunt where
-the clock is merely how a session stops.
+| mode | when | reason / detail | ranked |
+|---|---|---|---|
+| coop | every theme word found | `reached_goal` / `solved` | everyone 1, won, all solved |
+| coop | the clock | `timeout` | nobody — a loss |
+| compete | nobody left racing: the last solve | `reached_goal` / `solved` | every solver by fewest hints, then the earliest solve; ties share |
+| compete | nobody left racing: the last concession | `conceded` | the same |
+| compete | the clock | `timeout` | the same, over whoever had solved |
+| either | somebody pressed Stop | `stopped` | nobody — neutral |
+
+The clock is a **loss** in coop under the roster's one test — *you lose if the
+game had a reachable end and you didn't reach it* ([states.md](../states.md)) —
+so strands sits with wordle and connections, not with an untargeted word hunt
+where the clock is merely how a session stops.
 
 ---
 
@@ -217,9 +240,9 @@ the clock is merely how a session stops.
 
 | RPC | job |
 |---|---|
-| `create_game(target_club, setup, player_user_ids, mode)` | Copies the puzzle onto the row, seeds counters + `status`, seats turn-order when `setup.coop_style = 'turns'`. Title is `"<date>: <clue>"` — the clue is the prompt, not the answer, so it spoils nothing and tells two games apart far better than a bare date. |
-| `submit_path(target_game, path)` | The move RPC. See the order below. |
-| `spend_hint(target_game)` | Picks a **random** unfound theme word and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted', coords, hint_points: 0}` with outcome `warning` — a hint is neither good nor bad play. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the play_state gate should already have caught. |
+| `create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)` | Copies the puzzle onto the row, writes the statuses, seats turn-order when `setup.coop_style = 'turns'`. Title is `"<date>: <title>"` — the puzzle's title is the prompt, not the answer, so it spoils nothing and tells two games apart far better than a bare date. |
+| `submit_path(p_game_id, p_path)` | The move RPC. See the order below. |
+| `spend_hint(p_game_id)` | Picks a **random** unfound theme word and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted', coords, hint_points: 0}` with outcome `warning` — a hint is neither good nor bad play. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the ended-game gate should already have caught. |
 | `stop_game` / `submit_timeout` / `replay_board` | The neutral manual stop, the clock, and the restart. |
 
 ### The one outcome decision (`lib/answer.ts`)
@@ -553,7 +576,7 @@ resolves the id against it — a row that list does not hold replays nothing.
 
 `useGame` subscribes to `strands.events`, `strands.players`, `strands.games`
 **and `common.games`**. That last one is unusual for a per-game hook and is the
-shield's fault: `games_state.solution` is gated on `common.games.is_terminal`,
+shield's fault: `games_state.solution` is gated on `common.games.ended_at`,
 and the ending that flips it writes only that row — so without this subscription
 the game ends, the shell re-renders, and the hook keeps serving the stale
 `solution: null` it fetched during play, leaving Reveal with nothing to draw.
@@ -634,7 +657,7 @@ That single rule sets everything else. A player still going might finish on
 fewer hints than the current best, so first-to-solve would crown the wrong
 person and make the hint count decorative. Instead a solver goes **locally
 terminal** — their board freezes, their number is final, they can't spend
-another hint — and the game ends when nobody is still racing: all solved, all
+another hint — and the game ends when nobody is still racing: all solved or
 conceded, or the clock.
 
 Getting a hint POINT costs nothing; only cashing one does. That's the whole
@@ -647,7 +670,7 @@ second.
 Exactly one number mid-game: **hints used**. It's the ranking, so it makes the
 race legible, and it says nothing about the puzzle.
 
-Withheld until terminal:
+Withheld until the game ends:
 
 | hidden | why |
 |---|---|
@@ -655,9 +678,12 @@ Withheld until terminal:
 | their hint **bar** | its fill proxies how many valid words they've found, so publishing it would leak sideways exactly what the events RLS hides |
 | their revealed word | part of the answer |
 
-`solved` / `solved_at` **are** public: race status, not puzzle content — knowing
-someone finished tells you the bar you have to clear, which is the same kind of
-fact as their hint count.
+A solve (`common.game_players.solved_at`) **is** public: race status, not puzzle
+content — knowing someone finished tells you the bar you have to clear, which is
+the same kind of fact as their hint count. A rival's found-word count and hint
+bar also reach their `player_status`, which the whole club can read: the
+statuses hide no more than the page shows, and the page shows neither
+mid-race.
 
 This is a **deliberate divergence** from the rest of the roster, which shows
 peers a progress metric "so the race has tension" (connections' mistakes,
@@ -665,44 +691,34 @@ boggle's score). Here the hint count carries that instead.
 
 ### Concede
 
-`strands.concede`, **not** `common.concede`. The shared one ends a game as a
-collective loss the moment the last player drops — but a table where one player
-SOLVED and the rest walked away must end with that solver winning. So strands
-takes the documented split: `common._set_conceded` for the guarded flag flip,
-then its own `_maybe_finish_compete`.
+`strands.concede` locks the `strands.games` row and calls `common._concede`,
+which records the concession (and ends the game as a loss if every player has
+conceded). Then, because a racer can also end by solving, its own
+`_maybe_finish_compete` checks whether the concession left nobody racing — a
+table where one player SOLVED and the rest walked away ends with that solver
+winning, the reason `conceded`.
 
 **A conceder is out, in both directions.** `submit_path` and `spend_hint`
-refuse a conceded caller (`'you have conceded'` — the connections guard: the FE
-freezes the board, but a submit in flight or a stale second tab must not let a
-drop-out complete the win condition), and the finisher's ranking excludes
-conceded players. A solver cannot concede: a player who is already out is
-refused by `common._set_conceded` (PN508), so a solve stays ranked
+refuse a conceded caller (the FE freezes the board, but a submit in flight or a
+stale second tab must not let a drop-out complete the win condition), and the
+ranking counts only solvers. A solver cannot concede: a player who is already
+out is refused by `common._concede` (PN508), so a solve stays ranked
 (`conceded_test.sql`).
 
-`concede` also takes the `strands.games` row lock **before** the flag flip,
-deliberately: `submit_path` and `stop_game` serialize on that row, and without it
-a last solve racing a last concede could each snapshot the other as "still
-racing" and leave the game stuck in `playing` with nobody left to end it. Lock
-order is `strands.games` → `common.games` on every path, so no deadlock.
-
-Its refusals are `common`'s, like every other game's: "no such game" and "not
-compete" are what `common._require_compete` and `common._set_conceded` already
-say, so a null mode falls through the first and is refused by the second. See
-[common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
+The row lock is deliberate: `submit_path` and `stop_game` serialize on that
+row, and without it a last solve racing a last concession could each snapshot
+the other as "still racing" and leave the game stuck with nobody left to end
+it. See [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
 
 The manual **Stop** stays neutral in both modes. A race called off early didn't
 finish, and handing the trophy to whoever was ahead would reward stopping at the
 right moment.
 
-### Terminal vocabulary
+### The club line
 
-`won_compete` / `lost_compete` (nobody solved — `status.reason` names which of
-timeout / all-conceded) / `ended`. The `_compete` suffix is
-load-bearing rather than cosmetic: `common.concede` reads it off the gametype
-string to decide how an all-conceded table ends.
-
-The club label publishes **nothing** mid-race — `status` is club-readable — and
-at terminal names the MARGIN (`Won · 0 hints`) rather than the finish order.
+The club line reads `clubpage_info`: it publishes **nothing** of the race
+mid-way, and at the end names the winner and the MARGIN (`Won · 0 hints`)
+rather than the finish order.
 
 ## 9. Tests
 
@@ -712,14 +728,15 @@ ambiguous-ABBA board that pins the match-by-placement fix):
 
 | file | pins |
 |---|---|
-| `gameplay_test.sql` | the classification order, the hint bar's fill/cap/dedup, coop terminal = board consumed, a trace into a deleted game |
+| `gameplay_test.sql` | the classification order, the hint bar's fill/cap/dedup, the coop solve = board consumed, a trace into a deleted game |
 | `validation_test.sql` | every malformed-path shape gets its **designed** P0001 (planted one by one — the original guard used `rs @> array[null]`, which can never match, so this file exists to fail on a regression to that); integral floats normalize instead |
 | `hint_test.sql` | spend semantics: random pick persisted, coords only, one at a time, cleared by placement, a hint asked of a deleted game |
 | `turn_order_test.sql` | the opt-in turns coop: pointer seating, `'not your turn'`, advance on accepted moves only |
 | `compete_test.sql` | the race: per-player boards, the privacy line, fewest-hints ranking, concede-with-a-solver |
-| `conceded_test.sql` | a conceder gets no more moves; a solver's concede is refused and her solve stays ranked; all-conceded → `'conceded'`; the mid-race `active_hint_coords` shield |
-| `timeout_test.sql` | the clock in both modes: coop `lost`/`'timeout'`, compete crowns a solver or ends `lost_compete`/`'timeout'`; the terminal RLS flip on `events` |
-| `terminal_test.sql` | terminal states + the reveal gate |
+| `conceded_test.sql` | a conceder gets no more moves; a solver's concede is refused and her solve stays ranked; all-conceded → `conceded`; the mid-race `active_hint_coords` shield |
+| `timeout_test.sql` | the clock in both modes: coop a `timeout` loss, compete ranks whoever had solved; the end-of-game RLS flip on `events` |
+| `terminal_test.sql` | the endings + the reveal gate |
+| `statuses_test.sql` | each status's exact key set in both modes, the values the page reads, and a rebuild leaving `status_changed_at` alone |
 | `rls_test.sql` | the solution shield + per-mode row visibility |
 
 The publication registry (`supabase/tests/common/realtime_publication_test.sql`)

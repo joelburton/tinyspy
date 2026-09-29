@@ -7,14 +7,14 @@
 -- One rule shapes everything here: **the winner is whoever SOLVED using the
 -- fewest hints**, earliest solve breaking a tie. That means the race CANNOT end
 -- on first solve — a player still going might finish on fewer hints — so a
--- solver goes LOCALLY terminal and the game ends only when nobody is still
--- racing. Test (3) is the whole point: the first solver LOSES to a later one
--- who spent less.
+-- solver's own race ends (player_ended_reason reached_goal) and the game ends
+-- only when nobody is still racing. Test (3) is the whole point: the first
+-- solver LOSES to a later one who spent less.
 --
 -- The privacy line is the other half. Opponents may see exactly one number
 -- mid-game — hints used — because it says how the race is going without saying
 -- anything about the puzzle. Word counts, the hint BAR (a proxy for words
--- found) and a rival's revealed word all stay hidden until terminal.
+-- found) and a rival's revealed word all stay hidden until the game ends.
 --
 -- Personas: ada + bea race; cade is a third racer where one is needed.
 
@@ -147,37 +147,39 @@ select strands.spend_hint((select id from game));
 select strands.submit_path((select id from game), pg_temp.strands_row_path(r))
   from generate_series(1, 7) r;
 
-select is(
-  (select solved from strands.players
+reset role;
+select isnt(
+  (select solved_at from common.game_players
     where game_id = (select id from game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true,
+  null,
   'ada has solved her board'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from game)),
-  'playing',
+  (select ended_at from common.games where id = (select id from game)),
+  null,
   'but the GAME is still playing — bea could still beat her on hints'
 );
 
--- Locally terminal is exactly what the common roster needs: ada's closed tab
--- must not pause the game for bea, who is still tracing. Not `conceded` — ada
--- has solved and may yet win on hints.
+-- Ending her own race is exactly what the common roster needs: ada's closed
+-- tab must not pause the game for bea, who is still tracing. Not `conceded` —
+-- ada has solved and may yet win on hints.
 select is(
-  (select array[locally_terminal, conceded] from common.game_players
+  (select player_ended_reason || '/' || player_ended_reason_detail from common.game_players
     where game_id = (select id from game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
-  array[true, false],
-  'a solve sets locally_terminal, not conceded'
+  'reached_goal/solved',
+  'a solve ends the solver''s own race, reached_goal / solved — not conceded'
 );
 select is(
-  (select locally_terminal from common.game_players
+  (select player_ended_at from common.game_players
     where game_id = (select id from game)
       and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
-  false,
-  'a player still tracing is not locally terminal'
+  null,
+  'a player still tracing has not ended'
 );
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 -- A race: your own solve arrives by subscription while the hint button is
 -- still up — it has no in-flight lock of its own.
@@ -190,17 +192,17 @@ select pg_temp.envelope_is(
 
 -- The privacy line, at its sharpest: ada is DONE and bea is still tracing, so
 -- the answer must not be readable by anyone yet. This is why the shield gates
--- on is_terminal (over for EVERYONE) and not on any per-player doneness — a
--- finished racer with the solution on screen could just read it out.
+-- on the game having ended (over for EVERYONE) and not on any per-player
+-- doneness — a finished racer with the solution on screen could just read it out.
 select is(
-  (select solution from strands.games_state where id = (select id from game)),
+  (select solution from strands.games_state where game_id = (select id from game)),
   null,
   'a SOLVED racer still cannot read the answer while a rival is tracing'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select solution from strands.games_state where id = (select id from game)),
+  (select solution from strands.games_state where game_id = (select id from game)),
   null,
   'and neither can the rival who is still going'
 );
@@ -211,13 +213,14 @@ select strands.submit_path((select id from game), pg_temp.strands_row_path(r))
   from generate_series(1, 7) r;
 
 select is(
-  (select play_state from common.games where id = (select id from game)),
-  'won_compete',
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_by_user_id::text
+     from common.games where id = (select id from game)),
+  'reached_goal/solved/bea22222-2222-2222-2222-222222222222',
   'the last racer finishing ends the game'
 );
 
 select isnt(
-  (select solution from strands.games_state where id = (select id from game)),
+  (select solution from strands.games_state where game_id = (select id from game)),
   null,
   'and NOW the answer unshields — nobody is left to spoil'
 );
@@ -226,35 +229,37 @@ select isnt(
 -- (14)–(16) THE RANKING: fewest hints, not first to finish
 -- ============================================================
 
+reset role;
 select is(
-  (select result from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from game)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  '{"won": true}'::jsonb,
+  '1/won',
   'bea WINS on 0 hints — despite finishing SECOND'
 );
 
 select is(
-  (select result from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  '{"won": false}'::jsonb,
-  'ada loses on 1 hint — first to solve is NOT the winner'
+  '2/near',
+  'ada is ranked second on 1 hint — first to solve is NOT the winner'
 );
 
 select is(
-  (select status->>'best_hints' from common.games where id = (select id from game)),
+  (select clubpage_info->>'winner_hints_count' from common.games where id = (select id from game)),
   '0',
-  'the status names the winning hint count'
+  'the club line names the winning hint count'
 );
 
 -- ============================================================
 -- (17)–(18) CONCEDE: a drop-out doesn't sink a solver
 -- ============================================================
--- The reason strands can't use common.concede: that helper ends a game as a
--- collective LOSS when the last player drops. Here a table where one player
--- solved and the rest walked away must end with the solver WINNING.
+-- common._concede alone ends a game as a collective LOSS only when every
+-- player conceded. Here a table where one player solved and the rest walked
+-- away must end with the solver WINNING.
 
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table game2 on commit drop as
 select (strands.create_game(
   (select handle from club),
@@ -270,17 +275,18 @@ select strands.submit_path((select id from game2), pg_temp.strands_row_path(r))
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select strands.concede((select id from game2));
 
+reset role;
 select is(
-  (select play_state from common.games where id = (select id from game2)),
-  'won_compete',
+  (select game_ended_reason || '/' || game_ended_outcome from common.games where id = (select id from game2)),
+  'conceded/won',
   'the last rival conceding ends the game — as a WIN for the one who solved'
 );
 
 select is(
-  (select result from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from game2)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  '{"won": true}'::jsonb,
+  '1/won',
   'and the solver takes it, rather than everyone losing to the drop-out'
 );
 

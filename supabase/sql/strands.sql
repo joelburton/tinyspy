@@ -1,27 +1,37 @@
 -- cs-fixed-outcome-fix
 
 -- ============================================================
--- strands — the REPEATABLE half
+-- strands
 -- ============================================================
--- Functions, views, RLS policies and grants for strands. Everything here is
--- drop-and-recreate safe, so this file is **re-applied in full on every
--- deploy** (`gmake db-sql`) — it is the CURRENT definition, not a delta. Edit
--- it in place forever; it never becomes a migration.
+-- What the frontend calls:
 --
--- Its other half is the one-shot schema migration
--- `supabase/migrations/20260804000000_strands.sql` — tables, constraints,
--- indexes, the Realtime publication and the gametype seed row.
+--   next_puzzle_for_club  the next archive puzzle none of the players has seen
+--   puzzle_for_date       the archive puzzle for a date, played or not
+--   create_game           starts a game on an archive puzzle
+--   submit_path           traces a word
+--   spend_hint            cashes the hint bar for a ringed theme word
+--   concede               a racer drops out of a compete game
+--   stop_game             stops the game for everyone, with no result
+--   submit_timeout        ends the game when the countdown runs out
+--   replay_board          the same puzzle again from scratch
 --
--- Order is load-bearing: a policy can only reference a function that already
--- exists, so statements stay in the order they were written. See
+-- What is particular to strands (docs/games/strands.md has the rest):
+--   - THE SHIELD. The solution is hidden: a column grant omits `solution`, and
+--     `games_state` hands it back once the game has ended. A dictionary
+--     lookup forces a server round trip anyway, so every trace is classified
+--     here: a theme word, the spangram, a hint word (which fills the hint
+--     bar), or a miss.
+--   - A theme word is matched by the CELLS it covers and the word they spell,
+--     not by the ordered path (_path_key).
+--   - The theme words tile the board exactly, so finding every one and using
+--     every cell are the same thing: solving. Coop solves together; in
+--     compete solving ends only your own race, and the solver with the fewest
+--     hints wins once nobody is left racing.
+--   - A rival's hint bar, ringed hint and found words are hidden mid-race
+--     (players_state, the events rule); their hint count is public.
+--
+-- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
---
--- THE SHIELD. strands hides its answer key, unlike connections which hands the
--- board to the FE. The mechanism is waffle's / crosswords': a COLUMN GRANT that
--- omits `solution`, plus a SECURITY DEFINER helper that hands it back once the
--- game is over. The rationale — that a dictionary lookup forces a server round
--- trip anyway, so classifying server-side costs nothing extra — is written up in
--- the migration header and docs/games/strands.md §3.
 -- ============================================================
 
 grant usage on schema strands to authenticated;
@@ -29,26 +39,17 @@ grant usage on schema strands to authenticated;
 -- ============================================================
 -- strands.puzzles — the archive
 -- ============================================================
--- The setup form's date picker lists what's available, plus the CLUE — and
--- that is all an ordinary player may read: not the board, and certainly not
--- the solution. The presence of ANY column grant flips the table to "only
--- granted columns visible", so the safe ones are enumerated and the rest are
--- hidden by omission.
+-- The setup form lists what's available, plus the TITLE — and that is all an
+-- ordinary player may read: not the board, and certainly not the solution.
+-- The presence of ANY column grant flips the table to "only granted columns
+-- visible", so the safe ones are enumerated and the rest are hidden by
+-- omission.
 --
--- WHY THE CLUE IS ON THE SAFE SIDE (it was withheld until 2026-08-13). The
--- picker offers 884 dates and nothing else, so it is easy to start a puzzle
--- you have already played and only realize once the board is up. The clue is
--- what a person recognizes a puzzle BY — it is already the game's title
--- ("2025-06-15: Here's to him!", see create_game) and it is on screen from the
--- first second of play, so a club's past games display it on the club page
--- regardless.
---
--- The old rationale was that hiding it kept "browse the archive" from becoming
--- "study tomorrow's puzzle". That doesn't survive contact: a player who wanted
--- to study ahead would start the puzzle, reveal the solution, and delete the
--- game — the clue grant never stood in their way. It only made the honest case
--- (which of these have I played?) harder. The board and the solution stay
--- shielded because those ARE the puzzle; the clue is the label on the tin.
+-- The title is on the safe side because it is what a person recognizes a
+-- puzzle BY — it is already the game's title ("2025-06-15: Here's to him!",
+-- see create_game) and on screen from the first second of play — and it is
+-- the honest way to tell which puzzles you have played. The board and the
+-- solution stay shielded because those ARE the puzzle.
 --
 -- REVOKE FIRST, and this is load-bearing rather than tidy. Grants are ADDITIVE,
 -- so a table-wide `grant select` that ever reached this database — a stray psql
@@ -56,10 +57,8 @@ grant usage on schema strands to authenticated;
 -- column grants below would simply be added alongside it, and `solution` would
 -- stay readable. Since supabase/sql/ is meant to be the authoritative CURRENT
 -- definition, the shield has to start by clearing whatever came before.
--- (Discovered by planting exactly that break and finding the file couldn't heal
--- it.)
 revoke select on strands.puzzles from authenticated;
-grant select (id, source_id, puzzle_date, clue) on strands.puzzles to authenticated;
+grant select (id, source_id, puzzle_date, title) on strands.puzzles to authenticated;
 
 drop policy if exists puzzles_select on strands.puzzles;
 create policy puzzles_select on strands.puzzles
@@ -68,55 +67,48 @@ create policy puzzles_select on strands.puzzles
 
 -- The import CLI writes puzzles as the service_role (bypasses RLS; it is the
 -- only writer — there is no INSERT grant to authenticated). It needs schema
--- USAGE plus full column access, including `solution`, to seed the library.
+-- USAGE plus full column access, including `solution`, to seed the library;
+-- update too, since the importer upserts and a re-fetch may carry a corrected
+-- puzzle.
 grant usage on schema strands to service_role;
--- update too: the importer upserts, and a re-fetch may carry a corrected
--- puzzle that should refresh its row in place.
 grant insert, update, select on strands.puzzles to service_role;
 
 -- ============================================================
 -- strands.games
 -- ============================================================
--- Everything EXCEPT `solution`. games_state re-exposes it conditionally via the
--- definer helper below. `active_hint_coords` IS granted: a spent hint is meant
--- to be seen, and it carries coordinates only — never the word — so the player
--- still has to work out the order.
--- Revoke first — see the note on strands.puzzles above. This is what makes the
--- file self-healing: whatever SELECT privilege exists on strands.games, after
--- this pair it is exactly the columns listed and nothing else.
+-- Everything EXCEPT `solution`, which games_state re-exposes once the game has
+-- ended. Revoke first — see the note on strands.puzzles above.
 revoke select on strands.games from authenticated;
 grant select
-  (id, club_handle, mode, puzzle_id, puzzle_date, board, clue,
-   min_word_length, hint_cost, band, created_at)
+  (game_id, puzzle_id, puzzle_date, board, puzzle_title,
+   min_word_length, hint_cost, band)
   on strands.games to authenticated;
 
 -- Reading is club-gated; acting is player-gated in the RPCs.
 drop policy if exists games_select on strands.games;
 create policy games_select on strands.games
   for select to authenticated
-  using (common._is_club_member(club_handle));
+  using (
+    exists (
+      select 1 from common.games cg
+       where cg.id = games.game_id
+         and common._is_club_member(cg.club_handle)
+    )
+  );
 
 -- ============================================================
 -- strands.players
 -- ============================================================
--- What a rival may see mid-game is exactly ONE number: `hints_spent`. That is
--- the compete ranking metric, so it makes the race legible — "she's on nine
--- words, I'd better hurry" is tension; "she's used two hints" is the actual
--- contest. And it says nothing about the PUZZLE, which is the line that
--- matters here.
---
--- Everything else on the row is withheld from opponents mid-game:
+-- What a rival may see mid-game on this table is exactly ONE number:
+-- `hints_spent`. That is the compete ranking metric, so it makes the race
+-- legible, and it says nothing about the PUZZLE. Withheld from opponents
+-- mid-game, and handed back below where they're allowed:
 --
 --   hint_points        — the bar's fill is a proxy for how many valid words a
---                        rival has found, so publishing it would leak sideways
---                        exactly what the events RLS is hiding.
---   active_hint_coords — a rival's revealed word is part of the answer.
---
--- `solved` / `solved_at` ARE public. They're race status, not puzzle content —
--- knowing someone has finished tells you the bar you have to clear, which is
--- the same kind of fact as their hint count.
+--                        rival has found
+--   active_hint_coords — a rival's revealed word is part of the answer
 revoke select on strands.players from authenticated;
-grant select (game_id, user_id, hints_spent, solved, solved_at)
+grant select (game_id, user_id, hints_spent)
   on strands.players to authenticated;
 
 drop policy if exists players_select on strands.players;
@@ -124,73 +116,78 @@ create policy players_select on strands.players
   for select to authenticated
   using (
     exists (
-      select 1 from strands.games sg
-       where sg.id = strands.players.game_id
-         and common._is_club_member(sg.club_handle)
+      select 1 from common.games cg
+       where cg.id = players.game_id
+         and common._is_club_member(cg.club_handle)
     )
   );
 
--- ── The withheld columns, handed back where they're allowed ──
--- Definer, so it can read past the column grant; the security_invoker view
--- below calls it as the CALLER, so auth.uid() is the real one.
---
+drop view if exists strands.players_state;
+drop view if exists strands.games_state;
+drop view if exists strands.club_game_status;
+drop function if exists strands._hint_points_for(uuid, uuid);
+drop function if exists strands._active_hint_for(uuid, uuid);
+drop function if exists strands._player_state_visible(uuid, uuid);
+drop function if exists strands._solution_for(uuid);
+
+-- ============================================================
+-- strands._player_state_visible — may the caller see this player's bar?
+-- ============================================================
 -- Visible when the row is YOURS, when the game is COOP (the pool is shared
--- there — that's the whole mode), or once the game is over.
-create or replace function strands._player_state_visible(g_id uuid, row_user uuid)
+-- there — that's the whole mode), or once the game has ended. Definer, so it
+-- reads past the column grant; the security_invoker view calls it as the
+-- CALLER, so auth.uid() is the real one.
+create or replace function strands._player_state_visible(p_game_id uuid, p_user_id uuid)
 returns boolean
 language sql
 stable
 security definer
 set search_path = strands, common, public, extensions
 as $$
-  select sg.mode = 'coop' or row_user = auth.uid() or cg.is_terminal
-    from strands.games sg
-    join common.games cg on cg.id = sg.id
-   where sg.id = g_id;
+  select cg.mode = 'coop' or p_user_id = auth.uid() or cg.ended_at is not null
+    from common.games cg
+   where cg.id = p_game_id;
 $$;
 revoke execute on function strands._player_state_visible(uuid, uuid) from public;
 
-create or replace function strands._hint_points_for(g_id uuid, row_user uuid)
+-- ============================================================
+-- strands._hint_points_for / _active_hint_for — the withheld columns
+-- ============================================================
+-- A player's hint bar and ringed hint, where _player_state_visible allows.
+-- The security_invoker view calls these AS THE CALLER, so authenticated needs
+-- EXECUTE — the definer body is what reads past the column grant.
+create or replace function strands._hint_points_for(p_game_id uuid, p_user_id uuid)
 returns int
 language sql
 stable
 security definer
 set search_path = strands, common, public, extensions
 as $$
-  select case when strands._player_state_visible(g_id, row_user)
-              then sp.hint_points else null end
+  select case when strands._player_state_visible(p_game_id, p_user_id) then sp.hint_points end
     from strands.players sp
-   where sp.game_id = g_id and sp.user_id = row_user;
+   where sp.game_id = p_game_id and sp.user_id = p_user_id;
 $$;
 revoke execute on function strands._hint_points_for(uuid, uuid) from public;
--- The security_invoker view calls these AS THE CALLER, so authenticated needs
--- EXECUTE — the definer body is what reads past the column grant, not the
--- caller's own rights. (Missed at first: revoking from public without granting
--- to authenticated makes the view itself unusable.)
 grant execute on function strands._hint_points_for(uuid, uuid) to authenticated;
 
-create or replace function strands._active_hint_for(g_id uuid, row_user uuid)
+create or replace function strands._active_hint_for(p_game_id uuid, p_user_id uuid)
 returns jsonb
 language sql
 stable
 security definer
 set search_path = strands, common, public, extensions
 as $$
-  select case when strands._player_state_visible(g_id, row_user)
-              then sp.active_hint_coords else null end
+  select case when strands._player_state_visible(p_game_id, p_user_id) then sp.active_hint_coords end
     from strands.players sp
-   where sp.game_id = g_id and sp.user_id = row_user;
+   where sp.game_id = p_game_id and sp.user_id = p_user_id;
 $$;
 revoke execute on function strands._active_hint_for(uuid, uuid) from public;
 grant execute on function strands._active_hint_for(uuid, uuid) to authenticated;
 
-drop view if exists strands.players_state;
 create view strands.players_state with (security_invoker = true) as
   select sp.game_id,
          sp.user_id,
          sp.hints_spent,
-         sp.solved,
-         sp.solved_at,
          strands._hint_points_for(sp.game_id, sp.user_id) as hint_points,
          strands._active_hint_for(sp.game_id, sp.user_id) as active_hint_coords
     from strands.players sp;
@@ -203,24 +200,17 @@ grant select on strands.players_state to authenticated;
 -- Mode-aware, in three OR branches under one club-membership gate — the shape
 -- wordwheel/spellingbee use:
 --
---   coop            everyone in the club sees every event. A deliberate ruling:
---                   the event log is the team's shared record of what has been
---                   tried, and hiding a peer's rejects would make it lie.
+--   coop            everyone in the club sees every event: the log is the
+--                   team's shared record of what has been tried, and hiding a
+--                   peer's rejects would make it lie.
 --   own rows        you always see your own (compete's board is yours).
---   is_terminal     the post-game reveal, so the log can be compared afterwards.
+--   the game ended  the post-game reveal, so the log can be compared.
 --
--- The compete arm is what keeps WORD COUNTS private: an opponent's finds are
--- their business until the race is over. It's also what makes the shared
--- event-log picker's empty line honest — "Hidden until game ends" rather than
--- "Nothing yet".
---
--- HINT rows ride the same three branches, and want no fourth: a hint is shared
--- in coop (the pool is the team's), private in compete until terminal (where
--- hints_spent was already public via players_state anyway). The one thing this
--- does disclose that nothing else did is the location of a hinted word NOBODY
--- went on to find, visible at terminal before an opt-in solution reveal — a
--- deliberate, narrow acceptance, not an oversight. Everything else it exposes
--- (a found word's coords) the theme/spangram rows already opened at terminal.
+-- The compete arm is what keeps a rival's finds private until the race is
+-- over. HINT rows ride the same three branches: shared in coop, private in
+-- compete until the end. The one thing this discloses that nothing else did
+-- is the location of a hinted word NOBODY went on to find, visible at the end
+-- before an opt-in solution reveal — a deliberate, narrow acceptance.
 grant select on strands.events to authenticated;
 
 drop policy if exists events_select on strands.events;
@@ -228,126 +218,152 @@ create policy events_select on strands.events
   for select to authenticated
   using (
     exists (
-      select 1
-        from strands.games sg
-        join common.games cg on cg.id = sg.id
-       where sg.id = strands.events.game_id
-         and common._is_club_member(sg.club_handle)
+      select 1 from common.games cg
+       where cg.id = events.game_id
+         and common._is_club_member(cg.club_handle)
          and (
-           sg.mode = 'coop'
-           or strands.events.user_id = (select auth.uid())
-           or cg.is_terminal
+           cg.mode = 'coop'
+           or events.user_id = (select auth.uid())
+           or cg.ended_at is not null
          )
     )
   );
 
 -- ============================================================
--- The shield: solution exposure
+-- strands._solution_for — the answer, once the game has ended
 -- ============================================================
--- Runs as definer so it can read the grant-hidden `solution` column; the
--- security_invoker view below calls it as the CALLER, so auth.uid() is real and
--- base-table RLS still decides which rows are visible.
---
--- Gated on **is_terminal** — over for EVERYONE, which is the only thing worth
--- protecting here. It used to read `common.games.solution_revealed`, a shared
--- flag an RPC flipped; that flag is gone, because whether a player is LOOKING at
--- the answer is a display decision each of them makes for themselves (docs/ui.md
--- → Terminal results). What the server still owes is the guarantee that a
--- compete racer who has already solved or conceded can't pull the answer while
--- the others are still tracing — and that is exactly is_terminal.
---
--- Same gate stackdown uses (waffle's also opens in coop).
-create or replace function strands._solution_for(g_id uuid)
+-- Definer, so it can read the grant-hidden `solution`; the security_invoker
+-- view below calls it as the CALLER. Gated on the game having ENDED, for
+-- everyone — the guarantee that a compete racer who has already solved or
+-- conceded can't pull the answer while the others are still tracing. Whether
+-- a player is LOOKING at it is their own display decision (docs/ui.md →
+-- Terminal results).
+create or replace function strands._solution_for(p_game_id uuid)
 returns jsonb
 language sql
 stable
 security definer
 set search_path = strands, common, public, extensions
 as $$
-  select case when cg.is_terminal then sg.solution else null end
+  select case when cg.ended_at is not null then sg.solution end
     from strands.games sg
-    join common.games cg on cg.id = sg.id
-   where sg.id = g_id;
+    join common.games cg on cg.id = sg.game_id
+   where sg.game_id = p_game_id;
 $$;
 revoke execute on function strands._solution_for(uuid) from public;
 grant execute on function strands._solution_for(uuid) to authenticated;
 
--- ============================================================
--- Read view
--- ============================================================
 -- The FE reads `games_state`, never `games` — one place decides what a client
--- may see. `solution` is NULL for the whole game and fills in at the reveal.
-drop view if exists strands.games_state;
+-- may see. `solution` is NULL for the whole game and fills in at the end.
 create view strands.games_state with (security_invoker = true) as
-  select sg.id,
-         sg.club_handle,
-         sg.mode,
+  select sg.game_id,
          sg.puzzle_id,
          sg.puzzle_date,
          sg.board,
-         sg.clue,
+         sg.puzzle_title,
          sg.min_word_length,
          sg.hint_cost,
          sg.band,
-         sg.created_at,
-         strands._solution_for(sg.id) as solution   -- NULL until revealed
+         strands._solution_for(sg.game_id) as solution   -- NULL until the end
     from strands.games sg;
 
 grant select on strands.games_state to authenticated;
 
 -- ============================================================
--- strands.club_game_status — which dates has this club played?
+-- strands._write_statuses — the page's copies of the game
 -- ============================================================
--- "For this club and mode, which puzzle-dates already have a game, and in
--- what state?" — one cross-schema join (strands.games ⨝ common.games) that
--- PostgREST's embed syntax cannot express, done SQL-side in one round-trip.
--- security_invoker, so both tables' RLS gate visibility; nothing shielded is
--- exposed (dates and states only).
+-- Writes `common.games.game_status`, every `common.game_players.player_status`
+-- and `common.games.clubpage_info` from strands' own tables, assigning each
+-- whole (plans/common-tables.md → The statuses). Every key is always present,
+-- null when it has no value:
 --
--- NOTHING READS IT, and the claim that New game does is wrong:
--- `next_puzzle_for_club` below answers "one nobody here has played" from
--- `strands.puzzles` and `common.game_players` without touching this. Whether
--- it keeps its place is this area's call (plans/areas/strands.md → F-strands-1);
--- connections' twin was dropped 2026-09-19 for the same reason.
-drop view if exists strands.club_game_status;
-create view strands.club_game_status with (security_invoker = true) as
-select
-  cg.id          as game_id,
-  cg.club_handle as club_handle,
-  cg.play_state  as play_state,
-  cg.is_terminal as is_terminal,
-  sg.mode        as mode,
-  sg.puzzle_date as puzzle_date
-from strands.games sg
-join common.games cg on cg.id = sg.id
-where cg.gametype in ('strands_coop', 'strands_compete');
+--   game_status    { hint_cost } — the hint bar's size
+--   player_status  { found_words_count, hint_points, hints_count,
+--                    player_ended_reason }
+--                  — that player's theme words found (the team's, in coop,
+--                  where the board is shared), their hint bar, the hints they
+--                  spent, and how they ended: solved, or conceded
+--   clubpage_info  { found_words_count, winner_user_id, winner_hints_count }
+--                  — the team's theme words found (coop; null in compete); a
+--                  sole compete winner and the hints they solved on, once
+--                  there is one
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function strands._write_statuses(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = strands, common, public, extensions
+as $$
+declare
+  g strands.games%rowtype;
+  v_mode text;
+  v_winner uuid;
+begin
+  select * into g from strands.games where game_id = p_game_id;
+  select mode into v_mode from common.games where id = p_game_id;
 
-grant select on strands.club_game_status to authenticated;
+  update common.game_players gp
+     set player_status = jsonb_build_object(
+           'found_words_count', (select count(*) from strands.events e
+                                  where e.game_id = p_game_id
+                                    and e.result in ('theme', 'spangram')
+                                    and (v_mode = 'coop' or e.user_id = gp.user_id)),
+           'hint_points', sp.hint_points,
+           'hints_count', sp.hints_spent,
+           'player_ended_reason', gp.player_ended_reason)
+    from strands.players sp
+   where gp.game_id = p_game_id
+     and sp.game_id = gp.game_id
+     and sp.user_id = gp.user_id;
+
+  select min(user_id::text)::uuid into v_winner
+    from common.game_players
+   where game_id = p_game_id and final_ranking = 1
+  having count(*) = 1;
+
+  update common.games
+     set game_status = jsonb_build_object('hint_cost', g.hint_cost),
+         clubpage_info = jsonb_build_object(
+           'found_words_count', case when v_mode = 'coop' then (
+             select count(*) from strands.events
+              where game_id = p_game_id and result in ('theme', 'spangram')) end,
+           'winner_user_id', case when v_mode = 'compete' then v_winner end,
+           'winner_hints_count', case when v_mode = 'compete' and v_winner is not null then (
+             select hints_spent from strands.players
+              where game_id = p_game_id and user_id = v_winner) end),
+         status_changed_at = case when p_update_status_changed_at
+                                  then now() else status_changed_at end
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function strands._write_statuses(uuid, boolean) from public;
+
+drop function if exists strands.next_puzzle_for_club(uuid[]);
 
 -- ============================================================
 -- strands.next_puzzle_for_club — the only puzzle choice there is
 -- ============================================================
 -- connections.next_puzzle_for_club's twin, and deliberately identical in
--- shape — read that one for the full reasoning. The short version: the date
--- picker is gone, because for strands the date means nothing (the archive is
--- a queue) and the only question anyone was asking is "give us one nobody
--- here has seen."
+-- shape — read that one for the full reasoning. The short version: for
+-- strands the date means nothing (the archive is a queue), and the question
+-- anyone asks is "give us one nobody here has seen."
 --
--- `seen_by` is the players about to be seated, not the club's membership: a
--- puzzle is out if ANY of them has ever been a player on a game of it, in
--- ANY club — including a solo club the caller cannot see. Hence SECURITY
--- DEFINER; excluding what a club-mate played alone is the whole point.
+-- `p_seen_by` is the players about to be seated, not the club's membership: a
+-- puzzle is out if ANY of them has ever been a player on a game of it, in ANY
+-- club — including a solo club the caller cannot see. Hence SECURITY DEFINER;
+-- excluding what a club-mate played alone is the whole point.
 --
 -- Match on `puzzle_date` rather than the soft `puzzle_id` FK, ascending so a
--- club works forward in publication order. The label is the clue, which is
--- how a person recognizes a strands puzzle — it is already the game's title,
--- and on screen from the first second of play.
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists strands.next_puzzle_for_club(uuid[]);
-
-create or replace function strands.next_puzzle_for_club(seen_by uuid[])
+-- club works forward in publication order. The label is the title, which is
+-- how a person recognizes a strands puzzle.
+create or replace function strands.next_puzzle_for_club(p_seen_by uuid[])
 returns jsonb
 language plpgsql
 stable
@@ -361,16 +377,16 @@ begin
   select jsonb_build_object(
            'id', p.id,
            'puzzle_date', p.puzzle_date,
-           'label', p.puzzle_date::text || ': ' || p.clue
+           'label', p.puzzle_date::text || ': ' || p.title
          )
     into found
     from strands.puzzles p
    where not exists (
            select 1
              from strands.games g
-             join common.game_players gp on gp.game_id = g.id
+             join common.game_players gp on gp.game_id = g.game_id
             where g.puzzle_date = p.puzzle_date
-              and gp.user_id = any(seen_by)
+              and gp.user_id = any(p_seen_by)
          )
    order by p.puzzle_date
    limit 1;
@@ -379,16 +395,13 @@ begin
   -- Running out of puzzles BLOCKS Start, and what fixes it is an input on this
   -- very form — uncheck a player who has played them all, or type a date and
   -- play one again. `column = 'puzzle_id'` puts it under the field that is the
-  -- way out, rather than under the roster that is technically the other one:
-  -- nobody setting up a game thinks "remove a player to get a puzzle".
-  --
-  -- The same condition in the other dated-archive game must not be described
-  -- differently, so the sentence is identical. It carries no brand, which is
-  -- what lets it be.
+  -- way out: nobody setting up a game thinks "remove a player to get a
+  -- puzzle". The sentence carries no brand, which is what lets the two games
+  -- share it.
   if found is null then
     raise exception 'Everyone here has played every puzzle. You can open one already played by its date.'
       using errcode = 'PN416', hint = 'form-validation', column = 'puzzle_id',
-      detail = 'no puzzle unseen by every uid in seen_by';
+      detail = 'no puzzle unseen by every uid in p_seen_by';
   end if;
 
   return common._ok_envelope(jsonb_build_object('result', 'found', 'puzzle', found));
@@ -406,23 +419,19 @@ $$;
 revoke execute on function strands.next_puzzle_for_club(uuid[]) from public;
 grant execute on function strands.next_puzzle_for_club(uuid[]) to authenticated;
 
+drop function if exists strands.puzzle_for_date(date);
+
 -- ============================================================
 -- strands.puzzle_for_date — the deliberate override
 -- ============================================================
--- connections.puzzle_for_date's twin; read that one for the reasoning. The
--- short version: next_puzzle_for_club answers "give us one nobody here has
--- done", and this answers "I know the date, I want that one" — filtering
--- nothing, so an already-played puzzle comes back and starts a SECOND game
--- rather than reopening the first.
+-- connections.puzzle_for_date's twin: next_puzzle_for_club answers "give us
+-- one nobody here has done", and this answers "I know the date, I want that
+-- one" — filtering nothing, so an already-played puzzle comes back and starts
+-- a SECOND game rather than reopening the first.
 --
 -- SECURITY INVOKER, unlike its sibling: it reads no history, only the
--- archive, whose `clue` and `puzzle_date` are already granted.
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists strands.puzzle_for_date(date);
-
-create or replace function strands.puzzle_for_date(target_date date)
+-- archive, whose `title` and `puzzle_date` are already granted.
+create or replace function strands.puzzle_for_date(p_date date)
 returns jsonb
 language plpgsql
 stable
@@ -435,17 +444,17 @@ begin
   select jsonb_build_object(
            'id', p.id,
            'puzzle_date', p.puzzle_date,
-           'label', p.puzzle_date::text || ': ' || p.clue
+           'label', p.puzzle_date::text || ': ' || p.title
          )
     into found
     from strands.puzzles p
-   where p.puzzle_date = target_date;
+   where p.puzzle_date = p_date;
 
   -- The date is IN the message, because the field it lands under holds the date
   -- and a bare "no puzzle" would make the reader check what they typed.
   -- connections' PN303, verbatim.
   if found is null then
-    raise exception 'No puzzle for %. Try another date.', target_date
+    raise exception 'No puzzle for %. Try another date.', p_date
       using errcode = 'PN417', hint = 'form-validation', column = 'puzzle_id',
       detail = 'no strands.puzzles row with that puzzle_date';
   end if;
@@ -465,11 +474,14 @@ $$;
 revoke execute on function strands.puzzle_for_date(date) from public;
 grant execute on function strands.puzzle_for_date(date) to authenticated;
 
+drop function if exists strands.create_game(text, jsonb, uuid[], text);
+
 -- ============================================================
--- strands.create_game — start a new game in a club
+-- strands.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)
 -- ============================================================
 -- Setup shape (server-validated):
---   { puzzle_id: uuid,            -- which archived puzzle (the date picker)
+--   { puzzle_id: uuid,            -- which archived puzzle; absent = the next
+--                                 --   one none of the players has seen
 --     band: 1..6,                -- dictionary ceiling for HINT words
 --     hint_cost: 1..10,          -- valid words per hint (NYT plays 3)
 --     min_word_length: 3..8,     -- shortest word that can earn a point
@@ -478,23 +490,15 @@ grant execute on function strands.puzzle_for_date(date) to authenticated;
 --     first_turn_user_id: uuid } -- required iff coop_style = 'turns'
 --
 -- Everything needed to PLAY and to IDENTIFY the game is copied onto the row
--- (board, clue, solution, puzzle_date), leaving puzzle_id a soft,
+-- (board, title, solution, puzzle_date), leaving puzzle_id a soft,
 -- provenance-only FK — the library-puzzle rule in docs/common.md. The archive
--- can be pruned or re-imported without touching a game in flight.
---
--- The three knobs are stored explicitly rather than read back out of
--- common.games.setup on every move: they're immutable after this call, and the
--- move RPC reads all three on every submission.
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists strands.create_game(text, jsonb, uuid[], text);
-
+-- can be pruned or re-imported without touching a game in flight. The three
+-- knobs are copied too: the move RPC reads all three on every submission.
 create or replace function strands.create_game(
-  target_club text,
-  setup jsonb,
-  player_user_ids uuid[],
-  mode text
+  p_club_handle text,
+  p_setup jsonb,
+  p_player_user_ids uuid[],
+  p_mode text
 )
 returns jsonb
 language plpgsql
@@ -510,52 +514,43 @@ declare
   v_hint_cost        int;
   v_min_word_length  int;
   game_title         text;
-  effective_gametype text;
   first_turn         uuid;
 begin
-  perform common._require_valid_mode(mode);
+  perform common._require_valid_mode(p_mode);
 
   -- Compete needs an opposing PLAYER. The manifest hides its Start button in a
   -- one-player club; this is the server-side catch.
-  if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
+  if p_mode = 'compete' and coalesce(array_length(p_player_user_ids, 1), 0) < 2 then
     raise exception 'BUG: race with fewer than two players'
       using errcode = 'PN066', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
   end if;
 
   -- Upper bound must agree with `numberOfPlayers` in the manifest.
-  perform common._require_player_count_max(player_user_ids, 6);
+  perform common._require_player_count_max(p_player_user_ids, 6);
 
   -- ─── Which puzzle ────────────────────────────────────────
-  -- Absent means "you choose" — the setup dialog has no picker any more, so
-  -- the server derives the next puzzle none of the players being seated has
-  -- seen. Present still wins, because every test fixture pins a specific
-  -- puzzle (its theme words and paths are what the assertions are about).
-  -- See connections.create_game for the full reasoning; the two games do
-  -- this identically on purpose.
-  if (setup->>'puzzle_id') is null then
-    -- Reading the ENVELOPE's `data`, which names its answer: `{"result":
-    -- "found", "puzzle": {…}}`. A spent archive is no longer an empty payload
-    -- here — it is PN416, a not-ok, whose `data` is null — so this stays null
-    -- and the next branch raises this function's own PN067 for it, which says
-    -- the same sentence. Connections' create_game reads its twin the same way.
-    s_puzzle_id := (strands.next_puzzle_for_club(player_user_ids)
+  -- Absent means "you choose" — the server derives the next puzzle none of the
+  -- players being seated has seen. Present still wins, because every test
+  -- fixture pins a specific puzzle. See connections.create_game; the two games
+  -- do this identically on purpose.
+  if (p_setup->>'puzzle_id') is null then
+    -- Reading the ENVELOPE's `data`. A spent archive is PN416, a not-ok whose
+    -- `data` is null, so this stays null and the next branch raises this
+    -- function's own PN067 for it, which says the same sentence.
+    s_puzzle_id := (strands.next_puzzle_for_club(p_player_user_ids)
                       -> 'data' -> 'puzzle' ->> 'id')::uuid;
     if s_puzzle_id is null then
       -- The wording deliberately does not say "you have played them all": the
       -- exclusion spans clubs and players, so the usual cause is that SOMEONE
       -- at the table has, which reads as a lie to everyone else.
-      --
-      -- Under `puzzle_id`, the field the DATE picker writes — a group told the
-      -- archive is spent will try another date, not drop a player. Identical to
-      -- connections' PN302, which the two games do on purpose.
       raise exception 'Everyone here has played every puzzle. You can open one already played by its date.'
         using errcode = 'PN067', hint = 'form-validation', column = 'puzzle_id',
         detail = 'every imported puzzle has been played by one of these players';
     end if;
   else
     begin
-      s_puzzle_id := (setup->>'puzzle_id')::uuid;
+      s_puzzle_id := (p_setup->>'puzzle_id')::uuid;
     exception when invalid_text_representation then
       raise exception 'BUG: puzzle reference the server cannot read'
         using errcode = 'PN068', hint = 'fault', column = '_',
@@ -563,13 +558,12 @@ begin
     end;
   end if;
 
-  -- Defaults match the manifest's, so an older client that omits a knob still
-  -- starts a sane game; the range checks then reject anything a curious client
-  -- makes up. Ranges duplicate the table CHECKs deliberately — a named error
-  -- beats a raw 23514 from the insert.
-  v_band            := coalesce((setup->>'band')::int, 5);
-  v_hint_cost       := coalesce((setup->>'hint_cost')::int, 3);
-  v_min_word_length := coalesce((setup->>'min_word_length')::int, 4);
+  -- Defaults match the manifest's, so a client that omits a knob still starts
+  -- a sane game; the range checks then reject anything else. Ranges duplicate
+  -- the table CHECKs deliberately — a named error beats a raw 23514.
+  v_band            := coalesce((p_setup->>'band')::int, 5);
+  v_hint_cost       := coalesce((p_setup->>'hint_cost')::int, 3);
+  v_min_word_length := coalesce((p_setup->>'min_word_length')::int, 4);
 
   if v_band < 1 or v_band > 6 then
     raise exception 'BUG: hint dictionary of %', v_band
@@ -587,47 +581,44 @@ begin
       detail = 'setup.min_word_length must be 3..8';
   end if;
 
-  perform common._require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(p_setup->'timer');
 
   -- Load the puzzle. The FK would catch a bad id at INSERT, but "puzzle not
   -- found" is friendlier than a foreign-key violation.
-  select * into puzzle_row from strands.puzzles
-   where strands.puzzles.id = s_puzzle_id;
+  select * into puzzle_row from strands.puzzles where id = s_puzzle_id;
   if not found then
     raise exception 'That puzzle is no longer available'
       using errcode = 'PN072', hint = 'form-validation', column = 'puzzle_id',
       detail = 'no strands.puzzles row for that id; run the puzzle import';
   end if;
 
-  -- Title = "<date>: <clue>", e.g. "2025-06-15: Here's to him!". The clue is
-  -- the theme PROMPT, not the answer — it's on screen from the first second —
-  -- so putting it in the club-list title spoils nothing and makes one game
-  -- tell itself apart from another far better than a bare date would.
-  game_title := format('%s: %s', puzzle_row.puzzle_date, puzzle_row.clue);
+  -- Title = "<date>: <title>", e.g. "2025-06-15: Here's to him!". The puzzle's
+  -- title is the theme PROMPT, not the answer — it's on screen from the first
+  -- second — so it spoils nothing and tells one game from another far better
+  -- than a bare date would.
+  game_title := format('%s: %s', puzzle_row.puzzle_date, puzzle_row.title);
 
-  effective_gametype := 'strands_' || mode;
-
+  -- The saved default strips the per-GAME picks: which puzzle and who opens a
+  -- turn game. The knobs and coop_style ride, since those are how this club
+  -- likes to play.
   new_id := common._create_game(
-    target_club, effective_gametype, player_user_ids, game_title,
-    setup,
-    -- saved_default strips the per-GAME picks: which puzzle (a date you choose
-    -- each time, not a standing preference) and who opens a turn game. The
-    -- knobs and coop_style ride, since those are how this club likes to play.
-    setup - 'puzzle_id' - 'first_turn_user_id'
+    p_club_handle, 'strands_' || p_mode, p_mode, p_player_user_ids, game_title,
+    p_setup,
+    p_setup - 'puzzle_id' - 'first_turn_user_id'
   );
 
   -- Opt-in turn-by-turn COOP. Compete never rotates — everyone races at once —
   -- and free-for-all leaves the pointer null, making common._require_turn a
   -- no-op in submit_path.
-  if mode = 'coop' and setup->>'coop_style' = 'turns' then
+  if p_mode = 'coop' and p_setup->>'coop_style' = 'turns' then
     begin
-      first_turn := (setup->>'first_turn_user_id')::uuid;
+      first_turn := (p_setup->>'first_turn_user_id')::uuid;
     exception when invalid_text_representation then
       raise exception 'BUG: first player the server cannot read'
         using errcode = 'PN073', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id is not a uuid';
     end;
-    if first_turn is null or not (first_turn = any(player_user_ids)) then
+    if first_turn is null or not (first_turn = any(p_player_user_ids)) then
       raise exception 'BUG: first player who is not in the game'
         using errcode = 'PN074', hint = 'fault', column = '_',
       detail = 'setup.first_turn_user_id must be one of the players';
@@ -636,47 +627,28 @@ begin
   end if;
 
   insert into strands.games (
-    id, club_handle, mode, puzzle_id, puzzle_date, board, clue, solution,
+    game_id, puzzle_id, puzzle_date, board, puzzle_title, solution,
     min_word_length, hint_cost, band
   )
   values (
-    new_id, target_club, mode, s_puzzle_id, puzzle_row.puzzle_date,
-    puzzle_row.board, puzzle_row.clue, puzzle_row.solution,
+    new_id, s_puzzle_id, puzzle_row.puzzle_date,
+    puzzle_row.board, puzzle_row.title, puzzle_row.solution,
     v_min_word_length, v_hint_cost, v_band
   );
 
   -- One row per player. In coop these move in lock-step (the pool is shared);
   -- in compete each is its own race.
   insert into strands.players (game_id, user_id)
-  select new_id, uid from unnest(player_user_ids) as uid;
+  select new_id, uid from unnest(p_player_user_ids) as uid;
 
-  -- Seed the club-list readout in the SAME shape submit_path maintains, so a
-  -- game nobody has moved in yet still lists as "Playing · 0 words".
-  perform common.update_state(
-    new_id,
-    'playing',
-    -- words_found ONLY. The TOTAL is part of the answer: knowing a board holds
-    -- six words is real information about a puzzle whose whole content is
-    -- shielded, and `status` is readable by the entire club. The server keeps
-    -- computing the total internally for the terminal check; it just never
-    -- publishes it.
-    -- Compete publishes NOTHING mid-game: `status` is club-readable, so a
-    -- word count there would hand every rival the progress the events RLS is
-    -- keeping private. Coop shares everything, so its count is safe.
-    case when mode = 'coop'
-         then jsonb_build_object('mode', mode, 'words_found', 0)
-         else jsonb_build_object('mode', mode)
-    end
-  );
+  perform strands._write_statuses(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
-  -- call site can filter the `ok` on — without it the branch would match by
-  -- merely being `ok` and would draw a second answer as this one.
+  -- call site can filter the `ok` on.
   return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
--- One block, and it has never heard of any specific condition: it reads the
--- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
--- the message, the kind and the field.
+-- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
+-- lets the raise itself carry the message, the kind and the field.
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
@@ -696,28 +668,30 @@ grant execute on function strands.create_game(text, jsonb, uuid[], text) to auth
 -- The sorted set of cells a path covers, as "r,c" text. Two paths with the same
 -- key occupy exactly the same tiles, whatever order they were traced in.
 --
--- THIS EXISTS BECAUSE ORDERED COMPARISON WAS WRONG. A word with a repeated
--- letter can have two interchangeable tiles, and then more than one legal trace
--- spells the same word over the identical cells. Real case (2026-08-02,
--- "Eyes on the prize"): INTENTION runs through two N's at [5,1] and [6,1], each
--- adjacent to both of the other's neighbors —
+-- WHY NOT THE ORDERED PATH: a word with a repeated letter can have two
+-- interchangeable tiles, and then more than one legal trace spells the same
+-- word over the identical cells. Real case ("Eyes on the prize"): INTENTION
+-- runs through two N's at [5,1] and [6,1], each adjacent to both of the
+-- other's neighbors —
 --
 --   I[5,0] N[6,1] T[6,2] E[7,3] N[7,2] T[7,1] I[7,0] O[6,0] N[5,1]
 --   I[5,0] N[5,1] T[6,2] E[7,3] N[7,2] T[7,1] I[7,0] O[6,0] N[6,1]
 --
 -- — the same nine tiles, differing only in which N was touched first. Matching
--- the stored coord ARRAY rejected the first as "not a theme word" and scored it
--- as an ordinary dictionary find, which is simply wrong: the player had found
--- the word, in its place. What identifies a find is WHICH TILES it consumes,
--- and the word those tiles spell — never the order they were visited in.
-create or replace function strands._path_key(coords jsonb)
+-- the stored coord ARRAY would reject the first as "not a theme word". What
+-- identifies a find is WHICH TILES it consumes, and the word those tiles spell
+-- — never the order they were visited in.
+drop function if exists strands._path_key(jsonb);
+create or replace function strands._path_key(p_coords jsonb)
 returns text[]
 language sql
 immutable
 as $$
   select array_agg((e->>0) || ',' || (e->>1) order by (e->>0)::int, (e->>1)::int)
-    from jsonb_array_elements(coords) e;
+    from jsonb_array_elements(p_coords) e;
 $$;
+
+drop function if exists strands._consumed_keys(uuid, uuid);
 
 -- ============================================================
 -- strands._consumed_keys — cells locked by found theme words
@@ -729,8 +703,8 @@ $$;
 -- WHOSE finds count depends on the mode, and this is the one place that
 -- difference lives: coop shares one board, so anyone's find locks the tiles for
 -- everyone; compete gives each player their own progress over the same letters,
--- so only your own finds lock yours.
-create or replace function strands._consumed_keys(target_game uuid, for_user uuid)
+-- so only `p_user_id`'s own finds lock theirs.
+create or replace function strands._consumed_keys(p_game_id uuid, p_user_id uuid)
 returns text[]
 language sql
 stable
@@ -739,140 +713,115 @@ set search_path = strands, common, public, extensions
 as $$
   select coalesce(array_agg(distinct (e->>0) || ',' || (e->>1)), '{}')
     from strands.events g
-    join strands.games sg on sg.id = g.game_id,
+    join common.games cg on cg.id = g.game_id,
          lateral jsonb_array_elements(g.path) e
-   where g.game_id = target_game
+   where g.game_id = p_game_id
      and g.result in ('theme', 'spangram')
-     and (sg.mode = 'coop' or g.user_id = for_user);
+     and (cg.mode = 'coop' or g.user_id = p_user_id);
 $$;
 revoke execute on function strands._consumed_keys(uuid, uuid) from public;
 
+drop function if exists strands._maybe_finish_compete(uuid, boolean);
+drop function if exists strands._finish_compete(uuid, text, text, uuid);
+
 -- ============================================================
--- strands._maybe_finish_compete — is anyone still racing?
+-- strands._finish_compete — rank the race and end it
 -- ============================================================
--- A compete game ends when NO player is still racing — racing meaning not
--- solved and not conceded. Called from submit_path (a solve may have been the
--- last one), from concede (a drop-out may leave nobody), and by the timeout.
--- Returns true when it ended the game.
---
--- THE WINNER, and why it can't be decided any earlier: whoever SOLVED using
--- the fewest hints, earliest solve breaking a tie. A player still going might
--- yet finish on fewer hints than the current best, so "first to solve" would
--- crown the wrong person — which is exactly why solving goes LOCALLY terminal
--- instead of ending the game.
---
--- Nobody solved → a collective loss. `reason` names which way it happened,
--- because "everyone gave up" and "the clock beat us" read very differently in
--- the club list.
+-- The race plays out, so it is ranked once it ends (docs/win-lose.md): every
+-- player who SOLVED is ranked by the fewest hints, then the earliest solve,
+-- ties sharing a rank; a player still mid-board, or one who conceded, didn't
+-- finish and is unranked. "First to solve" would crown the wrong person — a
+-- player still going might yet finish on fewer hints — which is why a solve
+-- ends only that player's race. The reason is the act that ended the game
+-- (`p_reason`, `p_reason_detail`, by `p_ended_by_user_id`).
+create or replace function strands._finish_compete(
+  p_game_id uuid,
+  p_reason text,
+  p_reason_detail text,
+  p_ended_by_user_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = strands, common, public, extensions
+as $$
+declare
+  v_rankings jsonb;
+begin
+  select coalesce(jsonb_object_agg(user_id::text, ranking), '{}'::jsonb)
+    into v_rankings
+    from (
+      select gp.user_id,
+             rank() over (order by sp.hints_spent, gp.solved_at) as ranking
+        from strands.players sp
+        join common.game_players gp
+          on gp.game_id = sp.game_id and gp.user_id = sp.user_id
+       where sp.game_id = p_game_id and gp.solved_at is not null
+    ) ranked;
+
+  perform common._end_game(
+    p_game_id, p_reason, p_reason_detail, p_ended_by_user_id,
+    p_is_no_result => false,
+    p_final_rankings => v_rankings
+  );
+end;
+$$;
+
+revoke execute on function strands._finish_compete(uuid, text, text, uuid) from public;
+
+-- ============================================================
+-- strands._maybe_finish_compete — end the race if nobody is left racing
+-- ============================================================
+-- A compete game ends when NO player is still racing — every one has solved
+-- or conceded. Shared by submit_path (a solve can be the last move) and
+-- concede (a drop-out can be — if everyone else already solved, the concede
+-- is what empties the racing set). The act passed is the last racer's, and
+-- becomes the game's reason. Everyone conceding is common._concede's ending,
+-- so this skips a game that has already ended. Returns true when it ended
+-- the game.
 create or replace function strands._maybe_finish_compete(
-  target_game uuid,
-  timed_out boolean default false
+  p_game_id uuid,
+  p_reason text,
+  p_reason_detail text,
+  p_ended_by_user_id uuid
 )
 returns boolean
 language plpgsql
 security definer
 set search_path = strands, common, public, extensions
 as $$
-declare
-  best_hints     int;
-  player_results jsonb;
-  any_solved     boolean;
 begin
-  -- Still someone racing? Then it isn't over (unless the clock says so).
-  if not timed_out and exists (
-    select 1
-      from strands.players sp
-      join common.game_players gp
-        on gp.game_id = sp.game_id and gp.user_id = sp.user_id
-     where sp.game_id = target_game
-       and not sp.solved
-       and not gp.conceded
+  if (select ended_at from common.games where id = p_game_id) is not null then
+    return false;
+  end if;
+
+  if exists (
+    select 1 from common.game_players
+     where game_id = p_game_id and player_ended_at is null
   ) then
     return false;
   end if;
 
-  -- A drop-out forfeits: conceded players are excluded from the ranking even
-  -- if a solved row exists for them (belt to submit_path's conceded guard —
-  -- and the ruling for the odd case of a player who solved and THEN conceded).
-  select min(sp.hints_spent) into best_hints
-    from strands.players sp
-    join common.game_players gp
-      on gp.game_id = sp.game_id and gp.user_id = sp.user_id
-   where sp.game_id = target_game and sp.solved and not gp.conceded;
-  any_solved := best_hints is not null;
-
-  if any_solved then
-    -- Fewest hints, then earliest solve. Ties on BOTH are co-winners rather
-    -- than an arbitrary pick — vanishingly unlikely with timestamptz, but a
-    -- tie-break that silently invents an order is worse than one that admits
-    -- the tie.
-    with ranked as (
-      select sp.user_id,
-             sp.solved and not gp.conceded
-               and sp.hints_spent = best_hints
-               and sp.solved_at = (
-                 select min(s2.solved_at)
-                   from strands.players s2
-                   join common.game_players g2
-                     on g2.game_id = s2.game_id and g2.user_id = s2.user_id
-                  where s2.game_id = target_game and s2.solved
-                    and not g2.conceded
-                    and s2.hints_spent = best_hints
-               ) as won
-        from strands.players sp
-        join common.game_players gp
-          on gp.game_id = sp.game_id and gp.user_id = sp.user_id
-       where sp.game_id = target_game
-    )
-    select jsonb_object_agg(user_id::text, jsonb_build_object('won', won))
-      into player_results from ranked;
-
-    perform common._end_game(
-      target_game, 'won_compete',
-      jsonb_build_object('reason', 'solved', 'best_hints', best_hints),
-      player_results);
-  else
-    select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-      into player_results
-      from common.game_players where game_id = target_game;
-
-    perform common._end_game(
-      target_game, 'lost_compete',
-      jsonb_build_object(
-        'reason',
-        case
-          when timed_out then 'timeout'
-          when not exists (select 1 from common.game_players gp
-                            where gp.game_id = target_game and not gp.conceded)
-            then 'conceded'
-          else 'unsolved'
-        end),
-      player_results);
-  end if;
-
-  -- Wake the boards: the last concede and the clock write no strands row of
-  -- their own (docs/common-schema.md → Concede).
-  update strands.games set club_handle = club_handle where id = target_game;
+  perform strands._finish_compete(p_game_id, p_reason, p_reason_detail, p_ended_by_user_id);
   return true;
 end;
 $$;
 
-revoke execute on function strands._maybe_finish_compete(uuid, boolean) from public;
+revoke execute on function strands._maybe_finish_compete(uuid, text, text, uuid) from public;
+
+drop function if exists strands.submit_path(uuid, jsonb);
 
 -- ============================================================
 -- strands.submit_path — trace a word (THE move RPC)
 -- ============================================================
--- Takes the traced path ([[r,c], …]) and classifies it. Returns jsonb:
---   { result, word, hint_points, hint_cost, words_found, terminal,
---     hint_cleared }
+-- Takes the traced path `p_path` ([[r,c], …]) and classifies it. The `ok`
+-- carries { result, word, isSpangram, hint_points, hint_cost, words_found,
+-- hint_cleared, terminal }, `result` ∈ theme | spangram | hint_word |
+-- duplicate | too_short | invalid.
 --
 -- Note what is NOT returned: the word TOTAL. It's part of the answer — knowing
 -- a board holds six words is real information about a shielded puzzle — so the
--- server computes it for the terminal check and keeps it. The client learns the
--- game is over from `terminal` / common.games, not by counting to a number it
--- was told.
---
--- result ∈ theme | spangram | hint_word | duplicate | too_short | invalid
+-- server computes it for the solve check and keeps it.
 --
 -- CLASSIFICATION ORDER is a rule, not an implementation detail. The theme
 -- check runs FIRST and unconditionally, before any length gate: 4-letter theme
@@ -881,21 +830,19 @@ revoke execute on function strands._maybe_finish_compete(uuid, boolean) from pub
 --
 -- HARD vs SOFT rejects. A structurally impossible path (off-board,
 -- non-adjacent, self-crossing) RAISES: the FE's reducer cannot produce one, so
--- it means a broken or hostile client, and logging it would pollute an event log
--- that players read. A path through a SPENT tile also raises, but with one
--- honest route in: a coop submit in flight while a peer's find lands can cross
--- tiles the sender didn't yet see consumed. That window is realtime-lag sized,
--- the raise's message reads fine in the error pill, and nothing commits — so
--- it stays a raise rather than earning a logged soft-reject. A word that is
--- merely wrong — too short, unknown, already counted — is a legitimate move,
--- so it returns softly and IS logged.
+-- it means a broken client, and logging it would pollute an event log that
+-- players read. A path through a SPENT tile also raises, with one honest route
+-- in: a coop submit in flight while a peer's find lands. A word that is merely
+-- wrong — too short, unknown, already counted — is a legitimate move, so it
+-- answers softly and IS logged.
+--
+-- Solving: coop — the game ends reached_goal / solved, the team ranked 1 and
+-- solved. Compete — the solver's own race ends (solved_at, reached_goal), and
+-- the race ends once nobody is left racing (_maybe_finish_compete).
 --
 -- The `for update` lock serializes concurrent coop submissions against the
 -- shared hint bar and the found set.
-create or replace function strands.submit_path(
-  target_game uuid,
-  path jsonb
-)
+create or replace function strands.submit_path(p_game_id uuid, p_path jsonb)
 returns jsonb
 language plpgsql
 security definer
@@ -903,8 +850,8 @@ set search_path = strands, common, public, extensions
 as $$
 declare
   caller_id      uuid;
-  g_row          strands.games%rowtype;
-  play           text;
+  g              strands.games%rowtype;
+  v_mode         text;
   n              int;
   rs             int[];
   cs             int[];
@@ -920,53 +867,52 @@ declare
   v_total        int;
   hint_cleared   int := 0;
   did_end        boolean := false;
-  v_solved       boolean := false;
-  player_results jsonb;
+  v_rankings     jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- The row first: a friend may delete the game from the club list at any
   -- moment, and the delete takes the memberships with it (docs/envelopes.md →
   -- a missing game row is PN485).
-  select * into g_row from strands.games where id = target_game for update;
+  select * into g from strands.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('strands');
   end if;
 
-  caller_id := common._require_game_player(target_game);
+  caller_id := common._require_game_player(p_game_id);
 
-  select play_state into play from common.games where id = target_game;
-  if play <> 'playing' then
+  if (select ended_at from common.games where id = p_game_id) is not null then
     -- A race: a teammate finished the board, or the clock ran out, while this
     -- trace was in flight.
     perform common._raise_game_over();
   end if;
 
   -- A conceded player is out of the race — no more traces. The FE freezes the
-  -- board on myConceded, so this only fires on a race (a submit in flight when
-  -- the concede commits, or a stale second tab). Without it a conceder could
-  -- complete the win condition and be recorded the winner.
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = caller_id) then
+  -- board on a concession, so this only fires on a race (a submit in flight
+  -- when the concession commits, or a stale second tab).
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
     perform common._raise_already_conceded();
   end if;
 
   -- Turn-order gate (no-op for free-for-all). Before classification, so an
   -- out-of-turn trace is refused outright rather than quietly scored.
-  perform common._require_turn(target_game, caller_id);
+  perform common._require_turn(p_game_id, caller_id);
+
+  select mode into v_mode from common.games where id = p_game_id;
 
   -- ─── Structural validation (hard rejects) ────────────────
   -- Every check from here to the classification below is a FAULT, and one
   -- rule covers them all: the frontend BUILDS the trace, cell by cell, through
   -- `clickTile` — which only ever appends an adjacent, unvisited, on-board
   -- cell. A shape that fails one of these did not come from our board. The
-  -- single exception is `path-crosses-found` further down, which a TEAMMATE
+  -- single exception is PN421 further down, which a TEAMMATE
   -- can cause.
-  if path is null or jsonb_typeof(path) <> 'array' then
+  if p_path is null or jsonb_typeof(p_path) <> 'array' then
     raise exception 'BUG: a trace that is not a path'
       using errcode = 'PN422', hint = 'fault', column = '_',
       detail = 'path must be a json array';
   end if;
-  n := jsonb_array_length(path);
+  n := jsonb_array_length(p_path);
   if n < 1 then
     raise exception 'BUG: an empty trace'
       using errcode = 'PN423', hint = 'fault', column = '_',
@@ -979,7 +925,7 @@ begin
   -- floor"; the ::numeric::int cast then accepts an integral 2.0 as 2, which
   -- is what the normalization comment further down promises).
   if exists (
-    select 1 from jsonb_array_elements(path) e
+    select 1 from jsonb_array_elements(p_path) e
      where jsonb_typeof(e) <> 'array'
         or jsonb_array_length(e) <> 2
         or jsonb_typeof(e->0) <> 'number'
@@ -995,9 +941,9 @@ begin
   select array_agg(((e->>0)::numeric)::int order by ord),
          array_agg(((e->>1)::numeric)::int order by ord)
     into rs, cs
-    from jsonb_array_elements(path) with ordinality as t(e, ord);
+    from jsonb_array_elements(p_path) with ordinality as t(e, ord);
 
-  consumed := strands._consumed_keys(target_game, caller_id);
+  consumed := strands._consumed_keys(p_game_id, caller_id);
 
   for i in 1..n loop
     if rs[i] < 0 or rs[i] > 7 or cs[i] < 0 or cs[i] > 5 then
@@ -1037,7 +983,7 @@ begin
   -- The word this path spells, read off the frozen board.
   v_word := '';
   for i in 1..n loop
-    v_word := v_word || substr(g_row.board[rs[i] + 1], cs[i] + 1, 1);
+    v_word := v_word || substr(g.board[rs[i] + 1], cs[i] + 1, 1);
   end loop;
 
   -- Canonical form for comparison against the stored coords: rebuilt from the
@@ -1058,13 +1004,13 @@ begin
   -- String alone would misclassify: theme words often appear in an ordinary
   -- dictionary too (in one sampled puzzle, all 8 did). Cells alone would accept
   -- a scramble. Together they're exact.
-  if strands._path_key(g_row.solution->'spangram'->'coords') = strands._path_key(norm_path)
-     and g_row.solution->'spangram'->>'word' = v_word then
+  if strands._path_key(g.solution->'spangram'->'coords') = strands._path_key(norm_path)
+     and g.solution->'spangram'->>'word' = v_word then
     matched := true;
     is_spangram := true;
     v_result := 'spangram';
   elsif exists (
-    select 1 from jsonb_array_elements(g_row.solution->'themeWords') tw
+    select 1 from jsonb_array_elements(g.solution->'themeWords') tw
      where strands._path_key(tw->'coords') = strands._path_key(norm_path)
        and tw->>'word' = v_word
   ) then
@@ -1074,17 +1020,17 @@ begin
 
   -- ─── 2..4. Not a theme word: length, dedup, dictionary ───
   if not matched then
-    if n < g_row.min_word_length then
+    if n < g.min_word_length then
       v_result := 'too_short';
     elsif exists (
       -- Credited-once, scoped like the board: coop shares its credit, compete
       -- keeps each player's own — otherwise your rival finding ADAPT would
       -- silently deny you the point.
       select 1 from strands.events gu
-       where gu.game_id = target_game
+       where gu.game_id = p_game_id
          and gu.word = v_word
          and gu.result = 'hint_word'
-         and (g_row.mode = 'coop' or gu.user_id = caller_id)
+         and (v_mode = 'coop' or gu.user_id = caller_id)
     ) then
       v_result := 'duplicate';
     elsif exists (
@@ -1093,7 +1039,7 @@ begin
       -- don't put those in front of you, and we don't stop you typing one.
       select 1 from common.words w
        where w.word = lower(v_word)
-         and w.difficulty <= g_row.band
+         and w.difficulty <= g.band
     ) then
       v_result := 'hint_word';
     else
@@ -1108,7 +1054,7 @@ begin
   -- declines to punish those, and the column records that rather than
   -- re-deriving it at every read.
   insert into strands.events (game_id, user_id, kind, word, path, result, took_turn)
-  values (target_game, caller_id, 'guess', v_word, norm_path, v_result,
+  values (p_game_id, caller_id, 'guess', v_word, norm_path, v_result,
           v_result in ('theme', 'spangram', 'hint_word'));
 
   -- ─── Counters ────────────────────────────────────────────
@@ -1118,31 +1064,26 @@ begin
     -- signal, which is why nothing warns about it.
     --
     -- COOP moves every row in lock-step (one shared pool); COMPETE moves only
-    -- the earner's. Same statement, one predicate apart — which is why the
-    -- economy lives on `players` in both modes rather than being forked.
+    -- the earner's.
     update strands.players sp
-       set hint_points = least(sp.hint_points + 1, g_row.hint_cost)
-     where sp.game_id = target_game
-       and (g_row.mode = 'coop' or sp.user_id = caller_id);
+       set hint_points = least(sp.hint_points + 1, g.hint_cost)
+     where sp.game_id = p_game_id
+       and (v_mode = 'coop' or sp.user_id = caller_id);
   end if;
   select sp.hint_points into v_points
     from strands.players sp
-   where sp.game_id = target_game and sp.user_id = caller_id;
+   where sp.game_id = p_game_id and sp.user_id = caller_id;
 
   if matched then
     -- A spent hint retires the moment its word is found — for whoever was
-    -- looking at it (everyone in coop, just you in compete).
-    -- By PLACEMENT, for the same reason as the match above: the hint stores the
-    -- canonical coords, and a player who traced the word the other way round
-    -- would otherwise be left staring at a hint for a word they'd just found.
+    -- looking at it (everyone in coop, just you in compete). By PLACEMENT,
+    -- like the match above, so a word traced the other way round still
+    -- retires its hint.
     update strands.players sp
        set active_hint_coords = null
-     where sp.game_id = target_game
+     where sp.game_id = p_game_id
        and strands._path_key(sp.active_hint_coords) = strands._path_key(norm_path)
-       and (g_row.mode = 'coop' or sp.user_id = caller_id);
-    -- FOUND is PL/pgSQL's "did the last statement touch a row?" — spelled out
-    -- rather than assigned straight through, because reading `hint_cleared :=
-    -- found` gives no clue that `found` is a special variable.
+       and (v_mode = 'coop' or sp.user_id = caller_id);
     get diagnostics hint_cleared = row_count;
   end if;
 
@@ -1150,86 +1091,62 @@ begin
   -- the board itself uses.
   select count(*) into v_found
     from strands.events gu
-   where gu.game_id = target_game
+   where gu.game_id = p_game_id
      and gu.result in ('theme', 'spangram')
-     and (g_row.mode = 'coop' or gu.user_id = caller_id);
-  v_total := jsonb_array_length(g_row.solution->'themeWords') + 1;
+     and (v_mode = 'coop' or gu.user_id = caller_id);
+  v_total := jsonb_array_length(g.solution->'themeWords') + 1;
 
   -- ─── Solving ─────────────────────────────────────────────
   -- "Every theme word found" and "every cell used" are the same statement,
   -- because the hidden words tile the board exactly. Counting words is the
   -- cheaper half of that identity.
-  v_solved := matched and v_found >= v_total;
-
-  if v_solved and g_row.mode = 'coop' then
-    -- Coop: solving IS the end. Everyone wins together.
-    select jsonb_object_agg(user_id::text, '{"won": true}'::jsonb)
-      into player_results
-      from common.game_players where game_id = target_game;
-
-    perform common._end_game(
-      target_game, 'won',
-      jsonb_build_object('reason', 'solved', 'words_found', v_found),
-      player_results);
-    did_end := true;
-
-  elsif v_solved then
-    -- Compete: solving ends YOUR race, not THE race. The winner is whoever
-    -- solved on the fewest hints, and a player still going could yet beat you
-    -- — so the board goes locally terminal and _maybe_finish_compete decides
-    -- whether anyone is left.
-    update strands.players
-       set solved = true, solved_at = now()
-     where game_id = target_game and user_id = caller_id;
-
-    -- Locally terminal is exactly what the common roster needs to know: a
-    -- solver nothing is waiting for must not hold the presence-pause open for
-    -- the players still tracing (see the flag's migration). `conceded` could
-    -- never have carried it — a drop-out forfeits the win, and this player may
-    -- well be about to win.
-    perform common._set_locally_terminal(target_game, caller_id);
-
-    did_end := strands._maybe_finish_compete(target_game);
-
-  else
-    -- Compete publishes no progress mid-game (see create_game): `status` is
-    -- club-readable, and a word count there would leak what the events RLS is
-    -- protecting.
-    if g_row.mode = 'coop' then
-      perform common.update_state(
-        target_game, 'playing', jsonb_build_object('words_found', v_found));
+  if matched and v_found >= v_total then
+    if v_mode = 'coop' then
+      update common.game_players set solved_at = now() where game_id = p_game_id;
+      select jsonb_object_agg(user_id::text, 1) into v_rankings
+        from common.game_players where game_id = p_game_id;
+      perform common._end_game(
+        p_game_id, 'reached_goal', 'solved', caller_id,
+        p_is_no_result => false,
+        p_final_rankings => v_rankings
+      );
+      did_end := true;
+    else
+      -- Solving ends YOUR race, not THE race: a player still going could yet
+      -- finish on fewer hints. A solver nothing is waiting for must not hold
+      -- presence-pause open for the players still tracing, which is what
+      -- ending their own race says.
+      update common.game_players set solved_at = now()
+       where game_id = p_game_id and user_id = caller_id;
+      perform common._set_player_ended(p_game_id, caller_id, 'reached_goal', 'solved');
+      did_end := strands._maybe_finish_compete(p_game_id, 'reached_goal', 'solved', caller_id);
     end if;
-
+  elsif v_result in ('theme', 'spangram', 'hint_word') then
     -- Turn-order advances only on an ACCEPTED move. A rejected trace (too
-    -- short, unknown, already counted) is a misfire, not a turn — the same
-    -- call the other turn games make for their soft rejects. No-op in compete,
-    -- whose pointer is null.
-    if v_result in ('theme', 'spangram', 'hint_word') then
-      perform common._advance_turn(target_game);
-    end if;
+    -- short, unknown, already counted) is a misfire, not a turn. No-op in
+    -- compete, whose pointer is null.
+    perform common._advance_turn(p_game_id);
   end if;
+
+  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
 
   -- SIX `ok` answers, and three of them read like refusals without being one:
   -- `duplicate`, `too_short` and `invalid` are the game's rules applied to a
-  -- move that genuinely happened, which is the yardstick in
-  -- docs/envelopes.md — a game-rule refusal is `ok`, because answering is what
-  -- the move was FOR. Nothing local was consulted first: strands ships no word
-  -- list to the client and the frontend does not gate on `min_word_length`, so
-  -- the server's verdict is the first anyone knows rather than a stale copy
-  -- losing a race. Every field this RPC has ever returned is still here.
+  -- move that genuinely happened — a game-rule refusal is `ok`, because
+  -- answering is what the move was FOR (docs/envelopes.md). Nothing local was
+  -- consulted first: strands ships no word list to the client, so the
+  -- server's verdict is the first anyone knows.
   --
   -- The outcome is the one the frontend's `ANSWER_OUTCOME` gives the same
-  -- result (src/strands/lib/answer.ts — one rule, two languages);
-  -- `message` stays null because the pill copy is the shared `WORD — body`
-  -- format four other games speak through `useWordSubmit`, and composing it in
-  -- SQL would fork a format whose whole point is being identical.
+  -- result (src/strands/lib/answer.ts — one rule, two languages); `message`
+  -- stays null because the pill copy is the shared `WORD — body` format.
   return common._ok_envelope(
     jsonb_build_object(
       'result', v_result,
       'word', v_word,
       'isSpangram', is_spangram,
       'hint_points', v_points,
-      'hint_cost', g_row.hint_cost,
+      'hint_cost', g.hint_cost,
       'words_found', v_found,
       'hint_cleared', hint_cleared > 0,
       'terminal', did_end
@@ -1239,16 +1156,11 @@ begin
       when 'too_short'  then 'warning'
       when 'invalid'    then 'lost'
       -- A valid non-theme word is `near`, not `won`: it moves the hint bar,
-      -- which is real progress, but the goal is the theme. Ruled 2026-09-16
-      -- ("progress, not the goal"); the frontend's lib/answer.ts says the same
-      -- word for the row this wrote.
+      -- which is real progress, but the goal is the theme.
       when 'hint_word'  then 'near'
       else 'won'
     end);
 
--- One block, and it has never heard of any specific condition: it reads the
--- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
--- the message, the kind and the field.
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
@@ -1262,6 +1174,8 @@ $$;
 revoke execute on function strands.submit_path(uuid, jsonb) from public;
 grant execute on function strands.submit_path(uuid, jsonb) to authenticated;
 
+drop function if exists strands.spend_hint(uuid);
+
 -- ============================================================
 -- strands.spend_hint — cash the bar for a revealed word
 -- ============================================================
@@ -1274,7 +1188,10 @@ grant execute on function strands.submit_path(uuid, jsonb) to authenticated;
 --
 -- NOT turn-gated. Spending is a team decision about a team resource, not a
 -- move, so it neither requires nor consumes a turn in a turn-order game.
-create or replace function strands.spend_hint(target_game uuid)
+--
+-- `warning`, the word a hint wears everywhere: spending one is neither good nor
+-- bad play (docs/outcomes.md).
+create or replace function strands.spend_hint(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1282,40 +1199,42 @@ set search_path = strands, common, public, extensions
 as $$
 declare
   caller_id uuid;
-  g_row     strands.games%rowtype;
+  g         strands.games%rowtype;
+  v_mode    text;
   p_row     strands.players%rowtype;
-  play      text;
   coords    jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- The row first: a friend may delete the game from the club list at any
   -- moment, and the delete takes the memberships with it (docs/envelopes.md →
   -- a missing game row is PN485).
-  select * into g_row from strands.games where id = target_game for update;
+  select * into g from strands.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('strands');
   end if;
 
-  caller_id := common._require_game_player(target_game);
+  caller_id := common._require_game_player(p_game_id);
 
-  select play_state into play from common.games where id = target_game;
-  if play <> 'playing' then
+  if (select ended_at from common.games where id = p_game_id) is not null then
     perform common._raise_game_over();
   end if;
 
   -- Same guard as submit_path: a conceded player has no race left to hint.
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = caller_id) then
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
     perform common._raise_already_conceded();
   end if;
+
+  select mode into v_mode from common.games where id = p_game_id;
 
   -- ─── The three the SHARED POOL makes racy ──────────────
   -- In coop the hint bar is one resource with several hands on it, so a
   -- teammate can fill it, spend it or ring a word between your check and your
-  -- click. All three keep the words the frontend used to write for them.
+  -- click.
   select * into p_row from strands.players
-   where game_id = target_game and user_id = caller_id;
-  if p_row.solved then
+   where game_id = p_game_id and user_id = caller_id;
+  if (select solved_at from common.game_players
+        where game_id = p_game_id and user_id = caller_id) is not null then
     -- Your own solve, arriving by subscription while the hint button is still
     -- up: it has no in-flight lock of its own.
     raise exception 'You''ve already finished this board'
@@ -1323,7 +1242,7 @@ begin
       detail = 'this player has already consumed the board';
   end if;
 
-  if p_row.hint_points < g_row.hint_cost then
+  if p_row.hint_points < g.hint_cost then
     -- The button computes the shortfall itself and says so without calling, so
     -- reaching here proves the pool moved after that check.
     raise exception 'Hint bar not full yet'
@@ -1340,26 +1259,25 @@ begin
   end if;
 
   -- A word already found is not worth revealing. WHOSE finds count is the
-  -- board's own rule — shared in coop, your own in compete.
+  -- board's own rule — shared in coop, your own in compete. By PLACEMENT, so
+  -- a word found via the other equivalent trace counts as found.
   select tw->'coords' into coords
     from jsonb_array_elements(
-           g_row.solution->'themeWords' || jsonb_build_array(g_row.solution->'spangram')
+           g.solution->'themeWords' || jsonb_build_array(g.solution->'spangram')
          ) tw
    where not exists (
-     -- Again by PLACEMENT: comparing stored arrays would think a word found via
-     -- the other equivalent trace was still unfound, and cheerfully hint at it.
      select 1 from strands.events gu
-      where gu.game_id = target_game
+      where gu.game_id = p_game_id
         and gu.result in ('theme', 'spangram')
         and strands._path_key(gu.path) = strands._path_key(tw->'coords')
-        and (g_row.mode = 'coop' or gu.user_id = caller_id)
+        and (v_mode = 'coop' or gu.user_id = caller_id)
    )
    order by random()
    limit 1;
 
   if coords is null then
     -- UNREACHABLE, so a fault rather than a refusal: a board with everything
-    -- found is already terminal, and the play_state gate above catches that.
+    -- found has already ended, and the gate above catches that.
     raise exception 'BUG: a hint with every theme word found'
       using errcode = 'PN434', hint = 'fault', column = '_',
       detail = 'every theme word is already found';
@@ -1371,33 +1289,22 @@ begin
      set active_hint_coords = coords,
          hint_points = 0,
          hints_spent = sp.hints_spent + 1
-   where sp.game_id = target_game
-     and (g_row.mode = 'coop' or sp.user_id = caller_id);
+   where sp.game_id = p_game_id
+     and (v_mode = 'coop' or sp.user_id = caller_id);
 
-  -- Log it. Deliberately ONE row attributed to the caller, NOT one per player
-  -- the way the counters above fan out in coop: a shared pool still has a
-  -- single person who decided to cash it, and the event log records what
-  -- happened, not who it happened to.
-  --
-  -- `path` carries the same canonical coords the players row just took, so the
-  -- history viewer can re-ring the hint exactly as it looked when spent — the
-  -- reason this is stored at all. `word` stays null: a hint has never said its
-  -- word, and putting it here would say it in the one place that outlives the
-  -- reveal being retired.
+  -- Log it: ONE row attributed to the caller, not one per player — a shared
+  -- pool still has a single person who decided to cash it. `path` carries the
+  -- canonical coords, so the history viewer can re-ring the hint exactly as it
+  -- looked; `word` stays null, since a hint has never said its word.
   insert into strands.events (game_id, user_id, kind, path, took_turn)
-  values (target_game, caller_id, 'hint', coords, false);
+  values (p_game_id, caller_id, 'hint', coords, false);
 
-  -- `warning`, the word a hint wears everywhere: spending one is neither good nor
-  -- bad play, and coloring it would adjudicate something the player did not do
-  -- (docs/outcomes.md). `coords` and `hint_points` are the fields this RPC has
-  -- always returned.
+  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
+
   return common._ok_envelope(
     jsonb_build_object('result', 'hinted', 'coords', coords, 'hint_points', 0),
     'warning');
 
--- One block, and it has never heard of any specific condition: it reads the
--- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
--- the message, the kind and the field.
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
@@ -1411,19 +1318,21 @@ $$;
 revoke execute on function strands.spend_hint(uuid) from public;
 grant execute on function strands.spend_hint(uuid) to authenticated;
 
--- ============================================================
--- strands.stop_game — the manual, neutral stop
--- ============================================================
--- Any player may end it: a group decision, not an owner's. Neutral by design —
--- the friends agreed to stop, so nobody won and nobody lost
--- (status.reason = 'manual', matching the shared endedCopy on the FE).
---
--- Ending unshields the solution (the is_terminal gate on _solution_for) but
--- puts it on nobody's screen: each player asks for it with their own
--- RevealButton, a local display toggle (docs/ui.md → Terminal results).
 drop function if exists strands.stop_game(uuid);
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists strands.end_game(uuid);
 
-create or replace function strands.stop_game(target_game uuid)
+-- ============================================================
+-- strands.stop_game — the Stop
+-- ============================================================
+-- Any player may end it: a group decision, not an owner's. Neutral in both
+-- modes (docs/common-schema.md → Stop): compete does NOT crown the best
+-- solver here — a race called off early didn't finish, and handing the trophy
+-- to whoever was ahead would reward stopping at the right moment.
+--
+-- Ending unshields the solution but puts it on nobody's screen: each player
+-- asks for it with their own RevealButton, a local display toggle.
+create or replace function strands.stop_game(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1431,46 +1340,18 @@ set search_path = strands, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  play           text;
-  v_found        int;
-  player_results jsonb;
 begin
-
-  perform 1 from strands.games where id = target_game for update;
+  -- Locked, so a Stop racing the winning trace waits for it and then reads the
+  -- game as over. The row check comes before the membership gate — see
+  -- replay_board.
+  perform 1 from strands.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('strands');
   end if;
 
-  -- Row check before the membership gate: `delete_game` takes this row,
-  -- `common.games` and every `game_players` row together, so gate-first
-  -- answered "You are not in this game" for a game that was simply deleted.
-  perform common._require_game_player(target_game);
+  perform common._stop(p_game_id);
 
-  select play_state into play from common.games where id = target_game;
-  if play <> 'playing' then
-    -- Idempotency: a second click, or one racing a win, raises and the FE
-    -- swallows it the same way the other games do.
-    perform common._raise_game_over();
-  end if;
-
-  select count(*) into v_found
-    from strands.events
-   where game_id = target_game and result in ('theme', 'spangram');
-
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players where game_id = target_game;
-
-  -- `ended` in BOTH modes, and neutral in both: the friends agreed to stop, so
-  -- nobody won. Compete does NOT crown the best solver here — a race called off
-  -- early didn't finish, and handing the trophy to whoever was ahead would
-  -- reward stopping at the right moment.
-  perform common._end_game(
-    target_game, 'ended',
-    jsonb_build_object('reason', 'manual', 'words_found', v_found),
-    player_results);
-  -- Wake the boards (src/guards/endingTouchesGame.test.ts).
-  update strands.games set club_handle = club_handle where id = target_game;
+  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1486,48 +1367,40 @@ $$;
 revoke execute on function strands.stop_game(uuid) from public;
 grant execute on function strands.stop_game(uuid) to authenticated;
 
--- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
-drop function if exists strands.end_game(uuid);
+drop function if exists strands.concede(uuid);
 
 -- ============================================================
 -- strands.concede — drop out of a compete race
 -- ============================================================
 -- Compete only: a coop team has nobody to keep racing, so it stops with
--- stop_game instead.
---
--- NOT common.concede, which ends a game as a collective loss the moment the
--- last player drops. strands can't use that: a table where two players quit and
--- a third had already SOLVED must end with that solver winning, not with
--- everyone losing. So it's the documented split — common._set_conceded for the
--- guarded flag flip, then this gametype's own finisher to decide the outcome.
-drop function if exists strands.concede(uuid);
-
-create or replace function strands.concede(target_game uuid)
+-- stop_game instead. `common._concede` records the concession (and ends the
+-- game as a loss if every player conceded); then, since a racer may also end
+-- by solving, _maybe_finish_compete checks whether the concession left
+-- nobody racing — a table where two players quit and a third had already
+-- SOLVED ends with that solver winning.
+create or replace function strands.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = strands, common, public, extensions
 as $$
 declare
-  g_mode text;
+  caller_id uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  -- FOR UPDATE: serialize against submit_path (and stop_game), which lock this
-  -- same row. Without it a last solve and a last concede run on disjoint locks
-  -- (submit_path on strands.games, _set_conceded on common.games), each
-  -- snapshots the other as "still racing", and BOTH finishers decline — the
-  -- game sticks in `playing` with nobody left to end it. Lock order is
-  -- strands.games → common.games on every path, so no deadlock.
-  select mode into g_mode from strands.games where id = target_game for update;
-  -- A null mode (no strands row) falls straight through `_require_compete` and is
-  -- refused by `_set_conceded` as the missing game it is — the same path the
-  -- five other games that decide their own terminal take. strands used to raise
-  -- both of these itself, which cost two codes to say what common already says.
-  perform common._require_compete(g_mode);
+  -- Locked, so a last solve and a last concession serialize and one of them
+  -- sees the other's result (docs/common-schema.md → Concede).
+  perform 1 from strands.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('strands');
+  end if;
 
-  perform common._set_conceded(target_game);
-  perform strands._maybe_finish_compete(target_game);
+  perform common._require_compete((select mode from common.games where id = p_game_id));
 
+  caller_id := common._concede(p_game_id);
+  perform strands._maybe_finish_compete(p_game_id, 'conceded', 'conceded', caller_id);
+
+  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -1543,19 +1416,17 @@ $$;
 revoke execute on function strands.concede(uuid) from public;
 grant execute on function strands.concede(uuid) to authenticated;
 
+drop function if exists strands.replay_board(uuid);
+
 -- ============================================================
 -- strands.replay_board — run this puzzle back
 -- ============================================================
 -- Same board, everything the players did wiped: the event log, the found
--- words (which live IN that log), the hint bar, the spend count, and any
--- showing hint. Callable mid-game or from a finished one — it's a restart, not
--- a terminal action.
---
--- The solution re-hides itself: _solution_for reads is_terminal, which
--- common._reset_game puts back to false.
-drop function if exists strands.replay_board(uuid);
-
-create or replace function strands.replay_board(target_game uuid)
+-- words (which live IN that log), the hint bar, the spend count, any showing
+-- hint, and every solve. Callable mid-game or after the game ends — it's a
+-- restart. The solution re-hides itself: _solution_for reads the ending,
+-- which common._reset_game clears.
+create or replace function strands.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1563,44 +1434,34 @@ set search_path = strands, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row strands.games%rowtype;
 begin
-
   -- FOR UPDATE: a replay racing a submission must not interleave with it, or
   -- the reset could land on a half-applied move — a stray log row in the
-  -- "fresh" game, or an in-flight winning move re-terminalling the board that
-  -- was just reset.
-  select * into g_row from strands.games where id = target_game for update;
+  -- "fresh" game, or an in-flight winning move ending the board just reset.
+  perform 1 from strands.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('strands');
   end if;
 
-  -- The row check comes BEFORE the membership gate, and the order is the whole
-  -- point: `delete_game` takes this row, `common.games` and every
-  -- `game_players` row together, so a caller whose game was just deleted has no
-  -- membership left either. Gate-first told them "You are not in this game",
-  -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common._require_game_player(target_game);
+  -- The row check comes BEFORE the membership gate: `delete_game` takes this
+  -- row, `common.games` and every `game_players` row together, so a caller
+  -- whose game was just deleted has no membership left either, and would be
+  -- told "You are not in this game" — they WERE in it; it is gone.
+  perform common._require_game_player(p_game_id);
 
-  delete from strands.events where game_id = target_game;
+  delete from strands.events where game_id = p_game_id;
 
   update strands.players
      set hint_points = 0,
          hints_spent = 0,
-         active_hint_coords = null,
-         solved = false,
-         solved_at = null
-   where game_id = target_game;
+         active_hint_coords = null
+   where game_id = p_game_id;
 
-  -- The same status shape create_game seeds, mode for mode — a restart must be
-  -- indistinguishable from a fresh game, including compete's silence.
-  perform common._reset_game(
-    target_game,
-    case when g_row.mode = 'coop'
-         then jsonb_build_object('mode', g_row.mode, 'words_found', 0)
-         else jsonb_build_object('mode', g_row.mode)
-    end
-  );
+  update common.game_players set solved_at = null where game_id = p_game_id;
+
+  perform common._reset_game(p_game_id);
+
+  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -1616,21 +1477,21 @@ $$;
 revoke execute on function strands.replay_board(uuid) from public;
 grant execute on function strands.replay_board(uuid) to authenticated;
 
+drop function if exists strands.submit_timeout(uuid);
+
 -- ============================================================
 -- strands.submit_timeout — the countdown expiring
 -- ============================================================
--- Fired by every connected client when its local countdown hits 0, so several
--- calls arrive at roughly the same instant. The row lock serializes them:
--- whichever commits first terminalizes, and the rest see a non-playing game and
--- raise P0001, which the FE swallows as "a peer beat us to it".
+-- Fired by every connected client when its local countdown hits 0; the row
+-- lock serializes them, the first ends the game, and the rest find it over
+-- and answer the game-over race.
 --
--- The clock is a LOSS here, per the roster's one test (docs/states.md): you
--- lose if the game had a REACHABLE END and you didn't reach it. strands has one
--- — find every theme word — so it sits with wordle and connections rather than
--- with an untargeted word hunt, where the clock is merely how a session stops.
-drop function if exists strands.submit_timeout(uuid);
-
-create or replace function strands.submit_timeout(target_game uuid)
+-- The clock is a LOSS in coop: the game had a REACHABLE END — find every
+-- theme word — and the team didn't reach it. In compete it stops the race
+-- wherever it stands, and the ranking is applied to whoever HAD solved; a
+-- player mid-board simply didn't finish. Ended by whoever held the turn in
+-- turn-by-turn coop, else nobody.
+create or replace function strands.submit_timeout(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1638,49 +1499,32 @@ set search_path = strands, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row          strands.games%rowtype;
-  play           text;
-  v_found        int;
-  player_results jsonb;
+  v_ended_by uuid;
 begin
-
-  select * into g_row from strands.games where id = target_game for update;
+  perform 1 from strands.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('strands');
   end if;
 
-  -- Row check before the membership gate: `delete_game` takes this row,
-  -- `common.games` and every `game_players` row together, so gate-first
-  -- answered "You are not in this game" for a game that was simply deleted.
-  perform common._require_game_player(target_game);
+  perform common._require_game_player(p_game_id);
 
-  select play_state into play from common.games where id = target_game;
-  if play <> 'playing' then
+  if (select ended_at from common.games where id = p_game_id) is not null then
     perform common._raise_game_over();
   end if;
 
-  if g_row.mode = 'compete' then
-    -- The clock stops the race wherever it stands, and the ranking is applied
-    -- to whoever HAD solved. A player mid-board simply didn't finish — the
-    -- winner is still "solved, on the fewest hints", never "got furthest".
-    perform strands._maybe_finish_compete(target_game, true);
-    return common._ok_envelope(jsonb_build_object('result', 'ended'));
+  select current_turn_user_id into v_ended_by from common.games where id = p_game_id;
+
+  if (select mode from common.games where id = p_game_id) = 'compete' then
+    perform strands._finish_compete(p_game_id, 'timeout', 'timeout', v_ended_by);
+  else
+    perform common._end_game(
+      p_game_id, 'timeout', 'timeout', v_ended_by,
+      p_is_no_result => false,
+      p_final_rankings => '{}'::jsonb
+    );
   end if;
 
-  select count(*) into v_found
-    from strands.events
-   where game_id = target_game and result in ('theme', 'spangram');
-
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players where game_id = target_game;
-
-  perform common._end_game(
-    target_game, 'lost',
-    jsonb_build_object('reason', 'timeout', 'words_found', v_found),
-    player_results);
-  -- Wake the boards (src/guards/endingTouchesGame.test.ts).
-  update strands.games set club_handle = club_handle where id = target_game;
+  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then

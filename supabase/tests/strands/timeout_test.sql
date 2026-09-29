@@ -4,17 +4,17 @@
 -- Test: strands submit_timeout — the clock, in both modes
 -- ============================================================
 -- Coop: the board had a reachable end (find them all) and the team didn't
--- reach it, so the clock is a LOSS — reason 'timeout', words_found counted,
--- never the total (that number is part of the answer).
+-- reach it, so the clock is a LOSS — reason 'timeout', the words found
+-- counted, never the total (that number is part of the answer).
 --
 -- Compete: the clock stops the race wherever it stands and the ranking is
 -- applied to whoever HAD solved — a solver is crowned exactly as if the last
--- racer had finished; nobody solved means lost_compete/'timeout'. (The RPC
--- trusts the caller about expiry, like every game's timeout — the timer is a
+-- racer had finished; nobody solved means lost / 'timeout'. (The RPC trusts
+-- the caller about expiry, like every game's timeout — the timer is a
 -- shared-convention FE clock, not a server one.)
 --
--- Plus the terminal RLS flip the race relies on: mid-race a rival's guesses
--- are hidden; the moment the game ends they open for the post-mortem.
+-- Plus the end-of-game RLS flip the race relies on: mid-race a rival's
+-- guesses are hidden; the moment the game ends they open for the post-mortem.
 
 begin;
 
@@ -47,17 +47,17 @@ select strands.submit_timeout((select id from g_coop));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g_coop)),
+  (select game_ended_outcome from common.games where id = (select id from g_coop)),
   'lost',
   'coop: the clock is a loss — the board had a reachable end'
 );
 select is(
-  (select status->>'reason' from common.games where id = (select id from g_coop)),
-  'timeout',
-  '…whose outcome names the clock'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g_coop)),
+  'timeout/timeout',
+  '…whose reason names the clock'
 );
 select is(
-  (select status->>'words_found' from common.games where id = (select id from g_coop)),
+  (select clubpage_info->>'found_words_count' from common.games where id = (select id from g_coop)),
   '1',
   '…and counts what was found (never out of how many)'
 );
@@ -91,25 +91,25 @@ select strands.submit_timeout((select id from g_won));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g_won)),
-  'won_compete',
+  (select game_ended_reason || '/' || game_ended_outcome from common.games where id = (select id from g_won)),
+  'timeout/won',
   'compete: timing out with a solver on the board crowns them'
 );
 select is(
-  (select result from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from g_won)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  '{"won": true}'::jsonb,
+  '1/won',
   '…and it is the solver who takes it'
 );
 
--- The post-mortem flip: at terminal the compete guesses open up.
+-- The post-mortem flip: once the game ends the compete guesses open up.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select count(*) from strands.events
     where game_id = (select id from g_won) and result in ('theme','spangram')),
   9::bigint,
-  'at terminal bea sees the whole log — ada''s 8 finds plus her own'
+  'once ended, bea sees the whole log — ada''s 8 finds plus her own'
 );
 
 -- ============================================================
@@ -129,14 +129,14 @@ select strands.submit_timeout((select id from g_lost));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g_lost)),
-  'lost_compete',
+  (select game_ended_outcome from common.games where id = (select id from g_lost)),
+  'lost',
   'compete: timing out with no solver is a collective loss'
 );
 select is(
-  (select status->>'reason' from common.games where id = (select id from g_lost)),
-  'timeout',
-  '…whose outcome names the clock, not "unsolved" or "conceded"'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g_lost)),
+  'timeout/timeout',
+  '…whose reason names the clock, not "unsolved" or "conceded"'
 );
 
 select * from finish();

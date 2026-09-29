@@ -18,14 +18,6 @@
 
 ## Soon
 
-- **`'unsolved'` can never be written; delete it.** `_maybe_finish_compete`
-  names why a compete game ended with nobody winning: `'timeout'`,
-  `'conceded'`, or else `'unsolved'`. Without a timeout the game ends only
-  once every player has solved or conceded, and a solver is refused a concede,
-  so with no solver everyone conceded — the `else` never runs. Delete the
-  branch and `unsolved` from `docs/games/strands.md` → Terminal vocabulary.
-  Nothing on the front end reads it, so no migration.
-
 - **"Theme word" means two different things; pick one and say it
   everywhere.** The data and the code keep the spangram apart:
   `solution->'themeWords'` holds everything but the spangram, which sits

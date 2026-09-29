@@ -12,7 +12,7 @@
 --   this guard is copied from).
 --
 --   **A finisher can't concede.** Once you have solved you are out of the race
---   (locally terminal), and conceding then could only throw away a win you may
+--   (your own race has ended), and conceding then could only throw away a win you may
 --   hold, so the server refuses it (PN508) and your solve stays ranked.
 --   And when EVERYONE concedes, the loss says so: reason 'conceded'.
 --
@@ -66,8 +66,8 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g_guard)),
-  'playing',
+  (select ended_at from common.games where id = (select id from g_guard)),
+  null,
   'one concede among three leaves the race running'
 );
 
@@ -126,38 +126,41 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select strands.submit_path((select id from g_forfeit), pg_temp.strands_row_path(r))
   from generate_series(0, 7) r;
 
+reset role;
 select is(
-  (select play_state from common.games where id = (select id from g_forfeit)),
-  'won_compete',
+  (select game_ended_reason || '/' || game_ended_by_user_id::text
+     from common.games where id = (select id from g_forfeit)),
+  'reached_goal/bea22222-2222-2222-2222-222222222222',
   'bea finishing ends the game — the last racer still solving'
 );
 
 select is(
-  (select result from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from g_forfeit)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  '{"won": true}'::jsonb,
+  '1/won',
   'ada WINS on 0 hints — her refused concede left her solve ranked'
 );
 
 select is(
-  (select result from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from g_forfeit)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  '{"won": false}'::jsonb,
-  'bea''s 1-hint solve loses to it'
+  '2/near',
+  'bea''s 1-hint solve is ranked below it'
 );
 
 select is(
-  (select status->>'best_hints' from common.games where id = (select id from g_forfeit)),
+  (select clubpage_info->>'winner_hints_count' from common.games where id = (select id from g_forfeit)),
   '0',
-  'and best_hints is ada''s 0'
+  'and the winning hint count is ada''s 0'
 );
 
 -- ============================================================
 -- (10)–(12) EVERYONE OUT: the loss names the way it happened
 -- ============================================================
 
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_all on commit drop as
 select (strands.create_game(
   (select handle from club),
@@ -170,18 +173,19 @@ select strands.concede((select id from g_all));
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select strands.concede((select id from g_all));
 
+reset role;
 select is(
-  (select play_state from common.games where id = (select id from g_all)),
-  'lost_compete',
+  (select game_ended_outcome from common.games where id = (select id from g_all)),
+  'lost',
   'the last concede ends the game as a collective loss'
 );
 select is(
-  (select status->>'reason' from common.games where id = (select id from g_all)),
-  'conceded',
-  '…whose outcome says everyone gave up (not "unsolved" — nobody played it out)'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g_all)),
+  'conceded/conceded',
+  '…whose reason says everyone gave up (not "unsolved" — nobody played it out)'
 );
 select is(
-  (select bool_and(result = '{"won": false}'::jsonb) from common.game_players
+  (select bool_and(final_ranking is null and outcome = 'lost') from common.game_players
     where game_id = (select id from g_all)),
   true,
   'and nobody won'

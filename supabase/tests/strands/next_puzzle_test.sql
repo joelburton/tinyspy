@@ -40,7 +40,7 @@ create function pg_temp.strands_puzzle_on(d date, tag text) returns uuid
 language plpgsql security definer as $$
 declare new_id uuid;
 begin
-  insert into strands.puzzles (source_id, puzzle_date, board, clue, solution)
+  insert into strands.puzzles (source_id, puzzle_date, board, title, solution)
   values (tag, d, pg_temp.strands_board(), 'Rows of nonsense',
           pg_temp.strands_solution())
   returning id into new_id;
@@ -80,7 +80,7 @@ select is(
 select is(
   (strands.next_puzzle_for_club(array[(select ada from ids)]) -> 'data' -> 'puzzle' ->> 'label'),
   '1999-01-01: Rows of nonsense',
-  'the row carries the date + clue label the dialog shows as "next up"'
+  'the row carries the date + title label the dialog shows as "next up"'
 );
 
 -- ============================================================
