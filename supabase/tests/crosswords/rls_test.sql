@@ -48,8 +48,8 @@ select is(
   0, 'non-member sees no cells');
 reset role;
 
--- ── Compete terminal: opponents' grids open up ───────────────────────
--- ada solves her grid → the game becomes terminal.
+-- ── Compete, once ended: opponents' grids open up ────────────────────
+-- ada solves her grid → the game ends.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.set_cell(:'gp_id', 0, 0, 'c', false);
 select crosswords.set_cell(:'gp_id', 0, 1, 'a', false);
@@ -57,14 +57,14 @@ select crosswords.set_cell(:'gp_id', 1, 0, 't', false);
 select crosswords.set_cell(:'gp_id', 1, 1, 's', false);
 reset role;
 
-select is((select is_terminal from common.games where id = :'gp_id'), true,
-  'compete solved → terminal');
+select isnt((select ended_at from common.games where id = :'gp_id'), null,
+  'compete solved → the game has ended');
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select count(*)::int from crosswords.cells
      where game_id = :'gp_id' and owner_id = 'ada11111-1111-1111-1111-111111111111'),
-  4, 'compete terminal: an opponent''s grid becomes visible');
+  4, 'compete, once ended: an opponent''s grid becomes visible');
 reset role;
 
 -- ── crosswords.games row-RLS (the other half of the shielding story) ─
@@ -72,17 +72,17 @@ reset role;
 -- COLUMN grant is pinned in create_game_test; this is the ROW policy.)
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*)::int from crosswords.games where id = :'gc_id'),
+  (select count(*)::int from crosswords.games where game_id = :'gc_id'),
   1, 'games: a club member sees the game row');
 reset role;
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
-  (select count(*)::int from crosswords.games where id = :'gc_id'),
+  (select count(*)::int from crosswords.games where game_id = :'gc_id'),
   0, 'games: a non-member sees no game row');
 reset role;
 
 -- ── crosswords.puzzles row-RLS: any authenticated user may list ──────
--- The setup-form picker needs to read the (non-solution) meta of every
+-- The setup-form picker needs to read the (non-solution) puzzle_content of every
 -- library puzzle, regardless of club — so even a non-member of this club
 -- sees the puzzle row (the solution column stays shielded, tested elsewhere).
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

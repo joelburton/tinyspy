@@ -35,16 +35,16 @@ select pg_temp.envelope_is(
   'the answer names itself, so a call site has a case to assert');
 
 select ok(
-  exists(select 1 from crosswords.games where id = :'gc_id'),
+  exists(select 1 from crosswords.games where game_id = :'gc_id'),
   'coop create_game returns a game id');
 
 select is(
-  (select mode from crosswords.games where id = :'gc_id'),
-  'coop', 'coop game row has mode = coop');
+  (select mode from common.games where id = :'gc_id'),
+  'coop', 'coop game has mode = coop');
 
 select is(
-  (select play_state from common.games where id = :'gc_id'),
-  'playing', 'common.games header is playing');
+  (select ended_at from common.games where id = :'gc_id'),
+  null, 'common.games header is being played, not ended');
 
 select is(
   (select count(*)::int from crosswords.cells where game_id = :'gc_id'),
@@ -55,8 +55,8 @@ select ok(
   'coop cells all have null owner (shared grid)');
 
 select is(
-  (select meta -> 'title' from crosswords.games where id = :'gc_id'),
-  '"Toy"'::jsonb, 'meta is copied from the puzzle');
+  (select puzzle_content -> 'title' from crosswords.games where game_id = :'gc_id'),
+  '"Toy"'::jsonb, 'puzzle_content is copied from the puzzle');
 
 -- The game's human title is the PUZZLE's title (like crossplay names a game after
 -- the loaded puzzle), not a generic "New crossword".
@@ -105,10 +105,10 @@ select (crosswords.create_game(
 reset role;
 
 select ok(
-  exists(select 1 from crosswords.games where id = :'gb_id'),
+  exists(select 1 from crosswords.games where game_id = :'gb_id'),
   'inline board create_game creates a self-contained game');
 select is(
-  (select puzzle_id from crosswords.games where id = :'gb_id'),
+  (select puzzle_id from crosswords.games where game_id = :'gb_id'),
   null, 'inline board game has a null puzzle_id (not from the library)');
 select is(
   (select count(*)::int from crosswords.cells where game_id = :'gb_id'),
@@ -136,7 +136,8 @@ select is(
   null, 'cells without a saved fill still import blank');
 
 -- ── Template cryptic marks seed into the live cells ──────────────────
--- The NYT overlay import applies author word-break bars onto meta.cells;
+-- The NYT overlay import applies author word-break bars onto the template's
+-- cells (the board's `meta.cells`, stored as puzzle_content.cells);
 -- create_game must seed them into crosswords.cells (mark_right/mark_bottom)
 -- so they render on the board + PDFs (which read marks from the live cells,
 -- not the template). Drive an inline board whose (0,0) carries both marks.
@@ -221,7 +222,7 @@ reset role;
 -- ── Setup-strip backstop (finding 1.1) ───────────────────────────────
 -- A `board` (+ `filename`) can linger in the setup blob after an upload →
 -- tab-switch. create_game must strip both from what it persists (the
--- unshielded status jsonb + the club's saved default), or an uploaded
+-- unshielded setup jsonb + the club's saved default), or an uploaded
 -- solution grid leaks + self-perpetuates. Drive a library create whose
 -- setup carries a bogus board and assert neither destination keeps it.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -249,11 +250,11 @@ select ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select ok(
-  (select solution from crosswords.games_state where id = :'gc_id') is null,
-  'mid-game: games_state.solution is NULL (hidden until terminal)');
+  (select solution from crosswords.games_state where game_id = :'gc_id') is null,
+  'mid-game: games_state.solution is NULL (hidden until the game ends)');
 
 select throws_ok(
-  format('select solution from crosswords.games where id = %L', :'gc_id'),
+  format('select solution from crosswords.games where game_id = %L', :'gc_id'),
   '42501', null, 'authenticated cannot select crosswords.games.solution');
 
 select throws_ok(

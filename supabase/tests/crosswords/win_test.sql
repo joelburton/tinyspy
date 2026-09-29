@@ -35,20 +35,22 @@ select (crosswords.set_cell(:'gc_id', 1, 1, 's', false) -> 'data' ->> 'solved'):
 select is(:'s_last'::boolean, true, 'the final correct fill reports solved = true');
 
 reset role;
-select is((select play_state from common.games where id = :'gc_id'), 'won',
-  'coop solved → play_state won');
-select is((select is_terminal from common.games where id = :'gc_id'), true,
-  'coop solved → is_terminal');
+select is((select game_ended_outcome from common.games where id = :'gc_id'), 'won',
+  'coop solved → the game ends won');
+select is((select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_by_user_id::text
+             from common.games where id = :'gc_id'),
+  'reached_goal/solved/ada11111-1111-1111-1111-111111111111',
+  'coop solved → reached_goal / solved, ended by the solver');
 select is(
-  (select result -> 'won' from common.game_players
-     where game_id = :'gc_id' and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'true'::jsonb, 'coop solved → each player result won = true');
+  (select count(*)::int from common.game_players
+     where game_id = :'gc_id' and final_ranking = 1 and outcome = 'won' and solved_at is not null),
+  2, 'coop solved → each player ranked 1, won, and solved');
 
--- Solution reveals in the terminal view.
+-- Solution reveals once the game has ended.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select isnt(
-  (select solution from crosswords.games_state where id = :'gc_id'), null,
-  'terminal: games_state.solution is revealed');
+  (select solution from crosswords.games_state where game_id = :'gc_id'), null,
+  'once ended: games_state.solution is revealed');
 reset role;
 
 -- ── Pencil counts toward solve (mirror isPuzzleSolved) ───────────────
@@ -70,23 +72,23 @@ select (crosswords.set_cell(:'gp_id', 1, 1, 's', false) -> 'data' ->> 'solved'):
 select is(:'s_comp'::boolean, true, 'compete: completing your grid reports solved');
 reset role;
 
-select is((select play_state from common.games where id = :'gp_id'), 'won_compete',
-  'compete solved → play_state won_compete');
+select is((select game_ended_outcome from common.games where id = :'gp_id'), 'won',
+  'compete solved → the game ends won');
 select is(
-  (select status ->> 'winner_username' from common.games where id = :'gp_id'),
-  'ada', 'compete → status.winner_username is the solver');
+  (select game_ended_by_user_id from common.games where id = :'gp_id'),
+  'ada11111-1111-1111-1111-111111111111'::uuid, 'compete → the solver is the one who ended it');
 select is(
-  (select result -> 'won' from common.game_players
+  (select final_ranking || '/' || outcome || '/' || (solved_at is not null)::text from common.game_players
      where game_id = :'gp_id' and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'true'::jsonb, 'compete winner result won = true');
+  '1/won/true', 'compete winner is ranked 1, won, and solved');
 select is(
-  (select result -> 'won' from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
      where game_id = :'gp_id' and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  'false'::jsonb, 'compete non-winner result won = false');
+  'unranked/lost', 'compete non-winner is unranked and lost');
 
--- ── Post-terminal: the game is frozen; the winner stands ─────────────
+-- ── Once ended: the game is frozen; the winner stands ────────────────
 -- ada has won gp. bea (a would-be second solver) can no longer write her
--- grid — set_cell's play_state guard rejects it — so nothing can flip the
+-- grid — set_cell's ended guard rejects it — so nothing can flip the
 -- already-recorded winner. This is the win-race guard the plan asked to pin.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 -- A RACE: a rival finished the grid while this keystroke was in flight, which
@@ -95,11 +97,11 @@ select pg_temp.envelope_is(
   crosswords.set_cell(:'gp_id', 0, 0, 'c', false),
   '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'compete: set_cell is rejected once the game is terminal');
+  'compete: set_cell is rejected once the game has ended');
 reset role;
 select is(
-  (select status ->> 'winner_username' from common.games where id = :'gp_id'),
-  'ada', 'compete: a late solver cannot overwrite the winner');
+  (select user_id from common.game_players where game_id = :'gp_id' and final_ranking = 1),
+  'ada11111-1111-1111-1111-111111111111'::uuid, 'compete: a late solver cannot overwrite the winner');
 
 -- ── Rebus end-to-end: full string AND bare first letter both solve ───
 -- _matches is unit-tested directly, but no fixture puzzle exercised a
@@ -122,8 +124,8 @@ select crosswords.set_cell(:'gr_full', 0, 0, 'heart', false);
 select (crosswords.set_cell(:'gr_full', 0, 1, 's', false) -> 'data' ->> 'solved')::boolean as s_rebus_full \gset
 select is(:'s_rebus_full'::boolean, true, 'rebus: the full-string fill completes the solve');
 reset role;
-select is((select play_state from common.games where id = :'gr_full'), 'won',
-  'rebus full-string solve → play_state won');
+select is((select game_ended_outcome from common.games where id = :'gr_full'), 'won',
+  'rebus full-string solve → the game ends won');
 
 -- Bare first-letter fill: "H" alone stands in for "HEART"; "S" in (0,1).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

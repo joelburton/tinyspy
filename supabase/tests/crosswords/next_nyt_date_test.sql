@@ -98,7 +98,7 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select puzzle_date from crosswords.games where id = (select id from g1)),
+  (select puzzle_date from crosswords.games where game_id = (select id from g1)),
   (select monday from expect),
   'create_game stamps games.puzzle_date from setup.date — the column the walk excludes on'
 );

@@ -325,7 +325,7 @@ select is(crosswords._matches(null, '["A"]'::jsonb), false,
 
 -- ── export_solution (the .ipuz-export answer read — review M4) ──────────
 -- A game player gets the full solution ANY time (unlike games_state, which
--- gates it to terminal); a non-player is rejected.
+-- gates it to the game's end); a non-player is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select isnt(
   (select crosswords.export_solution(:'gc_id')), null,

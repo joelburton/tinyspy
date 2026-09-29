@@ -106,7 +106,7 @@ returns uuid language plpgsql as $$
 declare
   new_id uuid;
 begin
-  insert into crosswords.puzzles (content_hash, source, meta, solution)
+  insert into crosswords.puzzles (content_hash, source, puzzle_content, solution)
   values (p_hash, p_source, p_meta, p_solution)
   returning id into new_id;
   return new_id;

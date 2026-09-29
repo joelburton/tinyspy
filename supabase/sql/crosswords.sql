@@ -1,31 +1,53 @@
 -- cs-unmet
 
 -- ============================================================
--- crosswords — the REPEATABLE half
+-- crosswords
 -- ============================================================
--- Functions, views, RLS policies, triggers and grants for crosswords. Everything
--- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
--- delta. Edit it in place forever; it never becomes a migration.
+-- What the frontend calls:
 --
--- Its other half is the one-shot schema migration
--- `supabase/migrations/20260706000000_crosswords.sql` — tables, constraints, indexes,
--- the Realtime publication and seed rows. That one is applied once and then
--- frozen, because `alter table` cannot be re-run.
+--   create_game            starts a game on a library puzzle (the NYT and
+--                          upload edge functions call it with the puzzle)
+--   library_for_club       the setup form's library list, colored by this
+--                          club's history
+--   next_nyt_date_for_club the most recent NYT daily of a weekday nobody
+--                          about to play has played
+--   set_cell               writes one cell's fill (one call per keystroke)
+--   set_mark               writes a cryptic edge mark on one cell
+--   check_cells            flags the wrong fills among the asked cells
+--   reveal_cells           fills the asked cells with the answer (coop only)
+--   export_solution        the whole answer grid, for a download
+--   concede                a racer drops out of a compete game
+--   stop_game              stops the game for everyone, with no result
+--   submit_timeout         ends the game when the countdown runs out
+--   replay_board           clears every grid and starts the puzzle again
 --
--- Order is load-bearing: a policy can only reference a function that already
--- exists, so statements stay in the order they were written. See
+-- What the crosswords-explain-clue edge function calls:
+--
+--   reveal_solved_word     a word's answer, only once the caller has it right
+--
+-- What is particular to crosswords (docs/games/crosswords.md has the rest):
+--   - The solution is on the game row but never granted; players see it
+--     through `games_state` once the game has ended.
+--   - The grid is `crosswords.cells`: one shared grid in coop, one per player
+--     in compete. A cell's writes (`set_cell`, `set_mark`) reach the other
+--     pages through the cells subscription, so they don't rewrite the
+--     statuses — except the fill that completes the grid and ends the game
+--     (plans/common-tables.md → Decided).
+--   - The first player (compete) or the team (coop) to complete a correct
+--     grid wins at once.
+--
+-- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
 -- ============================================================
 
 grant usage on schema crosswords to authenticated;
 
--- Library browsing needs meta but never the answer. The presence of ANY
--- column grant flips the table to "only granted columns visible", so we
+-- Library browsing needs puzzle_content but never the answer. The presence of
+-- ANY column grant flips the table to "only granted columns visible", so we
 -- enumerate the safe columns and omit `solution`. A pgTAP test pins that
 -- authenticated cannot select `solution`, so a future migration can't
 -- silently regress it.
-grant select (id, source, meta, created_at) on crosswords.puzzles to authenticated;
+grant select (id, source, puzzle_content, created_at) on crosswords.puzzles to authenticated;
 
 -- Any authenticated user may list puzzles (the setup-form picker); the
 -- column grant above is what hides the answer, not RLS.
@@ -43,37 +65,44 @@ grant usage on schema crosswords to service_role;
 grant insert, select on crosswords.puzzles to service_role;
 
 -- Everything EXCEPT `solution`.
-grant select (id, club_handle, mode, puzzle_id, meta, created_at)
+grant select (game_id, puzzle_id, puzzle_content)
   on crosswords.games to authenticated;
 
 drop policy if exists games_select on crosswords.games;
 create policy games_select on crosswords.games
   for select to authenticated
-  using (common._is_club_member(club_handle));
+  using (
+    exists (
+      select 1 from common.games cg
+       where cg.id = games.game_id
+         and common._is_club_member(cg.club_handle)
+    )
+  );
 
 grant select on crosswords.cells to authenticated;
 
--- Mode-aware visibility (modeled on wordle.events_select): coop — any
--- club member reads the shared grid; compete — you see only your own
--- rows until the game is terminal, when opponents' grids open up. NOTE:
--- this gates the RLS-filtered READ, not the Realtime payload — the FE's
--- useCells also drops incoming compete events whose owner_id != auth.uid()
--- (this repo does not rely on Realtime to withhold rows). Writes all go
--- through the definer RPCs below, which bypass RLS, so no write policy.
+-- Mode-aware visibility: coop — any club member reads the shared grid;
+-- compete — you see only your own rows until the game has ended, when
+-- opponents' grids open up. This gates the RLS-filtered READ, not the
+-- Realtime payload — the FE's useCells also drops incoming compete events
+-- whose owner_id != auth.uid(). Writes all go through the definer RPCs below,
+-- which bypass RLS, so no write policy.
 drop policy if exists cells_select on crosswords.cells;
 create policy cells_select on crosswords.cells
   for select to authenticated
   using (
     exists (
-      select 1
-        from crosswords.games cg
-        join common.games g on g.id = cg.id
+      select 1 from common.games cg
        where cg.id = cells.game_id
          and common._is_club_member(cg.club_handle)
-         and (cg.mode = 'coop' or cells.owner_id = (select auth.uid()) or g.is_terminal)
+         and (cg.mode = 'coop' or cells.owner_id = (select auth.uid())
+              or cg.ended_at is not null)
     )
   );
 
+-- ============================================================
+-- crosswords._bump_cell_version — the cells trigger
+-- ============================================================
 -- Per-cell version bump. Any change (fill / check-wrong / reveal) advances
 -- the counter, so every CDC event carries a strictly newer version than
 -- the state it supersedes.
@@ -95,20 +124,19 @@ create trigger cells_bump_version
   execute function crosswords._bump_cell_version();
 
 -- ============================================================
--- Match semantics + solved detection (mirrors crossplay ws.ts)
+-- crosswords._matches — is this fill an acceptable answer?
 -- ============================================================
-
 -- True iff `p_fill` is an acceptable answer for the per-cell solution
 -- array `p_sols` (null for a block; length 1 normal; length > 1
 -- Schrödinger — more than one acceptable candidate). Each candidate
 -- accepts an exact match, and — for any multi-CHARACTER candidate (a
 -- rebus answer like "HEART") — the bare first letter alone, a long-
 -- standing NYT convention that saves typing on small screens. This
--- mirrors `fillMatchesSolution` (ws.ts): the first-letter shortcut is
--- keyed on the candidate STRING's length (`sol.length > 1` per candidate,
--- i.e. `length(s.ans) > 1` here), NOT on the number of candidates. A
--- Schrödinger cell whose candidates are all single letters gets no
--- first-letter shortcut; a normal cell with one multi-char answer does.
+-- mirrors `fillMatchesSolution` (crossplay's ws.ts): the first-letter
+-- shortcut is keyed on the candidate STRING's length, NOT on the number of
+-- candidates. A Schrödinger cell whose candidates are all single letters
+-- gets no first-letter shortcut; a normal cell with one multi-char answer
+-- does.
 create or replace function crosswords._matches(p_fill text, p_sols jsonb)
 returns boolean
 language sql
@@ -127,11 +155,17 @@ as $$
 $$;
 revoke execute on function crosswords._matches(text, jsonb) from public;
 
--- True iff every fillable cell in `p_owner_id`'s grid matches the solution
--- (`isPuzzleSolved`). An empty cell blocks solve; a pencil cell does NOT
--- (it counts if right). Given cells aren't in the table — they're
--- author-correct by construction — so they're implicitly satisfied.
-create or replace function crosswords._is_solved(target_game uuid, p_owner_id uuid)
+drop function if exists crosswords._is_solved(uuid, uuid);
+
+-- ============================================================
+-- crosswords._is_solved — is this grid complete and correct?
+-- ============================================================
+-- True iff every fillable cell in `p_owner_id`'s grid (null: coop's shared
+-- grid) matches the solution (`isPuzzleSolved`). An empty cell blocks the
+-- solve; a pencil cell does NOT (it counts if right). Given cells aren't in
+-- the table — they're author-correct by construction — so they're
+-- implicitly satisfied.
+create or replace function crosswords._is_solved(p_game_id uuid, p_owner_id uuid)
 returns boolean
 language sql
 stable
@@ -141,8 +175,8 @@ as $$
   select not exists (
     select 1
       from crosswords.cells c
-      join crosswords.games g on g.id = c.game_id
-     where c.game_id = target_game
+      join crosswords.games g on g.game_id = c.game_id
+     where c.game_id = p_game_id
        and c.owner_id is not distinct from p_owner_id
        and (c.fill is null
             or not crosswords._matches(c.fill, g.solution -> c.row::int -> c.col::int))
@@ -150,95 +184,97 @@ as $$
 $$;
 revoke execute on function crosswords._is_solved(uuid, uuid) from public;
 
--- Terminal-only answer reveal: the shielded `solution` column, surfaced
--- (as jsonb) once the game is terminal and NULL before. The
--- security_invoker view keeps auth.uid() real so base-table RLS still
--- gates rows; the definer function reads the grant-hidden column.
-create or replace function crosswords._solution_for(g_id uuid)
+drop view if exists crosswords.games_state;
+drop function if exists crosswords._solution_for(uuid);
+
+-- ============================================================
+-- crosswords._solution_for — the answer, once the game has ended
+-- ============================================================
+-- The shielded `solution` column, surfaced once the game has ended and NULL
+-- before. The security_invoker view keeps auth.uid() real so the table's
+-- rules still gate rows; this definer function reads the grant-hidden
+-- column.
+create or replace function crosswords._solution_for(p_game_id uuid)
 returns jsonb
 language sql
 stable
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
-  select case when cg.is_terminal then g.solution else null end
+  select case when cg.ended_at is not null then g.solution end
     from crosswords.games g
-    join common.games cg on cg.id = g.id
-   where g.id = g_id;
+    join common.games cg on cg.id = g.game_id
+   where g.game_id = p_game_id;
 $$;
 revoke execute on function crosswords._solution_for(uuid) from public;
 grant execute on function crosswords._solution_for(uuid) to authenticated;
 
-drop view if exists crosswords.games_state;
 create view crosswords.games_state with (security_invoker = true) as
-  select g.id, g.club_handle, g.mode, g.puzzle_id, g.meta, g.created_at,
-         crosswords._solution_for(g.id) as solution   -- NULL until terminal
+  select g.game_id, g.puzzle_id, g.puzzle_content,
+         crosswords._solution_for(g.game_id) as solution   -- NULL until the end
     from crosswords.games g;
 grant select on crosswords.games_state to authenticated;
 
 -- ============================================================
--- library_for_club — the setup-form picker list, colored by club history
+-- crosswords._write_statuses — the page's copies of the game
 -- ============================================================
--- One row per library puzzle, plus a `status` saying whether THIS club has
--- played it, so the picker can paint a color bar per row and the club can
--- see at a glance which crossword to do next.
+-- Writes `common.games.game_status`, every `common.game_players.player_status`
+-- and `common.games.clubpage_info` from crosswords' own tables, assigning
+-- each whole (plans/common-tables.md → The statuses). Every key is always
+-- present, null when it has no value:
 --
--- Why a FUNCTION rather than a view:
+--   game_status    {} — crosswords has no info column
+--   player_status  {} — and no strip
+--   clubpage_info  { winner_user_id } — who completed a compete grid first
 --
---   * something SQL-side has to do the join either way — reaching
---     play_state means crosswords.games -> common.games, which is
---     CROSS-SCHEMA, and PostgREST's embed syntax doesn't resolve those
---     (code-conventions.md → "Cross-schema embeds").
---   * but a view can't do it HERE, because the join has to be OUTER and
---     the club is an input to it. A view exposing club_handle from the
---     games side is inner by construction: an unplayed puzzle's row has a
---     null club_handle, so the FE's `.eq('club_handle', …)` drops exactly
---     the rows the picker most wants to show. Hence a parameter.
---   * one round trip means the list arrives already colored, instead of
---     painting rows and recoloring them a beat later.
---
--- It also slims the picker's payload by ~200×. The query this replaced was
--- `select id, meta`, and `meta` is the whole immutable template (grid
--- cells, numbering, blocks, circles, shading, givens) — ~12 kB for a 15×15
--- — of which the row renders four scalars.
---
--- SECURITY INVOKER (the default; named here because it is load-bearing):
---   * the `crosswords.puzzles` COLUMN GRANT is what hides `solution`, and a
---     DEFINER function would run straight past it (a pgTAP test pins that
---     grant, so this would be a silent way around a guarded shield);
---   * common.games's club-member RLS is what stops one club's history
---     leaking into another's picker. A non-member sees every puzzle as
---     'unplayed' rather than an error, which is the right degradation.
---
--- `status` precedence — solved beats playing beats lost:
---   'solved'   — some game in this club won it (coop `won` / compete
---                `won_compete`). Sticky: replaying can't un-solve it.
---   'playing'  — no win, but a game is live or was ended manually
---                ('playing', 'ended', and any future non-terminal state,
---                which is why this arm is written as "not a win and not a
---                loss" rather than an allow-list that a new state escapes).
---   'lost'     — games exist and every one lost (timeout, or all racers
---                conceding).
---   'unplayed' — this club has no game on this puzzle.
---
--- Mode is deliberately NOT a parameter: "have we done this puzzle" is a
--- question about the club, not about coop vs compete, so a puzzle the club
--- solved cooperatively shows solved in the compete dialog too.
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function crosswords._write_statuses(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = crosswords, common, public, extensions
+as $$
+begin
+  update common.game_players
+     set player_status = '{}'::jsonb
+   where game_id = p_game_id;
+
+  update common.games cg
+     set game_status = '{}'::jsonb,
+         clubpage_info = jsonb_build_object(
+           'winner_user_id', case when cg.mode = 'compete' then (
+             select user_id from common.game_players
+              where game_id = p_game_id and final_ranking = 1) end),
+         status_changed_at = case when p_update_status_changed_at
+                                  then now() else cg.status_changed_at end
+   where cg.id = p_game_id;
+end;
+$$;
+
+revoke execute on function crosswords._write_statuses(uuid, boolean) from public;
+
+drop function if exists crosswords.next_nyt_date_for_club(uuid[], int);
+
 -- ============================================================
 -- crosswords.next_nyt_date_for_club — which NYT daily you get
 -- ============================================================
 -- The NYT tab picks by WEEKDAY, not by date: an NYT crossword's day IS its
 -- difficulty (Monday easiest, Saturday hardest, Sunday bigger rather than
 -- harder), so "give us a Tuesday" is the choice a solver actually wants to
--- make. This answers it — the most recent puzzle of that weekday that none of
--- the players being seated has already played.
+-- make. This answers it — the most recent puzzle of weekday `p_dow` that
+-- none of `p_seen_by`, the players being seated, has already played.
 --
 -- WHY IT GENERATES INSTEAD OF SCANNING. connections and strands hold their
 -- archives in a table, so their `next_puzzle_for_club` scans one. NYT is
 -- fetched on demand and never stored (`crosswords.puzzles` is the curated CLI
 -- library only, `source in ('library')`), so there is no archive to scan:
 -- the candidate dates are COMPUTED, every seventh day back from the most
--- recent occurrence of `dow`, and only the games table is consulted.
+-- recent occurrence of `p_dow`, and only the games table is consulted.
 --
 -- MOST RECENT FIRST, unlike its two siblings, and that difference is
 -- deliberate. Their archives are finite and recent, so "earliest unplayed"
@@ -256,15 +292,10 @@ grant select on crosswords.games_state to authenticated;
 -- wherever you solved it. Hence SECURITY DEFINER: a club-mate's solo games
 -- are invisible to the caller under RLS and still have to count.
 --
--- Returns NULL when that weekday is used up — the edge function turns that
--- into `no-unplayed-weekday|`. Reachable only by a club that has played every
--- one of ~600 Mondays, but it is a real branch and it has copy.
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists crosswords.next_nyt_date_for_club(uuid[], int);
-
-create or replace function crosswords.next_nyt_date_for_club(seen_by uuid[], dow int)
+-- When that weekday is used up it refuses (PN478) — reachable only by a club
+-- that has played every one of ~600 Mondays, but it is a real branch and it
+-- has copy.
+create or replace function crosswords.next_nyt_date_for_club(p_seen_by uuid[], p_dow int)
 returns jsonb
 language plpgsql
 stable
@@ -278,31 +309,30 @@ begin
   select d into v_date from (
     select d::date
         from generate_series(
-               -- The most recent `dow` on or before today. The modulo keeps it at
-               -- today when today already IS that weekday.
-               current_date - ((extract(dow from current_date)::int - dow + 7) % 7),
+               -- The most recent `p_dow` on or before today. The modulo keeps it
+               -- at today when today already IS that weekday.
+               current_date - ((extract(dow from current_date)::int - p_dow + 7) % 7),
                date '2015-01-01',
                interval '-7 days'
              ) d
        where not exists (
                select 1
                  from crosswords.games g
-                 join common.game_players gp on gp.game_id = g.id
+                 join common.game_players gp on gp.game_id = g.game_id
                 where g.puzzle_date = d::date
-                  and gp.user_id = any(seen_by)
+                  and gp.user_id = any(p_seen_by)
              )
        limit 1
   ) q(d);
 
   -- A VALIDATION under `source`, the control that picks the weekday — the field
   -- a group told "you have done every Monday back to 2015" will change. Joel's
-  -- words, approved 2026-08-12, moved here from the importer that used to
-  -- compose them: two callers ask this now, and the sentence belongs with the
-  -- condition rather than with one of them.
+  -- words, approved 2026-08-12: two callers ask this, and the sentence belongs
+  -- with the condition rather than with one of them.
   if v_date is null then
     raise exception 'You''ve played every one of those'
       using errcode = 'PN478', hint = 'form-validation', column = 'source',
-      detail = format('no unplayed puzzle for dow %s back to the 2015 floor', dow);
+      detail = format('no unplayed puzzle for dow %s back to the 2015 floor', p_dow);
   end if;
 
   return common._ok_envelope(jsonb_build_object(
@@ -320,12 +350,57 @@ $$;
 revoke execute on function crosswords.next_nyt_date_for_club(uuid[], int) from public;
 grant execute on function crosswords.next_nyt_date_for_club(uuid[], int) to authenticated;
 
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
 drop function if exists crosswords.library_for_club(text);
 
-create or replace function crosswords.library_for_club(target_club text)
+-- ============================================================
+-- crosswords.library_for_club — the setup-form picker list
+-- ============================================================
+-- One row per library puzzle, plus a `status` saying whether club
+-- `p_club_handle` has played it, so the picker can paint a color bar per row
+-- and the club can see at a glance which crossword to do next.
+--
+-- Why a FUNCTION rather than a view:
+--
+--   * something SQL-side has to do the join either way — reaching a game's
+--     ending means crosswords.games -> common.games, which is CROSS-SCHEMA,
+--     and PostgREST's embed syntax doesn't resolve those
+--     (code-conventions.md → "Cross-schema embeds").
+--   * but a view can't do it HERE, because the join has to be OUTER and the
+--     club is an input to it: an unplayed puzzle has no game in the club, and
+--     filtering a view by club drops exactly the rows the picker most wants
+--     to show. Hence a parameter.
+--   * one round trip means the list arrives already colored, instead of
+--     painting rows and recoloring them a beat later.
+--
+-- It returns four scalars per puzzle rather than `puzzle_content`, the whole
+-- template (~12 kB for a 15×15).
+--
+-- SECURITY INVOKER (the default; named here because it is load-bearing):
+--   * the `crosswords.puzzles` COLUMN GRANT is what hides `solution`, and a
+--     DEFINER function would run straight past it (a pgTAP test pins that
+--     grant, so this would be a silent way around a guarded shield);
+--   * common.games's club-member RLS is what stops one club's history
+--     leaking into another's picker. A non-member sees every puzzle as
+--     'unplayed' rather than an error, which is the right degradation.
+--
+-- `status` precedence — solved beats playing beats lost:
+--   'solved'   — some game in this club won it. Sticky: replaying can't
+--                un-solve it.
+--   'playing'  — no win, but a game is live or ended with no result (a Stop).
+--   'lost'     — games exist and every one lost (timeout, or all racers
+--                conceding).
+--   'unplayed' — this club has no game on this puzzle.
+--
+-- Mode is deliberately NOT a parameter: "have we done this puzzle" is a
+-- question about the club, not about coop vs compete, so a puzzle the club
+-- solved cooperatively shows solved in the compete dialog too.
+--
+-- AN EMPTY LIBRARY IS AN `ok`, not a refusal: a club with nothing imported is
+-- an ordinary state the picker draws as its empty case. It raises nothing, so
+-- it needs no catch block. NO BOUND, on purpose for now: the list comes back
+-- as ONE jsonb value, so PostgREST's `max_rows` cannot truncate it, but the
+-- payload grows with the library (docs/games/crosswords.md → Deferred).
+create or replace function crosswords.library_for_club(p_club_handle text)
 returns jsonb
 language plpgsql
 stable
@@ -335,65 +410,49 @@ as $$
 declare
   v_rows jsonb;
 begin
-  -- AN EMPTY LIBRARY IS AN `ok`, not a refusal. A club with nothing imported is
-  -- an ordinary state the picker draws as its empty case — nothing is blocked
-  -- and there is no input to fix, which is what separates this from the two
-  -- puzzle pickers, where running out stops Start and names a field.
-  --
-  -- It raises nothing at all, so it needs no catch block: `security invoker`
-  -- means RLS decides what it can see, and seeing nothing is an answer.
-  --
-  -- NO BOUND, on purpose for now: the list comes back as ONE jsonb value, so
-  -- PostgREST's `max_rows` cannot truncate it, but the payload grows with the
-  -- library. Bound it with the bulk import (docs/games/crosswords.md → Deferred).
   select coalesce(jsonb_agg(to_jsonb(r)), '[]'::jsonb) into v_rows
     from (
       -- Every column reference is table-qualified on purpose: `common.games`
-        -- has `id` and `title` columns too, so a bare name would be ambiguous or
-        -- read the wrong table.
-        select
-          p.id,
-          coalesce(nullif(btrim(p.meta ->> 'title'), ''), 'Untitled') as title,
-          coalesce(btrim(p.meta ->> 'author'), '')                    as author,
-          (p.meta ->> 'width')::int                                   as width,
-          (p.meta ->> 'height')::int                                  as height,
-          case
-            when count(*) filter (
-                   where cg.play_state in ('won', 'won_compete')
-                 ) > 0 then 'solved'
-            when count(*) filter (
-                   where cg.play_state is not null
-                     and cg.play_state not in
-                         ('won', 'won_compete', 'lost', 'lost_compete')
-                 ) > 0 then 'playing'
-            -- count(cg.id), NOT count(*): a LEFT JOIN that matched nothing still
-            -- yields one row per puzzle, so count(*) is never 0 and every
-            -- unplayed puzzle would report 'lost'.
-            when count(cg.id) > 0 then 'lost'
-            else 'unplayed'
-          end as status
-        from crosswords.puzzles p
-        -- LEFT, and the club test rides on the JOIN rather than a WHERE: both so
-        -- that a puzzle this club has never touched keeps its row. Moving
-        -- `club_handle` into a WHERE would quietly turn this back into an inner
-        -- join and hide every unplayed puzzle.
-        left join crosswords.games xg
-               on xg.puzzle_id = p.id
-              and xg.club_handle = target_club
-        left join common.games cg on cg.id = xg.id
-        where p.source = 'library'
-        -- Grouping by the PK lets the select + order reach p's other columns
-        -- (functional dependency), so `meta` needn't be in the GROUP BY.
-        group by p.id
-        -- Alphabetical by title, case-insensitively — the picker is a list you
-        -- scan by name, and import order (the previous `created_at desc`) is an
-        -- accident of how the files happened to land. The expression is repeated
-        -- rather than `order by lower(title)`, because inside an expression
-        -- `title` names `common.games.title`, not this select's alias.
-        -- `created_at desc` breaks ties so equal titles hold a stable,
-        -- newest-first order instead of whatever the plan happens to emit.
-        order by lower(coalesce(nullif(btrim(p.meta ->> 'title'), ''), 'Untitled')),
-                 p.created_at desc
+      -- has `id` and `title` columns too, so a bare name would be ambiguous or
+      -- read the wrong table.
+      select
+        p.id,
+        coalesce(nullif(btrim(p.puzzle_content ->> 'title'), ''), 'Untitled') as title,
+        coalesce(btrim(p.puzzle_content ->> 'author'), '')                    as author,
+        (p.puzzle_content ->> 'width')::int                                   as width,
+        (p.puzzle_content ->> 'height')::int                                  as height,
+        case
+          when count(*) filter (where cg.game_ended_outcome = 'won') > 0 then 'solved'
+          when count(*) filter (
+                 where cg.id is not null
+                   and cg.game_ended_outcome is distinct from 'lost'
+               ) > 0 then 'playing'
+          -- count(cg.id), NOT count(*): a LEFT JOIN that matched nothing still
+          -- yields one row per puzzle, so count(*) is never 0 and every
+          -- unplayed puzzle would report 'lost'.
+          when count(cg.id) > 0 then 'lost'
+          else 'unplayed'
+        end as status
+      from crosswords.puzzles p
+      -- LEFT, and the club test rides inside the joined pair rather than a
+      -- WHERE: both so that a puzzle this club has never touched keeps its
+      -- row. Moving the club test into a WHERE would quietly turn this back
+      -- into an inner join and hide every unplayed puzzle.
+      left join (crosswords.games xg
+                 join common.games cg
+                   on cg.id = xg.game_id and cg.club_handle = p_club_handle)
+             on xg.puzzle_id = p.id
+      where p.source = 'library'
+      -- Grouping by the PK lets the select + order reach p's other columns
+      -- (functional dependency), so `puzzle_content` needn't be in the GROUP BY.
+      group by p.id
+      -- Alphabetical by title, case-insensitively — the picker is a list you
+      -- scan by name. The expression is repeated rather than
+      -- `order by lower(title)`, because inside an expression `title` names
+      -- `common.games.title`, not this select's alias. `created_at desc`
+      -- breaks ties so equal titles hold a stable, newest-first order.
+      order by lower(coalesce(nullif(btrim(p.puzzle_content ->> 'title'), ''), 'Untitled')),
+               p.created_at desc
     ) r;
 
   return common._ok_envelope(jsonb_build_object('result', 'library', 'puzzles', v_rows));
@@ -402,69 +461,27 @@ $$;
 revoke execute on function crosswords.library_for_club(text) from public;
 grant execute on function crosswords.library_for_club(text) to authenticated;
 
+drop function if exists crosswords._finish_coop(uuid);
+drop function if exists crosswords._finish_compete(uuid, uuid);
+drop function if exists crosswords._maybe_finish(uuid, uuid, text, uuid);
+
 -- ============================================================
--- Terminal helpers
+-- crosswords._maybe_finish — end the game on a completed grid
 -- ============================================================
-
--- Coop solved → the whole team wins.
-create or replace function crosswords._finish_coop(target_game uuid)
-returns void
-language plpgsql
-security definer
-set search_path = crosswords, common, public, extensions
-as $$
-declare
-  v_results jsonb;
-begin
-  select jsonb_object_agg(user_id::text, jsonb_build_object('won', true))
-    into v_results
-    from common.game_players
-   where game_id = target_game;
-
-  perform common._end_game(
-    target_game, 'won',
-    jsonb_build_object('mode', 'coop', 'reason', 'solved'),
-    v_results
-  );
-end;
-$$;
-revoke execute on function crosswords._finish_coop(uuid) from public;
-
--- Compete: the first player whose grid is fully correct wins outright.
-create or replace function crosswords._finish_compete(target_game uuid, p_winner uuid)
-returns void
-language plpgsql
-security definer
-set search_path = crosswords, common, public, extensions
-as $$
-declare
-  v_results jsonb;
-begin
-  select jsonb_object_agg(user_id::text, jsonb_build_object('won', user_id = p_winner))
-    into v_results
-    from common.game_players
-   where game_id = target_game;
-
-  perform common._end_game(
-    target_game, 'won_compete',
-    jsonb_build_object(
-      'mode', 'compete',
-      'winner_user_id', p_winner,
-      'winner_username', (select username from common.profiles where user_id = p_winner)
-    ),
-    v_results
-  );
-end;
-$$;
-revoke execute on function crosswords._finish_compete(uuid, uuid) from public;
-
--- Run the solved-check for `p_owner_id`'s grid and, if solved, make the
--- terminal transition atomically: lock the common.games row and re-check
--- play_state under the lock so only the FIRST solver ends the game
--- (compete first-correct-wins is a race). Returns whether the caller's
--- grid is solved (regardless of who ended the game).
+-- Runs the solved check for `p_owner_id`'s grid (null: coop's shared grid)
+-- and, if it is complete and correct and the game is still being played,
+-- ends it reached_goal / solved, `p_caller` as who ended it:
+--
+--   coop     the team solved it: every player ranked 1, and every player's
+--            solved_at
+--   compete  a race that ends when decided: the solver alone ranked 1 and
+--            solved; the rest are short of the goal
+--
+-- The caller holds the game row's lock, so a second solver in the same moment
+-- finds the game over. Returns whether the grid is solved, whoever ended the
+-- game.
 create or replace function crosswords._maybe_finish(
-  target_game uuid, p_owner_id uuid, p_mode text, p_caller uuid
+  p_game_id uuid, p_owner_id uuid, p_caller uuid
 )
 returns boolean
 language plpgsql
@@ -472,51 +489,61 @@ security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
-  v_solved boolean;
+  v_mode text;
+  v_rankings jsonb;
 begin
-  v_solved := crosswords._is_solved(target_game, p_owner_id);
-  if not v_solved then
+  if not crosswords._is_solved(p_game_id, p_owner_id) then
     return false;
   end if;
 
-  -- Re-read play_state under a row lock; the WHERE is re-evaluated after
-  -- the lock is granted, so a concurrent winner that already flipped the
-  -- state leaves `found` false here.
-  perform 1 from common.games
-   where id = target_game and play_state = 'playing'
-   for update;
-  if found then
-    if p_mode = 'coop' then
-      perform crosswords._finish_coop(target_game);
-    else
-      perform crosswords._finish_compete(target_game, p_caller);
-    end if;
+  select mode into v_mode from common.games
+   where id = p_game_id and ended_at is null;
+  if not found then
+    return true;
   end if;
+
+  if v_mode = 'coop' then
+    update common.game_players set solved_at = now() where game_id = p_game_id;
+    select jsonb_object_agg(user_id::text, 1) into v_rankings
+      from common.game_players where game_id = p_game_id;
+  else
+    update common.game_players set solved_at = now()
+     where game_id = p_game_id and user_id = p_caller;
+    v_rankings := jsonb_build_object(p_caller::text, 1);
+  end if;
+
+  perform common._end_game(
+    p_game_id, 'reached_goal', 'solved', p_caller,
+    p_is_no_result => false,
+    p_final_rankings => v_rankings
+  );
+  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
   return true;
 end;
 $$;
-revoke execute on function crosswords._maybe_finish(uuid, uuid, text, uuid) from public;
+revoke execute on function crosswords._maybe_finish(uuid, uuid, uuid) from public;
 
--- ============================================================
--- create_game
--- ============================================================
--- Two ways to source the puzzle data (meta + solution):
---   * LIBRARY (`board` null): `setup.puzzle_id` names a crosswords.puzzles
---     row — the curated, CLI-imported library — whose meta/solution we copy.
---   * INLINE (`board` = {meta, solution}): the puzzle data is passed straight
---     in, NOT stored in crosswords.puzzles. This is the NYT edge-function path
---     (like boggle's `board` arg) — an NYT import creates a self-contained
---     game with puzzle_id null; it does NOT add to the shared library.
--- Either way we pre-insert one cells row per fillable NON-given cell (one
--- shared grid for coop; one per player for compete).
 drop function if exists crosswords.create_game(text, jsonb, uuid[], text, jsonb);
 
+-- ============================================================
+-- crosswords.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)
+-- ============================================================
+-- Two ways to source the puzzle (its content + solution):
+--   * LIBRARY (`p_board` null): `setup.puzzle_id` names a crosswords.puzzles
+--     row — the curated, CLI-imported library — whose content and solution
+--     are copied.
+--   * INLINE (`p_board` = {meta, solution}): the puzzle is passed straight
+--     in, NOT stored in crosswords.puzzles. This is the NYT edge-function and
+--     upload path — a self-contained game with puzzle_id null; it does NOT
+--     add to the shared library.
+-- Either way one cells row is pre-inserted per fillable NON-given cell (one
+-- shared grid for coop; one per player for compete).
 create or replace function crosswords.create_game(
-  target_club text,
-  setup jsonb,
-  player_user_ids uuid[],
-  mode text,
-  board jsonb default null
+  p_club_handle text,
+  p_setup jsonb,
+  p_player_user_ids uuid[],
+  p_mode text,
+  p_board jsonb default null
 )
 returns jsonb
 language plpgsql
@@ -525,32 +552,33 @@ set search_path = crosswords, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
-  new_id      uuid;
-  v_puzzle_id uuid;
-  v_meta      jsonb;
-  v_solution  jsonb;
+  new_id           uuid;
+  v_setup          jsonb;
+  v_puzzle_id      uuid;
+  v_puzzle_content jsonb;
+  v_solution       jsonb;
 begin
-  perform common._require_club_member(target_club);
-  perform common._require_valid_mode(mode);
-  if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
+  perform common._require_club_member(p_club_handle);
+  perform common._require_valid_mode(p_mode);
+  if p_mode = 'compete' and coalesce(array_length(p_player_user_ids, 1), 0) < 2 then
     raise exception 'BUG: race with fewer than two players'
       using errcode = 'PN219', hint = 'fault', column = '_',
       detail = 'compete needs >= 2 players';
   end if;
-  perform common._require_player_count_max(player_user_ids, 8);
-  perform common._require_valid_timer(coalesce(setup -> 'timer', '{"kind":"none"}'::jsonb));
-  -- Backstop the FE's strip: the inline puzzle rides as the separate `board`
-  -- arg, so `board`/`filename` never belong in the persisted setup. Dropping
-  -- them here keeps a stale upload (e.g. a parsed board left in the setup after
-  -- a source tab-switch) from leaking the solution grid into the unshielded
-  -- status jsonb and the club's saved default. See docs/games/crosswords.md §5.
-  setup := setup - 'board' - 'filename';
+  perform common._require_player_count_max(p_player_user_ids, 8);
+  perform common._require_valid_timer(coalesce(p_setup -> 'timer', '{"kind":"none"}'::jsonb));
+  -- Backstop the FE's strip: the inline puzzle rides as the separate
+  -- `p_board`, so `board`/`filename` never belong in the persisted setup.
+  -- Dropping them here keeps a stale upload (a parsed board left in the setup
+  -- after a source tab-switch) from leaking the solution grid into the
+  -- club's saved default. See docs/games/crosswords.md §5.
+  v_setup := p_setup - 'board' - 'filename';
 
-  if board is not null then
-    -- Inline (NYT): trust the caller's puzzle data; no library row.
-    v_meta := board -> 'meta';
-    v_solution := board -> 'solution';
-    if v_meta is null or v_solution is null then
+  if p_board is not null then
+    -- Inline (NYT, upload): trust the caller's puzzle data; no library row.
+    v_puzzle_content := p_board -> 'meta';
+    v_solution := p_board -> 'solution';
+    if v_puzzle_content is null or v_solution is null then
       -- FAULT: whoever built this blob — the FE's upload parser or an import
       -- edge function — already read the puzzle successfully, so a missing key
       -- is our construction, not the player's file.
@@ -560,15 +588,13 @@ begin
     end if;
     v_puzzle_id := null;
   else
-    -- Library: copy from crosswords.puzzles. (Alias the table: the
-    -- `returns table(id uuid)` OUT column shadows an unqualified `id`.)
-    v_puzzle_id := nullif(setup ->> 'puzzle_id', '')::uuid;
+    v_puzzle_id := nullif(v_setup ->> 'puzzle_id', '')::uuid;
     if v_puzzle_id is null then
       raise exception 'BUG: game with no puzzle'
         using errcode = 'PN221', hint = 'fault', column = '_',
         detail = 'setup.puzzle_id absent';
     end if;
-    select p.meta, p.solution into v_meta, v_solution
+    select p.puzzle_content, p.solution into v_puzzle_content, v_solution
       from crosswords.puzzles p where p.id = v_puzzle_id;
     if not found then
       raise exception 'That puzzle is no longer in the library'
@@ -580,37 +606,34 @@ begin
   -- Saved-default arg. Two things are INSTANCES, not preferences, and both are
   -- stripped: `puzzle_id` (which library puzzle) and `date` (which NYT daily).
   -- Persisting either would silently re-pick one specific, probably
-  -- already-played puzzle every time the dialog opened — `date` did exactly
-  -- that until 2026-08-13.
+  -- already-played puzzle every time the dialog opened.
   --
   -- `weekday` deliberately RIDES. It is the one genuine preference here: an
   -- NYT crossword's day is its difficulty, so "we're a Wednesday club" is a
   -- standing choice, and next_nyt_date_for_club turns it into a fresh date
   -- each time.
-  -- Game title = the PUZZLE's own title (from its meta), like crossplay names a
-  -- game after the loaded puzzle — e.g. "NYT Sat 1/1/22: <theme>" or a library
-  -- puzzle's embedded title — instead of a generic "New crossword". Falls back to
-  -- "Crossword" for an untitled puzzle. Shown in the club game list + the header.
+  --
+  -- Game title = the PUZZLE's own title, like crossplay names a game after
+  -- the loaded puzzle — e.g. "NYT Sat 1/1/22: <theme>" or a library puzzle's
+  -- embedded title. Falls back to "Crossword" for an untitled puzzle.
   new_id := common._create_game(
-    target_club, 'crosswords_' || mode, player_user_ids,
-    coalesce(nullif(btrim(v_meta ->> 'title'), ''), 'Crossword'), setup,
-    setup - 'puzzle_id' - 'date'
+    p_club_handle, 'crosswords_' || p_mode, p_mode, p_player_user_ids,
+    coalesce(nullif(btrim(v_puzzle_content ->> 'title'), ''), 'Crossword'), v_setup,
+    v_setup - 'puzzle_id' - 'date'
   );
 
-  -- `puzzle_date` is the NYT day this game came from, and ONLY that: it is
-  -- what the setup dialog's calendar colors by (club_nyt_status below), and
-  -- the NYT tab is the only source that picks by date. `setup.date` is the
-  -- field that tab writes; a library / upload / Guardian start leaves it
-  -- absent, so this lands NULL and the calendar never sees the row. The cast
-  -- is guarded rather than trusted — `setup` is caller-supplied jsonb.
-  insert into crosswords.games (id, club_handle, mode, puzzle_id, puzzle_date, meta, solution)
+  -- `puzzle_date` is the NYT day this game came from, and ONLY that: the NYT
+  -- tab is the only source that picks by date, and `setup.date` is the field
+  -- it writes; a library / upload start leaves it absent, so this lands NULL.
+  -- The cast is guarded rather than trusted — `setup` is caller-supplied.
+  insert into crosswords.games (game_id, puzzle_id, puzzle_date, puzzle_content, solution)
   values (
-    new_id, target_club, mode, v_puzzle_id,
+    new_id, v_puzzle_id,
     case
-      when setup ->> 'source' = 'nyt' and setup ->> 'date' ~ '^\d{4}-\d{2}-\d{2}$'
-      then (setup ->> 'date')::date
+      when v_setup ->> 'source' = 'nyt' and v_setup ->> 'date' ~ '^\d{4}-\d{2}-\d{2}$'
+      then (v_setup ->> 'date')::date
     end,
-    v_meta, v_solution
+    v_puzzle_content, v_solution
   );
 
   -- Pre-insert the fillable, non-given cells: one shared grid (owner null)
@@ -627,28 +650,26 @@ begin
   -- `mark_right` / `mark_bottom` are likewise seeded from the template cell's
   -- cryptic edge marks. These are normally player-drawn (set_mark), but a
   -- template can arrive WITH marks: the NYT overlay-PNG import applies
-  -- author-drawn word-break bars onto `meta.cells` (see nytOverlay.ts). Seeding
-  -- them into the live cells here is what puts them on the display path — the
-  -- board + PDFs read marks from `crosswords.cells`, not from the template — so
-  -- overlay bars render like any other mark. (A player can still clear one with
-  -- `|`/`_`; crossplay accepts the same, an author bar is not immutable.)
+  -- author-drawn word-break bars onto the template's cells (see
+  -- nytOverlay.ts). Seeding them into the live cells here is what puts them
+  -- on the display path — the board + PDFs read marks from
+  -- `crosswords.cells`, not from the template — so overlay bars render like
+  -- any other mark. (A player can still clear one with `|`/`_`; crossplay
+  -- accepts the same, an author bar is not immutable.)
   insert into crosswords.cells (game_id, owner_id, row, col, fill, mark_right, mark_bottom)
   select new_id, o.owner, (rr.ord - 1)::smallint, (cc.ord - 1)::smallint,
          upper(nullif(cc.cellval ->> 'fill', '')),
          nullif(cc.cellval ->> 'markRight', ''),
          nullif(cc.cellval ->> 'markBottom', '')
-    from jsonb_array_elements(v_meta -> 'cells') with ordinality as rr(rowval, ord)
+    from jsonb_array_elements(v_puzzle_content -> 'cells') with ordinality as rr(rowval, ord)
     cross join lateral jsonb_array_elements(rr.rowval) with ordinality as cc(cellval, ord)
     cross join unnest(
-      case when mode = 'coop' then array[null::uuid] else player_user_ids end
+      case when p_mode = 'coop' then array[null::uuid] else p_player_user_ids end
     ) as o(owner)
    where cc.cellval ->> 'kind' = 'cell'
      and coalesce((cc.cellval ->> 'given')::boolean, false) = false;
 
-  perform common.update_state(
-    new_id, 'playing',
-    jsonb_build_object('mode', mode, 'title', coalesce(v_meta ->> 'title', 'Crossword'))
-  );
+  perform crosswords._write_statuses(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing
   -- a call site can filter the `ok` on, and it reaches all three start paths —
@@ -657,11 +678,6 @@ begin
 
 -- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
 -- lets the raise itself carry the message, the kind and the field.
---
--- The one validation here is the last thing the error sprint's create_game run
--- had to wait for: crosswords had no FIELD to name until its setup form became
--- one (plans/areas/lists.md → `puzzle-source-picks-in-a-dialog`), so a
--- message about a puzzle could only land on the dialog's bottom line.
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
@@ -674,22 +690,61 @@ $$;
 revoke execute on function crosswords.create_game(text, jsonb, uuid[], text, jsonb) from public;
 grant execute on function crosswords.create_game(text, jsonb, uuid[], text, jsonb) to authenticated;
 
+drop function if exists crosswords._require_cell_write(uuid);
+
 -- ============================================================
--- set_cell — the hot path (one call per keystroke)
+-- crosswords._require_cell_write — the gate every grid write shares
 -- ============================================================
--- Writes a fill into the caller's grid (coop's shared grid, or the
--- caller's own in compete), clears `wrong`, sets `pencil`. Mirrors
--- applyFill: given cells are immutable (and have no row); a REVEALED cell
--- IS editable and keeps its `revealed` flag. Then runs solved detection.
--- Returns the new per-cell version (so the FE adopts it and its own CDC
--- echo is a no-op) and whether the caller's grid is now solved.
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
+-- Refuses a write into a game that has ended (a teammate finished the grid,
+-- or the clock ran out, mid-keystroke — a race) or from a player who has
+-- conceded. Returns the grid the caller writes: null for coop's shared grid,
+-- the caller's own id in compete.
+create or replace function crosswords._require_cell_write(p_game_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = crosswords, common, public, extensions
+as $$
+declare
+  v_caller uuid;
+  v_mode text;
+  v_ended_at timestamptz;
+begin
+  v_caller := common._require_game_player(p_game_id);
+  select mode, ended_at into v_mode, v_ended_at from common.games where id = p_game_id;
+  if v_ended_at is not null then
+    perform common._raise_game_over();
+  end if;
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = v_caller) = 'conceded' then
+    perform common._raise_already_conceded();
+  end if;
+  return case when v_mode = 'coop' then null else v_caller end;
+end;
+$$;
+revoke execute on function crosswords._require_cell_write(uuid) from public;
+
 drop function if exists crosswords.set_cell(uuid, int, int, text, boolean);
 
+-- ============================================================
+-- crosswords.set_cell — the hot path (one call per keystroke)
+-- ============================================================
+-- Writes a fill into the caller's grid (coop's shared grid, or the caller's
+-- own in compete), clears `wrong`, sets `pencil`. Mirrors applyFill: given
+-- cells are immutable (and have no row); a REVEALED cell IS editable and
+-- keeps its `revealed` flag. Then runs the solved check, which ends the game
+-- on a complete, correct grid.
+--
+-- Returns the new per-cell version (so the FE adopts it and its own CDC echo
+-- is a no-op) and whether the caller's grid is now solved. No outcome: typing
+-- a letter is not adjudicated, and the cell is already on screen
+-- optimistically.
+--
+-- The game row is locked only for the fill that completes the grid, so that
+-- two finishing fills can't both end the game; every other keystroke goes
+-- straight to its cell.
 create or replace function crosswords.set_cell(
-  target_game uuid,
+  p_game_id uuid,
   p_row int,
   p_col int,
   p_fill text,
@@ -701,9 +756,6 @@ security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
-  v_caller    uuid;
-  v_mode      text;
-  v_playstate text;
   v_owner     uuid;
   v_fill      text;
   v_pencil    boolean;
@@ -711,30 +763,16 @@ declare
   v_solved    boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  v_caller := common._require_game_player(target_game);
-  select mode into v_mode from crosswords.games where id = target_game;
-  select play_state into v_playstate from common.games where id = target_game;
-  if v_playstate is distinct from 'playing' then
-    -- A race: a teammate finished the grid, or the clock ran out, mid-keystroke.
-    perform common._raise_game_over();
-  end if;
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = v_caller) then
-    perform common._raise_already_conceded();
-  end if;
-  v_owner := case when v_mode = 'coop' then null else v_caller end;
+  v_owner := crosswords._require_cell_write(p_game_id);
 
   if p_fill is null or char_length(p_fill) = 0 then
     v_fill := null;
   else
     v_fill := upper(p_fill);
-    -- Mirror crossplay's `^[A-Z]{1,8}$` (ws.ts): letters only, 1–8 chars.
-    -- Rejects a stray non-letter fill (e.g. "1") that upper() + a length
-    -- check alone would persist. (An empty fill clears the cell — handled
-    -- by the branch above.)
+    -- Mirror crossplay's `^[A-Z]{1,8}$` (ws.ts): letters only, 1–8 chars. A
+    -- fault: the FE checks the same before sending, so a stray non-letter did
+    -- not come from our grid. (An empty fill clears the cell — above.)
     if v_fill !~ '^[A-Z]{1,8}$' then
-      -- A fault: the FE mirrors crossplay's `^[A-Z]{1,8}$` before sending, so a
-      -- stray non-letter did not come from our grid.
       raise exception 'BUG: a fill that is not letters'
         using errcode = 'PN466', hint = 'fault', column = '_',
       detail = 'a cell fill is 1 to 8 letters';
@@ -742,11 +780,9 @@ begin
   end if;
   v_pencil := coalesce(p_pencil, false) and v_fill is not null;
 
-  -- Alias the table: the `returns table(version …)` OUT column shadows an
-  -- unqualified `version` in RETURNING.
   update crosswords.cells c
      set fill = v_fill, wrong = false, pencil = v_pencil
-   where c.game_id = target_game
+   where c.game_id = p_game_id
      and c.owner_id is not distinct from v_owner
      and c.row = p_row and c.col = p_col
   returning c.version into v_version;
@@ -758,10 +794,12 @@ begin
       detail = 'that cell is a block or a given';
   end if;
 
-  v_solved := crosswords._maybe_finish(target_game, v_owner, v_mode, v_caller);
+  v_solved := crosswords._is_solved(p_game_id, v_owner);
+  if v_solved then
+    perform 1 from crosswords.games where game_id = p_game_id for update;
+    v_solved := crosswords._maybe_finish(p_game_id, v_owner, auth.uid());
+  end if;
 
-  -- No outcome: typing a letter is not adjudicated, and the cell is already on
-  -- screen optimistically. Both columns this used to return survive as fields.
   return common._ok_envelope(jsonb_build_object(
     'result', 'set', 'version', v_version, 'solved', v_solved));
 
@@ -777,24 +815,20 @@ $$;
 revoke execute on function crosswords.set_cell(uuid, int, int, text, boolean) from public;
 grant execute on function crosswords.set_cell(uuid, int, int, text, boolean) to authenticated;
 
+drop function if exists crosswords.set_mark(uuid, int, int, text, text);
+
 -- ============================================================
--- set_mark — cryptic edge marks (display-only annotations)
+-- crosswords.set_mark — cryptic edge marks (display-only annotations)
 -- ============================================================
 -- Sets / clears a word-break or hyphen mark on ONE edge of the caller's
 -- grid cell (coop's shared grid, or the caller's own in compete). Marks
--- are player annotations, NOT gameplay — no solve check runs. Same guards
--- as set_cell (membership, play state, not conceded). Only fillable cells
--- have rows, so a mark aimed at a given cell finds no row and is rejected
--- (plan option A — marks live on fillable cells only). The version trigger
--- bumps `version`, so the mark syncs via the same useCells CDC path as a
--- fill; the RPC returns the new version so the FE's own echo is a no-op.
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists crosswords.set_mark(uuid, int, int, text, text);
-
+-- are player annotations, NOT gameplay — no solve check runs. Only fillable
+-- cells have rows, so a mark aimed at a given cell finds no row and is
+-- rejected. The version trigger bumps `version`, so the mark syncs via the
+-- same useCells CDC path as a fill; the RPC returns the new version so the
+-- FE's own echo is a no-op.
 create or replace function crosswords.set_mark(
-  target_game uuid,
+  p_game_id uuid,
   p_row int,
   p_col int,
   p_side text,
@@ -806,26 +840,14 @@ security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
-  v_caller    uuid;
-  v_mode      text;
-  v_playstate text;
   v_owner     uuid;
   v_version   bigint;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  v_caller := common._require_game_player(target_game);
-  select mode into v_mode from crosswords.games where id = target_game;
-  select play_state into v_playstate from common.games where id = target_game;
-  if v_playstate is distinct from 'playing' then
-    perform common._raise_game_over();
-  end if;
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = v_caller) then
-    perform common._raise_already_conceded();
-  end if;
+  v_owner := crosswords._require_cell_write(p_game_id);
   if p_side not in ('right', 'bottom') then
-    -- Both this and the mark below are faults for connections' `bad-result`
-    -- reason: the value comes from the frontend's own typed union.
+    -- Both this and the mark below are faults: the value comes from the
+    -- frontend's own typed union.
     raise exception 'BUG: a mark on an unknown edge'
       using errcode = 'PN470', hint = 'fault', column = '_',
       detail = 'a mark''s side must be right or bottom';
@@ -835,13 +857,12 @@ begin
       using errcode = 'PN471', hint = 'fault', column = '_',
       detail = 'mark must be break, hyphen or null';
   end if;
-  v_owner := case when v_mode = 'coop' then null else v_caller end;
 
   -- Update only the targeted edge; leave the other edge's mark untouched.
   update crosswords.cells c
      set mark_right  = case when p_side = 'right'  then p_mark else c.mark_right  end,
          mark_bottom = case when p_side = 'bottom' then p_mark else c.mark_bottom end
-   where c.game_id = target_game
+   where c.game_id = p_game_id
      and c.owner_id is not distinct from v_owner
      and c.row = p_row and c.col = p_col
   returning c.version into v_version;
@@ -864,56 +885,41 @@ $$;
 revoke execute on function crosswords.set_mark(uuid, int, int, text, text) from public;
 grant execute on function crosswords.set_mark(uuid, int, int, text, text) to authenticated;
 
--- ============================================================
--- check_cells / reveal_cells
--- ============================================================
--- check_cells / reveal_cells
--- ============================================================
--- The FE resolves letter/word/puzzle scope via cursor.ts and sends the
--- target coordinates as a jsonb array of {row, col}. The server never
--- trusts the FE about correctness — only about which cells were asked.
-
--- Check: flag/unflag `wrong` against the solution, skipping empty and
--- pencil cells (givens have no row). Available in both modes; wrong is
--- self-informative, not answer-leaking.
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
 drop function if exists crosswords.check_cells(uuid, jsonb);
 
-create or replace function crosswords.check_cells(target_game uuid, p_cells jsonb)
+-- ============================================================
+-- crosswords.check_cells — flag the wrong fills
+-- ============================================================
+-- The FE resolves letter/word/puzzle scope via cursor.ts and sends the target
+-- coordinates as a jsonb array of {row, col}. The server never trusts the FE
+-- about correctness — only about which cells were asked.
+--
+-- Flags/unflags `wrong` against the solution, skipping empty and pencil
+-- cells (givens have no row). Available in both modes; wrong is
+-- self-informative, not answer-leaking. Answers with how many it flagged, so
+-- "checked, all correct" and "checked nothing" are told apart.
+create or replace function crosswords.check_cells(p_game_id uuid, p_cells jsonb)
 returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
-  v_caller    uuid;
-  v_mode      text;
-  v_playstate text;
   v_owner     uuid;
   v_wrong int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  v_caller := common._require_game_player(target_game);
-  select mode into v_mode from crosswords.games where id = target_game;
-  select play_state into v_playstate from common.games where id = target_game;
-  if v_playstate is distinct from 'playing' then
-    perform common._raise_game_over();
+  perform 1 from crosswords.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('crosswords');
   end if;
-  -- A conceded compete player is out — no checking their (frozen) grid, same
-  -- guard set_cell has (reveal_cells is coop-only, where nobody concedes).
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = v_caller) then
-    perform common._raise_already_conceded();
-  end if;
-  v_owner := case when v_mode = 'coop' then null else v_caller end;
+  v_owner := crosswords._require_cell_write(p_game_id);
 
   update crosswords.cells c
      set wrong = not crosswords._matches(c.fill, g.solution -> c.row::int -> c.col::int)
     from crosswords.games g
-   where g.id = c.game_id
-     and c.game_id = target_game
+   where g.game_id = c.game_id
+     and c.game_id = p_game_id
      and c.owner_id is not distinct from v_owner
      and c.fill is not null
      and c.pencil = false
@@ -922,13 +928,9 @@ begin
         where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col
      );
 
-  -- HOW MANY it flagged. The update computes this as a side effect and the
-  -- function used to return nothing, so a caller learned only by watching the
-  -- cells subscription — and could not tell "checked, all correct" from
-  -- "checked nothing". Naming it gives the call site an answer to assert.
   select count(*) into v_wrong
     from crosswords.cells c
-   where c.game_id = target_game
+   where c.game_id = p_game_id
      and c.owner_id is not distinct from v_owner
      and c.wrong
      and exists (
@@ -936,6 +938,7 @@ begin
         where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col
      );
 
+  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object(
     'result', 'checked', 'wrong_count', v_wrong));
 exception when others then
@@ -950,37 +953,47 @@ $$;
 revoke execute on function crosswords.check_cells(uuid, jsonb) from public;
 grant execute on function crosswords.check_cells(uuid, jsonb) to authenticated;
 
--- Reveal: write the canonical answer + revealed, clear wrong/pencil.
--- COOP ONLY (reveal-all would trivially win the compete race). Revealing
--- the last cell can complete the grid, so run solved detection after.
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
 drop function if exists crosswords.reveal_cells(uuid, jsonb);
 
-create or replace function crosswords.reveal_cells(target_game uuid, p_cells jsonb)
+-- ============================================================
+-- crosswords.reveal_cells — fill the asked cells with the answer
+-- ============================================================
+-- Writes the canonical answer + revealed, clears wrong/pencil. COOP ONLY
+-- (reveal-all would trivially win the compete race).
+--
+-- Revealing can complete the grid — including "Reveal puzzle", which fills
+-- the whole thing — and that ends the game as an ordinary coop solve, on
+-- purpose: waffle/wordle offer Reveal only once the game is over, because
+-- those are guess-economy games where the answer IS the contest. A crossword
+-- isn't competitive that way — reveal is a scoped, incremental solving aid
+-- (letter / word / puzzle), and there's no honest line between "revealed one
+-- letter" and "gave up". So a finished grid is a finished grid
+-- (docs/games/crosswords.md §9). `solved` is in the answer because a reveal
+-- that completes the grid is how a crossword ends, and the call site has to
+-- know whether this one did.
+create or replace function crosswords.reveal_cells(p_game_id uuid, p_cells jsonb)
 returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
-  v_mode      text;
-  v_playstate text;
   v_solved boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common._require_game_player(target_game);
-  select mode into v_mode from crosswords.games where id = target_game;
-  if v_mode <> 'coop' then
+  perform 1 from crosswords.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('crosswords');
+  end if;
+  perform common._require_game_player(p_game_id);
+  if (select mode from common.games where id = p_game_id) <> 'coop' then
     -- A fault: mode is fixed at create_game and the FE hides the reveal items
     -- in compete, so nothing unbroken asks.
     raise exception 'BUG: a reveal in a compete game'
       using errcode = 'PN475', hint = 'fault', column = '_',
       detail = 'revealing your own grid would trivially win a race';
   end if;
-  select play_state into v_playstate from common.games where id = target_game;
-  if v_playstate is distinct from 'playing' then
+  if (select ended_at from common.games where id = p_game_id) is not null then
     perform common._raise_game_over();
   end if;
 
@@ -988,8 +1001,8 @@ begin
      set fill = (g.solution -> c.row::int -> c.col::int ->> 0),
          revealed = true, wrong = false, pencil = false
     from crosswords.games g
-   where g.id = c.game_id
-     and c.game_id = target_game
+   where g.game_id = c.game_id
+     and c.game_id = p_game_id
      and c.owner_id is null
      and g.solution -> c.row::int -> c.col::int is not null
      -- Skip a (degenerate) empty solution array: crossplay's revealAt does the
@@ -1001,18 +1014,9 @@ begin
         where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col
      );
 
-  -- Revealing can complete the grid — including "Reveal puzzle", which fills
-  -- the whole thing. That lands the ordinary coop `won` terminal, and that is
-  -- DELIBERATE (2026-08-01): waffle/wordle offer Reveal only once the game is
-  -- over, because those are guess-economy games where the answer IS the
-  -- contest. A crossword isn't competitive that way — reveal is a scoped, incremental solving aid (letter / word / puzzle),
-  -- and there's no honest line between "revealed one letter" and "gave up". So
-  -- a finished grid is a finished grid. See docs/games/crosswords.md §9.
-  -- `solved` is the answer's, not a side effect to watch for: a reveal that
-  -- completes the grid is how a crossword ends, and the call site has to know
-  -- whether this one did.
-  v_solved := crosswords._maybe_finish(target_game, null, 'coop', null);
+  v_solved := crosswords._maybe_finish(p_game_id, null, auth.uid());
 
+  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object(
     'result', 'revealed', 'solved', v_solved));
 
@@ -1028,33 +1032,25 @@ $$;
 revoke execute on function crosswords.reveal_cells(uuid, jsonb) from public;
 grant execute on function crosswords.reveal_cells(uuid, jsonb) to authenticated;
 
+drop function if exists crosswords.replay_board(uuid);
 
 -- ============================================================
 -- crosswords.replay_board — solve this puzzle again from scratch
 -- ============================================================
--- The "Restart" game-menu item / terminal-row Restart, and the ONLY board-
--- clearing action: it replaced a separate `clear_board` (2026-08-03), which did
--- the same job under a different name and couldn't un-terminal a finished game.
--- One name, one path, the same as the other twelve games.
+-- The "Restart" game-menu item / terminal-row Restart, and the only
+-- board-clearing action. Wipes every cell of the puzzle — fill, pencil,
+-- wrong/revealed marks, and the scribbled edge marks — for EVERY owner, then
+-- hands the common half to `common._reset_game`. A restart is a whole-table
+-- thing in every game, so a compete restart re-opens the race for everyone.
 --
--- Wipes every cell of the puzzle — fill, pencil, wrong/revealed marks, and the
--- scribbled edge marks — for EVERY owner, then hands the common half to
--- `common._reset_game` (un-terminal, fresh status, results + concede cleared,
--- clock zeroed). Note the widening from `clear_board`: that cleared only the
--- CALLER's grid in compete, because it was a mid-race convenience. A restart is
--- a whole-table thing in every game, so a compete restart re-opens the race for
--- everyone.
+-- The solution re-shields on its own: `_solution_for` shows it only once the
+-- game has ended, which the reset undoes, so a replayed puzzle starts
+-- covered. (The FE puts its own local reveal away too — see handleRestart —
+-- because the answers it already fetched are cached client-side.)
 --
--- The solution re-shields on its own: `_solution_for` gates on `is_terminal`,
--- which the reset clears, so a replayed puzzle starts covered. (The FE puts its
--- own local reveal away too — see handleRestart — because the answers it
--- already fetched are cached client-side.)
---
--- Any game player may call it, from a finished game OR mid-game (no play_state
--- guard — it's a restart; the FE confirms mid-game).
-drop function if exists crosswords.replay_board(uuid);
-
-create or replace function crosswords.replay_board(target_game uuid)
+-- Any game player may call it, mid-game or after the game ends (no ended
+-- check — it's a restart; the FE confirms mid-game).
+create or replace function crosswords.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1062,34 +1058,28 @@ set search_path = crosswords, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  v_mode  text;
-  v_title text;
 begin
-
-  select mode into v_mode from crosswords.games where id = target_game;
-  if v_mode is null then
+  perform 1 from crosswords.games where game_id = p_game_id for update;
+  if not found then
     perform common._raise_game_deleted('crosswords');
   end if;
 
-  -- The row check comes BEFORE the membership gate, and the order is the whole
-  -- point: `delete_game` takes this row, `common.games` and every
-  -- `game_players` row together, so a caller whose game was just deleted has no
-  -- membership left either. Gate-first told them "You are not in this game",
-  -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common._require_game_player(target_game);
-  -- The status blob create_game seeds, rebuilt: `reset_game` ASSIGNS status, so
-  -- anything the listing label reads has to be restated here or it's lost.
-  select status ->> 'title' into v_title from common.games where id = target_game;
+  -- The row check comes BEFORE the membership gate: `delete_game` takes this
+  -- row, `common.games` and every `game_players` row together, so a caller
+  -- whose game was just deleted has no membership left either, and would be
+  -- told "You are not in this game" — they WERE in it; it is gone.
+  perform common._require_game_player(p_game_id);
 
   update crosswords.cells c
      set fill = null, pencil = false, wrong = false, revealed = false,
          mark_right = null, mark_bottom = null
-   where c.game_id = target_game;
+   where c.game_id = p_game_id;
 
-  perform common._reset_game(
-    target_game,
-    jsonb_build_object('mode', v_mode, 'title', coalesce(v_title, 'Crossword'))
-  );
+  update common.game_players set solved_at = null where game_id = p_game_id;
+
+  perform common._reset_game(p_game_id);
+
+  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -1104,8 +1094,10 @@ $$;
 revoke execute on function crosswords.replay_board(uuid) from public;
 grant execute on function crosswords.replay_board(uuid) to authenticated;
 
+drop function if exists crosswords.reveal_solved_word(uuid, jsonb);
+
 -- ============================================================
--- reveal_solved_word — leak-safe answer read for the "Explain clue" feature
+-- crosswords.reveal_solved_word — leak-safe answer read for "Explain clue"
 -- ============================================================
 -- Returns the answer for a set of cells ONLY IF the caller has already filled
 -- them all in CORRECTLY (per `_matches`, honoring givens). This is the whole
@@ -1116,53 +1108,52 @@ grant execute on function crosswords.replay_board(uuid) to authenticated;
 -- only explain your own correctly-filled word). Also returns the puzzle note
 -- (not secret — the FE has it) so the edge function can pass it to the model
 -- as context in one round trip.
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists crosswords.reveal_solved_word(uuid, jsonb);
-
-create or replace function crosswords.reveal_solved_word(target_game uuid, p_cells jsonb)
+--
+-- TWO `ok`s, because "you have solved this word" and "not yet" are different
+-- answers. `unsolved` is an ordinary answer, not a refusal: the menu item is
+-- live on any clue because the frontend cannot see which are solved.
+create or replace function crosswords.reveal_solved_word(p_game_id uuid, p_cells jsonb)
 returns jsonb
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
-  v_caller   uuid;
-  v_mode     text;
-  v_owner    uuid;
-  v_meta     jsonb;
-  v_solution jsonb;
-  v_answer   text := '';
-  v_solved   boolean := true;
-  e          jsonb;
-  r          int;
-  c          int;
-  v_tmpl     jsonb;
-  v_sols     jsonb;
-  v_given    boolean;
-  v_fill     text;
-  v_note     text;
+  v_caller         uuid;
+  v_owner          uuid;
+  v_puzzle_content jsonb;
+  v_solution       jsonb;
+  v_answer         text := '';
+  v_solved         boolean := true;
+  e                jsonb;
+  r                int;
+  c                int;
+  v_tmpl           jsonb;
+  v_sols           jsonb;
+  v_given          boolean;
+  v_fill           text;
+  v_note           text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- The row first: a friend may delete the game from the club list at any
   -- moment, and the delete takes the memberships with it (docs/envelopes.md →
   -- a missing game row is PN485).
-  select mode, meta, solution into v_mode, v_meta, v_solution
-    from crosswords.games where id = target_game;
+  select puzzle_content, solution into v_puzzle_content, v_solution
+    from crosswords.games where game_id = p_game_id;
   if not found then
     perform common._raise_game_deleted('crosswords');
   end if;
-  v_caller := common._require_game_player(target_game);
-  v_owner := case when v_mode = 'coop' then null else v_caller end;
-  v_note := v_meta ->> 'note';
+  v_caller := common._require_game_player(p_game_id);
+  v_owner := case when (select mode from common.games where id = p_game_id) = 'coop'
+                  then null else v_caller end;
+  v_note := v_puzzle_content ->> 'note';
 
   -- Cells arrive in reading order (the FE's word-cell order); jsonb arrays
   -- preserve order, so the concatenation yields the answer left-to-right.
   for e in select value from jsonb_array_elements(p_cells) loop
     r := (e ->> 'row')::int;
     c := (e ->> 'col')::int;
-    v_tmpl := v_meta -> 'cells' -> r -> c;
+    v_tmpl := v_puzzle_content -> 'cells' -> r -> c;
     v_sols := v_solution -> r -> c;
     if v_tmpl is null or v_tmpl ->> 'kind' <> 'cell' or v_sols is null then
       v_solved := false;
@@ -1178,7 +1169,7 @@ begin
     else
       select upper(coalesce(cl.fill, '')) into v_fill
         from crosswords.cells cl
-       where cl.game_id = target_game
+       where cl.game_id = p_game_id
          and cl.owner_id is not distinct from v_owner
          and cl.row = r and cl.col = c;
       v_fill := coalesce(v_fill, '');
@@ -1188,10 +1179,6 @@ begin
     end if;
   end loop;
 
-  -- TWO `ok`s, because "you have solved this word" and "not yet" are different
-  -- answers and used to be told apart by `answer` being null — an absence, not
-  -- a name. `unsolved` is an ordinary answer, not a refusal: the menu item is
-  -- live on any clue because the frontend cannot see which are solved.
   if v_solved then
     return common._ok_envelope(jsonb_build_object(
       'result', 'solved', 'answer', v_answer, 'solved', true, 'note', v_note));
@@ -1211,22 +1198,25 @@ $$;
 revoke execute on function crosswords.reveal_solved_word(uuid, jsonb) from public;
 grant execute on function crosswords.reveal_solved_word(uuid, jsonb) to authenticated;
 
--- export_solution — the full answer grid for the "Download as .ipuz" export
--- and the answer-key PDF.
+drop function if exists crosswords.export_solution(uuid);
+
+-- ============================================================
+-- crosswords.export_solution — the answer grid for a download
+-- ============================================================
+-- The full answer grid for the "Download as .ipuz" export and the answer-key
+-- PDF.
 --
--- NAMED DELIBERATELY UNLIKE `_solution_for` above, which it sat one underscore
--- away from until 2026-08-02. The two have OPPOSITE shielding semantics — that
--- one is the terminal-gated view shim (the roster-wide name, shared with
--- waffle / wordle / stackdown), this one hands a member the grid at any time —
--- and both are granted to `authenticated`, so a one-character typo swapped a
--- gate for no gate. The names now differ at a glance.
+-- NAMED DELIBERATELY UNLIKE `_solution_for` above. The two have OPPOSITE
+-- shielding semantics — that one shows the answer only once the game has
+-- ended, this one hands a member the grid at any time — so the names differ
+-- at a glance.
 --
--- Unlike `games_state` (which gates the solution to terminal),
--- export needs the whole grid at ANY time so a downloaded file carries real
--- answers. Handing the solution to the client on demand relaxes the shielding,
--- which the friends-only trust model tolerates (see CLAUDE.md → trust model);
--- it's a deliberate, member-gated exception, not the solving path.
-create or replace function crosswords.export_solution(target_game uuid)
+-- Unlike `games_state`, export needs the whole grid at ANY time so a
+-- downloaded file carries real answers. Handing the solution to the client
+-- on demand relaxes the shielding, which the friends-only trust model
+-- tolerates (CLAUDE.md → Trust model); it's a deliberate, member-gated
+-- exception, not the solving path.
+create or replace function crosswords.export_solution(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1241,12 +1231,12 @@ begin
   -- at any moment, and the delete takes the memberships with it
   -- (docs/envelopes.md → a missing game row is PN485).
   select g.solution into v_solution
-    from crosswords.games g where g.id = target_game;
+    from crosswords.games g where g.game_id = p_game_id;
   if not found then
     perform common._raise_game_deleted('crosswords');
   end if;
 
-  perform common._require_game_player(target_game);
+  perform common._require_game_player(p_game_id);
 
   return common._ok_envelope(jsonb_build_object(
     'result', 'exported', 'solution', v_solution));
@@ -1262,23 +1252,22 @@ $$;
 revoke execute on function crosswords.export_solution(uuid) from public;
 grant execute on function crosswords.export_solution(uuid) to authenticated;
 
--- ============================================================
--- stop_game (coop manual give-up) / concede (compete) / submit_timeout
--- ============================================================
-
--- Mutual give-up ends NEUTRALLY ('ended' + reason 'manual') — not a loss
--- (putting down an unfinished crossword is normal). The solution reveals in
--- the terminal view (games_state) once is_terminal flips.
---
--- Offered in BOTH modes. Coop's Stop and compete's Concede are different acts —
--- conceding is one racer's loss, stopping is the whole table agreeing there is no
--- result — and a race can want the second without the first: the crossword is
--- too hard and everyone is done. Nobody won either way, so a compete Stop is the
--- same neutral 'ended' rather than `lost_compete`, which is the clock or the
--- last racer quitting.
 drop function if exists crosswords.stop_game(uuid);
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists crosswords.end_game(uuid);
 
-create or replace function crosswords.stop_game(target_game uuid)
+-- ============================================================
+-- crosswords.stop_game — the Stop
+-- ============================================================
+-- Any player stops the game for the whole table, with no result (putting
+-- down an unfinished crossword is normal). The solution reveals once the
+-- game has ended.
+--
+-- Offered in BOTH modes. Coop's Stop and compete's Concede are different acts
+-- — conceding is one racer's loss, stopping is the whole table agreeing there
+-- is no result — and a race can want the second without the first: the
+-- crossword is too hard and everyone is done.
+create or replace function crosswords.stop_game(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1286,40 +1275,18 @@ set search_path = crosswords, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  v_mode      text;
-  v_playstate text;
-  v_results   jsonb;
 begin
-  -- Row check before the gate, and a check at all — crosswords had neither, so
-  -- a deleted game read `mode` as null, failed the coop test, and reported the
-  -- WRONG refusal. See boggle.stop_game for the ordering rule. Locked, so a Stop
-  -- racing the winning move waits for it (docs/common-schema.md → Stop).
-  select mode into v_mode from crosswords.games where id = target_game for update;
-  if v_mode is null then
+  -- Locked, so a Stop racing the winning fill waits for it and then reads the
+  -- game as over. The row check comes before the membership gate — see
+  -- replay_board.
+  perform 1 from crosswords.games where game_id = p_game_id for update;
+  if not found then
     perform common._raise_game_deleted('crosswords');
   end if;
 
-  perform common._require_game_player(target_game);
+  perform common._stop(p_game_id);
 
-  select play_state into v_playstate from common.games where id = target_game;
-  if v_playstate is distinct from 'playing' then
-    perform common._raise_game_over();
-  end if;
-
-  -- Nobody won. A racer who had already conceded stays conceded — their own
-  -- quit is still theirs; this only says the table reached no result.
-  select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
-    into v_results
-    from common.game_players
-   where game_id = target_game;
-
-  perform common._end_game(
-    target_game, 'ended',
-    jsonb_build_object('mode', v_mode, 'reason', 'manual'),
-    v_results
-  );
-  -- Wake the boards (src/guards/endingTouchesGame.test.ts).
-  update crosswords.games set club_handle = club_handle where id = target_game;
+  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1334,16 +1301,16 @@ $$;
 revoke execute on function crosswords.stop_game(uuid) from public;
 grant execute on function crosswords.stop_game(uuid) to authenticated;
 
--- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
-drop function if exists crosswords.end_game(uuid);
-
--- Per-player concede (compete): dropping out never ends the table for the
--- others; the last active conceder → collective loss. Fully handled by
--- common.concede; this is the thin compete gate (non-elimination, like
--- stackdown — a crossword player can't be individually eliminated).
 drop function if exists crosswords.concede(uuid);
 
-create or replace function crosswords.concede(target_game uuid)
+-- ============================================================
+-- crosswords.concede — a racer drops out of a compete game
+-- ============================================================
+-- A crossword racer can't end any other way but solving, which ends the
+-- game, so `common._concede` decides it all: it records the concession, and
+-- when the last racer concedes ends the game as a loss for everyone.
+-- Compete only (coop ends via the shared Stop).
+create or replace function crosswords.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1351,16 +1318,20 @@ set search_path = crosswords, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  v_answer jsonb;
 begin
-  perform common._require_compete((select mode from crosswords.games where id = target_game));
-  -- common.concede answers in an envelope and catches its own raises, so its
-  -- refusals relay untouched; the handler below is for _require_compete's.
-  v_answer := common.concede(target_game);
-  -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
-  -- → Concede).
-  update crosswords.games set club_handle = club_handle where id = target_game;
-  return v_answer;
+  -- Locked like every move, so every game's concede has one shape
+  -- (docs/common-schema.md → Concede).
+  perform 1 from crosswords.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('crosswords');
+  end if;
+
+  perform common._require_compete((select mode from common.games where id = p_game_id));
+
+  perform common._concede(p_game_id);
+
+  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
   get stacked diagnostics
@@ -1374,12 +1345,17 @@ $$;
 revoke execute on function crosswords.concede(uuid) from public;
 grant execute on function crosswords.concede(uuid) to authenticated;
 
--- Standard manifest requirement, and a live path: the setup form offers the
--- shared TimerField, so a countdown can expire (timeout_test.sql exercises
--- it). Coop → lost, compete → lost_compete; reason 'timeout' both ways.
 drop function if exists crosswords.submit_timeout(uuid);
 
-create or replace function crosswords.submit_timeout(target_game uuid)
+-- ============================================================
+-- crosswords.submit_timeout — countdown expiry
+-- ============================================================
+-- The setup form offers the shared TimerField, so a countdown can expire.
+-- Fired by every connected client when it hits 0; the first ends the game,
+-- the rest find it ended and answer the game-over race. Nobody completed the
+-- grid, so nobody is ranked and everyone lost, in either mode. crosswords
+-- has no turn order, so nobody is recorded as ending it.
+create or replace function crosswords.submit_timeout(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1387,36 +1363,26 @@ set search_path = crosswords, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  v_mode      text;
-  v_playstate text;
-  v_results   jsonb;
 begin
-  -- Row check before the gate, and a check at all, locked — see stop_game above.
-  select mode into v_mode from crosswords.games where id = target_game for update;
-  if v_mode is null then
+  -- Locked, so the timeout and a winning fill serialize. The row check comes
+  -- before the membership gate — see replay_board.
+  perform 1 from crosswords.games where game_id = p_game_id for update;
+  if not found then
     perform common._raise_game_deleted('crosswords');
   end if;
 
-  perform common._require_game_player(target_game);
-
-  select play_state into v_playstate from common.games where id = target_game;
-  if v_playstate is distinct from 'playing' then
+  perform common._require_game_player(p_game_id);
+  if (select ended_at from common.games where id = p_game_id) is not null then
     perform common._raise_game_over();
   end if;
 
-  select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
-    into v_results
-    from common.game_players
-   where game_id = target_game;
-
   perform common._end_game(
-    target_game,
-    case when v_mode = 'coop' then 'lost' else 'lost_compete' end,
-    jsonb_build_object('mode', v_mode, 'reason', 'timeout'),
-    v_results
+    p_game_id, 'timeout', 'timeout', null,
+    p_is_no_result => false,
+    p_final_rankings => '{}'::jsonb
   );
-  -- Wake the boards (src/guards/endingTouchesGame.test.ts).
-  update crosswords.games set club_handle = club_handle where id = target_game;
+
+  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then

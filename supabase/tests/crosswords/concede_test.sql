@@ -35,19 +35,20 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.concede(:'gp_id');
 reset role;
 select is(
-  (select conceded from common.game_players
+  (select player_ended_reason from common.game_players
      where game_id = :'gp_id' and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'compete: conceding flips your conceded flag');
-select is((select play_state from common.games where id = :'gp_id'), 'playing',
+  'conceded', 'compete: conceding ends you, by conceding');
+select is((select ended_at from common.games where id = :'gp_id'), null,
   'compete: one conceder of two does NOT end the table');
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select crosswords.concede(:'gp_id');
 reset role;
-select is((select play_state from common.games where id = :'gp_id'), 'lost_compete',
+select is((select game_ended_outcome from common.games where id = :'gp_id'), 'lost',
   'compete: the last conceder → collective loss');
-select is((select status ->> 'reason' from common.games where id = :'gp_id'), 'conceded',
-  'compete: collective loss has outcome = conceded');
+select is((select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = :'gp_id'),
+  'conceded/conceded',
+  'compete: collective loss has reason conceded');
 
 -- Concede is compete-only.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -62,17 +63,18 @@ reset role;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.stop_game(:'gc_id');
 reset role;
-select is((select play_state from common.games where id = :'gc_id'), 'ended',
-  'coop give-up → play_state ended (neutral, not lost)');
-select is((select status ->> 'reason' from common.games where id = :'gc_id'), 'manual',
-  'coop give-up → outcome manual (the roster''s word for a player-fired stop)');
+select is((select game_ended_outcome from common.games where id = :'gc_id'), 'neutral',
+  'coop give-up → the game ends neutral, not lost');
+select is((select game_ended_reason || '/' || game_ended_by_user_id::text from common.games where id = :'gc_id'),
+  'stopped/ada11111-1111-1111-1111-111111111111',
+  'coop give-up → reason stopped, ended by the caller');
 select is(
-  (select result -> 'won' from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
      where game_id = :'gc_id' and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'false'::jsonb, 'coop give-up → nobody "won" (but it is not a loss)');
+  'unranked/neutral', 'coop give-up → nobody won (but it is not a loss)');
 
 -- A conceded compete player can't check their now-frozen grid (same guard
--- set_cell has). ada concedes gp2 (bea still active → game stays playing).
+-- set_cell has). ada concedes gp2 (bea still active → the game goes on).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.concede(:'gp2_id');
 select pg_temp.envelope_is(
@@ -85,20 +87,22 @@ reset role;
 -- ── Compete give-up (stop_game): the table stops, neutrally ───────────
 -- Concede is NOT the only way out of a race. gp2 still has bea racing and ada
 -- conceded above, so this also pins what an end does to a player who already
--- quit: nothing. Unlike the last-conceder path, which is `lost_compete`.
+-- quit: nothing. Unlike the last-conceder path, which is a loss.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select crosswords.stop_game(:'gp2_id');
 reset role;
-select is((select play_state from common.games where id = :'gp2_id'), 'ended',
-  'compete give-up → play_state ended (neutral, not lost_compete)');
-select is((select status ->> 'reason' from common.games where id = :'gp2_id'), 'manual',
-  'compete give-up → outcome manual, the same word coop''s end writes');
-select is((select status ->> 'mode' from common.games where id = :'gp2_id'), 'compete',
-  'compete give-up → the status blob says which mode ended');
+select is((select game_ended_outcome from common.games where id = :'gp2_id'), 'neutral',
+  'compete give-up → the game ends neutral, not lost');
+select is((select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = :'gp2_id'),
+  'stopped/stopped',
+  'compete give-up → reason stopped, the same as coop''s end');
+select is((select game_ended_by_user_id from common.games where id = :'gp2_id'),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
+  'compete give-up → ended by the caller');
 select is(
-  (select conceded from common.game_players
+  (select player_ended_reason || '/' || outcome from common.game_players
      where game_id = :'gp2_id' and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'compete give-up leaves an earlier conceder conceded — their quit is theirs');
+  'conceded/lost', 'compete give-up leaves an earlier conceder conceded — their quit is theirs, and a loss');
 
 select * from finish();
 rollback;

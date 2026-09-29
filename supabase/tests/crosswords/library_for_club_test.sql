@@ -10,11 +10,12 @@
 -- crossword it hasn't done yet.
 --
 -- Properties to pin:
---   1. shape — title / author / width / height come off the puzzle's meta.
+--   1. shape — title / author / width / height come off the puzzle's
+--      puzzle_content.
 --   2. one row per library puzzle, no matter how many games reference it
 --      (the LEFT JOIN fans out; the GROUP BY has to fold it back).
---   3. the four status values, including 'ended' landing in the yellow
---      'playing' bucket rather than inventing a fifth.
+--   3. the four status values, including a neutral Stop landing in the
+--      yellow 'playing' bucket rather than inventing a fifth.
 --   4. precedence — solved beats playing beats lost, when one puzzle has
 --      several games in the same club.
 --   5. club scoping — another club's game must not color this club's row,
@@ -78,26 +79,37 @@ select pg_temp.xw_new_game(:'club_a', :'pz_lossopen') as g_lo_open  \gset
 select pg_temp.xw_new_game(:'club_a', :'pz_compete', 'compete') as g_compete \gset
 select pg_temp.xw_new_game(:'club_b', :'pz_other')    as g_other   \gset
 
--- Drive the terminal states directly. The real solve path is covered by
--- win_test.sql / timeout_test.sql; what THIS file cares about is the
--- play_state → status mapping, so setting play_state outright keeps each
--- scenario one unambiguous line.
+-- Drive the endings directly, through common._end_game. The real solve path is
+-- covered by win_test.sql / timeout_test.sql; what THIS file cares about is
+-- the game's outcome → status mapping, so ending each game outright keeps
+-- each scenario one unambiguous line:
+--   won      a solve, ada ranked 1
+--   lost     a timeout, nobody ranked
+--   neutral  a Stop, nobody ranked
 reset role;
 select set_config('request.jwt.claims', '', true);
 
-create function pg_temp.xw_end(p_game uuid, p_state text)
+create function pg_temp.xw_end(p_game uuid, p_outcome text)
 returns void language sql as $$
-  select common._end_game(p_game, p_state, '{}'::jsonb, '{}'::jsonb);
+  select common._end_game(
+    p_game,
+    case p_outcome when 'won' then 'reached_goal' when 'lost' then 'timeout' else 'stopped' end,
+    case p_outcome when 'won' then 'solved' when 'lost' then 'timeout' else 'stopped' end,
+    null,
+    p_is_no_result => false,
+    p_final_rankings => case when p_outcome = 'won'
+                             then '{"ada11111-1111-1111-1111-111111111111": 1}'::jsonb
+                             else '{}'::jsonb end);
 $$;
 
 select pg_temp.xw_end(:'g_solved',  'won');
 select pg_temp.xw_end(:'g_lost',    'lost');
-select pg_temp.xw_end(:'g_ended',   'ended');
+select pg_temp.xw_end(:'g_ended',   'neutral');
 select pg_temp.xw_end(:'g_wl_win',  'won');
 select pg_temp.xw_end(:'g_wl_loss', 'lost');
 select pg_temp.xw_end(:'g_lo_loss', 'lost');
--- g_lo_open deliberately left 'playing'.
-select pg_temp.xw_end(:'g_compete', 'won_compete');
+-- g_lo_open deliberately left being played.
+select pg_temp.xw_end(:'g_compete', 'won');
 select pg_temp.xw_end(:'g_other',   'won');
 
 -- The RPC answers with ONE envelope now, so the rows come out of its
@@ -121,21 +133,21 @@ $$;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 -- ============================================================
--- (1) Shape — the four display fields come off meta
+-- (1) Shape — the four display fields come off puzzle_content
 -- ============================================================
 
 select is(
   (select title from pg_temp.xw_library(:'club_a') where id = :'pz_solved'),
-  'Toy', 'library_for_club: title comes from meta->>title');
+  'Toy', 'library_for_club: title comes from puzzle_content->>title');
 
 select is(
   (select author from pg_temp.xw_library(:'club_a') where id = :'pz_solved'),
-  'T', 'library_for_club: author comes from meta->>author');
+  'T', 'library_for_club: author comes from puzzle_content->>author');
 
 select is(
   (select width || 'x' || height from pg_temp.xw_library(:'club_a')
     where id = :'pz_solved'),
-  '2x2', 'library_for_club: width/height come from meta');
+  '2x2', 'library_for_club: width/height come from puzzle_content');
 
 -- ============================================================
 -- (2) One row per library puzzle — the join must not fan out
@@ -169,7 +181,7 @@ select is(pg_temp.xw_status(:'club_a', :'pz_solved'), 'solved',
 select is(pg_temp.xw_status(:'club_a', :'pz_lost'), 'lost',
   'library_for_club: a game that only ever lost reads lost');
 
--- 'ended' is the manual end-game — neither a win nor a loss. It shares the
+-- A Stop ends the game neutral — neither a win nor a loss. It shares the
 -- yellow bucket with 'playing' rather than getting a fifth color.
 select is(pg_temp.xw_status(:'club_a', :'pz_ended'), 'playing',
   'library_for_club: a manually ended game reads playing (the yellow bucket)');
