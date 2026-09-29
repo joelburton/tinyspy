@@ -10,9 +10,10 @@
 --   3. Setup-shape validation: hand_size + bunch_size + timer
 --      (incl. bunch must hold playerCount × hand_size to deal)
 --   4. Happy path: writes the 'bananagrams' gametype, the
---      bananagrams.games row, persists the immutable `bunch_seed`, deals a
---      hand_size `tiles` to each player (board empty), materializes
---      the bunch (`bunch` = undealt remainder), seeds progress
+--      bananagrams.games row, persists the immutable `bunch_at_setup`, deals
+--      a hand_size `tiles` to each player (board empty), materializes
+--      the bunch (`bunch` = undealt remainder), seeds progress, and copies
+--      the word-check options from setup (defaults off / 4 / 4 / false)
 --   5. A smaller bunch deals + leaves a smaller bunch
 --   6. Solo (1-player) is allowed
 -- ============================================================
@@ -272,7 +273,7 @@ select is(
 );
 
 select is(
-  (select hand_size from bananagrams.games where id = (select id from mg_game)),
+  (select hand_size from bananagrams.games where game_id = (select id from mg_game)),
   21,
   'bananagrams.games records the hand_size'
 );
@@ -301,11 +302,11 @@ select is(
 );
 
 select is(
-  (select unplaced from bananagrams.progress
+  (select unplaced_count from bananagrams.progress
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   21,
-  'progress.unplaced seeds to the hand size'
+  'progress.unplaced_count seeds to the hand size'
 );
 
 -- Both players are dealt distinct slices of the shuffled bunch: 2 × 21 = 42
@@ -319,57 +320,59 @@ select is(
 
 -- The bunch holds everything not dealt: the 144-tile bunch − 42 dealt = 102.
 select is(
-  (select length(bunch) from bananagrams.games where id = (select id from mg_game)),
+  (select length(bunch) from bananagrams.games where game_id = (select id from mg_game)),
   102,
   'bunch (the bunch) holds the 102 undealt tiles'
 );
 
--- The immutable `bunch_seed` of record is the full chosen size (144 here): hands +
--- bunch together. 42 dealt + 102 bunch = 144.
+-- The immutable `bunch_at_setup` of record is the full chosen size (144 here):
+-- hands + bunch together. 42 dealt + 102 bunch = 144.
 select is(
-  (select length(bunch_seed) from bananagrams.games where id = (select id from mg_game)),
+  (select length(bunch_at_setup) from bananagrams.games where game_id = (select id from mg_game)),
   144,
-  'bunch_seed (immutable record) holds the full chosen bunch size'
+  'bunch_at_setup (immutable record) holds the full chosen bunch size'
 );
 select is(
-  (select bunch_seed ~ '^[A-Z]{144}$' from bananagrams.games where id = (select id from mg_game)),
+  (select bunch_at_setup ~ '^[A-Z]{144}$' from bananagrams.games where game_id = (select id from mg_game)),
   true,
-  'bunch_seed is 144 uppercase tiles'
+  'bunch_at_setup is 144 uppercase tiles'
 );
 -- A full (144) bunch leaves nothing over → the bag is empty.
 select is(
-  (select length(bag) from bananagrams.games where id = (select id from mg_game)),
+  (select length(bag) from bananagrams.games where game_id = (select id from mg_game)),
   0,
   'a full 144 bunch leaves an empty bag'
 );
 
--- Smaller bunch: bunch_seed length = 60, bunch = 60 − 42 dealt = 18.
+-- Smaller bunch: bunch_at_setup length = 60, bunch = 60 − 42 dealt = 18.
 select is(
-  (select length(bunch_seed) from bananagrams.games where id = (select id from mg_small)),
+  (select length(bunch_at_setup) from bananagrams.games where game_id = (select id from mg_small)),
   60,
   'a bunch_size of 60 persists a 60-tile bag'
 );
 select is(
-  (select length(bunch) from bananagrams.games where id = (select id from mg_small)),
+  (select length(bunch) from bananagrams.games where game_id = (select id from mg_small)),
   18,
   'the smaller bunch leaves an 18-tile draw pile (60 − 2×21)'
 );
 -- The tiles left OUT of the bunch aren't discarded — they seed the bag.
--- 144 − 60 = 84, and bunch_seed + bag together account for all 144.
+-- 144 − 60 = 84, and bunch_at_setup + bag together account for all 144.
 select is(
-  (select length(bag) from bananagrams.games where id = (select id from mg_small)),
+  (select length(bag) from bananagrams.games where game_id = (select id from mg_small)),
   84,
   'the 84 tiles not in the bunch seed the bag (144 − 60)'
 );
 select is(
-  (select length(bunch_seed) + length(bag) from bananagrams.games where id = (select id from mg_small)),
+  (select length(bunch_at_setup) + length(bag) from bananagrams.games where game_id = (select id from mg_small)),
   144,
-  'bunch_seed + bag account for all 144 tiles — none discarded'
+  'bunch_at_setup + bag account for all 144 tiles — none discarded'
 );
+-- A setup with no word options takes the defaults on the game row.
 select is(
-  (select (status->>'bag_remaining')::int from common.games where id = (select id from mg_small)),
-  84,
-  'status.bag_remaining surfaces the starting bag count'
+  (select word_check || '/' || dict_2 || '/' || dict_3plus || '/' || dump_to_bag
+     from bananagrams.games where game_id = (select id from mg_small)),
+  'off/4/4/false',
+  'the word-check options default to off / 4 / 4 / false on the game row'
 );
 
 select * from finish();

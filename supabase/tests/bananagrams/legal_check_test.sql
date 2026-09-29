@@ -150,7 +150,7 @@ select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
    set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT'), tiles = 'CAT'
  where game_id = (select id from ga);
-update bananagrams.games set bunch = '' where id = (select id from ga);
+update bananagrams.games set bunch = '' where game_id = (select id from ga);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pa on commit drop as select bananagrams.peel((select id from ga)) as res;
@@ -158,7 +158,7 @@ select is((select res->'data'->>'result' from pa), 'won', 'word_check win + lega
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select play_state from common.games where id = (select id from ga)),
+  (select game_ended_outcome from common.games where id = (select id from ga)),
   'won', 'the legal winning peel ended the game');
 
 -- ── Game B: word_check win + connected NON-WORD → peel BLOCKED ──
@@ -173,7 +173,7 @@ select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
    set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), tiles = 'XQJ'
  where game_id = (select id from gb);
-update bananagrams.games set bunch = '' where id = (select id from gb);
+update bananagrams.games set bunch = '' where game_id = (select id from gb);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pb on commit drop as select bananagrams.peel((select id from gb)) as res;
@@ -184,8 +184,8 @@ select is((select res->'data'->'invalid_cells' from pb), '[0,1,2]'::jsonb,
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select play_state from common.games where id = (select id from gb)),
-  'playing', 'a blocked peel leaves the game in progress');
+  (select ended_at from common.games where id = (select id from gb)),
+  null, 'a blocked peel leaves the game in progress');
 
 -- ── Game C: word_check off + connected non-word → peel WINS (classic) ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -199,7 +199,7 @@ select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
    set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), tiles = 'XQJ'
  where game_id = (select id from gc);
-update bananagrams.games set bunch = '' where id = (select id from gc);
+update bananagrams.games set bunch = '' where game_id = (select id from gc);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pc on commit drop as select bananagrams.peel((select id from gc)) as res;
@@ -208,7 +208,7 @@ select is((select res->'data'->>'result' from pc), 'won',
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select play_state from common.games where id = (select id from gc)),
+  (select game_ended_outcome from common.games where id = (select id from gc)),
   'won', 'the unchecked winning peel ended the game');
 
 -- ── Game D: word_check off + DISCONNECTED board → peel BLOCKED (geography) ──
@@ -224,7 +224,7 @@ update bananagrams.player_boards
    set board = pg_temp.mg_h(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT'), 5, 0, 'DOG'),
        tiles = 'CATDOG'
  where game_id = (select id from gd);
-update bananagrams.games set bunch = '' where id = (select id from gd);
+update bananagrams.games set bunch = '' where game_id = (select id from gd);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pd on commit drop as select bananagrams.peel((select id from gd)) as res;
@@ -235,8 +235,8 @@ select is((select res->'data'->'invalid_cells' from pd), '[125,126,127]'::jsonb,
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select play_state from common.games where id = (select id from gd)),
-  'playing', 'the disconnected board left the game in progress');
+  (select ended_at from common.games where id = (select id from gd)),
+  null, 'the disconnected board left the game in progress');
 
 -- ════════════════ strict mode: a CONTINUING peel is checked too ════════════════
 -- Above, every peel was a WINNING one (empty bunch). Here the bunch is NON-empty,
@@ -255,7 +255,7 @@ select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
    set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), tiles = 'XQJ'
  where game_id = (select id from ge);
-update bananagrams.games set bunch = 'ABCDEFGHIJ' where id = (select id from ge);
+update bananagrams.games set bunch = 'ABCDEFGHIJ' where game_id = (select id from ge);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pe on commit drop as select bananagrams.peel((select id from ge)) as res;
@@ -266,7 +266,7 @@ select is((select res->'data'->'invalid_cells' from pe), '[0,1,2]'::jsonb,
 reset role;
 select set_config('request.jwt.claims', '', true);
 -- Nothing was dealt: the bunch is untouched and the game is still in progress.
-select is((select length(bunch) from bananagrams.games where id = (select id from ge)), 10,
+select is((select length(bunch) from bananagrams.games where game_id = (select id from ge)), 10,
   'a blocked strict peel deals nothing (bunch untouched)');
 
 -- ── Game F: strict + continuing peel + VALID word → DEALS ──
@@ -281,7 +281,7 @@ select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
    set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT'), tiles = 'CAT'
  where game_id = (select id from gf);
-update bananagrams.games set bunch = 'ABCDEFGHIJ' where id = (select id from gf);
+update bananagrams.games set bunch = 'ABCDEFGHIJ' where game_id = (select id from gf);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pf on commit drop as select bananagrams.peel((select id from gf)) as res;
@@ -300,7 +300,7 @@ select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
    set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), tiles = 'XQJ'
  where game_id = (select id from gg);
-update bananagrams.games set bunch = 'ABCDEFGHIJ' where id = (select id from gg);
+update bananagrams.games set bunch = 'ABCDEFGHIJ' where game_id = (select id from gg);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pg on commit drop as select bananagrams.peel((select id from gg)) as res;

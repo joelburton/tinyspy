@@ -1,87 +1,94 @@
 -- cs-unmet
 
 -- ============================================================
--- bananagrams — the REPEATABLE half
+-- bananagrams
 -- ============================================================
--- Functions, views, RLS policies, triggers and grants for bananagrams. Everything
--- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
--- delta. Edit it in place forever; it never becomes a migration.
+-- What the frontend calls:
 --
--- Its other half is the one-shot schema migration
--- `supabase/migrations/20260623000000_bananagrams.sql` — tables, constraints, indexes,
--- the Realtime publication and seed rows. That one is applied once and then
--- frozen, because `alter table` cannot be re-run.
+--   create_game        deals a new race
+--   save_player_board  snapshots a player's private board
+--   peel               draws a round for everyone, or goes out and wins
+--   dump               trades one tile for three
+--   check_board        answers "is my board legal?" for the caller's board
+--   concede            a racer drops out
+--   stop_game          stops the game for everyone, with no result
+--   submit_timeout     ends the race when the countdown runs out
+--   replay_board       re-deals the same tiles from scratch
 --
--- Order is load-bearing: a policy can only reference a function that already
--- exists, so statements stay in the order they were written. See
+-- What is particular to bananagrams (docs/games/bananagrams.md has the rest):
+--   - Compete only, with no mode parameter; one player is allowed.
+--   - Each player's board is the page's own: the page holds it and saves it
+--     back (save_player_board), and nobody else sees it until the game ends.
+--     The tiles a player holds are the server's: dealt, grown by a peel,
+--     swapped by a dump. The hand is only the page's way of showing the
+--     tiles not on the board.
+--   - A player's progress, the number peers see, is the tiles they hold that
+--     are not in their board's largest block (_main_block_size) — a tile
+--     pushed off to the side is no more placed than one in the hand.
+--   - The only way to win is to peel with an empty hand when the bunch cannot
+--     refill the table. A peel draws 1 tile and a dump 3, as constants.
+--   - A board save rewrites the statuses only when it changes that number.
+--
+-- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
 -- ============================================================
 
 grant usage on schema bananagrams to authenticated;
 
--- Games: any club member sees the row (`bunch` is additionally
--- column-hidden, regardless of policy).
+-- Games: any club member sees the row.
 drop policy if exists games_select on bananagrams.games;
 create policy games_select on bananagrams.games
   for select to authenticated
-  using (common._is_club_member(club_handle));
+  using (
+    exists (
+      select 1 from common.games cg
+       where cg.id = games.game_id
+         and common._is_club_member(cg.club_handle)
+    )
+  );
 
 -- Player boards: OWNER ONLY WHILE THE RACE IS ON, then open to the club.
 -- A rival must not read your grid (or your rack) while it could help them —
 -- the competitive visibility rule, enforced at the row level.
 --
--- At terminal it opens, which is what every other compete game on the roster
--- does (stackdown.events, wordle.events, waffle: same `or is_terminal`
--- clause). Nothing is left to protect once the game is over, and the finished
--- boards are the interesting part — comparing grids is most of the fun of
--- having raced. Without this the printout can only ever show ONE board, since
--- the FE genuinely cannot see the others.
+-- Once the game has ended it opens, as every other compete game's rows do.
+-- Nothing is left to protect then, and the finished boards are the
+-- interesting part — comparing grids is most of the fun of having raced, and
+-- the printout can show every board.
 --
--- The club gate is stated EXPLICITLY even though it is redundant today:
--- this subquery reads `bananagrams.games`, which carries its own
--- `_is_club_member` policy, so a non-member's subquery already finds nothing.
--- Verified by planting — removing this line does NOT let an outsider in.
--- It stays because a policy whose safety depends on ANOTHER table's policy is
--- a hidden coupling: relax games_select some day and this silently becomes the
--- hole it currently isn't. `user_id = auth.uid()` was self-limiting; "is
--- terminal" is not.
+-- The club gate is stated explicitly even though a non-member's subquery
+-- would find nothing anyway: a policy whose safety depends on another
+-- table's policy is a hidden coupling.
 drop policy if exists player_boards_select on bananagrams.player_boards;
 create policy player_boards_select on bananagrams.player_boards
   for select to authenticated
   using (
     user_id = (select auth.uid())
     or exists (
-      select 1 from bananagrams.games bg
-        join common.games cg on cg.id = bg.id
-       where bg.id = player_boards.game_id
-         and common._is_club_member(bg.club_handle)
-         and cg.is_terminal
+      select 1 from common.games cg
+       where cg.id = player_boards.game_id
+         and common._is_club_member(cg.club_handle)
+         and cg.ended_at is not null
     )
   );
 
--- Progress: club-wide. Peers read each other's counts (but not
--- boards). Branches through the parent game's club_handle.
+-- Progress: club-wide. Peers read each other's counts (but not boards).
 drop policy if exists progress_select on bananagrams.progress;
 create policy progress_select on bananagrams.progress
   for select to authenticated
   using (
     exists (
-      select 1 from bananagrams.games g
-       where g.id = progress.game_id
-         and common._is_club_member(g.club_handle)
+      select 1 from common.games cg
+       where cg.id = progress.game_id
+         and common._is_club_member(cg.club_handle)
     )
   );
 
--- ============================================================
--- Grants — `bunch`, `bunch_seed`, and `bag` are column-excluded
--- ============================================================
--- The whitelist omits `bunch` (live draw pile), `bunch_seed` (the initial
--- shuffled sequence), and `bag` (the out-of-play reserve) — any would let a
--- player predict upcoming draws. The FE learns their COUNTS via status instead.
-
+-- `bunch_at_setup` is left out: it is the whole shuffled deal, so it would
+-- tell a player every tile still to come. `bunch` and `bag` are readable, and
+-- the page counts them.
 grant select
-  (id, club_handle, hand_size, created_at)
+  (game_id, hand_size, word_check, dict_2, dict_3plus, dump_to_bag, bunch, bag)
   on bananagrams.games to authenticated;
 
 grant select on bananagrams.player_boards to authenticated;
@@ -91,7 +98,7 @@ grant select on bananagrams.progress to authenticated;
 -- bananagrams._full_bag — the standard 144-tile letter distribution
 -- ============================================================
 -- One source for the tile set: create_game shuffles it to build a game, and
--- replay_board subtracts the recorded `bunch_seed` from it to rebuild the
+-- replay_board subtracts the recorded `bunch_at_setup` from it to rebuild the
 -- out-of-play bag. Immutable, so it folds at plan time.
 create or replace function bananagrams._full_bag()
 returns text
@@ -110,40 +117,182 @@ $$;
 revoke execute on function bananagrams._full_bag() from public;
 
 -- ============================================================
--- bananagrams.create_game(target_club, setup, player_user_ids)
+-- bananagrams._main_block_size — tiles in the board's largest block
 -- ============================================================
--- Compete-only, single gametype 'bananagrams' (no mode parameter —
--- there's no coop sibling, like codenamesduet). Solo (1 player) is
--- allowed: a one-player race is just "finish your own tiles."
+-- The size of the largest group of filled cells joined up, down, left or
+-- right (a diagonal touch does not join), or 0 for an empty board. A tile the
+-- player holds that is not in this block — still in the page's hand, or
+-- pushed off to the side of the board — is not yet placed, so a player's
+-- `progress.unplaced_count` is their tiles minus this.
+--
+-- Each filled cell is visited once: a walk over the grid starts a flood from
+-- every filled cell no earlier flood reached, and keeps the largest count.
+create or replace function bananagrams._main_block_size(p_board text)
+returns int
+language plpgsql
+immutable
+as $$
+declare
+  seen boolean[] := array_fill(false, array[625]);
+  stack int[];
+  cell int;
+  neighbor int;
+  block_size int;
+  largest int := 0;
+begin
+  for start_cell in 1..625 loop
+    if substr(p_board, start_cell, 1) <> '.' and not seen[start_cell] then
+      seen[start_cell] := true;
+      stack := array[start_cell];
+      block_size := 0;
+      while cardinality(stack) > 0 loop
+        cell := stack[cardinality(stack)];
+        stack := stack[1:cardinality(stack) - 1];
+        block_size := block_size + 1;
+        -- The four neighbors, null past an edge of the 25×25 grid.
+        foreach neighbor in array array[
+          case when (cell - 1) / 25 > 0  then cell - 25 end,
+          case when (cell - 1) / 25 < 24 then cell + 25 end,
+          case when (cell - 1) % 25 > 0  then cell - 1 end,
+          case when (cell - 1) % 25 < 24 then cell + 1 end
+        ] loop
+          if neighbor is not null and not seen[neighbor]
+             and substr(p_board, neighbor, 1) <> '.' then
+            seen[neighbor] := true;
+            stack := stack || neighbor;
+          end if;
+        end loop;
+      end loop;
+      largest := greatest(largest, block_size);
+    end if;
+  end loop;
+  return largest;
+end;
+$$;
+revoke execute on function bananagrams._main_block_size(text) from public;
+
+-- ============================================================
+-- bananagrams._count_unplaced — bring the players' counts up to date
+-- ============================================================
+-- Sets `progress.unplaced_count` for `p_user_ids` from what the server holds: the
+-- tiles each holds minus their board's main block (see _main_block_size),
+-- clamped at 0 so a board that ran ahead of the server's tiles can't show a
+-- negative count. `progress.placed` is every filled cell. Returns whether any
+-- player's `unplaced_count` changed — the strip's number, so the caller rewrites
+-- the statuses when it did.
+create or replace function bananagrams._count_unplaced(p_game_id uuid, p_user_ids uuid[])
+returns boolean
+language plpgsql
+as $$
+declare
+  changed_count int;
+begin
+  with counted as (
+    select pb.user_id,
+           pr.unplaced_count as old_unplaced,
+           greatest(length(pb.tiles) - bananagrams._main_block_size(pb.board), 0) as new_unplaced,
+           length(replace(pb.board, '.', '')) as placed
+      from bananagrams.player_boards pb
+      join bananagrams.progress pr
+        on pr.game_id = pb.game_id and pr.user_id = pb.user_id
+     where pb.game_id = p_game_id and pb.user_id = any (p_user_ids)
+  ), updated as (
+    update bananagrams.progress p
+       set unplaced_count = c.new_unplaced, placed = c.placed
+      from counted c
+     where p.game_id = p_game_id and p.user_id = c.user_id
+    returning c.old_unplaced, c.new_unplaced
+  )
+  select count(*) into changed_count from updated where old_unplaced <> new_unplaced;
+  return changed_count > 0;
+end;
+$$;
+revoke execute on function bananagrams._count_unplaced(uuid, uuid[]) from public;
+
+-- ============================================================
+-- bananagrams._write_statuses — the page's copies of the game
+-- ============================================================
+-- Writes `common.games.game_status`, every `common.game_players.player_status`
+-- and `common.games.clubpage_info` from bananagrams' own tables, assigning
+-- each whole (plans/common-tables.md → The statuses). Every key is always
+-- present, null when it has no value:
+--
+--   game_status    {} — bananagrams has no info column
+--   player_status  { unplaced_count, player_ended_reason }
+--                  — the strip's number (the player's tiles not in their
+--                  board's main block) and how the player ended: went out,
+--                  or conceded
+--   clubpage_info  { bunch_tiles_count, winner_user_id }
+--                  — the tiles left in the bunch, and who went out
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function bananagrams._write_statuses(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = bananagrams, common, public, extensions
+as $$
+begin
+  update common.game_players gp
+     set player_status = jsonb_build_object(
+           'unplaced_count', p.unplaced_count,
+           'player_ended_reason', gp.player_ended_reason)
+    from bananagrams.progress p
+   where gp.game_id = p_game_id
+     and p.game_id = gp.game_id
+     and p.user_id = gp.user_id;
+
+  update common.games
+     set game_status = '{}'::jsonb,
+         clubpage_info = jsonb_build_object(
+           'bunch_tiles_count', (select length(bunch) from bananagrams.games
+                                  where game_id = p_game_id),
+           'winner_user_id', (select user_id from common.game_players
+                               where game_id = p_game_id and final_ranking = 1)),
+         status_changed_at = case when p_update_status_changed_at
+                                  then now() else status_changed_at end
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function bananagrams._write_statuses(uuid, boolean) from public;
+
+drop function if exists bananagrams.create_game(text, jsonb, uuid[]);
+
+-- ============================================================
+-- bananagrams.create_game(p_club_handle, p_setup, p_player_user_ids)
+-- ============================================================
+-- Deals a new race. Compete only, single gametype 'bananagrams', so there is
+-- no mode parameter. One player is allowed: a one-player race is just "finish
+-- your own tiles."
 --
 -- Setup shape (each field validated below):
 --   { "hand_size": 15 | 21,
 --     "bunch_size": 1..144 (≥ player_count × hand_size),
 --     "word_check": 'off' | 'win' | 'strict', "dict_2": 2..6, "dict_3plus": 1..6
 --       (the two bands required unless word_check is 'off'),
---     "dump_to_bag": bool (read at dump time, not here),
+--     "dump_to_bag": bool,
 --     "timer": (none | countdown{seconds}) }
 --
--- A countdown that reaches 0 ends the race as a collective loss
--- (`submit_timeout`). `word_check` gates the real-word check: 'off' = never,
--- 'win' = on the winning peel only, 'strict' = on EVERY peel (see peel +
--- _win_blockers); the dict_* bands set the obscurity ceilings it uses.
+-- `word_check` gates the real-word check: 'off' = never, 'win' = on the
+-- winning peel only, 'strict' = on EVERY peel (see peel and _win_blockers);
+-- the dict_* bands set the obscurity ceilings it uses. The four are copied to
+-- their columns, with the defaults 'off', 4, 4 and false.
 --
--- The deal: build the 144-tile Bananagrams bag, shuffle it with a
--- throwaway seed, and hand each player a contiguous slice of
--- hand_size letters as their starting `tiles` string. Everything
--- past the dealt slices becomes the `bunch` (the bunch) that peel and
--- dump later draw from. Each player's `board` starts empty.
-
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
-drop function if exists bananagrams.create_game(text, jsonb, uuid[]);
-
+-- The deal: shuffle the 144-tile bag, keep `bunch_size` of them as this
+-- game's tiles (`bunch_at_setup`; the rest start in the out-of-play `bag`),
+-- and hand each player a contiguous slice of hand_size letters as their
+-- starting `tiles`. Everything past the dealt slices is the `bunch` that peel
+-- and dump draw from. Each player's `board` starts empty.
 create or replace function bananagrams.create_game(
-  target_club text,
-  setup jsonb,
-  player_user_ids uuid[]
+  p_club_handle text,
+  p_setup jsonb,
+  p_player_user_ids uuid[]
 )
 returns jsonb
 language plpgsql
@@ -158,28 +307,27 @@ declare
   s_word_check text;
   s_dict_2 int;
   s_dict_3plus int;
-  bag_text text;
   letters text[];
   shuffled text[];
   player_count int;
-  s_bunch_seed text;
+  s_bunch_at_setup text;
   s_bag text;
   s_bunch text;
 begin
-  -- ─── Player count: 1..6 (solo allowed — see header) ──
+  -- ─── Player count: 1..6 (solo allowed — see above) ──
   -- MUST AGREE with numberOfPlayers: [1, 6] in
   -- src/bananagrams/manifest.ts. See docs/code-conventions.md →
   -- "Per-game player counts".
-  perform common._require_player_count_max(player_user_ids, 6);
-  player_count := coalesce(array_length(player_user_ids, 1), 0);
+  perform common._require_player_count_max(p_player_user_ids, 6);
+  player_count := coalesce(array_length(p_player_user_ids, 1), 0);
 
   -- ─── Validate setup shape ────────────────────────────
-  if (setup->>'hand_size') is null then
+  if (p_setup->>'hand_size') is null then
     raise exception 'BUG: game with no hand size'
       using errcode = 'PN094', hint = 'fault', column = '_',
       detail = 'setup.hand_size absent';
   end if;
-  s_hand_size := (setup->>'hand_size')::int;
+  s_hand_size := (p_setup->>'hand_size')::int;
   if s_hand_size not in (15, 21) then
     raise exception 'BUG: hand size of %', s_hand_size
       using errcode = 'PN095', hint = 'fault', column = '_',
@@ -191,12 +339,12 @@ begin
   -- subset. MUST be ≥ player_count × hand_size or the deal can't be made —
   -- the FE disables Start on the same check (see bananagrams bunchSizeError),
   -- but the server is the authority.
-  if (setup->>'bunch_size') is null then
+  if (p_setup->>'bunch_size') is null then
     raise exception 'BUG: game with no bunch size'
       using errcode = 'PN096', hint = 'fault', column = '_',
       detail = 'setup.bunch_size absent';
   end if;
-  s_bunch_size := (setup->>'bunch_size')::int;
+  s_bunch_size := (p_setup->>'bunch_size')::int;
   if s_bunch_size < 1 or s_bunch_size > 144 then
     raise exception 'BUG: bunch size of %', s_bunch_size
       using errcode = 'PN097', hint = 'fault', column = '_',
@@ -221,30 +369,30 @@ begin
   --              are required unless 'off': dict_2 for 2-letter words (2..6 —
   --              band 1 has too few 2-letter words to be fun) and dict_3plus for
   --              longer words (1..6).
-  s_word_check := coalesce(setup->>'word_check', 'off');
+  s_word_check := coalesce(p_setup->>'word_check', 'off');
   if s_word_check not in ('off', 'win', 'strict') then
     raise exception 'BUG: word-check setting of ''%''', s_word_check
       using errcode = 'PN099', hint = 'fault', column = '_',
       detail = 'word_check must be off, win or strict';
   end if;
   if s_word_check <> 'off' then
-    if (setup->>'dict_2') is null then
+    if (p_setup->>'dict_2') is null then
       raise exception 'BUG: word checking with no 2-letter dictionary'
         using errcode = 'PN100', hint = 'fault', column = '_',
       detail = 'dict_2 required when word_check is on';
     end if;
-    s_dict_2 := (setup->>'dict_2')::int;
+    s_dict_2 := (p_setup->>'dict_2')::int;
     if s_dict_2 < 2 or s_dict_2 > 6 then
       raise exception 'BUG: 2-letter dictionary of %', s_dict_2
         using errcode = 'PN101', hint = 'fault', column = '_',
       detail = 'setup.dict_2 must be 2..6';
     end if;
-    if (setup->>'dict_3plus') is null then
+    if (p_setup->>'dict_3plus') is null then
       raise exception 'BUG: word checking with no longer-word dictionary'
         using errcode = 'PN102', hint = 'fault', column = '_',
       detail = 'dict_3plus required when word_check is on';
     end if;
-    s_dict_3plus := (setup->>'dict_3plus')::int;
+    s_dict_3plus := (p_setup->>'dict_3plus')::int;
     if s_dict_3plus < 1 or s_dict_3plus > 6 then
       raise exception 'BUG: longer-word dictionary of %', s_dict_3plus
         using errcode = 'PN103', hint = 'fault', column = '_',
@@ -252,13 +400,11 @@ begin
     end if;
   end if;
 
-  perform common._require_valid_timer(setup->'timer');
+  perform common._require_valid_timer(p_setup->'timer');
 
   -- ─── Build the bunch: shuffle the 144-tile bag, take bunch_size ──
-  -- Standard Bananagrams letter distribution. string_to_array(_, NULL)
-  -- splits the concatenated string into one element per char.
-  bag_text := bananagrams._full_bag();
-  letters := string_to_array(bag_text, NULL);
+  -- string_to_array(_, NULL) splits the string into one element per char.
+  letters := string_to_array(bananagrams._full_bag(), NULL);
 
   -- A fresh seed makes the shuffle order unpredictable. setseed wants a
   -- double in [-1, 1].
@@ -267,53 +413,58 @@ begin
     from unnest(letters) as ch;
 
   -- Split the shuffled 144 at bunch_size: the first bunch_size tiles are this
-  -- game's BUNCH (the in-play set — hands + draw pile, recorded as bunch_seed);
-  -- the rest aren't in play but aren't thrown away either — they seed the
-  -- out-of-play BAG, which a dump can dip into when the bunch is short.
-  s_bunch_seed := array_to_string(shuffled[1:s_bunch_size], '');
+  -- game's tiles (hands + draw pile, recorded as bunch_at_setup); the rest
+  -- aren't in play but aren't thrown away either — they start the out-of-play
+  -- BAG, which a dump can dip into when the bunch is short.
+  s_bunch_at_setup := array_to_string(shuffled[1:s_bunch_size], '');
   s_bag := coalesce(array_to_string(shuffled[s_bunch_size + 1:144], ''), '');
 
   -- ─── Common header + gametype rows ───────────────────
   new_id := common._create_game(
-    target_club, 'bananagrams', player_user_ids,
+    p_club_handle, 'bananagrams', 'compete', p_player_user_ids,
     -- Placeholder: the real title needs the game's id, which only exists once
     -- common._create_game has inserted the row (rewritten just below).
     'New game',
-    setup,
-    setup
+    p_setup,
+    p_setup
   );
 
-  -- Instance label for common.games.title (the club card's heading). Every
-  -- other game names itself after its content, but bananagrams has no shared
-  -- content to name: each player builds a private grid from a private hand, so
-  -- anything drawn from play would be either meaningless or a leak. So the
-  -- title is a pure IDENTIFIER — the first six hex digits of the game's own
-  -- uuid, like a short commit hash. Two games in a club list are always
-  -- tellable apart, and the handle doubles as a lookup key when Joel goes
-  -- digging in the DB for the game a friend is asking about. (Six hex digits
-  -- collide at ~1-in-16M; a club would need thousands of games to notice.)
-  -- The brand is shown from the FE manifest, never stored here.
-  -- Aliased: this function `returns table(id uuid)`, so a bare `id` in the
-  -- where clause is ambiguous between that OUT parameter and the column.
+  -- The title (the club card's heading). Every other game names itself after
+  -- its content, but bananagrams has no shared content to name: each player
+  -- builds a private grid from a private hand, so anything drawn from play
+  -- would be either meaningless or a leak. So the title is a pure IDENTIFIER —
+  -- the first six hex digits of the game's own uuid, like a short commit hash.
+  -- Two games in a club list are always tellable apart, and the handle doubles
+  -- as a lookup key for finding the game a friend is asking about. (Six hex
+  -- digits collide at ~1-in-16M.) The brand is shown from the FE manifest,
+  -- never stored here.
   update common.games cg
      set title = '#' || upper(left(new_id::text, 6))
    where cg.id = new_id;
 
   -- The bunch = every tile past the dealt slices
   -- (shuffled[player_count*hand_size + 1 .. bunch_size]). coalesce to '' for
-  -- the degenerate "exact deal, nothing left over" case so NOT NULL holds.
+  -- the "exact deal, nothing left over" case so NOT NULL holds.
   s_bunch := coalesce(
     (select string_agg(shuffled[gidx], '' order by gidx)
        from generate_series(player_count * s_hand_size + 1, s_bunch_size) as gidx),
     ''
   );
-  insert into bananagrams.games (id, club_handle, bunch_seed, bunch, bag, hand_size)
-  values (new_id, target_club, s_bunch_seed, s_bunch, s_bag, s_hand_size);
+  insert into bananagrams.games (
+    game_id, hand_size, word_check, dict_2, dict_3plus, dump_to_bag,
+    bunch_at_setup, bunch, bag
+  )
+  values (
+    new_id, s_hand_size, s_word_check, coalesce(s_dict_2, 4), coalesce(s_dict_3plus, 4),
+    coalesce((p_setup->>'dump_to_bag')::boolean, false),
+    s_bunch_at_setup, s_bunch, s_bag
+  );
 
-  -- Deal: player at ordinality `pi` (1-based) gets the slice
-  -- shuffled[(pi-1)*hs + 1 .. pi*hs] as their starting `tiles`
-  -- (everything they hold; nothing placed yet). The board starts
-  -- empty — a 25×25 = 625-char string of '.'.
+  -- Deal: player `pi` (1-based, ordered by user id — the order replay_board
+  -- re-deals in, so a Restart gives each player the same hand) gets the slice
+  -- shuffled[(pi-1)*hs + 1 .. pi*hs] as their starting `tiles` (everything
+  -- they hold; nothing placed yet). The board starts empty — a 25×25 =
+  -- 625-char string of '.'.
   insert into bananagrams.player_boards (game_id, user_id, board, tiles)
   select
     new_id,
@@ -323,19 +474,14 @@ begin
       select string_agg(shuffled[gidx], '' order by gidx)
         from generate_series((pu.pi - 1) * s_hand_size + 1, pu.pi * s_hand_size) as gidx
     )
-  from unnest(player_user_ids) with ordinality as pu(uid, pi);
+  from (select uid, row_number() over (order by uid) as pi
+          from unnest(p_player_user_ids) as uid) pu;
 
-  insert into bananagrams.progress (game_id, user_id, unplaced, placed, solved)
-  select new_id, uid, s_hand_size, 0, false
-    from unnest(player_user_ids) as uid;
+  insert into bananagrams.progress (game_id, user_id, unplaced_count, placed)
+  select new_id, uid, s_hand_size, 0
+    from unnest(p_player_user_ids) as uid;
 
-  -- Surface the bunch + bag COUNTS to the FE: `bunch`/`bag` themselves are
-  -- hidden, so the counts ride on common.games.status (which the FE already
-  -- reads live). peel/dump keep them current. The bag starts with the
-  -- 144 − bunch_size tiles left out of the bunch (they stay in the bag).
-  perform common.update_state(new_id, 'playing',
-    jsonb_build_object('bunch_remaining', length(s_bunch),
-                       'bag_remaining', length(s_bag)));
+  perform bananagrams._write_statuses(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The name is here even
   -- though this is the only `ok` — a call site cannot assert a case the payload
@@ -343,9 +489,8 @@ begin
   -- a second answer as this one.
   return common._ok_envelope(jsonb_build_object('result', 'created', 'id', new_id));
 
--- One block, and it has never heard of any specific condition: it reads the
--- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
--- the message, the kind and the field.
+-- The boundary. It reads the SQLSTATE, re-raises anything that isn't ours, and
+-- lets the raise itself carry the message, the kind and the field.
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
@@ -358,46 +503,38 @@ $$;
 
 revoke execute on function bananagrams.create_game(text, jsonb, uuid[]) from public;
 grant execute on function bananagrams.create_game(text, jsonb, uuid[]) to authenticated;
+
+drop function if exists bananagrams.save_player_board(uuid, text);
+
 -- ============================================================
 -- bananagrams.save_player_board — snapshot the private board
 -- ============================================================
+-- The board is high-frequency, PRIVATE scratch state (drag a tile, place a
+-- letter — many times a second). It does NOT round-trip per move; the FE owns
+-- it as local state and snapshots the whole grid here on a debounce and when
+-- the board component unmounts (which is what makes pause, navigating away
+-- and shelving durable — PauseBoundary UNMOUNTS the play area, so an
+-- un-snapshotted board would be lost).
 --
--- The board is high-frequency, PRIVATE scratch state (drag a tile,
--- place a letter — many times a second). It does NOT round-trip per
--- move; the FE owns it as local state and snapshots the whole grid
--- here on a debounce + when the board component unmounts (which, per
--- docs/games/bananagrams.md, is what makes pause/navigate/shelve
--- durable — PauseBoundary UNMOUNTS the play area, so an un-snapshotted
--- board would be lost).
+-- Only `p_board` is sent. The player's `tiles` (everything they hold) is
+-- SERVER-owned — set at the deal, grown by peel, swapped by dump — and the
+-- snapshot never touches it. The hand the player sees is the page's idea:
+-- `tiles` minus what is on the board.
 --
--- Only `board` is sent. The player's `tiles` (everything they hold)
--- is SERVER-owned — set at the deal, grown by peel, swapped by dump —
--- and the snapshot never touches it. The hand the player sees is
--- derived FE-side as `tiles − placed`; here we just recompute the
--- public `progress` counts peers watch from the same relationship:
---   placed   = filled (non-'.') board cells
---   unplaced = held tiles not yet placed = length(tiles) − placed
+-- Trust model: the board is private and unvalidated, so it is stored as
+-- handed — no check that the placed letters are a subset of `tiles`.
 --
--- Trust model: the board is private and unvalidated in v1, so we
--- persist it as-handed. We do NOT check the placed letters are a
--- subset of `tiles` (no injected/relettered tiles) — friends-alpha.
--- `unplaced` is clamped at 0 so a buggy/cheating client can't show a
--- negative count.
+-- Then the player's `progress` is recounted (_count_unplaced). Most saves
+-- are a player rearranging their board, which leaves the count of tiles not
+-- in the main block alone; only a save that changes it rewrites the
+-- statuses.
 --
--- Terminal games are a no-op: a late unmount-snapshot arriving after
--- someone has won shouldn't clobber the final board. A CONCEDED caller
--- is also a no-op — they've dropped out, so their board is frozen (a
--- stray unmount-snapshot mustn't revive their counts).
---
--- Both of those no-ops are NAMED answers, not silence. Dropping a snapshot on
--- purpose and storing one are different facts, and an unnamed no-op makes them
--- the same answer — so nothing can tell a save from a discard.
+-- A save into an ended game, or from a player who has conceded, is dropped —
+-- a late unmount-snapshot must not clobber a final board or revive a
+-- conceder's counts. Each of those is a NAMED answer, so a save and a
+-- discard never look the same:
 --   { result: 'saved' } | { result: 'game-over' } | { result: 'conceded' }
---
--- Dropped, not replaced: this returned `void` before it answered in an
--- envelope, and `create or replace` cannot change a return type.
-drop function if exists bananagrams.save_player_board(uuid, text);
-create or replace function bananagrams.save_player_board(target_game uuid, board text)
+create or replace function bananagrams.save_player_board(p_game_id uuid, p_board text)
 returns jsonb
 language plpgsql
 security definer
@@ -405,56 +542,46 @@ set search_path = bananagrams, common, public, extensions
 as $$
 declare
   caller_id uuid;
-  is_term boolean;
-  n_tiles int;
-  n_placed int;
-  is_conceded boolean;
+  v_ended_at timestamptz;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
-  caller_id := common._require_game_player(target_game);
+  caller_id := common._require_game_player(p_game_id);
 
-  select is_terminal into is_term from common.games where id = target_game;
-  -- (The raise this replaces said "no bananagrams.games row", which was wrong
-  -- on its face: the query above reads `common.games`.)
-  if is_term is null then
+  -- Locked like every move, so a recount and a peel or dump don't interleave
+  -- their writes of the statuses.
+  perform 1 from bananagrams.games where game_id = p_game_id for update;
+  if not found then
     raise exception 'BUG: a board save for a game that does not exist'
       using errcode = 'PN349', hint = 'fault', column = '_',
-      detail = 'no common.games row for target_game';
+      detail = 'no bananagrams.games row for p_game_id';
   end if;
-  if is_term then
+
+  select ended_at into v_ended_at from common.games where id = p_game_id;
+  if v_ended_at is not null then
     return common._ok_envelope(jsonb_build_object('result', 'game-over'));
   end if;
 
-  select conceded into is_conceded
-    from common.game_players
-   where game_id = target_game and user_id = caller_id;
-  if is_conceded then
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
     return common._ok_envelope(jsonb_build_object('result', 'conceded'));
   end if;
 
   -- The FE builds the 625-char grid itself; a player cannot hand over another
   -- size, so a wrong one is ours.
-  if length(board) <> 25 * 25 then
+  if length(p_board) <> 25 * 25 then
     raise exception 'BUG: a board save with the wrong grid size'
       using errcode = 'PN350', hint = 'fault', column = '_',
       detail = 'the 25x25 board snapshot must be 625 chars';
   end if;
 
   update bananagrams.player_boards
-     set board = save_player_board.board,
+     set board = p_board,
          updated_at = now()
-   where game_id = target_game and user_id = caller_id;
+   where game_id = p_game_id and user_id = caller_id;
 
-  -- tiles is unchanged by this call; read it back to recompute counts.
-  select length(tiles) into n_tiles
-    from bananagrams.player_boards
-   where game_id = target_game and user_id = caller_id;
-  n_placed := length(replace(board, '.', ''));
-
-  update bananagrams.progress
-     set unplaced = greatest(n_tiles - n_placed, 0),
-         placed = n_placed
-   where game_id = target_game and user_id = caller_id;
+  if bananagrams._count_unplaced(p_game_id, array[caller_id]) then
+    perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
+  end if;
 
   return common._ok_envelope(jsonb_build_object('result', 'saved'));
 
@@ -470,31 +597,37 @@ $$;
 
 revoke execute on function bananagrams.save_player_board(uuid, text) from public;
 grant execute on function bananagrams.save_player_board(uuid, text) to authenticated;
+
+drop function if exists bananagrams._win_blockers(text, integer, integer, boolean);
+
 -- ============================================================
 -- bananagrams._win_blockers — board legality
 -- ============================================================
 -- Returns the 0-indexed cells that block a legal win, or an empty array if the
--- board is a valid Bananagrams grid. Called on every winning peel. A board is
--- legal when:
+-- board is a valid Bananagrams grid. A board is legal when:
 --   1. ALWAYS: every filled tile is in ONE 4-connected mass (orthogonal only —
 --      a diagonal touch does NOT connect). Geography is structural — a
 --      scattered board isn't a real grid, so this holds even in trust-the-
 --      friends mode.
---   2. WHEN check_words: every run of 2+ tiles (across and down) spells a real
---      word — one in common.words at difficulty ≤ the band for its LENGTH:
---      `dict_2` for 2-letter words, `dict_3plus` for longer ones (2-letter
---      words are a much thinner, separate vocabulary, so they get their own
---      band). Single tiles aren't words, so they're never checked. This is the
---      opt-in part; the bands are ignored when off.
+--   2. WHEN p_check_words: every run of 2+ tiles (across and down) spells a
+--      real word — one in common.words at difficulty ≤ the band for its
+--      LENGTH: `p_dict_2` for 2-letter words, `p_dict_3plus` for longer ones
+--      (2-letter words are a much thinner, separate vocabulary, so they get
+--      their own band). Single tiles aren't words, so they're never checked.
 -- The blockers are the union of: tiles NOT in the main mass (the flood-fill
 -- from the top-left-most tile — so disconnected stragglers light up) and (when
 -- checking words) every tile of an invalid word. The FE paints these red until
 -- the player edits.
 --
 -- Plain `language sql` (not security definer): it reads only common.words
--- (granted to all) off the `board` text it's handed, so it runs fine inside
--- peel's definer context with nothing extra to leak.
-create or replace function bananagrams._win_blockers(board text, dict_2 int, dict_3plus int, check_words boolean)
+-- (granted to all) off the board it's handed, so it runs fine inside peel's
+-- definer context with nothing extra to leak.
+create or replace function bananagrams._win_blockers(
+  p_board text,
+  p_dict_2 int,
+  p_dict_3plus int,
+  p_check_words boolean
+)
 returns int[]
 language sql
 stable
@@ -503,7 +636,7 @@ as $$
   with recursive filled as (
     select i - 1 as cidx, (i - 1) / 25 as r, (i - 1) % 25 as c
       from generate_series(1, 625) as i
-     where substr(board, i, 1) <> '.'
+     where substr(p_board, i, 1) <> '.'
   ),
   -- Flood-fill the connected mass from the lowest-index tile (4-adjacency:
   -- Manhattan distance 1 — never diagonal).
@@ -522,7 +655,7 @@ as $$
   -- Words across: group consecutive cells in a row (gaps-and-islands on
   -- c − row_number()); a group of 2+ is a word.
   hgroups as (
-    select cidx, c, substr(board, cidx + 1, 1) as ch,
+    select cidx, c, substr(p_board, cidx + 1, 1) as ch,
            c - row_number() over (partition by r order by c) as grp, r
       from filled
   ),
@@ -532,7 +665,7 @@ as $$
   ),
   -- Words down: same trick, partitioned by column.
   vgroups as (
-    select cidx, r, substr(board, cidx + 1, 1) as ch,
+    select cidx, r, substr(p_board, cidx + 1, 1) as ch,
            r - row_number() over (partition by c order by r) as grp, c
       from filled
   ),
@@ -543,11 +676,11 @@ as $$
   bad_word_cells as (
     select unnest(cells) as cidx
       from (select cells, word from hwords union all select cells, word from vwords) w
-     where check_words
+     where p_check_words
        and not exists (
          select 1 from common.words cw
           where cw.word = lower(w.word)
-            and cw.difficulty <= case when length(w.word) = 2 then dict_2 else dict_3plus end
+            and cw.difficulty <= case when length(w.word) = 2 then p_dict_2 else p_dict_3plus end
        )
   )
   select coalesce(
@@ -560,49 +693,37 @@ as $$
 $$;
 revoke execute on function bananagrams._win_blockers(text, integer, integer, boolean) from public;
 
+drop function if exists bananagrams.peel(uuid);
+
 -- ============================================================
 -- bananagrams.peel — draw a round, or go out (Bananas!)
 -- ============================================================
+-- A player who has placed every tile they hold (empty hand) clicks "Peel".
+-- Two outcomes, decided by whether the bunch can refill the whole table:
 --
--- The heart of v2. A player who has placed every tile they hold (empty hand)
--- clicks "Peel". Two outcomes, decided by whether the bunch can refill the
--- whole table:
+--   - Enough tiles (bunch ≥ the players still racing): EVERY player still
+--     racing draws 1 from the bunch and the game continues. (Yes — everyone
+--     draws, not just the peeler; that's the threshold's shape.)
+--   - Not enough: the peeler goes out and WINS — the Bananagrams endgame. The
+--     race ends when decided: the peeler alone is ranked 1, and everyone else
+--     is short of the goal (docs/win-lose.md).
 --
---   - Enough tiles (bunch >= players × peel_count): EVERY player draws
---     peel_count from the bunch and the game continues. (Yes — everyone draws,
---     not just the peeler; that's the threshold's shape.)
---   - Not enough: the peeler goes out and WINS — the Bananagrams endgame.
+-- The base gate is "hand empty" (placed == length(tiles)), trusting the FE
+-- flushed its latest board first.
 --
--- This is the game's only intrinsic terminal: "place your last tile and the
--- bunch is dry" IS the win condition, detected right here in peel (there is no
--- separate "declare done" move — only the manual stop_game below).
---
--- peel_count comes from setup (default 1) — a future setup option can make it
--- 2 without touching this logic. The base gate is "hand empty" (placed ==
--- length(tiles)), trusting the FE flushed its latest board first.
---
--- **Board check on a peel.** A WINNING peel (bunch can't refill) is always
--- validated for GEOGRAPHY via _win_blockers — the grid must be one connected
--- mass (a scattered board can't win, even in trust-the-friends mode). When
--- setup.word_check is 'win' or 'strict' it ALSO requires every word to be real.
--- If anything blocks, the game stays in progress and the offending cells come
--- back for the FE to paint red. A CONTINUING peel (bunch can refill) is
--- normally not validated — you're not winning yet — EXCEPT under 'strict',
--- where the same check runs on every peel (you can't peel an invalid board).
+-- **Board check on a peel.** A WINNING peel is always checked for GEOGRAPHY
+-- via _win_blockers — the grid must be one connected mass. When `word_check`
+-- is 'win' or 'strict' it ALSO requires every word to be real. If anything
+-- blocks, the game stays in progress and the offending cells come back for
+-- the FE to paint red. A CONTINUING peel is not checked — you're not winning
+-- yet — EXCEPT under 'strict', where the same check runs on every peel.
 --
 -- Three ok answers, and `illegal` is one of them ON PURPOSE: a board that isn't
 -- ready is a state of play, not a rejection — the game stays in progress and the
 -- player fixes the red cells and peels again.
 --   { result: 'dealt' | 'won' | 'illegal', invalid_cells: int[] }
--- `invalid_cells` is present on all three (empty on the two that succeeded),
--- exactly as before the envelope: a converted RPC keeps what it returned.
---
--- Race-safety: lock the gametype row up front so two simultaneous peels
--- serialize. The first either ends the game or advances the bunch; the second
--- then sees the new state (a non-'playing' game, or a smaller bunch) and acts on
--- it. Without the lock two peelers could both draw from the same bunch slice.
-
-create or replace function bananagrams.peel(target_game uuid)
+-- `invalid_cells` is present on all three (empty on the two that succeeded).
+create or replace function bananagrams.peel(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -610,48 +731,36 @@ set search_path = bananagrams, common, public, extensions
 as $$
 declare
   caller_id uuid;
-  current_play_state text;
-  s_setup jsonb;
+  g bananagrams.games%rowtype;
   v_board text;
   n_tiles int;
   n_placed int;
-  s_peel_count int;
-  s_bunch text;
-  s_bag text;
-  player_count int;
-  needed int;
-  winner_name text;
-  player_results jsonb;
-  v_word_check text;
-  v_dict_2 int;
-  v_dict_3plus int;
+  racing_count int;
   v_blockers int[];
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  -- Serialize concurrent peels on the gametype row (see header).
-  perform 1 from bananagrams.games where id = target_game for update;
+  -- Locked like every move, so two peels, or a peel and a dump, serialize on
+  -- the shared bunch: the second sees the game over or the smaller bunch.
+  select * into g from bananagrams.games where game_id = p_game_id for update;
   -- A friend deleted the game while this call was in flight: the shared race,
   -- asked before the membership gate, which the delete took with it.
   if not found then
     perform common._raise_game_deleted('bananagrams');
   end if;
 
-  caller_id := common._require_game_player(target_game);
+  caller_id := common._require_game_player(p_game_id);
 
-  select play_state, setup into current_play_state, s_setup
-    from common.games where id = target_game;
-  -- A RACE, not a bug: the Peel button is gone at terminal, but someone else's
-  -- winning peel can land while this click is in flight.
-  if current_play_state <> 'playing' then
+  -- A RACE, not a bug: the Peel button is gone once the game ends, but
+  -- someone else's winning peel can land while this click is in flight.
+  if (select ended_at from common.games where id = p_game_id) is not null then
     perform common._raise_game_over();
   end if;
 
-  -- A conceded player is out of the race — they can't peel. Conceded now
-  -- lives on common.game_players (the shared per-player drop-out flag). Also a
-  -- race: the button is hidden once you concede, so reaching this means a
-  -- second tab that has not heard yet.
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = caller_id) then
+  -- A conceded player is out of the race — they can't peel. Also a race: the
+  -- button is hidden once you concede, so reaching this means a second tab
+  -- that has not heard yet.
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
     perform common._raise_already_conceded();
   end if;
 
@@ -659,14 +768,14 @@ begin
   select board, length(tiles), length(replace(board, '.', ''))
     into v_board, n_tiles, n_placed
     from bananagrams.player_boards
-   where game_id = target_game and user_id = caller_id;
+   where game_id = p_game_id and user_id = caller_id;
   -- The board row is written at deal, and `_require_game_player` above has
   -- already established membership — so a member with no board is an
   -- inconsistency of ours.
   if v_board is null then
     raise exception 'BUG: a peel from a player with no board'
       using errcode = 'PN341', hint = 'fault', column = '_',
-      detail = 'no bananagrams.player_boards row for (target_game, caller)';
+      detail = 'no bananagrams.player_boards row for (p_game_id, caller)';
   end if;
   -- The Peel button is disabled until the hand empties, and clicking it flushes
   -- the board first so this comparison is against what the player sees. A
@@ -677,118 +786,70 @@ begin
       detail = 'peel requires every tile placed on the board';
   end if;
 
-  s_peel_count := greatest(coalesce((s_setup->>'peel_count')::int, 1), 1);
-  -- Read bag too: peel doesn't change it, but update_state replaces the whole
-  -- status blob, so the dealt-status below must re-emit bag_remaining or the
-  -- FE's bag count would vanish after a peel.
-  select bunch, bag into s_bunch, s_bag from bananagrams.games where id = target_game;
-  -- Only ACTIVE (non-conceded) players draw on a peel — a player who has
-  -- dropped out neither needs tiles nor holds up the bunch math. So the table
-  -- to refill is the active count, and the winning-peel threshold below is
-  -- against THAT, not the raw roster.
-  select count(*)::int into player_count
+  -- Only players still racing draw on a peel — one who has conceded neither
+  -- needs tiles nor holds up the bunch math — so the winning-peel threshold is
+  -- against them, not the whole roster.
+  select count(*)::int into racing_count
     from common.game_players
-   where game_id = target_game and not conceded;
-  needed := player_count * s_peel_count;
-
-  -- Word-check policy for this game (see create_game / _win_blockers):
-  --   'off'    → words never checked (geography still gates a win)
-  --   'win'    → words checked on the winning peel
-  --   'strict' → words checked on EVERY peel (can't peel an invalid board)
-  v_word_check := coalesce(s_setup->>'word_check', 'off');
-  v_dict_2 := coalesce((s_setup->>'dict_2')::int, 4);
-  v_dict_3plus := coalesce((s_setup->>'dict_3plus')::int, 4);
+   where game_id = p_game_id and player_ended_at is null;
 
   -- ─── Not enough to refill the table → the peeler goes out (win) ───
-  if length(s_bunch) < needed then
-    -- A winning board is ALWAYS checked for geography (one connected mass —
-    -- a scattered grid can't win), and additionally for real words when
-    -- word_check is 'win' or 'strict'. If anything blocks, don't end the game —
-    -- hand the FE the offending cells to paint red; the player fixes + re-peels.
-    v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, v_word_check <> 'off');
+  if length(g.bunch) < racing_count then
+    v_blockers := bananagrams._win_blockers(v_board, g.dict_2, g.dict_3plus, g.word_check <> 'off');
     if array_length(v_blockers, 1) > 0 then
       return common._ok_envelope(jsonb_build_object(
         'result', 'illegal', 'invalid_cells', to_jsonb(v_blockers)));
     end if;
 
-    update bananagrams.progress
-       set solved = true, finished_at = now()
-     where game_id = target_game and user_id = caller_id;
-
-    select username into winner_name
-      from common.profiles where user_id = caller_id;
-
-    select jsonb_object_agg(
-             user_id::text,
-             case when user_id = caller_id
-                  then '{"won": true}'::jsonb
-                  else '{"won": false}'::jsonb
-             end)
-      into player_results
-      from common.game_players where game_id = target_game;
+    update common.game_players
+       set solved_at = now()
+     where game_id = p_game_id and user_id = caller_id;
+    perform common._set_player_ended(p_game_id, caller_id, 'reached_goal', 'complete');
 
     perform common._end_game(
-      target_game,
-      'won',
-      jsonb_build_object('reason', 'complete', 'winner_username', winner_name,
-                         'bunch_remaining', length(s_bunch)),
-      player_results
+      p_game_id, 'reached_goal', 'complete', caller_id,
+      p_is_no_result => false,
+      p_final_rankings => jsonb_build_object(caller_id::text, 1)
     );
+
+    perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
     return common._ok_envelope(jsonb_build_object(
       'result', 'won', 'invalid_cells', '[]'::jsonb));
   end if;
 
-  -- ─── Strict mode: a CONTINUING peel is validated too ───
-  -- In 'strict' word_check you can't peel with an invalid board: the SAME
-  -- _win_blockers check (connectivity + real words) that gates a win runs on
-  -- every peel, not just the winning one. Block without dealing if anything's
-  -- wrong — the FE paints the cells red and shows an error. ('off' / 'win'
-  -- never validate a continuing peel: you're not winning yet.)
-  if v_word_check = 'strict' then
-    v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, true);
+  -- ─── Strict: a CONTINUING peel is checked too ───
+  if g.word_check = 'strict' then
+    v_blockers := bananagrams._win_blockers(v_board, g.dict_2, g.dict_3plus, true);
     if array_length(v_blockers, 1) > 0 then
       return common._ok_envelope(jsonb_build_object(
         'result', 'illegal', 'invalid_cells', to_jsonb(v_blockers)));
     end if;
   end if;
 
-  -- ─── Enough → every ACTIVE player draws peel_count from the bunch ───
-  -- Active player at rank `pi` (1-based, stable order) takes the slice
-  -- s_bunch[(pi-1)*peel_count + 1 .. peel_count]; the total drawn is `needed`.
-  -- Conceded players are excluded (they don't draw), so the ranks are dense
-  -- over the active set and line up with `needed` = active_count × peel_count.
+  -- ─── Enough → every player still racing draws 1 from the bunch ───
+  -- The racer at rank `pi` (1-based, a stable order) takes bunch[pi].
   with ranked as (
     select user_id, row_number() over (order by user_id) as pi
       from common.game_players
-     where game_id = target_game and not conceded
+     where game_id = p_game_id and player_ended_at is null
   )
   update bananagrams.player_boards pb
-     set tiles = pb.tiles || substr(s_bunch, ((r.pi - 1) * s_peel_count + 1)::int, s_peel_count),
+     set tiles = pb.tiles || substr(g.bunch, r.pi::int, 1),
          updated_at = now()
     from ranked r
-   where pb.game_id = target_game and pb.user_id = r.user_id;
+   where pb.game_id = p_game_id and pb.user_id = r.user_id;
 
-  -- Each active player's unplaced count grows by what they just drew (placed is
-  -- unchanged by a peel; conceded players didn't draw, so leave them be). Active
-  -- = has a non-conceded common.game_players row.
-  update bananagrams.progress p
-     set unplaced = unplaced + s_peel_count
-   where p.game_id = target_game
-     and exists (
-       select 1 from common.game_players gp
-        where gp.game_id = p.game_id and gp.user_id = p.user_id and not gp.conceded
-     );
+  -- Each racer now holds one more tile than their board shows.
+  perform bananagrams._count_unplaced(p_game_id, array(
+    select user_id from common.game_players
+     where game_id = p_game_id and player_ended_at is null));
 
   -- Advance the bunch past the drawn tiles.
   update bananagrams.games
-     set bunch = substr(s_bunch, needed + 1)
-   where id = target_game;
+     set bunch = substr(g.bunch, racing_count + 1)
+   where game_id = p_game_id;
 
-  -- Keep the FE's bunch count current (bag is unchanged by a peel).
-  perform common.update_state(target_game, 'playing',
-    jsonb_build_object('bunch_remaining', length(s_bunch) - needed,
-                       'bag_remaining', length(s_bag)));
-
+  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object(
     'result', 'dealt', 'invalid_cells', '[]'::jsonb));
 
@@ -804,29 +865,34 @@ $$;
 
 revoke execute on function bananagrams.peel(uuid) from public;
 grant execute on function bananagrams.peel(uuid) to authenticated;
--- ============================================================
--- bananagrams.dump — swap one tile for three from the bunch
+
+drop function if exists bananagrams.check_board(uuid);
+
 -- ============================================================
 -- bananagrams.check_board — "is my board legal?", on demand
 -- ============================================================
--- The **Check words** action button (2026-08-03). Runs the same legality test
--- a winning peel runs — one connected mass, every word real — against the
--- caller's own board, and hands back the offending cells so the FE can paint
--- them red exactly as a blocked peel does.
+-- The **Check words** action button. Runs the same legality test a winning
+-- peel runs — one connected mass, every word real — against the caller's own
+-- board, and hands back the offending cells so the FE can paint them red
+-- exactly as a blocked peel does.
 --
--- **Always available, whatever `setup.word_check` says.** That option governs
--- when the server ENFORCES words (never / on the winning peel / on every
--- peel); this is the player asking a question about their own board, and the
--- answer is useful in all three. So `check_words` is passed `true`
--- unconditionally, and the bands fall back to 4 — the FE's default and the
--- reason its two `DifficultyField` pickers show regardless of mode, which the
--- setup form has been doing since before this existed.
+-- **Always available, whatever `word_check` says.** That option governs when
+-- the server ENFORCES words (never / on the winning peel / on every peel);
+-- this is the player asking a question about their own board, and the answer
+-- is useful in all three. So the words are always checked, at the game's two
+-- bands (4 and 4 when the game was made with word_check 'off' — the form's
+-- defaults, and the reason its two band pickers show regardless of mode).
 --
--- Read-only: no state, no log, no peer effect. It can't be a cheat in the
--- sense the hint RPCs are — it reveals nothing the player doesn't already have
--- on screen, it just applies the rule they'd hit anyway on a peel. Caller-
--- scoped, so it can't inspect a peer's board.
-create or replace function bananagrams.check_board(target_game uuid)
+-- Read-only: no state, no log, no peer effect. It reveals nothing the player
+-- doesn't already have on screen. Caller-scoped, so it can't inspect a peer's
+-- board.
+--
+-- THREE answers, because the surface says three different things. An empty
+-- board has no blockers, so "clean" and "empty" are one shape unless they are
+-- named — and congratulating someone who has not put a tile down is the bug
+-- that naming prevents. Each carries the blockers and the filled-cell count:
+--   { result: 'invalid' | 'empty' | 'clean', invalid_cells: int[], placed: int }
+create or replace function bananagrams.check_board(p_game_id uuid)
 returns jsonb
 language plpgsql
 stable
@@ -836,44 +902,30 @@ as $$
 declare
   v_caller     uuid;
   v_board      text;
-  v_setup      jsonb;
   v_dict_2     int;
   v_dict_3plus int;
   v_blockers   int[];
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
-  v_caller := common._require_game_player(target_game);
+  v_caller := common._require_game_player(p_game_id);
 
   select board into v_board
     from bananagrams.player_boards
-   where game_id = target_game and user_id = v_caller;
+   where game_id = p_game_id and user_id = v_caller;
   -- The board row is written at deal, and `_require_game_player` above has
   -- already established membership — so a member with no board is an
   -- inconsistency of ours, not something a player reached.
-  --
-  -- (The raise this replaces said "no bananagrams.games row", which was wrong
-  -- on its face: the query above reads `player_boards`.)
   if v_board is null then
     raise exception 'BUG: a board check for a player with no board'
       using errcode = 'PN337', hint = 'fault', column = '_',
-      detail = 'no bananagrams.player_boards row for (target_game, caller)';
+      detail = 'no bananagrams.player_boards row for (p_game_id, caller)';
   end if;
 
-  select setup into v_setup from common.games where id = target_game;
-  v_dict_2     := coalesce((v_setup->>'dict_2')::int, 4);
-  v_dict_3plus := coalesce((v_setup->>'dict_3plus')::int, 4);
+  select dict_2, dict_3plus into v_dict_2, v_dict_3plus
+    from bananagrams.games where game_id = p_game_id;
 
   v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, true);
 
-  -- THREE answers, because the surface says three different things. An empty
-  -- board has no blockers, so "clean" and "empty" are one shape unless they are
-  -- named — and congratulating someone who has not put a tile down is the bug
-  -- that naming prevents.
-  --
-  -- Naming them does NOT retire `placed`, which is what used to carry that
-  -- distinction: every answer still reports the blockers and the filled-cell
-  -- count. A converted RPC keeps everything it used to return (see the plan's
-  -- §6) — the FE may want it, and it is worth having in the log either way.
   if array_length(v_blockers, 1) > 0 then
     return common._ok_envelope(jsonb_build_object(
       'result', 'invalid',
@@ -904,46 +956,39 @@ $$;
 revoke execute on function bananagrams.check_board(uuid) from public;
 grant execute on function bananagrams.check_board(uuid) to authenticated;
 
+drop function if exists bananagrams.dump(uuid, text);
+
 -- ============================================================
+-- bananagrams.dump — swap one tile for three from the bunch
+-- ============================================================
+-- A player stuck with an awkward tile (a Q, a lone consonant) trades it and
+-- draws 3 in return — a net +2 to the hand, the cost of getting unstuck.
 --
--- A player stuck with an awkward tile (a Q, a lone consonant) trades it: they
--- draw dump_count (default 3) in return — a net +2 to the hand, the cost of
--- getting unstuck.
---
--- What happens to the DUMPED tile depends on setup.dump_to_bag:
---   - default (false) — return-to-bunch: it goes back into the bunch (the BACK
---     of the bunch) and may be drawn again later. Tile count is conserved.
+-- What happens to the DUMPED tile depends on `dump_to_bag`:
+--   - false — return-to-bunch: it goes to the BACK of the bunch and may be
+--     drawn again later.
 --   - true — to-the-bag: it goes to the `bag` reserve instead, so the BUNCH
---     depletes (the game ends sooner). The bag isn't dead, though — see below.
--- Either way the player still draws dump_count.
+--     depletes (the game ends sooner).
+-- Either way the player still draws 3.
 --
--- The draw: dump_count tiles from the FRONT of the bunch; if the bunch is
--- short (only possible in to-bag mode, once the bag holds tiles), the rest
--- comes from the FRONT of the bag. So you can dump as long as the bunch AND
--- bag together cover the draw.
+-- The draw: 3 tiles from the FRONT of the bunch; if the bunch is short, the
+-- rest comes from the FRONT of the bag (which holds the tiles a smaller
+-- bunch_size left out, and any dumped to it). So you can dump as long as the
+-- bunch and bag together cover the draw.
 --
 -- Two guarantees from the rules:
 --   - You can't dump unless bunch + bag can cover the draw. The dumped tile is
 --     placed only AFTER the draw, so it can never refill its own swap.
---   - You won't draw back the SAME tile: the dumped tile lands at the BACK
---     (of the bunch for return-to-bunch, of the bag for to-bag), behind anything
+--   - You won't draw back the SAME tile: it lands at the BACK, behind anything
 --     drawn. (You might draw the same LETTER if another copy was near a front —
 --     that's allowed.)
 --
--- dump_count comes from setup (default 3) — a future setup option can change it
--- without touching this logic. No board/word validation (v2 trust model); the
--- only check is that the caller actually holds the tile they're dumping.
---
--- Locks the gametype row so a dump and a concurrent peel serialize on the
--- shared bunch (both draw from the front).
+-- No board or word check (trust model); the only check is that the caller
+-- actually holds the tile they're dumping.
 --
 -- One ok answer — { result: 'dumped' } — since the swap either happens or is
 -- refused; the new hand arrives over realtime, not in the reply.
---
--- Dropped, not replaced: this returned `void` before it answered in an
--- envelope, and `create or replace` cannot change a return type.
-drop function if exists bananagrams.dump(uuid, text);
-create or replace function bananagrams.dump(target_game uuid, tile text)
+create or replace function bananagrams.dump(p_game_id uuid, p_tile text)
 returns jsonb
 language plpgsql
 security definer
@@ -951,12 +996,8 @@ set search_path = bananagrams, common, public, extensions
 as $$
 declare
   caller_id uuid;
-  current_play_state text;
-  s_setup jsonb;
-  s_dump_count int;
-  s_dump_to_bag boolean;
-  s_bunch text;
-  s_bag text;
+  g bananagrams.games%rowtype;
+  v_tile text;
   from_bunch int;
   from_bag int;
   new_bunch text;
@@ -966,53 +1007,44 @@ declare
   pos int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  -- Serialize against concurrent peels/dumps on the shared bunch.
-  perform 1 from bananagrams.games where id = target_game for update;
+  -- Locked like every move, so a dump and a peel serialize on the shared bunch.
+  select * into g from bananagrams.games where game_id = p_game_id for update;
   -- A friend deleted the game while this call was in flight: the shared race,
   -- asked before the membership gate, which the delete took with it.
   if not found then
     perform common._raise_game_deleted('bananagrams');
   end if;
 
-  caller_id := common._require_game_player(target_game);
+  caller_id := common._require_game_player(p_game_id);
 
-  select play_state, setup into current_play_state, s_setup
-    from common.games where id = target_game;
-  -- A RACE: the dump zone is gone at terminal, but a rival's winning peel can
-  -- land while this drop is in flight.
-  if current_play_state <> 'playing' then
+  -- A RACE: the dump zone is gone once the game ends, but a rival's winning
+  -- peel can land while this drop is in flight.
+  if (select ended_at from common.games where id = p_game_id) is not null then
     perform common._raise_game_over();
   end if;
 
-  -- A conceded player is out of the race — they can't drain the shared
-  -- bunch via a dump. Mirrors the peel guard. The FE gates on myConceded,
-  -- so this only fires on a race (a dump in flight when concede commits,
-  -- or a stale second tab).
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = caller_id) then
+  -- A conceded player is out of the race — they can't drain the shared bunch
+  -- with a dump. The FE hides the dump zone from a conceder, so this only
+  -- fires on a race (a dump in flight when the concession commits, or a stale
+  -- second tab).
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
     perform common._raise_already_conceded();
   end if;
 
   -- The letter always comes off a tile the FE rendered — there is no way to
   -- type one — so anything else is ours.
-  tile := upper(tile);
-  if tile !~ '^[A-Z]$' then
+  v_tile := upper(p_tile);
+  if v_tile !~ '^[A-Z]$' then
     raise exception 'BUG: a dump of something that is not a tile'
       using errcode = 'PN346', hint = 'fault', column = '_',
       detail = 'a tile id is a single letter';
   end if;
 
-  s_dump_count := greatest(coalesce((s_setup->>'dump_count')::int, 3), 1);
-  s_dump_to_bag := coalesce((s_setup->>'dump_to_bag')::boolean, false);
-
-  select bunch, bag into s_bunch, s_bag from bananagrams.games where id = target_game;
-  -- You need dump_count tiles to draw. Normally that's just the bunch, but in
-  -- to-bag mode the bag can top up a draw the bunch can't cover (return-to-bunch
-  -- keeps the bag empty, so this reduces to "bunch < dump_count" there).
   -- A RACE, not a bug: the dump zone reads its own count and refuses the drop
   -- below it, but the bunch is SHARED — a rival's peel can drain it between
   -- that read and this call.
-  if length(s_bunch) + length(s_bag) < s_dump_count then
+  if length(g.bunch) + length(g.bag) < 3 then
     raise exception 'Bunch too low to dump'
       using errcode = 'PN347', hint = 'race', column = '_',
       detail = 'the bunch holds fewer than the 3 tiles a dump returns';
@@ -1023,51 +1055,40 @@ begin
   -- server's view of the hand can legitimately lag the screen's for a moment.
   select tiles into caller_tiles
     from bananagrams.player_boards
-   where game_id = target_game and user_id = caller_id;
-  pos := position(tile in caller_tiles);
+   where game_id = p_game_id and user_id = caller_id;
+  pos := position(v_tile in caller_tiles);
   if pos = 0 then
     raise exception 'You don''t have that tile'
       using errcode = 'PN348', hint = 'race', column = '_',
       detail = 'the dumped tile is not in the caller''s hand per the server';
   end if;
 
-  -- Draw dump_count from the FRONT of the bunch first, then top up from the
-  -- FRONT of the bag if the bunch is short. (The bag can hold tiles in EITHER
-  -- mode now — a reduced bunch_size leaves its remainder there — so always pull
-  -- the drawn tiles off both fronts.)
-  from_bunch := least(length(s_bunch), s_dump_count);
-  from_bag  := s_dump_count - from_bunch;
-  drawn := substr(s_bunch, 1, from_bunch) || substr(s_bag, 1, from_bag);
-  new_bunch := substr(s_bunch, from_bunch + 1);
-  new_bag  := substr(s_bag, from_bag + 1);
+  from_bunch := least(length(g.bunch), 3);
+  from_bag  := 3 - from_bunch;
+  drawn := substr(g.bunch, 1, from_bunch) || substr(g.bag, 1, from_bag);
+  new_bunch := substr(g.bunch, from_bunch + 1);
+  new_bag  := substr(g.bag, from_bag + 1);
 
-  -- The dumped tile then lands at the BACK of the bunch (return-to-bunch) or the
-  -- BACK of the bag (to-bag) — after the draw, so it can't refill its own swap.
-  if s_dump_to_bag then
-    new_bag := new_bag || tile;
+  -- The dumped tile then lands at the BACK of the bunch or the bag — after the
+  -- draw, so it can't refill its own swap.
+  if g.dump_to_bag then
+    new_bag := new_bag || v_tile;
   else
-    new_bunch := new_bunch || tile;
+    new_bunch := new_bunch || v_tile;
   end if;
 
   update bananagrams.player_boards
      set tiles = overlay(caller_tiles placing '' from pos for 1) || drawn,
          updated_at = now()
-   where game_id = target_game and user_id = caller_id;
+   where game_id = p_game_id and user_id = caller_id;
 
   update bananagrams.games
      set bunch = new_bunch, bag = new_bag
-   where id = target_game;
+   where game_id = p_game_id;
 
-  -- The caller's hand math is identical either way (−1 dumped, +dump_count
-  -- drawn), so unplaced grows by dump_count − 1 regardless.
-  update bananagrams.progress
-     set unplaced = unplaced + (s_dump_count - 1)
-   where game_id = target_game and user_id = caller_id;
+  perform bananagrams._count_unplaced(p_game_id, array[caller_id]);
 
-  perform common.update_state(target_game, 'playing',
-    jsonb_build_object('bunch_remaining', length(new_bunch),
-                       'bag_remaining', length(new_bag)));
-
+  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'dumped'));
 
 exception when others then
@@ -1082,27 +1103,17 @@ $$;
 
 revoke execute on function bananagrams.dump(uuid, text) from public;
 grant execute on function bananagrams.dump(uuid, text) to authenticated;
--- ============================================================
--- bananagrams.submit_timeout — countdown expiry (everyone loses)
--- ============================================================
---
--- Fired by GamePage when a chosen countdown hits 0 before anyone goes
--- out. bananagrams is a race, so time expiring with no winner is a
--- COLLECTIVE loss: every player's result is {"won": false}, same shape
--- as the manual stop_game but framed as a loss, not a neutral quit.
--- Modeled on stackdown.submit_timeout's compete branch.
---
--- Shape vs. the other terminals:
---   - play_state 'lost' — everyone lost (distinct from 'won' = a
---     peel-win, and 'ended' = the neutral manual stop)
---   - status.reason 'timeout'; NO winner_username, so the PlayArea
---     renders a no-winner "Time's up" loss for all
---
--- Idempotent on the in-progress check: a second caller, or a click
--- racing a real peel-win, raises P0001 — which the manifest swallows.
+
 drop function if exists bananagrams.submit_timeout(uuid);
 
-create or replace function bananagrams.submit_timeout(target_game uuid)
+-- ============================================================
+-- bananagrams.submit_timeout — countdown expiry
+-- ============================================================
+-- Fired by every connected client when a countdown hits 0 before anyone goes
+-- out; the first ends the game, the rest find it ended and answer the
+-- game-over race. Nobody reached the goal, so nobody is ranked and everyone
+-- lost. bananagrams has no turn order, so nobody is recorded as ending it.
+create or replace function bananagrams.submit_timeout(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1110,42 +1121,25 @@ set search_path = bananagrams, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  current_play_state text;
-  player_results jsonb;
 begin
-  -- Lock the gametype row so the timeout and a concurrent peel-win
-  -- serialize — only one of them writes the terminal state.
-  perform 1 from bananagrams.games where id = target_game for update;
+  -- Locked, so the timeout and a concurrent winning peel serialize.
+  perform 1 from bananagrams.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('bananagrams');
   end if;
 
-  perform common._require_game_player(target_game);
-
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
+  perform common._require_game_player(p_game_id);
+  if (select ended_at from common.games where id = p_game_id) is not null then
     perform common._raise_game_over();
   end if;
 
-  -- Everyone {"won": false}: time ran out with nobody going out.
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players where game_id = target_game;
-
   perform common._end_game(
-    target_game, 'lost',
-    jsonb_build_object('reason', 'timeout'),
-    player_results
+    p_game_id, 'timeout', 'timeout', null,
+    p_is_no_result => false,
+    p_final_rankings => '{}'::jsonb
   );
 
-  -- Realtime touch — same trick as bananagrams.stop_game: common._end_game
-  -- writes common.games (wakes the terminal modal via useCommonGame), but
-  -- the bananagrams channels watch player_boards / progress, so nudge
-  -- progress with a no-op self-set to produce a WAL entry for them.
-  update bananagrams.progress
-     set unplaced = unplaced
-   where game_id = target_game;
+  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1161,35 +1155,33 @@ $$;
 revoke execute on function bananagrams.submit_timeout(uuid) from public;
 grant execute on function bananagrams.submit_timeout(uuid) to authenticated;
 
--- ============================================================
--- bananagrams.concede — a player drops out of the race
+drop function if exists bananagrams.replay_board(uuid);
+
 -- ============================================================
 -- bananagrams.replay_board — deal this game again from scratch
 -- ============================================================
--- The "Restart" game-menu item / terminal-row Restart. Same game row, same
--- tiles: every board is emptied, every hand is re-dealt from `bunch_seed` (the
--- immutable record of this game's shuffled deal — see its column comment,
--- which reserved it for exactly this), and the draw pile + out-of-play bag go
--- back to their opening sizes.
+-- The "Restart" game-menu item and terminal-row Restart. Same game row, same
+-- tiles: every board is emptied, every hand is re-dealt from `bunch_at_setup`
+-- (the record of this game's shuffled deal), and the draw pile and
+-- out-of-play bag go back to their opening sizes.
 --
 -- **Why bananagrams has a restart at all**, when a fresh deal would be nearly
 -- the same game: because *every other game has one*, and a player who can't
 -- find "Restart" where they expect it doesn't conclude "this game is different"
--- — they conclude the app is broken (2026-08-03). It's a real reset, not an
--- alias for New game: same row, so the club list doesn't grow an entry and
--- everyone stays in the game they're already in.
+-- — they conclude the app is broken. It's a real reset, not an alias for New
+-- game: same row, so the club list doesn't grow an entry and everyone stays in
+-- the game they're already in.
 --
--- Re-dealing from the seed rather than reshuffling keeps it a *restart*: the
+-- Re-dealing from the deal rather than reshuffling keeps it a *restart*: the
 -- same hands come back, so "we all misread the rules, start over" returns you
 -- to the game you just had. The bag is rebuilt as the full 144-tile
--- distribution minus the seed — dumps may have shuffled tiles between bunch and
--- bag, and tile identity is only ever a multiset, so subtracting is exact.
+-- distribution minus `bunch_at_setup` — dumps may have moved tiles between
+-- bunch and bag, and tile identity is only ever a multiset, so subtracting is
+-- exact.
 --
--- Any game player may call it, from a finished game OR mid-game (no play_state
--- guard — it's a restart; the FE confirms mid-game). Resets ALL players.
-drop function if exists bananagrams.replay_board(uuid);
-
-create or replace function bananagrams.replay_board(target_game uuid)
+-- Any game player may call it, mid-game or after the game ends (no ended
+-- check — it's a restart; the FE confirms mid-game). Resets ALL players.
+create or replace function bananagrams.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1197,44 +1189,44 @@ set search_path = bananagrams, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g_row       bananagrams.games%rowtype;
-  n_players   int;
-  new_bunch   text;
-  new_bag     text;
+  g         bananagrams.games%rowtype;
+  n_players int;
+  new_bunch text;
+  new_bag   text;
 begin
-
-  select * into g_row from bananagrams.games where id = target_game;
+  -- FOR UPDATE: a replay racing a move must not interleave with it, or the
+  -- reset could land on a half-applied move.
+  select * into g from bananagrams.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('bananagrams');
   end if;
 
-  -- The row check comes BEFORE the membership gate, and the order is the whole
-  -- point: `delete_game` takes this row, `common.games` and every
-  -- `game_players` row together, so a caller whose game was just deleted has no
-  -- membership left either. Gate-first told them "You are not in this game",
-  -- which is both wrong and unhelpful — they WERE in it; it is gone.
-  perform common._require_game_player(target_game);
+  -- The row check comes BEFORE the membership gate: `delete_game` takes this
+  -- row, `common.games` and every `game_players` row together, so a caller
+  -- whose game was just deleted has no membership left either, and would be
+  -- told "You are not in this game" — they WERE in it; it is gone.
+  perform common._require_game_player(p_game_id);
 
   select count(*) into n_players
-    from common.game_players where game_id = target_game;
+    from common.game_players where game_id = p_game_id;
 
-  -- Re-deal: player i (1-based, ordered by user_id so the split is stable
-  -- across calls) takes seed[(i-1)*hand + 1 .. i*hand]; the rest of the seed is
-  -- the draw pile again.
+  -- Re-deal: player i (1-based, ordered by user id, as create_game dealt)
+  -- takes the deal's [(i-1)*hand + 1 .. i*hand]; the rest of the deal is the
+  -- draw pile again.
   update bananagrams.player_boards pb
      set board = repeat('.', 25 * 25),
-         tiles = substr(g_row.bunch_seed,
-                        ((ord.i - 1) * g_row.hand_size + 1)::int, g_row.hand_size),
+         tiles = substr(g.bunch_at_setup,
+                        ((ord.i - 1) * g.hand_size + 1)::int, g.hand_size),
          updated_at = now()
     from (
       select user_id, row_number() over (order by user_id) as i
-        from bananagrams.player_boards where game_id = target_game
+        from bananagrams.player_boards where game_id = p_game_id
     ) ord
-   where pb.game_id = target_game and pb.user_id = ord.user_id;
+   where pb.game_id = p_game_id and pb.user_id = ord.user_id;
 
-  new_bunch := substr(g_row.bunch_seed, n_players * g_row.hand_size + 1);
+  new_bunch := substr(g.bunch_at_setup, n_players * g.hand_size + 1);
 
-  -- The out-of-play reserve = everything the seed left behind. Multiset
+  -- The out-of-play reserve = everything the deal left behind. Multiset
   -- subtraction, one letter at a time: the order was random to begin with, so
   -- any order is a faithful reserve.
   select coalesce(string_agg(ch, ''), '') into new_bag
@@ -1249,7 +1241,7 @@ begin
        from (
          select ch, row_number() over (partition by ch order by n) as k
            from (select ch, generate_series as n
-                   from unnest(string_to_array(g_row.bunch_seed, NULL))
+                   from unnest(string_to_array(g.bunch_at_setup, NULL))
                           with ordinality as t(ch, generate_series)) seed_t
        ) seed_ranked
       where seed_ranked.ch = full_ranked.ch and seed_ranked.k = full_ranked.k
@@ -1257,17 +1249,19 @@ begin
 
   update bananagrams.games
      set bunch = new_bunch, bag = new_bag
-   where id = target_game;
+   where game_id = p_game_id;
 
   update bananagrams.progress
-     set unplaced = g_row.hand_size, placed = 0, solved = false, finished_at = null
-   where game_id = target_game;
+     set unplaced_count = g.hand_size, placed = 0
+   where game_id = p_game_id;
 
-  perform common._reset_game(
-    target_game,
-    jsonb_build_object('bunch_remaining', length(new_bunch),
-                       'bag_remaining', length(new_bag))
-  );
+  update common.game_players
+     set solved_at = null
+   where game_id = p_game_id;
+
+  perform common._reset_game(p_game_id);
+
+  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -1283,61 +1277,17 @@ $$;
 revoke execute on function bananagrams.replay_board(uuid) from public;
 grant execute on function bananagrams.replay_board(uuid) to authenticated;
 
--- ============================================================
--- bananagrams is compete-only with no per-player "eliminated" state (a
--- player is only ever done by peeling out — a win — or by conceding), so
--- concede is exactly the generic common.concede: mark the caller out;
--- while anyone's still racing the game stays 'playing' (peel already
--- counts/deals only non-conceded players); when the LAST active player
--- concedes — including a solo game, N = 1 — the whole game ends as a
--- collective loss (play_state 'lost', status.reason 'conceded', every
--- player {"won": false}, no winner). The conceded flag now lives on
--- common.game_players (was bananagrams.progress); the FE reads it off
--- ctx.players and common._end_game wakes the terminal via useCommonGame.
--- This wrapper just keeps the FE uniform (`db.rpc('concede')`).
 drop function if exists bananagrams.concede(uuid);
 
-create or replace function bananagrams.concede(target_game uuid)
-returns jsonb
-language plpgsql
-security definer
-set search_path = bananagrams, common, public, extensions
-as $$
-declare
-  v_answer jsonb;
-begin
-  -- No `_require_compete`: bananagrams has no coop sibling, so there is no mode
-  -- to refuse. Every other wrapper checks, and every other wrapper needs to.
-  v_answer := common.concede(target_game);
-  -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
-  -- → Concede).
-  update bananagrams.games set club_handle = club_handle where id = target_game;
-  return v_answer;
-end;
-$$;
-
-revoke execute on function bananagrams.concede(uuid) from public;
-grant execute on function bananagrams.concede(uuid) to authenticated;
-
 -- ============================================================
--- bananagrams.stop_game — manual stop
+-- bananagrams.concede — a player drops out of the race
 -- ============================================================
--- The friends' explicit "we're done" action — the uniform neutral terminal
--- every other gametype has. Writes play_state 'ended' (nobody wins or loses),
--- everyone {"won": false}, status.reason = 'manual'.
---
--- bananagrams went without one for a long time, on the reasoning that a race
--- has a per-player Concede and each player leaves on their own. But conceding
--- is a LOSS on your record, and it takes every player doing it to stop a game
--- the group has simply lost interest in — so a table that wants to walk away
--- together had no way to say so, and the game sat in the club list as the
--- current view forever. Stop is that way: one click, no verdict for anyone.
---
--- Any game player may fire it; idempotent on the play_state check (a second
--- click, or one racing a peel-out win, raises P0001 — swallowed by the FE).
-drop function if exists bananagrams.stop_game(uuid);
-
-create or replace function bananagrams.stop_game(target_game uuid)
+-- bananagrams has no other way for a player to end but going out, which ends
+-- the game, so `common._concede` decides it all: it records the concession,
+-- and when the last racer concedes (a solo game included) ends the game as a
+-- loss for everyone. While anyone is still racing, a peel deals only to
+-- them. No compete check: bananagrams has no coop sibling.
+create or replace function bananagrams.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1345,43 +1295,63 @@ set search_path = bananagrams, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  current_play_state text;
-  player_results     jsonb;
 begin
-  -- Locked, so a Stop racing the winning move waits for it and then reads the
-  -- game as over, rather than overwriting the win (docs/common-schema.md →
-  -- Stop, step 1).
-  perform 1 from bananagrams.games where id = target_game for update;
+  -- Locked like every move, so every game's concede has one shape
+  -- (docs/common-schema.md → Concede).
+  perform 1 from bananagrams.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('bananagrams');
   end if;
 
-  perform common._require_game_player(target_game);
+  perform common._concede(p_game_id);
 
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
-    perform common._raise_game_over();
+  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
+  return common._ok_envelope(jsonb_build_object('result', 'conceded'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+end;
+$$;
+
+revoke execute on function bananagrams.concede(uuid) from public;
+grant execute on function bananagrams.concede(uuid) to authenticated;
+
+drop function if exists bananagrams.stop_game(uuid);
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists bananagrams.end_game(uuid);
+
+-- ============================================================
+-- bananagrams.stop_game — the Stop
+-- ============================================================
+-- Any player stops the game for the whole table: one click, no verdict for
+-- anyone (docs/common-schema.md → Stop). A race has a per-player Concede, but
+-- conceding is a loss on your record, and it takes every player doing it to
+-- end a game the group has simply lost interest in.
+create or replace function bananagrams.stop_game(p_game_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = bananagrams, common, public, extensions
+as $$
+declare
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+begin
+  -- Locked, so a Stop racing the winning peel waits for it and then reads the
+  -- game as over, rather than overwriting the win. The row check comes
+  -- before the membership gate — see replay_board.
+  perform 1 from bananagrams.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('bananagrams');
   end if;
 
-  -- Nobody won — the friends agreed to stop. A player who had already
-  -- conceded stays conceded (their own quit is still theirs); this only says
-  -- the table as a whole reached no result.
-  select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
-    into player_results
-    from common.game_players
-   where game_id = target_game;
+  perform common._stop(p_game_id);
 
-  perform common._end_game(
-    target_game, 'ended',
-    jsonb_build_object('reason', 'manual'),
-    player_results
-  );
-
-  -- Realtime touch: common._end_game writes common.games, not bananagrams.*,
-  -- so the FE's useGame subscription would never wake. A no-op self-update
-  -- produces a WAL entry it picks up. Same trick as submit_timeout.
-  update bananagrams.games set club_handle = club_handle where id = target_game;
+  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1396,6 +1366,3 @@ $$;
 
 revoke execute on function bananagrams.stop_game(uuid) from public;
 grant execute on function bananagrams.stop_game(uuid) to authenticated;
-
--- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
-drop function if exists bananagrams.end_game(uuid);

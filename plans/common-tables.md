@@ -158,13 +158,16 @@ Decided 2026-09-27:
   3](#step-3-2026-09-28)) and `common.game_players`, and the page's subscriptions fire for every
   move — psychicnum's hint, which only adds an events row the partner's log
   shows, reaches the partner this way. No RPC judges whether a status
-  changed. The two writes with a path of their own are the exceptions:
-  crosswords' `set_cell` and `set_mark` (the cells subscription) and
-  bananagrams' board save (the page's own board). A game may later drop the
-  call from a move that changes nothing another player's page shows — one
-  game at a time, checked carefully then. Those two writes don't call the
-  builder, so they don't move the club card's date; whether crosswords
-  should update its club line now and then is its own todo.
+  changed. The exceptions are crosswords' `set_cell` and `set_mark`, which
+  have a path of their own (the cells subscription), and bananagrams' board
+  save, which calls the builder only when it changes the player's count of
+  tiles not in their board's largest block — the strip's number — since
+  most saves only rearrange a board (Joel, 2026-09-28; docs/games/bananagrams.md
+  → The statuses). A game may later drop the call from a move that changes
+  nothing another player's page shows — one game at a time, checked
+  carefully then. crosswords' two writes don't call the builder, so they
+  don't move the club card's date; whether crosswords should update its club
+  line now and then is its own todo.
 - **`current_turn_user_id` stays on `common.games`.** A shared fact that not
   every game uses is still one meaning in one place.
 - **`common.games.paused` is deleted.** Nothing sets it; pause works without

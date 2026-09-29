@@ -3,15 +3,14 @@
 -- ============================================================
 -- Test: bananagrams.submit_timeout(target_game)
 -- ============================================================
--- The countdown-expiry terminal. bananagrams is a race, so time running
+-- The countdown-expiry ending. bananagrams is a race, so time running
 -- out with nobody out is a COLLECTIVE loss. Fired by GamePage when a
 -- chosen countdown hits 0; the RPC itself is timer-agnostic (it just
 -- ends the in-progress game). Covers:
 --   1. ANY player can fire it (bea, who didn't create the game)
---   2. Terminal shape: play_state 'lost', is_terminal,
---      status.reason 'timeout', NO winner_username
---   3. Every player's result is {"won": false} — everyone lost
---   4. Idempotency: a second call (or a click racing a peel-win) → P0001
+--   2. The ending: outcome lost, reason timeout/'timeout', ended by nobody
+--   3. Every player is unranked and lost
+--   4. Idempotency: a second call (or a click racing a peel-win) → PN486
 --   5. Non-players rejected
 -- Mirror of stop_game_test, but the loss-on-time variant.
 -- ============================================================
@@ -49,37 +48,37 @@ select lives_ok(
 reset role;
 select set_config('request.jwt.claims', '', true);
 
--- (2) Terminal shape: a no-winner LOSS (distinct from stop_game's 'ended').
+-- (2) The ending: a no-winner LOSS (distinct from stop_game's neutral one).
 select is(
-  (select play_state from common.games where id = (select id from g1)),
+  (select game_ended_outcome from common.games where id = (select id from g1)),
   'lost',
-  'play_state is lost (everyone lost — time ran out)'
+  'the outcome is lost (everyone lost — time ran out)'
 );
 select is(
-  (select is_terminal from common.games where id = (select id from g1)),
-  true,
-  'the game is terminal'
+  (select coalesce(game_ended_by_user_id::text, 'nobody') from common.games where id = (select id from g1)),
+  'nobody',
+  'the game has ended, by nobody (no turn order to name)'
 );
 select is(
-  (select status->>'reason' from common.games where id = (select id from g1)),
-  'timeout',
-  'status.reason is timeout'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g1)),
+  'timeout/timeout',
+  'the reason is timeout'
 );
 
--- (3) Every player's result is {"won": false} — nobody went out in time.
+-- (3) Every player is unranked and lost — nobody went out in time.
 select is(
-  (select result->>'won' from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'false',
-  'ada result is won:false'
+  'unranked/lost',
+  'ada is unranked and lost'
 );
 select is(
-  (select result->>'won' from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from g1)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  'false',
-  'bea result is won:false'
+  'unranked/lost',
+  'bea is unranked and lost'
 );
 
 -- (4) Idempotency: a second timeout (or a click racing a peel-win) is rejected.
@@ -88,7 +87,7 @@ select pg_temp.envelope_is(
   bananagrams.submit_timeout((select id from g1)),
   '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'timing out an already-terminal game is rejected');
+  'timing out an already-ended game is rejected');
 
 -- (5) Non-player cannot fire it.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

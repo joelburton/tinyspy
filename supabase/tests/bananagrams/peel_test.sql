@@ -5,10 +5,11 @@
 -- ============================================================
 -- The v2 draw/endgame. Covers:
 --   1. Empty hand required — peeling with tiles in hand is rejected
---   2. Continue path: enough bunch → EVERY player draws peel_count, the
---      bunch advances, progress + status.bunch_remaining update
+--   2. Continue path: enough bunch → EVERY player draws 1, the bunch
+--      advances, progress + the club line's bunch_tiles_count update
 --   3. Non-players rejected
 --   4. Win path: bunch can't refill the table → the peeler goes out and wins
+--      (reached_goal/'complete', ranked 1, solved)
 --   5. Race: a peel after the game is over is rejected
 --   6. Active-player math: a CONCEDED player neither draws on a continuing
 --      peel nor counts toward the refill threshold — and cannot peel at all
@@ -78,28 +79,28 @@ select is(
   'every other player also drew 1 (bea 21 → 22)'
 );
 select is(
-  (select length(bunch) from bananagrams.games where id = (select id from g1)),
+  (select length(bunch) from bananagrams.games where game_id = (select id from g1)),
   100,
-  'the bunch advanced by players × peel_count (102 → 100)'
+  'the bunch advanced by players × 1 (102 → 100)'
 );
 select is(
-  (select unplaced from bananagrams.progress
+  (select unplaced_count from bananagrams.progress
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
-  'peeler unplaced = the freshly drawn tile (placed 21, holds 22)'
+  'peeler unplaced_count = the freshly drawn tile (placed 21, holds 22)'
 );
 select is(
-  (select unplaced from bananagrams.progress
+  (select unplaced_count from bananagrams.progress
     where game_id = (select id from g1)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   22,
-  'bea unplaced grew by the draw (21 → 22)'
+  'bea unplaced_count grew by the draw (21 → 22)'
 );
 select is(
-  (select (status->>'bunch_remaining')::int from common.games where id = (select id from g1)),
+  (select (clubpage_info->>'bunch_tiles_count')::int from common.games where id = (select id from g1)),
   100,
-  'status.bunch_remaining tracks the bunch for the FE'
+  'the club line''s bunch_tiles_count tracks the bunch'
 );
 
 -- (3) Non-player cannot peel — `common._require_game_player`'s shared PN253.
@@ -131,7 +132,7 @@ select bananagrams.save_player_board(
 -- Empty the bunch so the next peel can't refill → going out wins.
 reset role;
 select set_config('request.jwt.claims', '', true);
-update bananagrams.games set bunch = '' where id = (select id from g2);
+update bananagrams.games set bunch = '' where game_id = (select id from g2);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
@@ -144,21 +145,24 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'won',
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g2)),
+  'reached_goal/complete/won',
   'peeling a dry bunch with an empty hand wins (Bananas!)'
 );
 select is(
-  (select status->>'winner_username' from common.games where id = (select id from g2)),
-  'ada',
-  'status.winner_username is the peeler'
+  (select game_ended_by_user_id from common.games where id = (select id from g2)),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'the peeler is the one who ended it'
 );
 select is(
-  (select result->>'won' from common.game_players
+  (select final_ranking || '/' || outcome || '/' || player_ended_reason || '/'
+          || (solved_at is not null)::text
+     from common.game_players
     where game_id = (select id from g2)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'true',
-  'winner game_players result is won:true'
+  '1/won/reached_goal/true',
+  'the winner is ranked 1, won, ended reached_goal and solved'
 );
 
 -- (5) Race: peeling an already-won game is rejected. Not a fault — someone
@@ -235,9 +239,9 @@ select is(
   'conceded cade did NOT draw (still 21)'
 );
 select is(
-  (select length(bunch) from bananagrams.games where id = (select id from g3)),
+  (select length(bunch) from bananagrams.games where game_id = (select id from g3)),
   79,
-  'the bunch advanced by ACTIVE count × peel_count (81 → 79, not 78)'
+  'the bunch advanced by ACTIVE count × 1 (81 → 79, not 78)'
 );
 
 -- ============================================================

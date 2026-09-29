@@ -44,6 +44,20 @@ decision against, so a review doesn't propose it again
   shows only what the game allows) or go the other way and hide properly,
   which is ambitious: a truly secure game is hard. Until then they stay, and
   follow their tables (plans/common-tables-schema.md → The views).
+- **Decide when a fact worked out from the moves gets a column.** The games
+  chose independently: wordle and waffle keep their budget counters as
+  columns while wordiply recounts its 5-guess budget from `events` on every
+  move, and spellingbee, wordwheel and boggle count `found_words` every time.
+  A candidate rule: a column when a move's rule compares against it (a budget;
+  bananagrams' `unplaced_count`) or when working it out is game logic, not a count
+  or filter (letterboxed's chain, scrabble's score); otherwise count the
+  moves. Whatever the rule, one source per fact — connections'
+  `found_categories_count`, psychicnum's `found_secrets_count`, stackdown's
+  `found_count` and setgame's `sets_found` are each a column that the moves
+  also count from `events`, so two sources that agree only because one RPC
+  writes both. The same question for history replay: most games rebuild a past
+  board in the browser from the moves, while setgame stores `board_after` and
+  waffle each swap's colors.
 
 ## Maybe
 

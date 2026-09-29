@@ -447,6 +447,7 @@ alter table bananagrams.games
 alter table bananagrams.progress
   drop column solved,
   drop column finished_at;
+alter table bananagrams.progress rename column unplaced to unplaced_count;
 
 -- ─── boggle ────────────────────────────────────────────────
 drop policy if exists games_select       on boggle.games;

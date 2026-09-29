@@ -6,18 +6,18 @@
 -- The snapshot endpoint. Only the BOARD is sent — `tiles` (what the
 -- player holds) is server-owned and untouched here. Covers:
 --   1. Writes the caller's OWN board
---   2. Recomputes progress: placed = filled cells,
---      unplaced = length(tiles) − placed
+--   2. Recomputes progress: placed = filled cells, unplaced_count = length(tiles)
+--      minus the board's largest block, so a stray tile is still unplaced
 --   3. Length guard: board must be exactly 625 chars
 --   4. Non-player callers rejected
---   5. Terminal games: a late snapshot is a harmless no-op
+--   5. Ended games: a late snapshot is a harmless no-op
 -- ============================================================
 
 begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(9);
+select plan(10);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -64,11 +64,26 @@ select is(
 );
 
 select is(
-  (select unplaced from bananagrams.progress
+  (select unplaced_count from bananagrams.progress
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   19,
-  'progress.unplaced = held tiles (21) − placed (2)'
+  'progress.unplaced_count = held tiles (21) − the main block (2)'
+);
+
+-- ─── A tile off on its own is not placed ───
+-- A and B with a gap between them: two blocks of 1, so the main block is 1.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select bananagrams.save_player_board((select id from mg_game), 'A.B' || repeat('.', 25 * 25 - 3));
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select placed || '/' || unplaced_count from bananagrams.progress
+    where game_id = (select id from mg_game)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  '2/20',
+  'two separate tiles: both on the board, but only one in the main block'
 );
 
 -- ─── Length guard ───
@@ -89,12 +104,9 @@ select pg_temp.envelope_is(
   'a non-player cannot snapshot a board'
 );
 
--- ─── Terminal game: snapshot is a no-op ───
-reset role;
-select set_config('request.jwt.claims', '', true);
-select common._end_game((select id from mg_game), 'won', '{}'::jsonb, '{}'::jsonb);
-
+-- ─── Ended game: snapshot is a no-op ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select bananagrams.stop_game((select id from mg_game));
 -- Named, not silent: the snapshot is discarded ON PURPOSE so a late unmount
 -- save can't clobber the final board — which is a different fact from storing
 -- one, and used to be the same answer.
@@ -102,7 +114,7 @@ select pg_temp.envelope_is(
   bananagrams.save_player_board(
     (select id from mg_game), repeat('C', 5) || repeat('.', 25 * 25 - 5)),
   '{"type":"ok","data":{"result":"game-over"}}'::jsonb,
-  'snapshotting a terminal game answers game-over'
+  'snapshotting an ended game answers game-over'
 );
 
 reset role;
@@ -112,7 +124,7 @@ select is(
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   2,
-  'terminal snapshot is a no-op (progress unchanged from the last live save)'
+  'a snapshot after the end is a no-op (progress unchanged from the last live save)'
 );
 
 -- ─── Conceded caller: snapshot is a no-op too ───

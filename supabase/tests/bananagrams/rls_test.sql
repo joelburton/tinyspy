@@ -6,7 +6,7 @@
 -- The privacy boundary of the whole game: WHILE THE RACE IS ON a player
 -- must NOT be able to read another player's tile rack (`player_boards`),
 -- while the derived counters (`progress`) ARE visible club-wide so the
--- peer strip can show everyone's race. At TERMINAL the boards open to the
+-- peer strip can show everyone's race. Once the game ENDS the boards open to the
 -- club — nothing is left to protect, and the finished grids are what the
 -- printout compares. The other tests read player_boards as the superuser
 -- (to bypass RLS for their assertions), so the owner-only policy itself
@@ -19,11 +19,12 @@
 --   3. progress IS visible to a co-player (the public projection)
 --   4. progress is NOT visible to a non-member (club-gated)
 --   5. a non-member cannot read any board either
---   6. the hidden bunch (`games.bunch`) is column-excluded from
---      authenticated, even for a club member who can see the row
---   7. at TERMINAL a co-player CAN read the other board
---   8. ...but a non-member still cannot, even at terminal — the outcome
---      the terminal clause could have broken, since "is terminal" is not
+--   6. the whole shuffled deal (`games.bunch_at_setup`) is column-excluded
+--      from authenticated, even for a club member who can see the row, while
+--      `bunch` and `bag` are readable (the page counts them)
+--   7. once the game has ENDED a co-player CAN read the other board
+--   8. ...but a non-member still cannot, even then — the outcome the
+--      ended clause could have broken, since "has ended" is not
 --      self-limiting the way `user_id = auth.uid()` is. NB this pins the
 --      OUTCOME, not a mechanism: planting showed the block comes from
 --      `bananagrams.games`'s own club policy filtering the subquery, not
@@ -35,7 +36,7 @@ begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(8);
+select plan(9);
 
 \ir ../_shared/setup.psql
 
@@ -81,17 +82,23 @@ select is(
   'progress is visible club-wide (a co-player sees ada''s counters)'
 );
 
--- ─── (6) The bunch is column-hidden even from a member ────────
--- bea can see the games row (club member), but `bunch` is excluded by
--- the column-level grant, so selecting it is a privilege error.
+-- ─── (6) The deal is column-hidden even from a member ─────────
+-- bea can see the games row (club member), but `bunch_at_setup` — every tile
+-- still to come — is excluded by the column-level grant, so selecting it is a
+-- privilege error. `bunch` and `bag` are granted: the page counts them.
 select throws_ok(
   format(
-    $$ select bunch from bananagrams.games where id = %L $$,
+    $$ select bunch_at_setup from bananagrams.games where game_id = %L $$,
     (select id from mg_game)
   ),
   '42501',
   null,
-  'games.bunch (the hidden bunch) is not selectable by authenticated'
+  'games.bunch_at_setup (the whole deal) is not selectable by authenticated'
+);
+select is(
+  (select length(bunch) + length(bag) from bananagrams.games where game_id = (select id from mg_game)),
+  102,
+  'games.bunch and games.bag are readable by a club member (102 + 0)'
 );
 
 -- ─── (4)+(5) As dee, outside the club entirely ────────────────
@@ -122,7 +129,7 @@ select is(
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1::bigint,
-  'at terminal a co-player CAN read the other board (the race is over)'
+  'once ended a co-player CAN read the other board (the race is over)'
 );
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
@@ -130,7 +137,7 @@ select is(
   (select count(*) from bananagrams.player_boards
     where game_id = (select id from mg_game)),
   0::bigint,
-  'a non-member still sees no boards, even at terminal'
+  'a non-member still sees no boards, even once ended'
 );
 
 select * from finish();

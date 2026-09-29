@@ -249,10 +249,10 @@ logic reads after create, in SQL or in the front end.
 
 `bananagrams.progress` — changed: `solved` and `finished_at` dropped (one
 moment, now `common.game_players.solved_at`); kept `game_id`, `user_id`,
-`unplaced`, `placed`. Unchanged: `bananagrams.player_boards` (`game_id`,
+`unplaced_count` (renamed from `unplaced`), `placed`. Unchanged: `bananagrams.player_boards` (`game_id`,
 `user_id`, `board`, `tiles`, `updated_at`).
 
-`status` keys that are not columns: `reason` (the reason pair on `common.games`); `winner_username` (end summary; `clubpage_info` carries `winner_user_id`). Tiles left in each hand, the strip's number, is `progress.unplaced`.
+`status` keys that are not columns: `reason` (the reason pair on `common.games`); `winner_username` (end summary; `clubpage_info` carries `winner_user_id`). The strip's number is `progress.unplaced_count`: a player's tiles not in their board's largest block, a tile off to the side counted as unplaced.
 
 ### boggle
 

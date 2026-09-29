@@ -3,8 +3,8 @@
 -- ============================================================
 -- Test: bananagrams.stop_game(target_game)
 -- ============================================================
--- The whole-table manual stop — the uniform neutral terminal every other
--- gametype has, added to bananagrams in the 2026-08-01 status-line pass.
+-- The whole-table manual stop — the uniform neutral ending every other
+-- gametype has.
 --
 -- It is NOT concede's twin, and the difference is the point: conceding is a
 -- real LOSS for the conceder while everyone else races on, and it takes every
@@ -13,11 +13,11 @@
 -- loses, one click.
 --
 -- Covers:
---   1. Any player may end a live game → play_state 'ended', terminal,
---      status.reason 'manual', EVERY player {"won": false}
+--   1. Any player may end a live game → ended stopped/'stopped', outcome
+--      neutral, ended by the caller, EVERY player unranked and neutral
 --   2. A player who had already conceded stays conceded (their own quit is
---      still theirs) but is likewise recorded not-won
---   3. Idempotency: ending an already-terminal game raises P0001
+--      still theirs, and a loss)
+--   3. Idempotency: ending an already-ended game is the PN486 race
 --   4. Non-players are rejected
 -- ============================================================
 
@@ -51,19 +51,19 @@ select lives_ok(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'ended', 'play_state is the uniform neutral "ended"');
+  (select game_ended_outcome from common.games where id = (select id from g1)),
+  'neutral', 'the outcome is the uniform neutral Stop');
 select is(
-  (select is_terminal from common.games where id = (select id from g1)),
-  true, 'the game is terminal');
+  (select game_ended_by_user_id from common.games where id = (select id from g1)),
+  'bea22222-2222-2222-2222-222222222222'::uuid, 'the game has ended, by the caller');
 select is(
-  (select status->>'reason' from common.games where id = (select id from g1)),
-  'manual', 'status.reason is manual');
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g1)),
+  'stopped/stopped', 'the reason is stopped');
 -- Nobody wins a manual end — not even the player with the fullest board.
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g1) and (result->>'won')::boolean = false),
-  2::bigint, 'every player is recorded {"won": false} — there is no winner');
+    where game_id = (select id from g1) and final_ranking is null and outcome = 'neutral'),
+  2::bigint, 'every player is unranked and neutral — there is no winner');
 
 -- ─── (2) Idempotent ──────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -71,7 +71,7 @@ select pg_temp.envelope_is(
   bananagrams.stop_game((select id from g1)),
   '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'ending an already-terminal game is rejected');
+  'ending an already-ended game is rejected');
 
 -- ─── (3) A conceded player stays conceded ────────────────────
 -- Ending the table says nothing about the quit that came before it.
@@ -85,16 +85,16 @@ select (bananagrams.create_game(
 select bananagrams.concede((select id from g2));   -- ada drops out; bea races on
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'playing', 'precondition — one concede does not end the race');
+  (select ended_at from common.games where id = (select id from g2)),
+  null, 'precondition — one concede does not end the race');
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select bananagrams.stop_game((select id from g2));
 reset role;
 select is(
-  (select conceded from common.game_players
+  (select player_ended_reason || '/' || outcome from common.game_players
     where game_id = (select id from g2) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'the earlier conceder is still flagged conceded');
+  'conceded/lost', 'the earlier conceder is still conceded, and lost');
 
 -- ─── (4) Non-player rejected ─────────────────────────────────
 create temp table g3 on commit drop as

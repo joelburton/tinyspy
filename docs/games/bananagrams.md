@@ -34,7 +34,7 @@ differently:
 
 | state | shared? | mechanism | notes |
 |---|---|---|---|
-| **The bunch** (`bananagrams.games.bunch`, hidden) | yes | atomic RPC | The finite tile bunch. `create_game` deals from it once; peel/dump draw/swap during play. A mutating string (dump returns tiles), so it's materialized rather than seed-derived — the column is hidden; the FE only learns its count. |
+| **The bunch** (`bananagrams.games.bunch`) | yes | atomic RPC | The finite tile bunch. `create_game` deals from it once; peel/dump draw/swap during play. A mutating string (dump returns tiles), so it's materialized rather than seed-derived. Readable; the page counts it. |
 | **`tiles`** (what a player holds) | **per-player** | server-owned column, owner-only | Set at the deal, grown by peel, swapped by dump. The hand the player sees is *derived* (`tiles − placed`), never stored — that's what lets peel grow every player's holdings at once without colliding with live FE placement. |
 | **`board`** (their placements) | **no** | snapshot to a `text` column | Private (no peer sees it), high-frequency (many drag/place ops per second), and only needs Postgres for *restore* (post-pause / shelved game), not for sharing. It must **not** round-trip per move. |
 | **The thin realtime surface** | yes | postgres-changes + presence | `progress` (unplaced counts, game-end) to the whole club; each player's own `player_boards` row to themselves (so a peel/dump's `tiles` change arrives). Boards never go to *peers*. |
@@ -125,7 +125,8 @@ A local shuffle order (the ⟲ button) is layered on top via `reconcileHandOrder
 (multiset-aware: letters repeat). Tiles are **interchangeable by letter** — no
 per-tile ids — so everything is plain strings, which also keeps later word +
 connectivity validation a simple scan / flood-fill over the 2D char array. A
-peer's **unplaced count** is `tiles − placed` (`progress.unplaced`).
+peer's **unplaced count** is their tiles not in their board's largest block
+(`progress.unplaced_count`).
 
 ## Keyboard input — the crossword cursor
 
@@ -221,9 +222,9 @@ by "peers see counts, never boards":
 
 | table | columns (sketch) | RLS read | why |
 |---|---|---|---|
-| `bananagrams.games` | `id` (PK → `common.games`), `club_handle` (→ `common.clubs`, RLS-bearing), `bunch_seed`, `bunch`, `bag`, `hand_size`, `created_at` | club (`bunch_seed` + `bunch` + `bag` column-hidden) | `bunch_seed` is the **immutable** shuffled tile sequence this game was dealt from (length = the chosen bunch size, ≤ 144), hands-then-draw-pile in deal order — set once, the record a future "restart" re-deals from. `bunch` is the live draw pile — the undealt remainder, mutated by peel/dump. `bag` is the out-of-play reserve: it starts with the `144 − bunch_size` tiles left out of the bunch, and in `dump_to_bag` mode dumped tiles go there too. A short-bunch dump can dip into it. All three hidden because their order leaks upcoming draws; the FE learns only the bunch + bag **counts** (via status). |
-| `bananagrams.player_boards` | `game_id`, `user_id`, `board text`, `tiles text`, `updated_at` | **owner only while playing; club-wide at terminal** | The private player board. `board` = FE-owned placements; `tiles` = server-owned holdings. Owner-only RLS is the departure from our "every club member reads every game table" default, justified because peeking is a real competitive edge — but only *while the race is on*. At terminal it opens to the club, like every other compete game's private table (`stackdown.events`, `wordle.events`), so the printout can put the finished grids side by side. `rls_test` pins all three: hidden mid-game, visible to a co-player at terminal, still invisible to a non-member. |
-| `bananagrams.progress` | `game_id`, `user_id`, `unplaced`, `placed`, `solved`, `finished_at` | club | The public projection peers read: unplaced count + solved flag. The board/tiles stay hidden; only the count leaks. Drives the peer strip + winner surface. |
+| `bananagrams.games` | `game_id` (PK → `common.games`), `hand_size`, `word_check`, `dict_2`, `dict_3plus`, `dump_to_bag`, `bunch_at_setup`, `bunch`, `bag` | club (`bunch_at_setup` column-hidden) | The four setup values the moves read are copied from `setup` at create (`off`, 4, 4 and false when absent). `bunch_at_setup` is the shuffled tile sequence this game was dealt from (length = the chosen bunch size, ≤ 144), hands-then-draw-pile in deal order — set once, the record Restart re-deals from; hidden because it would tell a player every tile still to come. `bunch` is the live draw pile — the undealt remainder, mutated by peel/dump. `bag` is the out-of-play reserve: it starts with the `144 − bunch_size` tiles left out of the bunch, and in `dump_to_bag` mode dumped tiles go there too. A short-bunch dump can dip into it. `bunch` and `bag` are readable, and the page counts them. |
+| `bananagrams.player_boards` | `game_id`, `user_id`, `board text`, `tiles text`, `updated_at` | **owner only while playing; club-wide once the game has ended** | The private player board. `board` = FE-owned placements; `tiles` = server-owned holdings. Owner-only RLS is the departure from our "every club member reads every game table" default, justified because peeking is a real competitive edge — but only *while the race is on*. At terminal it opens to the club, like every other compete game's private table (`stackdown.events`, `wordle.events`), so the printout can put the finished grids side by side. `rls_test` pins all three: hidden mid-game, visible to a co-player at terminal, still invisible to a non-member. |
+| `bananagrams.progress` | `game_id`, `user_id`, `unplaced_count`, `placed` | club | The public projection peers read. `unplaced_count` is the tiles a player holds that are not in their board's largest block — what's in the page's hand plus any tile pushed off to the side — and `placed` is every filled cell. The board/tiles stay hidden; only the count leaks. Going out is `common.game_players.solved_at`. |
 
 (Splitting `board`/`tiles` into two columns with one writer each — FE for
 `board`, server for `tiles` — is what makes peel/dump conflict-free; see the
@@ -231,111 +232,118 @@ table comment in the baseline migration.)
 
 ### RPCs (all security-definer; no table write policies — writes go through these)
 
-- `bananagrams.create_game(target_club, setup, player_user_ids)` — calls
+- `bananagrams.create_game(p_club_handle, p_setup, p_player_user_ids)` — calls
   `common._create_game` (header), shuffles the standard 144-tile Bananagrams set
   and **splits it at `setup.bunch_size`** (1..144 — a smaller bunch is a shorter
-  game on a random subset): the first `bunch_size` tiles are the immutable
-  `games.bunch_seed`, and **the remaining `144 − bunch_size` seed the
+  game on a random subset): the first `bunch_size` tiles are
+  `games.bunch_at_setup`, and **the remaining `144 − bunch_size` start the
   out-of-play `games.bag`** (not discarded). Deals each player a `hand_size`
   slice as their starting `tiles`, materializes the undealt bunch as
-  `games.bunch` (the bunch), and seeds one `player_boards` row (`board` = 625
-  dots, `tiles` = "<letters>") + one `progress` row (`unplaced = hand_size`) per
+  `games.bunch`, and seeds one `player_boards` row (`board` = 625 dots,
+  `tiles` = "<letters>") + one `progress` row (`unplaced_count = hand_size`) per
   player. Validates `hand_size ∈ {15,21}`, `bunch_size ∈ [1,144]`,
   **`player_count × hand_size ≤ bunch_size`** (or the deal is impossible — the
   FE disables Start on the same check; see SetupForm), `word_check ∈ {off, win,
   strict}`, and — unless `word_check` is `off` — `dict_2 ∈ [2,6]` and
-  `dict_3plus ∈ [1,6]`. Compete-only, so no `mode` param. Gated by
-  `_require_club_member`.
-- `bananagrams.save_player_board(target_game, board)` — the snapshot endpoint.
-  `_require_game_player`; writes the caller's own `player_boards.board` (only —
-  `tiles` is server-owned) and recomputes their `progress` (`placed = filled
-  cells`, `unplaced = length(tiles) − placed`). Length guard (board must be 625
-  chars). Called **debounced during play and on player-board unmount** (the
-  pause / navigate / shelve safety net). No-op once the game is terminal.
-- `bananagrams._win_blockers(board, dict_2, dict_3plus, check_words) → int[]` —
+  `dict_3plus ∈ [1,6]`, and copies the four to their columns. Compete-only, so
+  no `mode` param. Gated by `_require_club_member`.
+- `bananagrams.save_player_board(p_game_id, p_board)` — the snapshot endpoint.
+  Locks the game row; `_require_game_player`; writes the caller's own
+  `player_boards.board` (only — `tiles` is server-owned) and recounts their
+  `progress` (`bananagrams._count_unplaced`). Length guard (board must be 625
+  chars). Called **about 0.8 s after the board last changed, and on
+  player-board unmount** (the pause / navigate / shelve safety net), and
+  flushed before a peel or Check words. A no-op once the game has ended, or
+  for a conceded caller (their board is frozen). Most saves are a player
+  rearranging their board, which leaves `unplaced_count` alone, so a save rewrites
+  the statuses only when it changes `unplaced_count`.
+- `bananagrams._main_block_size(p_board) → int` — the size of the board's
+  largest block of tiles joined up, down, left or right. A walk over the grid
+  floods from each filled cell no earlier flood reached, so every tile is
+  visited once: about 1 ms for a real board. `_count_unplaced` subtracts it
+  from the tiles held.
+- `bananagrams._win_blockers(p_board, p_dict_2, p_dict_3plus, p_check_words) → int[]` —
   the board validator (plain `language sql`). Returns the 0-indexed cells that
   block a legal win, or `{}` for a valid grid. **Connectivity is always
   checked**: tiles **not in the main 4-connected mass** (a recursive flood-fill
   from the top-left-most tile — diagonal touches don't connect) always flag.
-  When `check_words` is true it ALSO flags every tile of a **2+ run that isn't a
-  real word** — judged against the band for the word's LENGTH: `dict_2` for
+  When `p_check_words` is true it ALSO flags every tile of a **2+ run that isn't
+  a real word** — judged against the band for the word's LENGTH: `dict_2` for
   2-letter words, `dict_3plus` for longer ones (2-letter words are a thin
   separate vocabulary, so they get their own band; single tiles aren't words, so
   never checked).
-- `bananagrams.peel(target_game) → jsonb` — the draw/endgame, and the game's
-  *win* terminal. `_require_game_player`; rejects unless the hand is empty
-  (`placed == length(tiles)`), and rejects a **conceded** caller (`you have
-  conceded` — they're out of the race). **Active-player aware:** the table to
-  refill and the win threshold count only the still-active players
-  (`common.game_players where not conceded`), not the raw roster — a dropped-out
-  player neither draws nor holds up the bunch math. If the bunch can't refill
-  the active table (`length(bunch) < active × peel_count`), it's a **winning
+- `bananagrams.peel(p_game_id) → jsonb` — the draw/endgame, and the game's
+  only way to win. Locks the game row, so concurrent peels and dumps
+  serialize; `_require_game_player`; refuses a peel into an ended game (the
+  game-over race) or from a **conceded** caller, and rejects unless the hand is
+  empty (`placed == length(tiles)`). **Racer-aware:** the table to refill and
+  the win threshold count only the players still racing (`player_ended_at is
+  null`), not the raw roster — a dropped-out player neither draws nor holds up
+  the bunch math. If the bunch can't give each racer 1 tile, it's a **winning
   peel** — **it first runs `_win_blockers` (always, for connectivity; with the
-  word check when `setup.word_check` is `win` or `strict`); a non-empty result
+  word check when `word_check` is `win` or `strict`); a non-empty result
   leaves the game in progress and returns `{result: 'illegal', invalid_cells}`**
-  for the FE to paint red. Otherwise the peeler **goes out and wins**
-  (`common._end_game('won', …)`, returns `{result: 'won'}`). If the bunch *can*
-  refill, **every active player draws `peel_count`** from the front of the bunch
-  (ranks are dense over the active set), the bunch advances,
-  `status.bunch_remaining` updates (`{result: 'dealt'}`). A continuing peel is
-  normally NOT validated — you're not winning yet — **except under `word_check:
-  'strict'`, where the SAME `_win_blockers` check (connectivity + real words)
-  runs on every peel, so you can't peel with an invalid board** (a blocked
-  continuing peel returns `{result: 'illegal', invalid_cells}` and deals
-  nothing). `peel_count` from setup (default 1). Locks the gametype row up front
-  so concurrent peels serialize; a peel on a non-`playing` game is rejected
-  (`game is not active`).
-- `bananagrams.dump(target_game, tile)` *(v2)* — swap one held tile for
-  `dump_count` (setup, default 3). `_require_game_player`; rejects if the game's
-  over, if **`length(bunch) + length(bag) < dump_count`**, or if the caller
-  doesn't hold `tile`. Draws `dump_count` from the FRONT of the **bunch**,
-  topping up from the FRONT of the **bag** if the bunch is short (the bag can
-  hold tiles in either mode — the bunch_size leftover, plus dumped tiles in
-  to-bag mode). The dumped tile then lands at the BACK of the bunch (default —
-  return-to-bunch) or the BACK of the bag (`setup.dump_to_bag` on) — always
-  after the draw, so it can't refill its own swap. The caller's hand nets
-  +`(dump_count − 1)` either way; in to-bag mode the dumped tile leaves the
-  bunch (it goes to the bag), so the bunch depletes and the game ends sooner.
-  Updates `progress.unplaced` + `status.bunch_remaining` +
-  `status.bag_remaining`. Locks the gametype row (serializes against peel on the
-  shared bunch).
-- `bananagrams.submit_timeout(target_game)` — **countdown expiry** (modeled on
-  `stackdown.submit_timeout`). When a chosen countdown hits 0 before anyone goes
-  out, GamePage fires this and the race ends as a **collective loss**:
-  `play_state='lost'`, `status={reason:'timeout'}` (NO `winner_username`), and
-  **every** player's result `{"won": false}`. The RPC is timer-agnostic (it just
-  ends the in-progress game; the FE decides *when*). `_require_game_player`,
-  gametype-row lock, `P0001 'game is not in progress'` idempotency. The PlayArea
-  renders the no-winner timeout as a red "⏰ Time's up — nobody went out." pgTAP:
-  `submit_timeout_test.sql`.
-- `bananagrams.stop_game(target_game)` — **the whole table stops, with no result
-  for anyone.** The uniform neutral terminal every other gametype has:
-  `play_state='ended'`, `status.reason='manual'`, every player `{"won": false}`.
-  Any game player may fire it; idempotent on the play_state check. It is
-  deliberately NOT concede's twin — conceding is a loss on your record, and it
-  takes every player doing it to close a game the group has simply lost interest
-  in, which left a stale game sitting as the club's current view. The FE offers
-  both behind ONE control: the action row runs **[Concede / Stop game] [Check
-  words] [Peel]**, and Concede's question is where the two are told apart
-  (`useStandardGameActions`, which gives every race that question). pgTAP:
-  `stop_game_test.sql`.
-- `bananagrams.concede(target_game)` — **a player drops out of the race.**
-  bananagrams was the *origin* of per-player concede; that mechanism has since
-  been promoted into `common` and made a whole-app feature (see
+  for the FE to paint red. Otherwise the peeler **goes out and wins**: their
+  `solved_at` is set, they end `reached_goal` / `complete`, and
+  `common._end_game` ends the game the same way with the peeler alone ranked 1
+  — the race ends when decided, so the rest are short of the goal
+  ([win-lose.md](../win-lose.md)). Returns `{result: 'won'}`. If the bunch
+  *can* refill, **every racer draws 1** from the front of the bunch and the
+  bunch advances (`{result: 'dealt'}`). A continuing peel is NOT checked —
+  you're not winning yet — **except under `word_check: 'strict'`, where the
+  SAME `_win_blockers` check runs on every peel, so you can't peel with an
+  invalid board** (a blocked continuing peel returns `{result: 'illegal',
+  invalid_cells}` and deals nothing).
+- `bananagrams.dump(p_game_id, p_tile)` — swap one held tile for 3. Locks the
+  game row; `_require_game_player`; refuses if the game has ended or the caller
+  has conceded, if **`length(bunch) + length(bag) < 3`**, or if the caller
+  doesn't hold the tile. Draws 3 from the FRONT of the **bunch**, topping up
+  from the FRONT of the **bag** if the bunch is short (the bag can hold tiles
+  in either mode — the bunch_size leftover, plus dumped tiles in to-bag mode).
+  The dumped tile then lands at the BACK of the bunch (default —
+  return-to-bunch) or the BACK of the bag (`dump_to_bag`) — always after the
+  draw, so it can't refill its own swap. The caller's hand nets +2 either way;
+  in to-bag mode the dumped tile leaves the bunch, so the bunch depletes and
+  the game ends sooner.
+- `bananagrams.submit_timeout(p_game_id)` — **countdown expiry.** When a chosen
+  countdown hits 0 before anyone goes out, every connected client fires this;
+  the first ends the game `timeout` with nobody ranked — a loss for everyone —
+  and the rest get the game-over race. The RPC is timer-agnostic (the FE
+  decides *when*). pgTAP: `submit_timeout_test.sql`.
+- `bananagrams.stop_game(p_game_id)` — **the whole table stops, with no result
+  for anyone**: locks the row, then `common._stop`. It is deliberately NOT
+  concede's twin — conceding is a loss on your record, and it takes every
+  player doing it to close a game the group has simply lost interest in. The FE
+  offers both behind ONE control: the action row runs **[Concede / Stop game]
+  [Check words] [Peel]**, and Concede's question is where the two are told
+  apart (`useStandardGameActions`, which gives every race that question).
+  pgTAP: `stop_game_test.sql`.
+- `bananagrams.concede(p_game_id)` — **a player drops out of the race.**
+  bananagrams has no other way for a player to end but going out, which ends
+  the game, so after locking the row `common._concede` decides it all (see
   [common-schema.md →
-  Concede](../common-schema.md#concede--per-player-drop-out)), so this is now a
-  **thin wrapper over `common.concede`**. The semantics are unchanged: conceding
-  is a **real loss** for the conceder, it marks JUST the caller out and the
-  **others keep racing**, and the game ends as a collective loss
-  (`play_state='lost'`, `status={reason:'conceded'}`, every `{"won": false}`,
-  no `winner_username`) only when the LAST active player concedes (including a
-  solo `N = 1` game). The `conceded` flag now lives on **`common.game_players`**
-  (not `bananagrams.progress`), so `peel` / `save_player_board` read it from
-  there to skip a dropped-out player, and the FE reads it off `ctx.players`;
-  `useCommonGame`'s `common.game_players` realtime listener nudges peers, and
-  the terminal `common._end_game` write rides the `common.games` subscription to
-  flip everyone's terminal UI. pgTAP: `concede_test.sql`. `save_player_board`
-  no-ops for a conceded caller (their board is frozen).
+  Concede](../common-schema.md#concede--per-player-drop-out)): it marks JUST
+  the caller out, a **real loss** for them, and the **others keep racing**; the
+  game ends `conceded`, a loss for everyone, only when the LAST racer concedes
+  (including a solo `N = 1` game). No compete check: there is no coop sibling.
+  pgTAP: `concede_test.sql`.
+
+### The statuses
+
+Written by `bananagrams._write_statuses` at create, at Restart and at the end of
+every move (a board save only when it changes `unplaced_count`), each assigned whole
+with every key present:
+
+| status | keys |
+|---|---|
+| `game_status` | none — bananagrams has no info column |
+| each `player_status` | `unplaced_count`, `player_ended_reason` |
+| `clubpage_info` | `bunch_tiles_count`, `winner_user_id` |
+
+A player's `unplaced_count` is the strip's number, `progress.unplaced_count`:
+how close they are to going out, the way you'd glance at a friend's grid across
+the table. A peel or dump recounts it for the players whose tiles it changed;
+a save, for the saver. pgTAP: `statuses_test.sql`.
 
 ### What the RPCs answer
 
@@ -370,9 +378,8 @@ looks least necessary: with no shared puzzle, a restart deals what New game
 would. It's here because *every other game has one*, and a player who can't find
 Restart where they expect it concludes the app is broken rather than that this
 game is special. It is a **real reset**, not an alias — `replay_board` empties
-every board and re-deals the SAME hands from `bunch_seed` (the immutable record
-of this game's shuffled deal; its column comment reserved it for exactly this),
-on the SAME row. So the club list doesn't grow an entry, nobody re-navigates,
+every board and re-deals the SAME hands from `bunch_at_setup` (the record of
+this game's shuffled deal), on the SAME row. So the club list doesn't grow an entry, nobody re-navigates,
 and "we all misread the rules, start over" returns you to the game you just had.
 
 The locally-terminal row (conceded, the others still racing) is the shared
@@ -564,12 +571,15 @@ Two schema shapes exist for specific reasons the bank loop forces:
   describe.
 - **The hand is derived** (the `board`/`tiles` split), not stored as a string:
   peel must grow *every* player's hand at once without colliding with live FE
-  placement, so the hand-empty win gate lives inside `peel`.
+  placement, so the hand-empty win gate lives inside `peel`. The hand is only
+  the page's idea — in person there is no hand, just tiles in front of you that
+  aren't in your grid yet, and new tiles need somewhere to appear. The server
+  knows only the tiles a player holds and where they sit on the board, which is
+  why `unplaced_count` counts a tile pushed off to the side the same as one in the
+  hand.
 
-The rest is a plain char array: the fixed 25×25 board stays a char array (a
-future validator is just a scan / flood-fill over it), and the
-`progress.unplaced` peer signal drives the strip directly (peel/dump just
-recompute it).
+The rest is a plain char array: the fixed 25×25 board stays a char array
+(`_win_blockers` and `_main_block_size` are scans / flood-fills over it).
 
 ## Resolved decisions
 
@@ -577,9 +587,10 @@ recompute it).
   growing/recentering board — we tried that and it was needlessly complex).
 - **Draw trigger (full game):** peel-gated — you draw only when your hand
   empties. v1 has no draw at all.
-- **Peer visibility:** unplaced-tile **count only**, never the board.
+- **Peer visibility:** unplaced-tile **count only** (tiles not in the main
+  block), never the board.
 - **Player-board RLS:** owner-only reads **while the game is live**; the
-  `player_boards` policy opens to club members once `common.games.is_terminal`.
+  `player_boards` policy opens to club members once `common.games.ended_at` is set.
   **Two traps this sprang**, both worth remembering before relaxing any policy:
   a query that leaned on the policy for correctness (`useGame` selected by
   `game_id` alone and used `maybeSingle()`, which started matching every row and
@@ -599,17 +610,19 @@ recompute it).
   `setup.word_check` says** — that option governs when the SERVER enforces
   words (never / winning peel / every peel); this is a player asking about
   their own board, and the answer is useful in all three. So it always checks
-  words, and the bands fall back to 4 (which is why the setup form shows its two
+  words, at the game's `dict_2` / `dict_3plus` (4 and 4 in a game made with
+  `word_check` off, which is why the setup form shows its two
   `DictBandField` pickers regardless of mode — it was reserving them for
   this). Read-only: no state, no log, no peer effect, and it can't be a cheat in
   the sense the hint RPCs are — every letter it flags is already on the
   player's screen. `placed` exists so the FE can tell "your board is fine" from
   "you haven't put anything down yet". pgTAP: `legal_check_test.sql`.
-- **Replay (`replay_board`).** Re-deals this game from `bunch_seed`: boards
-  emptied, the same hands back, the draw pile restored to the seed's undealt
+- **Replay (`replay_board`).** Re-deals this game from `bunch_at_setup`: boards
+  emptied, the same hands back, the draw pile restored to the deal's undealt
   remainder, and the out-of-play bag rebuilt as the full 144-tile distribution
-  minus the seed (exact even after dumps have moved tiles between the two —
-  tile identity is only ever a multiset). Any player, mid-game or at terminal;
+  minus the deal (exact even after dumps have moved tiles between the two —
+  tile identity is only ever a multiset); `solved_at` and the ending cleared.
+  Any player, mid-game or after the end;
   mid-game the FE confirms. pgTAP: `replay_test.sql`, which also pins
   conservation (hands + bunch + bag = 144).
 

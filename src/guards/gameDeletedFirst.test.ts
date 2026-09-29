@@ -56,7 +56,7 @@ describe('a deleted game says so', () => {
     // game's own row and can find it gone. scrabble's `_commit_*` helpers ask
     // it too, behind wrappers that ask it first.
     expect(callers.map((f) => f.name).sort()).toEqual([
-      'bananagrams.dump', 'bananagrams.peel', 'bananagrams.replay_board',
+      'bananagrams.concede', 'bananagrams.dump', 'bananagrams.peel', 'bananagrams.replay_board',
       'bananagrams.stop_game', 'bananagrams.submit_timeout',
       'boggle.concede', 'boggle.replay_board', 'boggle.stop_game', 'boggle.submit_timeout',
       'boggle.submit_word',

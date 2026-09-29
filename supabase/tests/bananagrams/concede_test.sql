@@ -7,13 +7,13 @@
 -- is a real loss for the conceder — but it does NOT end the game while
 -- others still race.
 -- Covers:
---   1. Concede marks JUST the caller out (progress.conceded), game
---      stays 'playing' while another player is still active
---   2. Idempotency: a second concede by the same player raises P0001
---   3. The conceder is recorded {"won": false} when the game ends
+--   1. Concede ends JUST the caller (player_ended_reason 'conceded'); the
+--      game goes on while another player is still active
+--   2. Idempotency: a second concede by the same player is the PN483 race
+--   3. The conceder is unranked and lost when the game ends
 --      (here: the remaining player peels out and wins)
 --   4. Last active player conceding ends the game as a COLLECTIVE
---      loss (play_state 'lost', status.reason 'conceded', no winner)
+--      loss (conceded/conceded, lost, nobody ranked)
 --   5. Solo (N = 1) concede ends the game as a loss immediately
 --   6. Non-players rejected; conceding a finished game rejected
 -- ============================================================
@@ -46,22 +46,22 @@ select lives_ok(
   'a player can concede'
 );
 select is(
-  (select conceded from common.game_players
+  (select player_ended_reason from common.game_players
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true,
-  'the conceder is marked conceded'
+  'conceded',
+  'the conceder has ended, by conceding'
 );
 select is(
-  (select conceded from common.game_players
+  (select player_ended_at from common.game_players
     where game_id = (select id from g1)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  false,
-  'the other player is NOT conceded'
+  null,
+  'the other player has NOT ended'
 );
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'playing',
+  (select ended_at from common.games where id = (select id from g1)),
+  null,
   'the game stays in progress while someone is still racing'
 );
 
@@ -77,7 +77,7 @@ select pg_temp.envelope_is(
 -- force the win path.
 reset role;
 select set_config('request.jwt.claims', '', true);
-update bananagrams.games set bunch = '' where id = (select id from g1);
+update bananagrams.games set bunch = '' where game_id = (select id from g1);
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select bananagrams.save_player_board(
@@ -92,16 +92,18 @@ select bananagrams.peel((select id from g1));
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select status->>'winner_username' from common.games where id = (select id from g1)),
-  'bea',
+  (select final_ranking || '/' || outcome from common.game_players
+    where game_id = (select id from g1)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'),
+  '1/won',
   'the remaining racer wins by peeling out'
 );
 select is(
-  (select result->>'won' from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'false',
-  'the conceder is recorded a loss when the game ends'
+  'unranked/lost',
+  'the conceder is unranked and lost when the game ends'
 );
 
 -- ─── (4) Last active player conceding ends the game (collective loss) ───
@@ -116,8 +118,8 @@ select (bananagrams.create_game(
 )->'data'->>'id')::uuid as id;
 select bananagrams.concede((select id from g2)); -- ada out, bea still active
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'playing',
+  (select ended_at from common.games where id = (select id from g2)),
+  null,
   'game still playing after the first of two concedes'
 );
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -126,19 +128,20 @@ select bananagrams.concede((select id from g2)); -- the LAST active player
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select play_state from common.games where id = (select id from g2)),
+  (select game_ended_outcome from common.games where id = (select id from g2)),
   'lost',
   'the last concede ends the game as a collective loss'
 );
 select is(
-  (select status->>'reason' from common.games where id = (select id from g2)),
-  'conceded',
-  'status.reason is conceded (distinct from timeout / a win)'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g2)),
+  'conceded/conceded',
+  'the reason is conceded (distinct from timeout / a win)'
 );
 select is(
-  (select status->>'winner_username' from common.games where id = (select id from g2)),
-  NULL,
-  'no winner when everyone conceded'
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g2) and final_ranking is not null),
+  0,
+  'no winner when everyone conceded: nobody is ranked'
 );
 
 -- ─── (5) Solo game: conceding ends it immediately (N = 1, no one left) ───
@@ -153,8 +156,8 @@ select bananagrams.concede((select id from g3));
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select play_state from common.games where id = (select id from g3)),
-  'lost',
+  (select game_ended_reason || '/' || game_ended_outcome from common.games where id = (select id from g3)),
+  'conceded/lost',
   'a solo concede ends the game as a loss immediately'
 );
 

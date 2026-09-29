@@ -3,18 +3,19 @@
 -- ============================================================
 -- Test: bananagrams.dump(target_game, tile)
 -- ============================================================
--- Swap one held tile for dump_count (default 3) from the bunch. Covers:
---   1. Happy path (return-to-bag, default): tiles −1 +3 (net +2); bunch −3 +1;
+-- Swap one held tile for 3 from the bunch. Covers:
+--   1. Happy path (return-to-bunch, default): tiles −1 +3 (net +2); bunch −3 +1;
 --      the dumped tile lands at the BACK of the bunch (so it can't be the tile
---      just drawn); progress.unplaced + status.bunch_remaining track it
+--      just drawn); progress.unplaced_count + the club line's bunch_tiles_count track it
 --   2. dump_to_bag on: same hand math, but the dumped tile goes to the BAG
---      (bunch nets −3; bag +1)
+--      (bunch nets −3; bag +1), and a player can read the bag's size
 --   3. dump_to_bag + short bunch: the draw tops up from the bag front, dumped
 --      tile to the bag back
---   4. return-to-bag + short bunch + a non-empty bag (the bunch_size leftover):
---      the draw still taps the bag, but the dumped tile returns to the bag
+--   4. return-to-bunch + short bunch + a non-empty bag (the bunch_size
+--      leftover): the draw still taps the bag, but the dumped tile returns to
+--      the bunch
 --   5. Can't dump a tile you don't hold
---   6. Can't dump when bunch + bag is too small (< dump_count)
+--   6. Can't dump when bunch + bag is too small (< 3)
 --   7. Non-players rejected
 --   8. A dump into a game deleted under it is the shared race (PN485)
 -- ============================================================
@@ -32,7 +33,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('test club', array['ada', 'bea']) as handle;
 
--- 2 players, hand_size 21 → bunch = 144 − 42 = 102, dump_count = 3.
+-- 2 players, hand_size 21 → bunch = 144 − 42 = 102; a dump draws 3.
 create temp table g1 on commit drop as
 select (bananagrams.create_game(
   (select handle from club),
@@ -68,27 +69,27 @@ select is(
   'dumping swaps 1 for 3 (21 → 23 tiles)'
 );
 select is(
-  (select length(bunch) from bananagrams.games where id = (select id from g1)),
+  (select length(bunch) from bananagrams.games where game_id = (select id from g1)),
   100,
   'the bunch nets −2 (drew 3, returned 1: 102 → 100)'
 );
 -- The dumped tile is appended to the back, never among the freshly drawn.
 select is(
-  (select right(bunch, 1) from bananagrams.games where id = (select id from g1)),
+  (select right(bunch, 1) from bananagrams.games where game_id = (select id from g1)),
   (select letter from dumped),
   'the dumped tile is returned to the BACK of the bunch'
 );
 select is(
-  (select unplaced from bananagrams.progress
+  (select unplaced_count from bananagrams.progress
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   23,
-  'progress.unplaced grew by dump_count − 1 (21 → 23)'
+  'progress.unplaced_count grew by 3 − 1 (21 → 23)'
 );
 select is(
-  (select (status->>'bunch_remaining')::int from common.games where id = (select id from g1)),
+  (select (clubpage_info->>'bunch_tiles_count')::int from common.games where id = (select id from g1)),
   100,
-  'status.bunch_remaining tracks the bunch'
+  'the club line''s bunch_tiles_count tracks the bunch'
 );
 
 -- ─── dump_to_bag: the dumped tile goes to the bag ───
@@ -122,20 +123,24 @@ select is(
   'dump_to_bag: the hand still swaps 1 for 3 (21 → 23)'
 );
 select is(
-  (select length(bunch) from bananagrams.games where id = (select id from g2)),
+  (select length(bunch) from bananagrams.games where game_id = (select id from g2)),
   99,
   'dump_to_bag: the bunch nets −3 (drew 3 from it, returned 0: 102 → 99)'
 );
 select is(
-  (select length(bag) from bananagrams.games where id = (select id from g2)),
+  (select length(bag) from bananagrams.games where game_id = (select id from g2)),
   1,
   'dump_to_bag: the dumped tile lands in the bag (bag 0 → 1)'
 );
+-- The page counts the bag itself, so a player must be able to read it.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select (status->>'bag_remaining')::int from common.games where id = (select id from g2)),
+  (select length(bag) from bananagrams.games where game_id = (select id from g2)),
   1,
-  'dump_to_bag: status.bag_remaining surfaces the bag count to the FE'
+  'dump_to_bag: a player reads the bag count directly'
 );
+reset role;
+select set_config('request.jwt.claims', '', true);
 
 -- ─── dump_to_bag: a short bunch tops up from the bag ───
 -- With the bunch nearly empty but the bag stocked, a dump draws what's left of
@@ -151,7 +156,7 @@ select (bananagrams.create_game(
 )->'data'->>'id')::uuid as id;
 reset role;
 select set_config('request.jwt.claims', '', true);
-update bananagrams.games set bunch = 'A', bag = 'XYZ' where id = (select id from g3);
+update bananagrams.games set bunch = 'A', bag = 'XYZ' where game_id = (select id from g3);
 update bananagrams.player_boards set tiles = 'Q'
  where game_id = (select id from g3) and user_id = 'ada11111-1111-1111-1111-111111111111';
 
@@ -165,26 +170,26 @@ select pg_temp.envelope_is(
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select length(bunch) from bananagrams.games where id = (select id from g3)),
+  (select length(bunch) from bananagrams.games where game_id = (select id from g3)),
   0,
   'short-bunch dump drains the bunch (1 → 0)'
 );
 select is(
-  (select bag from bananagrams.games where id = (select id from g3)),
+  (select bag from bananagrams.games where game_id = (select id from g3)),
   'ZQ',
   'it drew XY off the bag front (Z left) and appended the dumped Q to the back → ZQ'
 );
 select is(
-  (select (status->>'bag_remaining')::int from common.games where id = (select id from g3)),
+  (select length(bag) from bananagrams.games where game_id = (select id from g3)),
   2,
-  'status.bag_remaining tracks the bag (3 − 2 drawn + 1 dumped = 2)'
+  'the bag count tracks the bag (3 − 2 drawn + 1 dumped = 2)'
 );
 
--- ─── return-to-bag also taps the bag (the leftover from a reduced bag) ───
--- A return-to-bag game can have a non-empty bag too (bunch_size < 144 puts the
--- remainder there). A short-bunch dump draws off the bag front and the bag
--- shrinks; the dumped tile returns to the BAG, not the bag. Crafted: bunch='A',
--- bag='XYZ', ada holds Q.
+-- ─── return-to-bunch also taps the bag (the leftover from a reduced bunch) ───
+-- A return-to-bunch game can have a non-empty bag too (bunch_size < 144 puts
+-- the remainder there). A short-bunch dump draws off the bag front and the bag
+-- shrinks; the dumped tile returns to the BUNCH, not the bag. Crafted:
+-- bunch='A', bag='XYZ', ada holds Q.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g4 on commit drop as
 select (bananagrams.create_game(
@@ -195,7 +200,7 @@ select (bananagrams.create_game(
 )->'data'->>'id')::uuid as id;
 reset role;
 select set_config('request.jwt.claims', '', true);
-update bananagrams.games set bunch = 'A', bag = 'XYZ' where id = (select id from g4);
+update bananagrams.games set bunch = 'A', bag = 'XYZ' where game_id = (select id from g4);
 update bananagrams.player_boards set tiles = 'Q'
  where game_id = (select id from g4) and user_id = 'ada11111-1111-1111-1111-111111111111';
 
@@ -203,20 +208,20 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   bananagrams.dump((select id from g4), 'Q'),
   '{"type":"ok","data":{"result":"dumped"}}'::jsonb,
-  'a to-bag dump topped up from the bag answers dumped'
+  'a return-to-bunch dump topped up from the bag answers dumped'
 );
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select bag from bananagrams.games where id = (select id from g4)),
+  (select bag from bananagrams.games where game_id = (select id from g4)),
   'Z',
-  'return-to-bag: the bag shrinks as the draw taps it (XYZ − XY = Z)'
+  'return-to-bunch: the bag shrinks as the draw taps it (XYZ − XY = Z)'
 );
 select is(
-  (select bunch from bananagrams.games where id = (select id from g4)),
+  (select bunch from bananagrams.games where game_id = (select id from g4)),
   'Q',
-  'return-to-bag: the dumped tile returns to the BAG, not the bag'
+  'return-to-bunch: the dumped tile returns to the BUNCH, not the bag'
 );
 
 -- ─── Can't dump a tile you don't hold ───
@@ -245,18 +250,18 @@ select pg_temp.envelope_is(
 );
 
 -- ─── Bunch (+ bag) too small to dump ───
--- g1 is return-to-bag, so its bag is empty: bunch+bag = 2 < dump_count 3.
+-- g1 is return-to-bunch, so its bag is empty: bunch+bag = 2 < the 3 a dump draws.
 reset role;
 select set_config('request.jwt.claims', '', true);
-update bananagrams.games set bunch = 'AB' where id = (select id from g1); -- 2 < dump_count 3
+update bananagrams.games set bunch = 'AB' where game_id = (select id from g1); -- 2 < 3
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
--- Also a race: the dump zone refuses the drop below dump_count, but the bunch
--- is SHARED and a rival's peel can drain it between that read and this call.
+-- Also a race: the dump zone refuses the drop below 3, but the bunch is SHARED
+-- and a rival's peel can drain it between that read and this call.
 select pg_temp.envelope_is(
   bananagrams.dump((select id from g1), 'A'),
   '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN347","message":"Bunch too low to dump"}'::jsonb,
-  'cannot dump when bunch + bag is smaller than dump_count'
+  'cannot dump when bunch + bag is smaller than the 3 a dump draws'
 );
 
 -- ============================================================
