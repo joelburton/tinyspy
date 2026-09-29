@@ -7,7 +7,7 @@
 -- DEFINER, so it can hand the edge function the grant-hidden dictionary
 -- bands — which makes its own gates the whole security story:
 --   a deleted game (the shared race, PN485, asked first), membership
---   (_require_game_player), play_state = playing, mode = coop.
+--   (_require_game_player), a game not yet ended, mode = coop.
 -- The happy path must return all five keys atomically.
 
 begin;
@@ -56,18 +56,24 @@ select pg_temp.envelope_is(
   'a compete game is rejected — hints are a coop feature');
 reset role;
 
--- A non-playing game (rig play_state directly; the state machinery has its
--- own tests) is rejected even for a legit player.
-update common.games set play_state = 'suspended' where id = (select id from gco);
+-- An ended game (rig the ending directly; the endings have their own tests)
+-- is rejected even for a legit player.
+update common.games
+   set ended_at = now(), game_ended_reason = 'stopped',
+       game_ended_reason_detail = 'stopped', game_ended_outcome = 'neutral'
+ where id = (select id from gco);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- A RACE: a teammate can end the game while the suggest button is on screen.
 select pg_temp.envelope_is(
   scrabble.get_suggest_context((select id from gco)),
   '{"type":"not-ok","severity":"race","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'a non-playing game is rejected');
+  'an ended game is rejected');
 reset role;
-update common.games set play_state = 'playing' where id = (select id from gco);
+update common.games
+   set ended_at = null, game_ended_reason = null,
+       game_ended_reason_detail = null, game_ended_outcome = null
+ where id = (select id from gco);
 
 -- ─── Happy path: the five-key atomic snapshot ────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

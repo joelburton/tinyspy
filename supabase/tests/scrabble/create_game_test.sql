@@ -5,7 +5,7 @@
 -- ============================================================
 -- Shuffles the 100-tile bag, deals 7-tile racks (per-player in compete,
 -- one shared rack in coop), seeds an empty 225-cell board, picks a random
--- first player (compete), starts at version 0, flips to 'playing'.
+-- first player (compete), starts at version 0, and starts the game.
 
 begin;
 set search_path = scrabble, common, public, extensions;
@@ -49,25 +49,25 @@ select is(
   (select gametype from common.games where id = (select id from gc)),
   'scrabble_coop', 'common.games gets the scrabble_coop gametype');
 select is(
-  (select mode from scrabble.games where id = (select id from gc)),
-  'coop', 'scrabble.games stores mode coop');
+  (select mode from common.games where id = (select id from gc)),
+  'coop', 'common.games stores mode coop');
 select is(
-  (select dict_2 || '/' || dict_3plus from scrabble.games where id = (select id from gc)),
+  (select dict_2 || '/' || dict_3plus from scrabble.games where game_id = (select id from gc)),
   '3/3', 'both difficulty bands (2-letter / 3+) are recorded');
 select is(
-  (select version from scrabble.games where id = (select id from gc)),
+  (select version from scrabble.games where game_id = (select id from gc)),
   0, 'version starts at 0');
 select is(
-  (select jsonb_array_length(board) from scrabble.games where id = (select id from gc)),
+  (select jsonb_array_length(board) from scrabble.games where game_id = (select id from gc)),
   225, 'an empty 225-cell board is seeded');
 select is(
-  (select array_length(shared_rack, 1) from scrabble.games where id = (select id from gc)),
+  (select array_length(coop_rack, 1) from scrabble.games where game_id = (select id from gc)),
   7, 'coop deals one shared 7-tile rack');
 select is(
-  (select team_score from scrabble.games where id = (select id from gc)),
-  0, 'coop team_score starts at 0');
+  (select coop_score from scrabble.games where game_id = (select id from gc)),
+  0, 'coop_score starts at 0');
 select is(
-  (select array_length(bag, 1) from scrabble.games where id = (select id from gc)),
+  (select array_length(bag, 1) from scrabble.games where game_id = (select id from gc)),
   93, 'bag holds the remaining 93 tiles (100 − 7 dealt)');
 select is(
   (select count(*)::int from scrabble.players where game_id = (select id from gc)),
@@ -75,9 +75,9 @@ select is(
 select ok(
   (select bool_and(rack is null) from scrabble.players where game_id = (select id from gc)),
   'coop players have no per-player rack (it lives on games)');
-select is(
-  (select play_state from common.games where id = (select id from gc)),
-  'playing', 'game flips to playing');
+select ok(
+  (select started_at is not null and ended_at is null from common.games where id = (select id from gc)),
+  'the game has started and not ended');
 
 -- ─── Compete ─────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -93,7 +93,7 @@ create temp table gp on commit drop as
 reset role;
 
 select is(
-  (select mode from scrabble.games where id = (select id from gp)),
+  (select mode from common.games where id = (select id from gp)),
   'compete', 'compete game stores mode compete');
 select is(
   (select count(*)::int from scrabble.players
@@ -103,7 +103,7 @@ select ok(
   pg_temp.sc_current_seat((select id from gp)) in (0, 1),
   'compete picks a seated player to go first');
 select is(
-  (select array_length(bag, 1) from scrabble.games where id = (select id from gp)),
+  (select array_length(bag, 1) from scrabble.games where game_id = (select id from gp)),
   86, 'bag holds the remaining 86 tiles (100 − 14 dealt)');
 select ok(
   (select bool_and(score = 0) from scrabble.players where game_id = (select id from gp)),

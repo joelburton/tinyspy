@@ -58,11 +58,11 @@ select is((select res ->> 'outcome' from rex), 'neutral',
   'an exchange is a turn nothing adjudicates');
 select is((select jsonb_array_length(res -> 'data' -> 'drawn') from rex), 2,
   'two tiles are drawn to replace the two returned');
-select is((select array_length(shared_rack, 1) from scrabble.games where id = (select id from gco)),
+select is((select array_length(coop_rack, 1) from scrabble.games where game_id = (select id from gco)),
   7, 'the rack is still 7 tiles after the swap');
-select is((select array_length(bag, 1) from scrabble.games where id = (select id from gco)),
+select is((select array_length(bag, 1) from scrabble.games where game_id = (select id from gco)),
   10, 'the bag count is unchanged (2 returned, 2 drawn)');
-select is((select version from scrabble.games where id = (select id from gco)), 1,
+select is((select version from scrabble.games where game_id = (select id from gco)), 1,
   'exchange bumps version');
 select is((select kind || ':' || tile_count from scrabble.events
            where game_id = (select id from gco)), 'exchange:2',
@@ -86,7 +86,7 @@ reset role;
 -- src/scrabble/lib/answer.ts gives the `pass` row the same word.
 select is((select res ->> 'outcome' from rpass), 'neutral',
   'a pass is a turn nothing adjudicates');
-select is((select consecutive_passes from scrabble.games where id = (select id from gcp)), 1,
+select is((select consecutive_passes from scrabble.games where game_id = (select id from gcp)), 1,
   'pass bumps the pass streak');
 select is(pg_temp.sc_current_user((select id from gcp)),
   'bea22222-2222-2222-2222-222222222222'::uuid, 'pass advances the turn');
@@ -101,8 +101,8 @@ create temp table rp2 on commit drop as
 reset role;
 select is((select res -> 'data' ->> 'terminal' from rp2), 'true',
   'a full round of passes ends the game');
-select is((select status->>'reason' from common.games where id = (select id from gcp)),
-  'blocked', 'the all-passed end is stamped outcome=blocked');
+select is((select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from gcp)),
+  'all_passed/blocked', 'the all-passed end is stamped all_passed / blocked');
 
 -- ─── An exchange CLEARS the streak ───────────────────────
 -- Two scoreless turns in a row (pass then exchange) must NOT end the game:
@@ -125,9 +125,9 @@ reset role;
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select scrabble.exchange_tiles((select id from gcx), 1, array['A']);
 reset role;
-select is((select consecutive_passes from scrabble.games where id = (select id from gcx)), 0,
+select is((select consecutive_passes from scrabble.games where game_id = (select id from gcx)), 0,
   'an exchange clears the pass streak');
-select is((select play_state from common.games where id = (select id from gcx)), 'playing',
+select is((select ended_at from common.games where id = (select id from gcx)), null,
   'pass-then-exchange does NOT end the game');
 
 -- ─── Coop has no pass ────────────────────────────────────
@@ -162,8 +162,8 @@ reset role;
 select is((select res -> 'data' ->> 'result' from rbk), 'exchanged',
   'a blank `?` can be exchanged');
 select is((select count(*)::int from
-            unnest((select shared_rack from scrabble.games where id = (select id from gbk))
-                   || (select bag from scrabble.games where id = (select id from gbk))) t
+            unnest((select coop_rack from scrabble.games where game_id = (select id from gbk))
+                   || (select bag from scrabble.games where game_id = (select id from gbk))) t
            where t = '?'),
   1, 'the `?` is conserved in the rack+bag pool (neither lost nor duplicated)');
 

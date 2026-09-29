@@ -3,15 +3,16 @@
 -- ============================================================
 -- Test: scrabble COMPETE turn order (the common turn pointer)
 -- ============================================================
--- Compete rides the common turn order: each player's `turn_seat` is their
--- scrabble seat (humans, then bots), and `common.games.current_turn_user_id`
--- names whose turn it is — a bot's as much as a person's.
+-- Compete rides the common turn order: each player's `turn_seat` puts the
+-- people first, in the order they were listed, then the bots, and
+-- `common.games.current_turn_user_id` names whose turn it is — a bot's as much
+-- as a person's.
 -- Covers:
---   1. create_game seats every player at their scrabble seat and points the
---      turn at one of them
+--   1. create_game seats every player in that order and points the turn at
+--      one of them
 --   2. an out-of-turn move is the shared race (PN243)
 --   3. an exchange, a pass and a bot's pass each hand the turn to the next seat
---   4. get_ai_context finds the bot seat through the pointer
+--   4. get_ai_context finds the bot through the pointer
 --   5. a player who concedes on their turn hands it on, and is skipped after
 --   6. replay_board keeps the seats and points the turn at a seated player
 -- ============================================================
@@ -37,18 +38,24 @@ create temp table g on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 
+-- The bot create_game picks: the first ai_member by username.
+create temp table bot on commit drop as
+  select user_id as id from common.profiles where ai_member order by username limit 1;
+grant select on bot to authenticated;
+
 -- The game's current version, which every move sends back.
 create function pg_temp.v() returns int language sql as $$
-  select version from scrabble.games where id = (select id from g);
+  select version from scrabble.games where game_id = (select id from g);
 $$;
 
 -- (1) The seats and the pointer.
 select is(
-  (select count(*)::int
-     from common.game_players gp
-     join scrabble.players p on p.game_id = gp.game_id and p.user_id = gp.user_id
-    where gp.game_id = (select id from g) and gp.turn_seat = p.seat),
-  3, 'create_game seats every player at their scrabble seat');
+  (select array_agg(user_id order by turn_seat) from common.game_players
+    where game_id = (select id from g)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid,
+        (select id from bot)],
+  'create_game seats the people in the order listed, then the bot');
 select ok(
   pg_temp.sc_current_seat((select id from g)) in (0, 1, 2),
   'create_game points the turn at a seated player');
@@ -85,10 +92,10 @@ select is(pg_temp.sc_current_seat((select id from g)), 2, 'a pass hands the turn
 -- (4) The bot's turn, found through the pointer.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select scrabble.get_ai_context((select id from g)) -> 'data' ->> 'seat'),
-  '2', 'get_ai_context answers for the seat whose bot holds the turn');
+  (select (scrabble.get_ai_context((select id from g)) -> 'data' ->> 'user_id')::uuid),
+  (select id from bot), 'get_ai_context answers for the bot holding the turn');
 select is(
-  (select scrabble.ai_pass_turn((select id from g), 2, pg_temp.v()) -> 'data' ->> 'result'),
+  (select scrabble.ai_pass_turn((select id from g), (select id from bot), pg_temp.v()) -> 'data' ->> 'result'),
   'passed', 'the bot passes on its turn');
 reset role;
 select is(pg_temp.sc_current_seat((select id from g)), 0, 'the bot''s pass wraps the turn to seat 0');
@@ -109,11 +116,12 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select scrabble.replay_board((select id from g));
 reset role;
 select is(
-  (select count(*)::int
-     from common.game_players gp
-     join scrabble.players p on p.game_id = gp.game_id and p.user_id = gp.user_id
-    where gp.game_id = (select id from g) and gp.turn_seat = p.seat),
-  3, 'replay_board keeps every player at their scrabble seat');
+  (select array_agg(user_id order by turn_seat) from common.game_players
+    where game_id = (select id from g)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid,
+        (select id from bot)],
+  'replay_board keeps every player at their seat');
 select ok(
   pg_temp.sc_current_seat((select id from g)) in (0, 1, 2),
   'replay_board points the turn at a seated player');

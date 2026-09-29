@@ -3,23 +3,24 @@
 -- ============================================================
 -- Test: scrabble.concede(target_game)  (turn-based concede)
 -- ============================================================
--- scrabble is turn-based, so concede is more than a flag: the conceder
+-- scrabble is turn-based, so concede is more than a record: the conceder
 -- is removed from the turn order (_advance_turn skips them), forfeits any
--- win (_finish picks the winner among non-conceded players), and if it
--- was their turn the turn hands off. When the last active player concedes
--- the game ends with nobody eligible to win. Covers:
---   1. A concede marks the caller + keeps the game going; the current
---      turn is always a NON-conceded player afterward (handoff / skip)
+-- win (_finish ranks only players who didn't concede), and if it was their
+-- turn the turn hands off. When the last person concedes the game ends.
+-- Covers:
+--   1. A concede ends the caller + keeps the game going; the current
+--      turn is always a player who hasn't conceded afterward (handoff / skip)
 --   2. Both conceding ends the game with NO winner (forfeit), everyone
---      recorded a loss
---   3. Coop concede is rejected (coop has no turns / no race)
+--      lost
+--   3. The last person conceding ends it even with a bot still seated, and
+--      the bot is ranked
 -- ============================================================
 
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 
-select plan(9);
+select plan(11);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -38,44 +39,40 @@ select lives_ok(
   format($$ select scrabble.concede(%L) $$, (select id from g)),
   'a compete player can concede');
 select is(
-  (select conceded from common.game_players
+  (select player_ended_reason from common.game_players
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'the conceder is marked conceded');
+  'conceded', 'the conceder ends, conceded');
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  false, 'the game continues while bea plays');
+  (select ended_at from common.games where id = (select id from g)),
+  null, 'the game continues while bea plays');
 select is(
   (select current_turn_user_id from common.games where id = (select id from g)),
   'bea22222-2222-2222-2222-222222222222'::uuid,
-  'the turn is a non-conceded player (conceder skipped / handed off)');
+  'the turn is a player who hasn''t conceded (conceder skipped / handed off)');
 
--- (2) bea (last active) concedes → game ends, nobody eligible to win.
+-- (2) bea (the last one in) concedes → game ends, nobody eligible to win.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select scrabble.concede((select id from g));
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select status->>'winner_user_id' from common.games where id = (select id from g)),
-  null, 'no winner when everyone conceded (a conceder forfeits)');
+  (select clubpage_info->'winner_user_id' from common.games where id = (select id from g)),
+  'null'::jsonb, 'no winner when everyone conceded (a conceder forfeits)');
 select is(
   (select count(*) from common.game_players
-    where game_id = (select id from g) and result->>'won' = 'true'),
-  0::bigint, 'nobody is recorded a win');
--- scrabble hand-rolls this path (it needs final scoring first) rather than
--- delegating to common.concede — so nothing else guarantees it lands the
--- roster-wide all-conceded terminal. Pin the play_state + outcome pair the
--- FE verdicts and club-card labels key on.
+    where game_id = (select id from g) and outcome = 'lost' and final_ranking is null),
+  2::bigint, 'nobody is ranked; everyone lost');
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'lost_compete', 'the hand-rolled path lands the roster-wide terminal');
+  (select game_ended_outcome from common.games where id = (select id from g)),
+  'lost', 'the game ends lost');
 select is(
-  (select status->>'reason' from common.games where id = (select id from g)),
-  'conceded', 'status.reason names the cause');
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g)),
+  'conceded/conceded', 'the reason names the cause');
 
--- ── (4) The last HUMAN conceding ends it, even against a bot ──
--- A bot holds a common.game_players row now, and a bot never concedes. The
--- all-conceded check counts PEOPLE for exactly that reason: counting seats
--- would never reach zero here and the table would sit in `playing` forever.
+-- ── (3) The last PERSON conceding ends it, even against a bot ──
+-- A bot holds a common.game_players row, and a bot never concedes, so the
+-- all-conceded check counts people: counting seats would never reach zero
+-- here and the table would never end.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gb on commit drop as
   select (scrabble.create_game((select handle from club),
@@ -84,9 +81,26 @@ create temp table gb on commit drop as
 select scrabble.concede((select id from gb));
 reset role;
 
-select ok(
-  (select is_terminal from common.games where id = (select id from gb)),
-  'the last human conceding ends the game, though the bot is still seated');
+select isnt(
+  (select ended_at from common.games where id = (select id from gb)), null,
+  'the last person conceding ends the game, though the bot is still seated');
+select is(
+  (select final_ranking || '/' || outcome from common.game_players gp
+     join common.profiles pr on pr.user_id = gp.user_id
+    where gp.game_id = (select id from gb) and pr.ai_member),
+  '1/won', 'the bot, the one player left, is ranked 1');
+
+-- ── (4) Coop has no concede ──
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gc on commit drop as
+  select (scrabble.create_game((select handle from club),
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
+select is(
+  scrabble.concede((select id from gc)) ->> 'dbcode',
+  'PN484', 'a coop concede is refused');
+reset role;
 
 select * from finish();
 rollback;

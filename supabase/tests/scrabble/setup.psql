@@ -19,10 +19,10 @@
 
 reset role;
 
--- Coop: set the shared rack + remaining bag.
+-- Coop: set the coop rack + remaining bag.
 create function pg_temp.sc_coop(g uuid, p_rack text[], p_bag text[])
 returns void language sql as $$
-  update scrabble.games set shared_rack = p_rack, bag = p_bag where id = g;
+  update scrabble.games set coop_rack = p_rack, bag = p_bag where game_id = g;
 $$;
 
 -- Compete: set one player's rack.
@@ -34,7 +34,7 @@ $$;
 -- Set the remaining bag (either mode).
 create function pg_temp.sc_bag(g uuid, p_bag text[])
 returns void language sql as $$
-  update scrabble.games set bag = p_bag where id = g;
+  update scrabble.games set bag = p_bag where game_id = g;
 $$;
 
 -- Force whose turn it is (compete) — the common turn pointer.
@@ -43,11 +43,13 @@ returns void language sql as $$
   update common.games set current_turn_user_id = p_uid where id = g;
 $$;
 
--- Force whose turn it is by seat (an AI seat's bot, most often).
+-- Force whose turn it is by turn seat (common.game_players.turn_seat: the
+-- people in the order they were listed, then the bots — so a bot, most often).
 create function pg_temp.sc_turn_seat(g uuid, p_seat int)
 returns void language sql as $$
   update common.games
-     set current_turn_user_id = (select user_id from scrabble.players where game_id = g and seat = p_seat)
+     set current_turn_user_id = (select user_id from common.game_players
+                                  where game_id = g and turn_seat = p_seat)
    where id = g;
 $$;
 
@@ -57,11 +59,17 @@ returns uuid language sql as $$
   select current_turn_user_id from common.games where id = g;
 $$;
 
--- The seat whose player holds the turn pointer.
+-- The turn seat of the player who holds the turn pointer.
 create function pg_temp.sc_current_seat(g uuid)
 returns int language sql as $$
-  select p.seat
-    from scrabble.players p
-    join common.games gm on gm.id = p.game_id and gm.current_turn_user_id = p.user_id
+  select gp.turn_seat
+    from common.game_players gp
+    join common.games gm on gm.id = gp.game_id and gm.current_turn_user_id = gp.user_id
    where gm.id = g;
+$$;
+
+-- The user at a turn seat.
+create function pg_temp.sc_seat_user(g uuid, p_seat int)
+returns uuid language sql as $$
+  select user_id from common.game_players where game_id = g and turn_seat = p_seat;
 $$;
