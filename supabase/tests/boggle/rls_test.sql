@@ -38,10 +38,10 @@ select is((select count(*) from boggle.found_words where game_id = (select id fr
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is((select count(*) from boggle.found_words where game_id = (select id from g)),
   0::bigint, 'outsider sees no finds');
-select is((select count(*) from boggle.games where id = (select id from g)),
+select is((select count(*) from boggle.games where game_id = (select id from g)),
   0::bigint, 'outsider cannot read the game row');
 
--- ── Compete: own-only mid-game, all at terminal ───────────
+-- ── Compete: own-only mid-game, all once ended ────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cg on commit drop as
 select (boggle.create_game(
@@ -64,7 +64,7 @@ select is((select count(*) from boggle.found_words where game_id = (select id fr
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select boggle.stop_game((select id from cg));
 select is((select count(*) from boggle.found_words where game_id = (select id from cg)),
-  2::bigint, 'compete post-terminal: ada sees all finds (the reveal)');
+  2::bigint, 'compete once ended: ada sees all finds (the reveal)');
 
 select * from finish();
 rollback;

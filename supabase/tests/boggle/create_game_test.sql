@@ -3,14 +3,14 @@
 -- ============================================================
 -- Test: boggle.create_game
 -- ============================================================
--- Covers: coop happy path (header + per-game row + status), compete happy path,
+-- Covers: coop happy path (header + per-game row + club line), compete happy path,
 -- and the validation guards (mode, compete player floor, band, ladder, dice_set,
 -- non-member).
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(19);
+select plan(18);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -42,26 +42,26 @@ select pg_temp.envelope_is(
   'the answer names itself, so a call site has a case to assert');
 select isnt((select id from g), null, 'create_game (coop) returns an id');
 select is(
-  (select count(*) from boggle.games where id = (select id from g)), 1::bigint,
+  (select count(*) from boggle.games where game_id = (select id from g)), 1::bigint,
   'create_game inserts one boggle.games row');
 select is(
-  (select mode from boggle.games where id = (select id from g)), 'coop',
-  'boggle.games.mode = coop');
+  (select mode from common.games where id = (select id from g)), 'coop',
+  'common.games.mode = coop');
 select is(
-  (select required_words_count from boggle.games where id = (select id from g)), 6,
+  (select required_words_count from boggle.games where game_id = (select id from g)), 6,
   'required_words_count cached = 6');
 select is(
-  (select n from boggle.games where id = (select id from g)), 4,
-  'board side length n = 4');
+  (select board_side_size from boggle.games where game_id = (select id from g)), 4,
+  'board side length = 4');
+select is(
+  (select required_band from boggle.games where game_id = (select id from g)), 3,
+  'required_band copied from setup.band');
 select is(
   (select gametype from common.games where id = (select id from g)), 'boggle_coop',
   'common.games.gametype = boggle_coop');
 select is(
-  (select status->>'mode' from common.games where id = (select id from g)), 'coop',
-  'status seeded with mode coop');
-select is(
-  (select (status->>'found_words_count')::int from common.games where id = (select id from g)), 0,
-  'status found_words_count starts at 0');
+  (select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from g)), 0,
+  'the club line''s found_words_count starts at 0');
 -- Club-list title = size + the board's top row. The fixture board is
 -- 'CATRSEXOTMPLNGDB' at n=4, so the first four faces are C A T R.
 select is(
@@ -94,11 +94,8 @@ select (boggle.create_game(
   pg_temp.boggle_board()
 )->'data'->>'id')::uuid as id;
 select is(
-  (select mode from boggle.games where id = (select id from cg)), 'compete',
+  (select mode from common.games where id = (select id from cg)), 'compete',
   'create_game (compete) sets mode compete');
-select is(
-  (select status->>'mode' from common.games where id = (select id from cg)), 'compete',
-  'compete status seeded with leaderboard');
 
 -- ── Validation guards ─────────────────────────────────────
 select pg_temp.envelope_is(

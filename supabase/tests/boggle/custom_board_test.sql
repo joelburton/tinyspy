@@ -54,7 +54,7 @@ select (boggle.create_game(
 )->'data'->>'id')::uuid as id;
 select isnt((select id from g), null, 'a custom board is accepted');
 select is(
-  (select board from boggle.games where id = (select id from g)),
+  (select board from boggle.games where game_id = (select id from g)),
   'CATRSEXOTMPLNGDB', 'the custom board is stored as the game''s board');
 
 -- ── (2) Saved default strips the one-off board ──────────────

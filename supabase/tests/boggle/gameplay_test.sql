@@ -5,12 +5,13 @@
 -- ============================================================
 -- submit_word is trusting-commit: the FE validated the word against the board's
 -- shipped legal list and scored it, so the RPC trusts word + points + is_bonus
--- and only enforces the live-game check, dedups, records, and refreshes status.
--- It does NOT validate word content (no tooShort/invalid/notAWord). Coverage:
+-- and only enforces the live-game check, dedups, records, and rewrites the
+-- statuses. It does NOT validate word content (no tooShort/invalid/notAWord).
+-- Coverage:
 --   is_bonus false → 'accepted'; is_bonus true → 'bonus' (stores the flag + the
 --   FE points); 'alreadyFound' (coop = per-team, compete = per-player); 'gameOver'
---   after terminal; status refresh; stop_game / submit_timeout transitions +
---   idempotency; non-player rejection.
+--   once the game has ended; the club line refreshed; stop_game /
+--   submit_timeout endings + idempotency; non-player rejection.
 --   A word into a game deleted under it is the shared race (PN485).
 
 begin;
@@ -50,10 +51,10 @@ select is((select ret->>'message' from cat_ret), null::text,
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select count(*) from boggle.found_words where game_id = (select id from g) and word = 'cat'),
   1::bigint, 'accepted word inserts one found_words row');
-select is((select (status->>'found_words_count')::int from common.games where id = (select id from g)),
-  1, 'status.found_words_count refreshed to 1');
-select is((select (status->>'found_words_score')::int from common.games where id = (select id from g)),
-  1, 'status.found_words_score refreshed to 1');
+select is((select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from g)),
+  1, 'the club line''s found_words_count refreshed to 1');
+select is((select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from g)),
+  1, 'the club line''s found_words_score refreshed to 1');
 
 -- ── (2) coop dedup: same word by anyone is alreadyFound ───
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -74,18 +75,20 @@ select is((select is_bonus from boggle.found_words where game_id = (select id fr
 select is((select points from boggle.found_words where game_id = (select id from g) and word = 'zydeco'),
   3, 'bonus word stores FE-supplied points (3)');
 
--- ── (4) stop_game (manual) → terminal ──────────────────────
+-- ── (4) stop_game (manual) → ended ─────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select lives_ok($$ select boggle.stop_game((select id from g)) $$, 'stop_game: a player can end the game');
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select is_terminal from common.games where id = (select id from g)), true,
-  'stop_game sets common.games.is_terminal');
-select is((select play_state from common.games where id = (select id from g)), 'ended',
-  'stop_game sets play_state ended');
-select is((select status->>'reason' from common.games where id = (select id from g)), 'manual',
-  'stop_game records outcome manual');
+select isnt((select ended_at from common.games where id = (select id from g)), null,
+  'stop_game sets common.games.ended_at');
+select is((select game_ended_outcome from common.games where id = (select id from g)), 'neutral',
+  'stop_game ends the game neutral');
+select is((select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_by_user_id::text
+             from common.games where id = (select id from g)),
+  'stopped/stopped/ada11111-1111-1111-1111-111111111111',
+  'stop_game records the reason stopped, ended by the caller');
 
--- ── (5) submit after terminal → gameOver ──────────────────
+-- ── (5) submit after the end → gameOver ───────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- A RACE: the game can end while a submission is in flight, and the word is
 -- not recorded — so it refuses rather than answering.
@@ -125,7 +128,7 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN483","message":"Already conceded"}'::jsonb,
   'compete: a conceded player cannot submit');
 
--- ── (7) submit_timeout → terminal, idempotent ─────────────
+-- ── (7) submit_timeout → ended, idempotent ────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table tg on commit drop as
 select (boggle.create_game(
@@ -135,11 +138,12 @@ select (boggle.create_game(
   'coop', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 select lives_ok($$ select boggle.submit_timeout((select id from tg)) $$, 'submit_timeout ends the game');
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select status->>'reason' from common.games where id = (select id from tg)), 'timeout',
-  'submit_timeout records outcome timeout');
+select is((select game_ended_reason || '/' || game_ended_reason_detail
+             from common.games where id = (select id from tg)), 'timeout/timeout',
+  'submit_timeout records the reason timeout');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select lives_ok($$ select boggle.submit_timeout((select id from tg)) $$,
-  'submit_timeout is idempotent (no-op once terminal)');
+  'submit_timeout is idempotent (no-op once ended)');
 
 -- ── (8) non-player rejected ───────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

@@ -58,7 +58,7 @@ describe('a deleted game says so', () => {
     expect(callers.map((f) => f.name).sort()).toEqual([
       'bananagrams.dump', 'bananagrams.peel', 'bananagrams.replay_board',
       'bananagrams.stop_game', 'bananagrams.submit_timeout',
-      'boggle.replay_board', 'boggle.stop_game', 'boggle.submit_timeout',
+      'boggle.concede', 'boggle.replay_board', 'boggle.stop_game', 'boggle.submit_timeout',
       'boggle.submit_word',
       'codenamesduet._require_clue_giver',
       'codenamesduet.pass_turn', 'codenamesduet.replay_board',

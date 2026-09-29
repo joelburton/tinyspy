@@ -7,7 +7,8 @@
 -- or a player (compete) reaches win_percent% of the required-words SCORE.
 -- The fixture's required set is 9 points (see setup.psql), so a 50% target is
 -- ceil(0.5 * 9) = 5 points. Compete is a race: the first player to cross wins
--- outright (status.winner_user_id), regardless of the others' private scores.
+-- outright (ranked 1, and the one who ended it), regardless of the others'
+-- private scores.
 
 begin;
 set search_path = boggle, common, public, extensions;
@@ -29,7 +30,7 @@ select (boggle.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select win_percent from boggle.games where id = (select id from gw)), 75,
+select is((select target_win_percent from boggle.games where game_id = (select id from gw)), 75,
   'create_game stores setup.win_percent on the game');
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -70,21 +71,25 @@ select boggle.submit_word((select id from gc), 'car', 1, false);
 select boggle.submit_word((select id from gc), 'arc', 1, false);
 select boggle.submit_word((select id from gc), 'cart', 1, false);
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select play_state from common.games where id = (select id from gc)), 'playing',
+select is((select ended_at from common.games where id = (select id from gc)), null,
   'coop: below the target the game keeps playing');
 
 -- scare (+2 → 6 pts) crosses the bar → team wins.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select boggle.submit_word((select id from gc), 'scare', 2, false);
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select is_terminal from common.games where id = (select id from gc)), true,
+select isnt((select ended_at from common.games where id = (select id from gc)), null,
   'coop: reaching the target ends the game');
-select is((select status->>'reason' from common.games where id = (select id from gc)), 'target',
-  'coop: the terminal outcome is target');
--- boggle used to land every ending on the neutral 'ended'. A game with a
--- TARGET can now be won or lost against it, like spellingbee's rank target.
-select is((select play_state from common.games where id = (select id from gc)), 'won',
-  'coop: reaching the target is a WIN, not a neutral end');
+select is((select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from gc)),
+  'reached_goal/target',
+  'coop: the ending''s reason is reached_goal, the target');
+-- A game with a TARGET can be won or lost against it, like spellingbee's rank
+-- target: the whole team is ranked 1.
+select is((select game_ended_outcome || '/' ||
+                  (select count(*) from common.game_players
+                    where game_id = (select id from gc) and final_ranking = 1 and outcome = 'won')::text
+             from common.games where id = (select id from gc)), 'won/2',
+  'coop: reaching the target is a WIN for every teammate, not a neutral end');
 
 -- ── (3) COMPETE: first to cross wins the race ─────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -104,20 +109,21 @@ select boggle.submit_word((select id from gp), 'cart', 1, false);
 select boggle.submit_word((select id from gp), 'scare', 2, false);
 reset role; select set_config('request.jwt.claims', '', true);
 
-select is((select is_terminal from common.games where id = (select id from gp)), true,
+select isnt((select ended_at from common.games where id = (select id from gp)), null,
   'compete: a player reaching the target ends the game');
-select is((select status->>'reason' from common.games where id = (select id from gp)), 'target',
-  'compete: the terminal outcome is target');
-select is((select status->>'winner_user_id' from common.games where id = (select id from gp)),
-  'ada11111-1111-1111-1111-111111111111', 'compete: the crosser is named as the winner');
-select is((select play_state from common.games where id = (select id from gp)), 'won_compete',
-  'compete: reaching the target is won_compete, not a neutral end');
-select is((select (result->>'won')::boolean from common.game_players
+select is((select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from gp)),
+  'reached_goal/target',
+  'compete: the ending''s reason is reached_goal, the target');
+select is((select game_ended_by_user_id from common.games where id = (select id from gp)),
+  'ada11111-1111-1111-1111-111111111111'::uuid, 'compete: the crosser is named as the one who ended it');
+select is((select game_ended_outcome from common.games where id = (select id from gp)), 'won',
+  'compete: reaching the target is a win, not a neutral end');
+select is((select final_ranking || '/' || outcome from common.game_players
              where game_id = (select id from gp) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'compete: the crosser won');
-select is((select (result->>'won')::boolean from common.game_players
+  '1/won', 'compete: the crosser won, ranked 1');
+select is((select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
              where game_id = (select id from gp) and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  false, 'compete: the other player lost (first-to-cross, not high score)');
+  'unranked/lost', 'compete: the other player lost, unranked (first-to-cross, not high score)');
 
 -- ── (3b) COMPETE: bonus finds do NOT count toward the target ──
 -- A big bonus find (9 pts, is_bonus) leaves the required-found score at 0, so
@@ -132,7 +138,7 @@ select (boggle.create_game(
   'compete', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 select boggle.submit_word((select id from gb), 'zydeco', 9, true);   -- bonus, 9 pts
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select play_state from common.games where id = (select id from gb)), 'playing',
+select is((select ended_at from common.games where id = (select id from gb)), null,
   'a bonus find (even a big one) does not cross the target — required score only');
 
 -- ── (4) No target (win_percent null) never auto-ends ──────────
@@ -150,7 +156,7 @@ select boggle.submit_word((select id from gn), 'cart', 1, false);
 select boggle.submit_word((select id from gn), 'scare', 2, false);
 select boggle.submit_word((select id from gn), 'traces', 3, false);
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select play_state from common.games where id = (select id from gn)), 'playing',
+select is((select ended_at from common.games where id = (select id from gn)), null,
   'no target: finding everything does not auto-end the game');
 
 -- ── (5) The clock, with and without a target ─────────────────
@@ -167,7 +173,8 @@ select (boggle.create_game(
   'coop', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 select boggle.submit_timeout((select id from gto));
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select play_state from common.games where id = (select id from gto)), 'lost',
+select is((select game_ended_reason || '/' || game_ended_outcome
+             from common.games where id = (select id from gto)), 'timeout/lost',
   'coop + target: the clock beating the target is a loss');
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -178,12 +185,13 @@ select (boggle.create_game(
   'coop', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 select boggle.submit_timeout((select id from gtn));
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select play_state from common.games where id = (select id from gtn)), 'ended',
+select is((select game_ended_reason || '/' || game_ended_outcome
+             from common.games where id = (select id from gtn)), 'timeout/neutral',
   'coop, no target: the clock is a neutral end — there was nothing to fail');
 
 -- ── (6) COMPETE, no target: the clock ranks by score ─────────
--- Nothing to reach, so the highest non-conceded score takes it and the winner
--- is NAMED (the leaderboard is privacy-scoped, so a label can't derive it).
+-- Nothing to reach, so every non-conceded scorer is ranked by score: the
+-- highest takes 1, the next is near.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gcs on commit drop as
 select (boggle.create_game(
@@ -197,10 +205,11 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select boggle.submit_word((select id from gcs), 'cat', 1, false);      -- bea: 1
 select boggle.submit_timeout((select id from gcs));
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select play_state from common.games where id = (select id from gcs)), 'won_compete',
+select is((select game_ended_outcome from common.games where id = (select id from gcs)), 'won',
   'compete, no target: the clock crowns the top score');
-select is((select status->>'winner_username' from common.games where id = (select id from gcs)),
-  'ada', 'compete, no target: the sole top scorer is named');
+select is((select array_agg(final_ranking || '/' || outcome order by user_id)
+             from common.game_players where game_id = (select id from gcs)),
+  array['1/won', '2/near'], 'compete, no target: the top scorer is ranked 1, the next near');
 
 -- ── (7) COMPETE + target: the clock means NOBODY reached it ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -214,18 +223,17 @@ select (boggle.create_game(
 select boggle.submit_word((select id from gct), 'traces', 3, false);   -- below the 5-pt bar
 select boggle.submit_timeout((select id from gct));
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select play_state from common.games where id = (select id from gct)), 'lost_compete',
+select is((select game_ended_outcome from common.games where id = (select id from gct)), 'lost',
   'compete + target: the clock beating the bar is a loss for everyone');
-select is((select (result->>'won')::boolean from common.game_players
+select is((select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
              where game_id = (select id from gct)
                and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  false, 'compete + target: the leading score does NOT win — nobody reached it');
+  'unranked/lost', 'compete + target: the leading score does NOT win — nobody reached it');
 
--- ── A timed race NOBODY played: no score to crown → lost_compete ──
+-- ── A timed race NOBODY played: no score to crown → lost ──
 -- Same shape as wordiply: "your score is the best score" is true for everyone
--- when every score is 0. Before the guard this ended won_compete with both
--- players flagged won, which the club-page label rendered as
--- "Won (co-winners)" while the play surface said "no words found".
+-- when every score is 0, so only a player who scored is ranked — here nobody,
+-- and the club page must not read "Won (co-winners)" over "no words found".
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gz on commit drop as
 select (boggle.create_game(
@@ -236,11 +244,11 @@ select (boggle.create_game(
   'compete', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 select boggle.submit_timeout((select id from gz));
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select play_state from common.games where id = (select id from gz)),
-  'lost_compete', 'compete, no target, nobody scored: the clock crowns no one');
+select is((select game_ended_outcome from common.games where id = (select id from gz)),
+  'lost', 'compete, no target, nobody scored: the clock crowns no one');
 select is((select count(*)::int from common.game_players
-            where game_id = (select id from gz) and result->>'won' = 'true'),
-  0, 'compete, nobody scored: no player is flagged won');
+            where game_id = (select id from gz) and final_ranking is not null),
+  0, 'compete, nobody scored: no player is ranked');
 
 select * from finish();
 rollback;

@@ -3,12 +3,12 @@
 -- ============================================================
 -- Test: boggle.replay_board (restart this board from scratch)
 -- ============================================================
--- The "Replay board" game-menu item / terminal RestartButton
+-- The "Replay board" game-menu item / end-of-game RestartButton
 -- (spellingbee's twin). Clears the found-words log (the game's only
--- working state), un-terminals the row with the same initial status
--- create_game seeds, and zeroes the shared clock. The frozen board
--- (faces + word lists) survives. Any game player may call it, mid-game
--- or post-terminal; a non-player is rejected.
+-- working state), clears the ending (common._reset_game), rewrites the
+-- statuses as create_game seeds them, and zeroes the shared clock. The
+-- frozen board (faces + word lists) survives. Any game player may call
+-- it, mid-game or after the end; a non-player is rejected.
 
 begin;
 set search_path = boggle, common, public, extensions;
@@ -31,15 +31,15 @@ select (boggle.create_game(
   pg_temp.boggle_board()
 )->'data'->>'id')::uuid as id;
 
--- A find + a manual end → a found row, a non-zero status, a terminal row:
+-- A find + a manual end → a found row, a non-zero score, an ended game:
 -- the state a replay must undo.
 select boggle.submit_word((select id from g1), 'cat', 1, false);
 select boggle.stop_game((select id from g1));
 
 reset role;
-select is(
-  (select is_terminal from common.games where id = (select id from g1)),
-  true, 'precondition — manually ended game is terminal');
+select isnt(
+  (select ended_at from common.games where id = (select id from g1)),
+  null, 'precondition — the manually stopped game has ended');
 -- Age the shared clock so the replay's clock-zeroing is observable.
 update common.timers set ticks = 99 where game_id = (select id from g1);
 
@@ -48,25 +48,27 @@ select boggle.replay_board((select id from g1));
 reset role;
 
 select is(
-  (select play_state from common.games where id = (select id from g1)),
-  'playing', 'replay → play_state back to playing');
+  (select ended_at from common.games where id = (select id from g1)),
+  null, 'replay → ended_at cleared, the game is played again');
 select is(
-  (select is_terminal from common.games where id = (select id from g1)),
-  false, 'replay → is_terminal cleared');
+  (select array[game_ended_reason, game_ended_reason_detail, game_ended_outcome,
+                game_ended_by_user_id::text]
+     from common.games where id = (select id from g1)),
+  array[null, null, null, null]::text[], 'replay → the ending''s reason, outcome and who ended it cleared');
 select is(
   (select count(*) from boggle.found_words where game_id = (select id from g1)),
   0::bigint, 'replay → the found-words log is cleared');
 select is(
-  (select status->>'found_words_score' from common.games where id = (select id from g1)),
-  '0', 'replay → status.found_words_score reset to 0');
+  (select clubpage_info->>'found_words_score' from common.games where id = (select id from g1)),
+  '0', 'replay → the club line''s found_words_score reset to 0');
 select is(
   (select ticks from common.timers where game_id = (select id from g1)),
   0, 'replay → the shared clock is zeroed (a timed game restarts full)');
 select is(
-  (select board from boggle.games where id = (select id from g1)),
+  (select board from boggle.games where game_id = (select id from g1)),
   'CATRSEXOTMPLNGDB', 'replay → the frozen board survives (same faces, run it back)');
 
--- ── Compete: the reset status carries the fresh empty leaderboard ──
+-- ── Compete: each racer's score is back to zero ───────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (boggle.create_game(
@@ -80,8 +82,9 @@ select boggle.submit_word((select id from g2), 'cat', 1, false);
 select boggle.replay_board((select id from g2));
 reset role;
 select is(
-  (select status->'leaderboard' from common.games where id = (select id from g2))::text,
-  '[]', 'compete replay → the leaderboard resets to empty');
+  (select player_status->>'found_required_words_score' from common.game_players
+    where game_id = (select id from g2) and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  '0', 'compete replay → the racer''s score resets to 0');
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

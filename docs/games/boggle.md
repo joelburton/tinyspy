@@ -45,7 +45,7 @@ minimum length.
   rejected.
 - **Timer.** The shared `SetupTimerSection` (none / count-up / count-down
   MM:SS), default none; a countdown lets the player pick the duration.
-- **Win target (`win_percent`).** An optional score bar: a dropdown of
+- **Win target (`setup.win_percent`, stored as `target_win_percent`).** An optional score bar: a dropdown of
   **None / 50 / 55 / … / 100 %**, default None. When set, the game is WON the
   moment the team (coop) or a player (compete) reaches `win_percent` % of the
   required-words **score**, measured against the score of the **required words
@@ -57,9 +57,9 @@ minimum length.
   others' scores (`submit_word` decides it; see [§7](#7-rpcs-all-security-definer)).
 - **Ending.** With no win target, you hunt until the timer expires or a player
   hits **Stop game**. Stop is a neutral end; so is coop's timeout, while
-  compete's timeout crowns the top score, and a compete game everyone
-  conceded is a `lost_compete`. With a target set, reaching it ends the game
-  as a win (`status.reason = 'target'`). Either way the end-of-game reveal
+  compete's timeout ranks the racers by score, and a compete game everyone
+  conceded is lost. With a target set, reaching it ends the game as a win
+  (`reached_goal`, detail `target`). Either way the end-of-game reveal
   lists the **required** words nobody found.
 
 ### Modes (sibling-manifest pair)
@@ -286,16 +286,17 @@ queried at cold start:
 Migration `supabase/migrations/20260628000000_boggle.sql`. The standard sibling
 pair on one `boggle` schema.
 
-**`boggle.games`** → `common.games(id)`:
+**`boggle.games`**, keyed on `game_id` → `common.games(id)`; the mode, the club
+and the ending are `common.games`':
 
-- `club_handle`, `mode` (`coop` / `compete`) — denormalized so RLS checks
-  membership without a join and the FE reads the whole board in one query.
 - `board text` — the rolled board as a row-major raw-face string (A–Z, a
-  multiface digit `1`–`6`, or `0` for a blank), length `n²`; `n int` (4–6).
-- `min_word_length int`, `legal_band int` — `min_word_length` is the entry
-  floor; `legal_band` is retained for reference (it was the ceiling the bonus
-  list was enumerated against). The rest of setup (`band`, `scoring_ladder`,
-  `timer`, constraint bounds) lives in `common.games.setup`.
+  multiface digit `1`–`6`, or `0` for a blank), length `n²`;
+  `board_side_size int` is `n` (4–6).
+- `min_word_length int`, `required_band int`, `legal_band int` — the entry
+  floor, the band the required list was built at, and the ceiling the bonus
+  list was enumerated against. `target_win_percent int` is the win target, null
+  for none. The rest of setup (`scoring_ladder`, `timer`, constraint bounds)
+  lives in `common.games.setup`.
 - `required_words jsonb` (`[{word, points}]`) + `bonus_words jsonb` (same shape,
   the legal − required set; empty when `legal_band == band`), both **readable**
   by club members and shipped to the FE. `required_words_count int`,
@@ -316,37 +317,55 @@ cells). *(spellingbee now works the same way — the two converged.)*
 **`boggle.found_words`** — `(game_id, user_id, word, points, is_bonus,
 found_at)`, PK `(game_id, user_id, word)`. **Mode-aware RLS** (the spellingbee
 pattern): coop → everyone sees all found words; compete → you see only your own
-until the game is terminal, then all.
+until the game has ended, then all.
+
+### The statuses
+
+Written by `boggle._write_statuses` at create, at Restart and at the end of
+every move, each assigned whole with every key present:
+
+| status | keys |
+|---|---|
+| `game_status` | `required_words_count`, `required_words_score`, `bonus_words_count`, `bonus_words_score` |
+| each `player_status` | `found_required_words_count`, `found_required_words_score`, `found_bonus_words_count`, `found_bonus_words_score`, `player_ended_reason` |
+| `clubpage_info` | `found_words_count`, `found_words_score`, `target_win_percent`, `top_score`, `winner_user_id` |
+
+A player's status holds their own finds in both modes; the Stats grid sums them
+for a coop team. The club line's found counts are coop's team totals and null in
+compete, where a live count would leak how far along a racer is; `top_score` (a
+conceder's banked score never counts) and a sole `winner_user_id` are compete's,
+written once the race ends — a tie for first names no winner.
 
 ---
 
 ## 7. RPCs (all `security definer`)
 
-- **`create_game(target_club, setup, player_user_ids, mode, board)`** — called
+- **`create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)`** — called
   by the edge function. Validates club membership, player count, timer, `band`
   (1–6), `legal_band` (band..6), `scoring_ladder`, `min_word_length` (3–9),
   `win_percent` (null or 50..100 in steps of 5), and the board structure;
-  inserts the `common.games` header + the `boggle.games` row (`win_percent`
-  denormalized onto it); titles the game `n×n <top row>` (e.g. `4×4 ABQuD` — the
+  inserts the `common.games` header + the `boggle.games` row (`band` and
+  `win_percent` copied to their columns); titles the game `n×n <top row>` (e.g. `4×4 ABQuD` — the
   board's first `n` faces, with a multiface die expanded to the two letters a
   player sees on the tile). The board is public, so nothing is leaked. On a
   **custom board** (`setup.custom_board` present) it also demands ≥1 required
   word and strips the one-off board from the setup saved as the club's default —
   see [§4 → Custom board](#custom-board-player-typed-tiles).
-- **`submit_word(target_game, word, points, is_bonus)`** — the **trusting
+- **`submit_word(p_game_id, p_word, p_points, p_is_bonus)`** — the **trusting
   commit**. The FE validated the word against the shipped legal list (required ∪
   bonus) and scored it, so the RPC trusts `word` + `points` + `is_bonus` and
   only:
-  1. enforces the game is live (else `gameOver`);
+  1. locks the game row and enforces the game is live (else `gameOver`);
   2. dedups against the caller's scope (coop = team, compete = self);
-  3. inserts the row + refreshes the club-page status;
-  4. **checks the win target** (if `win_percent` is set): the threshold is
-     `ceil(win_percent% × required_words_score)`; when the score of the
-     **required words found** (`not is_bonus`) by the team (coop) or the caller
-     (compete) reaches it — bonus finds don't count — it calls `_finish(…,
-     'target'[, winner_user_id])` to end the game as a win. Compete is a race —
-     the caller who just crossed is the `winner_user_id`, and the non-`playing`
-     guard makes a near-simultaneous second crosser a no-op.
+  3. inserts the row;
+  4. **checks the win target** (if `target_win_percent` is set): the threshold
+     is `ceil(target_win_percent% × required_words_score)`; when the score of
+     the **required words found** (`not is_bonus`) by the team (coop) or the
+     caller (compete) reaches it — bonus finds don't count — it calls
+     `_finish(…, 'target', caller)` to end the game as a win. Compete is a race,
+     and the lock plus the ended check make a near-simultaneous second crosser
+     the game-over race;
+  5. writes the statuses.
 
   No word-content or dictionary check, and no scoring, in plpgsql — it does not
   read `common.words` at all anymore. (Drives off the shared
@@ -368,58 +387,41 @@ until the game is terminal, then all.
   `BUG:` — the setup dialog composes every field and the edge function builds
   the board, so any of them means a broken client or a builder that broke its
   own contract.
-- **`_finish(target_game, reason, winner_user_id default null)`** — the
-  terminal transition. `reason` ∈ `manual` / `timeout` / `target`; a `target`
-  compete win passes the crosser as `winner_user_id` (they win outright, others
-  lose regardless of banked score). Coop has no per-player result.
+- **`_finish(p_game_id, p_reason_detail, p_ended_by_user_id)`** — the two
+  endings boggle decides itself, through `common._end_game`. A Stop is
+  `common._stop`'s and everyone conceding is `common._concede`'s. The rankings
+  depend on whether a TARGET was set ([win-lose.md](../win-lose.md)):
 
-  **The play_state depends on whether a TARGET was set** (`setup.win_percent`) —
-  boggle used to land every ending on the neutral `'ended'`, which made a
-  reached target and a give-up indistinguishable in the club list:
+  | | reached the target | clock ran out |
+  |---|---|---|
+  | **coop, target set** | `reached_goal`: the team ranked 1 — won | `timeout`: nobody ranked — lost |
+  | **coop, no target** | — | `timeout`, no result — neutral |
+  | **compete, target set** | `reached_goal`: the crosser alone ranked 1; the race ends when decided, so the rest are short of the goal and lost | `timeout`: nobody ranked, however high the scores got — lost |
+  | **compete, no target** | — | `timeout`: every non-conceder who scored ranked by score, ties sharing; nobody scored → nobody ranked, lost |
 
-  | | reached the target | clock ran out | manual Stop |
-  |---|---|---|---|
-  | **coop, target set** | `won` | `lost` | `ended` |
-  | **coop, no target** | — | `ended` | `ended` |
-  | **compete, target set** | `won_compete` (the crosser) | `lost_compete` — **nobody** wins, however high the scores got | `ended` |
-  | **compete, no target** | — | `won_compete`, the top non-conceded score (ties share it) — but `lost_compete` if that top score is **0** | `ended` |
-
-  The **nobody-scored** case is worth spelling out: the win test in a score race
-  is "your score is the best score", which is true for EVERYONE when every score
-  is 0 — so a timed race nobody played used to end `won_compete` with every
-  player flagged won. The club-page label rendered that as `Won (co-winners)`
-  while the play surface, which had its own `max === 0` guard, said "no words
-  found": two screens disagreeing about one row. `_finish` now writes
-  `lost_compete` for it, so both read the truth (2026-08-01; the FE guard stays
-  but is no longer load-bearing). wordiply's score race carries the same guard.
-
-  Otherwise it's the rule spellingbee/wordwheel already apply to their rank
-  target: a game with something to reach can be won or lost against it; a game
-  with nothing to reach is an exercise, and any ending is neutral. A manual stop
-  is always neutral — the friends chose to stop, so nobody wins. A no-target
-  score race names its winner in `status.winner_username` (a tie leaves it null,
-  and the label reads "co-winners"), because the leaderboard holds user ids,
-  not names.
-- **`stop_game` / `submit_timeout`** — flip the game terminal; `submit_timeout`
-  mirrors spellingbee's timer-expiry handler. No reveal view: the FE renders the
-  missed words from data it already holds. `stop_game` is coop's manual stop.
+  A game with something to reach can be won or lost against it; a coop game
+  with nothing to reach is an exercise, and its ending has no result. The
+  nobody-scored race ranks nobody because a score race's win test, "your
+  score is the best score", is true of everyone when every score is 0.
+- **`stop_game`** — any player's Stop, in either mode: locks the row, then
+  `common._stop` — neutral, nobody ranked. **`submit_timeout`** — every
+  connected client fires it when a countdown hits 0; the first ends the game
+  through `_finish`, the rest get the game-over race. No reveal view: the FE
+  renders the missed words from data it already holds.
 - **`concede`** — the compete per-player drop-out. boggle is a timed hunt with
-  no per-player elimination, so it's a **thin wrapper over `common.concede`**
-  (compete-only guard). The FE places `act-concede`, which hides itself outside
-  a race, marks a conceder "out" in the OpponentStrip, "You conceded"
-  locally-terminal look. See [common-schema.md →
-  Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
-  `concede_test.sql`.
+  no other way for a player to end, so after locking the row and a
+  compete-only guard, `common._concede` decides it all. The FE places
+  `act-concede`, which hides itself outside a race, marks a conceder "out" in
+  the OpponentStrip, "You conceded" locally-terminal look. See
+  [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
+  pgTAP: `concede_test.sql`.
 - **`replay_board`** — `act-restart`, placed as both the **"Restart"** menu row
   and the terminal button (spellingbee's twin — [ui.md → Terminal
   results](../ui.md#terminal-results--the-moment-vs-the-record)): restart the
   SAME board (same faces + word lists) for everyone. Clears `boggle.found_words`
-  (the only working state), then `common._reset_game` un-terminals with the exact
-  initial status `create_game` seeds and zeroes the shared clock. Confirmed
-  mid-game; unconfirmed at terminal. **The realtime touch is LOAD-BEARING**:
-  replay only DELETEs rows and realtime filters don't reliably match DELETE
-  events, so `useGame` also subscribes to `boggle.games` and the RPC's no-op
-  games write wakes the refetch. pgTAP: `replay_test.sql`.
+  (the only working state), then `common._reset_game` clears the ending and
+  zeroes the shared clock, and the statuses are rewritten. Confirmed mid-game;
+  unconfirmed at terminal. pgTAP: `replay_test.sql`.
 - **"New game"** (`act-new-game`, its `+` key, its menu row and its terminal
   button all one binding; FE-only): a fresh game — new id, new board — with THIS
   game's setup + roster + mode via the same `boggle-build-board` edge function
@@ -439,7 +441,7 @@ The work splits by **where the data is**, so nothing intricate is written twice:
 | board generation + required solve + bonus enumeration | the dictionary trie | **edge function** (`lib/solver` + `generate`) |
 | guess validity + scoring (membership in required ∪ bonus) | the shipped lists (FE has them) | **FE** shared `useFoundWordSubmit` |
 | reject-message nuance (not-on-board vs not-a-word) | the board (FE has it) | **FE** `lib/boardTrace` |
-| dedup + live-game gate + status | the DB rows | **server** `submit_word` |
+| dedup + live-game gate + statuses | the DB rows | **server** `submit_word` |
 
 Both word lists are enumerated once at build time and shipped, so the FE is
 authoritative for what counts + how much it scores; the server just records +
@@ -642,12 +644,15 @@ clean-printable design language + helpers live in
 - `gameplay_test` — trusting-commit coverage: required vs bonus recording (the
   RPC trusts the FE's word + points + `is_bonus` and does **no** content
   validation), dedup (coop per-team / compete per-player), `gameOver` after
-  terminal, status refresh, `stop_game` / `submit_timeout` transitions +
+  the end, the statuses, `stop_game` / `submit_timeout` transitions +
   idempotency, non-player rejection.
-- `win_test` — the win-on-target (`setup.win_percent`) play_state matrix: the
+- `win_test` — the win-on-target (`target_win_percent`) ending matrix: the
   team (coop) or the first player to cross (compete) wins the moment the
   required-words score reaches the target; compete is a race naming the crosser.
-- `rls_test` — coop sees all / compete own-only-until-terminal.
+- `rls_test` — coop sees all / compete own-only-until-the-end.
+- `statuses_test` — each status's exact key set at the start, mid-game and at
+  the end in both modes; the values the page reads; a rebuild leaves
+  `status_changed_at` alone and drops a stale key.
 - `custom_board_test` — the RPC's half of the custom board: it's accepted and
   stored, `custom_board` is stripped from the club's saved default, a custom
   board with zero required words is rejected, and a ROLLED board with none is
