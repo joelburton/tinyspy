@@ -6,18 +6,18 @@
 --
 -- A fork of spellingbee's create_game_test. Coverage, by section:
 --    1. Coop happy path: common.games + wordwheel.games rows
---       materialize; mode='coop'; gametype 'wordwheel_coop'; play_state
---       'playing'; the outer letters stored verbatim.
+--       materialize; mode='coop'; gametype 'wordwheel_coop'; not yet
+--       ended; the outer letters stored verbatim.
 --    2. Title formula: "<CENTER>·<OUTER-SORTED>".
---    3. Coop status seeded with the coop shape.
+--    3. Coop statuses seeded with the coop shape.
 --    4. Compete happy path: mode='compete' + target_rank=4; mode column
---       + gametype string match; compete-shape status seeded
---       (target_rank + empty leaderboard).
+--       + gametype string match; compete-shape statuses seeded
+--       (target_rank, no team score, every player at 0).
 --    5. Auth: dee (outsider) rejected.
 --    6. mode arg: an invalid value rejected.
 --    7. Compete with fewer than 2 players rejected.
 --    8. target_rank required iff compete, and above 6 rejected; coop may
---       set one, and it is echoed into the status.
+--       set one, and it is copied to its column.
 --    9. The word bands: required out of range, legal below required or
 --       above 6, either one not a number; required = 1 and an explicit
 --       4 / 6 accepted.
@@ -89,19 +89,19 @@ select is(
 );
 
 select is(
-  (select mode from wordwheel.games where id = (select id from g)),
+  (select mode from common.games where id = (select id from g)),
   'coop',
-  'wordwheel.games.mode = coop (denormalized for RLS branching)'
+  'common.games.mode = coop (the RLS branches read it)'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing',
-  'common.games.play_state initialized to "playing"'
+  (select ended_at from common.games where id = (select id from g)),
+  null,
+  'the new game has not ended'
 );
 
 select is(
-  (select outer_letters from wordwheel.games where id = (select id from g)),
+  (select outer_letters from wordwheel.games where game_id = (select id from g)),
   'abcdfghi'::char(8),
   'wordwheel.games.outer_letters carries the board''s 8 outer letters verbatim'
 );
@@ -117,31 +117,31 @@ select is(
 );
 
 -- ============================================================
--- (3) Coop status jsonb seeding
+-- (3) Coop statuses seeding
 -- ============================================================
 
 select is(
-  (select status->>'mode' from common.games where id = (select id from g)),
-  'coop',
-  'coop status.mode = "coop"'
+  (select jsonb_typeof(clubpage_info->'found_words_score') from common.games where id = (select id from g)),
+  'number',
+  'coop clubpage_info carries a team score (the coop shape)'
 );
 
 select is(
-  (select (status->>'required_words_score')::int from common.games where id = (select id from g)),
+  (select (game_status->>'required_words_score')::int from common.games where id = (select id from g)),
   62,
-  'coop status.required_words_score = board.required_words_score'
+  'coop game_status.required_words_score = board.required_words_score'
 );
 
 select is(
-  (select (status->>'required_words_count')::int from common.games where id = (select id from g)),
+  (select (game_status->>'required_words_count')::int from common.games where id = (select id from g)),
   19,
-  'coop status.required_words_count = board.required_words_count'
+  'coop game_status.required_words_count = board.required_words_count'
 );
 
 select is(
-  (select (status->>'found_words_score')::int from common.games where id = (select id from g)),
+  (select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from g)),
   0,
-  'coop status.score = 0 at create time'
+  'coop clubpage_info.found_words_score = 0 at create time'
 );
 
 -- ============================================================
@@ -169,29 +169,30 @@ select is(
 );
 
 select is(
-  (select mode from wordwheel.games where id = (select id from g_compete)),
+  (select mode from common.games where id = (select id from g_compete)),
   'compete',
-  'compete: wordwheel.games.mode = compete'
+  'compete: common.games.mode = compete'
 );
 
 select is(
-  (select status->>'mode' from common.games where id = (select id from g_compete)),
-  'compete',
-  'compete status.mode = "compete"'
+  (select clubpage_info->'found_words_score' from common.games where id = (select id from g_compete)),
+  'null'::jsonb,
+  'compete clubpage_info carries no team score (the compete shape)'
 );
 
 select is(
-  (select (status->>'target_rank')::int from common.games where id = (select id from g_compete)),
+  (select (game_status->>'target_rank')::int from common.games where id = (select id from g_compete)),
   4,
-  'compete status.target_rank seeded from setup'
+  'compete game_status.target_rank seeded from setup'
 );
 
--- The compete status seeds an empty leaderboard array; the first
--- submit_word call populates it.
+-- Every player's status is seeded at 0; the first submit_word moves it.
 select is(
-  (select jsonb_typeof(status->'leaderboard') from common.games where id = (select id from g_compete)),
-  'array',
-  'compete status.leaderboard seeded as a (empty) jsonb array'
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g_compete)
+      and (player_status->>'found_words_score')::int = 0),
+  3,
+  'compete: every player''s status is seeded at a score of 0'
 );
 
 -- ============================================================
@@ -279,13 +280,14 @@ select lives_ok(
 );
 
 select is(
-  (select (status->>'target_rank')::int
-     from common.games
-    where gametype = 'wordwheel_coop'
-      and (status->>'target_rank') is not null
+  (select wg.target_rank
+     from wordwheel.games wg
+     join common.games cg on cg.id = wg.game_id
+    where cg.gametype = 'wordwheel_coop'
+      and wg.target_rank is not null
     limit 1),
   3,
-  'the coop target rank is echoed into status (the FE reads it for the win copy)'
+  'the coop target rank is copied to its column (the FE reads it for the win copy)'
 );
 
 -- ============================================================

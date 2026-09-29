@@ -1,7 +1,7 @@
 -- cs-blessed-wordwheel
 
 -- ============================================================
--- Test: wordwheel post-terminal reveal — the cat-A / cat-B data
+-- Test: wordwheel end-of-game reveal — the cat-A / cat-B data
 --       contract the WordList + PlayArea rely on
 -- ============================================================
 --
@@ -14,27 +14,36 @@
 --   cat B — everything else: words found by *other* players + the
 --           required words nobody found.
 --
--- That render is correct only if the DB hands each player, at game end,
--- exactly the rows it needs to compute the split:
+-- That render is only correct if the DB hands each player, at
+-- game end, exactly the rows it needs to compute the split:
 --
 --   1. Their OWN found_words (cat A source).
---   2. Their PEERS' found_words (cat B "found by others") — RLS hides
---      these mid-game and opens them once is_terminal.
---   3. games_state.required_words (cat B "nobody found" source).
+--   2. Their PEERS' found_words (cat B "found by others" source) —
+--      which RLS hides mid-game and opens only once the game has ended.
+--   3. games_state.required_words (cat B "nobody found" source) —
+--      the answer key, which ships from the start; the frontend
+--      shows the missed words only at the end.
 --
--- This file proves the end-to-end contract through the real RPCs from
--- the perspective the suite doesn't otherwise cover: the LOSER of a
--- compete race that a DIFFERENT player ended by hitting the target rank.
+-- The existing rls_test.sql proves the RLS branches in isolation
+-- with direct INSERTs. This file proves the *end-to-end contract*
+-- through the real RPCs, from the perspective that the suite
+-- doesn't otherwise cover: the LOSER of a compete race that a
+-- different player ended by hitting the target rank. That was the
+-- one genuinely-uncertain piece — does the non-winner's client
+-- actually receive peers + the reveal after a target-rank win
+-- (vs. a timeout/manual end, already covered elsewhere)?
 --
--- It also pins the DB fact behind PlayArea scoring the caller's own rows
--- in compete: post-terminal, summing EVERY visible found_words row no
--- longer equals the caller's own score — so the FE must filter to self.
+-- It also pins the DB fact behind PlayArea's caller-only score in
+-- compete: once the game has ended, summing EVERY visible found_words
+-- row no longer equals the caller's own score, because peers' rows are
+-- visible by then. So the FE must filter to self rather than lean on
+-- RLS; the final two assertions document exactly that divergence.
 --
 -- THE FORK numbers: the pangram 'abcdefghi' scores 24 (9 + 15); the
 -- fixture required list has 19 entries; required_words_score = 62.
 --
--- Personas: ada (winner), bea (the loser / viewer of interest), cade
--- (a third player, so cat B has a non-winner peer in it too).
+-- Personas: ada (winner), bea (the loser / viewer of interest),
+-- cade (a third player, so cat B has a non-winner peer in it too).
 
 begin;
 
@@ -47,9 +56,9 @@ select plan(11);
 
 -- ============================================================
 -- Fixture: ada + bea + cade club; compete game targeting rank 2
--- (Solid, ≥15 / 62). The synthetic pangram 'abcdefghi' (24 pt) trips
--- the target in a single move, so ada can end the race deterministically
--- on her first and only submission.
+-- (Solid, ≥15 / 62). The synthetic pangram 'abcdefghi' (24 pt)
+-- trips the target in a single move, so ada can end the race
+-- deterministically on her first and only submission.
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -81,8 +90,14 @@ select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select wordwheel.submit_word((select id from g), 'ache', 1, false, false);
 
 -- ============================================================
--- (1)–(3) Mid-game, as bea: cat A populated, cat B empty, answer key present
+-- (1)–(3) Mid-game, as bea: cat A is populated, cat B is empty (peer
+--         found_words still RLS-hidden), and the answer key is present
+--         (the reveal is a client-side isTerminal gate).
 -- ============================================================
+-- The FE flips the WordList to the cat-A/cat-B model at `isTerminal` (from
+-- common.games), NOT on required_words appearing — that ships from game start.
+-- The load-bearing server behavior mid-game is the found_words RLS: bea sees only
+-- her own rows (branch b), so cat B "found by others" is genuinely empty in play.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
@@ -103,7 +118,7 @@ select is(
 
 select is(
   (select jsonb_array_length(required_words) from wordwheel.games_state
-    where id = (select id from g)),
+    where game_id = (select id from g)),
   19,
   'compete mid-game / bea: games_state.required_words is present (un-gated; FE gates the reveal on isTerminal)'
 );
@@ -111,24 +126,29 @@ select is(
 -- ============================================================
 -- (4) ada ends the race by hitting the target rank
 -- ============================================================
--- 'abcdefghi' = 24pt → 24/62 = rank 3 (Nice) ≥ target 2. This is the
--- target-rank-win terminal path specifically (not timeout / manual).
+-- 'abcdefghi' = 24pt → 24/62 = rank 3 (Nice) ≥ target 2. This is
+-- the target-rank-win ending specifically (not timeout /
+-- manual), which is what we want to exercise for bea-as-loser.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select wordwheel.submit_word((select id from g), 'abcdefghi', 24, true, false);
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won_compete',
-  'compete: ada''s target-rank hit flips the game to won_compete (terminal)'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_by_user_id::text
+     from common.games where id = (select id from g)),
+  'reached_goal/target/ada11111-1111-1111-1111-111111111111',
+  'compete: ada''s target-rank hit ends the game (reached_goal / target, by ada)'
 );
 
 -- ============================================================
--- (5)–(8) Post-terminal, as bea (the LOSER): the reveal opens.
+-- (5)–(8) Once ended, as bea (the LOSER): the reveal opens.
 -- ============================================================
--- Four rows total: bea's 2 (cat A) + cade's ache + ada's winning
--- pangram (the latter two are cat B "found by others").
+-- bea did not end the game and did not win — yet branch 3
+-- (ended_at) must now expose every player's finds to her, so
+-- the WordList can render cat B "found by others." Four rows
+-- total: bea's 2 (cat A) + cade's ache + ada's winning pangram
+-- (the latter two are cat B "found by others").
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
@@ -136,7 +156,7 @@ select is(
   (select count(*) from wordwheel.found_words
     where game_id = (select id from g)),
   4::bigint,
-  'compete post-terminal / bea (loser): all 4 finds now visible (branch c: is_terminal)'
+  'compete, ended / bea (loser): all 4 finds now visible (branch 3: ended_at)'
 );
 
 select is(
@@ -144,7 +164,7 @@ select is(
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   2::bigint,
-  'compete post-terminal / bea: cat A = her own 2 finds, still partitionable by user_id'
+  'compete, ended / bea: cat A = her own 2 finds, still partitionable by user_id'
 );
 
 select is(
@@ -152,10 +172,12 @@ select is(
     where game_id = (select id from g)
       and user_id <> 'bea22222-2222-2222-2222-222222222222'),
   2::bigint,
-  'compete post-terminal / bea: cat B "found by others" = cade''s + ada''s 2 finds'
+  'compete, ended / bea: cat B "found by others" = cade''s + ada''s 2 finds'
 );
 
--- The winner's specific find is visible to the loser.
+-- The winner's specific find is visible to the loser — the exact
+-- "what did the person who beat me get?" data the reveal exists
+-- to surface.
 select ok(
   exists (
     select 1 from wordwheel.found_words
@@ -163,40 +185,47 @@ select ok(
        and user_id = 'ada11111-1111-1111-1111-111111111111'
        and word = 'abcdefghi'
   ),
-  'compete post-terminal / bea: sees the winner ada''s race-ending pangram'
+  'compete, ended / bea: sees the winner ada''s race-ending pangram'
 );
 
 -- ============================================================
--- (9) Post-terminal, as bea: the required answer key materializes
+-- (9) Once ended, as bea: the required answer key is still there
 -- ============================================================
+-- The other half of cat B — the words nobody found — is computed
+-- FE-side from the shipped lists minus found_words. That needs the
+-- full required list, which games_state exposes throughout.
 
 select is(
   (select jsonb_array_length(required_words) from wordwheel.games_state
-    where id = (select id from g)),
+    where game_id = (select id from g)),
   19,
-  'compete post-terminal / bea: games_state.required_words materializes (19 entries) — cat B "nobody found" source'
+  'compete, ended / bea: games_state.required_words is present (19 entries) — cat B "nobody found" source'
 );
 
 -- ============================================================
 -- (10)–(11) Why PlayArea must filter to self in compete
 -- ============================================================
--- Summing all visible rows post-terminal would jump bea's score from
--- her own 6pt to 31pt (6 + cade's 1 + ada's 24) at the instant the game
--- ends. These assertions pin both numbers so the divergence is explicit.
+-- A score summed over EVERY visible found_words row, relying on
+-- "RLS keeps compete caller-only", breaks at the end: the
+-- assertions above (peers visible once ended) show why —
+-- summing all rows would jump bea's score from her own 6pt to
+-- 31pt (6 + cade's 1 + ada's 24) at the instant the game ends.
+-- These assertions pin both numbers so the divergence is explicit
+-- and a regression in either direction trips the test.
 
 select is(
   (select coalesce(sum(points), 0) from wordwheel.found_words
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   6::bigint,
-  'compete post-terminal / bea: caller-only score (cat A points) = 6'
+  'compete, ended / bea: caller-only score (cat A points) = 6'
 );
 
 select is(
   (select coalesce(sum(points), 0) from wordwheel.found_words
     where game_id = (select id from g)),
   31::bigint,
-  'compete post-terminal / bea: sum over ALL visible rows = 31 ≠ 6 — FE must filter to self, not lean on RLS'
+  'compete, ended / bea: sum over ALL visible rows = 31 ≠ 6 — FE must filter to self, not lean on RLS'
 );
 
 -- ============================================================

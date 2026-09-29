@@ -8,18 +8,25 @@
 -- wordwheel.found_words:
 --
 --   1. Outer gate: must be a club member of the game's club.
---   2. Inner gate (three OR branches):
---         (a) mode = 'coop'          — everyone sees all
---         (b) user_id = auth.uid()   — see your own
---         (c) is_terminal = true     — post-game reveal
+--      (Same shape as every other gametype's SELECT RLS.)
 --
--- This file exercises every branch with direct-INSERT setup (the test
--- sets state by switching to postgres and writing rows directly).
+--   2. Inner gate, three OR branches (src/wordwheel/doc.md → Schema):
+--         (a) common.games.mode = 'coop'   — everyone sees all
+--         (b) user_id = auth.uid()         — see your own
+--         (c) common.games.ended_at is set — post-game reveal
+--
+-- This file exercises every branch with direct-INSERT setup: the
+-- test sets state by switching to postgres and writing rows
+-- directly, so each branch is proved on its own, apart from the RPCs.
 --
 -- THE FORK: outer_letters is char(8), so the direct-insert boards use
 -- 8-letter outer strings.
 --
--- Personas: ada + bea + cade in the test club; dee is the outsider.
+-- Personas: ada + bea + cade in the test club; dee is the
+-- outsider. (Naming convention: see ../_shared/setup.psql.)
+-- We pick a 3-member club so compete mode has enough actors
+-- to make the "only my own" vs "everyone's" distinction
+-- visible.
 
 begin;
 
@@ -38,37 +45,40 @@ create temp table club on commit drop as
 select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 reset role;
--- A non-terminal coop game.
+-- A coop game still in play. CTE wrapping the INSERT…RETURNING
+-- because `CREATE TEMP TABLE ... AS INSERT` isn't valid syntax
+-- in Postgres (only AS SELECT is). Temp tables created as
+-- postgres need an explicit grant to authenticated so the
+-- as_user-switched test body can read them back.
 create temp table coop_game (id uuid) on commit drop;
 grant select on coop_game to authenticated;
 with ins as (
-  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, mode, title, setup)
   values (
     gen_random_uuid(),
     (select handle from club),
     'wordwheel_coop',
+    'coop',
     'E·CABDFGHI',
-    '{"timer": {"kind": "none"}}'::jsonb,
-    'playing',
-    false
+    '{"timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )
 insert into coop_game (id) select id from ins;
 
 insert into wordwheel.games
-  (id, club_handle, mode, outer_letters, center_letter,
-   required_words_score, required_words_count, required_words, bonus_words)
+  (game_id, outer_letters, center_letter,
+   required_words_score, required_words_count, required_words, bonus_words,
+   required_band, legal_band)
 values (
   (select id from coop_game),
-  (select handle from club),
-  'coop',
   'cabdfghi', 'e', 24, 2,
-  '[]'::jsonb, '[]'::jsonb
+  '[]'::jsonb, '[]'::jsonb, 3, 5
 );
 
--- Three found_words rows, one per player. Branch (a) (coop) means each
--- player should see ALL three. Words are isograms of the wheel + center 'e'.
+-- Three found_words rows, one per player. The RLS branch (a)
+-- (coop) means each player should see ALL three. Words are isograms of
+-- the wheel + center 'e'.
 insert into wordwheel.found_words (game_id, user_id, word, points, is_pangram, is_bonus) values
   ((select id from coop_game),
    'ada11111-1111-1111-1111-111111111111', 'bead', 1, false, false),
@@ -101,13 +111,13 @@ select is(
 -- ============================================================
 -- Non-member sees nothing — through games OR found_words
 -- ============================================================
--- The outer gate (club membership) wins even before any inner OR
--- branch matters. dee is signed in but not in the club.
+-- The outer gate (club membership) wins even before any inner
+-- OR branch matters. dee is signed in but not in the club.
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 select is(
-  (select count(*) from wordwheel.games where id = (select id from coop_game)),
+  (select count(*) from wordwheel.games where game_id = (select id from coop_game)),
   0::bigint,
   'dee (outsider): zero rows from wordwheel.games'
 );
@@ -120,7 +130,7 @@ select is(
 );
 
 select is(
-  (select count(*) from wordwheel.games_state where id = (select id from coop_game)),
+  (select count(*) from wordwheel.games_state where game_id = (select id from coop_game)),
   0::bigint,
   'dee (outsider): zero rows from wordwheel.games_state (RLS inherits via security_invoker)'
 );
@@ -128,8 +138,9 @@ select is(
 -- ============================================================
 -- Direct INSERT into wordwheel tables is blocked at the grant layer
 -- ============================================================
--- No INSERT grant for authenticated. Writes go through RPCs. This pins
--- the grant boundary so a future migration doesn't accidentally widen it.
+-- No INSERT grant for authenticated: writes go through the RPCs.
+-- This pins the grant boundary so a future migration doesn't
+-- accidentally widen it.
 
 select throws_ok(
   format(
@@ -148,11 +159,12 @@ select throws_ok(
 select throws_ok(
   format(
     $$ insert into wordwheel.games
-         (id, club_handle, mode, outer_letters, center_letter,
-          required_words_score, required_words_count, required_words, bonus_words)
-       values (gen_random_uuid(), %L, 'coop',
-               'aaaaaaaa', 'b', 1, 1, '[]'::jsonb, '[]'::jsonb) $$,
-    (select handle from club)
+         (game_id, outer_letters, center_letter,
+          required_words_score, required_words_count, required_words, bonus_words,
+          required_band, legal_band)
+       values (%L::uuid,
+               'aaaaaaaa', 'b', 1, 1, '[]'::jsonb, '[]'::jsonb, 3, 5) $$,
+    (select id from coop_game)
   ),
   '42501',
   'permission denied for table games',
@@ -162,36 +174,34 @@ select throws_ok(
 -- ============================================================
 -- Compete mode: viewer sees ONLY their own finds while playing
 -- ============================================================
--- Branch (b) of the policy. A second game in the same club with
--- mode=compete and a row from each player.
+-- Branch (b) of the policy. We seed a second game in the same
+-- club with mode=compete and put a row from each player.
 
 reset role;
 create temp table compete_game (id uuid) on commit drop;
 grant select on compete_game to authenticated;
 with ins as (
-  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, mode, title, setup)
   values (
     gen_random_uuid(),
     (select handle from club),
     'wordwheel_compete',
+    'compete',
     'E·CABDFGHI compete',
-    '{"target_rank": 5, "timer": {"kind": "none"}}'::jsonb,
-    'playing',
-    false
+    '{"target_rank": 5, "timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )
 insert into compete_game (id) select id from ins;
 
 insert into wordwheel.games
-  (id, club_handle, mode, outer_letters, center_letter,
-   required_words_score, required_words_count, required_words, bonus_words)
+  (game_id, outer_letters, center_letter,
+   required_words_score, required_words_count, required_words, bonus_words, target_rank,
+   required_band, legal_band)
 values (
   (select id from compete_game),
-  (select handle from club),
-  'compete',
   'cabdfghi', 'e', 24, 2,
-  '[]'::jsonb, '[]'::jsonb
+  '[]'::jsonb, '[]'::jsonb, 5, 3, 5
 );
 
 insert into wordwheel.found_words (game_id, user_id, word, points, is_pangram, is_bonus) values
@@ -229,11 +239,16 @@ select is(
 );
 
 -- ============================================================
--- Compete mode + terminal: branch (c) opens the reveal
+-- Compete mode, ended: branch (c) opens the reveal
 -- ============================================================
+-- The "what I missed" post-end view: once the game has ended,
+-- every member sees every other member's finds, regardless of
+-- mode. End the compete game and re-query.
 
 reset role;
-update common.games set is_terminal = true, play_state = 'won_compete'
+update common.games
+   set ended_at = now(), game_ended_reason = 'stopped',
+       game_ended_reason_detail = 'stopped', game_ended_outcome = 'neutral'
  where id = (select id from compete_game);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -241,7 +256,7 @@ select is(
   (select count(*) from wordwheel.found_words
     where game_id = (select id from compete_game)),
   3::bigint,
-  'compete post-terminal / ada: sees all 3 finds (branch c: is_terminal)'
+  'compete, ended / ada: sees all 3 finds (branch c: ended_at)'
 );
 
 -- ============================================================

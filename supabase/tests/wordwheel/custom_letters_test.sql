@@ -70,7 +70,7 @@ select (wordwheel.create_game(
 select isnt((select id from g), null,
   'custom board with only 3 required words is accepted (≥15 gate relaxed)');
 select is(
-  (select required_words_count from wordwheel.games where id = (select id from g)),
+  (select required_words_count from wordwheel.games where game_id = (select id from g)),
   3, 'custom board stores its actual (sub-15) required_words_count');
 
 -- ── (2) Saved default strips the one-off custom letters ─────

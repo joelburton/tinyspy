@@ -6,13 +6,14 @@
 -- A fork of spellingbee's concede_test. wordwheel is a NON-elimination
 -- game (a player is only ever done by winning — first to the target
 -- rank — or by conceding), so its concede is a thin wrapper over the
--- generic common.concede. This test covers the wordwheel-specific parts:
--- the compete-only mode guard; that the wrapper delegates (marks the
--- caller conceded, keeps the game going while others race, and — via
--- common.concede — ends it as a collective loss when the last racer drops
--- out); that a conceder's next word is refused (PN483), so they cannot go
--- on to win; and that only the concede that ENDS the game touches the found
--- rows, which is what wakes the reveal. The full common.concede matrix is
+-- generic common._concede. This test covers the wordwheel-specific
+-- parts: the compete-only mode guard; that the wrapper delegates (ends
+-- the caller, conceded, keeps the game going while others race, and —
+-- via common._concede — ends it as a collective loss when the last
+-- racer drops out); that a conceder's next word is refused (PN483), so
+-- they cannot go on to win; that only the concede that ENDS the game
+-- opens the reveal of everyone's finds; and that a concede into a
+-- deleted game is the shared race. The full common._concede matrix is
 -- in common/concede_test.sql.
 -- ============================================================
 
@@ -22,7 +23,7 @@ set search_path = wordwheel, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(9);
+select plan(10);
 
 -- ─── A 3-player compete game (ada, bea, cade) ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -45,12 +46,12 @@ select lives_ok(
   'a compete player can concede'
 );
 select is(
-  (select conceded from common.game_players
+  (select player_ended_reason from common.game_players
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  true, 'the conceder is marked conceded');
+  'conceded', 'the conceder ends, conceded');
 select is(
-  (select is_terminal from common.games where id = (select id from g)),
-  false, 'the game continues while others race');
+  (select ended_at from common.games where id = (select id from g)),
+  null, 'the game continues while others race');
 
 -- A conceder is out of the race: their next word is refused, so they cannot
 -- go on to reach the target and be recorded the winner.
@@ -61,38 +62,31 @@ select pg_temp.envelope_is(
   'a conceder cannot submit a word');
 
 -- ─── (2) bea then cade concede → last one out ends it (collective loss) ───
--- bea finds a word first, so the reveal touch below has a row to touch.
+-- bea finds a word first, so the reveal below has a row to show.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select wordwheel.submit_word((select id from g), 'bead', 1, false, false);
 
--- The touch is ctid-visible: the no-op update writes a new row version, and
--- this whole file is one transaction, so xmin would not change.
-reset role;
-create temp table before_last on commit drop as
-select ctid::text as version from wordwheel.found_words where game_id = (select id from g);
-
-select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select wordwheel.concede((select id from g));
-reset role;
+-- ada (no finds of her own) still sees nothing of bea's.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select ctid::text from wordwheel.found_words where game_id = (select id from g)),
-  (select version from before_last),
-  'a concede that leaves racers in the game does not touch the found rows');
+  (select count(*)::int from wordwheel.found_words where game_id = (select id from g)),
+  0, 'a concede that leaves racers in the game keeps the finds private');
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select wordwheel.concede((select id from g));
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select count(*)::int from wordwheel.found_words where game_id = (select id from g)),
+  1, 'the last concede, which ends the game, opens the reveal');
 reset role;
-select isnt(
-  (select ctid::text from wordwheel.found_words where game_id = (select id from g)),
-  (select version from before_last),
-  'the last concede, which ends the game, touches the found rows (the reveal wakes)');
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'lost_compete', 'everyone conceding ends the game as a collective loss');
+  (select game_ended_outcome from common.games where id = (select id from g)),
+  'lost', 'everyone conceding ends the game as a collective loss');
 select is(
-  (select status->>'reason' from common.games where id = (select id from g)),
-  'conceded', 'status.reason is conceded');
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g)),
+  'conceded/conceded', 'the reason is conceded');
 
 -- ─── (3) concede is rejected in coop ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -110,6 +104,28 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"fault","dbcode":"PN484",
     "message":"BUG: a concede in a coop game"}'::jsonb,
   'conceding a coop game is rejected');
+
+-- ─── (4) a concede into a game a friend deleted ───
+-- Any club member may delete a game, taking its rows and every membership
+-- with it; the concede answers the shared race, not a fault
+-- (docs/envelopes.md → a missing game row is PN485).
+create temp table gd on commit drop as
+select (wordwheel.create_game(
+  (select handle from club),
+  pg_temp.wordwheel_setup() || '{"target_rank": 2}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete',
+  pg_temp.wordwheel_board()
+)->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gd);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  wordwheel.concede((select id from gd)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'a concede into a deleted game is the shared race (PN485)');
 
 select * from finish();
 rollback;

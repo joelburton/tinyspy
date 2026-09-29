@@ -5,8 +5,8 @@
 -- ============================================================
 --
 -- This test has no spellingbee analog; it guards the key architectural
--- fact of the word-wheel fork. wordwheel.candidate_words(puzzle_mask,
--- center_bit, required_band, legal_band) returns every word from
+-- fact of the word-wheel fork. wordwheel.candidate_words(p_puzzle_mask,
+-- p_center_bit, p_required_band, p_legal_band) returns every word from
 -- common.words whose letter-SET is a subset of the wheel (letter_mask &
 -- ~puzzle_mask = 0) AND that contains the center (letter_mask & center_bit
 -- <> 0), of length >= 4 within the legal band.

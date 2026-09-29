@@ -4,28 +4,28 @@
 -- Test: wordwheel compete mode
 -- ============================================================
 --
--- A fork of spellingbee's compete_test. Coverage for the compete-
--- specific behavior. The shared coop contract is exercised by
--- create_game_test.sql + gameplay_test.sql + rls_test.sql — this file
--- focuses on the compete delta. Coverage, by section:
+-- A fork of spellingbee's compete_test: the compete delta. The shared
+-- coop contract is exercised by create_game_test.sql +
+-- gameplay_test.sql + rls_test.sql; this file covers what a race adds:
 --
---   1. Per-player duplicate rule: bea finding a word ada already
---      found is fresh for bea; ada's own repeat is the race refusal.
---   2. Mid-game status carries the leaderboard, one entry per player,
---      with each player's score.
---   3. First-to-target-rank ends the race with the caller as the
---      winner (status.winner_user_id) and play_state=won_compete,
---      the leaderboard frozen as it stood and each result exactly
---      { won }; a survivor can no longer submit.
---   4. submit_timeout in compete: lost_compete, reason='timeout',
---      everyone {won: false}, the target rank and leaderboard kept.
---   5. stop_game in compete: reason='manual', everyone {won: false},
---      the target rank kept.
---   6. RLS mid-game scopes finds to the caller; post-terminal opens
---      the reveal.
+--   - First-to-target-rank ends the race (reached_goal / target) with
+--     the caller alone ranked 1 and named on the club line, every
+--     player's score frozen as it stood. Survivors with sub-target
+--     ranks can no longer submit.
+--   - Per-player duplicate rule: bea finding a word ada already
+--     found is fresh for bea; ada's own repeat is the race refusal.
+--   - Mid-game, each player's status carries their own score; the
+--     club line carries no team score.
+--   - submit_timeout in compete: nobody ranked, a loss.
+--   - stop_game in compete: nobody ranked, neutral.
+--   - RLS mid-game scopes guesses to caller; once the game has ended
+--     the reveal opens (branch 3 of the policy).
 --
--- THE FORK numbers: the fixture pangram 'abcdefghi' scores 24 (9 + 15).
--- fixture required_words_score = 62.
+-- See create_game_test.sql for the create_game shape + the
+-- sibling-manifest test (gametype string + denormalized mode).
+--
+-- THE FORK numbers: the fixture pangram 'abcdefghi' scores 24 (9 + 15);
+-- the fixture required_words_score is 62.
 
 begin;
 
@@ -60,8 +60,10 @@ select (wordwheel.create_game(
 )->'data'->>'id')::uuid as id;
 
 -- ============================================================
--- (1) Per-player duplicate rule
+-- (1)–(2) Per-player duplicate rule
 -- ============================================================
+-- Ada finds 'bead'. Bea also finds 'bead' — allowed (each
+-- player has their own list). Ada re-submits 'bead' — rejected.
 
 select is(
   wordwheel.submit_word((select id from g), 'bead', 1, false, false)->'data'->>'result',
@@ -86,46 +88,43 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (2) Mid-game status carries the leaderboard
+-- (3) Mid-game, each player's status carries their own score
 -- ============================================================
 
 reset role;
 select is(
-  (select jsonb_typeof(status->'leaderboard') from common.games where id = (select id from g)),
-  'array',
-  'compete mid-game: status.leaderboard is a jsonb array'
+  (select clubpage_info->'found_words_score' from common.games where id = (select id from g)),
+  'null'::jsonb,
+  'compete mid-game: the club line carries no team score'
 );
 
 select is(
   (
-    select jsonb_array_length(status->'leaderboard')
-      from common.games where id = (select id from g)
+    select count(*)::int from common.game_players
+     where game_id = (select id from g) and player_status ? 'found_words_score'
   ),
   3,
-  'compete mid-game: leaderboard has one entry per player (ada, bea, cade)'
+  'compete mid-game: every player (ada, bea, cade) carries their own score'
 );
 
--- Ada's leaderboard entry reflects her one accepted required word
+-- Ada's status reflects her one accepted required word
 -- (bead = 1pt, rank 0 — 1/62 is well below the rank 1 threshold).
 select is(
   (
-    select (entry->>'found_words_score')::int
-      from common.games cg,
-           jsonb_array_elements(cg.status->'leaderboard') entry
-     where cg.id = (select id from g)
-       and (entry->>'user_id')::uuid =
-           'ada11111-1111-1111-1111-111111111111'::uuid
+    select (player_status->>'found_words_score')::int from common.game_players
+     where game_id = (select id from g)
+       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid
   ),
   1,
-  'compete mid-game: ada''s leaderboard score = 1 after one accepted word'
+  'compete mid-game: ada''s score = 1 after one accepted word'
 );
 
 -- ============================================================
--- (3) First-to-target ends the race
+-- (4)–(7) First-to-target ends the race
 -- ============================================================
--- Cade submits the synthetic pangram (24 pt → rank 3 ≥ target 2).
--- play_state flips to 'won_compete'; status.winner_user_id = cade;
--- cade gets {won: true}, others get {won: false}.
+-- Cade submits the synthetic pangram (24 pt → rank 3 ≥ the target,
+-- Solid). The game ends reached_goal / target; cade
+-- alone is ranked 1, the others unranked.
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select pg_temp.envelope_is(
@@ -137,71 +136,69 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won_compete',
-  'compete: target-rank hit flips play_state to won_compete'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g)),
+  'reached_goal/target/won',
+  'compete: target-rank hit ends the race, reached_goal / target'
 );
 
 select is(
-  (select (status->>'winner_user_id')::uuid from common.games where id = (select id from g)),
+  (select (clubpage_info->>'winner_user_id')::uuid from common.games where id = (select id from g)),
   'cade3333-3333-3333-3333-333333333333'::uuid,
-  'compete: status.winner_user_id = caller (cade)'
+  'compete: the club line names the caller (cade) as the winner'
 );
 
--- The leaderboard is frozen as it stood at the winning word: the winner's
--- entry includes it, and a rival's is what they had.
+-- Each score is frozen as it stood at the winning word: the winner's
+-- includes it, and a rival's is what they had.
 select is(
   (
-    select (entry->>'found_words_score')::int || '/' || (entry->>'rank_idx')
-      from common.games cg,
-           jsonb_array_elements(cg.status->'leaderboard') entry
-     where cg.id = (select id from g)
-       and (entry->>'user_id')::uuid = 'cade3333-3333-3333-3333-333333333333'::uuid
-  ),
-  '24/3',
-  'compete: the frozen leaderboard carries the winner''s final score and rank (24 pts, Nice)'
-);
-
-select is(
-  (
-    select (entry->>'found_words_score')::int
-      from common.games cg,
-           jsonb_array_elements(cg.status->'leaderboard') entry
-     where cg.id = (select id from g)
-       and (entry->>'user_id')::uuid = 'ada11111-1111-1111-1111-111111111111'::uuid
-  ),
-  1,
-  'compete: the frozen leaderboard carries a rival''s score as it stood'
-);
-
-select is(
-  (
-    select (result->>'won')::boolean from common.game_players
+    select (player_status->>'found_words_score') || '/'
+           || common._rank_idx((player_status->>'found_words_score')::int, 62)
+      from common.game_players
      where game_id = (select id from g)
        and user_id = 'cade3333-3333-3333-3333-333333333333'::uuid
   ),
-  true,
-  'compete: winner''s game_players.result = {won: true}'
-);
-
--- …and nothing else: the scores and ranks are the status leaderboard's, and
--- no reader of a result looks past `won`.
-select is(
-  (select result from common.game_players
-    where game_id = (select id from g)
-      and user_id = 'cade3333-3333-3333-3333-333333333333'::uuid),
-  '{"won": true}'::jsonb,
-  'compete: a result is exactly { won }, as coop''s is'
+  '24/3',
+  'compete: the winner''s final score and rank are kept (24 pts, Nice)'
 );
 
 select is(
   (
-    select (result->>'won')::boolean from common.game_players
+    select (player_status->>'found_words_score')::int from common.game_players
      where game_id = (select id from g)
        and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid
   ),
-  false,
-  'compete: non-winner''s game_players.result = {won: false}'
+  1,
+  'compete: a rival''s score is kept as it stood'
+);
+
+select is(
+  (
+    select final_ranking || '/' || outcome from common.game_players
+     where game_id = (select id from g)
+       and user_id = 'cade3333-3333-3333-3333-333333333333'::uuid
+  ),
+  '1/won',
+  'compete: the winner is ranked 1, won'
+);
+
+-- A target is not a solve: reaching the rank wins without finishing the board.
+select is(
+  (select solved_at from common.game_players
+    where game_id = (select id from g)
+      and user_id = 'cade3333-3333-3333-3333-333333333333'::uuid),
+  null,
+  'compete: the winner has no solved_at — a target is not a solve'
+);
+
+select is(
+  (
+    select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
+     where game_id = (select id from g)
+       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid
+  ),
+  'unranked/lost',
+  'compete: a non-winner is unranked, lost'
 );
 
 -- Survivor can no longer submit (the race ended).
@@ -214,7 +211,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (4) submit_timeout in compete
+-- (10)–(12) submit_timeout in compete
 -- ============================================================
 -- Fresh 2-player compete game; immediately fire submit_timeout.
 
@@ -233,47 +230,48 @@ select wordwheel.submit_timeout((select id from g_timeout));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g_timeout)),
-  'lost_compete',
+  (select game_ended_outcome from common.games where id = (select id from g_timeout)),
+  'lost',
   -- A compete race always carries a target rank, so the clock beating everyone
   -- to it is a real loss for the table — matching coop, and matching boggle's
   -- score target.
-  'compete submit_timeout: play_state = lost_compete (nobody reached the rank)'
+  'compete submit_timeout: the game is lost (nobody reached the rank)'
 );
 
 select is(
-  (select (status->>'reason') from common.games where id = (select id from g_timeout)),
-  'timeout',
-  'compete submit_timeout: status.reason = timeout'
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g_timeout)),
+  'timeout/timeout',
+  'compete submit_timeout: the reason is timeout'
 );
 
 select is(
   (
     select count(*) from common.game_players
      where game_id = (select id from g_timeout)
-       and (result->>'won') = 'false'
+       and final_ranking is null and outcome = 'lost'
   ),
   2::bigint,
-  'compete submit_timeout: every player gets {won: false} (no winner on timer-out)'
+  'compete submit_timeout: every player is unranked, lost (no winner on timer-out)'
 );
 
--- The terminal status carries target_rank + the leaderboard array: the club
+-- The ended game's statuses carry target_rank + each player's score: the club
 -- label names the rank nobody reached, and the OpponentStrip reads each
 -- player's final rank.
 select is(
-  (select (status->>'target_rank')::int from common.games where id = (select id from g_timeout)),
+  (select (clubpage_info->>'target_rank')::int from common.games where id = (select id from g_timeout)),
   5,
-  'compete submit_timeout: status.target_rank survives (= 5, not the ?? 0 fallback)'
+  'compete submit_timeout: the club line''s target_rank survives (= 5, not the ?? 0 fallback)'
 );
 
 select is(
-  (select jsonb_array_length(status->'leaderboard') from common.games where id = (select id from g_timeout)),
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g_timeout) and player_status ? 'found_words_score'),
   2,
-  'compete submit_timeout: status.leaderboard is the per-player array (2 entries), not dropped'
+  'compete submit_timeout: each player''s score is still carried (2 players), not dropped'
 );
 
 -- ============================================================
--- (5) stop_game in compete — manual stop, no winner
+-- (13)–(14) stop_game in compete — manual stop, no winner
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -291,33 +289,35 @@ select wordwheel.stop_game((select id from g_end));
 
 reset role;
 select is(
-  (select (status->>'reason') from common.games where id = (select id from g_end)),
-  'manual',
-  'compete stop_game: status.reason = manual'
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_by_user_id::text
+     from common.games where id = (select id from g_end)),
+  'stopped/stopped/ada11111-1111-1111-1111-111111111111',
+  'compete stop_game: the reason is stopped, by the caller'
 );
 
 select is(
   (
     select count(*) from common.game_players
      where game_id = (select id from g_end)
-       and (result->>'won') = 'false'
+       and final_ranking is null and outcome = 'neutral'
   ),
   2::bigint,
-  'compete stop_game: every player gets {won: false} (friends agreed to stop)'
+  'compete stop_game: every player is unranked, neutral (friends agreed to stop)'
 );
 
 select is(
-  (select (status->>'target_rank')::int from common.games where id = (select id from g_end)),
+  (select (clubpage_info->>'target_rank')::int from common.games where id = (select id from g_end)),
   5,
-  'compete stop_game: status.target_rank survives (= 5, not the ?? 0 fallback)'
+  'compete stop_game: the club line''s target_rank survives (= 5, not the ?? 0 fallback)'
 );
 
 -- ============================================================
--- (6) RLS in compete: caller-only mid-game; reveal on terminal
+-- (15)–(17) RLS in compete: caller-only mid-game; reveal once ended
 -- ============================================================
 -- Fresh 3-player compete game; ada + bea each submit one word.
--- Cade (no submissions) sees zero rows mid-game (own list is empty).
--- Post-terminal, branch (c) opens the reveal — cade sees both peers' rows.
+-- Cade (no submissions) sees zero rows mid-game (own list is
+-- empty). Once the game has ended, branch (3) opens the reveal —
+-- cade sees both peers' rows.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g_rls on commit drop as
@@ -352,16 +352,18 @@ select is(
   'rls (compete mid-game): cade (no finds) sees zero rows'
 );
 
--- Flip the game terminal — cade now sees all 2 rows via branch (c).
+-- End the game — cade now sees all 2 rows via branch (3).
 reset role;
-update common.games set is_terminal = true, play_state = 'ended'
+update common.games
+   set ended_at = now(), game_ended_reason = 'stopped',
+       game_ended_reason_detail = 'stopped', game_ended_outcome = 'neutral'
  where id = (select id from g_rls);
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
   (select count(*) from wordwheel.found_words where game_id = (select id from g_rls)),
   2::bigint,
-  'rls (compete post-terminal): cade sees both ada''s + bea''s finds (branch c: is_terminal)'
+  'rls (compete, ended): cade sees both ada''s + bea''s finds (branch 3: ended_at)'
 );
 
 -- ============================================================
