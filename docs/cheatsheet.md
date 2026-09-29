@@ -328,7 +328,10 @@ assertion, or to override a column the FE has no grant on):
 
 ```sql
 reset role;
-update common.games set play_state = 'won', is_terminal = true where id = ...;
+update common.games
+   set ended_at = now(), game_ended_reason = 'stopped',
+       game_ended_reason_detail = 'stopped', game_ended_outcome = 'neutral'
+ where id = ...;
 ```
 
 To simulate an *unauthenticated* caller (clears the JWT claim while

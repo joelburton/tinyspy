@@ -379,7 +379,13 @@ now ordered by layer, and the stages below are its content, not its order:
 4. **Each game's SQL**, one game at a time — its ending, its status
    builder (both statuses and `clubpage_info`, and the pgTAP test of its
    keys), and its full `final_ranking`s (so rankings below first come here,
-   not in a later stage).
+   not in a later stage). Done (2026-09-28): all sixteen games; the
+   `concedeLock` and `endingTouchesGame` guards accept only the new shape;
+   docs/states.md, docs/win-lose.md and the other reference docs that named
+   the dropped columns. Left for step 5, because they describe front-end
+   code: docs/game-status-labels.md's guard, the gallery's
+   `assertPhaseReached` in docs/testing.md, and
+   `src/common/pause-suspend/doc.md`.
 5. **The front end:** types, the common pieces (the reload off
    `common.games`), then each game — its status types, its info column and
    strip reading the statuses, and its hook dropping its own subscriptions.

@@ -184,7 +184,7 @@ write leaves out.
 A compete timeout ends `won_compete` naming no winner, yet writes `won: true`
 into `result` and the leaderboard for every non-conceded player tied at the
 best coverage — at zero letters too (the "nobody scored" guard boggle and
-wordiply have; docs/states.md → Unless there's no leader to crown).
+wordiply have; docs/win-lose.md → `final-ranking`).
 
 ### psychicnum
 

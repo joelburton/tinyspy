@@ -122,8 +122,8 @@ server-side detection of its running out.
   attach who was ahead ("Lost (out of time) · closest: melissa 4/6") rather
   than crowning anyone. Weighed against crowning the closest and preferred:
   "closest" is ill-defined in most games with an intrinsic goal, and crowning
-  a shared failure muddies won and lost. The carriers exist (per-player
-  `result`, the terminal reveals); the work is each game's choice of progress
+  a shared failure muddies won and lost. The carriers exist (each player's
+  `player_status`, the end-of-game reveals); the work is each game's choice of progress
   measure.
 
 ## Where a player stands — the terms, as formulas
@@ -144,7 +144,7 @@ with a formula of its own is a new term, and goes here.
 // isTerminal — the game is over, for everyone.
 //   Doesn't mean: I'm out. A player who finished or conceded while the others
 //   play on doesn't make it true.
-isTerminal = common.games.is_terminal
+isTerminal = common.games.ended_at !== null
 
 // isPlayer — I'm seated in this game.
 //   Doesn't mean: I'm still playing. A player stays a player after the game,
@@ -155,14 +155,14 @@ isPlayer = /* I have a common.game_players row */
 //   Doesn't mean: I'm out for any other reason. A player who solved, was
 //   eliminated or spent their budget has not conceded. Never true in coop: a
 //   team can't concede.
-isConceded = me.conceded                     // common.game_players.conceded
+isConceded = me.player_ended_reason === 'conceded'   // common.game_players.player_ended_reason
 
 // isLocallyTerminal — I'm not playing any more, for whatever reason: finished,
 //   eliminated, out of budget, or conceded. The game may go on for the others.
 //   Doesn't mean: the game is over — that is isTerminal. Doesn't say why: for
 //   the reason, read isConceded or the game's own fact (solved, eliminated,
 //   budget spent). A locally terminal player who did NOT concede may still win.
-isLocallyTerminal = me.locally_terminal      // common.game_players.locally_terminal
+isLocallyTerminal = me.player_ended_at !== null      // common.game_players.player_ended_at
 // so every conceder is locally terminal:
 //   isConceded → isLocallyTerminal
 
@@ -322,7 +322,8 @@ wins.**
     the ranking comes at the end.
 - **`locally-terminal`** — the player isn't playing any more, while the game
   may go on for others: `isLocallyTerminal` in code, as `ended` is
-  `isTerminal`, and `common.game_players.locally_terminal` in the database.
+  `isTerminal`, and `common.game_players.player_ended_at` in the database,
+  with the player's reason pair beside it.
   The reasons vary — `reached-goal`, `eliminated`, `conceded`, or their
   allotted play used up without losing by it.
   - Doesn't mean: `won` or `lost` — it says the player stopped, not how it
@@ -536,7 +537,7 @@ section to tie the two together — never a second name for the same concept.
 | **target** | `goal-chosen` | the setup field players pick a chosen goal with (a rank, a percentage) |
 | **plays out** | `ends-when-all-done` | the game waits for every player, and a ranking decides at the end |
 | **race** | `race-game` | ranked by speed: the first to meet the goal wins, whether or not the game ends there |
-| **locally terminal** | `locally-terminal` | not playing any more, for whatever reason — met the goal, eliminated, out of budget, or conceded — while others may play on; `common.game_players.locally_terminal` ([common.md](common.md)). See [Where a player stands](#where-a-player-stands--the-terms-as-formulas) |
+| **locally terminal** | `locally-terminal` | not playing any more, for whatever reason — met the goal, eliminated, out of budget, or conceded — while others may play on; `common.game_players.player_ended_at` ([common-schema.md](common-schema.md)). See [Where a player stands](#where-a-player-stands--the-terms-as-formulas) |
 | **move budget** / **mistake budget** | `loses-by-move-budget` / `loses-by-mistake-budget` | what a wrong (or any) move spends |
 | **collective finish** | — | an `exhaustible-resource` everyone shares: the bag or the deck running out for everyone |
 | **refundable budget** | — | a cap that blocks play but that undo refunds, so it never loses the game |

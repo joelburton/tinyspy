@@ -245,9 +245,9 @@ RPCs](common-schema.md#rpcs)):
   serialize, and so does a `replay_board`: a replay interleaved with a move
   could leave a stray log row on the fresh board, or let a game-ending move land
   after the reset and re-end it.
-- A state-changing RPC updates the game's own row and the `common.games` header
-  (`common.update_state` / `common._end_game`) in one transaction, so the club
-  list never lags the game.
+- A state-changing RPC updates the game's own rows and the `common.games`
+  header (its status builder, and `common._end_game` for an ending) in one
+  transaction, so the club list never lags the game.
 - It answers in an envelope ([envelopes.md → How SQL builds
   one](envelopes.md#how-sql-builds-one)).
 

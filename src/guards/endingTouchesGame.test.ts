@@ -6,13 +6,9 @@
  * `common._end_game` writes `common.games` alone. Whatever the game's own read
  * releases at the end — wordle's answer (Reveal had nothing to show), a race's
  * rivals' guesses — arrives only if the board re-reads, and the page is right
- * after a reload and wrong until then. An ending wakes it one of two ways:
- * calling the game's status builder, `<game>._write_statuses`, whose write to
- * `common.games` the page reloads off (plans/common-tables.md → The model);
- * or, in a game whose SQL common-tables' step 4 has not rewritten yet,
- * writing one of the game's own rows, since its board re-reads (`useGame`)
- * only when a row in the game's OWN tables changes. The second goes when
- * step 4 is done.
+ * after a reload and wrong until then. An ending wakes it by calling the
+ * game's status builder, `<game>._write_statuses`, whose write to
+ * `common.games` the page reloads off (plans/common-tables.md → The model).
  *
  * **This exists because the rule was a step in a doc.** Stop followed it
  * everywhere; three concede and timeout paths did not (found 2026-09-24).
@@ -21,16 +17,14 @@
  * reads the SQL.
  *
  * **The rule, as checked:** every function in a game's `supabase/sql/<game>.sql`
- * that ends the game — calls `common._end_game`, `common.concede`,
- * `common._concede` or `common._stop`, or calls a function of its own game that
- * does — must call `<game>._write_statuses` or write the game's schema
- * (`update`, `insert into` or `delete from` a `<game>.` table), itself or
- * through a function of its own game that it calls. The same transaction is
+ * that ends the game — calls `common._end_game`, `common._concede` or
+ * `common._stop`, or calls a function of its own game that does — must call
+ * `<game>._write_statuses`, itself or through a function of its own game that
+ * it calls. The same transaction is
  * enough: the write's event goes out at commit, when the game is already over.
  *
  * **What it cannot tell:** whether the write is on the branch that ends the game
- * (a function that writes on one branch and ends on another passes), or whether
- * the table written is one the board subscribes to. A net, not a proof — a new
+ * (a function that writes on one branch and ends on another passes). A net, not a proof — a new
  * ending still wants its own pgTAP check that the game row moved (`ctid`).
  */
 import { readFileSync, readdirSync } from 'node:fs'
@@ -40,7 +34,7 @@ import { describe, expect, it } from 'vitest'
 const SQL_DIR = 'supabase/sql'
 
 /** The common functions that end a game, writing only `common.*`. */
-const ENDS = /\bcommon\.(_end_game|concede|_concede|_stop)\s*\(/
+const ENDS = /\bcommon\.(_end_game|_concede|_stop)\s*\(/
 
 /** Every function in one game's SQL, by name: its text after the header (so it
  *  never reads as calling itself), comments stripped. */
@@ -91,9 +85,7 @@ describe('an ending wakes the board', () => {
   it('every entry point that can end a game wakes the board', () => {
     const offenders: string[] = []
     for (const { game, fns } of games) {
-      const writes = (b: string) =>
-        new RegExp(`\\b${game}\\._write_statuses\\s*\\(`).test(b) ||
-        new RegExp(`\\b(update|insert into|delete from)\\s+${game}\\.`).test(b)
+      const writes = (b: string) => new RegExp(`\\b${game}\\._write_statuses\\s*\\(`).test(b)
       // The transaction is the unit: a helper need not write if its caller
       // does. So only the entry points — functions nothing of this game calls —
       // are asked, each following its calls.

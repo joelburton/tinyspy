@@ -47,7 +47,7 @@ Use this when you're about to write a test:
 |---|---|---|
 | An RPC answers the right envelope — `ok` with its payload, or `not-ok` with its severity and code | pgTAP | "`codenamesduet.submit_guess` on a bystander answers `ok` with `result: 'bystander'`" |
 | RLS prevents the wrong user from seeing data | pgTAP | "dee can't `SELECT` a game from a club she isn't in" |
-| An RPC writes the right state transition | pgTAP | "ending a codenamesduet game flips `common.games.is_terminal=true` and writes the outcome jsonb" |
+| An RPC writes the right state transition | pgTAP | "the assassin ends a codenamesduet game `fatal_move` / `assassin`, lost, nobody ranked" |
 | A check constraint rejects bad input | pgTAP | "`messages.content` must be 1–1000 chars" |
 | Server-side randomness produces the right distribution | pgTAP | codenamesduet's 25-tile key-card distribution check |
 | A pure TypeScript function returns the right value | Vitest | `phase()` returns `'clue'` for a fresh game |

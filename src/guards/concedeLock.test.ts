@@ -3,7 +3,7 @@
 /**
  * **The elimination games must lock their own row before conceding.**
  *
- * Six compete games decide "is anyone still racing?" from TWO tables at once —
+ * An elimination game decides "is anyone still racing?" from TWO tables at once —
  * the game's own progress rows and `common.game_players`' endings. Two paths
  * ask that question: a final move, and a concede. If they take different locks
  * nothing serializes them, so under READ COMMITTED each reads a snapshot from
@@ -23,13 +23,10 @@
  * and turn a wedge into a deadlock. The ordering constraint is what keeps the
  * lock at the call site — so the rule is asserted here instead.
  *
- * **Keyed off calling `common._concede`** (or `common._set_conceded`, in a game
- * whose SQL common-tables' step 4 has not rewritten yet): a game's concede that
- * records the concession itself, then decides from its OWN rows, is the
- * two-table case. A game that still hands the whole decision to
- * `common.concede` asks `common` tables alone, where both paths serialize.
- * Every game's concede takes the lock once step 4 is done, so every one is
- * checked (docs/common-schema.md → Concede). Keying off `_maybe_finish_compete`
+ * **Keyed off calling `common._concede`**, which every game's concede does, so
+ * every one is checked — including the games whose concede asks only `common`
+ * tables, so that every concede has one shape (docs/common-schema.md →
+ * Concede). Keying off `_maybe_finish_compete`
  * instead was the first version of this guard and it skipped psychicnum, whose
  * identical check was written inline (2026-09-01): a guard keyed on how the
  * code is SHAPED misses a game that does the same thing differently, where one
@@ -41,8 +38,8 @@ import { describe, expect, it } from 'vitest'
 
 const SQL_DIR = 'supabase/sql'
 
-/** The shared helpers that record a concession. */
-const CONCEDES = /\bcommon\.(_concede|_set_conceded)\s*\(/
+/** The shared helper that records a concession. */
+const CONCEDES = /\bcommon\._concede\s*\(/
 
 /** One function's body, from its `create or replace` to the closing `$$;`. */
 function body(sql: string, name: string): string | null {
@@ -58,10 +55,9 @@ describe('the concede lock', () => {
     .map((f) => ({ game: f.replace('.sql', ''), sql: readFileSync(join(SQL_DIR, f), 'utf8') }))
     .filter(({ game, sql }) => CONCEDES.test(body(sql, `${game}.concede`) ?? ''))
 
-  it('finds the games that decide for themselves', () => {
-    // A guard that finds nothing passes just as quietly as one that works. The
-    // list is also the answer to "which games are these?" — the rest still hand
-    // the decision to common.concede and are not exposed.
+  it('finds every game with a concede', () => {
+    // A guard that finds nothing passes just as quietly as one that works.
+    // codenamesduet is coop-only, so it has no concede.
     expect(games.map((g) => g.game).sort())
       .toEqual(['bananagrams', 'boggle', 'connections', 'crosswords', 'letterboxed', 'psychicnum', 'scrabble', 'setgame', 'spellingbee', 'stackdown', 'strands', 'waffle', 'wordiply', 'wordle', 'wordwheel'])
   })
@@ -71,7 +67,7 @@ describe('the concede lock', () => {
     for (const { game, sql } of games) {
       const concede = body(sql, `${game}.concede`)!
       const lock = concede.search(
-        new RegExp(`from ${game}\\.games where (game_)?id = (target_game|p_game_id) for update`))
+        new RegExp(`from ${game}\\.games where game_id = p_game_id for update`))
       const conceding = concede.search(CONCEDES)
       if (lock === -1) {
         offenders.push(`${game}.concede: no \`for update\` on ${game}.games`)

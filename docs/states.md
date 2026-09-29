@@ -1,13 +1,13 @@
-# States: view, play, and the suspend/current/pause vocabulary
+# States: view, ending, and the suspend/current/pause vocabulary
 
-Canonical reference for how view-state and play-state are split on
+Canonical reference for how view state and a game's ending are split on
 `common.games`, and how the suspend / pause / current concepts compose. Don't
-conflate "the game the club is currently focused on" with "the game's play state
-isn't terminal" — those are orthogonal axes and naming has to keep them separate
-(see the no-`'active'` convention below).
+conflate "the game the club is currently focused on" with "the game hasn't
+ended" — those are orthogonal axes and naming has to keep them separate: never
+call either one "active".
 
-The split that drives everything below: **view states and play states are
-orthogonal.** A current game might already be won. A terminal game might have
+The split that drives everything below: **view state and the ending are
+orthogonal.** A current game might already be won. A finished game might have
 nobody viewing it. The two axes don't constrain each other.
 
 ## View states
@@ -91,166 +91,25 @@ change" the simplest robust shape).
 — a suspended game isn't being looked at by anyone, so there's no Presence
 channel to pause it.
 
-## Play states
+## How a game ends
 
-Play states describe the game's rules-side situation — totally independent of
-view state.
+Whether a game has ended is independent of view state: a current game may be
+over, and an unfinished one may have nobody viewing it.
 
-Each gametype defines its own `play_state` enum, with `playing` for the default
-mid-game state and one or more terminal values. The specific set varies by
-gametype's rules — see each per-game doc's `### Play-state enum` / `### Play
-states` section for the full list. The simplest is psychicnum coop (`playing` /
-`won` / `lost` / `ended`). A game with several ways to lose still has one
-`lost` and names the way in `status.reason` (codenamesduet: `assassin`,
-`turns`, `timeout`). The set of terminal play_states varies per gametype.
+`common.games.ended_at` is null while the game is played. Once it is set, the
+reason pair (`game_ended_reason`, one of seven categories, and
+`game_ended_reason_detail`, the game's own word for the act) says why,
+`game_ended_by_user_id` says whose act it was, and `game_ended_outcome` —
+`won`, `lost`, `near` or `neutral` — says how it came out. Each player's own
+ending, while the game plays on, is `common.game_players.player_ended_at` and
+its reason pair; their result is `final_ranking` and `outcome`, written when
+the game ends. [common-schema.md → Ending a
+game](common-schema.md#ending-a-game) has the columns and who writes them;
+[win-lose.md](win-lose.md) has the terms every game's endings are described
+in, including what a timeout does (`timeout-result`).
 
-**Convention: don't use `'active'` as a play_state value.** "Active" overloads
-view-state and play-state — using it for play_state invites the confusion this
-whole vocabulary exists to prevent. Every gametype uses `'playing'` as its
-standard mid-game play_state. Gametypes with additional non-terminal phases
-(codenamesduet's `'sudden_death'`) get their own names for those.
-
-### Compete-variant convention: `_compete` suffix
-
-Sibling-manifest pairs that include a compete variant (see [`common.md` → The
-sibling-manifest pattern](common.md#the-sibling-manifest-pattern)) follow this
-convention: the terminal play_state in compete mode is the coop name plus a
-`_compete` suffix. psychicnum is the canonical example:
-
-| mode    | won-terminal   | lost-terminal    |
-|---------|----------------|------------------|
-| coop    | `won`          | `lost`           |
-| compete | `won_compete`  | `lost_compete`   |
-
-The distinct names matter because the per-player outcome differs: coop's `'won'`
-means "every player won together"; compete's `'won_compete'` means "one player
-won, the others lost." Per-player outcome detail goes on
-`common.game_players.result` jsonb (`{ "won": bool }` shape today); `play_state`
-carries the **game-level** terminal answer that the listing label needs to
-render without joining game_players.
-
-spellingbee's compete variant follows the same suffix convention (its schema
-declares `'won_compete'` as a play_state). **Every gametype with a win now uses
-`won` / `won_compete`** — connections was the last holdout (`solved` /
-`solved_compete` until 2026-08-01). Its puzzle vocabulary didn't disappear, it
-moved to where it's true: the play_state carries the verdict in the roster's
-words, `status.reason = 'solved'` carries the cause in connections'. The old
-pair was never self-consistent anyway — the loss side was already plain `lost` /
-`lost_compete`, not `unsolved`.
-
-**The convention is load-bearing, not just cosmetic:** `common.concede` reads
-the `_compete` suffix off `common.games.gametype` to decide whether an
-all-conceded table ends `lost_compete` or plain `lost` (2026-08-01 — before that
-it hardcoded `lost`, so half the roster ended a concede in one vocabulary and
-half in another). A **single-mode** gametype has no `_compete` half and keeps
-plain `lost`: bananagrams is the only one today. So a new compete sibling gets
-the right terminal for free, and a new single-mode game must not be registered
-with a `_compete` suffix unless it really means the compete vocabulary.
-
-### When the clock is a LOSS
-
-A countdown expiring doesn't mean the same thing in every game, so the roster
-uses one test: **you lose if the game had a reachable end and you didn't reach
-it before the clock.** Ratified 2026-08-01.
-
-| the game | its reachable end | clock expires |
-|---|---|---|
-| waffle · wordle · crosswords · stackdown · connections · psychicnum · bananagrams · codenamesduet · strands · letterboxed | solve it / find them all / go out / cover the twelve | `lost` |
-| spellingbee · wordwheel · boggle **with** a target (`target_rank` / `win_percent`) | cross the bar | `lost` |
-| spellingbee · wordwheel · boggle **without** a target | none — there's always another word to find | `ended` |
-| scrabble coop | play the bag out | `lost` |
-| wordiply coop | spend all five shared guesses | `lost` |
-
-The two goalless-looking cases are the interesting ones, and they land on
-opposite sides for a reason. An open word hunt with no target has nothing to
-finish — the clock is just how the session stops, so it's neutral. scrabble and
-wordiply coop DO have an end (the bag empties; the guesses run out), so setting
-a timer is the team saying "we think we can get there by then", and not getting
-there is a real failure. Neither has a *win* — both report a score — but both
-can lose to the clock.
-
-Note this is narrower than the rule the pre-freeze audit proposed ("the clock
-only loses when there was a target to miss"), which couldn't explain scrabble:
-scrabble coop has no target and still loses. "Reachable end" covers all
-sixteen with no exceptions.
-
-#### Compete is different: the clock resolves a race
-
-The rule above is about a team missing its own goal. In **compete** the clock
-lands on a race that already has a leader, so it **crowns them** rather than
-failing everyone — scrabble, boggle (no target) and wordiply all do this, and
-[scrabble.md](games/scrabble.md) argues the case: a score accumulated over real
-plays is meaningful, and voiding it would reward stalling. (boggle *with* a
-target is the exception that proves it — there the bar, not the leader, is what
-the clock beat, so it's `lost_compete`.) strands compete has its own flavor: the
-race is fewest hints *among solvers*, so the clock crowns a player who has
-already solved (`won_compete`); with no solver there's nobody to crown and it's
-`lost_compete` (reason `timeout`).
-
-**Unless there's no leader to crown.** The win test in a score race is "your
-score is the best score", which is true for *everyone* when every score is 0 —
-so a timed race nobody played would flag them all winners. Both score races
-guard it (`boggle._finish`, `wordiply._finish_compete`): no non-conceded player
-with a score means `lost_compete`, nobody `won`. Ratified 2026-08-01, after a
-probe found boggle's club label reading `Won (co-winners)` off exactly that row
-while its own play surface said "no words found".
-
-### `status.reason` names the CAUSE, never the verdict
-
-`play_state` answers *what happened to the game* (won / lost / ended, per mode).
-`status.reason` answers *why it stopped* — and the two must not say the same
-thing twice. A terminal write states both: `play_state = 'lost_compete'` with
-`reason = 'timeout'`, not `reason = 'lost_compete_timeout'`.
-
-**The key is `reason`, and it is not an `outcome`.** It was called that until
-2026-09-19, which put a cause where the app's six-value appearance vocabulary
-(`won` · `lost` · `near` · `warning` · `neutral` · `noted` —
-[outcomes.md](outcomes.md)) spends the same word, and an envelope's own
-`outcome` field holds exactly those. Nothing below changed but the key:
-`20260919000002_status_outcome_to_reason.sql` renamed it in the stored rows.
-
-The rule, checkable at a glance: **no `reason` value may also be a `play_state`
-value.** Pinned by the vocabulary-disjointness test in
-`src/guards/gameStatusLabels.test.ts` (which sweeps this table against the
-reachable play_states in its CASES matrix). The whole roster's vocabulary today:
-
-| reason | the cause it names |
-|---|---|
-| `timeout` | the countdown reached 0 |
-| `manual` | a player fired the Stop-game action |
-| `conceded` | every player quit (`common.concede`'s last-racer path) |
-| `exhausted` | a budget ran out — guesses or swaps |
-| `mistakes` | the mistake limit was hit (connections) |
-| `assassin` | the assassin was revealed (codenamesduet) |
-| `turns` | the turn budget ran out and a sudden-death guess missed (codenamesduet) |
-| `solved` | the puzzle/grid/secrets were completed |
-| `target` | a score or rank target was crossed |
-| `cleared` | the stack was cleared (stackdown) |
-| `complete` | the tiles ran out with someone going out (scrabble, bananagrams) |
-| `blocked` | every active seat passed in a row (scrabble compete) |
-| ~~`revealed`~~ | *dead since 2026-08-03.* Was "this game ended because a player asked to see the answer" — waffle's and wordle's combined mid-game give-ups, both removed. Revealing ends nothing now; it's a local display toggle |
-
-Converged 2026-08-01. Before that, connections / psychicnum / codenamesduet
-echoed their play_state into the reason (`lost_timeout`,
-`lost_compete_conceded`, …), spellingbee / wordwheel wrote `won_compete` where
-their own coop sibling already said `target`, bananagrams wrote `won`, and
-crosswords wrote `finished` for what everyone else calls `manual`. The
-status-line grammar wants a reason noun it can drop into "Lost (out of time)",
-so a value that repeats the verdict is dead weight the label has to strip.
-
-**Adding a terminal? Pick an existing noun before inventing one.** A new cause
-that genuinely isn't in the table above gets a new noun — but "my game's win"
-is not a new cause: it's `solved`, `target`, `cleared`, or `complete`.
-
-### `is_terminal` is materialized
-
-Each gametype knows which of its play_states are terminal. The codebase
-shouldn't have to ask "is this play_state terminal for this gametype?"
-everywhere — we materialize `is_terminal boolean` on the row as a
-derived-but-stored field. Updated in the same transaction as `play_state`.
-
-Net effect: code that just wants "did this game end?" reads `is_terminal`. Code
-that wants the specific outcome reads `play_state`.
+There is no stored game state beside these: a game that hasn't ended is being
+played, and codenamesduet's sudden death is worked out from its turn count.
 
 ## Where the two tables sit
 
@@ -260,31 +119,29 @@ referred to as `foo.games` below for brevity.)
 
 ### `common.games` carries
 
-- `is_current_view` (boolean)
-- `paused` (boolean — present for any game, but only meaningful when
-  `is_current_view = true`)
-- `play_state` (text — the gametype's enum value, e.g. `'won_compete'` for a
-  compete race)
-- `is_terminal` (boolean — materialized, in sync with play_state)
-- `status` (jsonb — gametype-specific data needed for the club-page listing
-  label; each gametype consumes its own shape via `manifest.labelFor`)
+- `is_current_view` (boolean) — the view state above
+- `mode` (`coop` or `compete`)
+- the ending: `ended_at`, the reason pair, `game_ended_by_user_id`,
+  `game_ended_outcome`
+- the statuses: `game_status` for the play page and `clubpage_info` for the
+  club line, beside each player's `common.game_players.player_status` —
+  copies of the game's own tables, written whole by the game's status builder
+  ([common-schema.md → Title, statuses and the two
+  dates](common-schema.md#title-statuses-and-the-two-dates))
 - The game clock lives in a **separate table, `common.timers (game_id, ticks,
-  last_tick)`** — NOT on the games row, so the once-per-second tick UPDATE
-  doesn't churn the games realtime stream. `ticks` is an **additive** count of
-  whole seconds of *active play*: every actively-playing client calls
-  `common.tick_timer` once a second, which advances `ticks` by at most 1 per
-  real second (its `now() - last_tick >= 1s` conditional dedupes across players
-  and makes a pause/idle gap cost +1, not the gap). Pauses and "nobody viewing"
-  need **no tracking** — they're just seconds where nobody calls tick_timer, so
-  the clock stops. `set_current_view`/`unset_current_view` are pure
-  pointer-flips with no timer work.
-- plus the cross-cutting fields already there: `id`, `club_handle`, `gametype`,
-  `title`, `setup`, `started_at`, `ended_at`, etc.
-
-`status`'s semantic: *state for label rendering*, kept in sync on every
-state-transitioning RPC. Not just a terminal-time snapshot — every mid-game
-state-affecting move writes whatever the manifest's `labelFor` needs to render
-the current row.
+  last_tick, kind, countdown_seconds_at_setup)`** — NOT on the games row, so the
+  once-per-second tick UPDATE doesn't churn the games realtime stream. `ticks`
+  is an **additive** count of whole seconds of *active play*: every
+  actively-playing client calls `common.tick_timer` once a second, which
+  advances `ticks` by at most 1 per real second (its `now() - last_tick >= 1s`
+  conditional dedupes across players and makes a pause/idle gap cost +1, not
+  the gap). Pauses and "nobody viewing" need **no tracking** — they're just
+  seconds where nobody calls tick_timer, so the clock stops.
+  `set_current_view`/`unset_current_view` are pure pointer-flips with no timer
+  work.
+- plus the cross-cutting fields: `id`, `club_handle`, `gametype`, `title`,
+  `setup`, `current_turn_user_id`, `restart_count`, `started_at`,
+  `status_changed_at`, etc.
 
 ### `foo.games` carries
 
@@ -294,30 +151,27 @@ the gametype's own RPCs. Examples:
 - **codenamesduet**: `key_card_a`, `key_card_b`, `current_clue_giver`,
   `turn_number`, …
 
-Nothing about cross-cutting state. Nothing that the listing reads. (If the
-listing wanted to show the number of mistakes in a connections game, we would
-*also* put that in the common.games.status)
+Nothing about cross-cutting state: no mode, no club, no ending. Its security
+rules join `common.games` for those.
 
 ### Listing implication
 
-The club page lists games entirely from `common.games`. The manifest's only
-listing responsibility is `labelFor(commonGamesRow) → string` — a pure function
-that reads the per-gametype `status` jsonb and returns a label. No I/O, no
-`foo.games` touched.
+The club page lists games entirely from `common.games`: the title, the ending
+columns and `clubpage_info`. No `foo.games` is touched.
 
 ## Suspended vs terminal — not a special case
 
-A "suspended" game is just a description for **a non-current, non-terminal
-game** — a crossword not yet filled, a connections where categories remain.
+A "suspended" game is just a description for **a non-current game that
+hasn't ended** — a crossword not yet filled, a connections where categories remain.
 Suspended games are likely candidates for the club to pick up again.
 
-Terminal games are non-current and `is_terminal = true`. Clubs can still view
+Finished games are non-current and have `ended_at` set. Clubs can still view
 these (to look at the solved grid, reminisce, etc.).
 
 There's no special "suspended" category in the schema or the listing. The club
 page's "Your games" is a single list of every game, the current one included; a
 corner flag marks the ones still open (orange for the current game, yellow for a
-suspended one), and a terminal game has none.
+suspended one), and a finished game has none.
 
 ## Lifecycle: when `is_current_view` flips
 
@@ -372,7 +226,7 @@ partner). When the absent player returns, pause clears automatically.
 
 ### Leaving the game page — terminal vs non-terminal
 
-The UI bar for "leaving" depends on play state — three shapes (GamePage's
+The UI bar for "leaving" depends on whether the game has ended — three shapes (GamePage's
 `requestBackToClub`):
 
 - **Terminal**. Trivial to leave. Members are reviewing the endgame (the matched
