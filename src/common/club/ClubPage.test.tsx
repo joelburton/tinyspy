@@ -43,7 +43,7 @@ const { mockRunRpc, mockToast, clubGames, WORDLE, DUEL, SYRUP } = vi.hoisted(() 
     shortDescription: `${name} description`,
     logoUrl: '',
     numberOfPlayers: [1, 4] as [number, number],
-    labelFor: (row: { ending: { outcome: string } | null }) => `label:${row.ending?.outcome ?? 'playing'}`,
+    labelFor: (row: { gameEnding: { outcome: string } | null }) => `label:${row.gameEnding?.outcome ?? 'playing'}`,
   })
   return {
     mockRunRpc: vi.fn(),

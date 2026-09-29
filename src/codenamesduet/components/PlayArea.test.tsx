@@ -181,7 +181,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',
-    goToGame: vi.fn(),
+    goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
       actHelp: boundActionFixture('act-help'),
@@ -608,7 +608,7 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
         setup: expect.objectContaining({ turns: 9 }),
       })),
     )
-    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('codenamesduet', 'next-game-id'))
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
   })
 
   it('+ mid-game asks first, and cancel samples nothing', async () => {

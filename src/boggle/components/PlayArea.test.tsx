@@ -118,7 +118,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',
-    goToGame: vi.fn(),
+    goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
       actHelp: boundActionFixture('act-help'),
@@ -319,7 +319,7 @@ describe('boggle PlayArea — render smoke', () => {
  * suspend-confirm flow); TERMINAL = Restart + New game + Back-to-club.
  * Restart = boggle.replay_board (unconfirmed at terminal); New game = the
  * boggle-build-board edge function with THIS game's setup/roster/mode,
- * then ctx.goToGame.
+ * then ctx.goToFollowUpGame.
  */
 describe('boggle PlayArea — icon-only action rows', () => {
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
@@ -362,7 +362,7 @@ describe('boggle PlayArea — icon-only action rows', () => {
       ),
     )
     await waitFor(() =>
-      expect(ctx.goToGame).toHaveBeenCalledWith('boggle_coop', 'fresh-game-id'),
+      expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('fresh-game-id'),
     )
   })
 })
@@ -695,7 +695,7 @@ describe('boggle PlayArea — the keys', () => {
         expect.objectContaining({ target_club: 'testclub', player_user_ids: ['u1'], mode: 'coop' }),
       ),
     )
-    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('boggle_coop', 'fresh-game-id'))
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('fresh-game-id'))
   })
 
   it('+ mid-game asks first, and Keep playing starts nothing', async () => {

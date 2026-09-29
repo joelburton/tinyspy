@@ -19,7 +19,7 @@ import { useState } from 'react'
  *      win → restart → win celebrates again.
  *
  * Rule 1 is what makes the `won` expression load-bearing: gate it ONLY on values
- * that are correct on the FIRST render (the `common.games` row — `ending`,
+ * that are correct on the FIRST render (the `common.games` row — `gameEnding`,
  * `gameStatus` — plus the roster, all of which `GamePageLoader` awaits before the
  * PlayArea mounts; and a game's own rows only where its loader awaits them
  * too). Anything that arrives later flips false→true after mount and pops
@@ -27,7 +27,7 @@ import { useState } from 'react'
  *
  * Usage (waffle's):
  *
- *     const celebration = useCelebration(ending?.outcome === 'won')
+ *     const celebration = useCelebration(gameEnding?.outcome === 'won')
  *     ...
  *     {celebration.show && <CelebrationBlockingModal title="Solved it! 🧇" onClose={celebration.close} />}
  */

@@ -6,7 +6,7 @@ import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { buildStackdownPrintModel } from '../pdf/model'
 import { printStackdownPdf } from '../pdf/printStackdownPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -108,7 +108,7 @@ export function PlayArea({
   status,
   globalFeedbackSlot,
   clubHandle,
-  goToGame,
+  goToFollowUpGame,
   menu,
   brand,
   title,
@@ -403,7 +403,7 @@ export function PlayArea({
   // random board from the pre-generated library, so this is a direct RPC — no
   // edge function — mirroring the manifest's startGameInClub. Non-destructive
   // (common._create_game un-currents this game into the club list), so no
-  // confirm; the creator jumps in via ctx.goToGame, peers arrive via the
+  // confirm; the creator jumps in via ctx.goToFollowUpGame, peers arrive via the
   // game-invitation toast.
   //
   // A plain function, rebuilt every render: the binding below reads it at click
@@ -431,7 +431,7 @@ export function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`stackdown_${gameMode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)
@@ -791,7 +791,7 @@ function buildOver({
   winner: Actor | undefined
 }): TerminalMessage {
   // Manual end (stackdown.stop_game) → the shared neutral message (no winner).
-  if (playState === 'ended') return gameEndedTerminalMessage(mode)
+  if (playState === 'ended') return buildGameEndedMessageNeutral(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
       return { pillText: 'Won: stack cleared', infoColText: 'Cleared!', outcome: 'won' }

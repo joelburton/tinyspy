@@ -20,7 +20,7 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { navigate } from '@/common/routing/router'
 import { clubPath } from '@/common/routing/routes'
 import { writeIpuz } from '../lib/parse/ipuz'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import { cls } from '@/common/utils/cls'
 import {
@@ -1145,6 +1145,6 @@ function buildOver({
       return { pillText: 'Lost: out of time', infoColText: 'Out of time', outcome: 'lost' }
     case 'ended':
     default:
-      return gameEndedTerminalMessage(mode)
+      return buildGameEndedMessageNeutral(mode)
   }
 }

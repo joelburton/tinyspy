@@ -3,6 +3,8 @@
 import { describe, expect, it } from 'vitest'
 import { gametypes } from '@/gametypes'
 import type { CommonGameListRow } from '@/common/manifest/gameManifest'
+import type { Member } from '@/common/members/member'
+import type { GameEnding } from '@/common/terminal/gameEnding'
 
 /**
  * The club-page **status line** every game renders, per play state, checked by
@@ -37,6 +39,32 @@ type Family = {
 }
 
 /**
+ * A family whose label reads the list row's `gameEnding` and its `clubpage_info` — the shape a game
+ * takes when plans/common-tables.md step 5 converts it. The families still in the old shape
+ * above convert one game at a time, and this becomes the only shape once the last does.
+ */
+type GameEndingCase = [
+  gameEnding: Pick<GameEnding, 'outcome' | 'reason'>,
+  clubpageInfo: Record<string, unknown>,
+  note: string,
+]
+type GameEndingFamily = {
+  /** The mid-game `clubpage_info`, every key present as the builder writes it. */
+  live: Record<string, unknown>
+  shared?: GameEndingCase[]
+  coop?: GameEndingCase[]
+  compete?: GameEndingCase[]
+}
+
+/** The club a label names its players from; every case's winner and ender is alice. */
+const MEMBERS: Member[] = [{ user_id: 'u-alice', username: 'alice', color: 'red' }]
+
+/** A family in the new shape, told apart from an old one by its `live` blob. */
+function isGameEndingFamily(fam: Family | GameEndingFamily): fam is GameEndingFamily {
+  return 'live' in fam
+}
+
+/**
  * Per gametype FAMILY (baseGametype): a realistic mid-game status blob, then the terminal
  * cases that family actually reaches, per mode.
  *
@@ -46,7 +74,7 @@ type Family = {
  * on a Stop and "found" a bug the SQL does not have (every spellingbee ending writes
  * target_rank). Check the RPC before adding a case.
  */
-const CASES: Record<string, Family> = {
+const CASES: Record<string, Family | GameEndingFamily> = {
   // No siblings — one manifest, one vocabulary.
   codenamesduet: {
     playing: { found_agents_count: 12, turns_remaining: 5 },
@@ -83,21 +111,22 @@ const CASES: Record<string, Family> = {
       ['lost_compete', { reason: 'unsolved' }, 'nobody solved it'],
     ],
   },
+  // psychicnum._write_statuses: the found and used counts are the team's in coop and null
+  // in compete; the winner is compete's alone.
   psychicnum: {
-    playing: { guesses_used: 2, found_secrets_count: 2, required_secrets_count: 3 },
-    // The budget the mid-game line reads guesses_used against.
-    setup: { max_guesses: 7 },
-    shared: [['ended', { reason: 'manual', found_secrets_count: 2, required_secrets_count: 3 }, 'manual end']],
+    live: { found_secrets_count: 2, required_secrets_count: 3, guesses_used: 2, max_guesses: 7, winner_user_id: null },
     coop: [
-      ['won', W, 'found it'],
-      ['lost', { reason: 'exhausted', found_secrets_count: 2, required_secrets_count: 3 }, 'out of guesses'],
-      ['lost', { reason: 'timeout', found_secrets_count: 2, required_secrets_count: 3 }, 'timeout'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { found_secrets_count: 3, required_secrets_count: 3, guesses_used: 5, max_guesses: 7, winner_user_id: null }, 'found them all'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { found_secrets_count: 2, required_secrets_count: 3, guesses_used: 7, max_guesses: 7, winner_user_id: null }, 'out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { found_secrets_count: 2, required_secrets_count: 3, guesses_used: 4, max_guesses: 7, winner_user_id: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { found_secrets_count: 2, required_secrets_count: 3, guesses_used: 4, max_guesses: 7, winner_user_id: null }, 'Stop'],
     ],
     compete: [
-      ['won_compete', W, 'won the race'],
-      ['lost_compete', { reason: 'exhausted' }, 'budgets exhausted'],
-      ['lost_compete', { reason: 'timeout' }, 'timeout'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: 'u-alice' }, 'won the race'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: null }, 'budgets exhausted'],
+      [{ outcome: 'lost', reason: 'timeout' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: null }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: null }, 'Stop'],
     ],
   },
   connections: {
@@ -364,9 +393,24 @@ const CASES: Record<string, Family> = {
 }
 
 /** The cases a manifest can actually reach: the shared ones plus its own mode's. */
-function casesFor(mode: string | undefined, fam: Family): Case[] {
+function casesFor<C>(
+  mode: string | undefined,
+  fam: { shared?: C[]; coop?: C[]; compete?: C[] },
+): C[] {
   return [...(fam.shared ?? []), ...(mode === 'compete' ? (fam.compete ?? []) : (fam.coop ?? []))]
 }
+
+/** A listing row in the new shape: a null game ending is a game still played. */
+const makeListRow = (
+  gametype: string,
+  gameEnding: Pick<GameEnding, 'outcome' | 'reason'> | null,
+  clubpageInfo: Record<string, unknown>,
+): CommonGameListRow => ({
+  id: 'g',
+  gametype,
+  gameEnding: gameEnding && { ...gameEnding, reasonDetail: gameEnding.reason, endedByUserId: 'u-alice' },
+  clubpageInfo,
+})
 
 const row = (
   gametype: string,
@@ -383,6 +427,17 @@ function buildTable(): string {
   for (const m of gametypes) {
     const fam = CASES[m.baseGametype]
     if (!fam) continue
+    if (isGameEndingFamily(fam)) {
+      const labelOf = (gameEnding: GameEndingCase[0] | null, clubpageInfo: Record<string, unknown>) =>
+        m.labelFor(makeListRow(m.gametype, gameEnding, clubpageInfo), MEMBERS)
+      lines.push(`| **${m.gametype}** | playing | \`${labelOf(null, fam.live)}\` |`)
+      for (const [gameEnding, clubpageInfo, note] of casesFor(m.mode, fam)) {
+        lines.push(
+          `| | ${gameEnding.outcome}/${gameEnding.reason} — ${note} | \`${labelOf(gameEnding, clubpageInfo)}\` |`,
+        )
+      }
+      continue
+    }
     const label = (state: string, status: Record<string, unknown>) =>
       m.labelFor(row(m.gametype, state, status, fam.setup ?? {}))
     lines.push(`| **${m.gametype}** | playing | \`${label('playing', fam.playing)}\` |`)
@@ -432,10 +487,23 @@ describe('game status labels', () => {
     for (const m of gametypes) {
       const fam = CASES[m.baseGametype]
       if (!fam) continue
-      const setup = fam.setup ?? {}
-      const playing = m.labelFor(row(m.gametype, 'playing', fam.playing, setup))
-      const unknown = m.labelFor(row(m.gametype, 'a_state_from_the_future', fam.playing, setup))
-      const readsAsLive = unknown === playing
+      let readsAsLive: boolean
+      let unknown: string
+      if (isGameEndingFamily(fam)) {
+        // A game ending whose outcome and reason no game writes today.
+        const futureGameEnding = {
+          outcome: 'an_outcome_from_the_future',
+          reason: 'a_reason_from_the_future',
+        } as unknown as GameEndingCase[0]
+        const playing = m.labelFor(makeListRow(m.gametype, null, fam.live), MEMBERS)
+        unknown = m.labelFor(makeListRow(m.gametype, futureGameEnding, fam.live), MEMBERS)
+        readsAsLive = unknown === playing
+      } else {
+        const setup = fam.setup ?? {}
+        const playing = m.labelFor(row(m.gametype, 'playing', fam.playing, setup))
+        unknown = m.labelFor(row(m.gametype, 'a_state_from_the_future', fam.playing, setup))
+        readsAsLive = unknown === playing
+      }
       if (readsAsLive && !UNKNOWN_READS_AS_LIVE.has(m.gametype)) {
         offenders.push(`${m.gametype} → "${unknown}"`)
       }
@@ -476,6 +544,9 @@ describe('game status labels', () => {
     const playStates = new Set(['playing'])
     const reasons = new Set(ROSTER_REASONS)
     for (const fam of Object.values(CASES)) {
+      // A converted family has no play_state: its outcome and its reason are two columns,
+      // so the overlap this test forbids cannot arise there.
+      if (isGameEndingFamily(fam)) continue
       for (const [state, status] of [...(fam.shared ?? []), ...(fam.coop ?? []), ...(fam.compete ?? [])]) {
         playStates.add(state)
         if (typeof status.reason === 'string') reasons.add(status.reason)

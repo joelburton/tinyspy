@@ -26,7 +26,7 @@ type GameRpcClient = {
   // three names this file passes are pinned by its test.
   rpc(
     fn: string,
-    args: { target_game: string },
+    args: { p_game_id: string },
   ): PromiseLike<{ data: unknown; error: DbError; status?: number; statusText?: string }>
 }
 
@@ -95,7 +95,7 @@ export function useStandardGameActions({
   // second answer, so the two say the identical thing to the server and read
   // the identical answer back.
   const stopGameForAll = async () => {
-    const res = await runRpc<GameStopResult>(db.rpc('stop_game', { target_game: gameId }))
+    const res = await runRpc<GameStopResult>(db.rpc('stop_game', { p_game_id: gameId }))
     if (res.type === 'not-ok') {
       // The one race is `isTerminal` losing to the subscription that feeds it:
       // somebody else stopped the game while the question was open.
@@ -149,7 +149,7 @@ export function useStandardGameActions({
     },
     runAlternative: stopGameForAll,
     run: async () => {
-      const res = await runRpc<ConcedeResult>(db.rpc('concede', { target_game: gameId }))
+      const res = await runRpc<ConcedeResult>(db.rpc('concede', { p_game_id: gameId }))
       if (res.type === 'not-ok') {
         // Both races reachable here are the two gates above losing to the
         // subscription that feeds them: the game ended, or this player already
@@ -164,8 +164,9 @@ export function useStandardGameActions({
     },
   })
 
-  // Restart — restart THIS board for everyone. The reset arrives via each
-  // game's realtime refetch (the RPC's games touch). A replayed board is a
+  // Restart — restart THIS board for everyone. The reset reaches every client
+  // through the game's `common.games` row, which the RPC's status builder
+  // writes (see `useRefetchOnGameUpdate`). A replayed board is a
   // perfectly legal thing to replay again, so it stays offered at terminal;
   // the shared run's single flight is what stops a second wipe landing on a
   // board someone has already started guessing on.
@@ -178,7 +179,7 @@ export function useStandardGameActions({
     describe: (asker): ActionState =>
       asker === 'button' && !isTerminal ? 'hidden' : 'active',
     run: async () => {
-      const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
+      const res = await runRpc<ReplayResult>(db.rpc('replay_board', { p_game_id: gameId }))
       if (res.type === 'not-ok') {
         // The one race here is the game having been deleted out from under the
         // page — a club member tidying the list while you had it open.

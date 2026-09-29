@@ -106,11 +106,11 @@
 - **The manual-end terminal is hand-written and reads differently from every
   other game.** `PlayArea.tsx` returns `{ pillText: 'Ended', infoColText:
   'Ended', outcome: 'neutral' }` where thirteen games call the shared
-  `gameEndedTerminalMessage(mode)` (`Game ended` / `Game ended — no winner`,
+  `buildGameEndedMessageNeutral(mode)` (`Game ended` / `Game ended — no winner`,
   info-column line `Game over`). Beyond the drift, `pillText` and
   `infoColText` are the same string, which is the one thing the terminal
   message type exists to separate, and no comment says why. Almost certainly
-  `return gameEndedTerminalMessage(mode)`; if the divergence is wanted it
+  `return buildGameEndedMessageNeutral(mode)`; if the divergence is wanted it
   needs a comment instead.
 - **A raw `<button>` takes focus on click**, where every `StandardButton`
   suppresses it: the AI suggestion rows (`InfoCol.tsx`). (The history banner's ✕

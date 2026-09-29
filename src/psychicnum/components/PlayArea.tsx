@@ -8,6 +8,7 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { answerMessage, peerAnswerMessage } from '../lib/answer'
 import { SECRET_COUNT, type PsychicnumSetup } from '../lib/setup'
+import type { PsychicnumGameStatus, PsychicnumPlayerStatus } from '../lib/statuses'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
@@ -67,7 +68,11 @@ type SpoilerAnswer = {
  * gray itself or lie.
  */
 export function PlayAreaLoader(ctx: GamePageCtx) {
-  const { game, playerBudgets, guesses, loading, failure } = useGame(ctx.gameId)
+  const { game, playerBudgets, guesses, loading, failure } = useGame({
+    gameId: ctx.gameId,
+    commonGameUpdatedAt: ctx.commonGameUpdatedAt,
+    resubscribeCount: ctx.resubscribeCount,
+  })
 
   if (loading) return <Loading />
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -86,14 +91,16 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
       game={game}
       playerBudgets={playerBudgets}
       guesses={guesses}
-      // The one place the setup blob is narrowed. `GamePageCtx` types it
-      // `Record<string, unknown>` for every game; below, it is this game's.
+      // The one place the setup blob and the game's status are narrowed.
+      // `GamePageCtx` types them `Record<string, unknown>` for every game;
+      // below, they are this game's.
       setup={ctx.setup as unknown as PsychicnumSetup}
+      gameStatus={ctx.gameStatus as unknown as PsychicnumGameStatus}
     />
   )
 }
 
-type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
+type PlayAreaProps = Omit<GamePageCtx, 'setup' | 'gameStatus'> & {
   // The loaded game row. Non-null by construction — the loader holds the gates.
   game: PsychicnumGame
   // Per-player guess budgets (`psychicnum.players`), club-wide visible.
@@ -102,6 +109,8 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
   guesses: EventRow[]
   // This game's setup blob, narrowed once by the loader.
   setup: PsychicnumSetup
+  // This game's `game_status`, narrowed once by the loader.
+  gameStatus: PsychicnumGameStatus
 }
 
 /**
@@ -110,13 +119,13 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
  * `<InfoCol>` the readouts and the action row, and this component decides what
  * each of them is handed.
  *
- * Both manifests mount it, and `mode` (`game.mode`, fixed at create-game time)
- * is what differs — who a narration names, whose progress a readout counts,
- * and which verdict `lib/terminal.ts` builds. The rule it keeps across that
- * split: green means "a secret was found" in both modes, so nothing here
- * teaches a compete-only color.
+ * Both manifests mount it, and `mode` (`common.games.mode`, fixed at
+ * create-game time) is what differs — who a narration names, whose progress a
+ * readout counts, and which verdict `lib/terminal.ts` builds. The rule it
+ * keeps across that split: green means "a secret was found" in both modes, so
+ * nothing here teaches a compete-only color.
  *
- * Above it, `<GamePage>` owns members, the timer, play_state, pause and chat,
+ * Above it, `<GamePage>` owns members, the timer, the ending, pause and chat,
  * and unmounts this surface on pause — every piece of state below goes with it.
  */
 function PlayArea({
@@ -125,8 +134,9 @@ function PlayArea({
   guesses,
   session,
   gameId,
+  mode,
   players,
-  playState,
+  gameEnding,
   isTerminal,
   isConceded,
   isLocallyTerminal,
@@ -137,15 +147,15 @@ function PlayArea({
   isWaitingForTurn,
   isBoardInteractive,
   setup,
-  status,
+  gameStatus,
   globalFeedbackSlot,
   clubHandle,
-  goToGame,
+  goToFollowUpGame,
   menu,
   brand,
   title,
 }: PlayAreaProps) {
-  const isCompete = game.mode === 'compete'
+  const isCompete = mode === 'compete'
 
   // ─── Page hooks ────────────────────────────────────────
   // What this surface IS, before anything this game knows: where Tab may go,
@@ -163,23 +173,30 @@ function PlayArea({
   // reached by the header's InfoSwitchButton. Desktop is unchanged.
   const infoSheet = useInfoSheet()
 
-  // My budget row (`psychicnum.players`) — looked up once; Derived reads the
-  // budget off it, and the reveal and the verdict read the count.
+  // My budget row (`psychicnum.players`) — whether I found all three, which
+  // the celebration, the reveal and the verdict read.
   const myBudgetRow = playerBudgets.find((p) => p.user_id === session.user.id)
-  const selfSecretsFound = myBudgetRow?.found_secrets_count ?? 0
-  const iFoundThemAll = selfSecretsFound >= SECRET_COUNT
+  const iFoundThemAll = (myBudgetRow?.found_secrets_count ?? 0) >= SECRET_COUNT
+
+  // Whether I am looking at the answer already: the coop team won, or I won
+  // my race. Finding all three IS the win here, so it is also the win that is
+  // MINE.
+  const iSolved = solvedByMe({
+    isCompete,
+    gameOutcome: gameEnding?.outcome ?? null,
+    mine: iFoundThemAll,
+  })
 
   // Confetti the moment the win is MINE — the coop team's third secret, or my
   // own third in a race — and never on mount: opening an already-won game
   // stays quiet. It is the ONLY modal at terminal; the verdict itself rides
-  // the below-board pill, and a racer who lost gets that and nothing more.
+  // the below-board pill, and a compete player who lost gets that and nothing
+  // more.
   //
-  // Both gates are correct on the first render, which is what `useCelebration`
-  // requires: `playState` comes with the page, and `playerBudgets` comes with
-  // the game — the loader holds this surface back until both are in hand.
-  const celebration = useCelebration(
-    playState === 'won' || (playState === 'won_compete' && iFoundThemAll),
-  )
+  // Correct on the first render, which is what `useCelebration` requires:
+  // `gameEnding` comes with the page, and `playerBudgets` comes with the game —
+  // the loader holds this surface back until both are in hand.
+  const celebration = useCelebration(iSolved)
 
   // The board frame flashes yellow the moment the move becomes mine. The dim is
   // what says "not yours"; its lifting is a removal, and you are by definition
@@ -192,11 +209,25 @@ function PlayArea({
   // (docs/win-lose.md → Where a player stands); what is this game's own is
   // read off `playerBudgets`.
 
-  // The guess budget, and how much of it I have used, for the readouts. A
-  // spent budget is where I stand already: the server marks the racer locally
-  // terminal, and the page's `isStillPlaying` goes false.
-  const maxGuesses = setup.max_guesses
-  const guessesUsed = myBudgetRow?.guesses_used ?? maxGuesses
+  // The readouts — the info column's state line and the mobile strip's copy
+  // of it — read the statuses and nothing else (plans/common-tables.md → The
+  // statuses). Each player's status holds their own counts, so coop's team
+  // numbers are sums over the players and compete's are my own. A spent
+  // budget is where I stand already: the server ends a compete player's play,
+  // and the page's `isStillPlaying` goes false. A club member watching a
+  // compete game has no status of their own, so reads as the budget spent.
+  const myPlayerStatus = memberById(players, session.user.id)?.player_status as
+    | PsychicnumPlayerStatus
+    | undefined
+  const playerStatuses = players.map((p) => p.player_status as PsychicnumPlayerStatus)
+  const maxGuesses = gameStatus.max_guesses
+  const secretCount = gameStatus.required_secrets_count
+  // No secret can be found twice and each guess is one player's, so the sums
+  // count every find and every guess once.
+  const teamFound = playerStatuses.reduce((sum, s) => sum + s.found_secrets_count, 0)
+  const teamGuessesUsed = playerStatuses.reduce((sum, s) => sum + s.guesses_used, 0)
+  const found = isCompete ? (myPlayerStatus?.found_secrets_count ?? 0) : teamFound
+  const guessesUsed = isCompete ? (myPlayerStatus?.guesses_used ?? maxGuesses) : teamGuessesUsed
 
   // The setup rows, built ONCE and handed to both consumers — the info column
   // renders them as <li>s, the print model prints the same array (common/setup-form/doc.md →
@@ -204,8 +235,8 @@ function PlayArea({
   // function": this is the game whose two hand-written lists had drifted into
   // reporting different facts on paper than on screen.
   const setupRows = useMemo(
-    () => makeSetupRows(setup, game.mode, players),
-    [setup, game.mode, players],
+    () => makeSetupRows(setup, mode, players),
+    [setup, mode, players],
   )
 
   // The terminal secrets reveal — derived state, because the Reveal binding
@@ -227,13 +258,7 @@ function PlayArea({
     revealed: secretsShown,
     toggle: toggleSecrets,
     impliedBySolve,
-  } = useSolutionReveal({
-    impliedBy: solvedByMe({
-      isCompete,
-      playState,
-      mine: iFoundThemAll,
-    }),
-  })
+  } = useSolutionReveal({ impliedBy: iSolved })
 
   // ─── The local slot, and its three standing conditions ─
   // Each condition is an effect on a primitive edge that shows on true and
@@ -241,23 +266,29 @@ function PlayArea({
   // slot is the one for messages about ME; a peer's go in the header's.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // Per-status terminal message. Mode-aware so compete-mode winners get the
-  // "you won the race" vs "Bea won the race" distinction, while coop stays the
-  // simple team verdict. In compete the winner is the one who completed the
-  // set (their found_secrets_count hit 3). Memoized on its inputs so the
-  // verdict effect below sees one object per outcome, not one per render.
-  const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
-  // WHY it ended is the server's word (`status.reason`), never the browser
-  // clock's: the RPC that ended the game wrote the reason, and the club-list
-  // label reads the same column.
-  const reason = status?.reason as string | undefined
+  // The ending's message. Mode-aware so compete-mode winners get the "you won
+  // the race" vs "Bea won the race" distinction, while coop stays the simple
+  // team verdict. In compete the winner is the player the ending ranked first
+  // (`outcome` won), the one who completed the set.
+  const winnerName = players.find((p) => p.outcome === 'won')?.username ?? 'Someone'
   const selfWon = isCompete ? iFoundThemAll : true
+  // WHY it ended is the server's word (`gameEnding.reason`), never the browser
+  // clock's: the RPC that ended the game wrote the reason, and the club-list
+  // label reads the same column. Read as two strings, so the memo below sees
+  // one message per ending rather than one per reload of the page's row.
+  const gameEndedOutcome = gameEnding?.outcome ?? null
+  const gameEndedReason = gameEnding?.reason ?? null
   const terminalMessage = useMemo(
     () =>
-      isTerminal
-        ? buildTerminalMessage({ mode: game.mode, playState, reason, selfWon, winnerName })
+      gameEndedOutcome !== null && gameEndedReason !== null
+        ? buildTerminalMessage({
+            mode,
+            gameEnding: { outcome: gameEndedOutcome, reason: gameEndedReason },
+            selfWon,
+            winnerName,
+          })
         : null,
-    [isTerminal, game.mode, playState, reason, selfWon, winnerName],
+    [gameEndedOutcome, gameEndedReason, mode, selfWon, winnerName],
   )
   useEffect(function showTerminalVerdict() {
     if (!terminalMessage) return
@@ -346,7 +377,7 @@ function PlayArea({
       if (p.user_id === session.user.id) continue
       if (p.found_secrets_count <= was) continue
       const member = memberById(players, p.user_id)
-      // `found_peer`, not `hit_peer`: in compete a racer may learn THAT an
+      // `found_peer`, not `hit_peer`: in compete a player may learn THAT an
       // opponent found a secret and never which, so the answer that names a
       // word is not reachable from here.
       const { outcome, text } = answerMessage({ answerType: 'found_peer' })
@@ -384,7 +415,7 @@ function PlayArea({
     db,
     gameId,
     isTerminal,
-    mode: game.mode,
+    mode,
     isLocallyTerminal,
     localFeedbackSlot,
   })
@@ -395,7 +426,7 @@ function PlayArea({
   // on this page means one thing only: the whole solution at game-over, which
   // is local FE state and no RPC at all.
   async function getHint() {
-    const res = await runRpc<HintAnswer>(db.rpc('request_hint', { target_game: gameId }))
+    const res = await runRpc<HintAnswer>(db.rpc('request_hint', { p_game_id: gameId }))
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
@@ -413,7 +444,7 @@ function PlayArea({
   }
 
   async function getSpoiler() {
-    const res = await runRpc<SpoilerAnswer>(db.rpc('request_spoiler', { target_game: gameId }))
+    const res = await runRpc<SpoilerAnswer>(db.rpc('request_spoiler', { p_game_id: gameId }))
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
@@ -464,15 +495,15 @@ function PlayArea({
   // game's setup + roster + mode, in the same club. psychicnum's create_game
   // samples its board inline, so this is a direct RPC — no edge function.
   // Non-destructive (common._create_game un-currents this game into the club
-  // list), so no confirm; the creator jumps in via ctx.goToGame, peers arrive
+  // list), so no confirm; the creator jumps in via ctx.goToFollowUpGame, peers arrive
   // via the game-invitation toast.
   async function createNewGame() {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup,
-        player_user_ids: players.map((p) => p.user_id),
-        mode: game.mode,
+        p_club_handle: clubHandle,
+        p_setup: setup,
+        p_player_user_ids: players.map((p) => p.user_id),
+        p_mode: mode,
       }),
     )
     if (res.type === 'not-ok') {
@@ -482,7 +513,7 @@ function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`psychicnum_${game.mode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)
@@ -518,7 +549,7 @@ function PlayArea({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
-          mode: game.mode,
+          mode,
           isTerminal,
           words: game.words,
           guesses,
@@ -575,11 +606,6 @@ function PlayArea({
   // Everything below is derived fresh each render and read only by the JSX —
   // nothing here is a hook, which is why it may sit after the menu effect.
 
-  // Concede lives on the common roster (ctx `players` = GamePlayer[]), NOT on
-  // psychicnum.players (the budget rows). `concededIds` marks the players who've
-  // bowed out, for the opponent strip's "out" cell.
-  const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
-
   // Guessed words → was-it-a-secret, for the board's permanent green/red.
   // Hint and spoiler rows are excluded — neither marks a tile. In compete
   // RLS scopes `guesses` to the caller, so this is the viewer's own board.
@@ -623,13 +649,6 @@ function PlayArea({
       ? memberById(players, historyRow.user_id)
       : undefined
 
-  // Progress toward the 3 secrets. Coop = the team's distinct finds (everyone's
-  // correct guesses are visible); compete = the caller's own count.
-  const teamFound = new Set(
-    guesses.filter((g) => g.kind === 'guess' && g.is_correct).map((g) => g.word),
-  ).size
-  const found = isCompete ? selfSecretsFound : teamFound
-
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
@@ -638,7 +657,7 @@ function PlayArea({
         mobileStatus={
           <StateLine
             found={found}
-            secretCount={SECRET_COUNT}
+            secretCount={secretCount}
             guessesUsed={guessesUsed}
             maxGuesses={maxGuesses}
           />
@@ -692,14 +711,12 @@ function PlayArea({
         turnHolderId={turnHolderId}
         // ── State readout ──
         found={found}
-        secretCount={SECRET_COUNT}
+        secretCount={secretCount}
         guessesUsed={guessesUsed}
         maxGuesses={maxGuesses}
         // ── Players (OpponentStrip, compete) ──
         players={players}
         selfId={session.user.id}
-        playerBudgets={playerBudgets}
-        concededIds={concededIds}
         // ── Action row — the same bindings, in the order the menu lists them ──
         actHint={actHint}
         actSpoiler={actSpoiler}

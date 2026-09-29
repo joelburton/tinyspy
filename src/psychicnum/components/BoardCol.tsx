@@ -222,7 +222,7 @@ export function BoardCol({
     // result branches below cover THREE server returns (the win, the guess that
     // spends the last of the budget, and the ordinary one) — they differ in what
     // they did to the game, not in what they did for the player.
-    const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', { target_game: gameId, guess }))
+    const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', { p_game_id: gameId, p_guess: guess }))
     setSubmitting(false)
     if (res.type === 'not-ok') {
       setSubmittedWord(null)

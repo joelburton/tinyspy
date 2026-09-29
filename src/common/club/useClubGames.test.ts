@@ -23,23 +23,32 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Envelope } from '../supabase/envelope'
 import type { FeedbackSlot } from '../feedback/useFeedbackSlot'
+import type { Member } from '../members/member'
 
 const { mockReadRows, mockReportUnknown, realtime, REGISTRY, SYRUP } = vi.hoisted(() => {
   const manifest = (gametype: string, name: string) => ({
     gametype,
     name,
     mode: 'coop' as const,
-    labelFor: (row: { ending: { outcome: string } | null }) => `label:${row.ending?.outcome ?? 'playing'}`,
+    labelFor: (row: { gameEnding: { outcome: string } | null }) => `label:${row.gameEnding?.outcome ?? 'playing'}`,
   })
   const WORDLE = manifest('wordle_coop', 'WordNerd')
   const SYRUP = manifest('syrup_coop', 'SyrupSwap')
+  // A label that names who ended the game, the way a real one names a winner.
+  const NAMER = {
+    ...manifest('namer_coop', 'Namer'),
+    labelFor: (
+      row: { gameEnding: { endedByUserId: string | null } | null },
+      members: readonly { user_id: string; username: string }[],
+    ) => `ended by ${members.find((m) => m.user_id === row.gameEnding?.endedByUserId)?.username ?? 'nobody'}`,
+  }
   return {
     mockReadRows: vi.fn(),
     mockReportUnknown: vi.fn(),
     // The `postgres_changes` handler the hook registers, so a test can fire the
     // event that actually drives a refetch.
     realtime: { onChange: null as (() => void) | null },
-    REGISTRY: [WORDLE, SYRUP],
+    REGISTRY: [WORDLE, SYRUP, NAMER],
     SYRUP,
   }
 })
@@ -124,6 +133,8 @@ function theReadFailed(): Envelope<never> {
   }
 }
 
+const MEMBERS: Member[] = [{ user_id: 'u-moth', username: 'moth', color: 'blue' }]
+
 /** A slot that records what was shown into it. */
 function slot() {
   const show = vi.fn()
@@ -134,7 +145,7 @@ function slot() {
 async function load(rows: Envelope<unknown>) {
   mockReadRows.mockResolvedValue(rows)
   const showed = slot()
-  const view = renderHook(() => useClubGames('trio', showed.slot))
+  const view = renderHook(() => useClubGames('trio', MEMBERS, showed.slot))
   await waitFor(() => expect(mockReadRows).toHaveBeenCalled())
   return { ...view, ...showed }
 }
@@ -169,6 +180,18 @@ describe('useClubGames — what an answer becomes', () => {
     expect(result.current.games[0]!.manifest).toBe(SYRUP)
     // The label is the manifest's, computed once here rather than at render.
     expect(result.current.games[0]!.statusLabel).toBe('label:won')
+  })
+
+  it('hands each label the club members, to name a user id with', async () => {
+    const { result } = await load(
+      ok([game({
+        id: 'g1', gametype: 'namer_coop', ended_at: '2026-09-02T00:00:00Z',
+        game_ended_reason: 'stopped', game_ended_reason_detail: 'stopped',
+        game_ended_outcome: 'neutral', game_ended_by_user_id: 'u-moth',
+      })]),
+    )
+    await waitFor(() => expect(result.current.games).toHaveLength(1))
+    expect(result.current.games[0]!.statusLabel).toBe('ended by moth')
   })
 
   it('picks the current game out by is_current_view', async () => {
@@ -249,7 +272,7 @@ describe('useClubGames — a failed read', () => {
       ok([game({ id: 'g1', gametype: 'wordle_coop', title: 'Alpha' })]),
     )
     const showed = slot()
-    const { result } = renderHook(() => useClubGames('trio', showed.slot))
+    const { result } = renderHook(() => useClubGames('trio', MEMBERS, showed.slot))
     await waitFor(() => expect(result.current.games).toHaveLength(1))
 
     // A games change arrives and its refetch fails. Writing `[]` here would

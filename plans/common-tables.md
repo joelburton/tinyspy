@@ -330,6 +330,26 @@ Joel, while writing common SQL.
 - **`_end_game` takes the rankings as jsonb keyed by user id**
   (common-tables-schema.md → What `common._end_game` takes and does).
 
+### Step 5 (2026-09-28)
+
+Joel, as psychicnum's front end converted first.
+
+- **`labelFor(row, members)`**: the club page hands each label the club's
+  members, and a label names a user id (`clubpage_info.winner_user_id`,
+  `gameEnding.endedByUserId`) with `memberById`.
+- **The game's ending is `gameEnding`** on `GamePageCtx`, the club list's row
+  (`CommonGameListRow`) and the page's `CommonGame`, never a bare `ending`: a
+  name with both a game and a player sense (ending, status, reason, outcome)
+  says which it is.
+- **A game reloads through `useRefetchOnGameUpdate`**
+  (`common/game-page/`): its `useGame` hands it a load, rerun whenever
+  `commonGameUpdatedAt` or the page's `resubscribeCount` changes, and keeps no
+  subscription of its own. The count covers a read that failed while the
+  connection was down.
+- **The game page reads the mode off the row**: `GamePageCtx.mode` is
+  `common.games.mode`, not the manifest's. This narrows "the manifest is where
+  the front end knows a gametype's mode" (Decided above) to the club page.
+
 ## Bugs the survey found
 
 Each is fixed by the stage that rewrites the code around it.

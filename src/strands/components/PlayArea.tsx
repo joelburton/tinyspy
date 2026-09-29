@@ -16,7 +16,7 @@ import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalF
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useMark } from '@/common/board-marks/useMark'
 import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/board-marks/feedbackTiming'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { describeReveal } from '@/common/reveal/describeReveal'
@@ -114,7 +114,7 @@ function resultFor(r: SubmitResult): FeedbackMessage {
 }
 
 /** The terminal message, in the shared `TerminalMessage` shape. The manual
- *  stop delegates to the shared `gameEndedTerminalMessage` rather than
+ *  stop delegates to the shared `buildGameEndedMessageNeutral` rather than
  *  writing its own neutral strings.
  *
  *  The loss line counts what was found and never says out of how many — the
@@ -171,7 +171,7 @@ function buildOver({
   if (playState === 'lost_compete') {
     return { pillText: 'Lost: nobody solved it', infoColText: 'Nobody solved it', outcome: 'lost' }
   }
-  return gameEndedTerminalMessage(isCompete ? 'compete' : 'coop')
+  return buildGameEndedMessageNeutral(isCompete ? 'compete' : 'coop')
 }
 
 /**
@@ -189,7 +189,7 @@ function buildOver({
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, isConceded, isLocallyTerminal, isStillPlaying, playState, players, session,
-    setup, clubHandle, goToGame, menu, brand, title,
+    setup, clubHandle, goToFollowUpGame, menu, brand, title,
     isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
   } = ctx
 
@@ -685,7 +685,7 @@ export function PlayArea(ctx: GamePageCtx) {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`strands_${game.mode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)

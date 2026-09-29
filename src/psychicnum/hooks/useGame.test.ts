@@ -3,9 +3,8 @@
 /**
  * WHAT THREE READS BECOME, AND WHAT A FAILED ONE LEAVES BEHIND.
  *
- * The hook's subscription is `useRealtimeRefetch`'s — the channel, the
- * SUBSCRIBED refetch and the teardown are that hook's contract and its own
- * tests'. Stubbed here so the refetch body can be run on demand, because the
+ * When the hook reloads is `useRefetchOnGameUpdate`'s contract and its own
+ * tests'. Stubbed here so the load body can be run on demand, because the
  * body is what belongs to psychicnum: three reads, and the distinctions a
  * failure has to keep.
  *
@@ -23,7 +22,7 @@ import type { Envelope } from '@/common/supabase/envelope'
 
 const { mockReadRows, refetch } = vi.hoisted(() => ({
   mockReadRows: vi.fn(),
-  // The `load` the hook hands `useRealtimeRefetch`, kept so a test can run it.
+  // The `load` the hook hands `useRefetchOnGameUpdate`, kept so a test can run it.
   refetch: { load: null as ((a: { mounted: () => boolean }) => Promise<void>) | null },
 }))
 
@@ -36,8 +35,8 @@ vi.mock('../db', () => {
   return { db: { from: (table: string) => on(table) } }
 })
 
-vi.mock('@/common/realtime/useRealtimeRefetch', () => ({
-  useRealtimeRefetch: (opts: { load: (a: { mounted: () => boolean }) => Promise<void> }) => {
+vi.mock('@/common/game-page/useRefetchOnGameUpdate', () => ({
+  useRefetchOnGameUpdate: (opts: { load: (a: { mounted: () => boolean }) => Promise<void> }) => {
     refetch.load = opts.load
   },
 }))
@@ -50,6 +49,7 @@ vi.mock('@/common/supabase/dbResult', async (importOriginal) => ({
 import { useGame } from './useGame'
 
 const GAME_ID = 'g1'
+const HOOK_ARGS = { gameId: GAME_ID, commonGameUpdatedAt: 't1', resubscribeCount: 0 }
 
 function ok<T>(data: T): Envelope<T> {
   return {
@@ -69,12 +69,8 @@ function readFailed(dbcode: string): Envelope<never> {
 }
 
 const GAME_ROW = {
-  id: GAME_ID,
-  club_handle: 'pals',
-  mode: 'coop',
   words: ['apple', 'brick', 'cedar'],
   secrets: null,
-  created_at: '2026-09-01T00:00:00Z',
 }
 const PLAYER_ROW = { user_id: 'u1', guesses_used: 2, found_secrets_count: 1 }
 const EVENT_ROW = {
@@ -101,7 +97,7 @@ const ALL_GOOD = {
 
 /** Mount, run one refetch, and hand back what the hook says afterwards. */
 async function load() {
-  const { result } = renderHook(() => useGame(GAME_ID))
+  const { result } = renderHook(() => useGame(HOOK_ARGS))
   await act(async () => {
     await refetch.load!({ mounted: () => true })
   })
@@ -118,7 +114,6 @@ describe('psychicnum useGame — a load that worked', () => {
     answer(ALL_GOOD)
     const result = await load()
 
-    expect(result.current.game?.id).toBe(GAME_ID)
     expect(result.current.game?.words).toEqual(['apple', 'brick', 'cedar'])
     expect(result.current.playerBudgets).toEqual([PLAYER_ROW])
     expect(result.current.guesses).toEqual([EVENT_ROW])
@@ -174,11 +169,11 @@ describe('psychicnum useGame — a read that failed', () => {
 
 describe('psychicnum useGame — the outage that ended', () => {
   it('clears the failure on the next load that worked', async () => {
-    // This refetches on every realtime event, so a recovered outage has to
+    // This refetches on every move and every rejoin, so a recovered outage has to
     // take its sentence with it — otherwise the board comes back under a
     // stale explanation of why it is missing.
     answer({ games_state: readFailed('PN301') })
-    const { result } = renderHook(() => useGame(GAME_ID))
+    const { result } = renderHook(() => useGame(HOOK_ARGS))
     await act(async () => {
       await refetch.load!({ mounted: () => true })
     })
@@ -189,7 +184,7 @@ describe('psychicnum useGame — the outage that ended', () => {
       await refetch.load!({ mounted: () => true })
     })
     expect(result.current.failure).toBeNull()
-    expect(result.current.game?.id).toBe(GAME_ID)
+    expect(result.current.game?.words).toEqual(['apple', 'brick', 'cedar'])
   })
 
   it('clears it too when the next load finds the game gone', async () => {
@@ -197,7 +192,7 @@ describe('psychicnum useGame — the outage that ended', () => {
     // zero rows. That is "not found", and the stale outage sentence must not
     // stand in front of it.
     answer({ games_state: readFailed('PN301') })
-    const { result } = renderHook(() => useGame(GAME_ID))
+    const { result } = renderHook(() => useGame(HOOK_ARGS))
     await act(async () => {
       await refetch.load!({ mounted: () => true })
     })

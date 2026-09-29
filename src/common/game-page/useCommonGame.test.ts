@@ -144,6 +144,7 @@ const GAME_ROW = {
   id: 'g1',
   club_handle: 'club-one',
   gametype: 'codenamesduet',
+  mode: 'coop',
   title: 'Game One',
   setup: { timer: { kind: 'none' } },
   is_current_view: true,
@@ -311,7 +312,7 @@ describe('useCommonGame — initial load', () => {
   it('reads the ending off the row, null while the game is played', async () => {
     const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.commonGame?.ending).toBeNull()
+    expect(result.current.commonGame?.gameEnding).toBeNull()
   })
 
   it('reads the ending columns of a game that has ended', async () => {
@@ -327,7 +328,7 @@ describe('useCommonGame — initial load', () => {
     })
     const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.commonGame?.ending).toEqual({
+    expect(result.current.commonGame?.gameEnding).toEqual({
       reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'ada',
     })
   })
@@ -815,6 +816,17 @@ describe('useCommonGame — deaf-window closer', () => {
       handlers['system']?.({ status: 'ok', extension: 'postgres_changes' })
     })
     await waitFor(() => expect(gamesReads()).toBe(before + 1))
+  })
+
+  it('counts the attach in resubscribeCount, so a game reloads its own rows too', async () => {
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    const before = result.current.resubscribeCount
+    act(() => {
+      handlers['system']?.({ status: 'ok', extension: 'postgres_changes' })
+    })
+    expect(result.current.resubscribeCount).toBe(before + 1)
   })
 
   it('ignores system payloads that are not the attach ok', async () => {

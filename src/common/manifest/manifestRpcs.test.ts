@@ -29,7 +29,7 @@ const envelope = (fields: Record<string, unknown>) => ({
 })
 
 describe('makeRpcDispatcher', () => {
-  it('calls the named RPC with { target_game } and hands the ok envelope up', async () => {
+  it('calls the named RPC with { p_game_id } and hands the ok envelope up', async () => {
     const rpc = vi.fn().mockResolvedValue(envelope({ data: { result: 'ended' } }))
     const submitTimeout = makeRpcDispatcher({ rpc }, 'submit_timeout')
 
@@ -37,7 +37,7 @@ describe('makeRpcDispatcher', () => {
 
     expect(res.type).toBe('ok')
     expect(res.type === 'ok' && res.data?.result).toBe('ended')
-    expect(rpc).toHaveBeenCalledWith('submit_timeout', { target_game: 'game-1' })
+    expect(rpc).toHaveBeenCalledWith('submit_timeout', { p_game_id: 'game-1' })
   })
 
   it('relays a refusal WITHOUT deciding anything about it', async () => {
@@ -56,6 +56,6 @@ describe('makeRpcDispatcher', () => {
     expect(res.type === 'not-ok' && res.severity).toBe('race')
     expect(res.message).toBe('Game over')
     expect(res.dbcode).toBe('PN486')
-    expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'game-2' })
+    expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'game-2' })
   })
 })

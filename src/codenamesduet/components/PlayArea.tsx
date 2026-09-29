@@ -166,7 +166,7 @@ function PlayArea({
   setup,
   globalFeedbackSlot,
   clubHandle,
-  goToGame,
+  goToFollowUpGame,
   players: members,
   menu,
   brand,
@@ -407,7 +407,7 @@ function PlayArea({
   // setup and roster, in the same club. `create_game` samples its board inline,
   // so this is a direct RPC, and it takes no `mode` (the game is coop-only).
   // `common._create_game` un-currents THIS game into the club's list, so it
-  // stays resumable. The creator jumps in via `goToGame`; the partner arrives
+  // stays resumable. The creator jumps in via `goToFollowUpGame`; the partner arrives
   // via the game-invitation toast.
   const createNewGame = async () => {
     const res = await runRpc<CreatedGame>(
@@ -425,7 +425,7 @@ function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame('codenamesduet', res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)

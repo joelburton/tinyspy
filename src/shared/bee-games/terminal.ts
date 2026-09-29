@@ -1,7 +1,7 @@
 // cs-blessed-wordwheel
 
 import type { Actor } from '@/common/members/member'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
 
 /**
@@ -34,7 +34,7 @@ import { RANKS } from '@/shared/rank-ladder/rankLadder'
  *     peer message names a person; no "Lost:" prefix, the loss is implicit
  *   - `lost_compete` + reason `conceded` (everyone dropped) → `Lost: all conceded`
  *   - `lost_compete` + reason `timeout` → `Lost: ran out of time`
- *   - `ended` + reason `manual` → the shared `gameEndedTerminalMessage('compete')` → `Game ended — no winner`
+ *   - `ended` + reason `manual` → the shared `buildGameEndedMessageNeutral('compete')` → `Game ended — no winner`
  */
 export function buildTerminalMessage({
   mode,
@@ -109,7 +109,7 @@ export function buildTerminalMessage({
     }
     // The shared neutral manual-end message, like every other game — the
     // friends agreed to stop, and that sentence isn't per-game.
-    return gameEndedTerminalMessage('compete')
+    return buildGameEndedMessageNeutral('compete')
   }
 
   // ─── coop ───

@@ -16,11 +16,12 @@ turn, or end the game. It is told all of it.
 **And it is told twice, on two channels that arrive at different moments.** The
 `submit_guess` reply carries the caller's own result, and the below-board pill
 reads it immediately. The board's permanent green or red does not come from
-that reply at all: it comes from the `psychicnum.events` row over the
-subscription, which is what every player sees and what a reload rebuilds from.
-Everything else a move sets off — the terminal state, a teammate's progress,
-the turn moving on — travels the same way, as rows, which is why the reply can
-be about one player and nothing else.
+that reply at all: it comes from the `psychicnum.events` row, which every
+client reads again when the move's status builder writes `common.games` and the
+page's subscription hears it — what every player sees and what a reload
+rebuilds from. Everything else a move sets off — the ending, a teammate's
+progress, the turn moving on — travels the same way, as rows, which is why the
+reply can be about one player and nothing else.
 
 **And it is the control.** psychicnum is the deliberately minimal game — the
 smallest amount of game logic that still exercises the whole multi-game shell —
@@ -59,8 +60,8 @@ its guesser's dot where a revealed one has none.
 ### Coop
 
 One board, one budget, every guess and assist visible to everyone. A guess
-counts up every player's row in lock-step, so the counts are always equal.
-The team wins by finding all three together, and loses on the guess that spends
+counts up only the guesser's own row, so the team's spent budget is the sum of
+the rows. The team wins by finding all three together, and loses on the guess that spends
 the last of the budget first — or when a countdown timer expires.
 
 **Turn order is opt-in.** The setup dialog offers free-for-all (the default) or
@@ -72,7 +73,7 @@ board but it is inert.
 
 **The same board of words, raced separately.** Each player has their own budget
 and their own guesses; what differs is not the words but who can see what. A
-racer sees their own guesses and assists, every rival's **remaining budget**,
+player sees their own guesses and assists, every rival's **remaining budget**,
 and a count of how many secrets each rival has found — never which words, and
 never a rival's rows, which RLS withholds until the game ends.
 
@@ -96,7 +97,7 @@ so no reader works the ending out from the clock or the roster:
 | all three found | `reached_goal` / `solved` | coop: every teammate 1; compete: the finder alone | `won` |
 | every budget spent | `resource_exhausted` / `exhausted` | nobody | `lost` |
 | the countdown | `timeout` / `timeout` | nobody | `lost` |
-| every racer conceded | `conceded` / `conceded` | nobody | `lost` |
+| every player conceded | `conceded` / `conceded` | nobody | `lost` |
 | somebody stopped it | `stopped` / `stopped` | nobody | `neutral` |
 
 A compete race ends when decided, so only the finder reaches the goal; the
@@ -128,9 +129,10 @@ present:
 | each `player_status` | `found_secrets_count`, `guesses_used`, `player_ended_reason` |
 | `clubpage_info` | `found_secrets_count`, `required_secrets_count`, `guesses_used`, `max_guesses`, `winner_user_id` |
 
-In coop a player's `guesses_used` is the team's, the same on every row, and
-the club line's counts are the team's (the finds summed). Compete's club line
-carries no progress — a racer's count is their own — so its two counts are
+Every player's counts are their own, in both modes, on `psychicnum.players`
+and in their `player_status`. Coop's team numbers — the club line's two counts,
+and the state line on the page — are the sums over the players. Compete's club line
+carries no progress — a player's count is their own — so its two counts are
 null, and `winner_user_id` names the finder once the race is won.
 
 ### Two things worth knowing before reading the SQL
@@ -144,7 +146,7 @@ example; the mechanism is commented at `_secrets_for` and the `games_select`
 policy.
 
 **`events` is the only mode-aware RLS in this game**, and its third arm carries
-three rules at once: coop shows everyone every row, compete shows a racer only
+three rules at once: coop shows everyone every row, compete shows a player only
 their own — and **the game's end opens everybody's**, which is what lets the event
 log's player picker read a finished race back. Commented at `events_select`.
 
@@ -168,7 +170,7 @@ nine-letter word — see Game rules), picks three of them as the
 secrets, writes the `common.games` row and a per-player budget row, and writes
 the statuses. `p_mode` decides both the gametype string
 (`psychicnum_coop` / `psychicnum_compete`) and how the budget behaves — shared
-in coop, per-racer in compete. Compete needs two or more players; coop takes
+in coop, per-player in compete. Compete needs two or more players; coop takes
 one to six.
 
 **Passed:**
@@ -288,7 +290,7 @@ something sharper — a word not on the board is a `fault` (the frontend let it
 through), and a duplicate is a `race`.
 
 **Where the secrecy rule lives is in the type, not in anybody's memory.** A
-racer may learn *that* an opponent found a secret and never *which*, so
+compete player may learn *that* an opponent found a secret and never *which*, so
 `found_peer` has no `word` field — the leak is unrepresentable rather than
 merely avoided. `spoiler_peer` is the same shape: the row holds the secret, the
 answer does not.
@@ -319,7 +321,18 @@ answer does not.
 ```
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
-play_state, pause, chat — and unmounts this whole surface on pause.
+the ending, pause, chat — and unmounts this whole surface on pause. The mode is
+the page's too (`GamePageCtx.mode`, off `common.games`).
+
+**What reads what.** The state line and the opponent strip read the statuses
+and nothing else: the finds and the budget from each player's `player_status`
+(coop's finds summed across the team), the secret count and the budget's size
+from `game_status` (`lib/statuses.ts` has the three types). The rest of the
+surface reads psychicnum's own rows: the board and its colors from `events`, the
+reveal from `games_state`, and whether I found all three — the confetti, the
+verdict, compete's "found a secret" news — from `players`. `useGame` keeps no
+subscription: `useRefetchOnGameUpdate` reruns its three reads whenever the
+page's `common.games` row moves or the page's channel rejoins.
 
 The keyboard's selection cursor is [board-cursor](../common/board-cursor/doc.md)'s;
 what is psychicnum's is its shape (`lib/boardShape.ts`: `⌈√N⌉` across, so the

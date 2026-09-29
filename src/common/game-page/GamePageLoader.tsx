@@ -47,6 +47,7 @@ export function GamePageLoader({ gameId, session, manifest }: GameShellProps) {
     isMyTurn,
     isWaitingForTurn,
     isBoardInteractive,
+    resubscribeCount,
     loading,
     failure,
   } = useCommonGame(gameId, session, manifest.draftsOffTurn ?? false)
@@ -83,6 +84,7 @@ export function GamePageLoader({ gameId, session, manifest }: GameShellProps) {
       isMyTurn={isMyTurn}
       isWaitingForTurn={isWaitingForTurn}
       isBoardInteractive={isBoardInteractive}
+      resubscribeCount={resubscribeCount}
     />
   )
 }

@@ -89,7 +89,7 @@ select is(
 select is((select ticks from common.timers where game_id = (select id from g1)),
   0, 'coop: replay → the shared clock is zeroed');
 
--- ── Compete: both racers' budgets and endings reset ─────────
+-- ── Compete: both players' budgets and endings reset ─────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (psychicnum.create_game(
@@ -123,7 +123,7 @@ select is(
   (select count(*) from common.game_players
     where game_id = (select id from g2) and player_ended_at is null
       and (player_status->>'guesses_used')::int = 0),
-  2::bigint, 'compete: replay → both racers back in, no guesses used');
+  2::bigint, 'compete: replay → both players back in, no guesses used');
 
 -- ── Turn-order coop rewinds to the first-seated player ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

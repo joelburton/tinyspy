@@ -81,6 +81,9 @@ type Props = GameShellProps & {
   isMyTurn: boolean
   isWaitingForTurn: boolean
   isBoardInteractive: boolean
+  // The channel's joins and attach confirmations, handed on to the PlayArea;
+  // see `GamePageCtx`.
+  resubscribeCount: number
 }
 
 /**
@@ -124,6 +127,7 @@ export function GamePage({
   isMyTurn,
   isWaitingForTurn,
   isBoardInteractive,
+  resubscribeCount,
 }: Props) {
   // ─── What this page is about ────────────────────────────────────────────
   const gametype = manifest.gametype
@@ -133,7 +137,7 @@ export function GamePage({
   const clubHandle = commonGame.club_handle
   // Is the game over? Whether it has an ending, the same answer every PlayArea
   // is handed, so the page and the game cannot disagree.
-  const isTerminal = commonGame.ending !== null
+  const isTerminal = commonGame.gameEnding !== null
   const HelpComponent = manifest.help
   const PlayArea = manifest.PlayArea
 
@@ -215,13 +219,13 @@ export function GamePage({
   // can show the row. Null on a page with no chat panel — never here in
   // practice, since GamePage mounts one, but the type says what it is.
   const actChat = useAppAction('act-open-chat')
-  // Jump to another game's page — for a PlayArea that just started a
-  // follow-up game (waffle's "New game"). On ctx so per-game code never
-  // touches the router; going back to the CLUB is `actBackToClub` below,
-  // which is the same act from every surface.
-  const goToGame = useCallback((gametype: string, gameId: string) => {
+  // Jump to a follow-up game's page — for a PlayArea that just started the
+  // next game of this same gametype (its "New game"). On ctx so per-game code
+  // never touches the router or builds a gametype; going back to the CLUB is
+  // `actBackToClub` below, which is the same act from every surface.
+  const goToFollowUpGame = useCallback((gameId: string) => {
     navigate(gamePath(gametype, gameId))
-  }, [])
+  }, [gametype])
   // "Back to club", from every surface that places it — the menu row and its
   // `<` key, the info column's action row, the pause overlay, the device-block
   // card. Three shapes:
@@ -479,8 +483,9 @@ export function GamePage({
                 gameId={gameId}
                 brand={manifest.name}
                 title={commonGame.title}
+                mode={commonGame.mode}
                 players={players}
-                ending={commonGame.ending}
+                gameEnding={commonGame.gameEnding}
                 isTerminal={isTerminal}
                 timer={timer}
                 isPlayer={isPlayer}
@@ -495,8 +500,9 @@ export function GamePage({
                 setup={commonGame.setup}
                 gameStatus={commonGame.game_status}
                 commonGameUpdatedAt={commonGame.updated_at}
+                resubscribeCount={resubscribeCount}
                 clubHandle={commonGame.club_handle}
-                goToGame={goToGame}
+                goToFollowUpGame={goToFollowUpGame}
                 globalFeedbackSlot={globalFeedbackSlot}
                 menu={menuApi}
               />

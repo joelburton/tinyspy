@@ -162,7 +162,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',
-    goToGame: vi.fn(),
+    goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
       actHelp: boundActionFixture('act-help'),
@@ -325,7 +325,7 @@ describe('waffle PlayArea — concede', () => {
 /**
  * "New game" (menu): a FRESH game — new id, same setup/roster/mode — via the
  * same waffle-build-board edge function the manifest's startGameInClub uses,
- * then a jump into it (ctx.goToGame). The pinned request body is the feature's
+ * then a jump into it (ctx.goToFollowUpGame). The pinned request body is the feature's
  * contract: the CURRENT game's setup verbatim, every ctx player, this mode.
  */
 describe('waffle PlayArea — new game (menu)', () => {
@@ -358,7 +358,7 @@ describe('waffle PlayArea — new game (menu)', () => {
         },
       ),
     )
-    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('waffle_coop', 'fresh-game-id'))
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('fresh-game-id'))
   })
 
   it('shows a refusal in the server\'s own words, wearing the fault look, and does not navigate', async () => {
@@ -403,7 +403,7 @@ describe('waffle PlayArea — new game (menu)', () => {
         'No board could be built at that difficulty.',
       ),
     )
-    expect(ctx.goToGame).not.toHaveBeenCalled()
+    expect(ctx.goToFollowUpGame).not.toHaveBeenCalled()
     // A fault leaves a [db] trail; an expected pill doesn't. This one must.
     expect(consoleSpy.mock.calls.some((c) => String(c[0]).includes('FAULT'))).toBe(true)
     consoleSpy.mockRestore()
@@ -503,7 +503,7 @@ describe('waffle PlayArea — icon-only action rows', () => {
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
     render(<PlayArea {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'New game' }))
-    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('waffle_coop', 'next-game-id'))
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
   })
 })
 
@@ -770,7 +770,7 @@ describe('waffle PlayArea — the keys', () => {
         expect.objectContaining({ target_club: 'testclub', player_user_ids: ['u1'], mode: 'coop' }),
       ),
     )
-    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('waffle_coop', 'next-game-id'))
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
   })
 
   it('+ mid-game asks first, and Keep playing starts nothing', async () => {

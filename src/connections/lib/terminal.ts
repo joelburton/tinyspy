@@ -1,7 +1,7 @@
 // cs-blessed-connections
 
 import {
-  gameEndedTerminalMessage,
+  buildGameEndedMessageNeutral,
   type TerminalMessage,
 } from '@/common/terminal/terminalMessage'
 
@@ -44,7 +44,7 @@ export function buildTerminalMessage({
 }): TerminalMessage {
   // Manual end ('ended', written by connections.stop_game) is the uniform
   // neutral terminal shared with the other games — the shared message owns it.
-  if (playState === 'ended') return gameEndedTerminalMessage(mode)
+  if (playState === 'ended') return buildGameEndedMessageNeutral(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
       return { pillText: 'You win!', infoColText: 'You won!', outcome: 'won' }

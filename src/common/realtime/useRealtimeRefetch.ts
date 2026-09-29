@@ -43,10 +43,8 @@ export type RealtimeLoad = (opts: { mounted: () => boolean }) => Promise<void>
 
 type Config = {
   /** One table or several. Multiple tables fan into the same
-   *  `load()` — convenient when the per-game "game row + child
-   *  rows" pair both need to drive the same refetch (see
-   *  psychicnum/useGame: subscribes to `games` AND `events`,
-   *  same handler). For different per-table handlers, or data the
+   *  `load()` — convenient when a row and its child rows both
+   *  need to drive the same refetch. For different per-table handlers, or data the
    *  play surface consumes in separate pieces, use two separate
    *  `useRealtimeRefetch` calls instead. */
   tables: TableSubscription | TableSubscription[]
@@ -116,11 +114,10 @@ type Config = {
  *     catch-up) but not the refetch-per-event one. See `useCells`
  *     for the version-merge + optimistic-echo + rollback details.
  *
- * **When porting a new game**, the per-game `useGame` hook
- * should default to using this factory. Reach for hand-rolling
- * only if the game introduces broadcast- or presence-coupling like
- * connections does, or chat-style append semantics like the club
- * chat does.
+ * **A game's `useGame` does not use this.** It reloads off the page's
+ * `common.games` subscription through `useRefetchOnGameUpdate`, since every
+ * move writes that row; this is for a subscription of its own, over writes
+ * that don't touch `common.games`.
  */
 export function useRealtimeRefetch({
   tables,

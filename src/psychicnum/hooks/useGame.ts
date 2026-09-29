@@ -1,7 +1,7 @@
 // cs-blessed-psychicnum
 
 import { useState } from 'react'
-import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
+import { useRefetchOnGameUpdate } from '@/common/game-page/useRefetchOnGameUpdate'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { db } from '../db'
@@ -13,43 +13,25 @@ import type { Member } from '@/common/members/member'
 export type Player = Member
 
 /**
- * The FE-ready game state. Sourced from the
- * `psychicnum.games_state` view, which surfaces this game's
- * directly-readable columns plus the conditional `secrets`
- * reveal:
- *
- *   - While the game is non-terminal, the view returns
- *     `secrets = null`.
- *   - Once `common.games.is_terminal` flips true, the view
- *     returns the three words.
- *
- * `mode` is the gametype-level coop/compete declaration,
- * stored as a column on psychicnum.games so the FE can branch
- * without parsing the gametype string. Always present from
- * insert; never changes mid-game.
- *
- * `play_state` itself isn't on this row — it lives on
- * common.games and arrives via GamePageCtx.
+ * The FE-ready game row, from the `psychicnum.games_state` view: the board,
+ * and the secrets once the game has ended (null while it is played; the view
+ * hands them over at the end).
  */
 export type PsychicnumGame = {
-  id: string
-  club_handle: string
-  mode: 'coop' | 'compete'
   // The board: the words shown as tiles (PUBLIC). Players click these
   // to guess; three of them are the secrets. Lowercase.
   words: string[]
-  // The three secret words (a subset of `words`). Null while non-terminal
-  // (gated by the view's helper); the real array once terminal (the reveal).
+  // The three secret words (a subset of `words`). Null while the game is
+  // played (gated by the view's helper); the real array once it has ended.
   secrets: string[] | null
-  created_at: string
 }
 
 /**
- * One row from `psychicnum.players` — per-player guess budget.
+ * One row from `psychicnum.players` — what one player has spent and found.
  *
- * In coop: every player row carries the same value (counted up
- * in lock-step). In compete: each row counts up independently
- * when its owner submits.
+ * Each row counts only its owner's guesses, in both modes. In compete that is
+ * the player's own budget; in coop the team shares one budget, spent by the
+ * sum of the rows.
  *
  * Always visible to the whole club regardless of mode — the
  * "opponents see my remaining budget but not my guesses" rule
@@ -58,8 +40,8 @@ export type PsychicnumGame = {
  */
 export type PlayerRow = {
   user_id: string
-  // Guesses this player has spent, against `setup.max_guesses`. In coop every
-  // row counts up together.
+  // Guesses this player has made. Compete spends it against
+  // `psychicnum.games.max_guesses`; coop spends the rows' sum against it.
   guesses_used: number
   // How many distinct secrets this player has found (0..3). Public to the
   // club; drives the compete opponent-progress feedback.
@@ -91,22 +73,29 @@ export type EventRow = {
 /**
  * Per-gametype data hook for psychicnum (both modes share it).
  *
- * Reads three tables:
- *   - `games_state` view (game row + conditional `secrets` reveal)
+ * Reads three things:
+ *   - the `games_state` view (the board, and the secrets once ended)
  *   - `players` (per-player budgets, club-wide visible), returned as
  *     `playerBudgets`
  *   - `events` (the turn log; RLS scopes to caller in compete)
  *
- * Subscribes to all three for realtime refetch via
- * `useRealtimeRefetch`. The factory provides SUBSCRIBED-refetch
- * + UUID-suffixed channel + cleanup; this hook owns the per-game
- * `load()` body.
+ * It keeps no subscription: `useRefetchOnGameUpdate` reruns the reads when
+ * the page's `common.games` row moves (`commonGameUpdatedAt`) or the page's
+ * channel rejoins (`resubscribeCount`), both from `GamePageCtx`.
  *
  * The cross-cutting machinery (members, presence, manual-pause,
  * timer) lives on `useCommonGame` inside `GamePage` — see
  * `src/common/game-page/useCommonGame.ts`.
  */
-export function useGame(gameId: string): {
+export function useGame({
+  gameId,
+  commonGameUpdatedAt,
+  resubscribeCount,
+}: {
+  gameId: string
+  commonGameUpdatedAt: string
+  resubscribeCount: number
+}): {
   game: PsychicnumGame | null
   // The `psychicnum.players` rows: each player's guess budget, not the roster
   // (the page's `players` is that).
@@ -124,22 +113,17 @@ export function useGame(gameId: string): {
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
-  useRealtimeRefetch({
-    tables: [
-      { schema: 'psychicnum', table: 'games', filter: `id=eq.${gameId}` },
-      { schema: 'psychicnum', table: 'players', filter: `game_id=eq.${gameId}` },
-      { schema: 'psychicnum', table: 'events', filter: `game_id=eq.${gameId}` },
-    ],
-    channelPrefix: 'psychicnum',
-    id: gameId,
+  useRefetchOnGameUpdate({
+    commonGameUpdatedAt,
+    resubscribeCount,
     load: async ({ mounted }) => {
-      // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
-      // so this is 0 or 1 of them.
+      // No `.maybeSingle()`: `readRows` hands back rows, and `game_id` is the
+      // PK, so this is 0 or 1 of them.
       const gameRes = await readRows(
         db
           .from('games_state')
-          .select('id, club_handle, mode, words, secrets, created_at')
-          .eq('id', gameId),
+          .select('words, secrets')
+          .eq('game_id', gameId),
       )
       if (!mounted()) return
 
@@ -151,10 +135,11 @@ export function useGame(gameId: string): {
         return
       }
       // A load that worked clears a previous one's failure: this refetches on
-      // every realtime event, so an outage that ends should take its sentence
-      // with it rather than leaving the surface behind a stale explanation.
-      // Cleared HERE, before the zero-rows return below, so a game deleted
-      // during the outage reads as "not found" rather than as the outage.
+      // every move and every rejoin, so an outage that ends should take its
+      // sentence with it rather than leaving the surface behind a stale
+      // explanation. Cleared HERE, before the zero-rows return below, so a game
+      // deleted during the outage reads as "not found" rather than as the
+      // outage.
       setFailure(null)
 
       // ZERO ROWS is the caller's to read: no game with that id, or one this
@@ -198,12 +183,8 @@ export function useGame(gameId: string): {
       }
 
       setGame({
-        id: gameData.id as string,
-        club_handle: gameData.club_handle as string,
-        mode: gameData.mode as 'coop' | 'compete',
         words: gameData.words as string[],
         secrets: gameData.secrets as string[] | null,
-        created_at: gameData.created_at as string,
       })
       setPlayerBudgets(playersRes.data as PlayerRow[])
       setGuesses(guessesRes.data as EventRow[])

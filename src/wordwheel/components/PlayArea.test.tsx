@@ -112,7 +112,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',
-    goToGame: vi.fn(),
+    goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
       actHelp: boundActionFixture('act-help'),
@@ -332,7 +332,7 @@ describe('wordwheel PlayArea — the celebration', () => {
  * one row listing every action, each deciding for itself whether it is on
  * screen. Restart = wordwheel.replay_board (unconfirmed at terminal); New
  * game = the wordwheel-build-board edge function with THIS game's setup/
- * roster/mode, then ctx.goToGame.
+ * roster/mode, then ctx.goToFollowUpGame.
  */
 describe('wordwheel PlayArea — icon-only action rows', () => {
   it('Restart and New game are menu rows all game, and buttons only at the end', () => {
@@ -386,7 +386,7 @@ describe('wordwheel PlayArea — icon-only action rows', () => {
       ),
     )
     await waitFor(() =>
-      expect(ctx.goToGame).toHaveBeenCalledWith('wordwheel_coop', 'fresh-game-id'),
+      expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('fresh-game-id'),
     )
   })
 
@@ -963,7 +963,7 @@ describe('wordwheel PlayArea — the keys', () => {
         expect.objectContaining({ target_club: 'testclub', player_user_ids: ['u1'], mode: 'coop' }),
       ),
     )
-    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('wordwheel_coop', 'fresh-game-id'))
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('fresh-game-id'))
   })
 
   it('+ mid-game asks first, and Keep playing starts nothing', async () => {

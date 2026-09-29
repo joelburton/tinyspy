@@ -1,7 +1,7 @@
 // cs-blessed-wordle
 
 import {
-  gameEndedTerminalMessage,
+  buildGameEndedMessageNeutral,
   type TerminalMessage,
 } from '@/common/terminal/terminalMessage'
 
@@ -52,7 +52,7 @@ export function buildTerminalMessage({
 }): TerminalMessage {
   // Manual end ('ended', written by wordle.stop_game) is the uniform neutral
   // terminal shared with the other games — the shared message owns it.
-  if (playState === 'ended') return gameEndedTerminalMessage(mode)
+  if (playState === 'ended') return buildGameEndedMessageNeutral(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
       return { pillText: 'Won: solved it', infoColText: 'Solved it!', outcome: 'won' }

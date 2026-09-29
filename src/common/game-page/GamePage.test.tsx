@@ -132,10 +132,11 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
           id: GAME_ID,
           club_handle: 'moths',
           gametype: 'psychicnum_coop',
+          mode: 'coop',
           title: 'Secrets',
           setup: {},
           is_current_view: true,
-          ending: null,
+          gameEnding: null,
           restart_count: 0,
           game_status: {},
           updated_at: '2026-09-10T00:00:00Z',
@@ -164,7 +165,7 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
   } as unknown as CommonGameState
 }
 
-const over: Overrides = { game: { ended_at: '2026-09-10T01:00:00Z', ending: STOPPED } }
+const over: Overrides = { game: { ended_at: '2026-09-10T01:00:00Z', gameEnding: STOPPED } }
 
 /** Mount the whole route — gate, loader, page — over the pre-flight read;
  *  resolves once the play surface is up (or the pause overlay, when paused). */
@@ -409,7 +410,7 @@ describe('GamePage — the turn bell', () => {
   /** A turn-order game whose pointer names `holder` — the standing
    *  `useCommonGame` would compute for ada. */
   const turnState = (holder: string, game: Partial<CommonGame> = {}) => {
-    const isTerminal = (game.ending ?? null) !== null
+    const isTerminal = (game.gameEnding ?? null) !== null
     return {
       ...commonGameState({ players: [ADA, BEA], game: { current_turn_user_id: holder, ...game } }),
       isTurnBased: true,
@@ -442,14 +443,14 @@ describe('GamePage — the turn bell', () => {
 
   it('does not ring for a turn arriving in a finished game', async () => {
     const { view } = await mount(turnState('bea'))
-    moveTo(view, turnState('ada', { ended_at: '2026-09-10T01:00:00Z', ending: STOPPED }))
+    moveTo(view, turnState('ada', { ended_at: '2026-09-10T01:00:00Z', gameEnding: STOPPED }))
     expect(play).not.toHaveBeenCalled()
   })
 
   it('does not ring when a game with no turn order is restarted', async () => {
     // Every move is mine in a free-for-all game, so restarting a finished one
     // makes `isMyTurn` rise — but no turn arrived.
-    const ended = { ended_at: '2026-09-10T01:00:00Z', ending: STOPPED }
+    const ended = { ended_at: '2026-09-10T01:00:00Z', gameEnding: STOPPED }
     const { view } = await mount({
       ...commonGameState({ players: [ADA, BEA], game: ended }),
       isTurnBased: false,

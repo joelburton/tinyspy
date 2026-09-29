@@ -13,7 +13,7 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
@@ -76,7 +76,7 @@ type SubmittedWord =
   | null
 
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive, playState, setup, clubHandle, goToGame, session, status, globalFeedbackSlot, menu, brand, title } = ctx
+  const { gameId, players, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive, playState, setup, clubHandle, goToFollowUpGame, session, status, globalFeedbackSlot, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
 
   // The entry is typed at the window rather than into an input, so nothing here
@@ -349,7 +349,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──
   // Same roster + mode, in the same club, via the same boggle-build-board edge
   // function the manifest's startGameInClub uses. Non-destructive (this game
-  // un-currents into the club list); the creator jumps in via ctx.goToGame,
+  // un-currents into the club list); the creator jumps in via ctx.goToFollowUpGame,
   // peers arrive via the game-invitation toast.
   //
   // A plain function, rebuilt every render: the binding below reads it at click
@@ -381,7 +381,7 @@ export function PlayArea(ctx: GamePageCtx) {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`boggle_${gameMode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('boggle-build-board', res)
@@ -705,7 +705,7 @@ function buildOver({
   // A race the friends chose to stop (`ended`, boggle.stop_game) is neutral —
   // no one won, no one lost (Joel, 2026-09-19) — whatever the scores were, so
   // it is answered before anything compares them.
-  if (playState === 'ended') return gameEndedTerminalMessage('compete')
+  if (playState === 'ended') return buildGameEndedMessageNeutral('compete')
 
   // Compete — most points wins (no dupes-cancel; see boggle.md §12).
   // A conceder forfeited the race: they see a plain loss even if their

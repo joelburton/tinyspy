@@ -1,15 +1,15 @@
 // cs-blessed-feedback
 
 import { describe, expect, it } from 'vitest'
-import { gameEndedTerminalMessage } from './terminalMessage'
+import { buildGameEndedMessageNeutral } from './terminalMessage'
 
-describe('gameEndedTerminalMessage', () => {
+describe('buildGameEndedMessageNeutral', () => {
   it('is neutral, names no winner, and says so in compete', () => {
-    expect(gameEndedTerminalMessage('coop')).toEqual({
+    expect(buildGameEndedMessageNeutral('coop')).toEqual({
       pillText: 'Game ended',
       infoColText: 'Game over',
       outcome: 'neutral',
     })
-    expect(gameEndedTerminalMessage('compete').pillText).toBe('Game ended — no winner')
+    expect(buildGameEndedMessageNeutral('compete').pillText).toBe('Game ended — no winner')
   })
 })

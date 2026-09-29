@@ -425,7 +425,7 @@ written once the race ends — a tie for first names no winner.
 - **"New game"** (`act-new-game`, its `+` key, its menu row and its terminal
   button all one binding; FE-only): a fresh game — new id, new board — with THIS
   game's setup + roster + mode via the same `boggle-build-board` edge function
-  the manifest uses; the creator jumps in via `ctx.goToGame`. Mid-play it asks
+  the manifest uses; the creator jumps in via `ctx.goToFollowUpGame`. Mid-play it asks
   first (starting one SHELVES this game rather than ending it); at terminal it
   goes straight through. The action rows are **icon-only** (the waffle
   arrangement — tooltips carry the labels): playing = Stop/Concede +

@@ -11,7 +11,7 @@
  * texts empty.
  */
 import { describe, expect, it } from 'vitest'
-import { gameEndedTerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral } from '@/common/terminal/terminalMessage'
 import { buildTerminalMessage } from './terminal'
 
 // Every ending the RPCs write, as [play_state, reason].
@@ -37,7 +37,7 @@ describe('buildTerminalMessage', () => {
 
   it('reads a manual end as the shared neutral ending, never a loss', () => {
     const m = buildTerminalMessage({ playState: 'ended', reason: 'manual' })
-    expect(m).toEqual(gameEndedTerminalMessage('coop'))
+    expect(m).toEqual(buildGameEndedMessageNeutral('coop'))
     expect(m.outcome).toBe('neutral')
   })
 

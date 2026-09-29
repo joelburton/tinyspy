@@ -9,9 +9,10 @@ import { onPostgresAttached } from '../realtime/postgresAttached'
 import { manifestFor } from '@/gametypes'
 import { reportUnknownGametypes } from '../manifest/unknownGametype'
 import type { CommonGameListRow, GameManifest } from '../manifest/gameManifest'
-import { readGameEnding } from '../terminal/readGameEnding'
+import { readGameEnding, type GameEndingColumns } from '../terminal/readGameEnding'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { FeedbackSlot } from '../feedback/useFeedbackSlot'
+import type { Member } from '../members/member'
 
 /**
  * Display shape for one game in the club's games list: the fields of a
@@ -21,8 +22,8 @@ import type { FeedbackSlot } from '../feedback/useFeedbackSlot'
  *
  * Anything about the GAMETYPE is reached through `manifest` rather than copied
  * flat — the filter's family and brand, the row's mode and logo. `statusLabel`
- * is the exception because it isn't a field at all: it's `labelFor(row)`, a
- * call that needs the game as well as the gametype.
+ * is the exception because it isn't a field at all: it's `labelFor(row,
+ * members)`, a call that needs the game as well as the gametype.
  */
 export type ListedGame = {
   gameId: string
@@ -40,6 +41,41 @@ export type ListedGame = {
   statusLabel: string
 }
 
+/** One `common.games` row as the listing selects it — the select string in
+ *  `useClubGames` names these columns. */
+type ClubGamesRow = GameEndingColumns & {
+  id: string
+  gametype: string
+  title: string
+  clubpage_info: unknown
+  status_changed_at: string
+  is_current_view: boolean
+}
+
+/**
+ * One listing row's display entry, or null for a gametype this bundle doesn't
+ * know — the caller drops those and reports them. `members` is the club's, for
+ * the label to name a user id with.
+ */
+function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame | null {
+  const manifest = manifestFor(r.gametype)
+  if (!manifest) return null
+  const listRow: CommonGameListRow = {
+    id: r.id,
+    gametype: r.gametype,
+    gameEnding: readGameEnding(r),
+    clubpageInfo: r.clubpage_info as CommonGameListRow['clubpageInfo'],
+  }
+  return {
+    gameId: r.id,
+    manifest,
+    title: r.title,
+    statusChangedAt: r.status_changed_at,
+    isTerminal: r.ended_at !== null,
+    statusLabel: manifest.labelFor(listRow, members),
+  }
+}
+
 /**
  * A club's games, kept fresh: one read of `common.games` plus a Realtime
  * subscription that re-reads on every change to a row of this club's.
@@ -53,10 +89,15 @@ export type ListedGame = {
  * changes, and the commonest failure is the refetch after your OWN delete —
  * where that DELETE was the event, so no second one is coming.
  *
- * Takes the club's handle and the page's global feedback slot; both are
- * stable, so nothing here resubscribes on a render.
+ * Takes the club's handle, its members — which each row's `labelFor` names a
+ * user id from — and the page's global feedback slot; all three are stable, so
+ * nothing here resubscribes on a render.
  */
-export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlot) {
+export function useClubGames(
+  clubHandle: string,
+  members: readonly Member[],
+  globalFeedbackSlot: FeedbackSlot,
+) {
   const [games, setGames] = useState<ListedGame[]>([])
   const [currentGameId, setCurrentGameId] = useState<string | null>(null)
   // Whether the last read failed. Only the list's empty state reads it: "No
@@ -121,33 +162,17 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
       setFailed(false)
 
       const rows = res.data
-      let currentId: string | null = null
-      const listed: ListedGame[] = []
+      // Read off every row, a gametype this bundle doesn't know included: the
+      // club still has a current game when this tab can't draw it.
+      const currentId = rows.find((r) => r.is_current_view)?.id ?? null
+      const listed = rows
+        .map((r) => makeListedGame(r, members))
+        .filter((g): g is ListedGame => g !== null)
       // Collected across the whole load, not reported per row: one fault for
       // one stale bundle, however many of its games the club has.
-      const unknownGametypes: string[] = []
-      for (const r of rows) {
-        if (r.is_current_view) currentId = r.id
-        const manifest = manifestFor(r.gametype)
-        if (!manifest) {
-          unknownGametypes.push(r.gametype)
-          continue
-        }
-        const listRow: CommonGameListRow = {
-          id: r.id,
-          gametype: r.gametype,
-          ending: readGameEnding(r),
-          clubpageInfo: r.clubpage_info as CommonGameListRow['clubpageInfo'],
-        }
-        listed.push({
-          gameId: r.id,
-          manifest,
-          title: r.title,
-          statusChangedAt: r.status_changed_at,
-          isTerminal: r.ended_at !== null,
-          statusLabel: manifest.labelFor(listRow),
-        })
-      }
+      const unknownGametypes = rows
+        .filter((r) => !manifestFor(r.gametype))
+        .map((r) => r.gametype)
       setCurrentGameId(currentId)
       setGames(listed)
       reportUnknownGametypes(unknownGametypes)
@@ -191,8 +216,9 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
       supabase.removeChannel(channel)
     }
     // `globalFeedbackSlot` is created once and keeps its identity across
-    // renders (`useFeedbackSlot`), so listing it re-subscribes nothing.
-  }, [clubHandle, globalFeedbackSlot])
+    // renders (`useFeedbackSlot`), and `members` is fixed for the page's life
+    // (`ClubPageLoader`), so listing them re-subscribes nothing.
+  }, [clubHandle, members, globalFeedbackSlot])
 
   return { games, currentGameId, failed }
 }

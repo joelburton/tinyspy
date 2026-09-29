@@ -288,14 +288,14 @@ export async function createGame(
   const res = await asUser(creator.session.access_token)
     .schema('psychicnum')
     .rpc('create_game', {
-      target_club: club.handle,
+      p_club_handle: club.handle,
       // psychicnum's setup validation requires word_count (5..20) and
       // band (1..6) alongside max_guesses + timer — a complete, valid setup.
-      // timer stays `none` on purpose: a countdown could flip the game to
-      // 'lost' mid-test and make presence/heal assertions flaky.
-      setup: { max_guesses: 7, word_count: 10, band: 3, timer: { kind: 'none' } },
-      player_user_ids: playerUserIds,
-      mode,
+      // timer stays `none` on purpose: a countdown could end the game
+      // mid-test and make presence/heal assertions flaky.
+      p_setup: { max_guesses: 7, word_count: 10, band: 3, timer: { kind: 'none' } },
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
     })
   return { id: createdGameId(res, 'psychicnum.create_game'), gametype: `psychicnum_${mode}` }
 }
@@ -313,7 +313,7 @@ export async function createTurnGame(
   const res = await asUser(creator.session.access_token)
     .schema('psychicnum')
     .rpc('create_game', {
-      setup: {
+      p_setup: {
         max_guesses: 7,
         word_count: 10,
         band: 3,
@@ -321,9 +321,9 @@ export async function createTurnGame(
         coop_style: 'turns',
         first_turn_user_id: creator.userId,
       },
-      target_club: club.handle,
-      player_user_ids: club.members.map((m) => m.userId),
-      mode: 'coop',
+      p_club_handle: club.handle,
+      p_player_user_ids: club.members.map((m) => m.userId),
+      p_mode: 'coop',
     })
   return { id: createdGameId(res, 'psychicnum.create_game (turns)'), gametype: 'psychicnum_coop' }
 }

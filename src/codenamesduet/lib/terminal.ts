@@ -1,6 +1,6 @@
 // cs-blessed-codenamesduet
 
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 
 /** The per-status terminal message for codenamesduet. `playState` is the
  *  verdict and `reason` the cause — only terminal states appear here. Returns
@@ -42,7 +42,7 @@ export function buildTerminalMessage({
     // Manual end (codenamesduet.stop_game): the friends stopped the game on
     // purpose — the shared neutral ending.
     case 'ended':
-      return gameEndedTerminalMessage('coop')
+      return buildGameEndedMessageNeutral('coop')
     // An ending nobody wrote a case for says so, neutrally and with its raw
     // name, rather than claiming a win or a loss it cannot know.
     default:

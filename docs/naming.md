@@ -609,7 +609,7 @@ name, raise it.
 | `list` | the named collection |
 | `value` | the actual semantic (`score`, `rank`, `count`) |
 | `thing` / `stuff` / `obj` | never (in wide visibility); fine as a 3-line-function local |
-| `copy` (meaning message text) | `text` or `message`. In the literary world `copy` is the right word; among programmers it means *duplicate*, so `hintCopy` reads as a copy OF a hint. **New names say `text` or `message`** — the feedback area renamed its population 2026-09-12 (`TerminalMessage` / `terminalMessage`, `gameEndedTerminalMessage`, `turnText`); `withCopy` and `hintCopy` remain, a rename nobody has scheduled |
+| `copy` (meaning message text) | `text` or `message`. In the literary world `copy` is the right word; among programmers it means *duplicate*, so `hintCopy` reads as a copy OF a hint. **New names say `text` or `message`** — the feedback area renamed its population 2026-09-12 (`TerminalMessage` / `terminalMessage`, `buildGameEndedMessageNeutral`, `turnText`); `withCopy` and `hintCopy` remain, a rename nobody has scheduled |
 
 ## What's in the rest of `docs/`
 

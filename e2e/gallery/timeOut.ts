@@ -19,6 +19,6 @@ import { asUser, type E2EClub } from '../helpers/fixtures'
 export async function timeOut(club: E2EClub, schema: string, gameId: string): Promise<void> {
   const res = await asUser(club.members[0].session.access_token)
     .schema(schema)
-    .rpc('submit_timeout', { target_game: gameId })
+    .rpc('submit_timeout', { p_game_id: gameId })
   if (res.error) throw new Error(`${schema}.submit_timeout: ${res.error.message}`)
 }

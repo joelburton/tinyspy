@@ -157,7 +157,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // in last-played order, the current game's id (the `is_current_view` row),
   // and whether the last read failed.
   const { games: allGames, currentGameId, failed: gamesFailed } =
-    useClubGames(handle, globalFeedbackSlot)
+    useClubGames(handle, members, globalFeedbackSlot)
   // Club presence: who's in the club orbit right now (this page, or
   // any game page of the club) and which game they're viewing. We
   // pass `null` for our own location — we're in the club room, not a

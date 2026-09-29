@@ -4,9 +4,13 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { setupNum, verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
+import type { GameEndedReason } from '@/common/terminal/gameEnding'
 import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
+import type { PsychicnumClubpageInfo } from './lib/statuses'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -28,9 +32,9 @@ import logoUrl from './logo.svg?url'
  *
  *   - `gametype` string, used as the URL segment + registry key.
  *   - `name` shown in titles and on the Start button.
- *   - `mode` declaration (the canonical axis for downstream
- *     code that wants to distinguish behavior — see
- *     GameManifest.mode in src/common/manifest/gameManifest.ts).
+ *   - `mode` declaration, which the club page reads (see
+ *     GameManifest.mode in src/common/manifest/gameManifest.ts);
+ *     the game page reads the row's own, `GamePageCtx.mode`.
  *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
  *     requires an opposing player (`[2, 6]`).
  *   - `labelFor`: the terminal label reads differently per mode.
@@ -49,7 +53,7 @@ const helpLoader = lazy(() =>
   import('./components/Help').then((m) => ({ default: m.Help })),
 )
 
-// PlayArea is shared; it reads `game.mode` off the row for what differs.
+// PlayArea is shared; it reads `mode` (`GamePageCtx`) for what differs.
 const playAreaLoader = lazy(() =>
   import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
@@ -68,62 +72,43 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: setup as PsychicnumSetup,
-        player_user_ids: playerUserIds,
-        mode,
+        p_club_handle: clubHandle,
+        p_setup: setup as PsychicnumSetup,
+        p_player_user_ids: playerUserIds,
+        p_mode: mode,
       }),
     )
 }
 
-// Shared per-row label for the ClubPage games list. Pure,
-// synchronous — everything comes off the row.
-//
-// What `status` carries, as the SQL writes it (create_game seeds it,
-// submit_guess and the terminal RPCs maintain it):
-//   coop, mid-game:    { guesses_used, found_secrets_count, required_secrets_count }
-//   compete, mid-game: { guesses_used }   — the SUM across racers
-//   (the budget itself is `setup.max_guesses`, read off the row's setup)
-//   a win adds  { outcome, winner_username }; a loss adds { outcome, guesses_used },
-//   and coop's loss restates the found tally too.
-//
-// play_state vocabulary:
-//   coop:    'playing' / 'won' / 'lost'
-//   compete: 'playing' / 'won_compete' / 'lost_compete'
-//
-// Each mode's labelFor handles its own play_state set; the
-// shared helper below covers what's identical between them.
-type StatusBlob = {
-  guesses_used?: number
-  found_secrets_count?: number
-  required_secrets_count?: number
-  winner_username?: string
-  reason?: string
-}
+// The club-list line reads the list row's `gameEnding` and its `clubpage_info`
+// (`PsychicnumClubpageInfo`: the team's found and used counts in coop, null in
+// compete, and compete's winner). Each mode's labelFor handles its own
+// endings; the helper below covers the mid-game line.
 
 /**
- * The mid-game progress, COOP only. In compete every racer holds their own
- * budget and hunts the same three secrets independently — `guesses_used` is
- * the SUM across the table there (a 2-player game would read "4/5 guesses"),
- * and a shared found-count would tell you exactly how close your opponent is.
- * This line is club-wide readable, so compete says nothing.
- *
- * `maxGuesses` is the setup's budget, which never changes, so it is read off
- * the row's `setup` rather than copied into every status write.
+ * The mid-game progress, COOP only. In compete every player holds their own
+ * budget and hunts the same three secrets independently, and a found-count
+ * would tell you exactly how close your opponent is. This line is club-wide
+ * readable, so compete says nothing — and its `clubpage_info` counts are null.
  */
-function labelMidGame(s: StatusBlob, maxGuesses: number | null) {
+function labelMidGame(clubpageInfo: PsychicnumClubpageInfo) {
   return statusLine(
     verdict('Playing'),
-    tally(s.found_secrets_count, s.required_secrets_count, 'found'),
-    tally(s.guesses_used, maxGuesses, 'guesses'),
+    tally(clubpageInfo.found_secrets_count, clubpageInfo.required_secrets_count, 'found'),
+    tally(clubpageInfo.guesses_used, clubpageInfo.max_guesses, 'guesses'),
   )
 }
 
-/** Why a game ended with nobody finding the set (psychicnum's terminals). */
-const LOSS: Record<string, string> = {
-  exhausted: 'out of guesses',
+/** Why a game ended with nobody finding the set (psychicnum's losses). */
+const LOSS: Partial<Record<GameEndedReason, string>> = {
+  resource_exhausted: 'out of guesses',
   timeout: 'out of time',
   conceded: 'all conceded',
+}
+
+/** A member's username, or undefined for an id that names nobody. */
+function usernameOf(members: readonly Member[], userId: string | null) {
+  return userId === null ? undefined : memberById(members, userId)?.username
 }
 
 // Single source of truth for this game's user-facing brand name —
@@ -160,22 +145,24 @@ export const psychicnumCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  labelFor: (row) => {
-    const s = (row.status ?? {}) as StatusBlob
-    const found = tally(s.found_secrets_count, s.required_secrets_count, 'found')
-    switch (row.play_state) {
-      case 'playing':
-        return labelMidGame(s, setupNum(row.setup, 'max_guesses'))
-      case 'won':
-        // A team win, but naming who landed the third secret is the fun bit.
-        return statusLine(verdict('Won'), s.winner_username && `${s.winner_username} guessed it`)
+  labelFor: (row, members) => {
+    const clubpageInfo = row.clubpageInfo as PsychicnumClubpageInfo
+    if (row.gameEnding === null) return labelMidGame(clubpageInfo)
+    const found = tally(clubpageInfo.found_secrets_count, clubpageInfo.required_secrets_count, 'found')
+    switch (row.gameEnding.outcome) {
+      case 'won': {
+        // A team win, but naming who landed the third secret is the fun bit:
+        // the guess that found it is the act that ended the game.
+        const guesser = usernameOf(members, row.gameEnding.endedByUserId)
+        return statusLine(verdict('Won'), guesser && `${guesser} guessed it`)
+      }
       case 'lost':
-        return statusLine(verdict('Lost', LOSS[s.reason ?? ''] ?? null), found)
-      // 'ended' is the neutral manual-stop terminal (stop_game).
-      case 'ended':
+        return statusLine(verdict('Lost', LOSS[row.gameEnding.reason] ?? null), found)
+      // A Stop (stop_game).
+      case 'neutral':
         return statusLine(verdict('Ended'), found)
       default:
-        return row.play_state
+        return row.gameEnding.outcome
     }
   },
 
@@ -208,27 +195,26 @@ export const psychicnumCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  labelFor: (row) => {
-    const s = (row.status ?? {}) as StatusBlob
-    switch (row.play_state) {
-      // No progress: every racer's budget and finds are their own (see
-      // labelMidGame), and this line is readable by the whole club.
-      case 'playing':
-        return verdict('Playing')
-      case 'won_compete':
-        return wonBy(s.winner_username)
-      case 'lost_compete':
+  labelFor: (row, members) => {
+    const clubpageInfo = row.clubpageInfo as PsychicnumClubpageInfo
+    // No progress: every player's budget and finds are their own (see
+    // labelMidGame), and this line is readable by the whole club.
+    if (row.gameEnding === null) return verdict('Playing')
+    switch (row.gameEnding.outcome) {
+      case 'won':
+        return wonBy(usernameOf(members, clubpageInfo.winner_user_id))
+      case 'lost':
         return statusLine(
-          verdict('Lost', LOSS[s.reason ?? ''] ?? null),
+          verdict('Lost', LOSS[row.gameEnding.reason] ?? null),
           // "no winner" is what every-budget-spent and the clock need said;
           // all conceded says it already.
-          s.reason === 'conceded' ? null : 'no winner',
+          row.gameEnding.reason === 'conceded' ? null : 'no winner',
         )
-      // 'ended' is the neutral manual-stop terminal (stop_game).
-      case 'ended':
+      // A Stop (stop_game).
+      case 'neutral':
         return verdict('Ended')
       default:
-        return row.play_state
+        return row.gameEnding.outcome
     }
   },
 

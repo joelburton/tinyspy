@@ -32,7 +32,7 @@ export type Answer =
   | { answerType: 'spoiler_peer' }
 
   // A compete opponent's secrets-found count ticked up. It has no twin of
-  // mine: this is not a row (RLS shows one racer nothing of another's) but a
+  // mine: this is not a row (RLS shows one player nothing of another's) but a
   // public count.
   | { answerType: 'found_peer' }
 

@@ -15,7 +15,7 @@ begin;
 set search_path = psychicnum, common, public, extensions;
 \ir ../_shared/setup.psql
 
-select plan(20);
+select plan(21);
 
 -- The key sets, written once.
 create temp table want (status text primary key, keys text[]) on commit drop;
@@ -95,7 +95,12 @@ select is(
   (select clubpage_info->>'found_secrets_count' || '/' || (clubpage_info->>'guesses_used')
      from common.games where id = (select id from g where mode = 'coop')),
   '1/2',
-  'coop: the club line has the team''s finds and the shared used count');
+  'coop: the club line has the team''s finds and the team''s used count, each summed');
+select is(
+  (select array_agg((player_status->>'guesses_used')::int order by user_id)
+     from common.game_players where game_id = (select id from g where mode = 'coop')),
+  array[1, 1],
+  'coop: each player''s status has their own used count, not the team''s');
 select is(
   (select array_agg((player_status->>'found_secrets_count')::int order by user_id)
      from common.game_players where game_id = (select id from g where mode = 'coop')),
@@ -110,7 +115,7 @@ select is(
   (select array_agg((player_status->>'guesses_used')::int order by user_id)
      from common.game_players where game_id = (select id from g where mode = 'compete')),
   array[1, 1],
-  'compete: each racer''s status has their own used count');
+  'compete: each player''s status has their own used count');
 
 -- ── At the end: bea wins the race, ada has conceded ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

@@ -20,7 +20,7 @@ import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
  * would not split into its own chunk).
  */
 export type PsychicnumValues = CoopTurnSetup & {
-  // Starting guess budget — shared by the team in coop, each racer's own in
+  // Starting guess budget — shared by the team in coop, each player's own in
   // compete. The dialog offers `GUESS_OPTIONS`; the server accepts 1..9.
   max_guesses: number
   // How many words sit on the board (5..20). Three of them are the

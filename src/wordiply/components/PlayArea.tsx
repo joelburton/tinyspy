@@ -6,7 +6,7 @@ import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import { useGame, type EventRow } from '../hooks/useGame'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
@@ -84,7 +84,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, session, status,
     isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
-    setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
+    setup, clubHandle, goToFollowUpGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, guesses, validGuesses, loading, rowsLoaded, failure } = useGame(gameId)
 
@@ -333,7 +333,7 @@ export function PlayArea(ctx: GamePageCtx) {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`wordiply_${gameMode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('wordiply-build-board', res)
@@ -698,7 +698,7 @@ function buildOver({
     }
     // ended / manual — no winner. The shared neutral message, so the one
     // terminal every game has stays worded in one place.
-    return gameEndedTerminalMessage('compete')
+    return buildGameEndedMessageNeutral('compete')
   }
 
   // coop — the team's collaborative result. There's no "win" in coop (you just

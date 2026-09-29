@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { cls } from '@/common/utils/cls'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
@@ -99,7 +99,7 @@ export function PlayArea({
   status,
   globalFeedbackSlot,
   clubHandle,
-  goToGame,
+  goToFollowUpGame,
   menu,
 }: GamePageCtx) {
   // The board is worked by taps, drags and its own keys, so Tab has nowhere to
@@ -350,13 +350,13 @@ export function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`waffle_${gameMode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('waffle-build-board', res)
       return
     }
-  }, [gameMode, clubHandle, goToGame, localFeedbackSlot])
+  }, [gameMode, clubHandle, goToFollowUpGame, localFeedbackSlot])
 
   // New game — its `+`, its menu row and its terminal button, from one binding.
   // The registry asks NEW_GAME_CONFIRM mid-play (an accidental `+` should not
@@ -710,9 +710,9 @@ function buildOver({
   // nobody won or lost; outcome 'neutral' keeps the info-column line plain.
   // Handled first so an 'ended' game never falls through to a loss verdict.
   // Deliberately NOT worded here: manual end is the one terminal every game
-  // shares, so it stays in the shared `gameEndedTerminalMessage()` rather
+  // shares, so it stays in the shared `buildGameEndedMessageNeutral()` rather
   // than drifting per game.
-  if (playState === 'ended') return gameEndedTerminalMessage(mode)
+  if (playState === 'ended') return buildGameEndedMessageNeutral(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
       // Golf-style verdict: how the solve measured against par, not a generic

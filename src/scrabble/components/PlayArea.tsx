@@ -72,7 +72,7 @@ export function PlayArea({
   status,
   setup,
   clubHandle,
-  goToGame,
+  goToFollowUpGame,
   menu,
   brand,
   title,
@@ -399,7 +399,7 @@ type Suggested =
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`scrabble_${gameMode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)

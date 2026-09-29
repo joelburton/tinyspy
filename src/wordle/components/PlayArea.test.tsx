@@ -93,7 +93,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',
-    goToGame: vi.fn(),
+    goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
       actHelp: boundActionFixture('act-help'),
@@ -214,7 +214,7 @@ describe('wordle PlayArea — render smoke', () => {
  * Stop and Back-to-club (via the shell's suspend-confirm flow, NOT direct
  * navigation) while playing; Reveal, Restart and New game join at terminal.
  * New game = a fresh create_game with THIS game's setup/roster/mode (direct RPC
- * — wordle has no edge function), then ctx.goToGame.
+ * — wordle has no edge function), then ctx.goToFollowUpGame.
  */
 describe('wordle PlayArea — icon-only action row', () => {
   const bound = (id: string) => liveBindings().find((b) => b.id === id)!
@@ -337,7 +337,7 @@ describe('wordle PlayArea — icon-only action row', () => {
         mode: 'coop',
       }),
     )
-    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('wordle_coop', 'next-game-id'))
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
   })
 })
 
@@ -993,7 +993,7 @@ describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('create_game', expect.objectContaining({ mode: 'coop' })),
     )
-    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('wordle_coop', 'next-game-id'))
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
   })
 
   it('+ mid-game asks first, and cancel starts nothing', async () => {

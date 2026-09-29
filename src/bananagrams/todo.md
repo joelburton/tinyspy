@@ -6,7 +6,7 @@
   in `PlayArea.tsx` is one chain over `status.reason` — `timeout`,
   `conceded`, `selfWon`, then a final else that announces
   `${winnerName} went out — Bananas!`. There is no arm for `ended`, the
-  terminal every other game routes to the shared `gameEndedTerminalMessage()`. **Verify
+  terminal every other game routes to the shared `buildGameEndedMessageNeutral()`. **Verify
   before believing it**: end a game manually and read the pill. The chain
   may be unreachable for `ended`, in which case the finding is that the code
   cannot say so.

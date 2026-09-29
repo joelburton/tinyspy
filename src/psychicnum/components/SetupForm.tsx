@@ -75,15 +75,13 @@ export function SetupForm({
         }}
       />
       <SetupSection label={guessesLabel}>
-        {/* The text is mode-neutral on purpose — the same SetupForm
-            backs both psychicnum_coop and psychicnum_compete
-            manifests. In coop this is the shared pool (per-player
-            value equals shared value because everyone counts up
-            in lock-step); in compete each player gets this many
-            independently. The number-on-the-radio carries the
-            same meaning either way. */}
+        {/* The text is mode-neutral on purpose: "you" reads as the
+            solo player, the coop team or each compete player, and
+            no wording naming one of them is true of all three. In
+            coop this is the team's shared pool; in compete each
+            player gets this many. */}
         <RadioRow
-          help="How many guesses each player starts with."
+          help="How many guesses the game gives you."
           name="max_guesses"
           error={errors.max_guesses}
           options={GUESS_OPTIONS.map((n) => ({ value: n, label: n }))}

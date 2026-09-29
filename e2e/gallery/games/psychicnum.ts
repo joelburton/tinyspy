@@ -24,7 +24,7 @@ function boardOf(gameId: string): { words: string[]; secrets: string[] } {
     'psql',
     [LOCAL_DB, '-X', '-tA', '-c',
      `select array_to_string(words, ',') || '|' || array_to_string(secrets, ',')
-        from psychicnum.games where id = '${gameId}';`],
+        from psychicnum.games where game_id = '${gameId}';`],
     { encoding: 'utf8' },
   ).trim()
   const [words, secrets] = raw.split('|')
@@ -41,11 +41,11 @@ function boardOf(gameId: string): { words: string[]; secrets: string[] } {
  * missing column because an undeclared mode reads as a mode the game
  * doesn't have.)
  *
- * Compete semantics the cells lean on: each racer has their OWN 7-guess
+ * Compete semantics the cells lean on: each player has their OWN 7-guess
  * budget and must find all three secrets themselves; the first to complete
- * the set ends the race on the spot (`won_compete` — no wordle-style
+ * the set ends the race on the spot (`reached_goal`, won — no wordle-style
  * wait-for-the-rest), and the loss is every non-conceded budget spent with
- * nobody done (`lost_compete`). Mid-race, a rival's guesses are hidden —
+ * nobody done (`resource_exhausted`, lost). Mid-race, a rival's guesses are hidden —
  * only their public found-count shows — so the compete `mid` cell has the
  * rival find a secret too, putting a nonzero number on the opponent strip.
  */
@@ -77,7 +77,7 @@ export const psychicnumGallery: GameGallery = {
     const guessAs = async (member: typeof viewer, word: string) => {
       const res = await asUser(member.session.access_token)
         .schema('psychicnum')
-        .rpc('submit_guess', { target_game: id, guess: word })
+        .rpc('submit_guess', { p_game_id: id, p_guess: word })
       // Finding the last secret ends the game, so anything after it is refused
       // — for a win-building path that's the success signal, not a failure.
       if (gameAlreadyOver(res.error)) return

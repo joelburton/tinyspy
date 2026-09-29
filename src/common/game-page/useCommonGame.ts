@@ -32,6 +32,8 @@ export type CommonGame = {
   // with no deferred fetch.
   club_handle: string
   gametype: string
+  // Coop or compete, fixed at create; see `GamePageCtx.mode`.
+  mode: 'coop' | 'compete'
   title: string
   // The setup form's record, frozen at create: read to show the form's choices
   // back and to replay them, never for the game's logic.
@@ -44,7 +46,7 @@ export type CommonGame = {
   is_current_view: boolean
   // How the game ended, or null while it is played — read off the row's
   // `ended_at` and the columns beside it.
-  ending: GameEnding | null
+  gameEnding: GameEnding | null
   // Which RUN of this board we are on — 0 until the first restart, then +1 per
   // restart. The page keys the play surface on it, so a restart takes every
   // piece of a game's local state with it rather than each game hunting its own
@@ -174,6 +176,10 @@ export function useCommonGame(
   isMyTurn: boolean
   isWaitingForTurn: boolean
   isBoardInteractive: boolean
+  // How many times the channel has joined (SUBSCRIBED, reconnects included) or
+  // confirmed its postgres_changes attach — each a moment this hook reloads
+  // too. See `GamePageCtx.resubscribeCount`.
+  resubscribeCount: number
   // False once the initial fetch has settled, however it settled.
   loading: boolean
   // Set when a read FAILED, which is not the same as the game being absent.
@@ -195,6 +201,7 @@ export function useCommonGame(
   )
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
+  const [resubscribeCount, setResubscribeCount] = useState(0)
   // Held in state so a new effect run (StrictMode double-mount,
   // gameId change) gets a fresh channel and re-renders consumers.
   // The setChannel-in-effect below is intentional — the realtime
@@ -277,7 +284,7 @@ export function useCommonGame(
           commonDb
             .from('games')
             .select(
-              'id, club_handle, gametype, title, setup, is_current_view, restart_count, game_status, updated_at, started_at, ended_at, game_ended_reason, game_ended_reason_detail, game_ended_outcome, game_ended_by_user_id, current_turn_user_id',
+              'id, club_handle, gametype, mode, title, setup, is_current_view, restart_count, game_status, updated_at, started_at, ended_at, game_ended_reason, game_ended_reason_detail, game_ended_outcome, game_ended_by_user_id, current_turn_user_id',
             )
             .eq('id', gameId),
         ),
@@ -390,10 +397,11 @@ export function useCommonGame(
         id: gameData.id,
         club_handle: gameData.club_handle,
         gametype: gameData.gametype,
+        mode: gameData.mode as CommonGame['mode'],
         title: gameData.title,
         setup: gameData.setup as CommonGame['setup'],
         is_current_view: gameData.is_current_view,
-        ending: readGameEnding(gameData),
+        gameEnding: readGameEnding(gameData),
         restart_count: gameData.restart_count,
         game_status: gameData.game_status as CommonGame['game_status'],
         updated_at: gameData.updated_at,
@@ -482,7 +490,10 @@ export function useCommonGame(
       // that's a game ending invisibly (the exact bug the pinned repro spec
       // demonstrates). Re-read once the attach is confirmed. See
       // postgresAttached.ts.
-      onPostgresAttached(ch, () => void load())
+      onPostgresAttached(ch, function reloadOnAttach() {
+        void load()
+        setResubscribeCount((n) => n + 1)
+      })
 
       // Presence: dedupe to user_ids so multiple tabs of the same
       // user don't double-count. We also mirror to a ref so the
@@ -507,6 +518,7 @@ export function useCommonGame(
       ch.subscribe(function loadAndAssertCurrentView(status) {
         if (status === 'SUBSCRIBED') {
           load()
+          setResubscribeCount((n) => n + 1)
           ch.track({ user_id: session.user.id })
           // First-viewer-mount write: flip this game to the
           // club's current view (and vacate any prior one).
@@ -717,7 +729,7 @@ export function useCommonGame(
     gameId,
     paused,
     mode: commonGame?.timer_mode ?? { kind: 'none' },
-    running: commonGame != null && commonGame.ending === null,
+    running: commonGame != null && commonGame.gameEnding === null,
   })
 
   // ─── Where I stand ─── see `whereIStand`.
@@ -733,7 +745,7 @@ export function useCommonGame(
   } = whereIStand({
     players,
     myId: session.user.id,
-    isTerminal: (commonGame?.ending ?? null) !== null,
+    isTerminal: (commonGame?.gameEnding ?? null) !== null,
     isTurnBased,
     turnHolderId,
     draftsOffTurn,
@@ -759,6 +771,7 @@ export function useCommonGame(
     isMyTurn,
     isWaitingForTurn,
     isBoardInteractive,
+    resubscribeCount,
     loading,
     failure,
   }

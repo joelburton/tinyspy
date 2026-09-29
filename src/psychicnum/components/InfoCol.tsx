@@ -8,7 +8,10 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import type { Player, PlayerRow, EventRow } from '../hooks/useGame'
+import type { GamePlayer } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
+import type { EventRow } from '../hooks/useGame'
+import type { PsychicnumPlayerStatus } from '../lib/statuses'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -42,8 +45,6 @@ export function InfoCol({
   maxGuesses,
   players,
   selfId,
-  playerBudgets,
-  concededIds,
   actHint,
   actSpoiler,
   actReveal,
@@ -81,13 +82,9 @@ export function InfoCol({
   maxGuesses: number
 
   // ── Players (the OpponentStrip — compete) ──
-  // The roster (identity + per-player concede flags).
-  players: Player[]
+  // The roster; each player's `player_status` is what the strip shows.
+  players: GamePlayer[]
   selfId: string
-  // Per-player budget rows — read for the strip's public `found_secrets_count` count.
-  playerBudgets: PlayerRow[]
-  // Who has conceded (drives the OpponentStrip "out" mid-game).
-  concededIds: Set<string>
 
   // ── Action row — listed in the order the row draws them, which is the order
   //    the game menu lists them too (docs/playarea.md) ──
@@ -175,13 +172,16 @@ export function InfoCol({
             players={players}
             selfId={selfId}
             metricLabel="Found"
-            metricFor={(p) =>
+            metricFor={(p) => {
+              const playerStatus = memberById(players, p.user_id)?.player_status as
+                | PsychicnumPlayerStatus
+                | undefined
               // A player who's conceded reads as "out" mid-game (they're done,
               // whatever their found count was); everyone else shows progress.
-              concededIds.has(p.user_id)
+              return playerStatus?.player_ended_reason === 'conceded'
                 ? 'out'
-                : (playerBudgets.find((b) => b.user_id === p.user_id)?.found_secrets_count ?? 0)
-            }
+                : (playerStatus?.found_secrets_count ?? 0)
+            }}
           />
         )}
 

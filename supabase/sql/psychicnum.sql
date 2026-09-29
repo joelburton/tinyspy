@@ -11,7 +11,7 @@
 --                    secret wins, the one that spends the last budget loses
 --   request_hint     logs the dictionary clue for one unfound secret
 --   request_spoiler  hands over one unfound secret word
---   concede          a racer drops out of a compete game
+--   concede          a player drops out of a compete game
 --   stop_game        stops the game for everyone, with no result
 --   submit_timeout   ends the game when the countdown runs out
 --   replay_board     restarts the same board from scratch
@@ -22,8 +22,9 @@
 --   - The secrets are hidden by a column grant, not a policy: no client can
 --     select `secrets`, and `games_state` hands them over only once the game
 --     has ended.
---   - The guess budget is shared in coop and each racer's own in compete, so
---     a coop guess counts up every player's row.
+--   - The guess budget is shared in coop and each player's own in compete. A
+--     guess counts up only the guesser's row, in both modes, so coop's spent
+--     budget is the sum of the rows.
 --   - A compete race ends when decided: the first to find all three wins, and
 --     the others are short of the goal and unranked. Its timeout ranks nobody.
 --   - Guesses are the one mode-aware read: coop sees everyone's, compete only
@@ -148,8 +149,8 @@ revoke insert, update, delete on psychicnum.games_state from authenticated;
 --
 --   game_status    { required_secrets_count, max_guesses }
 --   player_status  { found_secrets_count, guesses_used, player_ended_reason }
---                  — in coop `guesses_used` is the team's, the same on every
---                  row; `found_secrets_count` is what that player found
+--                  — each count is that player's own, in both modes; coop's
+--                  team numbers are the sums over the players
 --   clubpage_info  { found_secrets_count, required_secrets_count,
 --                    guesses_used, max_guesses, winner_user_id }
 --                  — the found and used counts are the team's in coop and
@@ -191,11 +192,11 @@ begin
      and pp.game_id = gp.game_id
      and pp.user_id = gp.user_id;
 
-  -- Coop's team numbers: each correct guess is one player's, and no secret can
-  -- be found twice, so the team's finds are the sum; the used count is shared,
-  -- so every row holds it.
+  -- Coop's team numbers: each player's row holds their own share (each correct
+  -- guess is one player's, and no secret can be found twice), so the team's
+  -- finds and the team's spent budget are both sums.
   if v_mode = 'coop' then
-    select sum(found_secrets_count), max(guesses_used)
+    select sum(found_secrets_count), sum(guesses_used)
       into v_team_found, v_team_used
       from psychicnum.players
      where game_id = p_game_id;
@@ -243,10 +244,10 @@ drop function if exists psychicnum.create_game(text, jsonb, uuid[], text);
 -- nine-letter word; three of them become the hidden secrets.
 --
 -- max_guesses meaning, copied to `psychicnum.games.max_guesses`:
---   - coop: shared budget (every player row's `guesses_used`
---     counts up together on every guess).
---   - compete: per-player budget (only the guesser's row's
---     `guesses_used` counts up).
+--   - coop: the team's shared budget, spent by the SUM of every
+--     player row's `guesses_used` (each row counts its own guesses).
+--   - compete: per-player budget, spent by that player's own row.
+--   In both modes a guess counts up only the guesser's row.
 --
 -- Player-count check: compete needs 2+ players (one-player
 -- compete is "racing yourself" — degenerate, hidden by the FE
@@ -426,8 +427,8 @@ begin
   values (new_id, s_words, s_secrets, s_guesses);
 
   -- One player row per player, each with no guesses used yet (the column's
-  -- default). Coop counts all of them up in lock-step; compete counts each
-  -- independently.
+  -- default). Each counts its own player's guesses; coop spends the team's
+  -- budget by their sum, compete each player's by their own.
   insert into psychicnum.players (game_id, user_id)
   select new_id, uid
     from unnest(p_player_user_ids) as uid;
@@ -489,7 +490,7 @@ drop function if exists psychicnum.submit_guess(uuid, text);
 -- "Found all three" is scoped per mode:
 --   coop    — the TEAM's distinct correct guesses (everyone's).
 --   compete — the CALLER's own distinct correct guesses; each
---             racer must find all three themselves.
+--             player must find all three themselves.
 --
 -- The endings it can reach (docs/win-lose.md): all three found is
 -- `reached_goal`/'solved' — the whole team ranked 1 in coop, the caller
@@ -518,7 +519,8 @@ declare
   w text;
   is_correct boolean;
   caller_used int;
-  racers_with_budget int;
+  v_guesses_used int;
+  players_with_guesses_left int;
   found_count int;
   required_secrets_count int;
   v_rankings jsonb;
@@ -571,7 +573,7 @@ begin
     perform common._raise_already_conceded();
   end if;
 
-  -- Per-mode budget check on the caller's row.
+  -- The caller's own count, from their row.
   select guesses_used into caller_used
     from psychicnum.players
    where game_id = p_game_id and user_id = caller_id;
@@ -582,12 +584,22 @@ begin
       using errcode = 'PN271', hint = 'fault', column = '_',
       detail = 'no psychicnum.players budget row for the caller';
   end if;
-  if caller_used >= g.max_guesses then
+
+  -- The guesses used so far against the budget: the team's in coop, the sum
+  -- of every player's own count; the caller's own in compete.
+  if v_mode = 'coop' then
+    select sum(guesses_used) into v_guesses_used
+      from psychicnum.players
+     where game_id = p_game_id;
+  else
+    v_guesses_used := caller_used;
+  end if;
+  if v_guesses_used >= g.max_guesses then
     -- The FE knows your budget, so reaching this is a bug rather than a bad
     -- move.
     raise exception 'No guesses left'
       using errcode = 'PN272', hint = 'fault', column = '_',
-      detail = 'this player''s guess budget is spent';
+      detail = 'the guess budget is spent';
   end if;
 
   -- Reject a word already taken (in scope: coop = anyone's, compete =
@@ -615,22 +627,17 @@ begin
   insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
   values (p_game_id, caller_id, w, is_correct, 'guess', true);
 
-  -- ─── Count the guess: coop = everyone, compete = caller ──
-  if v_mode = 'coop' then
-    update psychicnum.players
-       set guesses_used = guesses_used + 1
-     where game_id = p_game_id;
-  else
-    update psychicnum.players
-       set guesses_used = guesses_used + 1
-     where game_id = p_game_id and user_id = caller_id;
+  -- ─── Count the guess on the guesser's own row, in both modes ──
+  update psychicnum.players
+     set guesses_used = guesses_used + 1
+   where game_id = p_game_id and user_id = caller_id;
 
-    -- A racer whose budget is gone has ended while the others play on, so the
-    -- common roster has to hear about it: a player nothing is waiting for must
-    -- not hold the presence-pause open.
-    if caller_used + 1 >= g.max_guesses then
-      perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'exhausted');
-    end if;
+  -- A compete player whose budget is gone has ended while the others play on, so the
+  -- common roster has to hear about it: a player nothing is waiting for must
+  -- not hold the presence-pause open. (Coop's budget is the team's, so a spent
+  -- one ends the game below instead.)
+  if v_mode = 'compete' and caller_used + 1 >= g.max_guesses then
+    perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'exhausted');
   end if;
 
   -- A correct guess found a new secret (the already-guessed guard above means
@@ -642,13 +649,25 @@ begin
   end if;
 
   -- How many players can still guess: not ended (conceded, or spent in
-  -- compete) and with budget left. Drives the all-exhausted loss.
-  select count(*) into racers_with_budget
-    from psychicnum.players pp
-    join common.game_players gp
-      on gp.game_id = pp.game_id and gp.user_id = pp.user_id
-   where pp.game_id = p_game_id and gp.player_ended_at is null
-     and pp.guesses_used < g.max_guesses;
+  -- compete) and with guesses left — the team's in coop, their own in
+  -- compete. Drives the all-exhausted loss.
+  if v_mode = 'coop' then
+    select case when sum(pp.guesses_used) < g.max_guesses
+                then count(*) filter (where gp.player_ended_at is null)
+                else 0 end
+      into players_with_guesses_left
+      from psychicnum.players pp
+      join common.game_players gp
+        on gp.game_id = pp.game_id and gp.user_id = pp.user_id
+     where pp.game_id = p_game_id;
+  else
+    select count(*) into players_with_guesses_left
+      from psychicnum.players pp
+      join common.game_players gp
+        on gp.game_id = pp.game_id and gp.user_id = pp.user_id
+     where pp.game_id = p_game_id and gp.player_ended_at is null
+       and pp.guesses_used < g.max_guesses;
+  end if;
 
   -- Distinct secrets found in scope (coop: the team; compete: the caller).
   -- Counting real guesses keeps this independent of the found_secrets_count tally.
@@ -688,7 +707,7 @@ begin
       p_is_no_result => false,
       p_final_rankings => v_rankings
     );
-  elsif racers_with_budget = 0 then
+  elsif players_with_guesses_left = 0 then
     -- ─── Every budget spent before the set was complete: a loss ───
     perform common._end_game(
       p_game_id, 'resource_exhausted', 'exhausted', caller_id,
@@ -772,7 +791,7 @@ revoke execute on function psychicnum._maybe_finish_compete(uuid, uuid) from pub
 drop function if exists psychicnum.concede(uuid);
 
 -- ============================================================
--- psychicnum.concede — a racer drops out of a compete game
+-- psychicnum.concede — a player drops out of a compete game
 -- ============================================================
 -- Each player has an independent guess budget. The compete game ends
 -- when someone completes the set (immediate win, handled in

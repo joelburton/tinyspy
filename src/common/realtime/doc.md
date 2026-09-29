@@ -76,7 +76,9 @@ and re-reads the rows.
 - **Refetch on any event is the default ("Pattern A").** A hook that only
   watches tables calls `useRealtimeRefetch`: it loads on mount, and reloads on
   every change event, on every `SUBSCRIBED`, and on the attach confirmation. A
-  generation counter drops a slow load that a newer one has overtaken.
+  generation counter drops a slow load that a newer one has overtaken. A game's
+  `useGame` watches no table of its own: it reloads off the game page's room
+  through `useRefetchOnGameUpdate` (common/game-page/doc.md).
 - **One hook, one channel ("Pattern B").** A hook that sends or receives
   Broadcast, or tracks Presence, opens one stable-name channel through
   `channelTeardown.ts` (its docstring has the shape), and any table changes it

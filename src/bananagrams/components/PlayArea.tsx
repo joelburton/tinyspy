@@ -309,7 +309,7 @@ export function PlayArea(ctx: GamePageCtx) {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      ctx.goToGame('bananagrams', res.data.id)
+      ctx.goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)

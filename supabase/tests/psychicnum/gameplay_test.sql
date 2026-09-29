@@ -47,7 +47,7 @@
 --   - game ends for everyone on the win, even those with budget left
 --   - all-exhausted → resource_exhausted/lost, and a spent budget ends
 --     that player (`player_ended_at`, reason resource_exhausted) so the
---     presence-pause stops waiting on that racer
+--     presence-pause stops waiting on that player
 --
 -- A deleted game: a guess, a hint and a spoiler into a game a friend just
 -- deleted are each the shared race (PN485), not a fault.
@@ -101,7 +101,7 @@ select pg_temp.envelope_is(
   'coop: non-player submit_guess rejected'
 );
 
--- (3) ada submits wrong (zdelta): count up EVERY player's budget
+-- (3) ada submits wrong (zdelta): counts up ada's own row only
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zdelta'),
@@ -114,8 +114,8 @@ reset role;
 select is(
   (select array_agg(guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from coop_g)),
-  array[1, 1],
-  'coop: wrong guess counts up EVERY player (0→1 of 5 for both)'
+  array[1, 0],
+  'coop: a guess counts up only the guesser''s row (ada 1, bea 0)'
 );
 
 -- (4) ada finds a secret (zalpha): a hit with found_all false, game continues
@@ -211,12 +211,12 @@ select is(
   'coop: took_turn is true on guesses, and on neither the hint nor the spoiler'
 );
 
--- (11) neither the hint nor the spoiler spent any budget (still 2 used each:
--- one wrong + one find)
+-- (11) neither the hint nor the spoiler spent any budget (still ada's 2
+-- guesses: one wrong + one find; bea has made none)
 select is(
   (select array_agg(guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from coop_g)),
-  array[2, 2],
+  array[2, 0],
   'coop: request_hint / request_spoiler do not spend the budget'
 );
 
@@ -277,7 +277,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from coop_loss), 'zdelta');
 select psychicnum.submit_guess((select id from coop_loss), 'zecho');
 
--- After 2 wrong, both player budgets at 1, the game still going.
+-- After ada's 2 wrong, the team has spent 2 of its 3 (ada's row 2, bea's 0),
+-- and the game is still going.
 reset role;
 select is(
   (select ended_at from common.games where id = (select id from coop_loss)),
@@ -285,7 +286,8 @@ select is(
   'coop: 2 wrong guesses keeps the game going'
 );
 
--- 3rd wrong → team loses. The envelope is the CALLER'S result on their own
+-- bea's first guess is the team's 3rd, so the SUM of the rows spends the
+-- budget: wrong → team loses. The envelope is the CALLER'S result on their own
 -- guess (a miss, `lost`), not the game's fate — the loss reaches the FE by
 -- realtime.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -353,7 +355,7 @@ select is(
 );
 
 -- ============================================================
--- COMPETE — each racer must find all three themselves
+-- COMPETE — each player must find all three themselves
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -420,7 +422,7 @@ select is(
     where game_id = (select id from comp_g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'unranked/lost',
-  'compete: a racer short of the goal is unranked and lost'
+  'compete: a player short of the goal is unranked and lost'
 );
 
 -- (3) ada (with budget remaining=2) cannot guess after bea won
@@ -489,7 +491,7 @@ select is(
     where game_id = (select id from comp_loss)
       and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
   null,
-  'compete: a racer with budget left has not ended'
+  'compete: a player with budget left has not ended'
 );
 
 -- bea exhausts too. The last wrong guess (total_remaining → 0) ends it.

@@ -41,15 +41,20 @@ export type GamePageCtx = {
   // header and the club list. Threaded through so a PlayArea can name the
   // specific game (e.g. on a printout).
   title: string
+  // `common.games.mode`: coop (one team, one shared outcome) or compete (each
+  // player races for their own), fixed at create. What a game reads to tell
+  // its two modes apart.
+  mode: 'coop' | 'compete'
   // Everyone in this game's `common.game_players`. See
   // [Member] for why this is `players` (game context) and
   // not `members` (club context). A [GamePlayer] carries each
   // player's ending, ranking and `player_status` on top of the profile.
   players: GamePlayer[]
   // How the game ended — its reason pair, outcome and who ended it — or null
-  // while it is played (docs/states.md → How a game ends).
-  ending: GameEnding | null
-  // The game has ended: `ending !== null`.
+  // while it is played (docs/states.md → How a game ends). The game's, never a
+  // player's: that is each player's `player_ended_reason` on `players`.
+  gameEnding: GameEnding | null
+  // The game has ended: `gameEnding !== null`.
   isTerminal: boolean
   // The clock, already reduced to the two things a play surface wants: the
   // number to show, and whether the countdown ran out. Produced by
@@ -113,10 +118,16 @@ export type GamePageCtx = {
   // copy is `player_status` on `players`.
   gameStatus: Record<string, unknown>
   // `common.games.updated_at`, which every write to the row moves — and every
-  // move writes it, through the status builder. A game's `useGame` takes it and
-  // refetches its own tables when it changes, so this one subscription is how
-  // every game learns something happened.
+  // move writes it, through the status builder. A game's `useGame` hands it to
+  // `useRefetchOnGameUpdate`, which refetches the game's own tables when it
+  // changes, so the page's one subscription is how every game learns something
+  // happened.
   commonGameUpdatedAt: string
+  // How many times the page's channel has joined (reconnects included) or
+  // confirmed its postgres_changes attach. `useRefetchOnGameUpdate` refetches
+  // on each too, so a read that failed while the connection was down retries
+  // when it comes back, even if nobody has moved since.
+  resubscribeCount: number
   // The GLOBAL feedback slot — the header's `<PageHeaderStatusSlot>`, where
   // peer and opponent news shows. A PlayArea calls
   // `globalFeedbackSlot.show(FeedbackMessage.peer(…))`; a producer like
@@ -128,13 +139,14 @@ export type GamePageCtx = {
   // (waffle's "New game" menu item: same setup, fresh board,
   // new game id).
   clubHandle: string
-  // Navigate to another game's page (`/g/<gametype>/<gameId>`): after a
-  // PlayArea starts a follow-up game (see `clubHandle`), this jumps the
-  // creator into it. Peers arrive via the game-invitation toast, as with any
-  // new game. The one navigation a game does for itself — going back to the
-  // CLUB is `menu.actBackToClub`, which knows when to ask first. Identity is
-  // stable across renders.
-  goToGame: (gametype: string, gameId: string) => void
+  // Navigate to a follow-up game's page: after a PlayArea starts the next game
+  // of this same gametype (see `clubHandle`), this jumps the creator into it,
+  // taking only the new id — the page supplies the gametype, so a game never
+  // builds one. Peers arrive via the game-invitation toast, as with any new
+  // game. The one navigation a game does for itself — going back to the CLUB
+  // is `menu.actBackToClub`, which knows when to ask first. Identity is stable
+  // across renders.
+  goToFollowUpGame: (gameId: string) => void
   // The GamePage menu (the dropdown opened from the game logo). The PlayArea
   // owns its WHOLE menu — it calls `menu.setGameSections([...])` (usually via
   // the `buildGameMenu` helper) — and the shell hands down the three rows a

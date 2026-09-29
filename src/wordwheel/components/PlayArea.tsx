@@ -111,7 +111,7 @@ function PlayArea(props: PlayAreaProps) {
   const {
     gameId, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive,
     playState, players, session, status,
-    setup, clubHandle, goToGame, menu, brand, title,
+    setup, clubHandle, goToFollowUpGame, menu, brand, title,
     globalFeedbackSlot,
     game, foundWords, rowsLoaded,
   } = props
@@ -329,7 +329,7 @@ function PlayArea(props: PlayAreaProps) {
   // and mode, in the same club, through the same edge function the manifest's
   // `startGameInClub` uses. Nothing is destroyed: the club's current-view flag
   // moves, leaving this game resumable from the club list. The creator jumps
-  // in via `goToGame`, peers arrive by invitation toast.
+  // in via `goToFollowUpGame`, peers arrive by invitation toast.
   const createNewGame = async () => {
     // A hand-picked board is a one-off, so the follow-up takes the random
     // path (doc.md → FE submissions); `create_game` strips the same two from
@@ -352,7 +352,7 @@ function PlayArea(props: PlayAreaProps) {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`wordwheel_${game.mode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('wordwheel-build-board', res)

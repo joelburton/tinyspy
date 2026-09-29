@@ -171,7 +171,7 @@ describe('stopGame', () => {
     act(() => result.current.actStopGame.run())
     await flush()
     expect(askConfirmation).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' })
+    expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' })
   })
 
   it('does nothing if the question is answered no', async () => {
@@ -206,7 +206,7 @@ describe('concede', () => {
     act(() => result.current.actConcede.run())
     await flush()
     expect(askConfirmation).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+    expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' })
     // The ok arm is silent: the conceded flag and any terminal arrive by
     // subscription, so there is nothing for the conceder to be told.
     expect(shown).not.toHaveBeenCalled()
@@ -240,8 +240,8 @@ describe('concede', () => {
       rpc.mockResolvedValue(ENDED_OK)
       act(() => result.current.actConcede.run())
       await flush()
-      expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' })
-      expect(rpc).not.toHaveBeenCalledWith('concede', { target_game: 'g1' })
+      expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' })
+      expect(rpc).not.toHaveBeenCalledWith('concede', { p_game_id: 'g1' })
     })
 
     it('fires concede when the primary answer is picked', async () => {
@@ -249,7 +249,7 @@ describe('concede', () => {
       rpc.mockResolvedValue(CONCEDED_OK)
       act(() => result.current.actConcede.run())
       await flush()
-      expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+      expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' })
     })
   })
 
@@ -262,7 +262,7 @@ describe('restart', () => {
     act(() => result.current.actRestart.run())
     await flush()
     expect(askConfirmation).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
+    expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' })
   })
 
   it('goes straight through at terminal — nothing left to interrupt', async () => {
@@ -271,7 +271,7 @@ describe('restart', () => {
     act(() => result.current.actRestart.run())
     await flush()
     expect(askConfirmation).not.toHaveBeenCalled()
-    expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
+    expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' })
   })
 
   it('says why when the board was NOT replayed', async () => {

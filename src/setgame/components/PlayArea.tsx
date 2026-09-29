@@ -6,7 +6,7 @@ import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
@@ -90,7 +90,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, session, status,
     isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
-    setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
+    setup, clubHandle, goToFollowUpGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, players: rows, events, claims, lastClaim, teamFound, loading, failure } =
     useGame(gameId, session.user.id)
@@ -412,7 +412,7 @@ export function PlayArea(ctx: GamePageCtx) {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`setgame_${gameMode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)
@@ -733,7 +733,7 @@ function buildOver({
       }
       return { pillText: 'Lost: nobody found a set', infoColText: 'Nobody scored', outcome: 'lost' }
     }
-    return gameEndedTerminalMessage('compete')
+    return buildGameEndedMessageNeutral('compete')
   }
 
   // Coop.

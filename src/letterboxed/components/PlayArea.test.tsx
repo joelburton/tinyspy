@@ -117,7 +117,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',
-    goToGame: vi.fn(),
+    goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
       actHelp: boundActionFixture('act-help'),
@@ -613,7 +613,7 @@ describe('letterboxed PlayArea — the keys', () => {
         expect.objectContaining({ target_club: 'testclub', player_user_ids: ['u1'], mode: 'coop' }),
       ),
     )
-    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('letterboxed_coop', 'fresh-game-id'))
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('fresh-game-id'))
   })
 
   it('+ mid-game asks first, and Keep playing starts nothing', async () => {

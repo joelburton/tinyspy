@@ -41,15 +41,16 @@ export type TerminalMessage = {
 }
 
 /**
- * The one terminal message every game shares: the friends agreed to stop
- * (the ending's reason `stopped`), so nobody won and nobody lost. Nothing about
- * that outcome is game-specific, which is why it can live here at all.
+ * The message for a NEUTRAL ending, and only that: the friends agreed to stop
+ * (the game's ending reason `stopped`), so nobody won and nobody lost. It is
+ * never the message for a win or a loss — a game builds those itself. Nothing
+ * about the neutral outcome is game-specific, which is why it can live here.
  *
  * A game may still write its own — boggle does, spending the pill on the
  * tally (`Ended: 12 words, 34 points`) — so read the game's own builder
  * before assuming.
  */
-export function gameEndedTerminalMessage(mode: 'coop' | 'compete'): TerminalMessage {
+export function buildGameEndedMessageNeutral(mode: 'coop' | 'compete'): TerminalMessage {
   return {
     // No trailing period: a pill LABEL, and the rest of the terminal
     // vocabulary ("You win!", "Lost: assassin") doesn't punctuate either.

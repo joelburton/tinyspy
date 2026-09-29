@@ -167,7 +167,7 @@ function PlayArea({
   setup,
   globalFeedbackSlot,
   clubHandle,
-  goToGame,
+  goToFollowUpGame,
   menu,
   brand,
   title,
@@ -464,7 +464,7 @@ function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`connections_${game.mode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)

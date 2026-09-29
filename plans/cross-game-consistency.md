@@ -697,7 +697,7 @@ everywhere (question 1).
    - **Plus shared code** (recommended): also every common name carrying
      it — what `src/common/terminal/` exports (`terminalMessage` /
      `TerminalMessage`, about 200 uses; `buildTerminalMessage`,
-     `gameEndedTerminalMessage`) and the folder; `src/common/feedback`'s
+     `buildGameEndedMessageNeutral`) and the folder; `src/common/feedback`'s
      `terminalVerdict` kind (`showTerminalVerdict` in 16 PlayAreas); the
      info sheet's `.terminalActions` / `.terminalExtra` classes; the
      outcome palette's `terminalFrame` variant
@@ -1158,7 +1158,12 @@ not.
   row (common-tables' terms: table-fact, player-fact, team-fact), so
   scrabble's `coop_rack` and `coop_score` move from `scrabble.games` to
   `scrabble.players` here, with any other game the audit finds keeping one
-  on its games row.
+  on its games row. **Applied one game at a time** (Joel, 2026-09-29): each
+  game's names, RPCs and data differ, so each gets its own migration and
+  tests. **psychicnum is done** (2026-09-29, ahead of the deploy, riding it):
+  each row's `guesses_used` is that player's own, rebuilt from their guess
+  rows by `20260929000000_psychicnum_coop_guesses_per_player.sql`, and the
+  team's budget is the sum.
 - **"difficulty" as a name for a dictionary band** (Joel, 2026-09-28). The
   schema has been moving to `*_band` (`legal_band`, `required_band`), and
   "difficulty" fails as a name: a game can have two bands; a higher band

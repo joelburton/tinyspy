@@ -85,7 +85,7 @@ select set_config('request.jwt.claims', '', true);
 select is(
   (select player_ended_reason from common.game_players
     where game_id = (select id from gm) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'resource_exhausted', 'a spent racer has ended, out of guesses');
+  'resource_exhausted', 'a spent player has ended, out of guesses');
 select is(
   (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
      from common.games where id = (select id from gm)),

@@ -13,7 +13,7 @@
  * for each, and every game would otherwise write the same closure by hand.
  * **It converts nothing and decides nothing** — `runRpc`
  * already returns the envelope, so this only binds the client and the function
- * name and turns `target_game` into a positional argument.
+ * name and turns `p_game_id` into a positional argument.
  *
  * Nothing here is for `startGameInClub`: every `create_game` returns the
  * envelope itself, so a manifest calls `runRpc` or `runEdgeFn` for that one
@@ -41,13 +41,13 @@ import type { GameStopResult } from './gameManifest'
 type RpcClient<F extends string> = {
   rpc: (
     fn: F,
-    args: { target_game: string },
+    args: { p_game_id: string },
   ) => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>
 }
 
 /**
  * Build the game-agnostic `(gameId) => Promise<Envelope<GameStopResult>>`
- * dispatcher for a per-game, single-`target_game`-arg RPC. Every game folder
+ * dispatcher for a per-game, single-`p_game_id`-arg RPC. Every game folder
  * calls it twice, once per member, instead of writing the same closure by
  * hand.
  *
@@ -61,6 +61,6 @@ export function makeRpcDispatcher<F extends string>(
   fnName: F,
 ): (gameId: string) => Promise<Envelope<GameStopResult>> {
   return async (gameId: string) => {
-    return await runRpc<GameStopResult>(db.rpc(fnName, { target_game: gameId }))
+    return await runRpc<GameStopResult>(db.rpc(fnName, { p_game_id: gameId }))
   }
 }

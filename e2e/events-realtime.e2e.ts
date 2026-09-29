@@ -76,7 +76,7 @@ const CASES: Case[] = [
         write: async (m) => {
           const res = await asUser(m.session.access_token)
             .schema('psychicnum')
-            .rpc('request_hint', { target_game: game.id })
+            .rpc('request_hint', { p_game_id: game.id })
           envelopeData(res, 'psychicnum.request_hint')
         },
       }

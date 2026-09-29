@@ -45,7 +45,7 @@ export function solvedByMe({
   mine,
 }: {
   isCompete: boolean
-  // The game's outcome (`ending?.outcome`), null while it is played.
+  // The game's outcome (`gameEnding?.outcome`), null while it is played.
   gameOutcome: EndOutcome | null
   // The caller's own per-player solved bit — compete's answer.
   mine: boolean

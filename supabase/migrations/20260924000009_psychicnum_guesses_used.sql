@@ -29,7 +29,7 @@ alter table psychicnum.players
   drop column guesses_remaining;
 
 -- ─── The status key ────────────────────────────────────────
--- Coop carried the shared remaining count, compete the SUM across racers;
+-- Coop carried the shared remaining count, compete the SUM across players;
 -- each becomes the same shape counted up, read from the backfilled column.
 -- A game whose status already names `guesses_used` (a budget-exhausted or
 -- timed-out ending writes it) keeps that value; the old key goes either way.

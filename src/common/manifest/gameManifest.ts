@@ -6,6 +6,7 @@ import type { Envelope } from '../supabase/envelope'
 import type { GameSetupForm } from '../setup-form/setupForm'
 import type { GamePageCtx } from '../game-page/gamePageCtx'
 import type { GameEnding } from '../terminal/gameEnding'
+import type { Member } from '../members/member'
 
 /**
  * WHAT A GAME DECLARES — the shape each game's `manifest.ts` exports so the
@@ -220,7 +221,7 @@ export type GameManifest = {
   // Render a one-line label for a single `common.games` row,
   // for the ClubPage games list. **Pure and synchronous** — no
   // I/O, no follow-up queries — everything labelFor needs comes
-  // off the row.
+  // off the row, plus the club's members to name a user id with.
   //
   // That contract is what keeps the listing one-query: ClubPage
   // fetches `common.games` for the club, then dispatches each
@@ -228,7 +229,11 @@ export type GameManifest = {
   // builder writes whatever the gametype's labelFor needs into
   // `common.games.clubpage_info`; see docs/common-schema.md → Title,
   // statuses and the two dates.
-  labelFor: (row: CommonGameListRow) => string
+  //
+  // `members` is the club's roster, which the club page already has; an id
+  // on the row (`clubpage_info.winner_user_id`, `gameEnding.endedByUserId`) is
+  // named with `memberById(members, id)`.
+  labelFor: (row: CommonGameListRow, members: readonly Member[]) => string
 
   // Fire this gametype's timeout RPC. Called by GamePage when
   // `useGameTimer.expired` flips true in countdown mode.
@@ -245,7 +250,7 @@ export type GameManifest = {
   submitTimeout: (gameId: string) => Promise<Envelope<GameStopResult>>
 
   // Stop this game NOW (irreversible). Dispatches to the gametype's own
-  // `<schema>.stop_game(target_game)` RPC — the same one the in-game "Stop game"
+  // `<schema>.stop_game(p_game_id)` RPC — the same one the in-game "Stop game"
   // menu/button calls — so the ending and the statuses are written
   // the game's own way.
   //
@@ -282,7 +287,7 @@ export type CommonGameListRow = {
   gametype: string
   // How the game ended, or null while it is played. Most labels switch on it:
   // a live line, or the verdict and the reason.
-  ending: GameEnding | null
+  gameEnding: GameEnding | null
   // `common.games.clubpage_info` — the numbers the club line shows beyond the
   // row's columns, a copy the game's status builder writes whole at create,
   // Restart and every move (docs/common-schema.md → Title, statuses and the two

@@ -101,7 +101,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: { bunch_remaining: 100, bag_remaining: 0 },
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',
-    goToGame: vi.fn(),
+    goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
       actHelp: boundActionFixture('act-help'),
@@ -258,7 +258,7 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
         player_user_ids: ['u1'],
       }),
     )
-    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('bananagrams', 'next-game-id'))
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
   })
 
   it('+ mid-game asks first, and cancel deals nothing', async () => {

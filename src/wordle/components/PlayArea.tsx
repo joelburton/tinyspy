@@ -120,7 +120,7 @@ function PlayArea({
   status,
   globalFeedbackSlot,
   clubHandle,
-  goToGame,
+  goToFollowUpGame,
   menu,
   game,
   playerStates,
@@ -372,7 +372,7 @@ function PlayArea({
   // no edge function, since picking a random target is one SQL line — so this
   // mirrors the manifest's `startGameInClub`. Nothing is destroyed: the club's
   // current-view flag moves, leaving this game resumable from the club list.
-  // The creator jumps in via `goToGame`, peers arrive by invitation toast.
+  // The creator jumps in via `goToFollowUpGame`, peers arrive by invitation toast.
   async function createNewGame() {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
@@ -390,7 +390,7 @@ function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`wordle_${game.mode}`, res.data.id)
+      goToFollowUpGame(res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)
