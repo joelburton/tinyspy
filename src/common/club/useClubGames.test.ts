@@ -29,7 +29,7 @@ const { mockReadRows, mockReportUnknown, realtime, REGISTRY, SYRUP } = vi.hoiste
     gametype,
     name,
     mode: 'coop' as const,
-    labelFor: (row: { play_state: string }) => `label:${row.play_state}`,
+    labelFor: (row: { ending: { outcome: string } | null }) => `label:${row.ending?.outcome ?? 'playing'}`,
   })
   const WORDLE = manifest('wordle_coop', 'WordNerd')
   const SYRUP = manifest('syrup_coop', 'SyrupSwap')
@@ -84,22 +84,26 @@ type GameRow = {
   id: string
   gametype: string
   title: string
-  play_state: string
-  is_terminal: boolean
-  status: unknown
-  setup: unknown
-  last_active_at: string
+  ended_at: string | null
+  game_ended_reason: string | null
+  game_ended_reason_detail: string | null
+  game_ended_outcome: string | null
+  game_ended_by_user_id: string | null
+  clubpage_info: unknown
+  status_changed_at: string
   is_current_view: boolean
 }
 
 function game(over: Partial<GameRow> & { id: string; gametype: string }): GameRow {
   return {
     title: `Game ${over.id}`,
-    play_state: 'playing',
-    is_terminal: false,
-    status: {},
-    setup: {},
-    last_active_at: '2026-09-01T00:00:00Z',
+    ended_at: null,
+    game_ended_reason: null,
+    game_ended_reason_detail: null,
+    game_ended_outcome: null,
+    game_ended_by_user_id: null,
+    clubpage_info: {},
+    status_changed_at: '2026-09-01T00:00:00Z',
     is_current_view: false,
     ...over,
   }
@@ -155,7 +159,11 @@ describe('useClubGames — what an answer becomes', () => {
 
   it('resolves each row to its manifest and its status label', async () => {
     const { result } = await load(
-      ok([game({ id: 'g1', gametype: 'syrup_coop', play_state: 'won' })]),
+      ok([game({
+        id: 'g1', gametype: 'syrup_coop', ended_at: '2026-09-02T00:00:00Z',
+        game_ended_reason: 'reached_goal', game_ended_reason_detail: 'solved',
+        game_ended_outcome: 'won',
+      })]),
     )
     await waitFor(() => expect(result.current.games).toHaveLength(1))
     expect(result.current.games[0]!.manifest).toBe(SYRUP)

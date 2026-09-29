@@ -60,8 +60,8 @@ why the two live side by side here and neither is written in terms of the other.
 
 **The gate is the caller's; the hook only watches.** `useCelebration` is handed a
 boolean and has no idea what it means, which is what lets one hook serve a coop
-solve, a compete win read off `status.winner_user_id`, and a per-row `won` flag
-on a leaderboard. The constraint that buys that freedom is in the hook's own
+solve, a compete win read off the viewing player's `outcome`, and a win read
+off another player's row. The constraint that buys that freedom is in the hook's own
 docstring, and the way it is broken is always the same: a value from the game's
 own fetch is null while it loads, so its arrival is a false→true flip and the
 confetti goes off at somebody reading a finished game. **A unit test with
@@ -85,3 +85,9 @@ because a verdict is a game's ending; what a verdict may SAY — the terse pill
 label, the shorter info-column line, the outcome that colors both — is the same
 vocabulary every other message in the app is written in, so changing it is a
 change over there.
+
+**`gameEnding.ts` is the ending as the database records it**, and
+`readGameEnding` reads it off a `common.games` row: the reason pair, the outcome
+and who ended it, or null while the game is played. The page and the club list
+both read it; the terms are docs/win-lose.md's and the columns are
+docs/common-schema.md → Ending a game.

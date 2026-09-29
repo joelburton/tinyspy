@@ -3,49 +3,32 @@
 import { describe, expect, it } from 'vitest'
 import { terminalOutcomeVerb } from './terminalOutcomeVerb'
 import type { GamePlayer } from '../members/member'
+import { CONCEDED, gp } from '../members/gamePlayer.fixture'
 
 /**
  * The whole truth table for the compete strip's terminal verb.
  *
- * Three branches whose ORDER is the contract, so these pin every branch
- * INCLUDING the two that are easy to lose: an absent member, and the
- * win-beats-concede precedence.
+ * Three branches, pinned INCLUDING the one that is easy to lose: an absent
+ * member.
  */
 
 /** A player row, defaulted to the ordinary "played and did not win" case. */
-const player = (over: Partial<GamePlayer> = {}): GamePlayer => ({
-  user_id: 'u1',
-  username: 'ada',
-  color: 'red',
-  conceded: false,
-  conceded_at: null,
-  locally_terminal: false,
-  result: null,
-  ai_member: false,
-  ...over,
-})
+const player = (over: Parameters<typeof gp>[3] = {}): GamePlayer => gp('u1', 'ada', 'red', over)
 
 describe('terminalOutcomeVerb', () => {
-  it('says Won when the end-state says they won', () => {
-    expect(terminalOutcomeVerb(player({ result: { won: true } }))).toBe('Won')
+  it('says Won when the player came out won', () => {
+    expect(terminalOutcomeVerb(player({ final_ranking: 1, outcome: 'won' }))).toBe('Won')
   })
 
   it('says Conceded for a conceder', () => {
-    expect(terminalOutcomeVerb(player({ conceded: true, conceded_at: '2026-09-03T00:00:00Z' }))).toBe('Conceded')
+    expect(terminalOutcomeVerb(player({ ...CONCEDED, outcome: 'lost' }))).toBe('Conceded')
   })
 
   it('says Lost for anyone else who did not win', () => {
     expect(terminalOutcomeVerb(player())).toBe('Lost')
-    expect(terminalOutcomeVerb(player({ result: { won: false } }))).toBe('Lost')
-    // A result that exists but says nothing about winning is still not a win.
-    expect(terminalOutcomeVerb(player({ result: { score: 40 } }))).toBe('Lost')
-  })
-
-  it('lets Won TRUMP a concede, which is branch order and not an accident', () => {
-    // Reachable: concede a race that someone has already ended in your favor.
-    // If the branches were reordered this would read "Conceded" and nothing else
-    // in the suite would notice.
-    expect(terminalOutcomeVerb(player({ conceded: true, result: { won: true } }))).toBe('Won')
+    expect(terminalOutcomeVerb(player({ outcome: 'lost' }))).toBe('Lost')
+    // Ranked below first is not a win.
+    expect(terminalOutcomeVerb(player({ final_ranking: 2, outcome: 'near' }))).toBe('Lost')
   })
 
   it('says Lost for a member it cannot resolve', () => {
@@ -58,10 +41,10 @@ describe('terminalOutcomeVerb', () => {
     const cases: (GamePlayer | undefined)[] = [
       undefined,
       player(),
-      player({ conceded: true }),
-      player({ result: { won: true } }),
-      player({ conceded: true, result: { won: true } }),
-      player({ result: {} }),
+      player(CONCEDED),
+      player({ outcome: 'won' }),
+      player({ outcome: 'near' }),
+      player({ outcome: 'neutral' }),
     ]
     for (const c of cases) expect(['Won', 'Conceded', 'Lost']).toContain(terminalOutcomeVerb(c))
   })

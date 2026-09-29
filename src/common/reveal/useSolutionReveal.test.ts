@@ -15,20 +15,21 @@ import { solvedByMe, useSolutionReveal } from './useSolutionReveal'
  */
 describe('solvedByMe', () => {
   it('coop asks the GAME — one board, one outcome', () => {
-    expect(solvedByMe({ isCompete: false, playState: 'won', mine: false })).toBe(true)
-    // …and only a WIN counts: a manual stop or a loss solved nothing.
-    expect(solvedByMe({ isCompete: false, playState: 'ended', mine: false })).toBe(false)
-    expect(solvedByMe({ isCompete: false, playState: 'lost', mine: false })).toBe(false)
+    expect(solvedByMe({ isCompete: false, gameOutcome: 'won', mine: false })).toBe(true)
+    // …and only a WIN counts: a Stop, a loss or a game still played solved nothing.
+    expect(solvedByMe({ isCompete: false, gameOutcome: 'neutral', mine: false })).toBe(false)
+    expect(solvedByMe({ isCompete: false, gameOutcome: 'lost', mine: false })).toBe(false)
+    expect(solvedByMe({ isCompete: false, gameOutcome: null, mine: false })).toBe(false)
   })
 
   it('compete asks ME — the verdict is not a proxy for my own board', () => {
-    // The whole reason this isn't `playState`-driven: `won_compete` means
-    // SOMEONE won, and handing the loser the answer is what we're avoiding.
-    expect(solvedByMe({ isCompete: true, playState: 'won_compete', mine: false })).toBe(false)
-    expect(solvedByMe({ isCompete: true, playState: 'won_compete', mine: true })).toBe(true)
-    // strands compete deliberately doesn't end on first solve: a player who
-    // solved but lost on hint count still consumed their board.
-    expect(solvedByMe({ isCompete: true, playState: 'lost_compete', mine: true })).toBe(true)
+    // The whole reason this doesn't read the game's outcome: a race is `won`
+    // when SOMEONE won, and handing the loser the answer is what we're avoiding.
+    expect(solvedByMe({ isCompete: true, gameOutcome: 'won', mine: false })).toBe(false)
+    expect(solvedByMe({ isCompete: true, gameOutcome: 'won', mine: true })).toBe(true)
+    // A player who solved but lost the race on its ranking still consumed
+    // their board.
+    expect(solvedByMe({ isCompete: true, gameOutcome: 'lost', mine: true })).toBe(true)
   })
 })
 

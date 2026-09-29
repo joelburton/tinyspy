@@ -1,12 +1,14 @@
 // cs-blessed-members
 
+import type { EndOutcome, PlayerEndedReason } from '../terminal/gameEnding'
+
 /**
  * Who someone IS — the identity shape every render site in the app shares, and
  * the game-context superset that adds how their game ended.
  *
  * Reach for this whenever you render a person: a chat sender, a club roster
  * row, a player in an OpponentStrip, a name in an event log. `Member` is the
- * three fields you always need; `GamePlayer` adds the three that only exist
+ * three fields you always need; `GamePlayer` adds the ones that only exist
  * once someone is seated in a game.
  *
  * **Types only, and that is load-bearing.** `Member` is imported by more of the
@@ -55,32 +57,27 @@ export type Actor = Pick<Member, 'username' | 'color'>
  * Member because a chat sender is a Member but never a game player.
  * `GamePlayer` is a superset, so anything typed `Member[]` still
  * accepts `GamePlayer[]` — a game's OpponentStrip / event-log can keep
- * their `Member` props while the PlayArea reads `conceded` off the
+ * their `Member` props while the PlayArea reads the ending off the
  * same roster.
  *
- *   - `conceded`     — this player willfully quit a compete race
- *                      (common.concede) and is out of it, while the
- *                      game continues for everyone still racing. It
- *                      drives the OpponentStrip's "out" marker —
- *                      rendered by each game's own `metricFor`, so
- *                      the strip itself never names this field — and
- *                      the "Conceded at …" vs "Lost at …" terminal verb.
- *   - `conceded_at`  — when they quit, or null. Written with the flag
- *                      and cleared with it, so a true `conceded`
- *                      always carries one.
- *   - `locally_terminal`
- *                    — this player is DONE while the game plays on:
- *                      eliminated, out of budget, or finished ahead
- *                      of the others in a best-style race
- *                      (docs/win-lose.md). NOT a second `conceded` —
- *                      a conceder forfeits any win and this player
- *                      may be the winner. What reads it is presence:
- *                      nothing is waiting for them, so their closed
- *                      tab must not pause the game for everyone
- *                      still playing.
- *   - `result`       — the per-player end-state jsonb from
- *                      common.game_players.result; null until the
- *                      game ends.
+ *   - `player_ended_at` and its reason pair
+ *                    — this player stopped playing while the game went
+ *                      on: solved, eliminated, out of budget, or
+ *                      conceded (reason `conceded`), null if they never
+ *                      did (docs/common-schema.md → Not playing any
+ *                      more). A player who ended without conceding may
+ *                      still win. Presence reads it: nothing is waiting
+ *                      for them, so their closed tab must not pause the
+ *                      game for everyone still playing.
+ *   - `final_ranking` and `outcome`
+ *                    — how they came out, both written when the game
+ *                      ends and null before it: 1 is `won`, lower is
+ *                      `near`, unranked is `lost` or `neutral`.
+ *   - `solved_at`    — when they solved, in a game with something to
+ *                      solve.
+ *   - `player_status`
+ *                    — the game's copy of what the page shows about
+ *                      this player; each game casts it to its own type.
  *   - `ai_member`    — this seat is one of scrabble's AI opponents.
  *                      A profile fact (`common.profiles.ai_member`)
  *                      rather than a game one, but it sits HERE and
@@ -93,9 +90,12 @@ export type Actor = Pick<Member, 'username' | 'color'>
  *                      permanently hollow dot.
  */
 export type GamePlayer = Member & {
-  conceded: boolean
-  conceded_at: string | null
-  locally_terminal: boolean
-  result: Record<string, unknown> | null
+  player_ended_at: string | null
+  player_ended_reason: PlayerEndedReason | null
+  player_ended_reason_detail: string | null
+  final_ranking: number | null
+  outcome: EndOutcome | null
+  solved_at: string | null
+  player_status: Record<string, unknown>
   ai_member: boolean
 }

@@ -1,34 +1,42 @@
 // cs-blessed-members
 
-import type { GamePlayer } from './member'
+import type { GamePlayer, Member } from './member'
 
 /**
  * Build a [GamePlayer] for component tests with the per-player state defaulted
- * (still playing, no result — the normal mid-game state). Pass `over` to set
- * `conceded`, `locally_terminal` or `result` for a drop-out, a finished racer
- * or a terminal scenario.
+ * (still playing, unranked, an empty status — the normal mid-game state). Pass
+ * `over` to set the ending, the ranking or the `player_status` for a drop-out, a
+ * finished player or an ended game.
  *
  * Keeps test fixtures from having to spell those fields out on every player
  * literal, and gives the concede tests a one-liner conceded player:
- * `gp('u2', 'moth', 'blue', { conceded: true })`.
+ * `gp('u2', 'moth', 'blue', CONCEDED)`.
  */
 export function gp(
   user_id: string,
   username: string,
   color: string,
-  over: Partial<
-    Pick<GamePlayer, 'conceded' | 'conceded_at' | 'locally_terminal' | 'result' | 'ai_member'>
-  > = {},
+  over: Partial<Omit<GamePlayer, keyof Member>> = {},
 ): GamePlayer {
   return {
     user_id,
     username,
     color,
-    conceded: false,
-    conceded_at: null,
-    locally_terminal: false,
-    result: null,
+    player_ended_at: null,
+    player_ended_reason: null,
+    player_ended_reason_detail: null,
+    final_ranking: null,
+    outcome: null,
+    solved_at: null,
+    player_status: {},
     ai_member: false,
     ...over,
   }
 }
+
+/** The ending columns of a player who conceded, for `gp`'s `over`. */
+export const CONCEDED = {
+  player_ended_at: '2026-09-03T00:00:00Z',
+  player_ended_reason: 'conceded',
+  player_ended_reason_detail: 'conceded',
+} as const satisfies Partial<GamePlayer>

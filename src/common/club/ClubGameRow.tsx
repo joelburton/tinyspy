@@ -15,9 +15,9 @@ type Props = {
   // Gametype-rendered status string, e.g. "13/16 agents" or "lost (assassin)".
   // Produced by the manifest's `labelFor`.
   statusLabel: string
-  // `common.games.last_active_at`, ISO — the last status/progress write (or end
-  // time), a "last played" proxy. Rendered via friendlyDate.
-  lastActiveAt: string
+  // `common.games.status_changed_at`, ISO — when the status last changed (a
+  // move, a Restart, the end), a "last played" proxy. Rendered via friendlyDate.
+  statusChangedAt: string
   // Where in the lifecycle this game sits. Drives exactly one thing: the corner
   // flag <GameEntry> draws (orange = the club's current game, yellow = shelved
   // but still open, none = finished).
@@ -48,14 +48,14 @@ export function ClubGameRow({
   manifest,
   title,
   statusLabel,
-  lastActiveAt,
+  statusChangedAt,
   state,
   soloClub,
   onDelete,
 }: Props) {
   // Friendly relative date — see friendlyDate.ts. Doesn't tick; re-renders when
   // `useClubGames` refetches via realtime, which is often enough for a game list.
-  const dateLabel = friendlyDate(lastActiveAt)
+  const dateLabel = friendlyDate(statusChangedAt)
 
   return (
     <>

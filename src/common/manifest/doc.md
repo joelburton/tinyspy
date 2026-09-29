@@ -43,9 +43,10 @@ and `npm run report:labels` prints what every game actually says.
   into one per row.
 
 - **A status line may only say what every player already sees.**
-  `common.games.status` is club-readable, so a compete game's private progress
-  must never be written there. Several compete labels are a bare `Playing` for
-  exactly that reason, and it is a rule about the RPC, not about the label.
+  `common.games.clubpage_info` is club-readable, so a compete game's private
+  progress must never be written there. Several compete labels are a bare
+  `Playing` for exactly that reason, and it is a rule about the status builder,
+  not about the label.
 
 - **`TimerMode` lives here without a member needing it.** Every setup form and
   `useGameTimer` speak it, and the manifest is where a game's contract with the

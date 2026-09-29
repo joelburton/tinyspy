@@ -15,15 +15,14 @@ import type { GamePlayer } from '../members/member'
  * separator are each game's; the verb is the part that must not differ.
  *
  * **Won trumps everything**, then a conceder "conceded", and anyone else who did
- * not win "lost" — beaten to the win, or eliminated. The precedence is the
- * branch order and matters: a player can be flagged `conceded` and still hold a
- * winning `result` (they conceded a race someone had already ended), and that
- * reads as Won.
+ * not win "lost" — beaten to the win, ranked below first, or eliminated. Won is
+ * the player's `outcome`, written when the game ends; a conceder is never ranked,
+ * so the order only says which question is asked first.
  *
  * A missing member reads as 'Lost': a peer we cannot resolve did not win.
  */
 export function terminalOutcomeVerb(member: GamePlayer | undefined): 'Won' | 'Conceded' | 'Lost' {
-  if (member?.result?.won === true) return 'Won'
-  if (member?.conceded) return 'Conceded'
+  if (member?.outcome === 'won') return 'Won'
+  if (member?.player_ended_reason === 'conceded') return 'Conceded'
   return 'Lost'
 }

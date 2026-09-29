@@ -1,6 +1,7 @@
 // cs-blessed-reveal
 
 import { useCallback, useState } from 'react'
+import type { EndOutcome } from '../terminal/gameEnding'
 
 /** What `useSolutionReveal` hands back — see the hook. */
 export interface SolutionReveal {
@@ -26,29 +27,30 @@ export interface SolutionReveal {
  * puzzle-solution on screen, so there is nothing to compute and the game passes
  * no `impliedBy` at all. Both terms: `common/reveal/doc.md`.
  *
- * **Compete: pass your own per-player solved bit.** The game's verdict is no
- * proxy for it — wordle writes `won_compete` when SOMEONE wins, and the racer
- * three guesses off never produced the word.
+ * **Compete: pass your own per-player solved bit.** The game's outcome is no
+ * proxy for it — a wordle race is `won` when SOMEONE wins, and the racer three
+ * guesses off never produced the word.
  *
  * **Coop ignores `mine` and asks the game**, because one board means one
  * answer: if the table solved it, every player is looking at the solution. Pass
  * whatever the game has; it is not read. (Why a per-player row can't stand in
  * for the game here: this folder's doc.md.)
  *
- * `playState === 'won'` is the coop win in the shared vocabulary (docs/states.md);
- * 'ended' and 'lost' are terminals nobody solved.
+ * A coop game's outcome `won` is the table's win (docs/states.md → How a game
+ * ends); `lost` and `neutral` are endings nobody solved.
  */
 export function solvedByMe({
   isCompete,
-  playState,
+  gameOutcome,
   mine,
 }: {
   isCompete: boolean
-  playState: string
+  // The game's outcome (`ending?.outcome`), null while it is played.
+  gameOutcome: EndOutcome | null
   // The caller's own per-player solved bit — compete's answer.
   mine: boolean
 }): boolean {
-  return isCompete ? mine : playState === 'won'
+  return isCompete ? mine : gameOutcome === 'won'
 }
 
 /**

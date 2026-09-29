@@ -51,9 +51,10 @@ there and calls this helper with them. A `usePause` would need either a second
 channel or a share of the first, and both are worse than a function.
 
 **Who counts as expected is `useCommonGame`'s decision**: the game's players
-minus everyone the game is no longer waiting for — anyone
-`common.game_players.locally_terminal` says is out (conceded, eliminated, out
-of budget, or finished ahead of the others in a best-style race), and the bots.
+minus everyone the game is no longer waiting for — anyone whose
+`common.game_players.player_ended_at` is set (conceded, eliminated, out of
+budget, or finished ahead of the others in a race that plays out), and the
+bots.
 None of them holds the rest of the table hostage. A player invited but not yet
 arrived DOES count — a fresh
 game sits paused, waiting, until everyone has joined, which is the point

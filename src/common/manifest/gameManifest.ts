@@ -5,6 +5,7 @@ import type { ComponentType } from 'react'
 import type { Envelope } from '../supabase/envelope'
 import type { GameSetupForm } from '../setup-form/setupForm'
 import type { GamePageCtx } from '../game-page/gamePageCtx'
+import type { GameEnding } from '../terminal/gameEnding'
 
 /**
  * WHAT A GAME DECLARES — the shape each game's `manifest.ts` exports so the
@@ -55,7 +56,8 @@ export type CreatedGame = { result: 'created'; id: string }
 /**
  * What `stop_game` and `submit_timeout` both answer with: the game is over.
  * ONE result for both, because it is one fact — HOW it came to be over is
- * already in `common.games.status`, which every surface reads anyway.
+ * already in the ending columns of `common.games`, which every surface reads
+ * anyway.
  */
 export type GameStopResult = { result: 'ended' }
 
@@ -222,10 +224,10 @@ export type GameManifest = {
   //
   // That contract is what keeps the listing one-query: ClubPage
   // fetches `common.games` for the club, then dispatches each
-  // row to the matching manifest's labelFor. The state-transition
-  // RPCs are responsible for writing whatever the gametype's
-  // labelFor needs into `common.games.status` (jsonb) — the
-  // duplicate-write discipline; see docs/common-schema.md → Title, status and last activity.
+  // row to the matching manifest's labelFor. The game's status
+  // builder writes whatever the gametype's labelFor needs into
+  // `common.games.clubpage_info`; see docs/common-schema.md → Title,
+  // statuses and the two dates.
   labelFor: (row: CommonGameListRow) => string
 
   // Fire this gametype's timeout RPC. Called by GamePage when
@@ -237,14 +239,14 @@ export type GameManifest = {
   // log — peers racing to fire the timeout is fine.
   //
   // Per-gametype rather than one common.submit_timeout because
-  // each RPC writes its own gametype-specific terminal state +
-  // status jsonb. Dispatching at the FE keeps the SQL side from
+  // each RPC ends the game by its own rules and runs its own
+  // status builder. Dispatching at the FE keeps the SQL side from
   // needing per-gametype branches.
   submitTimeout: (gameId: string) => Promise<Envelope<GameStopResult>>
 
   // Stop this game NOW (irreversible). Dispatches to the gametype's own
   // `<schema>.stop_game(target_game)` RPC — the same one the in-game "Stop game"
-  // menu/button calls — so the terminal outcome + `status` jsonb are computed
+  // menu/button calls — so the ending and the statuses are written
   // the game's own way.
   //
   // On the manifest (mirroring `submitTimeout`) so GamePage can offer it from
@@ -270,11 +272,6 @@ export type GameManifest = {
  * The slice of a `common.games` row that a gametype's `labelFor` may read —
  * the inputs to one game's line in the club list.
  *
- * **Careful with the word "status" around here: it means three things.** The
- * club page calls that rendered line a game's *status line*
- * (docs/game-status-labels.md), and it is the OUTPUT. `play_state` and
- * `status` below are two of its inputs, and they are not each other.
- *
  * Stays narrow on purpose, and the narrowness IS the contract: everything a
  * label needs must already be on `common.games`, so ClubPage fetches the club's
  * games once and hands each row to the matching `labelFor` with no follow-up
@@ -283,30 +280,16 @@ export type GameManifest = {
 export type CommonGameListRow = {
   id: string
   gametype: string
-  // WHERE THE GAME IS — its own state-machine value (docs/states.md), and
-  // whether that value is an ending. Most labels switch on `play_state` and
-  // use `is_terminal` to pick a tense.
-  play_state: string
-  is_terminal: boolean
-  // HOW IT IS GOING — the gametype's own progress payload, rewritten by each
-  // state-transition RPC as the game is played (the duplicate-write
-  // discipline — docs/common-schema.md → Title, status and last activity). Per-gametype shape,
-  // so a label casts it.
-  status: Record<string, unknown> | null
-  // HOW IT WAS SET UP — the setup blob frozen at creation and never written
-  // again.
-  //
-  // The pairing is the thing to hold onto: `status` changes and `setup` does
-  // not. Most labels want only `status`. A label wants this as well when a
-  // CREATE-TIME choice is what shapes how the game reads — waffle, wordle and
-  // stackdown name the dictionary band (`· dict "Familiar"`), boggle the target
-  // percentage, setgame the deck.
-  //
-  // A create-time value cannot simply be written into `status` instead:
-  // `common.update_state` MERGES into that blob, but `common._reset_game`
-  // ASSIGNS a fresh one, so a restart would drop the key. `setup` is immutable
-  // and already on the row, so the listing query just selects it.
-  setup: Record<string, unknown> | null
+  // How the game ended, or null while it is played. Most labels switch on it:
+  // a live line, or the verdict and the reason.
+  ending: GameEnding | null
+  // `common.games.clubpage_info` — the numbers the club line shows beyond the
+  // row's columns, a copy the game's status builder writes whole at create,
+  // Restart and every move (docs/common-schema.md → Title, statuses and the two
+  // dates). Per-gametype shape with every key always present, so a label casts
+  // it to its own type. It carries the create-time choices a line names too (a
+  // dictionary band, a deck), so a label never reads `setup`.
+  clubpageInfo: Record<string, unknown>
 }
 
 /**
@@ -317,8 +300,7 @@ export type CommonGameListRow = {
  *     playing, shown as it climbs. Drives no state change.
  *   - `countdown` — `seconds` minus that count. At zero,
  *     `useGameTimer.expired` is true; `GamePage` fires the gametype's
- *     `submitTimeout` on that edge, and the game flips to a terminal
- *     play_state.
+ *     `submitTimeout` on that edge, which ends the game.
  *
  * The count is the server's (`common.timers.ticks`, advanced by
  * `common.tick_timer`); the design is `src/common/timer/doc.md`.

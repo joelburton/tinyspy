@@ -19,8 +19,8 @@ type Props = {
   title: string
   // Gametype-rendered status string, produced by the manifest's `labelFor`.
   statusLabel: string
-  // `common.games.last_active_at`, ISO. Rendered via friendlyDate.
-  lastActiveAt: string
+  // `common.games.status_changed_at`, ISO. Rendered via friendlyDate.
+  statusChangedAt: string
   // Called when the user confirms the delete affordance. ClubPage owns the
   // mechanics. Omit and the callout is read-only.
   onDelete?: () => Promise<void> | void
@@ -43,11 +43,11 @@ export function CurrentGameCard({
   manifest,
   title,
   statusLabel,
-  lastActiveAt,
+  statusChangedAt,
   onDelete,
   soloClub,
 }: Props) {
-  const dateLabel = friendlyDate(lastActiveAt)
+  const dateLabel = friendlyDate(statusChangedAt)
 
   return (
     <div className={styles.standalone}>

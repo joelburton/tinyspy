@@ -15,7 +15,7 @@ import { INVITE_MAX_AGE_MS, inviteCutoffIso, newInviteCandidates, type InviteCan
  *
  * **Is it RECENT?** That one rides on the query, not on the filter, so stale
  * rows never leave the database — which leaves the arithmetic as the only
- * testable part. The bound is load-bearing because `is_terminal = false` is
+ * testable part. The bound is load-bearing because `ended_at is null` is
  * not a staleness bound; `INVITE_MAX_AGE_MS` says why, and why an hour.
  */
 

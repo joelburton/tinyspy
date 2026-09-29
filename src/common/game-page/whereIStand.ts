@@ -33,7 +33,7 @@ export function whereIStand({
   players: GamePlayer[]
   // The viewing player's user id.
   myId: string
-  // `common.games.is_terminal`.
+  // The game has ended: `common.games.ended_at` is set.
   isTerminal: boolean
   // The players were seated in a turn order.
   isTurnBased: boolean
@@ -44,8 +44,8 @@ export function whereIStand({
 }): Standing {
   const me = players.find((p) => p.user_id === myId)
   const isPlayer = me !== undefined
-  const isConceded = me?.conceded ?? false
-  const isLocallyTerminal = me?.locally_terminal ?? false
+  const isConceded = me?.player_ended_reason === 'conceded'
+  const isLocallyTerminal = (me?.player_ended_at ?? null) !== null
   const isStillPlaying = isPlayer && !isTerminal && !isLocallyTerminal
   const isMyTurn = isStillPlaying && (!isTurnBased || turnHolderId === myId)
   const isWaitingForTurn = isStillPlaying && !isMyTurn

@@ -58,7 +58,8 @@ hooks that no game's own code can reach. A game therefore writes NOTHING to
 handle a restart; the alternative was each game noticing its own rows vanish and
 clearing what it remembered, which several got wrong and none could reach a
 shared hook with. Nothing else on the row can serve as the key — a mid-game
-restart leaves `play_state`, `ended_at` and `status` exactly as they were.
+restart leaves `ended_at` exactly as it was, and its statuses may come back
+the same.
 
 **Restart serves three players**, which is why it is offered at every ending
 and not only a loss: the do-over (we lost, let us finish), the line-explorer
@@ -66,7 +67,7 @@ and not only a loss: the do-over (we lost, let us finish), the line-explorer
 own count). It costs two things, both accepted: the win is wiped until the
 board is solved again, and so is the previous run's event log. Its button shows
 only at terminal; its menu row is there all game, and mid-game the registry's
-question asks first. `<game>.replay_board` itself has no `play_state` gate —
+question asks first. `<game>.replay_board` itself has no ended-game gate —
 the question is the protection — and answers `{ result: 'replayed' }`. The one
 thing that refuses it is the game having been deleted underneath the page
 (PN485), and that is asked BEFORE membership, because the delete cascades

@@ -53,7 +53,7 @@ filter already IS the control, mount none of this.
 ```
 <PlayArea>                              ten of the sixteen games
 └── useSolutionReveal({ impliedBy? })    local, per-player, unpersisted
-     ├── impliedBy: solvedByMe({ isCompete, playState, mine })   the six where a board-solution IS the puzzle-solution
+     ├── impliedBy: solvedByMe({ isCompete, gameOutcome, mine })   the six where a board-solution IS the puzzle-solution
      └── revealed · impliedBySolve → describeReveal({ noun, … }), placed as the game's act-reveal
            impliedBySolve → disabled, "Solution already shown"
            revealed       → "Hide <noun>" + IconHideSolution
@@ -87,7 +87,7 @@ the Help list, which is where the glyph is named.
 
 **Coop asks the GAME, compete asks ME.** In compete the verdict is no proxy —
 a race is won by someone, and the racer three guesses off never produced the
-word. In coop there is one board and one outcome, so `playState === 'won'`
+word. In coop there is one board and one outcome, so the game's outcome `won`
 answers it, and the per-player bit is unreliable there in a different way per
 game: stackdown writes `players.solved` only in compete, strands' coop branch
 never sets it, and psychicnum counts found secrets per CALLER, so two teammates
@@ -107,7 +107,7 @@ see what they had just earned. The choice belongs to the run, and so does the
 hook.
 
 **The server's half is the shield, and it is a different question.** Each
-gametype's column grant hands the solution over at `is_terminal` — over for
+gametype's column grant hands the solution over at `ended_at` — over for
 EVERYONE, never per-player done — so a player who conceded, was eliminated or
 finished early cannot read the answer out while the rest are still racing. That
 is why a game shows the control disabled with "Can't reveal until all end"

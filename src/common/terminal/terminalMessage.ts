@@ -42,7 +42,7 @@ export type TerminalMessage = {
 
 /**
  * The one terminal message every game shares: the friends agreed to stop
- * (`play_state === 'ended'`), so nobody won and nobody lost. Nothing about
+ * (the ending's reason `stopped`), so nobody won and nobody lost. Nothing about
  * that outcome is game-specific, which is why it can live here at all.
  *
  * A game may still write its own — boggle does, spending the pill on the

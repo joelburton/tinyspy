@@ -66,8 +66,8 @@ function browserInfoLine(): string {
  *     a named page for every way they stop — so the log's silence corroborates
  *     what is already on screen rather than being the only evidence.
  *   - **"slot mounted", then blank** → the shell handed the slot over and what
- *     filled it drew nothing. The gametype + play_state in the line say exactly
- *     which game and state to reproduce against.
+ *     filled it drew nothing. The gametype, and whether the game had ended, in
+ *     the line say exactly which game and state to reproduce against.
  *
  * The mount line is followed by a one-line **browser snapshot** (viewport, DPR,
  * screen, an approximate zoom, root font size, pointer, UA), which is worth
@@ -79,26 +79,24 @@ function browserInfoLine(): string {
 export function PlayAreaSlotLog({
   gametype,
   gameId,
-  playState,
   isTerminal,
   children,
 }: {
   gametype: string
   gameId: string
-  playState: string
   isTerminal: boolean
   children: ReactNode
 }) {
   // Snapshot the at-mount state once (a ref initializer runs on the first
   // render only) — the log is a mount event, and putting the live values in
-  // the effect's deps would re-fire it on every play_state change, exactly
-  // the flood this component exists to avoid.
-  const atMountRef = useRef({ playState, isTerminal })
+  // the effect's deps would re-fire it on every change, exactly the flood
+  // this component exists to avoid.
+  const atMountRef = useRef({ isTerminal })
   useEffect(function logTheSlotMount() {
     const atMount = atMountRef.current
     console.log(
       `[ui ${logStamp()}] playarea slot mounted — ${gametype} ${gameId} ` +
-        `(play_state=${atMount.playState} terminal=${atMount.isTerminal})`,
+        `(ended=${atMount.isTerminal})`,
     )
     console.log(`[ui ${logStamp()}] browser — ${browserInfoLine()}`)
     return function logTheSlotUnmount() {

@@ -76,7 +76,7 @@ const dbData: Record<string, unknown[]> = {
 }
 
 /** Every `.gt(col, value)` the hook applied, so a test can assert the
- *  invitation scan is bounded by age and not just by `is_terminal`. */
+ *  invitation scan is bounded by age and not just by `ended_at`. */
 const gtCalls: [string, string][] = []
 
 vi.mock('../supabase/db', () => {
@@ -84,12 +84,14 @@ vi.mock('../supabase/db', () => {
     const b: {
       select: () => typeof b
       eq: () => typeof b
+      is: () => typeof b
       gt: (col: string, value: string) => typeof b
       in: () => typeof b
       then: (resolve: (v: { data: unknown[]; error: null }) => void) => void
     } = {
       select: () => b,
       eq: () => b,
+      is: () => b,
       gt: (col, value) => {
         gtCalls.push([col, value])
         return b
@@ -225,7 +227,7 @@ describe('useGameInvitations', () => {
 })
 
 /**
- * The scan's age bound — load-bearing, because `is_terminal = false` is not a
+ * The scan's age bound — load-bearing, because `ended_at is null` is not a
  * staleness bound. `INVITE_MAX_AGE_MS` says what goes wrong without it.
  */
 describe('useGameInvitations — the backfill is bounded by age', () => {

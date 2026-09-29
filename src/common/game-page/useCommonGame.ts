@@ -17,6 +17,8 @@ import type { GamePlayer, Member } from '../members/member'
 import { useGameTimer } from '../timer/useGameTimer'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 import { whereIStand } from './whereIStand'
+import type { GameEnding } from '../terminal/gameEnding'
+import { readGameEnding } from '../terminal/readGameEnding'
 
 /**
  * The subset of common.games a game page sees. Mirrors the row shape, so the
@@ -31,31 +33,30 @@ export type CommonGame = {
   club_handle: string
   gametype: string
   title: string
-  setup: { timer?: TimerMode } & Record<string, unknown>
+  // The setup form's record, frozen at create: read to show the form's choices
+  // back and to replay them, never for the game's logic.
+  setup: Record<string, unknown>
   // True when this game is the club's current view (the one whose URL members
   // auto-route into). At most one per club — guarded by a partial unique index.
-  // Orthogonal to play_state: a current-view game can be terminal (a club still
-  // reviewing the end-state); a non-current game can be non-terminal (a
+  // Orthogonal to the ending: a current-view game can be over (a club still
+  // reviewing the end-state); a non-current game can be unfinished (a
   // suspended game waiting to be resumed). See docs/states.md.
   is_current_view: boolean
-  // Gametype-specific play state. `'playing'` is the standard non-terminal
-  // value; some gametypes have additional non-terminal states. Gate on
-  // `is_terminal` below — it's the materialized "any terminal play_state".
-  play_state: string
-  // Materialized "is any terminal play_state" — `common._end_game` flips this to
-  // true alongside writing the terminal play_state, so consumers can gate on a
-  // uniform boolean without knowing each gametype's vocabulary.
-  is_terminal: boolean
+  // How the game ended, or null while it is played — read off the row's
+  // `ended_at` and the columns beside it.
+  ending: GameEnding | null
   // Which RUN of this board we are on — 0 until the first restart, then +1 per
   // restart. The page keys the play surface on it, so a restart takes every
   // piece of a game's local state with it rather than each game hunting its own
   // leftovers. Nothing reads the VALUE; only that it changed.
-  restarts: number
-  // Free-form per-gametype outcome detail. Each gametype writes its own shape;
-  // the matching manifest's `labelFor` reads it back to render the club-page
-  // listing row. Kept current by every state-transitioning RPC via
-  // common.update_state / common._end_game — not just a terminal-time snapshot.
-  status: Record<string, unknown> | null
+  restart_count: number
+  // The game's copy of what the info column shows; see `GamePageCtx.gameStatus`.
+  game_status: Record<string, unknown>
+  // Moved by every write to the row; see `GamePageCtx.commonGameUpdatedAt`.
+  updated_at: string
+  // The timer, from `common.timers`: its kind and a countdown's length were
+  // copied there from the setup at create, and are what the game reads.
+  timer_mode: TimerMode
   started_at: string
   ended_at: string | null
   // The turn pointer, for a game played in turns (docs/common-schema.md →
@@ -249,8 +250,8 @@ export function useCommonGame(
     // overlapping loads (initial + on-SUBSCRIBED + one per postgres-changes
     // event), which can resolve out of order. Each `load()` stamps a
     // generation and commits only if it's still the newest — so a slow initial
-    // load landing after a fast event-load can't regress play_state / is_terminal
-    // / the roster. Same fix as useRealtimeRefetch's factory.
+    // load landing after a fast event-load can't regress the ending or the
+    // roster. Same fix as useRealtimeRefetch's factory.
     let generation = 0
 
     async function load() {
@@ -269,21 +270,29 @@ export function useCommonGame(
       //
       // No embed of clubs(handle) either: common.games.club_handle IS the
       // club's handle, so the club-page URL comes off this row directly.
-      const [gameRes, playersRes] = await Promise.all([
+      const [gameRes, playersRes, timerRes] = await Promise.all([
         // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
         // so this is 0 or 1 of them.
         readRows(
           commonDb
             .from('games')
             .select(
-              'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, restarts, status, started_at, ended_at, current_turn_user_id',
+              'id, club_handle, gametype, title, setup, is_current_view, restart_count, game_status, updated_at, started_at, ended_at, game_ended_reason, game_ended_reason_detail, game_ended_outcome, game_ended_by_user_id, current_turn_user_id',
             )
             .eq('id', gameId),
         ),
         readRows(
           commonDb
             .from('game_players')
-            .select('user_id, conceded, conceded_at, locally_terminal, result, turn_seat')
+            .select(
+              'user_id, player_ended_at, player_ended_reason, player_ended_reason_detail, final_ranking, outcome, solved_at, player_status, turn_seat',
+            )
+            .eq('game_id', gameId),
+        ),
+        readRows(
+          commonDb
+            .from('timers')
+            .select('kind, countdown_seconds_at_setup')
             .eq('game_id', gameId),
         ),
       ])
@@ -302,6 +311,11 @@ export function useCommonGame(
       }
       if (playersRes.type === 'not-ok') {
         setFailure(playersRes)
+        setLoading(false)
+        return
+      }
+      if (timerRes.type === 'not-ok') {
+        setFailure(timerRes)
         setLoading(false)
         return
       }
@@ -339,7 +353,7 @@ export function useCommonGame(
         }
         const profileData = profilesRes.data
         // Merge the profile (username/color) with the per-player
-        // game_players bits (conceded/locally_terminal/result) into one
+        // game_players bits (the ending, ranking and status) into one
         // GamePlayer.
         const byId = new Map(
           (playerRows ?? []).map((r) => [r.user_id, r]),
@@ -349,10 +363,14 @@ export function useCommonGame(
           const { ai_member, ...member } = prof
           return {
             ...(member as Member),
-            conceded: gp?.conceded ?? false,
-            conceded_at: gp?.conceded_at ?? null,
-            locally_terminal: gp?.locally_terminal ?? false,
-            result: (gp?.result as GamePlayer['result']) ?? null,
+            player_ended_at: gp?.player_ended_at ?? null,
+            player_ended_reason:
+              (gp?.player_ended_reason as GamePlayer['player_ended_reason']) ?? null,
+            player_ended_reason_detail: gp?.player_ended_reason_detail ?? null,
+            final_ranking: gp?.final_ranking ?? null,
+            outcome: (gp?.outcome as GamePlayer['outcome']) ?? null,
+            solved_at: gp?.solved_at ?? null,
+            player_status: (gp?.player_status as GamePlayer['player_status']) ?? {},
             ai_member,
           }
         })
@@ -363,15 +381,26 @@ export function useCommonGame(
       // this line is that moment, timestamped, in a real browser's console.
       rtLog(
         `game:${gameId}`,
-        `load #${myGen}: play_state=${gameData.play_state}` +
-          ` terminal=${gameData.is_terminal} players=${playerList.length}`,
+        `load #${myGen}: ended_at=${gameData.ended_at}` +
+          ` updated_at=${gameData.updated_at} players=${playerList.length}`,
       )
 
       clubHandleRef.current = gameData.club_handle
       setCommonGame({
-        ...gameData,
+        id: gameData.id,
+        club_handle: gameData.club_handle,
+        gametype: gameData.gametype,
+        title: gameData.title,
         setup: gameData.setup as CommonGame['setup'],
-        status: gameData.status as CommonGame['status'],
+        is_current_view: gameData.is_current_view,
+        ending: readGameEnding(gameData),
+        restart_count: gameData.restart_count,
+        game_status: gameData.game_status as CommonGame['game_status'],
+        updated_at: gameData.updated_at,
+        timer_mode: timerModeOf(timerRes.data[0]),
+        started_at: gameData.started_at,
+        ended_at: gameData.ended_at,
+        current_turn_user_id: gameData.current_turn_user_id,
       })
       setPlayers(playerList)
       setIsTurnBased((playerRows ?? []).some((r) => r.turn_seat !== null))
@@ -396,10 +425,10 @@ export function useCommonGame(
       if (canceled) return
       const ch = supabase.channel(room)
 
-      // Postgres-changes on common.games for this gameId. Drives
-      // refetch on is_current_view flip, ended_at set, status jsonb
-      // populate — the cross-cutting transitions every consumer
-      // cares about.
+      // Postgres-changes on common.games for this gameId. Every move writes
+      // the row through its status builder, so this is how the page — and,
+      // through `updated_at`, each game's own hook — learns of every move,
+      // the ending and the is_current_view flip.
       ch.on(
         'postgres_changes',
         {
@@ -411,12 +440,10 @@ export function useCommonGame(
         load,
       )
 
-      // Postgres-changes on common.game_players for this game. A
-      // mid-game concede (common.concede) flips a player's `conceded`
-      // WITHOUT touching common.games, so the games listener above
-      // wouldn't fire — but every peer's OpponentStrip needs to see
-      // the drop-out. This makes any per-player change (concede now,
-      // end-of-game `result` writes too) refetch the roster.
+      // Postgres-changes on common.game_players for this game: a player's
+      // ending, ranking and `player_status`. The builder writes these with
+      // common.games in the same transaction, so the listener above fires
+      // too; this one keeps a write to the roster alone from going unseen.
       ch.on(
         'postgres_changes',
         {
@@ -664,7 +691,7 @@ export function useCommonGame(
   // `activePlayers` is also what the overlay draws its present/absent dots
   // from — patching the flag alone would leave a permanently hollow bot ring.
   const activePlayers = players.filter(
-    (p) => !p.locally_terminal && !p.ai_member,
+    (p) => p.player_ended_at === null && !p.ai_member,
   )
   const presencePaused = computePause(presentUserIds, activePlayers)
   const manuallyPausedBy: Member | null = manuallyPausedById
@@ -689,8 +716,8 @@ export function useCommonGame(
   const timer = useGameTimer({
     gameId,
     paused,
-    mode: commonGame?.setup.timer ?? { kind: 'none' },
-    running: commonGame != null && !commonGame.is_terminal,
+    mode: commonGame?.timer_mode ?? { kind: 'none' },
+    running: commonGame != null && commonGame.ending === null,
   })
 
   // ─── Where I stand ─── see `whereIStand`.
@@ -706,7 +733,7 @@ export function useCommonGame(
   } = whereIStand({
     players,
     myId: session.user.id,
-    isTerminal: commonGame?.is_terminal ?? false,
+    isTerminal: (commonGame?.ending ?? null) !== null,
     isTurnBased,
     turnHolderId,
     draftsOffTurn,
@@ -735,4 +762,18 @@ export function useCommonGame(
     loading,
     failure,
   }
+}
+
+/**
+ * A game's timer off its `common.timers` row: the kind, and a countdown's
+ * length. A missing row reads as no timer.
+ */
+function timerModeOf(
+  row: { kind: string; countdown_seconds_at_setup: number | null } | undefined,
+): TimerMode {
+  if (row?.kind === 'countdown') {
+    return { kind: 'countdown', seconds: row.countdown_seconds_at_setup ?? 0 }
+  }
+  if (row?.kind === 'countup') return { kind: 'countup' }
+  return { kind: 'none' }
 }

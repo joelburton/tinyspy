@@ -32,12 +32,12 @@ import {
  *     filtered to my user_id, so an invite pops instantly while I'm
  *     online.
  *   - **refetch on (re)subscribe** — `SUBSCRIBED` fires on first connect
- *     AND on reconnect, so we re-scan for non-terminal games I'm a player
+ *     AND on reconnect, so we re-scan for unfinished games I'm a player
  *     in. This recovers invitations sent while I was offline / before my
  *     tab loaded (rare, but the realtime INSERT alone would miss them).
  *
- * That re-scan is bounded by AGE as well as by `is_terminal`, because
- * `is_terminal` alone lets the pool grow forever — see `INVITE_MAX_AGE_MS`.
+ * That re-scan is bounded by AGE as well as by `ended_at`, because an
+ * unended game alone lets the pool grow forever — see `INVITE_MAX_AGE_MS`.
  * The bound never delays a real invite: the realtime path runs the same query,
  * and a game seconds old clears the cutoff easily.
  *
@@ -61,13 +61,13 @@ export function useGameInvitations(session: Session): {
   // All surfaced-and-not-yet-acted-on invitations (across pages).
   const [pending, setPending] = useState<GameInvite[]>([])
 
-  // Scan for new invitations: the games I'm a player in that are
-  // non-terminal, not mine, and not already seen — resolve their display
+  // Scan for new invitations: the games I'm a player in that haven't
+  // ended, not mine, and not already seen — resolve their display
   // name + inviter, mark them seen, and append. Stable across renders
   // (depends only on selfId) so the subscription effect doesn't churn.
   const load = useCallback(async () => {
     // One inner-join embed, not two queries: `!inner` pushes the
-    // `is_terminal = false` filter into this same query, so the row set is my
+    // `ended_at is null` filter into this same query, so the row set is my
     // *active* games — a handful. That matters because the result is unordered
     // and PostgREST truncates at `max_rows`; a query over EVERY game_players
     // row I have could drop a fresh invite nondeterministically.
@@ -76,8 +76,8 @@ export function useGameInvitations(session: Session): {
         .from('game_players')
         .select('games!inner(id, gametype, club_handle, created_by)')
         .eq('user_id', selfId)
-        .eq('games.is_terminal', false)
-        // …and recent, which is load-bearing: `is_terminal = false` is not a
+        .is('games.ended_at', null)
+        // …and recent, which is load-bearing: `ended_at is null` is not a
         // staleness bound, so without this the scan returns every unfinished
         // game you have ever been seated in. See `INVITE_MAX_AGE_MS`.
         .gt('games.started_at', inviteCutoffIso()),

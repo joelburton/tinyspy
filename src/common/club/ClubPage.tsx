@@ -630,7 +630,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
                   manifest={currentGame.manifest}
                   title={currentGame.title}
                   statusLabel={currentGame.statusLabel}
-                  lastActiveAt={currentGame.lastActiveAt}
+                  statusChangedAt={currentGame.statusChangedAt}
                   soloClub={soloClub}
                   onDelete={() => handleDelete(currentGame.gameId, true)}
                 />
@@ -737,7 +737,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
                   manifest={g.manifest}
                   title={g.title}
                   statusLabel={g.statusLabel}
-                  lastActiveAt={g.lastActiveAt}
+                  statusChangedAt={g.statusChangedAt}
                   // The current game is a row like any other here — only its
                   // orange flag (from state='current') sets it apart.
                   state={gameState(g)}

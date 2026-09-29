@@ -43,7 +43,7 @@ const { mockRunRpc, mockToast, clubGames, WORDLE, DUEL, SYRUP } = vi.hoisted(() 
     shortDescription: `${name} description`,
     logoUrl: '',
     numberOfPlayers: [1, 4] as [number, number],
-    labelFor: (row: { play_state: string }) => `label:${row.play_state}`,
+    labelFor: (row: { ending: { outcome: string } | null }) => `label:${row.ending?.outcome ?? 'playing'}`,
   })
   return {
     mockRunRpc: vi.fn(),
@@ -109,7 +109,7 @@ const ENROLLED = [
 function listed(over: Partial<ListedGame> & { gameId: string; manifest: GameManifest }): ListedGame {
   return {
     title: `Game ${over.gameId}`,
-    lastActiveAt: '2026-09-01T00:00:00Z',
+    statusChangedAt: '2026-09-01T00:00:00Z',
     isTerminal: false,
     statusLabel: 'playing',
     ...over,

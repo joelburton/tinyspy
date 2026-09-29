@@ -540,9 +540,9 @@ because the script can't tell "unreachable" from "not written yet".
 
 ### The one thing it does assert
 
-A cell claiming `won` / `lost` / `ended` must leave `common.games.is_terminal`
-true (`assertPhaseReached` in `run.ts`). This is the exception to "asserts
-nothing", and it earns the exception: a screenshot renders a wrong state as
+A cell claiming `won` / `lost` / `ended` must leave the game ended, its
+`common.games.ended_at` set (`assertPhaseReached` in `run.ts`). This is the
+exception to "asserts nothing", and it earns the exception: a screenshot renders a wrong state as
 happily as a right one, so a builder that stops short publishes a plausible lie
 instead of a hole.
 

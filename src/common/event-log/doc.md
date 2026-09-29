@@ -94,7 +94,7 @@ filter, and the empty-state wording. The last is the one
 with a rule behind it — in compete, RLS hides an opponent's rows until the game
 ends, so an empty opponent log has to say "Hidden until game ends." rather than
 claim they have not played. The other half of that rule is in SQL: a compete
-game's events row policy carries an `or cg.is_terminal` arm, or the rows never
+game's events row policy carries an `or cg.ended_at is not null` arm, or the rows never
 reveal and the finished log stays hidden.
 
 **On a phone, opening a turn leaves the info page.** Below the breakpoint the

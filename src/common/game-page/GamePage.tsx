@@ -131,9 +131,9 @@ export function GamePage({
   // announcements come off it, and it is always a real handle — the loader
   // waited for the row.
   const clubHandle = commonGame.club_handle
-  // Is the game over? `is_terminal`, the same answer every PlayArea is handed,
-  // so the page and the game cannot disagree.
-  const isTerminal = commonGame.is_terminal
+  // Is the game over? Whether it has an ending, the same answer every PlayArea
+  // is handed, so the page and the game cannot disagree.
+  const isTerminal = commonGame.ending !== null
   const HelpComponent = manifest.help
   const PlayArea = manifest.PlayArea
 
@@ -310,12 +310,12 @@ export function GamePage({
   // game is over it can only read 0:00, which says nothing anyone needs. A
   // count-up is the answer to "how long did that take?", which is exactly the
   // sort of thing you want to see once you are done — `useGameTimer` stops
-  // ticking at `is_terminal`, so it freezes on the final figure.
-  const timerKind = commonGame.setup.timer?.kind
+  // ticking at the game's end, so it freezes on the final figure.
+  const timerKind = commonGame.timer_mode.kind
   const showTimer =
     timerKind === 'countup' || (timerKind === 'countdown' && !isTerminal)
   // The clock is STOPPED whenever it is not counting — paused, or the game is
-  // over (`useGameTimer` keys `running` off `is_terminal`). Both go red: red
+  // over (`useGameTimer` keys `running` off the game's end). Both go red: red
   // says "these digits are not moving", which is a fact about the clock rather
   // than a judgment about why.
   const timerStopped = paused || isTerminal
@@ -456,12 +456,11 @@ export function GamePage({
         <PlayAreaSlotLog
           gametype={gametype}
           gameId={gameId}
-          playState={commonGame.play_state}
           isTerminal={isTerminal}
         >
           <PlayAreaErrorBoundary>
             <Suspense fallback={<Loading />}>
-              {/* KEYED ON THE RUN. A restart bumps `common.games.restarts`, so
+              {/* KEYED ON THE RUN. A restart bumps `common.games.restart_count`, so
                   React unmounts this surface and mounts a fresh one — and every
                   piece of the finished run's local state goes with it: a
                   half-typed word, an optimistic row, a mark mid-beat, a history
@@ -472,16 +471,16 @@ export function GamePage({
                   clearing what it remembered, which every game wrote separately,
                   several got wrong, and none could reach into a shared hook.
                   Nothing else on the row works as the key: a mid-game restart
-                  leaves `play_state`, `ended_at` and `status` exactly as they
-                  were. */}
+                  leaves `ended_at` exactly as it was, and its statuses may come
+                  back the same. */}
               <PlayArea
-                key={commonGame.restarts}
+                key={commonGame.restart_count}
                 session={session}
                 gameId={gameId}
                 brand={manifest.name}
                 title={commonGame.title}
                 players={players}
-                playState={commonGame.play_state}
+                ending={commonGame.ending}
                 isTerminal={isTerminal}
                 timer={timer}
                 isPlayer={isPlayer}
@@ -494,7 +493,8 @@ export function GamePage({
                 isWaitingForTurn={isWaitingForTurn}
                 isBoardInteractive={isBoardInteractive}
                 setup={commonGame.setup}
-                status={commonGame.status}
+                gameStatus={commonGame.game_status}
+                commonGameUpdatedAt={commonGame.updated_at}
                 clubHandle={commonGame.club_handle}
                 goToGame={goToGame}
                 globalFeedbackSlot={globalFeedbackSlot}

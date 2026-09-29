@@ -140,7 +140,8 @@ async function suppressInvites(ctx: BrowserContext, userId: string): Promise<voi
  * wrong state is exactly what this whole sheet exists to expose, not to publish.
  *
  * So the one thing worth asserting is the thing a cell CLAIMS: a cell called
- * `won`, `lost` or `ended` must leave `common.games.is_terminal` true. Failing
+ * `won`, `lost` or `ended` must leave the game ended (`common.games.ended_at`
+ * set). Failing
  * loudly turns a silently-wrong tile into a hole with a reason on it.
  */
 function assertPhaseReached(gameId: string, phase: string): void {
@@ -152,7 +153,7 @@ function assertPhaseReached(gameId: string, phase: string): void {
       '-X',
       '-tA',
       '-c',
-      `select is_terminal from common.games where id = '${gameId}';`,
+      `select ended_at is not null from common.games where id = '${gameId}';`,
     ],
     { encoding: 'utf8' },
   ).trim()

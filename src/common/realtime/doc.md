@@ -137,7 +137,7 @@ and re-reads the rows.
 | `<topic> — event UPDATE common.games` | a delivered row change, with the payload's `errors` when set |
 | `<topic> — broadcast "manualPause"` | a delivered broadcast |
 | `<topic> — refetch #3 (event)` | `useRealtimeRefetch` reloaded, and why: `mount` / `subscribed` / `attached` / `event` |
-| `game:<id> — load #2: play_state=playing terminal=false players=2` | what `useCommonGame`'s load saw |
+| `game:<id> — load #2: ended_at=null updated_at=… players=2` | what `useCommonGame`'s load saw |
 | `<topic> — unsubscribing` / `teardown ok` | a deliberate leave, so it is not mistaken for a channel gone quiet |
 | `<topic> — teardown timed out` / `teardown FAILED` | a leave that did not complete; a timed-out one is what wedges a re-join of the same name |
 | `socket — heartbeat timeout` / `disconnected` | the socket itself is in trouble (routine pulses are not logged) |
@@ -154,7 +154,7 @@ behind `localStorage.setItem('puzpuzpuz:rt:verbose', '1')` and a reload.
    eventually; a lost one never does, and widening a timeout only makes the
    failure slower and hides it.
 2. **Did the server do its half?** Read the row the page should have heard
-   about, `common.games.play_state` for a game that should have ended. If it
+   about, `common.games.ended_at` for a game that should have ended. If it
    changed, the fault is delivery, not game logic.
 3. **Is the table published?** A table missing from `supabase_realtime` kills
    the whole channel silently ([docs/supabase.md → The publication

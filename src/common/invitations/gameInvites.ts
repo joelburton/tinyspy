@@ -44,8 +44,8 @@ export type GameInvite = {
  * How recent a game must be to still be worth an invitation.
  *
  * **Why an age limit at all.** The scan's only other bound is
- * `is_terminal = false`, and that is NOT a proxy for "recent": an abandoned
- * game never becomes terminal — nobody ends it, it just sits there — so the
+ * `ended_at is null`, and that is NOT a proxy for "recent": an abandoned
+ * game never ends — nobody ends it, it just sits there — so the
  * candidate pool is every unfinished game you have ever been seated in, and it
  * grows forever. The `seen` set below hid that, right up until it was empty:
  * signing in on a new device / another browser / after clearing storage popped

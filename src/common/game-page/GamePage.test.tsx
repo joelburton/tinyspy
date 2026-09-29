@@ -22,6 +22,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GameManifest } from '../manifest/gameManifest'
 import { setProfile } from '../session/useProfile'
 import type { Member } from '../members/member'
+import type { GameEnding } from '../terminal/gameEnding'
 import { liveBindings, type BoundAction } from '../actions/useBoundAction'
 import type { ActionId } from '../actions/registry'
 import { NEW_GAME_CONFIRM } from '../floating-panels/confirmations'
@@ -72,6 +73,10 @@ vi.mock('../chat/Chat', () => ({ Chat: () => null }))
 
 import { GamePageGate } from './GamePageGate'
 
+/** The ending a stopped game carries, for the tests that need one. */
+const STOPPED: GameEnding = {
+  reason: 'stopped', reasonDetail: 'stopped', outcome: 'neutral', endedByUserId: 'ada',
+}
 const GAME_ID = '11111111-2222-3333-4444-555555555555'
 const GAMETYPE = 'psychicnum_coop'
 const ADA: Member = { user_id: 'ada', username: 'ada', color: 'red' }
@@ -130,10 +135,11 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
           title: 'Secrets',
           setup: {},
           is_current_view: true,
-          play_state: 'playing',
-          is_terminal: false,
-          restarts: 0,
-          status: null,
+          ending: null,
+          restart_count: 0,
+          game_status: {},
+          updated_at: '2026-09-10T00:00:00Z',
+          timer_mode: { kind: 'none' },
           started_at: '2026-09-10T00:00:00Z',
           ended_at: null,
           current_turn_user_id: null,
@@ -158,7 +164,7 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
   } as unknown as CommonGameState
 }
 
-const over: Overrides = { game: { ended_at: '2026-09-10T01:00:00Z', is_terminal: true } }
+const over: Overrides = { game: { ended_at: '2026-09-10T01:00:00Z', ending: STOPPED } }
 
 /** Mount the whole route — gate, loader, page — over the pre-flight read;
  *  resolves once the play surface is up (or the pause overlay, when paused). */
@@ -280,7 +286,7 @@ describe('act-stop-game, bound for the pause overlay', () => {
     await act(async () => { await Promise.resolve() })
     expect(mounts).toBe(1)
 
-    mockUseCommonGame.mockReturnValue(commonGameState({ game: { restarts: 1 } }))
+    mockUseCommonGame.mockReturnValue(commonGameState({ game: { restart_count: 1 } }))
     view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} session={session} />)
     await act(async () => { await Promise.resolve() })
     expect(mounts).toBe(2)
@@ -403,7 +409,7 @@ describe('GamePage — the turn bell', () => {
   /** A turn-order game whose pointer names `holder` — the standing
    *  `useCommonGame` would compute for ada. */
   const turnState = (holder: string, game: Partial<CommonGame> = {}) => {
-    const isTerminal = game.is_terminal ?? false
+    const isTerminal = (game.ending ?? null) !== null
     return {
       ...commonGameState({ players: [ADA, BEA], game: { current_turn_user_id: holder, ...game } }),
       isTurnBased: true,
@@ -436,21 +442,21 @@ describe('GamePage — the turn bell', () => {
 
   it('does not ring for a turn arriving in a finished game', async () => {
     const { view } = await mount(turnState('bea'))
-    moveTo(view, turnState('ada', { ended_at: '2026-09-10T01:00:00Z', is_terminal: true }))
+    moveTo(view, turnState('ada', { ended_at: '2026-09-10T01:00:00Z', ending: STOPPED }))
     expect(play).not.toHaveBeenCalled()
   })
 
   it('does not ring when a game with no turn order is restarted', async () => {
     // Every move is mine in a free-for-all game, so restarting a finished one
     // makes `isMyTurn` rise — but no turn arrived.
-    const ended = { ended_at: '2026-09-10T01:00:00Z', is_terminal: true }
+    const ended = { ended_at: '2026-09-10T01:00:00Z', ending: STOPPED }
     const { view } = await mount({
       ...commonGameState({ players: [ADA, BEA], game: ended }),
       isTurnBased: false,
       isMyTurn: false,
     } as CommonGameState)
     moveTo(view, {
-      ...commonGameState({ players: [ADA, BEA], game: { restarts: 1 } }),
+      ...commonGameState({ players: [ADA, BEA], game: { restart_count: 1 } }),
       isTurnBased: false,
       isMyTurn: true,
     } as CommonGameState)

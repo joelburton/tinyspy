@@ -147,33 +147,70 @@ const GAME_ROW = {
   title: 'Game One',
   setup: { timer: { kind: 'none' } },
   is_current_view: true,
-  play_state: 'playing',
-  is_terminal: false,
-  status: null,
+  restart_count: 0,
+  game_status: {},
+  updated_at: '2026-01-01T00:00:00Z',
   started_at: '2026-01-01T00:00:00Z',
   ended_at: null,
+  game_ended_reason: null,
+  game_ended_reason_detail: null,
+  game_ended_outcome: null,
+  game_ended_by_user_id: null,
+  current_turn_user_id: null,
 }
 
-// ada = self, bea = a live peer, cara = a peer who has conceded, dai = a racer
+/** The ending columns of a game that has ended, as `common._end_game` writes
+ *  them. */
+const ENDED_ROW = {
+  ended_at: '2026-01-01T01:00:00Z',
+  game_ended_reason: 'reached_goal',
+  game_ended_reason_detail: 'solved',
+  game_ended_outcome: 'won',
+  game_ended_by_user_id: 'ada',
+}
+
+const TIMER_ROWS = [{ kind: 'none', countdown_seconds_at_setup: null }]
+
+/** A `common.game_players` row: still playing, unranked, no status. */
+const playerRow = (user_id: string, over: Record<string, unknown> = {}) => ({
+  user_id,
+  player_ended_at: null,
+  player_ended_reason: null,
+  player_ended_reason_detail: null,
+  final_ranking: null,
+  outcome: null,
+  solved_at: null,
+  player_status: {},
+  turn_seat: null as number | null,
+  ...over,
+})
+
+/** The ending columns of a player who conceded. */
+const CONCEDED_ROW = {
+  player_ended_at: '2026-01-01T00:00:00Z',
+  player_ended_reason: 'conceded',
+  player_ended_reason_detail: 'conceded',
+}
+
+/** The ending columns of a player who is out of guesses. */
+const EXHAUSTED_ROW = {
+  player_ended_at: '2026-01-01T00:00:00Z',
+  player_ended_reason: 'resource_exhausted',
+  player_ended_reason_detail: 'exhausted',
+}
+
+// ada = self, bea = a live peer, cara = a peer who has conceded, dai = a player
 // who is DONE without conceding (finished, eliminated, out of budget — the game
 // is not waiting for them), zed-bot = an AI opponent. Each of the last three
 // exercises one exclusion from the presence-pause roster: cara quit, dai has
-// nothing left to do, and zed-bot is never going to open a tab at all. A
-// conceder is locally terminal too, as the server writes it. Nobody has a
-// `turn_seat`: a free-for-all game.
+// nothing left to do, and zed-bot is never going to open a tab at all. Nobody
+// has a `turn_seat`: a free-for-all game.
 const PLAYER_ROWS = [
-  { user_id: 'ada', conceded: false, conceded_at: null, locally_terminal: false, result: null, turn_seat: null },
-  { user_id: 'bea', conceded: false, conceded_at: null, locally_terminal: false, result: null, turn_seat: null },
-  {
-    user_id: 'cara',
-    conceded: true,
-    conceded_at: '2026-01-01T00:00:00Z',
-    locally_terminal: true,
-    result: null,
-    turn_seat: null,
-  },
-  { user_id: 'dai', conceded: false, conceded_at: null, locally_terminal: true, result: null, turn_seat: null },
-  { user_id: 'zed-bot', conceded: false, conceded_at: null, locally_terminal: false, result: null, turn_seat: null },
+  playerRow('ada'),
+  playerRow('bea'),
+  playerRow('cara', CONCEDED_ROW),
+  playerRow('dai', EXHAUSTED_ROW),
+  playerRow('zed-bot'),
 ]
 const PROFILES = [
   { user_id: 'ada', username: 'ada', color: 'red', ai_member: false },
@@ -183,40 +220,11 @@ const PROFILES = [
   { user_id: 'zed-bot', username: 'zed-bot', color: 'brown', ai_member: true },
 ]
 // The hook merges the game_players per-player bits onto each profile.
-const GAME_PLAYERS = [
-  { user_id: 'ada', username: 'ada', color: 'red', conceded: false, conceded_at: null, locally_terminal: false, result: null, ai_member: false },
-  { user_id: 'bea', username: 'bea', color: 'blue', conceded: false, conceded_at: null, locally_terminal: false, result: null, ai_member: false },
-  {
-    user_id: 'cara',
-    username: 'cara',
-    color: 'green',
-    conceded: true,
-    conceded_at: '2026-01-01T00:00:00Z',
-    locally_terminal: true,
-    result: null,
-    ai_member: false,
-  },
-  {
-    user_id: 'dai',
-    username: 'dai',
-    color: 'purple',
-    conceded: false,
-    conceded_at: null,
-    locally_terminal: true,
-    result: null,
-    ai_member: false,
-  },
-  {
-    user_id: 'zed-bot',
-    username: 'zed-bot',
-    color: 'brown',
-    conceded: false,
-    conceded_at: null,
-    locally_terminal: false,
-    result: null,
-    ai_member: true,
-  },
-]
+const GAME_PLAYERS = PLAYER_ROWS.map(function mergeProfile(row) {
+  const { turn_seat: _seat, ...bits } = row
+  const profile = PROFILES.find((p) => p.user_id === row.user_id)!
+  return { ...profile, ...bits }
+})
 
 beforeEach(() => {
   for (const k of Object.keys(handlers)) delete handlers[k]
@@ -265,6 +273,13 @@ beforeEach(() => {
         }),
       }
     }
+    if (table === 'timers') {
+      return {
+        select: () => ({
+          eq: () => Promise.resolve({ data: TIMER_ROWS, error: null, status: 200 }),
+        }),
+      }
+    }
     throw new Error(`unexpected table: ${table}`)
   })
 })
@@ -292,6 +307,45 @@ describe('useCommonGame — initial load', () => {
     })
     expect(result.current.players).toEqual(GAME_PLAYERS)
   })
+
+  it('reads the ending off the row, null while the game is played', async () => {
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.commonGame?.ending).toBeNull()
+  })
+
+  it('reads the ending columns of a game that has ended', async () => {
+    mockSchemaFrom.mockImplementation((table: string) => {
+      if (table === 'games') {
+        return { select: () => ({ eq: () => Promise.resolve({ data: [{ ...GAME_ROW, ...ENDED_ROW }], error: null, status: 200 }) }) }
+      }
+      if (table === 'profiles') {
+        return { select: () => ({ in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }) }) }
+      }
+      const rows = table === 'timers' ? TIMER_ROWS : PLAYER_ROWS
+      return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
+    })
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.commonGame?.ending).toEqual({
+      reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'ada',
+    })
+  })
+
+  it('reads the timer off common.timers, not the setup', async () => {
+    mockSchemaFrom.mockImplementation((table: string) => {
+      if (table === 'profiles') {
+        return { select: () => ({ in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }) }) }
+      }
+      const rows = table === 'timers'
+        ? [{ kind: 'countdown', countdown_seconds_at_setup: 90 }]
+        : table === 'games' ? [GAME_ROW] : PLAYER_ROWS
+      return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
+    })
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.commonGame?.timer_mode).toEqual({ kind: 'countdown', seconds: 90 })
+  })
 })
 
 /**
@@ -299,7 +353,7 @@ describe('useCommonGame — initial load', () => {
  * Where a player stands), computed once here for every PlayArea.
  */
 describe('useCommonGame — where I stand', () => {
-  type PlayerRow = Omit<(typeof PLAYER_ROWS)[number], 'turn_seat'> & { turn_seat: number | null }
+  type PlayerRow = Record<string, unknown>
 
   // Answer the reads with this game row and roster instead of the defaults.
   function serve(game: Record<string, unknown>, rows: PlayerRow[]) {
@@ -309,6 +363,9 @@ describe('useCommonGame — where I stand', () => {
       }
       if (table === 'game_players') {
         return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
+      }
+      if (table === 'timers') {
+        return { select: () => ({ eq: () => Promise.resolve({ data: TIMER_ROWS, error: null, status: 200 }) }) }
       }
       return { select: () => ({ in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }) }) }
     })
@@ -370,7 +427,7 @@ describe('useCommonGame — where I stand', () => {
   })
 
   it('a finished game is nobody\'s turn, though the pointer still names me', async () => {
-    serve({ current_turn_user_id: 'ada', is_terminal: true, play_state: 'won' }, SEATED)
+    serve({ current_turn_user_id: 'ada', ...ENDED_ROW }, SEATED)
     expect(await standing()).toMatchObject({
       isStillPlaying: false, turnHolderId: 'ada', isMyTurn: false, isWaitingForTurn: false,
       isBoardInteractive: false,
@@ -378,7 +435,7 @@ describe('useCommonGame — where I stand', () => {
   })
 
   it('a conceder is locally terminal, and out', async () => {
-    serve({}, [{ ...PLAYER_ROWS[0], conceded: true, locally_terminal: true }, PLAYER_ROWS[1]])
+    serve({}, [{ ...PLAYER_ROWS[0], ...CONCEDED_ROW }, PLAYER_ROWS[1]])
     expect(await standing(true)).toMatchObject({
       isConceded: true, isLocallyTerminal: true, isStillPlaying: false,
       isMyTurn: false, isWaitingForTurn: false, isBoardInteractive: false,
@@ -386,7 +443,7 @@ describe('useCommonGame — where I stand', () => {
   })
 
   it('a racer who is done without conceding is locally terminal, not conceded', async () => {
-    serve({}, [{ ...PLAYER_ROWS[0], locally_terminal: true }, PLAYER_ROWS[1]])
+    serve({}, [{ ...PLAYER_ROWS[0], ...EXHAUSTED_ROW }, PLAYER_ROWS[1]])
     expect(await standing()).toMatchObject({
       isConceded: false, isLocallyTerminal: true, isStillPlaying: false, isMyTurn: false,
     })
@@ -584,12 +641,7 @@ describe('useCommonGame — paused unification', () => {
   it('paused short-circuits to false once the game ends (ended_at set)', async () => {
     // First load returns a non-terminal row; then a postgres-
     // changes event fires the row again with ended_at populated.
-    const endedRow = {
-      ...GAME_ROW,
-      ended_at: '2026-01-01T01:00:00Z',
-      is_terminal: true,
-      play_state: 'won',
-    }
+    const endedRow = { ...GAME_ROW, ...ENDED_ROW }
     let firstCall = true
     mockSchemaFrom.mockImplementation((table: string) => {
       if (table === 'games') {
@@ -614,6 +666,13 @@ describe('useCommonGame — paused unification', () => {
         return {
           select: () => ({
             in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }),
+          }),
+        }
+      }
+      if (table === 'timers') {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: TIMER_ROWS, error: null, status: 200 }),
           }),
         }
       }

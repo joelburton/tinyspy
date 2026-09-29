@@ -26,12 +26,11 @@
  *   - **A winner is `Won by alice`**, no parentheses — "by alice" reads as
  *     English, and parentheses are for the why.
  *   - **A status line may only say what every player already sees.** It's
- *     rendered from `common.games.status`, which is readable by the whole
- *     club, so a compete game's private per-player progress must NOT appear
- *     here — that's why several compete labels are a bare `Playing`.
- *   - **Every `labelFor` is an exhaustive `switch` whose `default` returns the
- *     raw `play_state`.** A state nobody wrote an arm for then renders visibly
- *     wrong, rather than quietly claiming the game is live.
+ *     rendered from `common.games.clubpage_info`, which is readable by the
+ *     whole club, so a compete game's private per-player progress must NOT
+ *     appear there — that's why several compete labels are a bare `Playing`.
+ *   - **Every `labelFor` reads the ending first.** A game that has ended never
+ *     renders the live line, whatever its `clubpage_info` says.
  */
 
 import { DIFFICULTY_LABELS } from '../setup-form/difficulty'

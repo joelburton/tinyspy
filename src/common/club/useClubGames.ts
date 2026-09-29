@@ -9,6 +9,7 @@ import { onPostgresAttached } from '../realtime/postgresAttached'
 import { manifestFor } from '@/gametypes'
 import { reportUnknownGametypes } from '../manifest/unknownGametype'
 import type { CommonGameListRow, GameManifest } from '../manifest/gameManifest'
+import { readGameEnding } from '../terminal/readGameEnding'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { FeedbackSlot } from '../feedback/useFeedbackSlot'
 
@@ -30,10 +31,11 @@ export type ListedGame = {
   // takes it as given instead of looking it up again.
   manifest: GameManifest
   title: string
-  // `common.games.last_active_at` — the last status/progress write, or the end
-  // time. The card dates by it and the list orders by it, so a long-suspended
-  // game reads by when it was last played rather than when it began.
-  lastActiveAt: string
+  // `common.games.status_changed_at` — when the game's status last changed: a
+  // create, a Restart, a move or the end. The card dates by it and the list
+  // orders by it, so a long-suspended game reads by when it was last played
+  // rather than when it began.
+  statusChangedAt: string
   isTerminal: boolean
   statusLabel: string
 }
@@ -64,8 +66,8 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
 
   // Load games for this club + the current-view game id.
   // Re-runs whenever realtime tells us a games row for this club
-  // changed (new game inserted, end_game wrote a terminal
-  // play_state, set_current_view / unset_current_view flipped the
+  // changed (new game inserted, a move or an ending ran the game's
+  // status builder, set_current_view / unset_current_view flipped the
   // is_current_view pointer, etc.). Also fires on initial mount.
   useEffect(function subscribeToClubGames() {
     let mounted = true
@@ -88,10 +90,10 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
         commonDb
           .from('games')
           .select(
-            'id, gametype, title, play_state, is_terminal, status, setup, last_active_at, is_current_view',
+            'id, gametype, title, ended_at, game_ended_reason, game_ended_reason_detail, game_ended_outcome, game_ended_by_user_id, clubpage_info, status_changed_at, is_current_view',
           )
           .eq('club_handle', clubHandle)
-          .order('last_active_at', { ascending: false })
+          .order('status_changed_at', { ascending: false })
           // Explicit bound so a long-lived club can't drift into PostgREST's
           // silent `max_rows` truncation. Overflow past 200 is DELIBERATE — the
           // list shows everything it gets, and descending order means the drop
@@ -134,17 +136,15 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
         const listRow: CommonGameListRow = {
           id: r.id,
           gametype: r.gametype,
-          play_state: r.play_state,
-          is_terminal: r.is_terminal,
-          status: r.status as Record<string, unknown> | null,
-          setup: r.setup as Record<string, unknown> | null,
+          ending: readGameEnding(r),
+          clubpageInfo: r.clubpage_info as CommonGameListRow['clubpageInfo'],
         }
         listed.push({
           gameId: r.id,
           manifest,
           title: r.title,
-          lastActiveAt: r.last_active_at,
-          isTerminal: r.is_terminal,
+          statusChangedAt: r.status_changed_at,
+          isTerminal: r.ended_at !== null,
           statusLabel: manifest.labelFor(listRow),
         })
       }
@@ -157,8 +157,8 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
 
     // Subscribe to common.games changes for this club purely to keep the
     // games list fresh: a new-game start, a set/unset_current_view pointer
-    // flip, create_game's auto-vacate of the prior current game, an
-    // end_game terminal — all surface here and trigger a list reload.
+    // flip, create_game's auto-vacate of the prior current game, a move
+    // or an ending — all surface here and trigger a list reload.
     //
     // It navigates NOBODY. Being added to a game pops a join invitation
     // globally (`useGameInvitations`, mounted in App.tsx), so a player joins on

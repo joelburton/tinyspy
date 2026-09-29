@@ -326,8 +326,8 @@
      Role names rather than lightness names, because a dark theme would
      make "pale" the darkest thing on screen.
 
-     The mapping from a per-gametype play_state to a family is each
-     game's own responsibility. */
+     The mapping from a game's ending to a family is each game's own
+     responsibility. */
 
   /* base = the 400 tier. A mid-tone: deriving outward from the middle
      is steadier than running a formula from one extreme to the other.

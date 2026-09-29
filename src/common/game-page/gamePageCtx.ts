@@ -2,6 +2,7 @@
 
 import type { Session } from '@supabase/supabase-js'
 import type { GamePlayer } from '../members/member'
+import type { GameEnding } from '../terminal/gameEnding'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import type { MenuApi } from '../menu/menuModel'
 
@@ -42,16 +43,13 @@ export type GamePageCtx = {
   title: string
   // Everyone in this game's `common.game_players`. See
   // [Member] for why this is `players` (game context) and
-  // not `members` (club context). A [GamePlayer] carries the
-  // per-player `conceded` / `result` bits on top of the profile.
+  // not `members` (club context). A [GamePlayer] carries each
+  // player's ending, ranking and `player_status` on top of the profile.
   players: GamePlayer[]
-  // Gametype-specific play_state string from
-  // `common.games.play_state`. Pair with `isTerminal` for the
-  // gate; use the string itself for specific banner text. See
-  // docs/states.md.
-  playState: string
-  // Materialized "any terminal play_state" from
-  // `common.games.is_terminal`.
+  // How the game ended — its reason pair, outcome and who ended it — or null
+  // while it is played (docs/states.md → How a game ends).
+  ending: GameEnding | null
+  // The game has ended: `ending !== null`.
   isTerminal: boolean
   // The clock, already reduced to the two things a play surface wants: the
   // number to show, and whether the countdown ran out. Produced by
@@ -108,22 +106,17 @@ export type GamePageCtx = {
   // on access. Read-only at this level — setup is fixed at
   // game-creation time.
   setup: Record<string, unknown>
-  // The game's live `common.games.status` jsonb — the per-
-  // gametype "where is this game now" snapshot maintained by
-  // each state-transition RPC (the duplicate-write discipline; see
-  // docs/common-schema.md → Title, status and last activity). Typed as `Record<string, unknown> | null`
-  // here because each gametype writes its own shape; per-game
-  // PlayAreas cast to their own status type on access. Reflects
-  // the latest value seen by `useCommonGame`'s realtime
-  // subscription — updates in place as RPCs land.
-  //
-  // **Load-bearing across the roster, not a spare channel.** The settled
-  // convention is `status.leaderboard` — a per-player array a compete game's
-  // RPCs rewrite on every accepted move, which that game's PlayArea reads for
-  // its OpponentStrip, through `readLeaderboard` beside this file. Anything
-  // changing how this field is fetched or delivered affects every game that
-  // follows it.
-  status: Record<string, unknown> | null
+  // `common.games.game_status`: the table-facts the info column shows, a copy
+  // the game's status builder writes whole at create, Restart and every move
+  // (docs/common-schema.md → Title, statuses and the two dates). Each game
+  // casts it to its own type; every key is always present. Each player's own
+  // copy is `player_status` on `players`.
+  gameStatus: Record<string, unknown>
+  // `common.games.updated_at`, which every write to the row moves — and every
+  // move writes it, through the status builder. A game's `useGame` takes it and
+  // refetches its own tables when it changes, so this one subscription is how
+  // every game learns something happened.
+  commonGameUpdatedAt: string
   // The GLOBAL feedback slot — the header's `<PageHeaderStatusSlot>`, where
   // peer and opponent news shows. A PlayArea calls
   // `globalFeedbackSlot.show(FeedbackMessage.peer(…))`; a producer like
