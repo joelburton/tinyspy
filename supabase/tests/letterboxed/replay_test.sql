@@ -5,13 +5,12 @@
 -- ============================================================
 -- The cheapest replay on the roster (the board is immutable data), but it
 -- still owns five resets a regression could quietly drop:
---   chains + hints_used + solved  → back to zero,
---   the events log                → deleted (the fold has nothing to replay),
---   the turn pointer              → rewound to seat 0 (the original opener),
---   common.games                  → playing / not terminal (reset_game), which
---                                   is also what re-shields the seeded pair.
+--   chains + hints_used + solved_at → back to zero,
+--   the events log                  → deleted (the fold has nothing to replay),
+--   the turn pointer                → rewound to seat 0 (the original opener),
+--   common.games                    → the ending cleared (_reset_game).
 -- Plus the roster-wide access rule: a club member who is NOT a player of this
--- game cannot restart it (42501 — the nine-game replay convention).
+-- game cannot restart it (PN253 — the replay convention every game follows).
 
 begin;
 
@@ -56,7 +55,7 @@ select letterboxed.submit_word((select id from g), 'kcfil');
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
+  (select game_ended_outcome from common.games where id = (select id from g)),
   'won',
   'sanity: the board is covered and the game won'
 );
@@ -95,20 +94,23 @@ select is(
   'replay rewinds the turn pointer to the original opener (seat 0)'
 );
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing',
+  (select ended_at from common.games where id = (select id from g)),
+  null,
   'replay puts the game back in play'
 );
-select ok(
-  (select not is_terminal from common.games where id = (select id from g)),
-  '…and clears the terminal flag (reset_game''s job)'
-);
--- reset_game ASSIGNS status (no merge), so the fresh blob must state its own
--- zeroes rather than inherit the finished game's readouts.
 select is(
-  (select status->>'letters_covered' from common.games where id = (select id from g)),
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g)
+      and (solved_at is not null or final_ranking is not null or outcome is not null)),
+  0,
+  '…and clears every player''s solve and result (_reset_game''s job)'
+);
+-- The builder assigns the club line whole, so it states its own zeroes rather
+-- than inheriting the finished game's readouts.
+select is(
+  (select clubpage_info->>'letters_covered_count' from common.games where id = (select id from g)),
   '0',
-  'the fresh status blob states its own zero coverage'
+  'the fresh club line states its own zero coverage'
 );
 
 select * from finish();

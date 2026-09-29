@@ -19,8 +19,9 @@
 --
 -- ─── Why synthetic works here ────────────────────────────────
 -- letterboxed.submit_word never consults common.words. A word is
--- playable iff it appears in the board's `playable_words` list, which
--- the board builder computed once. So a fixture only has to put its
+-- playable iff it appears in the board's `playable_words` list (stored
+-- as `legal_words`), which the board builder computed once. So a fixture
+-- only has to put its
 -- test words in that list, and they need not be real words — the same
 -- move wordiply's fixture makes, for the same reason.
 --

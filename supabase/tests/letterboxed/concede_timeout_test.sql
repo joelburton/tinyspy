@@ -4,18 +4,17 @@
 -- Test: conceded players are OUT; timeout ranks the racers
 -- ============================================================
 --
--- The two rulings this file pins (both regressions from the 2026-08-05
--- review — the FE gated concede but the server did not):
+-- The two rulings this file pins (the FE gates concede, and so does the
+-- server):
 --
 --   1. A conceded player's chain is FROZEN server-side: submit_word /
 --      undo_word / clear_chain all refuse, so a stale tab (or a submit
 --      in flight when the concede commits) can't keep racing — or cover
 --      the twelve and be crowned by submit_word's solve branch.
---   2. submit_timeout resolves among NON-conceded players only (a
---      drop-out forfeits, whatever they had covered — the wordiply
---      ruling: listed on the leaderboard, but can't win), and marks
---      exact ties as CO-winners, with a per-row `won` flag on the
---      status leaderboard that the FE reads instead of trusting row 0.
+--   2. submit_timeout ranks NON-conceded players only (a drop-out
+--      forfeits, whatever they had covered — the wordiply ruling: their
+--      coverage still shows, but they can't win), and exact ties share a
+--      rank: both ranked 1, and the club line names no sole winner.
 
 begin;
 
@@ -82,46 +81,47 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select letterboxed.submit_timeout((select id from ga));
 
 select is(
-  (select play_state from common.games where id = (select id from ga)),
-  'won_compete',
+  (select game_ended_reason || '/' || game_ended_outcome from common.games where id = (select id from ga)),
+  'timeout/won',
   'a timed-out race still resolves to a winner'
 );
 
 select is(
-  (select (result->>'won')::boolean from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from ga)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  true,
+  '1/won',
   'the remaining racer wins on coverage among NON-conceded players'
 );
 
 select is(
-  (select (result->>'won')::boolean from common.game_players
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from ga)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  false,
+  'unranked/lost',
   'the conceded leader does NOT win, despite the higher coverage'
 );
 
--- The status leaderboard still LISTS ada first (coverage order, 8 > 3) —
--- which is exactly why the FE must read the per-row `won` flag rather
--- than crown row 0.
+-- ada's own status still shows her coverage (8 > bea's 3) — which is exactly
+-- why a reader must go by the ranking, not by the best coverage.
 select is(
-  (select status->'leaderboard'->0->>'user_id' from common.games
-    where id = (select id from ga)),
-  'ada11111-1111-1111-1111-111111111111',
-  'the leaderboard keeps the conceded player listed, in coverage order'
+  (select (player_status->>'letters_covered_count') || '/' || (player_status->>'player_ended_reason')
+     from common.game_players
+    where game_id = (select id from ga)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  '8/conceded',
+  'the conceded player''s coverage still shows, beside her concession'
 );
 
 select is(
-  (select (status->'leaderboard'->0->>'won')::boolean from common.games
+  (select clubpage_info->>'winner_user_id' from common.games
     where id = (select id from ga)),
-  false,
-  '…with won=false on their row (leaderboard[0] is NOT the winner)'
+  'bea22222-2222-2222-2222-222222222222',
+  '…and the club line names the racer as the winner, not the best coverage'
 );
 
 -- ============================================================
--- Exact ties are co-winners
+-- Exact ties share a rank
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -144,25 +144,22 @@ select letterboxed.submit_word((select id from gb), 'adg');
 select letterboxed.submit_timeout((select id from gb));
 
 select is(
-  (select play_state from common.games where id = (select id from gb)),
-  'won_compete',
+  (select game_ended_outcome from common.games where id = (select id from gb)),
+  'won',
   'a tied timeout still resolves'
 );
 
 select is(
-  (select bool_and((result->>'won')::boolean) from common.game_players
-    where game_id = (select id from gb)),
-  true,
-  'an exact tie makes CO-winners — every tied player is marked won'
+  (select count(*)::int from common.game_players
+    where game_id = (select id from gb) and final_ranking = 1 and outcome = 'won'),
+  2,
+  'an exact tie shares the rank — every tied player is ranked 1, won'
 );
 
 select is(
-  (select bool_and((e->>'won')::boolean)
-     from common.games,
-          jsonb_array_elements(status->'leaderboard') e
-    where id = (select id from gb)),
-  true,
-  'and the status leaderboard flags both rows won'
+  (select clubpage_info->'winner_user_id' from common.games where id = (select id from gb)),
+  'null'::jsonb,
+  'and the club line names no sole winner'
 );
 
 select * from finish();

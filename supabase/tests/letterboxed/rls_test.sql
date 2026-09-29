@@ -10,8 +10,8 @@
 --                              (including a club member who isn't seated —
 --                              "watching" is club-membership, not playerhood).
 --   (2) user_id = auth.uid() — you always see your own moves.
---   (3) is_terminal          — the race is over; open to everyone so the
---                              terminal can show how it was solved.
+--   (3) the game has ended   — the race is over; open to everyone so the
+--                              end of the game can show how it was solved.
 -- gameplay_test covers the players_state CHAIN mask; this file is about the
 -- log rows themselves.
 
@@ -81,15 +81,15 @@ select is(
   '…and it is their own'
 );
 
--- ── (3) Terminal: the log opens ─────────────────────────────
--- The manual stop is the cheapest terminal to reach; the arm keys on
--- common.games.is_terminal, not on HOW it ended.
+-- ── (3) Ended: the log opens ────────────────────────────────
+-- The manual stop is the cheapest ending to reach; the arm keys on
+-- common.games.ended_at, not on HOW it ended.
 select letterboxed.stop_game((select id from gcp));
 
 select is(
   (select count(*)::int from letterboxed.events where game_id = (select id from gcp)),
   2,
-  'compete terminal: both players'' rows are readable'
+  'compete, once ended: both players'' rows are readable'
 );
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(

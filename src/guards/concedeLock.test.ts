@@ -63,7 +63,7 @@ describe('the concede lock', () => {
     // list is also the answer to "which games are these?" — the rest still hand
     // the decision to common.concede and are not exposed.
     expect(games.map((g) => g.game).sort())
-      .toEqual(['bananagrams', 'boggle', 'connections', 'crosswords', 'psychicnum', 'scrabble', 'stackdown', 'strands', 'waffle', 'wordle'])
+      .toEqual(['bananagrams', 'boggle', 'connections', 'crosswords', 'letterboxed', 'psychicnum', 'scrabble', 'stackdown', 'strands', 'waffle', 'wordle'])
   })
 
   it('every such concede locks its own row before recording the concession', () => {

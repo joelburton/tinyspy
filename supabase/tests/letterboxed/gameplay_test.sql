@@ -6,13 +6,13 @@
 --
 -- The chain rulebook. submit_word is SERVER-AUTHORITATIVE (unlike the
 -- trusting-commit word games): every word is re-checked against the
--- board's playable list, the cap, the dedup and — the rule that makes
+-- board's legal words, the cap, the dedup and — the rule that makes
 -- this game what it is — the START LETTER, which must match the last
 -- letter of the chain's last word.
 --
 -- Coverage:
 --   1. Coop happy path: a word appends, letters_covered is right, the
---      log records it, the club-page status keeps up.
+--      log records it, the club line keeps up.
 --   2. The four rejections: not playable, wrong start letter, already in
 --      the chain, chain full at max_words.
 --   3. undo_word pops the last word and REFUNDS against the cap — the
@@ -64,13 +64,13 @@ select pg_temp.envelope_is(
 
 -- ── 1. The board landed as specified ────────────────────────
 select is(
-  (select sides from letterboxed.games where id = (select id from g)),
+  (select sides from letterboxed.games where game_id = (select id from g)),
   'abcdefghijkl'::bpchar,
   'create_game stores the twelve letters in side order'
 );
 
 select is(
-  (select max_words from letterboxed.games where id = (select id from g)),
+  (select max_words from letterboxed.games where game_id = (select id from g)),
   5,
   'max_words comes from setup, not from a derived par'
 );
@@ -121,20 +121,20 @@ select is(
 );
 
 select is(
-  (select status->>'letters_covered' from common.games where id = (select id from g)),
+  (select clubpage_info->>'letters_covered_count' from common.games where id = (select id from g)),
   '3',
-  '_sync_status mirrors coverage onto the club-page label'
+  'the builder mirrors coverage onto the club line'
 );
 
 -- ── 3. The rejections ───────────────────────────────────────
 -- A FAULT: the board and the dictionary are fixed, and the frontend holds
--- `playable_words` and checks against it first, so a word this board cannot
+-- `legal_words` and checks against it first, so a word this board cannot
 -- play did not come from our board.
 select pg_temp.envelope_is(
   letterboxed.submit_word((select id from g), 'zzz'),
   '{"type":"not-ok","severity":"fault","dbcode":"PN403",
     "message":"BUG: a word this board cannot play"}'::jsonb,
-  'a word outside playable_words is refused'
+  'a word outside legal_words is refused'
 );
 
 -- A RACE, where the two above are faults: coop's chain is SHARED and
@@ -233,23 +233,26 @@ select is((select res->>'outcome' from solve_res), 'won',
   'the solving word is won, like every accepted word');
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won',
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g)),
+  'reached_goal/solved/won',
   'coop reaching twelve is a win for the table'
 );
 
-select ok(
-  (select is_terminal from common.games where id = (select id from g)),
-  'and the game is terminal'
+select is(
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g) and final_ranking = 1 and outcome = 'won'
+      and solved_at is not null),
+  2,
+  'and every teammate is ranked 1, won, and solved'
 );
 
--- REGRESSION: common.games.status MERGES on a terminal write, so a win blob
--- that omits letters_covered leaves the PREVIOUS move's count showing under
--- it. A live game shipped 'letters_covered: 7' on a fully covered board.
+-- The builder runs after the ending, from the chain, so the club line shows
+-- the full twelve rather than the previous move's count.
 select is(
-  (select status->>'letters_covered' from common.games where id = (select id from g)),
+  (select clubpage_info->>'letters_covered_count' from common.games where id = (select id from g)),
   '12',
-  'the terminal restates coverage rather than inheriting the last move''s'
+  'the ending restates coverage rather than inheriting the last move''s'
 );
 
 select pg_temp.envelope_is(

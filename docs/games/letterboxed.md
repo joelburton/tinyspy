@@ -134,8 +134,8 @@ every deploy).
 | table | purpose |
 |---|---|
 | `seeds` | The board-seed pool (§7): a chained word **pair** — `last(word_a) = first(word_b)` — whose letters union to exactly twelve. PK is the twelve letters **sorted** (`char(12)`; the board is a set, never a multiset, so the sorted string and the bitmask are equivalent keys and the string is the readable one); `mask` is a generated column for the builder's subset query. `difficulty` is the band of the easiest solving pair; **the importer keeps only band ≤ 2 seeds**, so the guaranteed solution is always two words a person might think of. Every stored row is **partitionable by construction** (§7). |
-| `games` | One row per playthrough. `sides` is the twelve letters **in side order** — positions 1–3 one side, 4–6 the next, and so on — so the partition lives *in* the string and can't drift from it. `playable_words` (jsonb) is every word playable on this board at `legal_band`, computed once by the builder and shipped to the FE. `solution` is the seeded pair, copied on so the board stays self-contained if the seed table is re-imported. `max_words` (2..10, resolved from `extra_words`), `legal_band`, denormalized `mode` + `club_handle`. |
-| `players` | One row per (game, player), **one shape for both modes**: coop moves every row in lock-step (each player's row always equals the shared chain), compete moves only the actor's — the mode difference collapses to one WHERE clause, and the FE always reads its own row (strands' pattern). `chain` is **materialized** rather than folded from events on demand: every submit needs only its last element, so keeping the answer costs one array write per move; `events` stays the source of truth for the *log*, this is the cache the rules read. Plus `hints_used` (a coop-only tally of both rungs), `solved` / `solved_at`. |
+| `games` | One row per playthrough. `sides` is the twelve letters **in side order** — positions 1–3 one side, 4–6 the next, and so on — so the partition lives *in* the string and can't drift from it. `legal_words` (jsonb) is every word playable on this board at `legal_band`, computed once by the builder and shipped to the FE (the builder's board names it `playable_words`). `solution` is the seeded pair, copied on so the board stays self-contained if the seed table is re-imported. `max_words` (2..10, resolved from `extra_words`) and `legal_band`; the mode and the club are `common.games`'. |
+| `players` | One row per (game, player), **one shape for both modes**: coop moves every row in lock-step (each player's row always equals the shared chain), compete moves only the actor's — the mode difference collapses to one WHERE clause, and the FE always reads its own row (strands' pattern). `chain` is **materialized** rather than folded from events on demand: every submit needs only its last element, so keeping the answer costs one array write per move; `events` stays the source of truth for the *log*, this is the cache the rules read. Plus `hints_used` (a coop-only tally of both rungs). A solve is `common.game_players.solved_at`. |
 | `events` | The append-only game log, kinds `word` / `undo` / `clear` / `hint` / `spoiler`, with `took_turn` true on the three moves and false on the two asks. A chain can dead-end, so **undo is a first-class move, not an error path** — logging retreats (instead of deleting rows) is what lets the event log show them and keeps the history viewer a fold (§8). `id` is an identity bigint because **order is the state**: replaying the log in id order must reproduce the chain exactly. Each row stores `letters_covered` *after* the event — derivable, but the log prints it on every line and compete's timeout ranks on exactly that number. |
 
 ### RLS
@@ -144,8 +144,8 @@ every deploy).
   compete hides (§3), not the rows; visible rows are what let a rival read your
   word count.
 - `events`: the three-arm compete shape (wordwheel's `found_words_select`) —
-  coop sees everything; you always see your own; everyone sees everything at
-  terminal (the reveal).
+  coop sees everything; you always see your own; everyone sees everything once
+  the game has ended (the reveal).
 - No INSERT/UPDATE/DELETE policies — writes go through the security-definer
   RPCs.
 
@@ -160,12 +160,19 @@ shows them — the worst kind of quiet). `useGame` subscribes to all three;
 memberships are pinned by the central registry test,
 `supabase/tests/common/realtime_publication_test.sql`.
 
-### Play states
+### How a game ends
 
-Coop: `playing` → `won` (all twelve covered) / `lost` (the clock — the roster's
-"reachable end you didn't reach" test, [states.md](../states.md)) / `ended`
-(manual, neutral). Compete: `won_compete` (first solve, or a timeout resolved on
-coverage, whatever the coverage) / `lost_compete` (all conceded) / `ended` (manual — agreeing to stop isn't a race resolution).
+The ending is `common.games`' reason, detail and outcome
+([docs/win-lose.md](../win-lose.md)):
+
+| mode | when | reason / detail | ranked |
+|---|---|---|---|
+| coop | all twelve covered | `reached_goal` / `solved` | everyone 1, won |
+| coop | the clock | `timeout` | nobody — a loss |
+| compete | the first to cover all twelve | `reached_goal` / `solved` | the solver alone; the race ends when decided |
+| compete | the clock | `timeout` | by progress: each racer who didn't concede and covered anything, by letters covered then the shorter chain, ties sharing a rank |
+| compete | every racer conceded | `conceded` | nobody — a loss |
+| either | somebody pressed Stop | `stopped` | nobody — neutral |
 
 ---
 
@@ -173,24 +180,30 @@ coverage, whatever the coverage) / `lost_compete` (all conceded) / `ended` (manu
 
 | RPC | job |
 |---|---|
-| `create_game(target_club, setup, player_user_ids, mode, board)` | Validates setup (`extra_words` 0..8 → `max_words`, `legal_band` 1..6, timer, turn-coop seating) and the board — including the **winnability invariant**: the seeded pair must chain, cover all twelve, and both appear in `playable_words`, plus a ≥ 150-word richness floor. This is the only place that checks the game is solvable at all. Also cross-checks `setup.custom_sides` against `board.sides` when a board was typed (§7), and strips it from the club default. Title is the board itself, grouped by side: `"ABC-DEF-GHI-JKL"` — nothing on it is secret, so unlike wordle it never needs a re-sync, and the dashes are what make it a string you can paste straight back into the setup dialog. |
-| `submit_word(target_game, submitted)` | The whole rulebook, in rejection order (each raise's wording is what the player reads): ≥ 3 letters → in `playable_words` (one membership test covers the dictionary, the board's letters AND the side rule) → cap not reached → not already in the chain → starts with the tail letter. Appends under the game row lock; covering all twelve **ends the game** (coop: everybody wins; compete: first past the bar wins outright). |
-| `undo_word(target_game)` | Pops the last word and **refunds against the cap** (§2). In turn-by-turn coop it **costs the undoer's turn** — see the pricing below. |
-| `clear_chain(target_game)` | Empties the chain (crosswords' "Clear board" hammer). Refused in turn-by-turn coop, and **has no FE surface at all** — see below. |
-| `log_hint_or_spoiler(target_game, word_shown, kind)` | Records that a hint or a spoiler was taken (§6). The suggestion is computed on the FE; the server's only job is making the event log agree with what happened. Coop-only — refused in compete, where either rung is a win button. |
-| `submit_timeout(target_game)` | Coop → **`lost`** (one chain, it didn't reach twelve; nothing to rank). Compete → resolve on **most letters covered → fewest words → co-winners** (the wordiply comparator shape: a shared win beats an arbitrary one). Both ranking numbers were already public during the race, so the resolution reveals nothing new. |
-| `stop_game(target_game)` | The neutral manual stop, `ended` in **both** modes — a group agreeing to stop is agreeing not to have a result. |
-| `concede(target_game)` | A wrapper over `common.concede` — the generic helper is right here because letterboxed is **not** an elimination game (undo refunds, so the only way a non-conceded player stops racing is winning, which already ends the game). A conceder is out in both directions: the move RPCs refuse them, and the timeout ranking excludes them. It also refuses a coop caller (`common._require_compete`, PN484); the menu never offers Concede in coop, but this wrapper was the only one with a coop sibling and no such check until 2026-09-01. |
-| `replay_board(target_game)` | The cheapest replay on the roster — the board is immutable data, so there's nothing to rebuild: clear the chains, drop the log, `_reset_game` a fresh status blob (which also rewinds the turn pointer). Nothing is re-revealed (no ending opens the pair by itself, so a replay is a genuine second try). |
-| ~~`_end_game(...)`~~ | **Removed 2026-08-15.** It wrapped `common._end_game` for one reason: the shared helper opened the solution on any winning `play_state`, on the premise that a win *is* the solution produced — true for waffle and wordle, false here (§4). Revealing is now local FE state and nothing autoreveals, so there is no flag to put back and every terminal write calls `common._end_game` directly. The `drop function` stays in `supabase/sql/letterboxed.sql`: that file is re-applied rather than diffed, so deleting the definition alone would strand the old function in every database that ran it. |
+| `create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)` | Validates setup (`extra_words` 0..8 → `max_words`, `legal_band` 1..6, timer, turn-coop seating) and the board — including the **winnability invariant**: the seeded pair must chain, cover all twelve, and both appear in the legal words, plus a ≥ 150-word richness floor. This is the only place that checks the game is solvable at all. Also cross-checks `setup.custom_sides` against `board.sides` when a board was typed (§7), and strips it from the club default. Title is the board itself, grouped by side: `"ABC-DEF-GHI-JKL"` — nothing on it is secret, so unlike wordle it never needs a re-sync, and the dashes are what make it a string you can paste straight back into the setup dialog. |
+| `submit_word(p_game_id, p_word)` | The whole rulebook, in rejection order (each raise's wording is what the player reads): ≥ 3 letters → in `legal_words` (one membership test covers the dictionary, the board's letters AND the side rule) → cap not reached → not already in the chain → starts with the tail letter. Appends under the game row lock; covering all twelve **ends the game** (coop: everybody wins; compete: first past the bar wins outright). Every chain move shares `_require_chain_move`: the row lock, a deleted game asked first, then membership, the ended game and a conceder. |
+| `undo_word(p_game_id)` | Pops the last word and **refunds against the cap** (§2). In turn-by-turn coop it **costs the undoer's turn** — see the pricing below. |
+| `clear_chain(p_game_id)` | Empties the chain (crosswords' "Clear board" hammer). Refused in turn-by-turn coop, and **has no FE surface at all** — see below. |
+| `log_hint_or_spoiler(p_game_id, p_word_shown, p_kind)` | Records that a hint or a spoiler was taken (§6). The suggestion is computed on the FE; the server's only job is making the event log agree with what happened. Coop-only — refused in compete, where either rung is a win button. |
+| `submit_timeout(p_game_id)` | Coop → a loss (one chain, it didn't reach twelve; nothing to rank). Compete → ranked by progress: **most letters covered → fewest words**, ties sharing a rank, so an exact tie at the top is two winners. Both ranking numbers were already public during the race, so the resolution reveals nothing new. |
+| `stop_game(p_game_id)` | The neutral manual stop, through `common._stop`, in **both** modes — a group agreeing to stop is agreeing not to have a result. |
+| `concede(p_game_id)` | Locks the row, then `common._concede` decides it — the generic helper is right here because letterboxed is **not** an elimination game (undo refunds, so the only way a non-conceded player stops racing is winning, which already ends the game). A conceder is out in both directions: the move RPCs refuse them, and the timeout ranking excludes them. It also refuses a coop caller (`common._require_compete`, PN484); the menu never offers Concede in coop. |
+| `replay_board(p_game_id)` | The cheapest replay on the roster — the board is immutable data, so there's nothing to rebuild: clear the chains, the hint counts, `solved_at` and the log, and `_reset_game` clears the ending and rewinds the turn pointer. Nothing is re-revealed (no ending opens the pair by itself, so a replay is a genuine second try). |
 
-Every mid-game transition calls `_sync_status` (the wordle `_sync_title`
-pattern: derived, not remembered per-writer), so the club-page label is correct
-after a word, an undo, a clear, a hint or a spoiler. Terminal transitions build
-their own blob for `common._end_game` — status **merges**, so every value a
-terminal asserts is restated ([status blob merges](../supabase.md)). Compete's
-mid-game/terminal blobs carry a `_leaderboard` of the two public numbers, with
-usernames cached in (never joined at read time).
+**The statuses.** Every move — a word, an undo, a clear, a hint or a spoiler —
+and every ending ends by calling `letterboxed._write_statuses`, which assigns
+each status whole with every key present:
+
+| status | keys |
+|---|---|
+| `game_status` | `max_words` |
+| each `player_status` | `words_used`, `letters_covered_count`, `player_ended_reason` |
+| `clubpage_info` | `words_used`, `letters_covered_count`, `max_words`, `best_letters_covered_count`, `winner_user_id`, `winner_words_count` |
+
+A player's status is their own chain's two public numbers (the shared chain,
+in coop). The club line's chain numbers are coop's and null in compete, where
+it shows the best coverage so far instead; a sole winner and the length of
+their chain are compete's, once there is one.
 
 ### Undo and clear — the turn-coop pricing
 
@@ -722,12 +735,12 @@ someone still playing. `->` not `→` (WinAnsi).
 |---|---|---|
 | chain | **one, shared** — every player's row lock-stepped; anyone submits (or turn-by-turn, opt-in) | **private per player**, same board; rivals see only letters-covered + word-count |
 | hints | Hint + Spoiler, unpenalized, logged | **none** — either rung is a win button |
-| ends | all twelve covered (won) / timeout (lost) / manual (ended) | **first to cover all twelve within the cap — the race ends** / timeout resolves on coverage / all-conceded / manual |
+| ends | all twelve covered (won) / timeout (lost) / Stop (neutral) | **first to cover all twelve within the cap — the race ends** / timeout resolves on coverage / all-conceded / manual |
 | undo / clear | undo refunds; costs a turn in turn-coop; clear refused there (no FE surface anywhere) | undo your own chain freely |
 | players | `[1, 6]` (solo allowed) | `[2, 6]` |
 
-Compete's timeout comparator — most letters covered → fewest words →
-**co-winners** on an exact tie — resolves from standing (the boggle / scrabble /
+Compete's timeout comparator — most letters covered → fewest words, an exact
+tie sharing the rank — resolves from standing (the boggle / scrabble /
 wordiply family, [states.md](../states.md)): a partial chain is genuinely
 rankable, so a timed race always produces an answer. A conceder forfeits: the
 move RPCs refuse them and the ranking excludes them, so a stale tab can't win a
@@ -743,11 +756,13 @@ start on T"). No passing.
 
 **pgTAP** (`supabase/tests/letterboxed/`, on a synthetic fixture board in
 `setup.psql`): `gameplay_test.sql` — the chain rulebook. The coop happy path
-(append, coverage, log, status sync), the rejections (not playable / wrong
+(append, coverage, log, statuses), the rejections (not playable / wrong
 start letter / duplicate / chain full), undo's **refund** (the property that
 makes the cap a shape constraint), clear, the coop win on covering twelve,
 compete's actor-only writes + the `players_state` chain mask, the conceded
-exclusion, and the timeout co-winner tie. `custom_board_test.sql` — the
+exclusion, and the timeout's tie sharing first. `statuses_test.sql` — each
+status's exact key set in both modes, the values the page reads, and a
+rebuild leaving `status_changed_at` alone. `custom_board_test.sql` — the
 typed-board path (§7): `seed_for` reaching the pool RLS hides **and** the same
 caller getting nothing through the table (the pair that proves the definer
 wrapper is load-bearing), the dash title, the `custom_sides` strip from the club

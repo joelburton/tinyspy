@@ -107,7 +107,7 @@ select (letterboxed.create_game(
 )->'data'->>'id')::uuid as id;
 
 select is(
-  (select sides from letterboxed.games where id = (select id from g)),
+  (select sides from letterboxed.games where game_id = (select id from g)),
   'abcdefghijkl',
   'a custom board is stored exactly as typed'
 );
@@ -120,7 +120,7 @@ select is(
 
 -- Par is untouched: the seeded pair still solves it, so the cap is 2 + 3.
 select is(
-  (select max_words from letterboxed.games where id = (select id from g)),
+  (select max_words from letterboxed.games where game_id = (select id from g)),
   5,
   'a custom board is still par 2 — the cap is par + extra_words'
 );
