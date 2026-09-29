@@ -83,11 +83,11 @@ claiming a card out from under your pick. See §6.
 ## 3. Schema — `setgame.*`
 
 ```
-setgame.games     id, club_handle, mode, deck_kind,
+setgame.games     game_id, deck_kind, palette,
                   deck smallint[]      -- SHIELDED: the undealt order
                   deck_pos int,        -- cursor into deck
                   board smallint[]     -- slot-ordered, 0..21 cards
-setgame.games_state  the view the FE reads: board, deck_left
+setgame.games_state  the view the FE reads: deck_kind, palette, board, deck_left
                      (= deck size - deck_pos), never `deck`
 setgame.players   game_id, user_id, sets_found, hints_used
 setgame.events    id, game_id, user_id, kind ('claim' | 'hint'),
@@ -95,16 +95,18 @@ setgame.events    id, game_id, user_id, kind ('claim' | 'hint'),
                   cards smallint[1..3], board_after smallint[], created_at
 ```
 
-`board` is in **slot order**, and position is meaningful: a slot keeps its
+The mode and the club are `common.games`'; `palette` is copied from
+`setup.palette` at create. `board` is in **slot order**, and position is meaningful: a slot keeps its
 screen position and its keyboard letter for the whole game, because a claim
 refills **in place** (§5).
 
 **`players` has no `solved` / `solved_at`**, and the absence is the shape of the
 game: setgame has no per-player finish line. The deck running dry ends it for
-everyone at once, so who won is decided at the terminal and written to
-`common.game_players.result`, not tracked per row as play goes.
+everyone at once, so who won is decided at the end and written to each
+`common.game_players` row's ranking and outcome, not tracked per row as play
+goes. The team's sets found is the sum of the players' `sets_found`.
 
-**`events` is club-readable in both modes**, with no terminal gate — unusual for
+**`events` is club-readable in both modes**, with no end-of-game gate — unusual for
 a compete game and correct here: the cards were face-up and everyone watched
 them leave. A rival's claim history says nothing about what is coming, and the
 **last-set panel shows anyone's claim in both modes** — its job is to say what
@@ -141,10 +143,42 @@ All three tables are in `supabase_realtime` (`games` carries the board itself,
 table would silently kill live delivery for the other two — the central registry
 test guards it.
 
-### Play states
+### How a game ends
 
-`playing` → `won` / `lost` (coop), `won_compete` / `lost_compete` (compete),
-`ended` (manual stop, either mode).
+The ending is `common.games`' reason, detail and outcome
+([win-lose.md](../win-lose.md)):
+
+| mode | when | reason / detail | ranked |
+|---|---|---|---|
+| coop | the deck cleared | `reached_goal` / `cleared` | everyone 1, won |
+| coop | the clock | `timeout` | nobody — a loss |
+| compete | the deck cleared | `resource_exhausted` / `cleared` | by sets found, among players who didn't concede and found one; ties share |
+| compete | the clock | `timeout` | the same ranking |
+| compete | every racer conceded | `conceded` | nobody — a loss |
+| either | somebody pressed Stop | `stopped` | nobody — neutral |
+
+The last claim is who ended a cleared game; a timeout is ended by whoever held
+the turn in turn-by-turn coop, and by nobody otherwise.
+
+### The statuses
+
+Written by `setgame._write_statuses` at create, at Restart and at the end of
+every move and ending — a hint included — each assigned whole with every key
+present:
+
+| status | keys |
+|---|---|
+| `game_status` | `deck_remaining_count` |
+| each `player_status` | `found_sets_count`, `hints_count`, `player_ended_reason` |
+| `clubpage_info` | `found_sets_count`, `deck_remaining_count`, `deck_kind`, `winner_user_ids`, `winner_found_sets_count` |
+
+A player's status is their own claims and hints; the club line's
+`found_sets_count` is the table's (the sum). Once compete has winners,
+`winner_user_ids` lists every one — a single item for a sole winner — and
+`winner_found_sets_count` is the count they share. setgame is the first game
+with the list rather than the roster's single `winner_user_id` (Joel,
+2026-09-28): with no speed tiebreak a tie is an ordinary result, and the club
+line names each winner.
 
 
 ## 4. Modes, win and loss
@@ -227,25 +261,25 @@ surfaces on both sides of a hand-off.
 
 Style is **best** with a **collective** finish: nobody finishes alone, the deck
 running dry ends it for everybody, and the ranking is `sets_found desc` with
-**no speed tiebreak**. Everyone on the top count is a co-winner.
+**no speed tiebreak**. Everyone on the top count shares first place.
 
 The roster's usual `quality asc, solved_at asc` exists to separate players who
 crossed the *same* finish line. Here the count is the whole result, and breaking
 a 9–9 on who grabbed their last set first would crown reflexes the score
-deliberately doesn't measure. wordiply's co-winner convention is the one copied:
-every tied player gets `won = true`, `winner_user_id` goes **null** when there
-is more than one, and the FE reads its own flag.
+deliberately doesn't measure. So the ranking uses `rank()`: every tied player is
+ranked 1 and won, the club line's `winner_user_ids` lists every one of them,
+and each player reads their own outcome.
 
-**On timeout, compete RANKS THE STANDINGS** — the leader at the whistle wins.
+**On timeout, compete RANKS BY SETS FOUND** — the leader at the whistle wins.
 With a collective finish there are no finishers to rank, and the count of sets
 taken IS the complete result at every instant, so the clock is simply how the
 session stops ([win-lose.md → The three
 primitives](../win-lose.md#the-three-primitives)). A race nobody scored in is
-still a collective loss.
+still a collective loss: only a player who found a set is ranked.
 
-Concede is the standard per-player drop-out. A conceder keeps the sets they took
-— they appear in the leaderboard with their count — but cannot win, so nothing
-here breaks the no-survival-wins invariant.
+Concede is the standard per-player drop-out, decided by `common._concede`. A
+conceder keeps the sets they took — their count stays in their status — but is
+not ranked, so nothing here breaks the no-survival-wins invariant.
 
 
 ## 5. The deal rule, and why the board never closes up
@@ -610,9 +644,9 @@ lessons that generalize are in
 
 | function | notes |
 |---|---|
-| `create_game(target_club, setup, player_user_ids, mode)` | inline shuffle — **no edge function**, since a board is a shuffle. Deals the floor, then runs the deal rule so the opening board always holds a set. |
-| `submit_set(target_game, cards)` | the only mid-game move. Locks the games row, validates, removes, refills to a fixpoint, writes the `claim` event with its `board_after`, scores, checks the terminal. |
-| `record_hint(target_game, cards)` | coop only, and **the tally, not the hint** — it charges the asker and writes the event. Takes the games row lock too, so a hint and a claim can't take the same two rows in opposite orders. |
+| `create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)` | inline shuffle — **no edge function**, since a board is a shuffle. Deals the floor, then runs the deal rule so the opening board always holds a set. |
+| `submit_set(p_game_id, p_cards)` | the only mid-game move. Locks the games row, validates, removes, refills to a fixpoint, writes the `claim` event with its `board_after`, scores, checks for the end, writes the statuses. |
+| `record_hint(p_game_id, p_cards)` | coop only, and **the tally, not the hint** — it charges the asker, writes the event and the statuses. Takes the games row lock too, so a hint and a claim can't take the same two rows in opposite orders. |
 
 Both answer with [an envelope](../envelopes.md). `submit_set` carries
 `{result, terminal}` and `outcome: won`; `record_hint` carries `{hints_used}` —
@@ -629,8 +663,8 @@ client should have prevented and says so: `BUG: bad set` (the board is face-up
 and `lib/cards.ts` runs the same algebra before submitting), `BUG: claim that
 was not three different cards`, `BUG: hint request in a race` (compete offers no
 hint button at all), and four `BUG: …` hint-shape checks.
-| `concede` / `submit_timeout` / `stop_game` / `replay_board` | the standard four. |
-| `_third` / `_is_set` / `_find_set` / `_find_set_with` / `_deck_size` / `_board_min` / `_deal_to_playable` / `_finish` | internals. `_deck_size` is the one granted to `authenticated`, because the `games_state` view is `security_invoker` and its body runs as the reader. |
+| `concede` / `submit_timeout` / `stop_game` / `replay_board` | the standard four: concede locks the row and `common._concede` decides it; Stop goes through `common._stop`. |
+| `_third` / `_is_set` / `_find_set` / `_find_set_with` / `_deck_size` / `_board_min` / `_deal_to_playable` / `_finish` / `_write_statuses` | internals. `_deck_size` is the one granted to `authenticated`, because the `games_state` view is `security_invoker` and its body runs as the reader. |
 
 ### Hints are private, computed on the client, and coop-only
 
@@ -714,8 +748,10 @@ only the deal size differs (9, ceiling 12).
   **stolen-card** contention case, the tail-compaction on a **planted 15-card
   board**, a whole game played out through the real RPC, compete ranking and
   ties, the conceder rule, the timeout adjudications, hints, replay, the deck's
-  unreadability, and **turn-by-turn** (both gates, and that neither a hint nor a
-  refused claim passes the turn).
+  unreadability, **turn-by-turn** (both gates, and that neither a hint nor a
+  refused claim passes the turn), and the statuses (each one's exact key set in
+  both modes, the values the page reads, and a rebuild leaving
+  `status_changed_at` alone).
 - **e2e** — both input routes, the local rejection, contention across two
   sessions, the portrait transposition, the planted 21-card board, print, and
   the two-client turn hand-off (board fade + both pills, on both screens).

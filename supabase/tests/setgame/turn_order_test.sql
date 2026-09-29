@@ -5,7 +5,7 @@
 -- ============================================================
 -- The per-game wiring for the common turn primitive: create_game seats the
 -- rotation when setup.coop_style='turns', and submit_set gates on
--- _require_turn + advances on an accepted, non-terminal claim.
+-- _require_turn + advances on an accepted claim that doesn't end the game.
 --
 -- The rule this pins is setgame's own, and it is about HINTS as much as
 -- claims: **a turn is one successful claim.** Asking for a hint happens on

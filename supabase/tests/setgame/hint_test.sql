@@ -82,7 +82,7 @@ select is(
 select is(
   (select board_after from setgame.events
     where game_id = (select id from g) order by id desc limit 1),
-  (select board from setgame.games where id = (select id from g)),
+  (select board from setgame.games where game_id = (select id from g)),
   'a hint row carries the board too, so the history viewer can show it');
 
 -- ── The checks on client-supplied cards ──────────────────────────────

@@ -14,7 +14,7 @@ set search_path = setgame, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(12);
+select plan(13);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -39,32 +39,35 @@ select pg_temp.sg_play_out(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'won_compete', 'the deck running out ends the race');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g)),
+  'resource_exhausted/cleared/won', 'the deck running out ends the race');
 select is(
-  (select status->>'winner_username' from common.games where id = (select id from g)),
-  'ada', 'the player with the most sets wins');
-select is(
-  (select (status->>'winner_user_id')::uuid from common.games where id = (select id from g)),
-  'ada11111-1111-1111-1111-111111111111'::uuid,
-  'a single winner is named outright');
-select ok(
-  (select (result->>'won')::boolean from common.game_players
+  (select final_ranking || '/' || outcome from common.game_players
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'the winner is flagged won in her own result');
-select ok(
-  not (select (result->>'won')::boolean from common.game_players
-        where game_id = (select id from g)
-          and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  'the player who claimed nothing did not win');
+  '1/won', 'the player with the most sets wins');
 select is(
-  (select jsonb_array_length(status->'leaderboard') from common.games where id = (select id from g)),
-  2, 'the leaderboard lists every player, scorer or not');
+  (select clubpage_info->'winner_user_ids' from common.games where id = (select id from g)),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
+  'a single winner is the club line''s one winner');
 select is(
-  (select (status->'leaderboard'->0->>'sets_found')::int from common.games where id = (select id from g)),
+  (select game_ended_by_user_id from common.games where id = (select id from g)),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'the claim that cleared the table ended the game');
+select is(
+  (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
+    where game_id = (select id from g)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'),
+  'unranked/lost', 'the player who claimed nothing is unranked and lost');
+select is(
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g) and player_status ? 'found_sets_count'),
+  2, 'every player carries a count, scorer or not');
+select is(
+  (select (clubpage_info->>'winner_found_sets_count')::int from common.games where id = (select id from g)),
   (select claims::int from played),
-  'the leaderboard is ordered by sets found, best first');
+  'the winner''s count is every set taken');
 
 -- ── A tie leaves CO-WINNERS ──────────────────────────────────────────
 -- One claim each, then the clock. No speed tiebreak exists, so both win.
@@ -84,12 +87,17 @@ select setgame.submit_timeout((select id from g2));
 
 reset role;
 select is(
-  (select status->>'winner_user_id' from common.games where id = (select id from g2)),
-  null, 'a tie names nobody — picking one would tell the other they lost');
+  (select jsonb_array_length(clubpage_info->'winner_user_ids') from common.games where id = (select id from g2)),
+  2, 'a tie lists both winners — picking one would tell the other they lost');
 select is(
   (select count(*)::int from common.game_players
-    where game_id = (select id from g2) and (result->>'won')::boolean),
-  2, 'both tied players are flagged winners');
+    where game_id = (select id from g2) and final_ranking = 1 and outcome = 'won'),
+  2, 'both tied players are ranked 1, won');
+select is(
+  (select (clubpage_info->>'winner_user_ids') || '/' || (clubpage_info->>'winner_found_sets_count')
+     from common.games where id = (select id from g2)),
+  '["ada11111-1111-1111-1111-111111111111", "bea22222-2222-2222-2222-222222222222"]/1',
+  'the club line lists both tied winners and the count they share');
 
 -- ── Conceding forfeits the win but keeps the count ───────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -110,10 +118,11 @@ select setgame.submit_timeout((select id from g3));
 
 reset role;
 select is(
-  (select status->>'winner_username' from common.games where id = (select id from g3)),
-  'bea', 'the conceder does not win, even holding more sets');
+  (select clubpage_info->'winner_user_ids' from common.games where id = (select id from g3)),
+  '["bea22222-2222-2222-2222-222222222222"]'::jsonb,
+  'the conceder does not win, even holding more sets');
 select is(
-  (select (result->>'sets_found')::int from common.game_players
+  (select sets_found from setgame.players
     where game_id = (select id from g3)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   2, 'the conceder keeps the sets she took — she just cannot be crowned');

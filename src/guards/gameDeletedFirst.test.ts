@@ -77,7 +77,7 @@ describe('a deleted game says so', () => {
       'scrabble._require_bot', 'scrabble._require_move', 'scrabble._require_person',
       'scrabble.concede', 'scrabble.get_ai_context', 'scrabble.get_suggest_context',
       'scrabble.replay_board', 'scrabble.stop_game', 'scrabble.submit_timeout',
-      'setgame.record_hint', 'setgame.replay_board', 'setgame.stop_game',
+      'setgame.concede', 'setgame.record_hint', 'setgame.replay_board', 'setgame.stop_game',
       'setgame.submit_set', 'setgame.submit_timeout',
       'spellingbee.replay_board', 'spellingbee.stop_game',
       'spellingbee.submit_timeout', 'spellingbee.submit_word',

@@ -45,7 +45,7 @@ select isnt(
 -- at twelve, which it does not when the first twelve happen to hold no set —
 -- about 3% of games, i.e. a test that fails once a month for a good reason.
 select is(
-  (select deck_left + cardinality(board) from setgame.games_state where id = (select id from g)),
+  (select deck_left + cardinality(board) from setgame.games_state where game_id = (select id from g)),
   81, 'every card is either in the deck or on the table');
 -- The title is a HANDLE, not a readout: the game's own short id, so it can be
 -- quoted to another player or searched for. It never changes.
@@ -131,7 +131,7 @@ select ok(
     and cardinality(pg_temp.sg_board((select id from g))) % 3 = 0,
   'the board is topped back up to at least the floor');
 select is(
-  (select deck_left + cardinality(board) from setgame.games_state where id = (select id from g))
+  (select deck_left + cardinality(board) from setgame.games_state where game_id = (select id from g))
     + 3 * (select count(*)::int from setgame.events
             where kind = 'claim' and game_id = (select id from g)),
   81, 'the identity still holds after a claim: deck + table + claimed = 81');

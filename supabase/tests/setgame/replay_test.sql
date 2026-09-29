@@ -52,7 +52,7 @@ select is(
 -- Rewound to wherever the OPENING deal stopped, which is what `opening` holds
 -- — not a fixed 69, since a board that opened set-free was dealt past twelve.
 select is(
-  (select deck_left + cardinality(board) from setgame.games_state where id = (select id from g)),
+  (select deck_left + cardinality(board) from setgame.games_state where game_id = (select id from g)),
   81, 'the deal position is rewound to the opening');
 select is(
   (select count(*)::int from setgame.events where kind = 'claim' and game_id = (select id from g)),
@@ -68,8 +68,8 @@ select is(
   '#' || upper(left((select id from g)::text, 6)),
   'the title survives a replay — it names the GAME, not the run');
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'playing', 'and the game is live again');
+  (select ended_at from common.games where id = (select id from g)),
+  null, 'and the game is live again');
 
 select * from finish();
 rollback;

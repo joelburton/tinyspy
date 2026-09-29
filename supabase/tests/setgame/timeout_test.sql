@@ -6,7 +6,7 @@
 -- Coop loses on the clock: there was a reachable end (clear the deck) and the
 -- table did not reach it.
 --
--- Compete RANKS THE STANDINGS — the leader at the whistle wins. The finish is
+-- Compete RANKS BY SETS FOUND — the leader at the whistle wins. The finish is
 -- collective, so there are no finishers to rank, and the count of sets taken
 -- is the complete result at every instant: the clock is just how the session
 -- stops. With nobody scoring at all there is no one to crown, and it falls
@@ -37,19 +37,18 @@ select setgame.submit_timeout((select id from gc));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from gc)),
+  (select game_ended_outcome from common.games where id = (select id from gc)),
   'lost', 'coop loses on the clock — the deck was still full of sets');
 select is(
-  (select status->>'reason' from common.games where id = (select id from gc)),
-  'timeout', 'the outcome says what stopped it');
+  (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from gc)),
+  'timeout/timeout', 'the reason says what stopped it');
 select is(
-  (select (status->>'sets_found')::int from common.games where id = (select id from gc)),
+  (select (clubpage_info->>'found_sets_count')::int from common.games where id = (select id from gc)),
   1, 'a lost coop game still records what the table found');
-select ok(
-  not (select (result->>'won')::boolean from common.game_players
-        where game_id = (select id from gc)
-          and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'nobody won it');
+select is(
+  (select count(*)::int from common.game_players
+    where game_id = (select id from gc) and final_ranking is null and outcome = 'lost'),
+  2, 'nobody won it — nobody is ranked');
 
 -- A second call is a no-op the manifest swallows.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -59,7 +58,7 @@ select pg_temp.envelope_is(
     "message":"Game over"}'::jsonb,
   'the timeout is idempotent — every client fires it, only the first counts');
 
--- ── Compete with a leader: the standings decide ──────────────────────
+-- ── Compete with a leader: the sets found decide ─────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gl on commit drop as
 select (setgame.create_game(
@@ -76,11 +75,13 @@ select setgame.submit_timeout((select id from gl));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from gl)),
-  'won_compete', 'the whistle crowns the leader rather than voiding the game');
+  (select game_ended_outcome from common.games where id = (select id from gl)),
+  'won', 'the whistle crowns the leader rather than voiding the game');
 select is(
-  (select status->>'winner_username' from common.games where id = (select id from gl)),
-  'ada', 'the leader at the whistle is the winner');
+  (select string_agg(user_id::text || ':' || final_ranking || '/' || outcome, ',' order by final_ranking)
+     from common.game_players where game_id = (select id from gl)),
+  'ada11111-1111-1111-1111-111111111111:1/won,bea22222-2222-2222-2222-222222222222:2/near',
+  'the leader at the whistle is the winner, the runner-up near');
 
 -- ── Compete with nobody scoring: nobody to crown ─────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -94,8 +95,10 @@ select setgame.submit_timeout((select id from gz));
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from gz)),
-  'lost_compete', 'a race nobody scored in is a collective loss');
+  (select game_ended_outcome || '/' || count(*) filter (where gp.final_ranking is null and gp.outcome = 'lost')
+     from common.games cg join common.game_players gp on gp.game_id = cg.id
+    where cg.id = (select id from gz) group by cg.game_ended_outcome),
+  'lost/2', 'a race nobody scored in is a collective loss, nobody ranked');
 
 select * from finish();
 rollback;

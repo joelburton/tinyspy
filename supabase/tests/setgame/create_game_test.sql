@@ -148,7 +148,7 @@ select ok(
   (select array_length(board, 1) >= 12
       and array_length(board, 1) % 3 = 0
       and setgame._find_set(board) is not null
-     from setgame.games where id = (select id from g)),
+     from setgame.games where game_id = (select id from g)),
   'the opening board is playable — twelve or more cards, with a set on it'
 );
 

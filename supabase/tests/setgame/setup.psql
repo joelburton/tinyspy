@@ -43,7 +43,7 @@ declare
   result smallint[];
 begin
   perform set_config('role', 'postgres', true);
-  select board into result from setgame.games where id = gid;
+  select board into result from setgame.games where game_id = gid;
   perform set_config('role', prev, true);
   return result;
 end;
@@ -59,7 +59,7 @@ declare
   result smallint[];
 begin
   perform set_config('role', 'postgres', true);
-  select setgame._find_set(board) into result from setgame.games where id = gid;
+  select setgame._find_set(board) into result from setgame.games where game_id = gid;
   perform set_config('role', prev, true);
   return result;
 end;
@@ -77,7 +77,7 @@ declare
   i      int;
 begin
   perform set_config('role', 'postgres', true);
-  select board into b from setgame.games where id = gid;
+  select board into b from setgame.games where game_id = gid;
   for i in 3 .. cardinality(b) loop
     if b[i] <> setgame._third(b[1], b[2]) then
       result := array[b[1], b[2], b[i]]::smallint[];
@@ -93,22 +93,20 @@ $$;
 -- offers. `actors` rotates who claims (pass a single uid for a solo run, two
 -- for an alternating compete race). Returns how many sets were taken.
 --
--- This is the workhorse for the terminal tests: nothing but the real RPC
+-- This is the workhorse for the ending tests: nothing but the real RPC
 -- drives it, so a refill that fails to terminate, a board that dead-ends
--- early, or a terminal that never fires all show up as a hang or a wrong
+-- early, or an ending that never fires all show up as a hang or a wrong
 -- count rather than as a passing test.
 create function pg_temp.sg_play_out(gid uuid, actors uuid[]) returns int
 language plpgsql as $$
 declare
   taken int := 0;
   live  smallint[];
-  state text;
 begin
   loop
     perform set_config('role', 'postgres', true);
-    select play_state into state from common.games where id = gid;
-    exit when state <> 'playing';
-    select setgame._find_set(board) into live from setgame.games where id = gid;
+    exit when (select ended_at from common.games where id = gid) is not null;
+    select setgame._find_set(board) into live from setgame.games where game_id = gid;
     exit when live is null;
 
     perform pg_temp.as_user(actors[1 + taken % cardinality(actors)]);

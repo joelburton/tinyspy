@@ -1,7 +1,7 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: the deal-three rule, the tail-compaction, and the terminal
+-- Test: the deal-three rule, the tail-compaction, and the ending
 -- ============================================================
 -- Three things that only show up over a whole game:
 --
@@ -38,10 +38,10 @@ select (setgame.create_game(
 reset role;
 update setgame.games
    set board = array[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]::smallint[]
- where id = (select id from g);
+ where game_id = (select id from g);
 
 create temp table before_compact on commit drop as
-select deck_left from setgame.games_state where id = (select id from g);
+select deck_left from setgame.games_state where game_id = (select id from g);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
@@ -55,7 +55,7 @@ select is(
   'the board came down to twelve by moving the LAST three cards into the holes');
 
 select is(
-  (select deck_left from setgame.games_state where id = (select id from g)),
+  (select deck_left from setgame.games_state where game_id = (select id from g)),
   (select deck_left from before_compact),
   'an oversized board does not deal — it shrinks');
 
@@ -72,7 +72,7 @@ select is(
 -- A SECOND, undoctored game. The board above was planted, which injects cards
 -- that were never dealt from its deck — fine for measuring compaction, but it
 -- breaks the accounting the readouts below assert (and it would leave the
--- terminal to fire on a board holding cards the deck still contains).
+-- ending to fire on a board holding cards the deck still contains).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (setgame.create_game(
@@ -89,13 +89,15 @@ select pg_temp.sg_play_out(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'won', 'clearing the deck wins the coop game');
-select ok(
-  (select is_terminal from common.games where id = (select id from g2)),
-  'the game is terminal');
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g2)),
+  'reached_goal/cleared/won', 'clearing the deck wins the coop game');
 select is(
-  (select deck_left from setgame.games_state where id = (select id from g2)),
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g2) and final_ranking = 1 and outcome = 'won'),
+  2, 'the whole team is ranked 1');
+select is(
+  (select deck_left from setgame.games_state where game_id = (select id from g2)),
   0, 'the deck is spent');
 select is(
   pg_temp.sg_live((select id from g2)), null,
@@ -103,26 +105,25 @@ select is(
 
 -- ── (3) The verdict's readouts ───────────────────────────────────────
 select is(
-  (select (status->>'sets_found')::int from common.games where id = (select id from g2)),
+  (select (clubpage_info->>'found_sets_count')::int from common.games where id = (select id from g2)),
   (select claims::int from played),
-  'status carries the number of sets the table took');
+  'the club line carries the number of sets the table took');
 -- Nothing records the cards left on the table, because nothing has to: with the
 -- deck spent, every card is either claimed or still lying there.
+select ok(
+  (select not (clubpage_info ? 'stranded') from common.games where id = (select id from g2)),
+  'the leftover count is not stored — it is derivable, and a replay would stale it');
 select is(
-  (select (status->>'stranded') from common.games where id = (select id from g2)),
-  null, 'the leftover count is not stored — it is derivable, and a replay would stale it');
-select is(
-  81 - 3 * (select (status->>'sets_found')::int from common.games where id = (select id from g2)),
+  81 - 3 * (select (clubpage_info->>'found_sets_count')::int from common.games where id = (select id from g2)),
   cardinality(pg_temp.sg_board((select id from g2))),
   '…and the derivation holds: deck size minus three per claim IS what is left');
 
--- The per-player breakdown lands at the terminal and only there: coop shows
--- one team number while the game runs.
+-- Each player's own count, which a coop page sums for the team.
 select is(
-  (select count(*)::int from common.game_players
-    where game_id = (select id from g2)
-      and (result->>'sets_found') is not null),
-  2, 'both players get their own count in the end-of-game results');
+  (select sum((player_status->>'found_sets_count')::int)::int from common.game_players
+    where game_id = (select id from g2)),
+  (select claims::int from played),
+  'both players carry their own count, and together they are the table''s');
 
 select * from finish();
 rollback;
