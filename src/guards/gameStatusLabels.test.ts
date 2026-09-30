@@ -226,25 +226,22 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
+  // wordle._write_statuses: the used count is coop's shared one and null in compete; the
+  // winner and their count are compete's alone; the answer band is the setup's.
   wordle: {
-    playing: { guesses_used: 3, max_guesses: 6 },
-    setup: { answer_band: 0 },
-    shared: [
-      // No 'revealed' case: the mid-game give-up that wrote it is gone
-      // (2026-08-03) — revealing is a display decision on an already-ended
-      // game now, so the only reason a manual end can carry is 'manual'.
-      ['ended', { reason: 'manual' }, 'manual end'],
-    ],
+    live: { guesses_used: 3, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null },
     coop: [
-      ['won', { reason: 'solved', guesses_used: 4, max_guesses: 6 }, 'solved'],
-      ['lost', { reason: 'exhausted', guesses_used: 6, max_guesses: 6 }, 'out of guesses'],
-      ['lost', { reason: 'timeout', guesses_used: 3, max_guesses: 6 }, 'timeout'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { guesses_used: 4, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'solved'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { guesses_used: 6, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { guesses_used: 3, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { guesses_used: 3, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'Stop'],
     ],
     compete: [
-      ['won_compete', { reason: 'solved', winner_guesses: 4, ...W }, 'someone won'],
-      ['lost_compete', { reason: 'exhausted' }, 'everyone out of guesses'],
-      ['lost_compete', { reason: 'timeout' }, 'timeout'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { guesses_used: null, max_guesses: 6, answer_band: 0, winner_user_id: 'u-alice', winner_guesses_count: 4 }, 'someone won'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { guesses_used: null, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'everyone out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { guesses_used: null, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { guesses_used: null, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { guesses_used: null, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'Stop'],
     ],
   },
   stackdown: {

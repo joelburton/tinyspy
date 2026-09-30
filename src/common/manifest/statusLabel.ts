@@ -72,10 +72,6 @@ export function wonBy(username: string | null | undefined): string {
  * stackdown) — for spellingbee or boggle the band barely shows, and a constant
  * word on every row would just eat the row's width. Quoted because a bare
  * `dict Familiar` reads like a typo; the band names aren't self-evident.
- *
- * Read off `setup` rather than `status`, unlike everything else a status line
- * says: `common._reset_game` assigns the status blob wholesale, so a key written
- * at create time would not survive a restart.
  */
 export function dictLabel(band: number | null | undefined): string | null {
   if (band == null) return null
