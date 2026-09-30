@@ -1,6 +1,6 @@
 // cs-blessed-wordle
 
-import type { Player } from '../hooks/useGame'
+import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import { makeCoopRows, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import type { WordleSetup } from './setup'
@@ -18,7 +18,7 @@ function answerBandValue(n: number): string {
 export function makeSetupRows(
   setup: WordleSetup,
   mode: 'coop' | 'compete',
-  players: Player[],
+  players: Member[],
 ): SetupRow[] {
   return [
     makeRosterRow(players),
