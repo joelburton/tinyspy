@@ -767,10 +767,10 @@ export async function createWordleGame(
   const res = await asUser(creator.session.access_token)
     .schema('wordle')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: { max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' } },
-      player_user_ids: playerUserIds,
-      mode,
+      p_club_handle: club.handle,
+      p_setup: { max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' } },
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
     })
   return { id: createdGameId(res, 'wordle.create_game'), gametype: `wordle_${mode}` }
 }
@@ -805,7 +805,7 @@ export async function seedWordleGuesses(
       .map((s) => s.trim())
       .filter(Boolean)
 
-  const [target, band] = q(`select target, legal_band from wordle.games where id = '${gameId}';`)[0].split('|')
+  const [target, band] = q(`select target, legal_band from wordle.games where game_id = '${gameId}';`)[0].split('|')
   const words = q(
     `select word from common.words ` +
       `where len = 5 and difficulty <= ${Number(band)} and word <> '${target}' limit ${Number(n)};`,
@@ -815,7 +815,7 @@ export async function seedWordleGuesses(
   for (const word of words) {
     const res = await asUser(member.session.access_token)
       .schema('wordle')
-      .rpc('submit_guess', { target_game: gameId, guess: word })
+      .rpc('submit_guess', { p_game_id: gameId, p_guess: word })
     const { result } = envelopeData<{ result?: string }>(res, `wordle.submit_guess(${word})`)
     if (result !== 'incorrect') throw new Error(`submit_guess(${word}) → ${result}, expected incorrect`)
   }

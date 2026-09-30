@@ -29,7 +29,7 @@ function targetOf(gameId: string): string {
   if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
   return execFileSync(
     'psql',
-    [LOCAL_DB, '-X', '-tA', '-c', `select target from wordle.games where id = '${gameId}';`],
+    [LOCAL_DB, '-X', '-tA', '-c', `select target from wordle.games where game_id = '${gameId}';`],
     { encoding: 'utf8' },
   ).trim()
 }
@@ -76,7 +76,7 @@ export const wordleGallery: GameGallery = {
       await seedWordleGuesses(viewer, id, 2)
       const res = await asUser(viewer.session.access_token)
         .schema('wordle')
-        .rpc('submit_guess', { target_game: id, guess: targetOf(id) })
+        .rpc('submit_guess', { p_game_id: id, p_guess: targetOf(id) })
       if (res.error) throw new Error(`wordle.submit_guess(target): ${res.error.message}`)
 
       // SOLVING FIRST DOESN'T END A COMPETE RACE — the winner is fewest

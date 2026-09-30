@@ -37,7 +37,7 @@ test('wordle: solving shows the answer unasked, and the control says so', async 
       '-X',
       'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
       '-tAc',
-      `select target from wordle.games where id = '${game.id}'`,
+      `select target from wordle.games where game_id = '${game.id}'`,
     ],
     { encoding: 'utf8' },
   ).trim()

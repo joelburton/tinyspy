@@ -41,7 +41,7 @@ function targetOf(gameId: string): string {
       '-X',
       'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
       '-tAc',
-      `select target from wordle.games where id = '${gameId}'`,
+      `select target from wordle.games where game_id = '${gameId}'`,
     ],
     { encoding: 'utf8' },
   ).trim()

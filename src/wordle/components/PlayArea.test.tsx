@@ -22,26 +22,48 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { gp } from '@/common/members/gamePlayer.fixture'
+import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
+import type { GamePlayer } from '@/common/members/member'
+import type { GameEnding } from '@/common/terminal/gameEnding'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
-import type { WordleGame, PlayerRow, EventRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
+import type { WordleGameStatus, WordlePlayerStatus } from '../lib/statuses'
 import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
 import { PlayAreaLoader } from './PlayArea'
 import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
 
-type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
+/** What wordle's own reads bring back: the answer and the log. */
+type Loaded = { target: string | null; events: EventRow[] }
 
-// A mutable holder the mocked useGame returns each render — set per test before
-// render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory, so
-// the factory can close over it safely.
-const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
-vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
+// A mutable holder the mocked useGame builds `gd` from each render — set per
+// test before render(). The rest of `gd` is the context's, built by the real
+// `makeGameData` from the real players and setup rows, so a player's count,
+// ending and solve are set on them in `makeCtx`, where the page puts them.
+// `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory, so the
+// factory can close over it safely.
+const h = vi.hoisted(() => ({ loaded: null as unknown as Loaded }))
+vi.mock('../hooks/useGame', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../hooks/useGame')>()
+  const { makeSetupRows } = await import('../lib/setupRows')
+  return {
+    ...real,
+    useGame: (ctx: GamePageCtx) => {
+      const playersById = real.makePlayersById(ctx.players)
+      const setupRows = makeSetupRows(real.readSetup(ctx), ctx.mode, ctx.players)
+      return {
+        gd: real.makeGameData(ctx, h.loaded, playersById, setupRows),
+        loading: false,
+        failure: null,
+      }
+    },
+  }
+})
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 // The common client is mocked so the reveal tests can assert that NOTHING is
 // written when the answer is shown — a wordle-schema spy alone couldn't tell a
@@ -51,46 +73,95 @@ vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
 
-const me: PlayerRow = { user_id: 'u1', guesses_used: 0, solved: false, solved_at: null }
-const moth: PlayerRow ={ user_id: 'u2', guesses_used: 0, solved: false, solved_at: null }
+/** The reads: the answer (null until the game ends) and the log. */
+function loaded(target: string | null = null, events: EventRow[] = []): Loaded {
+  return { target, events }
+}
 
-/** Two club members, for the peer-narration tests (the lookup is by ctx.players). */
+/** Two club members, both playing. */
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
-/** Me, out of the race — solved or out of guesses — as the server marks it. */
-const meOut = gp('u1', 'me', 'red', { locally_terminal: true })
 
-/** A loaded game-hook result; override the game header + player states per test. */
-function loaded(
-  game: WordleGame,
-  guesses: EventRow[] = [],
-  playerStates: PlayerRow[] = [me],
-): GameHook {
-  return { game, playerStates, guesses, loading: false, failure: null }
+/** The ending columns of a compete player who solved and waits on the rest —
+ *  `neutral`, since fewer guesses may yet beat it, as `submit_guess` writes it. */
+const SOLVED_WAITING = {
+  player_ended_at: '2026-09-03T00:00:00Z',
+  player_ended_reason: 'reached_goal',
+  player_ended_reason_detail: 'solved',
+  outcome: 'neutral',
+  solved_at: '2026-09-03T00:00:00Z',
+} as const satisfies Partial<GamePlayer>
+
+/** Me, out of a compete game — solved and waiting on the rest. */
+const meOut = gp('u1', 'me', 'red', SOLVED_WAITING)
+
+/** A compete player at the end: their outcome, whether they solved, and
+ *  whether the clock broke their tie with the winner. */
+function finished(
+  id: string, name: string, color: string,
+  outcome: 'won' | 'near' | 'lost',
+  { solved = outcome !== 'lost', guesses = 3, tie = false } = {},
+): GamePlayer {
+  return gp(id, name, color, {
+    outcome,
+    final_ranking: outcome === 'won' ? 1 : outcome === 'near' ? 2 : null,
+    solved_at: solved ? '2026-09-03T00:00:00Z' : null,
+    player_status: playerStatus(guesses, null, tie),
+  })
+}
+
+function playerStatus(
+  used: number,
+  ended: WordlePlayerStatus['player_ended_reason'],
+  tie: boolean | null = null,
+): WordlePlayerStatus {
+  return { guesses_used: used, player_ended_reason: ended, tie_broken_by_clock: tie }
+}
+
+/** A player's `player_status` as the builder writes it, its reason kept in
+ *  step with the player's own column. A fixture player with no status of its
+ *  own gets this, so a test sets the ending once. */
+function withPlayerStatus(p: GamePlayer): GamePlayer {
+  if (Object.keys(p.player_status).length > 0) return p
+  return { ...p, player_status: playerStatus(0, p.player_ended_reason) }
+}
+
+/** The endings the tests reach for. */
+const COOP_WON: GameEnding = {
+  reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u1',
+}
+const COOP_LOST: GameEnding = {
+  reason: 'resource_exhausted', reasonDetail: 'exhausted', outcome: 'lost', endedByUserId: 'u1',
+}
+const SOMEONE_WON: GameEnding = {
+  reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u2',
 }
 
 /** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
- *  the page derives it (`whereIStand`), so a test sets up the facts and never
- *  hand-writes an answer the page could not give. */
+ *  players' endings, whether the game has ended, `isTurnBased` and
+ *  `turnHolderId` — exactly as the page derives it (`whereIStand`), so a test
+ *  sets up the facts and never hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
   const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
-    players: [gp('u1', 'me', 'red')],
-    isTerminal: false,
     isTurnBased: false,
     turnHolderId: null,
+    gameEnding: null,
     ...over,
+    players: (over.players ?? [gp('u1', 'me', 'red')]).map(withPlayerStatus),
   }
+  const gameStatus: WordleGameStatus = { max_guesses: 6 }
   return {
     gameId: 'g1',
     brand: 'WordNerd',
     title: 'Test game',
-    playState: 'playing',
+    mode: 'coop',
     timer: { displaySeconds: 0, expired: false },
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
     // would crash timerLabel, exactly the kind of render bug these tests guard).
     setup: { max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' } },
-    status: null,
+    gameStatus,
+    commonGameUpdatedAt: '2026-09-01T00:00:00Z',
+    resubscribeCount: 0,
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',
     goToFollowUpGame: vi.fn(),
@@ -101,15 +172,16 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
     ...facts,
+    isTerminal: facts.gameEnding !== null,
     ...whereIStand({
       players: facts.players,
       myId: facts.session.user.id,
-      isTerminal: facts.isTerminal,
+      isTerminal: facts.gameEnding !== null,
       isTurnBased: facts.isTurnBased,
       turnHolderId: facts.turnHolderId,
       draftsOffTurn: false,
     }),
-  }
+  } as unknown as GamePageCtx
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
@@ -145,7 +217,7 @@ const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describ
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)!
 
 beforeEach(() => {
-  h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+  h.loaded = loaded()
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null })
   commonRpc.mockReset()
@@ -156,7 +228,7 @@ describe('wordle PlayArea — render smoke', () => {
   it('renders the board + an event-log row in coop play', () => {
     // A landed guess exercises the GameEventLog row (squares + who cell), not
     // just the empty state.
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+    h.loaded = loaded(null, [
       { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false },
     ])
     render(<PlayAreaLoader {...makeCtx()} />)
@@ -164,8 +236,7 @@ describe('wordle PlayArea — render smoke', () => {
   })
 
   it('renders the board in compete play', () => {
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null })
-    render(<PlayAreaLoader {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
   })
 
@@ -182,7 +253,7 @@ describe('wordle PlayArea — render smoke', () => {
    * files themselves, in shared/wordle-style/tileColor.test.ts.
    */
   it('routes each judged code to its class key, on the board and the keyboard', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+    h.loaded = loaded(null, [
       { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false },
     ])
     render(<PlayAreaLoader {...makeCtx()} />)
@@ -198,8 +269,8 @@ describe('wordle PlayArea — render smoke', () => {
   })
 
   it('renders the terminal state without crashing', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    h.loaded = loaded('crane')
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
     // The info-column outcome line, and — since this is a coop WIN — the answer
     // line with it: solving is the one thing that shows the word unasked.
@@ -222,7 +293,7 @@ describe('wordle PlayArea — icon-only action row', () => {
   // The row is one list; which buttons are on screen is each action's own
   // answer, and the menu asks the same bindings.
   it('Reveal, Restart and New game are menu rows all game, and buttons only at the end', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    h.loaded = loaded(null)
     render(<PlayAreaLoader {...makeCtx()} />)
     for (const id of ['act-reveal', 'act-restart', 'act-new-game'] as const) {
       expect(bound(id).describe('button').state).toBe('hidden')
@@ -231,10 +302,7 @@ describe('wordle PlayArea — icon-only action row', () => {
   })
 
   it('a racer who is done sees Reveal grayed, Stop, and Back to club', () => {
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [
-      { ...me, solved: true }, moth,
-    ])
-    render(<PlayAreaLoader {...makeCtx({ players: [meOut, twoMembers[1]] })} />)
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [meOut, twoMembers[1]!] })} />)
     expect(screen.getByText('Waiting for others')).toBeInTheDocument()
     // Possible here, not right now: the answer waits for the race to end for
     // everyone, and the tooltip says so.
@@ -254,7 +322,7 @@ describe('wordle PlayArea — icon-only action row', () => {
     // through the suspend-confirm flow mid-game, so the game picks between no
     // callbacks and cannot pick wrong.
     const user = userEvent.setup()
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    h.loaded = loaded(null)
     const ctx = makeCtx()
     render(<PlayAreaLoader {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'Back to club' }))
@@ -264,8 +332,8 @@ describe('wordle PlayArea — icon-only action row', () => {
   it('terminal "Reveal solution" shows the word for ME, with no RPC and no confirm', async () => {
     commonRpc.mockClear()
     const user = userEvent.setup()
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    h.loaded = loaded('crane')
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_LOST })} />)
 
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
@@ -278,8 +346,8 @@ describe('wordle PlayArea — icon-only action row', () => {
 
   it('the same button hides it again, restoring the column as the game ended', async () => {
     const user = userEvent.setup()
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    h.loaded = loaded('crane')
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_LOST })} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     // It wears its other face now — same button, EyeOff glyph, Hide label.
@@ -291,10 +359,8 @@ describe('wordle PlayArea — icon-only action row', () => {
   it('SOLVING shows the answer unasked, and the control says it has nothing to do', () => {
     // You can only solve a wordle by typing the answer, so a solver is already
     // looking at it — the info-column line just makes it click-to-define.
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' }, [], [
-      { ...me, solved: true },
-    ])
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    h.loaded = loaded('crane')
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />)
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
     const reveal = screen.getByRole('button', { name: 'Solution already shown' })
     expect(reveal).toBeDisabled()
@@ -302,12 +368,18 @@ describe('wordle PlayArea — icon-only action row', () => {
 
   it('a terminal I did NOT solve still waits to be asked', () => {
     // The predicate is "did I solve it", never "was the game won" — which is the
-    // whole difference in compete, where `won_compete` means SOMEONE won and the
-    // racer three guesses off never produced the word.
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
-      { ...me, solved: false },
-    ])
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won_compete' })} />)
+    // whole difference in compete, where the game's `won` means SOMEONE won and
+    // the player three guesses off never produced the word.
+    h.loaded = loaded('crane')
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          gameEnding: SOMEONE_WON,
+          players: [finished('u1', 'me', 'red', 'lost'), finished('u2', 'moth', 'blue', 'won')],
+        })}
+      />,
+    )
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
@@ -324,17 +396,17 @@ describe('wordle PlayArea — icon-only action row', () => {
         : Promise.resolve({ error: null }),
     )
     const user = userEvent.setup()
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    h.loaded = loaded('crane')
+    const ctx = makeCtx({ gameEnding: COOP_LOST })
     render(<PlayAreaLoader {...ctx} />)
 
     await user.click(screen.getByRole('button', { name: 'New game' }))
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('create_game', {
-        target_club: 'testclub',
-        setup: ctx.setup,
-        player_user_ids: ['u1'],
-        mode: 'coop',
+        p_club_handle: 'testclub',
+        p_setup: ctx.setup,
+        p_player_user_ids: ['u1'],
+        p_mode: 'coop',
       }),
     )
     await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
@@ -344,7 +416,7 @@ describe('wordle PlayArea — icon-only action row', () => {
 /**
  * Terminal flow (the waffle treatment — docs/ui.md → Terminal results). No
  * modal carries the verdict; a win pops the CelebrationBlockingModal at the
- * MOMENT it lands (the playState flip) — the team's in coop, mine in a race —
+ * MOMENT it lands (the ending arriving) — the team's in coop, mine in compete —
  * never on mounting an already-won game. And the word stays HIDDEN at a
  * terminal this viewer did not solve until they ask for it — a local,
  * reversible display toggle (useSolutionReveal), no RPC and no peer affected.
@@ -360,8 +432,8 @@ describe('wordle PlayArea — terminal flow', () => {
   }
 
   it('hides the word on a coop loss (and pops no modal)', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    h.loaded = loaded('crane')
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_LOST })} />)
     expect(screen.getByText('Out of guesses')).toBeInTheDocument()
     // The target is on the client (post-terminal shield-lift) but NOT displayed.
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
@@ -371,8 +443,8 @@ describe('wordle PlayArea — terminal flow', () => {
 
   it('the menu item is the same toggle, and flips its label with the button', async () => {
     commonRpc.mockClear()
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    const ctx = makeCtx({ gameEnding: COOP_LOST })
+    h.loaded = loaded('crane')
     render(<PlayAreaLoader {...ctx} />)
 
     const reveal = menuItems(ctx).find((i) => i.id === 'act-reveal')!
@@ -390,8 +462,7 @@ describe('wordle PlayArea — terminal flow', () => {
   })
 
   it('the menu item is disabled before the game is over for everyone', () => {
-    const ctx = makeCtx({ isTerminal: false, playState: 'playing' })
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null })
+    const ctx = makeCtx({ mode: 'compete', players: twoMembers })
     render(<PlayAreaLoader {...ctx} />)
     // Nothing to show yet: wordle._target_for withholds the target until the
     // race is over for everyone, so a player who's done can't peek at a live one.
@@ -400,77 +471,75 @@ describe('wordle PlayArea — terminal flow', () => {
 
   it('a Restart puts the answer away again', async () => {
     const user = userEvent.setup()
-    const game = { id: 'g1', mode: 'coop' as const, max_guesses: 6, target: 'crane' }
-    h.result = loaded(game)
-    const { rerender } = render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    h.loaded = loaded('crane')
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_LOST })} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Restart' }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
     // The same word, hunted again — and the answer is gone from the client with
     // it, since `_target_for` stops sending a target the run has not finished.
-    h.result = loaded({ ...game, target: null })
+    h.loaded = loaded(null)
     rerender(<PlayAreaLoader {...makeCtx()} />)
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
   })
 
   it('"Restart" at terminal calls replay_board WITHOUT confirming', async () => {
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    const ctx = makeCtx({ gameEnding: COOP_LOST })
+    h.loaded = loaded('crane')
     render(<PlayAreaLoader {...ctx} />)
 
     act(() => menuItems(ctx).find((i) => i.id === 'act-restart')!.run())
     // No ConfirmationHost is mounted, so a question would have stalled the run —
     // the RPC firing proves the shared run asked nothing at terminal.
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
   })
 
   it('offers Restart in the terminal row (left of Club), calling replay_board unconfirmed', async () => {
     const user = userEvent.setup()
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    h.loaded = loaded('crane')
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_LOST })} />)
 
     const restart = screen.getByRole('button', { name: 'Restart' })
     const club = screen.getByRole('button', { name: /club/i })
     expect(restart.compareDocumentPosition(club) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await user.click(restart)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
   })
 
   it('pops the celebration when the coop win lands mid-session, not on mount', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    h.loaded = loaded(null)
     const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
-    // The winning guess arrives: playState flips to won via realtime.
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    rerender(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    // The winning guess arrives: the game's ending lands via the refetch.
+    h.loaded = loaded('crane')
+    rerender(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />)
     expect(screen.getByRole('dialog', { name: 'Solved! 🎉' })).toBeInTheDocument()
   })
 
   it('does not celebrate when mounted into an already-won game', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    h.loaded = loaded('crane')
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  // The race's winner celebrates too — MY win, read off the server's
-  // `status.winner_user_id`, never "someone won". The dialog's handle is its
-  // title: the pill and the row's line say the verdict in their own words.
-  it('celebrates the race I won, at the moment it ends', () => {
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
-    const base = { players: twoMembers }
-    const { rerender } = render(<PlayAreaLoader {...makeCtx(base)} />)
+  // The winner celebrates too — MY win, read off my own outcome, never
+  // "someone won". The dialog's handle is its title: the pill and the row's
+  // line say the verdict in their own words.
+  it('celebrates the compete game I won, at the moment it ends', () => {
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
 
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
-      { ...me, solved: true },
-      moth,
-    ])
+    h.loaded = loaded('crane')
     rerender(
       <PlayAreaLoader
-        {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { winner_user_id: 'u1' } })}
+        {...makeCtx({
+          mode: 'compete',
+          gameEnding: SOMEONE_WON,
+          players: [finished('u1', 'me', 'red', 'won'), finished('u2', 'moth', 'blue', 'lost')],
+        })}
       />,
     )
     expect(screen.getByRole('dialog', { name: 'Solved! 🎉' })).toBeInTheDocument()
@@ -478,76 +547,71 @@ describe('wordle PlayArea — terminal flow', () => {
     expect(screen.getByText('You won!')).toBeInTheDocument()
   })
 
-  it('does not celebrate a race somebody else won', () => {
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
-    const base = { players: twoMembers }
-    const { rerender } = render(<PlayAreaLoader {...makeCtx(base)} />)
+  it('does not celebrate a compete game somebody else won', () => {
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
 
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
-      me,
-      { ...moth, solved: true },
-    ])
+    h.loaded = loaded('crane')
     rerender(
       <PlayAreaLoader
-        {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { winner_user_id: 'u2' } })}
+        {...makeCtx({
+          mode: 'compete',
+          gameEnding: SOMEONE_WON,
+          players: [finished('u1', 'me', 'red', 'lost'), finished('u2', 'moth', 'blue', 'won')],
+        })}
       />,
     )
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByText('Opponent won')).toBeInTheDocument()
   })
 
-  it('does not celebrate when mounted into a race already won', () => {
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
-      { ...me, solved: true },
-      moth,
-    ])
+  it('does not celebrate when mounted into a compete game already won', () => {
+    h.loaded = loaded('crane')
     render(
       <PlayAreaLoader
-        {...makeCtx({ players: twoMembers, isTerminal: true, playState: 'won_compete', status: { winner_user_id: 'u1' } })}
+        {...makeCtx({
+          mode: 'compete',
+          gameEnding: SOMEONE_WON,
+          players: [finished('u1', 'me', 'red', 'won'), finished('u2', 'moth', 'blue', 'lost')],
+        })}
       />,
     )
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  // The tie-break, inferred from the rows: two solvers on the same count, and
-  // the one the server named winner got there first. The loser's words say the
-  // clock decided it; the winner's say the same from their side.
+  // Two solvers on the same count, the earlier solve the winner: the server
+  // marks both players' `tie_broken_by_clock`, and each reads it from their
+  // own side.
   it('a tie on guesses reads as the clock deciding it, on both sides', () => {
-    const tied = (winner: string) =>
+    const tied = (myOutcome: 'won' | 'near') =>
       makeCtx({
-        players: twoMembers,
-        isTerminal: true,
-        playState: 'won_compete',
-        status: { reason: 'solved', winner_user_id: winner },
+        mode: 'compete',
+        gameEnding: SOMEONE_WON,
+        players: [
+          finished('u1', 'me', 'red', myOutcome, { tie: true }),
+          finished('u2', 'moth', 'blue', myOutcome === 'won' ? 'near' : 'won', { tie: true }),
+        ],
       })
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
-      { ...me, solved: true, guesses_used: 3 },
-      { ...moth, solved: true, guesses_used: 3 },
-    ])
-    const { rerender } = render(<PlayAreaLoader {...tied('u2')} />)
+    h.loaded = loaded('crane')
+    const { rerender } = render(<PlayAreaLoader {...tied('near')} />)
     expect(screen.getByText('Lost: beaten on the clock')).toBeInTheDocument()
     expect(screen.getByText('Opponent won (faster)')).toBeInTheDocument()
 
-    rerender(<PlayAreaLoader {...tied('u1')} />)
+    rerender(<PlayAreaLoader {...tied('won')} />)
     expect(screen.getByText('Won: same guesses, but faster')).toBeInTheDocument()
     expect(screen.getByText('You won (faster)')).toBeInTheDocument()
   })
 
-  // A race the clock ended with a solver: the racer still guessing reads that
+  // A game the clock ended with a solver: the player still guessing reads that
   // time ran out, from the server's reason and their own unsolved row — not
   // "beaten on guesses", a count they never finished.
-  it('a timed-out race tells the racer still guessing that time ran out', () => {
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
-      me,
-      { ...moth, solved: true, guesses_used: 3 },
-    ])
+  it('a timed-out game tells the player still guessing that time ran out', () => {
+    h.loaded = loaded('crane')
     render(
       <PlayAreaLoader
         {...makeCtx({
-          players: twoMembers,
-          isTerminal: true,
-          playState: 'won_compete',
-          status: { reason: 'timeout', winner_user_id: 'u2' },
+          mode: 'compete',
+          gameEnding: { ...SOMEONE_WON, reason: 'timeout', reasonDetail: 'timeout', endedByUserId: null },
+          players: [finished('u1', 'me', 'red', 'lost'), finished('u2', 'moth', 'blue', 'won')],
         })}
       />,
     )
@@ -556,18 +620,17 @@ describe('wordle PlayArea — terminal flow', () => {
   })
 
   // THE WIRE, end to end: the verdict names the reason the SERVER wrote, not
-  // one the page infers from its own clock. An all-conceded race is the case
+  // one the page infers from its own clock. An all-conceded game is the case
   // where the two part company — the clock never ran out, so a clock-reading
   // verdict has nothing to say and falls back to "Nobody solved".
-  it('an all-conceded race reads status.reason, with the clock still running', () => {
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [me, moth])
+  it('an all-conceded game reads the ending\'s reason, with the clock still running', () => {
+    h.loaded = loaded('crane')
     render(
       <PlayAreaLoader
         {...makeCtx({
-          players: twoMembers,
-          isTerminal: true,
-          playState: 'lost_compete',
-          status: { reason: 'conceded' },
+          mode: 'compete',
+          gameEnding: { reason: 'conceded', reasonDetail: 'conceded', outcome: 'lost', endedByUserId: 'u2' },
+          players: [gp('u1', 'me', 'red', CONCEDED), gp('u2', 'moth', 'blue', CONCEDED)],
           timer: { displaySeconds: 30, expired: false },
         })}
       />,
@@ -595,30 +658,30 @@ describe('wordle PlayArea — input gating', () => {
   })
 
   it('the on-screen keyboard is blocked at terminal', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />) // gate closed
+    h.loaded = loaded('crane')
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />) // gate closed
     expect(keyboardKey()).toBeDisabled()
   })
 })
 
 describe('wordle PlayArea — peer narration (global header)', () => {
   /** A real global slot with a spy on its one door, handed to the ctx. */
-  function narrationCtx() {
+  function narrationCtx(over: Partial<GamePageCtx> = {}) {
     const globalFeedbackSlot = createFeedbackSlot('global')
     const shown = vi.spyOn(globalFeedbackSlot, 'show')
-    return { ctx: makeCtx({ globalFeedbackSlot, players: twoMembers }), shown }
+    return { ctx: makeCtx({ globalFeedbackSlot, players: twoMembers, ...over }), shown }
   }
 
   it("announces a teammate's accepted guess in coop", () => {
     const { ctx, shown } = narrationCtx()
     // First render seeds the seen-set with my own guess (no announcement).
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+    h.loaded = loaded(null, [
       { user_id: 'u1', id: 1, word: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     shown.mockClear()
     // A teammate's guess lands → narrated in the header, the actor leading.
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+    h.loaded = loaded(null, [
       { user_id: 'u1', id: 1, word: 'slate', colors: 'xxxxx', is_correct: false },
       { user_id: 'u2', id: 2, word: 'crane', colors: 'ggggg', is_correct: true },
     ])
@@ -632,10 +695,10 @@ describe('wordle PlayArea — peer narration (global header)', () => {
 
   it('does not narrate my own guess', () => {
     const { ctx, shown } = narrationCtx()
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [])
+    h.loaded = loaded(null, [])
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     shown.mockClear()
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+    h.loaded = loaded(null, [
       { user_id: 'u1', id: 1, word: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     rerender(<PlayAreaLoader {...ctx} />)
@@ -643,17 +706,13 @@ describe('wordle PlayArea — peer narration (global header)', () => {
   })
 
   it('announces an opponent solving in compete', () => {
-    const { ctx, shown } = narrationCtx()
+    const { ctx, shown } = narrationCtx({ mode: 'compete' })
     // First render seeds: nobody solved yet.
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     shown.mockClear()
     // moth solves → narrated (the only peer event compete can surface).
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [
-      me,
-      { ...moth, solved: true },
-    ])
-    rerender(<PlayAreaLoader {...ctx} />)
+    const mothSolved = [twoMembers[0]!, gp('u2', 'moth', 'blue', SOLVED_WAITING)]
+    rerender(<PlayAreaLoader {...{ ...ctx, players: mothSolved.map(withPlayerStatus) }} />)
     expect(shown).toHaveBeenCalledTimes(1)
     const feedbackMsg = shown.mock.calls[0]![0]
     expect(feedbackMsg.actor?.username).toBe('moth')
@@ -668,8 +727,7 @@ describe('wordle PlayArea — peer narration (global header)', () => {
 
 describe('wordle PlayArea — opponent picker (compete)', () => {
   it('shows "hidden until game ends" when an opponent is picked during play', async () => {
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
-    render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
     // Defaults to my own (empty) board.
     expect(screen.getByText('No guesses yet.')).toBeInTheDocument()
     // Pick the opponent → their guesses are RLS-hidden until the game ends.
@@ -696,11 +754,6 @@ describe('wordle PlayArea — event-log picker label', () => {
       session: { user: { id: 'u2' } } as unknown as GamePageCtx['session'],
       players: [gp('u1', 'joel', 'red')],
     })
-    h.result = loaded(
-      { id: 'g1', mode: 'coop', max_guesses: 6, target: null },
-      [],
-      [{ user_id: 'u1', guesses_used: 0, solved: false, solved_at: null }],
-    )
     render(<PlayAreaLoader {...ctx} />)
     expect(await filterOptions()).toContain('joel')
     expect(await filterOptions()).not.toContain('You')
@@ -717,10 +770,9 @@ describe('wordle PlayArea — event-log picker label', () => {
 describe('wordle PlayArea — concede', () => {
   it('compete shows Concede and calls wordle.concede on click', async () => {
     const user = userEvent.setup()
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     render(
       <>
-        <PlayAreaLoader {...makeCtx({ players: twoMembers })} />
+        <PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />
         <ConfirmationHost />
       </>,
     )
@@ -729,12 +781,12 @@ describe('wordle PlayArea — concede', () => {
     await user.click(screen.getByRole('button', { name: /concede/i }))
     const confirms = await screen.findAllByRole('button', { name: /concede/i })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
   })
 
   it('coop shows Stop (not Concede) and calls stop_game', async () => {
     const user = userEvent.setup()
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    h.loaded = loaded(null)
     render(
       <>
         <PlayAreaLoader {...makeCtx()} />
@@ -749,24 +801,22 @@ describe('wordle PlayArea — concede', () => {
     await user.click(screen.getByRole('button', { name: 'Stop game' }))
     const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1])
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
   it('marks a conceded opponent "out" in the strip', () => {
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     render(
       <PlayAreaLoader
-        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })] })}
+        {...makeCtx({ mode: 'compete', players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', CONCEDED)] })}
       />,
     )
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
   it('shows the "You conceded" locally-terminal look after I concede', () => {
-    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     render(
       <PlayAreaLoader
-        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')] })}
+        {...makeCtx({ mode: 'compete', players: [gp('u1', 'me', 'red', CONCEDED), gp('u2', 'moth', 'blue')] })}
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
@@ -776,7 +826,7 @@ describe('wordle PlayArea — concede', () => {
 describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => {
   it('builds a guess from window keydowns and submits it on Enter', async () => {
     rpc.mockResolvedValue({ data: { result: 'incorrect' }, error: null })
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    h.loaded = loaded(null)
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     // Typed with nothing focused, so the keys go to the window — which is where
@@ -784,12 +834,12 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
     // an action's run, and the entry has to re-render between them.)
     await user.keyboard('crane{Enter}')
     await waitFor(() =>
-      expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess: 'crane' }),
+      expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_guess: 'crane' }),
     )
   })
 
   it('ignores keystrokes aimed at a focused text field (chat isolation)', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    h.loaded = loaded(null)
     render(<WithKeys {...makeCtx()} />)
     const input = document.createElement('input')
     document.body.append(input)
@@ -800,7 +850,7 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
 
   it('has NO ArrowUp-recall / ArrowDown-clear (wordle wires no arrows)', async () => {
     rpc.mockResolvedValue({ data: { result: 'incorrect' }, error: null })
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    h.loaded = loaded(null)
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('crane')
@@ -808,14 +858,14 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
     // so Enter still submits the intact "crane".
     await user.keyboard('{ArrowDown}{Enter}')
     await waitFor(() =>
-      expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess: 'crane' }),
+      expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_guess: 'crane' }),
     )
   })
 })
 
 describe('wordle PlayArea — click-to-define (event log)', () => {
   it('makes each logged guess a define affordance on the WORD (not the cell)', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+    h.loaded = loaded(null, [
       { user_id: 'u1', id: 1, word: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     render(<PlayAreaLoader {...makeCtx()} />)
@@ -839,10 +889,10 @@ describe('wordle PlayArea — the board-scope marks', () => {
   // of it is game logic, and all of it is invisible to a type check: a mark
   // that stops being applied looks exactly like a mark that was never asked for.
   it('bands the finished board in its outcome and disables the keyboard', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' }, [
+    h.loaded = loaded('crane', [
       { user_id: 'u1', id: 1, word: 'crane', colors: 'ggggg', is_correct: true },
     ])
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />)
 
     expect(board().className).toMatch(/endingFrame/)
     expect(board().className).toMatch(/endingFrame_won/)
@@ -858,10 +908,10 @@ describe('wordle PlayArea — the board-scope marks', () => {
   })
 
   it('bands a lost board in the losing tone', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 1, target: 'crane' }, [
+    h.loaded = loaded('crane', [
       { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false },
     ])
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_LOST })} />)
 
     expect(board().className).toMatch(/endingFrame_lost/)
     expect(board().className).not.toMatch(/endingFrame_won/)
@@ -903,13 +953,13 @@ describe('wordle Board — the reveal flip', () => {
   // No restart case here on purpose: a Restart remounts the whole surface, so
   // the replayed game's first row is a landing on a fresh board like any other.
   it('flips a row that lands while watching, not the rows present at mount', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+    h.loaded = loaded(null, [
       { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false },
     ])
     const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(tiles()[0].className).not.toMatch(/reveal/)
 
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+    h.loaded = loaded(null, [
       { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false },
       { user_id: 'u1', id: 2, word: 'moths', colors: 'xxyxg', is_correct: false },
     ])
@@ -923,18 +973,17 @@ describe('wordle Board — the reveal flip', () => {
   // back mounts them fresh. A row that already flipped must not flip again; one
   // that landed while the player was away still does.
   it('does not flip a row again on the way back from a past turn', () => {
-    const game = { id: 'g1', mode: 'coop' as const, max_guesses: 6, target: null }
     const slate = { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false }
     const moths = { user_id: 'u1', id: 2, word: 'moths', colors: 'xxyxg', is_correct: false }
     const crane = { user_id: 'u1', id: 3, word: 'crane', colors: 'xxxxg', is_correct: false }
-    h.result = loaded(game, [])
+    h.loaded = loaded(null, [])
     const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
-    h.result = loaded(game, [slate, moths])
+    h.loaded = loaded(null, [slate, moths])
     rerender(<PlayAreaLoader {...makeCtx()} />)
     expect(tiles()[0].className).toMatch(/reveal/) // both landed while watching
 
     fireEvent.click(screen.getByText('#1'))
-    h.result = loaded(game, [slate, moths, crane]) // lands while I'm away
+    h.loaded = loaded(null, [slate, moths, crane]) // lands while I'm away
     rerender(<PlayAreaLoader {...makeCtx()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Exit history' }))
 
@@ -950,19 +999,15 @@ describe('wordle Board — the reveal flip', () => {
  * it away. Their one flag is Stop for all.
  */
 describe('wordle PlayArea — a solved racer cannot concede', () => {
-  const compete = { id: 'g1', mode: 'compete' as const, max_guesses: 6, target: null }
-
   it('solved and waiting: the flag is Stop, not Concede', () => {
-    h.result = loaded(compete, [], [{ ...me, solved: true }, moth])
-    render(<PlayAreaLoader {...makeCtx({ players: [meOut, twoMembers[1]] })} />)
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [meOut, twoMembers[1]!] })} />)
     expect(screen.getByText('Waiting for others')).toBeInTheDocument()
     expect(stateOf('act-concede')).toBe('hidden')
     expect(stateOf('act-stop-game')).toBe('active')
   })
 
   it('still racing: Concede is live', () => {
-    h.result = loaded(compete, [], [me, moth])
-    render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
     expect(stateOf('act-concede')).toBe('active')
     expect(control('act-concede')).toBeEnabled()
   })
@@ -975,30 +1020,26 @@ describe('wordle PlayArea — a solved racer cannot concede', () => {
  * was asked rather than skipped.
  */
 describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
-  const coop = { id: 'g1', mode: 'coop' as const, max_guesses: 6, target: null }
-  const compete = { id: 'g1', mode: 'compete' as const, max_guesses: 6, target: null }
-
   it('+ at terminal starts the follow-up game with no question', async () => {
     rpc.mockImplementation((name: string) =>
       name === 'create_game'
         ? Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
         : Promise.resolve({ error: null }),
     )
-    h.result = loaded({ ...coop, target: 'crane' })
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    h.loaded = loaded('crane')
+    const ctx = makeCtx({ gameEnding: COOP_LOST })
     render(<WithKeys {...ctx} />)
     await press({ key: '+' })
     // No <ConfirmationHost/> is mounted, so a question would have been answered
     // "no" — the RPC firing proves none was asked.
     await waitFor(() =>
-      expect(rpc).toHaveBeenCalledWith('create_game', expect.objectContaining({ mode: 'coop' })),
+      expect(rpc).toHaveBeenCalledWith('create_game', expect.objectContaining({ p_mode: 'coop' })),
     )
     await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
   })
 
   it('+ mid-game asks first, and cancel starts nothing', async () => {
     const user = userEvent.setup()
-    h.result = loaded(coop)
     render(
       <>
         <WithKeys {...makeCtx()} />
@@ -1015,7 +1056,6 @@ describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
   it('⌥⌫ in coop asks Stop game’s question; yes calls stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
-    h.result = loaded(coop)
     render(
       <>
         <WithKeys {...makeCtx()} />
@@ -1028,29 +1068,27 @@ describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
     // one the dialog adds, so it's last in the DOM.
     const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
   it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
-    h.result = loaded(compete, [], [me, moth])
     render(
       <>
-        <WithKeys {...makeCtx({ players: twoMembers })} />
+        <WithKeys {...makeCtx({ mode: 'compete', players: twoMembers })} />
         <ConfirmationHost />
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
     expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
   })
 
   it('Restart mid-game asks before wiping the board', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'replayed' }))
-    h.result = loaded(coop)
     const ctx = makeCtx()
     render(
       <>
@@ -1104,7 +1142,7 @@ describe('wordle Board — the refusal mark', () => {
   // answer rather than a seed — a case pinned with the red passes either way.
   it("rings the active row in the refusal's own outcome, not a default", async () => {
     softReject('duplicate')
-    h.result = loaded({ id: 'g1', max_guesses: 6, mode: 'coop', target: null })
+    h.loaded = loaded(null)
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     expect(activeRow(0).className).not.toMatch(/verdictRing/)
@@ -1119,7 +1157,7 @@ describe('wordle Board — the refusal mark', () => {
   it('takes itself off after the word-answer beat', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     softReject('duplicate')
-    h.result = loaded({ id: 'g1', max_guesses: 6, mode: 'coop', target: null })
+    h.loaded = loaded(null)
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<WithKeys {...makeCtx()} />)
 
