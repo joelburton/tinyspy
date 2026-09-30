@@ -3,13 +3,13 @@
 import { cls } from '@/common/utils/cls'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBoundAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import type { EventRow, WordlePlayer } from '../hooks/useGame'
+import type { GameData } from '../hooks/useGame'
+import type { HistoryView } from '../hooks/useHistoryView'
+import type { WordleActions } from '../hooks/useBindActionsAndPublishMenu'
 import { GameEventLog } from './GameEventLog'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -20,110 +20,28 @@ import styles from './InfoCol.module.css'
  * in the fixed order (docs/playarea.md → Info-column readouts): state (guess count) →
  * whose-turn line (turn-order) → OpponentStrip (compete) → action row → help →
  * terminal answer reveal → setup disclosure → the event log. Every command is a
- * BOUND ACTION the PlayArea handed down (`actReveal`, `actStopGame`, …), so this
- * column places buttons and decides nothing about them — an action that does
- * not apply here draws nothing, which is how one row serves coop and compete.
- * What is a callback is what isn't a command: the history-viewer selection.
- * Prop names match the other games' columns for the same idea (docs/playarea.md).
+ * BOUND ACTION the PlayArea handed down (`actions`), so this column places
+ * buttons and decides nothing about them — an action that does not apply here
+ * draws nothing, which is how one row serves coop and compete.
  */
 export function InfoCol({
-  // ── Mode + phase ──
-  isCompete,
-  isTerminal,
-  endingMessage,
-  isStillPlaying,
-  isPlayer,
-  isTurnBased,
-  turnHolderId,
-  // ── State (guess count) ──
-  guessesUsed,
-  maxGuesses,
-  // ── Opponent strip (compete) ──
-  players,
+  gd,
   selfId,
-  // ── Action row ──
-  actReveal,
-  actRestart,
-  actNewGame,
-  actConcede,
-  actStopGame,
-  actBackToClub,
-  // ── Setup disclosure ──
-  setupRows,
-  // ── Terminal answer reveal ──
+  endingMessage,
+  actions,
+  historyView,
   solution,
-  // ── Event log ──
-  guesses,
-  mode,
-  historyId,
-  onShowHistory,
 }: {
-  // ── Mode + phase ──
-  isCompete: boolean
-  isTerminal: boolean
+  gd: GameData
+  selfId: string
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others play on — for the action row's line; null while I play.
   endingMessage: TerminalMessage | null
-  // The page's standing terms (docs/win-lose.md → Where a player stands).
-  // Still in the game — gates the help line.
-  isStillPlaying: boolean
-  // Am I a player in this game? (Else the "watching" notice.)
-  isPlayer: boolean
-  // A turn-order game: render the shared TurnStatusLine, which names the
-  // holder of `turnHolderId`.
-  isTurnBased: boolean
-  turnHolderId: string | null
-
-  // ── State ──
-  guessesUsed: number
-  maxGuesses: number
-
-  // ── Opponent strip (compete) ──
-  // The players — the strip (each one's guess count, or "out" once conceded)
-  // and the event-log picker.
-  players: WordlePlayer[]
-  selfId: string
-
-  // ── Action row — listed in the order the row draws them, which is the order
-  //    the game menu lists them too (docs/playarea.md) ──
-  // Show the word — or put it away again. A local display toggle, no RPC (see
-  // PlayArea's useSolutionReveal); it carries its own faces, the inert
-  // "solution already shown" included.
-  actReveal: BoundAction
-  // Restart THIS game — same word — from scratch.
-  actRestart: BoundAction
-  // Start a fresh follow-up game — same setup, new target + id. Disables itself
-  // while the create is in flight.
-  actNewGame: BoundAction
-  // Drop out of a race while the others play on — hidden outside compete, and
-  // once you are out (solved, out of guesses, conceded), when Stop takes its
-  // place.
-  actConcede: BoundAction
-  // Stop the game for the whole table — coop's exit; it hides itself in a race.
-  actStopGame: BoundAction
-  // Leave for the club — the shell's own action, off `ctx.menu`: it navigates
-  // directly at terminal and routes through the suspend-confirm flow mid-game.
-  actBackToClub: BoundAction
-
-  // ── Setup disclosure ──
-  // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
-  setupRows: SetupRow[]
-
-  // ── Terminal answer reveal ──
+  actions: WordleActions
+  historyView: HistoryView
   // The answer to DISPLAY, or null while it stays hidden — which is the default
-  // at a terminal this viewer did not solve. `solution` is the glossary term for
-  // the terminal-reveal slot; the value is the DB-blessed `game.target`.
+  // once a game ends that this viewer did not solve.
   solution: string | null
-
-  // ── Event log ──
-  // The RAW guesses (not the viewer's own) — the log's dropdown switches whose show.
-  guesses: EventRow[]
-  mode: 'coop' | 'compete'
-  // The open turn, or null when live.
-  historyId: number | null
-  // Straight through to the log: opening a `#N` hands up the row's id and the
-  // number the log printed beside it.
-  onShowHistory: (id: number, n: number) => void
 }) {
   // The row's line, and the only thing that varies between states: the ending
   // that applies to me, and nothing at all while I can still play.
@@ -134,30 +52,30 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        {!isPlayer && (
+        {!gd.standing.isPlayer && (
           <p className={shared.infoHelp}>Watching — you&rsquo;re not in this game.</p>
         )}
 
         {/* State — the live guess count (the viewer's own; coop shares it). */}
         <p className={shared.infoState}>
-          <strong>{guessesUsed}/{maxGuesses}</strong> guesses
+          <strong>{gd.readout.guessesUsed}/{gd.readout.maxGuesses}</strong> guesses
         </p>
         {/* Whose-turn line — only for a turn-order game. A separate line below
             the state readout; never replaces it. */}
-        {isTurnBased && (
+        {gd.isTurnBased && (
           <TurnStatusLine
-            turnHolderId={turnHolderId}
-            players={players}
+            turnHolderId={gd.turnHolderId}
+            players={gd.players}
             selfId={selfId}
-            isTerminal={isTerminal}
+            isTerminal={gd.isGameEnded}
           />
         )}
 
         {/* Opponent strip (compete) — each racer's guess COUNT (not their letters,
             which RLS hides until terminal). */}
-        {isCompete && (
+        {gd.isCompete && (
           <OpponentStrip
-            players={players}
+            players={gd.players}
             selfId={selfId}
             metricLabel="Guesses"
             metricFor={(p) => (p.playerEnding?.reason === 'conceded' ? 'out' : p.guessesUsed)}
@@ -170,24 +88,24 @@ export function InfoCol({
             bindings in the same order (docs/playarea.md). wordle has nothing to
             the left of the divider — no hint, no spoiler — so it draws none. */}
         <InfoActionsRow message={rowMessage}>
-          <ActionButton action={actReveal} show="icon" />
-          <ActionButton action={actRestart} show="icon" />
-          <ActionButton action={actNewGame} show="icon" />
-          <ActionButton action={actConcede} show="icon" />
-          <ActionButton action={actStopGame} show="icon" />
+          <ActionButton action={actions.actReveal} show="icon" />
+          <ActionButton action={actions.actRestart} show="icon" />
+          <ActionButton action={actions.actNewGame} show="icon" />
+          <ActionButton action={actions.actConcede} show="icon" />
+          <ActionButton action={actions.actStopGame} show="icon" />
           {/* `weight` is the placement's to choose, not the action's — filled
               at terminal, outline while the game runs (docs/ui.md → Back to
               club). */}
           <ActionButton
-            action={actBackToClub}
+            action={actions.actBackToClub}
             show="icon"
-            weight={isTerminal ? 'primary' : 'secondary'}
+            weight={gd.isGameEnded ? 'primary' : 'secondary'}
           />
         </InfoActionsRow>
 
         {/* Help — only while you can act; the action row above carries the
             out-of-the-race state. */}
-        {isStillPlaying && (
+        {gd.standing.isStillPlaying && (
           <p className={shared.infoHelp}>Type a 5-letter word, then Enter.</p>
         )}
 
@@ -196,7 +114,7 @@ export function InfoCol({
             room to be a sentence and a click-to-define target. The region grows
             when the viewer opens it and gives the space back when they close it,
             a blessed exception to docs/ui.md → Layout stability. */}
-        {isTerminal && solution && (
+        {gd.isGameEnded && solution && (
           <div className={shared.terminalExtra}>
             <p className={cls(shared.infoState, styles.answerLine)}>
               The answer was <DefinableWord word={solution} className={styles.answerReveal} />
@@ -205,7 +123,7 @@ export function InfoCol({
         )}
 
         {/* Setup — last, behind a disclosure (closed by default). */}
-        <SetupDisclosure rows={setupRows} />
+        <SetupDisclosure rows={gd.setupRows} />
       </div>
 
       {/* Bottom region: the event log. It takes the RAW `guesses` (not the viewer's own)
@@ -213,13 +131,12 @@ export function InfoCol({
           "Team"; compete defaults to You and lists opponents (their rows fill in once
           the game ends and RLS reveals them). */}
       <GameEventLog
-        guesses={guesses}
-        players={players}
+        guesses={gd.events}
+        players={gd.players}
         selfId={selfId}
-        mode={mode}
-        isTerminal={isTerminal}
-        historyId={historyId}
-        onShowHistory={onShowHistory}
+        mode={gd.mode}
+        isTerminal={gd.isGameEnded}
+        historyView={historyView}
       />
     </div>
   )

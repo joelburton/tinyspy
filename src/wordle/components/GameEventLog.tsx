@@ -10,6 +10,7 @@ import { eventToOutcome } from '../lib/answer'
 import { tileColor } from '../lib/colors'
 import type { Member } from '@/common/members/member'
 import type { EventRow } from '../hooks/useGame'
+import type { HistoryView } from '../hooks/useHistoryView'
 import styles from './GameEventLog.module.css'
 
 type Props = {
@@ -23,12 +24,10 @@ type Props = {
   // Terminal yet? Distinguishes an opponent's RLS-hidden log (during play) from
   // a genuinely empty one (at terminal, when their guesses reveal).
   isTerminal: boolean
-  // The turn currently open in the board viewer — the row's own id — or null
-  // when live. Its `#N` handle wears the shared history ring.
-  historyId: number | null
-  // Open a turn in the board viewer (click its `#N`) — the row's id, and the
-  // `#N` this log printed beside it, which is what the banner shows back.
-  onShowHistory: (id: number, n: number) => void
+  // Which turn is open on the board: its `#N` handle wears the shared history
+  // ring, and clicking a `#N` opens that row (its id, and the number this log
+  // printed beside it, which the banner shows back).
+  historyView: HistoryView
 }
 
 /**
@@ -65,8 +64,7 @@ export function GameEventLog({
   selfId,
   mode,
   isTerminal,
-  historyId,
-  onShowHistory,
+  historyView,
 }: Props) {
   // Whose guesses to show. The control, its default, the aggregate label, the row
   // filter and the honest empty line all come from the shared hook — see
@@ -95,8 +93,8 @@ export function GameEventLog({
           <EventLogOutcomeBar outcome={eventToOutcome(g)} />
           <EventLogNumber
             n={i + 1}
-            isOpenInHistory={historyId === g.id}
-            onShowHistory={() => onShowHistory(g.id, i + 1)}
+            isOpenInHistory={historyView.viewedEventId === g.id}
+            onShowHistory={() => historyView.show(g.id, i + 1)}
           />
           <td className={gameEventLog.main}>
             {/* The whole guess is one definable word — every wordle guess is a

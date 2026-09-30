@@ -514,10 +514,33 @@ describe('wordle PlayArea — terminal flow', () => {
     const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
-    // The winning guess arrives: the game's ending lands via the refetch.
+    // The winning guess arrives: the game's ending lands via the refetch, and
+    // every player of the team comes out `won`.
     h.loaded = loaded('crane')
-    rerender(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />)
+    rerender(
+      <PlayAreaLoader
+        {...makeCtx({ gameEnding: COOP_WON, players: [gp('u1', 'me', 'red', { outcome: 'won', final_ranking: 1 })] })}
+      />,
+    )
     expect(screen.getByRole('dialog', { name: 'Solved! 🎉' })).toBeInTheDocument()
+  })
+
+  // SPECTATING: a guess until the design settles what a watcher sees.
+  it('does not celebrate for a club member watching the team win', () => {
+    h.loaded = loaded(null)
+    const watching = { session: { user: { id: 'u9' } } as unknown as GamePageCtx['session'] }
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(watching)} />)
+    h.loaded = loaded('crane')
+    rerender(
+      <PlayAreaLoader
+        {...makeCtx({
+          ...watching,
+          gameEnding: COOP_WON,
+          players: [gp('u1', 'me', 'red', { outcome: 'won', final_ranking: 1 })],
+        })}
+      />,
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('does not celebrate when mounted into an already-won game', () => {

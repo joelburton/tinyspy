@@ -12,12 +12,12 @@ import { db } from '../db'
 import { answerMessage } from '../lib/answer'
 import { WORD_LENGTH } from '../lib/setup'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
-import type { HistorySnapshot } from '../lib/history'
+import type { GameData } from '../hooks/useGame'
+import type { HistoryView } from '../hooks/useHistoryView'
 import { Board } from './Board'
 import type { BoardRow } from '../lib/board'
 import { GuessKeyboard, type KeyTone } from '@/shared/onscreen-keyboard/GuessKeyboard'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
-import type { Actor } from '@/common/members/member'
 import { useMark } from '@/common/board-marks/useMark'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import shared from '@/common/game-page/playArea.module.css'
@@ -60,67 +60,29 @@ type GuessAnswer =
  * that turns the first into the second.
  * The physical keys and the on-screen caps drive that same `current`.
  *
- * Everything else is handed down: the board to draw (the live `rows`, or
- * `historySnap` when a past turn is open), and `isBoardInteractive`, which this
- * column ANDs with its own mid-submit state. The feedback slot belongs to PlayArea —
- * this column shows its soft rejects into it and draws it. See docs/playarea.md.
+ * Everything else is handed down: the game data (`gd`), which past turn is
+ * open (`historyView`, whose rows replace the live ones while it is), and the
+ * feedback slot, which belongs to PlayArea — this column shows its soft
+ * rejects into it and draws it. See docs/playarea.md.
  */
 export function BoardCol({
-  // ── Board to render (live rows + the history snapshot — PlayArea picks the log,
-  //    this column picks live-vs-snapshot) ──
-  rows,
-  historySnap,
-  historyActor,
-  maxGuesses,
+  gd,
+  historyView,
   brand,
-  // ── History viewer (its banner lives in the below-board region) ──
-  onExitHistory,
-  // ── Guess dispatch (this column owns submit_guess) ──
-  gameId,
-  isBoardInteractive,
   localFeedbackSlot,
-  // ── Board-scope marks (see <Board>) ──
-  terminalOutcome,
-  isWaitingForTurn,
+  endingOutcome,
   myTurnJustStarted,
 }: {
-  // ── Board to render ──
-  // The LIVE board rows (the viewer's own / the coop team board) — drives the
-  // keyboard letter-coloring, the `submittedLanded` check, and the grid when
-  // not viewing history.
-  rows: BoardRow[]
-  // The open history turn's snapshot (its rows + ringed row + banner label), or null
-  // when live. Non-null exactly when viewing, so this column derives `isViewingHistory` from
-  // it.
-  historySnap: HistorySnapshot | null
-  // Whose board is on screen, when it is not the viewer's own — at terminal a
-  // compete log can open an opponent's row. Undefined for the viewer's own.
-  historyActor: Actor | undefined
-  maxGuesses: number
+  gd: GameData
+  historyView: HistoryView
   // Brand name (manifest) for the grid's `aria-label`, a test handle.
   brand: string
-
-  // ── History viewer ──
-  // Return to the live board (the banner click / ✕).
-  onExitHistory: () => void
-
-  // ── Guess dispatch ──
-  gameId: string
-  // The GAME-STATE half of the board gate — the page's `isBoardInteractive`.
-  // wordle does not draft off-turn, so it is also the turn: typing a word and
-  // submitting it are one input. This column ANDs it with its own mid-submit /
-  // word-in-flight state to get the live `canGuess`.
-  isBoardInteractive: boolean
   // PlayArea's below-board slot. This column shows the soft rejects and RPC
   // not-oks into it and draws its top between the board and the keyboard.
   localFeedbackSlot: FeedbackSlot
-
-  // ── Board-scope marks ──
-  // The game is finished, and how — bands the board in that outcome. Null while
-  // live.
-  terminalOutcome: EndOutcome | null
-  // A teammate holds the move, so the board dims.
-  isWaitingForTurn: boolean
+  // The ending that applies to me — bands the board in its outcome, and the
+  // keyboard goes with it. Null while I play.
+  endingOutcome: EndOutcome | null
   // True for a beat as the turn becomes mine — the frame flashes yellow.
   myTurnJustStarted: boolean
 }) {
@@ -128,8 +90,10 @@ export function BoardCol({
   // Live, or a past turn's snapshot — and everything that would WRITE to the
   // board answers to it: the capture is frozen and the active row is not drawn.
 
-  // Viewing a past turn ⟺ a snapshot is open (PlayArea sets `historySnap` only then).
-  const isViewingHistory = historySnap !== null
+  const isViewingHistory = historyView.isViewing
+
+  // The live board: every guess on coop's shared board, my own in compete.
+  const rows: BoardRow[] = gd.boardGuesses.map((g) => ({ guess: g.word, colors: g.colors }))
 
   // ─── The guess in flight ───────────────────────────────
   // The state this column owns — the letters being typed and the word that is
@@ -175,7 +139,7 @@ export function BoardCol({
   const [submitting, setSubmitting] = useState(false)
   // The live gate: the game permits guessing (PlayArea) AND I'm not mid-submit / with a
   // word in flight (this column's input state).
-  const canGuess = isBoardInteractive && !submitting && inFlightWord === null
+  const canGuess = gd.standing.isBoardInteractive && !submitting && inFlightWord === null
 
   /**
    * What BOTH soft rejects do — `duplicate` and `notAWord`. The rules were
@@ -209,7 +173,7 @@ export function BoardCol({
       // don't blink out. Reverted on any soft-reject below.
       setSubmittedWord(word)
       const res = await runRpc<GuessAnswer>(
-        db.rpc('submit_guess', { p_game_id: gameId, p_guess: word }),
+        db.rpc('submit_guess', { p_game_id: gd.gameId, p_guess: word }),
       )
       setSubmitting(false)
       if (res.type === 'not-ok') {
@@ -245,7 +209,7 @@ export function BoardCol({
         return
       }
     },
-    [gameId, localFeedbackSlot, softReject, showRefused],
+    [gd.gameId, localFeedbackSlot, softReject, showRefused],
   )
 
   // The physical keyboard, driving the same `current` the on-screen one does.
@@ -290,18 +254,18 @@ export function BoardCol({
   return (
     <div className={shared.boardCol}>
       <Board
-        rows={historySnap ? historySnap.rows : rows}
+        rows={historyView.rows ?? rows}
         liveRowCount={rows.length}
         current={current}
-        inFlightWord={historySnap ? null : inFlightWord}
-        maxGuesses={maxGuesses}
+        inFlightWord={isViewingHistory ? null : inFlightWord}
+        maxGuesses={gd.readout.maxGuesses}
         active={!isViewingHistory && canGuess}
         brand={brand}
         isViewingHistory={isViewingHistory}
-        historyLitBoardRow={historySnap ? historySnap.historyLitBoardRow : -1}
+        historyLitBoardRow={historyView.litBoardRow}
         refused={refused}
-        terminalOutcome={terminalOutcome}
-        isWaitingForTurn={isWaitingForTurn}
+        terminalOutcome={endingOutcome}
+        isWaitingForTurn={gd.standing.isWaitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
       />
       {/* The below-board region. The feedback slot sits BETWEEN the board and
@@ -311,11 +275,11 @@ export function BoardCol({
       <div className={styles.belowBoard}>
         {/* The banner overlays the whole region while a past turn is open: the
             slot and the keyboard stay mounted underneath, capture frozen. */}
-        {isViewingHistory && historySnap && (
+        {historyView.label !== null && (
           <HistoryBanner
-            label={historySnap.historyLabel}
-            actor={historyActor}
-            onExit={onExitHistory}
+            label={historyView.label}
+            actor={historyView.actor}
+            onExit={historyView.exit}
           />
         )}
         <div className={shared.localFeedback}>
