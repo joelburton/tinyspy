@@ -56,10 +56,8 @@ export function useSubmitGuess({
   isViewingHistory: boolean
 }): {
   submitGuess: (word: string) => Promise<void>
-  isSubmitting: boolean
   inFlightWord: string | null
 } {
-  const [isSubmitting, setIsSubmitting] = useState(false)
   // The word I last sent, or null. Nothing clears it when the result lands;
   // what is still in flight is derived below.
   const [submittedWord, setSubmittedWord] = useState<string | null>(null)
@@ -77,12 +75,10 @@ export function useSubmitGuess({
       showAnswer({ answerType: 'already_guessed' })
       return
     }
-    setIsSubmitting(true)
     setSubmittedWord(word)
     const guessResult = await runRpc<GuessAnswer>(
       db.rpc('submit_guess', { p_game_id: gameId, p_guess: word }),
     )
-    setIsSubmitting(false)
     if (guessResult.type === 'not-ok') {
       setSubmittedWord(null)
       localFeedbackSlot.show(FeedbackMessage.notOk(guessResult))
@@ -101,7 +97,6 @@ export function useSubmitGuess({
   const isInFlightShown = !isSubmittedWordDecided && !isViewingHistory
   return {
     submitGuess,
-    isSubmitting,
     inFlightWord: isInFlightShown ? submittedWord : null,
   }
 }

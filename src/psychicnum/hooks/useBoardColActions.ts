@@ -7,12 +7,15 @@ import { useBoundAction, type BoundAction } from '@/common/actions/useBoundActio
  * (Enter) guesses the picked word, and Clear (⌫) un-picks it. Both act on the
  * pick whether or not the keyboard cursor shows, since the pick is always
  * drawn. The board's own Shuffle is bound with the board (`useWordShuffle`).
+ *
+ * One guess is out at a time: Submit's run waits for `submitGuess`, and a
+ * bound action neither runs nor draws live while its run is out
+ * (`useBoundAction`'s `pending`).
  */
 export function useBoardColActions({
   pickedWord,
   canPick,
   canSubmit,
-  isSubmitting,
   choosePickedWord,
   clearPickedWord,
   submitGuess,
@@ -22,8 +25,6 @@ export function useBoardColActions({
   canPick: boolean
   // It is my move, and a guess can go.
   canSubmit: boolean
-  // A guess is out with the server.
-  isSubmitting: boolean
   choosePickedWord: (word: string | null) => void
   // Un-pick without dismissing the slot's result (see `usePickedWord`).
   clearPickedWord: () => void
@@ -33,8 +34,7 @@ export function useBoardColActions({
   actClearPicks: BoundAction
 } {
   const actSubmit = useBoundAction('act-submit', {
-    describe: () =>
-      canSubmit && pickedWord !== null && !isSubmitting ? 'active' : 'disabled',
+    describe: () => (canSubmit && pickedWord !== null ? 'active' : 'disabled'),
     run: async () => {
       if (pickedWord === null) return
       clearPickedWord()

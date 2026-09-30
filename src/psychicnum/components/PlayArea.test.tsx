@@ -1080,6 +1080,29 @@ describe('psychicnum PlayArea — the selection cursor', () => {
     await guessed('alpha')
   })
 
+  // The guard against sending twice: a second word picked while the first
+  // guess is still out with the server cannot be sent until the answer is in.
+  it('Submit stays disabled while a guess is out with the server', async () => {
+    let answerFirstGuess: (value: unknown) => void = () => {}
+    rpc.mockImplementationOnce(() => new Promise((resolve) => { answerFirstGuess = resolve }))
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+
+    await user.click(tileFor('alpha'))
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.click(tileFor('bravo'))
+    expect(screen.getByRole('button', { name: 'Submit' })).toBeDisabled()
+    await key('Enter')
+    expect(rpc).toHaveBeenCalledTimes(1)
+
+    // Once the answer is in (its pill takes the button's place), Enter sends
+    // the second word.
+    await act(async () => answerFirstGuess(okEnvelope({ result: 'miss', found_all: false })))
+    await key('Enter')
+    await guessed('bravo')
+    expect(rpc).toHaveBeenCalledTimes(2)
+  })
+
   it('Space passes over a decided tile', async () => {
     h.loaded = loaded(coopGame, [
       { id: 1, user_id: 'u1', word: 'alpha', is_correct: false, kind: 'guess', created_at: '2026-01-01T00:00:01Z' },

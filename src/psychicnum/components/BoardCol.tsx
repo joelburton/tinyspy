@@ -60,7 +60,7 @@ export function BoardCol({
     isStillPlaying: gd.standing.isStillPlaying,
     isViewingHistory,
   })
-  const { submitGuess, isSubmitting, inFlightWord } = useSubmitGuess({
+  const { submitGuess, inFlightWord } = useSubmitGuess({
     gameId: gd.gameId,
     tileResults,
     localFeedbackSlot,
@@ -70,7 +70,6 @@ export function BoardCol({
     pickedWord,
     canPick,
     canSubmit,
-    isSubmitting,
     choosePickedWord,
     clearPickedWord,
     submitGuess,
