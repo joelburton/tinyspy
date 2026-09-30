@@ -23,7 +23,7 @@
 
   /* THREE FAMILIES, and the prefix is the difference. `--kbd-*` comes from the
    * theme and a rule here may only READ it — except `--kbd-key-hover-fill-color`,
-   * which a tone re-sets on purpose (see the judged keys). `--guessKeyboard-*`
+   * which a key color re-sets on purpose (see the judged keys). `--guessKeyboard-*`
    * is this keyboard's BOX, declared in core-css/base.css because wordle's board
    * subtracts the height of it from the viewport and a sibling's property cannot
    * reach that far; a rule here may only read those too. `--key-*` is this
@@ -191,9 +191,9 @@
  *
  * Each re-sets `--kbd-key-hover-fill-color` to its own fill, and that is how it
  * declares what it looks like UNDER THE POINTER — which is simply itself. The
- * hover rule reads that token off the element, so a tone wins without any
+ * hover rule reads that token off the element, so a key color wins without any
  * specificity contest. Without it the hover rule (`.key:hover`, (0,3,0)) beats
- * a tone class ((0,1,0)) and turns a green key white while its ink stays white,
+ * a key color class ((0,1,0)) and turns a green key white while its ink stays white,
  * which is unreadable.
  *
  * Only the UNTRIED cap lightens on hover, and that is the honest answer rather

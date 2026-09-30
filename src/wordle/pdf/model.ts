@@ -2,7 +2,7 @@
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
-import { tileColor, type TileColor } from '@/shared/wordle-style/tileColor'
+import { getTileColor, type TileColor } from '@/shared/wordle-style/tileColor'
 import { colorRank } from '../lib/colors'
 import { memberById } from '@/common/members/memberList'
 import type { EventRow } from '../hooks/useGame'
@@ -50,7 +50,7 @@ const BLANK_ROW = (len: number): PrintRow => ({
 function rowOf(g: EventRow): PrintRow {
   return {
     letters: [...g.word.toUpperCase()],
-    states: [...g.word].map((_, i) => tileColor(g.colors[i])),
+    states: [...g.word].map((_, i) => getTileColor(g.colors[i])),
   }
 }
 
@@ -64,7 +64,7 @@ function keysOf(guesses: readonly EventRow[]): Map<string, TileColor> {
   const keys = new Map<string, TileColor>()
   for (const g of guesses) {
     ;[...g.word].forEach((ch, i) => {
-      const c = tileColor(g.colors[i])
+      const c = getTileColor(g.colors[i])
       if (c === 'blank') return
       const prev = keys.get(ch.toUpperCase())
       if (!prev || colorRank(c) > colorRank(prev)) keys.set(ch.toUpperCase(), c)

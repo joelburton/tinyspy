@@ -59,8 +59,8 @@ export function swapCells(board: string, a: number, b: number): string {
 }
 
 /**
- * The color string with `cells` marked UNJUDGED (`tileColor` maps anything
- * outside g/y/x to `blank`).
+ * The color string with `cells` marked UNJUDGED — the hole mark `.`, which
+ * `getTileColor` reads as `blank`.
  *
  * For the two tiles of a swap in flight. Keeping their old colors would assert a
  * verdict that is no longer true — those letters have moved — and guessing new

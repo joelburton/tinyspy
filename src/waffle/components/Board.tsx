@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import { tileColor } from '@/shared/wordle-style/tileColor'
+import { getTileColor } from '@/shared/wordle-style/tileColor'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
@@ -261,7 +261,7 @@ export function Board({
             return <span key={pos} className={styles.hole} aria-hidden="true" />
           }
           const letter = board[pos] ?? ' '
-          const color = tileColor(colors?.[pos])
+          const color = colors === null ? 'blank' : getTileColor(colors[pos])
           // A judgment is the shared palette; an uncolored tile is this board's
           // own (no colors yet, or taken back for a swap in flight) — see
           // tileColors.module.css.

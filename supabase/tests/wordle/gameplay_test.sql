@@ -59,7 +59,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g), 'zzzzz'),
   '{"type":"ok","outcome":null,"message":null,
-    "data":{"result":"notAWord","solved":false,"terminal":false}}'::jsonb,
+    "data":{"result":"notAWord","solved":false,"game_ended":false}}'::jsonb,
   'a 5-letter non-word → notAWord, the case alone');
 
 reset role;
@@ -112,7 +112,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g), (select word from valw)),
   '{"type":"ok","outcome":null,"message":null,
-    "data":{"result":"duplicate","solved":false,"terminal":false}}'::jsonb,
+    "data":{"result":"duplicate","solved":false,"game_ended":false}}'::jsonb,
   'a word already on the shared board → duplicate, the case alone');
 reset role;
 select is(
@@ -128,8 +128,8 @@ select is((select (res->'data'->>'result') from winres), 'correct',
   'guessing the target → correct');
 select is((select (res->>'outcome') from winres), null::text,
   'a solving guess carries no outcome');
-select is((select (res->'data'->>'terminal')::boolean from winres), true,
-  'the solving guess is terminal');
+select is((select (res->'data'->>'game_ended')::boolean from winres), true,
+  'the solving guess ends the game');
 
 reset role;
 select is(

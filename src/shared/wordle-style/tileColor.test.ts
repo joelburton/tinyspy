@@ -3,20 +3,22 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { tileColor } from './tileColor'
+import { getTileColor } from './tileColor'
 
-describe('tileColor', () => {
+describe('getTileColor', () => {
   it('maps the server codes to class keys', () => {
-    expect(tileColor('g')).toBe('wordleGreen')
-    expect(tileColor('y')).toBe('wordleYellow')
-    expect(tileColor('x')).toBe('wordleGray')
+    expect(getTileColor('g')).toBe('wordleGreen')
+    expect(getTileColor('y')).toBe('wordleYellow')
+    expect(getTileColor('x')).toBe('wordleGray')
   })
 
-  it('falls back to blank for unevaluated / absent / unknown codes', () => {
-    expect(tileColor(undefined)).toBe('blank')
-    expect(tileColor('')).toBe('blank')
-    expect(tileColor('.')).toBe('blank')
-    expect(tileColor('?')).toBe('blank')
+  it('reads waffle\'s hole as blank', () => {
+    expect(getTileColor('.')).toBe('blank')
+  })
+
+  it('throws for any other code', () => {
+    expect(() => getTileColor('?')).toThrow(/BUG/)
+    expect(() => getTileColor('')).toThrow(/BUG/)
   })
 })
 
@@ -30,8 +32,8 @@ const JUDGED = ['wordleGreen', 'wordleYellow', 'wordleGray'] as const
  * The sheets that paint the judged three and no `blank`, each because something
  * other than this guard says where `blank` went:
  *
- *   - the keyboard is indexed by `KeyTone`, which is
- *     `Exclude<TileColor, 'blank'>` — an untried key carries no tone rather
+ *   - the keyboard is indexed by `KeyColor`, which is
+ *     `Exclude<TileColor, 'blank'>` — an untried key carries no color rather
  *     than an unjudged one, so there is no class for it to be missing;
  *   - the shared tile sheet is the judged palette wordle and waffle share, and
  *     each board branches an unjudged tile to its OWN `.blank` (they mean
@@ -81,7 +83,7 @@ const PAINTERS = walk(join(CWD, 'src'))
 /**
  * Guard: every stylesheet that paints this palette defines ALL of it.
  *
- * `styles[tileColor(code)]` is a lookup with no compiler behind it. Rename a
+ * `styles[getTileColor(colorCode)]` is a lookup with no compiler behind it. Rename a
  * class in one of these files and nothing errors — the key resolves to
  * `undefined`, `cls()` drops it, and the tile renders with no color at all.
  * Silent, and only visible to someone playing that game.

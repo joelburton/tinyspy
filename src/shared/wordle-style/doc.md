@@ -12,7 +12,7 @@ server: it is computed by `common._wordle_colors` from an answer the browser doe
 not hold, and the frontend never recomputes it. This folder is everything that
 happens once it arrives.
 
-Which is less than it sounds like. `tileColor` turns one code into one CSS class
+Which is less than it sounds like. `getTileColor` turns one code into one CSS class
 key, `tileColors.module.css` is the rule each of those keys names on screen, and
 `pdfTiles` draws the same four states on paper — as border and fill weight
 rather than hue, so a mono printer and a color one produce the same page. None

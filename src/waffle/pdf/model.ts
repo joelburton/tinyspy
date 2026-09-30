@@ -2,7 +2,7 @@
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
-import { tileColor, type TileColor } from '@/shared/wordle-style/tileColor'
+import { getTileColor, type TileColor } from '@/shared/wordle-style/tileColor'
 import { coord, isHole } from '../lib/waffle'
 import type { EventRow } from '../hooks/useGame'
 
@@ -41,7 +41,7 @@ function cellsOf(board: string, colors: string | null): PrintCell[] {
     letter: isHole(i) ? '' : ch.toUpperCase(),
     // A hole isn't an un-guessed tile, it's not part of the puzzle — so it gets
     // the blank (borderless) state and prints as empty space.
-    state: isHole(i) ? ('blank' as TileColor) : tileColor(colors?.[i]),
+    state: isHole(i) || colors === null ? ('blank' as TileColor) : getTileColor(colors[i]),
     hole: isHole(i),
   }))
 }

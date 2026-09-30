@@ -130,7 +130,7 @@ for (const f of GLOBAL_SHEETS)
  *     class that starts with it (`prefixes`): the code says which family it
  *     reaches, and the rest of the module is still checked;
  *   - a quoted name, `styles['tile']`, reads that class;
- *   - anything else (`styles[tileColor(code)]`) names no class the scanner can
+ *   - anything else (`styles[getTileColor(colorCode)]`) names no class the scanner can
  *     see, so the module is `dynamic`: everything in it is potentially
  *     reachable, and it cannot be checked for unread classes. That is a real
  *     hole and it is the honest one — the alternative is a guard that reports

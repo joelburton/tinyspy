@@ -11,7 +11,7 @@ const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'] as const
 /**
  * Per-letter feedback tint for a key: the three JUDGED states of the wordle
  * palette, which is the palette these keys wear and say so by name. A game with
- * per-letter feedback passes `keyStates`; one without passes none, and every
+ * per-letter feedback passes `keyColors`; one without passes none, and every
  * cap stays neutral. A game outside the wordle family that ever tints keys adds
  * its own classes rather than borrowing these, because "gray" here means *not
  * in the word* — a claim only a wordle-family game can make.
@@ -19,9 +19,9 @@ const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'] as const
  * Derived from `TileColor` rather than restated, so a key and the board tile
  * above it can never drift into two vocabularies. Excluding `blank` is the
  * whole difference between them: a tile can be unjudged, a tinted key cannot —
- * an untried letter simply carries no tone.
+ * an untried letter simply carries no color.
  */
-export type KeyTone = Exclude<TileColor, 'blank'>
+export type KeyColor = Exclude<TileColor, 'blank'>
 
 type Props = {
   onKey: (letter: string) => void
@@ -37,12 +37,12 @@ type Props = {
   actSubmit: BoundAction
   actDelete: BoundAction
   // No move to make right now — not your turn, a guess in flight, or the game
-  // is over. The keyboard stays on screen either way: its caps carry the tone
+  // is over. The keyboard stays on screen either way: its caps carry the color
   // each letter has earned, which is a readout of the game and is worth most
   // once the game has ended.
   disabled?: boolean
-  // Best tone seen for each (lowercase) letter, or absent for neutral.
-  keyStates?: ReadonlyMap<string, KeyTone>
+  // Best color seen for each (lowercase) letter, or absent for neutral.
+  keyColors?: ReadonlyMap<string, KeyColor>
 }
 
 /**
@@ -56,7 +56,7 @@ type Props = {
  * Game-agnostic by construction: the keycap's own chrome is `--kbd-*`, the
  * judged keys wear the shared `--wordle-*` palette by name, and there are no
  * game-specific imports either way, so it stays removable. A game with
- * per-letter feedback tints its caps by passing `keyStates`; one without passes
+ * per-letter feedback tints its caps by passing `keyColors`; one without passes
  * none.
  */
 export function GuessKeyboard({
@@ -64,7 +64,7 @@ export function GuessKeyboard({
   actSubmit,
   actDelete,
   disabled = false,
-  keyStates,
+  keyColors,
 }: Props) {
   // A keycap keeps its own chrome and takes what it DOES from the binding — the
   // same bargain the board's round shuffle pill makes. `aria-label` stays the
@@ -98,12 +98,12 @@ export function GuessKeyboard({
             </button>
           )}
           {[...row].map((ch) => {
-            const tone = keyStates?.get(ch)
+            const keyColor = keyColors?.get(ch)
             return (
               <button
                 key={ch}
                 type="button"
-                className={cls(styles.key, tone && styles[tone])}
+                className={cls(styles.key, keyColor && styles[keyColor])}
                 onClick={() => onKey(ch)}
                 disabled={disabled}
                 aria-label={ch}

@@ -9,8 +9,8 @@
  * which exercises the game's input path and not one keycap, so this is the only
  * place a tap is ever made.
  *
- * Two things are deliberately NOT here. The tones' COLORS belong in a browser,
- * where a fill and an ink can be read; this checks only that the right class
+ * Two things are deliberately NOT here. The key colors' paint belongs in a
+ * browser, where a fill and an ink can be read; this checks only that the right class
  * lands. And the game-over withdraw is a game's terminal frame rather than this
  * component's contract, so each consumer pins its own.
  */
@@ -18,7 +18,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
-import { GuessKeyboard, type KeyTone } from './GuessKeyboard'
+import { GuessKeyboard, type KeyColor } from './GuessKeyboard'
 import styles from './GuessKeyboard.module.css'
 
 function draw(over: Partial<Parameters<typeof GuessKeyboard>[0]> = {}) {
@@ -88,10 +88,10 @@ describe('GuessKeyboard — what can be pressed', () => {
   })
 })
 
-describe('GuessKeyboard — the tones', () => {
-  it('tints a letter with the tone it was given and leaves the rest neutral', () => {
-    const keyStates = new Map<string, KeyTone>([['q', 'wordleGreen'], ['w', 'wordleGray']])
-    draw({ keyStates })
+describe('GuessKeyboard — the key colors', () => {
+  it('tints a letter with the color it was given and leaves the rest neutral', () => {
+    const keyColors = new Map<string, KeyColor>([['q', 'wordleGreen'], ['w', 'wordleGray']])
+    draw({ keyColors })
     expect(cap('q')).toHaveClass(styles.wordleGreen)
     expect(cap('w')).toHaveClass(styles.wordleGray)
     expect(cap('e').className).toBe(styles.key)

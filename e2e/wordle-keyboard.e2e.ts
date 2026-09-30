@@ -11,7 +11,7 @@ import { signIn } from './helpers/session'
  * Browser-only, and unusually worth the cost: every one of these values is a
  * COMPUTED style, so jsdom can't see any of it — and the three bugs this spec was
  * written after were all invisible to the unit suite. They were also all the same
- * bug wearing different hats: `.key:hover` is specificity (0,3,0) where a tone
+ * bug wearing different hats: `.key:hover` is specificity (0,3,0) where a key color
  * class is (0,1,0), so a hover rule that sets `background` outright beats every
  * key that has a fill of its own. A green key turned white with its white ink
  * still on it; so did ENTER. The fix is the house discipline — the hover rule
@@ -45,9 +45,9 @@ const psql = (sql: string): string[] =>
  * guess RIVER against a target with one R would paint both Rs — and the target is
  * random per game, so a spec that assumed distinct letters would pass most days
  * and fail on the rest. The server is still the authority: this only picks a
- * likely guess, and the assertions read the tones off the keyboard.
+ * likely guess, and the assertions read the colors off the keyboard.
  */
-function color(target: string, guess: string): string[] {
+function makeGuessColors(target: string, guess: string): string[] {
   const out = Array(guess.length).fill('gray')
   const spare: Record<string, number> = {}
   for (let i = 0; i < guess.length; i++) {
@@ -65,30 +65,30 @@ function color(target: string, guess: string): string[] {
 }
 
 /**
- * The tones the KEYBOARD will show for a guess — one per distinct letter, the
- * best the letter earned anywhere in the row (`BoardCol.tsx` → `keyStates`,
- * which keeps a tone only when `colorRank` beats what that key already has).
+ * The colors the KEYBOARD will show for a guess — one per distinct letter, the
+ * best the letter earned anywhere in the row (`lib/colors.ts` → `makeKeyColors`,
+ * which keeps a color only when `colorRank` beats what that key already has).
  *
  * This is not the same set as the row's, and the difference is the whole reason
  * this function exists. A guess whose only yellow sits on a letter that is ALSO
- * green somewhere else is tricolor across its five positions and two-tone on the
+ * green somewhere else is tricolor across its five positions and two-color on the
  * keyboard: the green key wins and no yellow key is ever drawn. Measured against
- * 400 random targets, that is ~5% of games — so picking on the row's tones made
+ * 400 random targets, that is ~5% of games — so picking on the row's colors made
  * this spec fail about one run in twenty, for a reason that looks nothing like
  * its cause.
  */
-function keyboardTones(target: string, guess: string): Set<string> {
+function makeKeyboardColors(target: string, guess: string): Set<string> {
   const RANK: Record<string, number> = { gray: 0, yellow: 1, green: 2 }
-  const tones = color(target, guess)
+  const colors = makeGuessColors(target, guess)
   const best = new Map<string, string>()
   for (let i = 0; i < guess.length; i++) {
     const prev = best.get(guess[i])
-    if (prev === undefined || RANK[tones[i]] > RANK[prev]) best.set(guess[i], tones[i])
+    if (prev === undefined || RANK[colors[i]] > RANK[prev]) best.set(guess[i], colors[i])
   }
   return new Set(best.values())
 }
 
-/** A legal guess whose KEYBOARD wears all three colors — see `keyboardTones`. */
+/** A legal guess whose KEYBOARD wears all three colors — see `makeKeyboardColors`. */
 function pickTricolorGuess(gameId: string): string {
   const [target, band] = psql(
     `select target, legal_band from wordle.games where game_id = '${gameId}';`,
@@ -98,7 +98,7 @@ function pickTricolorGuess(gameId: string): string {
       `and word <> '${target}' limit 4000;`,
   )
   for (const w of words) {
-    if (keyboardTones(target, w).size === 3) return w
+    if (makeKeyboardColors(target, w).size === 3) return w
   }
   throw new Error('no legal word paints all three colors onto the keyboard for this target')
 }
@@ -119,8 +119,8 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
   for (const ch of guess) await page.keyboard.press(ch)
   await page.keyboard.press('Enter')
   // The reveal flip is staggered per tile; the keys tint when the row lands. Poll
-  // on the tone CLASSES rather than on a color, so this wait can't be the one
-  // place in the spec that pins a literal value.
+  // on the color CLASSES rather than on a computed color, so this wait can't be
+  // the one place in the spec that pins a literal value.
   await expect
     .poll(async () =>
       page.evaluate(
@@ -167,11 +167,11 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
   // answer, not a recomputation of it. (Not off the tiles: a freshly-revealed row
   // wears the flip animation's class rather than its color class, since
   // `animation-fill-mode: both` freezes the final frame.)
-  const byTone = await page.evaluate(() => {
+  const letterByColor = await page.evaluate(() => {
     const out: Record<string, string> = {}
     for (const b of document.querySelectorAll('[aria-label="Keyboard"] button')) {
       const cls = b.className
-      const tone = /wordleGreen/.test(cls)
+      const color = /wordleGreen/.test(cls)
         ? 'green'
         : /wordleYellow/.test(cls)
           ? 'yellow'
@@ -179,11 +179,11 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
             ? 'gray'
             : ''
       const label = b.getAttribute('aria-label') ?? ''
-      if (tone && !out[tone] && label.length === 1) out[tone] = label
+      if (color && !out[color] && label.length === 1) out[color] = label
     }
     return out
   })
-  expect(Object.keys(byTone).sort()).toEqual(['gray', 'green', 'yellow'])
+  expect(Object.keys(letterByColor).sort()).toEqual(['gray', 'green', 'yellow'])
 
   // `--ink-onDark-color`, not `--ink-on-dark-color`. An undefined custom property
   // does not throw — `var()` on one just leaves the probe's `color` inherited —
@@ -194,11 +194,11 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
 
   // A JUDGED key wears its wordle color, resting AND hovered — the hover must not
   // repaint a key that has a fill of its own.
-  for (const [tone, letter] of Object.entries(byTone)) {
-    const fill = await token(`--wordle-${tone}-fill-color`)
+  for (const [color, letter] of Object.entries(letterByColor)) {
+    const fill = await token(`--wordle-${color}-fill-color`)
     const { resting, hovered } = await look(letter)
-    expect(resting, `${tone} key at rest`).toEqual({ fill, ink: white })
-    expect(hovered, `${tone} key hovered`).toEqual({ fill, ink: white })
+    expect(resting, `${color} key at rest`).toEqual({ fill, ink: white })
+    expect(hovered, `${color} key hovered`).toEqual({ fill, ink: white })
   }
 
   // An UNTRIED key is the warm near-white cap with dark ink, and lightens to pure

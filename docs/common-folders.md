@@ -335,7 +335,7 @@ from everyone else.
 | `grid-and-drag` | bananagrams, scrabble | dragging a tile to the right place on the grid |
 | `onscreen-keyboard` | wordle, wordiply | the on-screen QWERTY |
 | `rank-ladder` | the games with a Start..Genius ladder | the ladder, its bar and its stat grid — no data model behind it, so any game with a ladder can take it |
-| `wordle-style` | wordle, waffle | the per-letter color codes of the hidden-target games, on screen (`tileColor`) and on paper (`pdfTiles`) |
+| `wordle-style` | wordle, waffle | the per-letter color codes of the hidden-target games, on screen (`getTileColor`) and on paper (`pdfTiles`) |
 
 ## Judgment calls (recorded so they don't get re-litigated)
 

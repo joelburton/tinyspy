@@ -112,7 +112,7 @@ export function WordEntryArea({
   // `submitDisabled` vetoes only the submit, not editing — and it goes to the
   // hook rather than being applied here, so the key and the button read the one
   // answer instead of each working it out.
-  const { actDeleteLast, actSubmitEntry } = useCaptureKeys({
+  const { actDeleteLast, actSubmit } = useCaptureKeys({
     value, onChange, onSubmit, disabled, busy, submitDisabled, onAnyKey, charFor,
   })
   useArrowHistory({ recall, onChange, disabled, busy, hasHistory })
@@ -133,7 +133,7 @@ export function WordEntryArea({
   }
 
   return (
-    <WordEntryRow className={className} actDelete={actDeleteLast} actSubmit={actSubmitEntry}>
+    <WordEntryRow className={className} actDelete={actDeleteLast} actSubmit={actSubmit}>
       <WordEntryInput value={value} placeholder={placeholder}>
         {children}
       </WordEntryInput>

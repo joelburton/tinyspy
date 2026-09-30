@@ -21,18 +21,18 @@ It is also why Enter can sit gray over an empty guess while every letter beside
 it is live.
 
 Tinting is the caller's. A game with per-letter feedback hands over the best
-tone each letter has earned and the caps wear it; a game without hands over
+color each letter has earned and the caps wear it; a game without hands over
 nothing and every cap stays neutral.
 
 ## Details
 
-- **The tone type is the board's, short by exactly one value.** `KeyTone` is
+- **The key color type is the board's, short by exactly one value.** `KeyColor` is
   `Exclude<TileColor, 'blank'>`, derived from the palette rather than restated,
   so a key and the tile above it cannot drift into two vocabularies. The missing
   value is the difference between them: a tile can be waiting to be judged, and
-  an untried key is simply untried — it carries no tone at all.
+  an untried key is simply untried — it carries no color at all.
 - **At game over the keyboard stays, disabled** — the same look it wears when it
-  is not your turn. It is not only an input: its caps carry the tone every letter
+  is not your turn. It is not only an input: its caps carry the color every letter
   earned, so a keyboard that has recorded six guesses is a readout of the game
   just played, and that is worth most at the moment you want to study it. The
   general rule is *an input surface that is also a READOUT stays visible when the
@@ -53,8 +53,8 @@ nothing and every cap stays neutral.
   decorative.
 - **Two token families, and the prefix is the difference.** `--kbd-*` comes from
   the theme and a rule here may only READ it — except `--kbd-key-hover-fill-color`,
-  which a tone re-sets on purpose, and that re-setting is the whole hover
-  mechanism: the hover rule reads the token off the element, so a tone wins
+  which a key color re-sets on purpose, and that re-setting is the whole hover
+  mechanism: the hover rule reads the token off the element, so a key color wins
   without a specificity contest. `--key-*` is the stylesheet's own arithmetic,
   read nowhere else in the app.
 - **Two sizes are bespoke because each is half of a PAIR.** The gaps are chosen
@@ -66,7 +66,7 @@ nothing and every cap stays neutral.
   ramp. Both are recorded in `src/guards/vocabularies.test.ts`.
 - **Where the coverage lives, and why it is split.** `GuessKeyboard.test.tsx`
   holds what a caller is promised — the tap, what can be pressed, which class a
-  tone lands, the focus refusal. The tones' COLORS are in a browser, where a
+  key color lands, the focus refusal. Their paint is in a browser, where a
   fill and an ink can be read. The game-over withdraw is pinned by each
   consumer, being a fact about a game's terminal frame rather than this
   component's contract.

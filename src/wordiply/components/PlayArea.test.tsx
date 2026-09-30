@@ -641,7 +641,7 @@ describe('wordiply PlayArea — the entry keys', () => {
 
   it('Enter with nothing typed is disabled, and ⌫ too', async () => {
     render(<WithKeys {...makeCtx()} />)
-    expect(stateOf('act-submit-entry')).toBe('disabled')
+    expect(stateOf('act-submit')).toBe('disabled')
     expect(stateOf('act-delete-last')).toBe('disabled')
     await press({ key: 'Enter', code: 'Enter' })
     expect(rpc).not.toHaveBeenCalled()

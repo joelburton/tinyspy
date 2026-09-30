@@ -47,8 +47,8 @@ create temp table a_solve on commit drop as
 select wordle.submit_guess((select id from g), (select w from tgt)) as res;
 select is((select (res->'data'->>'result') from a_solve), 'correct',
   'ada solves on her first guess');
-select is((select (res->'data'->>'terminal')::boolean from a_solve), false,
-  'game is NOT terminal yet — bea is still playing');
+select is((select (res->'data'->>'game_ended')::boolean from a_solve), false,
+  'the game has NOT ended yet — bea is still playing');
 
 -- The solver is DONE while bea plays her board out, and the common roster has
 -- to hear it: ada's closed tab must not pause the game for bea. Her ending is
@@ -126,8 +126,8 @@ select wordle.submit_guess((select id from g), (select word from vals where rn =
 create temp table b_solve on commit drop as
 select wordle.submit_guess((select id from g), (select w from tgt)) as res;
 
-select is((select (res->'data'->>'terminal')::boolean from b_solve), true,
-  'once every player is done → terminal');
+select is((select (res->'data'->>'game_ended')::boolean from b_solve), true,
+  'once every player is done, the game has ended');
 
 reset role;
 -- The last racer's act is the game's reason: bea's solve.

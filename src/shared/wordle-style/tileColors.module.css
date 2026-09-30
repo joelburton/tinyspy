@@ -2,7 +2,7 @@
 
 /* The three JUDGED tile colors, for the boards that draw a server verdict on a
  * letter — wordle's guess rows and waffle's lattice. A board indexes this sheet
- * with `tileColor(code)`, so these class NAMES are the contract between the two
+ * with `getTileColor(colorCode)`, so these class NAMES are the contract between the two
  * files; `tileColor.test.ts` is what holds them together, since the lookup has
  * no compiler behind it.
  *

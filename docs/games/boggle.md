@@ -493,7 +493,7 @@ flower.
   - **Move entry** is the shared **capture model** (`useCaptureKeys` + a
     chrome-less `<WordEntryInput>` display, same as spellingbee): window
     key-capture, letters stored UPPERCASE, the icon-only `act-delete-last` +
-    `act-submit-entry` flanking the box. Enter submits; **Up arrow** recalls the
+    `act-submit` flanking the box. Enter submits; **Up arrow** recalls the
     last submitted word for editing, **Down arrow** clears (`useArrowHistory`,
     which `<WordEntryArea>` layers on). Words can also be built by
     **tap-to-trace** — tapping tiles along a Boggle path (the touch input; see

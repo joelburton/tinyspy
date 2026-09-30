@@ -558,7 +558,7 @@ drop function if exists wordle._maybe_finish_compete(uuid);
 -- that has already ended.
 --
 -- Returns true when it ended the game (submit_guess surfaces this as its
--- `terminal` flag), false when someone is still racing.
+-- `game_ended` flag), false when someone is still racing.
 create or replace function wordle._maybe_finish_compete(
   p_game_id uuid,
   p_reason text,
@@ -611,7 +611,7 @@ drop function if exists wordle.submit_guess(uuid, text);
 -- The `for update` lock on the games row serializes concurrent coop
 -- guesses against the shared budget.
 --
--- The `ok` carries { result, colors, guesses_used, solved, terminal },
+-- The `ok` carries { result, colors, guesses_used, solved, game_ended },
 -- `result` ∈ correct | incorrect | notAWord | duplicate — the FACT, and
 -- nothing about how it reads. No outcome and no message on any of the
 -- four: what each is worth, and the words the two soft rejects show, is
@@ -638,7 +638,7 @@ declare
   v_colors           char(5);
   did_solve          boolean;
   new_used           int;
-  out_terminal       boolean := false;
+  out_game_ended     boolean := false;
   v_rankings         jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
@@ -736,7 +736,7 @@ begin
     -- says the words.
     return common._ok_envelope(
       jsonb_build_object('result', 'duplicate', 'guesses_used', caller_used,
-                         'solved', false, 'terminal', false));
+                         'solved', false, 'game_ended', false));
   end if;
 
   -- ─── Soft reject: not in the legal word slice (no burn) ──
@@ -757,7 +757,7 @@ begin
   ) then
     return common._ok_envelope(
       jsonb_build_object('result', 'notAWord', 'guesses_used', caller_used,
-                         'solved', false, 'terminal', false));
+                         'solved', false, 'game_ended', false));
   end if;
 
   -- ─── Accept: color, log, count, resolve ──────────────────
@@ -791,14 +791,14 @@ begin
         p_is_no_result => false,
         p_final_rankings => v_rankings
       );
-      out_terminal := true;
+      out_game_ended := true;
     elsif new_used >= g_row.max_guesses then
       perform common._end_game(
         p_game_id, 'resource_exhausted', 'exhausted', caller_id,
         p_is_no_result => false,
         p_final_rankings => '{}'::jsonb
       );
-      out_terminal := true;
+      out_game_ended := true;
     else
       -- Turn-order: an accepted, non-final coop guess hands the turn to the
       -- next player (no-op for free-for-all).
@@ -819,11 +819,11 @@ begin
        where game_id = p_game_id and user_id = caller_id;
       -- `neutral`: fewer guesses may yet beat it (`announce-when-ended`).
       perform common._set_player_ended(p_game_id, caller_id, 'reached_goal', 'solved', 'neutral');
-      out_terminal := wordle._maybe_finish_compete(p_game_id, 'reached_goal', 'solved', caller_id);
+      out_game_ended := wordle._maybe_finish_compete(p_game_id, 'reached_goal', 'solved', caller_id);
     elsif new_used >= g_row.max_guesses then
       -- Eliminated: `lost` at once (`loses-by-move-budget`).
       perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'exhausted', 'lost');
-      out_terminal := wordle._maybe_finish_compete(p_game_id, 'resource_exhausted', 'exhausted', caller_id);
+      out_game_ended := wordle._maybe_finish_compete(p_game_id, 'resource_exhausted', 'exhausted', caller_id);
     end if;
   end if;
 
@@ -842,7 +842,7 @@ begin
       'colors',       v_colors,
       'guesses_used', new_used,
       'solved',       did_solve,
-      'terminal',     out_terminal
+      'game_ended',   out_game_ended
     ));
 
 exception when others then

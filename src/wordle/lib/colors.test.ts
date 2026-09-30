@@ -1,9 +1,9 @@
 // cs-blessed-wordle
 
 import { describe, expect, it } from 'vitest'
-import { colorRank } from './colors'
+import { colorRank, makeKeyColors } from './colors'
 
-// `tileColor` is the shared mapper, tested in shared/wordle-style/tileColor.test.ts.
+// `getTileColor` is the shared mapper, tested in shared/wordle-style/tileColor.test.ts.
 // This file covers only wordle's own color helpers.
 
 describe('colorRank', () => {
@@ -11,5 +11,22 @@ describe('colorRank', () => {
     expect(colorRank('wordleGreen')).toBeGreaterThan(colorRank('wordleYellow'))
     expect(colorRank('wordleYellow')).toBeGreaterThan(colorRank('wordleGray'))
     expect(colorRank('wordleGray')).toBeGreaterThan(colorRank('blank'))
+  })
+})
+
+describe('makeKeyColors', () => {
+  it('gives each letter the strongest color it has earned across the rows', () => {
+    const keyColors = makeKeyColors([
+      { guess: 'slate', colors: 'xyxxx' }, // l yellow
+      { guess: 'blink', colors: 'xgxxx' }, // l green: beats the yellow
+      { guess: 'lucky', colors: 'xxxxx' }, // l gray: does not undo the green
+    ])
+    expect(keyColors.get('l')).toBe('wordleGreen')
+    expect(keyColors.get('s')).toBe('wordleGray')
+  })
+
+  it('leaves a letter never guessed out, so its key stays neutral', () => {
+    expect(makeKeyColors([{ guess: 'slate', colors: 'xxxxx' }]).has('q')).toBe(false)
+    expect(makeKeyColors([]).size).toBe(0)
   })
 })

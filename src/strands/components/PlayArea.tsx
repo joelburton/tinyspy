@@ -406,7 +406,7 @@ export function PlayArea(ctx: GamePageCtx) {
     describe: () => (entryOff() ? 'disabled' : 'active'),
     run: deleteLast,
   })
-  const actSubmitEntry = useBoundAction('act-submit-entry', {
+  const actSubmit = useBoundAction('act-submit', {
     describe: () => (entryOff() ? 'disabled' : 'active'),
     run: () => {
       // The cursor goes to the word's last letter, and hides.
@@ -913,7 +913,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // are either building a word or reading what the last one did.
         echo={trace.length ? wordFromPath(game.board, trace) : ''}
         actDelete={actDropLastCell}
-        actSubmit={actSubmitEntry}
+        actSubmit={actSubmit}
         ambiguous={ambiguous}
         localFeedbackSlot={localFeedbackSlot}
         hintPoints={me?.hint_points ?? 0}

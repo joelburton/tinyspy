@@ -73,7 +73,7 @@ select wordle.submit_guess((select id from g_coop), (select word from valw where
 
 select is((select res->'data'->>'result' from c5), 'incorrect',
   'coop: the 5th wrong guess is still incorrect (no fluke solve)');
-select is((select (res->'data'->>'terminal')::boolean from c5), true,
+select is((select (res->'data'->>'game_ended')::boolean from c5), true,
   'coop: exhausting the budget ends the game');
 
 reset role;
@@ -112,7 +112,7 @@ select wordle.submit_guess((select id from g_comp), (select word from valw where
 create temp table p5 on commit drop as
 select wordle.submit_guess((select id from g_comp), (select word from valw where rn = 5)) as res;
 
-select is((select (res->'data'->>'terminal')::boolean from p5), false,
+select is((select (res->'data'->>'game_ended')::boolean from p5), false,
   'compete: one player exhausting her budget does NOT end the game (bea still playing)');
 
 -- ada is out of guesses while the game is still being played. In COMPETE the

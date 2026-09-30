@@ -107,7 +107,7 @@
 }
 
 /* The three JUDGED colors are the shared ones
- * (shared/wordle-style/tileColors.module.css, indexed by `tileColor`); wordle
+ * (shared/wordle-style/tileColors.module.css, indexed by `getTileColor`); wordle
  * paints its guess rows from the same sheet, which is where the darker edge
  * this board's pick mark needs is explained. What is left here is what
  * only waffle says about a tile.

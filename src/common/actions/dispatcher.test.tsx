@@ -118,7 +118,7 @@ describe('the dispatcher — state', () => {
   // "inner" one — see the stack's docstring. It is arbitrary and nothing should
   // lean on it; it is pinned only so a change to the walk is visible.
   it('gives the key to the first binding that wants it, within one component', async () => {
-    const { runs, view } = setup(['act-submit-entry', {}], ['act-submit', {}])
+    const { runs, view } = setup(['act-peel', {}], ['act-submit', {}])
     await press({ key: 'Enter' })
     expect(runs[0]).toHaveBeenCalledTimes(1)
     expect(runs[1]).not.toHaveBeenCalled()
@@ -223,7 +223,7 @@ describe('the dispatcher — where a child sits in the stack', () => {
   // are pinned so the limit is a known fact; neither is a channel a binding
   // may lean on (the stack's docstring says why).
   function Child({ onRun }: { onRun: () => void }) {
-    useBoundAction('act-submit-entry', { run: onRun, describe: () => 'active' })
+    useBoundAction('act-peel', { run: onRun, describe: () => 'active' })
     return null
   }
   function Page({ onPage, onChild, child = true }: { onPage: () => void; onChild: () => void; child?: boolean }) {

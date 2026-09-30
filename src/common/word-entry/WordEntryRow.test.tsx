@@ -20,7 +20,7 @@ const glyphIn = (el: Element | null) =>
 describe('WordEntryRow', () => {
   it('draws each action its own glyph, never the generic square', () => {
     const { container } = render(
-      <WordEntryRow actDelete={boundActionFixture('act-delete-last')} actSubmit={boundActionFixture('act-submit-entry')}>
+      <WordEntryRow actDelete={boundActionFixture('act-delete-last')} actSubmit={boundActionFixture('act-submit')}>
         <span>cat</span>
       </WordEntryRow>,
     )
@@ -33,7 +33,7 @@ describe('WordEntryRow', () => {
 
   it('puts the entry between them, take-back first', () => {
     const { container } = render(
-      <WordEntryRow actDelete={boundActionFixture('act-delete-last')} actSubmit={boundActionFixture('act-submit-entry')}>
+      <WordEntryRow actDelete={boundActionFixture('act-delete-last')} actSubmit={boundActionFixture('act-submit')}>
         <span>cat</span>
       </WordEntryRow>,
     )

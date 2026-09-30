@@ -21,7 +21,7 @@ export function asciiLetters(store: 'lower' | 'upper' = 'lower') {
  *  so they are offered and not returned. */
 export type CaptureKeysActions = {
   actDeleteLast: BoundAction
-  actSubmitEntry: BoundAction
+  actSubmit: BoundAction
 }
 
 export type CaptureKeysOptions = {
@@ -68,7 +68,7 @@ export type CaptureKeysOptions = {
  *
  * It binds four actions rather than reading the keyboard itself, so a game's
  * entry keys are in the same list as its commands: `act-type-letter`,
- * `act-delete-last`, `act-submit-entry`, and the any-key `act-dismiss-feedback`
+ * `act-delete-last`, `act-submit`, and the any-key `act-dismiss-feedback`
  * that clears the last verdict without claiming the keystroke. That is what puts
  * "A–Z types into the entry" in the help list beside "⌥⌫ ends the game", and it
  * is why no game writes an entry key branch.
@@ -128,7 +128,7 @@ export function useCaptureKeys({
 
   // An empty Enter is a no-op rather than a submit — it would flash a validation
   // error for a word nobody typed.
-  const actSubmitEntry = useBoundAction('act-submit-entry', {
+  const actSubmit = useBoundAction('act-submit', {
     describe: () =>
       (value === '' || submitDisabled) && editState === 'active' ? 'disabled' : editState,
     run: onSubmit,
@@ -143,5 +143,5 @@ export function useCaptureKeys({
     run: () => onAnyKey?.(),
   })
 
-  return { actDeleteLast, actSubmitEntry }
+  return { actDeleteLast, actSubmit }
 }

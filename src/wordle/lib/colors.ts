@@ -3,11 +3,14 @@
 /**
  * wordle's color module = the shared code→class-key mapper (the server,
  * `common._wordle_colors`, is authoritative — the FE never recomputes,
- * it doesn't hold the target) plus the two wordle-only helpers below
- * that drive the reveal animation and the on-screen keyboard.
+ * it doesn't hold the target) plus the wordle-only helpers below that
+ * drive the reveal animation and the on-screen keyboard.
  */
-export { tileColor, type TileColor } from '@/shared/wordle-style/tileColor'
-import type { TileColor } from '@/shared/wordle-style/tileColor'
+export { getTileColor, type TileColor } from '@/shared/wordle-style/tileColor'
+import { getTileColor, type TileColor } from '@/shared/wordle-style/tileColor'
+import type { KeyColor } from '@/shared/onscreen-keyboard/GuessKeyboard'
+import type { BoardRow } from './board'
+import { WORD_LENGTH } from './setup'
 
 /**
  * The CSS custom-property reference for a feedback color, used to drive
@@ -23,8 +26,10 @@ export function revealVar(c: TileColor): string | undefined {
       return 'var(--wordle-yellow-fill-color)'
     case 'wordleGray':
       return 'var(--wordle-gray-fill-color)'
-    default:
+    case 'blank':
       return undefined
+    default:
+      throw new Error(`BUG: revealVar has no answer for the tile color ${c}`)
   }
 }
 
@@ -45,8 +50,10 @@ export function revealBorderVar(c: TileColor): string | undefined {
       return 'var(--wordle-yellow-edge-color)'
     case 'wordleGray':
       return 'var(--wordle-gray-edge-color)'
-    default:
+    case 'blank':
       return undefined
+    default:
+      throw new Error(`BUG: revealBorderVar has no answer for the tile color ${c}`)
   }
 }
 
@@ -67,8 +74,10 @@ export function revealInkVar(c: TileColor): string | undefined {
       return 'var(--wordle-yellow-ink-color)'
     case 'wordleGray':
       return 'var(--wordle-gray-ink-color)'
-    default:
+    case 'blank':
       return undefined
+    default:
+      throw new Error(`BUG: revealInkVar has no answer for the tile color ${c}`)
   }
 }
 
@@ -83,7 +92,26 @@ export function colorRank(c: TileColor): number {
       return 2
     case 'wordleGray':
       return 1
-    default:
+    case 'blank':
       return 0
   }
+}
+
+/**
+ * Each letter's key color: the strongest color it has earned across the
+ * board's rows (green beats yellow beats gray). A letter never guessed has no
+ * entry, and its key stays neutral.
+ */
+export function makeKeyColors(rows: readonly BoardRow[]): ReadonlyMap<string, KeyColor> {
+  const keyColors = new Map<string, KeyColor>()
+  for (const row of rows) {
+    for (let i = 0; i < WORD_LENGTH; i++) {
+      const letter = row.guess[i]!
+      const color = getTileColor(row.colors[i])
+      if (color === 'blank') continue
+      const earned = keyColors.get(letter)
+      if (!earned || colorRank(color) > colorRank(earned)) keyColors.set(letter, color)
+    }
+  }
+  return keyColors
 }

@@ -6,7 +6,7 @@ import type { EndOutcome } from '@/common/terminal/gameEnding'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
-import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
+import { getTileColor, revealBorderVar, revealInkVar, revealVar, type TileColor } from '../lib/colors'
 import { WORD_LENGTH } from '../lib/setup'
 import type { BoardRow } from '../lib/board'
 import shared from '@/common/game-page/playArea.module.css'
@@ -154,10 +154,10 @@ export function Board({
             >
               {Array.from({ length: WORD_LENGTH }, (_, c) => {
                 let letter = ''
-                let color = tileColor(undefined)
+                let color: TileColor = 'blank'
                 if (submitted) {
                   letter = submitted.guess[c] ?? ''
-                  color = tileColor(submitted.colors[c])
+                  color = getTileColor(submitted.colors[c])
                 } else if (isInFlight) {
                   letter = inFlightWord?.[c] ?? ''
                 } else if (isActive) {

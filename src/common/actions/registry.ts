@@ -230,6 +230,8 @@ export const ACTIONS = {
     // Two genuinely different keys, so two entries.
     keys: [named('Enter', '↵'), named(' ', 'Space')],
   },
+  // Send the move I built — picked on the board, or typed into an entry, where
+  // `useCaptureKeys` binds it beside the typing keys.
   'act-submit': { label: 'Submit', icon: IconSubmit, keys: [named('Enter', '↵')] },
   // Red, like the boxed eye it wears: this uncovers MORE THAN ONE WORD — a
   // whole grid, a partner's key, three secrets. Its quieter sibling is the
@@ -289,7 +291,6 @@ export const ACTIONS = {
   // ─── Typing into an entry ──────────────────────────────────────────────
   'act-type-letter': { label: 'Type a letter', keys: [{ pattern: 'letter', label: 'A–Z' }], repeat: true },
   'act-delete-last': { label: 'Delete the last letter', icon: IconDelete, keys: [named('Backspace', '⌫')], repeat: true },
-  'act-submit-entry': { label: 'Submit', icon: IconSubmit, keys: [named('Enter', '↵')] },
   'act-recall-last': { label: 'Recall your last entry', keys: [named('ArrowUp', '↑')] },
   'act-clear-entry': { label: 'Clear the entry', keys: [named('ArrowDown', '↓')] },
 

@@ -7,7 +7,7 @@ import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { eventToOutcome } from '../lib/answer'
-import { tileColor } from '../lib/colors'
+import { getTileColor } from '../lib/colors'
 import type { Member } from '@/common/members/member'
 import type { EventRow } from '../hooks/useGame'
 import type { HistoryView } from '../hooks/useHistoryView'
@@ -102,7 +102,7 @@ export function GameEventLog({
                 group rather than the cells, and one click looks it up. */}
             <DefinableWord word={g.word} className={cls(styles.squares, styles.definable)}>
               {[...g.word].map((ch, c) => (
-                <span key={c} className={cls(styles.sq, styles[tileColor(g.colors[c])])}>
+                <span key={c} className={cls(styles.sq, styles[getTileColor(g.colors[c])])}>
                   {ch.toUpperCase()}
                 </span>
               ))}

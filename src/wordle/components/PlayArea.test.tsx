@@ -861,6 +861,18 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
     )
   })
 
+  it('sends nothing on a second Enter while the first guess is still out', async () => {
+    // The answer never comes, so the guess stays out for the rest of the test.
+    rpc.mockReturnValue(new Promise(() => {}))
+    h.loaded = loaded(null)
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('crane{Enter}')
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1))
+    await user.keyboard('{Enter}')
+    expect(rpc).toHaveBeenCalledTimes(1)
+  })
+
   it('ignores keystrokes aimed at a focused text field (chat isolation)', () => {
     h.loaded = loaded(null)
     render(<WithKeys {...makeCtx()} />)
@@ -1139,11 +1151,11 @@ describe('wordle PlayArea — the ⌫ and Enter caps follow the entry', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     expect(control('act-delete-last')).toBeDisabled()
-    expect(control('act-submit-entry')).toBeDisabled()
+    expect(control('act-submit')).toBeDisabled()
 
     await user.keyboard('cr')
     expect(control('act-delete-last')).toBeEnabled()
-    expect(control('act-submit-entry')).toBeEnabled()
+    expect(control('act-submit')).toBeEnabled()
   })
 })
 
@@ -1155,7 +1167,7 @@ describe('wordle Board — the refusal mark', () => {
   /** A soft reject from `submit_guess` — the rules ran and burned no guess. */
   const softReject = (result: 'duplicate' | 'notAWord') =>
     rpc.mockResolvedValue({
-      data: { data: { guesses_used: 0, result, solved: false, terminal: false }, type: 'ok' },
+      data: { data: { guesses_used: 0, result, solved: false, game_ended: false }, type: 'ok' },
       error: null,
     })
 

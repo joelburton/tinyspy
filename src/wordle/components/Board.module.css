@@ -129,7 +129,7 @@
 }
 
 /* The three JUDGED colors are the shared ones
- * (shared/wordle-style/tileColors.module.css, indexed by `tileColor`); waffle
+ * (shared/wordle-style/tileColors.module.css, indexed by `getTileColor`); waffle
  * paints its lattice from the same sheet. What is left here is what only wordle
  * says about a tile.
  *

@@ -263,8 +263,8 @@ place that rule is written — and `_finish_compete` ranks it, every solver by
 fewest guesses, then earliest solve. **The
 answer is about the caller's guess
 and never about the game's fate**: the win or the loss reaches every client
-over realtime, and the reply's `terminal` flag only says whether this guess
-was the move that ended it. In turn-order coop an accepted guess that did not
+over realtime, and the reply's `game_ended` flag only says whether this guess
+was the move that ended the game — for everyone, not only the guesser. In turn-order coop an accepted guess that did not
 end the game hands the turn on.
 
 **Passed:** `{ "p_game_id": "3f2a…", "p_guess": "crane" }`
@@ -273,15 +273,15 @@ end the game hands the turn on.
 worth — the words the two refusals show included — is the frontend's
 (`lib/answer.ts`). Two for an accepted guess:
 
-- solved — `{ "result": "correct", "colors": "ggggg", "guesses_used": 3, "solved": true, "terminal": true }`
-- not solved — `{ "result": "incorrect", "colors": "xgyxx", "guesses_used": 3, "solved": false, "terminal": false }`
+- solved — `{ "result": "correct", "colors": "ggggg", "guesses_used": 3, "solved": true, "game_ended": true }`
+- not solved — `{ "result": "incorrect", "colors": "xgyxx", "guesses_used": 3, "solved": false, "game_ended": false }`
 
 `colors` is five characters, one per letter: `g` in the right place, `y` in
 the word but elsewhere, `x` not in the word. And two for a guess that wrote
 nothing, which has no colors:
 
-- already on the board — `{ "result": "duplicate", "guesses_used": 2, "solved": false, "terminal": false }`
-- not in the word list — `{ "result": "notAWord", "guesses_used": 2, "solved": false, "terminal": false }`
+- already on the board — `{ "result": "duplicate", "guesses_used": 2, "solved": false, "game_ended": false }`
+- not in the word list — `{ "result": "notAWord", "guesses_used": 2, "solved": false, "game_ended": false }`
 
 A guess that arrives after the game has ended, out of turn, or from a racer
 who has already solved it, spent their budget or conceded is not an `ok` at
@@ -318,7 +318,7 @@ it could see, the board being in front of it — is left to the server too.
 
 **The colors are the server's, and so is the moment they show.** `BoardCol`
 sends the word and keeps it on the board uncolored while the call is out; the
-reply's `colors`, `solved` and `terminal` are not read there. The colored row
+reply's `colors`, `solved` and `game_ended` are not read there. The colored row
 arrives over the subscription, as it does for everyone, and the pending word
 flips in place when its row lands. A solve shows nothing extra at the call
 site either — the verdict follows from the play state, which arrives the same
@@ -467,7 +467,7 @@ Vitest, beside the code:
 
 | file | pins |
 |---|---|
-| `lib/answer.test` · `lib/terminal.test` | every `answerType`'s words and outcome; every terminal sentence per mode, play state and reason |
+| `lib/answer.test` · `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every `answerType`'s words and outcome; every ending's words per mode, reason and player outcome |
 | `lib/history.test` · `lib/colors.test` | the inclusive boundary and the ringed row, by id; the keyboard's strength order |
 | `lib/setup.test` · `components/SetupForm.test` | the Start gate names `legal_band`, and the floor the answer source sets; the form's three controls and where a refusal lands |
 | `pdf/model.test` | the target never prints before it shows on screen; the keyboard is derived per player, never pooled |
