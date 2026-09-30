@@ -79,10 +79,10 @@ function usernameOf(members: readonly Member[], userId: string | null) {
 
 /**
  * The answer band (`clubpage_info.answer_band`, copied from the setup): 0 is
- * the curated NYT-Wordle answer list, 1..6 are the
- * shared dictionary bands. Rendered in the same `dict "…"` slot the other
- * band-sensitive games use, because to a player it answers the same question —
- * how hard are the words here?
+ * the curated NYT-Wordle answer list, 1..6 are the shared dictionary bands.
+ * Rendered in the same `dict "…"` slot the other band-sensitive games use,
+ * because to a player it answers the same question — how hard are the words
+ * here?
  */
 function answerDictLabel(band: number | null): string | null {
   if (band === 0) return 'dict "Wordle"'

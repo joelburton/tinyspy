@@ -1,16 +1,18 @@
 /* cs-unmet */
 
-/* One row of five tiles; `--cols` and `--grid-gap` come from Board's `.board`. */
+/* One row of five tiles; `--cols` and `--grid-gap` come from Board's
+ * `.board`. */
 /* @@ */ .row {
   display: grid;
   grid-template-columns: repeat(var(--cols), 1fr);
   gap: var(--grid-gap);
 }
 
-/* The guess row the viewed turn added — a history-blue ring around it
- * (mirrors the board `.historyFrame`), applied while inspecting a past turn. The row's
+/* The guess row the viewed turn added — a history-blue ring around it (mirrors
+ * the board `.historyFrame`), applied while inspecting a past turn. The row's
  * tiles keep their g/y/x colors; this just marks WHICH row this turn played. An
- * outline (not a border) so it layers outside the tiles without resizing them. */
+ * outline (not a border) so it layers outside the tiles without resizing them.
+ */
 /* @@ */ .historyRow {
   outline: 3px solid var(--history-color);
   outline-offset: 2px;
@@ -18,8 +20,8 @@
 }
 
 /* A refused guess wears the SHARED verdict ring + shake (common
- * playArea.module.css → `.verdictRing`), applied to the typing row — the word is
- * still sitting there, since it was never accepted.
+ * playArea.module.css → `.verdictRing`), applied to the typing row — the word
+ * is still sitting there, since it was never accepted.
  *
  * A ROW, not a tile, which is what licenses the outline: the five tiles are
  * contiguous and aligned, so they are a GEOGRAPHIC unit — a real shape on the

@@ -3,8 +3,9 @@
 import { describe, expect, it } from 'vitest'
 import { colorRank, makeKeyColors } from './colors'
 
-// `getTileColor` is the shared mapper, tested in shared/wordle-style/tileColor.test.ts.
-// This file covers only wordle's own color helpers.
+// `getTileColor` is the shared mapper, tested in
+// shared/wordle-style/tileColor.test.ts. This file covers only wordle's own
+// color helpers.
 
 describe('colorRank', () => {
   it('orders green > yellow > gray > blank (for the keyboard merge)', () => {

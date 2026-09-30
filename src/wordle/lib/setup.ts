@@ -38,10 +38,11 @@ export type WordleValues = CoopTurnSetup & {
 
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupRows.ts` and `PlayArea` read back. */
+ *  `useGame` reads back for `gd.setup` and the setup rows. */
 export type WordleSetup = SetupOf<WordleValues>
 /** Initial setup the manifest hands the dialog as `defaults`. Defaults to the
- *  classic game: the NYT answer list (answer band 0), guesses accepted up to band 4. */
+ *  classic game: the NYT answer list (answer band 0), guesses accepted up to
+ *  band 4. */
 export const DEFAULT_WORDLE_SETUP: WordleSetup = {
   max_guesses: 6,
   answer_band: 0,

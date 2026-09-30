@@ -105,8 +105,8 @@ function PlayArea({
   // Tab isn't used; an empty ring keeps it from reaching browser chrome.
   useTabRing([])
 
-  // On a phone the board and keyboard fill the screen and the info column
-  // moves into an off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
+  // On a phone the board and keyboard fill the screen and the info column moves
+  // into an off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
   const infoSheet = useInfoSheet()
 
   // Confetti the moment the win is MINE. It is shown only when it happens.

@@ -77,7 +77,7 @@ export type GameData = {
   setupRows: SetupRow[]
   // The answer; null until the game ends (the view hands it over then).
   target: string | null
-  // The state line's counts ("3/6 guesses used").
+  // The state line's counts ("3/6 guesses").
   readout: {
     // The guess budget: the team's in coop, each player's own in compete.
     maxGuesses: number
@@ -149,7 +149,11 @@ export function makePlayersById(
       color: p.color,
       playerEnding:
         endedReason !== null && p.player_ended_at !== null
-          ? { at: p.player_ended_at, reason: endedReason, reasonDetail: p.player_ended_reason_detail ?? '' }
+          ? {
+              at: p.player_ended_at,
+              reason: endedReason,
+              reasonDetail: p.player_ended_reason_detail ?? '',
+            }
           : null,
       outcome: p.outcome,
       finalRanking: p.final_ranking,

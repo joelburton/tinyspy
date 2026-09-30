@@ -43,8 +43,8 @@ export type BoardMarks = {
 /**
  * The wordle board: `maxGuesses` rows of five tiles. A guessed row shows each
  * letter on its server-computed color; the typing row shows what is being
- * typed, uncolored; the rest are empty. The colors are `common._wordle_colors`'s
- * — this board draws them and never holds the target.
+ * typed, uncolored; the rest are empty. The colors are
+ * `common._wordle_colors`'s — this board draws them and never holds the target.
  *
  * A row that LANDS while you are watching turns its tiles over one at a time
  * (`useFlipBaseline` says which rows those are). A past turn open on the board

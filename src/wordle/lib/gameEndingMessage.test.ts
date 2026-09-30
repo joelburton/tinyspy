@@ -16,150 +16,120 @@ import { describe, expect, it } from 'vitest'
 import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
 import { buildGameEndingMessage } from './gameEndingMessage'
 
-/** The defaults every case overrides a field or two of. */
-const base = {
-  winnerName: 'Bea',
-  iSolved: false,
-  isMyTieBrokenByClock: false,
+/** The message for one ending, with the winner Bea and the compete flags off
+ *  unless a case sets them. */
+function build(
+  mode: 'coop' | 'compete',
+  outcome: EndOutcome,
+  reason: GameEndedReason,
+  playerOutcome: EndOutcome | null,
+  flags: { iSolved?: boolean; isMyTieBrokenByClock?: boolean } = {},
+) {
+  return buildGameEndingMessage({
+    winnerName: 'Bea',
+    iSolved: false,
+    isMyTieBrokenByClock: false,
+    ...flags,
+    mode,
+    gameEnding: { outcome, reason },
+    playerOutcome,
+  })
 }
 
-/** A game's ending with the given outcome and reason. */
-function makeGameEnding(outcome: EndOutcome, reason: GameEndedReason) {
-  return { outcome, reason }
+/** A solver whose place against the winner the earlier solve decided. */
+const TIED_SOLVER = { iSolved: true, isMyTieBrokenByClock: true }
+
+/** The message a case expects: the pill, the info column's line, the
+ *  outcome. */
+function message(pillText: string, infoColText: string, outcome: EndOutcome) {
+  return { pillText, infoColText, outcome }
 }
 
 describe('coop', () => {
   it('a win is the team win', () => {
-    expect(
-      buildGameEndingMessage({
-        ...base, mode: 'coop', gameEnding: makeGameEnding('won', 'reached_goal'), playerOutcome: 'won',
-      }),
-    ).toEqual({ pillText: 'Won: solved it', infoColText: 'Solved it!', outcome: 'won' })
+    expect(build('coop', 'won', 'reached_goal', 'won'))
+      .toEqual(message('Won: solved it', 'Solved it!', 'won'))
   })
 
   it('a loss names the clock or the guesses', () => {
-    expect(
-      buildGameEndingMessage({
-        ...base, mode: 'coop', gameEnding: makeGameEnding('lost', 'resource_exhausted'), playerOutcome: 'lost',
-      }),
-    ).toEqual({ pillText: 'Lost: out of guesses', infoColText: 'Out of guesses', outcome: 'lost' })
-    expect(
-      buildGameEndingMessage({
-        ...base, mode: 'coop', gameEnding: makeGameEnding('lost', 'timeout'), playerOutcome: 'lost',
-      }),
-    ).toEqual({ pillText: 'Lost: out of time', infoColText: 'Out of time', outcome: 'lost' })
+    expect(build('coop', 'lost', 'resource_exhausted', 'lost'))
+      .toEqual(message('Lost: out of guesses', 'Out of guesses', 'lost'))
+    expect(build('coop', 'lost', 'timeout', 'lost'))
+      .toEqual(message('Lost: out of time', 'Out of time', 'lost'))
   })
 
   it('a Stop is neutral — nobody won, which is not everybody losing', () => {
-    const msg = buildGameEndingMessage({
-      ...base, mode: 'coop', gameEnding: makeGameEnding('neutral', 'stopped'), playerOutcome: 'neutral',
-    })
+    const msg = build('coop', 'neutral', 'stopped', 'neutral')
     expect(msg.outcome).toBe('neutral')
     expect(msg.pillText).toBe('Game ended')
   })
 })
 
 describe('compete', () => {
-  const someoneWon = makeGameEnding('won', 'reached_goal')
-
   // Won by fewest guesses, the earlier solve breaking a tie — and the words
   // say which one it was, on both sides of the result.
   it('the winner won on guesses, or on the clock', () => {
-    expect(
-      buildGameEndingMessage({ ...base, mode: 'compete', gameEnding: someoneWon, playerOutcome: 'won', iSolved: true }),
-    ).toEqual({ pillText: 'Won: fewest guesses', infoColText: 'You won!', outcome: 'won' })
-    expect(
-      buildGameEndingMessage({
-        ...base, mode: 'compete', gameEnding: someoneWon, playerOutcome: 'won', iSolved: true, isMyTieBrokenByClock: true,
-      }),
-    ).toEqual({ pillText: 'Won: same guesses, but faster', infoColText: 'You won (faster)', outcome: 'won' })
+    expect(build('compete', 'won', 'reached_goal', 'won', { iSolved: true }))
+      .toEqual(message('Won: fewest guesses', 'You won!', 'won'))
+    expect(build('compete', 'won', 'reached_goal', 'won', TIED_SOLVER))
+      .toEqual(message('Won: same guesses, but faster', 'You won (faster)', 'won'))
   })
 
   it('a loser was beaten on guesses, or on the clock', () => {
-    expect(
-      buildGameEndingMessage({ ...base, mode: 'compete', gameEnding: someoneWon, playerOutcome: 'lost' }),
-    ).toEqual({ pillText: 'Lost: beaten on guesses', infoColText: 'Opponent won', outcome: 'lost' })
-    expect(
-      buildGameEndingMessage({
-        ...base, mode: 'compete', gameEnding: someoneWon, playerOutcome: 'near', iSolved: true, isMyTieBrokenByClock: true,
-      }),
-    ).toEqual({ pillText: 'Lost: beaten on the clock', infoColText: 'Opponent won (faster)', outcome: 'near' })
+    expect(build('compete', 'won', 'reached_goal', 'lost'))
+      .toEqual(message('Lost: beaten on guesses', 'Opponent won', 'lost'))
+    expect(build('compete', 'won', 'reached_goal', 'near', TIED_SOLVER))
+      .toEqual(message('Lost: beaten on the clock', 'Opponent won (faster)', 'near'))
   })
 
   // The countdown ending a game SOMEBODY had solved: the player still guessing
   // was stopped, not outscored; the winner solved in time; a solver who had
   // used more guesses was beaten on them all the same; a tie is still a tie.
   it('a game the clock ended with a solver says so, on both sides', () => {
-    const timedOut = { ...base, mode: 'compete', gameEnding: makeGameEnding('won', 'timeout') } as const
-    expect(buildGameEndingMessage({ ...timedOut, playerOutcome: 'won', iSolved: true })).toEqual({
-      pillText: 'Won: solved before time ran out', infoColText: 'You won!', outcome: 'won',
-    })
-    expect(buildGameEndingMessage({ ...timedOut, playerOutcome: 'lost' })).toEqual({
-      pillText: 'Lost: time ran out', infoColText: 'Opponent won', outcome: 'lost',
-    })
-    expect(buildGameEndingMessage({ ...timedOut, playerOutcome: 'near', iSolved: true })).toEqual({
-      pillText: 'Lost: beaten on guesses', infoColText: 'Opponent won', outcome: 'near',
-    })
-    expect(
-      buildGameEndingMessage({ ...timedOut, playerOutcome: 'near', iSolved: true, isMyTieBrokenByClock: true }),
-    ).toEqual({ pillText: 'Lost: beaten on the clock', infoColText: 'Opponent won (faster)', outcome: 'near' })
-    expect(
-      buildGameEndingMessage({ ...timedOut, playerOutcome: 'won', iSolved: true, isMyTieBrokenByClock: true }),
-    ).toEqual({ pillText: 'Won: same guesses, but faster', infoColText: 'You won (faster)', outcome: 'won' })
+    expect(build('compete', 'won', 'timeout', 'won', { iSolved: true }))
+      .toEqual(message('Won: solved before time ran out', 'You won!', 'won'))
+    expect(build('compete', 'won', 'timeout', 'lost'))
+      .toEqual(message('Lost: time ran out', 'Opponent won', 'lost'))
+    expect(build('compete', 'won', 'timeout', 'near', { iSolved: true }))
+      .toEqual(message('Lost: beaten on guesses', 'Opponent won', 'near'))
+    expect(build('compete', 'won', 'timeout', 'near', TIED_SOLVER))
+      .toEqual(message('Lost: beaten on the clock', 'Opponent won (faster)', 'near'))
+    expect(build('compete', 'won', 'timeout', 'won', TIED_SOLVER))
+      .toEqual(message('Won: same guesses, but faster', 'You won (faster)', 'won'))
   })
 
   it('a game nobody solved says which of the three ways it ran out', () => {
-    expect(
-      buildGameEndingMessage({
-        ...base, mode: 'compete', gameEnding: makeGameEnding('lost', 'resource_exhausted'), playerOutcome: 'lost',
-      }),
-    ).toEqual({ pillText: 'Nobody solved', infoColText: 'No winner', outcome: 'lost' })
-    expect(
-      buildGameEndingMessage({
-        ...base, mode: 'compete', gameEnding: makeGameEnding('lost', 'timeout'), playerOutcome: 'lost',
-      }),
-    ).toEqual({ pillText: 'Out of time — no winner', infoColText: 'Out of time', outcome: 'lost' })
+    expect(build('compete', 'lost', 'resource_exhausted', 'lost'))
+      .toEqual(message('Nobody solved', 'No winner', 'lost'))
+    expect(build('compete', 'lost', 'timeout', 'lost'))
+      .toEqual(message('Out of time — no winner', 'Out of time', 'lost'))
     // Every player walked away, and the club-list label reads "all conceded"
     // off the same reason.
-    expect(
-      buildGameEndingMessage({
-        ...base, mode: 'compete', gameEnding: makeGameEnding('lost', 'conceded'), playerOutcome: 'lost',
-      }),
-    ).toEqual({ pillText: 'All conceded — no winner', infoColText: 'All conceded', outcome: 'lost' })
+    expect(build('compete', 'lost', 'conceded', 'lost'))
+      .toEqual(message('All conceded — no winner', 'All conceded', 'lost'))
   })
 
   it('a Stop is neutral here too, and says no winner', () => {
-    const msg = buildGameEndingMessage({
-      ...base, mode: 'compete', gameEnding: makeGameEnding('neutral', 'stopped'), playerOutcome: 'neutral',
-    })
+    const msg = build('compete', 'neutral', 'stopped', 'neutral')
     expect(msg.outcome).toBe('neutral')
     expect(msg.pillText).toBe('Game ended — no winner')
   })
 
   // SPECTATING: a guess until the design settles what a watcher sees.
   it('a watcher is told who won, in the game\'s outcome', () => {
-    expect(
-      buildGameEndingMessage({ ...base, mode: 'compete', gameEnding: someoneWon, playerOutcome: null }),
-    ).toEqual({ pillText: 'Bea won', infoColText: 'Bea won', outcome: 'won' })
+    expect(build('compete', 'won', 'reached_goal', null))
+      .toEqual(message('Bea won', 'Bea won', 'won'))
   })
 
   // The two flags are compete questions. Coop reads neither: the team won or
   // the team did not.
   it('coop ignores the flags; compete is the only mode that asks', () => {
-    const coopLoss = {
-      ...base, mode: 'coop', gameEnding: makeGameEnding('lost', 'resource_exhausted'), playerOutcome: 'lost',
-    } as const
-    expect(buildGameEndingMessage({ ...coopLoss, iSolved: true, isMyTieBrokenByClock: true })).toEqual(
-      buildGameEndingMessage(coopLoss),
-    )
+    expect(build('coop', 'lost', 'resource_exhausted', 'lost', TIED_SOLVER))
+      .toEqual(build('coop', 'lost', 'resource_exhausted', 'lost'))
   })
 
   it('throws for an ending wordle never writes', () => {
-    expect(() =>
-      buildGameEndingMessage({
-        ...base, mode: 'coop', gameEnding: makeGameEnding('lost', 'conceded'), playerOutcome: 'lost',
-      }),
-    ).toThrow(/BUG/)
+    expect(() => build('coop', 'lost', 'conceded', 'lost')).toThrow(/BUG/)
   })
 })
 
@@ -169,13 +139,16 @@ describe('every ending, in both modes, for every player', () => {
   // are the endings wordle's RPCs write (supabase/sql/wordle.sql), each with
   // the outcomes a player can have in it. A compete game with a winner ends on
   // the last player's act, whichever it was.
+  const COMPETE_WON_REASONS = ['reached_goal', 'resource_exhausted', 'conceded', 'timeout'] as const
   const CASES = [
     { mode: 'coop', outcome: 'won', reason: 'reached_goal', player: 'won' },
     { mode: 'coop', outcome: 'lost', reason: 'resource_exhausted', player: 'lost' },
     { mode: 'coop', outcome: 'lost', reason: 'timeout', player: 'lost' },
     { mode: 'coop', outcome: 'neutral', reason: 'stopped', player: 'neutral' },
-    ...(['reached_goal', 'resource_exhausted', 'conceded', 'timeout'] as const).flatMap((reason) =>
-      (['won', 'near', 'lost'] as const).map((player) => ({ mode: 'compete', outcome: 'won', reason, player }) as const),
+    ...COMPETE_WON_REASONS.flatMap((reason) =>
+      (['won', 'near', 'lost'] as const).map(
+        (player) => ({ mode: 'compete', outcome: 'won', reason, player }) as const,
+      ),
     ),
     { mode: 'compete', outcome: 'lost', reason: 'resource_exhausted', player: 'lost' },
     { mode: 'compete', outcome: 'lost', reason: 'timeout', player: 'lost' },
@@ -186,14 +159,7 @@ describe('every ending, in both modes, for every player', () => {
   it.each(CASES)('$mode $outcome/$reason, player $player, reads the player\'s, with both texts filled', (c) => {
     for (const iSolved of [false, true]) {
       for (const isMyTieBrokenByClock of [false, true]) {
-        const msg = buildGameEndingMessage({
-          ...base,
-          mode: c.mode,
-          gameEnding: makeGameEnding(c.outcome, c.reason),
-          playerOutcome: c.player,
-          iSolved,
-          isMyTieBrokenByClock,
-        })
+        const msg = build(c.mode, c.outcome, c.reason, c.player, { iSolved, isMyTieBrokenByClock })
         expect(msg.outcome).toBe(c.player)
         expect(msg.pillText.length).toBeGreaterThan(0)
         expect(msg.infoColText.length).toBeGreaterThan(0)

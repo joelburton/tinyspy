@@ -25,13 +25,14 @@ import type { WordlePlayerStatus } from '../lib/statuses'
 
 const { mockReadRows, refetch } = vi.hoisted(() => ({
   mockReadRows: vi.fn(),
-  // The `load` the hook hands `useRefetchOnGameUpdate`, kept so a test can run it.
+  // The `load` the hook hands `useRefetchOnGameUpdate`, kept so a test can run
+  // it.
   refetch: { load: null as ((a: { mounted: () => boolean }) => Promise<void>) | null },
 }))
 
-// A query builder that remembers which table it was opened on and answers
-// every chained call with itself — `readRows` is mocked, so the chain only has
-// to survive being built, and the table is how the mock knows which read this is.
+// A query builder that remembers which table it was opened on and answers every
+// chained call with itself — `readRows` is mocked, so the chain only has to
+// survive being built, and the table is how the mock knows which read this is.
 vi.mock('../db', () => {
   const on = (table: string): unknown =>
     new Proxy({ table }, { get: (t, key) => (key === 'table' ? t.table : () => on(t.table)) })
@@ -68,7 +69,10 @@ const CTX = {
   session: { user: { id: 'u1' } },
   mode: 'compete',
   title: 'A game',
-  setup: { max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' }, coop_style: 'free-for-all' },
+  setup: {
+    max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' },
+    coop_style: 'free-for-all',
+  },
   gameStatus: { max_guesses: 6 },
   players: [
     gp('u1', 'me', 'red', { player_status: playerStatus(2) }),
@@ -177,7 +181,10 @@ describe('wordle useGame — a load that worked', () => {
     answer(ALL_GOOD)
     const tied = {
       ...CTX,
-      players: [gp('u1', 'me', 'red', { player_status: playerStatus(3, 'reached_goal', true) }), CTX.players[1]!],
+      players: [
+        gp('u1', 'me', 'red', { player_status: playerStatus(3, 'reached_goal', true) }),
+        CTX.players[1]!,
+      ],
     } as GamePageCtx
     const gd = (await load(tied)).current.gd!
     expect(gd.playersById.u1!.isTieBrokenByClock).toBe(true)
@@ -211,7 +218,8 @@ describe('wordle useGame — a load that worked', () => {
   // SPECTATING: a guess until the design settles what a watcher sees.
   it('reads the budget as spent for a club member watching a compete game', async () => {
     answer(ALL_GOOD)
-    const watching = { ...CTX, session: { user: { id: 'u9' } }, isPlayer: false } as unknown as GamePageCtx
+    const watching =
+      { ...CTX, session: { user: { id: 'u9' } }, isPlayer: false } as unknown as GamePageCtx
     const gd = (await load(watching)).current.gd!
     expect(gd.me).toBeNull()
     expect(gd.readout.guessesUsed).toBe(6)
@@ -235,7 +243,10 @@ describe('wordle useGame — a load that worked', () => {
     answer(ALL_GOOD)
     const solved = {
       ...CTX,
-      players: [gp('u1', 'me', 'red', { solved_at: '2026-09-01T00:02:00Z', player_status: playerStatus(3) }), CTX.players[1]!],
+      players: [
+        gp('u1', 'me', 'red', { solved_at: '2026-09-01T00:02:00Z', player_status: playerStatus(3) }),
+        CTX.players[1]!,
+      ],
     } as GamePageCtx
     expect((await load(solved)).current.gd?.standing.hasSolved).toBe(true)
   })
@@ -245,7 +256,9 @@ describe('wordle useGame — a load that worked', () => {
     const coopWon = {
       ...CTX,
       mode: 'coop',
-      gameEnding: { reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u2' },
+      gameEnding: {
+        reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u2',
+      },
     } as GamePageCtx
     expect((await load(coopWon)).current.gd?.standing.hasSolved).toBe(true)
   })

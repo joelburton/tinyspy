@@ -2,21 +2,21 @@
 
 /* wordle's event log rides the shared <EventLog> table — the panel border, the
  * between-turns dividers, the right-aligned who column, and the scroll box all
- * come from common/event-log/EventLog.module.css. The ONLY wordle-specific bit is
- * the guess itself, rendered as five colored mini-tiles (the per-letter g/y/x
- * feedback); that lives here. */
+ * come from common/event-log/EventLog.module.css. The ONLY wordle-specific bit
+ * is the guess itself, rendered as five colored mini-tiles (the per-letter
+ * g/y/x feedback); that lives here. */
 
 /* @@ */ .squares {
   display: inline-flex;
   gap: 0.15rem;
 }
 
-/* The guess is one definable word, so it wears the same hover underline as every
- * other — but drawn here rather than by `.definable`'s `text-decoration`, which
- * paints beneath the squares' own backgrounds and so never shows. A border on the
- * group, transparent until hover, puts the line below the squares; it is always
- * present, so hovering never reflows the log.
- * See common/core-css/utilities.css → `.definable`. */
+/* The guess is one definable word, so it wears the same hover underline as
+ * every other — but drawn here rather than by `.definable`'s `text-decoration`,
+ * which paints beneath the squares' own backgrounds and so never shows. A
+ * border on the group, transparent until hover, puts the line below the
+ * squares; it is always present, so hovering never reflows the log. See
+ * common/core-css/utilities.css → `.definable`. */
 /* @@ */ .definable {
   border-bottom: 2px solid transparent;
   padding-bottom: 2px;

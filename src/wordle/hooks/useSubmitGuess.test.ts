@@ -80,7 +80,8 @@ describe('useSubmitGuess', () => {
     })
     expect(isAccepted).toBe(false)
     expect(result.current.inFlightWord).toBeNull()
-    // `duplicate` is a warning (lib/answer.ts), not the loss a default would say.
+    // `duplicate` is a warning (lib/answer.ts), not the loss a default would
+    // say.
     expect(result.current.refusedGuessMark?.value).toBe('warning')
     expect(shown).toHaveBeenCalledTimes(1)
   })

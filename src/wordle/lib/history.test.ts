@@ -71,6 +71,7 @@ describe('wordle replayTurn', () => {
   })
 
   it('in coop, replays the one shared board, every author\'s rows', () => {
-    expect(replayTurn(table, 23, 3, false).rows.map((r) => r.guess)).toEqual(['slate', 'crane', 'point'])
+    expect(replayTurn(table, 23, 3, false).rows.map((r) => r.guess))
+      .toEqual(['slate', 'crane', 'point'])
   })
 })

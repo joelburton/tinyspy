@@ -2,7 +2,12 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { makeCoopRows, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import {
+  makeCoopRows,
+  makeRosterRow,
+  makeTimerRow,
+  type SetupRow,
+} from '@/common/setup-form/setupRows'
 import type { WordleSetup } from './setup'
 
 /** The setup row's value for the answer band. `0` = the curated NYT-Wordle
@@ -13,7 +18,8 @@ function answerBandValue(n: number): string {
 
 /**
  * wordle's setup rows — ONE array, rendered by the info column and the PDF
- * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
+ * alike (common/setup-form/doc.md → Setup rows). Order mirrors
+ * `components/SetupForm.tsx`.
  */
 export function makeSetupRows(
   setup: WordleSetup,

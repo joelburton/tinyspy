@@ -25,7 +25,8 @@ import type { GameData } from './useGame'
  */
 export type WordleActions = {
   // Each key is spelled as its action's id (`act-reveal` → `actReveal`), so a
-  // grep for either finds every trace of the action (src/guards/actionIds.test.ts).
+  // grep for either finds every trace of the action
+  // (src/guards/actionIds.test.ts).
   //
   // Show the word — or put it away again. A local display toggle, no RPC; it
   // carries its own faces, the inert "solution already shown" included.
@@ -120,11 +121,11 @@ export function useBindActionsAndPublishMenu({
   })
 
   // New game — a FRESH game (new id, new random target) with THIS game's setup,
-  // players and mode, in the same club. wordle's `create_game` is a direct RPC —
-  // no edge function, since picking a random target is one SQL line. Nothing is
-  // destroyed: the club's current-view flag moves, leaving this game resumable
-  // from the club list. The creator jumps in via `goToFollowUpGame`, peers
-  // arrive by invitation toast.
+  // players and mode, in the same club. wordle's `create_game` is a direct RPC
+  // — no edge function, since picking a random target is one SQL line. Nothing
+  // is destroyed: the club's current-view flag moves, leaving this game
+  // resumable from the club list. The creator jumps in via `goToFollowUpGame`,
+  // peers arrive by invitation toast.
   async function createNewGame() {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
@@ -159,10 +160,10 @@ export function useBindActionsAndPublishMenu({
     run: createNewGame,
   })
 
-  // Print builds its model from the live state at CLICK time (common/pdf/doc.md).
-  // RLS already scopes the log to what I may see, and the model refuses to
-  // print the target before the end, so neither the boards nor the answer can
-  // leak onto paper early.
+  // Print builds its model from the live state at CLICK time
+  // (common/pdf/doc.md). RLS already scopes the log to what I may see, and the
+  // model refuses to print the target before the end, so neither the boards nor
+  // the answer can leak onto paper early.
   const actPrintBoard = useBoundAction('act-print-board', {
     describe: () => 'active',
     run: () => {

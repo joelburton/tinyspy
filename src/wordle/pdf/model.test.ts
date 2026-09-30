@@ -53,7 +53,9 @@ describe('buildWordlePrintModel — the target is a secret', () => {
 describe('buildWordlePrintModel — the board', () => {
   it('maps the server color codes to tile states', () => {
     const m = buildWordlePrintModel({ ...base, guesses: [g({ word: 'slate', colors: 'xgyxg' })] })
-    expect(m.tracks[0].rows[0].states).toEqual(['wordleGray', 'wordleGreen', 'wordleYellow', 'wordleGray', 'wordleGreen'])
+    expect(m.tracks[0].rows[0].states).toEqual(
+      ['wordleGray', 'wordleGreen', 'wordleYellow', 'wordleGray', 'wordleGreen'],
+    )
     expect(m.tracks[0].rows[0].letters).toEqual(['S', 'L', 'A', 'T', 'E'])
   })
 

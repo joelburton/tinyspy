@@ -34,7 +34,8 @@ export type ReplayedTurn = {
   // wears its g/y/x tile colors). The last row in `rows`; -1 when nothing was
   // replayed.
   litBoardRow: number
-  // A short, name-free turn label for the viewer banner (the log row shows *who*).
+  // A short, name-free turn label for the viewer banner (the log row shows
+  // *who*).
   label: string
   // Who made the turn — whose board this is; null for an id not in the log.
   authorId: string | null

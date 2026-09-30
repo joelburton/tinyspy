@@ -14,9 +14,9 @@ import type { EventRow } from '../hooks/useGame'
  * Two judgments live here. **The target is a secret**: it's on the game row and
  * the FE holds it, but it must not print before the game ends any more than it
  * shows on screen. And **the keyboard is derived, not stored** — the best state
- * seen for each letter across that player's guesses — so it has to be recomputed
- * per player rather than shared, which is easy to get wrong once compete prints
- * everyone's board.
+ * seen for each letter across that player's guesses — so it has to be
+ * recomputed per player rather than shared, which is easy to get wrong once
+ * compete prints everyone's board.
  */
 
 /** One board row: five tiles, or five blanks for a row not yet played. */
@@ -46,7 +46,8 @@ const BLANK_ROW = (len: number): PrintRow => ({
   states: Array(len).fill('blank' as TileColor),
 })
 
-/** A guess row → its tiles. `colors` is the server's per-letter g/y/x string. */
+/** A guess row → its tiles. `colors` is the server's per-letter g/y/x
+ *  string. */
 function rowOf(g: EventRow): PrintRow {
   return {
     letters: [...g.word.toUpperCase()],
@@ -55,10 +56,10 @@ function rowOf(g: EventRow): PrintRow {
 }
 
 /**
- * The keyboard, from the on-screen keyboard's own `makeKeyColors` — so paper and
- * screen can't disagree about whether a letter is "still possible". The page
- * prints letters upper-case. Letters never tried are simply absent, which the
- * renderer draws as the blank (borderless) state.
+ * The keyboard, from the on-screen keyboard's own `makeKeyColors` — so paper
+ * and screen can't disagree about whether a letter is "still possible". The
+ * page prints letters upper-case. Letters never tried are simply absent, which
+ * the renderer draws as the blank (borderless) state.
  */
 function keysOf(guesses: readonly EventRow[]): Map<string, TileColor> {
   const keyColors = makeKeyColors(guesses.map((g) => ({ guess: g.word, colors: g.colors })))
@@ -81,8 +82,8 @@ export function buildWordlePrintModel(o: {
   target: string | null
   // Is the answer legitimately on screen? A WIN or an explicit reveal — NOT
   // merely an ended game. wordle hides the answer on a loss so a Restart is a
-  // real second try (docs/ui.md → Terminal results), and a printout that spelled
-  // it out would undo that from the outside.
+  // real second try (docs/ui.md → Terminal results), and a printout that
+  // spelled it out would undo that from the outside.
   answerShown: boolean
   // Per-player solved flags, for the outcome line.
   solvedBy: ReadonlySet<string>
@@ -126,7 +127,11 @@ export function buildWordlePrintModel(o: {
   let tracks: PrintTrack[]
   if (o.mode === 'coop') {
     const t = track('Team', o.guesses, o.solvedBy.size > 0)
-    t.turns = o.guesses.map((g, i) => ({ seq: i + 1, who: nameOf(g.user_id), text: g.word.toUpperCase() }))
+    t.turns = o.guesses.map((g, i) => ({
+      seq: i + 1,
+      who: nameOf(g.user_id),
+      text: g.word.toUpperCase(),
+    }))
     tracks = [t]
   } else if (o.isGameEnded) {
     tracks = o.players.map((p) =>

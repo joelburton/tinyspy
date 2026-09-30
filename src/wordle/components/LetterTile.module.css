@@ -1,8 +1,9 @@
 /* cs-unmet */
 
 /* The box comes from the SHARED `.tileFace` (composed in LetterTile.tsx); this
- * is what is left over. wordle's tiles are inert `<div>`s, so they take the face
- * and none of the interaction chrome, which lives on the shared `.tile`. */
+ * is what is left over. wordle's tiles are inert `<div>`s, so they take the
+ * face and none of the interaction chrome, which lives on the shared `.tile`.
+ */
 /* @@ */ .tile {
   /* The grid already squares its cells (1fr rows under the grid's own
    * aspect-ratio); this holds the shape if either ever changes. */
@@ -29,24 +30,26 @@
 }
 
 /* The three JUDGED colors are the shared ones
- * (shared/wordle-style/tileColors.module.css, indexed by `getTileColor`); waffle
- * paints its lattice from the same sheet. What is left here is what only wordle
- * says about a tile.
+ * (shared/wordle-style/tileColors.module.css, indexed by `getTileColor`);
+ * waffle paints its lattice from the same sheet. What is left here is what only
+ * wordle says about a tile.
  *
  * An UNJUDGED tile has no class of its own, because it needs none: Board's
- * `.grid` tokens already describe it — transparent, with the light edge — and it
- * is what a tile looks like when nothing else has spoken. `.filled` above is
+ * `.grid` tokens already describe it — transparent, with the light edge — and
+ * it is what a tile looks like when nothing else has spoken. `.filled` above is
  * that same tile once a letter is typed into it. */
 
-/* In flight — the row you just submitted, while the server works out its colors.
- * The SHARED `.dimInFlight` dim (common playArea.module.css), applied per TILE
- * rather than to the row so the gaps between tiles stay light: a bar across the
- * whole row would read as a new element rather than as the letters being sent.
+/* In flight — the row you just submitted, while the server works out its
+ * colors. The SHARED `.dimInFlight` dim (common playArea.module.css), applied
+ * per TILE rather than to the row so the gaps between tiles stay light: a bar
+ * across the whole row would read as a new element rather than as the letters
+ * being sent.
  *
  * Plus the middle gray beneath it, the same fill waffle's two cells take: the
  * in-flight signal is "these are darker than the board around them", and a dim
  * over the pale typed look barely moves. Declared after `.filled` because a
- * pending tile is also a filled one, and same-file order settles which fill wins.
+ * pending tile is also a filled one, and same-file order settles which fill
+ * wins.
  *
  * It must clear before the reveal flip starts, or the flip plays under a dim —
  * which it does, because the row stops being pending the moment its colored row

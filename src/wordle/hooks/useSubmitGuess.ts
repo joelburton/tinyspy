@@ -90,7 +90,8 @@ export function useSubmitGuess({
   // keys on the mark's nonce, so refusing the same word twice shakes twice.
   const [refusedGuessMark, showRefusedGuessMark] = useMark<Outcome>(WORD_ANSWER_MS)
 
-  /** Both soft rejects: nothing was burned, so the typed row stays and shakes. */
+  /** Both soft rejects: nothing was burned, so the typed row stays and
+   *  shakes. */
   function refuseSoftly(answerType: 'duplicate' | 'not_a_word') {
     const { outcome, text } = answerMessage({ answerType })
     setSubmittedWord(null)

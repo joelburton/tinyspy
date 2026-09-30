@@ -2,10 +2,10 @@
 
 /**
  * wordle's play surface, mounted for real: does it render in coop, in compete
- * and once the game has ended, and does each surface on it do what its docstring says —
- * the action row per mode and state, Reveal and Hide, the celebration, the
- * peer narration, the picker's labels, the board-scope marks, the flip, and
- * the keys.
+ * and once the game has ended, and does each surface on it do what its
+ * docstring says — the action row per mode and state, Reveal and Hide, the
+ * celebration, the peer narration, the picker's labels, the board-scope marks,
+ * the flip, and the keys.
  *
  * The smoke cases exist because a removed prop that was still referenced once
  * shipped a BLANK PAGE — a runtime `ReferenceError` that no type check
@@ -13,8 +13,9 @@
  * Game logic is not here: the rules live in pgTAP (the RPCs), and what a move
  * reads as in `lib/answer.test.ts`.
  *
- * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; everything else — the grid, keyboard, lists, dialogs — renders for real.
+ * `useGame`'s reads and `db` are mocked so no client or network is needed;
+ * `gd` itself is built by the real `makeGameData`, and everything else — the
+ * grid, keyboard, lists, dialogs — renders for real.
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -82,7 +83,8 @@ function loaded(target: string | null = null, events: EventRow[] = []): Loaded {
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
 /** The ending columns of a compete player who solved and waits on the rest —
- *  `neutral`, since fewer guesses may yet beat it, as `submit_guess` writes it. */
+ *  `neutral`, since fewer guesses may yet beat it, as `submit_guess` writes
+ *  it. */
 const SOLVED_WAITING = {
   player_ended_at: '2026-09-03T00:00:00Z',
   player_ended_reason: 'reached_goal',
@@ -139,7 +141,8 @@ const SOMEONE_WON: GameEnding = {
 /** A play surface's context. Where I stand is DERIVED from the fixture — the
  *  players' endings, whether the game has ended, `isTurnBased` and
  *  `turnHolderId` — exactly as the page derives it (`whereIStand`), so a test
- *  sets up the facts and never hand-writes an answer the page could not give. */
+ *  sets up the facts and never hand-writes an answer the page could not
+ *  give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
   const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
@@ -157,7 +160,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     mode: 'coop',
     timer: { displaySeconds: 0, expired: false },
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
-    // would crash timerLabel, exactly the kind of render bug these tests guard).
+    // would crash timerLabel, exactly the kind of render bug these tests
+    // guard).
     setup: { max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' } },
     gameStatus,
     commonGameUpdatedAt: '2026-09-01T00:00:00Z',
@@ -214,7 +218,8 @@ const okEnvelope = (data: unknown) => ({
 const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
 
 /** A control by WHICH action it is, since its words vary per state. */
-const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)!
+const control = (id: string) =>
+  document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)!
 
 beforeEach(() => {
   h.loaded = loaded()
@@ -368,9 +373,9 @@ describe('wordle PlayArea — icon-only action row', () => {
   })
 
   it('a game I did NOT solve still waits to be asked', () => {
-    // The predicate is "did I solve it", never "was the game won" — which is the
-    // whole difference in compete, where the game's `won` means SOMEONE won and
-    // the player three guesses off never produced the word.
+    // The predicate is "did I solve it", never "was the game won" — which is
+    // the whole difference in compete, where the game's `won` means SOMEONE won
+    // and the player three guesses off never produced the word.
     h.loaded = loaded('crane')
     render(
       <PlayAreaLoader
@@ -386,8 +391,9 @@ describe('wordle PlayArea — icon-only action row', () => {
   })
 
   it('the ending\'s "New game" button starts a fresh game with this setup/roster/mode', async () => {
-    // `createNewGame` calls db.rpc('create_game', …), which answers the envelope
-    // itself as one jsonb value (no `.single()`) — mocked for this call only.
+    // `createNewGame` calls db.rpc('create_game', …), which answers the
+    // envelope itself as one jsonb value (no `.single()`) — mocked for this
+    // call only.
     rpc.mockImplementation((name: string) =>
       name === 'create_game'
         ? Promise.resolve({
@@ -454,7 +460,8 @@ describe('wordle PlayArea — the ending', () => {
     expect(reveal.label).toBe('Reveal solution')
     act(() => reveal.run())
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
-    // The menu is rebuilt on the state flip, so the item now offers the way back.
+    // The menu is rebuilt on the state flip, so the item now offers the way
+    // back.
     await waitFor(() =>
       expect(menuItems(ctx).find((i) => i.id === 'act-reveal')!.label).toBe('Hide solution'),
     )
@@ -467,7 +474,8 @@ describe('wordle PlayArea — the ending', () => {
     const ctx = makeCtx({ mode: 'compete', players: twoMembers })
     render(<PlayAreaLoader {...ctx} />)
     // Nothing to show yet: wordle._target_for withholds the target until the
-    // race is over for everyone, so a player who's done can't peek at a live one.
+    // race is over for everyone, so a player who's done can't peek at a live
+    // one.
     expect(menuItems(ctx).find((i) => i.id === 'act-reveal')!.disabled).toBe(true)
   })
 
@@ -494,8 +502,9 @@ describe('wordle PlayArea — the ending', () => {
     render(<PlayAreaLoader {...ctx} />)
 
     act(() => menuItems(ctx).find((i) => i.id === 'act-restart')!.run())
-    // No ConfirmationHost is mounted, so a question would have stalled the run —
-    // the RPC firing proves the shared run asked nothing once the game had ended.
+    // No ConfirmationHost is mounted, so a question would have stalled the run
+    // — the RPC firing proves the shared run asked nothing once the game had
+    // ended.
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
   })
 
@@ -521,7 +530,10 @@ describe('wordle PlayArea — the ending', () => {
     h.loaded = loaded('crane')
     rerender(
       <PlayAreaLoader
-        {...makeCtx({ gameEnding: COOP_WON, players: [gp('u1', 'me', 'red', { outcome: 'won', final_ranking: 1 })] })}
+        {...makeCtx({
+          gameEnding: COOP_WON,
+          players: [gp('u1', 'me', 'red', { outcome: 'won', final_ranking: 1 })],
+        })}
       />,
     )
     expect(screen.getByRole('dialog', { name: 'Solved! 🎉' })).toBeInTheDocument()
@@ -555,7 +567,9 @@ describe('wordle PlayArea — the ending', () => {
   // "someone won". The dialog's handle is its title: the pill and the row's
   // line say the verdict in their own words.
   it('celebrates the compete game I won, at the moment it ends', () => {
-    const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
+    const { rerender } = render(
+      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />,
+    )
 
     h.loaded = loaded('crane')
     rerender(
@@ -573,7 +587,9 @@ describe('wordle PlayArea — the ending', () => {
   })
 
   it('does not celebrate a compete game somebody else won', () => {
-    const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
+    const { rerender } = render(
+      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />,
+    )
 
     h.loaded = loaded('crane')
     rerender(
@@ -635,7 +651,9 @@ describe('wordle PlayArea — the ending', () => {
       <PlayAreaLoader
         {...makeCtx({
           mode: 'compete',
-          gameEnding: { ...SOMEONE_WON, reason: 'timeout', reasonDetail: 'timeout', endedByUserId: null },
+          gameEnding: {
+            ...SOMEONE_WON, reason: 'timeout', reasonDetail: 'timeout', endedByUserId: null,
+          },
           players: [finished('u1', 'me', 'red', 'lost'), finished('u2', 'moth', 'blue', 'won')],
         })}
       />,
@@ -654,7 +672,9 @@ describe('wordle PlayArea — the ending', () => {
       <PlayAreaLoader
         {...makeCtx({
           mode: 'compete',
-          gameEnding: { reason: 'conceded', reasonDetail: 'conceded', outcome: 'lost', endedByUserId: 'u2' },
+          gameEnding: {
+            reason: 'conceded', reasonDetail: 'conceded', outcome: 'lost', endedByUserId: 'u2',
+          },
           players: [gp('u1', 'me', 'red', CONCEDED), gp('u2', 'moth', 'blue', CONCEDED)],
           timer: { displaySeconds: 30, expired: false },
         })}
@@ -668,9 +688,9 @@ describe('wordle PlayArea — the ending', () => {
 /**
  * Input-gating characterization. The board-gate prop (`readOnly`) controls
  * whether the on-screen keyboard accepts input. Pinning the OBSERVABLE effect —
- * keyboard enabled during play, disabled
- * once the game has ended — so a polarity flip that inverts the gate fails here instead of
- * silently shipping (the unit suite otherwise barely exercises gating).
+ * keyboard enabled during play, disabled once the game has ended — so a
+ * polarity flip that inverts the gate fails here instead of silently shipping
+ * (the unit suite otherwise barely exercises gating).
  */
 describe('wordle PlayArea — input gating', () => {
   // The on-screen keyboard's 'A' key (letter buttons carry aria-label={ch};
@@ -742,7 +762,8 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     const feedbackMsg = shown.mock.calls[0]![0]
     expect(feedbackMsg.actor?.username).toBe('moth')
     expect(feedbackMsg.text).toBe('solved it')
-    // Green — a solve is a solve regardless of whose (the outcome follows the event).
+    // Green — a solve is a solve regardless of whose (the outcome follows the
+    // event).
     expect(feedbackMsg.outcome).toBe('won')
     // A solve is where the peer STANDS, not a move of theirs, so it outranks
     // the guess narration above and a chat line.
@@ -832,7 +853,10 @@ describe('wordle PlayArea — concede', () => {
   it('marks a conceded opponent "out" in the strip', () => {
     render(
       <PlayAreaLoader
-        {...makeCtx({ mode: 'compete', players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', CONCEDED)] })}
+        {...makeCtx({
+          mode: 'compete',
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', CONCEDED)],
+        })}
       />,
     )
     expect(screen.getByText('out')).toBeInTheDocument()
@@ -852,7 +876,10 @@ describe('wordle PlayArea — concede', () => {
     })
     render(
       <PlayAreaLoader
-        {...makeCtx({ mode: 'compete', players: [gp('u1', 'me', 'red'), outOfGuesses, solvedWaiting] })}
+        {...makeCtx({
+          mode: 'compete',
+          players: [gp('u1', 'me', 'red'), outOfGuesses, solvedWaiting],
+        })}
       />,
     )
     // One "out": the player who ran out. The solver may yet win, so shows 3.
@@ -863,7 +890,10 @@ describe('wordle PlayArea — concede', () => {
   it('shows the "You conceded" line after I concede', () => {
     render(
       <PlayAreaLoader
-        {...makeCtx({ mode: 'compete', players: [gp('u1', 'me', 'red', CONCEDED), gp('u2', 'moth', 'blue')] })}
+        {...makeCtx({
+          mode: 'compete',
+          players: [gp('u1', 'me', 'red', CONCEDED), gp('u2', 'moth', 'blue')],
+        })}
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
@@ -913,8 +943,8 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('crane')
-    // Where the arrows are wired, ArrowDown would clear the entry; here it must do nothing,
-    // so Enter still submits the intact "crane".
+    // Where the arrows are wired, ArrowDown would clear the entry; here it must
+    // do nothing, so Enter still submits the intact "crane".
     await user.keyboard('{ArrowDown}{Enter}')
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_guess: 'crane' }),
@@ -928,8 +958,9 @@ describe('wordle PlayArea — click-to-define (event log)', () => {
       { user_id: 'u1', id: 1, word: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     render(<PlayAreaLoader {...makeCtx()} />)
-    // The event-log guess carries the click-to-define affordance, and it rides the
-    // whole five-letter word (one define per guess), not an individual cell.
+    // The event-log guess carries the click-to-define affordance, and it rides
+    // the whole five-letter word (one define per guess), not an individual
+    // cell.
     const define = screen.getByTitle('Click to define')
     expect(define).toHaveTextContent('SLATE')
     // POINTER-ONLY: not a tab stop and not announced as a control. Definitions
@@ -946,7 +977,8 @@ describe('wordle PlayArea — the board-scope marks', () => {
 
   // What these pin is the board-scope marks (common/board-marks/doc.md). None
   // of it is game logic, and all of it is invisible to a type check: a mark
-  // that stops being applied looks exactly like a mark that was never asked for.
+  // that stops being applied looks exactly like a mark that was never asked
+  // for.
   it('bands the finished board in its outcome and disables the keyboard', () => {
     h.loaded = loaded('crane', [
       { user_id: 'u1', id: 1, word: 'crane', colors: 'ggggg', is_correct: true },
@@ -986,17 +1018,25 @@ describe('wordle PlayArea — the board-scope marks', () => {
   it('shows the typing help only on my move', () => {
     const help = () => screen.queryByText('Type a 5-letter word, then Enter.')
     const { rerender } = render(
-      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />,
+      <PlayAreaLoader
+        {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })}
+      />,
     )
     expect(help()).not.toBeInTheDocument()
     rerender(
-      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u1', players: twoMembers })} />,
+      <PlayAreaLoader
+        {...makeCtx({ isTurnBased: true, turnHolderId: 'u1', players: twoMembers })}
+      />,
     )
     expect(help()).toBeInTheDocument()
   })
 
   it('dims the board while a teammate holds the move', () => {
-    render(<PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })}
+      />,
+    )
 
     expect(board().className).toMatch(/dimNotYourTurn/)
     // The turn arriving is an EVENT, so it must not fire on mount — a player
@@ -1009,7 +1049,11 @@ describe('wordle PlayArea — the board-scope marks', () => {
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     expect(board().className).not.toMatch(/yourTurnFlash/)
 
-    rerender(<PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u1', players: twoMembers })} />)
+    rerender(
+      <PlayAreaLoader
+        {...makeCtx({ isTurnBased: true, turnHolderId: 'u1', players: twoMembers })}
+      />,
+    )
 
     expect(board().className).toMatch(/yourTurnFlash/)
     expect(board().className).not.toMatch(/dimNotYourTurn/)
@@ -1169,7 +1213,8 @@ describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
     )
     const calls = (ctx.menu.setGameSections as ReturnType<typeof vi.fn>).mock.calls
     const sections = (calls.at(-1)![0] ?? []) as MenuSection[]
-    const restart = sections.flatMap((s) => s.items).map(menuRow).find((r) => r.id === 'act-restart')!
+    const restart =
+      sections.flatMap((s) => s.items).map(menuRow).find((r) => r.id === 'act-restart')!
     act(() => restart.run())
     expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Keep playing' }))

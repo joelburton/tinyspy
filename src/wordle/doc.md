@@ -90,8 +90,8 @@ every word on the list is at band 2 or easier, so its floor is 2
 
 One board, one budget: every player's `guesses_used` moves in lock-step, and
 every accepted guess is everyone's. The team wins on the guess that solves it
-and loses on the last guess that does not, or when a countdown expires. Stop ends
-the game neutrally — nobody won, nobody lost.
+and loses on the last guess that does not, or when a countdown expires. Stop
+ends the game neutrally — nobody won, nobody lost.
 
 Turn order is opt-in (`coop_style: 'turns'`): the server holds the pointer and
 hands it on after an accepted guess that did not end the game. A soft reject
@@ -106,10 +106,10 @@ Guesses strip, whether they have solved it, and whether they have dropped out
 row opens, which is what lets the event log's player picker read a finished
 race back, board by board.
 
-A racer is **done** when they solve it, spend their budget, or concede, and
-the game marks them so on the common roster, which is what stops the
-presence-pause waiting on them (docs/common-schema.md → Not playing any more). The race
-ends when nobody is still racing. Every racer who solved it is ranked, by
+A racer is **done** when they solve it, spend their budget, or concede, and the
+game marks them so on the common roster, which is what stops the presence-pause
+waiting on them (docs/common-schema.md → Not playing any more). The race ends
+when nobody is still racing. Every racer who solved it is ranked, by
 fewest guesses, the earliest solve breaking a tie: the first is the winner,
 the rest are `near`. A racer who didn't solve it is unranked, a conceder
 forfeits any win, and a race nobody solved is a loss for everyone. A
@@ -257,15 +257,15 @@ colors, and charged to the budget. In coop every player's row moves in
 lock-step, and the guess that solves it wins for the team while the last one
 that does not loses. In compete only the caller's row moves; a racer who has
 solved it or spent their budget is marked done for the shared roster, so the
-presence-pause stops waiting on them (docs/common-schema.md → Not playing any more), and
-the race ends when nobody is still racing — `_maybe_finish_compete` is the one
-place that rule is written — and `_finish_compete` ranks it, every solver by
-fewest guesses, then earliest solve. **The
-answer is about the caller's guess
-and never about the game's fate**: the win or the loss reaches every client
-over realtime, and the reply's `game_ended` flag only says whether this guess
-was the move that ended the game — for everyone, not only the guesser. In turn-order coop an accepted guess that did not
-end the game hands the turn on.
+presence-pause stops waiting on them (docs/common-schema.md → Not playing any
+more), and the race ends when nobody is still racing — `_maybe_finish_compete`
+is the one place that rule is written — and `_finish_compete` ranks it, every
+solver by fewest guesses, then earliest solve. **The answer is about the
+caller's guess and never about the game's fate**: the win or the loss reaches
+every client over realtime, and the reply's `game_ended` flag only says whether
+this guess was the move that ended the game — for everyone, not only the
+guesser. In turn-order coop an accepted guess that did not end the game hands
+the turn on.
 
 **Passed:** `{ "p_game_id": "3f2a…", "p_guess": "crane" }`
 
@@ -294,11 +294,12 @@ every game has, doing here what they do everywhere. What is this game's:
 `concede` runs `_maybe_finish_compete` after `common._concede`, since a
 drop-out can be the last racer, and a conceder forfeits any win;
 `submit_timeout` ranks a race by the same fewest-guesses rule among those who
-had solved it; and `replay_board` zeroes every player and clears the guess
-log, and the word re-hides on its own, because the view that reveals it reads
-the game's `ended_at` and the reset clears that. Every one of them, and `submit_guess`
-too, ends by recomputing the club-list title, which is a readout of the most
-recent guess: coop's all game, compete's only once the race is over, since a
+had solved it; and `replay_board` zeroes every player and clears the guess log,
+and the word re-hides on its own, because the view that reveals it reads the
+game's `ended_at` and the reset clears that. Every one of them, and
+`submit_guess` too, ends by recomputing the club-list title, which is a readout
+of the most recent guess: coop's all game, compete's only once the race is over,
+since a
 racer's guesses are private until then. It spells the answer only when the
 last guess was the winning one, never of its own accord — a replayed game goes
 back to its placeholder.
@@ -388,16 +389,16 @@ then `PlayArea` in the eight sections.
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
 the ending, pause, chat — and unmounts this whole surface on pause. The state
-line at the top of the info column ("3/6 guesses") is a paragraph of
-`InfoCol`'s own.
+line at the top of the info column ("3/6 guesses") is a paragraph of `InfoCol`'s
+own. `Help` and `SetupForm` are the shell's to mount, from the menu and the
+start-game dialog.
 
 `PlayArea` reads `gd` and hands the two columns `gd` whole; what it does itself
-is in named hooks — `useBindActionsAndPublishMenu` (every command and the
-menu), `useHistoryView` (a past turn, replayed by `lib/history.ts`'s
-`replayTurn`), the two ending-message hooks, and the peer narration.
-`BoardCol`'s are `useTypedGuess` (the typed word, from either keyboard) and
-`useSubmitGuess` (the word out with the server, and the refusal mark). `Help` and `SetupForm` are the shell's to mount, from the menu
-and the start-game dialog.
+is in named hooks — `useBindActionsAndPublishMenu` (every command and the menu),
+`useHistoryView` (a past turn, replayed by `lib/history.ts`'s `replayTurn`), the
+two ending-message hooks, and the peer narration. `BoardCol`'s are
+`useTypedGuess` (the typed word, from either keyboard) and `useSubmitGuess` (the
+word out with the server, and the refusal mark).
 
 What is wordle's own:
 

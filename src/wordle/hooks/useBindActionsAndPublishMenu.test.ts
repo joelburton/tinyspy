@@ -17,8 +17,11 @@ import { useBindActionsAndPublishMenu } from './useBindActionsAndPublishMenu'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
-/** A game in play, with where I stand overridable; only what the actions read. */
-function gdWith(over: { isGameEnded?: boolean; isStillPlaying?: boolean; hasSolved?: boolean } = {}): GameData {
+/** A game in play, with where I stand overridable; only what the actions
+ *  read. */
+function gdWith(
+  over: { isGameEnded?: boolean; isStillPlaying?: boolean; hasSolved?: boolean } = {},
+): GameData {
   const isGameEnded = over.isGameEnded ?? false
   return {
     gameId: 'g1',

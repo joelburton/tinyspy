@@ -5,8 +5,8 @@
  * revealed, is wordle-specific. */
 
 /* The info column's answer line, once revealed. Drop the browser's default <p>
- * margin (this <p> sits outside .noShrinkRow, which zeroes its own paragraphs), so
- * the spacing matches the info column's own 1rem gap. */
+ * margin (this <p> sits outside .noShrinkRow, which zeroes its own paragraphs),
+ * so the spacing matches the info column's own 1rem gap. */
 /* @@ */ .answerLine {
   margin: 0;
 }

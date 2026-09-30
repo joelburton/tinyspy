@@ -5,8 +5,8 @@ import type { PlayerEndedReason } from '@/common/terminal/gameEnding'
 /**
  * wordle's three copies, as `wordle._write_statuses` writes them
  * (supabase/sql/wordle.sql). Every key is always present, null when it has no
- * value, so no key here is optional. The info column and the opponent strip
- * read the first two; the club line reads the third.
+ * value, so no key here is optional. `useGame` copies the first two into
+ * `gd`; the club line reads the third.
  */
 
 /** `common.games.game_status`: the table-facts, fixed at create. */
