@@ -12,7 +12,8 @@ import { act, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppActionsHost } from './AppActionsHost'
 import { useActionDispatcher } from './dispatcher'
-import { getChatOpen, registerChatMounted, setChatOpen } from '../chat/chatOpenStore'
+import { registerChatHost } from '../chat/useHasChatHost'
+import { getIsChatPanelOpen, setIsChatPanelOpen } from '../chat/useIsChatPanelOpen'
 import { registerPageMenu } from '../menu/pageMenuStore'
 
 // The lookup dialog asks the definitions edge function on mount, and the
@@ -40,7 +41,7 @@ async function press(key: string, target: EventTarget, init: KeyboardEventInit =
 /** The host, with the dispatcher that feeds it. `chat` says whether a chat
  *  panel is on screen — the club and game pages have one, home does not. */
 function setup({ chat = true } = {}) {
-  if (chat) releaseChat = registerChatMounted()
+  if (chat) releaseChat = registerChatHost()
   function Harness() {
     useActionDispatcher()
     return <AppActionsHost />
@@ -49,11 +50,11 @@ function setup({ chat = true } = {}) {
 }
 
 beforeEach(() => {
-  setChatOpen(false)
+  setIsChatPanelOpen(false)
 })
 afterEach(() => {
   document.body.innerHTML = ''
-  setChatOpen(false)
+  setIsChatPanelOpen(false)
   releaseMenu?.()
   releaseMenu = undefined
   releaseChat?.()
@@ -69,7 +70,7 @@ describe('the app-wide keys', () => {
     setup()
 
     await press('/', document.body)
-    expect(getChatOpen()).toBe(true)
+    expect(getIsChatPanelOpen()).toBe(true)
     await press('?', document.body)
     expect(openMenu).toHaveBeenCalledTimes(1)
   })
@@ -115,7 +116,7 @@ describe('the app-wide keys', () => {
     document.body.append(gameInput)
 
     await press('/', gameInput)
-    expect(getChatOpen()).toBe(true)
+    expect(getIsChatPanelOpen()).toBe(true)
   })
 
   it('stays literal in a non-game field (a setup input, the chat box)', async () => {
@@ -131,7 +132,7 @@ describe('the app-wide keys', () => {
     await press('~', input)
     await press('Dead', input, { code: 'Backquote', altKey: true })
 
-    expect(getChatOpen()).toBe(false)
+    expect(getIsChatPanelOpen()).toBe(false)
     expect(openMenu).not.toHaveBeenCalled()
     expect(screen.queryByText('word lookup')).toBeNull()
     expect(screen.queryByText('anagram finder')).toBeNull()
@@ -142,6 +143,6 @@ describe('the app-wide keys', () => {
     // browser rather than appearing to do something.
     setup({ chat: false })
     await press('/', document.body)
-    expect(getChatOpen()).toBe(false)
+    expect(getIsChatPanelOpen()).toBe(false)
   })
 })

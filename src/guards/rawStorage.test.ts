@@ -19,12 +19,10 @@
  *
  * **Comments are stripped before scanning, and that is load-bearing** rather
  * than a courtesy. About sixty comments across thirty files mention storage —
- * every one of these modules explains the persistence it does — and at least
- * four write real call syntax that this scan would otherwise flag:
- * `realtimeDiag`'s docstring, which tells a person what to type into their own
- * console to enable the verbose socket log, plus `chatOpenStore.test.ts` and
- * `reloadOnStaleChunk.test.ts` describing the spies they install. Without the
- * stripping this guard would have been red the day it was written — and a guard
+ * every one of these modules explains the persistence it does — and
+ * `realtimeDiag`'s docstring writes real call syntax that this scan would
+ * otherwise flag, telling a person what to type into their own console to
+ * enable the verbose socket log. Without the stripping this guard would have been red the day it was written — and a guard
  * that counts prose about its own subject will sooner or later report a
  * sentence as a violation, or count a sentence as proof something is still in
  * use.
@@ -74,8 +72,8 @@ const ALLOWED = new Map<string, string>([
   ['src/common/web-storage/storage.ts', 'the wrapper itself'],
   ['src/common/web-storage/storage.fake.ts', 'installs the test fake onto window, which is by definition a raw touch'],
   // No test file is here: a test asserts through the shared fake's handles
-  // (`storage.test.ts`, `useStickyChoice.test.ts`, `chatOpenStore.test.ts`),
-  // which is what keeps it off this list.
+  // (`storage.test.ts`, `useStickyChoice.test.ts`,
+  // `useIsChatPanelOpen.test.ts`), which is what keeps it off this list.
   // This file scans `src/`, and `src/` includes this file. Its fixture holds
   // real violations on purpose — spelling them around the scan (`'local' +
   // 'Storage'`) would make the test stop testing what it claims to.

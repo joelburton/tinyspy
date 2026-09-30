@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { AnagramDialog } from '../anagram-finder/AnagramDialog'
 import { WordLookupDialog } from '../definitions/WordLookupDialog'
-import { setChatOpen, useChatMounted } from '../chat/chatOpenStore'
+import { useHasChatHost } from '../chat/useHasChatHost'
+import { setIsChatPanelOpen } from '../chat/useIsChatPanelOpen'
 import { openPageMenu } from '../menu/pageMenuStore'
 import { useBoundAction } from './useBoundAction'
 
@@ -24,16 +25,17 @@ export function AppActionsHost() {
   // are: one copy for the app, rather than one per page.
   const [lookupOpen, setLookupOpen] = useState(false)
   const [anagramsOpen, setAnagramsOpen] = useState(false)
-  const chatIsHere = useChatMounted()
+  // Does this page mount a <Chat> component
+  const hasChatHost = useHasChatHost()
 
   // None of the four is held in a variable: nothing here PLACES them. Binding
   // is what offers a key, and the menu rows that name these actions are built
   // where those menus are.
   useBoundAction('act-open-chat', {
     // A page with no chat panel does not offer chat at all — the home page.
-    describe: () => (chatIsHere ? 'active' : 'hidden'),
+    describe: () => (hasChatHost ? 'active' : 'hidden'),
     run: () => {
-      setChatOpen(true)
+      setIsChatPanelOpen(true)
       // Focus the box so you can type at once — this covers the already-open
       // case too, where ChatBody's mount-focus doesn't fire (no remount). The
       // frame wait is for the panel to reach the DOM.

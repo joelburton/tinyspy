@@ -21,7 +21,8 @@ read too).
 - `src/common/chat/ChatBody.tsx` + `.module.css`
 - `src/common/chat/useClubChat.ts` + `.test.ts`
 - `src/common/chat/useChatFeedback.tsx` + `.test.tsx`
-- `src/common/chat/chatOpenStore.ts` + `.test.ts`
+- `src/common/chat/useIsChatPanelOpen.ts` + `.test.ts`
+- `src/common/chat/useHasChatHost.ts` + `.test.ts`
 - `src/common/chat/chatUnread.ts` + `.test.ts`
 - `supabase/tests/common/chat_test.sql`
 - `e2e/chat.e2e.ts`, `e2e/chat-feedback.e2e.ts`, `e2e/chat-keyboard.e2e.ts`

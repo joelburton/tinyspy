@@ -41,7 +41,7 @@ export function setScratchpadOpen(next: boolean): void {
 
 /** The current value without subscribing. This is a seam for TESTS, which need
  *  the flag where there is no component to render. In the app, read it with
- *  `useIsScratchpadOpen()` — same split as `chatOpenStore`. */
+ *  `useIsScratchpadOpen()` — same split as `useIsChatPanelOpen`. */
 export function getScratchpadOpen(): boolean {
   return open
 }

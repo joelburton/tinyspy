@@ -9,7 +9,7 @@
  */
 import { act, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { setChatOpen } from '../chat/chatOpenStore'
+import { setIsChatPanelOpen } from '../chat/useIsChatPanelOpen'
 import { setChatUnread } from '../chat/chatUnread'
 import { colorVarFor } from '../members/memberColor'
 import { ChatButton } from './ChatButton'
@@ -18,7 +18,7 @@ import { ChatButton } from './ChatButton'
 const bubble = () => screen.getByRole('button', { name: 'Chat' })
 
 beforeEach(() => {
-  setChatOpen(false)
+  setIsChatPanelOpen(false)
   setChatUnread({ count: 0, senderColor: null })
 })
 
@@ -43,7 +43,7 @@ describe('ChatButton', () => {
     expect(bubble().style.getPropertyValue('--chat-unread-color')).toBe('')
 
     act(() => setChatUnread({ count: 3, senderColor: 'blue' }))
-    act(() => setChatOpen(true))
+    act(() => setIsChatPanelOpen(true))
     expect(bubble().style.getPropertyValue('--chat-unread-color')).toBe('')
     expect(screen.queryByText('3')).toBeNull()
   })

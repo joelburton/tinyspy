@@ -1,7 +1,7 @@
 // cs-blessed-page-header
 
 import type { CSSProperties } from 'react'
-import { setChatOpen, useIsChatOpen } from '../chat/chatOpenStore'
+import { setIsChatPanelOpen, useIsChatPanelOpen } from '../chat/useIsChatPanelOpen'
 import { PageHeaderButton } from './PageHeaderButton'
 import { IconChat } from '../icons/icons'
 import { useChatUnread } from '../chat/chatUnread'
@@ -12,7 +12,7 @@ import styles from './ChatButton.module.css'
 
 /**
  * The chat-panel toggle in the club + game headers. Click toggles the
- * panel via the shared chatOpenStore — both this bubble and the
+ * panel via the shared useIsChatPanelOpen — both this bubble and the
  * `<Chat>` panel subscribe to the store.
  *
  * **Unread indicator.** When the panel is closed and there are unread
@@ -30,7 +30,7 @@ import styles from './ChatButton.module.css'
  * bubble reads the chord off the action so it can't drift from the binding.
  */
 export function ChatButton() {
-  const open = useIsChatOpen()
+  const open = useIsChatPanelOpen()
   const { count, senderColor } = useChatUnread()
   const showBadge = !open && count > 0
   // Muted rather than `colorVarFor`'s body-text fallback, which is the other
@@ -46,7 +46,7 @@ export function ChatButton() {
       label="Chat"
       tooltip={actOpenChat ? nameWithKey('Chat', actOpenChat) : 'Chat'}
       aria-pressed={open}
-      onClick={() => setChatOpen(!open)}
+      onClick={() => setIsChatPanelOpen(!open)}
       className={styles.bubble}
       // The GLYPH fills with the latest unread sender's color (see the module);
       // the button's own background is left to hover and press. No unread, no

@@ -82,7 +82,10 @@ export default function App() {
   // so the person is told why the page rebuilt under them — see `reloadNotice`.
   useEffect(function announceReloadForUpdate() {
     if (consumeReloadForUpdate()) {
-      showToast({ message: 'PuzPuzPuz was updated, so this tab reloaded itself.', ms: DEFAULT_TOAST_MS })
+      showToast({
+        message: 'PuzPuzPuz was updated, so this tab reloaded itself.',
+        ms: DEFAULT_TOAST_MS
+      })
     }
   }, [])
   // Let `` ` `` stand in for Escape app-wide (keyboards without a physical
@@ -183,6 +186,7 @@ export default function App() {
           shared store; ToastHost renders that store's stack (bottom-right,
           above everything, portaled to <body>). */}
       <GameInvitations session={session} />
+
       <ToastHost />
 
       {/* The four keys every real page has — chat, the menu, word lookup, the
@@ -200,7 +204,7 @@ export default function App() {
       <FaultModal />
 
       {/* The styled-tooltip renderer for every `data-tooltip` element
-          (buttons' hover bubbles) — one delegated host, viewport-clamped. */}
+          (buttons' hover bubbles) — one delegated host. */}
       <TooltipHost />
 
       {/* The definition card for whichever `<DefinableWord>` was clicked —

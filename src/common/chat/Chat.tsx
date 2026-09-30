@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import { useClubChat } from './useClubChat'
-import { registerChatMounted, setChatOpen, useIsChatOpen } from './chatOpenStore'
+import { registerChatHost } from './useHasChatHost'
+import { setIsChatPanelOpen, useIsChatPanelOpen } from './useIsChatPanelOpen'
 import {
   computeUnread,
   getChatLastSeen,
@@ -32,9 +33,9 @@ type Props = {
  * chat subscription and three things read that stream while the panel is
  * shut: the unread badge, the global feedback pill (`useChatFeedback`) and the
  * `!` force-open detector. Closed, it renders nothing; the header's
- * `<ChatButton>` and the `/` action flip the shared `chatOpenStore`. Open, it
- * is a `<Companion>` at `--z-chat`, above every dim, with its rect and its
- * open state persisted across pages.
+ * `<ChatButton>` and the `/` action flip the shared `useIsChatPanelOpen`
+ * store. Open, it is a `<Companion>` at `--z-chat`, above every dim, with its
+ * rect and its open state persisted across pages.
  *
  * A message that starts with `!` opens the panel for every recipient when it
  * arrives — not for one already in the log at load — and `<ChatBody>` strips
@@ -46,13 +47,12 @@ export function Chat({
   selfId,
   globalFeedbackSlot,
 }: Props) {
-  // Open/closed state is the shared chatOpenStore's, so the header's
+  // Open/closed state lives in the `useIsChatPanelOpen` store, so the header's
   // `<ChatButton>` can flip the same flag from outside this tree.
-  const open = useIsChatOpen()
-  // Say chat is HERE for as long as this is mounted, so the `/` action can be
-  // offered on the pages that have a chat panel and left unbound on the one
-  // that doesn't. See the store.
-  useEffect(registerChatMounted, [])
+  const open = useIsChatPanelOpen()
+  // Count this `<Chat>` as a chat host for as long as it is mounted; see
+  // `useHasChatHost`.
+  useEffect(registerChatHost, [])
   // The stream is subscribed HERE rather than in ChatBody, so the force-open
   // detector and the unread badge below run while the panel is closed.
   const { messages, loading } = useClubChat(clubHandle)
@@ -88,7 +88,7 @@ export function Chat({
     if (latest.id === lastSeenIdRef.current) return
     lastSeenIdRef.current = latest.id
     if (latest.content.startsWith('!')) {
-      setChatOpen(true)
+      setIsChatPanelOpen(true)
     }
   }, [messages, loading])
 
@@ -118,7 +118,7 @@ export function Chat({
   return (
     <Companion
       title="Chat"
-      onClose={() => setChatOpen(false)}
+      onClose={() => setIsChatPanelOpen(false)}
       persistKey="puzpuzpuz:chat:rect"
       zIndex="var(--z-chat)"
       // Paints above every modal, RANKS at its family — see the prop. Without

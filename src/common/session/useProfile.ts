@@ -20,7 +20,7 @@ export type Profile = {
 
 /**
  * The signed-in user's profile, held outside the component tree in a tiny
- * pub-sub store (cf. chatOpenStore).
+ * pub-sub store (cf. useIsChatPanelOpen).
  *
  * Why a store rather than a per-component fetch: several components read the
  * profile without sharing a parent — the account menu row, the HomePage

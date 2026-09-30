@@ -24,10 +24,10 @@
 ## Maybe
 
 - **`scratchpadOpenStore` stores its boolean as `'1'`/`'0'` where
-  `chatOpenStore` stores `'true'`/`'false'`.** Two panels doing the same thing
-  two ways, decided by different hands rather than for a reason. Invisible to
-  players and cheap to leave; settling it means agreeing one encoding with chat
-  and orphaning whichever stored values change.
+  `useIsChatPanelOpen` stores `'true'`/`'false'`.** Two panels doing the same
+  thing two ways, decided by different hands rather than for a reason.
+  Invisible to players and cheap to leave; settling it means agreeing one
+  encoding with chat and orphaning whichever stored values change.
 - **Two lock races, both self-healing.** Two players whose first keystrokes
   cross can each adopt the other's claim, so both pads read as someone else's
   until the holder goes stale, and the loser's in-flight flush still lands. A

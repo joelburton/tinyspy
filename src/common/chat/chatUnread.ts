@@ -14,7 +14,7 @@ import { readStored, writeStored } from '../web-storage/storage'
  * in Chat's tree) reads it and decides what the mark looks like. What is
  * published is two facts — how many, and which palette color the latest unread
  * sender wears — because resolving a `user_id` needs the club roster, which
- * only this side has. Same lifted-state shape as `chatOpenStore`.
+ * only this side has. Same lifted-state shape as `useIsChatPanelOpen`.
  *
  * "Unread" = messages not sent by me, with `sent_at` newer than my per-club
  * last-seen bookmark — and **with no bookmark, EVERYTHING counts**, so a
