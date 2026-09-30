@@ -9,7 +9,7 @@ import { supabase } from '@/common/supabase/supabase'
  *
  *     import { db } from '../db'
  *     await db.from('games_state').select(...)
- *     await db.rpc('submit_guess', { target_game: id, guess })
+ *     await db.rpc('submit_guess', { p_game_id: id, p_guess: guess })
  *
  * The FE reads `games_state` (the security_invoker view) for the game
  * header, never the base `wordle.games` table — the view is the path to
