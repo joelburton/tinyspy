@@ -23,7 +23,8 @@ the tile it draws). Each pass:
 1. Read the file and propose, numbered, with no code yet: the hooks worth making,
    names, arrow constants to turn into named functions, how to shape a child's
    props, and comments to cut.
-2. Joel answers by number; an item he does not answer is a yes.
+2. Joel answers by number. An item he doesn't answer is still open: ask it
+   again rather than assume.
 3. Build, then do a close read: wrap long lines, cut comments that explain other
    code.
 4. Joel reviews the diff, then commits and tags the component (`<component>-refactor`).
