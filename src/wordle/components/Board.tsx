@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
@@ -10,6 +10,7 @@ import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colo
 import { WORD_LENGTH } from '../lib/setup'
 import type { BoardRow } from '../lib/board'
 import shared from '@/common/game-page/playArea.module.css'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
 import tileColors from '@/shared/wordle-style/tileColors.module.css'
 import styles from './Board.module.css'
@@ -56,7 +57,7 @@ type Props = {
   // The game is finished, and how it ended — the board takes a band in that
   // outcome's gray (neutral for a game merely ended), null while it's live.
   // The shared board-scope mark; see common/board-marks/doc.md.
-  terminalOutcome: TerminalOutcome | null
+  terminalOutcome: EndOutcome | null
   // A teammate holds the move (the page's `isWaitingForTurn`): dim the whole
   // board, unless it takes input (`active`).
   isWaitingForTurn: boolean
@@ -123,11 +124,7 @@ export function Board({
           isViewingHistory && history.historyFrame,
           isWaitingForTurn && !active && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
-          // Both frames are outlines, so they take turns rather than nest: the
-          // viewer owns it while open, being the state you chose and can leave.
-          terminalOutcome !== null && !isViewingHistory && shared.gameOverFrame,
-          terminalOutcome === 'won' && !isViewingHistory && shared.gameOverWon,
-          terminalOutcome === 'lost' && !isViewingHistory && shared.gameOverLost,
+          makeEndingFrameClasses(terminalOutcome, isViewingHistory),
         )}
         role="grid"
         aria-label={`${brand} board`}

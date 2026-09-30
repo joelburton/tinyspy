@@ -12,13 +12,14 @@ import styles from './GameEventLog.module.css'
 
 type Props = {
   // Every turn the viewer can see. Coop: the whole shared game. Compete: the
-  // viewer's own during play, and (once terminal, when RLS opens) everyone's.
+  // viewer's own during play, and (once the game has ended, when RLS opens)
+  // everyone's.
   guesses: EventRow[]
   players: Player[]
   selfId: string
   mode: 'coop' | 'compete'
   // Distinguishes an opponent's RLS-hidden log from a genuinely empty one.
-  isTerminal: boolean
+  isGameEnded: boolean
   // The turn currently open in the board viewer — the row's own id — or null
   // when live. Its `#N` handle wears the shared history-blue ring.
   historyId: number | null
@@ -53,15 +54,15 @@ type Props = {
  * **Whose turns** are shown is picked by the shared `useEventLogPlayerPicker`
  * dropdown in the header — one vocabulary across every event-log game (solo: your
  * handle; coop: "Team" plus each player; compete: "All" plus each player). In
- * compete an opponent's rows are RLS-hidden during play and open at terminal,
- * which is exactly what the picker's empty text says.
+ * compete an opponent's rows are RLS-hidden during play and open once the game
+ * has ended, which is exactly what the picker's empty text says.
  */
 export function GameEventLog({
   guesses,
   players,
   selfId,
   mode,
-  isTerminal,
+  isGameEnded,
   historyId,
   onShowHistory,
 }: Props) {
@@ -69,7 +70,7 @@ export function GameEventLog({
     players,
     selfId,
     mode,
-    isTerminal,
+    isTerminal: isGameEnded,
     emptyLabel: 'No turns yet.',
   })
   const shown = eventLogPicker.filter(guesses)

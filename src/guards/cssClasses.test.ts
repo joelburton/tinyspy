@@ -124,13 +124,36 @@ for (const f of GLOBAL_SHEETS)
  * `PlayArea.module.css` as `shared`, and there are eight other aliases — so the
  * identifier is taken from the import statement rather than assumed.
  *
- * `dynamic` records `styles[…]`. A computed access names no class the scanner
- * can see (`styles[tileColor(code)]`), so a module read that way cannot be
- * checked for unread classes: everything in it is potentially reachable. That
- * is a real hole and it is the honest one — the alternative is a guard that
- * reports every tile color as dead.
+ * A computed access, `styles[…]`, is read by what it writes out:
+ *
+ *   - a template with a written start, `styles[`outcome_${o}`]`, reads every
+ *     class that starts with it (`prefixes`): the code says which family it
+ *     reaches, and the rest of the module is still checked;
+ *   - a quoted name, `styles['tile']`, reads that class;
+ *   - anything else (`styles[tileColor(code)]`) names no class the scanner can
+ *     see, so the module is `dynamic`: everything in it is potentially
+ *     reachable, and it cannot be checked for unread classes. That is a real
+ *     hole and it is the honest one — the alternative is a guard that reports
+ *     every tile color as dead.
  */
-type Usage = { module: string; read: Set<string>; dynamic: boolean }
+type Usage = {
+  module: string
+  read: Set<string>
+  prefixes: Set<string>
+  dynamic: boolean
+}
+
+/** What one `ident[…]` access reads — see `Usage`. */
+function readComputedAccess(
+  expr: string,
+): { name: string } | { prefix: string } | 'dynamic' {
+  const e = expr.trim()
+  const quoted = /^(['"])([A-Za-z_][\w-]*)\1$/.exec(e)
+  if (quoted) return { name: quoted[2] }
+  const template = /^`([A-Za-z_][\w-]*)(\$\{[^`]*)?`$/.exec(e)
+  if (template) return template[2] === undefined ? { name: template[1] } : { prefix: template[1] }
+  return 'dynamic'
+}
 
 function usagesIn(file: string): Usage[] {
   const src = stripLineComments(stripComments(readFileSync(file, 'utf8')))
@@ -151,7 +174,15 @@ function usagesIn(file: string): Usage[] {
       : resolve(dirname(file), spec!)
     const read = new Set<string>()
     for (const a of body.matchAll(new RegExp(`\\b${ident}\\.([A-Za-z_]\\w*)`, 'g'))) read.add(a[1])
-    out.push({ module: modPath, read, dynamic: new RegExp(`\\b${ident}\\s*\\[`).test(body) })
+    const prefixes = new Set<string>()
+    let dynamic = false
+    for (const a of body.matchAll(new RegExp(`\\b${ident}\\s*\\[([^\\]]*)\\]`, 'g'))) {
+      const access = readComputedAccess(a[1])
+      if (access === 'dynamic') dynamic = true
+      else if ('name' in access) read.add(access.name)
+      else prefixes.add(access.prefix)
+    }
+    out.push({ module: modPath, read, prefixes, dynamic })
   }
   return out
 }
@@ -192,7 +223,13 @@ describe('a class name resolves — the module side', () => {
       for (const u of usages) {
         const defined = moduleClasses.get(u.module)
         if (!defined) continue // import path didn't resolve; check 2 reports it
-        const misses = [...u.read].filter((n) => !defined.has(n))
+        const misses = [
+          ...[...u.read].filter((n) => !defined.has(n)),
+          // A written start that no class has is the same typo, one family wide.
+          ...[...u.prefixes]
+            .filter((p) => ![...defined].some((c) => c.startsWith(p)))
+            .map((p) => `${p}…`),
+        ]
         if (!misses.length) continue
         if (MEMBER_PENDING.includes(rel(file))) {
           cleanPending.delete(rel(file))
@@ -222,12 +259,17 @@ describe('a class name resolves — the module side', () => {
     const dynamic = new Set<string>()
     /** module → every name read off it, across all its importers. */
     const readByModule = new Map<string, Set<string>>()
+    /** module → every written start a template access reads it by. */
+    const prefixesByModule = new Map<string, Set<string>>()
     for (const usages of USAGES.values())
       for (const u of usages) {
         if (u.dynamic) dynamic.add(u.module)
         const seen = readByModule.get(u.module) ?? new Set<string>()
         for (const n of u.read) seen.add(n)
         readByModule.set(u.module, seen)
+        const starts = prefixesByModule.get(u.module) ?? new Set<string>()
+        for (const p of u.prefixes) starts.add(p)
+        prefixesByModule.set(u.module, starts)
       }
 
     const offenders: string[] = []
@@ -235,7 +277,10 @@ describe('a class name resolves — the module side', () => {
     for (const [mod, defined] of moduleClasses) {
       if (dynamic.has(mod)) continue
       const read = readByModule.get(mod) ?? new Set<string>()
-      const dead = [...defined].filter((c) => !read.has(c))
+      const starts = [...(prefixesByModule.get(mod) ?? [])]
+      const dead = [...defined].filter(
+        (c) => !read.has(c) && !starts.some((p) => c.startsWith(p)),
+      )
       if (!dead.length) continue
       if (DEAD_CLASS_PENDING.includes(rel(mod))) {
         cleanPending.delete(rel(mod))

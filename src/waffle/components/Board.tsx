@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { tileColor } from '@/shared/wordle-style/tileColor'
-import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { CELLS, GRID, isHole } from '../lib/waffle'
@@ -13,6 +13,7 @@ import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import shared from '@/common/game-page/playArea.module.css'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
 import tileColors from '@/shared/wordle-style/tileColors.module.css'
 import styles from './Board.module.css'
@@ -77,7 +78,7 @@ type Props = {
   // outcome's gray (neutral for a game that was simply ended). Null while it is
   // still live. Permanent, unlike the two transient dims above: it says "this is
   // a record, not a position".
-  gameOver?: TerminalOutcome | null
+  gameOver?: EndOutcome | null
   // How many swaps the server has recorded for the board on show (the replay
   // log's length — everyone's in coop, mine in compete). It is the CAUSE the
   // attention flash reads: a board that changed while this number stood still
@@ -204,7 +205,7 @@ export function Board({
     else if (picks.length < 2) setPicks([...picks, pos])
   }
 
-  const { cursor, point } = useBoardSelectionCursor({
+  const { cursor, setCursorTo } = useBoardSelectionCursor({
     shape: BOARD_SHAPE,
     enabled: !disabled,
     onToggle: toggleAt,
@@ -249,12 +250,7 @@ export function Board({
           styles.grid,
           isViewingHistory && history.historyFrame,
           isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
-          // Both frames are outlines, so they take turns rather than nest: while
-          // the viewer is open it owns the outline, because that is the state you
-          // chose and the one you can leave.
-          gameOver !== null && !isViewingHistory && shared.gameOverFrame,
-          gameOver === 'won' && !isViewingHistory && shared.gameOverWon,
-          gameOver === 'lost' && !isViewingHistory && shared.gameOverLost,
+          makeEndingFrameClasses(gameOver, isViewingHistory),
           myTurnJustStarted && shared.yourTurnFlash,
         )}
         role="grid"
@@ -303,7 +299,7 @@ export function Board({
               onClick={(e) => {
                 e.currentTarget.blur()
                 // The cursor follows the hand, hidden, so the keys resume here.
-                point(cellAt(pos, GRID))
+                setCursorTo(cellAt(pos, GRID))
                 activate(pos)
               }}
               onDragStart={(e) => {

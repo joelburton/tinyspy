@@ -4,16 +4,18 @@ import { useEffect, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Actor } from '@/common/members/member'
 import { Dot } from '@/common/members/Dot'
-import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
 import shared from '@/common/game-page/playArea.module.css'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
 import { eventToOutcome } from '../lib/answer'
 import { boardShape } from '../lib/boardShape'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import { positionAt } from '@/common/board-cursor/boardPosition'
+import type { TileResults } from '../lib/tileResults'
 import styles from './Board.module.css'
 
 /** Empty word set — the resting value of the head-shake mark, so a board with
@@ -28,7 +30,7 @@ type Props = {
   // green (true) / red (false) and can't be re-picked. In compete RLS scopes
   // this to the viewer's own guesses; in coop it's the shared board. While
   // viewing history this is the snapshot's results (guesses up to that turn).
-  results: ReadonlyMap<string, boolean>
+  results: TileResults
   // The keyboard's selection cursor — the cell to ring — or null when it is
   // not drawn (see `useBoardSelectionCursor`).
   cursor?: Cell | null
@@ -55,9 +57,10 @@ type Props = {
   decidedBy?: ReadonlyMap<string, Actor | undefined> | null
   // The word currently with the server — its tile takes the in-flight dim.
   inFlightWord?: string | null
-  // The game is finished, and how it ended — the board takes a band in that
-  // outcome's gray (neutral for a game merely ended). Null while it's live.
-  terminalOutcome?: TerminalOutcome | null
+  // How the ending that applies to me came out — the game's once it has
+  // ended, else mine while the others play on. The board takes a frame in that
+  // outcome's color. Null while I am still playing.
+  endingOutcome?: EndOutcome | null
   // A teammate holds the move (the page's `isWaitingForTurn`): the whole board
   // dims, unless it is interactive.
   isWaitingForTurn?: boolean
@@ -86,8 +89,8 @@ type Props = {
  * been found and ruled out. In compete mode RLS scopes `results` to the caller,
  * so it reflects only the viewer's own attempts.
  *
- * At TERMINAL the board doubles as the answer key, and it does so through
- * `results` like everything else: the PlayArea folds the revealed secrets in as
+ * Once the game has ended the board doubles as the answer key, and it does so
+ * through `results` like everything else: the PlayArea folds the revealed secrets in as
  * hits, so they go green exactly as a found one does. Which is which is still
  * answerable — `decidedBy` names a guesser for a found tile and nobody for a
  * revealed one.
@@ -103,7 +106,7 @@ export function Board({
   historyLitWord = null,
   decidedBy = null,
   inFlightWord = null,
-  terminalOutcome = null,
+  endingOutcome = null,
   isWaitingForTurn = false,
   myTurnJustStarted = false,
   moveCount,
@@ -169,11 +172,7 @@ export function Board({
           isViewingHistory && history.historyFrame,
           isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
-          // Both frames are outlines, so they take turns: the viewer owns it while
-          // open, being the state you chose and the one you can leave.
-          terminalOutcome !== null && !isViewingHistory && shared.gameOverFrame,
-          terminalOutcome === 'won' && !isViewingHistory && shared.gameOverWon,
-          terminalOutcome === 'lost' && !isViewingHistory && shared.gameOverLost,
+          makeEndingFrameClasses(endingOutcome, isViewingHistory),
         )}
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,

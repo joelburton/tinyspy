@@ -520,7 +520,7 @@ Where a player stands.
 - `myFinalRanking` — my `final-ranking`: null until the game is over and for
   a player not ranked, else the number (1, 1, 3). Read off `result`. `won`
   is `myFinalRanking === 1`.
-- `myOutcome` — my `EndOutcome` (today `TerminalOutcome`), null until the
+- `myOutcome` — my `EndOutcome`, null until the
   game is over: `'won'` (ranked 1), `'near'` (ranked, not first — shown
   "2nd"), `'lost'` (not ranked, in a game that ended with a result),
   `'neutral'` (neither: a Stop, `timeout-no-result`, `no-result`). The
@@ -615,7 +615,7 @@ built in step 7 with the rest:
     `locally-terminal` becomes the term `player-ended`; the reason keys
     follow (`game_ended_reason`, `player_ended_reason`);
   - the supersets drop "terminal" too, so it survives nowhere: `EndOutcome`
-    (today's `TerminalOutcome`) and `EndReason`, with slices such as
+    and `EndReason`, with slices such as
     `GameEndedOutcome` and `PlayerEndedReason`;
   - docs/win-lose.md's terms and formulas change with the code (step 7), so
     the doc never names a column the database doesn't have;
@@ -754,16 +754,16 @@ ranking below first is still not `won`. Two-player games too: a player who
 solved and was beaten reads "2nd", not the "Lost" of one who never solved —
 the ranking never depends on how many played. It takes:
 
-- `TerminalOutcome` gains `near`, and `docs/outcomes.md` rewrites the reason
-  it gives for the terminal set ("won, lost, or stopped"; `near` and `warning`
-  judge a move) and widens `near` to "ranked, not first".
+- ~~`TerminalOutcome` gains `near`~~ Done: `TerminalOutcome` is gone, every
+  ending reads `EndOutcome`, which has `near`, and `docs/outcomes.md` gives
+  its reason. Left: widen `near` in `docs/outcomes.md` to "ranked, not first".
 - `docs/win-lose.md` → How a game ends: `final-ranking` and `lost` say every
   ranking below first is `lost`; they gain the rule that it is shown by its
   number, in `near`.
 - Every surface that shows a player's ending (the pill, the action row's line,
   the player strip) shows the ranking.
 - **Audit every check written for a two-way world** (Joel, 2026-09-26).
-  Code that reads `TerminalOutcome` (to be `EndOutcome`) was written when a
+  Code that reads `EndOutcome` was written when a
   player's end was won or lost, so `!== 'won'`, `=== 'lost'`, a ternary on
   `'won'`, and a `switch` with no `near` case may each mean "lost" and now
   catch `near` too, or miss it. A first grep finds about fifteen such

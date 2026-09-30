@@ -4,6 +4,12 @@
 
 ## Soon
 
+- **Judge the `gd` trial below the columns.** `BoardCol` and `InfoCol` take
+  `gd` whole; everything below them (`Board`, the shared readouts, the event
+  log) still takes its own props, and the page's players travel beside `gd` as
+  `roster` because the shared pieces take `Member[]`. Decide whether the
+  shared pieces take `gd.players` too, or `roster` stays.
+
 - **Doc and comments that say what the code does not.**
   - `doc.md`, under `psychicnum.request_spoiler(target_game)`: "in coop
     teammates see that a spoiler was taken, never which word." The header
@@ -17,8 +23,6 @@
     compete's count, so nothing on screen is wrong.
   - `psychicnum.sql`, `submit_guess`: "The FE gates on myConceded" — the
     name is `isConceded`.
-  - `psychicnum.sql`, `stop_game`'s header: "the post-terminal number reveal"
-    — what is revealed is the three secret words.
 
 - **The `reason` names the act that ended the game.** When some compete
   players have spent their budgets and the last one still in concedes,

@@ -43,8 +43,12 @@ unpacks them again.
 
 ## Things to keep in mind
 
-- **A group is a concept that already has a name**, never an ad hoc bundle
-  that becomes a junk drawer. The cleanest first case: the "where I stand"
+- **A group is a real concept, never an ad hoc bundle** that becomes a junk
+  drawer. Where the repo already names the concept, the group takes that name;
+  where it doesn't, the grouping may *discover* one, and a good new name is
+  proposed (Joel, 2026-09-29: the earlier "only names we already use" was
+  wrong). A lone value stays ungrouped: a group of one says nothing. The
+  cleanest first case: the "where I stand"
   values (`isPlayer`, `isConceded`, `isStillPlaying`, `isMyTurn`,
   `isWaitingForTurn`, `isBoardInteractive`, …), a set docs/win-lose.md
   already defines (docs/win-lose.md → Where a player stands).

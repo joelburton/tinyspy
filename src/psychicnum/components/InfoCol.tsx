@@ -3,15 +3,13 @@
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBoundAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import type { GamePlayer } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
-import type { EventRow } from '../hooks/useGame'
-import type { PsychicnumPlayerStatus } from '../lib/statuses'
+import type { Member } from '@/common/members/member'
+import type { GameData } from '../hooks/useGame'
+import type { HistoryView } from '../hooks/useHistoryView'
+import type { PsychicnumActions } from '../hooks/useBindActionsAndPublishMenu'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -21,7 +19,7 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
  * whose-turn line (turn-order) → OpponentStrip (compete) → action row → help →
  * setup disclosure → event log. Every
- * command is a BOUND ACTION the PlayArea handed down (`actHint`, `actStopGame`, …),
+ * command is a BOUND ACTION the PlayArea handed down (`actions.actHint`, `actions.actStopGame`, …),
  * so this column places buttons and decides nothing about them — an action that
  * does not apply here draws nothing, which is how one row serves coop and compete.
  * What is a callback is what isn't a command: the history-viewer selection.
@@ -32,111 +30,45 @@ export function InfoCol({
   // "what is this prop for?" is answerable by eye; the `// ── … ──` headers on the type
   // block below name each group. Names are shared with the other games' columns for the
   // same idea — see docs/playarea.md.
-  isCompete,
-  terminalMessage,
-  isStillPlaying,
-  isConceded,
-  isMyTurn,
-  isTurnBased,
-  turnHolderId,
-  found,
-  secretCount,
-  guessesUsed,
-  maxGuesses,
-  players,
+  gd,
+  roster,
   selfId,
-  actHint,
-  actSpoiler,
-  actReveal,
-  actRestart,
-  actNewGame,
-  actConcede,
-  actStopGame,
-  actBackToClub,
-  setupRows,
-  guesses,
-  isTerminal,
-  historyId,
-  onShowHistory,
+  gameEndingMessage,
+  playerEndingMessage,
+  actions,
+  historyView,
 }: {
-  // ── Mode + phase ──
-  isCompete: boolean
-  // The terminal message when the game is over (drives the action row), else null.
-  terminalMessage: TerminalMessage | null
-  // The page's standing terms (docs/win-lose.md → Where a player stands).
-  // Still in the game — gates the play action row (vs the out-of-the-race look).
-  isStillPlaying: boolean
-  // I conceded — picks the out-of-the-race wording.
-  isConceded: boolean
-  // The move is mine — gates the help line, as BoardCol gates Submit on it.
-  isMyTurn: boolean
-  // A turn-order game: render the shared `<TurnStatusLine>`, which names the
-  // holder of `turnHolderId`.
-  isTurnBased: boolean
-  turnHolderId: string | null
-
-  // ── State readout (secrets found + the guess counter) ──
-  found: number
-  secretCount: number
-  guessesUsed: number
-  maxGuesses: number
-
-  // ── Players (the OpponentStrip — compete) ──
-  // The roster; each player's `player_status` is what the strip shows.
-  players: GamePlayer[]
+  // ── The game ──
+  // The game data: the readouts, where I stand, the turn, the players' counts
+  // for the strip, and the log.
+  gd: GameData
+  // The page's players, in the shape the shared pieces below take (the
+  // whose-turn line, the strip, the event log).
+  roster: Member[]
   selfId: string
+  // The endings' messages, each null while it does not apply: the game's once
+  // it has ended, mine while I have ended and the others play on. The action
+  // row shows whichever there is.
+  gameEndingMessage: TerminalMessage | null
+  playerEndingMessage: TerminalMessage | null
 
-  // ── Action row — listed in the order the row draws them, which is the order
-  //    the game menu lists them too (docs/playarea.md) ──
-  // Ask for a clue. Grayed rather than gone when you can't ask — the glyph is
-  // worth teaching either way.
-  actHint: BoundAction
-  // Mid-game cheat: hand over one unfound secret word (the amber bare-eye
-  // glyph). Logs to the event log like a hint does.
-  actSpoiler: BoundAction
-  // Show the three secrets at game-over (their tiles go green) — or hide them
-  // again. A local display toggle shared with the menu twin; nothing is
-  // written, no peer affected. It carries its own two faces, so this column
-  // places one button either way.
-  actReveal: BoundAction
-  // Hunt the SAME board + secrets again from scratch.
-  actRestart: BoundAction
-  // Start a fresh follow-up game — same setup + roster, a new board + secrets.
-  // Disables itself while the create is in flight, so a slow network reads as
-  // "working" rather than "nothing happened".
-  actNewGame: BoundAction
-  // Drop out of a race; the others keep going. Hidden outside one.
-  actConcede: BoundAction
-  // The whole table stops, with no result. Hidden in a race that doesn't
-  // offer it — so the pair above can be placed unconditionally.
-  actStopGame: BoundAction
-  // Leave for the club page — the shell's own action, off `ctx.menu`.
-  actBackToClub: BoundAction
-
-  // ── Setup disclosure ──
-  // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
-  setupRows: SetupRow[]
+  // ── Action row ──
+  // Every command, bound; the row places them in the order the game menu lists
+  // them too (docs/playarea.md).
+  actions: PsychicnumActions
 
   // ── Turn-history log (GameEventLog) ──
-  guesses: EventRow[]
-  // Terminal yet? The log's player picker uses it to distinguish an opponent's
-  // RLS-hidden rows (during play) from a genuinely empty log (at terminal).
-  isTerminal: boolean
-  // The turn currently open in the board viewer, or null.
-  historyId: number | null
-  // Straight through to the log: opening a `#N` hands up the row's id and the
-  // number the log printed beside it.
-  onShowHistory: (id: number, n: number) => void
+  // The past turn open on the board, if any: the log marks its row, and a
+  // `#N` click opens another through `show`.
+  historyView: HistoryView
 }) {
 
-  // The row's line, and the only thing that varies between states: the verdict
-  // once the game is over, a neutral "you are done, they are not" while a race
-  // runs on without you, and nothing at all while you can still play.
-  const rowMessage: InfoActionsMessage | undefined = terminalMessage
-    ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
-    : isStillPlaying
-      ? undefined
-      : { text: isConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
+  // The row's line: the game's ending, else mine, else nothing while I can
+  // still play.
+  const endingMessage = gameEndingMessage ?? playerEndingMessage
+  const rowMessage: InfoActionsMessage | undefined = endingMessage
+    ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
+    : undefined
 
   return (
     <div className={shared.infoCol}>
@@ -145,42 +77,40 @@ export function InfoCol({
           (turn-order) → OpponentStrip (compete) → ACTIONS → HELP → SETUP
           disclosure, then the event log below. */}
       <div className={shared.noShrinkRow}>
-        {/* State — shown in both play and terminal. The same `<StateLine>` the
+        {/* State — shown during play and after the game ends. The same `<StateLine>` the
             mobile status bar renders above the board (BoardCol), so the two
             copies can't drift. */}
         <p className={shared.infoState}>
           <StateLine
-            found={found}
-            secretCount={secretCount}
-            guessesUsed={guessesUsed}
-            maxGuesses={maxGuesses}
+            found={gd.foundSecretsCount}
+            secretCount={gd.requiredSecretsCount}
+            guessesUsed={gd.guessesUsed}
+            maxGuesses={gd.maxGuesses}
           />
         </p>
         {/* Whose-turn line — ONLY for a turn-order game. A separate line below
             the state readout, never replacing it. Its presence is fixed at
             create-time, so it can't reflow. */}
-        {isTurnBased && (
+        {gd.isTurnBased && (
           <TurnStatusLine
-            turnHolderId={turnHolderId}
-            players={players}
+            turnHolderId={gd.turnHolderId}
+            players={roster}
             selfId={selfId}
-            isTerminal={isTerminal}
+            isTerminal={gd.isGameEnded}
           />
         )}
-        {isCompete && (
+        {gd.isCompete && (
           <OpponentStrip
-            players={players}
+            players={roster}
             selfId={selfId}
             metricLabel="Found"
             metricFor={(p) => {
-              const playerStatus = memberById(players, p.user_id)?.player_status as
-                | PsychicnumPlayerStatus
-                | undefined
+              const player = gd.players[p.user_id]
               // A player who's conceded reads as "out" mid-game (they're done,
               // whatever their found count was); everyone else shows progress.
-              return playerStatus?.player_ended_reason === 'conceded'
+              return player?.playerEnding?.reason === 'conceded'
                 ? 'out'
-                : (playerStatus?.found_secrets_count ?? 0)
+                : (player?.foundSecretsCount ?? 0)
             }}
           />
         )}
@@ -196,30 +126,30 @@ export function InfoCol({
               registry's caution tone (amber); the lightbulb-vs-bare-eye glyph is
               what separates them. The boxed-eye Reveal below is a different
               thing: the whole solution, and only once nobody can still play. */}
-          <ActionButton action={actHint} show="icon" />
-          <ActionButton action={actSpoiler} show="icon" />
+          <ActionButton action={actions.actHint} show="icon" />
+          <ActionButton action={actions.actSpoiler} show="icon" />
           {/* Everything right of here is about the END of the game rather than
               about playing it. Both sides are pressable mid-game, so the bar is
               what says where the meaning changes; it hides itself when nothing
               is left on its left. */}
           <span className={shared.actionsDivider} />
-          <ActionButton action={actReveal} show="icon" />
+          <ActionButton action={actions.actReveal} show="icon" />
           {/* Both say `hidden` to a button until the game is over, while their
               menu rows and keys stay live all game — the row's few slots belong
               to playing, and moving on is a thing you go looking for. */}
-          <ActionButton action={actRestart} show="icon" />
-          <ActionButton action={actNewGame} show="icon" />
+          <ActionButton action={actions.actRestart} show="icon" />
+          <ActionButton action={actions.actNewGame} show="icon" />
           {/* Compete's Concede and coop's Stop are distinct acts, and each hides
               itself in the mode that isn't its own. */}
-          <ActionButton action={actConcede} show="icon" />
-          <ActionButton action={actStopGame} show="icon" />
-          {/* Leaving, last. Filled at terminal, outline while the game runs:
+          <ActionButton action={actions.actConcede} show="icon" />
+          <ActionButton action={actions.actStopGame} show="icon" />
+          {/* Leaving, last. Filled once the game has ended, outline while it runs:
               `weight` is the placement's to choose rather than the action's,
               which is why it is a condition here (docs/ui.md → What a `<button>` is). */}
           <ActionButton
-            action={actBackToClub}
+            action={actions.actBackToClub}
             show="icon"
-            weight={terminalMessage ? 'primary' : 'secondary'}
+            weight={gameEndingMessage ? 'primary' : 'secondary'}
           />
         </InfoActionsRow>
 
@@ -227,24 +157,24 @@ export function InfoCol({
             (the board is inert while I wait, so the prompt would misdirect;
             Hint / Reveal / Stop stay available). It never silently swaps text:
             the "out of guesses, waiting" state is carried loudly by the action
-            row above (the terminal look), not by a quietly-changed help line.
-            Below the action row, per the InfoCol order. */}
-        {isMyTurn && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
+            row above (the player-ended look), not by a quietly-changed help
+            line. Below the action row, per the InfoCol order. */}
+        {gd.standing.isMyTurn && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
 
         {/* Setup — shown in BOTH states, behind a disclosure, LAST before the event log
             (docs/playarea.md → Info-column readouts). Open, it grows (which we
             normally avoid), but it's closable so it reclaims the space. */}
-        <SetupDisclosure rows={setupRows} />
+        <SetupDisclosure rows={gd.setupRows} />
       </div>
 
       <GameEventLog
-        guesses={guesses}
-        players={players}
+        guesses={gd.events}
+        players={roster}
         selfId={selfId}
-        mode={isCompete ? 'compete' : 'coop'}
-        isTerminal={isTerminal}
-        historyId={historyId}
-        onShowHistory={onShowHistory}
+        mode={gd.mode}
+        isGameEnded={gd.isGameEnded}
+        historyId={historyView.viewedEventId}
+        onShowHistory={historyView.show}
       />
     </div>
   )

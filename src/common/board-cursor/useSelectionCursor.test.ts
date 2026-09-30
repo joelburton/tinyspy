@@ -31,7 +31,7 @@ describe('useSelectionCursor', () => {
   it('a click moves the cursor and hides it, and the next key resumes there', () => {
     const { result } = renderHook(() => useSelectionCursor(0))
     act(() => result.current.jump(4))
-    act(() => result.current.point(2))
+    act(() => result.current.setCursorTo(2))
     expect(result.current).toMatchObject({ at: 2, revealed: false })
     act(() => result.current.step(3))
     expect(result.current).toMatchObject({ at: 2, revealed: true })

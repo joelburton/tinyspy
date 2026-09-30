@@ -374,7 +374,7 @@ describe('codenamesduet PlayArea — the board marks', () => {
     expect(grid().className).not.toMatch(/dimNotYourTurn/)
     view.rerender(<PlayAreaLoader {...makeCtx({ playState: 'lost', status: { reason: 'assassin' }, isTerminal: true })} />)
     expect(grid().className).not.toMatch(/dimNotYourTurn/)
-    expect(grid().className).toMatch(/gameOverLost/)
+    expect(grid().className).toMatch(/endingFrame_lost/)
   })
 })
 

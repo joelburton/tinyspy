@@ -6,13 +6,14 @@ import type { Category } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
-import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import { positionAt } from '@/common/board-cursor/boardPosition'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import shared from '@/common/game-page/playArea.module.css'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
@@ -73,7 +74,7 @@ type Props = {
   // The game's outcome once it is over — the board wears the frame in it.
   // `'neutral'` also covers a player who is out of a compete race while
   // the others play on: their board is inert even though the game isn't.
-  terminalOutcome: TerminalOutcome | null
+  terminalOutcome: EndOutcome | null
   // ATTENTION's cause, the server's move marker: the guess log's length. A band
   // arriving is only news when a MOVE put it there — the terminal reveal swaps
   // four bands in without one (`useMoveAttention`).
@@ -219,12 +220,7 @@ export function Board({
           isViewingHistory && history.historyFrame,
           isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
-          // Both frames are outlines, so they take turns rather than nest: while
-          // the viewer is open it owns the outline, being the state you chose and
-          // the one you can leave.
-          terminalOutcome !== null && !isViewingHistory && shared.gameOverFrame,
-          terminalOutcome === 'won' && !isViewingHistory && shared.gameOverWon,
-          terminalOutcome === 'lost' && !isViewingHistory && shared.gameOverLost,
+          makeEndingFrameClasses(terminalOutcome, isViewingHistory),
         )}
       >
         {sortedMatched.map((mc) => band(mc, false))}

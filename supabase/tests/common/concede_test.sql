@@ -9,7 +9,7 @@
 -- as a collective loss.
 -- Covers:
 --   1. Concede ends JUST the caller (player_ended_at, reason and detail
---      'conceded'); the game goes on while others race
+--      'conceded', outcome lost at once); the game goes on while others race
 --   2. Idempotency: a second concede by the same player is the
 --      PN483 race (`common._raise_already_conceded`)
 --   3. A middle concede keeps the game going (one racer left)
@@ -32,7 +32,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(17);
+select plan(18);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -126,6 +126,15 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'conceded',
   'the conceder''s ending detail is conceded'
+);
+-- A concession is a loss the moment it is made (docs/win-lose.md →
+-- `outcome-at-player-end`), not only once the game ends.
+select is(
+  (select outcome from common.game_players
+    where game_id = current_setting('test.game_id')::uuid
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  'lost',
+  'the conceder is lost at once'
 );
 select is(
   (select player_ended_at from common.game_players
@@ -248,7 +257,7 @@ select set_config(
 );
 select common._set_player_ended(
   current_setting('test.out_id')::uuid, 'ada11111-1111-1111-1111-111111111111',
-  'resource_exhausted', 'exhausted');
+  'resource_exhausted', 'exhausted', 'lost');
 
 select pg_temp.envelope_is(
   pg_temp.concede_envelope(current_setting('test.out_id')::uuid),

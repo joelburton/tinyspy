@@ -311,16 +311,16 @@ exists: `warning` was unsayable in a log, so several games logged a hint as
 So when an audit meets one, the question is not "is this list right today?" but
 **"is this a genuinely closed set, or a ceiling nobody revisited?"**
 
-**`TerminalOutcome`** (`won` / `lost` / `neutral`) is the one that answers it
-cleanly, and its reason is written where it is declared: a finished game has
-been won, been lost, or was stopped with neither happening. `near` and `warning`
-judge a MOVE, and once the game is over there are no more moves. The terminal
-section is where it gets its full hearing.
+**`EndOutcome`** (`won` / `lost` / `near` / `neutral`) is the one that answers
+it cleanly, and its reason is written where it is declared
+(`common/terminal/gameEnding.ts`): an ending is won, lost, ranked below first,
+or neither. `warning` and `noted` judge a MOVE and `error` a fault, and an
+ending is none of those.
 
 **The info action row was the other narrowing, and it is gone** (2026-09-18). It
 had excluded `error` with the reason "error is never an outcome", which
 contradicted this file two screens up, and nothing else was holding the
-exclusion up: every caller happens to pass a `TerminalOutcome` or a literal
+exclusion up: every caller happens to pass an `EndOutcome` or a literal
 `neutral` today, which is the census this rule forbids as an argument. So
 `InfoActionsMessage.outcome` is now `Outcome`, the stylesheet inks all seven,
 and the three surfaces that show an outcome — the pill, the event log's bar, the

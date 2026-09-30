@@ -9,7 +9,7 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
-import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { StrikeMarks } from './StrikeMarks'
@@ -130,7 +130,7 @@ export function BoardCol({
   // True for a beat as the turn arrives (the shared your-turn flash).
   myTurnJustStarted: boolean
   // The outcome the game-over frame wears, or null while the board is live.
-  terminalOutcome: TerminalOutcome | null
+  terminalOutcome: EndOutcome | null
   // Return to the live board (the banner click / ✕).
   onExitHistory: () => void
 
@@ -413,7 +413,7 @@ export function BoardCol({
 
   const shape = boardShape(displayedTiles.length)
 
-  const { cursor, point } = useBoardSelectionCursor({
+  const { cursor, setCursorTo } = useBoardSelectionCursor({
     shape,
     enabled: canPick,
     onToggle: (cell: Cell) => {
@@ -424,7 +424,7 @@ export function BoardCol({
 
   // A tile click: the cursor moves there, hidden, and the click does its move.
   function handleTileClick(tile: string) {
-    point(cellAt(displayedTiles.indexOf(tile), shape.cols))
+    setCursorTo(cellAt(displayedTiles.indexOf(tile), shape.cols))
     handleToggle(tile)
   }
 

@@ -804,7 +804,8 @@ begin
     update common.game_players
        set solved_at = now()
      where game_id = p_game_id and user_id = caller_id;
-    perform common._set_player_ended(p_game_id, caller_id, 'reached_goal', 'complete');
+    -- First to go out wins, and the game ends with them.
+    perform common._set_player_ended(p_game_id, caller_id, 'reached_goal', 'complete', 'won');
 
     perform common._end_game(
       p_game_id, 'reached_goal', 'complete', caller_id,

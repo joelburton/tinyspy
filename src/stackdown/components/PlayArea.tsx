@@ -29,6 +29,7 @@ import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
@@ -626,11 +627,10 @@ export function PlayArea({
         : null,
     [isTerminal, gameMode, playState, timerExpired, selfWon, winnerName, winnerColor],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: over,
+    playerEndingMessage: null,
+  })
 
   // Out of the race while the others play on — stackdown's only locally-
   // terminal state is conceding (there's no elimination here: you can't run

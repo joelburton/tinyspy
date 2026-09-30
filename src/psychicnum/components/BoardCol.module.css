@@ -2,8 +2,8 @@
 
 /* psychicnum's board-column bits. The board itself is <Board> (its own module);
  * this file styles only the below-board move-input REGION under it — the slot that
- * swaps between Clear/Submit, an own-move / terminal / waiting pill, and (while
- * viewing history) the banner overlay. The board-column scaffold (.boardCol /
+ * swaps between Clear/Submit, an own-move, game-ending, player-ending, or waiting
+ * pill, and (while viewing history) the banner overlay. The board-column scaffold (.boardCol /
  * .moveAreaOrLocalFeedback / .localFeedback / .floatingShuffle) is the shared
  * common/game-page/playArea.module.css. */
 

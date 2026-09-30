@@ -1,19 +1,7 @@
 // cs-blessed-feedback
 
-import type { Outcome } from '../outcomes/outcomes'
 import type { Actor } from '../members/member'
-
-/**
- * How a FINISHED game reads: won, lost, or neither.
- *
- * Cut from the outcome vocabulary rather than spelled out, so renaming a member
- * of that list breaks here instead of silently leaving this one behind. The
- * three are a real closed set and not a ceiling nobody revisited — a game that
- * is over has been won, been lost, or was stopped with neither happening, and
- * there is no fourth thing for it to be. (`near` and `warning` judge a MOVE,
- * which is why they cannot appear once there are no more moves.)
- */
-export type TerminalOutcome = Extract<Outcome, 'won' | 'lost' | 'neutral'>
+import type { EndOutcome } from './gameEnding'
 
 /**
  * What a game says once it is over. Each game builds its own, in a pure helper
@@ -34,7 +22,7 @@ export type TerminalMessage = {
   // The short info-column outcome line ("You won!", "Out of guesses").
   infoColText: string
   // How BOTH surfaces read.
-  outcome: TerminalOutcome
+  outcome: EndOutcome
   // The person a compete verdict names ("● moth won at Genius"): the pill
   // draws them as the leading mention. Absent when the verdict names nobody.
   actor?: Actor

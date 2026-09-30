@@ -990,7 +990,8 @@ begin
     -- must not hold the presence-pause open. Then the collective-loss check:
     -- nobody left and nobody won ends the game.
     if caller_mistakes >= 4 then
-      perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'mistakes');
+      -- Eliminated: `lost` at once (`loses-by-mistake-budget`).
+      perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'mistakes', 'lost');
       perform connections._maybe_finish_compete(p_game_id, 'resource_exhausted', 'mistakes', caller_id);
     end if;
   end if;

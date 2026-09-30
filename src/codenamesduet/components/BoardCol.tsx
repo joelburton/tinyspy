@@ -9,7 +9,7 @@ import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import { runRpc } from '@/common/supabase/dbResult'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
-import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { db } from '../db'
 import type { WordRow } from '../hooks/useBoard'
 import type { ClueEvent } from '../lib/events'
@@ -126,7 +126,7 @@ export function BoardCol({
   isWaitingForTurn: boolean
   myTurnJustStarted: boolean
   moveCount: number
-  terminalOutcome: TerminalOutcome | null
+  terminalOutcome: EndOutcome | null
 
   // The viewed turn's description while inspecting history (drives the banner), or
   // null when live.
@@ -257,7 +257,7 @@ export function BoardCol({
     setPickedAt(picked === position ? null : position)
   }
 
-  const { cursor, point } = useBoardSelectionCursor({
+  const { cursor, setCursorTo } = useBoardSelectionCursor({
     shape: BOARD_SHAPE,
     enabled: canGuess,
     onToggle: toggleAt,
@@ -268,7 +268,7 @@ export function BoardCol({
   // again until its reveal lands.
   function handleTileClick(position: number) {
     if (inFlightPos !== null) return
-    point(cellAt(position, BOARD_SHAPE.cols))
+    setCursorTo(cellAt(position, BOARD_SHAPE.cols))
     setPickedAt(null)
     void handleGuess(position)
   }

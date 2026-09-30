@@ -5,7 +5,7 @@
  *
  * The thing pinned: **whose marks belong on whose board.** In compete every
  * player races their own copy of the shared words, so the printout splits into
- * one track per player at terminal — own ✓/✗, own score, own log. Merge them
+ * one track per player once the game has ended — own ✓/✗, own score, own log. Merge them
  * onto a single board and one player's miss prints as a mark on everyone's.
  * Mid-game compete prints only the viewer's track: RLS hides rivals' guesses,
  * and empty rival tracks would read as "they haven't guessed".
@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest'
 import { buildPsychicnumPrintModel } from './model'
 import type { EventRow } from '../hooks/useGame'
 
-const g = (over: Partial<EventRow> & Pick<EventRow, 'user_id' | 'word'>): EventRow => ({
+const makeEvent = (over: Partial<EventRow> & Pick<EventRow, 'user_id' | 'word'>): EventRow => ({
   id: 1,
   is_correct: false,
   kind: 'guess',
@@ -27,9 +27,10 @@ const base = {
   gameTitle: 'apple-bread-crown',
   date: '1 Jan 2026',
   mode: 'compete' as const,
-  isTerminal: false,
+  isGameEnded: false,
   words: ['apple', 'bread', 'crown', 'delta'],
-  guesses: [] as EventRow[],
+  events: [] as EventRow[],
+  requiredSecretsCount: 3,
   players: [
     { user_id: 'u1', username: 'me' },
     { user_id: 'u2', username: 'moth' },
@@ -39,14 +40,14 @@ const base = {
 }
 
 describe('buildPsychicnumPrintModel — compete splits per player', () => {
-  const guesses = [
-    g({ user_id: 'u1', word: 'apple', is_correct: true }),
-    g({ user_id: 'u2', word: 'bread', is_correct: false }),
-    g({ user_id: 'u2', word: 'crown', is_correct: true }),
+  const events = [
+    makeEvent({ user_id: 'u1', word: 'apple', is_correct: true }),
+    makeEvent({ user_id: 'u2', word: 'bread', is_correct: false }),
+    makeEvent({ user_id: 'u2', word: 'crown', is_correct: true }),
   ]
 
-  it('at terminal: one track per player, each with only their own marks', () => {
-    const m = buildPsychicnumPrintModel({ ...base, isTerminal: true, guesses })
+  it('once the game has ended: one track per player, each with only their own marks', () => {
+    const m = buildPsychicnumPrintModel({ ...base, isGameEnded: true, events })
     expect(m.tracks.map((t) => t.who)).toEqual(['me (you)', 'moth'])
 
     const [mine, theirs] = m.tracks
@@ -62,7 +63,7 @@ describe('buildPsychicnumPrintModel — compete splits per player', () => {
   })
 
   it('mid-game: only the viewer\'s track (rivals\' guesses are hidden)', () => {
-    const m = buildPsychicnumPrintModel({ ...base, guesses: guesses.filter((x) => x.user_id === 'u1') })
+    const m = buildPsychicnumPrintModel({ ...base, events: events.filter((event) => event.user_id === 'u1') })
     expect(m.tracks.map((t) => t.who)).toEqual(['You'])
     expect(m.tracks[0].board.map((t) => t.state)).toEqual(['correct', 'undecided', 'undecided', 'undecided'])
   })
@@ -70,8 +71,8 @@ describe('buildPsychicnumPrintModel — compete splits per player', () => {
   it('routes a hint row to its requester\'s track with the log wording', () => {
     const m = buildPsychicnumPrintModel({
       ...base,
-      isTerminal: true,
-      guesses: [...guesses, g({ user_id: 'u2', word: 'starts with d', kind: 'hint' })],
+      isGameEnded: true,
+      events: [...events, makeEvent({ user_id: 'u2', word: 'starts with d', kind: 'hint' })],
     })
     expect(m.tracks[1].turns.at(-1)?.text).toBe('Hint: starts with d')
     // A hint is not a guess: it must not touch the board or the used-count.
@@ -84,9 +85,9 @@ describe('buildPsychicnumPrintModel — coop stays one shared track', () => {
     const m = buildPsychicnumPrintModel({
       ...base,
       mode: 'coop',
-      guesses: [
-        g({ user_id: 'u1', word: 'apple', is_correct: true }),
-        g({ user_id: 'u2', word: 'bread', is_correct: false }),
+      events: [
+        makeEvent({ user_id: 'u1', word: 'apple', is_correct: true }),
+        makeEvent({ user_id: 'u2', word: 'bread', is_correct: false }),
       ],
     })
     expect(m.tracks).toHaveLength(1)

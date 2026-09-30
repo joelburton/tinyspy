@@ -476,6 +476,16 @@ wins.**
   - Doesn't mean: everyone unranked `lost`. In a `stopped` or `no-result`
     game the unranked neither won nor lost, except the conceders; a
     `decided-stands` win keeps its 1.
+- **`outcome-at-player-end`** — a player who becomes `locally-terminal` while
+  the game goes on gets an outcome at once, read off the game's card:
+  - `lost` — `eliminated` by one of the game's `loses-by`, or `conceded`
+  - `won` — `reached-goal` in a game that `ends-when-decided`, which ends
+    with them
+  - `neutral` — otherwise: the game cannot judge yet (`announce-when-ended`,
+    or `loses-by-none`)
+  - Doesn't mean: final. The game's end writes every player's outcome from
+    the `final-ranking`, so a `neutral` solver comes out `won` or not, and a
+    `stopped` game leaves an `eliminated` player neither won nor lost.
 
 ### Hints
 

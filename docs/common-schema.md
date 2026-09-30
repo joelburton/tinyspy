@@ -19,7 +19,7 @@ carry each function's full contract and outcomes. How every RPC answers is
 | `gametypes` | the registered gametypes, one row per sibling (`wordle_coop`, `wordle_compete`), each registered by its game's migration: `min_players` and `default_enroll` |
 | `clubs_gametypes` | which gametypes a club can start, and `default_setup`, the club's last-used setup for each — written by `common._create_game` on every start |
 | `games` | the shared header of every game: its club, gametype, `mode`, `title`, `setup`, `is_current_view`, `created_by`, `current_turn_user_id`, `restart_count`; `started_at`, and the ending — `ended_at`, the reason pair (`game_ended_reason`, `game_ended_reason_detail`), `game_ended_outcome`, `game_ended_by_user_id`; the copies the status builder writes (`game_status`, `clubpage_info`); and the two dates, `status_changed_at` and `updated_at` ([Title, statuses and the two dates](#title-statuses-and-the-two-dates)). A game's own detail row shares its id |
-| `game_players` | who plays each game, frozen at creation: `turn_seat`, `joined_at`; the player's ending while the game goes on (`player_ended_at` and its reason pair); `solved_at`; `final_ranking` and `outcome`, written at the game's end; and `player_status`, the builder's copy |
+| `game_players` | who plays each game, frozen at creation: `turn_seat`, `joined_at`; the player's ending while the game goes on (`player_ended_at` and its reason pair); `solved_at`; `outcome`, written when the player ends and again at the game's end; `final_ranking`, written at the game's end; and `player_status`, the builder's copy |
 | `timers` | the game clock, one row per game ([The game clock](#the-game-clock)) |
 | `messages` | club chat: one thread per club across every game, 1–1000 characters; a message starting `!` is important and force-opens chat for the others |
 | `game_scratchpads` | the opt-in scratchpad: one row per pad, shared (no owner) or a player's own |
@@ -201,7 +201,9 @@ the presence-pause must not wait for them. `game_players.player_ended_at`
 records it, with the player's reason pair (`reached_goal`,
 `resource_exhausted`, `fatal_move`, `conceded`, `timeout`, and the game's own
 word). The game RPC that detects it calls `common._set_player_ended`, which
-keeps a player's first ending; `common._concede` writes a concession itself;
+keeps a player's first ending, with the outcome the RPC judges
+([win-lose.md → `outcome-at-player-end`](win-lose.md#the-player));
+`common._concede` writes a concession itself, and its `lost`;
 `common._reset_game` clears it on Restart. A player who ended without
 conceding may be the WINNER. The pause watches the players who haven't ended,
 and `common._advance_turn` skips a seat that has. The terms are defined in

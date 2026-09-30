@@ -10,6 +10,8 @@ import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
+import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
@@ -504,11 +506,10 @@ type Suggested =
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isTerminal, game?.mode, playState, statusOutcome, teamScore, winnerId, session.user.id, hasWinner, winnerName, winnerColor],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: over,
+    playerEndingMessage: null,
+  })
 
   // Locally terminal (compete: I conceded while the others play on). The
   // InfoCol's action-row line carries the terse half of this; dual placement
@@ -526,19 +527,12 @@ type Suggested =
   // note would be redundant — hence coop only; src/scrabble/todo.md.) The note
   // lands where the commit buttons would be: they're useless on a teammate's
   // turn, so swapping them for the reason is exactly right.
-  const waiting = !isCompete && isWaitingForTurn
   const turnHolder = players.find((m: Member) => m.user_id === turnHolderId)
-  const holderName = turnHolder?.username
-  const holderColor = turnHolder?.color
-  useEffect(function showWaiting() {
-    if (!waiting) return
-    const id = localFeedbackSlot.show(
-      FeedbackMessage.waiting(
-        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
-      ),
-    )
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, waiting, holderName, holderColor])
+  useShowWaitingMessage({
+    slot: localFeedbackSlot,
+    isWaiting: !isCompete && isWaitingForTurn,
+    holder: turnHolder,
+  })
 
   if (loading) return <p className={styles.loading}>Loading game…</p>
   // A failed read is NOT a missing game. Both leave `game` null, and saying

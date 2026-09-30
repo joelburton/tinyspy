@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Board } from './Board'
@@ -78,7 +78,7 @@ export function BoardCol({
   myTurnJustStarted: boolean
   // The game is finished, and how it ended — the board's permanent band takes
   // that outcome's gray. Null while it's live.
-  gameOver: TerminalOutcome | null
+  gameOver: EndOutcome | null
   // Swaps recorded for the board on show — the CAUSE the attention flash reads,
   // so a re-dealt or revealed board doesn't light up. See `<Board>`.
   moveCount: number

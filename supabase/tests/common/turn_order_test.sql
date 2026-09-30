@@ -150,7 +150,7 @@ select common._set_player_ended(
   current_setting('test.turn_game')::uuid,
   (select user_id from common.game_players
     where game_id = current_setting('test.turn_game')::uuid and turn_seat = 1),
-  'resource_exhausted', 'exhausted'
+  'resource_exhausted', 'exhausted', 'lost'
 );
 select common._advance_turn(current_setting('test.turn_game')::uuid);
 select is(pg_temp.current_seat(current_setting('test.turn_game')::uuid), 2,

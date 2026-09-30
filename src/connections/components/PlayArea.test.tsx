@@ -451,7 +451,7 @@ describe('connections PlayArea — the board-scope marks', () => {
   it('leaves a live board unmarked', () => {
     h.result = loaded({ game: game('coop') })
     const { container } = render(<PlayAreaLoader {...makeCtx()} />)
-    expect(gridIn(container).className).not.toMatch(/gameOver/)
+    expect(gridIn(container).className).not.toMatch(/endingFrame/)
     expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)
   })
 
@@ -459,9 +459,9 @@ describe('connections PlayArea — the board-scope marks', () => {
     h.result = loaded({ game: game('coop'), mistakeCount: 4 })
     const { container } = render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
-    expect(gridIn(container).className).toMatch(/gameOverFrame/)
-    expect(gridIn(container).className).toMatch(/gameOverLost/)
-    expect(gridIn(container).className).not.toMatch(/gameOverWon/)
+    expect(gridIn(container).className).toMatch(/endingFrame/)
+    expect(gridIn(container).className).toMatch(/endingFrame_lost/)
+    expect(gridIn(container).className).not.toMatch(/endingFrame_won/)
   })
 
   it('frames an out-of-the-race player’s board in the neutral gray', () => {
@@ -470,8 +470,8 @@ describe('connections PlayArea — the board-scope marks', () => {
     h.result = loaded({ game: game('compete'), isEliminated: true, mistakeCount: 4 })
     const { container } = render(<PlayAreaLoader {...makeCtx({ players: [meOut, twoMembers[1]] })} />)
 
-    expect(gridIn(container).className).toMatch(/gameOverFrame/)
-    expect(gridIn(container).className).not.toMatch(/gameOverWon|gameOverLost/)
+    expect(gridIn(container).className).toMatch(/endingFrame/)
+    expect(gridIn(container).className).not.toMatch(/endingFrame_won|endingFrame_lost/)
   })
 
   it('dims the board while a teammate holds the move, and flashes when it arrives', () => {

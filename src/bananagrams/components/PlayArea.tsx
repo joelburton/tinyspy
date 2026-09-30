@@ -10,6 +10,7 @@ import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { DeviceBlockNotice } from '@/common/game-page/DeviceBlockNotice'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { IconExchange } from '@/common/icons/icons'
@@ -453,11 +454,10 @@ export function PlayArea(ctx: GamePageCtx) {
     }
     return { pillText: `${winnerName} went out — Bananas!`, infoColText: `${winnerName} won`, outcome: 'lost' }
   }, [isTerminal, statusOutcome, selfWon, winnerName])
-  useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: over,
+    playerEndingMessage: null,
+  })
 
   // Out of the race while the others play on (the page's `isLocallyTerminal` —
   // in this game only by conceding). Shown as the terminal LOOK (frozen board +

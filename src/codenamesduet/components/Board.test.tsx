@@ -160,14 +160,14 @@ describe('codenamesduet Board — the board marks', () => {
 
   it('frames a finished board in its outcome, and gives the frame up to the history viewer', () => {
     const won = grid(drawWith({ terminalOutcome: 'won' })).className
-    expect(won).toMatch(shared.gameOverFrame)
-    expect(won).toMatch(shared.gameOverWon)
-    expect(grid(drawWith({ terminalOutcome: 'lost' })).className).toMatch(shared.gameOverLost)
+    expect(won).toMatch(shared.endingFrame)
+    expect(won).toMatch(shared.endingFrame_won)
+    expect(grid(drawWith({ terminalOutcome: 'lost' })).className).toMatch(shared.endingFrame_lost)
     const ended = grid(drawWith({ terminalOutcome: 'neutral' })).className
-    expect(ended).toMatch(shared.gameOverFrame)
-    expect(ended).not.toMatch(shared.gameOverWon)
-    expect(grid(drawWith({ terminalOutcome: 'won', isViewingHistory: true })).className).not.toMatch(shared.gameOverFrame)
-    expect(grid(drawWith()).className).not.toMatch(shared.gameOverFrame)
+    expect(ended).toMatch(shared.endingFrame)
+    expect(ended).not.toMatch(shared.endingFrame_won)
+    expect(grid(drawWith({ terminalOutcome: 'won', isViewingHistory: true })).className).not.toMatch(shared.endingFrame)
+    expect(grid(drawWith()).className).not.toMatch(shared.endingFrame)
   })
 })
 

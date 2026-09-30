@@ -16,7 +16,7 @@ export type SelectionCursor<P> = {
   // An ABSOLUTE key (Home, End) naming `to`: reveal and go in one press.
   jump: (to: P) => void
   // A click on `to`: the cursor goes there and hides.
-  point: (to: P) => void
+  setCursorTo: (to: P) => void
 }
 
 /**
@@ -52,7 +52,7 @@ export function useSelectionCursor<P>(start: P): SelectionCursor<P> {
       setAt(to)
       setRevealed(true)
     },
-    point: (to) => {
+    setCursorTo: (to) => {
       setAt(to)
       setRevealed(false)
     },

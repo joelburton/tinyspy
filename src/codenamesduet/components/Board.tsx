@@ -5,7 +5,7 @@ import { cls } from '@/common/utils/cls'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
-import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
 import type { WordRow } from '../hooks/useBoard'
 import type { KeyLabel } from '../lib/labels'
 import { isGuessable, type Seat } from '../lib/phase'
@@ -13,6 +13,7 @@ import { BOARD_SHAPE } from '../lib/boardShape'
 import { positionAt } from '@/common/board-cursor/boardPosition'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import shared from '@/common/game-page/playArea.module.css'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
@@ -79,7 +80,7 @@ type Props = {
   // restart deletes them, so it drops rather than advances.
   moveCount: number
   // The ending's outcome, for the game-over frame's color; null while playing.
-  terminalOutcome: TerminalOutcome | null
+  terminalOutcome: EndOutcome | null
 }
 
 /**
@@ -163,11 +164,7 @@ export function Board({
           isViewingHistory && history.historyFrame,
           isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
-          // Both frames are outlines, so they take turns: the viewer owns it
-          // while open, being the state you chose and the one you can leave.
-          terminalOutcome !== null && !isViewingHistory && shared.gameOverFrame,
-          terminalOutcome === 'won' && !isViewingHistory && shared.gameOverWon,
-          terminalOutcome === 'lost' && !isViewingHistory && shared.gameOverLost,
+          makeEndingFrameClasses(terminalOutcome, isViewingHistory),
         )}
       >
         {words.map((w) => {

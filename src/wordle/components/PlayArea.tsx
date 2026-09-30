@@ -15,6 +15,8 @@ import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
+import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
@@ -253,11 +255,10 @@ function PlayArea({
         : null,
     [isTerminal, game.mode, playState, reason, selfWon, mySolved, wonByClock, selfTiedWinner],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!terminalMessage) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(terminalMessage))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, terminalMessage])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: terminalMessage,
+    playerEndingMessage: null,
+  })
 
   // Out of the race while the others play on — solved, out of guesses, or
   // conceded (compete only: a coop board is over for everyone at once). A
@@ -271,20 +272,12 @@ function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded, mySolved])
 
-  // A teammate holds the move (turn-order coop; never in a free-for-all). The
-  // holder is read as two primitives so the effect settles in one pass.
-  const turnHolder = turnHolderId === null ? undefined : memberById(players, turnHolderId)
-  const holderName = turnHolder?.username
-  const holderColor = turnHolder?.color
-  useEffect(function showWaiting() {
-    if (!isWaitingForTurn) return
-    const id = localFeedbackSlot.show(
-      FeedbackMessage.waiting(
-        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
-      ),
-    )
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
+  // A teammate holds the move (turn-order coop; never in a free-for-all).
+  useShowWaitingMessage({
+    slot: localFeedbackSlot,
+    isWaiting: isWaitingForTurn,
+    holder: turnHolderId === null ? undefined : memberById(players, turnHolderId),
+  })
 
   // ─── Narration — what a PEER did, in the header slot ───
   // About somebody else, which is what puts it in the global slot rather than

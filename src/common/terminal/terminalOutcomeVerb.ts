@@ -16,7 +16,7 @@ import type { GamePlayer } from '../members/member'
  *
  * **Won trumps everything**, then a conceder "conceded", and anyone else who did
  * not win "lost" — beaten to the win, ranked below first, or eliminated. Won is
- * the player's `outcome`, written when the game ends; a conceder is never ranked,
+ * the player's `outcome`, final once the game ends; a conceder is never ranked,
  * so the order only says which question is asked first.
  *
  * A missing member reads as 'Lost': a peer we cannot resolve did not win.

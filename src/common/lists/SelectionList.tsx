@@ -256,7 +256,7 @@ export function SelectionList<T>({
               // your first arrow reveals THAT row, not wherever the ring last
               // sat.
               onClick={() => {
-                selection.point(i)
+                selection.setCursorTo(i)
                 activate(i)
               }}
             >

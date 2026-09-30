@@ -9,9 +9,9 @@
 -- player_ended_at, so a racer who was eliminated, spent their budget,
 -- or finished ahead of the others stops holding the game open for
 -- everyone still playing. Covers:
---   1. The helper ends JUST that player, with the reason the game
---      passed — a solve is not a concession, and a solver marked
---      "conceded" instead would forfeit the win
+--   1. The helper ends JUST that player, with the reason and outcome
+--      the game passed — a solve is not a concession, and a solver
+--      marked "conceded" instead would forfeit the win
 --   2. It does not end the game
 --   3. Idempotent, keeping the first ending: the calling branch never
 --      has to ask whether it already fired
@@ -31,7 +31,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(7);
+select plan(8);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -85,7 +85,7 @@ select is(
 -- ─── (2) The helper ends one player, and only that player ───
 select lives_ok(
   format($$ select common._set_player_ended(%L, 'ada11111-1111-1111-1111-111111111111',
-                                            'reached_goal', 'solved') $$,
+                                            'reached_goal', 'solved', 'neutral') $$,
          current_setting('test.game_id')),
   'the helper runs'
 );
@@ -99,6 +99,13 @@ select is(
       and player_ended_at is not null),
   'reached_goal/solved',
   'the finished player has ended, with the reason passed — not conceded'
+);
+select is(
+  (select outcome from common.game_players
+    where game_id = current_setting('test.game_id')::uuid
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  'neutral',
+  'with the outcome the caller judged'
 );
 select is(
   (select player_ended_at from common.game_players
@@ -117,13 +124,13 @@ select is(
 
 -- ─── (4) Idempotent, keeping the first ending ───
 select common._set_player_ended(current_setting('test.game_id')::uuid,
-  'ada11111-1111-1111-1111-111111111111', 'resource_exhausted', 'exhausted');
+  'ada11111-1111-1111-1111-111111111111', 'resource_exhausted', 'exhausted', 'lost');
 select is(
-  (select player_ended_reason from common.game_players
+  (select player_ended_reason || '/' || outcome from common.game_players
     where game_id = current_setting('test.game_id')::uuid
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'reached_goal',
-  'ending a player twice keeps the first ending'
+  'reached_goal/neutral',
+  'ending a player twice keeps the first ending and its outcome'
 );
 
 -- ─── (5) A restart puts everyone back in the race ───
@@ -131,9 +138,10 @@ select common._reset_game(current_setting('test.game_id')::uuid);
 select is(
   (select count(*) from common.game_players
     where game_id = current_setting('test.game_id')::uuid
-      and (player_ended_at is not null or player_ended_reason is not null)),
+      and (player_ended_at is not null or player_ended_reason is not null
+           or outcome is not null)),
   0::bigint,
-  'reset_game clears every player''s ending'
+  'reset_game clears every player''s ending and outcome'
 );
 
 -- ============================================================

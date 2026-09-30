@@ -4,7 +4,6 @@ import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import { memberById } from '@/common/members/memberList'
 import type { EventRow } from '../hooks/useGame'
-import { SECRET_COUNT } from '../lib/setup'
 
 /**
  * Build the psychicnum print model — the pure half, away from jsPDF so the
@@ -31,15 +30,16 @@ export type PrintTrack = {
 export type PsychicnumPrintModel = PrintHeader & {
   // Grid columns (rows derive from `board.length`).
   cols: number
-  // Coop is a single shared track; compete is one per player at terminal,
-  // or just yours during play (RLS hides rivals' guesses until then).
+  // Coop is a single shared track; compete is one per player once the game has
+  // ended, or just yours during play (RLS hides rivals' guesses until then).
   tracks: PrintTrack[]
 }
 
-/** Fold one set of guesses into the shared words' per-tile states. */
-function boardOf(words: readonly string[], guesses: readonly EventRow[]): PrintTile[] {
+/** Fold one set of events into the shared words' per-tile states; only the
+ *  guesses mark a tile. */
+function boardOf(words: readonly string[], events: readonly EventRow[]): PrintTile[] {
   const results = new Map<string, boolean>()
-  for (const g of guesses) if (g.kind === 'guess') results.set(g.word, g.is_correct)
+  for (const event of events) if (event.kind === 'guess') results.set(event.word, event.is_correct)
   return words.map((w) => ({
     word: w.toUpperCase(),
     state: results.has(w) ? (results.get(w) ? 'correct' : 'miss') : 'undecided',
@@ -47,16 +47,16 @@ function boardOf(words: readonly string[], guesses: readonly EventRow[]): PrintT
 }
 
 /** The on-screen event-log wording, one row per guess/hint/spoiler. */
-function turnsOf(guesses: readonly EventRow[], whoOf: (g: EventRow) => string): TurnRow[] {
-  return guesses.map((g, i) => ({
+function turnsOf(events: readonly EventRow[], whoOf: (event: EventRow) => string): TurnRow[] {
+  return events.map((event, i) => ({
     seq: i + 1,
-    who: whoOf(g),
+    who: whoOf(event),
     text:
-      g.kind === 'hint'
-        ? `Hint: ${g.word}`
-        : g.kind === 'spoiler'
-          ? `${g.word.toUpperCase()} — Spoiler`
-          : `${g.word.toUpperCase()} — ${g.is_correct ? 'Correct' : 'Wrong'}`,
+      event.kind === 'hint'
+        ? `Hint: ${event.word}`
+        : event.kind === 'spoiler'
+          ? `${event.word.toUpperCase()} — Spoiler`
+          : `${event.word.toUpperCase()} — ${event.is_correct ? 'Correct' : 'Wrong'}`,
   }))
 }
 
@@ -65,47 +65,51 @@ export function buildPsychicnumPrintModel(o: {
   gameTitle: string
   date: string
   mode: 'coop' | 'compete'
-  isTerminal: boolean
+  isGameEnded: boolean
   // The shared board words (lowercase, as the row stores them).
   words: readonly string[]
-  // Every guess the viewer can see. Compete mid-game: only their own.
-  guesses: EventRow[]
+  // Every event the viewer can see — guesses, hints, spoilers. Compete
+  // mid-game: only their own.
+  events: EventRow[]
+  // How many secrets the board hides.
+  requiredSecretsCount: number
   players: { user_id: string; username: string }[]
   selfId: string
   setupRows: SetupRow[]
 }): PsychicnumPrintModel {
   const nameOf = (id: string) => memberById(o.players, id)?.username ?? 'someone'
 
-  const track = (who: string, guesses: EventRow[], whoOf: (g: EventRow) => string): PrintTrack => {
-    const board = boardOf(o.words, guesses)
+  const track = (who: string, events: EventRow[], whoOf: (event: EventRow) => string): PrintTrack => {
+    const board = boardOf(o.words, events)
     const found = board.filter((t) => t.state === 'correct').length
-    const used = guesses.filter((g) => g.kind === 'guess').length
+    const used = events.filter((event) => event.kind === 'guess').length
     return {
       who,
       board,
-      turns: turnsOf(guesses, whoOf),
-      result: `${found} of ${SECRET_COUNT} secrets found · ${used} guess${used === 1 ? '' : 'es'} used`,
+      turns: turnsOf(events, whoOf),
+      result: `${found} of ${o.requiredSecretsCount} secrets found · ${used} guess${used === 1 ? '' : 'es'} used`,
     }
   }
 
   // Coop is ONE shared board however many players are round it, so it's one
   // track and the log names whoever made each guess. Compete is one track per
-  // player — but only at terminal, since mid-game RLS means the viewer holds
-  // nobody's guesses but their own and empty rival tracks would be misleading.
+  // player — but only once the game has ended, since mid-game RLS means the
+  // viewer holds nobody's guesses but their own and empty rival tracks would be
+  // misleading.
   let tracks: PrintTrack[]
   if (o.mode === 'coop') {
-    tracks = [track('Team', o.guesses, (g) => nameOf(g.user_id))]
-  } else if (o.isTerminal) {
+    tracks = [track('Team', o.events, (event) => nameOf(event.user_id))]
+  } else if (o.isGameEnded) {
     tracks = o.players.map((p) =>
       track(
         p.user_id === o.selfId ? `${p.username} (you)` : p.username,
-        o.guesses.filter((g) => g.user_id === p.user_id),
+        o.events.filter((event) => event.user_id === p.user_id),
         () => p.username,
       ),
     )
   } else {
     tracks = [
-      track('You', o.guesses.filter((g) => g.user_id === o.selfId), () => 'you'),
+      track('You', o.events.filter((event) => event.user_id === o.selfId), () => 'you'),
     ]
   }
 

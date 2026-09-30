@@ -80,7 +80,7 @@ never a rival's rows, which RLS withholds until the game ends.
 First to all three wins and the game ends for everyone. If every budget is
 spent with nobody finished, everyone loses; a countdown expiring does the same.
 Any player may stop the game for the whole table: Concede's question offers
-it, and Stop shows once the player is `locally-terminal`.
+it, and Stop shows once the player has ended (`isPlayerEnded`).
 
 Compete needs an opposing **player**, which is why its manifest takes 2–6 where
 coop takes 1–6: a solo club is offered coop only. A countdown timer does not
@@ -324,15 +324,20 @@ answer does not.
 the ending, pause, chat — and unmounts this whole surface on pause. The mode is
 the page's too (`GamePageCtx.mode`, off `common.games`).
 
-**What reads what.** The state line and the opponent strip read the statuses
-and nothing else: the finds and the budget from each player's `player_status`
-(coop's finds summed across the team), the secret count and the budget's size
-from `game_status` (`lib/statuses.ts` has the three types). The rest of the
-surface reads psychicnum's own rows: the board and its colors from `events`, the
-reveal from `games_state`, and whether I found all three — the confetti, the
-verdict, compete's "found a secret" news — from `players`. `useGame` keeps no
-subscription: `useRefetchOnGameUpdate` reruns its three reads whenever the
-page's `common.games` row moves or the page's channel rejoins.
+**`gd`, the game data.** `useGame` hands the surface one object, `gd`, holding
+everything about this game grouped by what each value means — the board, the
+log (`events`), the players with their own counts and endings, `me`, and where I
+stand (`standing`) — and never by where it came from. A fact the statuses carry
+is read from them (the budget and the secret count from `game_status`, each
+player's counts and ending reason from their `player_status`; `lib/statuses.ts`
+has the types); everything else from the tables: the board's words and the
+secrets from `games_state`, the log from `events`, the rest from the page's
+`common.games` and `common.game_players` rows. `useGame` keeps no subscription:
+`useRefetchOnGameUpdate` reruns its reads whenever the page's `common.games`
+row moves or the page's channel rejoins. The two columns, `BoardCol` and
+`InfoCol`, take `gd` whole; everything below them (`Board`, the shared
+readouts, the event log) takes its own props, the page's players (`roster`)
+among them.
 
 The keyboard's selection cursor is [board-cursor](../common/board-cursor/doc.md)'s;
 what is psychicnum's is its shape (`lib/boardShape.ts`: `⌈√N⌉` across, so the

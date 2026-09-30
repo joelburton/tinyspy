@@ -10,6 +10,8 @@
  * erase at compile time and never join an import cycle.
  */
 
+import type { Outcome } from '../outcomes/outcomes'
+
 /** Why a game ended: the category of the act that ended it
  *  (`common.games.game_ended_reason`). The game's own word for the act is the
  *  reason detail beside it. */
@@ -31,9 +33,17 @@ export type PlayerEndedReason =
   | 'conceded'
   | 'timeout'
 
-/** How a game, or one player, came out (`common.games.game_ended_outcome`,
- *  `common.game_players.outcome`). `near` is a ranking below first. */
-export type EndOutcome = 'won' | 'lost' | 'near' | 'neutral'
+/**
+ * How a game, or one player, came out (`common.games.game_ended_outcome`,
+ * `common.game_players.outcome`), and how everything that shows an ending
+ * reads: the pill, the info column's line, the board's frame.
+ *
+ * `near` is a ranking below first. Cut from the outcome vocabulary rather than
+ * spelled out, so renaming a member of that list breaks here. It is narrower
+ * because the rest judge something an ending is not: `warning` and `noted` a
+ * move, `error` a fault.
+ */
+export type EndOutcome = Extract<Outcome, 'won' | 'lost' | 'near' | 'neutral'>
 
 /**
  * A game's ending, read off its `common.games` row: null while the game is

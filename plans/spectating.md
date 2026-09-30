@@ -103,3 +103,6 @@ would be watching rather than playing.
 - Do not write `isSpectator` into `GamePageCtx` from inside a game area; that is
   question 1, and it is the shell's.
 - Do not file the same item into four `todo.md`s. This file is the one home.
+- Where code has to guess what a watcher gets, the comment carries the tag
+  `SPECTATING:` and says the guess, so `grep -rn "SPECTATING:"` lists every
+  one for this design to settle.

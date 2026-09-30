@@ -8,6 +8,8 @@ import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/ter
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
+import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { buildWafflePrintModel } from '../pdf/model'
 import { printWafflePdf } from '../pdf/printWafflePdf'
@@ -470,11 +472,10 @@ export function PlayArea({
         : null,
     [isTerminal, gameMode, playState, timerExpired, selfWon, swapsOverPar],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: over,
+    playerEndingMessage: null,
+  })
 
   // Out of the race while the others play on (compete only; the page's
   // `isLocallyTerminal`): I've solved my board (waiting), run out of swaps, OR
@@ -494,21 +495,12 @@ export function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isLocallyTerminal, isConceded, selfSolved])
 
-  // A teammate holds the move (turn-order coop; never in a free-for-all). On a
-  // phone the InfoCol's TurnStatusLine is off-canvas, so this is the only
-  // whose-turn indicator beside the dimmed board.
-  const turnHolder = players.find((m) => m.user_id === turnHolderId)
-  const holderName = turnHolder?.username
-  const holderColor = turnHolder?.color
-  useEffect(function showWaiting() {
-    if (!isWaitingForTurn) return
-    const id = localFeedbackSlot.show(
-      FeedbackMessage.waiting(
-        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
-      ),
-    )
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
+  // A teammate holds the move (turn-order coop; never in a free-for-all).
+  useShowWaitingMessage({
+    slot: localFeedbackSlot,
+    isWaiting: isWaitingForTurn,
+    holder: players.find((m) => m.user_id === turnHolderId),
+  })
 
   if (loading) return <p>Loading game…</p>
   // A failed read is NOT a missing game. Both leave `game` null, and saying

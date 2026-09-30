@@ -8,6 +8,8 @@ import { makeSetupRows } from '../lib/setupRows'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
+import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -377,7 +379,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // `clickTile`'s own rule. A typed letter or a submitted word moves it to the
   // trace's end and hides it, as a click does: the next arrow shows it there,
   // so after a letter that rings red it starts beside the candidates.
-  const { cursor, point } = useBoardSelectionCursor({
+  const { cursor, setCursorTo } = useBoardSelectionCursor({
     shape: BOARD_SHAPE,
     enabled: !boardDisabled && !historyViewer.isViewingHistory,
     onToggle: (cell) => onTileClick(coordAt(cell)),
@@ -386,7 +388,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // A click on a letter: the cursor moves there, hidden, and the click does its
   // move.
   const handleTileClick = (at: Coord) => {
-    point(cellAt(at))
+    setCursorTo(cellAt(at))
     onTileClick(at)
   }
 
@@ -409,7 +411,7 @@ export function PlayArea(ctx: GamePageCtx) {
     run: () => {
       // The cursor goes to the word's last letter, and hides.
       const last = trace[trace.length - 1]
-      if (last) point(cellAt(last))
+      if (last) setCursorTo(cellAt(last))
       submitTrace()
     },
   })
@@ -460,7 +462,7 @@ export function PlayArea(ctx: GamePageCtx) {
         setTrace([...trace, r.at])
         // The cursor goes with the typed letter, and hides: the player is
         // typing, not arrowing.
-        point(cellAt(r.at))
+        setCursorTo(cellAt(r.at))
       } else if (r.kind === 'ambiguous') {
         // No message here on purpose: that row IS the entry area, so a pill
         // would hide the word being built to say something the board can say
@@ -781,11 +783,10 @@ export function PlayArea(ctx: GamePageCtx) {
         : null,
     [isTerminal, playState, foundCount, isCompete, iWon, winnerNames, iSolved, myHints, winnerHints],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: over,
+    playerEndingMessage: null,
+  })
 
   // Out of the race while the others play on. `isLocallyTerminal` folds solved
   // and conceded together, and solving is the GOOD one — compete is won by
@@ -800,21 +801,12 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
-  // Whose turn it is, under turn order. On a phone the InfoCol's TurnStatusLine
-  // is off-canvas, so this is the only whose-turn indicator beside the frozen
-  // board.
-  const turnHolder = players.find((p) => p.user_id === turnHolderId)
-  const holderName = turnHolder?.username
-  const holderColor = turnHolder?.color
-  useEffect(function showWaiting() {
-    if (!isWaitingForTurn) return
-    const id = localFeedbackSlot.show(
-      FeedbackMessage.waiting(
-        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
-      ),
-    )
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
+  // Whose turn it is, under turn order.
+  useShowWaitingMessage({
+    slot: localFeedbackSlot,
+    isWaiting: isWaitingForTurn,
+    holder: players.find((p) => p.user_id === turnHolderId),
+  })
 
   // The THEME, quoted, on an untouched board — what an empty slot says before
   // anything has happened. The clue also sits in the info column, but that

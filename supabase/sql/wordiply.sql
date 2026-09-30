@@ -821,7 +821,8 @@ begin
     -- The fifth word ends this racer while the others play on, so the roster
     -- has to hear about it: a player nothing is waiting for must not hold
     -- the presence-pause open.
-    perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'complete');
+    -- `neutral`: the ranking waits for the end (`loses-by-none`).
+    perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'complete', 'neutral');
     perform wordiply._maybe_finish_compete(p_game_id, 'resource_exhausted', 'complete', caller_id);
   end if;
 

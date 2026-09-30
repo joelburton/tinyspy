@@ -481,7 +481,7 @@ it once the front end lands. Before it:
       `is_terminal` and `paused`. `common._end_game` takes the reason pair as
       required parameters (§3b question 3); the Stop writes `stopped`, not
       `manual`; codenamesduet works out sudden death. `isTerminal` →
-      `isGameEnded`, `TerminalOutcome` → `EndOutcome`, and every other
+      `isGameEnded`, `TerminalOutcome` → `EndOutcome` (done), and every other
       "terminal". Also in this stage (found 2026-09-27): the thirteen
       child-table SELECT policies that join `common.games` for
       `is_terminal` read `ended_at is not null`; `strands.club_game_status`

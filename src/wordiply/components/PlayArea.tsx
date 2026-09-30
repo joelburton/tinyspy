@@ -15,6 +15,8 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import { answerMessage, answerOf, peerAnswerMessage } from '../lib/answer'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
+import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
@@ -477,11 +479,10 @@ export function PlayArea(ctx: GamePageCtx) {
     [isTerminal, gameMode, playState, statusOutcome, longest, letters, game?.max_word_length,
      winnerId, winners, session.user.id, soleWinnerName, soleWinnerColor, tiedNames],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: over,
+    playerEndingMessage: null,
+  })
 
   // I conceded, and the others race on (compete only). wordiply marks the
   // conceder alone: a racer who has spent their five guesses is locally
@@ -492,21 +493,12 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isTerminal, isConceded])
 
-  // A teammate holds the move (turn-order coop; never in a free-for-all). On a
-  // phone the InfoCol's TurnStatusLine is off-canvas, so this is the only
-  // whose-turn indicator beside the frozen keyboard.
-  const turnHolder = players.find((p) => p.user_id === turnHolderId)
-  const holderName = turnHolder?.username
-  const holderColor = turnHolder?.color
-  useEffect(function showWaiting() {
-    if (!isWaitingForTurn) return
-    const id = localFeedbackSlot.show(
-      FeedbackMessage.waiting(
-        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
-      ),
-    )
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
+  // A teammate holds the move (turn-order coop; never in a free-for-all).
+  useShowWaitingMessage({
+    slot: localFeedbackSlot,
+    isWaiting: isWaitingForTurn,
+    holder: players.find((p) => p.user_id === turnHolderId),
+  })
 
   if (loading) return <div className={styles.loading}>Loading…</div>
   // A failed read is NOT a missing game. Both leave `game` null, and saying

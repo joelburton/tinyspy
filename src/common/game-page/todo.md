@@ -12,7 +12,7 @@
   `.floatingShuffle`) — the file's real subject; the below-board feedback slot
   (`.localFeedback`, `.moveAreaOrLocalFeedback`); the tile chrome (`.tile`,
   `.tileFace`, `.tileWord` + states); and the board-wide state marks
-  (`.dimInFlight`, `.dimNotYourTurn`, `.gameOverFrame`,
+  (`.dimInFlight`, `.dimNotYourTurn`, `.endingFrame`,
   `.verdict*`, `.attentionFlash`, `.yourTurnFlash` + keyframes), which are
   [plans/tile-feedback.md](../../../plans/tile-feedback.md)'s subject.
   A concern that had its own file would have made setup-form's `.infoSetup`

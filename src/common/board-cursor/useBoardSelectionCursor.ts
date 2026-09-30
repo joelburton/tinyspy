@@ -21,7 +21,7 @@ export type BoardSelectionCursor = {
   // The cell to draw the cursor on, or null when it is not drawn.
   cursor: Cell | null
   // A click on a cell: the cursor goes there and hides.
-  point: (cell: Cell) => void
+  setCursorTo: (cell: Cell) => void
 }
 
 /**
@@ -67,6 +67,6 @@ export function useBoardSelectionCursor({
 
   return {
     cursor: enabled && selection.revealed ? at : null,
-    point: selection.point,
+    setCursorTo: selection.setCursorTo,
   }
 }

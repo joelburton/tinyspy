@@ -1,81 +1,49 @@
 // cs-blessed-psychicnum
 
-import { runRpc } from '@/common/supabase/dbResult'
-import { useEffect, useMemo, useRef } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { answerMessage, peerAnswerMessage } from '../lib/answer'
-import { SECRET_COUNT, type PsychicnumSetup } from '../lib/setup'
-import type { PsychicnumGameStatus, PsychicnumPlayerStatus } from '../lib/statuses'
+import { peerAnswerMessage } from '../lib/answer'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
+import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
-import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBoundAction } from '@/common/actions/useBoundAction'
-import { describeReveal } from '@/common/reveal/describeReveal'
-import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { makeSetupRows } from '../lib/setupRows'
-import { memberById } from '@/common/members/memberList'
-import { buildGameMenu } from '@/common/menu/gameMenu'
-import { db } from '../db'
-import { useGame, type EventRow, type PlayerRow, type PsychicnumGame } from '../hooks/useGame'
-import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
-import { buildPsychicnumPrintModel } from '../pdf/model'
-import { historySnapshot } from '../lib/history'
-import { buildTerminalMessage } from '../lib/terminal'
+import { useGame, type GameData } from '../hooks/useGame'
+import { useBindActionsAndPublishMenu } from '../hooks/useBindActionsAndPublishMenu'
+import { useHistoryView } from '../hooks/useHistoryView'
+import { addRevealedSecrets } from '../lib/tileResults'
+import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
+import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useShowOppsFoundMessages } from '../hooks/useShowOppsFoundMessages'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
-import { StateLine } from './StateLine'
 import shared from '@/common/game-page/playArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import { Loading } from '@/common/loading/Loading'
 import { NoSuchGamePage } from '@/common/game-page/NoSuchGamePage'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
-import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-
-/**
- * What `request_hint` answers. TWO `ok`s: `hint` carries the row's text whether
- * or not there was a clue to give, so `result` is the only thing that tells a
- * real clue from "this word has none".
- */
-type HintAnswer = {
-  result: 'hint' | 'no-hint'
-  hint: string
-}
-
-/** What `request_spoiler` answers: one `ok`, carrying the secret handed over. */
-type SpoilerAnswer = {
-  result: 'spoiler'
-  word: string
-}
 
 /**
  * The three gates in front of psychicnum's play surface: the read is out, the
- * read failed, or there is no such game. Everything below starts with a game
- * in hand, which is why the surface never writes `game?.`.
+ * read failed, or there is no such game. Everything below starts with the game
+ * data in hand, which is why the surface never writes `gd?.`.
  *
  * The game's menu rows and its `+` arrive WITH the game, because the surface
  * that binds them mounts with it — a row for a game not yet read could only
  * gray itself or lie.
  */
 export function PlayAreaLoader(ctx: GamePageCtx) {
-  const { game, playerBudgets, guesses, loading, failure } = useGame({
-    gameId: ctx.gameId,
-    commonGameUpdatedAt: ctx.commonGameUpdatedAt,
-    resubscribeCount: ctx.resubscribeCount,
-  })
+  const { gd, loading, failure } = useGame(ctx)
 
   if (loading) return <Loading />
-  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // A failed read is NOT a missing game. Both leave `gd` null, and saying
   // "there's no game here" about a dead connection is a confident wrong answer
   // — this is what remains once the fault modal is dismissed.
   if (failure) return <EnvelopeErrorPage envelope={failure} />
@@ -83,34 +51,43 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   // `GamePageLoader` each checked — and the psychicnum one does not: a torn
   // write, or a game deleted while somebody had the board open. `detail` goes
   // to the console, never to the page.
-  if (!game) return <NoSuchGamePage detail={`rows=0 view=psychicnum.games_state game=${ctx.gameId}`} />
+  if (!gd) {
+    return (
+      <NoSuchGamePage
+        detail={`rows=0 view=psychicnum.games_state game=${ctx.gameId}`}
+      />
+    )
+  }
 
   return (
     <PlayArea
-      {...ctx}
-      game={game}
-      playerBudgets={playerBudgets}
-      guesses={guesses}
-      // The one place the setup blob and the game's status are narrowed.
-      // `GamePageCtx` types them `Record<string, unknown>` for every game;
-      // below, they are this game's.
-      setup={ctx.setup as unknown as PsychicnumSetup}
-      gameStatus={ctx.gameStatus as unknown as PsychicnumGameStatus}
+      gd={gd}
+      roster={ctx.players}
+      session={ctx.session}
+      globalFeedbackSlot={ctx.globalFeedbackSlot}
+      clubHandle={ctx.clubHandle}
+      goToFollowUpGame={ctx.goToFollowUpGame}
+      menu={ctx.menu}
+      brand={ctx.brand}
     />
   )
 }
 
-type PlayAreaProps = Omit<GamePageCtx, 'setup' | 'gameStatus'> & {
-  // The loaded game row. Non-null by construction — the loader holds the gates.
-  game: PsychicnumGame
-  // Per-player guess budgets (`psychicnum.players`), club-wide visible.
-  playerBudgets: PlayerRow[]
-  // This player's event log (`psychicnum.events`); RLS scopes it in compete.
-  guesses: EventRow[]
-  // This game's setup blob, narrowed once by the loader.
-  setup: PsychicnumSetup
-  // This game's `game_status`, narrowed once by the loader.
-  gameStatus: PsychicnumGameStatus
+type PlayAreaProps = Pick<
+  GamePageCtx,
+  | 'session'
+  | 'globalFeedbackSlot'
+  | 'clubHandle'
+  | 'goToFollowUpGame'
+  | 'menu'
+  | 'brand'
+> & {
+  // The game data. Non-null by construction — the loader holds the gates.
+  gd: GameData
+  // The page's players, in the shape the shared pieces still take (the info
+  // column's whose-turn line, strip and log; the printout). This surface's own
+  // logic reads `gd.players`.
+  roster: GamePageCtx['players']
 }
 
 /**
@@ -119,630 +96,147 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup' | 'gameStatus'> & {
  * `<InfoCol>` the readouts and the action row, and this component decides what
  * each of them is handed.
  *
- * Both manifests mount it, and `mode` (`common.games.mode`, fixed at
- * create-game time) is what differs — who a narration names, whose progress a
- * readout counts, and which verdict `lib/terminal.ts` builds. The rule it
- * keeps across that split: green means "a secret was found" in both modes, so
- * nothing here teaches a compete-only color.
+ * Both manifests mount it, and the mode (`gd.mode`, fixed at create-game time)
+ * is what differs — who a narration names, whose progress a readout counts,
+ * and which verdict `lib/gameEndingMessage.ts` builds. The rule it keeps across that
+ * split: green means "a secret was found" in both modes, so nothing here
+ * teaches a compete-only color.
  *
  * Above it, `<GamePage>` owns members, the timer, the ending, pause and chat,
  * and unmounts this surface on pause — every piece of state below goes with it.
  */
 function PlayArea({
-  game,
-  playerBudgets,
-  guesses,
+  gd,
+  roster,
   session,
-  gameId,
-  mode,
-  players,
-  gameEnding,
-  isTerminal,
-  isConceded,
-  isLocallyTerminal,
-  isStillPlaying,
-  isTurnBased,
-  turnHolderId,
-  isMyTurn,
-  isWaitingForTurn,
-  isBoardInteractive,
-  setup,
-  gameStatus,
   globalFeedbackSlot,
   clubHandle,
   goToFollowUpGame,
   menu,
   brand,
-  title,
 }: PlayAreaProps) {
-  const isCompete = mode === 'compete'
-
   // ─── Page hooks ────────────────────────────────────────
   // What this surface IS, before anything this game knows: where Tab may go,
   // where the info column sits on a phone, and the two things that fire at a
   // moment rather than describing a state — the win's confetti and the frame's
   // flash when the turn becomes mine.
 
-  // The guess is typed at the window rather than into an input, so nothing here
-  // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
-  // out to the browser.
+  // Tab isn't used; an empty ring keeps it from reaching browser chrome.
   useTabRing([])
 
-  // Mobile (docs/mobile.md → The info-sheet recipe): below the breakpoint the board
-  // fills the screen and the info column moves into an off-canvas <InfoSheet>,
-  // reached by the header's InfoSwitchButton. Desktop is unchanged.
+  // On a phone the board fills the screen and the info column moves into an
+  // off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
   const infoSheet = useInfoSheet()
 
-  // My budget row (`psychicnum.players`) — whether I found all three, which
-  // the celebration, the reveal and the verdict read.
-  const myBudgetRow = playerBudgets.find((p) => p.user_id === session.user.id)
-  const iFoundThemAll = (myBudgetRow?.found_secrets_count ?? 0) >= SECRET_COUNT
+  // Confetti the moment the win is MINE. It is shown only when it happens.
+  const celebration = useCelebration(gd.standing.hasSolved)
 
-  // Whether I am looking at the answer already: the coop team won, or I won
-  // my race. Finding all three IS the win here, so it is also the win that is
-  // MINE.
-  const iSolved = solvedByMe({
-    isCompete,
-    gameOutcome: gameEnding?.outcome ?? null,
-    mine: iFoundThemAll,
-  })
+  // The board frame flashes the moment the move becomes mine.
+  const turnFlash = useTurnStartFlash(gd.standing.isMyTurn)
 
-  // Confetti the moment the win is MINE — the coop team's third secret, or my
-  // own third in a race — and never on mount: opening an already-won game
-  // stays quiet. It is the ONLY modal at terminal; the verdict itself rides
-  // the below-board pill, and a compete player who lost gets that and nothing
-  // more.
-  //
-  // Correct on the first render, which is what `useCelebration` requires:
-  // `gameEnding` comes with the page, and `playerBudgets` comes with the game —
-  // the loader holds this surface back until both are in hand.
-  const celebration = useCelebration(iSolved)
+  // ─── The local slot, and what stands in it ─────────────
 
-  // The board frame flashes yellow the moment the move becomes mine. The dim is
-  // what says "not yours"; its lifting is a removal, and you are by definition
-  // looking elsewhere when it happens. Never fires in a free-for-all game.
-  const turnFlash = useTurnStartFlash(isMyTurn)
-
-  // ─── Derived ───────────────────────────────────────────
-  // Who I am in this game and what I may still do. Where I stand — conceded,
-  // still playing, whose move it is — comes from the page, already computed
-  // (docs/win-lose.md → Where a player stands); what is this game's own is
-  // read off `playerBudgets`.
-
-  // The readouts — the info column's state line and the mobile strip's copy
-  // of it — read the statuses and nothing else (plans/common-tables.md → The
-  // statuses). Each player's status holds their own counts, so coop's team
-  // numbers are sums over the players and compete's are my own. A spent
-  // budget is where I stand already: the server ends a compete player's play,
-  // and the page's `isStillPlaying` goes false. A club member watching a
-  // compete game has no status of their own, so reads as the budget spent.
-  const myPlayerStatus = memberById(players, session.user.id)?.player_status as
-    | PsychicnumPlayerStatus
-    | undefined
-  const playerStatuses = players.map((p) => p.player_status as PsychicnumPlayerStatus)
-  const maxGuesses = gameStatus.max_guesses
-  const secretCount = gameStatus.required_secrets_count
-  // No secret can be found twice and each guess is one player's, so the sums
-  // count every find and every guess once.
-  const teamFound = playerStatuses.reduce((sum, s) => sum + s.found_secrets_count, 0)
-  const teamGuessesUsed = playerStatuses.reduce((sum, s) => sum + s.guesses_used, 0)
-  const found = isCompete ? (myPlayerStatus?.found_secrets_count ?? 0) : teamFound
-  const guessesUsed = isCompete ? (myPlayerStatus?.guesses_used ?? maxGuesses) : teamGuessesUsed
-
-  // The setup rows, built ONCE and handed to both consumers — the info column
-  // renders them as <li>s, the print model prints the same array (common/setup-form/doc.md →
-  // Setup rows). Literally the same object, which beats "both call the same
-  // function": this is the game whose two hand-written lists had drifted into
-  // reporting different facts on paper than on screen.
-  const setupRows = useMemo(
-    () => makeSetupRows(setup, mode, players),
-    [setup, mode, players],
-  )
-
-  // The terminal secrets reveal — derived state, because the Reveal binding
-  // below reads it. The three secrets are NOT shown just because the game ended:
-  // `replay_board` hunts the SAME board and the SAME three secrets again (see
-  // its RPC comment), so auto-revealing on a loss would leave Restart with
-  // nothing to find.
-  //
-  // The ask is LOCAL and reversible (useSolutionReveal): mine alone, so a
-  // teammate can go on eyeing the board for the three while I look, and the
-  // same control hides them again. The secrets themselves are on every client
-  // once the game is terminal, so this is purely which tiles go green.
-  //
-  // `impliedBy: iFoundThemAll` is the exception: finding all three IS the win
-  // here, and a found secret's tile is already green — so a solver is looking
-  // at the answer key and showing it adds nothing. MY three, not the game's
-  // verdict: compete's loser found fewer.
-  const {
-    revealed: secretsShown,
-    toggle: toggleSecrets,
-    impliedBySolve,
-  } = useSolutionReveal({ impliedBy: iSolved })
-
-  // ─── The local slot, and its three standing conditions ─
-  // Each condition is an effect on a primitive edge that shows on true and
-  // retracts in its cleanup — the slot draws whichever ranks highest. The local
-  // slot is the one for messages about ME; a peer's go in the header's.
+  // The slot under the board is for messages about ME.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // The ending's message. Mode-aware so compete-mode winners get the "you won
-  // the race" vs "Bea won the race" distinction, while coop stays the simple
-  // team verdict. In compete the winner is the player the ending ranked first
-  // (`outcome` won), the one who completed the set.
-  const winnerName = players.find((p) => p.outcome === 'won')?.username ?? 'Someone'
-  const selfWon = isCompete ? iFoundThemAll : true
-  // WHY it ended is the server's word (`gameEnding.reason`), never the browser
-  // clock's: the RPC that ended the game wrote the reason, and the club-list
-  // label reads the same column. Read as two strings, so the memo below sees
-  // one message per ending rather than one per reload of the page's row.
-  const gameEndedOutcome = gameEnding?.outcome ?? null
-  const gameEndedReason = gameEnding?.reason ?? null
-  const terminalMessage = useMemo(
-    () =>
-      gameEndedOutcome !== null && gameEndedReason !== null
-        ? buildTerminalMessage({
-            mode,
-            gameEnding: { outcome: gameEndedOutcome, reason: gameEndedReason },
-            selfWon,
-            winnerName,
-          })
-        : null,
-    [gameEndedOutcome, gameEndedReason, mode, selfWon, winnerName],
-  )
-  useEffect(function showTerminalVerdict() {
-    if (!terminalMessage) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(terminalMessage))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, terminalMessage])
+  // The endings' messages, for the pill and the info column: the game's once
+  // it has ended, mine while I have ended and the others play on.
+  const gameEndingMessage = useGetGameEndingMessage(gd)
+  const playerEndingMessage = useGetPlayerEndingMessage(gd)
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage,
+    playerEndingMessage,
+  })
 
-  // Out of the race while the others play on: out of guesses, or conceded.
-  // A standing state with the fill; the verdict outranks it when the game ends.
-  useEffect(function showOutOfRace() {
-    if (isTerminal || !isLocallyTerminal) return
-    const id = localFeedbackSlot.show(
-      FeedbackMessage.outOfRace(isConceded, 'Out of guesses — race continues'),
-    )
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
+  // A teammate holds the move (turn-order coop; never in a free-for-all).
+  useShowWaitingMessage({
+    slot: localFeedbackSlot,
+    isWaiting: gd.standing.isWaitingForTurn,
+    holder: gd.turnHolder,
+  })
 
-  // A teammate holds the move (turn-order coop; never in a free-for-all). It
-  // carries the whose-turn answer on MOBILE, where the InfoCol's
-  // TurnStatusLine is off-canvas; without it a frozen board just ignored taps.
-  // The holder is read as two primitives so the effect settles in one pass — a
-  // fresh `players` array on a re-render would look like a change.
-  const holder = turnHolderId === null ? undefined : memberById(players, turnHolderId)
-  const holderName = holder?.username
-  const holderColor = holder?.color
-  useEffect(function showWaiting() {
-    if (!isWaitingForTurn) return
-    const id = localFeedbackSlot.show(
-      FeedbackMessage.waiting(
-        holderName === undefined
-            ? undefined
-            : { username: holderName, color: holderColor ?? '' },
-      ),
-    )
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
+  // ─── What a PEER did, in the header slot ───────────────
+  // Each mode reaches exactly one of these (docs/ui.md → Where a message goes).
 
-  // ─── Narration — what a PEER did, in the header slot ───
-  // Both of these are about somebody else, which is what puts them in the
-  // global slot rather than the local one (docs/ui.md → Where a message
-  // goes). Each mode reaches exactly one of them.
-
-  // A teammate's guess (green correct / red not), or their hint or spoiler, is
-  // narrated in the header. My own events are excluded — my guesses get the
-  // local slot, my hint shows in my own event log. Compete never reaches here:
-  // RLS scopes both guesses AND hints to the caller, and we gate on coop.
-  // The shared seen-set producer narrates EVERY new peer event (the old
-  // hand-rolled version only looked at the latest row, dropping any that
-  // batched between refetches). keyOf is the guess id; own events return null.
+  // A teammate's guess, hint or spoiler (coop). My own events are the local
+  // slot's and the log's, so they're skipped; in compete the log holds only my
+  // own rows until the end, so there is nothing to narrate.
   usePeerFeedback({
-    enabled: !isCompete,
-    items: guesses,
-    keyOf: (g) => String(g.id),
-    messageFor: (g) => {
-      if (g.user_id === session.user.id) return null // mine → local
-      const member = memberById(players, g.user_id)
-      // The row is somebody else's — the line above returned for my own — so
-      // every answer here is a `_peer` one, which is what gives a spoiler words
-      // that do not name the word.
-      const { outcome, text } = peerAnswerMessage(g)
-      return FeedbackMessage.peer(member, outcome, text)
+    enabled: !gd.isCompete,
+    items: gd.events,
+    keyOf: (event) => String(event.id),
+    messageFor: (event) => {
+      if (event.user_id === session.user.id) return null
+      const { outcome, text } = peerAnswerMessage(event)
+      return FeedbackMessage.peer(gd.players[event.user_id], outcome, text)
     },
     globalFeedbackSlot,
   })
 
-  // When an opponent's public found_secrets_count ticks up, narrate "X guessed a
-  // secret word" — the COUNT, never which word (that stays private). It reads as
-  // the HIT it is, the same as coop's line for a peer's correct guess: green
-  // means "they found a word" in both modes, so the player doesn't maintain a
-  // compete-only color-meaning. A delta detector over the budget rows: the first
-  // pass seeds every opponent's count silently so history is not replayed, and
-  // after that a row the ref has not seen counts from 0.
-  const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
-  const opponentsReadyRef = useRef(false)
-  useEffect(function announceOpponentProgress() {
-    if (!isCompete) return
-    const prev = seenOpponentFoundRef.current
-    if (!opponentsReadyRef.current) {
-      opponentsReadyRef.current = true
-      for (const p of playerBudgets) prev.set(p.user_id, p.found_secrets_count)
-      return
-    }
-    for (const p of playerBudgets) {
-      const was = prev.get(p.user_id) ?? 0
-      prev.set(p.user_id, p.found_secrets_count)
-      if (p.user_id === session.user.id) continue
-      if (p.found_secrets_count <= was) continue
-      const member = memberById(players, p.user_id)
-      // `found_peer`, not `hit_peer`: in compete a player may learn THAT an
-      // opponent found a secret and never which, so the answer that names a
-      // word is not reachable from here.
-      const { outcome, text } = answerMessage({ answerType: 'found_peer' })
-      globalFeedbackSlot.show(FeedbackMessage.peer(member, outcome, text))
-    }
-  }, [playerBudgets, isCompete, players, session.user.id, globalFeedbackSlot])
+  // An opponent found a secret (compete): say so, never which.
+  useShowOppsFoundMessages(gd, session.user.id, globalFeedbackSlot)
 
-  // ─── The turn-history viewer ───────────────────────────
-  // Click an event-log #N to replay that turn's board (the tiles decided up to that
-  // turn, with that turn's guessed tile ringed history-blue). Keyed by the row's
-  // own id, resolved against the rows the board replays (`lib/history.ts` says
-  // why not by position). Exit is intrinsic to the hook (a
-  // click anywhere / the banner ✕) and so is the keystroke exit: the viewer binds
-  // an any-key action that CONSUMES the press, so the key that brings the board
-  // back doesn't also play on it.
-  const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
+  // ─── The turn-history view ─────────────────────────────
+  // Which past turn, if any, is open on the board, and that turn replayed.
+  const historyView = useHistoryView(gd, session.user.id)
 
-  // ─── The commands, bound ───────────────────────────────
-  // Every command this game offers, in one order that three readers keep: this
-  // block, the info column's prop list, and the menu's rows. A binding is what
-  // the button, the menu row and the key all read, so none of them can drift
-  // from another — and `pending` grays every surface of one for the length of
-  // its run, which is why no handler here carries an in-flight flag of its own.
-  // None of them is a `useCallback`: `useBoundAction` reads its live half
-  // through a ref it refreshes every render, and the bound value's identity
-  // turns on `pending` alone.
-
-  // The shared trio — Stop / Concede / Restart. psychicnum's own bit is which
-  // `db` they call; a restart needs nothing else from this game, because the
-  // page unmounts the whole play surface when the run changes
-  // (common/game-page/doc.md). The turn-history view, a lingering result and
-  // the revealed secrets all go with it, so the same three are hunted blind
-  // again.
-  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
-    db,
-    gameId,
-    isTerminal,
-    mode,
-    isLocallyTerminal,
+  // ─── The commands, and the menu that lists them ────────
+  // Every command this game offers: the info column's action row places them,
+  // the menu lists them, and the reveal's state comes back for the board.
+  const { actions, secretsShown } = useBindActionsAndPublishMenu({
+    gd,
+    roster,
+    selfId: session.user.id,
     localFeedbackSlot,
+    clubHandle,
+    goToFollowUpGame,
+    menu,
+    brand,
   })
-
-  // Hint (a clue) and spoiler (the answer word itself) both land in the event
-  // log via realtime; coop teammates get a header message. Nothing to do with
-  // the return value here — those rows arrive over the subscription. "Reveal"
-  // on this page means one thing only: the whole solution at game-over, which
-  // is local FE state and no RPC at all.
-  async function getHint() {
-    const res = await runRpc<HintAnswer>(db.rpc('request_hint', { p_game_id: gameId }))
-    if (res.type === 'not-ok') {
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'hint') {
-      // Nothing to show: the clue arrives as a `kind = 'hint'` row over the
-      // subscription and lands in the event log, where it stays. A pill would
-      // say the same thing twice and then vanish.
-      return
-    } else if (res.type === 'ok' && res.data.result === 'no-hint') {
-      return
-    } else {
-      reportUnhandled('request_hint', res)
-      return
-    }
-  }
-
-  async function getSpoiler() {
-    const res = await runRpc<SpoilerAnswer>(db.rpc('request_spoiler', { p_game_id: gameId }))
-    if (res.type === 'not-ok') {
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'spoiler') {
-      // Same as the hint: the word arrives as a `kind = 'spoiler'` row and the
-      // event log is where it belongs — a spoiler you asked for should stay
-      // readable, not flash past.
-      return
-    } else {
-      reportUnhandled('request_spoiler', res)
-      return
-    }
-  }
-
-  // The hint and the spoiler. Grayed rather than dropped when you can't ask:
-  // the menu row is what NAMES those glyphs (docs/ui.md → the menu is the
-  // legend), so a disabled row still teaches the lightbulb and the bare eye.
-  const actHint = useBoundAction('act-hint', {
-    // Three states, not two: GONE once the game is over (there is no guess left
-    // to nudge), gray while the game is live and you are out of guesses, live
-    // otherwise. The in-flight beat is `pending`'s to gray, not this one's.
-    describe: () => (isTerminal ? 'hidden' : isStillPlaying ? 'active' : 'disabled'),
-    run: getHint,
-  })
-  const actSpoiler = useBoundAction('act-spoiler', {
-    // Same three states as the hint above.
-    describe: () => (isTerminal ? 'hidden' : isStillPlaying ? 'active' : 'disabled'),
-    run: getSpoiler,
-  })
-
-  // Show the three secrets, or hide them again — a LOCAL toggle: nothing is
-  // written and no peer is affected, so a teammate can go on hunting while I
-  // look. Both faces come from `describeReveal`, which is where the rule for
-  // every game's reveal lives.
-  const actReveal = useBoundAction('act-reveal', {
-    describe: (asker) => {
-      // The one narrowing this game adds: no BUTTON until EVERYONE is done, so
-      // a player who dropped out cannot spoil a race that is still running. The
-      // menu row and the Help list keep it all game, grayed, because they NAME
-      // the glyph (docs/ui.md → the menu is the legend).
-      if (isStillPlaying && asker === 'button') return 'hidden'
-      return describeReveal({ noun: 'solution', revealed: secretsShown, impliedBySolve, isTerminal })
-    },
-    run: toggleSecrets,
-  })
-
-  // New game — a FRESH game (new id, a new random board + secrets) with THIS
-  // game's setup + roster + mode, in the same club. psychicnum's create_game
-  // samples its board inline, so this is a direct RPC — no edge function.
-  // Non-destructive (common._create_game un-currents this game into the club
-  // list), so no confirm; the creator jumps in via ctx.goToFollowUpGame, peers arrive
-  // via the game-invitation toast.
-  async function createNewGame() {
-    const res = await runRpc<CreatedGame>(
-      db.rpc('create_game', {
-        p_club_handle: clubHandle,
-        p_setup: setup,
-        p_player_user_ids: players.map((p) => p.user_id),
-        p_mode: mode,
-      }),
-    )
-    if (res.type === 'not-ok') {
-      // Shown even for a fault whose modal has already fired: a modal escalates
-      // rather than replaces, so the board must not go silent when it is
-      // dismissed. See docs/envelopes.md.
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToFollowUpGame(res.data.id)
-      return
-    } else {
-      reportUnhandled('create_game', res)
-      return
-    }
-  }
-
-  // New game — its `+`, its menu row and its terminal button, from one binding.
-  // The registry asks NEW_GAME_CONFIRM mid-play (an accidental `+` should not
-  // read as "I just lost my game" — the text says shelved, not ended) and goes
-  // straight through at terminal, and the shared run's single flight is what
-  // stops a second press dealing a second game.
-  const actNewGame = useBoundAction('act-new-game', {
-    terminal: isTerminal,
-    // Reachable all game from the menu and `+` — NEW_GAME_CONFIRM is written
-    // for that ("will be shelved, not lost", "Keep playing"). A BUTTON only at
-    // the end, where "deal another" is what you came to the row for.
-    describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
-    run: createNewGame,
-  })
-
-  // Print builds its model from the live state at CLICK time (RLS already
-  // scoped `guesses`/`results` to what I may see), so it works mid-game or at
-  // the end — and so the menu needn't rebuild when the board changes.
-  const actPrintBoard = useBoundAction('act-print-board', {
-    describe: () => 'active',
-    run: () => {
-      // The board/turn/score judgment (whose marks belong on whose board — one
-      // merged track in coop, one PER PLAYER at compete terminal) lives in the
-      // pure builder; see pdf/model.ts.
-      printPsychicnumPdf(
-        buildPsychicnumPrintModel({
-          brand,
-          gameTitle: title,
-          date: new Date().toLocaleDateString(),
-          mode,
-          isTerminal,
-          words: game.words,
-          guesses,
-          players,
-          selfId: session.user.id,
-          setupRows,
-        }),
-      )
-    },
-  })
-
-  // ─── The menu ──────────────────────────────────────────
-  // The FULL psychicnum game menu. `buildGameMenu` supplies the framing (Help +
-  // chat above, Back to club below); the middle is this game's own rows, each
-  // one a binding it already made — so a row's words, glyph, key and
-  // availability come from the action rather than being typed here a second
-  // time. The effect re-runs only when the SHAPE changes, which is why every
-  // dep is a stable value.
-  //
-  // **The rows read as the info column's action row does, divider for divider.**
-  // The two are views of the same bindings, so a player who learned the row
-  // finds the menu in the same order (docs/playarea.md). Print is the one row
-  // with no twin in the row, and sits after them.
-  useEffect(function publishGameMenu() {
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
-        // Both exits, in reading order; each hides itself in the mode that
-        // isn't its own, so this list is the same in coop and compete.
-        exits: [actConcede, actStopGame],
-        extra: [
-          // The menu twins of the info column's hint and spoiler buttons.
-          { items: [actHint, actSpoiler] },
-          {
-            items: [
-              // The menu twin of the terminal row's boxed-eye button — the same
-              // binding, so a player who has scrolled past the row reaches the
-              // identical toggle, wearing the identical face.
-              actReveal,
-              // The same pair the terminal action row offers, reachable mid-game too.
-              actRestart,
-              actNewGame,
-            ],
-          },
-          { items: [actPrintBoard] },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, actConcede, actStopGame, actHint, actSpoiler, actReveal,
-      actRestart, actNewGame, actPrintBoard])
 
   // ─── Render ────────────────────────────────────────────
-  // Everything below is derived fresh each render and read only by the JSX —
-  // nothing here is a hook, which is why it may sit after the menu effect.
 
-  // Guessed words → was-it-a-secret, for the board's permanent green/red.
-  // Hint and spoiler rows are excluded — neither marks a tile. In compete
-  // RLS scopes `guesses` to the caller, so this is the viewer's own board.
-  const guessed = guesses.filter((g) => g.kind === 'guess')
-  const results = new Map(guessed.map((g) => [g.word, g.is_correct]))
+  // The live board, with the secrets added while I have them revealed.
+  const liveTileResults = secretsShown
+    ? addRevealedSecrets(gd.board.tileResults, gd.secrets ?? [])
+    : gd.board.tileResults
 
-  // WHO decided each tile — the identity dot the board draws on a decided tile
-  // (coop only; see `<Board>`). Built from the guess rows rather than from
-  // `results`, which is what keeps a REVEALED secret dot-less: nobody guessed it.
-  const decidedBy = new Map(
-    guessed.map((g) => [g.word, memberById(players, g.user_id)]),
-  )
-
-  // A revealed secret joins `results` as a HIT rather than getting a mark of its
-  // own: green means "this word is a secret", and the reveal is what makes me
-  // know it. Found-versus-peeked stays answerable — the toggle un-reveals, and in
-  // coop a found secret carries its guesser's dot while a revealed one has none.
-  const shown = new Map(results)
-  if (secretsShown) for (const w of game.secrets ?? []) if (!shown.has(w)) shown.set(w, true)
-
-  // When a past turn is open, `historySnap` is that turn's board (else null =
-  // live) — the tiles decided up to that turn + the tile it decided (ringed). Stable:
-  // a later realtime guess only grows the log past historyId, so a past turn holds.
-  //
-  // WHOSE board it replays is the row's own author's. Mid-game compete that is
-  // always me (RLS shows me nothing else), but at TERMINAL every player's rows
-  // arrive, and a `#N` on one of theirs has to fold THEIR guesses — folding the
-  // whole table would draw a board nobody ever played. Coop is one shared board,
-  // so the filter is a no-op there.
-  const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
-  const historyRows =
-    isCompete && historyRow
-      ? guesses.filter((g) => g.user_id === historyRow.user_id)
-      : guesses
-  const historySnap = historyId !== null ? historySnapshot(historyRows, historyId) : null
-  // Named only when the board on screen is not the viewer's own — which only
-  // compete can be. Coop is one shared board, so a teammate's row replays the
-  // board you are already looking at and there is no "whose" to answer.
-  const historyActor =
-    isCompete && historyRow && historyRow.user_id !== session.user.id
-      ? memberById(players, historyRow.user_id)
-      : undefined
+  // The ending that applies to me: the game's once it has ended, else mine.
+  const endingMessage = gameEndingMessage ?? playerEndingMessage
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
+
       <BoardCol
-        // ── Mobile-only status strip (the SAME StateLine the InfoCol renders;
-        //    on a phone the info column is off-canvas in the InfoSheet) ──
-        mobileStatus={
-          <StateLine
-            found={found}
-            secretCount={secretCount}
-            guessesUsed={guessesUsed}
-            maxGuesses={maxGuesses}
-          />
-        }
-        // ── Board to render (live OR the historical snapshot — picked here) ──
-        words={game.words}
-        results={historySnap ? historySnap.results : shown}
-        // Who decided each tile — only where the answer can differ: a SHARED
-        // board (compete shows you nobody's guesses but your own) with more than
-        // one player on it (in a solo game every tile has the same one possible
-        // author, so a dot per tile is a label that says "you" nine times). A
-        // history snapshot carries the same rows, so it keeps its dots.
-        decidedBy={!isCompete && players.length > 1 ? decidedBy : null}
-        historyLitWord={historySnap?.historyLitWord ?? null}
-        // ── History viewer ──
-        historyLabel={historySnap?.historyLabel ?? null}
-        historyActor={historyActor}
-        onExitHistory={exitHistory}
-        // ── Guess dispatch (BoardCol owns submit_guess) ──
-        gameId={gameId}
-        // Where I stand, as the page computed it. While I wait, the waiting
-        // message takes the below-board slot (same height), so the frozen board
-        // explains itself instead of silently ignoring taps.
-        isStillPlaying={isStillPlaying}
-        isBoardInteractive={isBoardInteractive}
-        isMyTurn={isMyTurn}
-        // ── The below-board slot: BoardCol shows results into it and draws it ──
+        gd={gd}
+        // A past turn's board while one is open, else the live one.
+        tileResults={historyView.tileResults ?? liveTileResults}
+        historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
-        // ── Board-scope marks ──
-        // The finished board wears its verdict; it is the same terminal message
-        // the below-board slot shows, so the two can't disagree.
-        terminalOutcome={terminalMessage ? terminalMessage.outcome : null}
-        isWaitingForTurn={isWaitingForTurn}
+        endingOutcome={endingMessage?.outcome ?? null}
         myTurnJustStarted={turnFlash}
-        // The CAUSE the attention flash reads: a board that changed while this
-        // stood still was revealed or re-dealt, not played into. Restart deletes
-        // the guess rows, so it moves back down.
-        moveCount={guessed.length}
       />
+
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
-        // ── Mode + phase ──
-        isCompete={isCompete}
-        terminalMessage={terminalMessage}
-        isStillPlaying={isStillPlaying}
-        isConceded={isConceded}
-        // ── Turn-order: my move (gates the help line), and whose-turn line ──
-        isMyTurn={isMyTurn}
-        isTurnBased={isTurnBased}
-        turnHolderId={turnHolderId}
-        // ── State readout ──
-        found={found}
-        secretCount={secretCount}
-        guessesUsed={guessesUsed}
-        maxGuesses={maxGuesses}
-        // ── Players (OpponentStrip, compete) ──
-        players={players}
-        selfId={session.user.id}
-        // ── Action row — the same bindings, in the order the menu lists them ──
-        actHint={actHint}
-        actSpoiler={actSpoiler}
-        actReveal={actReveal}
-        actRestart={actRestart}
-        actNewGame={actNewGame}
-        actConcede={actConcede}
-        actStopGame={actStopGame}
-        actBackToClub={menu.actBackToClub}
-        // ── Setup disclosure ──
-        setupRows={setupRows}
-        // ── Turn-history log ──
-        guesses={guesses}
-        isTerminal={isTerminal}
-        historyId={historyId}
-        onShowHistory={showHistory}
+          gd={gd}
+          roster={roster}
+          selfId={session.user.id}
+          gameEndingMessage={gameEndingMessage}
+          playerEndingMessage={playerEndingMessage}
+          actions={actions}
+          historyView={historyView}
         />
       </InfoSheet>
 
-      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
-          in-page by the below-board pill + the info-column outcome line, and MY
-          win gets the celebration instead — once, when it happens. */}
+      {/* My win's confetti — once, when it happens. */}
       {celebration.show && (
         <CelebrationBlockingModal
           title="You win! 🎉"
-          body={isCompete ?'You found all three first.' : 'All three secret words found.'}
+          body={gd.isCompete
+            ? 'You found all three first.'
+            : 'All three secret words found.'}
           onClose={celebration.close}
         />
       )}

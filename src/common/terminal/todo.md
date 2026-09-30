@@ -2,6 +2,14 @@
 
 ## Bugs
 
+- **A Stop drops a win that already stands.** docs/win-lose.md → `stopped`
+  says a Stop keeps the win of a game already `decided` (`decided-stands`):
+  in a wordle race I have beaten moth and she plays on, and a Stop then
+  leaves me `won`. `common._stop` calls `common._end_game` with no
+  rankings, so every player comes out `neutral` except a conceder, who is
+  `lost`. Make the SQL keep the win; the front end reads whatever outcome
+  the database writes and needs no change.
+
 ## Soon
 
 ## Someday

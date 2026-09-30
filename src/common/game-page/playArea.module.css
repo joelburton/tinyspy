@@ -608,24 +608,29 @@
  * They can co-occur (a finished game can be put into the viewer) and an element
  * has only one outline, so the board drops this while the viewer is open — the
  * viewer is the state you chose and the one you can leave. */
-/* @@ */ .gameOverFrame {
-  /* Neutral unless an outcome class below re-sets it — an ENDED game (nobody beat
-   * anybody) keeps the plain gray. */
-/* @@ */   --game-over-frame: var(--outcomes-neutral-terminalFrame-color);
-  outline: 4px solid var(--game-over-frame);
+/* @@ */ .endingFrame {
+  /* Neutral unless an outcome class below re-sets it — an ending nobody won or
+   * lost keeps the plain gray. */
+/* @@ */   --ending-frame: var(--outcomes-neutral-terminalFrame-color);
+  outline: 4px solid var(--ending-frame);
   outline-offset: 3px;
 }
 
-/* The outcome faces of the same frame. A finished game always has a verdict, and
- * this band is already the biggest thing on screen saying "finished", so it may
- * as well say WHICH. Declared after `.gameOverFrame` — they land on the same
- * element, so same-file order settles it. */
-/* @@ */ .gameOverWon {
-/* @@ */   --game-over-frame: var(--outcomes-won-terminalFrame-color);
+/* The outcome faces of the same frame, one per outcome, read as
+ * `endingFrame_${outcome}`. An ending always has an outcome, and this band is
+ * already the biggest thing on screen saying "ended", so it may as well say
+ * WHICH. Declared after `.endingFrame` — they land on the same element, so
+ * same-file order settles it. */
+/* @@ */ .endingFrame_won {
+/* @@ */   --ending-frame: var(--outcomes-won-terminalFrame-color);
 }
 
-/* @@ */ .gameOverLost {
-/* @@ */   --game-over-frame: var(--outcomes-lost-terminalFrame-color);
+/* @@ */ .endingFrame_lost {
+/* @@ */   --ending-frame: var(--outcomes-lost-terminalFrame-color);
+}
+
+/* @@ */ .endingFrame_neutral {
+/* @@ */   --ending-frame: var(--outcomes-neutral-terminalFrame-color);
 }
 
 /* ATTENTION — this changed, look here.

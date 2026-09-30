@@ -41,11 +41,12 @@ apart from its neighbors is how a vocabulary stops being one.
   fails unless every member has all seven color roles — in both themes, since a
   separate check there holds the two theme files to one token set.
 - **A subset is `Extract`ed from the list and lives with its consumer**, not
-  here: `TerminalOutcome` in `common/terminal/`.
+  here: `EndOutcome` in `common/terminal/gameEnding.ts`.
   Cutting it from `Outcome` means renaming a member breaks the subset instead of
   quietly leaving it behind, and keeping subsets out of this folder stops it
   becoming a catalog of everyone's special cases.
-- **A subset has to earn being narrower.** "How a finished game reads" genuinely
-  is three words, because `near` and `warning` judge a move and a finished game
-  has no more moves. "How a turn reads" is not narrower at all — any outcome can
-  be a turn's outcome.
+- **A subset has to earn being narrower.** "How an ending reads" is four words
+  — `won`, `lost`, `near` (ranked below first) and `neutral` — because
+  `warning` and `noted` judge a move and `error` a fault, and an ending is
+  neither. "How a turn reads" is not narrower at all — any outcome can be a
+  turn's outcome.

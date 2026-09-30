@@ -8,6 +8,7 @@ import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { cls } from '@/common/utils/cls'
@@ -290,11 +291,10 @@ function PlayArea({
     () => (isTerminal ? buildTerminalMessage({ playState, reason }) : null),
     [isTerminal, playState, reason],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!terminalMessage) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(terminalMessage))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, terminalMessage])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: terminalMessage,
+    playerEndingMessage: null,
+  })
 
   // ─── Narration — what my PARTNER is doing, in the header slot ───
   // About somebody else, which is what puts it in the global slot rather than

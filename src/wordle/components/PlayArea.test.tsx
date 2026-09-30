@@ -844,8 +844,8 @@ describe('wordle PlayArea — the board-scope marks', () => {
     ])
     render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
 
-    expect(board().className).toMatch(/gameOverFrame/)
-    expect(board().className).toMatch(/gameOverWon/)
+    expect(board().className).toMatch(/endingFrame/)
+    expect(board().className).toMatch(/endingFrame_won/)
 
     // The keyboard STAYS, disabled: its caps hold the color every letter
     // earned, which is the record of the game just played. Both halves are
@@ -863,14 +863,14 @@ describe('wordle PlayArea — the board-scope marks', () => {
     ])
     render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
-    expect(board().className).toMatch(/gameOverLost/)
-    expect(board().className).not.toMatch(/gameOverWon/)
+    expect(board().className).toMatch(/endingFrame_lost/)
+    expect(board().className).not.toMatch(/endingFrame_won/)
   })
 
   it('leaves a live board unmarked, with a usable keyboard', () => {
     render(<PlayAreaLoader {...makeCtx()} />)
 
-    expect(board().className).not.toMatch(/gameOver/)
+    expect(board().className).not.toMatch(/endingFrame/)
     expect(within(keyboard()).getByRole('button', { name: /^a$/i })).toBeEnabled()
   })
 

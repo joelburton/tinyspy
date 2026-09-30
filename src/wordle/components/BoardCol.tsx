@@ -2,7 +2,7 @@
 
 import { notOkOutcome, runRpc } from '@/common/supabase/dbResult'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { useCallback, useState } from 'react'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
@@ -118,7 +118,7 @@ export function BoardCol({
   // ── Board-scope marks ──
   // The game is finished, and how — bands the board in that outcome. Null while
   // live.
-  terminalOutcome: TerminalOutcome | null
+  terminalOutcome: EndOutcome | null
   // A teammate holds the move, so the board dims.
   isWaitingForTurn: boolean
   // True for a beat as the turn becomes mine — the frame flashes yellow.

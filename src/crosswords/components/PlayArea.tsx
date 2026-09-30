@@ -10,6 +10,7 @@ import { useAppAction, useBoundAction, type ActionState } from '@/common/actions
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { useFeedbackSlot, useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { describeReveal } from '@/common/reveal/describeReveal'
@@ -858,11 +859,10 @@ type Explained =
         : null,
     [isTerminal, playState, mode, timedOut, winnerId, myId, winnerName, winnerColor],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: over,
+    playerEndingMessage: null,
+  })
 
   // Out of the race while the others play on — a conceded compete player, so
   // their grayed-out input has an explanation.

@@ -8,6 +8,8 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
+import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useTabRing } from '@/common/keyboard/useTabRing'
@@ -520,23 +522,12 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // "Waiting for ● Name…" — below the board, and it shares that slot with the
   // your-turn prompt below, which is safe because the two are exclusive on
-  // `isMyTurn`. Deps are PRIMITIVES — the holder's name and color, not the
-  // member object — so a fresh `players` array on a re-render doesn't look
-  // like a change.
-  const turnHolder = players.find((p) => p.user_id === turnHolderId)
-  const holderName = turnHolder?.username
-  const holderColor = turnHolder?.color
-  useEffect(function showWaiting() {
-    if (!isWaitingForTurn) return
-    const id = localFeedbackSlot.show(
-      FeedbackMessage.waiting(
-        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
-      ),
-    )
-    // The cleanup covers every way the wait can end — the turn arriving, the
-    // game finishing, a peer conceding, leaving the page.
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
+  // `isMyTurn`.
+  useShowWaitingMessage({
+    slot: localFeedbackSlot,
+    isWaiting: isWaitingForTurn,
+    holder: players.find((p) => p.user_id === turnHolderId),
+  })
 
   // The terminal message, memoized on primitives so the verdict effect sees
   // one object per outcome. The compete names are reduced to strings here.
@@ -568,11 +559,10 @@ export function PlayArea(ctx: GamePageCtx) {
         : null,
     [isTerminal, gameMode, playState, statusOutcome, teamFound, stranded, iWon, winners.length, topFound, winnerNames],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: over,
+    playerEndingMessage: null,
+  })
 
   // Out of the race while the others play on (compete only; the page's
   // `isLocallyTerminal` — in this game only by conceding).

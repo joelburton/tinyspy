@@ -18,6 +18,7 @@ import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingM
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
@@ -491,11 +492,10 @@ export function PlayArea(ctx: GamePageCtx) {
     [isTerminal, gameMode, playState, statusOutcome, myCount, myScore, isConceded, myId,
      winnerId, winnerName, winnerColor, leaderMax, leaderName, leaderColor],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: over,
+    playerEndingMessage: null,
+  })
 
   // Out of the race while the others play on (compete only; the page's
   // `isLocallyTerminal`). boggle has no elimination, so conceding is the only

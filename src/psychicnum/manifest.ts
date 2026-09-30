@@ -37,7 +37,7 @@ import logoUrl from './logo.svg?url'
  *     the game page reads the row's own, `GamePageCtx.mode`.
  *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
  *     requires an opposing player (`[2, 6]`).
- *   - `labelFor`: the terminal label reads differently per mode.
+ *   - `labelFor`: the ended game's label reads differently per mode.
  *
  * Both share `baseGametype: 'psychicnum'` — the family key any
  * code wanting "treat these as siblings" reads.

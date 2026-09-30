@@ -11,6 +11,7 @@ import { db } from '../db'
 import { useGame, type FoundWordRow, type WordwheelGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { memberById } from '@/common/members/memberList'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
@@ -237,11 +238,10 @@ function PlayArea(props: PlayAreaProps) {
     [isTerminal, game.mode, playState, reason, winnerId, winnerName, winnerColor, targetRankIdx,
      foundWordsScore, requiredWordsScore, selfRankIdx, session.user.id],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!terminalMessage) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(terminalMessage))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, terminalMessage])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: terminalMessage,
+    playerEndingMessage: null,
+  })
 
   // Out of the race while the others play on — in this game only by
   // conceding (compete only).

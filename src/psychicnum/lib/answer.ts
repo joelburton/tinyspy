@@ -102,7 +102,9 @@ export function eventToOutcome(row: LoggedEvent): Outcome {
  * whatever it was, with the words that go in the header line.
  *
  * The caller has already established that the row is not the viewer's own (its
- * own line is the local slot's).
+ * own line is the local slot's). A peer's spoiler reads without the word —
+ * `spoiler_peer` carries none — so a teammate's spoiler never spoils the
+ * answer for me.
  */
 export function peerAnswerMessage(row: LoggedEvent): AnswerMessage {
   if (row.kind === 'hint') return answerMessage({ answerType: 'hint_peer' })

@@ -793,10 +793,12 @@ begin
       update common.game_players
          set solved_at = now()
        where game_id = p_game_id and user_id = caller_id;
-      perform common._set_player_ended(p_game_id, caller_id, 'reached_goal', 'solved');
+      -- `neutral`: fewer guesses may yet beat it (`announce-when-ended`).
+      perform common._set_player_ended(p_game_id, caller_id, 'reached_goal', 'solved', 'neutral');
       out_terminal := wordle._maybe_finish_compete(p_game_id, 'reached_goal', 'solved', caller_id);
     elsif new_used >= g_row.max_guesses then
-      perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'exhausted');
+      -- Eliminated: `lost` at once (`loses-by-move-budget`).
+      perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'exhausted', 'lost');
       out_terminal := wordle._maybe_finish_compete(p_game_id, 'resource_exhausted', 'exhausted', caller_id);
     end if;
   end if;

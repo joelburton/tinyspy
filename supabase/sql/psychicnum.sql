@@ -637,7 +637,8 @@ begin
   -- not hold the presence-pause open. (Coop's budget is the team's, so a spent
   -- one ends the game below instead.)
   if v_mode = 'compete' and caller_used + 1 >= g.max_guesses then
-    perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'exhausted');
+    -- Eliminated: `lost` at once (`loses-by-move-budget`).
+    perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'exhausted', 'lost');
   end if;
 
   -- A correct guess found a new secret (the already-guessed guard above means
@@ -1152,7 +1153,7 @@ drop function if exists psychicnum.replay_board(uuid);
 -- ============================================================
 -- psychicnum.replay_board — restart this board from scratch
 -- ============================================================
--- The "Replay board" game-menu item / terminal-row Restart: reset the
+-- The "Replay board" game-menu item / the ended game's Restart: reset the
 -- working state on the SAME game row. The frozen puzzle (words /
 -- secrets / budget) stays — the same board and the same three secrets,
 -- hunted again; everything the players did is wiped. Any game player

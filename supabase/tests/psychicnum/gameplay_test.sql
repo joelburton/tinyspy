@@ -56,7 +56,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(45);
+select plan(46);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -484,6 +484,14 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
   'resource_exhausted/exhausted',
   'compete: a spent budget ends the player out of guesses, not conceded'
+);
+-- Eliminated, so `lost` at once (docs/win-lose.md → `outcome-at-player-end`).
+select is(
+  (select outcome from common.game_players
+    where game_id = (select id from comp_loss)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
+  'lost',
+  'compete: a player out of guesses is lost at once'
 );
 
 select is(

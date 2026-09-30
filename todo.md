@@ -24,6 +24,16 @@ decision against, so a review doesn't propose it again
   `touch-action: manipulation` on the tap-heavy boards is meant to stop iOS
   double-tap zoom and the tap delay: confirm on iOS that rapid taps don't zoom.
 
+- **One declaration for CSS custom properties in `style`.** React's
+  `CSSProperties` has no entry for `--x`, so the app works around it three
+  ways: a computed key (`['--cols' as string]`, 18 in 8 files), a cast of the
+  whole object (`{ … } as CSSProperties`, in wordwheel, letterboxed, setgame,
+  ChatButton), which also hides a typo in a real property, and a typed-out
+  `CSSProperties` object (crosswords). A `.d.ts` that widens it —
+  `declare module 'react' { interface CSSProperties { [key: `--${string}`]:
+  string | number } }` — makes `{ '--cols': cols }` type-check with no cast,
+  still rejects an unknown real property, and lets every workaround go.
+
 ## Someday
 
 - **The guards' comment strippers can blank real code.** Several guards strip

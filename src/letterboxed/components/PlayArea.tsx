@@ -13,6 +13,8 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
+import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { BOARD_SIZE, rejectReason, tailLetter } from '../lib/board'
 import { isSuggestion, suggest } from '../lib/solve'
@@ -646,11 +648,10 @@ export function PlayArea(ctx: GamePageCtx) {
     [isTerminal, gameMode, playState, timedOut, statusOutcome, winnerId, leaderboard,
      session.user.id, lettersCovered, chain.length],
   )
-  useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: over,
+    playerEndingMessage: null,
+  })
 
   // Out of the race while the others play on (compete only; the page's
   // `isLocallyTerminal` — in this game only by conceding).
@@ -660,21 +661,12 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
-  // A teammate holds the move (turn-order coop; never in a free-for-all). On a
-  // phone the InfoCol's TurnStatusLine is off-canvas, so this is the only
-  // whose-turn indicator.
-  const turnHolder = players.find((p) => p.user_id === turnHolderId)
-  const holderName = turnHolder?.username
-  const holderColor = turnHolder?.color
-  useEffect(function showWaiting() {
-    if (!isWaitingForTurn) return
-    const id = localFeedbackSlot.show(
-      FeedbackMessage.waiting(
-        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
-      ),
-    )
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
+  // A teammate holds the move (turn-order coop; never in a free-for-all).
+  useShowWaitingMessage({
+    slot: localFeedbackSlot,
+    isWaiting: isWaitingForTurn,
+    holder: players.find((p) => p.user_id === turnHolderId),
+  })
 
   // The cap is spent and the board isn't covered. There is no legal move left
   // but taking a word back, so the board and the entry both go inert rather

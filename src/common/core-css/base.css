@@ -419,7 +419,7 @@
                     register as a message at all. The floor is
                     recognition.
      A finished board is NOT on this list, and deliberately: it wears
-     a frame instead (`.gameOverFrame`), because a dim that never
+     a frame instead (`.endingFrame`), because a dim that never
      lifts is not the transient inactivity these two mean, and a
      finished board is the one people sit and study afterwards. See
      plans/tile-feedback.md.

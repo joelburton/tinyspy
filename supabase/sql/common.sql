@@ -1684,11 +1684,13 @@ begin
   end if;
 
   -- A concession is one of the ways a player ends (docs/win-lose.md → Where a
-  -- player stands), and the one that forfeits a win.
+  -- player stands), and the one that forfeits a win: `lost` at once
+  -- (docs/win-lose.md → `outcome-at-player-end`).
   update common.game_players
      set player_ended_at = now(),
          player_ended_reason = 'conceded',
-         player_ended_reason_detail = 'conceded'
+         player_ended_reason_detail = 'conceded',
+         outcome = 'lost'
    where game_id = p_game_id and user_id = caller_id;
 
   if not exists (
@@ -1754,6 +1756,9 @@ $$;
 revoke execute on function common._stop(uuid) from public;
 
 drop function if exists common._set_locally_terminal(uuid, uuid);
+-- The four-argument form, before the outcome joined it; supabase/sql is
+-- re-applied, not diffed, so the old signature needs an explicit drop.
+drop function if exists common._set_player_ended(uuid, uuid, text, text);
 
 -- ─── common._set_player_ended ──────────────────────────────
 -- Mark one player ended while the game plays on, for a reason that is
@@ -1762,8 +1767,11 @@ drop function if exists common._set_locally_terminal(uuid, uuid);
 -- is why the fact has to be told to `common` rather than derived
 -- here. `p_reason` is one of the player's five reasons and
 -- `p_reason_detail` the game's own word for it ('mistakes',
--- 'exhausted', 'solved'). Conceding is the one reason `common` knows
--- itself: `_concede` writes it directly.
+-- 'exhausted', 'solved'). `p_outcome` is how the caller judges the
+-- player came out, read off the game's card (docs/win-lose.md →
+-- `outcome-at-player-end`): `lost`, `won`, or `neutral` when the game
+-- cannot judge yet. The game's end rewrites it. Conceding is the one
+-- reason `common` knows itself: `_concede` writes it directly.
 --
 -- The roster that presence-pause watches is the players who haven't
 -- ended: a finished player's closed tab must not stop the game for
@@ -1773,13 +1781,14 @@ drop function if exists common._set_locally_terminal(uuid, uuid);
 -- already locked the game, checked membership and decided the player
 -- has ended; a second membership check here would be a second answer
 -- to a question already settled. Idempotent — a player who has ended
--- keeps their first time and reason — so the branch that calls it
--- does not have to ask whether it already did.
+-- keeps their first time, reason and outcome — so the branch that calls
+-- it does not have to ask whether it already did.
 create or replace function common._set_player_ended(
   p_game_id uuid,
   p_user_id uuid,
   p_reason text,
-  p_reason_detail text
+  p_reason_detail text,
+  p_outcome text
 )
 returns void
 language sql
@@ -1789,14 +1798,15 @@ as $$
   update common.game_players
      set player_ended_at = now(),
          player_ended_reason = p_reason,
-         player_ended_reason_detail = p_reason_detail
+         player_ended_reason_detail = p_reason_detail,
+         outcome = p_outcome
    where game_id = p_game_id and user_id = p_user_id
      and player_ended_at is null;
 $$;
 
 -- No grant to authenticated; internal helper (reached from the
 -- gametype RPCs, which are themselves definers).
-revoke execute on function common._set_player_ended(uuid, uuid, text, text) from public;
+revoke execute on function common._set_player_ended(uuid, uuid, text, text, text) from public;
 
 
 -- Dropped, not replaced: this returned `void` before it answered in an

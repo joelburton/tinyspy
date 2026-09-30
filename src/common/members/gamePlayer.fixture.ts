@@ -34,9 +34,11 @@ export function gp(
   }
 }
 
-/** The ending columns of a player who conceded, for `gp`'s `over`. */
+/** The ending columns of a player who conceded, for `gp`'s `over` — `lost`
+ *  from the moment they conceded, as `common._concede` writes it. */
 export const CONCEDED = {
   player_ended_at: '2026-09-03T00:00:00Z',
   player_ended_reason: 'conceded',
   player_ended_reason_detail: 'conceded',
+  outcome: 'lost',
 } as const satisfies Partial<GamePlayer>
