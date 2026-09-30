@@ -20,9 +20,9 @@ function gdWith(isCompete: boolean): GameData {
   return {
     isCompete,
     events: EVENTS,
-    players: {
-      u1: { userId: 'u1', username: 'me', color: 'red' },
-      u2: { userId: 'u2', username: 'moth', color: 'blue' },
+    playersById: {
+      u1: { user_id: 'u1', username: 'me', color: 'red' },
+      u2: { user_id: 'u2', username: 'moth', color: 'blue' },
     },
   } as unknown as GameData
 }

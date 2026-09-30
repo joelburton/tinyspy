@@ -4,11 +4,6 @@
 
 ## Soon
 
-- **Judge the `gd` trial below the columns.** `BoardCol` and `InfoCol` take
-  `gd` whole; everything below them (`Board`, the shared readouts, the event
-  log) still takes its own props, and the page's players travel beside `gd` as
-  `roster` because the shared pieces take `Member[]`. Decide whether the
-  shared pieces take `gd.players` too, or `roster` stays.
 
 - **Doc and comments that say what the code does not.**
   - `doc.md`, under `psychicnum.request_spoiler(target_game)`: "in coop

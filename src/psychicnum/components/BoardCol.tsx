@@ -82,7 +82,7 @@ export function BoardCol({
 
   // Who decided each tile, only where the answer can differ: a shared board
   // (compete shows you only your own guesses) with more than one player on it.
-  const isDecidedByShown = !gd.isCompete && gd.numPlayers > 1
+  const isDecidedByShown = !gd.isCompete && gd.players.length > 1
   const shownDecidedBy = isDecidedByShown ? gd.board.decidedBy : null
 
   const isPhone = useIsPhone()

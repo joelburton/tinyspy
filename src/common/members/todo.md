@@ -34,6 +34,13 @@
   declaration's docstring needs the declaration in front of you. Recorded so
   the divergence reads as deliberate rather than as an oversight.
 
+- **Rename `GamePlayer` once every game has its own player type.** It is the
+  `common.game_players` row as the page reads it, and a converted game reads it
+  only in its `useGame`, where it builds its own (psychicnum's
+  `PsychicnumPlayer`). With no bare-`GamePlayer` reader left in a game, the
+  name should say it is common's: `CommonGamePlayer`, beside `CommonGame` and
+  `CommonGameListRow`.
+
 ## Maybe
 
 - **Do peer marks want the edge shade?** Crosswords' peer cursor frame and

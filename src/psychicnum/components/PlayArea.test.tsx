@@ -53,10 +53,13 @@ vi.mock('../hooks/useGame', async (importOriginal) => {
   return {
     ...real,
     useGame: (ctx: GamePageCtx) => {
-      const players = real.makePlayers(ctx.players, real.readGameStatus(ctx).required_secrets_count)
+      const playersById = real.makePlayersById(
+        ctx.players,
+        real.readGameStatus(ctx).required_secrets_count,
+      )
       const setupRows = makeSetupRows(real.readSetup(ctx), ctx.mode, ctx.players)
       return {
-        gd: real.makeGameData(ctx, h.loaded, players, setupRows),
+        gd: real.makeGameData(ctx, h.loaded, playersById, setupRows),
         loading: false,
         failure: null,
       }
@@ -114,7 +117,7 @@ function withPlayerStatus(p: GamePlayer): GamePlayer {
 }
 
 /** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster's endings, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly
+ *  players' endings, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly
  *  as the page derives it (`whereIStand`), so a test sets up the facts and
  *  never hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {

@@ -9,8 +9,9 @@ import { useShowOppsFoundMessages } from './useShowOppsFoundMessages'
 /** A player with a count of secrets found; nothing else here is read. */
 function player(userId: string, username: string, found: number): PsychicnumPlayer {
   return {
-    userId, username, color: 'blue', playerEnding: null, outcome: null, finalRanking: null,
-    solvedAt: null, foundSecretsCount: found, guessesUsed: 0, foundAllSecrets: false,
+    user_id: userId, username, color: 'blue', playerEnding: null, outcome: null,
+    finalRanking: null, solvedAt: null, foundSecretsCount: found, guessesUsed: 0,
+    foundAllSecrets: false,
   }
 }
 
@@ -18,7 +19,7 @@ function player(userId: string, username: string, found: number): PsychicnumPlay
 function gdWith(isCompete: boolean, mine: number, moths: number): GameData {
   return {
     isCompete,
-    players: { u1: player('u1', 'me', mine), u2: player('u2', 'moth', moths) },
+    players: [player('u1', 'me', mine), player('u2', 'moth', moths)],
   } as unknown as GameData
 }
 

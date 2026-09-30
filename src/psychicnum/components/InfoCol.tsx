@@ -6,8 +6,7 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import type { Member } from '@/common/members/member'
-import type { GameData } from '../hooks/useGame'
+import type { GameData, PsychicnumPlayer } from '../hooks/useGame'
 import type { HistoryView } from '../hooks/useHistoryView'
 import type { PsychicnumActions } from '../hooks/useBindActionsAndPublishMenu'
 import { GameEventLog } from './GameEventLog'
@@ -23,15 +22,12 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  */
 export function InfoCol({
   gd,
-  roster,
   selfId,
   endingMessage,
   actions,
   historyView,
 }: {
   gd: GameData
-  // The page's players, in the shape the shared pieces take.
-  roster: Member[]
   selfId: string
   // The ending that applies to me — the game's once it has ended, else mine —
   // or null while I can still play.
@@ -44,10 +40,8 @@ export function InfoCol({
     : undefined
 
   // A player who has ended reads "out"; everyone else shows their progress.
-  function getScoreOrOut(member: Member) {
-    const gdPlayer = gd.players[member.user_id]
-    if (gdPlayer?.playerEnding) return 'out'
-    return gdPlayer?.foundSecretsCount ?? 0
+  function getScoreOrOut(player: PsychicnumPlayer) {
+    return player.playerEnding ? 'out' : player.foundSecretsCount
   }
 
   return (
@@ -59,14 +53,14 @@ export function InfoCol({
         {gd.isTurnBased && (
           <TurnStatusLine
             turnHolderId={gd.turnHolderId}
-            players={roster}
+            players={gd.players}
             selfId={selfId}
             isTerminal={gd.isGameEnded}
           />
         )}
         {gd.isCompete && (
           <OpponentStrip
-            players={roster}
+            players={gd.players}
             selfId={selfId}
             metricLabel="Found"
             metricFor={getScoreOrOut}
@@ -106,7 +100,7 @@ export function InfoCol({
 
       <GameEventLog
         events={gd.events}
-        players={roster}
+        players={gd.players}
         selfId={selfId}
         mode={gd.mode}
         isGameEnded={gd.isGameEnded}

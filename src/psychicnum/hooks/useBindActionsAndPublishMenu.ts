@@ -7,7 +7,6 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { Member } from '@/common/members/member'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
@@ -56,7 +55,7 @@ export type PsychicnumActions = {
   actReveal: BoundAction
   // Hunt the SAME board + secrets again from scratch.
   actRestart: BoundAction
-  // Start a fresh follow-up game — same setup + roster, a new board + secrets.
+  // Start a fresh follow-up game — same setup + players, a new board + secrets.
   // Disables itself while the create is in flight, so a slow network reads as
   // "working" rather than "nothing happened".
   actNewGame: BoundAction
@@ -92,7 +91,6 @@ export type PsychicnumActions = {
  */
 export function useBindActionsAndPublishMenu({
   gd,
-  roster,
   selfId,
   localFeedbackSlot,
   clubHandle,
@@ -101,8 +99,6 @@ export function useBindActionsAndPublishMenu({
   brand,
 }: {
   gd: GameData
-  // The page's players, in the shape the printout takes.
-  roster: Member[]
   selfId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
@@ -216,7 +212,7 @@ export function useBindActionsAndPublishMenu({
   })
 
   // New game — a FRESH game (new id, a new random board + secrets) with THIS
-  // game's setup + roster + mode, in the same club. psychicnum's create_game
+  // game's setup + players + mode, in the same club. psychicnum's create_game
   // samples its board inline, so this is a direct RPC — no edge function.
   // Non-destructive (common._create_game un-currents this game into the club
   // list), so no confirm; the creator jumps in via `goToFollowUpGame`, peers
@@ -226,7 +222,7 @@ export function useBindActionsAndPublishMenu({
       db.rpc('create_game', {
         p_club_handle: clubHandle,
         p_setup: gd.setup,
-        p_player_user_ids: Object.keys(gd.players),
+        p_player_user_ids: gd.players.map((player) => player.user_id),
         p_mode: gd.mode,
       }),
     )
@@ -278,7 +274,7 @@ export function useBindActionsAndPublishMenu({
           words: gd.board.words,
           events: gd.events,
           requiredSecretsCount: gd.readout.requiredSecretsCount,
-          players: roster,
+          players: gd.players,
           selfId,
           setupRows: gd.setupRows,
         }),

@@ -33,13 +33,13 @@ export function useShowOppsFoundMessages(
     const seen = foundSecretsCountSeenRef.current
     if (!isSeededRef.current) {
       isSeededRef.current = true
-      for (const player of Object.values(gd.players)) seen.set(player.userId, player.foundSecretsCount)
+      for (const player of gd.players) seen.set(player.user_id, player.foundSecretsCount)
       return
     }
-    for (const player of Object.values(gd.players)) {
-      const was = seen.get(player.userId) ?? 0
-      seen.set(player.userId, player.foundSecretsCount)
-      if (player.userId === selfId) continue
+    for (const player of gd.players) {
+      const was = seen.get(player.user_id) ?? 0
+      seen.set(player.user_id, player.foundSecretsCount)
+      if (player.user_id === selfId) continue
       if (player.foundSecretsCount <= was) continue
       // `found_peer`, not `hit_peer`: in compete a player may learn THAT an
       // opponent found a secret and never which, so the answer that names a

@@ -12,7 +12,8 @@ import {
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import { eventToOutcome } from '../lib/answer'
-import type { Player, EventRow } from '../hooks/useGame'
+import type { Member } from '@/common/members/member'
+import type { EventRow } from '../hooks/useGame'
 import type { HistoryView } from '../hooks/useHistoryView'
 import styles from './GameEventLog.module.css'
 
@@ -21,7 +22,7 @@ type Props = {
   // viewer's own during play, and (once the game has ended, when RLS opens)
   // everyone's.
   events: EventRow[]
-  players: Player[]
+  players: Member[]
   selfId: string
   mode: 'coop' | 'compete'
   // Distinguishes an opponent's RLS-hidden log from a genuinely empty one.

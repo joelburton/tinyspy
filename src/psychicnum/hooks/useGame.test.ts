@@ -169,12 +169,12 @@ describe('psychicnum useGame — a load that worked', () => {
   it('keys the players by id, in the page\'s order, each with their own counts and ending', async () => {
     answer(ALL_GOOD)
     const gd = (await load()).current.gd!
-    expect(Object.keys(gd.players)).toEqual(['u1', 'u2'])
-    expect(gd.numPlayers).toBe(2)
-    expect([gd.players.u1!.foundSecretsCount, gd.players.u1!.guessesUsed]).toEqual([1, 2])
-    expect([gd.players.u2!.foundSecretsCount, gd.players.u2!.guessesUsed]).toEqual([0, 3])
-    expect(gd.players.u1!.playerEnding).toBeNull()
-    expect(gd.players.u2!.playerEnding).toEqual({
+    expect(Object.keys(gd.playersById)).toEqual(['u1', 'u2'])
+    expect(gd.playersById.u1!.username).toBe('me')
+    expect([gd.playersById.u1!.foundSecretsCount, gd.playersById.u1!.guessesUsed]).toEqual([1, 2])
+    expect([gd.playersById.u2!.foundSecretsCount, gd.playersById.u2!.guessesUsed]).toEqual([0, 3])
+    expect(gd.playersById.u1!.playerEnding).toBeNull()
+    expect(gd.playersById.u2!.playerEnding).toEqual({
       at: CONCEDED.player_ended_at, reason: 'conceded', reasonDetail: 'conceded',
     })
   })
@@ -189,8 +189,8 @@ describe('psychicnum useGame — a load that worked', () => {
     await act(async () => {
       await refetch.load!({ mounted: () => true })
     })
-    expect(result.current.gd?.players.u1?.foundAllSecrets).toBe(true)
-    expect(result.current.gd?.players.u2?.foundAllSecrets).toBe(false)
+    expect(result.current.gd?.playersById.u1?.foundAllSecrets).toBe(true)
+    expect(result.current.gd?.playersById.u2?.foundAllSecrets).toBe(false)
   })
 
   it('shapes the board from the guess rows alone', async () => {

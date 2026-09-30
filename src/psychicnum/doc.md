@@ -90,7 +90,7 @@ make a game compete.
 
 Whichever RPC ends the game passes `common._end_game` the reason pair and the
 rankings ([common-schema.md → `common._end_game`](../../docs/common-schema.md#common_end_game--the-one-way-a-game-ends)),
-so no reader works the ending out from the clock or the roster:
+so no reader works the ending out from the clock or the players:
 
 | the ending | reason / detail | ranked | outcome |
 |---|---|---|---|
@@ -335,10 +335,12 @@ secrets from `games_state`, the log from `events`, the rest from the page's
 `common.games` and `common.game_players` rows. `useGame` keeps no subscription:
 `useRefetchOnGameUpdate` reruns its reads whenever the page's `common.games`
 row moves or the page's channel rejoins. The two columns, `BoardCol` and
-`InfoCol`, take `gd` whole; everything below them takes its own props, the
-page's players (`roster`) among them. `Board` takes them in groups — `tiles`
-(what is on them) and `marks` (what the board wears on and around them) — and
-`historyView` whole.
+`InfoCol`, take `gd` whole; everything below them takes its own props. A
+player in `gd` (`PsychicnumPlayer`) is a `Member` plus psychicnum's facts, so
+`gd.players` goes straight to the shared pieces that take `Member[]`, and
+`gd.playersById` holds the same players by id. `Board` takes its props in
+groups — `tiles` (what is on them) and `marks` (what the board wears on and
+around them) — and `historyView` whole.
 
 `BoardCol` builds and sends the guess: the picked word and `submit_guess`.
 `Board` owns the board itself: its display order and Shuffle, and the keyboard

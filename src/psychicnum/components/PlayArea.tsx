@@ -62,7 +62,6 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   return (
     <PlayArea
       gd={gd}
-      roster={ctx.players}
       session={ctx.session}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
       clubHandle={ctx.clubHandle}
@@ -84,10 +83,6 @@ type PlayAreaProps = Pick<
 > & {
   // The game data. Non-null by construction — the loader holds the gates.
   gd: GameData
-  // The page's players, in the shape the shared pieces still take (the info
-  // column's whose-turn line, strip and log; the printout). This surface's own
-  // logic reads `gd.players`.
-  roster: GamePageCtx['players']
 }
 
 /**
@@ -107,7 +102,6 @@ type PlayAreaProps = Pick<
  */
 function PlayArea({
   gd,
-  roster,
   session,
   globalFeedbackSlot,
   clubHandle,
@@ -168,7 +162,7 @@ function PlayArea({
     messageFor: (event) => {
       if (event.user_id === session.user.id) return null
       const { outcome, text } = peerAnswerMessage(event)
-      return FeedbackMessage.peer(gd.players[event.user_id], outcome, text)
+      return FeedbackMessage.peer(gd.playersById[event.user_id], outcome, text)
     },
     globalFeedbackSlot,
   })
@@ -185,7 +179,6 @@ function PlayArea({
   // the menu lists them, and the reveal's state comes back for the board.
   const { actions, secretsShown } = useBindActionsAndPublishMenu({
     gd,
-    roster,
     selfId: session.user.id,
     localFeedbackSlot,
     clubHandle,
@@ -221,7 +214,6 @@ function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           gd={gd}
-          roster={roster}
           selfId={session.user.id}
           endingMessage={endingMessage}
           actions={actions}

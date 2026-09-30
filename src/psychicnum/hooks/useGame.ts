@@ -16,11 +16,6 @@ import type { PsychicnumGameStatus, PsychicnumPlayerStatus } from '../lib/status
 import type { TileResults } from '../lib/tileResults'
 
 /**
- * One player in a psychicnum game.
- */
-export type Player = Member
-
-/**
  * One row from `psychicnum.events`. In coop the FE receives
  * every player's guess; in compete the RLS policy filters
  * server-side so the FE only ever receives its own user_id's
@@ -42,11 +37,10 @@ export type EventRow = {
   created_at: string
 }
 
-/** One player of this game, as `gd` holds them. */
-export type PsychicnumPlayer = {
-  userId: string
-  username: string
-  color: string
+/** One player of this game, as `gd` holds them: who they are (a `Member`, so
+ *  a player can go wherever a member is taken), and this game's facts about
+ *  them. */
+export type PsychicnumPlayer = Member & {
   // Null while this player plays on; set once their play ended while the game
   // went on — out of guesses in compete, or conceded.
   playerEnding: {
@@ -126,11 +120,10 @@ export type GameData = {
   // The log: guesses, hints and spoilers, in the order of play. RLS scopes it
   // to my own rows in compete until the game ends.
   events: EventRow[]
-  // Keyed by user id, in the page's order.
-  players: Record<string, PsychicnumPlayer>
-  // How many players are seated.
-  numPlayers: number
-  // My entry in `players`; null for a club member watching.
+  // The players in seat order, and the same objects keyed by user id.
+  players: PsychicnumPlayer[]
+  playersById: Record<string, PsychicnumPlayer>
+  // My entry in `playersById`; null for a club member watching.
   me: PsychicnumPlayer | null
   // Where I stand (docs/win-lose.md → Where a player stands), as the page
   // worked it out.
@@ -162,7 +155,7 @@ type GameRows = {
  * and ending reason come from their `player_status`, the rest from
  * `common.game_players`.
  */
-export function makePlayers(
+export function makePlayersById(
   gamePlayers: GamePageCtx['players'],
   requiredSecretsCount: number,
 ): Record<string, PsychicnumPlayer> {
@@ -170,7 +163,7 @@ export function makePlayers(
     const playerStatus = p.player_status as unknown as PsychicnumPlayerStatus
     const endedReason = playerStatus.player_ended_reason
     return {
-      userId: p.user_id,
+      user_id: p.user_id,
       username: p.username,
       color: p.color,
       playerEnding:
@@ -185,7 +178,7 @@ export function makePlayers(
       foundAllSecrets: playerStatus.found_secrets_count >= requiredSecretsCount,
     }
   })
-  return Object.fromEntries(players.map((p) => [p.userId, p]))
+  return Object.fromEntries(players.map((p) => [p.user_id, p]))
 }
 
 /** The page's `game_status`, as psychicnum's builder writes it. */
@@ -201,26 +194,27 @@ export function readSetup(ctx: GamePageCtx): PsychicnumSetup {
 /**
  * Build `gd` from the page's values and psychicnum's own rows. A fact the
  * statuses carry is read from them (the budget and the secret count from
- * `game_status`, each player's from their `player_status`, in `makePlayers`);
- * everything else from the tables. `players` and `setupRows` are handed in,
- * already built, so the caller can hold their identity across renders.
+ * `game_status`, each player's from their `player_status`, in
+ * `makePlayersById`); everything else from the tables. `playersById` and
+ * `setupRows` are handed in, already built, so the caller can hold their
+ * identity across renders.
  */
 export function makeGameData(
   ctx: GamePageCtx,
   rows: GameRows,
-  players: Record<string, PsychicnumPlayer>,
+  playersById: Record<string, PsychicnumPlayer>,
   setupRows: SetupRow[],
 ): GameData {
   const gameStatus = readGameStatus(ctx)
   const isCompete = ctx.mode === 'compete'
   const maxGuesses = gameStatus.max_guesses
-  const me = players[ctx.session.user.id] ?? null
-  const playerList = Object.values(players)
+  const me = playersById[ctx.session.user.id] ?? null
+  const players = Object.values(playersById)
 
   // No secret can be found twice and each guess is one player's, so coop's
   // sums count every find and every guess once.
-  const teamFoundSecretsCount = playerList.reduce((sum, p) => sum + p.foundSecretsCount, 0)
-  const teamGuessesUsed = playerList.reduce((sum, p) => sum + p.guessesUsed, 0)
+  const teamFoundSecretsCount = players.reduce((sum, p) => sum + p.foundSecretsCount, 0)
+  const teamGuessesUsed = players.reduce((sum, p) => sum + p.guessesUsed, 0)
 
   // The board's marks come from the guess rows alone. A revealed secret is not
   // among them, which is what keeps it dot-less: nobody guessed it.
@@ -242,19 +236,19 @@ export function makeGameData(
     },
     isTurnBased: ctx.isTurnBased,
     turnHolderId: ctx.turnHolderId,
-    turnHolder: ctx.turnHolderId === null ? null : (players[ctx.turnHolderId] ?? null),
+    turnHolder: ctx.turnHolderId === null ? null : (playersById[ctx.turnHolderId] ?? null),
     gameEnding: ctx.gameEnding,
     isGameEnded: ctx.gameEnding !== null,
-    winner: isCompete ? (playerList.find((p) => p.outcome === 'won') ?? null) : null,
+    winner: isCompete ? (players.find((p) => p.outcome === 'won') ?? null) : null,
     board: {
       words: rows.words,
       tileResults: new Map(guesses.map((guess) => [guess.word, guess.is_correct])),
-      decidedBy: new Map(guesses.map((guess) => [guess.word, players[guess.user_id]])),
+      decidedBy: new Map(guesses.map((guess) => [guess.word, playersById[guess.user_id]])),
       guessCount: guesses.length,
     },
     events: rows.events,
     players,
-    numPlayers: playerList.length,
+    playersById,
     me,
     standing: {
       isPlayer: ctx.isPlayer,
@@ -364,11 +358,11 @@ export function useGame(ctx: GamePageCtx): {
 
   // `gd` is rebuilt every render — a handful of assignments — but what an
   // effect may depend on keeps its identity: the players and the setup rows are
-  // rebuilt only when the page's roster or setup changes, and the board and the
-  // log only when a read lands.
+  // rebuilt only when the page's players or setup change, and the board and
+  // the log only when a read lands.
   const requiredSecretsCount = readGameStatus(ctx).required_secrets_count
-  const players = useMemo(
-    () => makePlayers(ctx.players, requiredSecretsCount),
+  const playersById = useMemo(
+    () => makePlayersById(ctx.players, requiredSecretsCount),
     [ctx.players, requiredSecretsCount],
   )
   const setup = readSetup(ctx)
@@ -376,7 +370,7 @@ export function useGame(ctx: GamePageCtx): {
     () => makeSetupRows(setup, ctx.mode, ctx.players),
     [setup, ctx.mode, ctx.players],
   )
-  const gd = rows === null ? null : makeGameData(ctx, rows, players, setupRows)
+  const gd = rows === null ? null : makeGameData(ctx, rows, playersById, setupRows)
 
   return { gd, loading, failure }
 }

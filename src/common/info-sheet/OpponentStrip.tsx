@@ -6,15 +6,18 @@ import { orderSelfFirst } from '../members/memberList'
 import { Dot } from '../members/Dot'
 import styles from './OpponentStrip.module.css'
 
-type Props = {
-  players: Member[]
+// Generic over the player type, so `metricFor` receives the same objects the
+// strip was handed — a game's own player, with its facts — and never has to
+// look them back up by id.
+type Props<P extends Member> = {
+  players: P[]
   selfId: string
   // The per-player metric cell — the one thing each game supplies. The
   // `isSelf` flag lets a game read its own value from a live local
   // computation (so "You" updates in lock step with the rest of the UI)
   // while peers read from the realtime payload. Returns whatever the
   // game wants to show: a number, a rank name, `<MistakeDots>`, etc.
-  metricFor: (player: Member, isSelf: boolean) => ReactNode
+  metricFor: (player: P, isSelf: boolean) => ReactNode
   // A short label naming WHAT the metric is — "Found", "Score", "Turns left" —
   // rendered as a prefix. Required, because a row of bare figures does not say
   // what it is counting.
@@ -41,7 +44,13 @@ type Props = {
  * lists peers vertically, sorted by who's closest to finishing, which belongs to
  * the `PageHeaderPlayersStrip` dot family rather than this inline strip.
  */
-export function OpponentStrip({ players, selfId, metricFor, metricLabel, leading }: Props) {
+export function OpponentStrip<P extends Member>({
+  players,
+  selfId,
+  metricFor,
+  metricLabel,
+  leading,
+}: Props<P>) {
   const ordered = orderSelfFirst(players, selfId)
   return (
     <div className={styles.strip}>

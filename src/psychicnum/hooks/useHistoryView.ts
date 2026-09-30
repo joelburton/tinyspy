@@ -54,6 +54,6 @@ export function useHistoryView(gd: GameData, selfId: string): HistoryView {
     tileResults: replayed?.tileResults ?? null,
     litWord: replayed?.litWord ?? null,
     label: replayed?.label ?? null,
-    actor: isSomeoneElsesBoard ? gd.players[authorId] : undefined,
+    actor: isSomeoneElsesBoard ? gd.playersById[authorId] : undefined,
   }
 }

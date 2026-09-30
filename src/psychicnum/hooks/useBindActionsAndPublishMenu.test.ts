@@ -28,7 +28,8 @@ function gdWith(over: { isGameEnded?: boolean; isStillPlaying?: boolean; isCompe
     isGameEnded,
     board: { words: [] },
     events: [],
-    players: {},
+    players: [],
+    playersById: {},
     readout: { requiredSecretsCount: 3 },
     standing: {
       isPlayerEnded: false,
@@ -50,7 +51,6 @@ function setup(gd: GameData) {
   const { result } = renderHook(() =>
     useBindActionsAndPublishMenu({
       gd,
-      roster: [],
       selfId: 'u1',
       localFeedbackSlot: createFeedbackSlot('local'),
       clubHandle: 'club',
