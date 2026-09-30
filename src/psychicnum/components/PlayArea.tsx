@@ -62,7 +62,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   return (
     <PlayArea
       gd={gd}
-      session={ctx.session}
+      authSession={ctx.authSession}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
       clubHandle={ctx.clubHandle}
       goToFollowUpGame={ctx.goToFollowUpGame}
@@ -74,7 +74,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
 
 type PlayAreaProps = Pick<
   GamePageCtx,
-  | 'session'
+  | 'authSession'
   | 'globalFeedbackSlot'
   | 'clubHandle'
   | 'goToFollowUpGame'
@@ -102,7 +102,7 @@ type PlayAreaProps = Pick<
  */
 function PlayArea({
   gd,
-  session,
+  authSession,
   globalFeedbackSlot,
   clubHandle,
   goToFollowUpGame,
@@ -160,7 +160,7 @@ function PlayArea({
     items: gd.events,
     keyOf: (event) => String(event.id),
     messageFor: (event) => {
-      if (event.user_id === session.user.id) return null
+      if (event.user_id === authSession.user.id) return null
       const { outcome, text } = peerAnswerMessage(event)
       return FeedbackMessage.peer(gd.playersById[event.user_id], outcome, text)
     },
@@ -168,18 +168,18 @@ function PlayArea({
   })
 
   // An opponent found a secret (compete): say so, never which.
-  useShowOppsFoundMessages(gd, session.user.id, globalFeedbackSlot)
+  useShowOppsFoundMessages(gd, authSession.user.id, globalFeedbackSlot)
 
   // ─── The turn-history view ─────────────────────────────
   // Which past turn, if any, is open on the board, and that turn replayed.
-  const historyView = useHistoryView(gd, session.user.id)
+  const historyView = useHistoryView(gd, authSession.user.id)
 
   // ─── The commands, and the menu that lists them ────────
   // Every command this game offers: the info column's action row places them,
   // the menu lists them, and the reveal's state comes back for the board.
   const { actions, secretsShown } = useBindActionsAndPublishMenu({
     gd,
-    selfId: session.user.id,
+    selfId: authSession.user.id,
     localFeedbackSlot,
     clubHandle,
     goToFollowUpGame,
@@ -214,7 +214,7 @@ function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           gd={gd}
-          selfId={session.user.id}
+          selfId={authSession.user.id}
           endingMessage={endingMessage}
           actions={actions}
           historyView={historyView}

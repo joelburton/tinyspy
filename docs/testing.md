@@ -51,7 +51,7 @@ Use this when you're about to write a test:
 | A check constraint rejects bad input | pgTAP | "`messages.content` must be 1–1000 chars" |
 | Server-side randomness produces the right distribution | pgTAP | codenamesduet's 25-tile key-card distribution check |
 | A pure TypeScript function returns the right value | Vitest | `phase()` returns `'clue'` for a fresh game |
-| A React hook moves through the right states | Vitest | `useSession` flips `loading → session → null` correctly |
+| A React hook moves through the right states | Vitest | `useAuthSession` flips `loading → session → null` correctly |
 | A component renders the right text given props | Vitest | `GameEventLog` renders a turn row from props |
 | Something only a real browser against the live stack can show | Playwright e2e | "one player disconnects and the other's game pauses" |
 
@@ -268,14 +268,14 @@ Config in `vite.config.ts`.
 
 | file | what it tests | shape |
 |---|---|---|
-| [`src/common/session/useSession.test.ts`](../src/common/session/useSession.test.ts) | The session hook's state transitions (loading → session → null) | Mocks `supabase.auth.onAuthStateChange`, drives it manually via `act`, asserts on the hook's returned state via `renderHook`. The canonical "test a Supabase-hook in isolation" pattern. |
+| [`src/common/session/useAuthSession.test.ts`](../src/common/session/useAuthSession.test.ts) | The session hook's state transitions (loading → session → null) | Mocks `supabase.auth.onAuthStateChange`, drives it manually via `act`, asserts on the hook's returned state via `renderHook`. The canonical "test a Supabase-hook in isolation" pattern. |
 | [`src/common/routing/router.test.ts`](../src/common/routing/router.test.ts) | The hand-rolled router (`navigate`, `usePath`) | Uses jsdom's `window.location` and `window.history` directly. No mocking required — just drive the History API and assert. |
 | [`src/codenamesduet/lib/phase.test.ts`](../src/codenamesduet/lib/phase.test.ts) | Pure phase derivation | No DOM, no mocking, no hooks — just `expect(phase(...)).toBe(...)`. The kind of test that's free to write and free to keep. |
 | [`src/codenamesduet/hooks/useBoard.test.ts`](../src/codenamesduet/hooks/useBoard.test.ts) | The board hook's data flow | Mocks the Supabase client at module level, drives the hook through fetch/realtime updates. |
 | [`src/codenamesduet/components/GameEventLog.test.tsx`](../src/codenamesduet/components/GameEventLog.test.tsx) | A component rendering its props | Renders the component, asserts on text and structure. No store, no mock — just the input → output. |
 
 The pattern is: **mock at the lowest layer that lets you write the test
-simply**. For `useSession`, that's the Supabase auth API. For `useBoard`, it's
+simply**. For `useAuthSession`, that's the Supabase auth API. For `useBoard`, it's
 the Supabase client. For a pure function, it's nothing.
 
 **A shared test double lives beside the module it stands in for, as

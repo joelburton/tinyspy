@@ -16,8 +16,8 @@ the files and audit.") — every file of `src/common/session/`:
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/common/session/useSession.ts` | the auth-state hook `App` gates on: `session`, `needsClaim`, `probeFailed`, `loading`, `refresh` (`probeFailed` added by F-session-2) | `cs-blessed-session` |
-| `src/common/session/useSession.test.ts` | its contract — a case per state, per getUser failure class, and per "same user again" | `cs-blessed-session` |
+| `src/common/session/useAuthSession.ts` | the auth-state hook `App` gates on: `session`, `needsClaim`, `probeFailed`, `loading`, `refresh` (`probeFailed` added by F-session-2) | `cs-blessed-session` |
+| `src/common/session/useAuthSession.test.ts` | its contract — a case per state, per getUser failure class, and per "same user again" | `cs-blessed-session` |
 | `src/common/session/useProfile.ts` | the `Profile` type, the module-level profile store, `useProfile`, `setProfile`, `setProfileColor` (`useCurrentProfile` deleted by F-session-1) | `cs-blessed-session` |
 | `src/common/session/useProfile.test.ts` | **written by this area** (F-session-11): the store's four cases — one value to every reader, cleared for every reader, a saved color repainting the rest of the row intact, and a color save with nothing to save it into | `cs-blessed-session` |
 | `src/common/session/doc.md` | lede only at the open ("Who is signed in, and their profile."), no Design. **Lede rewritten and Design written 2026-09-05** (Joel: "write the doc in the area"), before any finding was worked; its row is off `INTROS_OWED`. rewritten again as each finding landed, and read end to end at the close | (no stamp — markdown) |
@@ -52,7 +52,7 @@ Shape changes first (F-session-1 to -3), so prose is not written twice.
 ### WORKED · F-session-1 · `one-row-read-twice-two-hooks` · The profile row is read twice at boot, by two hooks whose names do not say how they differ
 
 `useSession.probeProfile` reads `profiles.select('user_id').eq('user_id', …)`
-(`useSession.ts:129`) to learn whether a row exists. Then, the moment
+(`useAuthSession.ts:129`) to learn whether a row exists. Then, the moment
 `needsClaim` is false, the account menu on every page calls `useProfile(session)`
 (`useAccountMenuSection.ts:38`), which reads the same row again —
 `select('username, color, can_edit_words')` (`useProfile.ts:59`) — into a
@@ -87,7 +87,7 @@ Numbered points to rule on:
 1. Merge the probe and the load into one read that seeds the store (the
    recommendation), or keep the two reads and only rename?
 2. If merged: does `useProfile.ts` keep its name with the store inside it, or
-   does the store move into `useSession.ts` and `useProfile.ts` become the
+   does the store move into `useAuthSession.ts` and `useProfile.ts` become the
    hook file only?
 
 **Resolution (2026-09-05, Joel: "do it").** Merged, and the store stayed in
@@ -118,13 +118,13 @@ and eslint clean.
 
 ### WORKED · F-session-2 · `probe-failure-lands-on-claim-screen` · A failed probe sends the player to pick a username under a fault modal, and the comment excusing it is no longer true
 
-`useSession.ts:133–145`: when the profiles read comes back `not-ok`, the hook
+`useAuthSession.ts:133–145`: when the profiles read comes back `not-ok`, the hook
 sets `hasProfile = false`, so `needsClaim` is true and `App` renders
 `<ClaimHandleScreen>`. The comment says this "is over-permissive and always has
 been … the honest answer is 'we don't know', and there is no screen for it."
 `readRows` has already put the fault modal up (`dbResult.ts:473`), so the
 player sees "The read failed." over a screen asking them to claim a username
-they may already own. The test at `useSession.test.ts:129` pins this behavior
+they may already own. The test at `useAuthSession.test.ts:129` pins this behavior
 and calls the error "transient", which nothing in the hook checks.
 
 There IS a screen for it now: `EnvelopeErrorPage` in
@@ -172,7 +172,7 @@ AND `<EnvelopeErrorPage>`. Same doubling, one area over.
 
 ### WORKED · F-session-3 · `every-auth-event-reprobes` · `getUser()` and the profile probe run on every auth event, not only on sign-in
 
-`useSession.ts:160–169` calls `probeProfile` for every event that carries a
+`useAuthSession.ts:160–169` calls `probeProfile` for every event that carries a
 session. `onAuthStateChange` fires `TOKEN_REFRESHED` on every hourly refresh
 and `USER_UPDATED` on a user change, and each one re-runs the `getUser()`
 round trip, re-reads the profiles row, and calls `setSession(next)` with a new
@@ -219,7 +219,7 @@ named one finding. `probeProfile` still takes `mountedRef` as a parameter.
 
 ### WORKED · F-session-4 · `stale-23503-story` · The stale-JWT case is described as a 23503 at claim time; the RPC raises PN018 and the claim screen reads that
 
-`useSession.ts:40–41` ("fail with 23503 on submit") and `docs/common.md:671`
+`useAuthSession.ts:40–41` ("fail with 23503 on submit") and `docs/common.md:671`
 ("the claim RPC eventually raises 23503 at submit-time and `<ClaimHandleScreen>`
 signs the user out") both tell a story the code no longer tells.
 `common.claim_username` catches `foreign_key_violation` and raises **PN018**
@@ -244,9 +244,9 @@ made wrong. The two mentions left for others still stand.
 
 ### WORKED · F-session-5 · `friends-alpha-posture` · Three comments justify a branch by "friends-alpha", which the project is not
 
-`useSession.ts:76` ("same friends-alpha posture as the profile-probe error
-below"), `useSession.ts:89` ("the permissive friends-alpha treatment"), and
-`useSession.test.ts:130` ("same friends-alpha tradeoff"). CLAUDE.md: the
+`useAuthSession.ts:76` ("same friends-alpha posture as the profile-probe error
+below"), `useAuthSession.ts:89` ("the permissive friends-alpha treatment"), and
+`useAuthSession.test.ts:130` ("same friends-alpha tradeoff"). CLAUDE.md: the
 project left alpha weeks before 2026-08-29, and advice leaning on that
 predates the change and is wrong. The BEHAVIOR each comment defends stands on
 its own reason — a 5xx or a fetch failure says nothing about the user, and
@@ -255,7 +255,7 @@ render — so the fix is the sentence, not the branch. Write that reason.
 
 (`useCommonGame.ts:573` carries the fourth; `game-page`'s, in Notes.)
 
-**Resolution (2026-09-05).** Both comments in `useSession.ts` now give the
+**Resolution (2026-09-05).** Both comments in `useAuthSession.ts` now give the
 reason itself: a 5xx or a retryable fetch error says nothing about the user, so
 keeping the stored session costs one wasted render that the next event
 corrects, while being strict would sign everyone out whenever Supabase hiccups.
@@ -269,16 +269,16 @@ not see it.
 CLAUDE.md: no archaeological comments; "how it used to work" is not useful.
 The read found:
 
-- `useSession.ts:21–26` — "replaces the old auto-derived-username trigger flow".
-- `useSession.ts:39–42` — "the previous behavior was 'ask them to pick a
+- `useAuthSession.ts:21–26` — "replaces the old auto-derived-username trigger flow".
+- `useAuthSession.ts:39–42` — "the previous behavior was 'ask them to pick a
   username, fail with 23503 on submit'".
-- `useSession.ts:94–100` — "This used to gate only on a clean 4xx STATUS …
+- `useAuthSession.ts:94–100` — "This used to gate only on a clean 4xx STATUS …
   Inverting the default … closes that gap." The live fact worth keeping is
   one sentence: an expired token's failed refresh arrives as
   `AuthSessionMissingError` with no `status`, so transient is tested by NAME
   and status, not status alone.
-- `useSession.ts:135` — "(flagged in the 2026-06-16 review)".
-- `useSession.ts:146–149` — "the read no longer asks PostgREST for a single
+- `useAuthSession.ts:135` — "(flagged in the 2026-06-16 review)".
+- `useAuthSession.ts:146–149` — "the read no longer asks PostgREST for a single
   row".
 - `useProfile.ts:22–23` — "lifted out of the component tree"; `:25–26` — "is
   now editable".
@@ -289,7 +289,7 @@ The read found:
 - `useProfile.ts:120–121` — "Same signature as before — consumers are
   unchanged; they just get live updates for free now."
 
-Two claims in the same prose are also wrong today: `useSession.ts:53` says
+Two claims in the same prose are also wrong today: `useAuthSession.ts:53` says
 "RLS on profiles is public-read" — the policy is `for select to authenticated
 using (true)` (`common.sql:282–283`), authenticated-read; and
 `useProfile.ts:118` says the hook returns "(`username` + `color`)" — it
@@ -301,7 +301,7 @@ Depends on F-session-1 to -3: whichever way those go, this prose is rewritten
 once, after. **The `useProfile.ts` half is done** — F-session-1 rewrote that
 file, so every line listed above for it is gone and the two wrong claims with
 them (`doc.md` and `dbEnvelope.ts`'s PN491 comment were corrected in the same
-change). What remains is `useSession.ts`: its 37-line docstring and the four
+change). What remains is `useAuthSession.ts`: its 37-line docstring and the four
 inline blocks.
 
 **Resolution (2026-09-05).** Done, with the three shape findings settled first
@@ -315,7 +315,7 @@ with no status, which is why transient is tested by NAME and status.
 **An absence this turned up.** `docs/deferred.md` carried "Stricter
 `useSession` profile-verify at startup" — that a failed profile read is
 uniformly permissive and "the user is let through" — and pointed at a
-`// Fragile:` comment in `useSession.ts` that no longer exists. F-session-2 is
+`// Fragile:` comment in `useAuthSession.ts` that no longer exists. F-session-2 is
 what fixed the behavior it describes, so the item is struck. (The neighboring
 `useCommonGame` item is `game-page`'s and still real.)
 
@@ -353,7 +353,7 @@ Bugs item is struck.
 
 ### WORKED · F-session-9 · `test-prose-stale` · The test file's header and comments describe a hook that is not this one
 
-- `useSession.test.ts:18` — "vi.mock replaces `../lib/supabase`"; the mock is
+- `useAuthSession.test.ts:18` — "vi.mock replaces `../lib/supabase`"; the mock is
   of `'../supabase/supabase'` (`:37`), and the hook queries through
   `../supabase/db`, which is `supabase.schema('common')` (`db.ts:26`) — why
   the `schema:` mock works.
@@ -379,19 +379,19 @@ for it, and for "used to / no longer / previously", now comes back empty.
 
 ### WORKED · F-session-10 · `warn-spy-silences-nothing` · The probe-error test spies `console.warn` "so the run is clean", and the run is not clean
 
-`useSession.test.ts:135` — the `not-ok` branch it exercises has no
-`console.warn` (`useSession.ts:133–145`). The noise on that path is the
+`useAuthSession.test.ts:135` — the `not-ok` branch it exercises has no
+`console.warn` (`useAuthSession.ts:133–145`). The noise on that path is the
 `[db]` line `readRows` writes on `console.error`, and it prints — verified:
 
 ```
-stderr | useSession.test.ts > treats a transient profile-query error as needsClaim
+stderr | useAuthSession.test.ts > treats a transient profile-query error as needsClaim
 [db] 10:40:22.487 | FAULT | read | severity=fault | outcome= | dbcode=PN490 | …
 ```
 
 The spy is left over from a hook that warned there. Fix: drop it; if the line
 is unwanted in the run, spy `console.error`, which is the method the FAULT kind
 maps to (`dbLog.ts:50–52`). The four getUser tests spy `warn` correctly — the
-hook does warn on those paths (`useSession.ts:106`, `:115`, `:120`).
+hook does warn on those paths (`useAuthSession.ts:106`, `:115`, `:120`).
 
 **Resolution (2026-09-05).** Done with F-session-2, which rewrote that test:
 the spy is `console.error` and the run is quiet. The four getUser tests keep
@@ -401,7 +401,7 @@ their `warn` spies, which were right all along.
 
 - `refresh()` is the one export `ClaimHandleScreen` depends on
   (`App.tsx:102`), and no case calls it.
-- `useSession.ts:116–127`, the 200-with-`user: null` branch, has no case.
+- `useAuthSession.ts:116–127`, the 200-with-`user: null` branch, has no case.
 - `useProfile.ts` has no test file. Untested: the load-once guard, the
   superseded-load return (`:62`), retry after a failed read (`loadedFor`
   cleared, `:71`), the missing-row fault (`:97`), and `setProfileColor`
@@ -409,7 +409,7 @@ their `warn` spies, which were right all along.
   away, so nothing exercises it.
 
 Fix after F-session-1 settles the shape: `useProfile.test.ts` for the store,
-two more cases in `useSession.test.ts`. If the store moves under `useSession`,
+two more cases in `useAuthSession.test.ts`. If the store moves under `useSession`,
 the store's cases go there instead.
 
 **Smaller after F-session-1**, which deleted the load path and its four
@@ -425,14 +425,14 @@ a color save with no profile to save it into. That last one is why
 `setProfileColor`'s `if (current)` exists, and nothing had ever exercised it —
 `EditProfileModal.test.tsx` mocks the whole module away.
 
-`useSession.test.ts` gains the two branches: a 200 carrying no user signs out,
+`useAuthSession.test.ts` gains the two branches: a 200 carrying no user signs out,
 and `refresh()` flips `needsClaim` off when it finds the row a claim just
 wrote. The second is the case `refresh()` exists for, and the first test of it
 that is about a claim rather than a retry.
 
 ### WORKED · F-session-12 · `refresh-throwaway-mountedref` · `probeProfile` takes a mounted flag as a parameter so `refresh` can pass one that is never cleared
 
-`useSession.ts:56` threads `mountedRef` through as an argument; the effect
+`useAuthSession.ts:56` threads `mountedRef` through as an argument; the effect
 builds the real one and `refresh` builds a throwaway `{ value: true }` that
 nothing ever sets false, so a refresh resolving after unmount writes state
 anyway. `App` never unmounts, so nothing is broken; the parameter exists only
@@ -462,7 +462,7 @@ short of driving a slow probe across an unmount.
   reject-reasons table at `:345` lists 23503 for "auth.users row vanished";
   the RPC's code is PN018.
 - **No auth console channel.** The hook's two `console.warn` lines
-  (`useSession.ts:106`, `:115`) are bare; `logStamp.ts` names three stamped
+  (`useAuthSession.ts:106`, `:115`) are bare; `logStamp.ts` names three stamped
   channels (`[db]`, `[rt]`, `[ui]`) and auth is none of them. Bare
   `console.warn`/`error` is the repo-wide shape outside those three (twelve
   sites in `src/common/`), so this is not a session finding; noted in case a
@@ -473,7 +473,7 @@ short of driving a slow probe across an unmount.
 
 - ~~`src/guards/orphanedDocstrings.test.ts`~~ — happened as predicted; the row
   went with F-session-7.
-- ~~`src/common/session/useSession.test.ts`~~ — both halves happened: the
+- ~~`src/common/session/useAuthSession.test.ts`~~ — both halves happened: the
   fixtures and mock-chain comment (F-session-1), and the probe-error case
   (F-session-2). **Not predicted:** `src/guards/callSiteShape.test.ts`, whose
   opt-out rule F-session-2 had to widen.
@@ -486,7 +486,7 @@ short of driving a slow probe across an unmount.
 
 - [x] the whole area re-read in one sitting after the last group (2026-09-05).
   Six things needed fixing and were fixed in that pass:
-  - `useSession.ts` called `resolveSignedOut`'s call sites "the four states
+  - `useAuthSession.ts` called `resolveSignedOut`'s call sites "the four states
     below" while the docstring above called something else "four resolved
     states" — two different fours, one page apart. Now "the four places that
     end in nobody being signed in".
@@ -498,7 +498,7 @@ short of driving a slow probe across an unmount.
     does.
   - `doc.md` said a wasted render is corrected by "a reload"; since
     F-session-3 it is the next auth event.
-  - `doc.md`'s tests bullet knew only `useSession.test.ts`.
+  - `doc.md`'s tests bullet knew only `useAuthSession.test.ts`.
 - [x] the folder's `doc.md` Design written; its row off `INTROS_OWED` (2026-09-05), and re-read against the code once every finding had landed
 - [x] `todo.md` holds everything still owed — which is nothing; its one item was
   F-session-7 and -8, both worked

@@ -6,7 +6,7 @@
  * element's `play` / `pause` are spied on the prototype.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { setProfile } from '../session/useProfile'
+import { setMyProfile } from '../session/useProfile'
 import { playSound } from './playSound'
 
 const PROFILE = { username: 'ada', color: 'red', can_edit_words: false, sounds_enabled: true }
@@ -17,12 +17,12 @@ let pause: ReturnType<typeof vi.spyOn>
 beforeEach(() => {
   play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
   pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
-  setProfile(PROFILE)
+  setMyProfile(PROFILE)
 })
 
 afterEach(() => {
   vi.restoreAllMocks()
-  setProfile(null)
+  setMyProfile(null)
 })
 
 describe('playSound', () => {
@@ -32,14 +32,14 @@ describe('playSound', () => {
   })
 
   it('plays nothing when the player has turned sounds off', () => {
-    setProfile({ ...PROFILE, sounds_enabled: false })
+    setMyProfile({ ...PROFILE, sounds_enabled: false })
     playSound('bell')
     playSound('tada')
     expect(play).not.toHaveBeenCalled()
   })
 
   it('plays with no profile in the store — the default is on', () => {
-    setProfile(null)
+    setMyProfile(null)
     playSound('bell')
     expect(play).toHaveBeenCalledTimes(1)
   })

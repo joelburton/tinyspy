@@ -6,7 +6,7 @@ import { supabase } from '../supabase/supabase'
 import { db } from '../supabase/db'
 import { readRows } from '../supabase/dbResult'
 import type { NotOkEnvelope } from '../supabase/envelope'
-import { setProfile } from './useProfile'
+import { setMyProfile } from './useProfile'
 
 /**
  * Who is signed in, and whether they have picked a username yet — the answer
@@ -15,12 +15,12 @@ import { setProfile } from './useProfile'
  * Four resolved states, after `loading` covers the moment before the first
  * answer:
  *
- *   { session: null,      needsClaim: false }  → signed out
- *   { session: <Session>, needsClaim: true  }  → signed in, no profile row
- *   { session: <Session>, needsClaim: false }  → signed in and claimed
- *   { session: <Session>, probeFailed: <env> } → the read failed, so which of
- *                                                the two above is true is
- *                                                unknown
+ *   { authSession: null,      needsClaim: false }  → signed out
+ *   { authSession: <Session>, needsClaim: true  }  → signed in, no profile row
+ *   { authSession: <Session>, needsClaim: false }  → signed in and claimed
+ *   { authSession: <Session>, probeFailed: <env> } → the read failed: which
+ *                                                    of the two above is true
+ *                                                    is unknown
  *
  * Signing in and claiming a username are two separate things. Supabase Auth
  * writes the `auth.users` row when the magic link is verified; the
@@ -43,8 +43,8 @@ import { setProfile } from './useProfile'
  * claiming raises `PN018` and that screen signs the user out — the safety net
  * under this one, and why nobody can be stuck there.
  */
-export function useSession() {
-  const [session, setSession] = useState<Session | null>(null)
+export function useAuthSession() {
+  const [authSession, setAuthSession] = useState<Session | null>(null)
   const [hasProfile, setHasProfile] = useState(false)
   const [loading, setLoading] = useState(true)
   const [probeFailed, setProbeFailed] = useState<NotOkEnvelope | null>(null)
@@ -63,8 +63,8 @@ export function useSession() {
   // tab keeps showing the last user's name and color.
   const resolveSignedOut = useCallback(() => {
     probedFor.current = null
-    setProfile(null)
-    setSession(null)
+    setMyProfile(null)
+    setAuthSession(null)
     setHasProfile(false)
     setProbeFailed(null)
     setLoading(false)
@@ -138,8 +138,8 @@ export function useSession() {
         // app behind the gate would render as a stranger. So the failure is a
         // state of its own, and `App` gives it the error page.
         probedFor.current = null
-        setProfile(null)
-        setSession(next)
+        setMyProfile(null)
+        setAuthSession(next)
         setHasProfile(false)
         setProbeFailed(res)
         setLoading(false)
@@ -153,8 +153,8 @@ export function useSession() {
       probedFor.current = next.user.id
       // Seeded before `loading` clears, so the first render of the account menu
       // already has a username rather than a placeholder.
-      setProfile(row)
-      setSession(next)
+      setMyProfile(row)
+      setAuthSession(next)
       setHasProfile(row !== null)
       setProbeFailed(null)
       setLoading(false)
@@ -182,7 +182,7 @@ export function useSession() {
       // we already have an answer for needs no round trips, only their fresher
       // token in state.
       if (next.user.id === probedFor.current) {
-        if (mounted.current) setSession(next)
+        if (mounted.current) setAuthSession(next)
         return
       }
       probeProfile(next)
@@ -199,12 +199,12 @@ export function useSession() {
   // precisely the case the event handler above skips, and what changed is the
   // row (or the weather).
   const refresh = useCallback(async () => {
-    await probeProfile(session)
-  }, [probeProfile, session])
+    await probeProfile(authSession)
+  }, [probeProfile, authSession])
 
   return {
-    session,
-    needsClaim: session !== null && !hasProfile && probeFailed === null,
+    authSession,
+    needsClaim: authSession !== null && !hasProfile && probeFailed === null,
     probeFailed,
     loading,
     refresh,

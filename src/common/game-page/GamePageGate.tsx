@@ -26,7 +26,7 @@ export type GameShellProps = {
   gameId: string
   // Authenticated session, threaded into useCommonGame for presence tracking
   // and re-exposed via ctx to PlayArea.
-  session: Session
+  authSession: Session
   // The game's manifest, resolved by the gate — so below here it is a
   // manifest, not a lookup that might miss. Every per-game thing the shell
   // draws or dispatches comes off it.
@@ -41,7 +41,7 @@ type Props = {
   // survives because the not-found page echoes what the URL actually said.
   urlGametype: string
   gameId: string
-  session: Session
+  authSession: Session
 }
 
 /** Could this string BE a game id? Not "does the game exist" — that is a
@@ -79,7 +79,7 @@ const isGameId = (s: string) =>
  * more: a render is synchronous so it cannot await, and a render that gets
  * discarded must not write state.
  */
-export function GamePageGate({ urlGametype, gameId, session }: Props) {
+export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
   const manifest = manifestFor(urlGametype.toLowerCase())
   // The existence answer, stored WITH the id it answers for — and `exists`
   // DERIVED from the pair, so an id we have no answer for is 'checking' by
@@ -150,5 +150,5 @@ export function GamePageGate({ urlGametype, gameId, session }: Props) {
   if (exists === 'checking') return <Loading />
   if (exists === 'no') return <NoSuchGamePage detail={`rows=0 gametype=${manifest.gametype} game=${gameId}`} />
   if (exists !== 'yes') return <EnvelopeErrorPage envelope={exists} />
-  return <GamePageLoader gameId={gameId} session={session} manifest={manifest} />
+  return <GamePageLoader gameId={gameId} authSession={authSession} manifest={manifest} />
 }

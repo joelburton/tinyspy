@@ -143,7 +143,7 @@ const competeGame: WaffleGame = {
  *  hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
   const facts = {
-    session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    authSession: { user: { id: 'u1' } } as unknown as GamePageCtx['authSession'],
     players: [gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased: false,
@@ -172,7 +172,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     ...facts,
     ...whereIStand({
       players: facts.players,
-      myId: facts.session.user.id,
+      myId: facts.authSession.user.id,
       isTerminal: facts.isTerminal,
       isTurnBased: facts.isTurnBased,
       turnHolderId: facts.turnHolderId,

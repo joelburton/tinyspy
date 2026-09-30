@@ -94,7 +94,7 @@ type HintAnswer = { result: 'hint'; hint: string }
 const SOLUTION_WORDS = 6
 
 export function PlayArea({
-  session,
+  authSession,
   gameId,
   players,
   playState,
@@ -212,7 +212,7 @@ export function PlayArea({
   const [refusedWord, showRefusedWord] = useMark<number[]>(WORD_ANSWER_MS)
 
   // ─── Derived (null-safe; real values after the loading guard) ──
-  const self = playerStates.find((p) => p.user_id === session.user.id)
+  const self = playerStates.find((p) => p.user_id === authSession.user.id)
   const isCompete = game?.mode === 'compete'
   const mySolved = self?.solved ?? false
 
@@ -530,7 +530,7 @@ export function PlayArea({
           solution: solutionShown ? game.solution : null,
           submissions,
           players,
-          selfId: session.user.id,
+          selfId: authSession.user.id,
           mode: menuMode,
           isTerminal,
           found: foundCount,
@@ -575,7 +575,7 @@ export function PlayArea({
     items: submissions,
     keyOf: (s) => String(s.id),
     messageFor: (s) => {
-      if (s.user_id === session.user.id) return null // own → the local slot / flash
+      if (s.user_id === authSession.user.id) return null // own → the local slot / flash
       const member = memberById(players, s.user_id)
       if (s.kind === 'hint')
         return FeedbackMessage.peer(member, ANSWER_OUTCOME.hint, 'revealed a hint')
@@ -609,7 +609,7 @@ export function PlayArea({
   // is rare enough that a stale name beats a follow-up query); the roster row
   // is read for the identity DOT, falling back to the cached name.
   const winnerId = (status?.winner_user_id as string | undefined) ?? null
-  const selfWon = winnerId === session.user.id
+  const selfWon = winnerId === authSession.user.id
   const winnerRow = players.find((p) => p.user_id === winnerId)
   const winnerName = winnerRow?.username ?? (status?.winner_username as string | undefined)
   const winnerColor = winnerRow?.color
@@ -666,7 +666,7 @@ export function PlayArea({
   // as during play — so it doesn't swap to an everyone's-words view at game over
   // (mirrors wordle's guess list). Coop is the shared board, so it shows everyone's.
   const logWords = isCompete
-    ? submissions.filter((s) => s.user_id === session.user.id)
+    ? submissions.filter((s) => s.user_id === authSession.user.id)
     : submissions
 
   // Turn viewer: the historical board for the row being viewed (or null when live).
@@ -686,7 +686,7 @@ export function PlayArea({
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared board.
   const historyActor =
-    isCompete && historyRow && historyRow.user_id !== session.user.id
+    isCompete && historyRow && historyRow.user_id !== authSession.user.id
       ? memberById(players, historyRow.user_id)
       : undefined
 
@@ -733,7 +733,7 @@ export function PlayArea({
         hintCount={hintCount}
         spoilerCount={spoilerCount}
         players={players}
-        selfId={session.user.id}
+        selfId={authSession.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
         actHint={actHint}

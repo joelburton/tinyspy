@@ -20,7 +20,7 @@ import { act, render, screen } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GameManifest } from '../manifest/gameManifest'
-import { setProfile } from '../session/useProfile'
+import { setMyProfile } from '../session/useProfile'
 import type { Member } from '../members/member'
 import type { GameEnding } from '../terminal/gameEnding'
 import { liveBindings, type BoundAction } from '../actions/useBoundAction'
@@ -81,7 +81,7 @@ const GAME_ID = '11111111-2222-3333-4444-555555555555'
 const GAMETYPE = 'psychicnum_coop'
 const ADA: Member = { user_id: 'ada', username: 'ada', color: 'red' }
 const BEA: Member = { user_id: 'bea', username: 'bea', color: 'blue' }
-const session = { user: { id: 'ada' } } as unknown as Session
+const authSession = { user: { id: 'ada' } } as unknown as Session
 
 const ENDED_OK = {
   type: 'ok', data: { result: 'ended' }, outcome: null, severity: null,
@@ -173,7 +173,7 @@ async function mount(state = commonGameState(), manifest = makeManifest()) {
   mockUseCommonGame.mockReturnValue(state)
   mockManifestFor.mockReturnValue(manifest)
   const view = render(
-    <GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} session={session} />,
+    <GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} authSession={authSession} />,
   )
   await act(async () => {
     await Promise.resolve()
@@ -225,7 +225,7 @@ describe('GamePage — mounting', () => {
 
     const OTHER_GAME = '99999999-8888-7777-6666-555555555555'
     view.rerender(
-      <GamePageGate urlGametype={GAMETYPE} gameId={OTHER_GAME} session={session} />,
+      <GamePageGate urlGametype={GAMETYPE} gameId={OTHER_GAME} authSession={authSession} />,
     )
     // Before the new read answers, the old surface must already be gone.
     expect(screen.queryByText('play')).toBeNull()
@@ -239,7 +239,7 @@ describe('GamePage — mounting', () => {
     // cannot name the thing the link asks for, which is a fault, not a 404.
     mockUseCommonGame.mockReturnValue(commonGameState())
     mockManifestFor.mockReturnValue(undefined)
-    render(<GamePageGate urlGametype="noodle" gameId={GAME_ID} session={session} />)
+    render(<GamePageGate urlGametype="noodle" gameId={GAME_ID} authSession={authSession} />)
     await act(async () => { await Promise.resolve() })
     expect(screen.getByText(/There's no game type called/)).toBeInTheDocument()
     expect(screen.getByText('noodle')).toBeInTheDocument()
@@ -283,12 +283,12 @@ describe('act-stop-game, bound for the pause overlay', () => {
     // A row arriving with the same run does NOT remount it — only the run
     // changing does, or every refetch would throw the board away.
     mockUseCommonGame.mockReturnValue(commonGameState({ game: { title: 'Secrets II' } }))
-    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} session={session} />)
+    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} authSession={authSession} />)
     await act(async () => { await Promise.resolve() })
     expect(mounts).toBe(1)
 
     mockUseCommonGame.mockReturnValue(commonGameState({ game: { restart_count: 1 } }))
-    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} session={session} />)
+    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} authSession={authSession} />)
     await act(async () => { await Promise.resolve() })
     expect(mounts).toBe(2)
   })
@@ -400,11 +400,11 @@ describe('GamePage — the turn bell', () => {
 
   beforeEach(() => {
     play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
-    setProfile(PROFILE)
+    setMyProfile(PROFILE)
   })
   afterEach(() => {
     play.mockRestore()
-    setProfile(null)
+    setMyProfile(null)
   })
 
   /** A turn-order game whose pointer names `holder` — the standing
@@ -422,7 +422,7 @@ describe('GamePage — the turn bell', () => {
   /** Hand the page a new common row, as a realtime refetch would. */
   function moveTo(view: Awaited<ReturnType<typeof mount>>['view'], next: CommonGameState) {
     mockUseCommonGame.mockReturnValue(next)
-    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} session={session} />)
+    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} authSession={authSession} />)
   }
 
   it('rings once when the turn passes to me', async () => {
@@ -465,7 +465,7 @@ describe('GamePage — the turn bell', () => {
   })
 
   it('does not ring when I have turned sounds off', async () => {
-    setProfile({ ...PROFILE, sounds_enabled: false })
+    setMyProfile({ ...PROFILE, sounds_enabled: false })
     const { view } = await mount(turnState('bea'))
     moveTo(view, turnState('ada'))
     expect(play).not.toHaveBeenCalled()

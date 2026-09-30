@@ -126,7 +126,7 @@ type SetAnswer = { result: 'set' } | null
  */
 export function useCommonGame(
   gameId: string,
-  session: Session,
+  authSession: Session,
   draftsOffTurn: boolean,
 ): {
   // The common.games row, or null while loading — and also when the read failed
@@ -519,7 +519,7 @@ export function useCommonGame(
         if (status === 'SUBSCRIBED') {
           load()
           setResubscribeCount((n) => n + 1)
-          ch.track({ user_id: session.user.id })
+          ch.track({ user_id: authSession.user.id })
           // First-viewer-mount write: flip this game to the
           // club's current view (and vacate any prior one).
           // Idempotent server-side — re-mounting an already-
@@ -589,7 +589,7 @@ export function useCommonGame(
       // pointer via set_current_view's vacate-others step.
       const ids = presentUserIdsRef.current
       const iAmLastOrUnknown =
-        ids.size === 0 || (ids.size === 1 && ids.has(session.user.id))
+        ids.size === 0 || (ids.size === 1 && ids.has(authSession.user.id))
       rtLog(room, `leaving (lastViewer=${iAmLastOrUnknown})`)
       if (iAmLastOrUnknown) {
         // Same shape as set_current_view above, and unasked-for in the same
@@ -634,7 +634,7 @@ export function useCommonGame(
       }
       void releaseChannel(ch)
     }
-  }, [applyManualPause, gameId, session.user.id])
+  }, [applyManualPause, gameId, authSession.user.id])
 
   // Re-broadcast active manual-pause whenever the set of connected
   // peers changes, so a peer joining mid-pause (or reconnecting
@@ -654,11 +654,11 @@ export function useCommonGame(
     if (!channel) return
     const event: ManualPauseEvent = {
       type: 'manualPause',
-      userId: session.user.id,
+      userId: authSession.user.id,
     }
     applyManualPause(event)
     channel.send({ type: 'broadcast', event: 'manualPause', payload: event })
-  }, [applyManualPause, channel, session.user.id])
+  }, [applyManualPause, channel, authSession.user.id])
 
   const sendManualUnpause = useCallback(() => {
     if (!channel) return
@@ -744,7 +744,7 @@ export function useCommonGame(
     isBoardInteractive,
   } = whereIStand({
     players,
-    myId: session.user.id,
+    myId: authSession.user.id,
     isTerminal: (commonGame?.gameEnding ?? null) !== null,
     isTurnBased,
     turnHolderId,

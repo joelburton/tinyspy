@@ -7,11 +7,11 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { getScratchpadOpen, setScratchpadOpen } from '../scratchpad/scratchpadOpenStore'
+import { getIsScratchpadOpen, setIsScratchpadOpen } from '../scratchpad/scratchpadOpenStore'
 import { ScratchpadButton } from './ScratchpadButton'
 
 beforeEach(() => {
-  setScratchpadOpen(false)
+  setIsScratchpadOpen(false)
 })
 
 describe('ScratchpadButton', () => {
@@ -24,7 +24,7 @@ describe('ScratchpadButton', () => {
 
   it('wears the other face while the panel is open', () => {
     render(<ScratchpadButton />)
-    act(() => setScratchpadOpen(true))
+    act(() => setIsScratchpadOpen(true))
     const mark = screen.getByRole('button', { name: 'Close scratchpad' })
     expect(mark.getAttribute('aria-pressed')).toBe('true')
   })
@@ -33,8 +33,8 @@ describe('ScratchpadButton', () => {
     const user = userEvent.setup()
     render(<ScratchpadButton />)
     await user.click(screen.getByRole('button', { name: 'Open scratchpad' }))
-    expect(getScratchpadOpen()).toBe(true)
+    expect(getIsScratchpadOpen()).toBe(true)
     await user.click(screen.getByRole('button', { name: 'Close scratchpad' }))
-    expect(getScratchpadOpen()).toBe(false)
+    expect(getIsScratchpadOpen()).toBe(false)
   })
 })

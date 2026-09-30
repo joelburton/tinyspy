@@ -92,7 +92,7 @@ import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'
 // frame with it.
 Element.prototype.scrollIntoView = vi.fn()
 
-const session = { user: { id: 'ada' } } as unknown as Session
+const authSession = { user: { id: 'ada' } } as unknown as Session
 
 const CLUB = { handle: 'trio', name: 'Trio', is_solo: false }
 const MEMBERS = [
@@ -132,7 +132,7 @@ function notOk(message: string, dbcode: string): Envelope<never> {
 
 function draw(club = CLUB) {
   return render(
-    <ClubPage club={club} members={MEMBERS} initialGametypes={ENROLLED} session={session} />,
+    <ClubPage club={club} members={MEMBERS} initialGametypes={ENROLLED} authSession={authSession} />,
   )
 }
 
@@ -229,7 +229,7 @@ describe('ClubPage — each filter reaches one list', () => {
         club={CLUB}
         members={MEMBERS}
         initialGametypes={[{ gametype: 'wordle_coop', default_setup: null }]}
-        session={session}
+        authSession={authSession}
       />,
     )
     await userEvent.click(

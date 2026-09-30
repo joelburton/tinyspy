@@ -120,7 +120,7 @@ export type ConnectionsGame = {
  * and presence are `useCommonGame`'s.
  */
 export function useGame(
-  session: Session,
+  authSession: Session,
   gameId: string,
 ): {
   game: ConnectionsGame | null
@@ -359,10 +359,10 @@ export function useGame(
   // refused click on a full guess, which sends nothing.
   const toggleTile = useCallback(
     (tile: string) => {
-      const event = eventForClick(picks, tile, session.user.id)
+      const event = eventForClick(picks, tile, authSession.user.id)
       if (event) broadcast(event)
     },
-    [broadcast, picks, session.user.id],
+    [broadcast, picks, authSession.user.id],
   )
 
   const sendClear = useCallback(() => {
@@ -396,7 +396,7 @@ export function useGame(
   // Caller's mistake_count (defaults to 0 if the players row
   // hasn't arrived yet — pre-load state). In coop every row has
   // the same value; in compete this is the caller's own.
-  const selfPlayer = players.find((p) => p.user_id === session.user.id)
+  const selfPlayer = players.find((p) => p.user_id === authSession.user.id)
   const mistakeCount = selfPlayer?.mistake_count ?? 0
 
   // Opponents' categories-found counts (public via players.found_categories_count) —
@@ -405,7 +405,7 @@ export function useGame(
   const opponentFound = new Map<string, number>()
   if (game?.mode === 'compete') {
     for (const p of players) {
-      if (p.user_id === session.user.id) continue
+      if (p.user_id === authSession.user.id) continue
       opponentFound.set(p.user_id, p.found_categories_count)
     }
   }

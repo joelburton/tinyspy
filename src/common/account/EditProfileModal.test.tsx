@@ -24,8 +24,10 @@ vi.mock('../session/useProfile', () => ({
   // A palette NAME, not a hex — `common.profiles.color` stores the name and
   // the picker selects by it, so a hex here means no swatch starts chosen and
   // the form under test never has the shape the app gives it.
-  useProfile: () => ({ username: 'joel', color: 'red', can_edit_words: false, sounds_enabled: true }),
-  setProfileFields: mockSetFields,
+  useMyProfile: () => ({
+    username: 'joel', color: 'red', can_edit_words: false, sounds_enabled: true,
+  }),
+  setMyProfileFields: mockSetFields,
 }))
 
 import { EditProfileModal } from './EditProfileModal'

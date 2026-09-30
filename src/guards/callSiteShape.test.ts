@@ -128,7 +128,7 @@ describe('call-site shape', () => {
    * whole page (`EnvelopeErrorPage`). That is the modal-vs-page rule in
    * `error-page/doc.md` — a modal when the page behind it survives, a page when it does
    * not — and where the page is the presentation, the modal on top of it says
-   * the same sentence twice. `useSession` is the model: the profile read is the
+   * the same sentence twice. `useAuthSession` is the model: the profile read is the
    * one the app cannot continue without.
    *
    * File-level, like the scream guard below, and for the same reason: it

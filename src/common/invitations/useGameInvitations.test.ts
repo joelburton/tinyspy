@@ -10,7 +10,7 @@
  * game. Hidden-only, it would come back the moment you navigated away. The
  * hook's docstring says which lines carry that.
  *
- * Mocking strategy mirrors useSession.test.ts: vi.hoisted() spies, a
+ * Mocking strategy mirrors useAuthSession.test.ts: vi.hoisted() spies, a
  * module-level `mockPath` the mocked `usePath` returns (changed + a
  * `rerender()` to simulate navigation), and per-table thenable builders
  * for the db so `load()` surfaces exactly one invite.
@@ -114,7 +114,7 @@ vi.mock('./gameInvites', async (importOriginal) => {
 import { useGameInvitations } from './useGameInvitations'
 import { INVITE_MAX_AGE_MS } from './gameInvites'
 
-const session = { user: { id: 'me-id' } } as unknown as Session
+const authSession = { user: { id: 'me-id' } } as unknown as Session
 
 // Captures the channel's subscribe callback so a test can fire SUBSCRIBED
 // (which triggers the hook's load()).
@@ -144,7 +144,7 @@ afterEach(() => vi.clearAllMocks())
 /** Render the hook and drive the SUBSCRIBED → load() path so the single
  *  mocked invite is surfaced. Returns renderHook's handle. */
 async function renderWithInvite() {
-  const handle = renderHook(() => useGameInvitations(session))
+  const handle = renderHook(() => useGameInvitations(authSession))
   await act(async () => {
     subscribeCb?.('SUBSCRIBED')
   })
@@ -210,7 +210,7 @@ describe('useGameInvitations', () => {
         },
       },
     ]
-    const { result } = renderHook(() => useGameInvitations(session))
+    const { result } = renderHook(() => useGameInvitations(authSession))
     await act(async () => {
       subscribeCb?.('SUBSCRIBED')
     })

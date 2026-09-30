@@ -24,7 +24,7 @@ import type { MenuApi } from '../menu/menuModel'
  * game and playing one are different moments with different audiences.
  */
 export type GamePageCtx = {
-  session: Session
+  authSession: Session
   gameId: string
   // This gametype's user-facing brand name, resolved by GamePage
   // from the matched `manifest.name`. Threaded through ctx so deep

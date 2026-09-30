@@ -111,7 +111,7 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
 function PlayArea(props: PlayAreaProps) {
   const {
     gameId, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive,
-    playState, players, session, status,
+    playState, players, authSession, status,
     setup, clubHandle, goToFollowUpGame, menu, brand, title,
     globalFeedbackSlot,
     game, foundWords, rowsLoaded,
@@ -138,7 +138,7 @@ function PlayArea(props: PlayAreaProps) {
   // is what `useCelebration` requires.
   const winnerId = (status?.winner_user_id as string | undefined) ?? null
   const celebration = useCelebration(
-    playState === 'won' || (playState === 'won_compete' && winnerId === session.user.id),
+    playState === 'won' || (playState === 'won_compete' && winnerId === authSession.user.id),
   )
 
   // ─── Derived ───────────────────────────────────────────
@@ -178,9 +178,9 @@ function PlayArea(props: PlayAreaProps) {
   const myFoundRows = useMemo(
     () =>
       isCompete
-        ? foundWords.filter((r) => r.user_id === session.user.id)
+        ? foundWords.filter((r) => r.user_id === authSession.user.id)
         : foundWords,
-    [foundWords, isCompete, session.user.id],
+    [foundWords, isCompete, authSession.user.id],
   )
   // Points over every row, bonus finds included; the count is every accepted
   // word, so "X / Y words" can pass Y once the bonus list is being mined — the
@@ -232,11 +232,11 @@ function PlayArea(props: PlayAreaProps) {
             foundWordsScore,
             requiredWordsScore,
             selfRankIdx,
-            selfId: session.user.id,
+            selfId: authSession.user.id,
           })
         : null,
     [isTerminal, game.mode, playState, reason, winnerId, winnerName, winnerColor, targetRankIdx,
-     foundWordsScore, requiredWordsScore, selfRankIdx, session.user.id],
+     foundWordsScore, requiredWordsScore, selfRankIdx, authSession.user.id],
   )
   useShowEndingFeedback(localFeedbackSlot, {
     gameEndingMessage: terminalMessage,
@@ -267,7 +267,7 @@ function PlayArea(props: PlayAreaProps) {
     items: foundWords,
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {
-      if (r.user_id === session.user.id) return null // own word → the local slot
+      if (r.user_id === authSession.user.id) return null // own word → the local slot
       const member = memberById(players, r.user_id)
       const { outcome, text } = peerAnswerMessage(r)
       return FeedbackMessage.peer(member, outcome, text)
@@ -295,7 +295,7 @@ function PlayArea(props: PlayAreaProps) {
     for (const row of board) {
       const was = prev.get(row.user_id) ?? 0
       prev.set(row.user_id, row.rank_idx)
-      if (row.user_id === session.user.id) continue // own rank → RankBar
+      if (row.user_id === authSession.user.id) continue // own rank → RankBar
       if (row.rank_idx > was) {
         const member = memberById(players, row.user_id)
         const { outcome, text } = answerMessage({
@@ -305,7 +305,7 @@ function PlayArea(props: PlayAreaProps) {
         globalFeedbackSlot.show(FeedbackMessage.peerMilestone(member, outcome, text))
       }
     }
-  }, [isCompete, status, players, session.user.id, globalFeedbackSlot])
+  }, [isCompete, status, players, authSession.user.id, globalFeedbackSlot])
 
   // ─── The commands, bound ───────────────────────────────
   // Every command this game offers, in one order that three readers keep: this
@@ -410,7 +410,7 @@ function PlayArea(props: PlayAreaProps) {
         setupRows,
         // Coop prints one shared list; compete a section per player, plus a
         // trailing "Not found" at terminal.
-        sections: buildWordSections(words, game.mode, players, session.user.id),
+        sections: buildWordSections(words, game.mode, players, authSession.user.id),
       })
     },
   })
@@ -479,7 +479,7 @@ function PlayArea(props: PlayAreaProps) {
         // ── The move (BoardCol owns the engine and submit_word) ──
         gameId={gameId}
         mode={game.mode}
-        selfId={session.user.id}
+        selfId={authSession.user.id}
         isBoardInteractive={isBoardInteractive}
         isMyTurn={isMyTurn}
         foundWords={foundWords}
@@ -504,7 +504,7 @@ function PlayArea(props: PlayAreaProps) {
         requiredWordsCount={game.required_words_count}
         // ── Opponent strip (compete) ──
         players={players}
-        selfId={session.user.id}
+        selfId={authSession.user.id}
         targetRankIdx={targetRankIdx}
         selfRankIdx={selfRankIdx}
         metricByUser={rankByUser}

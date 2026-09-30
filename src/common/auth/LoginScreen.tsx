@@ -23,7 +23,7 @@ type Values = { email: string; code: string }
 
 /**
  * Signing in. Takes no props, and unmounts itself: both paths it offers end in
- * a SIGNED_IN event, and `useSession` — which put this screen up — takes it
+ * a SIGNED_IN event, and `useAuthSession` — which put this screen up — takes it
  * down.
  *
  * The two paths are one email. `signInWithOtp` mails a clickable magic link
@@ -69,7 +69,7 @@ export function LoginScreen() {
       setSentTo(email)
       setStatus('idle')
       // Auto-switch to code-entry. If the magic link works first,
-      // useSession picks up SIGNED_IN and unmounts this screen; if not,
+      // useAuthSession picks up SIGNED_IN and unmounts this screen; if not,
       // the user can enter the code from the same email right
       // here without re-typing their address.
       setAction('verify-code')
@@ -88,7 +88,7 @@ export function LoginScreen() {
       setStatus('idle')
       return
     }
-    // On success, useSession's onAuthStateChange picks up SIGNED_IN
+    // On success, useAuthSession's onAuthStateChange picks up SIGNED_IN
     // and unmounts this screen. No further action needed here.
   }
 

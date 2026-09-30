@@ -1,8 +1,8 @@
 // cs-blessed-definitions
 
 import { useDefinition, type WordMeta } from './useDefinition'
-import { useProfile } from '../session/useProfile'
-import { setWordEdit } from './wordEditStore'
+import { useMyProfile } from '../session/useProfile'
+import { setShownWordEditDialog } from './wordEditStore'
 import { parseDefinition } from './parseDefinition'
 import styles from './DefinitionView.module.css'
 
@@ -45,7 +45,7 @@ type Props = {
  */
 export function DefinitionView({ word, onNavigate }: Props) {
   const { result, loading, error } = useDefinition(word)
-  const canEdit = useProfile()?.can_edit_words ?? false
+  const canEdit = useMyProfile()?.can_edit_words ?? false
 
   if (!word) return null
 
@@ -110,7 +110,7 @@ export function DefinitionView({ word, onNavigate }: Props) {
           className={styles.editLink}
           onClick={(e) => {
             e.stopPropagation() // don't let the popover's click-to-close eat it
-            setWordEdit({ mode: 'edit', word: word.toLowerCase() })
+            setShownWordEditDialog({ mode: 'edit', word: word.toLowerCase() })
           }}
         >
           Edit word…

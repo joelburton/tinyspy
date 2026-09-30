@@ -1,7 +1,7 @@
 // cs-blessed-boot
 
 import { useEffect } from 'react'
-import { useSession } from './common/session/useSession'
+import { useAuthSession } from './common/session/useAuthSession'
 import { LoginScreen } from './common/auth/LoginScreen'
 import { ClaimHandleScreen } from './common/auth/ClaimHandleScreen'
 import { ClubPageLoader } from './common/club/ClubPageLoader'
@@ -13,7 +13,7 @@ import { EditProfileModal } from './common/account/EditProfileModal'
 import { useIsEditProfileOpen, setIsEditProfileOpen } from './common/account/editProfileStore'
 import { WordEditDialog } from './common/definitions/WordEditDialog'
 import { DefinitionHost } from './common/definitions/DefinitionHost'
-import { useWordEdit } from './common/definitions/wordEditStore'
+import { useShownWordEditDialog } from './common/definitions/wordEditStore'
 import { GameInvitations } from './common/invitations/GameInvitations'
 import { ToastHost } from './common/toasts/ToastHost'
 import { FaultModal } from './common/faults/FaultModal'
@@ -72,7 +72,7 @@ import { matchClubRoute, matchGameRoute } from './common/routing/routes'
  */
 
 export default function App() {
-  const { session, needsClaim, probeFailed, loading, refresh } = useSession()
+  const { authSession, needsClaim, probeFailed, loading, refresh } = useAuthSession()
   const path = usePath()
   // Reopen the Realtime socket the moment the tab regains focus / the network
   // returns, so a slept-then-resumed session re-establishes presence instead of
@@ -104,7 +104,7 @@ export default function App() {
   // The word-edit dialog (editors only — its openers are gated) mounts at the
   // App level like EditProfileModal, and for the same FloatingPanel-offset
   // reason. Keyed by the request so switching words remounts fresh state.
-  const wordEdit = useWordEdit()
+  const wordEdit = useShownWordEditDialog()
 
   if (loading) return <Loading />
 
@@ -112,7 +112,7 @@ export default function App() {
   if (path === '/palette') return <PalettePage />
   if (path === '/font') return <FontPage />
 
-  if (!session) return <LoginScreen />
+  if (!authSession) return <LoginScreen />
   // The profile read failed, so whether this person has claimed a username is
   // unknown — and every route below needs that answer. The page takes the
   // place of the guess; Try again re-runs the same probe.
@@ -126,7 +126,7 @@ export default function App() {
   // they pick a username. ClaimHandleScreen calls refresh() on
   // success so this gate flips off without a page reload.
   if (needsClaim) return (
-    <ClaimHandleScreen onClaimed={refresh} email={session.user.email} />
+    <ClaimHandleScreen onClaimed={refresh} email={authSession.user.email} />
   )
 
   // The current route, as a page. CALLED, not rendered as a component — the
@@ -137,7 +137,7 @@ export default function App() {
 
     const club = matchClubRoute(path)
     // Keyed by handle so a club→club navigation REMOUNTS — fresh subscriptions
-    if (club) return <ClubPageLoader key={club.handle} handle={club.handle} session={session} />
+    if (club) return <ClubPageLoader key={club.handle} handle={club.handle} authSession={authSession} />
 
     const game = matchGameRoute(path)
     // Keyed by gameId so navigating between games REMOUNTS — a clean state
@@ -150,15 +150,15 @@ export default function App() {
           key={game.gameId}
           urlGametype={game.gametype}
           gameId={game.gameId}
-          session={session}
+          authSession={authSession}
         />
       )
 
-    if (path === '/') return <HomePage session={session} />
+    if (path === '/') return <HomePage authSession={authSession} />
 
     // Anything else lands on home too — but add to console for debugging.
     console.warn(`[route] no match for ${path} — showing the home page`)
-    return <HomePage session={session} />
+    return <HomePage authSession={authSession} />
   }
 
   return (
@@ -185,7 +185,7 @@ export default function App() {
           GameInvitations is headless — it pushes invite toasts into the
           shared store; ToastHost renders that store's stack (bottom-right,
           above everything, portaled to <body>). */}
-      <GameInvitations session={session} />
+      <GameInvitations authSession={authSession} />
 
       <ToastHost />
 

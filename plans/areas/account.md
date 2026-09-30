@@ -326,7 +326,7 @@ put it out of reach here — not that a loading moment is being covered. A
 folder, and trade a harmless wrong string for a throw on a path we only believe
 is unreachable.
 
-Re-verified before presenting: `useSession.ts:154` is `setProfile(row)` then
+Re-verified before presenting: `useAuthSession.ts:154` is `setProfile(row)` then
 `setLoading(false)`, its own comment saying why, and `App.tsx:100` returns
 `<Loading />` while loading. A null row means unclaimed, which routes to the
 claim screen rather than to a page with a menu.

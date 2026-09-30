@@ -6,7 +6,7 @@ import { runRpc } from '../supabase/dbResult'
 import { StandardForm } from '../forms/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
 import { FailureLine } from '../forms/FailureLine'
-import { useProfile, setProfileFields } from '../session/useProfile'
+import { useMyProfile, setMyProfileFields } from '../session/useProfile'
 import { NormalModal } from '../floating-panels/NormalModal'
 import actionRow from '../floating-panels/modalActions.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
@@ -48,7 +48,7 @@ type SavedAnswer = { result: 'saved' }
  * its own, and `onSaved` / `onCancel` are how it asks to be unmounted.
  */
 export function EditProfileModal({ onSaved, onCancel }: Props) {
-  const profile = useProfile()
+  const profile = useMyProfile()
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
 
@@ -67,7 +67,7 @@ export function EditProfileModal({ onSaved, onCancel }: Props) {
       return
     } else if (res.type === 'ok' && res.data.result === 'saved') {
       // Live-update the menu dot, and every later sound, from what was saved.
-      setProfileFields({ color: new_color, sounds_enabled: new_sounds_enabled })
+      setMyProfileFields({ color: new_color, sounds_enabled: new_sounds_enabled })
       onSaved()
       return
     } else {

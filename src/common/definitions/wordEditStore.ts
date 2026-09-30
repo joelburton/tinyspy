@@ -11,11 +11,13 @@ import { useSyncExternalStore } from 'react'
  * "Add word" item.
  */
 
-export type WordEditRequest =
+export type ShownWordEditDialog =
   | { mode: 'edit'; word: string }
   | { mode: 'add' }
 
-let value: WordEditRequest | null = null
+let shownWordEditDialog: ShownWordEditDialog | null = null
+// A listener is a callback: each `useShownWordEditDialog()` caller adds one,
+// and `setShownWordEditDialog` calls every one to say it has changed.
 const listeners = new Set<() => void>()
 
 function subscribe(listener: () => void): () => void {
@@ -25,18 +27,18 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-function getSnapshot(): WordEditRequest | null {
-  return value
+function getShownWordEditDialog(): ShownWordEditDialog | null {
+  return shownWordEditDialog
 }
 
 /** Open the dialog (edit a word / add one) or close it (null). */
-export function setWordEdit(next: WordEditRequest | null): void {
-  value = next
+export function setShownWordEditDialog(val: ShownWordEditDialog | null): void {
+  shownWordEditDialog = val
   for (const listener of listeners) listener()
 }
 
-/** Subscribe to the request. App uses this to decide whether to mount
- *  `<WordEditDialog>`. */
-export function useWordEdit(): WordEditRequest | null {
-  return useSyncExternalStore(subscribe, getSnapshot)
+/** The dialog on screen, or null when none is. App uses this to decide
+ *  whether to mount `<WordEditDialog>`. */
+export function useShownWordEditDialog(): ShownWordEditDialog | null {
+  return useSyncExternalStore(subscribe, getShownWordEditDialog)
 }

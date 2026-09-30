@@ -22,7 +22,7 @@ celebrated.
 
 **`playSound(name)` is the only player.** It keeps one `Audio` element per
 sound, made on first use and reused, reads the profile store through
-`currentProfile()` and returns without a sound when the setting is off, and
+`getMyProfile()` and returns without a sound when the setting is off, and
 swallows every failure: a browser refuses audio until the page has had a
 click, and jsdom implements no media. It hands back a `stop`, which the jingle
 uses when its dialog is dismissed early. Adding a sound is a file in

@@ -51,12 +51,12 @@ import {
  * which simply pauses it for the others). `dismiss` just drops the invite from
  * the list, which retires its toast.
  */
-export function useGameInvitations(session: Session): {
+export function useGameInvitations(authSession: Session): {
   invites: GameInvite[]
   dismiss: (gameId: string) => void
   join: (invite: GameInvite) => void
 } {
-  const selfId = session.user.id
+  const selfId = authSession.user.id
   const currentGameId = matchGameRoute(usePath())?.gameId ?? null
   // All surfaced-and-not-yet-acted-on invitations (across pages).
   const [pending, setPending] = useState<GameInvite[]>([])

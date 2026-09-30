@@ -145,7 +145,7 @@ const SOMEONE_WON: GameEnding = {
  *  give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
   const facts = {
-    session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    authSession: { user: { id: 'u1' } } as unknown as GamePageCtx['authSession'],
     isTurnBased: false,
     turnHolderId: null,
     gameEnding: null,
@@ -179,7 +179,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isTerminal: facts.gameEnding !== null,
     ...whereIStand({
       players: facts.players,
-      myId: facts.session.user.id,
+      myId: facts.authSession.user.id,
       isTerminal: facts.gameEnding !== null,
       isTurnBased: facts.isTurnBased,
       turnHolderId: facts.turnHolderId,
@@ -542,7 +542,7 @@ describe('wordle PlayArea — the ending', () => {
   // SPECTATING: a guess until the design settles what a watcher sees.
   it('does not celebrate for a club member watching the team win', () => {
     h.loaded = loaded(null)
-    const watching = { session: { user: { id: 'u9' } } as unknown as GamePageCtx['session'] }
+    const watching = { authSession: { user: { id: 'u9' } } as unknown as GamePageCtx['authSession'] }
     const { rerender } = render(<PlayAreaLoader {...makeCtx(watching)} />)
     h.loaded = loaded('crane')
     rerender(
@@ -797,7 +797,7 @@ describe('wordle PlayArea — event-log picker label', () => {
   it("names the player (not the viewer) when a club member spectates a solo game", async () => {
     // u2 (a club member, not in the game) is watching u1's solo game.
     const ctx = makeCtx({
-      session: { user: { id: 'u2' } } as unknown as GamePageCtx['session'],
+      authSession: { user: { id: 'u2' } } as unknown as GamePageCtx['authSession'],
       players: [gp('u1', 'joel', 'red')],
     })
     render(<PlayAreaLoader {...ctx} />)

@@ -22,7 +22,7 @@ import { instrumentChannel, rtLog, rtVerbose } from '../realtime/realtimeDiag'
  *
  * Configured for an SPA with localStorage-backed session persistence
  * (the supabase-js defaults). What happens on a session restore — checking
- * that the user the JWT names still exists — is `useSession`'s, and
+ * that the user the JWT names still exists — is `useAuthSession`'s, and
  * explained there.
  */
 

@@ -103,11 +103,11 @@ type RungAnswer = {
 
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, session, status,
+    gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, authSession, status,
     isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
     setup, clubHandle, goToFollowUpGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
-  const { game, playerRows, myRow, events, loading, rowsLoaded, failure } = useGame(gameId, session.user.id)
+  const { game, playerRows, myRow, events, loading, rowsLoaded, failure } = useGame(gameId, authSession.user.id)
 
   // The entry is typed at the window rather than into an input, so nothing here
   // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
@@ -142,8 +142,8 @@ export function PlayArea(ctx: GamePageCtx) {
   const celebration = useCelebration(
     playState === 'won' ||
       (playState === 'won_compete' &&
-        (status?.winner_id === session.user.id ||
-          leaderboard.some((e) => e.won && e.user_id === session.user.id))),
+        (status?.winner_id === authSession.user.id ||
+          leaderboard.some((e) => e.won && e.user_id === authSession.user.id))),
   )
 
   // Only the letters the player typed/clicked. The mandatory first letter is
@@ -548,7 +548,7 @@ export function PlayArea(ctx: GamePageCtx) {
           players,
           playerRows,
           events,
-          selfId: session.user.id,
+          selfId: authSession.user.id,
           summary: `${lettersCovered}/${BOARD_SIZE} letters · ${chain.length}/${maxWords} words`,
           setupRows,
         }),
@@ -587,7 +587,7 @@ export function PlayArea(ctx: GamePageCtx) {
     items: events,
     keyOf: (e) => String(e.id),
     messageFor: (e) => {
-      if (e.user_id === session.user.id) return null
+      if (e.user_id === authSession.user.id) return null
       const member = memberById(players, e.user_id)
       // A peer's hint is TWO messages (Joel's spec, 2026-08-05): the header names
       // the ACT ("● joel got a hint"), and the CONTENT — the same hint the
@@ -640,13 +640,13 @@ export function PlayArea(ctx: GamePageCtx) {
             statusOutcome,
             winnerId,
             leaderboard,
-            selfId: session.user.id,
+            selfId: authSession.user.id,
             lettersCovered,
             wordsUsed: chain.length,
           })
         : null,
     [isTerminal, gameMode, playState, timedOut, statusOutcome, winnerId, leaderboard,
-     session.user.id, lettersCovered, chain.length],
+     authSession.user.id, lettersCovered, chain.length],
   )
   useShowEndingFeedback(localFeedbackSlot, {
     gameEndingMessage: over,
@@ -693,7 +693,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // the log hand its rows UP through a state-setting effect; the fresh array
   // re-fired it every render and hit React's update-depth limit.)
   const boardRows =
-    game.mode === 'compete' ? events.filter((e) => e.user_id === session.user.id) : events
+    game.mode === 'compete' ? events.filter((e) => e.user_id === authSession.user.id) : events
 
   // WHOSE chain the viewer replays is the row's own author's. Mid-game compete
   // that is always me — RLS shows me nothing else — but at TERMINAL every
@@ -713,7 +713,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Named only when the chain on screen is not the viewer's own — which only
   // compete can be. Coop is one shared chain.
   const historyActor =
-    game.mode === 'compete' && historyRow && historyRow.user_id !== session.user.id
+    game.mode === 'compete' && historyRow && historyRow.user_id !== authSession.user.id
       ? memberById(players, historyRow.user_id)
       : undefined
 
@@ -767,7 +767,7 @@ export function PlayArea(ctx: GamePageCtx) {
           solution={game.solution}
           events={events}
           players={players}
-          selfId={session.user.id}
+          selfId={authSession.user.id}
           isCompete={isCompete}
           wordsByUser={wordsByUser}
           coveredByUser={coveredByUser}

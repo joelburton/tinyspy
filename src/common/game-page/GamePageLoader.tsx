@@ -26,7 +26,7 @@ import type { GameShellProps } from './GamePageGate'
  *
  * Takes what the route hands down and renders nothing of its own.
  */
-export function GamePageLoader({ gameId, session, manifest }: GameShellProps) {
+export function GamePageLoader({ gameId, authSession, manifest }: GameShellProps) {
   const {
     commonGame,
     players,
@@ -50,7 +50,7 @@ export function GamePageLoader({ gameId, session, manifest }: GameShellProps) {
     resubscribeCount,
     loading,
     failure,
-  } = useCommonGame(gameId, session, manifest.draftsOffTurn ?? false)
+  } = useCommonGame(gameId, authSession, manifest.draftsOffTurn ?? false)
 
   if (loading) return <Loading />
   // A failed read is NOT a missing game — both leave `commonGame` null, and
@@ -63,7 +63,7 @@ export function GamePageLoader({ gameId, session, manifest }: GameShellProps) {
   return (
     <GamePage
       gameId={gameId}
-      session={session}
+      authSession={authSession}
       manifest={manifest}
       commonGame={commonGame}
       players={players}

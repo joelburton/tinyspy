@@ -89,7 +89,7 @@ type Props = {
   initialGametypes: ClubPageData['gametypes']
   // Signed-in session — its user id is this client's identity on the club
   // presence channel (member dots + abandoned-game heal).
-  session: Session
+  authSession: Session
 }
 
 /**
@@ -106,8 +106,8 @@ type Props = {
  * The games list is not here either — `useClubGames` reads and re-reads it.
  * See `club/doc.md` for how the pieces sit together.
  */
-export function ClubPage({ club, members, initialGametypes, session }: Props) {
-  const selfId = session.user.id
+export function ClubPage({ club, members, initialGametypes, authSession }: Props) {
+  const selfId = authSession.user.id
   const handle = club.handle
   // One-player club. Suppresses the "Co-op" mode badge on this page's cards
   // and rows — see ModeBadge. `is_solo` is a generated column over the handle's

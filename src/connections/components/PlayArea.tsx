@@ -70,7 +70,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
     sendClear,
     loading,
     failure,
-  } = useGame(ctx.session, ctx.gameId)
+  } = useGame(ctx.authSession, ctx.gameId)
 
   if (loading) return <Loading />
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -152,7 +152,7 @@ function PlayArea({
   unionTiles,
   toggleTile,
   sendClear,
-  session,
+  authSession,
   gameId,
   players,
   playState,
@@ -335,7 +335,7 @@ function PlayArea({
     items: guesses,
     keyOf: (g) => String(g.id),
     messageFor: (g) => {
-      if (g.user_id === session.user.id) return null // mine → the local slot
+      if (g.user_id === authSession.user.id) return null // mine → the local slot
       const member = memberById(players, g.user_id)
       // The row is somebody else's — the line above returned for my own — so
       // its answer is the `_peer` one.
@@ -494,7 +494,7 @@ function PlayArea({
           remainingTiles: boardView.remainingTiles,
           guesses,
           players,
-          selfId: session.user.id,
+          selfId: authSession.user.id,
           mode: game.mode,
           isTerminal,
           mistakeCount,
@@ -562,7 +562,7 @@ function PlayArea({
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared grid.
   const historyActor =
-    isCompete && historyRow && historyRow.user_id !== session.user.id
+    isCompete && historyRow && historyRow.user_id !== authSession.user.id
       ? memberById(players, historyRow.user_id)
       : undefined
 
@@ -605,7 +605,7 @@ function PlayArea({
         toggleTile={toggleTile}
         sendClear={sendClear}
         unionTiles={unionTiles}
-        selfId={session.user.id}
+        selfId={authSession.user.id}
         colorByUserId={colorByUserId}
         // Identity is only information on a genuinely shared board: coop, with
         // somebody else here. Solo, every pick is mine; in compete the picks
@@ -637,7 +637,7 @@ function PlayArea({
         mistakeBudget={MISTAKE_BUDGET}
         // ── Players (OpponentStrip, compete) ──
         players={players}
-        selfId={session.user.id}
+        selfId={authSession.user.id}
         metricByUser={opponentFound}
         concededIds={concededIds}
         // ── Action row — the same bindings, in the order the menu lists them ──

@@ -69,7 +69,7 @@ vi.mock('./ClubPage', () => ({
 import { ClubPageLoader } from './ClubPageLoader'
 import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'
 
-const session = { user: { id: 'ada' } } as unknown as Session
+const authSession = { user: { id: 'ada' } } as unknown as Session
 
 function loaded(): Envelope<ClubPageData> {
   return {
@@ -96,7 +96,7 @@ function refused(message: string, dbcode: string): Envelope<never> {
 }
 
 function draw() {
-  return render(<ClubPageLoader handle="trio" session={session} />)
+  return render(<ClubPageLoader handle="trio" authSession={authSession} />)
 }
 
 beforeEach(() => {

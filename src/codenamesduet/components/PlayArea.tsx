@@ -82,7 +82,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   // Showing the partner's key is a display choice, but `useBoard` is what turns
   // it into `peerKey`, so the choice is held here, above the read.
   const peerKeyReveal = useSolutionReveal()
-  const board = useBoard(ctx.gameId, ctx.session.user.id, peerKeyReveal.revealed)
+  const board = useBoard(ctx.gameId, ctx.authSession.user.id, peerKeyReveal.revealed)
 
   if (gameLoading || board.loading) return <Loading />
   // A failed read is NOT a missing game. Both leave the board with nothing to
@@ -98,7 +98,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   // no seat. A seat id missing from the shell's players is a torn write too.
   // `detail` goes to the console, never to the page.
   const seated = game && seatPlayers(game, ctx.players)
-  const mySeat = seated?.find((p) => p.user_id === ctx.session.user.id)?.seat
+  const mySeat = seated?.find((p) => p.user_id === ctx.authSession.user.id)?.seat
   if (!game || !seated || !mySeat || !board.myKey || board.words.length < 25) {
     return (
       <NoSuchGamePage
@@ -156,7 +156,7 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
 }
 
 function PlayArea({
-  session,
+  authSession,
   gameId,
   playState,
   isTerminal,
@@ -235,7 +235,7 @@ function PlayArea({
 
   // Seat/roster derivations, read by the print model (built in the binding's
   // run) and the render alike, so both see the SAME values.
-  const peer = players.find((p) => p.user_id !== session.user.id)
+  const peer = players.find((p) => p.user_id !== authSession.user.id)
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
 
   // A turn is in its guess phase iff a clue exists for `games.turn_number`.
@@ -328,7 +328,7 @@ function PlayArea({
     items: events,
     keyOf: (e) => String(e.id),
     messageFor: (e) => {
-      if (e.kind !== 'hint' || e.user_id === session.user.id) return null
+      if (e.kind !== 'hint' || e.user_id === authSession.user.id) return null
       const member = players.find((p) => p.user_id === e.user_id)
       const { outcome, text } = answerMessage({ answerType: 'hint_peer' })
       return FeedbackMessage.peer(member, outcome, text)
@@ -580,7 +580,7 @@ function PlayArea({
         clues={clues}
         guesses={guesses}
         players={players}
-        selfId={session.user.id}
+        selfId={authSession.user.id}
         isTerminal={isTerminal}
         historyId={historyId}
         onShowHistory={showHistory}

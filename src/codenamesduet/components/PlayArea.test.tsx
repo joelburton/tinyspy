@@ -162,7 +162,7 @@ function pointerFor(playState: string): string | null {
  *  (`whereIStand`), unless a test sets `turnHolderId` itself. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
   const facts = {
-    session: { user: { id: 'me' } } as unknown as GamePageCtx['session'],
+    authSession: { user: { id: 'me' } } as unknown as GamePageCtx['authSession'],
     players: [
       { user_id: 'me', username: 'me', color: 'red' },
       { user_id: 'peer', username: 'peer', color: 'blue' },
@@ -192,7 +192,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     turnHolderId,
     ...whereIStand({
       players: facts.players,
-      myId: facts.session.user.id,
+      myId: facts.authSession.user.id,
       isTerminal: facts.isTerminal,
       isTurnBased: facts.isTurnBased,
       turnHolderId,

@@ -190,7 +190,7 @@ export function makeGameData(
 ): GameData {
   const isCompete = ctx.mode === 'compete'
   const maxGuesses = readGameStatus(ctx).max_guesses
-  const me = playersById[ctx.session.user.id] ?? null
+  const me = playersById[ctx.authSession.user.id] ?? null
   const players = Object.values(playersById)
   // Coop writes the team's count on every player, so any one of them carries
   // it; a game always has at least one player.
@@ -221,7 +221,7 @@ export function makeGameData(
       ? (players.find((p) => p.outcome === 'won') ?? null)
       : null,
     boardGuesses: isCompete
-      ? rows.events.filter((e) => e.user_id === ctx.session.user.id)
+      ? rows.events.filter((e) => e.user_id === ctx.authSession.user.id)
       : rows.events,
     events: rows.events,
     players,

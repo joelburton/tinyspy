@@ -4,7 +4,7 @@ The screens shown before the app proper: signing in, and claiming a handle.
 
 ## Intro to area
 
-Until the session resolves, `App` draws nothing but a gate: `useSession`
+Until the session resolves, `App` draws nothing but a gate: `useAuthSession`
 answers signed out, signed in but unclaimed, or signed in and claimed — or that
 its profile read failed, which is `error-page`'s to draw — and the first two
 each get a screen here, in that order. Nothing else of the app is mounted

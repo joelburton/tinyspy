@@ -6,7 +6,7 @@
  * through a stale refetch. The board hooks take this shape from
  * `useRealtimeRefetch`, which has its own spec; chat wires it by hand.
  *
- * Mocking strategy, the same shape as useSession.test.ts: `../supabase/supabase`
+ * Mocking strategy, the same shape as useAuthSession.test.ts: `../supabase/supabase`
  * is replaced with hand-built spies; the channel chain (.on().on().subscribe())
  * captures the INSERT handler and the SUBSCRIBED callback so a test can fire
  * them by hand; the schema()→from()→select()→eq()→gte()→order() chain collapses

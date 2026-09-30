@@ -28,11 +28,14 @@ export type Profile = {
  * save has to reach all of them at once. There is one signed-in user per tab,
  * so one module-level slot is correct.
  *
- * Nothing here fetches. `useSession`'s probe is the one read of the profiles
- * row, and it hands what it found to `setProfile` — so the store is filled
+ * Nothing here fetches. `useAuthSession`'s probe is the one read of the profiles
+ * row, and it hands what it found to `setMyProfile` — so the store is filled
  * before the first page mounts, and emptied whenever the session goes away.
  */
-let current: Profile | null = null
+let myProfile: Profile | null = null
+// A listener is a callback: each `useMyProfile()` caller adds one, and
+// `setMyProfile` / `setMyProfileFields` call every one to say `myProfile` has
+// changed.
 const listeners = new Set<() => void>()
 
 function notify() {
@@ -46,38 +49,34 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-function getSnapshot(): Profile | null {
-  return current
-}
-
 /**
- * Fill the store from the profiles row, or empty it — `useSession` calls this
+ * Fill the store from the profiles row, or empty it — `useAuthSession` calls this
  * as each auth event resolves. `null` is what signed-out looks like, and also
  * what a signed-in user without a claimed username looks like; either way
  * every reader falls back to its no-profile rendering.
  */
-export function setProfile(next: Profile | null) {
-  current = next
+export function setMyProfile(val: Profile | null) {
+  myProfile = val
   notify()
 }
 
 /**
  * The signed-in user's profile, or `null` when there isn't one — signed out,
  * or signed in and not yet claimed. Subscribe-only and arg-free, so it reads
- * correctly at any depth of the tree; `useSession` is what puts a value here.
+ * correctly at any depth of the tree; `useAuthSession` is what puts a value here.
  */
-export function useProfile(): Profile | null {
-  return useSyncExternalStore(subscribe, getSnapshot)
+export function useMyProfile(): Profile | null {
+  return useSyncExternalStore(subscribe, getMyProfile)
 }
 
 /**
- * The profile as it stands right now, for code that runs OUTSIDE a render — an
- * effect, a handler, a module-level helper like `playSound` — where a hook
- * cannot be called. A component reads `useProfile()` instead, so it re-renders
- * when the profile changes.
+ * The signed-in user's profile as it stands right now, for code that runs
+ * OUTSIDE a render — an effect, a handler, a module-level helper like
+ * `playSound` — where a hook cannot be called. A component reads
+ * `useMyProfile()` instead, so it re-renders when the profile changes.
  */
-export function currentProfile(): Profile | null {
-  return current
+export function getMyProfile(): Profile | null {
+  return myProfile
 }
 
 /**
@@ -86,9 +85,9 @@ export function currentProfile(): Profile | null {
  * optimistic — it tells the store what the server already holds, and every
  * reader repaints at once.
  */
-export function setProfileFields(fields: Pick<Profile, 'color' | 'sounds_enabled'>) {
-  if (current) {
-    current = { ...current, ...fields }
+export function setMyProfileFields(fields: Pick<Profile, 'color' | 'sounds_enabled'>) {
+  if (myProfile) {
+    myProfile = { ...myProfile, ...fields }
     notify()
   }
 }

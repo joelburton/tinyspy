@@ -106,7 +106,7 @@ type Props = GameShellProps & {
  */
 export function GamePage({
   gameId,
-  session,
+  authSession,
   manifest,
   commonGame,
   players,
@@ -146,7 +146,7 @@ export function GamePage({
   // viewing THIS game, so the club page's member dots +
   // abandoned-game heal can see them. We don't read the roster here —
   // GamePage only announces.
-  useClubPresence(clubHandle, gameId, session.user.id)
+  useClubPresence(clubHandle, gameId, authSession.user.id)
 
   // Receive-only: while you're IN a game of this club (active OR paused), still
   // surface a peer's "setting up a new game" toast — e.g. someone abandons a
@@ -154,7 +154,7 @@ export function GamePage({
   // open a setup dialog from a game page (ClubPage owns the announcing side).
   useClubSetupPresence({
     clubHandle,
-    selfId: session.user.id,
+    selfId: authSession.user.id,
     announce: null,
   })
 
@@ -479,7 +479,7 @@ export function GamePage({
                   back the same. */}
               <PlayArea
                 key={commonGame.restart_count}
-                session={session}
+                authSession={authSession}
                 gameId={gameId}
                 brand={manifest.name}
                 title={commonGame.title}
@@ -525,7 +525,7 @@ export function GamePage({
       <Chat
         clubHandle={commonGame.club_handle}
         members={clubMembers}
-        selfId={session.user.id}
+        selfId={authSession.user.id}
         globalFeedbackSlot={globalFeedbackSlot}
       />
 
@@ -537,10 +537,10 @@ export function GamePage({
           gameId={gameId}
           ownerId={
             manifest.scratchpad.perPlayerInCompete && manifest.mode === 'compete'
-              ? session.user.id
+              ? authSession.user.id
               : null
           }
-          myId={session.user.id}
+          myId={authSession.user.id}
           members={clubMembers}
         />
       )}

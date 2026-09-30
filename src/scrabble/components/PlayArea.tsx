@@ -59,7 +59,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * dictionary. See docs/playarea.md.
  */
 export function PlayArea({
-  session,
+  authSession,
   gameId,
   players,
   playState,
@@ -124,7 +124,7 @@ export function PlayArea({
   // per-player data arriving empty and faking a flip). `useCelebration` never
   // pops on mount besides, so opening a finished game stays quiet.
   const celebration = useCelebration(
-    playState === 'won_compete' && (status?.winner_user_id as string | undefined) === session.user.id,
+    playState === 'won_compete' && (status?.winner_user_id as string | undefined) === authSession.user.id,
   )
 
   // Board-viewer coordination (shared hook): which read-only overlay is open — a
@@ -169,7 +169,7 @@ export function PlayArea({
   })
 
   // ─── Derived (null-safe until the loading guard) ──────────────
-  const self = playerStates.find((p) => p.user_id === session.user.id)
+  const self = playerStates.find((p) => p.user_id === authSession.user.id)
   const isCompete = game?.mode === 'compete'
   // Concede lives on the common roster (ctx.players → `players`).
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
@@ -260,13 +260,13 @@ export function PlayArea({
     const fresh = plays.filter((p) => p.id > (announcedIdRef.current ?? 0))
     announcedIdRef.current = tailId
     // The newest OPPONENT move in this batch (mine already showed in the commit slot).
-    const latest = fresh.filter((p) => p.user_id !== session.user.id).at(-1)
+    const latest = fresh.filter((p) => p.user_id !== authSession.user.id).at(-1)
     if (!latest) return
     const actor = players.find((m) => m.user_id === latest.user_id)
     globalFeedbackSlot.show(
       FeedbackMessage.peer(actor, ANSWER_OUTCOME[latest.kind], peerMoveText(latest)),
     )
-  }, [plays, game, isCompete, session.user.id, players, globalFeedbackSlot])
+  }, [plays, game, isCompete, authSession.user.id, players, globalFeedbackSlot])
 
   // ─── Suggest-a-move (coop AI hints — docs/games/scrabble.md §11) ──────────
   // State lives here (the coordinator): InfoCol renders the box, BoardCol
@@ -498,13 +498,13 @@ type Suggested =
             playState,
             statusOutcome,
             teamScore,
-            selfWon: winnerId === session.user.id,
+            selfWon: winnerId === authSession.user.id,
             winner: hasWinner ? { username: winnerName ?? 'a player', color: winnerColor ?? '' } : undefined,
           })
         : null,
     // `game` stands in for its mode, which never changes once loaded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isTerminal, game?.mode, playState, statusOutcome, teamScore, winnerId, session.user.id, hasWinner, winnerName, winnerColor],
+    [isTerminal, game?.mode, playState, statusOutcome, teamScore, winnerId, authSession.user.id, hasWinner, winnerName, winnerColor],
   )
   useShowEndingFeedback(localFeedbackSlot, {
     gameEndingMessage: over,
@@ -583,7 +583,7 @@ type Suggested =
         memberColorOf={memberColorOf}
         canShare={canShare}
         shareMove={shareMove}
-        selfId={session.user.id}
+        selfId={authSession.user.id}
         registerSuggestionApplier={registerSuggestionApplier}
       />
 
@@ -600,7 +600,7 @@ type Suggested =
           teamScore={game.teamScore}
           bagCount={game.bagCount}
           players={players}
-          selfId={session.user.id}
+          selfId={authSession.user.id}
           playerStates={playerStates}
           concededIds={concededIds}
           actStopGame={actStopGame}

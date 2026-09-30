@@ -91,7 +91,7 @@ vi.mock('../supabase/dbResult', async (importOriginal) => ({
   readRows: mockReadRows,
 }))
 
-vi.mock('../session/useProfile', () => ({ useProfile: () => profile.current }))
+vi.mock('../session/useProfile', () => ({ useMyProfile: () => profile.current }))
 
 vi.mock('../realtime/useRealtimeRefetch', async () => {
   const { useEffect } = await vi.importActual<typeof import('react')>('react')
@@ -116,7 +116,7 @@ import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'
 // row inside the frame with it.
 Element.prototype.scrollIntoView = vi.fn()
 
-const session = { user: { id: 'u-1' } } as unknown as Session
+const authSession = { user: { id: 'u-1' } } as unknown as Session
 
 const SOLO: Club = { handle: '=joel', name: 'joel', is_solo: true }
 const SHARED: Club = { handle: 'book-club', name: 'Book Club', is_solo: false }
@@ -151,7 +151,7 @@ function theReadFailed(): Envelope<Club[]> {
 
 /** Render and wait for the mount load to have settled into the list. */
 async function draw() {
-  const view = render(<HomePage session={session} />)
+  const view = render(<HomePage authSession={authSession} />)
   await waitFor(() => expect(mockReadRows).toHaveBeenCalled())
   return view
 }

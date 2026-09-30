@@ -1,6 +1,6 @@
 // cs-blessed-page-header
 
-import { setScratchpadOpen, useIsScratchpadOpen } from '../scratchpad/scratchpadOpenStore'
+import { setIsScratchpadOpen, useIsScratchpadOpen } from '../scratchpad/scratchpadOpenStore'
 import { IconScratchpad } from '../icons/icons'
 import { useBoundAction } from '../actions/useBoundAction'
 import { actionSurface } from '../actions/actionSurface'
@@ -25,7 +25,7 @@ export function ScratchpadButton() {
   const open = useIsScratchpadOpen()
   const actOpenScratchpad = useBoundAction('act-open-scratchpad', {
     describe: () => ({ state: 'active', label: open ? 'Close scratchpad' : 'Open scratchpad' }),
-    run: () => setScratchpadOpen(!open),
+    run: () => setIsScratchpadOpen(!open),
   })
   const { label, buttonProps } = actionSurface(actOpenScratchpad)
   return (

@@ -78,7 +78,7 @@ type Values = { desired: string; chosen_color: string }
  * The second half of signing in: pick a username and a color, which
  * `common.claim_username` turns into a profile and a solo club.
  *
- * `App` puts this up when `useSession` reports `needsClaim` — signed in, no
+ * `App` puts this up when `useAuthSession` reports `needsClaim` — signed in, no
  * profiles row — and takes it down when `onClaimed` says the probe found one.
  * The username is permanent, which is why this screen exists at all rather
  * than a name being derived silently; `doc.md` has the rules and the rest.
@@ -143,7 +143,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
   // `signOut()`'s SIGNED_OUT event has not reliably re-rendered, and a stale
   // session is exactly what brings people here. So sign out
   // best-effort — the revoke can fail on that same stale session — then a HARD
-  // navigation to "/": the full reload re-runs useSession from a clean slate.
+  // navigation to "/": the full reload re-runs useAuthSession from a clean slate.
   // The in-app router wouldn't do: this screen is gated on `needsClaim`, not
   // the path, so it would still render.
   async function signOutAndLeave() {

@@ -80,7 +80,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The board is worked by clicks and typing, so Tab has nowhere to go here —
   // and an empty ring is what keeps it from walking out to the browser.
   useTabRing([])
-  const { initialBoard, tiles, loading, failure } = useGame(ctx.gameId, ctx.session.user.id)
+  const { initialBoard, tiles, loading, failure } = useGame(ctx.gameId, ctx.authSession.user.id)
   // Everyone's finished grids, for the printout's per-player columns. Empty
   // until the game ends — see usePeerBoards / the player_boards RLS.
   const peerBoards = usePeerBoards(ctx.gameId, ctx.isTerminal)
@@ -272,10 +272,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // A ref rather than effect deps: `ctx.players` is a fresh array identity most
   // renders, so listing it would rebuild this game's whole menu on every one of
   // them.
-  const printDataRef = useRef({ peerBoards, players: ctx.players, selfId: ctx.session.user.id })
+  const printDataRef = useRef({ peerBoards, players: ctx.players, selfId: ctx.authSession.user.id })
   useEffect(() => {
-    printDataRef.current = { peerBoards, players: ctx.players, selfId: ctx.session.user.id }
-  }, [peerBoards, ctx.players, ctx.session.user.id])
+    printDataRef.current = { peerBoards, players: ctx.players, selfId: ctx.authSession.user.id }
+  }, [peerBoards, ctx.players, ctx.authSession.user.id])
 
   // ─── New game ───────────────────────────────────────────────────────────
   // A FRESH game (new id, a newly dealt bunch) with THIS game's setup + roster,
@@ -410,7 +410,7 @@ export function PlayArea(ctx: GamePageCtx) {
   //
   // bananagrams' status carries only `winner_username` (no winner uuid — see
   // the peel-win block in the migration), so the test is a name comparison.
-  const selfId = ctx.session.user.id
+  const selfId = ctx.authSession.user.id
   const selfUsername = ctx.players.find((p) => p.user_id === selfId)?.username
   // Gate on the winner EXISTING, not on the display fallback: 'someone' is a
   // legal username (^[a-z][a-z0-9-]{2,14}$), so comparing against it would pop

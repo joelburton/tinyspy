@@ -268,7 +268,7 @@ and what triggers it from the body and the deps.
 
 - **Every non-trivial effect gets a header comment ABOVE the `useEffect(…)`**,
   leading with intent and saying why these deps when that isn't obvious —
-  `[session.user.id]` rather than `[session]` so a token refresh doesn't
+  `[authSession.user.id]` rather than `[authSession]` so a token refresh doesn't
   refetch. Same for a non-trivial `useCallback` / `useMemo`.
 - **A non-trivial `useEffect` callback is a named function expression:**
   `useEffect(function joinGameRoom() { … }, [gameId])`. The name shows in stack

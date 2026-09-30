@@ -2,7 +2,7 @@
 
 import { Companion } from '../floating-panels/Companion'
 import { StandardButton } from '../buttons/StandardButton'
-import { setScratchpadOpen, useIsScratchpadOpen } from './scratchpadOpenStore'
+import { setIsScratchpadOpen, useIsScratchpadOpen } from './scratchpadOpenStore'
 import { useScratchpad } from './useScratchpad'
 import { handOffKeyboardOnTab } from '../keyboard/keyboardHandoff'
 import { DotActor } from '../members/ActorMention'
@@ -53,7 +53,7 @@ export function GameScratchpadCompanion({ gameId, ownerId, myId, members }: Prop
   return (
     <Companion
       title="Scratchpad"
-      onClose={() => setScratchpadOpen(false)}
+      onClose={() => setIsScratchpadOpen(false)}
       persistKey={`puzpuzpuz:scratchpad:rect:${gameId}`}
       defaultPosition="center"
       defaultSize={{ width: 320, height: 360 }}

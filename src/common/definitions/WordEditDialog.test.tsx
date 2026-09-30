@@ -21,7 +21,7 @@ const { mockRpc, mockWordRows, mockSetWordEdit, mockAsk } = vi.hoisted(() => ({
 // caller uses — the app-root host draws it, so there is nothing to render here.
 vi.mock('../floating-panels/confirmationService', () => ({ askConfirmation: mockAsk }))
 // Closing is a call to the store, so that is what "it closed" asserts.
-vi.mock('./wordEditStore', () => ({ setWordEdit: mockSetWordEdit }))
+vi.mock('./wordEditStore', () => ({ setShownWordEditDialog: mockSetWordEdit }))
 vi.mock('../supabase/db', () => ({
   db: {
     rpc: mockRpc,

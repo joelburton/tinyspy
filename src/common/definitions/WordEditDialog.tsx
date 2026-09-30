@@ -6,7 +6,7 @@ import { FailureLine } from '../forms/FailureLine'
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../supabase/db'
 import { readRows, runRpc } from '../supabase/dbResult'
-import { setWordEdit, type WordEditRequest } from './wordEditStore'
+import { setShownWordEditDialog, type ShownWordEditDialog } from './wordEditStore'
 import { askConfirmation } from '../floating-panels/confirmationService'
 import { Dialog } from '../floating-panels/Dialog'
 import { cls } from '../utils/cls'
@@ -112,7 +112,7 @@ type DeleteWordAnswer = { result: 'deleted' }
  * field never shows up in the journal as edited. Numbers are plain inputs; the
  * RPC range-checks, so a typo is a clean inline error.
  */
-export function WordEditDialog({ request }: { request: WordEditRequest }) {
+export function WordEditDialog({ request }: { request: ShownWordEditDialog }) {
   const editing = request.mode === 'edit'
   // The row AS LOADED — the baseline the patch is diffed against, and the form's
   // starting values. `null` means the read is still in flight, which is edit
@@ -182,7 +182,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       }
     }
     if (editing && Object.keys(payload).length === 0 && !note.trim()) {
-      setWordEdit(null) // nothing changed, nothing to say — just close
+      setShownWordEditDialog(null) // nothing changed, nothing to say — just close
       return
     }
 
@@ -214,7 +214,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       // whichever it was, the word is saved and the dialog closes. Both are
       // named rather than folded into one word, because they come from
       // different functions and each may grow a second `ok` of its own.
-      setWordEdit(null)
+      setShownWordEditDialog(null)
       return
     } else {
       // Named for the RPC this call actually made — the useful half of the
@@ -246,7 +246,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       setErrors({ [formFieldFor(res.field)]: res.message })
       return
     } else if (res.type === 'ok' && res.data.result === 'deleted') {
-      setWordEdit(null)
+      setShownWordEditDialog(null)
       return
     } else {
       // The dialog stays open on an answer nobody handled — closing it would
@@ -260,7 +260,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     <Dialog
       persistKey="puzpuzpuz:word-edit:rect"
       title={editing ? `Edit "${request.word.toUpperCase()}"` : 'Add word'}
-      onClose={() => setWordEdit(null)}
+      onClose={() => setShownWordEditDialog(null)}
       // Height is the content's — the number below is only the first-paint seed
       // (safe beside `persistKey` on a floating panel that cannot be resized;
       // see `FloatingPanel`'s `fitContent`).
@@ -378,7 +378,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
                 )}
                 <CancelButton
                   show="label"
-                  onClick={() => setWordEdit(null)}
+                  onClick={() => setShownWordEditDialog(null)}
                   disabled={busy}
                 />
                 <FormSubmitButton

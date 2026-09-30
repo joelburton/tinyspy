@@ -90,14 +90,14 @@ type LeaderRow = {
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, session, status,
+    gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, authSession, status,
     isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
     setup, clubHandle, goToFollowUpGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, players: rows, events, claims, lastClaim, teamFound, loading, failure } =
-    useGame(gameId, session.user.id)
+    useGame(gameId, authSession.user.id)
 
-  const selfId = session.user.id
+  const selfId = authSession.user.id
   const setgameSetup = setup as SetgameSetup
 
   const setupRows = useMemo(

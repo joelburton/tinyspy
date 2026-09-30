@@ -23,7 +23,7 @@ vi.mock('../supabase/supabase', () => ({
 }))
 
 vi.mock('../session/useProfile', () => ({
-  useProfile: () => ({
+  useMyProfile: () => ({
     user_id: 'u1',
     username: 'joel',
     color: 'red',

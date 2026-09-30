@@ -11,7 +11,7 @@ import { readStored, writeStored } from '../web-storage/storage'
  * and the companion reads it to decide whether to render the panel at all.
  * So the flag lives outside the component tree in a small pub-sub store.
  * Subscribers use `useIsScratchpadOpen()`; writers call
- * `setScratchpadOpen(next)`.
+ * `setIsScratchpadOpen(val)`.
  *
  * The module holds the value for the life of the tab, so moving between
  * games keeps it on its own; the localStorage mirror is what carries it
@@ -19,12 +19,11 @@ import { readStored, writeStored } from '../web-storage/storage'
  */
 const KEY = 'puzpuzpuz:scratchpad:open'
 
-function readInitial(): boolean {
-  // No storage means closed, same as never having opened it.
-  return readStored('local', KEY, null) === '1'
-}
-
-let open = readInitial()
+// Starts as it was left, from localStorage. No storage means closed, same as
+// never having opened it.
+let isScratchpadOpen = readStored('local', KEY, null) === '1'
+// A listener is a callback: each `useIsScratchpadOpen()` caller adds one, and
+// `setIsScratchpadOpen` calls every one to say the flag has changed.
 const listeners = new Set<() => void>()
 
 function emit(): void {
@@ -32,18 +31,18 @@ function emit(): void {
 }
 
 /** Idempotent set + localStorage mirror + notify. */
-export function setScratchpadOpen(next: boolean): void {
-  if (next === open) return
-  open = next
-  writeStored('local', KEY, next ? '1' : '0')
+export function setIsScratchpadOpen(val: boolean): void {
+  if (val === isScratchpadOpen) return
+  isScratchpadOpen = val
+  writeStored('local', KEY, val ? '1' : '0')
   emit()
 }
 
-/** The current value without subscribing. This is a seam for TESTS, which need
- *  the flag where there is no component to render. In the app, read it with
- *  `useIsScratchpadOpen()` — same split as `useIsChatPanelOpen`. */
-export function getScratchpadOpen(): boolean {
-  return open
+/** Whether the scratchpad is open, without subscribing. In the app, read it
+ *  with `useIsScratchpadOpen()`, which calls this; tests call it directly where
+ *  there is no component to render. */
+export function getIsScratchpadOpen(): boolean {
+  return isScratchpadOpen
 }
 
 function subscribe(listener: () => void): () => void {
@@ -54,9 +53,5 @@ function subscribe(listener: () => void): () => void {
 }
 
 export function useIsScratchpadOpen(): boolean {
-  return useSyncExternalStore(
-    subscribe,
-    () => open,
-    () => open,
-  )
+  return useSyncExternalStore(subscribe, getIsScratchpadOpen, getIsScratchpadOpen)
 }

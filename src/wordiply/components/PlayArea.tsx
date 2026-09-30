@@ -84,7 +84,7 @@ type GuessResult =
 
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, session, status,
+    gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, authSession, status,
     isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
     setup, clubHandle, goToFollowUpGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
@@ -123,9 +123,9 @@ export function PlayArea(ctx: GamePageCtx) {
   const myGuesses = useMemo<EventRow[]>(
     () =>
       game?.mode === 'compete'
-        ? validGuesses.filter((g) => g.user_id === session.user.id)
+        ? validGuesses.filter((g) => g.user_id === authSession.user.id)
         : validGuesses,
-    [validGuesses, game?.mode, session.user.id],
+    [validGuesses, game?.mode, authSession.user.id],
   )
   const boardRows = useMemo(() => myGuesses.map((g) => ({ word: g.word, length: g.length })), [myGuesses])
 
@@ -148,15 +148,15 @@ export function PlayArea(ctx: GamePageCtx) {
     if (game?.mode !== 'compete' || !isTerminal) return []
     const byUser = new Map<string, { word: string; length: number }[]>()
     for (const g of validGuesses) {
-      if (g.user_id === session.user.id) continue
+      if (g.user_id === authSession.user.id) continue
       const rows = byUser.get(g.user_id) ?? []
       rows.push({ word: g.word, length: g.length })
       byUser.set(g.user_id, rows)
     }
     return players
-      .filter((p) => p.user_id !== session.user.id)
+      .filter((p) => p.user_id !== authSession.user.id)
       .map((player) => ({ player, guesses: byUser.get(player.user_id) ?? [] }))
-  }, [validGuesses, game?.mode, isTerminal, players, session.user.id])
+  }, [validGuesses, game?.mode, isTerminal, players, authSession.user.id])
 
   const base = game?.base ?? ''
 
@@ -231,7 +231,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const { word, setWord, lastWord, submit } =
     useFoundWordSubmit({
       mode: game?.mode ?? 'coop',
-      userId: session.user.id,
+      userId: authSession.user.id,
       isMyTurn,
       // Must be LONGER than the base, so the minimum length is base + 1.
       minWordLength: base.length + 1,
@@ -383,7 +383,7 @@ export function PlayArea(ctx: GamePageCtx) {
           isTerminal,
           guesses,
           players,
-          selfId: session.user.id,
+          selfId: authSession.user.id,
           guessesUsed,
           maxGuesses: MAX_GUESSES,
           lengthScore: lengthScore(longest, game.max_word_length),
@@ -428,7 +428,7 @@ export function PlayArea(ctx: GamePageCtx) {
     items: validGuesses,
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {
-      if (r.user_id === session.user.id) return null
+      if (r.user_id === authSession.user.id) return null
       const member = players.find((p) => p.user_id === r.user_id)
       const { outcome, text } = peerAnswerMessage(r)
       // Their word lands on the shared board, so the row says so too.
@@ -468,7 +468,7 @@ export function PlayArea(ctx: GamePageCtx) {
             maxWordLength: game?.max_word_length ?? 0,
             winnerId,
             winners,
-            selfId: session.user.id,
+            selfId: authSession.user.id,
             soleWinner:
               soleWinnerName === undefined
                 ? undefined
@@ -477,7 +477,7 @@ export function PlayArea(ctx: GamePageCtx) {
           })
         : null,
     [isTerminal, gameMode, playState, statusOutcome, longest, letters, game?.max_word_length,
-     winnerId, winners, session.user.id, soleWinnerName, soleWinnerColor, tiedNames],
+     winnerId, winners, authSession.user.id, soleWinnerName, soleWinnerColor, tiedNames],
   )
   useShowEndingFeedback(localFeedbackSlot, {
     gameEndingMessage: over,
@@ -523,7 +523,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // compete can be. Coop is one shared board, so a teammate's row replays the
   // board you are already looking at.
   const historyActor =
-    isCompete && historyRow && historyRow.user_id !== session.user.id
+    isCompete && historyRow && historyRow.user_id !== authSession.user.id
       ? players.find((p) => p.user_id === historyRow.user_id)
       : undefined
 
@@ -572,7 +572,7 @@ export function PlayArea(ctx: GamePageCtx) {
           base={base}
           opponentReveal={opponentReveal}
           players={players}
-          selfId={session.user.id}
+          selfId={authSession.user.id}
           guessesByUser={guessesByUser}
           scoreByUser={scoreByUser}
           concededIds={concededIds}

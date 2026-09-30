@@ -2,15 +2,19 @@
 
 import { useSyncExternalStore } from 'react'
 
-/** The open lookup: the word, and the rect the card points at. */
-export type Defining = { word: string; rect: DOMRect }
+/** The definition card on screen: the word it starts on, and the rect it
+ *  points at. */
+export type ShownDefinitionCard = { word: string; rect: DOMRect }
 
 /**
- * THE ONE OPEN DEFINITION — a module-level slot, the same shape as
+ * THE ONE SHOWN DEFINITION CARD — a module-level slot, the same shape as
  * `toastStore`: `<DefinableWord>` writes it, `<DefinitionHost>` reads it.
  * Why one slot at the root and not state per surface: doc.md → Intro to area.
  */
-let defining: Defining | null = null
+let shownDefinitionCard: ShownDefinitionCard | null = null
+// A listener is a callback: each `useShownDefinitionCard()` caller adds one,
+// and opening or closing the card calls every one to say `shownDefinitionCard`
+// has changed.
 const listeners = new Set<() => void>()
 
 function emit(): void {
@@ -24,8 +28,8 @@ function subscribe(listener: () => void): () => void {
 
 // Stable between real changes — `useSyncExternalStore` calls this on every
 // render and loops if the reference moves on its own.
-function getSnapshot(): Defining | null {
-  return defining
+function getShownDefinitionCard(): ShownDefinitionCard | null {
+  return shownDefinitionCard
 }
 
 /**
@@ -33,18 +37,19 @@ function getSnapshot(): Defining | null {
  * clicked, whose rect is measured now.
  */
 export function defineWord(word: string, el: HTMLElement): void {
-  defining = { word, rect: el.getBoundingClientRect() }
+  shownDefinitionCard = { word, rect: el.getBoundingClientRect() }
   emit()
 }
 
 /** Close the card. A no-op when nothing is open. */
 export function closeDefinition(): void {
-  if (defining === null) return
-  defining = null
+  if (shownDefinitionCard === null) return
+  shownDefinitionCard = null
   emit()
 }
 
-/** Subscribe to the open lookup — `<DefinitionHost>` is the only reader. */
-export function useDefining(): Defining | null {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+/** The card on screen, or null when none is — `<DefinitionHost>` is the only
+ *  reader. */
+export function useShownDefinitionCard(): ShownDefinitionCard | null {
+  return useSyncExternalStore(subscribe, getShownDefinitionCard, getShownDefinitionCard)
 }

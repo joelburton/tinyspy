@@ -11,7 +11,7 @@ import { db as commonDb } from '../supabase/db'
 import { showFaultModal } from '../faults/faultStore'
 import { diagnosticsLine } from '../supabase/dbLog'
 import { readRows } from '../supabase/dbResult'
-import { useProfile } from '../session/useProfile'
+import { useMyProfile } from '../session/useProfile'
 import { useRealtimeRefetch } from '../realtime/useRealtimeRefetch'
 import { Dot } from '../members/Dot'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
@@ -30,7 +30,7 @@ type ClubListEntry = {
 }
 
 type Props = {
-  session: Session
+  authSession: Session
 }
 
 /**
@@ -38,11 +38,11 @@ type Props = {
  * adds one. Why it is shaped this way — the one-stop tab ring, the three empty
  * states, the zero-rows fault — is `doc.md`'s Intro to area.
  *
- * `session` — its user id scopes the realtime subscription. The clubs read
+ * `authSession` — its user id scopes the realtime subscription. The clubs read
  * itself sends no id: RLS filters it to the caller's memberships.
  */
-export function HomePage({ session }: Props) {
-  const profile = useProfile()
+export function HomePage({ authSession }: Props) {
+  const profile = useMyProfile()
   const username = profile?.username ?? null
   const [clubs, setClubs] = useState<ClubListEntry[]>([])
   // Three states, because an empty list means something different in each and
@@ -66,10 +66,10 @@ export function HomePage({ session }: Props) {
     tables: {
       schema: 'common',
       table: 'clubs_members',
-      filter: `user_id=eq.${session.user.id}`,
+      filter: `user_id=eq.${authSession.user.id}`,
     },
     channelPrefix: 'home-clubs',
-    id: session.user.id,
+    id: authSession.user.id,
     load: async ({ mounted }) => {
       const result = await readRows(
         commonDb

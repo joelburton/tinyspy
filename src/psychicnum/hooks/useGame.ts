@@ -209,7 +209,7 @@ export function makeGameData(
   const gameStatus = readGameStatus(ctx)
   const isCompete = ctx.mode === 'compete'
   const maxGuesses = gameStatus.max_guesses
-  const me = playersById[ctx.session.user.id] ?? null
+  const me = playersById[ctx.authSession.user.id] ?? null
   const players = Object.values(playersById)
 
   // No secret can be found twice and each guess is one player's, so coop's

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import type { AuthError } from '@supabase/supabase-js'
-import { useProfile } from '../session/useProfile'
+import { useMyProfile } from '../session/useProfile'
 import { supabase } from '../supabase/supabase'
 import { getTextualOnlineStatus } from '../supabase/dbFetch'
 import {
@@ -11,7 +11,7 @@ import {
   reportDbFault,
 } from '../supabase/dbEnvelope'
 import { setIsEditProfileOpen } from './editProfileStore'
-import { setWordEdit } from '../definitions/wordEditStore'
+import { setShownWordEditDialog } from '../definitions/wordEditStore'
 import { useBoundAction } from '../actions/useBoundAction'
 import type { MenuSection } from '../menu/menuModel'
 
@@ -42,7 +42,7 @@ function reportFailedSignOut(error: AuthError): void {
  * inside the page's menu, and why the row is your name, are doc.md's Intro to area.
  */
 export function useAccountMenuSection(): MenuSection {
-  const profile = useProfile()
+  const profile = useMyProfile()
   const username = profile?.username
   const color = profile?.color
   // Dictionary curation is editors-only (`profiles.can_edit_words`; the RPC
@@ -57,7 +57,7 @@ export function useAccountMenuSection(): MenuSection {
   })
   const actAddWord = useBoundAction('act-add-word', {
     describe: () => (canEditWords ? 'active' : 'hidden'),
-    run: () => setWordEdit({ mode: 'add' }),
+    run: () => setShownWordEditDialog({ mode: 'add' }),
   })
   const actLogOut = useBoundAction('act-log-out', {
     describe: () => 'active',
@@ -75,7 +75,7 @@ export function useAccountMenuSection(): MenuSection {
           // A stable id even though the label is the (loadable) username, so
           // React keying doesn't churn when the profile lands.
           id: 'account',
-          // The gates make a missing profile unreachable here: `useSession`
+          // The gates make a missing profile unreachable here: `useAuthSession`
           // seeds the store before `loading` clears, and a page with a menu
           // renders only past that. So the `??` — and the undefined `dot`
           // below — belong to `Profile | null`, which is the signed-out state

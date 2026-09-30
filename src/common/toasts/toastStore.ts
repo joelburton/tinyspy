@@ -63,6 +63,8 @@ export type ToastEntry = Omit<ToastSpec, 'id'> & { id: string }
 
 // ── The store: a plain array + listener set, swapped by reference on change ──
 let toasts: ToastEntry[] = []
+// A listener is a callback: each `useToasts()` caller adds one, and showing or
+// dismissing a toast calls every one to say the list has changed.
 const listeners = new Set<() => void>()
 let seq = 0
 
@@ -75,9 +77,9 @@ function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener)
 }
 
-// getSnapshot MUST return a stable reference when nothing changed (we only
-// reassign `toasts` on a real mutation), so `useSyncExternalStore` doesn't loop.
-function getSnapshot(): ToastEntry[] {
+// MUST return a stable reference when nothing changed (we only reassign
+// `toasts` on a real mutation), so `useSyncExternalStore` doesn't loop.
+function getToasts(): ToastEntry[] {
   return toasts
 }
 
@@ -105,7 +107,7 @@ export function dismissToast(id: string): void {
 
 /** Subscribe a component to the live toast list (the host uses this). */
 export function useToasts(): ToastEntry[] {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  return useSyncExternalStore(subscribe, getToasts, getToasts)
 }
 
 /**

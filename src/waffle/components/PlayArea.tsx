@@ -81,7 +81,7 @@ type SwapAnswer = {
  * or runs out of swaps (coop needs none: the swap log already shows every move).
  */
 export function PlayArea({
-  session,
+  authSession,
   gameId,
   brand,
   title,
@@ -166,7 +166,7 @@ export function PlayArea({
     function announceOpponentMilestones() {
       if (!game || game.mode !== 'compete') return
       for (const ps of playerStates) {
-        if (ps.user_id === session.user.id) continue
+        if (ps.user_id === authSession.user.id) continue
         const out = !ps.solved && ps.swaps_used >= game.max_swaps
         const prev = seenOpponentRef.current.get(ps.user_id)
         seenOpponentRef.current.set(ps.user_id, { solved: ps.solved, out })
@@ -184,7 +184,7 @@ export function PlayArea({
         }
       }
     },
-    [playerStates, game, players, session.user.id, globalFeedbackSlot],
+    [playerStates, game, players, authSession.user.id, globalFeedbackSlot],
   )
 
   // ─── A swap in flight ──────────────────────────────────
@@ -269,7 +269,7 @@ export function PlayArea({
   // swaps never got there. (`playerStates` is [] on the first render, which is
   // exactly why the reveal derives this rather than initializing from it.)
   const iSolved =
-    playerStates.find((p) => p.user_id === session.user.id)?.solved === true
+    playerStates.find((p) => p.user_id === authSession.user.id)?.solved === true
   const {
     revealed: answerShown,
     toggle: toggleAnswer,
@@ -317,7 +317,7 @@ export function PlayArea({
   // `optimisticSwap`. A ref rather than a dep, so `doSwap` keeps its identity
   // across the realtime refetches that arrive between moves.
   useEffect(() => {
-    const mine = playerStates.find((p) => p.user_id === session.user.id)
+    const mine = playerStates.find((p) => p.user_id === authSession.user.id)
     serverStateRef.current = {
       board: mine?.board ?? game?.scramble ?? '',
       swaps: mine?.swaps_used ?? 0,
@@ -414,7 +414,7 @@ export function PlayArea({
           playerBoards: playerStates,
           swaps,
           players,
-          selfId: session.user.id,
+          selfId: authSession.user.id,
           // The six words, derived the same way the on-screen reveal derives
           // them: every word is fully green against the solution itself.
           solutionWords: game.solution
@@ -453,7 +453,7 @@ export function PlayArea({
   // Each is an effect on a primitive edge that shows on true and retracts in
   // its cleanup — the slot draws whichever ranks highest. Above the early
   // returns because effects must be.
-  const self = playerStates.find((p) => p.user_id === session.user.id)
+  const self = playerStates.find((p) => p.user_id === authSession.user.id)
   const swapsUsed = self?.swaps_used ?? 0
   const remaining = Math.max(0, (game?.max_swaps ?? 0) - swapsUsed)
 
@@ -462,7 +462,7 @@ export function PlayArea({
   // are kept in lock-step, so any row carries the group's count — falling
   // back to row 0 keeps the label honest for a non-player watcher (whose
   // `self` is undefined).
-  const selfWon = (status?.winner_user_id as string | undefined) === session.user.id
+  const selfWon = (status?.winner_user_id as string | undefined) === authSession.user.id
   const swapsOverPar = ((self ?? playerStates[0])?.swaps_used ?? 0) - (game?.par_swaps ?? 0)
   const timerExpired = timer.expired
   const over = useMemo(
@@ -525,7 +525,7 @@ export function PlayArea({
   // board's own, and a handle from the log resolves its row id against it: a row
   // that is not mine is not in it, and replays nothing.
   const replaySwaps = isCompete
-    ? swaps.filter((sw) => sw.user_id === session.user.id)
+    ? swaps.filter((sw) => sw.user_id === authSession.user.id)
     : swaps
 
   // WHOSE board the viewer replays is the row's own author's. Mid-game compete
@@ -544,7 +544,7 @@ export function PlayArea({
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared board.
   const historyActor =
-    isCompete && historyRow && historyRow.user_id !== session.user.id
+    isCompete && historyRow && historyRow.user_id !== authSession.user.id
       ? memberById(players, historyRow.user_id)
       : undefined
 
@@ -651,7 +651,7 @@ export function PlayArea({
         remaining={remaining}
         parSwaps={game.par_swaps}
         players={players}
-        selfId={session.user.id}
+        selfId={authSession.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
         actStopGame={actStopGame}

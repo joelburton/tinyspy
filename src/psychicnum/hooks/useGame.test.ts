@@ -62,7 +62,7 @@ const playerStatus = (found: number, used: number, ended: PsychicnumPlayerStatus
  *  compete game in play, moth conceded. */
 const CTX = {
   gameId: GAME_ID,
-  session: { user: { id: 'u1' } },
+  authSession: { user: { id: 'u1' } },
   mode: 'compete',
   title: 'A game',
   setup: { max_guesses: 7, word_count: 10, band: 3, timer: { kind: 'none' } },

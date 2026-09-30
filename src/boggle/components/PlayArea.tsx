@@ -77,7 +77,7 @@ type SubmittedWord =
   | null
 
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive, playState, setup, clubHandle, goToFollowUpGame, session, status, globalFeedbackSlot, menu, brand, title } = ctx
+  const { gameId, players, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive, playState, setup, clubHandle, goToFollowUpGame, authSession, status, globalFeedbackSlot, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
 
   // The entry is typed at the window rather than into an input, so nothing here
@@ -109,7 +109,7 @@ export function PlayArea(ctx: GamePageCtx) {
     (status?.mode as string | undefined) === 'coop' &&
       (status?.reason as string | undefined) === 'target',
   )
-  const myId = session.user.id
+  const myId = authSession.user.id
 
   // `setup` is typed `Record<string, unknown>`; BoggleSetup is an `interface`,
   // which TS won't treat as index-compatible with Record, so route through unknown.

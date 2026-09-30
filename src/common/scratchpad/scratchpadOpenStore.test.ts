@@ -13,7 +13,11 @@
 import { renderHook, act } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
-import { getScratchpadOpen, setScratchpadOpen, useIsScratchpadOpen } from './scratchpadOpenStore'
+import {
+  getIsScratchpadOpen,
+  setIsScratchpadOpen,
+  useIsScratchpadOpen,
+} from './scratchpadOpenStore'
 
 let storage: InstalledStorage
 
@@ -24,7 +28,7 @@ beforeAll(() => {
 beforeEach(() => {
   // The module is loaded once across the file, so drive it to a known state
   // rather than relying on test order.
-  setScratchpadOpen(false)
+  setIsScratchpadOpen(false)
   storage.clear()
 })
 
@@ -33,25 +37,25 @@ afterEach(() => {
 })
 
 describe('scratchpadOpenStore — direct API', () => {
-  it('getScratchpadOpen reflects setScratchpadOpen writes', () => {
-    expect(getScratchpadOpen()).toBe(false)
-    setScratchpadOpen(true)
-    expect(getScratchpadOpen()).toBe(true)
-    setScratchpadOpen(false)
-    expect(getScratchpadOpen()).toBe(false)
+  it('getIsScratchpadOpen reflects setIsScratchpadOpen writes', () => {
+    expect(getIsScratchpadOpen()).toBe(false)
+    setIsScratchpadOpen(true)
+    expect(getIsScratchpadOpen()).toBe(true)
+    setIsScratchpadOpen(false)
+    expect(getIsScratchpadOpen()).toBe(false)
   })
 
   it('mirrors changes to storage', () => {
-    setScratchpadOpen(true)
+    setIsScratchpadOpen(true)
     expect(storage.local.getItem('puzpuzpuz:scratchpad:open')).toBe('1')
-    setScratchpadOpen(false)
+    setIsScratchpadOpen(false)
     expect(storage.local.getItem('puzpuzpuz:scratchpad:open')).toBe('0')
   })
 
-  it('setScratchpadOpen with the same value is a no-op (skips notify + write)', () => {
-    setScratchpadOpen(true)
+  it('setIsScratchpadOpen with the same value is a no-op (skips notify + write)', () => {
+    setIsScratchpadOpen(true)
     const setItem = vi.spyOn(storage.local, 'setItem')
-    setScratchpadOpen(true)
+    setIsScratchpadOpen(true)
     expect(setItem).not.toHaveBeenCalled()
   })
 
@@ -61,41 +65,41 @@ describe('scratchpadOpenStore — direct API', () => {
   // different places (`storage.fake.ts` says why).
   it('survives the storage CALLS throwing — a full quota', () => {
     storage.failCalls()
-    expect(() => setScratchpadOpen(true)).not.toThrow()
-    expect(getScratchpadOpen()).toBe(true)
+    expect(() => setIsScratchpadOpen(true)).not.toThrow()
+    expect(getIsScratchpadOpen()).toBe(true)
   })
 
   it('survives the storage ACCESS throwing — a browser blocking site data', () => {
     storage.blockAccess()
-    expect(() => setScratchpadOpen(true)).not.toThrow()
-    expect(getScratchpadOpen()).toBe(true)
+    expect(() => setIsScratchpadOpen(true)).not.toThrow()
+    expect(getIsScratchpadOpen()).toBe(true)
   })
 })
 
 describe('scratchpadOpenStore — useIsScratchpadOpen hook', () => {
   it('returns the current value on mount', () => {
-    setScratchpadOpen(true)
+    setIsScratchpadOpen(true)
     const { result } = renderHook(() => useIsScratchpadOpen())
     expect(result.current).toBe(true)
   })
 
-  it('re-renders when setScratchpadOpen flips the value', () => {
+  it('re-renders when setIsScratchpadOpen flips the value', () => {
     const { result } = renderHook(() => useIsScratchpadOpen())
     expect(result.current).toBe(false)
-    act(() => setScratchpadOpen(true))
+    act(() => setIsScratchpadOpen(true))
     expect(result.current).toBe(true)
-    act(() => setScratchpadOpen(false))
+    act(() => setIsScratchpadOpen(false))
     expect(result.current).toBe(false)
   })
 
-  it('does NOT re-render when setScratchpadOpen writes the same value', () => {
+  it('does NOT re-render when setIsScratchpadOpen writes the same value', () => {
     let renderCount = 0
     renderHook(() => {
       renderCount += 1
       return useIsScratchpadOpen()
     })
     const baseline = renderCount
-    act(() => setScratchpadOpen(false)) // already false
+    act(() => setIsScratchpadOpen(false)) // already false
     expect(renderCount).toBe(baseline)
   })
 
@@ -105,7 +109,7 @@ describe('scratchpadOpenStore — useIsScratchpadOpen hook', () => {
     expect(a.current).toBe(false)
     expect(b.current).toBe(false)
 
-    act(() => setScratchpadOpen(true))
+    act(() => setIsScratchpadOpen(true))
     expect(a.current).toBe(true)
     expect(b.current).toBe(true)
   })
@@ -113,6 +117,6 @@ describe('scratchpadOpenStore — useIsScratchpadOpen hook', () => {
   it('unsubscribes on unmount so a later write does not crash', () => {
     const { unmount } = renderHook(() => useIsScratchpadOpen())
     unmount()
-    expect(() => setScratchpadOpen(true)).not.toThrow()
+    expect(() => setIsScratchpadOpen(true)).not.toThrow()
   })
 })

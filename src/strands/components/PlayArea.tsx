@@ -190,12 +190,12 @@ function buildOver({
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, isConceded, isLocallyTerminal, isStillPlaying, playState, players, session,
+    gameId, isTerminal, isConceded, isLocallyTerminal, isStillPlaying, playState, players, authSession,
     setup, clubHandle, goToFollowUpGame, menu, brand, title,
     isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
   } = ctx
 
-  const selfId = session.user.id
+  const selfId = authSession.user.id
   const { game, players: playerStates, me, events, found, loading, failure } = useGame(gameId, selfId)
   // Mode comes off the loaded game row (denormalized from strands.games.mode),
   // which is how every sibling-pair game branches.
@@ -218,7 +218,7 @@ export function PlayArea(ctx: GamePageCtx) {
    */
   const iWonCompete =
     playState === 'won_compete'
-    && memberById(players, session.user.id)?.result?.won === true
+    && memberById(players, authSession.user.id)?.result?.won === true
   const celebration = useCelebration(playState === 'won' || iWonCompete)
   // The below-board slot: a move's result, the hint bar's answers, Stop /
   // Concede's not-oks, and the standing conditions further down (the theme
@@ -939,7 +939,7 @@ export function PlayArea(ctx: GamePageCtx) {
           hintsSpent={me?.hints_spent ?? 0}
           events={events}
           players={players}
-          selfId={session.user.id}
+          selfId={authSession.user.id}
           setup={strandsSetup}
           setupRows={setupRows}
           actStopGame={actStopGame}

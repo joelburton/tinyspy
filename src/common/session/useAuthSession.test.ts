@@ -1,7 +1,7 @@
 // cs-blessed-session
 
 /**
- * Tests for useSession — the states `App` gates on, and what the hook asks the
+ * Tests for useAuthSession — the states `App` gates on, and what the hook asks the
  * server for to reach them:
  *
  *   - `loading`      → the moment before the first answer
@@ -56,8 +56,8 @@ vi.mock('../supabase/supabase', () => ({
   },
 }))
 
-import { useSession } from './useSession'
-import { useProfile } from './useProfile'
+import { useAuthSession } from './useAuthSession'
+import { useMyProfile } from './useProfile'
 
 const fakeSession = {
   user: { id: 'ada11111-1111-1111-1111-111111111111' },
@@ -67,7 +67,7 @@ const fakeSession = {
 const PROFILE_ROW = { username: 'ada', color: '#c0392b', can_edit_words: false, sounds_enabled: true }
 
 /** Captures the callback the hook subscribes with so tests can fire events. */
-let authCb: ((event: string, session: Session | null) => void) | null = null
+let authCb: ((event: string, authSession: Session | null) => void) | null = null
 
 beforeEach(() => {
   authCb = null
@@ -90,15 +90,15 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe('useSession', () => {
+describe('useAuthSession', () => {
   it('starts in loading state with no session', () => {
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     expect(result.current.loading).toBe(true)
-    expect(result.current.session).toBeNull()
+    expect(result.current.authSession).toBeNull()
   })
 
   it('resolves to claimed state when the profile row exists', async () => {
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
 
     // Simulate the INITIAL_SESSION event that supabase-js fires on subscribe
     // with whatever's in localStorage.
@@ -107,7 +107,7 @@ describe('useSession', () => {
     })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.session).toBe(fakeSession)
+    expect(result.current.authSession).toBe(fakeSession)
     expect(result.current.needsClaim).toBe(false)
     expect(mockSignOut).not.toHaveBeenCalled()
   })
@@ -118,13 +118,13 @@ describe('useSession', () => {
     // sign them out — App.tsx routes to ClaimHandleScreen.
     mockProfileRows.mockResolvedValueOnce({ data: [], error: null })
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.session).toBe(fakeSession)
+    expect(result.current.authSession).toBe(fakeSession)
     expect(result.current.needsClaim).toBe(true)
     expect(mockSignOut).not.toHaveBeenCalled()
   })
@@ -141,13 +141,13 @@ describe('useSession', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockProfileRows.mockResolvedValueOnce({ data: null, error: { message: 'network blip' } })
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.session).toBe(fakeSession)
+    expect(result.current.authSession).toBe(fakeSession)
     expect(result.current.probeFailed?.type).toBe('not-ok')
     expect(result.current.needsClaim).toBe(false)
     expect(mockSignOut).not.toHaveBeenCalled()
@@ -160,7 +160,7 @@ describe('useSession', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockProfileRows.mockResolvedValueOnce({ data: null, error: { message: 'network blip' } })
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
@@ -172,7 +172,7 @@ describe('useSession', () => {
 
     expect(result.current.probeFailed).toBeNull()
     expect(result.current.needsClaim).toBe(false)
-    expect(result.current.session).toBe(fakeSession)
+    expect(result.current.authSession).toBe(fakeSession)
     errorSpy.mockRestore()
   })
 
@@ -190,14 +190,14 @@ describe('useSession', () => {
       }),
     })
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(mockSignOut).toHaveBeenCalledTimes(1)
-    expect(result.current.session).toBeNull()
+    expect(result.current.authSession).toBeNull()
     expect(result.current.needsClaim).toBe(false)
     // We never reached the profile probe — the auth check
     // short-circuited.
@@ -216,14 +216,14 @@ describe('useSession', () => {
       error: Object.assign(new Error('upstream timeout'), { status: 503 }),
     })
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(mockSignOut).not.toHaveBeenCalled()
-    expect(result.current.session).toBe(fakeSession)
+    expect(result.current.authSession).toBe(fakeSession)
     expect(result.current.needsClaim).toBe(false)  // the probe ran and found the row
     warnSpy.mockRestore()
   })
@@ -242,14 +242,14 @@ describe('useSession', () => {
       }),
     })
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(mockSignOut).toHaveBeenCalledTimes(1)
-    expect(result.current.session).toBeNull()
+    expect(result.current.authSession).toBeNull()
     expect(result.current.needsClaim).toBe(false)
     expect(mockProfileRows).not.toHaveBeenCalled()
     warnSpy.mockRestore()
@@ -266,14 +266,14 @@ describe('useSession', () => {
       }),
     })
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(mockSignOut).not.toHaveBeenCalled()
-    expect(result.current.session).toBe(fakeSession)
+    expect(result.current.authSession).toBe(fakeSession)
     warnSpy.mockRestore()
   })
 
@@ -283,14 +283,14 @@ describe('useSession', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(mockSignOut).toHaveBeenCalledTimes(1)
-    expect(result.current.session).toBeNull()
+    expect(result.current.authSession).toBeNull()
     expect(result.current.needsClaim).toBe(false)
     expect(mockProfileRows).not.toHaveBeenCalled()
     warnSpy.mockRestore()
@@ -301,7 +301,7 @@ describe('useSession', () => {
     // auth event fires and nothing else would notice the new row.
     mockProfileRows.mockResolvedValueOnce({ data: [], error: null })
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
@@ -312,32 +312,32 @@ describe('useSession', () => {
     })
 
     expect(result.current.needsClaim).toBe(false)
-    expect(result.current.session).toBe(fakeSession)
+    expect(result.current.authSession).toBe(fakeSession)
   })
 
   it('clears state on a SIGNED_OUT event without re-querying the profile', async () => {
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
 
     await act(async () => {
       authCb?.('SIGNED_OUT', null)
     })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.session).toBeNull()
+    expect(result.current.authSession).toBeNull()
     expect(result.current.needsClaim).toBe(false)
     // The SIGNED_OUT branch short-circuits before the verify query.
     expect(mockProfileRows).not.toHaveBeenCalled()
   })
 })
 
-describe('useSession probes per user, not per event', () => {
+describe('useAuthSession probes per user, not per event', () => {
   // auth-js fires TOKEN_REFRESHED hourly and SIGNED_IN again on tab focus, and
   // says as much in its own docs. What the hook asks the server is therefore
   // keyed on WHO the event carries.
   const sameUserAgain = { user: { id: fakeSession.user.id } } as unknown as Session
 
   it('takes the fresher session without re-reading anything', async () => {
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
@@ -352,13 +352,13 @@ describe('useSession probes per user, not per event', () => {
     expect(mockGetUser).toHaveBeenCalledTimes(1)
     expect(mockProfileRows).toHaveBeenCalledTimes(1)
     // The new token still lands: it is the session object every page holds.
-    expect(result.current.session).toBe(sameUserAgain)
+    expect(result.current.authSession).toBe(sameUserAgain)
   })
 
   it('probes again when the event carries a different user', async () => {
     const otherUser = { user: { id: 'bee22222-2222-2222-2222-222222222222' } } as unknown as Session
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
@@ -368,7 +368,7 @@ describe('useSession probes per user, not per event', () => {
       await authCb?.('SIGNED_IN', otherUser)
     })
 
-    await waitFor(() => expect(result.current.session).toBe(otherUser))
+    await waitFor(() => expect(result.current.authSession).toBe(otherUser))
     expect(mockProfileRows).toHaveBeenCalledTimes(2)
   })
 
@@ -376,7 +376,7 @@ describe('useSession probes per user, not per event', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockProfileRows.mockResolvedValueOnce({ data: null, error: { message: 'network blip' } })
 
-    const { result } = renderHook(() => useSession())
+    const { result } = renderHook(() => useAuthSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
@@ -392,23 +392,23 @@ describe('useSession probes per user, not per event', () => {
   })
 })
 
-describe('useSession seeds the profile store', () => {
+describe('useAuthSession seeds the profile store', () => {
   // The probe is the app's ONE read of the profiles row: what it finds is what
-  // `useProfile` hands every page, so these two cases are the whole contract
+  // `useMyProfile` hands every page, so these two cases are the whole contract
   // between the hook and the store.
   it('fills the store from the probed row, before loading clears', async () => {
-    const { result } = renderHook(() => ({ session: useSession(), profile: useProfile() }))
+    const { result } = renderHook(() => ({ authSession: useAuthSession(), profile: useMyProfile() }))
 
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
 
-    await waitFor(() => expect(result.current.session.loading).toBe(false))
+    await waitFor(() => expect(result.current.authSession.loading).toBe(false))
     expect(result.current.profile).toEqual(PROFILE_ROW)
   })
 
   it('empties the store on SIGNED_OUT, so the next user sees nobody', async () => {
-    const { result } = renderHook(() => ({ session: useSession(), profile: useProfile() }))
+    const { result } = renderHook(() => ({ authSession: useAuthSession(), profile: useMyProfile() }))
 
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)

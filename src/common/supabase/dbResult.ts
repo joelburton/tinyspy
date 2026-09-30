@@ -36,7 +36,7 @@ import type { Envelope, NotOkEnvelope, Severity } from './envelope'
  * classify a failure, word a network problem, or decide when a modal is due.
  * The three wrappers below call it for every fault they see, and the two places
  * that build an envelope by hand hand theirs over the same way (`reportUnhandled`,
- * and `useProfile`'s missing-row fault).
+ * and `useMyProfile`'s missing-row fault).
  *
  * **The exception is sanctioned and narrow**: a caller passing
  * `presentFaults: false` has promised to show its own, which is why a few files

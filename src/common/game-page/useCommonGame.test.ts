@@ -35,7 +35,7 @@
  *
  * Mocking strategy
  * ----------------
- * Same shape as useClubChat.test.ts / useSession.test.ts: vi.hoisted
+ * Same shape as useClubChat.test.ts / useAuthSession.test.ts: vi.hoisted
  * spies stand in for the Supabase channel, the schema-scoped DB
  * client, and the router's navigate. The channel's `.on()` calls
  * for `postgres_changes`, `broadcast`, and `presence` all flow
@@ -372,8 +372,8 @@ describe('useCommonGame — where I stand', () => {
     })
   }
 
-  async function standing(draftsOffTurn = false, session = fakeSession) {
-    const { result } = renderHook(() => useCommonGame('g1', session, draftsOffTurn))
+  async function standing(draftsOffTurn = false, authSession = fakeSession) {
+    const { result } = renderHook(() => useCommonGame('g1', authSession, draftsOffTurn))
     await waitFor(() => expect(result.current.loading).toBe(false))
     const {
       isPlayer, isConceded, isLocallyTerminal, isStillPlaying,

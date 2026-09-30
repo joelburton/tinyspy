@@ -37,7 +37,9 @@ export type ChatUnread = {
 const NONE: ChatUnread = { count: 0, senderColor: null }
 
 // ─── the pub-sub store (publish from Chat, read by ChatButton) ──
-let value: ChatUnread = NONE
+let chatUnreadInfo: ChatUnread = NONE
+// A listener is a callback: each `useChatUnread()` caller adds one, and
+// `setChatUnread` calls every one to say `chatUnreadInfo` has changed.
 const listeners = new Set<() => void>()
 
 function subscribe(listener: () => void): () => void {
@@ -47,22 +49,25 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-function getSnapshot(): ChatUnread {
-  return value
+function getChatUnreadInfo(): ChatUnread {
+  return chatUnreadInfo
 }
 
 /** Publish the current unread state. Idempotent — a same-value write
  *  is a no-op (keeps the snapshot reference stable for
  *  useSyncExternalStore). */
-export function setChatUnread(next: ChatUnread): void {
-  if (next.count === value.count && next.senderColor === value.senderColor) return
-  value = next
+export function setChatUnread(val: ChatUnread): void {
+  if (
+    val.count === chatUnreadInfo.count
+    && val.senderColor === chatUnreadInfo.senderColor
+  ) return
+  chatUnreadInfo = val
   for (const listener of listeners) listener()
 }
 
 /** Subscribe to the unread state — `<ChatButton>` is the reader. */
 export function useChatUnread(): ChatUnread {
-  return useSyncExternalStore(subscribe, getSnapshot)
+  return useSyncExternalStore(subscribe, getChatUnreadInfo)
 }
 
 // ─── per-club last-seen bookmark (localStorage) ─────────────────────

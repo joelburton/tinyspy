@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { currentProfile } from '../session/useProfile'
+import { getMyProfile } from '../session/useProfile'
 
 /** Every sound the app plays, by name, and its file under `public/audio/`. */
 const SOUND_FILES = {
@@ -55,7 +55,7 @@ export function preloadSound(name: SoundName): void {
  * can end first — the jingle when its dialog is dismissed.
  */
 export function playSound(name: SoundName): () => void {
-  if (currentProfile()?.sounds_enabled === false) return () => {}
+  if (getMyProfile()?.sounds_enabled === false) return () => {}
   const audio = elementFor(name)
   if (!audio) return () => {}
   try {

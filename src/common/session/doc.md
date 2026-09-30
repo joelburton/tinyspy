@@ -14,7 +14,7 @@ other half, and it does not exist until the person picks a handle on the claim
 screen and the `claim_username` RPC writes it. So a signed-in user can be one
 of two things, and the app has to know which before it renders anything: someone
 who has claimed and gets the home page, or someone who has not and gets the
-claim screen and nothing else. `useSession` exists to answer that. It subscribes
+claim screen and nothing else. `useAuthSession` exists to answer that. It subscribes
 to the auth client's state changes, and the first time it sees a given user it
 looks up their profiles row. Three resolved states come out: no session, a
 session with no row, a session with one — and a fourth when the lookup itself
@@ -58,7 +58,7 @@ wanted by things that do not share a parent — the account menu on every page,
 the home page greeting, a definition popover several layers deep — and the
 color is editable in place. So the lookup reads the whole row rather than only
 asking whether one exists, and hands what it found to a module-level store.
-`useProfile` subscribes to that store and takes no arguments, which is what
+`useMyProfile` subscribes to that store and takes no arguments, which is what
 lets a component far from the page shell read the profile without a session in
 hand. There is one signed-in user per tab, so one slot is the right number.
 
@@ -72,9 +72,9 @@ repaints at once with no refetch.
 
 ## Details
 
-- **The four resolved states** `useSession` returns: `session: null` is signed
-  out; `session` set with `needsClaim: true` is signed in and unclaimed;
-  `session` set with `needsClaim: false` is signed in and claimed; and
+- **The four resolved states** `useAuthSession` returns: `authSession: null` is signed
+  out; `authSession` set with `needsClaim: true` is signed in and unclaimed;
+  `authSession` set with `needsClaim: false` is signed in and claimed; and
   `probeFailed` holding an envelope is "the read failed, so which of those two
   is unknown". `App` renders `<LoginScreen>`, the error page,
   `<ClaimHandleScreen>` or the app itself, in that order, after `loading`
@@ -90,7 +90,7 @@ repaints at once with no refetch.
   `can_edit_words`, `sounds_enabled`. Add a column when a consumer arrives.
   `can_edit_words` has no UI for granting it; it is set by hand in SQL and
   gates the dictionary editing entry points. `sounds_enabled` is read by
-  `sounds/playSound` through `currentProfile()`, the store's plain read for
+  `sounds/playSound` through `getMyProfile()`, the store's plain read for
   code that is not rendering.
 - **An empty store reads as "signed out or unclaimed"**, which every consumer
   renders as the absence it is — no username, no color, no dictionary editing
@@ -98,7 +98,7 @@ repaints at once with no refetch.
   empty exactly when there is no claimed profile.
 - **The profiles read policy is `for select to authenticated using (true)`**,
   so the lookup is a point read on the primary key with nothing to filter.
-- **The tests mock the auth client, not the network.** `useSession.test.ts`
+- **The tests mock the auth client, not the network.** `useAuthSession.test.ts`
   captures the callback the hook registers with `onAuthStateChange` and fires
   the events by hand, and collapses the query chain to its terminal call, so a
   case is one event plus one canned answer. The store's own cases need none of

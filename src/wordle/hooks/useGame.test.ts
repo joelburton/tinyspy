@@ -66,7 +66,7 @@ function playerStatus(
  *  compete game in play, moth conceded. */
 const CTX = {
   gameId: GAME_ID,
-  session: { user: { id: 'u1' } },
+  authSession: { user: { id: 'u1' } },
   mode: 'compete',
   title: 'A game',
   setup: {
@@ -219,7 +219,7 @@ describe('wordle useGame — a load that worked', () => {
   it('reads the budget as spent for a club member watching a compete game', async () => {
     answer(ALL_GOOD)
     const watching =
-      { ...CTX, session: { user: { id: 'u9' } }, isPlayer: false } as unknown as GamePageCtx
+      { ...CTX, authSession: { user: { id: 'u9' } }, isPlayer: false } as unknown as GamePageCtx
     const gd = (await load(watching)).current.gd!
     expect(gd.me).toBeNull()
     expect(gd.readout.guessesUsed).toBe(6)

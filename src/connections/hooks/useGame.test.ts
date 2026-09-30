@@ -78,8 +78,8 @@ beforeEach(() => {
 describe('useGame — Realtime channel lifecycle', () => {
   it('does not rebuild the channel when only the session identity changes', () => {
     const { rerender } = renderHook(
-      ({ session }: { session: Session }) => useGame(session, GAME_ID),
-      { initialProps: { session: sessionFor('u1') } },
+      ({ authSession }: { authSession: Session }) => useGame(authSession, GAME_ID),
+      { initialProps: { authSession: sessionFor('u1') } },
     )
     expect(mockChannel).toHaveBeenCalledTimes(1)
     expect(mockChannel).toHaveBeenCalledWith(`connections:${GAME_ID}`)
@@ -87,8 +87,8 @@ describe('useGame — Realtime channel lifecycle', () => {
 
     // A token refresh hands React a fresh Session object. Even a
     // different user id must NOT tear the game-scoped room down —
-    // regression guard for a spurious `session.user.id` in the deps.
-    rerender({ session: sessionFor('u2') })
+    // regression guard for a spurious `authSession.user.id` in the deps.
+    rerender({ authSession: sessionFor('u2') })
     expect(mockChannel).toHaveBeenCalledTimes(1)
     expect(mockRemoveChannel).not.toHaveBeenCalled()
   })

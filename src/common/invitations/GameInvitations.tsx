@@ -21,8 +21,8 @@ import { showToast, dismissToast } from '../toasts/toastStore'
  *     removes the toast here — see the reconcile below).
  *   - **X** → `dismiss` (hide now; recoverable from the club page later).
  */
-export function GameInvitations({ session }: { session: Session }) {
-  const { invites, dismiss, join } = useGameInvitations(session)
+export function GameInvitations({ authSession }: { authSession: Session }) {
+  const { invites, dismiss, join } = useGameInvitations(authSession)
 
   // Mirror the invite list → the toast store. `showToast` with a stable id is
   // an idempotent upsert, so re-running just refreshes each card; we track the

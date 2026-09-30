@@ -38,12 +38,16 @@ When both are done, the rules below move into `docs/` and this plan is deleted.
 Done: `useIsChatPanelOpen`, `useHasChatHost` (split from `chatOpenStore`),
 `editProfileStore`, `infoSheetStore`.
 
-- [ ] `wordEditStore` — `value` → `wordEditRequest`, `getSnapshot` →
-  `getWordEditRequest`, `next` → `val`
+- [ ] `wordEditStore` — `value` → `shownWordEditDialog`, `getSnapshot` →
+  `getShownWordEditDialog`, `next` → `val`
 - [ ] `chatUnread` — `value` → `chatUnreadInfo`, `getSnapshot` →
   `getChatUnreadInfo`, `next` → `val`
-- [ ] `definitionStore` — `getSnapshot` → `getDefining`
-- [ ] `useProfile` — `current` → `profile`, `getSnapshot` → `getProfile`
+- [ ] `definitionStore` — `Defining` / `defining` / `useDefining` →
+  `ShownDefinitionCard` / `shownDefinitionCard` / `useShownDefinitionCard`,
+  `getSnapshot` → `getShownDefinitionCard`
+- [ ] `useProfile` — the signed-in user's, so `my…`: `current` → `myProfile`,
+  `useMyProfile`, `setMyProfile`, `setMyProfileFields`, and `currentProfile`
+  → `getMyProfile`, which the hook passes in place of `getSnapshot`
 - [ ] `toastStore` — `getSnapshot` → `getToasts`
 - [ ] `useVisualViewport` — `getSnapshot` measures and caches, so not a `get`;
   proposed `measureViewport`, not yet agreed
@@ -57,7 +61,7 @@ Done: `useIsChatPanelOpen`, `useHasChatHost` (split from `chatOpenStore`),
 
 ## Pass 2 — file names
 
-- [ ] `common/session/useProfile.ts` → `profileStore.ts`
+- [ ] `common/session/useProfile.ts` → `myProfileStore.ts`
 - [ ] `common/chat/useIsChatPanelOpen.ts` → `chatPanelOpenStore.ts`
 - [ ] `common/chat/useHasChatHost.ts` → `chatHostStore.ts`
 - [ ] `common/actions/dispatcher.ts` → `useActionDispatcher.ts`: it exports

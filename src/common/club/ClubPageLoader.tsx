@@ -18,7 +18,7 @@ type Props = {
   // The handle from `/c/<handle>` — raw URL text until the RPC says a club
   // answers to it.
   handle: string
-  session: Session
+  authSession: Session
 }
 
 /**
@@ -50,7 +50,7 @@ const LOADED_WITH_NEITHER = environmentalEnvelope(
  *
  * Takes the URL's handle and the session; renders nothing of its own.
  */
-export function ClubPageLoader({ handle, session }: Props) {
+export function ClubPageLoader({ handle, authSession }: Props) {
   const [data, setData] = useState<ClubPageData | null>(null)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
   const [loading, setLoading] = useState(true)
@@ -164,7 +164,7 @@ export function ClubPageLoader({ handle, session }: Props) {
       // editor changes the enrolled set while the page is up, and nothing
       // reloads it.
       initialGametypes={data.gametypes}
-      session={session}
+      authSession={authSession}
     />
   )
 }

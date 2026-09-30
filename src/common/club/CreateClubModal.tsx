@@ -94,7 +94,7 @@ const EMPTY: Values = { club_name: '', member_usernames: '' }
  * club's handle back, so the opener can go there.
  *
  * The exact sibling of `<EditClubModal>` — create and edit of the same object,
- * in the same shell — and it takes no `session`, because `create_club` reads
+ * in the same shell — and it takes no `authSession`, because `create_club` reads
  * `auth.uid()` on the server.
  *
  * The "Club name" field doubles as the handle source — we slugify

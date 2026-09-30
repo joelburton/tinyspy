@@ -608,7 +608,7 @@ the type is twenty lines down in the same file and is where the shape lives.
   `supabase.ts` — one direction each.
 - **`useClubChat.test.ts:13`** said its mock replaces `../lib/supabase` when
   the mock is of `../supabase/supabase`; fixed with F-realtime-8's sweep.
-  `session` recorded the same line in `useSession.test.ts`, which is already
+  `session` recorded the same line in `useAuthSession.test.ts`, which is already
   correct in the tree.
 - **ESLint is clean on the folder** (`npx eslint src/common/realtime`, no
   output), so none of the deliberate `exhaustive-deps` choices is a warning.
