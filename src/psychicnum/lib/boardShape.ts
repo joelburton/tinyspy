@@ -9,7 +9,7 @@ import { positionAt } from '@/common/board-cursor/boardPosition'
  * cells past the last word do not exist. The same answer lays the tiles out
  * and steps the keyboard cursor over them.
  */
-export function boardShape(wordCount: number): BoardShape {
+export function makeBoardShape(wordCount: number): BoardShape {
   const cols = Math.ceil(Math.sqrt(wordCount))
   return {
     cols,

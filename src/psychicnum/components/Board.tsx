@@ -1,6 +1,6 @@
 // cs-blessed-psychicnum
 
-import { useEffect, type ReactNode } from 'react'
+import { useEffect } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Actor } from '@/common/members/member'
 import { Dot } from '@/common/members/Dot'
@@ -8,110 +8,112 @@ import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
+import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import shared from '@/common/game-page/playArea.module.css'
 import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
-import { eventToOutcome } from '../lib/answer'
-import { boardShape } from '../lib/boardShape'
-import type { Cell } from '@/common/board-cursor/stepCell'
 import { positionAt } from '@/common/board-cursor/boardPosition'
+import { eventToOutcome } from '../lib/answer'
+import { makeBoardShape } from '../lib/boardShape'
 import type { TileResults } from '../lib/tileResults'
+import type { HistoryView } from '../hooks/useHistoryView'
+import { useWordShuffle } from '../hooks/useWordShuffle'
+import { useWordCursor } from '../hooks/useWordCursor'
 import styles from './Board.module.css'
 
 /** Empty word set — the resting value of the head-shake mark, so a board with
  *  nothing shaking hands the same object down every render. */
 const NO_WORDS: ReadonlySet<string> = new Set()
 
-type Props = {
-  // The board words (5..20), shown as clickable tiles. Lowercase; displayed
-  // uppercased via CSS. Three of them are the hidden secrets.
-  words: string[]
+/** What is on the tiles. */
+export type BoardTiles = {
+  // The board words (5..20), in the game's order; the board draws them in its
+  // own shuffled order. Lowercase; displayed uppercased via CSS. Three of them
+  // are the hidden secrets.
+  words: readonly string[]
   // Guessed words → was-it-a-secret. A guessed tile colors **permanently**
   // green (true) / red (false) and can't be re-picked. In compete RLS scopes
   // this to the viewer's own guesses; in coop it's the shared board. While
   // viewing history this is the snapshot's results (guesses up to that turn).
   results: TileResults
-  // The keyboard's selection cursor — the cell to ring — or null when it is
-  // not drawn (see `useBoardSelectionCursor`).
-  cursor?: Cell | null
-  // The currently-picked word (highlighted), or null.
-  picked: string | null
-  // The board responds to me (the page's `isBoardInteractive`); when false, or
-  // while a past turn is open, the tiles render inert.
-  isBoardInteractive: boolean
-  // Pick a word tile.
-  onPick: (word: string) => void
-  // Render read-only under the blue viewer frame (a past turn's
-  // board). Off during live play.
-  isViewingHistory?: boolean
-  // The word the viewed turn's guess decided — ring its tile
-  // history-blue (just OUTSIDE the tile, clear of its green/red fill). Null / omitted when live.
-  historyLitWord?: string | null
   // WHO decided each tile — its guesser's identity dot, in the bottom-right
-  // corner. Null outside coop: in compete you only ever see your own guesses, so
-  // a dot would be decoration.
+  // corner — or null to draw no dots.
   //
   // A REVEALED secret is deliberately absent from this map (nobody guessed it),
   // which is what keeps found-vs-peeked readable without toggling the reveal off:
   // a green tile with a dot was found, a green tile without one was shown.
-  decidedBy?: ReadonlyMap<string, Actor | undefined> | null
-  // The word currently with the server — its tile takes the in-flight dim.
-  inFlightWord?: string | null
-  // How the ending that applies to me came out — the game's once it has
-  // ended, else mine while the others play on. The board takes a frame in that
-  // outcome's color. Null while I am still playing.
-  endingOutcome?: EndOutcome | null
-  // A teammate holds the move (the page's `isWaitingForTurn`): the whole board
-  // dims, unless it is interactive.
-  isWaitingForTurn?: boolean
-  // True for a beat at the moment the turn becomes mine — flash the frame.
-  myTurnJustStarted?: boolean
+  decidedBy: ReadonlyMap<string, Actor | undefined> | null
   // Guesses the server has recorded. The CAUSE the attention flash reads: a
   // board that changed while this stood still was revealed or re-dealt, not
   // played into.
   moveCount: number
-  // A control floated over the board's top-right (the Shuffle button). Rendered
-  // INSIDE the board root, which is the `position: relative` anchor — so it
-  // hugs the VISUAL board rather than the column, whose top the board does not
-  // reach.
-  floatingControl?: ReactNode
+}
+
+/** What the board wears on and around its tiles. */
+export type BoardMarks = {
+  // The picked word (highlighted), or null.
+  pickedWord: string | null
+  // The word with the server — its tile takes the in-flight dim.
+  inFlightWord: string | null
+  // How the ending that applies to me came out — the game's once it has
+  // ended, else mine while the others play on. The board takes a frame in that
+  // outcome's color. Null while I am still playing.
+  endingOutcome: EndOutcome | null
+  // A teammate holds the move (the page's `isWaitingForTurn`): the whole board
+  // dims, unless it is interactive.
+  isWaitingForTurn: boolean
+  // True for a beat at the moment the turn becomes mine — flash the frame.
+  myTurnJustStarted: boolean
+}
+
+type Props = {
+  tiles: BoardTiles
+  marks: BoardMarks
+  // The past turn open on the board, if any: the tiles go inert under the
+  // history-blue frame, and the turn's decided tile is ringed.
+  historyView: HistoryView
+  // The board responds to me (the page's `isBoardInteractive`); when false, or
+  // while a past turn is open, the tiles render inert.
+  isInteractive: boolean
+  // Pick a word, or un-pick with null — a tile click or the keyboard's Space.
+  onPick: (word: string | null) => void
 }
 
 /**
- * psychicnum's "board": a grid of clickable word tiles. The board FILLS the
- * available space (see Board.module.css + PlayArea.module.css + docs/ui.md
- * → the board grows to available space); the words lay out in a roughly-square
- * grid (`cols ≈ √N`), and both the column and row tracks are `1fr`, so the tiles
- * grow with the board.
+ * psychicnum's "board": a grid of clickable word tiles, the keyboard's way
+ * around them, and the Shuffle floated over its top-right. The board FILLS the
+ * available space (Board.module.css, and docs/playarea.md → Board sizing); the
+ * words lay out in a roughly-square grid (`cols ≈ √N`), and both the column and
+ * row tracks are `1fr`, so the tiles grow with the board.
  *
- * Clicking a tile picks it as the guess; once guessed, a word's tile colors **permanently** — green if it was
- * a secret, red if not — so the board doubles as an at-a-glance record of what's
- * been found and ruled out. In compete mode RLS scopes `results` to the caller,
- * so it reflects only the viewer's own attempts.
+ * Clicking a tile picks it as the guess; once guessed, a word's tile colors
+ * **permanently** — green if it was a secret, red if not — so the board doubles
+ * as an at-a-glance record of what's been found and ruled out. In compete mode
+ * RLS scopes `results` to the caller, so it reflects only the viewer's own
+ * attempts.
  *
  * Once the game has ended the board doubles as the answer key, and it does so
- * through `results` like everything else: the PlayArea folds the revealed secrets in as
- * hits, so they go green exactly as a found one does. Which is which is still
- * answerable — `decidedBy` names a guesser for a found tile and nobody for a
- * revealed one.
+ * through `results` like everything else: the PlayArea folds the revealed
+ * secrets in as hits, so they go green exactly as a found one does. Which is
+ * which is still answerable — `decidedBy` names a guesser for a found tile and
+ * nobody for a revealed one.
  */
-export function Board({
-  words,
-  results,
-  picked,
-  cursor = null,
-  isBoardInteractive,
-  onPick,
-  isViewingHistory = false,
-  historyLitWord = null,
-  decidedBy = null,
-  inFlightWord = null,
-  endingOutcome = null,
-  isWaitingForTurn = false,
-  myTurnJustStarted = false,
-  moveCount,
-  floatingControl,
-}: Props) {
+export function Board({ tiles, marks, historyView, isInteractive, onPick }: Props) {
+  const { results, decidedBy, moveCount } = tiles
+  const { pickedWord, inFlightWord, endingOutcome, isWaitingForTurn, myTurnJustStarted } = marks
+  const isViewingHistory = historyView.isViewing
+
+  const { shuffledWords, actShuffle } = useWordShuffle(tiles.words)
+  const boardShape = makeBoardShape(shuffledWords.length)
+  const { cursor, pickClickedTile } = useWordCursor({
+    shuffledWords,
+    boardShape,
+    results,
+    pickedWord,
+    canPick: isInteractive && !isViewingHistory,
+    onPick,
+  })
+
   // ATTENTION — the tiles that just got decided. psychicnum's coop board is
   // SHARED, so a teammate's guess colors a tile anywhere on it while you are
   // reading somewhere else: change in place, announcing nothing.
@@ -146,11 +148,14 @@ export function Board({
     .join(',')
   useEffect(function shakeAfterFlash() {
     if (wrongKey === '') return
-    const timer = setTimeout(() => shakeWrong({ words: new Set(wrongKey.split(',')) }), ATTENTION_FADE_MS)
+    const timer = setTimeout(
+      () => shakeWrong({ words: new Set(wrongKey.split(',')) }),
+      ATTENTION_FADE_MS,
+    )
     return () => clearTimeout(timer)
   }, [wrongKey, shakeWrong])
 
-  const { cols, rows } = boardShape(words.length)
+  const { cols, rows } = boardShape
   return (
     <div
       className={cls(shared.boardSeal, styles.board)}
@@ -162,15 +167,16 @@ export function Board({
       // computed in CSS from the --max-tile-* caps. See Board.module.css.
       style={{ ['--cols' as string]: cols, ['--rows' as string]: rows }}
     >
-      {/* While viewing a past turn the shared history-blue `.historyFrame` rings the board AND
-          makes it click-through (pointer-events: none) so a click anywhere returns
-          to the live board (useHistoryViewer's document listener). */}
+      {/* While viewing a past turn the shared history-blue `.historyFrame`
+          rings the board AND makes it click-through (pointer-events: none) so
+          a click anywhere returns to the live board (useHistoryViewer's
+          document listener). */}
       <div
         className={cls(
           shared.hugRectWidth,
           styles.grid,
           isViewingHistory && history.historyFrame,
-          isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
+          isWaitingForTurn && !isInteractive && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
           makeEndingFrameClasses(endingOutcome, isViewingHistory),
         )}
@@ -179,7 +185,7 @@ export function Board({
           gridTemplateRows: `repeat(${rows}, 1fr)`,
         }}
       >
-        {words.map((word, i) => {
+        {shuffledWords.map((word, i) => {
           const guessed = results.has(word)
           const correct = results.get(word)
           // What a decided tile's permanent fill SAYS is the answer table's
@@ -192,6 +198,8 @@ export function Board({
           // nobody decided this tile (unguessed, or a revealed secret). A dot
           // whose member has left resolves to the neutral disc, not to nothing.
           const actor = decidedBy?.has(word) ? decidedBy.get(word) : undefined
+          const isUnderCursor =
+            cursor !== null && positionAt(cursor.x, cursor.y, cols) === i
           return (
             <button
               key={word}
@@ -206,8 +214,8 @@ export function Board({
                 styles.tile,
                 decided === 'won' && styles.decidedWon,
                 decided === 'lost' && styles.decidedLost,
-                picked === word && shared.picked,
-                cursor !== null && positionAt(cursor.x, cursor.y, cols) === i && shared.selectionCursor,
+                pickedWord === word && shared.picked,
+                isUnderCursor && shared.selectionCursor,
                 word === inFlightWord && shared.dimInFlight,
                 flashing.has(word) && shared.attentionFlash,
                 // NO — the head-shake, once the flash has handed the tile its
@@ -215,11 +223,11 @@ export function Board({
                 // and a correct guess never shakes.
                 shaking.has(word) && shared.verdictShake,
                 // This tile is the guess the viewed turn decided.
-                historyLitWord === word && styles.historyTile,
+                historyView.litWord === word && styles.historyTile,
               )}
-              disabled={guessed || !isBoardInteractive || isViewingHistory}
-              aria-pressed={picked === word || undefined}
-              onClick={() => onPick(word)}
+              disabled={guessed || !isInteractive || isViewingHistory}
+              aria-pressed={pickedWord === word || undefined}
+              onClick={() => pickClickedTile(word)}
               // NOT a focus target: `preventDefault` on mousedown so a CLICK
               // can't park focus here. Otherwise the next keystroke promotes
               // the clicked tile to `:focus-visible` and leaves a ring on it —
@@ -245,7 +253,16 @@ export function Board({
           )
         })}
       </div>
-      {floatingControl}
+      {/* Shuffle floats over the board's top-right — purely visual (a fresh
+          scan of the SAME board), not a turn action, so it lives on the board
+          rather than in the info column's action row, and stays even once the
+          game has ended. Inside the board root, so it anchors to the drawn
+          board rather than the column. */}
+      <ShuffleButton
+        action={actShuffle}
+        tooltip="Shuffle the words"
+        className={shared.floatingShuffle}
+      />
     </div>
   )
 }

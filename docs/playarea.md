@@ -209,16 +209,22 @@ left per game.
 
 | layer | owns | interface |
 |---|---|---|
-| **`Board`** | the presentation of one board state | state down, clicks up |
-| **`BoardCol`** | the live input engine (drag, cursor, keyboard, word-building); draws `Board` and the below-board slot | takes the board to show (live or a snapshot) and `isBoardInteractive`; emits one committed action up |
+| **`Board`** | one board: its tiles and the marks on them, their display order and the control floated on it (the Shuffle), and the keyboard cursor over them | grouped props down (`tiles`, `marks`, `historyView`); a pick up |
+| **`BoardCol`** | the move being built and sent: the pending move, the move RPC, Clear and Submit; draws `Board` and the below-board slot | takes the board to show (live or a snapshot) and `isBoardInteractive` |
 | **`InfoCol`** | arranging the shared pieces (`OpponentStrip`, `InfoActionsRow`, `SetupDisclosure`, `EventLog`) around the game's readout | props down, including the bound actions it places; a few named callbacks up. Next to no state |
 | **`PlayArea`** | game data (`useGame`), the RPCs, and the state both columns need (the viewed turn, the local slot) | wires the two columns together |
 
-**The load-bearing contract: `BoardCol` owns editing; `PlayArea` hands it the
-board to show.** `BoardCol` does not own the live game state, only how the
-player is editing the board it was given. That is what makes the history viewer
-a drop-in: viewing a past turn is handing `BoardCol` a snapshot and the
+**The load-bearing contract: `BoardCol` owns the move; `PlayArea` hands it the
+board to show.** `BoardCol` does not own the live game state, only the move the
+player is building on the board it was given. That is what makes the history
+viewer a drop-in: viewing a past turn is handing `BoardCol` a snapshot and the
 viewer's label.
+
+**What is about the board stays in `Board`.** The display order, the Shuffle
+that changes it, and the keyboard cursor are the board's, not the column's: the
+cursor reports a pick up through `onPick`, and the column keeps only the move.
+psychicnum set this split; the other games still hold the order and the cursor
+in `BoardCol` until their areas open.
 
 **bananagrams does not fit the two columns**, because its input engine spans
 both: the hand is a drag source into the board, the dump is a drop target, and
@@ -287,10 +293,10 @@ docstring names:
 ```
 Which board is on screen   live, or a past turn's snapshot — and everything that
                            would WRITE to the board answers to it
-The pending guess          the state this column owns, and everything that reads it
-Committing a guess         the move RPC, kept beside the entry it commits
-The board's display order  the shuffle — purely visual, touches nothing else
-Render
+The pending move           the pick, the move RPC and the column's commands, each
+                           a hook (psychicnum: usePickedWord, useSubmitGuess,
+                           useBoardColActions)
+Render                     the named values the JSX reads, then the JSX
 ```
 
 A piece of state sits with the section that owns it, not where it was first

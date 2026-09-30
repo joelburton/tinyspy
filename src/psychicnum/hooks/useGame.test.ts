@@ -170,6 +170,7 @@ describe('psychicnum useGame — a load that worked', () => {
     answer(ALL_GOOD)
     const gd = (await load()).current.gd!
     expect(Object.keys(gd.players)).toEqual(['u1', 'u2'])
+    expect(gd.numPlayers).toBe(2)
     expect([gd.players.u1!.foundSecretsCount, gd.players.u1!.guessesUsed]).toEqual([1, 2])
     expect([gd.players.u2!.foundSecretsCount, gd.players.u2!.guessesUsed]).toEqual([0, 3])
     expect(gd.players.u1!.playerEnding).toBeNull()

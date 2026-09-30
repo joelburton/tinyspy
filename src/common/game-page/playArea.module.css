@@ -271,8 +271,9 @@
 /* The reserved-height box that holds EITHER a game's `.moveArea` (its below-board
  * move controls) OR the `.localFeedback` pill, in the games where the two swap in
  * one spot (an own-move result / terminal pill replaces the controls). The fixed
- * min-height is what keeps the board above from reflowing as the content swaps
- * (docs/playarea.md → PlayArea layout; docs/ui.md → Layout
+ * min-height is what keeps the board above from reflowing as the content swaps,
+ * so the box is drawn even when it holds nothing: without it the flex:1 board
+ * would grow into the space (docs/playarea.md → PlayArea layout; docs/ui.md → Layout
  * stability). A flex column that vertically centers its single child. Games where
  * the move area and feedback are SEPARATE (wordle, stackdown, bananagrams, waffle)
  * don't use this — each reserves its own height. */

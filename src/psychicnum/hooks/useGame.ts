@@ -125,6 +125,8 @@ export type GameData = {
   events: EventRow[]
   // Keyed by user id, in the page's order.
   players: Record<string, PsychicnumPlayer>
+  // How many players are seated.
+  numPlayers: number
   // My entry in `players`; null for a club member watching.
   me: PsychicnumPlayer | null
   // Where I stand (docs/win-lose.md → Where a player stands), as the page
@@ -247,6 +249,7 @@ export function makeGameData(
     },
     events: rows.events,
     players,
+    numPlayers: playerList.length,
     me,
     standing: {
       isPlayer: ctx.isPlayer,

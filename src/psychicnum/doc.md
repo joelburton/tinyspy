@@ -335,9 +335,14 @@ secrets from `games_state`, the log from `events`, the rest from the page's
 `common.games` and `common.game_players` rows. `useGame` keeps no subscription:
 `useRefetchOnGameUpdate` reruns its reads whenever the page's `common.games`
 row moves or the page's channel rejoins. The two columns, `BoardCol` and
-`InfoCol`, take `gd` whole; everything below them (`Board`, the shared
-readouts, the event log) takes its own props, the page's players (`roster`)
-among them.
+`InfoCol`, take `gd` whole; everything below them takes its own props, the
+page's players (`roster`) among them. `Board` takes them in groups — `tiles`
+(what is on them) and `marks` (what the board wears on and around them) — and
+`historyView` whole.
+
+`BoardCol` builds and sends the guess: the picked word and `submit_guess`.
+`Board` owns the board itself: its display order and Shuffle, and the keyboard
+cursor over it, which reports a pick up through `onPick`.
 
 The keyboard's selection cursor is [board-cursor](../common/board-cursor/doc.md)'s;
 what is psychicnum's is its shape (`lib/boardShape.ts`: `⌈√N⌉` across, so the

@@ -12,6 +12,10 @@ import type { GameData } from './useGame'
  * while the live board is on screen.
  */
 export type HistoryView = {
+  // A past turn is open on the board (`viewedEventId` is set). Everything that
+  // would write to the board answers to it: the tiles, keys and Clear/Submit
+  // go inert, and the pick and the in-flight dim are not drawn.
+  isViewing: boolean
   // The log row open on the board (`events.id`), or null when live.
   viewedEventId: number | null
   // Open a turn — the log's `#N` click, with the number it printed beside it.
@@ -43,6 +47,7 @@ export function useHistoryView(gd: GameData, selfId: string): HistoryView {
   const authorId = replayed?.authorId ?? null
   const isSomeoneElsesBoard = gd.isCompete && authorId !== null && authorId !== selfId
   return {
+    isViewing: historyId !== null,
     viewedEventId: historyId,
     show: showHistory,
     exit: exitHistory,

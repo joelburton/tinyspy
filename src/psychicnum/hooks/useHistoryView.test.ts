@@ -30,6 +30,7 @@ function gdWith(isCompete: boolean): GameData {
 describe('useHistoryView', () => {
   it('is live until a turn is opened', () => {
     const { result } = renderHook(() => useHistoryView(gdWith(false), 'u1'))
+    expect(result.current.isViewing).toBe(false)
     expect(result.current.viewedEventId).toBeNull()
     expect(result.current.tileResults).toBeNull()
     expect(result.current.label).toBeNull()
@@ -38,9 +39,11 @@ describe('useHistoryView', () => {
   it('replays the turn it opens, and goes back to live on exit', () => {
     const { result } = renderHook(() => useHistoryView(gdWith(false), 'u1'))
     act(() => result.current.show(1, 1))
+    expect(result.current.isViewing).toBe(true)
     expect(result.current.viewedEventId).toBe(1)
     expect(result.current.litWord).toBe('apple')
     act(() => result.current.exit())
+    expect(result.current.isViewing).toBe(false)
     expect(result.current.viewedEventId).toBeNull()
   })
 
