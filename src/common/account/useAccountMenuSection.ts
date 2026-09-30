@@ -10,7 +10,7 @@ import {
   environmentalEnvelope,
   reportDbFault,
 } from '../supabase/dbEnvelope'
-import { setEditProfileOpen } from './editProfileStore'
+import { setIsEditProfileOpen } from './editProfileStore'
 import { setWordEdit } from '../definitions/wordEditStore'
 import { useBoundAction } from '../actions/useBoundAction'
 import type { MenuSection } from '../menu/menuModel'
@@ -53,7 +53,7 @@ export function useAccountMenuSection(): MenuSection {
 
   const actEditProfile = useBoundAction('act-edit-profile', {
     describe: () => 'active',
-    run: () => setEditProfileOpen(true),
+    run: () => setIsEditProfileOpen(true),
   })
   const actAddWord = useBoundAction('act-add-word', {
     describe: () => (canEditWords ? 'active' : 'hidden'),

@@ -12,7 +12,9 @@ import { useSyncExternalStore } from 'react'
  * not worth restoring across a navigation.
  */
 
-let value = false
+let isEditProfileOpen = false
+// A listener is a callback: each `useIsEditProfileOpen()` caller adds one, and
+// `setIsEditProfileOpen` calls every one to say the flag has changed.
 const listeners = new Set<() => void>()
 
 function subscribe(listener: () => void): () => void {
@@ -22,20 +24,20 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-function getSnapshot(): boolean {
-  return value
+function getIsEditProfileOpen(): boolean {
+  return isEditProfileOpen
 }
 
 /** Open or close the Edit-profile dialog. Idempotent — a same-value write
  *  notifies nobody. */
-export function setEditProfileOpen(next: boolean): void {
-  if (value === next) return
-  value = next
+export function setIsEditProfileOpen(val: boolean): void {
+  if (isEditProfileOpen === val) return
+  isEditProfileOpen = val
   for (const listener of listeners) listener()
 }
 
 /** Whether the Edit-profile dialog is open. `App` reads it to decide whether
  *  to mount `<EditProfileModal>`. */
 export function useIsEditProfileOpen(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot)
+  return useSyncExternalStore(subscribe, getIsEditProfileOpen)
 }

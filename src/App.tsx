@@ -10,7 +10,7 @@ import { HomePage } from './common/home/HomePage'
 import { FontPage } from './common/devtools/FontPage'
 import { PalettePage } from './common/devtools/PalettePage'
 import { EditProfileModal } from './common/account/EditProfileModal'
-import { useIsEditProfileOpen, setEditProfileOpen } from './common/account/editProfileStore'
+import { useIsEditProfileOpen, setIsEditProfileOpen } from './common/account/editProfileStore'
 import { WordEditDialog } from './common/definitions/WordEditDialog'
 import { DefinitionHost } from './common/definitions/DefinitionHost'
 import { useWordEdit } from './common/definitions/wordEditStore'
@@ -167,8 +167,8 @@ export default function App() {
 
       {editingProfile && (
         <EditProfileModal
-          onSaved={() => setEditProfileOpen(false)}
-          onCancel={() => setEditProfileOpen(false)}
+          onSaved={() => setIsEditProfileOpen(false)}
+          onCancel={() => setIsEditProfileOpen(false)}
         />
       )}
 
