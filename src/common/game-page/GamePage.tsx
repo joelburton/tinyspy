@@ -8,7 +8,7 @@ import { useAccountMenuSection } from '../account/useAccountMenuSection'
 import { useTurnBell } from '../sounds/useTurnBell'
 import { useAppAction, useBoundAction } from '../actions/useBoundAction'
 import { useIsMobile } from '../mobile/useIsMobile'
-import { setInfoSheetOpen, useIsInfoSheetOpen } from '../info-sheet/infoSheetStore'
+import { setIsInfoSheetOpen, useIsInfoSheetOpen } from '../info-sheet/infoSheetStore'
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
 import type { CommonGame } from './useCommonGame'
@@ -204,7 +204,7 @@ export function GamePage({
   // would otherwise land you on the info page because that's where you left the
   // last one. GamePage is keyed by gameId, so this mount-effect runs per game.
   useEffect(function startOnTheBoard() {
-    setInfoSheetOpen(false)
+    setIsInfoSheetOpen(false)
   }, [gameId])
 
   // ─── The actions the page binds ─────────────────────────────────────────

@@ -4,7 +4,7 @@ import { PageHeaderButton } from '../page-header/PageHeaderButton'
 import { useBoundAction } from '../actions/useBoundAction'
 import { actionSurface } from '../actions/actionSurface'
 import { IconInfoSheetClose, IconInfoSheetOpen } from '../icons/icons'
-import { setInfoSheetOpen } from './infoSheetStore'
+import { setIsInfoSheetOpen } from './infoSheetStore'
 
 type Props = {
   // Is the info page currently showing? Decides both the glyph and the action.
@@ -37,7 +37,7 @@ export function InfoSwitchButton({ open }: Props) {
       label: open ? 'Back to board' : 'Game info',
       icon: open ? IconInfoSheetClose : IconInfoSheetOpen,
     }),
-    run: () => setInfoSheetOpen(!open),
+    run: () => setIsInfoSheetOpen(!open),
   })
   const { label, icon, buttonProps } = actionSurface(actToggleInfoSheet)
   return (

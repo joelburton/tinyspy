@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { useIsMobile } from '../mobile/useIsMobile'
-import { setInfoSheetOpen, useIsInfoSheetOpen } from './infoSheetStore'
+import { setIsInfoSheetOpen, useIsInfoSheetOpen } from './infoSheetStore'
 
 /** What a game gets from `useInfoSheet`: the flag to hand `<InfoSheet>`, and a
  *  way back to the board. */
@@ -32,7 +32,7 @@ export type InfoSheetApi = {
 export function useInfoSheet(): InfoSheetApi {
   const isMobile = useIsMobile()
   const isOpen = useIsInfoSheetOpen()
-  const close = useCallback(() => setInfoSheetOpen(false), [])
+  const close = useCallback(() => setIsInfoSheetOpen(false), [])
 
   // Close when the viewport crosses from mobile up to desktop. Without this the
   // flag is sticky: switch to the info page on mobile, widen to desktop (where
@@ -44,7 +44,7 @@ export function useInfoSheet(): InfoSheetApi {
   const [wasMobile, setWasMobile] = useState(isMobile)
   if (wasMobile !== isMobile) {
     setWasMobile(isMobile)
-    if (!isMobile && isOpen) setInfoSheetOpen(false)
+    if (!isMobile && isOpen) setIsInfoSheetOpen(false)
   }
 
   return { isOpen, close }

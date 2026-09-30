@@ -15,7 +15,9 @@ import { useSyncExternalStore } from 'react'
  * visible and `<InfoSheet>` is a `display: contents` no-op.
  */
 
-let value = false
+let isInfoSheetOpen = false
+// A listener is a callback: each `useIsInfoSheetOpen()` caller adds one, and
+// `setIsInfoSheetOpen` calls every one to say the flag has changed.
 const listeners = new Set<() => void>()
 
 function subscribe(listener: () => void): () => void {
@@ -25,18 +27,18 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-function getSnapshot(): boolean {
-  return value
+function getIsInfoSheetOpen(): boolean {
+  return isInfoSheetOpen
 }
 
 /** Show the info page (true) or the board (false). Idempotent. */
-export function setInfoSheetOpen(next: boolean): void {
-  if (value === next) return
-  value = next
+export function setIsInfoSheetOpen(val: boolean): void {
+  if (isInfoSheetOpen === val) return
+  isInfoSheetOpen = val
   for (const listener of listeners) listener()
 }
 
 /** Subscribe to which page is showing. */
 export function useIsInfoSheetOpen(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot)
+  return useSyncExternalStore(subscribe, getIsInfoSheetOpen)
 }

@@ -1,7 +1,7 @@
 // cs-blessed-event-log
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
-import { setInfoSheetOpen } from '../info-sheet/infoSheetStore'
+import { setIsInfoSheetOpen } from '../info-sheet/infoSheetStore'
 import { useBoundAction } from '../actions/useBoundAction'
 
 /** The turn-history viewer's coordination state (see `useHistoryViewer`). */
@@ -97,7 +97,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   // breakpoint), so setting it false again is a no-op. A `useIsMobile()` check here
   // would only add a way for the two to disagree.
   const showHistory = useCallback((id: Id, n: number | null) => {
-    setInfoSheetOpen(false)
+    setIsInfoSheetOpen(false)
     setOpen({ id, n })
   }, [])
 

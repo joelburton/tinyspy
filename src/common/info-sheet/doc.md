@@ -56,7 +56,7 @@ sheet, and the game's own `InfoCol` places the readouts:
 ```
 GamePage (shell)                      ── mobile only ──▶  <InfoSwitchButton open>
   │  useIsInfoSheetOpen()                                   binds act-toggle-info-sheet
-  │  setInfoSheetOpen(false) in a mount effect, keyed by gameId
+  │  setIsInfoSheetOpen(false) in a mount effect, keyed by gameId
   │
   └── <game>/PlayArea                                            ← the game's
         ├── useInfoSheet() → { isOpen, close }   closes on the mobile→desktop
@@ -80,7 +80,7 @@ GamePage (shell)                      ── mobile only ──▶  <InfoSwitchB
                     └── EventLog · WordList · HandCard    ← other folders and a
                             game, each wearing infoPanel.heading / .headerRow / .box
 
-common/event-log: useHistoryViewer.showHistory() → setInfoSheetOpen(false)
+common/event-log: useHistoryViewer.showHistory() → setIsInfoSheetOpen(false)
                   opening a turn leaves the info page for the board it replays
 ```
 
