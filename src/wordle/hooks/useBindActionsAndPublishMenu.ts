@@ -156,7 +156,8 @@ export function useBindActionsAndPublishMenu({
   const actNewGame = useBoundAction('act-new-game', {
     terminal: gd.isGameEnded,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
-    describe: (asker) => (asker === 'button' && !gd.isGameEnded ? 'hidden' : 'active'),
+    describe:
+        (asker) => (asker === 'button' && !gd.isGameEnded ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
@@ -181,7 +182,9 @@ export function useBindActionsAndPublishMenu({
           selfId,
           target: gd.target,
           answerShown,
-          solvedBy: new Set(gd.players.filter((p) => p.solvedAt !== null).map((p) => p.user_id)),
+          solvedBy:
+              new Set(gd.players.filter(
+                  (p) => p.solvedAt !== null).map((p) => p.user_id)),
           setupRows: gd.setupRows,
         }),
       )

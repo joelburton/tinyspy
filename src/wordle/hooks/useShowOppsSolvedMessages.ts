@@ -26,7 +26,10 @@ export function useShowOppsSolvedMessages(
   // Keyed on the players, which keep their identity across renders, so the
   // narration sees a new list only when someone's solve lands.
   const solvedIds = useMemo(
-    () => Object.values(gd.playersById).filter((p) => p.solvedAt !== null).map((p) => p.user_id),
+    () => Object
+      .values(gd.playersById)
+      .filter((p) => p.solvedAt !== null)
+      .map((p) => p.user_id),
     [gd.playersById],
   )
   usePeerFeedback({

@@ -206,14 +206,20 @@ export function makeGameData(
     target: rows.target,
     readout: {
       maxGuesses,
-      guessesUsed: isCompete ? (me?.guessesUsed ?? maxGuesses) : teamGuessesUsed,
+      guessesUsed: isCompete
+        ? (me?.guessesUsed ?? maxGuesses)
+        : teamGuessesUsed,
     },
     isTurnBased: ctx.isTurnBased,
     turnHolderId: ctx.turnHolderId,
-    turnHolder: ctx.turnHolderId === null ? null : (playersById[ctx.turnHolderId] ?? null),
+    turnHolder: ctx.turnHolderId === null
+      ? null
+      : (playersById[ctx.turnHolderId] ?? null),
     gameEnding: ctx.gameEnding,
     isGameEnded: ctx.gameEnding !== null,
-    winner: isCompete ? (players.find((p) => p.outcome === 'won') ?? null) : null,
+    winner: isCompete
+      ? (players.find((p) => p.outcome === 'won') ?? null)
+      : null,
     boardGuesses: isCompete
       ? rows.events.filter((e) => e.user_id === ctx.session.user.id)
       : rows.events,
@@ -330,7 +336,9 @@ export function useGame(ctx: GamePageCtx): {
     () => makeSetupRows(setup, ctx.mode, ctx.players),
     [setup, ctx.mode, ctx.players],
   )
-  const gd = rows === null ? null : makeGameData(ctx, rows, playersById, setupRows)
+  const gd = rows === null
+    ? null
+    : makeGameData(ctx, rows, playersById, setupRows)
 
   return { gd, loading, failure }
 }

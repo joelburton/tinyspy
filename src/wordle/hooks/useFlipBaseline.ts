@@ -22,6 +22,7 @@ import { useState } from 'react'
 export function useFlipBaseline(liveRowCount: number, isViewingHistory: boolean): number {
   const [flipBaseline, setFlipBaseline] = useState(liveRowCount)
   const [wasViewingHistory, setWasViewingHistory] = useState(isViewingHistory)
+
   if (isViewingHistory !== wasViewingHistory) {
     setWasViewingHistory(isViewingHistory)
     if (isViewingHistory) setFlipBaseline(liveRowCount)
