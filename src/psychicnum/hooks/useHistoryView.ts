@@ -3,7 +3,7 @@
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import type { Actor } from '@/common/members/member'
 import { replayTurn } from '../lib/history'
-import type { TileResults } from '../lib/tileResults'
+import type { TileResults, TileWord } from '../lib/tileResults'
 import type { GameData } from './useGame'
 
 /**
@@ -25,7 +25,7 @@ export type HistoryView = {
   // The viewed turn's board, or null when live.
   tileResults: TileResults | null
   // The tile the viewed turn decided — ring it; null for a hint or a spoiler.
-  litWord: string | null
+  litWord: TileWord | null
   // The banner's text, or null when live.
   label: string | null
   // Whose board is on screen, when it is not mine — which only compete can

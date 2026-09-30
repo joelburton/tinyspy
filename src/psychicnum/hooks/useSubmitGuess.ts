@@ -7,7 +7,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
 import { answerMessage, type Answer } from '../lib/answer'
-import type { TileResults } from '../lib/tileResults'
+import type { TileResults, TileWord } from '../lib/tileResults'
 
 /** What `psychicnum.submit_guess` puts in `data` — the caller's own result,
  *  plus whether that guess completed the set. Every `ok` this RPC answers
@@ -55,12 +55,12 @@ export function useSubmitGuess({
   localFeedbackSlot: FeedbackSlot
   isViewingHistory: boolean
 }): {
-  submitGuess: (word: string) => Promise<void>
-  inFlightWord: string | null
+  submitGuess: (word: TileWord) => Promise<void>
+  inFlightWord: TileWord | null
 } {
   // The word I last sent, or null. Nothing clears it when the result lands;
   // what is still in flight is derived below.
-  const [submittedWord, setSubmittedWord] = useState<string | null>(null)
+  const [submittedWord, setSubmittedWord] = useState<TileWord | null>(null)
   const isSubmittedWordDecided = submittedWord !== null && tileResults.has(submittedWord)
 
   // Every answer reaches the player the same way: one `Answer` in, its words
@@ -70,7 +70,7 @@ export function useSubmitGuess({
     localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
   }
 
-  async function submitGuess(word: string) {
+  async function submitGuess(word: TileWord) {
     if (tileResults.has(word)) {
       showAnswer({ answerType: 'already_guessed' })
       return

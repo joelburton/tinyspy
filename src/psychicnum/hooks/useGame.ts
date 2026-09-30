@@ -13,7 +13,7 @@ import type { SetupRow } from '@/common/setup-form/setupRows'
 import type { PsychicnumSetup } from '../lib/setup'
 import { makeSetupRows } from '../lib/setupRows'
 import type { PsychicnumGameStatus, PsychicnumPlayerStatus } from '../lib/statuses'
-import type { TileResults } from '../lib/tileResults'
+import type { TileResults, TileWord } from '../lib/tileResults'
 
 /**
  * One row from `psychicnum.events`. In coop the FE receives
@@ -26,8 +26,9 @@ export type EventRow = {
   // The row's own id, and the order of play.
   id: number
   user_id: string
-  // The text this row carries. For 'guess'/'spoiler' it's a board word
-  // (lowercase); for 'hint' it's the CLUE text (or "No hint available").
+  // The text this row carries. For 'guess'/'spoiler' it's a `TileWord`; for
+  // 'hint' it's the CLUE text (or "No hint available"), which is why this is
+  // a plain string.
   word: string
   is_correct: boolean
   // 'guess' = a real guess (colors the board, counts toward the win);
@@ -81,7 +82,7 @@ export type GameData = {
   setupRows: SetupRow[]
   // The three secret words; null until the game ends (the view hands them
   // over then).
-  secrets: string[] | null
+  secrets: TileWord[] | null
   // The state line's four counts ("1/3 found · 4/7 guesses used").
   readout: {
     // How many secrets the board hides.
@@ -106,13 +107,13 @@ export type GameData = {
   // and always null in coop, where the team wins together.
   winner: PsychicnumPlayer | null
   board: {
-    // The words shown as tiles, lowercase; three of them are the secrets.
-    words: string[]
+    // The words shown as tiles; three of them are the secrets.
+    words: TileWord[]
     // Each guessed word, and whether it was a secret — the board's permanent
     // green and red. Hint and spoiler rows mark no tile.
     tileResults: TileResults
-    // Who guessed each guessed word, for the tile's identity dot.
-    decidedBy: ReadonlyMap<string, PsychicnumPlayer | undefined>
+    // Each guessed word → who guessed it.
+    decidedBy: ReadonlyMap<TileWord, PsychicnumPlayer>
     // How many guesses have been made — what tells the attention flash a
     // board changed by being played into.
     guessCount: number
@@ -145,8 +146,8 @@ export type GameData = {
 /** What psychicnum's own reads bring back: the `games_state` view's board and
  *  secrets, and the log. */
 type GameRows = {
-  words: string[]
-  secrets: string[] | null
+  words: TileWord[]
+  secrets: TileWord[] | null
   events: EventRow[]
 }
 
@@ -243,7 +244,9 @@ export function makeGameData(
     board: {
       words: rows.words,
       tileResults: new Map(guesses.map((guess) => [guess.word, guess.is_correct])),
-      decidedBy: new Map(guesses.map((guess) => [guess.word, playersById[guess.user_id]])),
+      // Every guess is a seated player's: a player's rows go with their
+      // profile (`on delete cascade`), so the lookup cannot miss.
+      decidedBy: new Map(guesses.map((guess) => [guess.word, playersById[guess.user_id]!])),
       guessCount: guesses.length,
     },
     events: rows.events,
@@ -348,8 +351,8 @@ export function useGame(ctx: GamePageCtx): {
       }
 
       setRows({
-        words: gameData.words as string[],
-        secrets: gameData.secrets as string[] | null,
+        words: gameData.words as TileWord[],
+        secrets: gameData.secrets as TileWord[] | null,
         events: eventsRes.data as EventRow[],
       })
       setLoading(false)

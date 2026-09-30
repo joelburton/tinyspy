@@ -1,10 +1,7 @@
 /* cs-blessed-psychicnum */
 
-/* psychicnum's board: a wrapper framing the word grid. The tile CHROME
- * (fill, border, shadow, hover, selected, label auto-fit) is the shared
- * `.tile` / `.tileWord` from common/game-page/playArea.module.css; only the
- * board wrapper, the grid layout, and the guessed-result fills are
- * psychicnum's. */
+/* psychicnum's board: a wrapper framing the word grid, and the grid's layout.
+ * A tile's own styles are WordTile.module.css. */
 
 /* ─── Tile size caps — TINKER HERE ───────────────────────────────────────────
  * The board grows to fill the space, but a tile never exceeds these. Relative
@@ -34,7 +31,7 @@
   max-height: calc(
     var(--rows) * var(--max-tile-height) + (var(--rows) - 1) * var(--grid-gap)
   );
-  /* Anchor for the floating shuffle control (`floatingControl` prop): the board
+  /* Anchor for the floating Shuffle button: the board
    * root tracks the VISUAL board (flex growth stops at the max-height cap), so
    * the float hugs the board's top-right even when the board is smaller than
    * the vertically-centered column. */
@@ -71,96 +68,3 @@
 /* @@ */   --tile-wdth-min: 0.6;
 }
 
-/* A guessed tile is "decided": it colors PERMANENTLY in its OUTCOME — the one
- * `lib/answer.ts` rules for the row, which Board.tsx asks it for, so these two
- * classes are named for outcomes and not for verdicts — by re-setting the shared
- * tile's --tile-* tokens (so the fill wins regardless of stylesheet order). It uses the
- * SATURATED outcome fills (`--outcomes-*-fill-color`, the same green/red the
- * EventLog outcome bars use), NOT the washed-out pastel `-bg` — so a decided
- * tile obviously carries the same green=good / red=bad message as a guess
- * outcome. No dimming/gray: the color IS the "already tried" signal and a record
- * of found vs ruled out. The tile is also `disabled` once guessed, so it never
- * shows the hover ring. (In compete RLS scopes the viewer's board to their own
- * guesses, so this never leaks what opponents tried.) */
-/* WHITE ink on a decided tile, borrowed from wordle: dark text on a fill this
- * saturated reads muddy, and white separates cleanly from both the green and the
- * red. Not a house rule — an undecided tile keeps its dark ink on the pale beige,
- * which is where dark ink belongs.
- *
- * The EDGE is the shared `-edge` tier: the fill stepped 16% darker, the same quiet
- * definition waffle and wordle give their colored tiles.
- *
- * The fill is `-fill`, the 400 tone.
- *
- * Which channel is this borrowing? Border color is spoken for by verdicts and by
- * peer selection, but neither can land on a DECIDED tile: it is inert, so nobody
- * can select it and nothing can be refused on it. The edge is free here precisely
- * because the tile is finished. And the marks that DO cover a decided tile —
- * attention, the in-flight dim — extend over the border box, so the edge never
- * peeks through them; a second of a hidden edge costs nothing, since it will be
- * back. */
-/* @@ */ .decidedWon {
-/* @@ */   --tile-slot-fill-color: var(--outcomes-won-fill-color);
-/* @@ */   --tile-slot-edge-color: var(--outcomes-won-edge-color);
-/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
-}
-
-/* @@ */ .decidedLost {
-/* @@ */   --tile-slot-fill-color: var(--outcomes-lost-fill-color);
-/* @@ */   --tile-slot-edge-color: var(--outcomes-lost-edge-color);
-/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
-}
-
-/* Positioning context for the identity dot below. (The shared in-flight dim and
- * attention flash bring their own; this is for the dot, which is always available
- * on a decided tile.) */
-/* @@ */ .tile {
-  position: relative;
-}
-
-/* WHO decided this tile — the shared `<Dot>`, tucked into the BOTTOM-RIGHT corner.
- *
- * Bottom-right because the top-right is taken: the Shuffle control floats there,
- * and two small round things in one corner would read as a pair rather than as two
- * unrelated marks.
- *
- * Inside the tile rather than straddling its edge, so it can never collide with
- * the selection border, the history ring, or a neighbor — and small, because it
- * answers a question you ask deliberately ("who got that one?") rather than one
- * the board should be shouting. */
-/* @@ */ .actorDot {
-  position: absolute;
-  /* Sized and inset in `cqi` — a percentage of the TILE's own width, which the
-   * shared `.tileFace` already makes available by being an inline-size container
-   * (the label's auto-fit font uses the same units). A fixed rem can't work here:
-   * this board's tiles run from a phone's small squares to 200px on a desktop, and
-   * one number is either invisible at the bottom or a bauble at the top.
-   *
-   * The FLOOR does most of the work, and it is doing it deliberately. `cqi` is the
-   * inline axis only, so this tracks tile WIDTH — and a phone's tiles are portrait
-   * (~84px wide, ~150 tall) where a desktop's are landscape (~200 × ~100), so the
-   * proportional term alone gives the phone a third of the disc for a tile with
-   * more area. Sizing on the larger axis would need `container-type: size` on the
-   * shared face, which trades a cosmetic gain for tiles that collapse to nothing
-   * if a board's height is ever indefinite. Legible beats proportional: the floor
-   * holds the phone at a readable ~18px and desktop still scales. */
-/* @@ */   --dot-size: clamp(1.15rem, 13cqi, 1.5rem);
-  /* The ring scales with the disc, or it reads as a hairline on a big tile and as
-   * most of the disc on a small one. */
-/* @@ */   --dot-border-width: max(1.5px, 1.2cqi);
-  right: 7cqi;
-  bottom: 7cqi;
-  /* Above the attention flash (which sits at 0 so it can lighten the tile under
-   * its label) — a flashing tile shouldn't swallow the dot. */
-  z-index: 1;
-}
-
-/* The tile the VIEWED past turn guessed — the shared history BLUE, the same
- * signal the board frame and the viewed log #N wear, in the shared ring's
- * geometry (`--history-tile-ring-*`, base.css). On an EDGE tile it overlaps the board frame's outline by 2px — moving the
- * frame outward is shared chrome, and padding the grid while viewing would
- * resize tiles on a state change. */
-/* @@ */ .historyTile {
-  outline: var(--history-tile-ring-width) solid var(--history-color);
-  outline-offset: var(--history-tile-ring-offset);
-}

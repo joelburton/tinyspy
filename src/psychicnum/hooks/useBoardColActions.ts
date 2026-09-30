@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useBoundAction, type BoundAction } from '@/common/actions/useBoundAction'
+import type { TileWord } from '../lib/tileResults'
 
 /**
  * The board column's two commands, on their buttons and their keys: Submit
@@ -20,15 +21,15 @@ export function useBoardColActions({
   clearPickedWord,
   submitGuess,
 }: {
-  pickedWord: string | null
+  pickedWord: TileWord | null
   // A pick can be made or cleared right now.
   canPick: boolean
   // It is my move, and a guess can go.
   canSubmit: boolean
-  choosePickedWord: (word: string | null) => void
+  choosePickedWord: (word: TileWord | null) => void
   // Un-pick without dismissing the slot's result (see `usePickedWord`).
   clearPickedWord: () => void
-  submitGuess: (word: string) => Promise<void>
+  submitGuess: (word: TileWord) => Promise<void>
 }): {
   actSubmit: BoundAction
   actClearPicks: BoundAction

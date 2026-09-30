@@ -12,10 +12,10 @@ import { TILES_PER_CATEGORY } from './board'
  * solved one becomes a band in place of a row of them.
  */
 export function boardShape(tileCount: number): BoardShape {
-  const cols = TILES_PER_CATEGORY
+  const numCols = TILES_PER_CATEGORY
   return {
-    cols,
-    rows: Math.ceil(tileCount / cols),
-    exists: (x, y) => positionAt(x, y, cols) < tileCount,
+    numCols,
+    numRows: Math.ceil(tileCount / numCols),
+    exists: (x, y) => positionAt(x, y, numCols) < tileCount,
   }
 }

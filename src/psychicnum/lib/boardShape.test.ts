@@ -14,7 +14,7 @@ describe('makeBoardShape', () => {
 
   it('lays 7 words out 3 across, with one on the last row', () => {
     const boardShape = makeBoardShape(7)
-    expect([boardShape.cols, boardShape.rows]).toEqual([3, 3])
+    expect([boardShape.numCols, boardShape.numRows]).toEqual([3, 3])
     expect(boardShape.exists(0, 2)).toBe(true)
     expect(boardShape.exists(1, 2)).toBe(false)
   })

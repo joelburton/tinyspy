@@ -908,7 +908,7 @@ says. **N8 built 2026-09-27** as its row says. §4 has nothing left.
 - Flat index ↔ board position: codenamesduet names it (`positionAt` /
   `cellAt`); psychicnum and connections write the arithmetic inline. A home
   in `common/board-cursor`. **Do it, in this pass** (Joel, 2026-09-27):
-  `positionAt(x, y, cols)` and `cellAt(position, cols)` there; codenamesduet
+  `positionAt(x, y, numCols)` and `cellAt(position, numCols)` there; codenamesduet
   and waffle call them with their width, and the inline sites (the two games'
   `Board.tsx` cursor checks, their `boardShape.ts` `exists`, the two PDF
   printers) use them.

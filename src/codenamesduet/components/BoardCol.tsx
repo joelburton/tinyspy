@@ -250,7 +250,7 @@ export function BoardCol({
   // Space toggles, so a second press un-picks and a press elsewhere moves the
   // pick. A word the click couldn't guess can't be picked either.
   function toggleAt(cell: Cell) {
-    const position = positionAt(cell.x, cell.y, BOARD_SHAPE.cols)
+    const position = positionAt(cell.x, cell.y, BOARD_SHAPE.numCols)
     const word = words[position]
     if (word === undefined || !isGuessable(word, mySeat)) return
     localFeedbackSlot.dismiss() // a pick is the next move
@@ -268,7 +268,7 @@ export function BoardCol({
   // again until its reveal lands.
   function handleTileClick(position: number) {
     if (inFlightPos !== null) return
-    setCursorTo(cellAt(position, BOARD_SHAPE.cols))
+    setCursorTo(cellAt(position, BOARD_SHAPE.numCols))
     setPickedAt(null)
     void handleGuess(position)
   }

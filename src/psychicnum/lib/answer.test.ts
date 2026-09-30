@@ -1,7 +1,13 @@
 // cs-blessed-psychicnum
 
 import { describe, it, expect } from 'vitest'
-import { answerMessage, eventToOutcome, peerAnswerMessage, type Answer } from './answer'
+import {
+  answerMessage,
+  eventToOutcome,
+  getGuessOutcome,
+  peerAnswerMessage,
+  type Answer,
+} from './answer'
 
 /**
  * psychicnum's one presentation decision, both halves.
@@ -122,6 +128,14 @@ describe('eventToOutcome', () => {
     ]) {
       expect(eventToOutcome(r)).toBe(peerAnswerMessage(r).outcome)
     }
+  })
+})
+
+describe('getGuessOutcome', () => {
+  // The board's decided tile and the log's guess row read one answer.
+  it('colors a guessed word as the log colors its row', () => {
+    expect(getGuessOutcome('apple', true)).toBe(eventToOutcome(row({ is_correct: true, word: 'apple' })))
+    expect(getGuessOutcome('berry', false)).toBe(eventToOutcome(row({ is_correct: false, word: 'berry' })))
   })
 })
 

@@ -596,7 +596,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
  * for the guesser's identity dot, which a revealed tile has no reason to
  * carry.
  *
- * Asserted through the tile's `decidedWon` class — vitest runs with `css: false`, so
+ * Asserted through the tile's `decided_won` class — vitest runs with `css: false`, so
  * CSS-module keys come through unscoped (see vitest.config.ts).
  */
 describe('psychicnum PlayArea — the secrets reveal once the game has ended', () => {
@@ -611,7 +611,7 @@ describe('psychicnum PlayArea — the secrets reveal once the game has ended', (
   /** How many board tiles currently read as secrets (green). With no guesses in
    *  these fixtures, that is exactly the revealed ones. */
   const greenTiles = () =>
-    screen.getAllByRole('button').filter((b) => b.className.includes('decidedWon')).length
+    screen.getAllByRole('button').filter((b) => b.className.includes('decided_won')).length
 
   /** A finished game whose secrets have reached this client (the server sends
    *  them once the game has ended). */
@@ -806,7 +806,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
 
     const tiles = within(gridIn(container)).getAllByRole('button')
     // The three secrets went green…
-    expect(tiles.filter((t) => t.className.includes('decidedWon'))).toHaveLength(3)
+    expect(tiles.filter((t) => t.className.includes('decided_won'))).toHaveLength(3)
     // …and not one of them flashed.
     expect(tiles.some((t) => /attentionFlash/.test(t.className))).toBe(false)
   })

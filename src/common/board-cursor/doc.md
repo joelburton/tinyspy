@@ -106,7 +106,7 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
   carries a reachability test (`reachability.fixture.ts`).
 - **A board position is counted row by row.** A game that stores its pieces
   in one flat list turns a cursor's cell into a position with
-  `positionAt(x, y, cols)`, and back with `cellAt(position, cols)`.
+  `positionAt(x, y, numCols)`, and back with `cellAt(position, numCols)`.
 - **The selection ring is a shared mark**, `.selectionCursor` in
   `common/game-page/playArea.module.css`: the app's cursor ring, outside the
   piece. The game puts it on the piece `cursor` names

@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { clampCell, stepCell, type BoardShape } from './stepCell'
 
 // 3 × 3 with the last row short: 7 cells, psychicnum's shape for 7 words.
-const shortRow: BoardShape = { cols: 3, rows: 3, exists: (x, y) => y * 3 + x < 7 }
+const shortRow: BoardShape = { numCols: 3, numRows: 3, exists: (x, y) => y * 3 + x < 7 }
 // 5 × 5 with waffle's four holes.
-const waffle: BoardShape = { cols: 5, rows: 5, exists: (x, y) => !(x % 2 === 1 && y % 2 === 1) }
+const waffle: BoardShape = { numCols: 5, numRows: 5, exists: (x, y) => !(x % 2 === 1 && y % 2 === 1) }
 
 describe('stepCell', () => {
   it('moves one cell in the arrow’s direction', () => {
@@ -34,7 +34,7 @@ describe('stepCell', () => {
 
 describe('clampCell', () => {
   // connections' loose tiles: four across, a row fewer for each solved band.
-  const tiles = (rows: number): BoardShape => ({ cols: 4, rows, exists: () => true })
+  const tiles = (numRows: number): BoardShape => ({ numCols: 4, numRows, exists: () => true })
 
   it('leaves a cell the board still has where it is', () => {
     expect(clampCell({ x: 2, y: 1 }, tiles(4))).toEqual({ x: 2, y: 1 })

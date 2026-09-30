@@ -6,7 +6,7 @@ import { BOARD_SHAPE, cellAt, coordAt } from './boardShape'
 
 describe('BOARD_SHAPE', () => {
   it('is six across and eight down, a cell for each of the 48 letters', () => {
-    expect([BOARD_SHAPE.cols, BOARD_SHAPE.rows]).toEqual([6, 8])
+    expect([BOARD_SHAPE.numCols, BOARD_SHAPE.numRows]).toEqual([6, 8])
     expect(cellsOf(BOARD_SHAPE)).toHaveLength(48)
   })
 

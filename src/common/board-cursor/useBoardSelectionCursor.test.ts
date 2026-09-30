@@ -18,7 +18,7 @@ async function press(key: string) {
   })
 }
 
-const shape: BoardShape = { cols: 3, rows: 2, exists: () => true }
+const shape: BoardShape = { numCols: 3, numRows: 2, exists: () => true }
 
 function setup(over: Partial<BoardSelectionCursorOptions> = {}) {
   const cb = { onToggle: vi.fn() }
@@ -87,7 +87,7 @@ describe('useBoardSelectionCursor', () => {
     await press('ArrowDown')
     expect(s.cursor()).toEqual({ x: 1, y: 1 })
 
-    s.view.rerender({ shape: { cols: 3, rows: 1, exists: () => true } })
+    s.view.rerender({ shape: { numCols: 3, numRows: 1, exists: () => true } })
     expect(s.cursor()).toEqual({ x: 1, y: 0 })
     await press(' ')
     expect(s.onToggle).toHaveBeenCalledWith({ x: 1, y: 0 })
@@ -97,7 +97,7 @@ describe('useBoardSelectionCursor', () => {
   })
 
   it('a board with no cells draws no cursor, and its keys do nothing', async () => {
-    const s = setup({ shape: { cols: 4, rows: 0, exists: () => true } })
+    const s = setup({ shape: { numCols: 4, numRows: 0, exists: () => true } })
     await press('ArrowRight')
     await press(' ')
     expect(s.cursor()).toBeNull()

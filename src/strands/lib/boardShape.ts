@@ -9,7 +9,7 @@ import { COLS, ROWS, type Coord } from './board'
  * exists — the cursor rests on it, and Space does there what a click does,
  * which is nothing.
  */
-export const BOARD_SHAPE: BoardShape = { cols: COLS, rows: ROWS, exists: () => true }
+export const BOARD_SHAPE: BoardShape = { numCols: COLS, numRows: ROWS, exists: () => true }
 
 /** The board's `[row, col]` for a cursor cell. */
 export const coordAt = (cell: Cell): Coord => [cell.y, cell.x]

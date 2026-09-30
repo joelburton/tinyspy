@@ -417,14 +417,14 @@ export function BoardCol({
     shape,
     enabled: canPick,
     onToggle: (cell: Cell) => {
-      const tile = displayedTiles[positionAt(cell.x, cell.y, shape.cols)]
+      const tile = displayedTiles[positionAt(cell.x, cell.y, shape.numCols)]
       if (tile !== undefined) handleToggle(tile)
     },
   })
 
   // A tile click: the cursor moves there, hidden, and the click does its move.
   function handleTileClick(tile: string) {
-    setCursorTo(cellAt(displayedTiles.indexOf(tile), shape.cols))
+    setCursorTo(cellAt(displayedTiles.indexOf(tile), shape.numCols))
     handleToggle(tile)
   }
 

@@ -32,7 +32,7 @@
  * Pure: no React, no supabase.
  */
 import type { EventRow } from '../hooks/useGame'
-import type { TileResults } from './tileResults'
+import type { TileResults, TileWord } from './tileResults'
 
 /** A past turn, replayed. */
 export type ReplayedTurn = {
@@ -40,7 +40,7 @@ export type ReplayedTurn = {
   tileResults: TileResults
   // The board word this turn's guess decided — ring it history-blue (it already
   // wears its green/red outcome color). Null for a hint / spoiler turn (no tile).
-  litWord: string | null
+  litWord: TileWord | null
   // A short, name-free turn label for the viewer banner (the log row shows *who*).
   label: string
   // Who made the turn — whose board this is; null for an id not in the log.

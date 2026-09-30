@@ -3,7 +3,7 @@
 import type { BoardShape, Cell } from '@/common/board-cursor/stepCell'
 import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
-import type { TileResults } from '../lib/tileResults'
+import type { TileResults, TileWord } from '../lib/tileResults'
 
 /**
  * The keyboard's way onto psychicnum's board: arrows move the selection cursor
@@ -23,21 +23,21 @@ export function useWordCursor({
   onPick,
 }: {
   // The words in the order the board draws them.
-  shuffledWords: readonly string[]
+  shuffledWords: readonly TileWord[]
   boardShape: BoardShape
   // A decided tile cannot be picked, by key or by click.
   results: TileResults
-  pickedWord: string | null
+  pickedWord: TileWord | null
   // Whether a pick is possible right now; the cursor is inert while not.
   canPick: boolean
   // Pick a word, or un-pick with null.
-  onPick: (word: string | null) => void
+  onPick: (word: TileWord | null) => void
 }): {
   cursor: Cell | null
-  pickClickedTile: (word: string) => void
+  pickClickedTile: (word: TileWord) => void
 } {
-  function wordAtCell(cell: Cell): string | undefined {
-    return shuffledWords[positionAt(cell.x, cell.y, boardShape.cols)]
+  function wordAtCell(cell: Cell): TileWord | undefined {
+    return shuffledWords[positionAt(cell.x, cell.y, boardShape.numCols)]
   }
 
   // Space toggles, so a second press un-picks.
@@ -53,8 +53,8 @@ export function useWordCursor({
     onToggle: togglePickAtCell,
   })
 
-  function pickClickedTile(word: string) {
-    setCursorTo(cellAt(shuffledWords.indexOf(word), boardShape.cols))
+  function pickClickedTile(word: TileWord) {
+    setCursorTo(cellAt(shuffledWords.indexOf(word), boardShape.numCols))
     onPick(word)
   }
 

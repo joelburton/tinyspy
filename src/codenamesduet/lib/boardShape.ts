@@ -11,4 +11,4 @@ const SIDE = 5
  * the order `useBoard` reads them in and the grid (Board.module.css `--cols`)
  * lays them out.
  */
-export const BOARD_SHAPE: BoardShape = { cols: SIDE, rows: SIDE, exists: () => true }
+export const BOARD_SHAPE: BoardShape = { numCols: SIDE, numRows: SIDE, exists: () => true }

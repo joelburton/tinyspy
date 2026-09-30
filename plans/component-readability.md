@@ -42,6 +42,9 @@ One component per pass: PlayArea, then BoardCol, then InfoCol. Each pass:
   (psychicnum's `PsychicnumPlayer`), so it goes straight to shared pieces that
   take `Member[]`. `GamePlayer` is read only inside `useGame`. No `roster`
   beside `gd`; no alias like `Player = Member`.
+- **Don't destructure a group back into loose names.** `tiles.results` says
+  what it is and where it came from; a bare `results` is generic. Read the
+  field through its group (`gd.standing.isMyTurn`, `tiles.results`).
 - **What a child gets:** the two columns take `gd` whole. A leaf gets fields or
   its own groups, never `gd`: `Board` takes `tiles`, `marks`, `historyView`;
   `StateLine` takes `readout`.
@@ -114,6 +117,10 @@ Comments on each button go; the actions' own rules live with the actions.
 - A name says what the value is (`isPhone`, `isLocalFeedbackShown`,
   `getScoreOrOut`).
 - No `?.` / `?? 0` on a lookup that cannot miss: remove the lookup, or use `!`.
+- A plain type alias for the one string a game passes everywhere
+  (psychicnum's `TileWord` in `lib/tileResults.ts`), so a map or a set says
+  what it holds. Only where it earns it; not an alias for every string, and
+  no branded types.
 - CSS rationale goes in the CSS; a comment never explains another file's code.
 
 ## Tests
@@ -135,5 +142,8 @@ running them.
   (`src/common/members/todo.md`).
 - A Stop drops a win that already stands (`src/common/terminal/todo.md`).
 - One `.d.ts` for CSS custom properties in `style` (`todo.md`).
+- Test-only attributes (`data-board`, `data-tile`) become `data-testid`, as
+  one sweep across the games (`todo.md`). Until then, a new test-only
+  attribute on a converted game is still written as `data-testid`.
 - `board-geometry.e2e.ts` measures psychicnum's board only once every board it
   lists can be created.

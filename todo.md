@@ -34,6 +34,21 @@ decision against, so a review doesn't propose it again
   string | number } }` — makes `{ '--cols': cols }` type-check with no cast,
   still rejects an unknown real property, and lets every workaround go.
 
+- **Test-only attributes become `data-testid`.** A `data-*` attribute that
+  nothing but a test reads should say so by its name, so it needs no comment
+  and nobody wonders whether the app or the CSS depends on it. `data-testid`
+  is the standard name, and both Testing Library and Playwright read it
+  (`getByTestId`). Two shared conventions today: `data-board` (on nine games'
+  boards; about 32 e2e files, including the specs that measure every board,
+  and psychicnum's vitest) and `data-tile={word}` (psychicnum, connections,
+  wordwheel; four e2e specs and three games' tests), which become
+  `data-testid="board"` and `data-testid={`tile-${word}`}`. The common
+  components' own attributes (`MobileStatusBar`'s `data-mobile-status`,
+  `HistoryBanner`'s, `DefinableWord`'s) join the sweep only after checking
+  that no CSS or app code reads them. One sweep, across every game at once,
+  since the shared specs find every board the same way. Do it once more games
+  have converted, so their e2e can check it.
+
 ## Someday
 
 - **The guards' comment strippers can blank real code.** Several guards strip

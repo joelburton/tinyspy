@@ -10,8 +10,8 @@ const name = (c: Cell) => `${c.x},${c.y}`
 /** Every cell the board has, row by row. */
 export function cellsOf(shape: BoardShape): Cell[] {
   const cells: Cell[] = []
-  for (let y = 0; y < shape.rows; y++) {
-    for (let x = 0; x < shape.cols; x++) {
+  for (let y = 0; y < shape.numRows; y++) {
+    for (let x = 0; x < shape.numCols; x++) {
       if (shape.exists(x, y)) cells.push({ x, y })
     }
   }

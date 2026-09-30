@@ -15,6 +15,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import { buildPsychicnumPrintModel } from '../pdf/model'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
+import type { TileWord } from '../lib/tileResults'
 import type { GameData } from './useGame'
 
 /**
@@ -30,7 +31,7 @@ type HintAnswer = {
 /** What `request_spoiler` answers: one `ok`, carrying the secret handed over. */
 type SpoilerAnswer = {
   result: 'spoiler'
-  word: string
+  word: TileWord
 }
 
 /**

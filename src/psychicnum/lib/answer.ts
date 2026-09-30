@@ -2,6 +2,7 @@
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
+import type { TileWord } from './tileResults'
 
 /**
  * Everything that can be SAID about a move in this game, as a closed set — and
@@ -12,14 +13,14 @@ import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
  */
 export type Answer =
   // My correct guess.
-  | { answerType: 'hit'; word: string }
+  | { answerType: 'hit'; word: TileWord }
   // A coop teammate's, on the board we share.
-  | { answerType: 'hit_peer'; word: string }
+  | { answerType: 'hit_peer'; word: TileWord }
 
   // My wrong guess.
-  | { answerType: 'miss'; word: string }
+  | { answerType: 'miss'; word: TileWord }
   // A coop teammate's.
-  | { answerType: 'miss_peer'; word: string }
+  | { answerType: 'miss_peer'; word: TileWord }
 
   // I asked for a clue.
   | { answerType: 'hint' }
@@ -94,7 +95,13 @@ type LoggedEvent = {
 export function eventToOutcome(row: LoggedEvent): Outcome {
   if (row.kind === 'hint') return answerMessage({ answerType: 'hint' }).outcome
   if (row.kind === 'spoiler') return answerMessage({ answerType: 'spoiler' }).outcome
-  return answerMessage({ answerType: row.is_correct ? 'hit' : 'miss', word: row.word }).outcome
+  return getGuessOutcome(row.word, row.is_correct)
+}
+
+/** What COLOR a guessed word is — the board's decided tile, and the log's
+ *  guess row, from the same answer. */
+export function getGuessOutcome(word: TileWord, isCorrect: boolean): Outcome {
+  return answerMessage({ answerType: isCorrect ? 'hit' : 'miss', word }).outcome
 }
 
 /**

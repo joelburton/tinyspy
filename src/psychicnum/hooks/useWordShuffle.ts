@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useBoundAction, type BoundAction } from '@/common/actions/useBoundAction'
 import { shuffle } from '@/common/utils/shuffle'
+import type { TileWord } from '../lib/tileResults'
 
 /**
  * The board's display order, and the Shuffle that changes it: the same words
@@ -16,8 +17,8 @@ import { shuffle } from '@/common/utils/shuffle'
  * a STRING rather than the array: `useGame` hands a fresh array on every
  * reload, and keying on it would reshuffle the board on every guess.
  */
-export function useWordShuffle(words: readonly string[]): {
-  shuffledWords: string[]
+export function useWordShuffle(words: readonly TileWord[]): {
+  shuffledWords: TileWord[]
   actShuffle: BoundAction
 } {
   const [shuffleSeed, setShuffleSeed] = useState(0)

@@ -6,7 +6,7 @@ import { BOARD_SHAPE } from './boardShape'
 
 describe('BOARD_SHAPE', () => {
   it('is five by five, a cell for each of the 25 words', () => {
-    expect([BOARD_SHAPE.cols, BOARD_SHAPE.rows]).toEqual([5, 5])
+    expect([BOARD_SHAPE.numCols, BOARD_SHAPE.numRows]).toEqual([5, 5])
     expect(cellsOf(BOARD_SHAPE)).toHaveLength(25)
   })
 

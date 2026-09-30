@@ -207,7 +207,7 @@ export function Board({
                 bgCls,
                 // The keyboard's pick, waiting for Enter, and its cursor.
                 picked === w.position && shared.picked,
-                cursor !== null && positionAt(cursor.x, cursor.y, BOARD_SHAPE.cols) === w.position && shared.selectionCursor,
+                cursor !== null && positionAt(cursor.x, cursor.y, BOARD_SHAPE.numCols) === w.position && shared.selectionCursor,
                 isInFlight && shared.dimInFlight,
                 flashing.has(w.position) && shared.attentionFlash,
                 shaking.has(w.position) && shared.verdictShake,

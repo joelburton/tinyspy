@@ -10,7 +10,7 @@ import { GRID, isHole } from './waffle'
  * letter to pick — so an arrow passes over it to the tile beyond.
  */
 export const BOARD_SHAPE: BoardShape = {
-  cols: GRID,
-  rows: GRID,
+  numCols: GRID,
+  numRows: GRID,
   exists: (x, y) => !isHole(positionAt(x, y, GRID)),
 }

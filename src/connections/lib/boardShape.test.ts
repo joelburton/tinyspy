@@ -12,7 +12,7 @@ describe('boardShape', () => {
   it('is four across, a row per four tiles, with a cell for every tile', () => {
     for (const n of COUNTS) {
       const shape = boardShape(n)
-      expect([shape.cols, shape.rows]).toEqual([4, n / 4])
+      expect([shape.numCols, shape.numRows]).toEqual([4, n / 4])
       expect(cellsOf(shape)).toHaveLength(n)
     }
   })

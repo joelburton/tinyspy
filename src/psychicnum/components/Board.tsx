@@ -1,263 +1,147 @@
 // cs-blessed-psychicnum
 
-import { useEffect } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Actor } from '@/common/members/member'
-import { Dot } from '@/common/members/Dot'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
-import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
-import { useMark } from '@/common/board-marks/useMark'
-import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import shared from '@/common/game-page/playArea.module.css'
 import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
-import history from '@/common/event-log/historyViewer.module.css'
+import historyViewerStyles from '@/common/event-log/historyViewer.module.css'
 import { positionAt } from '@/common/board-cursor/boardPosition'
-import { eventToOutcome } from '../lib/answer'
+import { getGuessOutcome } from '../lib/answer'
 import { makeBoardShape } from '../lib/boardShape'
-import type { TileResults } from '../lib/tileResults'
+import type { TileResults, TileWord } from '../lib/tileResults'
 import type { HistoryView } from '../hooks/useHistoryView'
 import { useWordShuffle } from '../hooks/useWordShuffle'
 import { useWordCursor } from '../hooks/useWordCursor'
+import { useDecidedTileMarks } from '../hooks/useDecidedTileMarks'
+import { WordTile } from './WordTile'
 import styles from './Board.module.css'
-
-/** Empty word set — the resting value of the head-shake mark, so a board with
- *  nothing shaking hands the same object down every render. */
-const NO_WORDS: ReadonlySet<string> = new Set()
 
 /** What is on the tiles. */
 export type BoardTiles = {
-  // The board words (5..20), in the game's order; the board draws them in its
-  // own shuffled order. Lowercase; displayed uppercased via CSS. Three of them
-  // are the hidden secrets.
-  words: readonly string[]
-  // Guessed words → was-it-a-secret. A guessed tile colors **permanently**
-  // green (true) / red (false) and can't be re-picked. In compete RLS scopes
-  // this to the viewer's own guesses; in coop it's the shared board. While
-  // viewing history this is the snapshot's results (guesses up to that turn).
+  // The board's words, in the game's order. Three of them are the secrets.
+  words: readonly TileWord[]
+  // Each guessed word → whether it was a secret: the live board's (in compete,
+  // my guesses only), or a past turn's.
   results: TileResults
-  // WHO decided each tile — its guesser's identity dot, in the bottom-right
-  // corner — or null to draw no dots.
-  //
-  // A REVEALED secret is deliberately absent from this map (nobody guessed it),
-  // which is what keeps found-vs-peeked readable without toggling the reveal off:
-  // a green tile with a dot was found, a green tile without one was shown.
-  decidedBy: ReadonlyMap<string, Actor | undefined> | null
-  // Guesses the server has recorded. The CAUSE the attention flash reads: a
-  // board that changed while this stood still was revealed or re-dealt, not
-  // played into.
+  // Each guessed word → who guessed it, or null when this board names no
+  // guessers. A revealed secret is not in it: nobody guessed it.
+  decidedBy: ReadonlyMap<TileWord, Actor> | null
+  // How many guesses the server has recorded.
   moveCount: number
 }
 
 /** What the board wears on and around its tiles. */
 export type BoardMarks = {
-  // The picked word (highlighted), or null.
-  pickedWord: string | null
-  // The word with the server — its tile takes the in-flight dim.
-  inFlightWord: string | null
-  // How the ending that applies to me came out — the game's once it has
-  // ended, else mine while the others play on. The board takes a frame in that
-  // outcome's color. Null while I am still playing.
+  pickedWord: TileWord | null
+  inFlightWord: TileWord | null
   endingOutcome: EndOutcome | null
-  // A teammate holds the move (the page's `isWaitingForTurn`): the whole board
-  // dims, unless it is interactive.
+  // A teammate holds the move.
   isWaitingForTurn: boolean
-  // True for a beat at the moment the turn becomes mine — flash the frame.
+  // True for a beat as the turn becomes mine.
   myTurnJustStarted: boolean
 }
 
 type Props = {
   tiles: BoardTiles
   marks: BoardMarks
-  // The past turn open on the board, if any: the tiles go inert under the
-  // history-blue frame, and the turn's decided tile is ringed.
+  // The past turn open on the board, if any.
   historyView: HistoryView
-  // The board responds to me (the page's `isBoardInteractive`); when false, or
-  // while a past turn is open, the tiles render inert.
+  // The board responds to me (the page's `isBoardInteractive`).
   isInteractive: boolean
-  // Pick a word, or un-pick with null — a tile click or the keyboard's Space.
-  onPick: (word: string | null) => void
+  // Picks a word, or un-picks with null.
+  onPick: (word: TileWord | null) => void
 }
 
 /**
- * psychicnum's "board": a grid of clickable word tiles, the keyboard's way
- * around them, and the Shuffle floated over its top-right. The board FILLS the
- * available space (Board.module.css, and docs/playarea.md → Board sizing); the
- * words lay out in a roughly-square grid (`cols ≈ √N`), and both the column and
- * row tracks are `1fr`, so the tiles grow with the board.
+ * psychicnum's board: a grid of word tiles, the keyboard's way around them,
+ * and the Shuffle floated over its top-right.
  *
- * Clicking a tile picks it as the guess; once guessed, a word's tile colors
- * **permanently** — green if it was a secret, red if not — so the board doubles
- * as an at-a-glance record of what's been found and ruled out. In compete mode
- * RLS scopes `results` to the caller, so it reflects only the viewer's own
- * attempts.
- *
- * Once the game has ended the board doubles as the answer key, and it does so
- * through `results` like everything else: the PlayArea folds the revealed
- * secrets in as hits, so they go green exactly as a found one does. Which is
- * which is still answerable — `decidedBy` names a guesser for a found tile and
- * nobody for a revealed one.
+ * A guessed word's tile colors **permanently** — green if it was a secret, red
+ * if not — so the board is a record of what's been found and ruled out. Once
+ * the game has ended it is also the answer key, through `results` like
+ * everything else: PlayArea folds the revealed secrets in as hits, and a
+ * revealed tile has no dot.
  */
-export function Board({ tiles, marks, historyView, isInteractive, onPick }: Props) {
-  const { results, decidedBy, moveCount } = tiles
-  const { pickedWord, inFlightWord, endingOutcome, isWaitingForTurn, myTurnJustStarted } = marks
+export function Board({
+  tiles,
+  marks,
+  historyView,
+  isInteractive,
+  onPick,
+}: Props) {
   const isViewingHistory = historyView.isViewing
+  const canPick = isInteractive && !isViewingHistory
 
   const { shuffledWords, actShuffle } = useWordShuffle(tiles.words)
   const boardShape = makeBoardShape(shuffledWords.length)
   const { cursor, pickClickedTile } = useWordCursor({
     shuffledWords,
     boardShape,
-    results,
-    pickedWord,
-    canPick: isInteractive && !isViewingHistory,
+    results: tiles.results,
+    pickedWord: marks.pickedWord,
+    canPick,
     onPick,
   })
-
-  // ATTENTION — the tiles that just got decided. psychicnum's coop board is
-  // SHARED, so a teammate's guess colors a tile anywhere on it while you are
-  // reading somewhere else: change in place, announcing nothing.
-  //
-  // Gated on the CAUSE (the event log) rather than on the board differing,
-  // because the board also changes when nothing was played: asking to see the
-  // solution turns every unfound secret green at once, which would light the
-  // board up at the moment nothing happened. (A restart cannot reach here — it
-  // remounts the surface, so this hook seeds fresh and says nothing.) See
-  // `useMoveAttention`.
-  const flashing = useMoveAttention({
-    content: results,
-    contentKey: [...results.keys()].sort().join(','),
-    moveCount,
-    // Quiet while reading a past turn: that board's guess is already ringed, and
-    // a live guess landing behind the viewer is not something to point at.
-    quiet: isViewingHistory,
-    changed: (before, now) => new Set([...now.keys()].filter((w) => !before.has(w))),
+  const { flashingWords, shakingWords } = useDecidedTileMarks({
+    results: tiles.results,
+    moveCount: tiles.moveCount,
+    isViewingHistory,
   })
 
-  // NO — the head-shake, on the words that just came back WRONG. It waits for
-  // the flash to finish rather than riding it: the shake is a remark about the
-  // tile's own color, and that color is under the yellow until the flash is done.
-  const [shakeMark, shakeWrong] = useMark<{ words: ReadonlySet<string> }>(VERDICT_SHAKE_MS)
-  const shaking = shakeMark?.value.words ?? NO_WORDS
-  // Keyed on the WORDS rather than on the set that holds them: `results` is a
-  // fresh Map every render, so an effect that depended on it would cancel its own
-  // timer whenever anything re-rendered inside the wait.
-  const wrongKey = [...flashing]
-    .filter((w) => results.get(w) === false)
-    .sort()
-    .join(',')
-  useEffect(function shakeAfterFlash() {
-    if (wrongKey === '') return
-    const timer = setTimeout(
-      () => shakeWrong({ words: new Set(wrongKey.split(',')) }),
-      ATTENTION_FADE_MS,
-    )
-    return () => clearTimeout(timer)
-  }, [wrongKey, shakeWrong])
+  const { numCols, numRows } = boardShape
+  const cursorPosition =
+    cursor === null ? null : positionAt(cursor.x, cursor.y, numCols)
 
-  const { cols, rows } = boardShape
   return (
     <div
       className={cls(shared.boardSeal, styles.board)}
-      // data-board: a stable handle for e2e board-measurement (the height must not
-      // change as the below-board slot swaps / the history banner overlays it) —
-      // matching the other games' boards.
+      // The e2e handle for board measurement.
       data-board
-      // The column/row counts drive the board's hug WIDTH + max-HEIGHT, both
-      // computed in CSS from the --max-tile-* caps. See Board.module.css.
-      style={{ ['--cols' as string]: cols, ['--rows' as string]: rows }}
+      // The counts size the board (Board.module.css).
+      style={{ ['--cols' as string]: numCols, ['--rows' as string]: numRows }}
     >
-      {/* While viewing a past turn the shared history-blue `.historyFrame`
-          rings the board AND makes it click-through (pointer-events: none) so
-          a click anywhere returns to the live board (useHistoryViewer's
-          document listener). */}
       <div
         className={cls(
           shared.hugRectWidth,
           styles.grid,
-          isViewingHistory && history.historyFrame,
-          isWaitingForTurn && !isInteractive && shared.dimNotYourTurn,
-          myTurnJustStarted && shared.yourTurnFlash,
-          makeEndingFrameClasses(endingOutcome, isViewingHistory),
+          isViewingHistory && historyViewerStyles.historyFrame,
+          marks.isWaitingForTurn && !isInteractive && shared.dimNotYourTurn,
+          marks.myTurnJustStarted && shared.yourTurnFlash,
+          makeEndingFrameClasses(marks.endingOutcome, isViewingHistory),
         )}
         style={{
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: `repeat(${rows}, 1fr)`,
+          gridTemplateColumns: `repeat(${numCols}, 1fr)`,
+          gridTemplateRows: `repeat(${numRows}, 1fr)`,
         }}
       >
-        {shuffledWords.map((word, i) => {
-          const guessed = results.has(word)
-          const correct = results.get(word)
-          // What a decided tile's permanent fill SAYS is the answer table's
-          // ruling on the row (`lib/answer.ts`), the same one the pill and the
-          // log read — so the board cannot color a miss differently from them.
-          const decided = guessed
-            ? eventToOutcome({ kind: 'guess', is_correct: correct === true, word })
+        {shuffledWords.map((word, index) => {
+          const isGuessed = tiles.results.has(word)
+          const decidedOutcome = isGuessed
+            ? getGuessOutcome(word, tiles.results.get(word)!)
             : null
-          // `undefined` = draw no dot: either this game shows none (compete), or
-          // nobody decided this tile (unguessed, or a revealed secret). A dot
-          // whose member has left resolves to the neutral disc, not to nothing.
-          const actor = decidedBy?.has(word) ? decidedBy.get(word) : undefined
-          const isUnderCursor =
-            cursor !== null && positionAt(cursor.x, cursor.y, cols) === i
           return (
-            <button
+            <WordTile
               key={word}
-              type="button"
-              // A stable e2e hook: class names are hashed, and the floating
-              // Shuffle control lives inside the board root, so "a button in the
-              // board" would also match it.
-              data-tile={word}
-              className={cls(
-                shared.tileFace,
-                shared.tile,
-                styles.tile,
-                decided === 'won' && styles.decidedWon,
-                decided === 'lost' && styles.decidedLost,
-                pickedWord === word && shared.picked,
-                isUnderCursor && shared.selectionCursor,
-                word === inFlightWord && shared.dimInFlight,
-                flashing.has(word) && shared.attentionFlash,
-                // NO — the head-shake, once the flash has handed the tile its
-                // red back. The red is the half that survives reduced motion,
-                // and a correct guess never shakes.
-                shaking.has(word) && shared.verdictShake,
-                // This tile is the guess the viewed turn decided.
-                historyView.litWord === word && styles.historyTile,
-              )}
-              disabled={guessed || !isInteractive || isViewingHistory}
-              aria-pressed={pickedWord === word || undefined}
+              word={word}
+              decidedOutcome={decidedOutcome}
+              guesser={tiles.decidedBy?.get(word)}
+              marks={{
+                isPicked: marks.pickedWord === word,
+                isUnderCursor: cursorPosition === index,
+                isInFlight: marks.inFlightWord === word,
+                isFlashing: flashingWords.has(word),
+                isShaking: shakingWords.has(word),
+                isHistoryLit: historyView.litWord === word,
+              }}
+              isDisabled={isGuessed || !canPick}
               onClick={() => pickClickedTile(word)}
-              // NOT a focus target: `preventDefault` on mousedown so a CLICK
-              // can't park focus here. Otherwise the next keystroke promotes
-              // the clicked tile to `:focus-visible` and leaves a ring on it —
-              // see connections' Board for the same note. The keyboard reaches a
-              // tile through the selection cursor, never through focus.
-              onMouseDown={(e) => e.preventDefault()}
-            >
-              {/* --len drives the shared .tileWord auto-fit font heuristic. */}
-              <span className={shared.tileWord} style={{ ['--len' as string]: word.length }}>
-                {word}
-              </span>
-              {/* WHO decided this tile. The shared identity disc, so a player's
-                  color means the same thing here as in the event log and the
-                  opponent strip — and it brings its paired border shade with it,
-                  which is what lets a light color read on a green fill. */}
-              {actor !== undefined && (
-                // `onColor`: a decided tile is always a saturated green or red, so
-                // the ring goes white — the member's own darker shade vanishes into
-                // a fill of the same hue (three reds in a row, in the worst case).
-                <Dot color={actor?.color} onColor className={styles.actorDot} />
-              )}
-            </button>
+            />
           )
         })}
       </div>
-      {/* Shuffle floats over the board's top-right — purely visual (a fresh
-          scan of the SAME board), not a turn action, so it lives on the board
-          rather than in the info column's action row, and stays even once the
-          game has ended. Inside the board root, so it anchors to the drawn
-          board rather than the column. */}
+      {/* Shuffle floats over board's top-right and stays after game ended. */}
       <ShuffleButton
         action={actShuffle}
         tooltip="Shuffle the words"

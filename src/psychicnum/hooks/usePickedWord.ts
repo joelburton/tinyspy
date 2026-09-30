@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import type { TileWord } from '../lib/tileResults'
 
 /**
  * The word the player has picked as their next guess, or null.
@@ -27,15 +28,15 @@ export function usePickedWord({
   isStillPlaying: boolean
   isViewingHistory: boolean
 }): {
-  pickedWord: string | null
-  shownPickedWord: string | null
-  choosePickedWord: (word: string | null) => void
+  pickedWord: TileWord | null
+  shownPickedWord: TileWord | null
+  choosePickedWord: (word: TileWord | null) => void
   clearPickedWord: () => void
 } {
-  const [pickedWord, setPickedWord] = useState<string | null>(null)
+  const [pickedWord, setPickedWord] = useState<TileWord | null>(null)
 
   const choosePickedWord = useCallback(
-    (word: string | null) => {
+    (word: TileWord | null) => {
       localFeedbackSlot.dismiss()
       setPickedWord(word)
     },
