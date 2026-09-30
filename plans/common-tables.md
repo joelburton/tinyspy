@@ -19,9 +19,10 @@ Every fact has one home. A copy is allowed only where this section names it.
 - **`common.games.setup`** is the setup form's record: every item on the form,
   under the form's name, written at create and never changed.
 - **The statuses** are what the game page shows of the game's progress —
-  the info column's numbers and the opponent strip — and replace `status`
-  (Joel, 2026-09-28; [Decided → The statuses](#the-statuses-2026-09-28)).
-  The info column and the strip read the statuses and nothing else. Two
+  the info column's numbers, the opponent strip, the ending's words — and
+  replace `status` (Joel, 2026-09-28; [Decided → The statuses](#the-statuses-2026-09-28)).
+  The info column and the strip read the statuses and nothing else, and any
+  other part of the page may read them too (Joel, 2026-09-29). Two
   columns, each a copy of the game's own tables, never the source:
   - **`common.games.game_status`**: the table-facts the page shows (cards
     left in the deck, tiles in the bag, the target rank).
@@ -241,6 +242,13 @@ was the compete players' numbers and is now a subset of their
   `player_status` if the page shows it. The statuses are never the canonical
   home of anything; any of their values can go stale, which is what the
   builder is for.
+- **Any part of the game page may read the statuses** (Joel, 2026-09-29),
+  not only the info column and the strip: the pill, the board and `gd` read
+  a status where the fact is in one, rather than reading the game's tables
+  for it a second time. A key goes into a status because the page shows it,
+  never only to spare a read; the builder still writes every key from the
+  game's own tables. wordle's `solved_on_winners_count` is the first key
+  added on these terms.
 - **A status has one shape per game, and every key is always present**, null
   when it has no value (as `common._ok_envelope` keeps its keys): a ranking
   not decided until the end is a `null` key until then, never an absent one.

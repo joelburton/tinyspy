@@ -205,9 +205,10 @@ grant select on wordle.games_state to authenticated;
 -- present, null when it has no value:
 --
 --   game_status    { max_guesses }
---   player_status  { guesses_used, player_ended_reason }
+--   player_status  { guesses_used, player_ended_reason, tie_broken_by_clock }
 --                  — in coop `guesses_used` is the team's, the same on every
---                  row
+--                  row; `tie_broken_by_clock` is compete's, null until the
+--                  end (below), and picks the ending's words
 --   clubpage_info  { guesses_used, max_guesses, answer_band,
 --                    winner_user_id, winner_guesses_count }
 --                  — `guesses_used` is coop's shared count and null in
@@ -233,21 +234,13 @@ declare
   v_answer_band int;
   v_team_used int;
   v_winner_id uuid;
+  v_winner_used int;
 begin
   select cg.mode, wg.max_guesses, coalesce((cg.setup->>'answer_band')::int, 0)
     into v_mode, v_max_guesses, v_answer_band
     from wordle.games wg
     join common.games cg on cg.id = wg.game_id
    where wg.game_id = p_game_id;
-
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'guesses_used', wp.guesses_used,
-           'player_ended_reason', gp.player_ended_reason)
-    from wordle.players wp
-   where gp.game_id = p_game_id
-     and wp.game_id = gp.game_id
-     and wp.user_id = gp.user_id;
 
   if v_mode = 'coop' then
     select max(guesses_used) into v_team_used
@@ -258,7 +251,39 @@ begin
      where game_id = p_game_id and final_ranking = 1
      order by solved_at
      limit 1;
+    select guesses_used into v_winner_used
+      from wordle.players
+     where game_id = p_game_id and user_id = v_winner_id;
   end if;
+
+  -- `tie_broken_by_clock`: `_finish_compete` ranks solvers by guesses, then
+  -- the earlier solve, so a solver on the winner's count was placed against
+  -- the winner by the clock. True on each such solver's row, and on the
+  -- winner's when there is at least one; null with no winner (coop, or
+  -- before the end).
+  update common.game_players gp
+     set player_status = jsonb_build_object(
+           'guesses_used', wp.guesses_used,
+           'player_ended_reason', gp.player_ended_reason,
+           'tie_broken_by_clock',
+             case when v_winner_id is null then null
+                  else gp.solved_at is not null
+                       and wp.guesses_used = v_winner_used
+                       and exists (
+                         select 1
+                           from common.game_players other
+                           join wordle.players other_wp
+                             on other_wp.game_id = other.game_id
+                            and other_wp.user_id = other.user_id
+                          where other.game_id = p_game_id
+                            and other.user_id <> gp.user_id
+                            and other.solved_at is not null
+                            and other_wp.guesses_used = v_winner_used)
+             end)
+    from wordle.players wp
+   where gp.game_id = p_game_id
+     and wp.game_id = gp.game_id
+     and wp.user_id = gp.user_id;
 
   update common.games
      set game_status = jsonb_build_object('max_guesses', v_max_guesses),
@@ -267,8 +292,7 @@ begin
            'max_guesses', v_max_guesses,
            'answer_band', v_answer_band,
            'winner_user_id', v_winner_id,
-           'winner_guesses_count', (select guesses_used from wordle.players
-                               where game_id = p_game_id and user_id = v_winner_id)),
+           'winner_guesses_count', v_winner_used),
          status_changed_at = case when p_update_status_changed_at
                                   then now() else status_changed_at end
    where id = p_game_id;

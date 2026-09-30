@@ -2,6 +2,7 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useMemo } from 'react'
+import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
@@ -9,7 +10,6 @@ import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { answerMessage, peerAnswerMessage } from '../lib/answer'
-import { makeSetupRows } from '../lib/setupRows'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
@@ -23,17 +23,17 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { describeReveal } from '@/common/reveal/describeReveal'
-import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
+import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { db } from '../db'
-import { useGame, type WordleGame, type PlayerRow, type EventRow } from '../hooks/useGame'
+import { useGame, type GameData } from '../hooks/useGame'
+import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
+import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
 import { historySnapshot } from '../lib/history'
-import { buildTerminalMessage } from '../lib/terminal'
-import { WORD_LENGTH, type WordleSetup } from '../lib/setup'
+import { WORD_LENGTH } from '../lib/setup'
 import { memberById } from '@/common/members/memberList'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
-import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import { Loading } from '@/common/loading/Loading'
@@ -43,16 +43,16 @@ import '../theme.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
- * The GATES, and nothing else: the read, the three answers it can come back
- * with, and the one narrowing of `setup`. Splitting them off is what lets
- * `<PlayArea>` below start with a game in hand — no `game?.`, no `?? 'coop'`,
- * no guard inside a handler for a row that cannot be missing by then.
+ * The GATES, and nothing else: the read, and the three answers it can come
+ * back with. Splitting them off is what lets `<PlayArea>` below start with the
+ * game data in hand — no `gd?.`, no guard inside a handler for a row that
+ * cannot be missing by then.
  */
 export function PlayAreaLoader(ctx: GamePageCtx) {
-  const { game, playerStates, guesses, loading, failure } = useGame(ctx.gameId)
+  const { gd, loading, failure } = useGame(ctx)
 
   if (loading) return <Loading />
-  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // A failed read is NOT a missing game. Both leave `gd` null, and saying
   // "there's no game here" about a dead connection is a confident wrong answer
   // — this is what remains once the fault modal is dismissed.
   if (failure) return <EnvelopeErrorPage envelope={failure} />
@@ -60,30 +60,32 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   // `GamePageLoader` each checked — and wordle's does not: a torn write, or a
   // game deleted while somebody had the board open. `detail` goes to the
   // console, never to the page.
-  if (!game) return <NoSuchGamePage detail={`rows=0 view=wordle.games_state game=${ctx.gameId}`} />
+  if (!gd) return <NoSuchGamePage detail={`rows=0 view=wordle.games_state game=${ctx.gameId}`} />
 
   return (
     <PlayArea
-      {...ctx}
-      game={game}
-      playerStates={playerStates}
-      guesses={guesses}
-      // The one place the setup blob is narrowed. `GamePageCtx` types it
-      // `Record<string, unknown>` for every game; below, it is this game's.
-      setup={ctx.setup as unknown as WordleSetup}
+      gd={gd}
+      session={ctx.session}
+      globalFeedbackSlot={ctx.globalFeedbackSlot}
+      clubHandle={ctx.clubHandle}
+      goToFollowUpGame={ctx.goToFollowUpGame}
+      menu={ctx.menu}
+      brand={ctx.brand}
     />
   )
 }
 
-type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
-  // The loaded game row. Non-null by construction — the loader holds the gates.
-  game: WordleGame
-  // Per-player guess counts and solved flags (`wordle.players`).
-  playerStates: PlayerRow[]
-  // The guess log, oldest first.
-  guesses: EventRow[]
-  // This game's setup, narrowed once by the loader.
-  setup: WordleSetup
+type PlayAreaProps = Pick<
+  GamePageCtx,
+  | 'session'
+  | 'globalFeedbackSlot'
+  | 'clubHandle'
+  | 'goToFollowUpGame'
+  | 'menu'
+  | 'brand'
+> & {
+  // The game data. Non-null by construction — the loader holds the gates.
+  gd: GameData
 }
 
 /**
@@ -96,37 +98,19 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
  * actions, and the derivations the two columns must agree on. The game rows
  * arrive as props from the loader above.
  *
- * `game.mode` is what differs between the manifests, and it differs in one place
+ * `gd.mode` is what differs between the manifests, and it differs in one place
  * each: coop shows the SHARED guess list and team budget, compete only the
  * caller's own guesses (RLS hides the rest until terminal) plus an
  * OpponentStrip of their counts.
  */
 function PlayArea({
+  gd,
   session,
-  gameId,
-  brand,
-  title,
-  players,
-  playState,
-  isTerminal,
-  isPlayer,
-  isConceded,
-  isLocallyTerminal,
-  isStillPlaying,
-  isTurnBased,
-  turnHolderId,
-  isMyTurn,
-  isWaitingForTurn,
-  isBoardInteractive,
-  setup,
-  status,
   globalFeedbackSlot,
   clubHandle,
   goToFollowUpGame,
   menu,
-  game,
-  playerStates,
-  guesses,
+  brand,
 }: PlayAreaProps) {
   // ─── Page hooks ────────────────────────────────────────
   // What this surface IS, before anything this game knows: where Tab may go,
@@ -146,137 +130,66 @@ function PlayArea({
   const infoSheet = useInfoSheet()
 
   // Confetti at the MOMENT the game is won — the team's solve in coop, and in a
-  // race MY win, `status.winner_user_id` being the server's word on who won.
-  // Both gates read the common row, so both are correct on the very first
-  // render, which is what `useCelebration` requires.
-  const winnerId = status?.winner_user_id as string | undefined
-  const selfWon = winnerId === session.user.id
+  // compete game MY win, my outcome being the server's word on who won. Both
+  // are on the page's rows, so both are correct on the very first render,
+  // which is what `useCelebration` requires.
   const celebration = useCelebration(
-    playState === 'won' || (playState === 'won_compete' && selfWon),
+    gd.isCompete ? gd.me?.outcome === 'won' : gd.gameEnding?.outcome === 'won',
   )
 
   // The board frame flashes yellow the moment the move becomes mine. Never
   // fires in a free-for-all game (`isMyTurn` holds for as long as I play
   // there), so it needs no mode gate.
-  const turnFlash = useTurnStartFlash(isMyTurn)
+  const turnFlash = useTurnStartFlash(gd.standing.isMyTurn)
 
   // ─── Derived ───────────────────────────────────────────
-  // Who I am in this game and what I may still do. Where I stand — conceded,
-  // out of the race, still playing, whose move it is — comes from the page,
-  // already computed (docs/win-lose.md → Where a player stands); in compete,
-  // solving and running out of guesses are both ways out, and the server marks
-  // them so. What is wordle's own is read off the hook's rows.
 
-  const self = playerStates.find((p) => p.user_id === session.user.id)
-  const isCompete = game.mode === 'compete'
-  const maxGuesses = game.max_guesses
-  const guessesUsed = self?.guesses_used ?? 0
-  // I solved it — which picks the out-of-the-race words and the verdict's. Not
-  // "won": compete ranks solvers by guesses.
-  const mySolved = self?.solved ?? false
-  // Who has solved it — the compete narration, Concede's gate and the print
-  // model all read it. Memoized so the narration hook re-runs only when it
-  // changes.
+  // Who has solved it — the compete narration and the print model read it.
+  // Memoized so the narration hook re-runs only when it changes.
   const solvedIds = useMemo(
-    () => playerStates.filter((p) => p.solved).map((p) => p.user_id),
-    [playerStates],
-  )
-  // Coop: the shared board. Compete: my own guesses (RLS-filtered).
-  const myGuesses = isCompete
-    ? guesses.filter((g) => g.user_id === session.user.id)
-    : guesses
-
-  // The setup rows, built ONCE and handed to both consumers — the info column
-  // renders it as <li>s, the print model prints the same array object
-  // (common/setup-form/doc.md → Setup rows).
-  const setupRows = useMemo(
-    () => makeSetupRows(setup, game.mode, players),
-    [setup, game.mode, players],
+    () => Object.values(gd.playersById).filter((p) => p.solvedAt !== null).map((p) => p.user_id),
+    [gd.playersById],
   )
 
   // The word shows only when I ask for it, and the ask is local and reversible
-  // (`useSolutionReveal`). The target is on every client once the game is
-  // terminal (`wordle._target_for` gates on `is_terminal`), so this is purely
-  // what gets drawn.
+  // (`useSolutionReveal`). The target is on every client once the game has
+  // ended (`wordle._target_for`), so this is purely what gets drawn.
   //
   // `impliedBy` is the exception: a wordle can only be SOLVED by typing the
-  // answer, so a solver is already looking at it. MY solve, not the game's
-  // verdict — compete writes `won_compete` when SOMEONE wins, and the racer who
-  // was three guesses off never produced the word.
+  // answer, so a solver is already looking at it — `gd.standing.hasSolved`.
   const {
     revealed: answerShown,
     toggle: toggleAnswer,
     impliedBySolve,
   } = useSolutionReveal({
-    impliedBy: solvedByMe({ isCompete, playState, mine: mySolved }),
+    impliedBy: gd.standing.hasSolved,
   })
 
-  // ─── The local slot, and its three standing conditions ─
-  // Each condition is an effect on a primitive edge that shows on true and
-  // retracts in its cleanup — the slot draws whichever ranks highest. The
-  // local slot is the one for messages about ME; a peer's go in the header's.
+  // ─── The local slot, and what stands in it ─────────────
+  // The local slot is the one for messages about ME; a peer's go in the
+  // header's.
 
   // The local feedback slot — the fixed-height slot between the board and the
   // keyboard. A soft reject or an RPC not-ok is shown into it by BoardCol, the
-  // Stop / Concede races by InfoCol's actions, and the three standing
-  // conditions below are effects on it. Accepted guesses get NO message — the
-  // colored row that lands IS the feedback.
+  // Stop / Concede races by InfoCol's actions, and the endings and the waiting
+  // line below. Accepted guesses get NO message — the colored row that lands
+  // IS the feedback.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // The per-status terminal message. Memoized on its inputs so the verdict
-  // effect sees one object per outcome, not one per render. The compete
-  // tie-break is inferred here (no backend flag needed): the server picks the
-  // winner by fewest guesses, then earliest solved_at, so if any OTHER solver
-  // used the same guess count as the winner, the clock broke the tie.
-  const reason = status?.reason as string | undefined
-  const winnerState = playerStates.find((p) => p.user_id === winnerId)
-  const wonByClock =
-    !!winnerState &&
-    playerStates.some(
-      (p) =>
-        p.user_id !== winnerId &&
-        p.solved &&
-        p.guesses_used === winnerState.guesses_used,
-    )
-  // Did the viewer lose specifically on the clock (tied the winner's guess
-  // count but solved later)?
-  const selfTiedWinner =
-    !selfWon &&
-    !!self &&
-    self.solved &&
-    !!winnerState &&
-    self.guesses_used === winnerState.guesses_used
-  const terminalMessage = useMemo(
-    () =>
-      isTerminal
-        ? buildTerminalMessage({
-            mode: game.mode, playState, reason, selfWon, selfSolved: mySolved, wonByClock, selfTiedWinner,
-          })
-        : null,
-    [isTerminal, game.mode, playState, reason, selfWon, mySolved, wonByClock, selfTiedWinner],
-  )
+  // The endings' messages, for the pill and the info column: the game's once
+  // it has ended, mine while I have ended and the others play on.
+  const gameEndingMessage = useGetGameEndingMessage(gd)
+  const playerEndingMessage = useGetPlayerEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage: terminalMessage,
-    playerEndingMessage: null,
+    gameEndingMessage,
+    playerEndingMessage,
   })
-
-  // Out of the race while the others play on — solved, out of guesses, or
-  // conceded (compete only: a coop board is over for everyone at once). A
-  // solver waiting here may well be winning: compete is won by fewest guesses,
-  // decided when everyone finishes.
-  useEffect(function showOutOfRace() {
-    if (isTerminal || !isLocallyTerminal) return
-    const id = localFeedbackSlot.show(
-      FeedbackMessage.outOfRace(isConceded, mySolved ? 'Solved — waiting on the rest' : 'Out of guesses — waiting'),
-    )
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded, mySolved])
 
   // A teammate holds the move (turn-order coop; never in a free-for-all).
   useShowWaitingMessage({
     slot: localFeedbackSlot,
-    isWaiting: isWaitingForTurn,
-    holder: turnHolderId === null ? undefined : memberById(players, turnHolderId),
+    isWaiting: gd.standing.isWaitingForTurn,
+    holder: gd.turnHolder,
   })
 
   // ─── Narration — what a PEER did, in the header slot ───
@@ -290,12 +203,12 @@ function PlayArea({
   // instead. Compete never narrates a guess at all: RLS scopes the log to the
   // caller, and the gate below says coop besides.
   usePeerFeedback({
-    enabled: !isCompete,
-    items: guesses,
+    enabled: !gd.isCompete,
+    items: gd.events,
     keyOf: (g) => String(g.id),
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → board, no narration
-      const member = memberById(players, g.user_id)
+      const member = memberById(gd.players, g.user_id)
       const { outcome, text } = peerAnswerMessage(g)
       return FeedbackMessage.peer(member, outcome, text)
     },
@@ -303,17 +216,17 @@ function PlayArea({
   })
 
   // Compete: RLS hides opponents' guesses, so the peer event this mode can
-  // surface is a SOLVE — the public `players.solved` flag flipping. It wears the
+  // surface is a SOLVE — a player's public `solved_at` being set. It wears the
   // word a solving guess wears anywhere, the outcome following the event rather
   // than my stake in it (docs/ui.md → Feedback pill). My own solve is excluded,
   // being covered by the terminal feedback.
   usePeerFeedback({
-    enabled: isCompete,
+    enabled: gd.isCompete,
     items: solvedIds,
     keyOf: (id) => id,
     messageFor: (id) => {
       if (id === session.user.id) return null // my own solve → terminal handling
-      const member = memberById(players, id)
+      const member = memberById(gd.players, id)
       const { outcome, text } = answerMessage({ answerType: 'solved_peer' })
       return FeedbackMessage.peerMilestone(member, outcome, text)
     },
@@ -339,10 +252,10 @@ function PlayArea({
   // being wordle's own.
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
-    gameId,
-    isTerminal,
-    mode: game.mode,
-    isLocallyTerminal,
+    gameId: gd.gameId,
+    isTerminal: gd.isGameEnded,
+    mode: gd.mode,
+    isLocallyTerminal: gd.standing.isPlayerEnded,
     localFeedbackSlot,
   })
 
@@ -354,8 +267,10 @@ function PlayArea({
       // The one narrowing this game adds: no BUTTON while you can still play.
       // The menu row keeps it all game, grayed, because it NAMES the glyph
       // (docs/ui.md → the menu is the legend).
-      if (isStillPlaying && asker === 'button') return 'hidden'
-      return describeReveal({ noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal })
+      if (gd.standing.isStillPlaying && asker === 'button') return 'hidden'
+      return describeReveal({
+        noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal: gd.isGameEnded,
+      })
     },
     run: toggleAnswer,
   })
@@ -369,10 +284,10 @@ function PlayArea({
   async function createNewGame() {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup,
-        player_user_ids: players.map((p) => p.user_id),
-        mode: game.mode,
+        p_club_handle: clubHandle,
+        p_setup: gd.setup,
+        p_player_user_ids: gd.players.map((p) => p.user_id),
+        p_mode: gd.mode,
       }),
     )
     if (res.type === 'not-ok') {
@@ -396,9 +311,9 @@ function PlayArea({
   // terminal, where there is nothing to interrupt; the shared run's single
   // flight stops a second press dealing a second word.
   const actNewGame = useBoundAction('act-new-game', {
-    terminal: isTerminal,
+    terminal: gd.isGameEnded,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
-    describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
+    describe: (asker) => (asker === 'button' && !gd.isGameEnded ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
@@ -412,19 +327,19 @@ function PlayArea({
       printWordlePdf(
         buildWordlePrintModel({
           brand,
-          gameTitle: title,
+          gameTitle: gd.title,
           date: new Date().toLocaleDateString(),
-          mode: game.mode,
-          isTerminal,
-          maxGuesses,
+          mode: gd.mode,
+          isTerminal: gd.isGameEnded,
+          maxGuesses: gd.readout.maxGuesses,
           wordLength: WORD_LENGTH,
-          guesses,
-          players,
+          guesses: gd.events,
+          players: gd.players,
           selfId: session.user.id,
-          target: game.target,
+          target: gd.target,
           answerShown,
           solvedBy: new Set(solvedIds),
-          setupRows,
+          setupRows: gd.setupRows,
         }),
       )
     },
@@ -457,11 +372,7 @@ function PlayArea({
   // Everything below is derived fresh each render and read only by the JSX —
   // nothing here is a hook, which is why it may sit after the menu effect.
 
-  // Who has bowed out of the race — the opponent strip's "out" cell. From the
-  // common roster, like `isConceded`.
-  const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
-
-  const rows = myGuesses.map((g) => ({ guess: g.word, colors: g.colors }))
+  const rows = gd.boardGuesses.map((g) => ({ guess: g.word, colors: g.colors }))
 
   // When a past turn is open, `historySnap` is that turn's board (the rows up to
   // it, the last one ringed); else null = live.
@@ -470,11 +381,11 @@ function PlayArea({
   // me, RLS showing me nothing else — but at TERMINAL every player's rows
   // arrive, and a `#N` on one of theirs replays THEIR board, which is the point
   // of opening it. Coop is one shared board, so the filter is a no-op there.
-  const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
+  const historyRow = historyId !== null ? gd.events.find((g) => g.id === historyId) : undefined
   const historyRows =
-    isCompete && historyRow
-      ? guesses.filter((g) => g.user_id === historyRow.user_id)
-      : guesses
+    gd.isCompete && historyRow
+      ? gd.events.filter((g) => g.user_id === historyRow.user_id)
+      : gd.events
   const historySnap =
     isViewingHistory && historyId !== null
       ? historySnapshot(historyRows, historyId, historyN)
@@ -483,9 +394,12 @@ function PlayArea({
   // compete can be. Coop is one shared board, so a teammate's row replays the
   // board you are already looking at.
   const historyActor =
-    isCompete && historyRow && historyRow.user_id !== session.user.id
-      ? memberById(players, historyRow.user_id)
+    gd.isCompete && historyRow && historyRow.user_id !== session.user.id
+      ? memberById(gd.players, historyRow.user_id)
       : undefined
+
+  // The ending that applies to me: the game's once it has ended, else mine.
+  const endingMessage = gameEndingMessage ?? playerEndingMessage
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -494,43 +408,40 @@ function PlayArea({
         rows={rows}
         historySnap={historySnap}
         historyActor={historyActor}
-        maxGuesses={maxGuesses}
+        maxGuesses={gd.readout.maxGuesses}
         brand={brand}
         // ── History viewer ──
         onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) ──
-        gameId={gameId}
-        isBoardInteractive={isBoardInteractive}
+        gameId={gd.gameId}
+        isBoardInteractive={gd.standing.isBoardInteractive}
         // ── The below-board slot: BoardCol shows rejects into it and draws it ──
         localFeedbackSlot={localFeedbackSlot}
         // ── Board-scope marks ──
-        // The finished board wears its verdict, and the keyboard goes with it:
-        // `terminalMessage` is the same one the slot shows, so the two can't
+        // The ended board wears its ending, and the keyboard goes with it:
+        // `endingMessage` is the same one the slot shows, so the two can't
         // disagree about how this game went.
-        terminalOutcome={terminalMessage ? terminalMessage.outcome : null}
-        isWaitingForTurn={isWaitingForTurn}
+        terminalOutcome={endingMessage?.outcome ?? null}
+        isWaitingForTurn={gd.standing.isWaitingForTurn}
         myTurnJustStarted={turnFlash}
       />
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
-        isCompete={isCompete}
-        isTerminal={isTerminal}
-        terminalMessage={terminalMessage}
-        isStillPlaying={isStillPlaying}
-        isConceded={isConceded}
-        isPlayer={isPlayer}
-        isTurnBased={isTurnBased}
-        turnHolderId={turnHolderId}
+        isCompete={gd.isCompete}
+        isTerminal={gd.isGameEnded}
+        endingMessage={endingMessage}
+        isStillPlaying={gd.standing.isStillPlaying}
+        isPlayer={gd.standing.isPlayer}
+        isTurnBased={gd.isTurnBased}
+        turnHolderId={gd.turnHolderId}
         // ── State ──
-        guessesUsed={guessesUsed}
-        maxGuesses={maxGuesses}
+        guessesUsed={gd.readout.guessesUsed}
+        maxGuesses={gd.readout.maxGuesses}
         // ── Opponent strip (compete) ──
-        players={players}
+        players={gd.players}
         selfId={session.user.id}
-        playerStates={playerStates}
-        concededIds={concededIds}
         // ── Action row — the same bindings, in the order the menu lists them ──
         actReveal={actReveal}
         actRestart={actRestart}
@@ -539,12 +450,12 @@ function PlayArea({
         actStopGame={actStopGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
-        setupRows={setupRows}
+        setupRows={gd.setupRows}
         // ── Terminal answer reveal (null while hidden — incl. on a loss) ──
-        solution={answerShown ? game.target : null}
+        solution={answerShown ? gd.target : null}
         // ── Event log ──
-        guesses={guesses}
-        mode={game.mode}
+        guesses={gd.events}
+        mode={gd.mode}
         historyId={historyId}
         onShowHistory={showHistory}
         />
@@ -556,7 +467,7 @@ function PlayArea({
       {celebration.show && (
         <CelebrationBlockingModal
           title="Solved! 🎉"
-          body={isCompete ? 'You solved it in the fewest guesses.' : 'The team found the word.'}
+          body={gd.isCompete ?'You solved it in the fewest guesses.' : 'The team found the word.'}
           onClose={celebration.close}
         />
       )}

@@ -33,7 +33,8 @@ the tile it draws). Each pass:
 - **One object, `gd`, grouped by meaning, never by source.** Where a value came
   from (the page's row, a status copy, the game's tables) is `makeGameData`'s
   business. A fact the statuses carry is read from them; otherwise from the
-  tables; never add a status key to feed `gd`.
+  tables. A key goes into a status because the page shows it, never only to
+  feed `gd` (plans/common-tables.md → The statuses).
 - **Groups are real concepts;** a lone value stays flat. psychicnum's:
   `readout` (the state line's counts), `board` (words, `tileResults`,
   `decidedBy`, `guessCount`), `standing` (where I stand), and the players.

@@ -114,7 +114,10 @@ fewest guesses, the earliest solve breaking a tie: the first is the winner,
 the rest are `near`. A racer who didn't solve it is unranked, a conceder
 forfeits any win, and a race nobody solved is a loss for everyone. A
 countdown running out ranks the race the same way among those who had solved
-it.
+it. Where the earlier solve decided between the winner and a solver on the
+same count, `_write_statuses` marks both players' `tie_broken_by_clock`, and
+the ending's words say so ("same guesses, but faster", "beaten on the
+clock").
 
 Compete needs an opposing **player**, which is why its manifest takes 2–6
 where coop takes 1–6. `create_game` checks both ends of that: a race with
@@ -419,12 +422,14 @@ What is wordle's own:
   including it, that row ringed, addressed by the row's id so a filter cannot
   move it, and folding the rows of whoever wrote it — so an opponent's `#N` at
   a compete terminal replays their board.
-- **The terminal** is the pill and the row's line (`lib/terminal.ts`), the
-  frozen board banded in its outcome, and the disabled keyboard. The answer
-  line under the action row appears when this viewer presses Reveal and goes
-  away when they press Hide; a solver sees it unasked, being the one who typed
-  it. A win celebrates, once, on the flip: coop's on `won`, a race's for the
-  winner alone, read off `status.winner_user_id`.
+- **The ending** is the pill and the row's line (`lib/gameEndingMessage.ts`,
+  and `lib/playerEndingMessage.ts` for a compete player who has ended while
+  the others play on), the frozen board banded in its outcome, and the
+  disabled keyboard. The answer line under the action row appears when this
+  viewer presses Reveal and goes away when they press Hide; a solver sees it
+  unasked, being the one who typed it. A win celebrates, once, on the flip:
+  coop's on the game's `won`, a compete game's for the winner alone, read off
+  their own `outcome`.
 - **No mobile status bar.** The board is the count — every used guess is a
   colored row — so a bar would restate it and shorten the board for nothing.
 - **The printer** (`pdf/`) is one track per board: the grid, the keyboard in
@@ -447,7 +452,7 @@ winning guess or five that miss:
 | `create_game_test` | both modes; every setup fault by the field it names; the target picked from the list or the band; `target` denied by the grant and null in the view mid-game; an empty word pool is a fault |
 | `gameplay_test` | `submit_guess` in coop: a short word is a fault; the two soft rejects spend nothing and write nothing; every accepted row carries colors and spent a go; every `ok` carries no outcome; the title reads the latest guess, then the answer on a win; a guess into a deleted game is the shared race, asked before membership |
 | `compete_test` | independent rows; an opponent's guesses hidden mid-race and open once it ends; the title and the club line leak nothing mid-race; every solver ranked once everyone is done, by fewest guesses, the earlier solve breaking a tie, and the last racer recorded as who ended it |
-| `statuses_test` | the exact key set of every status at the start, mid-game and at the end in both modes; the club line's winner and count; a rebuild drops a stale key and leaves `status_changed_at` alone; a Restart writes the statuses fresh |
+| `statuses_test` | the exact key set of every status at the start, mid-game and at the end in both modes; the club line's winner and count; `tie_broken_by_clock` for a tie, for two solvers on different counts, and for a conceder on the winner's count; a rebuild drops a stale key and leaves `status_changed_at` alone; a Restart writes the statuses fresh |
 | `loss_test` | coop's last wrong guess is the loss and reveals the target; a racer spending their own budget ends nothing, and their next guess is a fault |
 | `concede_test` | a conceder counts as done and forfeits, unranked; the last one out ends the race, and its reason is their act — everyone conceding is `conceded`, a concession then the other racer running out is `exhausted`; the builder runs after an ending concession; coop is refused |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, an accepted guess advances, a soft reject does not, free-for-all leaves the pointer null |

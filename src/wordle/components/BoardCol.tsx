@@ -209,7 +209,7 @@ export function BoardCol({
       // don't blink out. Reverted on any soft-reject below.
       setSubmittedWord(word)
       const res = await runRpc<GuessAnswer>(
-        db.rpc('submit_guess', { target_game: gameId, guess: word }),
+        db.rpc('submit_guess', { p_game_id: gameId, p_guess: word }),
       )
       setSubmitting(false)
       if (res.type === 'not-ok') {

@@ -28,7 +28,7 @@ describe('coop', () => {
   it('a win is the team win', () => {
     expect(
       buildGameEndingMessage({
-        ...WINNER, mode: 'coop', gameEnding: makeGameEnding('won', 'reached_goal'), myOutcome: 'won',
+        ...WINNER, mode: 'coop', gameEnding: makeGameEnding('won', 'reached_goal'), playerOutcome: 'won',
       }),
     ).toEqual({ pillText: 'Won: all found', infoColText: 'You won!', outcome: 'won' })
   })
@@ -36,19 +36,19 @@ describe('coop', () => {
   it('a loss names the clock or the budget, and they never both apply', () => {
     expect(
       buildGameEndingMessage({
-        ...WINNER, mode: 'coop', gameEnding: makeGameEnding('lost', 'resource_exhausted'), myOutcome: 'lost',
+        ...WINNER, mode: 'coop', gameEnding: makeGameEnding('lost', 'resource_exhausted'), playerOutcome: 'lost',
       }),
     ).toEqual({ pillText: 'Lost: out of guesses', infoColText: 'Out of guesses', outcome: 'lost' })
     expect(
       buildGameEndingMessage({
-        ...WINNER, mode: 'coop', gameEnding: makeGameEnding('lost', 'timeout'), myOutcome: 'lost',
+        ...WINNER, mode: 'coop', gameEnding: makeGameEnding('lost', 'timeout'), playerOutcome: 'lost',
       }),
     ).toEqual({ pillText: 'Lost: out of time', infoColText: 'Timer elapsed', outcome: 'lost' })
   })
 
   it('a Stop is neutral — nobody won, which is not everybody losing', () => {
     const msg = buildGameEndingMessage({
-      ...WINNER, mode: 'coop', gameEnding: makeGameEnding('neutral', 'stopped'), myOutcome: 'neutral',
+      ...WINNER, mode: 'coop', gameEnding: makeGameEnding('neutral', 'stopped'), playerOutcome: 'neutral',
     })
     expect(msg.outcome).toBe('neutral')
     expect(msg.pillText).toBe('Game ended')
@@ -59,10 +59,10 @@ describe('compete', () => {
   it('the player who completed the set won; the others were beaten', () => {
     const gameWon = makeGameEnding('won', 'reached_goal')
     expect(
-      buildGameEndingMessage({ ...WINNER, mode: 'compete', gameEnding: gameWon, myOutcome: 'won' }),
+      buildGameEndingMessage({ ...WINNER, mode: 'compete', gameEnding: gameWon, playerOutcome: 'won' }),
     ).toEqual({ pillText: 'Won: the race', infoColText: 'You won!', outcome: 'won' })
     expect(
-      buildGameEndingMessage({ ...WINNER, mode: 'compete', gameEnding: gameWon, myOutcome: 'lost' }),
+      buildGameEndingMessage({ ...WINNER, mode: 'compete', gameEnding: gameWon, playerOutcome: 'lost' }),
     ).toEqual({ pillText: 'Beaten to the punch', infoColText: 'Bea won', outcome: 'lost' })
   })
 
@@ -71,7 +71,7 @@ describe('compete', () => {
   // what tells them apart — the words are the club-list label's.
   it('a race that ran out says no winner, by budget, by clock or by everyone conceding', () => {
     const lostBy = (reason: GameEndedReason) => buildGameEndingMessage({
-      ...WINNER, mode: 'compete', gameEnding: makeGameEnding('lost', reason), myOutcome: 'lost',
+      ...WINNER, mode: 'compete', gameEnding: makeGameEnding('lost', reason), playerOutcome: 'lost',
     })
     expect(lostBy('resource_exhausted')).toEqual(
       { pillText: 'Out of guesses — no winner', infoColText: 'Out of guesses', outcome: 'lost' })
@@ -83,7 +83,7 @@ describe('compete', () => {
 
   it('a Stop is neutral here too, and says no winner', () => {
     const msg = buildGameEndingMessage({
-      ...WINNER, mode: 'compete', gameEnding: makeGameEnding('neutral', 'stopped'), myOutcome: 'neutral',
+      ...WINNER, mode: 'compete', gameEnding: makeGameEnding('neutral', 'stopped'), playerOutcome: 'neutral',
     })
     expect(msg.outcome).toBe('neutral')
     expect(msg.pillText).toBe('Game ended — no winner')
@@ -95,14 +95,14 @@ describe('the outcome is mine, as the database wrote it', () => {
   // not, and the message reads mine.
   it('a conceder in a stopped game reads lost', () => {
     const msg = buildGameEndingMessage({
-      ...WINNER, mode: 'compete', gameEnding: makeGameEnding('neutral', 'stopped'), myOutcome: 'lost',
+      ...WINNER, mode: 'compete', gameEnding: makeGameEnding('neutral', 'stopped'), playerOutcome: 'lost',
     })
     expect(msg.outcome).toBe('lost')
   })
 
   it('a ranking below first reads near, as the database wrote it', () => {
     const msg = buildGameEndingMessage({
-      ...WINNER, mode: 'compete', gameEnding: makeGameEnding('won', 'reached_goal'), myOutcome: 'near',
+      ...WINNER, mode: 'compete', gameEnding: makeGameEnding('won', 'reached_goal'), playerOutcome: 'near',
     })
     expect(msg.outcome).toBe('near')
   })
@@ -111,7 +111,7 @@ describe('the outcome is mine, as the database wrote it', () => {
   it('a watcher reads the game\'s outcome, and is told who won', () => {
     expect(
       buildGameEndingMessage({
-        ...WINNER, mode: 'compete', gameEnding: makeGameEnding('won', 'reached_goal'), myOutcome: null,
+        ...WINNER, mode: 'compete', gameEnding: makeGameEnding('won', 'reached_goal'), playerOutcome: null,
       }),
     ).toEqual({ pillText: 'Bea won', infoColText: 'Bea won', outcome: 'won' })
   })
@@ -120,7 +120,7 @@ describe('the outcome is mine, as the database wrote it', () => {
 describe('an ending psychicnum never writes', () => {
   it('throws rather than guess at words for it', () => {
     expect(() => buildGameEndingMessage({
-      ...WINNER, mode: 'coop', gameEnding: makeGameEnding('lost', 'conceded'), myOutcome: 'lost',
+      ...WINNER, mode: 'coop', gameEnding: makeGameEnding('lost', 'conceded'), playerOutcome: 'lost',
     })).toThrow(/BUG/)
   })
 })
@@ -145,7 +145,7 @@ describe('every ending, in both modes', () => {
 
   it.each(CASES)('$mode $outcome/$reason, mine $mine, reads mine, with both texts filled', (c) => {
     const msg = buildGameEndingMessage({
-      ...WINNER, mode: c.mode, gameEnding: makeGameEnding(c.outcome, c.reason), myOutcome: c.mine,
+      ...WINNER, mode: c.mode, gameEnding: makeGameEnding(c.outcome, c.reason), playerOutcome: c.mine,
     })
     expect(msg.outcome).toBe(c.mine)
     expect(msg.pillText.length).toBeGreaterThan(0)

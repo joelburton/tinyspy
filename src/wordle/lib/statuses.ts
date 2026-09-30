@@ -21,6 +21,10 @@ export type WordleGameStatus = {
 export type WordlePlayerStatus = {
   guesses_used: number
   player_ended_reason: PlayerEndedReason | null
+  // Compete: the earlier solve, not the guess count, placed this player
+  // against the winner — the winner when another solver matched their count,
+  // or a solver on the winner's count. Null in coop and until the game ends.
+  tie_broken_by_clock: boolean | null
 }
 
 /**

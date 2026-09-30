@@ -8,7 +8,8 @@ import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/c
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { eventToOutcome } from '../lib/answer'
 import { tileColor } from '../lib/colors'
-import type { EventRow, Player } from '../hooks/useGame'
+import type { Member } from '@/common/members/member'
+import type { EventRow } from '../hooks/useGame'
 import styles from './GameEventLog.module.css'
 
 type Props = {
@@ -16,7 +17,7 @@ type Props = {
   // board. Compete: the viewer's own during play, and (once terminal, when RLS
   // opens) everyone's — which is what makes the opponent picker below useful.
   guesses: EventRow[]
-  players: Player[]
+  players: Member[]
   selfId: string
   mode: 'coop' | 'compete'
   // Terminal yet? Distinguishes an opponent's RLS-hidden log (during play) from

@@ -664,8 +664,8 @@ reason map moved there with them. What stays here:
      button" — the "You conceded" row now places `actStopGame`, so it may be
      done.
   8. Lowercase "quit" for a concession in prose: a boggle PlayArea test ("I
-     quit, the game continues…"), `src/crosswords/manifest.ts`,
-     `src/wordle/lib/terminal.ts` — not the strip's label.
+     quit, the game continues…"), `src/crosswords/manifest.ts` — not the
+     strip's label.
   9. Rewordings chosen in SQL comments: spellingbee's and wordwheel's "Manual
      End is NEUTRAL" → "Stop is NEUTRAL"; crosswords' "ending is the whole
      table agreeing" → "stopping is…", "a compete end" → "a compete Stop".

@@ -9,7 +9,7 @@ import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import type { Player, PlayerRow, EventRow } from '../hooks/useGame'
+import type { EventRow, WordlePlayer } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -30,9 +30,8 @@ export function InfoCol({
   // ── Mode + phase ──
   isCompete,
   isTerminal,
-  terminalMessage,
+  endingMessage,
   isStillPlaying,
-  isConceded,
   isPlayer,
   isTurnBased,
   turnHolderId,
@@ -42,8 +41,6 @@ export function InfoCol({
   // ── Opponent strip (compete) ──
   players,
   selfId,
-  playerStates,
-  concededIds,
   // ── Action row ──
   actReveal,
   actRestart,
@@ -64,15 +61,12 @@ export function InfoCol({
   // ── Mode + phase ──
   isCompete: boolean
   isTerminal: boolean
-  // The terminal message when the game is over (drives the action row), else null.
-  terminalMessage: TerminalMessage | null
+  // The ending that applies to me — the game's once it has ended, else mine
+  // while the others play on — for the action row's line; null while I play.
+  endingMessage: TerminalMessage | null
   // The page's standing terms (docs/win-lose.md → Where a player stands).
-  // Still in the game — gates the help line, and picks the row's line: false
-  // with the game still on means I am out of a race the others are still
-  // running — solved, out of guesses, or conceded.
+  // Still in the game — gates the help line.
   isStillPlaying: boolean
-  // I specifically conceded (vs. solved or ran out) — picks the out-of-the-race wording.
-  isConceded: boolean
   // Am I a player in this game? (Else the "watching" notice.)
   isPlayer: boolean
   // A turn-order game: render the shared TurnStatusLine, which names the
@@ -85,13 +79,10 @@ export function InfoCol({
   maxGuesses: number
 
   // ── Opponent strip (compete) ──
-  // The common roster (identity + concede bits) — the strip + the event-log picker.
-  players: Player[]
+  // The players — the strip (each one's guess count, or "out" once conceded)
+  // and the event-log picker.
+  players: WordlePlayer[]
   selfId: string
-  // Per-player wordle state — the strip reads each peer's `guesses_used`.
-  playerStates: PlayerRow[]
-  // Who has conceded (drives the strip's "out" cell).
-  concededIds: Set<string>
 
   // ── Action row — listed in the order the row draws them, which is the order
   //    the game menu lists them too (docs/playarea.md) ──
@@ -134,14 +125,11 @@ export function InfoCol({
   // number the log printed beside it.
   onShowHistory: (id: number, n: number) => void
 }) {
-  // The row's line, and the only thing that varies between states: the verdict
-  // once the game is over, a neutral "you are done, they are not" while a race
-  // runs on without you, and nothing at all while you can still play.
-  const rowMessage: InfoActionsMessage | undefined = terminalMessage
-    ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
-    : isStillPlaying
-      ? undefined
-      : { text: isConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
+  // The row's line, and the only thing that varies between states: the ending
+  // that applies to me, and nothing at all while I can still play.
+  const rowMessage: InfoActionsMessage | undefined = endingMessage
+    ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
+    : undefined
 
   return (
     <div className={shared.infoCol}>
@@ -172,11 +160,7 @@ export function InfoCol({
             players={players}
             selfId={selfId}
             metricLabel="Guesses"
-            metricFor={(p) =>
-              concededIds.has(p.user_id)
-                ? 'out'
-                : (playerStates.find((s) => s.user_id === p.user_id)?.guesses_used ?? 0)
-            }
+            metricFor={(p) => (p.playerEnding?.reason === 'conceded' ? 'out' : p.guessesUsed)}
           />
         )}
 
@@ -197,7 +181,7 @@ export function InfoCol({
           <ActionButton
             action={actBackToClub}
             show="icon"
-            weight={terminalMessage ? 'primary' : 'secondary'}
+            weight={isTerminal ? 'primary' : 'secondary'}
           />
         </InfoActionsRow>
 
@@ -212,7 +196,7 @@ export function InfoCol({
             room to be a sentence and a click-to-define target. The region grows
             when the viewer opens it and gives the space back when they close it,
             a blessed exception to docs/ui.md → Layout stability. */}
-        {terminalMessage && solution && (
+        {isTerminal && solution && (
           <div className={shared.terminalExtra}>
             <p className={cls(shared.infoState, styles.answerLine)}>
               The answer was <DefinableWord word={solution} className={styles.answerReveal} />

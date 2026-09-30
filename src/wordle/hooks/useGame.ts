@@ -52,6 +52,10 @@ export type WordlePlayer = Member & {
   // Guesses spent: the team's in coop, the same on every player; their own in
   // compete.
   guessesUsed: number
+  // Compete: the earlier solve, not the guess count, placed them against the
+  // winner (the winner themselves when another solver matched their count).
+  // Null in coop and until the game ends.
+  isTieBrokenByClock: boolean | null
 }
 
 /**
@@ -151,6 +155,7 @@ export function makePlayersById(
       finalRanking: p.final_ranking,
       solvedAt: p.solved_at,
       guessesUsed: playerStatus.guesses_used,
+      isTieBrokenByClock: playerStatus.tie_broken_by_clock,
     }
   })
   return Object.fromEntries(players.map((p) => [p.user_id, p]))

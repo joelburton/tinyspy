@@ -16,12 +16,12 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(17);
+select plan(21);
 
 create temp table want (status text primary key, keys text[]) on commit drop;
 insert into want values
   ('game_status',   array['max_guesses']),
-  ('player_status', array['guesses_used', 'player_ended_reason']),
+  ('player_status', array['guesses_used', 'player_ended_reason', 'tie_broken_by_clock']),
   ('clubpage_info', array['answer_band', 'guesses_used', 'max_guesses',
                           'winner_guesses_count', 'winner_user_id']);
 grant select on want to authenticated;
@@ -132,6 +132,91 @@ select is(
      from common.game_players where game_id = (select id from g where mode = 'compete')),
   array['reached_goal', 'conceded'],
   'compete: each racer''s status says how they ended, for the strip');
+select is(
+  (select array_agg((player_status->>'tie_broken_by_clock')::boolean order by user_id)
+     from common.game_players where game_id = (select id from g where mode = 'compete')),
+  array[false, false],
+  'compete: a winner nobody matched, and a conceder, were not placed by the clock');
+select is(
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g where mode = 'coop')
+      and player_status->'tie_broken_by_clock' = 'null'::jsonb),
+  2,
+  'coop: tie_broken_by_clock is null, there being no winner to tie');
+
+-- ── A tie: ada and bea both solve in one guess, bea later; cade in two ──
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table tie on commit drop as
+select (wordle.create_game(
+  pg_temp.create_club('Wordle tie', array['ada', 'bea', 'cade']),
+  pg_temp.wordle_setup(5),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid,
+        'cade3333-3333-3333-3333-333333333333'::uuid],
+  'compete'
+)->'data'->>'id')::uuid as id;
+reset role;
+create temp table tie_w on commit drop as
+select wg.target::text as target,
+       case when wg.target::text = 'crane' then 'slate' else 'crane' end as wrong
+  from tie join wordle.games wg on wg.game_id = tie.id;
+grant select on tie, tie_w to authenticated;
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select wordle.submit_guess((select id from tie), (select target from tie_w));
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select wordle.submit_guess((select id from tie), (select target from tie_w));
+reset role;
+-- One transaction has one now(), so the later solve is set by hand.
+update common.game_players set solved_at = now() + interval '1 minute'
+ where game_id = (select id from tie) and user_id = 'bea22222-2222-2222-2222-222222222222';
+select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
+select wordle.submit_guess((select id from tie), (select wrong from tie_w));
+select wordle.submit_guess((select id from tie), (select target from tie_w));
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select array_agg((player_status->>'tie_broken_by_clock')::boolean order by user_id)
+     from common.game_players where game_id = (select id from tie)),
+  array[true, true, false],
+  'compete tie: the winner and the solver on her count were placed by the clock; the solver on more guesses was not');
+
+-- ── No tie: ada solves in one guess and cade in two; bea concedes on ada's
+-- count without solving ──
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table no_tie on commit drop as
+select (wordle.create_game(
+  (select club_handle from common.games where id = (select id from tie)),
+  pg_temp.wordle_setup(5),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid,
+        'cade3333-3333-3333-3333-333333333333'::uuid],
+  'compete'
+)->'data'->>'id')::uuid as id;
+reset role;
+create temp table no_tie_w on commit drop as
+select wg.target::text as target,
+       case when wg.target::text = 'crane' then 'slate' else 'crane' end as wrong
+  from no_tie join wordle.games wg on wg.game_id = no_tie.id;
+grant select on no_tie, no_tie_w to authenticated;
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select wordle.submit_guess((select id from no_tie), (select target from no_tie_w));
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select wordle.submit_guess((select id from no_tie), (select wrong from no_tie_w));
+select wordle.concede((select id from no_tie));
+select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
+select wordle.submit_guess((select id from no_tie), (select wrong from no_tie_w));
+select wordle.submit_guess((select id from no_tie), (select target from no_tie_w));
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select array_agg((player_status->>'tie_broken_by_clock')::boolean order by user_id)
+     from common.game_players where game_id = (select id from no_tie)),
+  array[false, false, false],
+  'compete, no tie: solvers on different counts, and a conceder on the winner''s count, were not placed by the clock');
 
 -- ── The date: only a call that says so moves it ──
 update common.games set status_changed_at = '2026-01-01' where id in (select id from g);
@@ -167,7 +252,8 @@ select set_config('request.jwt.claims', '', true);
 select is(
   (select count(*)::int from common.game_players
     where game_id = (select id from g where mode = 'compete')
-      and player_status = '{"guesses_used": 0, "player_ended_reason": null}'::jsonb),
+      and player_status = '{"guesses_used": 0, "player_ended_reason": null,
+                            "tie_broken_by_clock": null}'::jsonb),
   2,
   'a Restart writes every player''s status fresh');
 
