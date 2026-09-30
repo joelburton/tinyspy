@@ -47,7 +47,7 @@ export function BoardCol({
   // The live board: every guess on coop's shared board, my own in compete.
   const liveRows: BoardRow[] = gd.boardGuesses.map((g) => ({ guess: g.word, colors: g.colors }))
 
-  const { submitGuess, inFlightWord, refused } = useSubmitGuess({
+  const { submitGuess, inFlightWord, refusedGuessMark } = useSubmitGuess({
     gameId: gd.gameId,
     liveRows,
     localFeedbackSlot,
@@ -64,27 +64,24 @@ export function BoardCol({
 
   // ─── Render ────────────────────────────────────────────
 
-  // A past turn's rows while one is open, else the live ones; the word still
-  // out belongs to the live board only.
-  const shownRows = historyView.rows ?? liveRows
+  // The word still out belongs to the live board only.
   const shownInFlightWord = isViewingHistory ? null : inFlightWord
 
   return (
     <div className={shared.boardCol}>
       <Board
-        rows={shownRows}
-        liveRowCount={liveRows.length}
-        current={typedWord}
-        inFlightWord={shownInFlightWord}
-        maxGuesses={gd.readout.maxGuesses}
-        active={canType}
+        grid={{ liveRows, maxGuesses: gd.readout.maxGuesses }}
+        marks={{
+          typedWord,
+          inFlightWord: shownInFlightWord,
+          refusedGuessMark,
+          endingOutcome,
+          isWaitingForTurn: gd.standing.isWaitingForTurn,
+          myTurnJustStarted,
+        }}
+        historyView={historyView}
+        canType={canType}
         brand={brand}
-        isViewingHistory={isViewingHistory}
-        historyLitBoardRow={historyView.litBoardRow}
-        refused={refused}
-        terminalOutcome={endingOutcome}
-        isWaitingForTurn={gd.standing.isWaitingForTurn}
-        myTurnJustStarted={myTurnJustStarted}
       />
       {/* The below-board region. The feedback slot sits BETWEEN the board and
           the keyboard, both of which are always present, and `.localFeedback`

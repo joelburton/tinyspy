@@ -46,11 +46,12 @@ type GuessAnswer =
  * `submitGuess(word)` resolves to whether the guess was accepted, so the entry
  * knows to clear what was typed. A short word is refused here, without a
  * call. A soft reject (`duplicate`, `notAWord`) and a not-ok both leave the
- * typed row where it is, shake it in the answer's own outcome (`refused`, the
- * mark `<Board>` reads), and say why in the local slot; the words come from
- * `lib/answer.ts` or the envelope, so the ring and the pill cannot name two
- * different things. An accepted guess shows nothing extra: its colored row,
- * and a win with it, arrive over realtime the way they reach everyone else.
+ * typed row where it is, shake it in the answer's own outcome
+ * (`refusedGuessMark`, which `<Board>` reads), and say why in the local slot;
+ * the words come from `lib/answer.ts` or the envelope, so the ring and the pill
+ * cannot name two different things. An accepted guess shows nothing extra: its
+ * colored row, and a win with it, arrive over realtime the way they reach
+ * everyone else.
  *
  * `inFlightWord` is the accepted-but-not-yet-drawn guess: kept on the board,
  * uncolored, from the moment it is sent until its colored row is among
@@ -75,7 +76,7 @@ export function useSubmitGuess({
 }): {
   submitGuess: (word: string) => Promise<boolean>
   inFlightWord: string | null
-  refused: Mark<Outcome> | null
+  refusedGuessMark: Mark<Outcome> | null
 } {
   // The word I last sent, or null. Cleared by a refusal; it outlives an
   // accepted guess, so what is still out is derived below.
@@ -87,13 +88,13 @@ export function useSubmitGuess({
 
   // `WORD_ANSWER_MS` is the beat for a word wearing its answer, and the row
   // keys on the mark's nonce, so refusing the same word twice shakes twice.
-  const [refused, showRefused] = useMark<Outcome>(WORD_ANSWER_MS)
+  const [refusedGuessMark, showRefusedGuessMark] = useMark<Outcome>(WORD_ANSWER_MS)
 
   /** Both soft rejects: nothing was burned, so the typed row stays and shakes. */
   function refuseSoftly(answerType: 'duplicate' | 'not_a_word') {
     const { outcome, text } = answerMessage({ answerType })
     setSubmittedWord(null)
-    showRefused(outcome)
+    showRefusedGuessMark(outcome)
     localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
   }
 
@@ -109,7 +110,7 @@ export function useSubmitGuess({
     )
     if (res.type === 'not-ok') {
       setSubmittedWord(null)
-      showRefused(notOkOutcome(res))
+      showRefusedGuessMark(notOkOutcome(res))
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return false
     } else if (res.type === 'ok' && res.data.result === 'duplicate') {
@@ -133,5 +134,5 @@ export function useSubmitGuess({
     }
   }
 
-  return { submitGuess, inFlightWord, refused }
+  return { submitGuess, inFlightWord, refusedGuessMark }
 }

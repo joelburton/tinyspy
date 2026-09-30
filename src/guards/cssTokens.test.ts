@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest'
  *
  * A token counts as DEFINED if it's declared in any stylesheet (`--x:`)
  * or set inline from a component (a quoted `'--x'` style key in a .tsx —
- * e.g. the wordle reveal animation's `--reveal-bg`). Tokens whose names
+ * e.g. the wordle board's `--rows`). Tokens whose names
  * are built dynamically (`var(--member-${name}-fill-color)`) are matched by
  * prefix.
  */

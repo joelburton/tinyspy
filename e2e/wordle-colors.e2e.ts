@@ -1,22 +1,29 @@
 // cs-unmet
 
 import { execFileSync } from 'node:child_process'
-import { test, expect } from '@playwright/test'
+import { test, expect, type Browser, type Page } from '@playwright/test'
 import { createSoloClub, createWordleGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * The on-screen keyboard's colors, resting and hovered.
+ * wordle's colors as the browser paints them: the on-screen keyboard's, resting
+ * and hovered, and a landed row's tiles once they have flipped.
  *
  * Browser-only, and unusually worth the cost: every one of these values is a
- * COMPUTED style, so jsdom can't see any of it — and the three bugs this spec was
- * written after were all invisible to the unit suite. They were also all the same
+ * COMPUTED style, so jsdom can't see any of it. The keyboard's three bugs this
+ * spec was first written after were all invisible to the unit suite. They were also all the same
  * bug wearing different hats: `.key:hover` is specificity (0,3,0) where a key color
  * class is (0,1,0), so a hover rule that sets `background` outright beats every
  * key that has a fill of its own. A green key turned white with its white ink
  * still on it; so did ENTER. The fix is the house discipline — the hover rule
  * reads `--kbd-key-hover-fill-color` OFF THE ELEMENT, and anything with its own
  * fill re-sets that token — and this spec is what keeps it fixed.
+ *
+ * The tiles' colors are CSS alone too: a flipping tile keeps its color class,
+ * and the flip's keyframes land on that class's own `--tile-slot-*` tokens. A
+ * keyframe reading the wrong token, or a color class that stops reaching a
+ * flipping tile, would leave the unit suite green and a player looking at a
+ * blank row — so the landed row is read here, with and without reduced motion.
  *
  * It asserts against the TOKENS rather than against literal hexes, by resolving
  * each token in the page and comparing. So retuning the palette (which the color
@@ -103,24 +110,43 @@ function pickTricolorGuess(gameId: string): string {
   throw new Error('no legal word paints all three colors onto the keyboard for this target')
 }
 
-test('the keyboard wears the right fill and ink, resting and hovered', async ({ browser }) => {
-  const club = await createSoloClub('kbdcol')
+/** A token's value as the browser resolves it — the spec's source of truth. */
+function resolveToken(page: Page, name: string): Promise<string> {
+  return page.evaluate((n) => {
+    const probe = document.createElement('div')
+    probe.style.color = `var(${n})`
+    document.body.append(probe)
+    const v = getComputedStyle(probe).color
+    probe.remove()
+    return v
+  }, name)
+}
+
+/**
+ * A signed-in page on a fresh game, with a guess that shows all three colors
+ * played through the real input path — so the board and the keyboard color the
+ * way they do for a player rather than from seeded rows — and its row landed.
+ */
+async function playTricolorGuess(
+  browser: Browser,
+  clubName: string,
+  reducedMotion: 'reduce' | 'no-preference',
+) {
+  const club = await createSoloClub(clubName)
   const game = await createWordleGame(club)
   const guess = pickTricolorGuess(game.id)
 
-  const ctx = await browser.newContext()
+  const ctx = await browser.newContext({ reducedMotion })
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
   await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
-  // Play it through the real input path, so the keyboard tints the way it does
-  // for a player rather than from seeded rows.
   for (const ch of guess) await page.keyboard.press(ch)
   await page.keyboard.press('Enter')
-  // The reveal flip is staggered per tile; the keys tint when the row lands. Poll
-  // on the color CLASSES rather than on a computed color, so this wait can't be
-  // the one place in the spec that pins a literal value.
+  // The keys tint when the row lands. Poll on the color CLASSES rather than on a
+  // computed color, so this wait can't be the one place in the spec that pins a
+  // literal value.
   await expect
     .poll(async () =>
       page.evaluate(
@@ -132,16 +158,57 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
     )
     .toBeGreaterThan(1)
 
-  /** A token's value as the browser resolves it — the spec's source of truth. */
-  const token = (name: string) =>
-    page.evaluate((n) => {
-      const probe = document.createElement('div')
-      probe.style.color = `var(${n})`
-      document.body.append(probe)
-      const v = getComputedStyle(probe).color
-      probe.remove()
-      return v
-    }, name)
+  return { ctx, page, guess }
+}
+
+/**
+ * The landed row's tiles, once the flip has finished, each against its color's
+ * `--wordle-*` fill, edge and ink. Polled, because the flip is staggered per tile
+ * and a tile reads its first-half look until its own turn comes; the list of
+ * tiles that don't match yet has to empty.
+ */
+async function expectLandedRowColors(page: Page) {
+  const tokens: Record<string, { fill: string; edge: string; ink: string }> = {}
+  for (const color of ['green', 'yellow', 'gray']) {
+    tokens[color] = {
+      fill: await resolveToken(page, `--wordle-${color}-fill-color`),
+      edge: await resolveToken(page, `--wordle-${color}-edge-color`),
+      ink: await resolveToken(page, `--wordle-${color}-ink-color`),
+    }
+  }
+  const readFirstRow = () =>
+    page.evaluate(() => {
+      const row = document.querySelector('[data-board] [role="row"]')!
+      return [...row.querySelectorAll('[role="gridcell"]')].map((tile) => {
+        const cls = tile.className
+        const color = /wordleGreen/.test(cls)
+          ? 'green'
+          : /wordleYellow/.test(cls)
+            ? 'yellow'
+            : /wordleGray/.test(cls)
+              ? 'gray'
+              : ''
+        const style = getComputedStyle(tile)
+        return { color, fill: style.backgroundColor, edge: style.borderTopColor, ink: style.color }
+      })
+    })
+  // Every tile of a landed row wears a color class.
+  expect((await readFirstRow()).every((tile) => tile.color !== '')).toBe(true)
+  await expect
+    .poll(async () =>
+      (await readFirstRow())
+        .map((tile, i) => ({ i, ...tile }))
+        .filter((tile) => {
+          const want = tokens[tile.color]!
+          return tile.fill !== want.fill || tile.edge !== want.edge || tile.ink !== want.ink
+        }),
+    )
+    .toEqual([])
+}
+
+test('the keyboard wears the right fill and ink, resting and hovered', async ({ browser }) => {
+  const { ctx, page, guess } = await playTricolorGuess(browser, 'kbdcol', 'no-preference')
+  const token = (name: string) => resolveToken(page, name)
 
   const key = (label: string) =>
     page.locator('[aria-label="Keyboard"]').getByRole('button', { name: label, exact: true })
@@ -164,9 +231,7 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
   }
 
   // Which letter earned which color, read off the KEYS themselves — the server's
-  // answer, not a recomputation of it. (Not off the tiles: a freshly-revealed row
-  // wears the flip animation's class rather than its color class, since
-  // `animation-fill-mode: both` freezes the final frame.)
+  // answer, not a recomputation of it.
   const letterByColor = await page.evaluate(() => {
     const out: Record<string, string> = {}
     for (const b of document.querySelectorAll('[aria-label="Keyboard"] button')) {
@@ -231,5 +296,17 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
     ink: white,
   })
 
+  await ctx.close()
+})
+
+test('a landed row settles on each tile\'s own fill, edge and ink', async ({ browser }) => {
+  const { ctx, page } = await playTricolorGuess(browser, 'tilecol', 'no-preference')
+  await expectLandedRowColors(page)
+  await ctx.close()
+})
+
+test('with reduced motion, the row skips the flip and shows the same colors', async ({ browser }) => {
+  const { ctx, page } = await playTricolorGuess(browser, 'tilecolrm', 'reduce')
+  await expectLandedRowColors(page)
   await ctx.close()
 })

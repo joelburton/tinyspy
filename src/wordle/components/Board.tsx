@@ -1,207 +1,128 @@
 // cs-blessed-wordle
 
-import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
-import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
-import { getTileColor, revealBorderVar, revealInkVar, revealVar, type TileColor } from '../lib/colors'
-import { WORD_LENGTH } from '../lib/setup'
-import type { BoardRow } from '../lib/board'
 import shared from '@/common/game-page/playArea.module.css'
 import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
-import tileColors from '@/shared/wordle-style/tileColors.module.css'
+import type { HistoryView } from '../hooks/useHistoryView'
+import { useFlipBaseline } from '../hooks/useFlipBaseline'
+import { WORD_LENGTH } from '../lib/setup'
+import type { BoardRow } from '../lib/board'
+import { LetterRow } from './LetterRow'
 import styles from './Board.module.css'
 
-/** Per-tile stagger so a row's letters flip left-to-right, not at once. */
-const REVEAL_STEP_S = 0.22
-
-type Props = {
-  // Submitted guesses, in order.
-  rows: BoardRow[]
-  // How many rows the LIVE board has, even while `rows` is a past turn's
-  // snapshot — where the flip line moves to when a past turn opens.
-  liveRowCount: number
-  // The active typing row's current letters (empty when not the
-  // player's turn / game over). Rendered just below the submitted
-  // rows, with no colors yet.
-  current: string
-  // A just-submitted word awaiting its colored server row. Shown in the
-  // next slot as an uncolored (filled) row so the letters stay put
-  // during the round-trip; when the real row lands it flips in place.
-  // Null when there's nothing in flight.
-  inFlightWord: string | null
-  // Total rows to draw — the guess budget (`max_guesses`).
+/** What is on the board. */
+export type BoardGrid = {
+  // The guesses the server has drawn, in order: every guess on coop's shared
+  // board, my own in compete.
+  liveRows: BoardRow[]
+  // The guess budget, and so the rows the board has.
   maxGuesses: number
-  // Whether the active typing row should show (game still in play for
-  // this player).
-  active: boolean
-  // Brand name (via `ctx.brand`) for the grid's label — a prop because the
-  // brand lives in the manifest and nowhere in this chunk's source.
-  brand: string
-  // Wear the shared viewing frame and make the board
-  // click-through (so a board click falls to the document exit listener).
-  // While viewing, BoardCol also hands the snapshot's `rows` + `active={false}`
-  // + a null `inFlightWord`, and rows never flip (they're already-final history).
-  isViewingHistory: boolean
-  // Ring this row (the guess the viewed turn added), or -1 = none.
-  // The row keeps its g/y/x tile colors; the ring just marks which one.
-  historyLitBoardRow: number
-  // `<BoardCol>`'s refusal mark, or null for a board saying nothing — the active
-  // row rings and shakes in the outcome the mark carries. The pill says WHAT was
-  // wrong; this says WHERE. The row keys on the mark's nonce so a repeat
-  // rejection replays the shake rather than doing nothing.
-  refused: Mark<Outcome> | null
-  // The game is finished, and how it ended — the board takes a band in that
-  // outcome's gray (neutral for a game merely ended), null while it's live.
-  // The shared board-scope mark; see common/board-marks/doc.md.
-  terminalOutcome: EndOutcome | null
-  // A teammate holds the move (the page's `isWaitingForTurn`): dim the whole
-  // board, unless it takes input (`active`).
+}
+
+/** What the board wears on and around its rows. */
+export type BoardMarks = {
+  // The letters being typed into the next row.
+  typedWord: string
+  // My guess out with the server, drawn uncolored in the next row until its
+  // colored row lands; null when nothing is out.
+  inFlightWord: string | null
+  // A refused guess: the typing row rings and shakes in its outcome.
+  refusedGuessMark: Mark<Outcome> | null
+  // The ending that applies to me; null while I play.
+  endingOutcome: EndOutcome | null
+  // A teammate holds the move.
   isWaitingForTurn: boolean
-  // True for a beat at the moment the turn becomes mine — flash the frame.
+  // True for a beat as the turn becomes mine.
   myTurnJustStarted: boolean
 }
 
 /**
- * The wordle board: `maxGuesses` rows of five tiles. A submitted row shows each
- * letter on its server-computed color; the active row shows what is being
+ * The wordle board: `maxGuesses` rows of five tiles. A guessed row shows each
+ * letter on its server-computed color; the typing row shows what is being
  * typed, uncolored; the rest are empty. The colors are `common._wordle_colors`'s
  * — this board draws them and never holds the target.
  *
- * **The reveal flip.** A row that LANDS while you are watching turns its tiles
- * over one at a time, each painting its color at the midpoint of its own flip.
- * Rows that were already on the board when this mounted — a mid-game refresh,
- * an opponent's history — draw in their final color without flipping, and
- * `flipBaseline` is the line between the two. Opening a past turn moves the
- * line up to the live rows as they stood, so coming back flips only a row that
- * landed while you were away.
+ * A row that LANDS while you are watching turns its tiles over one at a time
+ * (`useFlipBaseline` says which rows those are). A past turn open on the board
+ * draws its own rows in place of the live ones, never flips, and rings the row
+ * that turn added.
  */
 export function Board({
-  rows,
-  liveRowCount,
-  current,
-  inFlightWord,
-  maxGuesses,
-  active,
+  grid,
+  marks,
+  historyView,
+  canType,
   brand,
-  isViewingHistory,
-  historyLitBoardRow,
-  refused,
-  terminalOutcome,
-  isWaitingForTurn,
-  myTurnJustStarted,
-}: Props) {
-  const activeIndex = active ? rows.length : -1
-  // The row count that was already on the board when it mounted, so anything
-  // past it is a guess that landed while you were watching. The live rows only
-  // grow, and a Restart remounts the whole surface (GamePage keys it on
-  // `restarts`), so a replayed game starts at zero.
-  const [flipBaseline, setFlipBaseline] = useState(rows.length)
-  // Opening a past turn draws the snapshot's rows in place of the live ones,
-  // so coming back mounts the live rows fresh — and each would flip again. The
-  // line moves up to the live rows as the viewer opens. Compared against the
-  // previous render's value in state, React's pattern for adjusting state to a
-  // prop change, which holds under StrictMode's double render.
-  const [wasViewingHistory, setWasViewingHistory] = useState(isViewingHistory)
-  if (isViewingHistory !== wasViewingHistory) {
-    setWasViewingHistory(isViewingHistory)
-    if (isViewingHistory) setFlipBaseline(liveRowCount)
-  }
+}: {
+  grid: BoardGrid
+  marks: BoardMarks
+  historyView: HistoryView
+  // The typing row shows: the game lets me guess, and the live board is on
+  // screen.
+  canType: boolean
+  // Brand name (manifest) for the grid's `aria-label`, a test handle.
+  brand: string
+}) {
+  const isViewingHistory = historyView.isViewing
+  const shownRows = historyView.rows ?? grid.liveRows
+  const typingRowIndex = canType ? shownRows.length : -1
+  const flipBaseline = useFlipBaseline(grid.liveRows.length, isViewingHistory)
 
   return (
     <div
       className={cls(shared.boardSeal, styles.board)}
       // The grid's shape, for the stylesheet's aspect ratio and row template.
-      style={{ ['--rows' as string]: maxGuesses, ['--cols' as string]: WORD_LENGTH }}
+      style={{ ['--rows' as string]: grid.maxGuesses, ['--cols' as string]: WORD_LENGTH }}
     >
       <div
         className={cls(
           shared.hugRectWidth,
           styles.grid,
           isViewingHistory && history.historyFrame,
-          isWaitingForTurn && !active && shared.dimNotYourTurn,
-          myTurnJustStarted && shared.yourTurnFlash,
-          makeEndingFrameClasses(terminalOutcome, isViewingHistory),
+          marks.isWaitingForTurn && !canType && shared.dimNotYourTurn,
+          marks.myTurnJustStarted && shared.yourTurnFlash,
+          makeEndingFrameClasses(marks.endingOutcome, isViewingHistory),
         )}
         role="grid"
         aria-label={`${brand} board`}
         data-board
       >
-        {Array.from({ length: maxGuesses }, (_, r) => {
-          const submitted = rows[r]
-          const isActive = r === activeIndex
-          // The in-flight word sits in the first empty slot.
-          const isInFlight = !submitted && inFlightWord !== null && r === rows.length
-          // Historical rows never flip — they're already-final, not fresh guesses.
-          const flipping = !isViewingHistory && !!submitted && r >= flipBaseline
+        {Array.from({ length: grid.maxGuesses }, (_, rowIndex) => {
+          const guessRow = shownRows[rowIndex]
+          const isTypingRow = rowIndex === typingRowIndex
+          // The in-flight word sits in the first empty row.
+          const isInFlightRow =
+            !guessRow && marks.inFlightWord !== null && rowIndex === shownRows.length
+          const refusedGuessMark = isTypingRow ? marks.refusedGuessMark : null
+
+          // What the row's tiles spell: its guess, the word out with the
+          // server, or what is being typed.
+          function getRowWord(): string {
+            if (guessRow) return guessRow.guess
+            if (isInFlightRow) return marks.inFlightWord!
+            if (isTypingRow) return marks.typedWord
+            return ''
+          }
+
           return (
-            <div
-              // The mark's nonce rides in the active row's KEY: a CSS animation
-              // only replays if its element is remounted.
-              key={isActive && refused ? `${r}-${refused.nonce}` : r}
-              className={cls(
-                styles.row,
-                r === historyLitBoardRow && styles.historyRow,
-                // The refused word is still sitting in the active typing row —
-                // it was never accepted, so it never became a submitted one.
-                isActive && refused && shared.verdictRing,
-                isActive && refused && OUTCOME_TO_VERDICT_CLASS[refused.value],
-              )}
-              role="row"
-            >
-              {Array.from({ length: WORD_LENGTH }, (_, c) => {
-                let letter = ''
-                let color: TileColor = 'blank'
-                if (submitted) {
-                  letter = submitted.guess[c] ?? ''
-                  color = getTileColor(submitted.colors[c])
-                } else if (isInFlight) {
-                  letter = inFlightWord?.[c] ?? ''
-                } else if (isActive) {
-                  letter = current[c] ?? ''
-                }
-                // A judgment is the shared palette; an unjudged tile wears no
-                // color class at all — the grid's own tokens are what an empty
-                // slot looks like. See tileColors.module.css.
-                const colorClass = color === 'blank' ? undefined : tileColors[color]
-                return (
-                  <div
-                    key={c}
-                    className={cls(
-                      // The FACE only — wordle's tiles are inert (a rendered
-                      // guess, never a control), so they take the shared box and
-                      // none of the shared interaction chrome.
-                      shared.tileFace,
-                      styles.tile,
-                      // Flipping tiles take their color from the keyframes
-                      // (via --reveal-bg), not the static color class.
-                      flipping ? styles.reveal : colorClass,
-                      letter && color === 'blank' && styles.filled,
-                      // Sent, waiting on the server — the middle gray under the
-                      // shared in-flight dim, matching waffle's two cells.
-                      isInFlight && styles.inFlight,
-                      isInFlight && shared.dimInFlight,
-                    )}
-                    style={
-                      flipping
-                        ? {
-                            ['--reveal-bg' as string]: revealVar(color),
-                            ['--reveal-border' as string]: revealBorderVar(color),
-                            ['--reveal-ink' as string]: revealInkVar(color),
-                            animationDelay: `${c * REVEAL_STEP_S}s`,
-                          }
-                        : undefined
-                    }
-                    role="gridcell"
-                  >
-                    <span className={styles.letter}>{letter.toUpperCase()}</span>
-                  </div>
-                )
-              })}
-            </div>
+            <LetterRow
+              // The mark's nonce rides in the KEY: a CSS animation only
+              // replays if its element is remounted.
+              key={refusedGuessMark ? `${rowIndex}-${refusedGuessMark.nonce}` : rowIndex}
+              word={getRowWord()}
+              colors={guessRow?.colors ?? null}
+              marks={{
+                // A past turn's rows are final, so they never flip.
+                isFlipping: !isViewingHistory && !!guessRow && rowIndex >= flipBaseline,
+                isInFlight: isInFlightRow,
+                isHistoryLit: rowIndex === historyView.litBoardRow,
+                refusedGuessMark,
+              }}
+            />
           )
         })}
       </div>

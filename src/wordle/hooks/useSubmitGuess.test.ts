@@ -81,7 +81,7 @@ describe('useSubmitGuess', () => {
     expect(isAccepted).toBe(false)
     expect(result.current.inFlightWord).toBeNull()
     // `duplicate` is a warning (lib/answer.ts), not the loss a default would say.
-    expect(result.current.refused?.value).toBe('warning')
+    expect(result.current.refusedGuessMark?.value).toBe('warning')
     expect(shown).toHaveBeenCalledTimes(1)
   })
 
@@ -100,7 +100,7 @@ describe('useSubmitGuess', () => {
     })
     expect(isAccepted).toBe(false)
     expect(result.current.inFlightWord).toBeNull()
-    expect(result.current.refused?.value).toBe('lost')
+    expect(result.current.refusedGuessMark?.value).toBe('lost')
     expect(shown).toHaveBeenCalledTimes(1)
   })
 })

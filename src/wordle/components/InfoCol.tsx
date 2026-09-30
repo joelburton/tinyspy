@@ -93,9 +93,6 @@ export function InfoCol({
           <ActionButton action={actions.actNewGame} show="icon" />
           <ActionButton action={actions.actConcede} show="icon" />
           <ActionButton action={actions.actStopGame} show="icon" />
-          {/* `weight` is the placement's to choose, not the action's — filled
-              at terminal, outline while the game runs (docs/ui.md → Back to
-              club). */}
           <ActionButton
             action={actions.actBackToClub}
             show="icon"

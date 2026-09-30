@@ -474,7 +474,8 @@ Vitest, beside the code:
 | `components/PlayArea.test` | the surface mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration — the team's win, my race win, never a race I lost or a game opened already won; peer narration in both modes; the picker's labels; Concede vs Stop per mode; the board-scope marks; a landed row flips and a mounted one does not, nor one already flipped on the way back from a past turn; the physical keys and the two caps |
 
 Playwright, in `e2e/`: `wordle-history` (the viewer's overlay and the exits),
-`wordle-keyboard` (the caps' computed colors, resting and hovered),
+`wordle-colors` (the caps' computed colors, resting and hovered, and a landed
+row's tiles, with and without reduced motion),
 `wordle-mobile` (the board and keyboard fit a short phone, and the sheet),
 `wordle-print` (a real PDF downloads), and the shared specs that seed a wordle
 game as their fixture.
