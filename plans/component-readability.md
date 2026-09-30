@@ -5,8 +5,8 @@
 section shape) and [tile-feedback.md](tile-feedback.md) (the board's feedback).
 psychicnum is the control: these are the choices Joel made on it, component by
 component, in commits tagged `playarea-refactor`, `BoardCol-refactor` and
-`infocol-refactor`, then `a7040014` (players) and `ff36623e` (one in-flight
-guard). The grouped-values trial
+`infocol-refactor`, then `a7040014` (players), `ff36623e` (one in-flight
+guard) and `bf1454db` (Board and `WordTile`). The grouped-values trial
 ([DO-NOT-READ-grouped-values.md](DO-NOT-READ-grouped-values.md)) was run on
 psychicnum, and its outcome is recorded here, in the `gd` section below.
 
@@ -17,7 +17,8 @@ re-deriving them.
 
 ## How a component pass goes
 
-One component per pass: PlayArea, then BoardCol, then InfoCol. Each pass:
+One component per pass: PlayArea, then BoardCol, then InfoCol, then Board (and
+the tile it draws). Each pass:
 
 1. Read the file and propose, numbered, with no code yet: the hooks worth making,
    names, arrow constants to turn into named functions, how to shape a child's
@@ -96,6 +97,27 @@ it works.
 - **Before the return,** complex conditions become named values
   (`isDecidedByShown`, `buttonShow`, `isLocalFeedbackShown`).
 
+## Board and its tile
+
+- **A tile is its own component** (`WordTile`, with its own
+  `WordTile.module.css`): the button, the word, the dot, and the tile's CSS
+  (the decided fills, the dot, the history ring). Board's loop works out each
+  tile's values and hands them over; the eleven-class button lives in the
+  tile.
+- **The tile's props:** `word`, `decidedOutcome`, `guesser`, a `marks` group
+  (`isPicked`, `isUnderCursor`, `isInFlight`, `isFlashing`, `isShaking`,
+  `isHistoryLit`), `isDisabled`, `onClick`. The decided fill is
+  `styles[`decided_${decidedOutcome}`]`, the same pattern as the ending frame.
+- **The marks that follow a decision** (the attention flash, then the
+  head-shake on a wrong one) are one hook, `useDecidedTileMarks`, returning
+  `{ flashingWords, shakingWords }`; the long rationale is its docstring.
+- **Ask the answer table, don't fake a row:** a tile's color is
+  `getGuessOutcome(word, isCorrect)` in `lib/answer.ts`, which `eventToOutcome`
+  also calls — not a made-up event handed to `eventToOutcome`.
+- **One rule, written once:** `canPick` (`isInteractive && !isViewingHistory`)
+  feeds both the cursor and the tile's `isDisabled`; the cursor's position is
+  worked out once per render, not once per tile.
+
 ## InfoCol
 
 It takes `gd`, `selfId`, `endingMessage`, `actions` and `historyView`. The
@@ -117,6 +139,13 @@ Comments on each button go; the actions' own rules live with the actions.
 - A name says what the value is (`isPhone`, `isLocalFeedbackShown`,
   `getScoreOrOut`).
 - No `?.` / `?? 0` on a lookup that cannot miss: remove the lookup, or use `!`.
+  Check the schema before deciding it can miss: psychicnum's `decidedBy` needs
+  no `undefined`, because a player's guess rows go with their profile
+  (`on delete cascade`). Say the guarantee in a comment beside the `!`.
+- A count is named as one: `numCols`, `numRows` (the shared `BoardShape`
+  fields), never a bare `cols` / `rows` that reads like a list.
+- A type's field comments say what the field MEANS, not what the UI does
+  with it; the code that draws it says that.
 - A plain type alias for the one string a game passes everywhere
   (psychicnum's `TileWord` in `lib/tileResults.ts`), so a map or a set says
   what it holds. Only where it earns it; not an alias for every string, and
@@ -147,3 +176,6 @@ running them.
   attribute on a converted game is still written as `data-testid`.
 - `board-geometry.e2e.ts` measures psychicnum's board only once every board it
   lists can be created.
+- `useDecidedTileMarks` has no test of its own yet; it holds the flash-then-
+  shake rule, so it should get one (the flash on a played change, none on a
+  reveal, the shake only on a wrong word, after the flash).
