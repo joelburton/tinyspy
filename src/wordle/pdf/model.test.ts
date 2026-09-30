@@ -20,7 +20,7 @@ const g = (over: Partial<EventRow> & Pick<EventRow, 'word' | 'colors'>): EventRo
 
 const base = {
   brand: 'Wordle', gameTitle: 'Board 1', date: '1 Jan 2026',
-  mode: 'compete' as const, isTerminal: false,
+  mode: 'compete' as const, isGameEnded: false,
   maxGuesses: 6, wordLength: 5,
   guesses: [] as EventRow[],
   players: [{ user_id: 'u1', username: 'me' }, { user_id: 'u2', username: 'moth' }],
@@ -36,16 +36,16 @@ describe('buildWordlePrintModel — the target is a secret', () => {
     expect(buildWordlePrintModel({ ...base }).target).toBeNull()
   })
 
-  it('withholds it on a LOST game — terminal is not enough', () => {
+  it('withholds it on a LOST game — the game having ended is not enough', () => {
     // wordle hides the answer on a loss so Restart is a real second try; a
     // printout spelling it out would undo that from the outside. (This is the
-    // bug that shipped: the gate was `isTerminal`.)
-    expect(buildWordlePrintModel({ ...base, isTerminal: true }).target).toBeNull()
+    // bug that shipped: the gate was whether the game had ended.)
+    expect(buildWordlePrintModel({ ...base, isGameEnded: true }).target).toBeNull()
   })
 
   it('prints it once the answer is legitimately shown (won or revealed)', () => {
     expect(
-      buildWordlePrintModel({ ...base, isTerminal: true, answerShown: true }).target,
+      buildWordlePrintModel({ ...base, isGameEnded: true, answerShown: true }).target,
     ).toBe('CRANE')
   })
 })
@@ -78,7 +78,7 @@ describe('buildWordlePrintModel — the keyboard', () => {
   it('never pools one player’s letters into another’s keyboard', () => {
     const m = buildWordlePrintModel({
       ...base,
-      isTerminal: true,
+      isGameEnded: true,
       guesses: [
         g({ user_id: 'u1', word: 'slate', colors: 'ggggg' }),
         g({ user_id: 'u2', word: 'crane', colors: 'xxxxx' }),
@@ -108,14 +108,14 @@ describe('buildWordlePrintModel — tracks', () => {
     expect(m.tracks.map((t) => t.who)).toEqual(['You'])
   })
 
-  it('compete at terminal prints one track per player', () => {
-    const m = buildWordlePrintModel({ ...base, isTerminal: true })
+  it('compete, once the game has ended, prints one track per player', () => {
+    const m = buildWordlePrintModel({ ...base, isGameEnded: true })
     expect(m.tracks.map((t) => t.who)).toEqual(['me (you)', 'moth'])
   })
 
   it('reports each track’s own outcome', () => {
     const m = buildWordlePrintModel({
-      ...base, isTerminal: true, solvedBy: new Set(['u1']),
+      ...base, isGameEnded: true, solvedBy: new Set(['u1']),
       guesses: [g({ word: 'crane', colors: 'ggggg' })],
     })
     expect(m.tracks[0].result).toBe('Solved in 1')

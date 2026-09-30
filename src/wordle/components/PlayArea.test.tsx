@@ -2,7 +2,7 @@
 
 /**
  * wordle's play surface, mounted for real: does it render in coop, in compete
- * and at terminal, and does each surface on it do what its docstring says —
+ * and once the game has ended, and does each surface on it do what its docstring says —
  * the action row per mode and state, Reveal and Hide, the celebration, the
  * peer narration, the picker's labels, the board-scope marks, the flip, and
  * the keys.
@@ -268,7 +268,7 @@ describe('wordle PlayArea — render smoke', () => {
     expect(screen.getByRole('button', { name: /^t$/i }).className).toMatch(/wordleYellow/)
   })
 
-  it('renders the terminal state without crashing', () => {
+  it('renders an ended game without crashing', () => {
     h.loaded = loaded('crane')
     render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
@@ -283,7 +283,8 @@ describe('wordle PlayArea — render smoke', () => {
  * The icon-only action row (labels live in tooltips): ONE row, every action
  * listed once, and which buttons show is each action's own answer — Concede /
  * Stop and Back-to-club (via the shell's suspend-confirm flow, NOT direct
- * navigation) while playing; Reveal, Restart and New game join at terminal.
+ * navigation) while playing; Reveal, Restart and New game join once the game
+ * has ended.
  * New game = a fresh create_game with THIS game's setup/roster/mode (direct RPC
  * — wordle has no edge function), then ctx.goToFollowUpGame.
  */
@@ -318,9 +319,9 @@ describe('wordle PlayArea — icon-only action row', () => {
   })
 
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
-    // ONE binding for both rows: it navigates directly at terminal and routes
-    // through the suspend-confirm flow mid-game, so the game picks between no
-    // callbacks and cannot pick wrong.
+    // ONE binding for both rows: it navigates directly once the game has ended
+    // and routes through the suspend-confirm flow mid-game, so the game picks
+    // between no callbacks and cannot pick wrong.
     const user = userEvent.setup()
     h.loaded = loaded(null)
     const ctx = makeCtx()
@@ -329,7 +330,7 @@ describe('wordle PlayArea — icon-only action row', () => {
     expect(ctx.menu.actBackToClub.run).toHaveBeenCalled()
   })
 
-  it('terminal "Reveal solution" shows the word for ME, with no RPC and no confirm', async () => {
+  it('"Reveal solution" at the end shows the word for ME, with no RPC and no confirm', async () => {
     commonRpc.mockClear()
     const user = userEvent.setup()
     h.loaded = loaded('crane')
@@ -366,7 +367,7 @@ describe('wordle PlayArea — icon-only action row', () => {
     expect(reveal).toBeDisabled()
   })
 
-  it('a terminal I did NOT solve still waits to be asked', () => {
+  it('a game I did NOT solve still waits to be asked', () => {
     // The predicate is "did I solve it", never "was the game won" — which is the
     // whole difference in compete, where the game's `won` means SOMEONE won and
     // the player three guesses off never produced the word.
@@ -384,7 +385,7 @@ describe('wordle PlayArea — icon-only action row', () => {
     expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
-  it('terminal "New game" button starts a fresh game with this setup/roster/mode', async () => {
+  it('the ending\'s "New game" button starts a fresh game with this setup/roster/mode', async () => {
     // `createNewGame` calls db.rpc('create_game', …), which answers the envelope
     // itself as one jsonb value (no `.single()`) — mocked for this call only.
     rpc.mockImplementation((name: string) =>
@@ -414,14 +415,14 @@ describe('wordle PlayArea — icon-only action row', () => {
 })
 
 /**
- * Terminal flow (the waffle treatment — docs/ui.md → Terminal results). No
+ * The ending (the waffle treatment — docs/ui.md → Terminal results). No
  * modal carries the verdict; a win pops the CelebrationBlockingModal at the
  * MOMENT it lands (the ending arriving) — the team's in coop, mine in compete —
- * never on mounting an already-won game. And the word stays HIDDEN at a
- * terminal this viewer did not solve until they ask for it — a local,
+ * never on mounting an already-won game. And the word stays HIDDEN in a
+ * game this viewer did not solve until they ask for it — a local,
  * reversible display toggle (useSolutionReveal), no RPC and no peer affected.
  */
-describe('wordle PlayArea — terminal flow', () => {
+describe('wordle PlayArea — the ending', () => {
   /** The game sections most recently pushed to the menu, as the ROWS the menu
    *  would draw — a row is a bound action now, so its words, glyph and
    *  availability come from the action rather than from the list. */
@@ -435,7 +436,8 @@ describe('wordle PlayArea — terminal flow', () => {
     h.loaded = loaded('crane')
     render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_LOST })} />)
     expect(screen.getByText('Out of guesses')).toBeInTheDocument()
-    // The target is on the client (post-terminal shield-lift) but NOT displayed.
+    // The target is on the client (its shield lifts once the game ends) but NOT
+    // displayed.
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
     expect(screen.queryByText('Game over')).not.toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -448,7 +450,7 @@ describe('wordle PlayArea — terminal flow', () => {
     render(<PlayAreaLoader {...ctx} />)
 
     const reveal = menuItems(ctx).find((i) => i.id === 'act-reveal')!
-    expect(reveal.disabled).toBeFalsy() // terminal → offered
+    expect(reveal.disabled).toBeFalsy() // ended → offered
     expect(reveal.label).toBe('Reveal solution')
     act(() => reveal.run())
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
@@ -486,18 +488,18 @@ describe('wordle PlayArea — terminal flow', () => {
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
   })
 
-  it('"Restart" at terminal calls replay_board WITHOUT confirming', async () => {
+  it('"Restart" once the game has ended calls replay_board WITHOUT confirming', async () => {
     const ctx = makeCtx({ gameEnding: COOP_LOST })
     h.loaded = loaded('crane')
     render(<PlayAreaLoader {...ctx} />)
 
     act(() => menuItems(ctx).find((i) => i.id === 'act-restart')!.run())
     // No ConfirmationHost is mounted, so a question would have stalled the run —
-    // the RPC firing proves the shared run asked nothing at terminal.
+    // the RPC firing proves the shared run asked nothing once the game had ended.
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
   })
 
-  it('offers Restart in the terminal row (left of Club), calling replay_board unconfirmed', async () => {
+  it('offers Restart in the ending\'s row (left of Club), calling replay_board unconfirmed', async () => {
     const user = userEvent.setup()
     h.loaded = loaded('crane')
     render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_LOST })} />)
@@ -667,7 +669,7 @@ describe('wordle PlayArea — terminal flow', () => {
  * Input-gating characterization. The board-gate prop (`readOnly`) controls
  * whether the on-screen keyboard accepts input. Pinning the OBSERVABLE effect —
  * keyboard enabled during play, disabled
- * at terminal — so a polarity flip that inverts the gate fails here instead of
+ * once the game has ended — so a polarity flip that inverts the gate fails here instead of
  * silently shipping (the unit suite otherwise barely exercises gating).
  */
 describe('wordle PlayArea — input gating', () => {
@@ -680,7 +682,7 @@ describe('wordle PlayArea — input gating', () => {
     expect(keyboardKey()).toBeEnabled()
   })
 
-  it('the on-screen keyboard is blocked at terminal', () => {
+  it('the on-screen keyboard is blocked once the game has ended', () => {
     h.loaded = loaded('crane')
     render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />) // gate closed
     expect(keyboardKey()).toBeDisabled()
@@ -858,7 +860,7 @@ describe('wordle PlayArea — concede', () => {
     expect(screen.getByText('3')).toBeInTheDocument()
   })
 
-  it('shows the "You conceded" locally-terminal look after I concede', () => {
+  it('shows the "You conceded" line after I concede', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({ mode: 'compete', players: [gp('u1', 'me', 'red', CONCEDED), gp('u2', 'moth', 'blue')] })}
@@ -1063,11 +1065,11 @@ describe('wordle Board — the reveal flip', () => {
 })
 
 /**
- * A racer who has SOLVED the word and is waiting for the others is out of the
- * race (locally terminal) with a win maybe banked: conceding could only throw
+ * A player who has SOLVED the word and is waiting for the others has ended,
+ * with a win maybe banked: conceding could only throw
  * it away. Their one flag is Stop for all.
  */
-describe('wordle PlayArea — a solved racer cannot concede', () => {
+describe('wordle PlayArea — a solved player cannot concede', () => {
   it('solved and waiting: the flag is Stop, not Concede', () => {
     render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [meOut, twoMembers[1]!] })} />)
     expect(screen.getByText('Waiting for others')).toBeInTheDocument()
@@ -1089,7 +1091,7 @@ describe('wordle PlayArea — a solved racer cannot concede', () => {
  * was asked rather than skipped.
  */
 describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
-  it('+ at terminal starts the follow-up game with no question', async () => {
+  it('+ once the game has ended starts the follow-up game with no question', async () => {
     rpc.mockImplementation((name: string) =>
       name === 'create_game'
         ? Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))

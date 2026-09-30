@@ -13,6 +13,6 @@ import { supabase } from '@/common/supabase/supabase'
  *
  * The FE reads `games_state` (the security_invoker view) for the game
  * header, never the base `wordle.games` table — the view is the path to
- * the gated `target`, which it hands over once the game is terminal.
+ * the gated `target`, which it hands over once the game has ended.
  */
 export const db = supabase.schema('wordle')

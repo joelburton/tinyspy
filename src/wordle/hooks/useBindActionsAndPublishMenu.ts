@@ -172,7 +172,7 @@ export function useBindActionsAndPublishMenu({
           gameTitle: gd.title,
           date: new Date().toLocaleDateString(),
           mode: gd.mode,
-          isTerminal: gd.isGameEnded,
+          isGameEnded: gd.isGameEnded,
           maxGuesses: gd.readout.maxGuesses,
           wordLength: WORD_LENGTH,
           guesses: gd.events,

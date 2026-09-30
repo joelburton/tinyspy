@@ -164,6 +164,43 @@ new test by planting the bug it guards against. psychicnum's e2e specs are
 `events-realtime`, `page-no-scroll` and the two `infosheet-*` specs. Ask before
 running them.
 
+## What wordle added
+
+wordle took the same passes in the same order (PlayArea `7f9c90b2`, BoardCol
+`9d6982e2`, Board `82eebe11`, InfoCol `45d932b0`), untagged: the tags were only
+psychicnum's. What it settled beyond psychicnum:
+
+- **A component per visual unit.** wordle's unit is the row — it flips, rings
+  when refused, and is what the history view lights — so Board draws
+  `LetterRow`s and each row draws `LetterTile`s, each with its own CSS module.
+  Board's loop works out each row's values and hands them over.
+- **Name a value that has cases with `if`s, not a ternary chain.** A row's word
+  is `getRowWord()`, a small function declared where its inputs are, with one
+  `if` per kind of row.
+- **BoardCol's move splits in two,** as psychicnum's did: the entry
+  (`useTypedGuess`, the typed word from either keyboard) and the round trip
+  (`useSubmitGuess`, the word out with the server and the refusal mark).
+  `submitGuess` resolves to whether the guess was accepted.
+- **One Submit action.** `act-submit-entry` is gone: a typed entry
+  (`useCaptureKeys`) and a board-built move both bind `act-submit`.
+- **A closed set names every case, and `default` throws.** `getTileColor
+  (colorCode: ColorCode)` names `g`/`y`/`x`/`.` and throws on anything else; a
+  tile with no colors is its caller's to call `blank`. A switch over a union
+  names each value.
+- **An animation reads the class's tokens.** The flip lands on the tile's own
+  color class (`--tile-slot-*`), not on colors worked out in TypeScript, and a
+  kept e2e spec (`wordle-colors`) checks the painted result, since jsdom can't.
+- **What the page shows may come from a status,** read by any part of the page
+  (plans/common-tables.md → The statuses) — wordle's compete tie wording reads
+  `player_status.tie_broken_by_clock`.
+- **An RPC's answer key says what it means:** `submit_guess` answers
+  `game_ended`, true only when that guess ended the game for everyone.
+- **Ending builders nest their words function,** and the player's own outcome
+  is `playerOutcome` beside the game's `gameEnding.outcome` — a trial in
+  psychicnum and wordle, not yet a rule.
+- **Comments:** a prop whose name says what it is has no comment; a type's
+  field comment says what the field means.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /
@@ -178,6 +215,3 @@ running them.
   attribute on a converted game is still written as `data-testid`.
 - `board-geometry.e2e.ts` measures psychicnum's board only once every board it
   lists can be created.
-- `useDecidedTileMarks` has no test of its own yet; it holds the flash-then-
-  shake rule, so it should get one (the flash on a played change, none on a
-  reveal, the shake only on a wrong word, after the flash).

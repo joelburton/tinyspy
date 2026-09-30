@@ -89,9 +89,9 @@ export type GameData = {
     requiredSecretsCount: number
     // The guess budget: the team's in coop, each player's own in compete.
     maxGuesses: number
-    // The counts that apply to me: the team's in coop, my own in compete. A
-    // club member watching a compete game has none, so reads as nothing found
-    // and the budget spent.
+    // The counts that apply to me: the team's in coop, my own in compete.
+    // SPECTATING: a club member watching a compete game has none, so reads as
+    // nothing found and the budget spent.
     foundSecretsCount: number
     guessesUsed: number
   }

@@ -82,7 +82,8 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WordlePrintModel)
   y = drawKeyboard(doc, t.keys, track, y) + 10
 
   // The answer, printed once per column so a column stands alone if the pages
-  // get separated. Terminal only — the model won't emit it before then.
+  // get separated. Only while it is shown on screen — the model emits it then
+  // and not otherwise.
   if (m.target) {
     doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
     doc.text(fit(doc, `Answer: ${m.target}`, track.width), track.x, y)

@@ -79,7 +79,7 @@ every word on the list is at band 2 or easier, so its floor is 2
 
 | term | what it means |
 |---|---|
-| **target** | the hidden answer. A column on `wordle.games` no client can read; `games_state` shows it once the game is terminal |
+| **target** | the hidden answer. A column on `wordle.games` no client can read; `games_state` shows it once the game has ended |
 | **guess** | a submitted word. An accepted one is a row in `wordle.events` with its `colors`; a soft reject is not |
 | **colors** | five characters, one per letter — `g`, `y`, `x` — computed by the server when the row is written. The frontend paints them and never recomputes them |
 | **soft reject** | `duplicate` or `notAWord`: the rules applied, nothing spent, nothing written. Answered as an `ok` naming the case |
@@ -316,18 +316,18 @@ else about a guess is the server's to decide: the frontend holds no word list
 and no target, so the dictionary is out of its reach, and the duplicate — which
 it could see, the board being in front of it — is left to the server too.
 
-**The colors are the server's, and so is the moment they show.** `BoardCol`
-sends the word and keeps it on the board uncolored while the call is out; the
-reply's `colors`, `solved` and `game_ended` are not read there. The colored row
-arrives over the subscription, as it does for everyone, and the pending word
-flips in place when its row lands. A solve shows nothing extra at the call
-site either — the verdict follows from the play state, which arrives the same
+**The colors are the server's, and so is the moment they show.**
+`useSubmitGuess` sends the word and keeps it on the board uncolored while the
+call is out; the reply's `colors`, `solved` and `game_ended` are not read
+there. The colored row arrives with the page's next read, as it does for
+everyone, and the pending word flips in place when its row lands. A solve
+shows nothing extra at the call site either — the ending arrives the same
 way.
 
 **Every answer this game gives is named, and `lib/answer.ts` says what it
 reads as.** A call site never picks a color or writes a sentence; the log
 draws the guess as five colored squares and takes the color alone. Holding a
-reply or its own refusal, `BoardCol` names an `answerType` and calls
+reply or its own refusal, `useSubmitGuess` names an `answerType` and calls
 `answerMessage()`; holding a logged row, the log calls `eventToOutcome(row)`
 for its bar and `PlayArea` calls `peerAnswerMessage(row)` for a teammate's
 header line. One function underneath all of them, so the below-board pill,
@@ -345,17 +345,17 @@ move.
 
 The two peer lines are the two modes' one visible peer event each. Coop
 narrates every teammate's accepted guess, in the row's own outcome; compete
-cannot see an opponent's rows and narrates the one thing it can, the
-`players.solved` flag flipping — green, because the outcome follows the event
-and not the viewer's stake. The terminal verdict and the out-of-race lines are
-standing conditions of the local slot, not answers to a move; they are built
-in `PlayArea`.
+cannot see an opponent's rows and narrates the one thing it can, a player's
+`solved_at` being set (`useShowOppsSolvedMessages`) — green, because the
+outcome follows the event and not the viewer's stake. The ending's lines, the
+game's and mine, are standing conditions of the local slot, not answers to a
+move (`lib/gameEndingMessage.ts`, `lib/playerEndingMessage.ts`).
 
 **New game is a plain `create_game`.** The play surface calls it directly with
 this game's setup, roster and mode, and the creator jumps to the new game
 while the others arrive by the invitation toast. Mid-game the shell asks
-first, since starting another shelves this one; at terminal there is nothing
-to interrupt.
+first, since starting another shelves this one; once the game has ended there
+is nothing to interrupt.
 
 ## Frontend
 
@@ -364,10 +364,11 @@ describes — a loader that gates on the three ways a game can fail to load,
 then `PlayArea` in the eight sections.
 
 ```
-<PlayAreaLoader {...GamePageCtx}>        useGame, and the three gates
+<PlayAreaLoader {...GamePageCtx}>        useGame (gd), and the three gates
   └── PlayArea                           the coordinator: draws no board, no control
-        ├── BoardCol                     the board column — and submit_guess
-        │     ├── Board                  max_guesses rows of five tiles
+        ├── BoardCol                     the typed word and submit_guess
+        │     ├── Board                  max_guesses rows
+        │     │     └── LetterRow        one row: its rings, and five LetterTiles
         │     └── the below-board region
         │           ├── HistoryBanner ←   overlays the region while a past turn is open
         │           ├── FeedbackPill ←    the local slot, its height reserved
@@ -375,20 +376,27 @@ then `PlayArea` in the eight sections.
         ├── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
         │     └── InfoCol                the readouts and the action row
         │           ├── TurnStatusLine ← turn-order coop only
-        │           ├── OpponentStrip ←  compete only: each rival's guess count, or "out"
+        │           ├── OpponentStrip ←  compete only: each player's guess count, or "out"
         │           ├── InfoActionsRow ← one row, every action, in the menu's order
-        │           ├── the answer line  terminal, and only once this viewer asks
+        │           ├── the answer line  once the game has ended, and only once this viewer asks
         │           ├── SetupDisclosure ←
         │           └── GameEventLog     one row per guess: five colored squares
-        └── CelebrationBlockingModal ←   the win — the team's, or mine in a race — as it lands
+        └── CelebrationBlockingModal ←   my win — the team's, or mine in compete — as it lands
 
   ← belongs to common/ ; ⇐ to shared/ ; everything else is this folder's
 ```
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
-play_state, pause, chat — and unmounts this whole surface on pause. The state
+the ending, pause, chat — and unmounts this whole surface on pause. The state
 line at the top of the info column ("3/6 guesses") is a paragraph of
-`InfoCol`'s own. `Help` and `SetupForm` are the shell's to mount, from the menu
+`InfoCol`'s own.
+
+`PlayArea` reads `gd` and hands the two columns `gd` whole; what it does itself
+is in named hooks — `useBindActionsAndPublishMenu` (every command and the
+menu), `useHistoryView` (a past turn, replayed by `lib/history.ts`'s
+`replayTurn`), the two ending-message hooks, and the peer narration.
+`BoardCol`'s are `useTypedGuess` (the typed word, from either keyboard) and
+`useSubmitGuess` (the word out with the server, and the refusal mark). `Help` and `SetupForm` are the shell's to mount, from the menu
 and the start-game dialog.
 
 What is wordle's own:
@@ -399,7 +407,10 @@ What is wordle's own:
   keyboard leaves — at every viewport width, since a short desktop window is
   a phone-height window (`Board.module.css`).
 - **A row that lands flips.** Each tile turns over in turn and paints its
-  color at the midpoint; rows already on the board when it mounted — a
+  color at the midpoint — the keyframes land on the tile's own color class,
+  which it wears throughout (`LetterTile.module.css`). `useFlipBaseline` holds
+  the line between rows that flip and rows that don't: rows already on the
+  board when it mounted — a
   mid-game refresh, an opponent's finished board — draw settled. A Restart
   remounts the whole surface, so the replayed game's first row flips like any
   other landing. Coming back from a past turn flips only a row that landed
@@ -409,19 +420,21 @@ What is wordle's own:
 - **The keyboard is the alphabet's record.** Each cap wears the strongest
   color its letter has earned across the live rows; Enter and ⌫ are the same
   bound actions the physical keys answer to, so a cap and its key cannot
-  disagree, and both go gray on an empty row. At terminal the keyboard stays,
-  disabled, because its caps are the record of the game.
+  disagree, and both go gray on an empty row (`lib/colors.ts`'s
+  `makeKeyColors`, which the printout's keyboard uses too). Once the game has
+  ended the keyboard stays, disabled, because its caps are the record of the
+  game.
 - **Two checks are local** — five letters typed, and a row that is not empty
   (see FE submissions). Everything else is the server's, and the pill reads
   `lib/answer.ts`.
 - **The event log** is one row per guess — the guess as five colored squares,
   definable as a word, since every accepted guess is in the dictionary — and
-  its picker's compete options mean something only because RLS opens at
-  terminal; an opponent's log during play says *Hidden until game ends*. A
+  its picker's compete options mean something only because RLS opens once the
+  game ends; an opponent's log during play says *Hidden until game ends*. A
   `#N` replays that turn on the board (`lib/history.ts`): the rows up to and
   including it, that row ringed, addressed by the row's id so a filter cannot
-  move it, and folding the rows of whoever wrote it — so an opponent's `#N` at
-  a compete terminal replays their board.
+  move it, and folding the rows of whoever wrote it — so an opponent's `#N`,
+  once a compete game has ended, replays their board.
 - **The ending** is the pill and the row's line (`lib/gameEndingMessage.ts`,
   and `lib/playerEndingMessage.ts` for a compete player who has ended while
   the others play on), the frozen board banded in its outcome, and the
@@ -436,9 +449,9 @@ What is wordle's own:
   its on-screen QWERTY shape, and that board's guesses as plain words. The
   four tile states print as border and fill weight rather than color, since a
   mono printer flattens green, yellow and gray to one gray. Coop is the one
-  shared track; compete is one per player at terminal and just yours during
-  play. The answer prints only when it is on screen — a win or a Reveal, not
-  merely terminal — so a printout cannot undo the hide.
+  shared track; compete is one per player once the game has ended and just
+  yours during play. The answer prints only when it is on screen — a win or a
+  Reveal, not merely an ended game — so a printout cannot undo the hide.
 
 ## Tests
 
@@ -457,7 +470,7 @@ winning guess or five that miss:
 | `concede_test` | a conceder counts as done and forfeits, unranked; the last one out ends the race, and its reason is their act — everyone conceding is `conceded`, a concession then the other racer running out is `exhausted`; the builder runs after an ending concession; coop is refused |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, an accepted guess advances, a soft reject does not, free-for-all leaves the pointer null |
 | `stop_game_test` · `replay_test` | the timeout in both modes — coop's loss, a race ended as it stands with and without a solver — and the Stop, each idempotent and each revealing the target; Restart undoes everything a loss wrote — rows, counts, the clock, the title, and the target's shield — and keeps the word |
-| `reveal_test` | the target unshields at terminal whatever the outcome; `_sync_title` never spells the answer of a game the players may still replay blind |
+| `reveal_test` | the target unshields once the game ends, whatever the outcome; `_sync_title` never spells the answer of a game the players may still replay blind |
 | `legal_band_test` · `banded_answer_test` | the same word is `notAWord` under a strict band and legal under a loose one; an answer banded out from under a live game still solves it |
 
 `colors_test` sits in the folder too, but pins `common._wordle_colors` and
@@ -468,7 +481,10 @@ Vitest, beside the code:
 | file | pins |
 |---|---|
 | `lib/answer.test` · `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every `answerType`'s words and outcome; every ending's words per mode, reason and player outcome |
-| `lib/history.test` · `lib/colors.test` | the inclusive boundary and the ringed row, by id; the keyboard's strength order |
+| `lib/history.test` · `lib/colors.test` | the inclusive boundary and the ringed row, by id, and only the author's rows in compete; the keyboard's strength order and each letter's strongest color |
+| `hooks/useGame.test` | `gd` from the two reads and the page — the budget, each player's count, ending and tie flag, the board's rows per mode, a watcher's count; no game vs a failed read, and an outage that ends |
+| `hooks/useBindActionsAndPublishMenu.test` · `hooks/useHistoryView.test` | the menu's rows and order, and Reveal before and after the end; a past turn opened and closed, and whose board it is |
+| `hooks/useSubmitGuess.test` · `hooks/useFlipBaseline.test` | a short word makes no call, an accepted word stays until its row lands, a refusal rings in its own outcome; which rows flip, before and after a past turn |
 | `lib/setup.test` · `components/SetupForm.test` | the Start gate names `legal_band`, and the floor the answer source sets; the form's three controls and where a refusal lands |
 | `pdf/model.test` | the target never prints before it shows on screen; the keyboard is derived per player, never pooled |
 | `components/PlayArea.test` | the surface mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration — the team's win, my race win, never a race I lost or a game opened already won; peer narration in both modes; the picker's labels; Concede vs Stop per mode; the board-scope marks; a landed row flips and a mounted one does not, nor one already flipped on the way back from a past turn; the physical keys and the two caps |
