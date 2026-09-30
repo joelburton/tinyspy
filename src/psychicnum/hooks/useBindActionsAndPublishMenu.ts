@@ -277,7 +277,7 @@ export function useBindActionsAndPublishMenu({
           isGameEnded: gd.isGameEnded,
           words: gd.board.words,
           events: gd.events,
-          requiredSecretsCount: gd.requiredSecretsCount,
+          requiredSecretsCount: gd.readout.requiredSecretsCount,
           players: roster,
           selfId,
           setupRows: gd.setupRows,

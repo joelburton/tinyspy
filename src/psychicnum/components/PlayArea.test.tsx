@@ -272,6 +272,19 @@ describe('psychicnum PlayArea — concede', () => {
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
+  it('marks an opponent out of guesses "out" too', () => {
+    h.loaded = loaded(competeGame)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', SPENT)],
+        })}
+      />,
+    )
+    expect(screen.getByText('out')).toBeInTheDocument()
+  })
+
   it('shows the "You conceded" player-ended look after I concede', () => {
     h.loaded = loaded(competeGame)
     render(

@@ -3,68 +3,52 @@
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
+import {
+  EventLog,
+  EventLogActor,
+  EventLogOutcomeBar,
+  EventLogNumber,
+} from '@/common/event-log/EventLog'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import { eventToOutcome } from '../lib/answer'
 import type { Player, EventRow } from '../hooks/useGame'
+import type { HistoryView } from '../hooks/useHistoryView'
 import styles from './GameEventLog.module.css'
 
 type Props = {
   // Every turn the viewer can see. Coop: the whole shared game. Compete: the
   // viewer's own during play, and (once the game has ended, when RLS opens)
   // everyone's.
-  guesses: EventRow[]
+  events: EventRow[]
   players: Player[]
   selfId: string
   mode: 'coop' | 'compete'
   // Distinguishes an opponent's RLS-hidden log from a genuinely empty one.
   isGameEnded: boolean
-  // The turn currently open in the board viewer — the row's own id — or null
-  // when live. Its `#N` handle wears the shared history-blue ring.
-  historyId: number | null
-  // Open a turn in the board viewer (click its `#N`) — the row's id, and the
-  // `#N` this log printed beside it, which is what the banner shows back.
-  onShowHistory: (id: number, n: number) => void
+  // The turn open on the board: its `#N` wears the history-blue ring, and a
+  // `#N` click opens another.
+  historyView: HistoryView
 }
 
 /**
- * psychicnum's event log — its turns (guesses, hints, spoilers) rendered with the
- * shared `<EventLog>` table. (Named GameEventLog, not GuessHistory: it's this
- * game's event log, and a turn isn't always a guess — see EventLog.tsx.)
+ * psychicnum's event log: its turns in the shared `<EventLog>` table, one row
+ * each, colored by `lib/answer.ts`. Three row kinds:
+ *   - a **guess** → the word and "Correct" / "Wrong";
+ *   - a **spoiler** (a secret handed over) → the word and "Spoiler";
+ *   - a **hint** (a clue) → one cell spanning both, "Hint: <clue>".
  *
- * Stateless and presentational — owns no state, makes no RPC calls, just renders
- * the rows from the props it's given, newest snapping into view.
- *
- * Each turn is a single `<tr>` psychicnum renders itself (the row anatomy is the
- * game's — see EventLog.tsx): the shared `<EventLogOutcomeBar>` cell, then the turn number
- * (muted), the word (bold — the important part), the result, and the actor
- * (right-aligned with their identity dot, so the dots line up down the column).
- * Cells use `<EventLog>`'s content classes so they match other games' logs; the
- * `.divider` class on each row draws the between-turns line (suppressed on
- * the first by `:first-child`).
- *
- * Three row kinds. The bar's color is `lib/answer.ts`'s in every one of them —
- * the log names no word of its own — and what differs here is the CELLS:
- *   - a **guess** → word + result ("Correct" / "Wrong").
- *   - a **spoiler** (a secret handed over) → word + "Spoiler".
- *   - a **hint** (a clue) → the word+result columns are **replaced by a single
- *     colspan** cell "Hint: <clue>" (the row carries the clue text, not a word).
- *
- * **Whose turns** are shown is picked by the shared `useEventLogPlayerPicker`
- * dropdown in the header — one vocabulary across every event-log game (solo: your
- * handle; coop: "Team" plus each player; compete: "All" plus each player). In
- * compete an opponent's rows are RLS-hidden during play and open once the game
- * has ended, which is exactly what the picker's empty text says.
+ * Whose turns show is the shared `useEventLogPlayerPicker`'s: "Team" or "All"
+ * plus each player. In compete an opponent's rows are hidden by RLS until the
+ * game ends, which is what the picker's empty text says.
  */
 export function GameEventLog({
-  guesses,
+  events,
   players,
   selfId,
   mode,
   isGameEnded,
-  historyId,
-  onShowHistory,
+  historyView,
 }: Props) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
@@ -73,69 +57,59 @@ export function GameEventLog({
     isTerminal: isGameEnded,
     emptyLabel: 'No turns yet.',
   })
-  const shown = eventLogPicker.filter(guesses)
+  const shownEvents = eventLogPicker.filter(events)
 
-  // The actor's identity cell — shared by every row kind. The shared
-  // <EventLogActor> is the right-aligned `.who` <td> wrapping the name + disc;
-  // this local helper just resolves the userId to a member first.
-  const whoCell = (userId: string) => (
-    <EventLogActor actor={memberById(players, userId)} />
-  )
+  function drawActorCell(userId: string) {
+    return <EventLogActor actor={memberById(players, userId)} />
+  }
 
-  // The "#N" cell, shared by every row kind. The NUMBER is the row's place in
-  // the list on show — it counts 1, 2, 3 under whatever filter is applied, which
-  // from the reader's seat is honest. The HANDLE is the row's own id, so the
-  // board opens the event the number is beside whatever the filter did.
-  const turnNumber = (row: EventRow, i: number) => (
-    <EventLogNumber
-      n={i + 1}
-      isOpenInHistory={historyId === row.id}
-      onShowHistory={() => onShowHistory(row.id, i + 1)}
-    />
-  )
+  // The NUMBER counts 1, 2, 3 under whatever filter is on; the handle is the
+  // row's own id, so the board opens the event the number is beside.
+  function drawTurnNumber(event: EventRow, index: number) {
+    return (
+      <EventLogNumber
+        n={index + 1}
+        isOpenInHistory={historyView.viewedEventId === event.id}
+        onShowHistory={() => historyView.show(event.id, index + 1)}
+      />
+    )
+  }
+
+  // The verdict word is the log's own; its color is `lib/answer.ts`'s.
+  function makeResultText(event: EventRow): string {
+    if (event.kind === 'spoiler') return 'Spoiler'
+    else if (event.is_correct) return 'Correct'
+    else return 'Wrong'
+  }
 
   return (
-    <EventLog heading="Turns" picker={eventLogPicker} shown={shown}>
-      {shown.map((g, i) => {
-        // Hint: the word + result columns collapse into one colspan cell, since
-        // the row carries a clue sentence, not a word + a one-word result.
-        if (g.kind === 'hint') {
+    <EventLog heading="Turns" picker={eventLogPicker} shown={shownEvents}>
+      {shownEvents.map((event, index) => {
+        if (event.kind === 'hint') {
           return (
-            <tr key={g.id} className={gameEventLog.divider}>
-              <EventLogOutcomeBar outcome={eventToOutcome(g)} />
-              {turnNumber(g, i)}
-              {/* The hint sentence spans the word+result columns; it's the row's
-                  main column (absorbs the slack so `.who` stays snug). */}
+            <tr key={event.id} className={gameEventLog.divider}>
+              <EventLogOutcomeBar outcome={eventToOutcome(event)} />
+              {drawTurnNumber(event, index)}
+              {/* The clue spans the word and result columns, and is the row's
+                  main column. */}
               <td colSpan={2} className={cls(gameEventLog.main, styles.hint)}>
-                <span className={gameEventLog.muted}>Hint:</span> {g.word}
+                <span className={gameEventLog.muted}>Hint:</span> {event.word}
               </td>
-              {whoCell(g.user_id)}
+              {drawActorCell(event.user_id)}
             </tr>
           )
         }
-        // A guess (right or wrong), or a spoiler — the answer, handed over.
-        const isSpoiler = g.kind === 'spoiler'
         return (
-          <tr key={g.id} className={gameEventLog.divider}>
-            {/* The color is `lib/answer.ts`'s, so the log has none of its own
-                to disagree with the pill about the same turn. The row's WORDS
-                are the log's — the word and the verdict are two columns here,
-                not a sentence. */}
-            <EventLogOutcomeBar outcome={eventToOutcome(g)} />
-            {turnNumber(g, i)}
-            {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
-                result = the main column, absorbing the slack so the word + result
-                stay clustered and `.who` sits snug at the right. A guessed or
-                spoiled word is a real dictionary word, so it is definable; a
-                HINT row's `word` is a clue sentence, so its cell above is not. */}
+          <tr key={event.id} className={gameEventLog.divider}>
+            <EventLogOutcomeBar outcome={eventToOutcome(event)} />
+            {drawTurnNumber(event, index)}
+            {/* A guessed or spoiled word is a dictionary word, so it can be
+                looked up; a hint's clue above cannot. */}
             <td className={cls(gameEventLog.other, gameEventLog.primary)}>
-              <DefinableWord word={g.word} />
+              <DefinableWord word={event.word} />
             </td>
-            {/* The log writes its own words — a word and a verdict are two
-                columns here, not a sentence — but the VERDICT word is the
-                game's, and `lib/answer.ts` says it is "Wrong". */}
-            <td className={gameEventLog.main}>{isSpoiler ? 'Spoiler' : g.is_correct ? 'Correct' : 'Wrong'}</td>
-            {whoCell(g.user_id)}
+            <td className={gameEventLog.main}>{makeResultText(event)}</td>
+            {drawActorCell(event.user_id)}
           </tr>
         )
       })}

@@ -85,18 +85,21 @@ export type GameData = {
   // hand-written lists had drifted into reporting different facts on paper
   // than on screen.
   setupRows: SetupRow[]
-  // The guess budget: the team's in coop, each player's own in compete.
-  maxGuesses: number
   // The three secret words; null until the game ends (the view hands them
   // over then).
   secrets: string[] | null
-  requiredSecretsCount: number
-  // The counts that apply to me, against `requiredSecretsCount` and
-  // `maxGuesses`: the team's in coop, my own in compete. A club member
-  // watching a compete game has none, so reads as nothing found and the
-  // budget spent.
-  foundSecretsCount: number
-  guessesUsed: number
+  // The state line's four counts ("1/3 found · 4/7 guesses used").
+  readout: {
+    // How many secrets the board hides.
+    requiredSecretsCount: number
+    // The guess budget: the team's in coop, each player's own in compete.
+    maxGuesses: number
+    // The counts that apply to me: the team's in coop, my own in compete. A
+    // club member watching a compete game has none, so reads as nothing found
+    // and the budget spent.
+    foundSecretsCount: number
+    guessesUsed: number
+  }
   isTurnBased: boolean
   // The turn pointer as stored; a record, not a claim — it outlives the end.
   turnHolderId: string | null
@@ -230,11 +233,13 @@ export function makeGameData(
     title: ctx.title,
     setup: readSetup(ctx),
     setupRows,
-    maxGuesses,
     secrets: rows.secrets,
-    requiredSecretsCount: gameStatus.required_secrets_count,
-    foundSecretsCount: isCompete ? (me?.foundSecretsCount ?? 0) : teamFoundSecretsCount,
-    guessesUsed: isCompete ? (me?.guessesUsed ?? maxGuesses) : teamGuessesUsed,
+    readout: {
+      requiredSecretsCount: gameStatus.required_secrets_count,
+      maxGuesses,
+      foundSecretsCount: isCompete ? (me?.foundSecretsCount ?? 0) : teamFoundSecretsCount,
+      guessesUsed: isCompete ? (me?.guessesUsed ?? maxGuesses) : teamGuessesUsed,
+    },
     isTurnBased: ctx.isTurnBased,
     turnHolderId: ctx.turnHolderId,
     turnHolder: ctx.turnHolderId === null ? null : (players[ctx.turnHolderId] ?? null),

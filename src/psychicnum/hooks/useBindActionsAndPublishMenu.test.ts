@@ -29,7 +29,7 @@ function gdWith(over: { isGameEnded?: boolean; isStillPlaying?: boolean; isCompe
     board: { words: [] },
     events: [],
     players: {},
-    requiredSecretsCount: 3,
+    readout: { requiredSecretsCount: 3 },
     standing: {
       isPlayerEnded: false,
       isStillPlaying: over.isStillPlaying ?? !isGameEnded,

@@ -1,5 +1,7 @@
 // cs-blessed-psychicnum
 
+import type { GameData } from '../hooks/useGame'
+
 /**
  * psychicnum's core live-state readout — "1/3 found · 4/7 guesses used".
  *
@@ -9,32 +11,18 @@
  * the info column is off-canvas in the InfoSheet). Bare inline content — each
  * caller supplies its own wrapper element + text styling.
  *
- * Both readouts are per-viewer in compete (my finds, my budget) and team-wide in
- * coop; the caller resolves that and passes numbers. The counters are bold and
- * the labels aren't: the numbers are what's read at a glance.
+ * The counters are bold and the labels aren't: the numbers are what's read at
+ * a glance.
  */
-export function StateLine({
-  found,
-  secretCount,
-  guessesUsed,
-  maxGuesses,
-}: {
-  // Secrets found (mine in compete, the team's in coop).
-  found: number
-  // How many secrets the board hides.
-  secretCount: number
-  // Guesses spent out of the budget.
-  guessesUsed: number
-  maxGuesses: number
-}) {
+export function StateLine({ readout }: { readout: GameData['readout'] }) {
   return (
     <>
       <strong>
-        {found}/{secretCount}
+        {readout.foundSecretsCount}/{readout.requiredSecretsCount}
       </strong>{' '}
       found ·{' '}
       <strong>
-        {guessesUsed}/{maxGuesses}
+        {readout.guessesUsed}/{readout.maxGuesses}
       </strong>{' '}
       guesses used
     </>

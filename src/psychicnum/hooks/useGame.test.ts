@@ -162,8 +162,8 @@ describe('psychicnum useGame — a load that worked', () => {
   it('reads the budget and the secret count off game_status', async () => {
     answer(ALL_GOOD)
     const gd = (await load()).current.gd!
-    expect(gd.maxGuesses).toBe(7)
-    expect(gd.requiredSecretsCount).toBe(3)
+    expect(gd.readout.maxGuesses).toBe(7)
+    expect(gd.readout.requiredSecretsCount).toBe(3)
   })
 
   it('keys the players by id, in the page\'s order, each with their own counts and ending', async () => {
@@ -206,7 +206,7 @@ describe('psychicnum useGame — a load that worked', () => {
   it('gives the counts that apply to me — my own in compete', async () => {
     answer(ALL_GOOD)
     const gd = (await load()).current.gd!
-    expect([gd.foundSecretsCount, gd.guessesUsed]).toEqual([1, 2])
+    expect([gd.readout.foundSecretsCount, gd.readout.guessesUsed]).toEqual([1, 2])
   })
 
   it('names compete\'s winner and the turn holder as players', async () => {

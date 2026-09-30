@@ -223,8 +223,7 @@ function PlayArea({
           gd={gd}
           roster={roster}
           selfId={session.user.id}
-          gameEndingMessage={gameEndingMessage}
-          playerEndingMessage={playerEndingMessage}
+          endingMessage={endingMessage}
           actions={actions}
           historyView={historyView}
         />

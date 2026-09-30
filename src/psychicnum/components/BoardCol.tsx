@@ -94,12 +94,7 @@ export function BoardCol({
       {/* The info column's StateLine, for a phone, where that column is
           off-canvas (see `MobileStatusBar`). */}
       <MobileStatusBar>
-        <StateLine
-          found={gd.foundSecretsCount}
-          secretCount={gd.requiredSecretsCount}
-          guessesUsed={gd.guessesUsed}
-          maxGuesses={gd.maxGuesses}
-        />
+        <StateLine readout={gd.readout} />
       </MobileStatusBar>
 
       <Board
