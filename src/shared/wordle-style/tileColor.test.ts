@@ -38,7 +38,10 @@ const JUDGED = ['wordleGreen', 'wordleYellow', 'wordleGray'] as const
  *   - the shared tile sheet is the judged palette wordle and waffle share, and
  *     each board branches an unjudged tile to its OWN `.blank` (they mean
  *     different things by it). That branch is a static `styles.blank`, which
- *     `src/guards/cssClasses.test.ts` checks against the board's stylesheet.
+ *     `src/guards/cssClasses.test.ts` checks against the board's stylesheet;
+ *   - wordle's event log colors only a logged guess, whose codes are always
+ *     g/y/x — wordle never writes the `.` that reads as `blank`, and
+ *     `getTileColor` throws on anything else.
  *
  * Every other painter is required to define `blank`, a newly discovered one
  * included. That is the safe default: the full `TileColor` is what a board
@@ -47,6 +50,7 @@ const JUDGED = ['wordleGreen', 'wordleYellow', 'wordleGray'] as const
 const NO_BLANK_OF_ITS_OWN = [
   'shared/onscreen-keyboard/GuessKeyboard.module.css',
   'shared/wordle-style/tileColors.module.css',
+  'wordle/components/GameEventLog.module.css',
 ]
 
 function walk(dir: string): string[] {

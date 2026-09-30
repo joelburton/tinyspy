@@ -836,6 +836,28 @@ describe('wordle PlayArea — concede', () => {
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
+  it('marks an opponent out of guesses "out", and shows a waiting solver\'s count', () => {
+    const outOfGuesses = gp('u2', 'moth', 'blue', {
+      player_ended_at: '2026-09-03T00:00:00Z',
+      player_ended_reason: 'resource_exhausted',
+      player_ended_reason_detail: 'exhausted',
+      outcome: 'lost',
+      player_status: playerStatus(6, 'resource_exhausted'),
+    })
+    const solvedWaiting = gp('u3', 'cade', 'green', {
+      ...SOLVED_WAITING,
+      player_status: playerStatus(3, 'reached_goal'),
+    })
+    render(
+      <PlayAreaLoader
+        {...makeCtx({ mode: 'compete', players: [gp('u1', 'me', 'red'), outOfGuesses, solvedWaiting] })}
+      />,
+    )
+    // One "out": the player who ran out. The solver may yet win, so shows 3.
+    expect(screen.getAllByText('out')).toHaveLength(1)
+    expect(screen.getByText('3')).toBeInTheDocument()
+  })
+
   it('shows the "You conceded" locally-terminal look after I concede', () => {
     render(
       <PlayAreaLoader
@@ -957,6 +979,18 @@ describe('wordle PlayArea — the board-scope marks', () => {
 
     expect(board().className).not.toMatch(/endingFrame/)
     expect(within(keyboard()).getByRole('button', { name: /^a$/i })).toBeEnabled()
+  })
+
+  it('shows the typing help only on my move', () => {
+    const help = () => screen.queryByText('Type a 5-letter word, then Enter.')
+    const { rerender } = render(
+      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />,
+    )
+    expect(help()).not.toBeInTheDocument()
+    rerender(
+      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u1', players: twoMembers })} />,
+    )
+    expect(help()).toBeInTheDocument()
   })
 
   it('dims the board while a teammate holds the move', () => {

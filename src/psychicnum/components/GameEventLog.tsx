@@ -25,7 +25,6 @@ type Props = {
   players: Member[]
   selfId: string
   mode: 'coop' | 'compete'
-  // Distinguishes an opponent's RLS-hidden log from a genuinely empty one.
   isGameEnded: boolean
   // The turn open on the board: its `#N` wears the history-blue ring, and a
   // `#N` click opens another.

@@ -54,11 +54,3 @@
   background: var(--wordle-gray-fill-color);
   color: var(--wordle-gray-ink-color);
 }
-/* @@ */ .blank {
-  /* A guess's colors are always g/y/x, so this is defensive — keep it readable
-   * (dark text on the neutral surface) if a blank ever slips through. The
-   * page's own surface, not the keycap's fill: a chip is not a key. */
-  background: var(--default-bg-color);
-  color: var(--page-text-color);
-}
-

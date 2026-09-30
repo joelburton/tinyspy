@@ -1,10 +1,10 @@
 /* cs-blessed-wordle */
 
 /* wordle's info-column chrome. The column itself (.infoCol) and its shared rows
- * come from common/info-sheet/infoCol.module.css; only the terminal answer-
- * reveal line is wordle-specific. */
+ * come from common/info-sheet/infoCol.module.css; only the answer line, once
+ * revealed, is wordle-specific. */
 
-/* The info-column terminal answer-reveal line. Drop the browser's default <p>
+/* The info column's answer line, once revealed. Drop the browser's default <p>
  * margin (this <p> sits outside .noShrinkRow, which zeroes its own paragraphs), so
  * the spacing matches the info column's own 1rem gap. */
 /* @@ */ .answerLine {
