@@ -46,8 +46,10 @@ export function useBacktickEscape(): void {
  *  - `!isTrusted` — ignore synthetic events, including (defensively) any
  *    re-dispatch of our own. The Escape we emit has `key === 'Escape'`, so
  *    the key check below would already skip it; this is belt-and-braces.
- *  - not a bare `` ` `` — any modifier (so `` ⌥` `` / `` ⌘` `` shortcuts and
- *    IME-composing backticks pass through untouched).
+ *  - not a bare `` ` `` — any modifier, so `` ⌥` `` / `` ⌘` `` shortcuts pass
+ *    through untouched.
+ *  - `isComposing` — an IME is mid-composition, and the backtick is part of
+ *    what it is building.
  */
 export function backtickToEscape(e: KeyboardEvent): boolean {
   if (!e.isTrusted) return false

@@ -50,18 +50,16 @@ type ReplayResult = { result: 'replayed' }
  * ending an ended game). The two share the flag and `⌥⌫`, so at most one is
  * ever on screen, and never a disabled one.
  *
- * **Every race can also stop the whole table** (Joel, 2026-09-19: *"yes, every
- * race should offer it"*): Concede's question offers stopping as its second
- * answer. They are different acts — conceding is a loss on your record, and it
- * takes every player doing it to close a game the group has lost interest in;
- * stopping is the group agreeing there is no result, which is neutral — and the
- * difference is subtle enough that the question explains it rather than the
- * board drawing two red buttons.
+ * **Every race can also stop the whole table**: Concede's question offers
+ * stopping as its second answer. They are different acts — conceding is a loss
+ * on your record, and it takes every player doing it to close a game the group
+ * has lost interest in; stopping is the group agreeing there is no result,
+ * which is neutral — and the difference is subtle enough that the question
+ * explains it rather than the board drawing two red buttons.
  *
- * The genuinely per-game bits:
- *   - `localFeedbackSlot` is the game's own below-board slot, where a not-ok
- *      answer is shown as `FeedbackMessage.notOk(res)` — the server's words,
- *      in the outcome the envelope carries;
+ * Per game: `db`, and `localFeedbackSlot` — the game's own below-board slot,
+ * where a not-ok answer is shown as `FeedbackMessage.notOk(res)`, the
+ * server's words in the outcome the envelope carries.
  *
  * **New game is NOT here.** Creating the next game diverges per game — which
  * call makes it, and what setup it carries over — by more than the handful of
@@ -112,10 +110,9 @@ export function useStandardGameActions({
   //
   // A racer who is OUT gets it on its own. Anyone in a game may stop it for all
   // — stopping is the group agreeing there is no result, and a player who is out
-  // is still in the conversation (Joel, 2026-09-04, 2026-09-24) — but conceding
-  // is closed to them (see Concede), and with it the question that carried
-  // both. The two are still never live at once, which is what lets them share
-  // `⌥⌫`.
+  // is still in the conversation — but conceding is closed to them (see
+  // Concede), and with it the question that carried both. The two are still
+  // never live at once, which is what lets them share `⌥⌫`.
   //
   // Irreversible, so the registry gives it the confirm and the shared run asks.
   const actStopGame = useBindAction('act-stop-game', {
@@ -187,9 +184,8 @@ export function useStandardGameActions({
       } else if (res.type === 'ok' && res.data?.result === 'replayed') {
         // Nothing to do. The fresh board arrives by subscription, and the local
         // state of the run that just ended goes when the page remounts the play
-        // surface on the new `restarts` count — on every client, not just this
-        // one (common/game-page/doc.md). Eleven games used to clean up here, and
-        // every one of them only tidied the presser's board.
+        // surface on the new `restart_count` — on every client, not just this
+        // one (common/game-page/doc.md).
       } else {
         reportUnhandled('replay_board', res)
       }

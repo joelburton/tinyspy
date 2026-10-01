@@ -119,8 +119,9 @@ export function useCaptureKeys({
     describe: () => (value === '' && editState === 'active' ? 'disabled' : editState),
     run: () => {
       // A press of the button is a move too, so it dismisses the last verdict
-      // the way a keystroke does — the any-key watcher above covers the KEY, and
-      // this covers the click. Clearing twice on a keypress costs nothing.
+      // the way a keystroke does — the any-key `act-dismiss-feedback` below
+      // covers the KEY, and this covers the click. Clearing twice on a keypress
+      // costs nothing.
       onAnyKey?.()
       onChange(value.slice(0, -1))
     },

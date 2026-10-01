@@ -210,9 +210,9 @@ describe('GamePage — mounting', () => {
     // Reachable from inside a game: the invitation toast is mounted in App, so
     // `join` navigates /g/<type>/A → /g/<type>/B, which changes this route's
     // params without unmounting it. The gate is what has to notice, because
-    // GamePage keys the surface on `restarts` — right for a restart, silent
-    // about a different game — and a game's own useGame hook refetches on
-    // `gameId` without clearing what it already holds. So without the gate
+    // GamePage keys the surface on `restart_count` — right for a restart,
+    // silent about a different game — and a game's own useGame hook refetches
+    // on `gameId` without clearing what it already holds. So without the gate
     // going back to 'checking', the player reads game A's board under B's URL.
     let mounts = 0
     const Counting = () => {

@@ -6,15 +6,15 @@ import { useCallback, useRef, useState } from 'react'
  * Wrap an async action so only ONE run is in flight at a time — a second
  * invocation while the first is still going is dropped, not queued.
  *
- *     const [newGame, starting] = useSingleFlight(handleNewGame)
+ *     const [handleGuess, guessing] = useSingleFlight(submitGuess)
  *
- * `starting` is for whatever control should show the wait; nothing else reports
- * a dropped press. Guard the HANDLER rather than a control, and every trigger —
- * button, menu row, keyboard shortcut — is covered at once. NOT for an
- * idempotent call every client fires (`submit_timeout`), and not for an action a
- * state flag already gates (End / Concede stop once `isTerminal` /
- * `isLocallyTerminal` flips). This folder's `doc.md` has the rest: which callers use it, and why the
- * guard sits where it does.
+ * `guessing` is for whatever control should show the wait; nothing else
+ * reports a dropped press. Guard the HANDLER rather than a control, and every
+ * trigger — button, menu row, keyboard shortcut — is covered at once. NOT for
+ * an idempotent call every client fires (`submit_timeout`), and not for an
+ * action a state flag already gates (End / Concede stop once `isTerminal` /
+ * `isLocallyTerminal` flips). This folder's `doc.md` has the rest: which
+ * callers use it, and why the guard sits where it does.
  *
  * Two facts about the timing a caller has to know. The gate closes on the FIRST
  * call, before the wrapped action's own confirm dialog resolves — ours is the

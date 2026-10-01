@@ -92,13 +92,11 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
   const fallback = defaultSelection()
 
   // State holds only what the USER picked; the default is DERIVED every render.
-  // Freezing the default into `useState(initializer)` looked equivalent and
-  // wasn't: the roster arrives asynchronously, so the first render often has
-  // zero players, and the frozen default was then `''` — an option that exists
-  // nowhere, which silently filtered the whole log to nothing once the players
-  // landed. (Caught by codenamesduet-history.e2e, which flaked on the race.)
-  // Deriving also means a selection that stops being offered — a player who
-  // left — degrades to the default instead of showing an empty log forever.
+  // The roster arrives after the first render, so a default frozen into
+  // `useState(initializer)` would be computed with no players — an option that
+  // exists nowhere, filtering the whole log to nothing. Deriving also means a
+  // selection that stops being offered — a player who left — degrades to the
+  // default instead of showing an empty log forever.
   const [chosen, setChosen] = useState<string | null>(null)
   const offered = new Set<string>([
     ...(aggregate ? [aggregate] : []),

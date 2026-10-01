@@ -62,8 +62,8 @@ export function useChangeCause<T>(
   ready: boolean,
 ): ChangeCause<T> | null {
   // Null is "nothing remembered yet". A caller ready on its first render seeds
-  // through the initializer, exactly as before — which is why mount is silent
-  // for it, however long the log already is.
+  // through the initializer — which is why mount is silent for it, however long
+  // the log already is.
   const [seen, setSeen] = useState<{ key: string; moves: number; content: T } | null>(() =>
     ready ? { key: contentKey, moves: moveCount, content } : null,
   )

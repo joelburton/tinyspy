@@ -27,7 +27,7 @@ import { showToast, dismissToast } from '../toasts/toastStore'
  *
  * ClubPage owns the ONE channel (`club-setup:<handle>`) so a single client never
  * double-subscribes the same name: it TRACKS its own setup (from `announce`,
- * derived from `pendingSetup`) and RECEIVES peers' via presence sync. When the
+ * derived from `activeSetup`) and RECEIVES peers' via presence sync. When the
  * setter cancels/starts, the dialog unmounts → `announce` goes null → untrack →
  * peers' toasts clear. If they started a game, the separate INVITE toast then
  * arrives through its own DB-backed path (`useGameInvitations`).
@@ -45,7 +45,7 @@ export function useClubSetupPresence({
   /**
    * What I'm setting up right now (with my display name for the announcement),
    * or `null` when I'm not — which is **receive-only**: subscribe + toast peers,
-   * announce nothing. ClubPage passes the live value (driven by `pendingSetup`);
+   * announce nothing. ClubPage passes the live value (driven by `activeSetup`);
    * GamePage passes `null` so players IN a game (paused or active) still see a
    * peer's "setting up" toast. The two pages are never mounted at once, so a
    * single client never double-subscribes `club-setup:<handle>`.
@@ -54,7 +54,7 @@ export function useClubSetupPresence({
 }): void {
   const channelRef = useRef<RealtimeChannel | null>(null)
   const subscribedRef = useRef(false)
-  // The invite-toast ids we currently own, so we can drop the ones whose setter
+  // The setup-toast ids we currently own, so we can drop the ones whose setter
   // has left on the next sync (mirrors the game-invite reconcile).
   const shownRef = useRef<Set<string>>(new Set())
   // Latest announce for the async SUBSCRIBED callback (fires after mount).

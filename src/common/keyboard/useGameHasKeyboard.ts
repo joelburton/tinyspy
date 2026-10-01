@@ -12,8 +12,8 @@ import { isEditableField } from './editableField'
  * while a real one sits in the chat box reads as two cursors.
  *
  * That invariant is why a control which takes focus away has to give it back —
- * `FilterSelect` and bananagrams' board both work at that, and cite this hook
- * for the reason, without calling it.
+ * `FilterSelect` and bananagrams' board both work at that; `FilterSelect` cites
+ * this hook for the reason, without calling it.
  *
  * Tracked by focus, not by "is chat open": chat can sit open beside the board
  * while you click back to type, and there the game owns the keyboard.

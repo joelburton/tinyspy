@@ -87,12 +87,12 @@ export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
   //
   // It has to notice a different id, because nothing below does. Navigating
   // game → game happens inside this route (the invitation toast's `join`
-  // changes only the params), `GamePage` keys the play surface on `restarts` —
-  // right for a restart, silent about a different game — and a game's own
-  // `useGame` refetches on `gameId` while keeping the header and rows it
-  // already holds. Saying 'checking' is what unmounts the subtree, so every
-  // game's hooks start the new game clean; without it the player reads the
-  // previous game's board under the new game's URL.
+  // changes only the params), `GamePage` keys the play surface on
+  // `restart_count` — right for a restart, silent about a different game — and
+  // a game's own `useGame` refetches on `gameId` while keeping the header and
+  // rows it already holds. Saying 'checking' is what unmounts the subtree, so
+  // every game's hooks start the new game clean; without it the player reads
+  // the previous game's board under the new game's URL.
   const [answer, setAnswer] = useState<{
     id: string
     exists: 'yes' | 'no' | NotOkEnvelope

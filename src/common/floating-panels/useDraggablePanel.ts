@@ -99,8 +99,6 @@ export function useDraggablePanel({
   return { rect, setRect }
 }
 
-// ─── pure helpers (exported for the test) ────────────────────
-
 /**
  * Keep a floating panel reachable when the VIEWPORT changes under it — the
  * window shrinks, a tablet rotates — by hard-clamping it back inside.
@@ -172,6 +170,8 @@ export function useReclampOnResize(
     return () => window.removeEventListener('resize', onResize)
   }, [minWidth, minHeight, edgeMargin, recenter])
 }
+
+// ─── pure helpers (exported for the test) ────────────────────
 
 /** A rect's own size, centered in the current viewport. Size untouched. */
 function centerInViewport(rect: PanelRect): PanelRect {
