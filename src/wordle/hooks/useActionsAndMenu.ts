@@ -65,7 +65,7 @@ export type WordleActions = {
  * same order (docs/playarea.md). Print is the one row with no twin in the row,
  * and sits after them.
  */
-export function useBindActionsAndPublishMenu({
+export function useActionsAndMenu({
   gd,
   selfId,
   localFeedbackSlot,

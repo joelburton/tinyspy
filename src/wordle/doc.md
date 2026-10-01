@@ -394,7 +394,7 @@ own. `Help` and `SetupForm` are the shell's to mount, from the menu and the
 start-game dialog.
 
 `PlayArea` reads `gd` and hands the two columns `gd` whole; what it does itself
-is in named hooks — `useBindActionsAndPublishMenu` (every command and the menu),
+is in named hooks — `useActionsAndMenu` (every command and the menu),
 `useHistoryView` (a past turn, replayed by `lib/history.ts`'s `replayTurn`), the
 two ending-message hooks, and the peer narration. `BoardCol`'s are
 `useTypedGuess` (the typed word, from either keyboard) and `useSubmitGuess` (the
@@ -484,7 +484,7 @@ Vitest, beside the code:
 | `lib/answer.test` · `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every `answerType`'s words and outcome; every ending's words per mode, reason and player outcome |
 | `lib/history.test` · `lib/colors.test` | the inclusive boundary and the ringed row, by id, and only the author's rows in compete; the keyboard's strength order and each letter's strongest color |
 | `hooks/useGame.test` | `gd` from the two reads and the page — the budget, each player's count, ending and tie flag, the board's rows per mode, a watcher's count; no game vs a failed read, and an outage that ends |
-| `hooks/useBindActionsAndPublishMenu.test` · `hooks/useHistoryView.test` | the menu's rows and order, and Reveal before and after the end; a past turn opened and closed, and whose board it is |
+| `hooks/useActionsAndMenu.test` · `hooks/useHistoryView.test` | the menu's rows and order, and Reveal before and after the end; a past turn opened and closed, and whose board it is |
 | `hooks/useSubmitGuess.test` · `hooks/useFlipBaseline.test` | a short word makes no call, an accepted word stays until its row lands, a refusal rings in its own outcome; which rows flip, before and after a past turn |
 | `lib/setup.test` · `components/SetupForm.test` | the Start gate names `legal_band`, and the floor the answer source sets; the form's three controls and where a refusal lands |
 | `pdf/model.test` | the target never prints before it shows on screen; the keyboard is derived per player, never pooled |

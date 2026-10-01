@@ -19,7 +19,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { peerAnswerMessage } from '../lib/answer'
 import { useGame, type GameData } from '../hooks/useGame'
-import { useBindActionsAndPublishMenu } from '../hooks/useBindActionsAndPublishMenu'
+import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
 import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
@@ -164,7 +164,7 @@ function PlayArea({
   // ─── The commands, and the menu that lists them ────────
   // Every command this game offers: the info column's action row places them,
   // the menu lists them, and the reveal's and the hint list's states come back.
-  const { actions, solutionShown, hintsOpen, acknowledgeModal } = useBindActionsAndPublishMenu({
+  const { actions, solutionShown, hintsOpen, acknowledgeModal } = useActionsAndMenu({
     gd,
     selfId: myId,
     localFeedbackSlot,

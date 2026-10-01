@@ -12,7 +12,7 @@ import { actionFixture } from '@/common/actions/action.fixture'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
 import type { GameData } from './useGame'
-import { useBindActionsAndPublishMenu } from './useBindActionsAndPublishMenu'
+import { useActionsAndMenu } from './useActionsAndMenu'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
@@ -49,7 +49,7 @@ function setup(gd: GameData) {
     actBackToClub: actionFixture('act-back-to-club'),
   } as unknown as MenuApi
   const { result } = renderHook(() =>
-    useBindActionsAndPublishMenu({
+    useActionsAndMenu({
       gd,
       selfId: 'u1',
       localFeedbackSlot: createFeedbackSlot('local'),
@@ -65,7 +65,7 @@ function setup(gd: GameData) {
   return { result, ids, rows }
 }
 
-describe('useBindActionsAndPublishMenu — the menu', () => {
+describe('useActionsAndMenu — the menu', () => {
   it('publishes the rows in the info column\'s order, divider for divider', () => {
     const { ids } = setup(gdWith())
     expect(ids).toEqual([
@@ -86,7 +86,7 @@ describe('useBindActionsAndPublishMenu — the menu', () => {
   })
 })
 
-describe('useBindActionsAndPublishMenu — the hint and the spoiler', () => {
+describe('useActionsAndMenu — the hint and the spoiler', () => {
   it('are live while I can still play', () => {
     const { rows } = setup(gdWith())
     expect(rows.get('act-hint')?.disabled).toBe(false)
@@ -108,7 +108,7 @@ describe('useBindActionsAndPublishMenu — the hint and the spoiler', () => {
   })
 })
 
-describe('useBindActionsAndPublishMenu — the reveal', () => {
+describe('useActionsAndMenu — the reveal', () => {
   it('starts with the secrets hidden', () => {
     const { result } = setup(gdWith({ isGameEnded: true }))
     expect(result.current.secretsShown).toBe(false)

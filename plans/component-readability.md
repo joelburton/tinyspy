@@ -81,7 +81,7 @@ the tile it draws). Each pass:
 
 Beyond playarea-readability's sections: the ending hooks above, `useHistoryView`
 (which returns `HistoryView`, including `isViewing`),
-`useBindActionsAndPublishMenu` (the game's actions and its menu),
+`useActionsAndMenu` (the game's actions and its menu),
 `useShowOppsFoundMessages`, and the common `useShowWaitingMessage`. Comments say
 what happens on each line and point at the hook; the hook's docstring holds how
 it works.

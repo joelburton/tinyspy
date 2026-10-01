@@ -90,7 +90,7 @@ export type PsychicnumActions = {
  * the row finds the menu in the same order (docs/playarea.md). Print is the one
  * row with no twin in the row, and sits after them.
  */
-export function useBindActionsAndPublishMenu({
+export function useActionsAndMenu({
   gd,
   selfId,
   localFeedbackSlot,

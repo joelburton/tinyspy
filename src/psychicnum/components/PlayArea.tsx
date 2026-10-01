@@ -15,7 +15,7 @@ import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useGame, type GameData } from '../hooks/useGame'
-import { useBindActionsAndPublishMenu } from '../hooks/useBindActionsAndPublishMenu'
+import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { addRevealedSecrets } from '../lib/tileResults'
 import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
@@ -177,7 +177,7 @@ function PlayArea({
   // ─── The commands, and the menu that lists them ────────
   // Every command this game offers: the info column's action row places them,
   // the menu lists them, and the reveal's state comes back for the board.
-  const { actions, secretsShown } = useBindActionsAndPublishMenu({
+  const { actions, secretsShown } = useActionsAndMenu({
     gd,
     selfId: authSession.user.id,
     localFeedbackSlot,

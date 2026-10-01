@@ -15,7 +15,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useGame, type GameData } from '../hooks/useGame'
-import { useBindActionsAndPublishMenu } from '../hooks/useBindActionsAndPublishMenu'
+import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
 import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
@@ -163,7 +163,7 @@ function PlayArea({
   // ─── The commands, and the menu that lists them ────────
   // Every command this game offers: the info column's action row places them,
   // the menu lists them, and the reveal's state comes back for the answer line.
-  const { actions, answerShown } = useBindActionsAndPublishMenu({
+  const { actions, answerShown } = useActionsAndMenu({
     gd,
     selfId: authSession.user.id,
     localFeedbackSlot,
