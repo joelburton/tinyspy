@@ -1,7 +1,7 @@
 // cs-blessed-club-page
 
 import { test, expect } from '@playwright/test'
-import { createSoloClub, createWaffleGame } from './helpers/fixtures'
+import { createGame, createSoloClub } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
@@ -17,9 +17,9 @@ test.describe('club page keyboard nav', () => {
     const club = await createSoloClub('ckbn')
     // Three games: creating each un-currents the previous, so the club shows
     // one current game — as the card AND as a row — plus two shelved rows.
-    const g1 = await createWaffleGame(club)
-    const g2 = await createWaffleGame(club)
-    const g3 = await createWaffleGame(club)
+    const g1 = await createGame(club)
+    const g2 = await createGame(club)
+    const g3 = await createGame(club)
 
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
@@ -100,7 +100,7 @@ test.describe('club page keyboard nav', () => {
     )
     expect(ringedTitle).not.toBeNull()
     await page.keyboard.press('Enter')
-    await expect(page).toHaveURL(/\/g\/waffle_coop\//, { timeout: 10000 })
+    await expect(page).toHaveURL(/\/g\/psychicnum_coop\//, { timeout: 10000 })
     const landedOn = page.url().split('/').pop()!
     expect([g1.id, g2.id, g3.id]).toContain(landedOn)
   })

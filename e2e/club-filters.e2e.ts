@@ -3,8 +3,8 @@
 import { test, expect } from '@playwright/test'
 import {
   createClubWithMembers,
+  createGame,
   createSoloClub,
-  createWaffleGame,
   createWordleGame,
   type E2EClub,
 } from './helpers/fixtures'
@@ -39,12 +39,12 @@ test.describe('club page list filters', () => {
     // player-count floor hides them in a solo club).
     const club = await createClubWithMembers(['fla', 'flb'])
     // Two wordle games — the coop/compete SIBLING PAIR the dropdown must
-    // collapse into a single choice — plus two waffles for that choice to
+    // collapse into a single choice — plus two psychicnums for that choice to
     // exclude.
     await createWordleGame(club, 'coop')
     await createWordleGame(club, 'compete')
-    await createWaffleGame(club, 'coop')
-    await createWaffleGame(club, 'compete')
+    await createGame(club, 'coop')
+    await createGame(club, 'compete')
 
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
@@ -96,10 +96,10 @@ test.describe('club page list filters', () => {
     // and are labeled with each family's BRAND (manifest.name).
     await select.click()
     const options = await select.locator('xpath=../div').getByRole('button').allInnerTexts()
-    expect(options).toEqual(['All games', 'SyrupSwap', 'WordNerd'])
+    expect(options).toEqual(['All games', 'PsychicNum', 'WordNerd'])
 
     await pickGametype(page, 'WordNerd')
-    // BOTH wordle games survive the family filter; the waffles don't.
+    // BOTH wordle games survive the family filter; the psychicnums don't.
     await expect(gameRows).toHaveCount(2)
     // ...and the filter never took focus, so the games list keeps its arrow-key
     // cursor. A control that took focus to open would blank it (see
@@ -134,7 +134,7 @@ test.describe('club page list filters', () => {
   }) => {
     const club = await createClubWithMembers(['flp', 'flq'])
     await createWordleGame(club, 'coop')
-    await createWaffleGame(club, 'compete')
+    await createGame(club, 'compete')
 
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
