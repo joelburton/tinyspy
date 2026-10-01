@@ -459,9 +459,10 @@ it that way a sentence saying something does is simply false. Both call sites we
 already assigning it to an `is`-shaped local (`infoOpen`, `isOpen`), which is the
 tell that the hook's own name was the odd one out.
 
-Two things deliberately untouched: `setInfoSheetOpen` keeps its name, being an
-action rather than a predicate, and `useInfoSheet()` keeps its own — it returns an
-object, so it answers no yes/no question.
+`useInfoSheet()` deliberately keeps its name — it returns an object, so it
+answers no yes/no question. The setter is `setIsInfoSheetOpen`, by the flag
+rule in [code-conventions.md → Names about the viewing
+player](../../docs/code-conventions.md#names-about-the-viewing-player).
 
 ### F-info-sheet-14 · `metricLabel-optional-for-nobody` · `OpponentStrip.metricLabel` is optional "so games not yet converted still compile"; all thirteen pass one — WORKED
 

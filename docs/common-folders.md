@@ -24,6 +24,12 @@ The import path is where that distinction is said out loud.
   leading-cap is a component (`Chat.tsx`), `useX` is a hook (`useClubChat.ts`),
   lowercase is everything else (`chatUnread.ts`), and `.module.css` is a
   stylesheet.
+- **A file is named for its job.** When the job is a hook, and its other
+  exports serve that hook (test seams, its argument types, its tuning), it is
+  `useX.ts`. When the hook is only one door into a thing — a store, a feature's
+  state and logic — the file is named for the thing, lowercase
+  (`infoSheetStore.ts`). An export whose callers don't want the hook moves to
+  a lowercase file beside it. `.tsx` only where the file contains JSX.
 - **A feature big enough to want subfolders splits by sub-feature, not by
   type.** `core-css/patterns/` is the one nesting in the tree, and `patterns`
   names a kind of stylesheet, not a kind of file.

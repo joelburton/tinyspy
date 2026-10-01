@@ -125,5 +125,16 @@ decision against, so a review doesn't propose it again
   stand out. Against it: per-game file names are role names (`manifest.ts`,
   `logo.svg`), and `docs/tokens.md` documents `theme.css`. If the name stays,
   say so where the file layout is described.
+- **Branded id types: `GameId`, `UserId`.** `type GameId = string & {
+  readonly __brand: 'GameId' }` keeps its name on hover and makes passing a
+  user id, a club handle or an unchecked string where a game id belongs a type
+  error. (A plain `type GameId = string` shows only in parameter hints; hover
+  says `string`.) A branded id still passes anywhere a `string` is taken. The
+  cost is a cast at every edge where an id enters the app: route params, row
+  reads, realtime payloads, test fixtures. It has to be done as one organized
+  pass rather than drifting in: brand the edges first (the game gate's
+  `isGameId` becomes a type guard), then tighten parameters from the edges
+  inward, since a parameter can only become `GameId` once all its callers
+  supply one.
 
 ## Won't do

@@ -170,8 +170,6 @@ game's area, consult both.
 | [plans/component-readability.md](plans/component-readability.md) | What psychicnum settled for `gd`, the endings, PlayArea, Board/BoardCol and InfoCol; read it per game area, beside playarea-readability |
 | [plans/common-tables.md](plans/common-tables.md) | Where a game's facts live: `common.games`, `common.game_players`, `<game>.games`; builds cross-game-consistency's step 7, and holds the order of what is left |
 | [plans/spectating.md](plans/spectating.md) | Proposed, nothing decided: what a watching club member sees |
-| [plans/store-and-hook-files.md](plans/store-and-hook-files.md) | Clear names inside every store, then store and hook files named for their job |
-| [plans/common-hook-names.md](plans/common-hook-names.md) | Names and stale comments in the `src/common/` hooks the store passes didn't reach |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
 | [plans/DO-NOT-READ-shaped-page-copy.md](plans/DO-NOT-READ-shaped-page-copy.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: one builder-written copy of everything a game page shows |
 | [plans/DO-NOT-READ-grouped-values.md](plans/DO-NOT-READ-grouped-values.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: grouping what hooks return and props carry into named objects |

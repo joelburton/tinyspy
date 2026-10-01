@@ -205,7 +205,11 @@ psychicnum's. What it settled beyond psychicnum:
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /
   `isLocallyTerminal` names on shared components and `GamePageCtx`, and the
-  `--outcomes-*-terminalFrame-color` tokens.
+  `--outcomes-*-terminalFrame-color` tokens. In `src/common/`'s hooks the
+  wording appears in `useClubGames.isTerminal` (ClubPage reads it),
+  `useChangeCause`, `useSetupDialog`, `useSolutionReveal`, `useGameTimer`,
+  `useCaptureKeys`, `useWordListFilter`, `useEventLogPlayerPicker`,
+  `useShowEndingFeedback` and `useStandardGameActions`.
 - `GamePlayer` → `CommonGamePlayer` once every game converts
   (`src/common/members/todo.md`).
 - A Stop drops a win that already stands (`src/common/terminal/todo.md`).

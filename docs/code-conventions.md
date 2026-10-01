@@ -168,7 +168,8 @@ is the clearer question. Pick the one that reads most naturally: `isMyTurn`
 (not `amIOnTurn`), `isEliminated`. The standing flags read as one set with
 `isTerminal`, so it is `isConceded`, not `amIConceded`. A bare past participle
 is not a boolean name — `won` may be a message or a winner — so a flag always
-carries its `is` / `amI`.
+carries its `is` / `amI`. Its setter and getter carry the full name too:
+`setIsInfoSheetOpen` / `getIsInfoSheetOpen`, never `setInfoSheetOpen`.
 
 **How much name is scope-sized.** A small component that shows only me takes
 the bare word (`solved`); state, a long component, and any component that also
@@ -281,6 +282,23 @@ and what triggers it from the body and the deps.
   ways takes a name too (`GamePage`'s `logHowTheTimeoutLanded`). If it deserves
   a header comment, it deserves a name; a one-line `onClick` or `.map` needs
   neither.
+
+### A module-level store
+
+A store is module state that components read through `useSyncExternalStore`
+([`infoSheetStore.ts`](../src/common/info-sheet/infoSheetStore.ts) is the
+plainest).
+
+- **The state is named for what it holds** (`isInfoSheetOpen`, not `value`),
+  and the getter the hook reads is `get` + that name (`getIsInfoSheetOpen`),
+  not `getSnapshot`. A setter's parameter is `val`.
+- **`subscribe` and the getter are named module-level functions,** never
+  inline arrows in the hook, so their identity is stable across renders.
+- **`listeners` carries a one-line comment** saying what a listener is: a
+  callback each hook caller adds, which the setter calls to say the state
+  changed.
+- **The store keeps its hook in the same file.** Splitting them would mean
+  exporting `subscribe`.
 
 ### Guarding a non-idempotent action
 

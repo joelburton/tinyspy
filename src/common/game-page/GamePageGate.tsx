@@ -70,60 +70,20 @@ const isGameId = (s: string) =>
  * there, so the only place they can live is a child this component has not
  * mounted yet.
  *
- * **Why the id test appears twice.** In the effect it prevents the request: an
- * id that cannot be a uuid is a `22P02` per query and a fault modal per
- * `22P02`, and the answer is knowable without asking. In the render it picks
- * the page. Two different jobs — *don't ask*, and *say why*.
- *
- * The `'checking'` state and the `mounted` flag are React's tax and nothing
- * more: a render is synchronous so it cannot await, and a render that gets
- * discarded must not write state.
+ * **Why the id test appears twice.** In `useGameExists` it prevents the
+ * request: an id that cannot be a uuid is a `22P02` per query and a fault
+ * modal per `22P02`, and the answer is knowable without asking. In the render
+ * it picks the page. Two different jobs — *don't ask*, and *say why*.
  */
 export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
   const manifest = manifestFor(urlGametype.toLowerCase())
-  // The existence answer, stored WITH the id it answers for — and `exists`
-  // DERIVED from the pair, so an id we have no answer for is 'checking' by
-  // construction rather than by an effect that remembers to clear.
-  //
-  // It has to notice a different id, because nothing below does. Navigating
-  // game → game happens inside this route (the invitation toast's `join`
-  // changes only the params), `GamePage` keys the play surface on
-  // `restart_count` — right for a restart, silent about a different game — and
-  // a game's own `useGame` refetches on `gameId` while keeping the header and
-  // rows it already holds. Saying 'checking' is what unmounts the subtree, so
-  // every game's hooks start the new game clean; without it the player reads
-  // the previous game's board under the new game's URL.
-  const [answer, setAnswer] = useState<{
-    id: string
-    exists: 'yes' | 'no' | NotOkEnvelope
-  } | null>(null)
-  const exists = answer?.id === gameId ? answer.exists : 'checking'
+  const exists = useGameExists(gameId)
 
   // Entering a game fetches its chunk anyway, so the stale-build check rides
   // along; a tab open across a deploy reloads here rather than playing on old
   // code — see `reloadOnStaleBuild`.
   useEffect(function checkBuildOnEntry() {
     void reloadIfStaleBuild('game-page')
-  }, [gameId])
-
-  useEffect(function askWhetherTheGameExists() {
-    if (!isGameId(gameId)) return
-    let mounted = true
-    async function readAndAnswer() {
-      const res = await readRows(commonDb.from('games').select('id').eq('id', gameId))
-      if (!mounted) return
-      // Three-way on purpose. Collapsing a FAILED read into "no" would tell a
-      // player their game is gone because the network blinked — the confident
-      // wrong answer this whole area exists to stop.
-      setAnswer({
-        id: gameId,
-        exists: res.type === 'not-ok' ? res : res.data.length > 0 ? 'yes' : 'no',
-      })
-    }
-    void readAndAnswer()
-    return function ignoreALateAnswer() {
-      mounted = false
-    }
   }, [gameId])
 
   // A gametype the registry has never heard of is a different thing from a
@@ -146,9 +106,82 @@ export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
         })}
       />
     )
-  if (!isGameId(gameId)) return <NoSuchGamePage detail={`not a game id: ${gameId}`} />
-  if (exists === 'checking') return <Loading />
-  if (exists === 'no') return <NoSuchGamePage detail={`rows=0 gametype=${manifest.gametype} game=${gameId}`} />
-  if (exists !== 'yes') return <EnvelopeErrorPage envelope={exists} />
-  return <GamePageLoader gameId={gameId} authSession={authSession} manifest={manifest} />
+
+  if (!isGameId(gameId)) return (
+    <NoSuchGamePage detail={`not a game id: ${gameId}`}/>)
+
+  if (exists === 'checking') return <Loading/>
+
+  if (exists === 'no')
+    return (
+      <NoSuchGamePage
+        detail={`rows=0 gametype=${manifest.gametype} game=${gameId}`}/>)
+
+  if (exists !== 'yes') return <EnvelopeErrorPage envelope={exists}/>
+
+  return (
+    <GamePageLoader
+      gameId={gameId}
+      authSession={authSession}
+      manifest={manifest}/>)
+}
+
+/**
+ * Does the game with this id exist? `'yes'`, `'no'`, the not-ok envelope of a
+ * read that failed, or `'checking'` until the server has answered for THIS id.
+ * An id that cannot be a game id is never asked about, so it stays
+ * `'checking'`; the gate turns it away before reading this.
+ *
+ * The answer is stored WITH the id it answers for, and the result DERIVED from
+ * the pair, so an id with no answer yet is `'checking'` by construction rather
+ * than by an effect that remembers to clear.
+ *
+ * It has to notice a different id, because nothing below the gate does.
+ * Navigating game → game happens inside this route (the invitation toast's
+ * `join` changes only the params), `GamePage` keys the play surface on
+ * `restart_count` — right for a restart, silent about a different game — and a
+ * game's own `useGame` refetches on `gameId` while keeping the header and rows
+ * it already holds. Saying `'checking'` is what unmounts the subtree, so every
+ * game's hooks start the new game clean; without it the player reads the
+ * previous game's board under the new game's URL.
+ *
+ * The `'checking'` state and the `mounted` flag are React's tax and nothing
+ * more: a render is synchronous so it cannot await, and a render that gets
+ * discarded must not write state.
+ */
+
+type ExistsAnswer = 'yes' | 'no' | 'checking' | NotOkEnvelope
+
+function useGameExists(gameId: string): ExistsAnswer {
+  const [answer, setAnswer] = useState<{
+    id: string
+    exists: ExistsAnswer
+  } | null>(null)
+
+  useEffect(function askWhetherTheGameExists() {
+    if (!isGameId(gameId)) return
+    let mounted = true
+
+    async function readAndAnswer() {
+      const res =
+        await readRows(commonDb.from('games').select('id').eq('id', gameId))
+      if (!mounted) return
+      // Three-way on purpose. Collapsing a FAILED read into "no" would tell a
+      // player their game is gone because the network blinked — the confident
+      // wrong answer this whole area exists to stop.
+      setAnswer({
+        id: gameId,
+        exists: res.type === 'not-ok' ? res : res.data.length > 0
+          ? 'yes'
+          : 'no',
+      })
+    }
+
+    void readAndAnswer()
+    return function ignoreALateAnswer() {
+      mounted = false
+    }
+  }, [gameId])
+
+  return answer?.id === gameId ? answer.exists : 'checking'
 }
