@@ -15,7 +15,7 @@
 ## Someday
 
 - **A companion's MINIMUM SIZE is still eyeballed.** None of the pairs is
-  derived: `Chat` 260×240 · `ClubHelpCompanion` 280×180 · `GameHelpCompanion`
+  derived: `ChatHost` 260×240 · `ClubHelpCompanion` 280×180 · `GameHelpCompanion`
   per-game · `GameScratchpadCompanion` 240×200 · `CrosswordsNoteCompanion`
   300×200 · `CrosswordsExplainCompanion` 320×220 ·
   `CodenamesduetAISuggestCompanion` 240×140 (kept as is, codenamesduet's

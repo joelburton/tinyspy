@@ -99,7 +99,7 @@ App                                  matches /g/<gametype>/<gameId>
             │     │                                                                    the only game-specific
             │     │                                                                    component in the tree
             │     └── paused     →   PauseOverlay
-            ├── Chat                 outside the boundary: still there mid-pause
+            ├── ChatHost             outside the boundary: still there mid-pause
             ├── GameScratchpadCompanion   opt-in per manifest, also outside
             └── Help                 the manifest's rules component, lazily loaded
 ```

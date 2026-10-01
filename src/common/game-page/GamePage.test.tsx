@@ -70,7 +70,7 @@ vi.mock('../club/useClubRoster', () => ({ useClubRoster: () => roster }))
 vi.mock('../account/useAccountMenuSection', () => ({
   useAccountMenuSection: () => ({ items: [] }),
 }))
-vi.mock('../chat/Chat', () => ({ Chat: () => null }))
+vi.mock('../chat/ChatHost', () => ({ ChatHost: () => null }))
 
 import { GamePageGate } from './GamePageGate'
 

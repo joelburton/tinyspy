@@ -25,7 +25,7 @@ export function AppActionsHost() {
   // are: one copy for the app, rather than one per page.
   const [lookupOpen, setLookupOpen] = useState(false)
   const [anagramsOpen, setAnagramsOpen] = useState(false)
-  // Does this page mount a <Chat> component
+  // Does this page mount a <ChatHost> component
   const hasChatHost = useHasChatHost()
 
   // None of the four is held in a variable: nothing here PLACES them. Binding

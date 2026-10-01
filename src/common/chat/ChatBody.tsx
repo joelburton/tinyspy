@@ -21,7 +21,7 @@ type SendAnswer = { result: 'sent' }
 type Props = {
   clubHandle: string
   members: Member[]
-  // The stream is `<Chat>`'s, which subscribes at its level so the force-open
+  // The stream is `<ChatHost>`'s, which subscribes at its level so the force-open
   // detector runs while the panel is closed; this only renders it.
   messages: ClubMessage[]
   loading: boolean
@@ -29,12 +29,12 @@ type Props = {
 
 /**
  * The chat conversation itself — the message list and the entry box. It
- * renders what `<Chat>` hands it and sends through `common.send_message`; it
+ * renders what `<ChatHost>` hands it and sends through `common.send_message`; it
  * does not subscribe to the stream. Each sender is looked up in `members`, the
  * club roster the page already holds.
  *
  * A message whose content starts with `!` is shown without the marker and in
- * bold; the matching force-open is `<Chat>`'s.
+ * bold; the matching force-open is `<ChatHost>`'s.
  */
 export function ChatBody({ clubHandle, members, messages, loading }: Props) {
   const [input, setInput] = useState('')

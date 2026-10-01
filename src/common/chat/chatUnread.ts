@@ -7,7 +7,7 @@ import { readStored, writeStored } from '../web-storage/storage'
 import type { ChatUnread } from './chatUnreadStore'
 
 /**
- * Working out what is unread, for the chat mark's badge. `<Chat>` calls
+ * Working out what is unread, for the chat mark's badge. `<ChatHost>` calls
  * `computeUnread` with its messages and publishes the answer to
  * `chatUnreadStore`, which `<ChatButton>` reads.
  *

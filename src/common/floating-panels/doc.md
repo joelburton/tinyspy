@@ -140,7 +140,7 @@ folders:
 
 ```
 FloatingPanel                  the one shell: Rnd (react-rnd) + CloseButton (buttons); FAMILY supplies the rest
-├── Companion                  Chat (chat) · GameScratchpadCompanion (scratchpad) · GameHelpCompanion (game-page)
+├── Companion                  ChatCompanion (chat) · GameScratchpadCompanion (scratchpad) · GameHelpCompanion (game-page)
 │                              ClubHelpCompanion (club) · crosswords' note and explain panels · codenamesduet's AI suggester
 ├── Dialog                     WordLookupDialog and WordEditDialog (definitions) · AnagramDialog (anagram-finder)
 ├── NormalModal                SetupGameModal (setup-form) · EditProfileModal (account) · CreateClubModal and EditClubModal (club)

@@ -22,7 +22,7 @@ import {
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
 import { ChatButton } from '../page-header/ChatButton'
-import { Chat } from '../chat/Chat'
+import { ChatHost } from '../chat/ChatHost'
 import { CurrentGameCard } from './CurrentGameCard'
 import { ClubGameRow } from './ClubGameRow'
 import { ClubHelpCompanion } from './ClubHelpCompanion'
@@ -788,11 +788,11 @@ export function ClubPage({
       </main>
 
       {/* The chat-bubble toggle lives in the header (<ChatButton>
-          above); Chat renders the panel itself, and nothing
+          above); ChatHost renders the panel itself, and nothing
           at all while closed. It holds the club's chat subscription, so it
           also pops a new message from another member in the global slot —
           `members` is the full roster, so every sender is named. */}
-      <Chat
+      <ChatHost
         clubHandle={club.handle}
         members={members}
         selfId={selfId}

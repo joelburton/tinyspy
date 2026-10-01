@@ -14,7 +14,7 @@ import { useClubWhileInGame } from './useClubWhileInGame'
 import { useSubmitTimeoutOnExpiry } from './useSubmitTimeoutOnExpiry'
 import { PauseAndClock } from './PauseAndClock'
 import { ChatButton } from '../page-header/ChatButton'
-import { Chat } from '../chat/Chat'
+import { ChatHost } from '../chat/ChatHost'
 import { ScratchpadButton } from '../page-header/ScratchpadButton'
 import { GameScratchpadCompanion } from '../scratchpad/GameScratchpadCompanion'
 import { GameLogo } from '../branding/GameLogo'
@@ -182,7 +182,7 @@ export function GamePage({
       </PauseBoundary>
 
       {/* Chat is the club's, so it gets the whole club's members. */}
-      <Chat
+      <ChatHost
         clubHandle={cg.club_handle}
         members={clubMembers}
         selfId={authSession.user.id}

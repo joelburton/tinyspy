@@ -78,7 +78,7 @@ vi.mock('../toasts/toastStore', async (importOriginal) => ({
 
 vi.mock('../realtime/useClubPresence', () => ({ useClubPresence: () => [] }))
 vi.mock('../realtime/useClubSetupPresence', () => ({ useClubSetupPresence: () => {} }))
-vi.mock('../chat/Chat', () => ({ Chat: () => null }))
+vi.mock('../chat/ChatHost', () => ({ ChatHost: () => null }))
 vi.mock('@/gametypes', () => ({
   gametypes: [WORDLE, DUEL, SYRUP],
   manifestFor: (gametype: string) =>

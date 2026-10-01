@@ -53,7 +53,7 @@ App ── /c/<handle> ──> ClubPageLoader          get_club_page, and the wa
                            │     │     └── SelectionList (lists) → StartGameRow → GameEntry   one per enrolled gametype
                            │     └── right column
                            │           └── SelectionList (lists) → ClubGameRow → GameEntry + ClubGameDeleteButton
-                           ├── Chat (chat)                                for the life of the page
+                           ├── ChatHost (chat)                            for the life of the page
                            ├── ClubHelpCompanion                          while Help is open
                            ├── SetupGameModal (setup-form)                while a game is being started
                            └── EditClubModal                              while the enrollment is being edited

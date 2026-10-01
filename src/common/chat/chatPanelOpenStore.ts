@@ -7,8 +7,8 @@ import { readStored, writeStored } from '../web-storage/storage'
  * Shared open/closed state for the Chat panel.
  *
  * Its writers sit in different subtrees — the header's `<ChatButton>`, the
- * `act-open-chat` key bound at the app root, and `<Chat>` itself, for its own
- * close and for the `!` force-open — and `<Chat>` reads it to decide whether
+ * `act-open-chat` key bound at the app root, and `<ChatHost>` itself, for its own
+ * close and for the `!` force-open — and `<ChatHost>` reads it to decide whether
  * to render the panel at all (it renders nothing while closed). So the state
  * lives outside the component tree in a small pub-sub store. Subscribers use
  * `useIsChatPanelOpen()` (which wraps `useSyncExternalStore`); writers call

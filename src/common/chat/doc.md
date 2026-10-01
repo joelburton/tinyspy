@@ -16,10 +16,10 @@ are appended, and a reconnect refetches without dropping anything that arrived
 while the query was in flight, so the log is append-only in the client as well
 as in the table.
 
-A page connects to all of it through one seam: it mounts `<Chat>` and hands it
+A page connects to all of it through one seam: it mounts `<ChatHost>` and hands it
 the club, the club's full roster, the viewer, and the header slot a pill may be
 written into. The page never sees a message, never holds chat state, and never
-learns whether the panel is open. `<Chat>` stays mounted for the life of the
+learns whether the panel is open. `<ChatHost>` stays mounted for the life of the
 page and renders nothing while closed, because it owns the club's one
 subscription and three things read that stream while nobody is looking at the
 panel: the unread badge on the header mark, the force-open a `!` message
@@ -69,7 +69,7 @@ setup dialog. Its open state and its rect are remembered across pages, so
 moving from the club to a game does not close the conversation.
 
 **The two stores.** Nothing holds both the panel and the header mark —
-`<ChatButton>` is in the page header, `<Chat>` is at the bottom of the page's
+`<ChatButton>` is in the page header, `<ChatHost>` is at the bottom of the page's
 tree, and neither is the other's parent — so module-level stores stand
 between them. `chatPanelOpenStore` holds the open flag, persisted, and
 `chatHostStore` records that a panel is mounted at all, which is how the `/`
@@ -81,7 +81,7 @@ the badge's count, and with it the palette-color name of the latest unread
 sender — a fact, not a paint: resolving a sender needs the roster, which only
 this side has, while what the mark then looks like is the mark's own decision.
 `<ChatButton>` subscribes to both stores, drawing the badge and flipping the
-flag; `<Chat>` reads the flag, writes it on a `!`, and writes the count. Neither knows the other exists.
+flag; `<ChatHost>` reads the flag, writes it on a `!`, and writes the count. Neither knows the other exists.
 
 **The keyboard goes both ways.** `/` takes it to chat from anywhere on the
 page, even mid-clue, and Tab in the entry box hands it back to the game by
@@ -94,9 +94,10 @@ header mark is not its child:
 
 ```
 ClubPage (club) · GamePage (game-page)
-└── Chat                              for the life of the page; draws nothing while closed
-    └── Companion (floating-panels)   while open
-        └── ChatBody                  the transcript and the composer; DotActor (members) names each sender
+└── ChatHost                              for the life of the page; draws nothing while closed
+    └── ChatCompanion                     while open
+        └── Companion (floating-panels)
+            └── ChatBody                  the transcript and the composer; DotActor (members) names each sender
 
 PageHeader (page-header) → ChatButton   the header mark, reached through the two stores rather than props
 ```
@@ -104,7 +105,7 @@ PageHeader (page-header) → ChatButton   the header mark, reached through the t
 The whole of it, then:
 
 ```
-page ──mounts──> <Chat> ──> useClubChat ──> common.messages
+page ──mounts──> <ChatHost> ──> useClubChat ──> common.messages
                    │                        (Realtime INSERTs in, the RPC out)
                    ├─ unread badge ─────> chatUnreadStore
                    ├─ `!` force-open ───> chatPanelOpenStore

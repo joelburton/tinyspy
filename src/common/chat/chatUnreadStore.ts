@@ -4,12 +4,12 @@ import { useSyncExternalStore } from 'react'
 
 /**
  * What the header's chat mark shows: how many messages are unread, and which
- * palette color the latest unread sender wears. `<Chat>` holds the message
+ * palette color the latest unread sender wears. `<ChatHost>` holds the message
  * stream, so it works the answer out (`computeUnread`, in `chatUnread.ts`) and
  * publishes it here; `<ChatButton>`, a sibling in the header rather than in
- * Chat's tree, reads it and decides what the mark looks like. It is published
+ * ChatHost's tree, reads it and decides what the mark looks like. It is published
  * as two facts because resolving a `user_id` needs the club roster, which only
- * Chat's side has.
+ * ChatHost's side has.
  */
 
 export type ChatUnread = {

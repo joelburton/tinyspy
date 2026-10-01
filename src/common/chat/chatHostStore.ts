@@ -3,8 +3,8 @@
 import { useSyncExternalStore } from 'react'
 
 /**
- * Whether this page has a chat host: a mounted `<Chat>`, open or closed.
- * `<Chat>` registers itself with `registerChatHost()`; readers use
+ * Whether this page has a chat host: a mounted `<ChatHost>`, open or closed.
+ * `<ChatHost>` registers itself with `registerChatHost()`; readers use
  * `useHasChatHost()`.
  */
 
@@ -12,7 +12,7 @@ function hasChatHost(): boolean {
   return chatHostCount > 0
 }
 
-// A COUNT, not a flag: a page swap can mount the next page's `<Chat>` before
+// A COUNT, not a flag: a page swap can mount the next page's `<ChatHost>` before
 // the last page's has released, and a flag would be cleared by the release
 // that comes second.
 let chatHostCount = 0
@@ -28,8 +28,8 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-/** Count one more chat host, and return the release. `<Chat>` calls it from
- *  an effect, so the count follows each `<Chat>`'s own lifetime. */
+/** Count one more chat host, and return the release. `<ChatHost>` calls it from
+ *  an effect, so the count follows each `<ChatHost>`'s own lifetime. */
 export function registerChatHost(): () => void {
   chatHostCount += 1
   for (const listener of listeners) listener()
@@ -39,7 +39,7 @@ export function registerChatHost(): () => void {
   }
 }
 
-/** Whether any chat host is mounted: true on a page that renders `<Chat>` —
+/** Whether any chat host is mounted: true on a page that renders `<ChatHost>` —
  *  the club page and the game page — whether its panel is open or closed, and
  *  false everywhere else. */
 export function useHasChatHost(): boolean {

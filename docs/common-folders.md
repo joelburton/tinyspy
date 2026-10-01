@@ -21,7 +21,7 @@ The import path is where that distinction is said out loud.
   the panel, its hooks and its stores together. There is no `components/` ·
   `hooks/` · `lib/` split — not at the top, and **not inside a feature folder
   either**. The naming convention carries that distinction on its own:
-  leading-cap is a component (`Chat.tsx`), `useX` is a hook (`useClubChat.ts`),
+  leading-cap is a component (`ChatHost.tsx`), `useX` is a hook (`useClubChat.ts`),
   lowercase is everything else (`chatUnread.ts`), and `.module.css` is a
   stylesheet.
 - **A file is named for its job.** When the job is a hook, and its other
@@ -118,7 +118,7 @@ The rules that have bitten before:
 ## Every folder carries a `doc.md` and a `todo.md`
 
 Both names are fixed, and the folder supplies the identity. That is the same
-rule the rest of the folder runs on: **the name states the kind.** `Chat.tsx`
+rule the rest of the folder runs on: **the name states the kind.** `ChatHost.tsx`
 is a component because it is leading-cap, `useClubChat.ts` is a hook because it
 is `useX`, `chatUnread.ts` is lib because it is lowercase — and `doc.md` is the
 doc because it is called `doc.md`. A file named `chat.md` would instead read as

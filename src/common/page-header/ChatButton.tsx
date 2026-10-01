@@ -13,7 +13,7 @@ import styles from './ChatButton.module.css'
 /**
  * The chat-panel toggle in the club + game headers. Click toggles the
  * panel via the shared chatPanelOpenStore — both this bubble and the
- * `<Chat>` panel subscribe to the store.
+ * `<ChatHost>` panel subscribe to the store.
  *
  * **Unread indicator.** When the panel is closed and there are unread
  * messages (`chat/chatUnreadStore.ts`), the speech bubble GLYPH fills with the

@@ -25,7 +25,7 @@ type ChatFeedbackOptions = {
 /**
  * Bridges club chat to the GLOBAL feedback slot: every NEW message from
  * another member shows as "● HANDLE: text" (the `chat` kind). Takes the stream
- * rather than opening one, so `<Chat>` — which already holds it for the unread
+ * rather than opening one, so `<ChatHost>` — which already holds it for the unread
  * badge and the `!` detector — is the only caller. `members` is the FULL club
  * roster, so a sender outside the current game is still named; `selfId` is the
  * viewer, whose own messages never pop.

@@ -3,7 +3,7 @@
 /**
  * Tests for chatPanelOpenStore. The store is small but it is the only place
  * the panel's open state is shared between the header's `<ChatButton>`, the
- * `/` action and `<Chat>` itself — a regression in the notify path would
+ * `/` action and `<ChatHost>` itself — a regression in the notify path would
  * silently desync them.
  *
  * Out of scope: the module-load-time read of `isChatPanelOpen` from
