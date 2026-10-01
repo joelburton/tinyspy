@@ -19,7 +19,9 @@ export type BoardShape = {
  * Null when the board has no cells at all.
  */
 export function clampCell(cell: Cell, shape: BoardShape): Cell | null {
-  let i = Math.min(cell.y, shape.numRows - 1) * shape.numCols + Math.min(cell.x, shape.numCols - 1)
+  let i =
+    Math.min(cell.y, shape.numRows - 1) * shape.numCols +
+    Math.min(cell.x, shape.numCols - 1)
   for (; i >= 0; i--) {
     const x = i % shape.numCols
     const y = Math.floor(i / shape.numCols)
@@ -41,7 +43,9 @@ export function clampCell(cell: Cell, shape: BoardShape): Cell | null {
 export function stepCell(from: Cell, key: ArrowKey, shape: BoardShape): Cell {
   const dx = key === 'ArrowRight' ? 1 : key === 'ArrowLeft' ? -1 : 0
   const dy = key === 'ArrowDown' ? 1 : key === 'ArrowUp' ? -1 : 0
-  for (let x = from.x + dx, y = from.y + dy; x >= 0 && x < shape.numCols && y >= 0 && y < shape.numRows; x += dx, y += dy) {
+  for (let x = from.x + dx, y = from.y + dy;
+       x >= 0 && x < shape.numCols && y >= 0 && y < shape.numRows;
+       x += dx, y += dy) {
     if (shape.exists(x, y)) return { x, y }
   }
   return from

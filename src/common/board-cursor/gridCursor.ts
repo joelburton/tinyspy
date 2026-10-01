@@ -26,12 +26,20 @@ const clampTo = (n: number, max: number) => Math.max(0, Math.min(max, n))
  * without moving (so the next press steps); an *along-axis* arrow steps one
  * cell in the arrow's direction, clamped to `[0, max]`.
  */
-export function moveCursor(cursor: GridCursor, key: ArrowKey, max: number): GridCursor {
+export function moveCursor(
+  cursor: GridCursor,
+  key: ArrowKey,
+  max: number,
+): GridCursor {
   const axis: Dir = key === 'ArrowLeft' || key === 'ArrowRight' ? 'h' : 'v'
   if (cursor.dir !== axis) return { ...cursor, dir: axis }
   const dx = key === 'ArrowRight' ? 1 : key === 'ArrowLeft' ? -1 : 0
   const dy = key === 'ArrowDown' ? 1 : key === 'ArrowUp' ? -1 : 0
-  return { x: clampTo(cursor.x + dx, max), y: clampTo(cursor.y + dy, max), dir: cursor.dir }
+  return {
+    x: clampTo(cursor.x + dx, max),
+    y: clampTo(cursor.y + dy, max),
+    dir: cursor.dir,
+  }
 }
 
 /** Step the cursor one cell BACKWARD along its axis. */
@@ -61,12 +69,18 @@ export function planBackspace(
   max: number,
   cellAt: (x: number, y: number) => BackspaceCell,
 ): { remove: { x: number; y: number } | null; cursor: GridCursor } {
-  if (cellAt(cursor.x, cursor.y) === 'removable') return { remove: { x: cursor.x, y: cursor.y }, cursor }
+  if (cellAt(cursor.x, cursor.y) === 'removable')
+    return { remove: { x: cursor.x, y: cursor.y }, cursor }
   let back = stepBack(cursor, max)
   while (cellAt(back.x, back.y) === 'locked') {
     const next = stepBack(back, max)
     if (next.x === back.x && next.y === back.y) break // the grid's edge
     back = next
   }
-  return { remove: cellAt(back.x, back.y) === 'removable' ? { x: back.x, y: back.y } : null, cursor: back }
+  return {
+    remove: cellAt(back.x, back.y) === 'removable' ? {
+      x: back.x,
+      y: back.y,
+    } : null, cursor: back,
+  }
 }
