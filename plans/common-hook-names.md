@@ -101,9 +101,9 @@ Names in C–G are proposals, to be agreed before any is changed.
   As done: only the yes/no checks, which take an `is`: `isOnScreen`,
   `isProgrammaticOnly`. The rest are left for when each file is next read.
 
-## G. Module-level arrow functions
+## G. Module-level arrow functions (done)
 
-- [ ] `routing/router.ts`: `subscribeToPath`, `readPath`.
+- [x] `routing/router.ts`: `subscribeToPath`, `readPath`.
 
 ## H. "Terminal" wording — owed to the common terminal sweep
 

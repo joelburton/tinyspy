@@ -43,12 +43,14 @@ import { useSyncExternalStore } from 'react'
 
 // Both module-level, so they are stable across renders — a `subscribe` that
 // changed identity would make React resubscribe every render.
-const subscribeToPath = (onChange: () => void) => {
+function subscribeToPath(onChange: () => void): () => void {
   window.addEventListener('popstate', onChange)
   return () => window.removeEventListener('popstate', onChange)
 }
 
-const readPath = () => window.location.pathname
+function readPath(): string {
+  return window.location.pathname
+}
 
 /**
  * Subscribes a component to changes in `window.location.pathname`.
