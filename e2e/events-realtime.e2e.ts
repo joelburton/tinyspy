@@ -101,10 +101,10 @@ const CASES: Case[] = [
           const res = await asUser(m.session.access_token)
             .schema('connections')
             .rpc('submit_guess', {
-              target_game: game.id,
-              tiles: ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'],
-              result: 'correct',
-              matched_category_rank: 0,
+              p_game_id: game.id,
+              p_tiles: ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'],
+              p_result: 'correct',
+              p_matched_category_rank: 0,
             })
           envelopeData(res, 'connections.submit_guess')
         },

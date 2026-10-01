@@ -137,10 +137,10 @@ test('connections: Restart un-reveals a spent hint', async ({ browser }) => {
   await expect(page.getByRole('button', { name: /Hints/i }).first()).toBeVisible({ timeout: 25000 })
 
   await page.getByRole('button', { name: /Hints/i }).first().click()
-  const before = await page.getByRole('button', { name: /Reveal/i }).count()
+  const before = await page.getByRole('button', { name: /Show hint/i }).count()
   expect(before).toBe(4)
-  await page.getByRole('button', { name: /Reveal/i }).first().click()
-  await expect(page.getByRole('button', { name: /Reveal/i })).toHaveCount(3)
+  await page.getByRole('button', { name: /Show hint/i }).first().click()
+  await expect(page.getByRole('button', { name: /Show hint/i })).toHaveCount(3)
 
   await page.getByRole('button', { name: 'Game menu' }).click()
   await actionRow(page, 'act-restart').click()
@@ -154,5 +154,5 @@ test('connections: Restart un-reveals a spent hint', async ({ browser }) => {
   await page.getByRole('button', { name: /Hints/i }).first().click()
 
   // All four are hidden again — the second attempt is blind.
-  await expect(page.getByRole('button', { name: /Reveal/i })).toHaveCount(4)
+  await expect(page.getByRole('button', { name: /Show hint/i })).toHaveCount(4)
 })

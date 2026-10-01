@@ -42,10 +42,10 @@ async function guess(
   const res = await asUser(member.session.access_token)
     .schema('connections')
     .rpc('submit_guess', {
-      target_game: gameId,
-      tiles,
-      result,
-      matched_category_rank: rank,
+      p_game_id: gameId,
+      p_tiles: tiles,
+      p_result: result,
+      p_matched_category_rank: rank,
     })
   if (res.error) throw new Error(`connections.submit_guess: ${res.error.message}`)
 }
