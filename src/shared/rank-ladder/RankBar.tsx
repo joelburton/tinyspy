@@ -26,7 +26,7 @@ type Props = {
  * rather than a control (`data-tooltip-on="readout"`): the bubble appears the
  * moment you hover, a tap reveals it on a phone, and pressing a square leaves
  * it up — because unlike a button, the bubble is the only thing a square has
- * to say. See `common/tooltips/TooltipHost.tsx`.
+ * to say. See `common/tooltips/doc.md` → Readouts.
  *
  * The ladder's own colors (`--rank-bar-fill-color` / `--rank-bar-edge-color`)
  * are the same wherever the bar appears — see the CSS module for why; only the

@@ -13,8 +13,9 @@ import type { Action } from '../actions/useBindAction'
  * is `MenuApi`, which a PlayArea receives on its `PlayAreaLoaderProps` rather than
  * importing.
  *
- * Types only, plus `isSubmenu` and `menuRow`. The rendering lives in `Menu.tsx`
- * and the opener `?` reaches in `pageMenuStore.ts`, both next door.
+ * Types only, plus `isSubmenu`, `menuRow` and `makeVisibleSections`. The
+ * rendering lives in `Menu.tsx` and the opener `?` reaches in
+ * `pageMenuStore.ts`, both next door.
  *
  * **Why its own module.** None of these names a game: a menu is a shell
  * thing, and a surface that builds one should not have to import the manifest
@@ -132,6 +133,18 @@ export function menuRow(item: MenuItem): MenuRow {
     children: null,
     run: () => item.run(),
   }
+}
+
+/** A section as the menu draws it: its header, and the rows still showing. */
+export type VisibleSection = { header?: MenuHeader; rows: MenuRow[] }
+
+/** Each section's rows read through `menuRow`, the hidden ones dropped — so
+ *  what is left is what is on screen, before anything counts rows. */
+export function makeVisibleSections(sections: MenuSection[]): VisibleSection[] {
+  return sections.map((s) => ({
+    header: s.header,
+    rows: s.items.map(menuRow).filter((row) => !row.hidden),
+  }))
 }
 
 /** A group of items rendered together in the menu popover.

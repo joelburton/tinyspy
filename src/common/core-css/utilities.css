@@ -104,7 +104,7 @@
    anchor, flipped below near the top edge). None of the bubble's LOOK is here
    on purpose: a pure-CSS `::after` bubble cannot measure the viewport, so it
    overflows at the edges and clips under overflow-hidden ancestors. See
-   common/tooltips/TooltipHost.tsx.
+   common/tooltips/TooltipBubble.tsx.
 
    What IS here is the one thing only CSS can say: on a tooltip target, the long
    press belongs to US. TooltipHost claims it to reveal the button's name, and

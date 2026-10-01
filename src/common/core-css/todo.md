@@ -7,7 +7,7 @@
 - **`@starting-style` would let an entering element transition, and nothing
   uses it yet.** A tooltip, a toast, any element that appears by mounting has
   no previous computed value, so a `transition` on it does nothing and the
-  entry has to be a `@keyframes` — which is why `TooltipHost.module.css` holds
+  entry has to be a `@keyframes` — which is why `TooltipBubble.module.css` holds
   eleven lines to fade one opacity. `@starting-style` gives a mounting element
   a "before", so three lines would do it, and it is supported everywhere the
   app cares about (Chrome 117+, Safari 17.5+, Firefox 129+). The question is

@@ -67,9 +67,20 @@ to cover it because a tooltip blocks nothing.
 
 ## Details
 
-- **The beat is 400 ms and the hold is 450 ms.** The constants at the top of
-  `TooltipHost.tsx` say why each is what it is, and why the hold is the longer
-  of the two.
+- **The host is three parts.** `pointerTriggers` (hover, keyboard focus, press,
+  scroll) and `touchTriggers` (hold, tap, the swallowed click) decide what is
+  being asked about, sharing one `TooltipControl`; `TooltipBubble` draws the
+  answer, placed by `computeBubblePosition`.
+- **The beat is 400 ms and the hold is 450 ms.** The hold is the longer because
+  a hover is already a sign of interest, while a press starts out looking like
+  a tap and has to outlast one before it can mean something else.
+- **Readouts.** `data-tooltip-on="readout"` marks a carrier that is not a
+  control, such as a rank square, and changes three things together: the
+  bubble shows at once on hover, a tap reveals it on touch (no hold), and a
+  press leaves it up. Every reason for the beat and the hold is a reason about
+  a control — nobody crosses a readout on the way to pressing something, and
+  there is no tap to protect — while a readout's bubble is its whole purpose,
+  so asking has to cost nothing. A press can't make its text stale either.
 - **The hover gate is asked once, at mount,** not subscribed to: a device does
   not grow a mouse mid-session. jsdom has no `matchMedia` and is treated as
   hover-capable, which is what lets the component tests hover.

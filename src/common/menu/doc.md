@@ -75,6 +75,12 @@ alone asks for focus to fall to the page instead of the trigger on close
 logo would swallow the arrows and Enter a keyboard-first board is waiting for.
 The other pages' menus keep the usual Escape-returns-focus.
 
+**`Menu.tsx` holds the state; the rest is next door.** `MenuTrigger`,
+`MenuRowButton` and `MenuSectionHeader` draw the pieces; `menuNav.ts` decides
+which rows the keyboard walks (`makeNavRows`, `findNextEnabled`);
+`useMenuKeys` hands back the two key handlers; and
+`useCloseOnOutsideMousedown` is the click-away.
+
 **Rows are read when the menu draws them, which is when it opens.** Nothing the
 player does reaches past an open menu, so the only staleness possible is a
 change from another player while it sits open; closing and reopening fixes it,

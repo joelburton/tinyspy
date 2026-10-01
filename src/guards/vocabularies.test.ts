@@ -331,7 +331,8 @@ const VOCABULARIES: Vocabulary[] = [
       // line's leading are both "these two are one thing", which the ramp's
       // smallest step (0.25rem) is too big to say. Both carry the reason in
       // the file. Nothing else in the menu is off the ramp.
-      'src/common/menu/Menu.module.css': ['0.1rem'],
+      'src/common/menu/MenuTrigger.module.css': ['0.1rem'],
+      'src/common/menu/MenuSectionHeader.module.css': ['0.1rem'],
       // The picker's summary dots moved out of the modal with <PlayersSection>.
       // Same value, new file — the debt traveled, it did not grow.
       'src/common/setup-form/PlayersSection.module.css': ['0.3rem'],

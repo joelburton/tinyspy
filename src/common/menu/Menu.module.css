@@ -11,49 +11,6 @@
   display: inline-block;
 }
 
-/* The identity element + down-chevron row inside the trigger button. The gap is
-   deliberately tiny — the chevron hugs the logo so the pair reads as ONE
-   clickable unit, not two icons. KEPT off the spacer ramp (Joel, 2026-09-11):
-   the ramp's smallest step is 0.25rem, which is enough room to separate two
-   things, and separating them is the one thing this gap must not do. */
-/* @@ */ .triggerRow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.1rem;
-}
-
-/* Sized in em, so the mark tracks whatever type it sits beside instead of being
-   the one pixel dimension in the header. */
-/* @@ */ .chevron {
-  width: 0.65em;
-  height: 0.65em;
-}
-
-/* Wrapper button around the caller-supplied logo. The neutral <button> already
- * leaves it looking like whatever the caller provided; this adds the padding
- * and a subtle hover/open background cue that it's interactive. */
-/* @@ */ .trigger {
-  padding: 0.25rem;
-  margin: 0;
-  cursor: pointer;
-  color: var(--page-text-color);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  transition: background var(--transition-duration-paint) ease;
-}
-
-.trigger:hover,
-/* @@ */ .trigger[aria-expanded='true'] {
-  background: var(--page-surface-border-color);
-}
-
-/* @@ */ .trigger:focus-visible {
-  outline: var(--chrome-cursor-ring);
-  outline-offset: 2px;
-}
-
 /* The popover, absolute below the trigger, on the menu's own rung of the
  * ladder (base.css → --z-menu says why it is a rung).
  *
@@ -94,70 +51,6 @@
   overflow-y: auto;
 }
 
-/* Per-item button. Left-align text; full-width row so the click target is
- * the whole row width. Hover and focus give the same background cue —
- * keyboard and mouse users see the same "this is current" signal.
- *
- * A disabled row carries no class of its own: it is a real `<button disabled>`,
- * so the fade and the cursor come from base.css's `button:disabled`, which is
- * the app's one disabled treatment. */
-/* @@ */ .item {
-  margin: 0;
-  padding: 0.5rem 0.85rem;
-  cursor: pointer;
-  color: var(--page-text-color);
-  font-size: var(--font-size-1);
-  font-weight: 500;
-  text-align: left;
-  /* EVERY MARK IN A ROW IS `1em` — the identity disc here, the leading glyph
-     and the submenu chevron at their call sites — so the marks are sized by
-     the label they sit beside and the menu's type moves all of them at once.
-     Set on the ROW because the disc is drawn inside the leading slot with no
-     class of its own; the row is the nearest thing that can size it. */
-  --dot-size: 1em;
-  /* Flex so the glyph, the label and the shortcut share one line. The gap is
-     the distance from a leading glyph or disc to its label; the wide gutter
-     before the shortcut is the shortcut's own (`.itemShortcut`), so nothing
-     here has to be undone by the children. */
-  display: flex;
-  align-items: baseline;
-  gap: var(--spacer-4);
-  width: 100%;
-  border-radius: 0;
-  transition: background var(--transition-duration-nudge) ease;
-}
-
-/* The shortcut (e.g. "⌥C") — pushed to the right edge, de-emphasized (it's an
-   annotation, not the action). `auto` takes whatever the row has left; the
-   padding is the floor between the label and the shortcut on a row too narrow
-   for that to be much. */
-/* @@ */ .itemShortcut {
-  margin-left: auto;
-  padding-left: var(--spacer-1);
-  color: var(--menu-muted-ink-color);
-  font-size: var(--font-size-2);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.item:hover:not(:disabled),
-/* @@ */ .item:focus {
-  background: var(--page-surface-hover-color);
-}
-
-/* Keyboard focus also paints a clear ring on top of the
- * background highlight. Without it, the row-background change
- * is the only signal — fine in normal mode, but invisible in
- * forced-colors / Windows-high-contrast mode where custom
- * background colors are stripped. The ring keeps the focused
- * row identifiable in those contexts. :focus-visible (not
- * :focus) so a mouse click on an item doesn't double-paint a
- * ring on top of the activation flash. */
-/* @@ */ .item:focus-visible {
-  outline: var(--chrome-cursor-ring);
-  outline-offset: -2px;
-}
-
 /* Section divider — the thin rule between one section and the next. Margins
  * inside the padding so it doesn't touch the popover edges.
  *
@@ -170,65 +63,12 @@
   border-top: var(--border-width-line) solid var(--page-surface-border-color);
 }
 
-/* Non-clickable info header at the top of a section — the crosswords puzzle
- * title + credits. Matches an item's horizontal padding so it lines up with the
- * buttons below; the title reads at item size, the sub-lines (author /
- * copyright) are muted and smaller. */
-/* @@ */ .header {
-  padding: 0.35rem 0.85rem 0.45rem;
-}
-/* @@ */ .headerTitle {
-  color: var(--page-text-color);
-  font-size: var(--font-size-1);
-  font-weight: 600;
-}
-/* @@ */ .headerLine {
-  color: var(--page-text-muted-color);
-  font-size: var(--font-size-2);
-  /* KEPT off the spacer ramp (Joel, 2026-09-11), same reason as `.triggerRow`'s
-     gap: this is leading between two lines of one block, not room between two
-     things, and the ramp's smallest step would read as a paragraph break. */
-  margin-top: 0.1rem;
-}
-
 /* ── Submenus ──────────────────────────────────────────────────────
  * Two presentations of one piece of state (see Menu.tsx): a FLYOUT beside the
  * parent row on desktop, a DRILL-DOWN that replaces the list on mobile. The
  * split is by viewport because the flyout has nowhere to go on a phone — the
  * parent popover already runs to the `max-width` cap there, so a second panel
  * beside it would only ever land on top of the first. */
-
-/* The "there's more behind this row" affordance. `margin-left: auto` pushes it
- * to the right edge the way `.itemShortcut` does — a row never has both, since
- * a submenu parent carries no shortcut (it isn't a command). */
-/* @@ */ .itemChevron {
-  margin-left: auto;
-  padding-left: 0.5rem;
-  /* The LABEL's ink, not the menu's muted mark ink. This mark says the row
-     leads somewhere, which is as much a part of what the row does as its
-     words; muting it filed it with the shortcut annotations instead. */
-  color: var(--page-text-color);
-  /* A drawn mark, not a character: the row is `align-items: baseline` for the
-     label, and an SVG has no baseline worth aligning, so it centers itself on
-     the text's optical line the way `.itemIconSlot` does. */
-  display: inline-flex;
-  align-items: center;
-  align-self: center;
-}
-
-/* The parent row of an OPEN flyout stays lit, so it's unambiguous which row the
- * floating panel belongs to — without it, a panel hanging in space beside a
- * list of identical rows makes you count pixels to find its owner. */
-/* @@ */ .itemOpen {
-  background: var(--page-surface-hover-color);
-}
-
-/* The drill-down's "‹ Back" row. Muted like a breadcrumb rather than styled as
- * a command: it undoes a navigation step, it doesn't do anything to the game. */
-/* @@ */ .itemBack {
-  color: var(--menu-muted-ink-color);
-  font-weight: 600;
-}
 
 /* The desktop flyout. `position: fixed` is load-bearing, not stylistic:
  * `.popover` is `overflow-y: auto`, and the spec computes overflow-x to `auto`
@@ -259,29 +99,4 @@
    * negated, not a chosen amount of space — derived so a thicker edge can't
    * leave the seam half-closed. */
   margin-left: calc(-1 * var(--border-width-line));
-}
-
-/* The leading glyph slot — the icon language's legend (`MenuRow.icon`).
- *
- * A FIXED box on every row, empty or not, so the labels share one text column
- * and a leading mark has exactly one place it can be. It holds either an
- * action's glyph or the identity disc — a row names a deed or a person, never
- * both.
- *
- * `flex: none` so a glyph never stretches the row, and the box is a little
- * WIDER than the `1em` mark inside it rather than the mark sizing the box — a
- * future glyph with different bearings then can't shift every label beside it.
- * In em like the mark, so the column tracks the type too. */
-/* @@ */ .itemIconSlot {
-  flex: none;
-  width: 1.15em;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  /* The glyph is a quiet index, not a second label: it sits at the menu's
-   * muted ink so the words stay the thing you read. */
-  color: var(--menu-muted-ink-color);
-  /* The row is `align-items: baseline` for the label/shortcut; an icon has no
-   * baseline worth aligning, so nudge it onto the text's optical line. */
-  align-self: center;
 }

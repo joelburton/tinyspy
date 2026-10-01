@@ -1,7 +1,7 @@
 /* cs-blessed-common-hosts */
 
-/* The styled-tooltip bubble (see TooltipHost.tsx). Fixed + body-portaled so
- * it clamps to the VIEWPORT and escapes overflow-hidden ancestors; the host
+/* The styled-tooltip bubble (see TooltipBubble.tsx). Fixed + body-portaled so
+ * it clamps to the VIEWPORT and escapes overflow-hidden ancestors; TooltipBubble
  * sets left/top imperatively after measuring. At `--z-tooltip`, the top of
  * base.css's ladder: a tooltip blocks nothing, so nothing needs to cover it. */
 /* @@ */ .bubble {

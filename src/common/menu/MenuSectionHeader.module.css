@@ -1,0 +1,23 @@
+/* cs-unmet */
+
+/* Non-clickable info header at the top of a section — the crosswords puzzle
+ * title + credits. Matches an item's horizontal padding so it lines up with the
+ * buttons below; the title reads at item size, the sub-lines (author /
+ * copyright) are muted and smaller. */
+/* @@ */ .header {
+  padding: 0.35rem 0.85rem 0.45rem;
+}
+/* @@ */ .headerTitle {
+  color: var(--page-text-color);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+}
+/* @@ */ .headerLine {
+  color: var(--page-text-muted-color);
+  font-size: var(--font-size-2);
+  /* KEPT off the spacer ramp (Joel, 2026-09-11), same reason as the trigger's
+     logo-to-chevron gap (MenuTrigger.module.css): this is leading between two
+     lines of one block, not room between two things, and the ramp's smallest
+     step would read as a paragraph break. */
+  margin-top: 0.1rem;
+}

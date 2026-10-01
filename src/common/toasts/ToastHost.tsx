@@ -22,6 +22,7 @@ import styles from './ToastHost.module.css'
 export function ToastHost() {
   const toasts = useToasts()
   if (toasts.length === 0) return null
+
   return createPortal(
     <div className={styles.host} role="region" aria-label="Notifications">
       {toasts.map((t) => (
