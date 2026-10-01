@@ -64,7 +64,7 @@ export function useScratchpad(
   ownerId: string | null,
   myId: string,
 ): ScratchpadApi {
-  const shared = ownerId === null
+  const isShared = ownerId === null
   const [body, setBodyState] = useState('')
   const [loading, setLoading] = useState(true)
   const [holder, setHolder] = useState<Holder | null>(null)
@@ -93,8 +93,8 @@ export function useScratchpad(
   // revert the textarea under the caret. My next flush carries my text
   // anyway, and its reply advances the version.
   const myTextIsAuthoritative = useCallback(
-    () => shared && holderRef.current?.userId === myId,
-    [shared, myId],
+    () => isShared && holderRef.current?.userId === myId,
+    [isShared, myId],
   )
 
   // ── Load + realtime (body CDC + lock Broadcast) on ONE stable channel ──
@@ -148,7 +148,7 @@ export function useScratchpad(
           applyBody(r.body, r.version)
         },
       )
-      if (shared) {
+      if (isShared) {
         ch.on('broadcast', { event: 'lock' }, ({ payload }) => {
           const ev = payload as LockEvent
           if (ev.userId === myId) return // ignore our own echo
@@ -184,12 +184,12 @@ export function useScratchpad(
       channelRef.current = null
       if (!ch) return // torn down before our turn to join came round
       // Release the lock on unmount so peers aren't stuck waiting.
-      if (shared && holderRef.current?.userId === myId) {
+      if (isShared && holderRef.current?.userId === myId) {
         ch.send({ type: 'broadcast', event: 'lock', payload: { type: 'release', userId: myId } })
       }
       void releaseChannel(ch)
     }
-  }, [gameId, ownerId, shared, myId, applyBody, myTextIsAuthoritative])
+  }, [gameId, ownerId, isShared, myId, applyBody, myTextIsAuthoritative])
 
   // The clock behind the grace and staleness windows. It runs only while a
   // holder is known — with nobody editing there is nothing to age — and a
@@ -214,7 +214,7 @@ export function useScratchpad(
 
   // Heartbeat, only while I hold the lock: re-assert it while recently
   // editing; release it when idle, which is what ends the interval.
-  const iHold = shared && holder?.userId === myId
+  const iHold = isShared && holder?.userId === myId
   useEffect(
     function heartbeatWhileHolding() {
       if (!iHold) return
@@ -269,9 +269,9 @@ export function useScratchpad(
 
   // Derived lock view.
   const otherHolder =
-    shared && holder && holder.userId !== myId && nowTick - holder.at < STALE_MS ? holder : null
+    isShared && holder && holder.userId !== myId && nowTick - holder.at < STALE_MS ? holder : null
   const editingBy = otherHolder ? otherHolder.userId : null
-  const canEdit = !shared || editingBy === null
+  const canEdit = !isShared || editingBy === null
   const canTakeOver = otherHolder !== null && nowTick - otherHolder.at > GRACE_MS
 
   const setBody = useCallback(
@@ -280,11 +280,11 @@ export function useScratchpad(
       bodyRef.current = text
       setBodyState(text)
       lastEditRef.current = Date.now()
-      if (shared && holderRef.current?.userId !== myId) claim()
+      if (isShared && holderRef.current?.userId !== myId) claim()
       if (flushTimer.current) clearTimeout(flushTimer.current)
       flushTimer.current = setTimeout(() => flush(text), FLUSH_MS)
     },
-    [canEdit, shared, myId, claim, flush],
+    [canEdit, isShared, myId, claim, flush],
   )
 
   const takeOver = useCallback(() => {

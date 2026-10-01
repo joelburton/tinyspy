@@ -52,8 +52,8 @@ export function useChatFeedback({
       const member = memberById(members, m.user_id)
       // Mirror ChatBody: a leading '!' is the "force-open for everyone" marker,
       // not part of the shown text.
-      const important = m.content.startsWith('!')
-      const body = important ? m.content.slice(1).trimStart() : m.content
+      const isImportant = m.content.startsWith('!')
+      const body = isImportant ? m.content.slice(1).trimStart() : m.content
       const text = body.length > MAX_PILL_CHARS ? `${body.slice(0, MAX_PILL_CHARS)}…` : body
       return FeedbackMessage.chat(member, text)
     },

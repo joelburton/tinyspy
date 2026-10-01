@@ -103,7 +103,7 @@ export function useClubGames(
   // Whether the last read failed. Only the list's empty state reads it: "No
   // games yet." is a lie when the read is what came back empty, and this is a
   // page the player is being told to reload.
-  const [failed, setFailed] = useState(false)
+  const [hasReadFailed, setHasReadFailed] = useState(false)
 
   // Load games for this club + the current-view game id.
   // Re-runs whenever realtime tells us a games row for this club
@@ -155,11 +155,11 @@ export function useClubGames(
       // undeleted. So the modal is escalated by a message that outlives
       // dismissing it, and the honest instruction is to reload.
       if (res.type === 'not-ok') {
-        setFailed(true)
+        setHasReadFailed(true)
         globalFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       }
-      setFailed(false)
+      setHasReadFailed(false)
 
       const rows = res.data
       // Read off every row, a gametype this bundle doesn't know included: the
@@ -220,5 +220,5 @@ export function useClubGames(
     // (`ClubPageLoader`), so listing them re-subscribes nothing.
   }, [clubHandle, members, globalFeedbackSlot])
 
-  return { games, currentGameId, failed }
+  return { games, currentGameId, hasReadFailed }
 }

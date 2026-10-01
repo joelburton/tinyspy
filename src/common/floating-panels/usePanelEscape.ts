@@ -54,7 +54,7 @@ type OpenPanel = {
  *  that Escape is answered ONCE for the app, not once per panel. */
 const open: OpenPanel[] = []
 let seqCounter = 0
-let listening = false
+let isListening = false
 
 /** The panel Escape belongs to when focus is not inside any of them: the
  *  highest tier, later mount breaking a tie. */
@@ -123,16 +123,16 @@ export function usePanelEscape(
   useEffect(() => {
     const entry: OpenPanel = { id, tier, escape, onClose, seq: seqCounter++ }
     open.push(entry)
-    if (!listening) {
+    if (!isListening) {
       window.addEventListener('keydown', onKeyDown)
-      listening = true
+      isListening = true
     }
     return () => {
       const i = open.indexOf(entry)
       if (i !== -1) open.splice(i, 1)
-      if (open.length === 0 && listening) {
+      if (open.length === 0 && isListening) {
         window.removeEventListener('keydown', onKeyDown)
-        listening = false
+        isListening = false
       }
     }
   }, [id, tier, escape, onClose])

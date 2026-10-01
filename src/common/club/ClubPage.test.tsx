@@ -50,10 +50,10 @@ const { mockRunRpc, mockToast, clubGames, WORDLE, DUEL, SYRUP } = vi.hoisted(() 
     mockToast: vi.fn(),
     // What `useClubGames` hands the page, chosen per test.
     clubGames: {
-      current: { games: [], currentGameId: null, failed: false } as {
+      current: { games: [], currentGameId: null, hasReadFailed: false } as {
         games: ListedGame[]
         currentGameId: string | null
-        failed: boolean
+        hasReadFailed: boolean
       },
     },
     WORDLE: manifest('wordle_coop', 'coop', 'WordNerd'),
@@ -160,7 +160,7 @@ function emptyLine(list: ReturnType<typeof within>) {
 beforeEach(() => {
   mockRunRpc.mockReset()
   mockToast.mockReset()
-  clubGames.current = { games: [], currentGameId: null, failed: false }
+  clubGames.current = { games: [], currentGameId: null, hasReadFailed: false }
   clearFaultMessages_ForTest()
   window.history.replaceState(null, '', '/c/trio')
 })
@@ -179,7 +179,7 @@ describe('ClubPage — the two lists', () => {
         listed({ gameId: 'g2', manifest: SYRUP as unknown as GameManifest, title: 'Beta' }),
       ],
       currentGameId: 'g1',
-      failed: false,
+      hasReadFailed: false,
     }
     draw()
 
@@ -190,7 +190,7 @@ describe('ClubPage — the two lists', () => {
   })
 
   it('says the read failed rather than "No games yet."', () => {
-    clubGames.current = { games: [], currentGameId: null, failed: true }
+    clubGames.current = { games: [], currentGameId: null, hasReadFailed: true }
     draw()
     // An empty list that says "No games yet." is a lie when the read is what
     // came back empty — and this is a page the player is being told to reload.
@@ -206,7 +206,7 @@ describe('ClubPage — each filter reaches one list', () => {
         listed({ gameId: 'g2', manifest: SYRUP as unknown as GameManifest, title: 'Beta' }),
       ],
       currentGameId: null,
-      failed: false,
+      hasReadFailed: false,
     }
   })
 
@@ -264,7 +264,7 @@ describe('ClubPage — what a delete answer puts on screen', () => {
     clubGames.current = {
       games: [listed({ gameId: 'g1', manifest: WORDLE as unknown as GameManifest, title: 'Alpha' })],
       currentGameId: null,
-      failed: false,
+      hasReadFailed: false,
     }
   })
 

@@ -264,7 +264,7 @@ describe('useClubGames — a failed read', () => {
 
   it('raises the flag its caller draws an empty state from', async () => {
     const { result } = await load(theReadFailed())
-    await waitFor(() => expect(result.current.failed).toBe(true))
+    await waitFor(() => expect(result.current.hasReadFailed).toBe(true))
   })
 
   it('keeps the list it already had rather than emptying it', async () => {

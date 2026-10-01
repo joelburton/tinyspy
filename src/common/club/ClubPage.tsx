@@ -14,7 +14,11 @@ import { useBindAction } from '../actions/useBindAction'
 import { useTabRing } from '../keyboard/useTabRing'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
 import { useStickyChoice } from '../web-storage/useStickyChoice'
-import { MODE_LABEL, playerCountFits, playerCountLabel } from '../manifest/gameManifest'
+import {
+  MODE_LABEL,
+  playerCountFits,
+  playerCountLabel,
+} from '../manifest/gameManifest'
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
 import { ChatButton } from '../page-header/ChatButton'
@@ -106,7 +110,12 @@ type Props = {
  * The games list is not here either — `useClubGames` reads and re-reads it.
  * See `club/doc.md` for how the pieces sit together.
  */
-export function ClubPage({ club, members, initialGametypes, authSession }: Props) {
+export function ClubPage({
+  club,
+  members,
+  initialGametypes,
+  authSession,
+}: Props) {
   const selfId = authSession.user.id
   const handle = club.handle
   // One-player club. Suppresses the "Co-op" mode badge on this page's cards
@@ -156,7 +165,7 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
   // The club's games, kept fresh by their own Realtime subscription: the list
   // in last-played order, the current game's id (the `is_current_view` row),
   // and whether the last read failed.
-  const { games: allGames, currentGameId, failed: gamesFailed } =
+  const { games: allGames, currentGameId, hasReadFailed: hasGamesReadFailed } =
     useClubGames(handle, members, globalFeedbackSlot)
   // Club presence: who's in the club orbit right now (this page, or
   // any game page of the club) and which game they're viewing. We
@@ -273,12 +282,17 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
   // dialog is open, however it was opened); cancel/start clears it → my
   // announcement drops → peers' toasts clear. Presence-based (auto-clears on
   // disconnect, syncs to late-joiners); see useClubSetupPresence.
-  const selfUsername = members.find((m) => m.user_id === selfId)?.username ?? 'You'
+  const selfUsername = members.find((m) => m.user_id === selfId)?.username ??
+    'You'
   useClubSetupPresence({
     clubHandle: handle,
     selfId,
     mySetup: activeSetup
-      ? { brand: activeSetup.name, mode: activeSetup.mode, username: selfUsername }
+      ? {
+        brand: activeSetup.name,
+        mode: activeSetup.mode,
+        username: selfUsername,
+      }
       : null,
   })
 
@@ -340,7 +354,8 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
   const actRenameClub = useBindAction('act-rename-club', {
     describe: () => 'active',
     run: () => {
-      globalFeedbackSlot.show(FeedbackMessage.acknowledgment('noted', 'Rename club: coming soon'))
+      globalFeedbackSlot.show(
+        FeedbackMessage.acknowledgment('noted', 'Rename club: coming soon'))
     },
   })
 
@@ -398,7 +413,12 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
           if (status === 'SUBSCRIBED') {
             clearTimeout(timer)
             resolve(true)
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          } else if (
+            status ===
+            'CHANNEL_ERROR'
+            || status === 'TIMED_OUT'
+            || status === 'CLOSED'
+          ) {
             clearTimeout(timer)
             resolve(false)
           }
@@ -417,7 +437,8 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
       if (subscribed) await new Promise((r) => setTimeout(r, 150))
     }
 
-    const res = await runRpc<DeleteAnswer>(commonDb.rpc('delete_game', { target_game: gameId }))
+    const res = await runRpc<DeleteAnswer>(commonDb.rpc('delete_game',
+      { target_game: gameId }))
     if (res.type === 'not-ok') {
       // EVERY severity gets the toast, a fault included. Its modal has already
       // been raised centrally, and the toast is what survives dismissing it —
@@ -469,7 +490,9 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
   // vs non-terminal is a rendering distinction, not a schema one
   // (docs/states.md → Suspended vs terminal).
   const gameState = (g: ListedGame) =>
-    g.gameId === currentGameId ? 'current' : g.isTerminal ? 'completed' : 'suspended'
+    g.gameId === currentGameId ? 'current' : g.isTerminal
+      ? 'completed'
+      : 'suspended'
 
   // ─── Apply the two filters ───────────────────────────────────────
   // Everything downstream — rendering AND the keyboard cursors — reads the
@@ -501,11 +524,13 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
   // option. Fall back to showing everything, DERIVED here rather than repaired
   // by an effect — this repo bans setState-in-effect (see the eslint rule),
   // and a stale selection is a render-time question anyway.
-  const selectedGametype = gametypeOptions.some((o) => o.value === gametypeFilter)
-    ? gametypeFilter
-    : 'all'
+  const selectedGametype =
+    gametypeOptions.some((o) => o.value === gametypeFilter)
+      ? gametypeFilter
+      : 'all'
   const visibleGames = allGames.filter(
-    (g) => selectedGametype === 'all' || g.manifest.baseGametype === selectedGametype,
+    (g) => selectedGametype === 'all' || g.manifest.baseGametype ===
+      selectedGametype,
   )
 
   // While one of our dialogs is up it owns Enter and the arrows, and the list
@@ -530,8 +555,11 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
   return (
     <div className={cls('pageHeaderAndMainArea', styles.clubPageWrapper)}>
       <PageHeader>
-        <PageHeaderMenu logo={<PuzpuzpuzLogo />} sections={menuSections} label="Club menu" />
-        <ChatButton />
+        <PageHeaderMenu
+          logo={<PuzpuzpuzLogo/>}
+          sections={menuSections}
+          label="Club menu"/>
+        <ChatButton/>
         {/* The `players` prop takes this club's roster: it is a `Member[]`
             either way, and the strip draws the same dot-and-name shape for
             both. */}
@@ -598,7 +626,8 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
         {!(mobileTab === 'new' && soloClub) && (
           <div className={styles.mobileFilters} data-testid="mobile-filters">
             {mobileTab === 'new' ? (
-              <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
+              <ModeFilter value={effectiveMode} onChange={setModeFilter}
+                          soloClub={soloClub}/>
             ) : (
               <GametypeFilter
                 value={selectedGametype}
@@ -649,7 +678,8 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
                 data-testid="heading-controls"
               >
                 <h3>Start a new game</h3>
-                <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
+                <ModeFilter value={effectiveMode} onChange={setModeFilter}
+                            soloClub={soloClub}/>
               </div>
               {/* The heading above stays put; only the list inside this frame
                   scrolls, matching the right column. Also one of the page's two
@@ -677,7 +707,8 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
                 onActivate={(g) => handleStartSetup(g.gametype)}
                 // The one predicate, evaluated once: the list dims the row AND
                 // declines Enter from this single answer.
-                disabled={(g) => !playerCountFits(g.numberOfPlayers, members.length)}
+                disabled={(g) =>
+                  !playerCountFits(g.numberOfPlayers, members.length)}
                 rowTitle={(g) =>
                   playerCountFits(g.numberOfPlayers, members.length)
                     ? undefined
@@ -688,7 +719,7 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
                     ? 'No games available in this club.'
                     : `No ${MODE_LABEL[effectiveMode]} games in this club.`
                 }
-                renderRow={(g) => <StartGameRow game={g} soloClub={soloClub} />}
+                renderRow={(g) => <StartGameRow game={g} soloClub={soloClub}/>}
               />
             </div>
           </section>
@@ -730,8 +761,11 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
               frozen={kbDialogUp}
               fills
               density="packed"
-              onActivate={(g) => navigate(gamePath(g.manifest.gametype, g.gameId))}
-              empty={gamesFailed ? 'Could not load this club’s games.' : 'No games yet.'}
+              onActivate={(g) =>
+                navigate(gamePath(g.manifest.gametype, g.gameId))}
+              empty={hasGamesReadFailed
+                ? 'Could not load this club’s games.'
+                : 'No games yet.'}
               renderRow={(g) => (
                 <ClubGameRow
                   manifest={g.manifest}
@@ -744,7 +778,8 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
                   soloClub={soloClub}
                   // Deleting the CURRENT game has to move its viewers out
                   // first, so the flag that drives that is per-row.
-                  onDelete={() => handleDelete(g.gameId, g.gameId === currentGameId)}
+                  onDelete={() =>
+                    handleDelete(g.gameId, g.gameId === currentGameId)}
                 />
               )}
             />
@@ -766,7 +801,7 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
 
       {/* The club Help companion — opened from the menu's "Help" item (or `?`,
           which opens the menu). Parity with each game's Help on GamePage. */}
-      {helpOpen && <ClubHelpCompanion onClose={() => setHelpOpen(false)} />}
+      {helpOpen && <ClubHelpCompanion onClose={() => setHelpOpen(false)}/>}
 
       {activeSetup && (
         <SetupGameModal

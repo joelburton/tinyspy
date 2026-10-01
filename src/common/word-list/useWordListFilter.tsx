@@ -95,13 +95,13 @@ export function useWordListFilter({
   // is everyone's to see from the start; in compete RLS scopes `found_words` to
   // you until the game ends, so offering peers mid-game would be a menu of
   // guaranteed-empty lists. A solo game has nobody to pick between.
-  const peopleVisible = players.length > 1 && (!isCompete || isTerminal)
+  const arePlayersOffered = players.length > 1 && (!isCompete || isTerminal)
 
   const kindOffered: Kind[] = hasBonus ? [LEGAL, REQUIRED, BONUS] : [LEGAL]
   const whoOffered = [
     ALL,
     ...(hasMissed ? [FOUND, MISSED] : []),
-    ...(peopleVisible ? ordered.map((p) => p.user_id) : []),
+    ...(arePlayersOffered ? ordered.map((p) => p.user_id) : []),
   ]
 
   // State holds only what the USER picked; the default is DERIVED every render.
@@ -175,7 +175,7 @@ export function useWordListFilter({
               : []),
             // Players carry their identity disc; the fixed options above don't,
             // so FilterSelect indents them to match (see FilterOption.dot).
-            ...(peopleVisible
+            ...(arePlayersOffered
               ? ordered.map((p) => ({ value: p.user_id, label: p.username, dot: p.color }))
               : []),
           ]}

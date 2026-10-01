@@ -56,25 +56,38 @@ Names in C–G are proposals, to be agreed before any is changed.
   (a hook's argument type is `<Hook>Options`); the getter is `isCurrent()`;
   `useCelebration` returns `isOpen`, the word the app uses for a dialog.
 
-## D. Vague names inside hooks
+## D. Vague names inside hooks (done)
 
-- [ ] A value that isn't what its name says: `useSetupDialog`'s `game` (a
+- [x] A value that isn't what its name says: `useSetupDialog`'s `game` (a
   manifest); `useHistoryViewer`'s `open` (which turn is open);
   `useBoardSelectionCursor`'s `selection` (the cursor); `useStickyChoice`'s
   `value` (the choice); `useCaptureKeys`' `value` option (the pending text);
   `useSolutionReveal`'s `pick`; `useClubSetupPresence`'s `announce`.
-- [ ] Generic words: `useClubChat`'s `load` and `row`; `useGameInvitations`'
+- [x] Generic words: `useClubChat`'s `load` and `row`; `useGameInvitations`'
   `load`, `built`, `have`; `useCommonGame`'s `state` and `entry`;
   `useClubRoster`'s `rowsRes`; `useScratchpad`'s `foreign`, `editingBy`,
   `ScratchpadApi`.
-- [ ] "Request" in `useSetupDialog` (`requestedGametype`, `requestConsumed`)
+- [x] "Request" in `useSetupDialog` (`requestedGametype`, `requestConsumed`)
   means a URL parameter, not a network request.
 
-## E. Booleans not phrased as yes/no
+  As done: `useSetupDialog`'s `manifest`, `gametype` (also in
+  `ClubPageLoader`), `hasBeenClosed`, `linkManifest`; `openTurn`;
+  `selectionCursor` (also `SelectionList`); `choice`; `pendingText`;
+  `myChoice`; `mySetup`; `loadMessages` and `message`; `scanForInvites`,
+  `newInvites`, `pendingIds`, `unseenInvites`; `presence` / `tabs` / `tab` in
+  all three presence loops; `otherHolder`. Kept: `useClubRoster`'s `rowsRes`
+  and `load` (the context says what they are), `editingBy`, `ScratchpadApi`.
+  Every hook that takes options now names their type `<Hook>Options`; eight
+  had it inline.
 
-- [ ] `useChatFeedback`'s `important`, `useClubGames`' `failed`,
+## E. Booleans not phrased as yes/no (done)
+
+- [x] `useChatFeedback`'s `important`, `useClubGames`' `failed`,
   `useScratchpad`'s `shared`, `useWordListFilter`'s `peopleVisible`,
   `usePanelEscape`'s `listening`.
+
+  As done: `isImportant`; `hasReadFailed` (ClubPage's `hasGamesReadFailed`);
+  `isShared`; `arePlayersOffered`; `isListening`.
 
 ## F. Functions not led by a verb
 
