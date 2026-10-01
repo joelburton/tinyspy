@@ -221,7 +221,8 @@ describe('connections useGame — a load that worked', () => {
     const result = await load()
     const gd = result.current.gd!
 
-    expect(gd.puzzle).toEqual({ date: '2026-06-15', board: BOARD })
+    expect(gd.puzzle.date).toBe('2026-06-15')
+    expect(gd.puzzle.board).toEqual(BOARD)
     expect(gd.events.map((e) => e.id)).toEqual([1, 2, 3])
     expect(gd.mode).toBe('compete')
     expect(result.current.loading).toBe(false)
@@ -273,6 +274,16 @@ describe('connections useGame — a load that worked', () => {
     // Coop: the team's two, in the order they were matched.
     expect((await load(makeCtx({ mode: 'coop' }))).current.gd?.matchedCategories.map((m) => m.name))
       .toEqual(['RED', 'GREEN'])
+  })
+
+  it('leaves the tiles of my matched bands off the loose tiles, in the board\'s order', async () => {
+    answer(ALL_GOOD)
+    // Compete: RED is mine, so its four are gone; moth's GREEN is still loose.
+    expect((await load()).current.gd?.puzzle.remainingTiles)
+      .toEqual(['e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
+    answer(ALL_GOOD)
+    expect((await load(makeCtx({ mode: 'coop' }))).current.gd?.puzzle.remainingTiles)
+      .toEqual(['i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
   })
 
   it('gives the counts that apply to me — my own in compete, the team\'s in coop', async () => {

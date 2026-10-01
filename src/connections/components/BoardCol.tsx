@@ -23,13 +23,14 @@ import { boardShape } from '../lib/boardShape'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { answerMessage, type GuessResult } from '../lib/answer'
 import { reconcileLocalOrder } from '../lib/localOrder'
+import { unmatchedCategories } from '../lib/unmatchedCategories'
 import { shuffle } from '@/common/utils/shuffle'
-import type { EventRow, MatchedCategory } from '../hooks/useGame'
-import { TILES_PER_CATEGORY, type Board as BoardData, type Category } from '../lib/board'
-import type { HistorySnapshot } from '../lib/history'
+import { colorByUserIdMap } from '@/common/members/memberColor'
+import type { GameData } from '../hooks/useGame'
+import type { HistoryView } from '../hooks/useHistoryView'
+import { TILES_PER_CATEGORY } from '../lib/board'
 import { Board, type BoardVerdict } from './Board'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
-import type { Actor } from '@/common/members/member'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
@@ -62,122 +63,63 @@ type GuessAnswer = { result: GuessResult }
  * fill), this client's view of the tile order, the keyboard's selection cursor
  * over it (`useBoardSelectionCursor`), and the `submit_guess` call.
  * The tile PICKS are `useGame`'s, since coop shares them over Broadcast, so
- * PlayArea hands the pick primitives down and this column renders and
- * commits them; the board it draws is whatever PlayArea hands it, live or a
- * snapshot, which is what makes the turn-history viewer a drop-in. See
- * docs/playarea.md.
+ * this column renders and commits `gd.picks`; the board it draws is the live
+ * one or the history view's, which is what makes the turn-history viewer a
+ * drop-in. See docs/playarea.md.
  */
 export function BoardCol({
-  // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
-  board,
-  matchedCategories,
-  remainingTiles,
-  unmatched,
-  solutionShown,
-  historySnap,
-  historyActor,
-  isStillPlaying,
-  isBoardInteractive,
-  isMyTurn,
-  isWaitingForTurn,
-  myTurnJustStarted,
-  terminalOutcome,
-  onExitHistory,
-  // ── Tile picks (state owned by useGame; this renders + commits them) ──
-  ownerByTile,
-  toggleTile,
-  sendClear,
-  unionTiles,
-  selfId,
-  colorByUserId,
-  sharedBoard,
-  // ── Own-guess feedback (the slot is PlayArea's) ──
+  gd,
+  historyView,
   localFeedbackSlot,
-  // ── Guess dispatch (this column owns submit_guess) ──
-  gameId,
-  guesses,
-  // ── Below-board readout ──
-  mistakeCount,
-  mistakeBudget,
+  endingOutcome,
+  myTurnJustStarted,
+  solutionShown,
 }: {
-  // ── Board to render ──
-  // The puzzle: its categories are what a guess is evaluated against.
-  board: BoardData
-  // Live matched bands (shown when not viewing).
-  matchedCategories: MatchedCategory[]
-  // Live remaining tiles — the shuffle source; the display order derives from these.
-  remainingTiles: string[]
-  // The categories nobody got, while the reveal is on; `[]` otherwise.
-  unmatched: Category[]
-  // Is the ANSWER on the board right now (the terminal reveal)? The unsolved
-  // categories take the loose tiles' place while it's on, and the tiles come
-  // back when it's off — see the `tiles` prop below.
-  solutionShown: boolean
-  // The viewed turn's snapshot, or null when live — PlayArea reconstructs it.
-  historySnap: HistorySnapshot | null
-  // Whose board is on screen, when it is not the viewer's own.
-  historyActor?: Actor | null
-  // The page's standing terms (docs/win-lose.md → Where a player stands).
-  // Still in the game — the shuffle, the drawn picks. Waiting my turn is
-  // still playing.
-  isStillPlaying: boolean
-  // The board takes a pick — the tiles, the cursor and Clear.
-  isBoardInteractive: boolean
-  // The move is mine — Submit.
-  isMyTurn: boolean
-  // A teammate holds the move, so the board wears the shared dim. A finished
-  // board is inactive for a different reason and says so with the frame.
-  isWaitingForTurn: boolean
-  // True for a beat as the turn arrives (the shared your-turn flash).
-  myTurnJustStarted: boolean
-  // The outcome the game-over frame wears, or null while the board is live.
-  terminalOutcome: EndOutcome | null
-  // Return to the live board (the banner click / ✕).
-  onExitHistory: () => void
-
-  // ── Tile picks ──
-  // tile → user_id (the inverted picks map) — the per-tile mine/peer treatment.
-  ownerByTile: ReadonlyMap<string, string>
-  toggleTile: (tile: string) => void
-  sendClear: () => void
-  // The flat union of every player's picks (coop) / the caller's (compete).
-  unionTiles: string[]
-  selfId: string
-  colorByUserId: ReadonlyMap<string, string>
-  // Coop, with somebody else in the game — where "whose pick is this?" has an
-  // answer worth drawing.
-  sharedBoard: boolean
-
-  // ── Own-guess feedback ──
+  gd: GameData
+  historyView: HistoryView
   // PlayArea's below-board slot. This column shows each guess's result into
   // it, and while it holds anything — a result, "you're out", whose turn,
   // the verdict — the pill takes the commit row's place. A tile click is the
   // player's next move, so it dismisses a gesture-cleared result.
   localFeedbackSlot: FeedbackSlot
-
-  // ── Guess dispatch ──
-  gameId: string
-  // The guess log — for FE-side dup detection before firing submit_guess.
-  guesses: EventRow[]
-
-  // ── Below-board readout ──
-  mistakeCount: number
-  mistakeBudget: number
+  // The ending that applies to me — bands the board in its outcome. Null
+  // while I play.
+  endingOutcome: EndOutcome | null
+  // True for a beat as the turn becomes mine — the frame flashes yellow.
+  myTurnJustStarted: boolean
+  // Is the ANSWER on the board right now (the reveal)? The unsolved
+  // categories take the loose tiles' place while it's on, and the tiles come
+  // back when it's off.
+  solutionShown: boolean
 }) {
+  const { board, remainingTiles } = gd.puzzle
+  const { isStillPlaying, isBoardInteractive, isMyTurn, isWaitingForTurn } = gd.standing
+  const unionTiles = gd.picks.union
+  // The guess log on MY board — for FE-side dup detection before firing
+  // submit_guess, and for the verdict mark's lifetime below.
+  const guesses = gd.boardEvents
+  const selfId = gd.me?.user_id ?? null
+
   // ─── Which board is on screen ──────────────────────────
-  // Live, or a past turn's snapshot — and everything that would WRITE to the
-  // board answers to it: the commands hide, the picks are not drawn, a
-  // teammate's verdict is not marked. And which screen: a phone shortens the
-  // commit row.
-  // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
-  // conventions: one prop says so, and the flag is derived, never passed).
-  const isViewingHistory = historySnap !== null
+  // Live, or a past turn's — and everything that would WRITE to the board
+  // answers to it: the commands hide, the picks are not drawn, a teammate's
+  // verdict is not marked. And which screen: a phone shortens the commit row.
+  const isViewingHistory = historyView.isViewing
   // May I pick (or clear) a tile right now, and may I submit? A past turn on
   // screen blocks both: any click or key there leaves history.
   const canPick = isBoardInteractive && !isViewingHistory
   const canCommit = isMyTurn && !isViewingHistory
   // On a phone the below-board commit row is tight.
   const phone = useIsPhone()
+
+  // The categories nobody got — only while this viewer is asking for them.
+  const unmatched = solutionShown ? unmatchedCategories(board, gd.matchedCategories) : []
+
+  // Identity is only information on a genuinely shared board: coop, with
+  // somebody else here. Solo, every pick is mine; in compete the picks never
+  // leave this client.
+  const sharedBoard = !gd.isCompete && gd.players.length > 1
+  const colorByUserId = colorByUserIdMap(gd.players)
 
   // ─── The marks this column owns ────────────────────────
   // The in-flight dim on the four tiles of a guess that is out, and the
@@ -279,7 +221,7 @@ export function BoardCol({
       showWithVerdict(sent, FeedbackMessage.result(outcome, text))
       // Cleared like any other answered guess, so every verdict leaves the
       // board in the same state.
-      sendClear()
+      gd.picks.sendClear()
       return
     }
 
@@ -295,7 +237,7 @@ export function BoardCol({
     // No translation on the way up: `evaluateGuess` already answers in the word
     // the column stores.
     const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
-      p_game_id: gameId,
+      p_game_id: gd.gameId,
       p_tiles: unionTiles,
       p_result: evaluation.result,
       ...matchedCategory,
@@ -320,23 +262,23 @@ export function BoardCol({
       // into a band on this very render, leaving nothing to mark.
       const { outcome, text } = answerMessage({ answerType: 'correct' })
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
-      sendClear()
+      gd.picks.sendClear()
       return
     } else if (res.type === 'ok' && res.data.result === 'oneAway') {
       const { outcome, text } = answerMessage({ answerType: 'one_away' })
       showWithVerdict(sent, FeedbackMessage.result(outcome, text))
-      sendClear()
+      gd.picks.sendClear()
       return
     } else if (res.type === 'ok' && res.data.result === 'wrong') {
       const { outcome, text } = answerMessage({ answerType: 'wrong' })
       showWithVerdict(sent, FeedbackMessage.result(outcome, text))
-      sendClear()
+      gd.picks.sendClear()
       return
     } else {
       // An unhandled answer is no reason to leave four tiles sitting on a board
       // that has moved on, so this clears too.
       reportUnhandled('submit_guess', res)
-      sendClear()
+      gd.picks.sendClear()
       return
     }
   }
@@ -362,7 +304,7 @@ export function BoardCol({
       if (!canPick) return 'hidden'
       return unionTiles.length === 0 ? 'disabled' : 'active'
     },
-    run: sendClear,
+    run: gd.picks.sendClear,
   })
 
   // Tile click: dismiss any lingering own-result first (the commit buttons
@@ -376,7 +318,7 @@ export function BoardCol({
     localFeedbackSlot.dismiss()
     // The fill goes with the pill it belongs to — one message, one dismissal.
     clearVerdict()
-    toggleTile(tile)
+    gd.picks.toggleTile(tile)
   }
 
   // ─── The board's display order ─────────────────────────
@@ -436,13 +378,13 @@ export function BoardCol({
           While viewing, the board is the historical snapshot (bands before the turn +
           its 4 guessed tiles lit); else live (tiles only while input is live). */}
       <Board
-        matched={historySnap ? historySnap.matched : matchedCategories}
-        unmatched={historySnap ? [] : unmatched}
+        matched={historyView.matched ?? gd.matchedCategories}
+        unmatched={isViewingHistory ? [] : unmatched}
         // The tiles survive the end of the game — a finished board is your
         // bands PLUS the tiles you never cracked, frozen. They step aside only
         // for the reveal, whose bands need the rows (bands + ceil(tiles/4) is a
         // fixed row count).
-        tiles={historySnap ? historySnap.tiles : solutionShown ? [] : displayedTiles}
+        tiles={historyView.tiles ?? (solutionShown ? [] : displayedTiles)}
         // The board's gate is here as well as on the click guard: a tile that
         // hovers, lifts and shows a pointer while silently swallowing the click
         // is a promise the board can't keep. A historical snapshot is a record
@@ -451,7 +393,7 @@ export function BoardCol({
         // No picks are drawn on a board that can't take a move — a past
         // turn, or a player who is finished — though the broadcast state
         // itself outlives both.
-        ownerByTile={isViewingHistory || !isStillPlaying ? NO_OWNERS : ownerByTile}
+        ownerByTile={isViewingHistory || !isStillPlaying ? NO_OWNERS : gd.picks.ownerByTile}
         onToggle={handleTileClick}
         cursor={cursor}
         inFlightTiles={inFlightTiles}
@@ -460,13 +402,13 @@ export function BoardCol({
         sharedBoard={sharedBoard}
         isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
-        terminalOutcome={terminalOutcome}
+        terminalOutcome={endingOutcome}
         // ATTENTION's cause, read off the log rather than off the board: how many
         // guesses the server has recorded, and whether the newest was mine.
         moveCount={guesses.length}
         isViewingHistory={isViewingHistory}
-        historyLitTiles={historySnap?.historyLitTiles}
-        historyLitOutcome={historySnap?.outcome}
+        historyLitTiles={historyView.litTiles ?? undefined}
+        historyLitOutcome={historyView.litOutcome ?? undefined}
         // Shuffle floats over the board's top-right, only while the grid is
         // shown; Board anchors it to the visual board.
         floatingControl={
@@ -488,11 +430,11 @@ export function BoardCol({
           banner overlays it. */}
       <div className={styles.belowBoard}>
         <div className={cls(shared.moveAreaOrLocalFeedback, isViewingHistory && history.historyBannerHost)}>
-          {isViewingHistory && historySnap && (
+          {historyView.label !== null && (
             <HistoryBanner
-              label={historySnap.historyLabel}
-              actor={historyActor}
-              onExit={onExitHistory}
+              label={historyView.label}
+              actor={historyView.actor}
+              onExit={historyView.exit}
             />
           )}
           {/* One slot, one pill: whatever ranks highest in it. A tap on a
@@ -509,7 +451,7 @@ export function BoardCol({
                     the budget. */}
                 <div className={styles.mistakesInline}>
                   {phone ? 'Mistakes' : 'Mistakes (lose at 4)'}{' '}
-                  <StrikeMarks used={mistakeCount} total={mistakeBudget} />
+                  <StrikeMarks used={gd.readout.mistakeCount} total={gd.readout.maxMistakes} />
                 </div>
                 <ActionButton
                   action={actClearPicks}

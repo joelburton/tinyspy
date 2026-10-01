@@ -115,6 +115,9 @@ export type GameData = {
     // The four categories and the sixteen tiles in their display order, as
     // `connections.games.board` holds them.
     board: Board
+    // The tiles still loose on my board, in the board's order: every tile not
+    // in one of `matchedCategories`.
+    remainingTiles: string[]
   }
   // The state line's counts ("2/4 categories · 1/4 mistakes").
   readout: {
@@ -236,7 +239,9 @@ export function readSetup(ctx: PlayAreaLoaderProps): ConnectionsSetup {
  * never travels further. `matched` is derived here too, so no downstream rule
  * has to ask a color whether a category was found.
  */
-function readEventRow(row: Omit<EventRow, 'outcome' | 'matched' | 'result'> & { result: string }): EventRow {
+function readEventRow(
+  row: Omit<EventRow, 'outcome' | 'matched' | 'result'> & { result: string },
+): EventRow {
   const result = row.result as GuessResult
   return {
     id: row.id,
@@ -315,6 +320,8 @@ export function makeGameData({
   const boardEvents = isCompete
     ? rows.events.filter((e) => e.user_id === myId)
     : rows.events
+  const matchedCategories = makeMatchedCategories(boardEvents, rows.board)
+  const matchedTiles = new Set(matchedCategories.flatMap((m) => m.tiles))
 
   const ownerByTile = new Map<string, string>()
   for (const [userId, tiles] of picks) {
@@ -331,6 +338,7 @@ export function makeGameData({
     puzzle: {
       date: rows.puzzleDate,
       board: rows.board,
+      remainingTiles: rows.board.tileOrder.filter((t) => !matchedTiles.has(t)),
     },
     readout: {
       requiredCategoriesCount: gameStatus.required_categories_count,
@@ -360,7 +368,7 @@ export function makeGameData({
       ? (players.find((p) => p.outcome === 'won') ?? null)
       : null,
     boardEvents,
-    matchedCategories: makeMatchedCategories(boardEvents, rows.board),
+    matchedCategories,
     events: rows.events,
     players,
     playersById,

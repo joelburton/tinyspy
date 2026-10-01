@@ -3,12 +3,11 @@
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { Action } from '@/common/actions/useBindAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import type { Board } from '../lib/board'
-import type { ConnectionsPlayer, EventRow } from '../hooks/useGame'
+import type { GameData } from '../hooks/useGame'
+import type { HistoryView } from '../hooks/useHistoryView'
+import type { ConnectionsActions } from '../hooks/useBindActionsAndPublishMenu'
 import { GameEventLog } from './GameEventLog'
 import { HintList } from './HintList'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
@@ -26,101 +25,26 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  * games' columns for the same idea (docs/playarea.md).
  */
 export function InfoCol({
-  // Props are grouped by the region they drive (mirroring the render order below), so
-  // "what is this prop for?" is answerable by eye; the `// ── … ──` headers on the type
-  // block below name each group. Names are shared with the other games' columns for the
-  // same idea — see docs/playarea.md.
-  isCompete,
-  isTerminal,
-  endingMessage,
-  isStillPlaying,
-  isTurnBased,
-  turnHolderId,
-  found,
-  categoryCount,
-  mistakeCount,
-  mistakeBudget,
-  players,
+  gd,
   selfId,
-  actHint,
-  actReveal,
-  actRestart,
-  actNewGame,
-  actConcede,
-  actStopGame,
-  actBackToClub,
-  categories,
+  endingMessage,
+  actions,
+  historyView,
   hintsOpen,
-  setupRows,
-  guesses,
-  historyId,
-  onShowHistory,
 }: {
-  // ── Mode + phase ──
-  isCompete: boolean
-  isTerminal: boolean
+  gd: GameData
+  selfId: string
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others play on — for the action row's line; null while I play.
   endingMessage: TerminalMessage | null
-  // The page's standing terms (docs/win-lose.md → Where a player stands).
-  // Still in the game — gates the hint list + help.
-  isStillPlaying: boolean
-  // A turn-order game: render the shared TurnStatusLine, which names the
-  // holder of `turnHolderId`.
-  isTurnBased: boolean
-  turnHolderId: string | null
-
-  // ── State readout (categories found + mistakes) ──
-  found: number
-  categoryCount: number
-  mistakeCount: number
-  mistakeBudget: number
-
-  // ── Players (the OpponentStrip — compete) ──
-  // The players — the strip (each one's categories found, or "out" once
-  // conceded) and the event-log picker.
-  players: ConnectionsPlayer[]
-  selfId: string
-
-  // ── Action row — listed in the order the row draws them, which is the order
-  //    the game menu lists them too (docs/playarea.md) ──
-  // Unfold / fold the inline hint list. Carries its own two faces.
-  actHint: Action
-  // Show the categories nobody solved — or put them away, bringing back the
-  // board as the game ended. A local display toggle; nothing is written, and it
-  // carries its own two faces (see PlayArea's useSolutionReveal).
-  actReveal: Action
-  // Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle.
-  actRestart: Action
-  // Start the NEXT unplayed daily puzzle — connections' archive is dated, so
-  // this walks forward rather than re-rolling a board. Disables itself while
-  // the create is in flight, so a slow network reads as "working".
-  actNewGame: Action
-  // Drop out of a race while the others play on — hidden outside compete.
-  actConcede: Action
-  // Stop the game for the whole table — coop's exit; it hides itself in a race.
-  actStopGame: Action
-  // Leave for the club — the shell's own action, off `ctx.menu`.
-  actBackToClub: Action
-
-  // ── The hint list ──
-  // The board's 4 categories — feeds the inline HintList (first-tile reveals).
-  categories: Board['categories']
-  // Is the inline hint list unfolded? The Hints button toggles this (PlayArea owns it).
+  actions: ConnectionsActions
+  historyView: HistoryView
+  // Is the inline hint list unfolded? The Hints action toggles this.
   hintsOpen: boolean
-
-  // ── Setup disclosure ──
-  // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
-  setupRows: SetupRow[]
-
-  // ── Turn-history log (GameEventLog) ──
-  guesses: EventRow[]
-  // The turn currently open in the board viewer, or null.
-  historyId: number | null
-  // Straight through to the log: opening a `#N` hands up the row's id and the
-  // number the log printed beside it.
-  onShowHistory: (id: number, n: number) => void
 }) {
+  const { isStillPlaying } = gd.standing
+  const { foundCount, requiredCategoriesCount, mistakeCount, maxMistakes } = gd.readout
+
   // The row's line, and the only thing that varies between states: the ending
   // that applies to me, and nothing at all while I can still play.
   const rowMessage: InfoActionsMessage | undefined = endingMessage
@@ -134,30 +58,30 @@ export function InfoCol({
             board column's, on the commit row. */}
         <p className={shared.infoState}>
           <strong>
-            {found}/{categoryCount}
+            {foundCount}/{requiredCategoriesCount}
           </strong>{' '}
           categories found ·{' '}
           <strong>
-            {mistakeCount}/{mistakeBudget}
+            {mistakeCount}/{maxMistakes}
           </strong>{' '}
           mistakes
         </p>
         {/* Whose-turn line — only for a turn-order game. A separate line below
             the state readout; never replaces it. */}
-        {isTurnBased && (
+        {gd.turns.isTurnBased && (
           <TurnStatusLine
-            turnHolderId={turnHolderId}
-            players={players}
+            turnHolderId={gd.turns.turnHolderId}
+            players={gd.players}
             selfId={selfId}
-            isTerminal={isTerminal}
+            isTerminal={gd.isGameEnded}
           />
         )}
 
         {/* Opponent strip (compete) — the race comparison: each player's categories
             FOUND (public via players.found_categories_count). */}
-        {isCompete && (
+        {gd.isCompete && (
           <OpponentStrip
-            players={players}
+            players={gd.players}
             selfId={selfId}
             metricLabel="Found"
             // A racer who conceded reads 'out' (their found-count is frozen
@@ -177,35 +101,36 @@ export function InfoCol({
         <InfoActionsRow message={rowMessage}>
           {/* Hints toggles the inline HintList below; aria-pressed says whether
               it is unfolded. */}
-          <ActionButton action={actHint} show="icon" aria-pressed={hintsOpen} />
+          <ActionButton action={actions.actHint} show="icon" aria-pressed={hintsOpen} />
           {/* Everything right of here is about the END of the game rather than
               about playing it. Both sides are pressable mid-game, so the bar is
               what says where the meaning changes; it hides itself when nothing
               is left on its left. */}
           <span className={shared.actionsDivider} />
-          <ActionButton action={actReveal} show="icon" />
+          <ActionButton action={actions.actReveal} show="icon" />
           {/* Both say `hidden` to a button until the game is over, while their
               menu rows and keys stay live all game — the row's few slots belong
               to playing, and moving on is a thing you go looking for. */}
-          <ActionButton action={actRestart} show="icon" />
-          <ActionButton action={actNewGame} show="icon" />
+          <ActionButton action={actions.actRestart} show="icon" />
+          <ActionButton action={actions.actNewGame} show="icon" />
           {/* Compete's Concede and coop's Stop are distinct acts, and each hides
               itself in the mode that isn't its own. */}
-          <ActionButton action={actConcede} show="icon" />
-          <ActionButton action={actStopGame} show="icon" />
-          {/* Leaving, last. Filled at terminal, outline while the game runs:
-              `weight` is the placement's to choose rather than the action's,
-              which is why it is a condition here (docs/ui.md → What a `<button>` is). */}
+          <ActionButton action={actions.actConcede} show="icon" />
+          <ActionButton action={actions.actStopGame} show="icon" />
+          {/* Leaving, last. Filled once the game has ended, outline while it
+              runs: `weight` is the placement's to choose rather than the
+              action's, which is why it is a condition here (docs/ui.md → What
+              a `<button>` is). */}
           <ActionButton
-            action={actBackToClub}
+            action={actions.actBackToClub}
             show="icon"
-            weight={isTerminal ? 'primary' : 'secondary'}
+            weight={gd.isGameEnded ? 'primary' : 'secondary'}
           />
         </InfoActionsRow>
         {/* The per-player hint reveals — unfolds right under the action row when
             Hints is on; stays mounted (so revealed tiles persist across toggles),
             and folds with the Hints button once you can no longer submit. */}
-        <HintList categories={categories} open={hintsOpen && isStillPlaying} />
+        <HintList categories={gd.puzzle.board.categories} open={hintsOpen && isStillPlaying} />
 
         {/* Help — shown only while you are in the game (never silently swaps);
             the eliminated state is carried loudly by the action row above. */}
@@ -215,21 +140,21 @@ export function InfoCol({
 
         {/* Setup — last, behind a disclosure (closed by default so it doesn't claim
             space). */}
-        <SetupDisclosure rows={setupRows} />
+        <SetupDisclosure rows={gd.setupRows} />
       </div>
 
       {/* Event log. Coop shows the whole shared game; compete gets the shared
           "whose guesses?" picker — an opponent's rows are RLS-hidden during play
-          and open at terminal, so the picker is how you compare lines afterwards. */}
+          and open at the end, so the picker is how you compare lines afterwards. */}
       <GameEventLog
-        guesses={guesses}
-        categories={categories}
-        players={players}
+        guesses={gd.events}
+        categories={gd.puzzle.board.categories}
+        players={gd.players}
         selfId={selfId}
-        mode={isCompete ? 'compete' : 'coop'}
-        isTerminal={isTerminal}
-        historyId={historyId}
-        onShowHistory={onShowHistory}
+        mode={gd.mode}
+        isTerminal={gd.isGameEnded}
+        historyId={historyView.viewedEventId}
+        onShowHistory={historyView.show}
       />
     </div>
   )
