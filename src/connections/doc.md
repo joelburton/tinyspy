@@ -462,6 +462,9 @@ Vitest, beside the code:
 | `hooks/useGame.test` | `gd` from the two reads and the page's values; a failed read kept apart from an absent game; coop's one stable picks room per game, rebuilt on `gameId` and never on a session refresh, and compete joining none |
 | `hooks/useActionsAndMenu.test` | the menu's rows in the action row's order; the reveal's faces before and after the end, and a solver's shown unasked; the hint list's toggle, gone once I can no longer submit |
 | `hooks/useHistoryView.test` | live until a turn opens; the board rebuilt at that turn from its author's rows; the actor named only for an opponent's board |
+| `hooks/useSubmitGuess.test` | nothing short of four; a set already tried refused locally; the verdict worked out and sent up with its rank; the in-flight dim; a not-ok leaves the picks |
+| `hooks/useVerdictMark.test` | the fill my answer raises leaves with its pill; a teammate's wrong guess takes the mark, their correct one ends it; my own row ends nothing |
+| `hooks/useTileShuffle.test` | the board's order until the first shuffle; the same tiles rearranged, and kept in place when a band takes four away; hidden where the board cannot be shuffled |
 | `components/PlayArea.test` | a failed load is not a missing game; Concede vs Stop per mode; the ended board, and Reveal / Hide; the celebration, mine only; the board-scope marks; whose pick is ringed; the in-flight dim, the verdict fill and the three ways a mark ends; attention on a band; every key, and the action row per asker |
 | `components/SetupForm.test` · `manifest.test` | the puzzle line and the date override; the setup passes through with `puzzle_id` absent unless typed |
 | `pdf/model.test` | A–D, whose bands print on whose track, and the log line |

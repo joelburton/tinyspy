@@ -49,7 +49,7 @@ export type HistoryView = {
  * are that author's alone. Coop is one shared board, so every row folds. The
  * replay itself is `lib/history.ts`'s.
  */
-export function useHistoryView(gd: GameData, selfId: string): HistoryView {
+export function useHistoryView(gd: GameData, myId: string): HistoryView {
   const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
   const viewedRow = historyId === null ? undefined : gd.events.find((g) => g.id === historyId)
   const authorRows =
@@ -59,7 +59,7 @@ export function useHistoryView(gd: GameData, selfId: string): HistoryView {
   const snapshot =
     historyId === null ? null : historySnapshot(authorRows, gd.puzzle.board, historyId)
   const isSomeoneElsesBoard =
-    gd.isCompete && viewedRow !== undefined && viewedRow.user_id !== selfId
+    gd.isCompete && viewedRow !== undefined && viewedRow.user_id !== myId
   return {
     isViewing: historyId !== null,
     viewedEventId: historyId,

@@ -22,13 +22,13 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  */
 export function InfoCol({
   gd,
-  selfId,
+  myId,
   endingMessage,
   actions,
   historyView,
 }: {
   gd: GameData
-  selfId: string
+  myId: string
   // The ending that applies to me — the game's once it has ended, else mine —
   // or null while I can still play.
   endingMessage: TerminalMessage | null
@@ -54,14 +54,14 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={gd.turnHolderId}
             players={gd.players}
-            selfId={selfId}
+            selfId={myId}
             isTerminal={gd.isGameEnded}
           />
         )}
         {gd.isCompete && (
           <OpponentStrip
             players={gd.players}
-            selfId={selfId}
+            selfId={myId}
             metricLabel="Found"
             metricFor={getScoreOrOut}
           />
@@ -101,7 +101,7 @@ export function InfoCol({
       <GameEventLog
         events={gd.events}
         players={gd.players}
-        selfId={selfId}
+        myId={myId}
         mode={gd.mode}
         isGameEnded={gd.isGameEnded}
         historyView={historyView}

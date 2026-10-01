@@ -165,7 +165,7 @@ function PlayArea({
   // the menu lists them, and the reveal's state comes back for the answer line.
   const { actions, answerShown } = useActionsAndMenu({
     gd,
-    selfId: authSession.user.id,
+    myId: authSession.user.id,
     localFeedbackSlot,
     clubHandle,
     goToFollowUpGame,
@@ -193,7 +193,7 @@ function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           gd={gd}
-          selfId={authSession.user.id}
+          myId={authSession.user.id}
           endingMessage={endingMessage}
           actions={actions}
           historyView={historyView}

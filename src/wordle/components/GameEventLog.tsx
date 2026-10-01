@@ -24,7 +24,7 @@ type Props = {
   // everyone's.
   guesses: EventRow[]
   players: Member[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   isGameEnded: boolean
   // The turn open on the board: its `#N` wears the history-blue ring, and a
@@ -44,14 +44,14 @@ type Props = {
 export function GameEventLog({
   guesses,
   players,
-  selfId,
+  myId,
   mode,
   isGameEnded,
   historyView,
 }: Props) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
-    selfId,
+    selfId: myId,
     mode,
     isTerminal: isGameEnded,
     label: 'Whose guesses to show',

@@ -166,7 +166,7 @@ function PlayArea({
   // the menu lists them, and the reveal's and the hint list's states come back.
   const { actions, solutionShown, hintsOpen, acknowledgeModal } = useActionsAndMenu({
     gd,
-    selfId: myId,
+    myId,
     localFeedbackSlot,
     clubHandle,
     goToFollowUpGame,
@@ -194,7 +194,7 @@ function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           gd={gd}
-          selfId={myId}
+          myId={myId}
           endingMessage={endingMessage}
           actions={actions}
           historyView={historyView}

@@ -80,7 +80,7 @@ export function buildConnectionsPrintModel(o: {
   remainingTiles: string[]
   guesses: EventRow[]
   players: { user_id: string; username: string }[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
   mistakeCount: number
@@ -140,10 +140,10 @@ export function buildConnectionsPrintModel(o: {
     tracks = [viewerTrack('Team', o.guesses, (g) => nameOf(g.user_id))]
   } else if (o.isTerminal) {
     tracks = o.players.map((p) =>
-      p.user_id === o.selfId
+      p.user_id === o.myId
         ? viewerTrack(
             `${p.username} (you)`,
-            o.guesses.filter((g) => g.user_id === o.selfId),
+            o.guesses.filter((g) => g.user_id === o.myId),
             () => p.username,
           )
         : rivalTrack(p),
@@ -151,7 +151,7 @@ export function buildConnectionsPrintModel(o: {
   } else {
     // Mid-game compete: RLS means the viewer holds nobody's guesses but their
     // own, and empty rival tracks would read as "they haven't guessed".
-    tracks = [viewerTrack('You', o.guesses.filter((g) => g.user_id === o.selfId), () => 'you')]
+    tracks = [viewerTrack('You', o.guesses.filter((g) => g.user_id === o.myId), () => 'you')]
   }
 
   return {

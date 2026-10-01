@@ -25,14 +25,14 @@ import styles from './InfoCol.module.css'
  */
 export function InfoCol({
   gd,
-  selfId,
+  myId,
   endingMessage,
   actions,
   historyView,
   solution,
 }: {
   gd: GameData
-  selfId: string
+  myId: string
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others play on — for the action row's line; null while I play.
   endingMessage: TerminalMessage | null
@@ -70,7 +70,7 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={gd.turnHolderId}
             players={gd.players}
-            selfId={selfId}
+            selfId={myId}
             isTerminal={gd.isGameEnded}
           />
         )}
@@ -80,7 +80,7 @@ export function InfoCol({
         {gd.isCompete && (
           <OpponentStrip
             players={gd.players}
-            selfId={selfId}
+            selfId={myId}
             metricLabel="Guesses"
             metricFor={getGuessesOrOut}
           />
@@ -126,7 +126,7 @@ export function InfoCol({
       <GameEventLog
         guesses={gd.events}
         players={gd.players}
-        selfId={selfId}
+        myId={myId}
         mode={gd.mode}
         isGameEnded={gd.isGameEnded}
         historyView={historyView}

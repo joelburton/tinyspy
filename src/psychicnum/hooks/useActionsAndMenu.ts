@@ -92,7 +92,7 @@ export type PsychicnumActions = {
  */
 export function useActionsAndMenu({
   gd,
-  selfId,
+  myId,
   localFeedbackSlot,
   clubHandle,
   goToFollowUpGame,
@@ -100,7 +100,7 @@ export function useActionsAndMenu({
   brand,
 }: {
   gd: GameData
-  selfId: string
+  myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
   clubHandle: string
@@ -278,7 +278,7 @@ export function useActionsAndMenu({
           events: gd.events,
           requiredSecretsCount: gd.readout.requiredSecretsCount,
           players: gd.players,
-          selfId,
+          myId,
           setupRows: gd.setupRows,
         }),
       )

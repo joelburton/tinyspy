@@ -20,7 +20,7 @@ import type { GameData } from './useGame'
  */
 export function useShowOppsSolvedMessages(
   gd: GameData,
-  selfId: string,
+  myId: string,
   globalFeedbackSlot: FeedbackSlot,
 ): void {
   // Keyed on the players, which keep their identity across renders, so the
@@ -37,7 +37,7 @@ export function useShowOppsSolvedMessages(
     items: solvedIds,
     keyOf: (id) => id,
     messageFor: (id) => {
-      if (id === selfId) return null
+      if (id === myId) return null
       const { outcome, text } = answerMessage({ answerType: 'solved_peer' })
       // The id came from `playersById` itself, so the lookup cannot miss.
       return FeedbackMessage.peerMilestone(gd.playersById[id]!, outcome, text)

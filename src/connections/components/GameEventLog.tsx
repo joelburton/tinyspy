@@ -20,7 +20,7 @@ type Props = {
   // guess's category, an opponent's too.
   categories: Category[]
   players: Member[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   // Distinguishes an opponent's RLS-hidden log from a genuinely empty one.
   isTerminal: boolean
@@ -51,7 +51,7 @@ export function GameEventLog({
   guesses,
   categories,
   players,
-  selfId,
+  myId,
   mode,
   isTerminal,
   historyId,
@@ -59,7 +59,7 @@ export function GameEventLog({
 }: Props) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
-    selfId,
+    selfId: myId,
     mode,
     isTerminal,
     label: 'Whose guesses to show',

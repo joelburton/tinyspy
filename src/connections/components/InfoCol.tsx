@@ -26,14 +26,14 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  */
 export function InfoCol({
   gd,
-  selfId,
+  myId,
   endingMessage,
   actions,
   historyView,
   hintsOpen,
 }: {
   gd: GameData
-  selfId: string
+  myId: string
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others play on — for the action row's line; null while I play.
   endingMessage: TerminalMessage | null
@@ -72,7 +72,7 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={gd.turns.turnHolderId}
             players={gd.players}
-            selfId={selfId}
+            selfId={myId}
             isTerminal={gd.isGameEnded}
           />
         )}
@@ -82,7 +82,7 @@ export function InfoCol({
         {gd.isCompete && (
           <OpponentStrip
             players={gd.players}
-            selfId={selfId}
+            selfId={myId}
             metricLabel="Found"
             // A racer who conceded reads 'out' (their found-count is frozen
             // and no longer part of the race); everyone else shows their live
@@ -150,7 +150,7 @@ export function InfoCol({
         guesses={gd.events}
         categories={gd.puzzle.board.categories}
         players={gd.players}
-        selfId={selfId}
+        myId={myId}
         mode={gd.mode}
         isTerminal={gd.isGameEnded}
         historyId={historyView.viewedEventId}

@@ -122,7 +122,7 @@ it works.
 
 ## InfoCol
 
-It takes `gd`, `selfId`, `endingMessage`, `actions` and `historyView`. The
+It takes `gd`, `myId`, `endingMessage`, `actions` and `historyView`. The
 strip's cell comes from a named function (`getScoreOrOut`), and a player who has
 ended reads "out". `OpponentStrip` is generic, so the cell gets the game's
 player and needs no lookup. The event log takes `events` and `historyView`.
@@ -137,6 +137,10 @@ Comments on each button go; the actions' own rules live with the actions.
 - A name with a game sense and a player sense says which. A name about history
   says so. No new synonym for an existing word (`roster`, `racer`, `budget`,
   `commit` for submit).
+- The viewing player is `my…` / `me`, never `self…` — `myId`, `gd.me`,
+  `isMyTurn` (docs/code-conventions.md → Names about the viewing player). A
+  shared component that still takes `selfId` is called `selfId={myId}` until
+  it is renamed; a game never declares a `selfId` of its own.
 - An action hook is `use<Component>Actions`, with no "bind".
 - A name says what the value is (`isPhone`, `isLocalFeedbackShown`,
   `getScoreOrOut`).

@@ -35,7 +35,7 @@ const base = {
     { user_id: 'u1', username: 'me' },
     { user_id: 'u2', username: 'moth' },
   ],
-  selfId: 'u1',
+  myId: 'u1',
   setupRows: [{ key: 'max_guesses', label: 'Guesses', value: '7' }],
 }
 

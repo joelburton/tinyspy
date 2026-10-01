@@ -67,7 +67,7 @@ export type WordleActions = {
  */
 export function useActionsAndMenu({
   gd,
-  selfId,
+  myId,
   localFeedbackSlot,
   clubHandle,
   goToFollowUpGame,
@@ -75,7 +75,7 @@ export function useActionsAndMenu({
   brand,
 }: {
   gd: GameData
-  selfId: string
+  myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
   clubHandle: string
@@ -181,7 +181,7 @@ export function useActionsAndMenu({
           wordLength: WORD_LENGTH,
           guesses: gd.events,
           players: gd.players,
-          selfId,
+          myId,
           target: gd.target,
           answerShown,
           solvedBy:

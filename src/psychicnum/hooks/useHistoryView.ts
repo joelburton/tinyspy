@@ -41,11 +41,11 @@ export type HistoryView = {
  * another `#N`, and any key, which the viewer consumes so it does not also play
  * on the board. The replay is `lib/history.ts`'s.
  */
-export function useHistoryView(gd: GameData, selfId: string): HistoryView {
+export function useHistoryView(gd: GameData, myId: string): HistoryView {
   const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
   const replayed = historyId === null ? null : replayTurn(gd.events, historyId, gd.isCompete)
   const authorId = replayed?.authorId ?? null
-  const isSomeoneElsesBoard = gd.isCompete && authorId !== null && authorId !== selfId
+  const isSomeoneElsesBoard = gd.isCompete && authorId !== null && authorId !== myId
   return {
     isViewing: historyId !== null,
     viewedEventId: historyId,

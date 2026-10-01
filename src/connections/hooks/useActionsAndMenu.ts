@@ -74,7 +74,7 @@ export type ConnectionsActions = {
  */
 export function useActionsAndMenu({
   gd,
-  selfId,
+  myId,
   localFeedbackSlot,
   clubHandle,
   goToFollowUpGame,
@@ -82,7 +82,7 @@ export function useActionsAndMenu({
   brand,
 }: {
   gd: GameData
-  selfId: string
+  myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
   clubHandle: string
@@ -229,7 +229,7 @@ export function useActionsAndMenu({
           remainingTiles: gd.puzzle.remainingTiles,
           guesses: gd.events,
           players: gd.players,
-          selfId,
+          myId,
           mode: gd.mode,
           isTerminal: gd.isGameEnded,
           mistakeCount: gd.readout.mistakeCount,

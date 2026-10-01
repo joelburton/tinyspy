@@ -23,7 +23,7 @@ import type { GameData } from './useGame'
  */
 export function useShowOppsFoundMessages(
   gd: GameData,
-  selfId: string,
+  myId: string,
   globalFeedbackSlot: FeedbackSlot,
 ): void {
   const foundSecretsCountSeenRef = useRef<Map<string, number>>(new Map())
@@ -39,7 +39,7 @@ export function useShowOppsFoundMessages(
     for (const player of gd.players) {
       const was = seen.get(player.user_id) ?? 0
       seen.set(player.user_id, player.foundSecretsCount)
-      if (player.user_id === selfId) continue
+      if (player.user_id === myId) continue
       if (player.foundSecretsCount <= was) continue
       // `found_peer`, not `hit_peer`: in compete a player may learn THAT an
       // opponent found a secret and never which, so the answer that names a
@@ -47,5 +47,5 @@ export function useShowOppsFoundMessages(
       const { outcome, text } = answerMessage({ answerType: 'found_peer' })
       globalFeedbackSlot.show(FeedbackMessage.peer(player, outcome, text))
     }
-  }, [gd.players, gd.isCompete, selfId, globalFeedbackSlot])
+  }, [gd.players, gd.isCompete, myId, globalFeedbackSlot])
 }

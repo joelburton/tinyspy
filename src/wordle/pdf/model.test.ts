@@ -24,7 +24,7 @@ const base = {
   maxGuesses: 6, wordLength: 5,
   guesses: [] as EventRow[],
   players: [{ user_id: 'u1', username: 'me' }, { user_id: 'u2', username: 'moth' }],
-  selfId: 'u1',
+  myId: 'u1',
   target: 'crane',
   answerShown: false,
   solvedBy: new Set<string>(),
