@@ -132,6 +132,7 @@ export const strandsCoopGame: GameManifest = {
   numberOfPlayers: [1, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: playAreaLoader,
 
@@ -167,6 +168,7 @@ export const strandsCompeteGame: GameManifest = {
   numberOfPlayers: [2, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: playAreaLoader,
 

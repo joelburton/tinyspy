@@ -9,10 +9,10 @@
  *   [logo] [chat scratchpad] [status-slot]     [pause] [timer-if-set]
  *
  *   - left: logo + panel-toggle pair (fixed) + status-slot (flex: 1).
- *   - right: pause-button (fixed) + timer (fixed, when shown).
+ *   - right: `PauseAndClock` (fixed) + the mobile info switch.
  *
  * The status-slot's `flex: 1` is what gives feedback pills and
- * the players-strip room to grow into; logo/chat/pause/timer all
+ * the players-strip room to grow into; logo/chat/pause/clock all
  * stay at their intrinsic sizes.
  */
 
@@ -36,23 +36,4 @@
   display: flex;
   align-items: center;
   gap: 0.1rem;
-}
-
-/* The countdown / count-up display. Tabular-nums so MM:SS digits
- * don't shift the right edge as they tick. */
-/* @@ */ .timer {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--page-text-color);
-  /* No side padding: the clock is TEXT on the strip, not a control, so the
-     slot's gap is the whole space around it. Padding here only pushed the
-     buttons either side of it further away than the marks in the left slot. */
-  padding: 0.25rem 0;
-}
-
-/* A STOPPED clock — the digits are not moving. Paused, or the game is over.
- * Red, so the frozen state is legible from the number itself rather than from
- * whatever else is on screen. */
-/* @@ */ .timerStopped {
-  color: var(--timer-stopped-color);
 }

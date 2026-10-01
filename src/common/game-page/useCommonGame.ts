@@ -11,7 +11,7 @@ import { onPostgresAttached } from '../realtime/postgresAttached'
 import { readRows, runRpc } from '../supabase/dbResult'
 import type { NotOkEnvelope } from '../supabase/envelope'
 import { rtLog } from '../realtime/realtimeDiag'
-import { computeGamePause } from '../pause-suspend/pause'
+import { computeGamePause, type GamePause } from '../pause-suspend/pause'
 import { useManualPause, type ManualPauseEvent } from '../pause-suspend/useManualPause'
 import type { GameManifest, TimerMode } from '../manifest/gameManifest'
 import type { GamePlayer, Member } from '../members/member'
@@ -55,21 +55,6 @@ export type GameTurns = {
   turnHolderId: string | null
 }
 
-/** Whether the game is paused, and the controls: what the header's Pause
- *  button and the pause overlay draw from. How it is worked out is
- *  `computeGamePause`'s. */
-export type GamePause = {
-  // Somebody the game waits for is away, or somebody clicked Pause.
-  paused: boolean
-  // Who is connected to the game right now.
-  presentUserIds: Set<string>
-  // Who clicked Pause; null when nobody did.
-  manuallyPausedBy: Member | null
-  // Pause and resume for every peer, this tab included.
-  sendManualPause: () => void
-  sendManualUnpause: () => void
-}
-
 /**
  * **`cg`, the common game** — everything the page knows about THIS game, and
  * what it can do to it, grouped by meaning: the `common.games` row's fields,
@@ -78,6 +63,8 @@ export type GamePause = {
  * `useCommonGame`'s business, never the reader's.
  */
 export type CommonGame = CommonGameRow & {
+  // The game has ended: it has a `gameEnding`.
+  isGameEnded: boolean
   // Everyone in the game.
   players: GamePlayer[]
   // The human players who haven't ended: who the pause waits for.
@@ -312,6 +299,7 @@ export function useCommonGame(
   // The newest read, taken apart. A failed or gone read leaves the game null.
   const loaded = lastRead?.kind === 'loaded' ? lastRead : null
   const row = loaded?.row ?? null
+  const isGameEnded = (row?.gameEnding ?? null) !== null
   const players = loaded?.players ?? []
   const isTurnBased = loaded?.isTurnBased ?? false
 
@@ -319,7 +307,7 @@ export function useCommonGame(
     players,
     presentUserIds,
     manuallyPausedById,
-    isGameEnded: (row?.ended_at ?? null) !== null,
+    isGameEnded,
   })
 
   // Idle until the game loads, and stopped once it ends.
@@ -327,14 +315,14 @@ export function useCommonGame(
     gameId,
     paused,
     mode: loaded?.timerMode ?? { kind: 'none' },
-    running: row !== null && row.gameEnding === null,
+    running: row !== null && !isGameEnded,
   })
 
   const turnHolderId = row?.current_turn_user_id ?? null
   const standing = whereIStand({
     players,
     myId: authSession.user.id,
-    isGameEnded: (row?.gameEnding ?? null) !== null,
+    isGameEnded,
     isTurnBased,
     turnHolderId,
     draftsOffTurn: manifest.draftsOffTurn,
@@ -344,6 +332,7 @@ export function useCommonGame(
     ? null
     : {
         ...loaded.row,
+        isGameEnded,
         players,
         stillPlayingHumanPlayers,
         pause: {

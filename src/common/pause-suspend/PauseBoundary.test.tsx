@@ -28,6 +28,8 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { PauseBoundary } from './PauseBoundary'
+import type { PauseActions } from './PauseOverlay'
+import type { GamePause } from './pause'
 import { boundActionFixture } from '../actions/boundAction.fixture'
 import type { Member } from '../members/member'
 
@@ -44,15 +46,26 @@ const BEA: Member = {
 /** Nobody on the channel — every player passed in reads as absent. */
 const NONE_PRESENT = new Set<string>()
 
-/** The four props `GamePage` always passes, with no manual pause in effect —
- *  what a spec that is not about them can spread. Fresh mocks per call, so one
- *  spec's clicks never land in another's call count. */
-function escapes() {
+/** A pause with nobody connected and no manual pause — what a spec that is
+ *  not about the rest can use. Fresh mocks per call, so one spec's clicks
+ *  never land in another's call count. */
+function pauseOf(over: Partial<GamePause> = {}): GamePause {
   return {
+    paused: true,
+    presentUserIds: NONE_PRESENT,
     manuallyPausedBy: null,
-    onResume: vi.fn(),
+    sendManualPause: vi.fn(),
+    sendManualUnpause: vi.fn(),
+    ...over,
+  }
+}
+
+/** The two ways out, as the page binds them. */
+function actionsOf(over: Partial<PauseActions> = {}): PauseActions {
+  return {
     actBackToClub: boundActionFixture('act-back-to-club'),
     actStopGame: boundActionFixture('act-stop-game'),
+    ...over,
   }
 }
 
@@ -77,7 +90,7 @@ function MountCounterChild({ onMount }: { onMount: () => void }) {
 describe('PauseBoundary', () => {
   it('renders children when paused=false', () => {
     render(
-      <PauseBoundary paused={false} players={[]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary pause={pauseOf({ paused: false })} players={[]} actions={actionsOf()}>
         <div data-testid="child">play surface</div>
       </PauseBoundary>,
     )
@@ -87,7 +100,7 @@ describe('PauseBoundary', () => {
 
   it('hides children and renders the overlay when paused=true (presence)', () => {
     render(
-      <PauseBoundary paused={true} players={[BEA]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary pause={pauseOf({ paused: true })} players={[BEA]} actions={actionsOf()}>
         <div data-testid="child">play surface</div>
       </PauseBoundary>,
     )
@@ -98,7 +111,7 @@ describe('PauseBoundary', () => {
   it('remounts children when paused toggles true→false (i.e., children unmount, not visibility:hidden)', () => {
     const onMount = vi.fn()
     const { rerender } = render(
-      <PauseBoundary paused={false} players={[]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary pause={pauseOf({ paused: false })} players={[]} actions={actionsOf()}>
         <MountCounterChild onMount={onMount} />
       </PauseBoundary>,
     )
@@ -106,7 +119,7 @@ describe('PauseBoundary', () => {
 
     // Pause: child unmounts. Mount count stays at 1.
     rerender(
-      <PauseBoundary paused={true} players={[BEA]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary pause={pauseOf({ paused: true })} players={[BEA]} actions={actionsOf()}>
         <MountCounterChild onMount={onMount} />
       </PauseBoundary>,
     )
@@ -116,7 +129,7 @@ describe('PauseBoundary', () => {
     // Resume: child remounts. Mount count increments — the proof that
     // the previous unmount actually happened.
     rerender(
-      <PauseBoundary paused={false} players={[]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary pause={pauseOf({ paused: false })} players={[]} actions={actionsOf()}>
         <MountCounterChild onMount={onMount} />
       </PauseBoundary>,
     )
@@ -126,7 +139,7 @@ describe('PauseBoundary', () => {
 
   it('shows the missing peer name in the presence-pause text', () => {
     render(
-      <PauseBoundary paused={true} players={[BEA]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary pause={pauseOf({ paused: true })} players={[BEA]} actions={actionsOf()}>
         <div>play</div>
       </PauseBoundary>,
     )
@@ -141,12 +154,9 @@ describe('PauseBoundary', () => {
     const onResume = vi.fn()
     render(
       <PauseBoundary
-        {...escapes()}
-        paused={true}
+        pause={pauseOf({ manuallyPausedBy: ADA, sendManualUnpause: onResume })}
         players={[]}
-        presentUserIds={NONE_PRESENT}
-        manuallyPausedBy={ADA}
-        onResume={onResume}
+        actions={actionsOf()}
       >
         <div>play</div>
       </PauseBoundary>,
@@ -165,13 +175,7 @@ describe('PauseBoundary', () => {
     const user = userEvent.setup()
     const actStopGame = boundActionFixture('act-stop-game')
     render(
-      <PauseBoundary
-        {...escapes()}
-        paused={true}
-        players={[BEA]}
-        presentUserIds={NONE_PRESENT}
-        actStopGame={actStopGame}
-      >
+      <PauseBoundary pause={pauseOf()} players={[BEA]} actions={actionsOf({ actStopGame })}>
         <div>play</div>
       </PauseBoundary>,
     )
@@ -182,11 +186,11 @@ describe('PauseBoundary', () => {
   it('draws nothing for an action that says it is hidden', () => {
     render(
       <PauseBoundary
-        {...escapes()}
-        paused={true}
+        pause={pauseOf()}
         players={[BEA]}
-        presentUserIds={NONE_PRESENT}
-        actStopGame={boundActionFixture('act-stop-game', () => ({ state: 'hidden' }))}
+        actions={actionsOf({
+          actStopGame: boundActionFixture('act-stop-game', () => ({ state: 'hidden' })),
+        })}
       >
         <div>play</div>
       </PauseBoundary>,

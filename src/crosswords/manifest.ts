@@ -178,7 +178,7 @@ export const crosswordsCoopGame: GameManifest = {
   PlayArea: playAreaLoader,
   // Shared notepad (coop) / private per-player pad (compete — a shared pad
   // would leak solving progress).
-  scratchpad: { enabled: true, perPlayerInCompete: true },
+  scratchpad: 'perPlayerInCompete',
   setupForm: {
     Component: setupFormLoader,
     defaults: CROSSWORDS_DEFAULTS,
@@ -206,7 +206,7 @@ export const crosswordsCompeteGame: GameManifest = {
   PlayArea: playAreaLoader,
   // Shared notepad (coop) / private per-player pad (compete — a shared pad
   // would leak solving progress).
-  scratchpad: { enabled: true, perPlayerInCompete: true },
+  scratchpad: 'perPlayerInCompete',
   setupForm: {
     Component: setupFormLoader,
     defaults: CROSSWORDS_DEFAULTS,

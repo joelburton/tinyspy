@@ -5,6 +5,8 @@ import type { GamePlayer } from '../members/member'
 import type { GameEnding } from '../terminal/gameEnding'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import type { MenuApi } from '../menu/menuModel'
+import type { GameManifest } from '../manifest/gameManifest'
+import type { CommonGame } from './useCommonGame'
 
 /**
  * What a game is HANDED while it is being played — the values `<GamePage>`
@@ -24,6 +26,10 @@ import type { MenuApi } from '../menu/menuModel'
  * game and playing one are different moments with different audiences.
  */
 export type GamePageCtx = {
+  // The game, as the page has it.
+  cg: CommonGame
+  // This game's manifest.
+  manifest: GameManifest
   authSession: Session
   gameId: string
   // This gametype's user-facing brand name, resolved by GamePage

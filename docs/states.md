@@ -226,8 +226,8 @@ partner). When the absent player returns, pause clears automatically.
 
 ### Leaving the game page — terminal vs non-terminal
 
-The UI bar for "leaving" depends on whether the game has ended — three shapes (GamePage's
-`requestBackToClub`):
+The UI bar for "leaving" depends on whether the game has ended — three shapes (`useBoundPageActions`'s
+Back to club):
 
 - **Terminal**. Trivial to leave. Members are reviewing the endgame (the matched
   bands, the revealed key cards, the post-game summary); the Back-to-club is

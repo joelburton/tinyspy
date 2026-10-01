@@ -1,35 +1,24 @@
 // cs-blessed-pause-suspend
 
 import type { ReactNode } from 'react'
-import type { BoundAction } from '../actions/useBindAction'
 import type { Member } from '../members/member'
-import { PauseOverlay } from './PauseOverlay'
+import { PauseOverlay, type PauseActions } from './PauseOverlay'
+import type { GamePause } from './pause'
 
 type Props = {
-  // Whether the game is currently paused — the union of every pause source
-  // (presence, manual). The boundary does not care which; only the boolean.
-  paused: boolean
-  // The players the overlay draws, and the ids currently on the channel that
-  // split them into present and away. See `PauseOverlay`, which is handed both.
+  // The pause; the boundary reads only `paused`, the overlay the rest.
+  pause: GamePause
+  // Who the pause waits for, drawn by the overlay.
   players: Member[]
-  presentUserIds: Set<string>
-  // Who pressed Pause — null when the pause is presence-only — and the handler
-  // that releases it. Both pass straight through to `PauseOverlay`; its Props
-  // say what they draw.
-  manuallyPausedBy: Member | null
-  onResume: () => void
-  // The two escapes from a pause that will not clear, bound by `GamePage` —
-  // which is above this boundary, so the bindings survive the unmount below.
-  // `act-stop-game` hides itself unless paused, so passing it always is right.
-  actBackToClub: BoundAction
-  actStopGame: BoundAction
-  // The play surface. Rendered only when `paused === false`.
+  // The ways out of a pause that won't clear.
+  actions: PauseActions
+  // The play surface. Rendered only while not paused.
   children: ReactNode
 }
 
 /**
  * Renders either the play surface or the pause banner, from one `paused` flag —
- * wrap a game's play area in it and pass the flag `useCommonGame` computes.
+ * wrap a game's play area in it and pass the page's `cg.pause`.
  *
  * Paused children are UNMOUNTED, not hidden, and that is the contract callers
  * depend on: per-game state inside the play area (pending input, tile
@@ -40,27 +29,7 @@ type Props = {
  * belongs above this boundary or in the database — `doc.md` → Details, and
  * docs/states.md → paused for the wider pattern.
  */
-export function PauseBoundary({
-  paused,
-  players,
-  presentUserIds,
-  manuallyPausedBy,
-  onResume,
-  actBackToClub,
-  actStopGame,
-  children,
-}: Props) {
-  if (paused) {
-    return (
-      <PauseOverlay
-        players={players}
-        presentUserIds={presentUserIds}
-        manuallyPausedBy={manuallyPausedBy}
-        onResume={onResume}
-        actBackToClub={actBackToClub}
-        actStopGame={actStopGame}
-      />
-    )
-  }
+export function PauseBoundary({ pause, players, actions, children }: Props) {
+  if (pause.paused) return <PauseOverlay pause={pause} players={players} actions={actions} />
   return <>{children}</>
 }

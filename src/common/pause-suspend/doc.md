@@ -98,9 +98,9 @@ GamePage                              the shell, above the pause — stays mount
                         ├── DotActor         "X paused the game" (members/)
                         ├── StandardButton   Resume (buttons/)
                         └── ActionButton × 2 back to club, stop game — both
-                                             bound by GamePage (actions/)
+                                             bound by useBoundPageActions
 
-GamePage.requestBackToClub            multiplayer, mid-game:
+useBoundPageActions: Back to club, multiplayer, mid-game:
 └── askConfirmation(suspendConfirm(title))    drawn by ConfirmationHost, at the
                                               app root (floating-panels/)
 ```

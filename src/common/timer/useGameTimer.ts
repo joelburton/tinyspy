@@ -35,7 +35,7 @@ function mergeTicks(prev: number, server: number): number {
  *    none: always 0.
  *  - `expired` — a LEVEL, not an edge: true for as long as a countdown sits at
  *    0, false for countup and none. The hook fires nothing. The timeout-loss
- *    RPC is `GamePage`'s `fireTimeoutOnExpiry`, on the rising edge.
+ *    RPC is `useSubmitTimeoutOnExpiry`'s, on the rising edge.
  */
 export function useGameTimer({
   gameId,

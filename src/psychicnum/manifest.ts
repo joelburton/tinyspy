@@ -137,6 +137,7 @@ export const psychicnumCoopGame: GameManifest = {
   numberOfPlayers: [1, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: playAreaLoader,
 
@@ -189,6 +190,7 @@ export const psychicnumCompeteGame: GameManifest = {
   numberOfPlayers: [2, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: playAreaLoader,
 

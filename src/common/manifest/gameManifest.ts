@@ -153,12 +153,9 @@ export type GameManifest = {
   // branding source rather than hardcoded in each game's Help.
   help: ComponentType<{ onClose: () => void; brand: string }>
 
-  // Opt into the per-game scratchpad — a floating notepad (a `common/`
-  // feature) players can jot in during play. Absent = no scratchpad (most
-  // games). `perPlayerInCompete` gives each compete player a PRIVATE pad
-  // (a shared pad would leak solving progress); coop always shares one pad.
-  // GamePage renders the `<ScratchpadButton>` + `<GameScratchpadCompanion>` when set.
-  scratchpad?: { enabled: boolean; perPlayerInCompete?: boolean }
+  // Whether the game offers a scratchpad, and whose. A coop game always shares
+  // one; `perPlayerInCompete` gives each compete player a private pad.
+  scratchpad: 'none' | 'shared' | 'perPlayerInCompete'
 
   // Supported player-count range `[min, max]`. Together with the club's
   // `common.clubs_gametypes` row it decides whether a Start row is offered, and

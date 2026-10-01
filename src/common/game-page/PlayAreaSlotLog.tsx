@@ -79,24 +79,24 @@ function browserInfoLine(): string {
 export function PlayAreaSlotLog({
   gametype,
   gameId,
-  isTerminal,
+  isGameEnded,
   children,
 }: {
   gametype: string
   gameId: string
-  isTerminal: boolean
+  isGameEnded: boolean
   children: ReactNode
 }) {
   // Snapshot the at-mount state once (a ref initializer runs on the first
   // render only) — the log is a mount event, and putting the live values in
   // the effect's deps would re-fire it on every change, exactly the flood
   // this component exists to avoid.
-  const atMountRef = useRef({ isTerminal })
+  const atMountRef = useRef({ isGameEnded })
   useEffect(function logTheSlotMount() {
     const atMount = atMountRef.current
     console.log(
       `[ui ${logStamp()}] playarea slot mounted — ${gametype} ${gameId} ` +
-        `(ended=${atMount.isTerminal})`,
+        `(ended=${atMount.isGameEnded})`,
     )
     console.log(`[ui ${logStamp()}] browser — ${browserInfoLine()}`)
     return function logTheSlotUnmount() {

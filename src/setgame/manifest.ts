@@ -164,6 +164,7 @@ export const setgameCoopGame: GameManifest = {
   numberOfPlayers: [1, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: playAreaLoader,
 
@@ -198,6 +199,7 @@ export const setgameCompeteGame: GameManifest = {
   numberOfPlayers: [2, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: playAreaLoader,
 

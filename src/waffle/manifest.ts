@@ -142,6 +142,7 @@ export const waffleCoopGame: GameManifest = {
   numberOfPlayers: [1, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: playAreaLoader,
 
@@ -175,6 +176,7 @@ export const waffleCompeteGame: GameManifest = {
   numberOfPlayers: [2, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: playAreaLoader,
 

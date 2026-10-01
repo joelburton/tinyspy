@@ -137,6 +137,7 @@ export const boggleCoopGame: GameManifest = {
   // boggle.create_game's player-count guard.
   numberOfPlayers: [1, 8],
   draftsOffTurn: false,
+  scratchpad: 'none',
   PlayArea: playAreaLoader,
   setupForm: {
     intro:
@@ -163,6 +164,7 @@ export const boggleCompeteGame: GameManifest = {
   // Compete needs an opposing player; the RPC enforces ≥2 too.
   numberOfPlayers: [2, 8],
   draftsOffTurn: false,
+  scratchpad: 'none',
   PlayArea: playAreaLoader,
   setupForm: {
     intro:

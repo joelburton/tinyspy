@@ -53,6 +53,7 @@ export const bananagramsGame: GameManifest = {
   numberOfPlayers: [1, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: lazy(() =>
     import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),

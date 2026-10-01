@@ -109,6 +109,7 @@ export const wordleCoopGame: GameManifest = {
   numberOfPlayers: [1, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: playAreaLoader,
 
@@ -165,6 +166,7 @@ export const wordleCompeteGame: GameManifest = {
   numberOfPlayers: [2, 6],
 
   draftsOffTurn: false,
+  scratchpad: 'none',
 
   PlayArea: playAreaLoader,
 

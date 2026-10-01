@@ -114,6 +114,7 @@ export const scrabbleCoopGame: GameManifest = {
   numberOfPlayers: [1, 4],
   // Pre-play: a waiting player may lay a move out; only committing waits.
   draftsOffTurn: true,
+  scratchpad: 'none',
   PlayArea: playAreaLoader,
   setupForm: {
     Component: setupFormLoader,
@@ -145,6 +146,7 @@ export const scrabbleCompeteGame: GameManifest = {
   numberOfPlayers: [1, 4],
   // Pre-play: a waiting player may lay a move out; only committing waits.
   draftsOffTurn: true,
+  scratchpad: 'none',
   PlayArea: playAreaLoader,
   // `validate` blocks Start when an AI is present and the dictionary is too
   // narrow for its level, or the head-count doesn't fit (docs/games/scrabble.md).

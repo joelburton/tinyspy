@@ -80,3 +80,18 @@ export function computeGamePause({
   const paused = (presencePaused || manuallyPausedBy !== null) && !isGameEnded
   return { stillPlayingHumanPlayers, manuallyPausedBy, paused }
 }
+
+/** Whether the game is paused, and the controls: what the header's Pause
+ *  button and the pause overlay draw from. How it is worked out is
+ *  `computeGamePause`'s. */
+export type GamePause = {
+  // Somebody the game waits for is away, or somebody clicked Pause.
+  paused: boolean
+  // Who is connected to the game right now.
+  presentUserIds: Set<string>
+  // Who clicked Pause; null when nobody did.
+  manuallyPausedBy: Member | null
+  // Pause and resume for every peer, this tab included.
+  sendManualPause: () => void
+  sendManualUnpause: () => void
+}

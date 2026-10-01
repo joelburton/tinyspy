@@ -210,6 +210,13 @@ psychicnum's. What it settled beyond psychicnum:
   `useChangeCause`, `useSetupDialog`, `useSolutionReveal`, `useGameTimer`,
   `useCaptureKeys`, `useWordListFilter`, `useEventLogPlayerPicker`,
   `useShowEndingFeedback` and `useStandardGameActions`.
+- A PlayArea's props carry `cg` and `manifest` beside the separate fields
+  copied off them. Each game, as it converts, reads `ctx.cg.title`,
+  `ctx.cg.standing`, `ctx.cg.turns`, `ctx.cg.timer` and so on, and
+  `ctx.manifest.name` for `ctx.brand`; its `gd.standing` spreads
+  `ctx.cg.standing`. Once the last game reads only those, the separate fields
+  go and `GamePageCtx` becomes `PlayAreaProps`: `{ cg, manifest, authSession,
+  resubscribeCount, globalFeedbackSlot, menu, goToFollowUpGame }`.
 - `GamePlayer` → `CommonGamePlayer` once every game converts
   (`src/common/members/todo.md`).
 - A Stop drops a win that already stands (`src/common/terminal/todo.md`).

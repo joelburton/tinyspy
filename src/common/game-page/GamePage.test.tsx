@@ -105,6 +105,7 @@ function makeManifest(over: Partial<GameManifest> = {}): GameManifest {
     help: () => null,
     numberOfPlayers: [1, 6],
     draftsOffTurn: false,
+    scratchpad: 'none',
     PlayArea: () => <div>play</div>,
     setupForm: { Component: () => null, defaults: {} },
     startGameInClub: vi.fn(),
@@ -150,6 +151,7 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
   return {
     cg: row === null ? null : {
       ...row,
+      isGameEnded: row.gameEnding !== null,
       players,
       stillPlayingHumanPlayers: players,
       pause: {
