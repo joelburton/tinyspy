@@ -22,7 +22,7 @@ vi.mock('../supabase/supabase', () => ({
   supabase: { auth: { signOut: signOutMock } },
 }))
 
-vi.mock('../session/useProfile', () => ({
+vi.mock('../session/myProfileStore', () => ({
   useMyProfile: () => ({
     user_id: 'u1',
     username: 'joel',

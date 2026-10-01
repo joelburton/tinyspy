@@ -5,12 +5,9 @@ import { GRID, MAX_CELL } from '../lib/board'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBindAction'
 import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
-import {
-  LETTER_SCALE,
-  blurActiveField,
-  type Cell,
-  type DragSource,
-} from '../hooks/usePlayerBoard'
+import { blurActiveField } from '@/common/keyboard/keyboardHandoff'
+import { type Cell, type DragSource } from '../hooks/usePlayerBoard'
+import { LETTER_SCALE } from '../lib/board'
 import { idx } from '../lib/board'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'

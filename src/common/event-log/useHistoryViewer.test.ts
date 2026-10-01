@@ -12,8 +12,8 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { useHistoryViewer } from './useHistoryViewer'
-import { useActionDispatcher } from '../actions/dispatcher'
-import { getBoundActions } from '../actions/useBindAction'
+import { useActionDispatcher } from '../actions/useActionDispatcher'
+import { getBoundActions } from '../actions/boundActionsStore'
 
 afterEach(() => {
   document.body.innerHTML = ''

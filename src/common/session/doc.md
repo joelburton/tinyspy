@@ -102,5 +102,5 @@ repaints at once with no refetch.
   captures the callback the hook registers with `onAuthStateChange` and fires
   the events by hand, and collapses the query chain to its terminal call, so a
   case is one event plus one canned answer. The store's own cases need none of
-  that: `useProfile.test.ts` drives it directly and watches two readers at
+  that: `myProfileStore.test.ts` drives it directly and watches two readers at
   once.

@@ -19,6 +19,14 @@
 export const GRID = 25
 export const DEFAULT_CELL = 40 // px per cell; the smallest zoom is computed to fit the grid
 export const MAX_CELL = 64
+// Tiles drawn per dump (the server's default, mirrored for the hand card's
+// label and its "bunch too low to dump" state).
+export const DUMP_COUNT = 3
+// Tile letter size as a fraction of the cell. A touch larger than half the tile
+// so the letter stays legible when the board is zoomed out — the tile shrinks
+// with zoom, the letter keeps a bit more of it. The arena grid and the drag
+// ghost both size their letters by it.
+export const LETTER_SCALE = 0.6
 
 /** Flat board index from (x, y). x = column, y = row; both 0..GRID-1.
  *  Same x-first convention as scrabble's `cellIndex`. */

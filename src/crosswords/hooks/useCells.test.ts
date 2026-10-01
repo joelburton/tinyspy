@@ -52,7 +52,8 @@ vi.mock('@/common/supabase/supabase', () => ({
   supabase: { channel: mockChannel, removeChannel: mockRemoveChannel },
 }))
 
-import { useCells, cellKey } from './useCells'
+import { useCells } from './useCells'
+import { cellKey } from '../lib/cellKey'
 
 const GAME_ID = '00000000-0000-0000-0000-0000000000aa'
 const ME = '00000000-0000-0000-0000-0000000000bb'

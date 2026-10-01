@@ -2,7 +2,8 @@
 
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { solvedByMe, useSolutionReveal } from './useSolutionReveal'
+import { useSolutionReveal } from './useSolutionReveal'
+import { solvedByMe } from './describeReveal'
 
 /**
  * `solvedByMe` — "did I produce the solution?", the input to `impliedBy`.

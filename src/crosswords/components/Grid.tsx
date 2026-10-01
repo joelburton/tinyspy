@@ -10,7 +10,8 @@ import {
   computeBorderMask,
 } from '../lib/cursor'
 import type { Cell as CellT, PuzzleTemplate } from '../lib/types'
-import { cellKey, type CellsMap } from '../hooks/useCells'
+import { type CellsMap } from '../hooks/useCells'
+import { cellKey } from '../lib/cellKey'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import { pressed } from '@/common/keyboard/componentKeyGroups'

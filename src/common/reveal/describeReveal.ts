@@ -2,6 +2,7 @@
 
 import { IconHideSolution } from '@/common/icons/icons'
 import type { Described } from '@/common/actions/useBindAction'
+import type { EndOutcome } from '../terminal/gameEnding'
 
 /**
  * How a game's `act-reveal` looks right now — the one `describe()` every game
@@ -39,4 +40,40 @@ export function describeReveal({
   return isTerminal
     ? { state: 'active', label: `Reveal ${noun}` }
     : { state: 'disabled', label: `Reveal ${noun}`, tooltip: "Can't reveal until all end" }
+}
+
+/**
+ * "Did I produce the solution?" — the predicate a game passes as `impliedBy`.
+ *
+ * Only the games where a player's own finished board IS the puzzle-solution
+ * call this: wordle can only be finished by typing the target. Where the two
+ * are different things — crosswords' author grid, codenamesduet's partner key
+ * card, wordiply's best word, letterboxed's seeded pair — no result puts the
+ * puzzle-solution on screen, so there is nothing to compute and the game passes
+ * no `impliedBy` at all. Both terms: `common/reveal/doc.md`.
+ *
+ * **Compete: pass your own per-player solved bit.** The game's outcome is no
+ * proxy for it — a wordle race is `won` when SOMEONE wins, and the racer three
+ * guesses off never produced the word.
+ *
+ * **Coop ignores `mine` and asks the game**, because one board means one
+ * answer: if the table solved it, every player is looking at the solution. Pass
+ * whatever the game has; it is not read. (Why a per-player row can't stand in
+ * for the game here: this folder's doc.md.)
+ *
+ * A coop game's outcome `won` is the table's win (docs/states.md → How a game
+ * ends); `lost` and `neutral` are endings nobody solved.
+ */
+export function solvedByMe({
+  isCompete,
+  gameOutcome,
+  mine,
+}: {
+  isCompete: boolean
+  // The game's outcome (`gameEnding?.outcome`), null while it is played.
+  gameOutcome: EndOutcome | null
+  // The caller's own per-player solved bit — compete's answer.
+  mine: boolean
+}): boolean {
+  return isCompete ? mine : gameOutcome === 'won'
 }

@@ -11,7 +11,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { asciiLetters, useCaptureKeys, type CaptureKeysOptions } from './useCaptureKeys'
-import { useActionDispatcher } from '../actions/dispatcher'
+import { useActionDispatcher } from '../actions/useActionDispatcher'
 
 /** Dispatch a window keydown, the way the dispatcher listens for it. Awaited,
  *  because an action's run settles a microtask after the key. */

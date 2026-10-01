@@ -1,7 +1,7 @@
 // cs-blessed-chat
 
 /**
- * Tests for useIsChatPanelOpen. The store is small but it is the only place
+ * Tests for chatPanelOpenStore. The store is small but it is the only place
  * the panel's open state is shared between the header's `<ChatButton>`, the
  * `/` action and `<Chat>` itself — a regression in the notify path would
  * silently desync them.
@@ -19,7 +19,7 @@ import {
   getIsChatPanelOpen,
   setIsChatPanelOpen,
   useIsChatPanelOpen,
-} from './useIsChatPanelOpen'
+} from './chatPanelOpenStore'
 
 let storage: InstalledStorage
 
@@ -40,7 +40,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('useIsChatPanelOpen — direct API', () => {
+describe('chatPanelOpenStore — direct API', () => {
   it('getIsChatPanelOpen reflects setIsChatPanelOpen writes', () => {
     expect(getIsChatPanelOpen()).toBe(false)
     setIsChatPanelOpen(true)
@@ -80,7 +80,7 @@ describe('useIsChatPanelOpen — direct API', () => {
   })
 })
 
-describe('useIsChatPanelOpen — the hook', () => {
+describe('chatPanelOpenStore — the hook', () => {
   it('returns the current value on mount', () => {
     setIsChatPanelOpen(true)
     const { result } = renderHook(() => useIsChatPanelOpen())

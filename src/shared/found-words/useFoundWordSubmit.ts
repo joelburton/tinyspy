@@ -123,15 +123,6 @@ export type FoundWordSubmitApi = {
   submit: () => void
 }
 
-/**
- * A word as it appears anywhere in feedback: caps, with a trailing ` •` bonus
- * dot when it's a bonus find. Shared because the family names a found word in
- * several places — each game's own-move lines and its peers' finds — and the
- * dot has to look the same in all of them.
- */
-export const wordWithBonusDot = (word: string, isBonus = false): string =>
-  `${word.toUpperCase()}${isBonus ? ' •' : ''}`
-
 export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitApi {
   const [word, setWordState] = useState('')
   const [lastWord, setLastWord] = useState('')

@@ -6,7 +6,7 @@
  * element's `play` / `pause` are spied on the prototype.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { setMyProfile } from '../session/useProfile'
+import { setMyProfile } from '../session/myProfileStore'
 import { playSound } from './playSound'
 
 const PROFILE = { username: 'ada', color: 'red', can_edit_words: false, sounds_enabled: true }

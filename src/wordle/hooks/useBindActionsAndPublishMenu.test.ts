@@ -9,7 +9,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
-import { getBoundActions } from '@/common/actions/useBindAction'
+import { getBoundActions } from '@/common/actions/boundActionsStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
 import type { GameData } from './useGame'

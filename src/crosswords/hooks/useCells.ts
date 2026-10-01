@@ -8,6 +8,7 @@ import { readRows, runRpc } from '@/common/supabase/dbResult'
 import type { Envelope } from '@/common/supabase/envelope'
 import { db } from '../db'
 import type { MarkSide, MarkType } from '../lib/types'
+import { cellKey } from '../lib/cellKey'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 export type CellState = {
@@ -40,8 +41,6 @@ export type CellsMap = Map<string, CellState>
  */
 export type SetCellAnswer = { result: 'set'; version: number; solved: boolean }
 export type SetMarkAnswer = { result: 'marked'; version: number }
-
-export const cellKey = (row: number, col: number) => `${row}:${col}`
 
 /**
  * The live per-cell fills for the caller's grid, with optimistic typing.

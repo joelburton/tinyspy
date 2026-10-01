@@ -1,7 +1,8 @@
 // cs-blessed-spellingbee
 
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
-import { wordWithBonusDot, type WordSubmitReport } from '@/shared/found-words/useFoundWordSubmit'
+import { type WordSubmitReport } from '@/shared/found-words/useFoundWordSubmit'
+import { wordWithBonusBullet } from '@/shared/found-words/foundWords'
 
 /**
  * Everything that can be SAID about a word in this game, as a closed set — and
@@ -41,18 +42,18 @@ export function answerMessage(answer: Answer): AnswerMessage {
     case 'accepted':
       return {
         outcome: 'won',
-        text: `${wordWithBonusDot(answer.word, answer.isBonus)} — ${answer.isPangram ? 'pangram ' : ''}+${answer.points}`,
+        text: `${wordWithBonusBullet(answer.word, answer.isBonus)} — ${answer.isPangram ? 'pangram ' : ''}+${answer.points}`,
       }
     // A pangram leads with the label and the bee, so the headline reads before
     // the word does — and so the line fits the header's ~26 phone characters.
     case 'accepted_peer':
       return {
         outcome: 'won',
-        text: `${answer.isPangram ? 'pangram 🐝' : 'found'} ${wordWithBonusDot(answer.word, answer.isBonus)} +${answer.points}`,
+        text: `${answer.isPangram ? 'pangram 🐝' : 'found'} ${wordWithBonusBullet(answer.word, answer.isBonus)} +${answer.points}`,
       }
 
     case 'already_found':
-      return { outcome: 'warning', text: `${wordWithBonusDot(answer.word, answer.isBonus)} — already found` }
+      return { outcome: 'warning', text: `${wordWithBonusBullet(answer.word, answer.isBonus)} — already found` }
     case 'too_short':
       return { outcome: 'warning', text: `${answer.word.toUpperCase()} — too short` }
 

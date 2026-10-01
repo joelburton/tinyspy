@@ -2,9 +2,9 @@
 
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { registerChatHost, useHasChatHost } from './useHasChatHost'
+import { registerChatHost, useHasChatHost } from './chatHostStore'
 
-describe('useHasChatHost', () => {
+describe('chatHostStore', () => {
   it("follows a chat panel's lifetime, and re-renders a reader either way", () => {
     const { result } = renderHook(() => useHasChatHost())
     expect(result.current).toBe(false)

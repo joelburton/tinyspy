@@ -1,22 +1,22 @@
 // cs-blessed-page-header
 
 import type { CSSProperties } from 'react'
-import { setIsChatPanelOpen, useIsChatPanelOpen } from '../chat/useIsChatPanelOpen'
+import { setIsChatPanelOpen, useIsChatPanelOpen } from '../chat/chatPanelOpenStore'
 import { PageHeaderButton } from './PageHeaderButton'
 import { IconChat } from '../icons/icons'
-import { useChatUnread } from '../chat/chatUnread'
+import { useChatUnread } from '../chat/chatUnreadStore'
 import { colorVarFor } from '../members/memberColor'
-import { useBoundAction } from '../actions/useBindAction'
+import { useBoundAction } from '../actions/boundActionsStore'
 import { nameWithKey } from '../actions/nameWithKey'
 import styles from './ChatButton.module.css'
 
 /**
  * The chat-panel toggle in the club + game headers. Click toggles the
- * panel via the shared useIsChatPanelOpen — both this bubble and the
+ * panel via the shared chatPanelOpenStore — both this bubble and the
  * `<Chat>` panel subscribe to the store.
  *
  * **Unread indicator.** When the panel is closed and there are unread
- * messages (`chat/chatUnread.ts`), the speech bubble GLYPH fills with the
+ * messages (`chat/chatUnreadStore.ts`), the speech bubble GLYPH fills with the
  * latest unread sender's profile color, and a count pill sits at the
  * top-left. Both clear the moment the panel opens (presumed read).
  *

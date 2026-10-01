@@ -57,7 +57,7 @@ vi.mock('../supabase/supabase', () => ({
 }))
 
 import { useAuthSession } from './useAuthSession'
-import { useMyProfile } from './useProfile'
+import { useMyProfile } from './myProfileStore'
 
 const fakeSession = {
   user: { id: 'ada11111-1111-1111-1111-111111111111' },

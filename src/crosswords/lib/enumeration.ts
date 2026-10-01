@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { cellKey, type CellsMap } from '../hooks/useCells'
+import { type CellsMap } from '../hooks/useCells'
+import { cellKey } from './cellKey'
 import type { CellPos } from './cursor'
 import type { Direction } from './types'
 

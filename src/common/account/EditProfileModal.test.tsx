@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { mockRpc, mockSetFields } = vi.hoisted(() => ({ mockRpc: vi.fn(), mockSetFields: vi.fn() }))
 vi.mock('../supabase/db', () => ({ db: { rpc: mockRpc } }))
-vi.mock('../session/useProfile', () => ({
+vi.mock('../session/myProfileStore', () => ({
   // A palette NAME, not a hex — `common.profiles.color` stores the name and
   // the picker selects by it, so a hex here means no swatch starts chosen and
   // the form under test never has the shape the app gives it.

@@ -2,7 +2,7 @@
 
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import type { BoardShape } from './stepCell'
 import { useBoardSelectionCursor, type BoardSelectionCursorOptions } from './useBoardSelectionCursor'
 

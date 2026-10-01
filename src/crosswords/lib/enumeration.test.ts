@@ -2,7 +2,8 @@
 
 import { describe, expect, it } from 'vitest'
 import { enumerationFor } from './enumeration'
-import { cellKey, type CellState, type CellsMap } from '../hooks/useCells'
+import { type CellState, type CellsMap } from '../hooks/useCells'
+import { cellKey } from './cellKey'
 import type { CellPos } from './cursor'
 
 function cell(patch: Partial<CellState> = {}): CellState {

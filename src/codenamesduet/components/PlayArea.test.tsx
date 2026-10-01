@@ -15,9 +15,9 @@
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
-import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { ACTIONS } from '@/common/actions/registry'
-import { getBoundActions } from '@/common/actions/useBindAction'
+import { getBoundActions } from '@/common/actions/boundActionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import userEvent from '@testing-library/user-event'

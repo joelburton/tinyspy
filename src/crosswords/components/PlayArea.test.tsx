@@ -16,9 +16,9 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
-import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { KeyList } from '@/common/actions/KeyList'
-import { getBoundActions } from '@/common/actions/useBindAction'
+import { getBoundActions } from '@/common/actions/boundActionsStore'
 import { menuRow, type MenuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { whereIStand } from '@/common/game-page/whereIStand'
@@ -55,9 +55,6 @@ const h = vi.hoisted(() => ({
 
 vi.mock('../hooks/useGame', () => ({ useGame: () => ({ game: h.game, loading: false }) }))
 vi.mock('../hooks/useCells', () => ({
-  // cellKey is imported alongside useCells by PlayArea — keep the real one.
-  ...vi.importActual('../hooks/useCells'),
-  cellKey: (row: number, col: number) => `${row}:${col}`,
   useCells: () => ({ cells: h.cells, setCell: h.setCell, setMark: h.setMark }),
 }))
 vi.mock('../hooks/usePeerCursors', () => ({

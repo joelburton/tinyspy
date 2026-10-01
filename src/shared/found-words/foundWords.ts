@@ -31,3 +31,13 @@ export type FoundWordRow = {
   is_bonus: boolean
   found_at: string
 }
+
+/**
+ * A word as it appears anywhere in feedback: caps, with a trailing ` •` bonus
+ * bullet when it's a bonus find. Shared because the family names a found word
+ * in several places — each game's own-move lines and its peers' finds — and
+ * the bullet has to look the same in all of them.
+ */
+export function wordWithBonusBullet(word: string, isBonus = false): string {
+  return `${word.toUpperCase()}${isBonus ? ' •' : ''}`
+}

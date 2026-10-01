@@ -73,7 +73,7 @@ const ALLOWED = new Map<string, string>([
   ['src/common/web-storage/storage.fake.ts', 'installs the test fake onto window, which is by definition a raw touch'],
   // No test file is here: a test asserts through the shared fake's handles
   // (`storage.test.ts`, `useStickyChoice.test.ts`,
-  // `useIsChatPanelOpen.test.ts`), which is what keeps it off this list.
+  // `chatPanelOpenStore.test.ts`), which is what keeps it off this list.
   // This file scans `src/`, and `src/` includes this file. Its fixture holds
   // real violations on purpose — spelling them around the scan (`'local' +
   // 'Storage'`) would make the test stop testing what it claims to.

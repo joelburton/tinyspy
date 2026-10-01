@@ -15,6 +15,7 @@ import {
   GRID,
   DEFAULT_CELL,
   MAX_CELL,
+  DUMP_COUNT,
   idx,
   clamp,
   setChar,
@@ -28,7 +29,6 @@ import { moveCursor, planBackspace, type GridCursor } from '@/common/board-curso
 import { useBoardCursorKeys } from '@/common/board-cursor/useBoardCursorKeys'
 import { useBindAction } from '@/common/actions/useBindAction'
 import type { BoundAction } from '@/common/actions/useBindAction'
-import { isEditableField } from '@/common/keyboard/editableField'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
@@ -57,14 +57,6 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 const AUTOSAVE_MS = 800 // debounce before snapshotting an edit
 const FIT_MARGIN = 3 // cells of breathing room kept around the tiles on a fit
-// tiles drawn per dump (server default; mirrored for the FE label/gate). Exported: the
-// hand card's dump zone reads it to show the "bunch too low to dump" state.
-export const DUMP_COUNT = 3
-// Tile letter size as a fraction of the cell (px). A touch larger than half the tile
-// so the letter stays legible when the board is zoomed out — the tile shrinks with
-// zoom, the letter keeps a bit more of it. Exported: the arena grid AND the drag ghost
-// both size their letters by it.
-export const LETTER_SCALE = 0.6
 // Stable empty set for "no red flags" — a fresh `new Set()` each render would be a new
 // reference and defeat memoization downstream.
 const NO_CELLS: ReadonlySet<number> = new Set()
@@ -82,22 +74,6 @@ function overHandAtPoint(x: number, y: number): boolean {
 }
 function overDumpAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="dump"]')
-}
-
-/**
- * Hand focus back to the board when the player interacts with it.
- *
- * bananagrams' cells + hand tiles are plain `<div>`s (not focusable), so clicking them
- * does NOT move focus off a focused chat box the way clicking a `<button>` tile would
- * in the other games — focus stays in chat and typed letters go there instead of onto
- * the board (the window key handler declines while a field is focused). Blurring the
- * focused field on a board interaction hands the keyboard back to the game, matching
- * how a focusable tile behaves elsewhere (see useGameHasKeyboard). No-op when nothing
- * editable is focused. Exported: both views wire it to their pointer-down.
- */
-export function blurActiveField(): void {
-  const a = document.activeElement
-  if (isEditableField(a)) (a as HTMLElement).blur()
 }
 
 /** What the engine needs from PlayArea (the outer coordinator). */

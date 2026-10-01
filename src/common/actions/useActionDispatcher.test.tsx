@@ -9,7 +9,7 @@
  */
 import { act, render, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { useActionDispatcher } from './dispatcher'
+import { useActionDispatcher } from './useActionDispatcher'
 import { useBindAction, type ActionState, type LiveAction } from './useBindAction'
 import type { ActionId } from './registry'
 

@@ -16,7 +16,7 @@
 
 import { renderHook, act } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { getMyProfile, setMyProfile, setMyProfileFields, useMyProfile } from './useProfile'
+import { getMyProfile, setMyProfile, setMyProfileFields, useMyProfile } from './myProfileStore'
 
 const ADA = { username: 'ada', color: '#c0392b', can_edit_words: false, sounds_enabled: true }
 

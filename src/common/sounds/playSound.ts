@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { getMyProfile } from '../session/useProfile'
+import { getMyProfile } from '../session/myProfileStore'
 
 /** Every sound the app plays, by name, and its file under `public/audio/`. */
 const SOUND_FILES = {

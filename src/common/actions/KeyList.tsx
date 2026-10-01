@@ -1,6 +1,6 @@
 // cs-blessed-actions
 
-import { useBoundActions } from './useBindAction'
+import { useBoundActions } from './boundActionsStore'
 import { COMPONENT_KEYGROUPS } from '../keyboard/componentKeyGroups'
 import { useOfferedComponentKeyGroups } from '../keyboard/offeredComponentKeyGroupsStore'
 import styles from './KeyList.module.css'

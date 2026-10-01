@@ -10,7 +10,8 @@
  */
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getBoundActions, useBindAction, type LiveAction } from './useBindAction'
+import { useBindAction, type LiveAction } from './useBindAction'
+import { getBoundActions } from './boundActionsStore'
 
 const askConfirmation = vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm')
 const withdrawConfirmation = vi.fn()

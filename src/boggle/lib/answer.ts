@@ -1,7 +1,8 @@
 // cs-fixed-outcome-fix
 
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
-import { wordWithBonusDot, type WordSubmitReport } from '@/shared/found-words/useFoundWordSubmit'
+import { type WordSubmitReport } from '@/shared/found-words/useFoundWordSubmit'
+import { wordWithBonusBullet } from '@/shared/found-words/foundWords'
 import { traceableStr } from './boardTrace'
 
 /**
@@ -40,18 +41,18 @@ export type Answer =
 export function answerMessage(answer: Answer): AnswerMessage {
   switch (answer.answerType) {
     case 'accepted':
-      return { outcome: 'won', text: `${wordWithBonusDot(answer.word, answer.isBonus)} — +${answer.points}` }
+      return { outcome: 'won', text: `${wordWithBonusBullet(answer.word, answer.isBonus)} — +${answer.points}` }
     // A long find (7+ letters) is boggle's "wow" moment. It leads with the
     // flourish so the headline reads before the word does — and so the line
     // fits the header's ~26 phone characters.
     case 'accepted_peer':
       return {
         outcome: 'won',
-        text: `${answer.word.length >= 7 ? 'wow!' : 'found'} ${wordWithBonusDot(answer.word, answer.isBonus)} +${answer.points}`,
+        text: `${answer.word.length >= 7 ? 'wow!' : 'found'} ${wordWithBonusBullet(answer.word, answer.isBonus)} +${answer.points}`,
       }
 
     case 'already_found':
-      return { outcome: 'warning', text: `${wordWithBonusDot(answer.word, answer.isBonus)} — already found` }
+      return { outcome: 'warning', text: `${wordWithBonusBullet(answer.word, answer.isBonus)} — already found` }
     case 'too_short':
       return { outcome: 'warning', text: `${answer.word.toUpperCase()} — too short` }
 

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRefetchOnGameUpdate } from '@/common/game-page/useRefetchOnGameUpdate'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
-import { solvedByMe } from '@/common/reveal/useSolutionReveal'
+import { solvedByMe } from '@/common/reveal/describeReveal'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import type { EndOutcome, GameEnding, PlayerEndedReason } from '@/common/terminal/gameEnding'

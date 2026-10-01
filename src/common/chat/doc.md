@@ -71,17 +71,17 @@ moving from the club to a game does not close the conversation.
 **The two stores.** Nothing holds both the panel and the header mark —
 `<ChatButton>` is in the page header, `<Chat>` is at the bottom of the page's
 tree, and neither is the other's parent — so module-level stores stand
-between them. `useIsChatPanelOpen` holds the open flag, persisted, and
-`useHasChatHost` records that a panel is mounted at all, which is how the `/`
+between them. `chatPanelOpenStore` holds the open flag, persisted, and
+`chatHostStore` records that a panel is mounted at all, which is how the `/`
 shortcut knows whether this page has a chat to bind. Where it has none (the home page), `/` answers
 `hidden` and is left to the browser's find-in-page: a key that silently does
 nothing is worse than one that isn't bound, because whoever debugs it starts
-from "chat is broken" rather than "chat isn't here". `chatUnread` holds the badge's count, and with it
-the palette-color name of the latest unread sender — a fact, not a paint:
-resolving a sender needs the roster, which only this side has, while what the
-mark then looks like is the mark's own decision. `<ChatButton>` subscribes to
-both stores, drawing the badge and flipping the flag; `<Chat>` reads the flag,
-writes it on a `!`, and writes the count. Neither knows the other exists.
+from "chat is broken" rather than "chat isn't here". `chatUnreadStore` holds
+the badge's count, and with it the palette-color name of the latest unread
+sender — a fact, not a paint: resolving a sender needs the roster, which only
+this side has, while what the mark then looks like is the mark's own decision.
+`<ChatButton>` subscribes to both stores, drawing the badge and flipping the
+flag; `<Chat>` reads the flag, writes it on a `!`, and writes the count. Neither knows the other exists.
 
 **The keyboard goes both ways.** `/` takes it to chat from anywhere on the
 page, even mid-clue, and Tab in the entry box hands it back to the game by
@@ -106,8 +106,8 @@ The whole of it, then:
 ```
 page ──mounts──> <Chat> ──> useClubChat ──> common.messages
                    │                        (Realtime INSERTs in, the RPC out)
-                   ├─ unread badge ─────> chatUnread
-                   ├─ `!` force-open ───> useIsChatPanelOpen
+                   ├─ unread badge ─────> chatUnreadStore
+                   ├─ `!` force-open ───> chatPanelOpenStore
                    ├─ pill ─────────────> the page's global feedback slot
                    └─ <Companion> ──> <ChatBody>   (only while open)
 ```

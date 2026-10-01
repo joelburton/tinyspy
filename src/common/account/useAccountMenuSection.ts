@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import type { AuthError } from '@supabase/supabase-js'
-import { useMyProfile } from '../session/useProfile'
+import { useMyProfile } from '../session/myProfileStore'
 import { supabase } from '../supabase/supabase'
 import { getTextualOnlineStatus } from '../supabase/dbFetch'
 import {

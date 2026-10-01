@@ -6,7 +6,7 @@ import { supabase } from '../supabase/supabase'
 import { db } from '../supabase/db'
 import { readRows } from '../supabase/dbResult'
 import type { NotOkEnvelope } from '../supabase/envelope'
-import { setMyProfile } from './useProfile'
+import { setMyProfile } from './myProfileStore'
 
 /**
  * Who is signed in, and whether they have picked a username yet — the answer

@@ -17,8 +17,8 @@
  * **It recurs, which is why it is a guard and not a note.** Found in three
  * unrelated files during the `deep` audit (`dbEnvelope.ts`, `envelope.ts`,
  * `_shared/envelope.ts`), and once a week earlier by the `homepage` area in
- * `useProfile.ts` — where it was recorded, and where it still sits, because a
- * recorded observation is not a mechanism.
+ * `myProfileStore.ts` — where it was recorded, and where it still sits,
+ * because a recorded observation is not a mechanism.
  *
  * ─── The one rule that makes it usable ────────────────────────
  * A stacked pair is only suspect when the earlier docstring is **not the

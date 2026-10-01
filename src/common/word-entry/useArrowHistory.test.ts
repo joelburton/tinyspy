@@ -12,8 +12,8 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useArrowHistory, type ArrowHistoryOptions } from './useArrowHistory'
-import { useActionDispatcher } from '../actions/dispatcher'
-import { getBoundActions } from '../actions/useBindAction'
+import { useActionDispatcher } from '../actions/useActionDispatcher'
+import { getBoundActions } from '../actions/boundActionsStore'
 
 /** Awaited: an action's run settles a microtask after the key. */
 async function press(key: string, target: EventTarget = window) {

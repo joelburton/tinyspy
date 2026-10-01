@@ -11,12 +11,12 @@
  * The gates are NOT retested here. They are the dispatcher's, not this hook's:
  * a modified chord never matches a pattern key, a keystroke aimed at chat never
  * reaches an action, and a floating panel with focus stops all of them.
- * `chord.test.ts` and `dispatcher.test.tsx` own that.
+ * `chord.test.ts` and `useActionDispatcher.test.tsx` own that.
  */
 
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import type { Cell } from '../lib/types'
 import { useGridKeyboard, type GridKeysOptions } from './useGridKeyboard'
 

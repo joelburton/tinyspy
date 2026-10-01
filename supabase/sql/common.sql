@@ -351,11 +351,12 @@ grant execute on function common._is_club_member(text) to authenticated;
 -- │  THE VIEW FIRST. Every column it holds is public by design:
 -- │  username and color ARE the player-identity vocabulary
 -- │  rendered to every club member, user_id has to be resolvable
--- │  for club creation, and theme and can_edit_words are a UI
--- │  preference and a curation flag that say nothing about a
--- │  person. So a "safe columns only" view would select all of
--- │  them and reduce exposure by exactly nothing. That's why it
--- │  isn't built.
+-- │  for club creation, theme and sounds_enabled are UI
+-- │  preferences, can_edit_words is a curation flag, and
+-- │  ai_member says an account is a bot — none of which says
+-- │  anything about a person. So a "safe columns only" view
+-- │  would select all of them and reduce exposure by exactly
+-- │  nothing. That's why it isn't built.
 -- │
 -- │  The move, when a real-name / settings / email-derived column
 -- │  arrives: revoke SELECT on common.profiles from authenticated,

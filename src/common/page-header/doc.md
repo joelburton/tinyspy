@@ -91,7 +91,7 @@ HomePage (home) · ClubPage (club) · GamePage (game-page)
   for flex items, so the players strip is a block container with inline-level
   entries and a margin between them; a flex row clipped a long roster mid-name
   with no sign.
-- **The chat mark decides its own fill.** `chat/chatUnread.ts` publishes two
+- **The chat mark decides its own fill.** `chat/chatUnreadStore.ts` holds two
   facts — how many are unread, and the latest sender's palette-color *name* —
   because resolving a sender needs the club roster, which only chat has. Turning
   that into a paint is the mark's: a named sender fills the glyph with their

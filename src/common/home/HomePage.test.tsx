@@ -91,7 +91,7 @@ vi.mock('../supabase/dbResult', async (importOriginal) => ({
   readRows: mockReadRows,
 }))
 
-vi.mock('../session/useProfile', () => ({ useMyProfile: () => profile.current }))
+vi.mock('../session/myProfileStore', () => ({ useMyProfile: () => profile.current }))
 
 vi.mock('../realtime/useRealtimeRefetch', async () => {
   const { useEffect } = await vi.importActual<typeof import('react')>('react')

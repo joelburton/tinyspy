@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { AnagramDialog } from '../anagram-finder/AnagramDialog'
 import { WordLookupDialog } from '../definitions/WordLookupDialog'
-import { useHasChatHost } from '../chat/useHasChatHost'
-import { setIsChatPanelOpen } from '../chat/useIsChatPanelOpen'
+import { useHasChatHost } from '../chat/chatHostStore'
+import { setIsChatPanelOpen } from '../chat/chatPanelOpenStore'
 import { openPageMenu } from '../menu/pageMenuStore'
 import { useBindAction } from './useBindAction'
 

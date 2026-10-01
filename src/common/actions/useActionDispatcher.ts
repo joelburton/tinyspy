@@ -3,7 +3,8 @@
 import { useEffect } from 'react'
 import { isEditableField, isNonGameField } from '../keyboard/editableField'
 import { isPattern, isWildcard, matches, type KeySpec } from './chord'
-import { getBoundActions, type BoundAction } from './useBindAction'
+import { type BoundAction } from './useBindAction'
+import { getBoundActions } from './boundActionsStore'
 
 /** Ties already reported, so holding a key doesn't fill the console with the
  *  same sentence. Keyed by the ids, since that pair IS the finding. */

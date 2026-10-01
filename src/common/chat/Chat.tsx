@@ -2,14 +2,10 @@
 
 import { useEffect, useRef } from 'react'
 import { useClubChat } from './useClubChat'
-import { registerChatHost } from './useHasChatHost'
-import { setIsChatPanelOpen, useIsChatPanelOpen } from './useIsChatPanelOpen'
-import {
-  computeUnread,
-  getChatLastSeen,
-  setChatLastSeen,
-  setChatUnread,
-} from './chatUnread'
+import { registerChatHost } from './chatHostStore'
+import { setIsChatPanelOpen, useIsChatPanelOpen } from './chatPanelOpenStore'
+import { computeUnread, getChatLastSeen, setChatLastSeen } from './chatUnread'
+import { setChatUnread } from './chatUnreadStore'
 import { Companion } from '../floating-panels/Companion'
 import { ChatBody } from './ChatBody'
 import { useChatFeedback } from './useChatFeedback'
@@ -33,7 +29,7 @@ type Props = {
  * chat subscription and three things read that stream while the panel is
  * shut: the unread badge, the global feedback pill (`useChatFeedback`) and the
  * `!` force-open detector. Closed, it renders nothing; the header's
- * `<ChatButton>` and the `/` action flip the shared `useIsChatPanelOpen`
+ * `<ChatButton>` and the `/` action flip the shared `chatPanelOpenStore`
  * store. Open, it is a `<Companion>` at `--z-chat`, above every dim, with its
  * rect and its open state persisted across pages.
  *
@@ -47,11 +43,11 @@ export function Chat({
   selfId,
   globalFeedbackSlot,
 }: Props) {
-  // Open/closed state lives in the `useIsChatPanelOpen` store, so the header's
+  // Open/closed state lives in `chatPanelOpenStore`, so the header's
   // `<ChatButton>` can flip the same flag from outside this tree.
   const open = useIsChatPanelOpen()
   // Count this `<Chat>` as a chat host for as long as it is mounted; see
-  // `useHasChatHost`.
+  // `chatHostStore`.
   useEffect(registerChatHost, [])
   // The stream is subscribed HERE rather than in ChatBody, so the force-open
   // detector and the unread badge below run while the panel is closed.

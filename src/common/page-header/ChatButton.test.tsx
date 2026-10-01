@@ -1,7 +1,7 @@
 // cs-blessed-chat
 
 /**
- * The chat mark turns what `chatUnread` publishes — a count and the sender's
+ * The chat mark turns what `chatUnreadStore` holds — a count and the sender's
  * palette-color NAME — into what the bubble looks like. The two arms of that
  * are here: a named sender fills the glyph with their color, and a sender the
  * roster cannot name goes muted rather than taking `colorVarFor`'s body-ink
@@ -9,8 +9,8 @@
  */
 import { act, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { setIsChatPanelOpen } from '../chat/useIsChatPanelOpen'
-import { setChatUnread } from '../chat/chatUnread'
+import { setIsChatPanelOpen } from '../chat/chatPanelOpenStore'
+import { setChatUnread } from '../chat/chatUnreadStore'
 import { colorVarFor } from '../members/memberColor'
 import { ChatButton } from './ChatButton'
 

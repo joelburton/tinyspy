@@ -46,25 +46,18 @@ counter became the rebuilt list of offered key groups the hook returns.
 
 ## Pass 2 — file names
 
-- [ ] `common/session/useProfile.ts` → `myProfileStore.ts`
-- [ ] `common/chat/useIsChatPanelOpen.ts` → `chatPanelOpenStore.ts`
-- [ ] `common/chat/useHasChatHost.ts` → `chatHostStore.ts`
-- [ ] `common/actions/dispatcher.ts` → `useActionDispatcher.ts`: it exports
-  only the hook
-- [ ] Split `common/actions/useBindAction.ts`: binding and reading what is
-  bound are different jobs. `useBindAction` and its run/describe wrapping stay;
-  the binding registry, its change count and its three readers
-  (`useBoundAction`, `useBoundActions`, `getBoundActions`) move to
-  `boundActionsStore.ts`, which exports a `registerBinding(ref)` returning the
-  release, so its `subscribe` stays private
-- [ ] Split `common/chat/chatUnread.ts`: the `ChatUnread` type, the state,
-  `setChatUnread` and `useChatUnread` go to `chatUnreadStore.ts`, which
-  `ChatButton` reads; `computeUnread` and the last-seen bookmark stay in
-  `chatUnread.ts`, which only `Chat` calls
-- [x] Split `common/keyboard/componentKeyGroups.ts` (was `componentKeys.ts`):
-  the table and `pressed` (how a component answers its keys) stay; the offering
-  registry and its two hooks, which exist only for Help's key list, moved to
-  `offeredComponentKeyGroupsStore.ts`
+Done. The profile store is `common/session/myProfileStore.ts`, with its
+`Profile` type in `profile.ts` beside it (the type is anyone's profile row; the
+store is only the signed-in user's); the chat stores are `chatPanelOpenStore.ts`
+and `chatHostStore.ts`; the key dispatcher is `useActionDispatcher.ts`. Split:
+`useBindAction.ts` (the registry and its readers are `boundActionsStore.ts`),
+`chatUnread.ts` (its store is `chatUnreadStore.ts`) and `componentKeyGroups.ts`
+(Help's offering registry is `offeredComponentKeyGroupsStore.ts`). Moved out of
+hook files: `blurActiveField` to `common/keyboard/keyboardHandoff.ts`,
+`cellKey` to `crosswords/lib/cellKey.ts`, `wordWithBonusDot` to
+`shared/found-words/foundWords.ts` as `wordWithBonusBullet` ("dot" means a
+player's color dot), `solvedByMe` to `common/reveal/describeReveal.ts`, and
+`DUMP_COUNT` / `LETTER_SCALE` to `bananagrams/lib/board.ts`.
 
 ## When both passes are done
 

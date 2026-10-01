@@ -1,7 +1,7 @@
 // cs-blessed-definitions
 
 import { useDefinition, type WordMeta } from './useDefinition'
-import { useMyProfile } from '../session/useProfile'
+import { useMyProfile } from '../session/myProfileStore'
 import { setShownWordEditDialog } from './wordEditStore'
 import { parseDefinition } from './parseDefinition'
 import styles from './DefinitionView.module.css'

@@ -3,7 +3,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useDismissLocalFeedbackOnKey } from './useDismissLocalFeedbackOnKey'
-import { useActionDispatcher } from '../actions/dispatcher'
+import { useActionDispatcher } from '../actions/useActionDispatcher'
 
 /** Dispatch a bubbling keydown whose `target` is the given element. Awaited:
  *  an action's run settles a microtask after the key. */

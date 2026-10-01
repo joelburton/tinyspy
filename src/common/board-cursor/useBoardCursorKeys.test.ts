@@ -2,8 +2,8 @@
 
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { useActionDispatcher } from '@/common/actions/dispatcher'
-import { getBoundActions } from '@/common/actions/useBindAction'
+import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
+import { getBoundActions } from '@/common/actions/boundActionsStore'
 import { useBoardCursorKeys, type BoardCursorKeysOptions } from './useBoardCursorKeys'
 
 // The shared 2-D board-cursor keyboard: arrows move the cursor, a letter
@@ -15,7 +15,8 @@ import { useBoardCursorKeys, type BoardCursorKeysOptions } from './useBoardCurso
 // The dispatcher's gates are NOT retested here: a modified chord never matches
 // a pattern, a keystroke aimed at chat never reaches an action, and dismissing
 // feedback or leaving a turn viewer are their own actions that the dispatcher
-// runs first. `chord.test.ts` and `dispatcher.test.tsx` own all of that.
+// runs first. `chord.test.ts` and `useActionDispatcher.test.tsx` own all of
+// that.
 
 /** A real window keydown. Awaited: an action's run settles a microtask later. */
 async function press(key: string) {

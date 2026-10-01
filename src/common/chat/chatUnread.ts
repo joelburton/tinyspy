@@ -1,20 +1,15 @@
 // cs-blessed-chat
 
-import { useSyncExternalStore } from 'react'
 import type { Member } from '../members/member'
 import { memberById } from '../members/memberList'
 import type { ClubMessage } from './useClubChat'
 import { readStored, writeStored } from '../web-storage/storage'
+import type { ChatUnread } from './chatUnreadStore'
 
 /**
- * The chat-unread indicator's shared state + logic.
- *
- * `<Chat>` holds the message stream and reads the open/closed state, so it
- * computes "unread" and publishes it here; `<ChatButton>` (a sibling in the header, not
- * in Chat's tree) reads it and decides what the mark looks like. What is
- * published is two facts — how many, and which palette color the latest unread
- * sender wears — because resolving a `user_id` needs the club roster, which
- * only this side has. Same lifted-state shape as `useIsChatPanelOpen`.
+ * Working out what is unread, for the chat mark's badge. `<Chat>` calls
+ * `computeUnread` with its messages and publishes the answer to
+ * `chatUnreadStore`, which `<ChatButton>` reads.
  *
  * "Unread" = messages not sent by me, with `sent_at` newer than my per-club
  * last-seen bookmark — and **with no bookmark, EVERYTHING counts**, so a
@@ -25,54 +20,10 @@ import { readStored, writeStored } from '../web-storage/storage'
  * away.
  */
 
-export type ChatUnread = {
-  count: number
-  // The latest unread sender's profile-color NAME ('blue'), as the member row
-  // carries it — not a CSS value. Null when there is nothing unread, and also
-  // when the sender is not in the roster we were given; `<ChatButton>` decides
-  // what each of those looks like.
-  senderColor: string | null
-}
-
-const NONE: ChatUnread = { count: 0, senderColor: null }
-
-// ─── the pub-sub store (publish from Chat, read by ChatButton) ──
-let chatUnreadInfo: ChatUnread = NONE
-// A listener is a callback: each `useChatUnread()` caller adds one, and
-// `setChatUnread` calls every one to say `chatUnreadInfo` has changed.
-const listeners = new Set<() => void>()
-
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener)
-  return () => {
-    listeners.delete(listener)
-  }
-}
-
-function getChatUnreadInfo(): ChatUnread {
-  return chatUnreadInfo
-}
-
-/** Publish the current unread state. Idempotent — a same-value write
- *  is a no-op (keeps the snapshot reference stable for
- *  useSyncExternalStore). */
-export function setChatUnread(val: ChatUnread): void {
-  if (
-    val.count === chatUnreadInfo.count
-    && val.senderColor === chatUnreadInfo.senderColor
-  ) return
-  chatUnreadInfo = val
-  for (const listener of listeners) listener()
-}
-
-/** Subscribe to the unread state — `<ChatButton>` is the reader. */
-export function useChatUnread(): ChatUnread {
-  return useSyncExternalStore(subscribe, getChatUnreadInfo)
-}
-
 // ─── per-club last-seen bookmark (localStorage) ─────────────────────
-const lastSeenKey = (clubHandle: string) =>
-  `puzpuzpuz:chat:lastSeen:${clubHandle}`
+function lastSeenKey(clubHandle: string): string {
+  return `puzpuzpuz:chat:lastSeen:${clubHandle}`
+}
 
 /** The `sent_at` of the newest message this member had seen, or null
  *  if they've never opened this club's chat. */
@@ -103,7 +54,7 @@ export function computeUnread(
   const unread = messages.filter(
     (m) => m.user_id !== selfId && (!lastSeen || m.sent_at > lastSeen),
   )
-  if (unread.length === 0) return NONE
+  if (unread.length === 0) return { count: 0, senderColor: null }
   const latest = unread[unread.length - 1]
   const member = memberById(members, latest.user_id)
   // A sender the roster does not name publishes as null, which is an ordinary

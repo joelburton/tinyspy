@@ -11,9 +11,9 @@
 import { act, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppActionsHost } from './AppActionsHost'
-import { useActionDispatcher } from './dispatcher'
-import { registerChatHost } from '../chat/useHasChatHost'
-import { getIsChatPanelOpen, setIsChatPanelOpen } from '../chat/useIsChatPanelOpen'
+import { useActionDispatcher } from './useActionDispatcher'
+import { registerChatHost } from '../chat/chatHostStore'
+import { getIsChatPanelOpen, setIsChatPanelOpen } from '../chat/chatPanelOpenStore'
 import { registerPageMenu } from '../menu/pageMenuStore'
 
 // The lookup dialog asks the definitions edge function on mount, and the
