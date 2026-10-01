@@ -45,7 +45,7 @@ type RefetchConfig = {
   tables: { schema: string; table: string; filter: string }
   channelPrefix: string
   id: string
-  load: (handle: { mounted: () => boolean }) => Promise<void>
+  load: (handle: { isCurrent: () => boolean }) => Promise<void>
 }
 
 const { queryParts, mockRpc, mockReadRows, profile, refetch } = vi.hoisted(() => ({
@@ -102,7 +102,7 @@ vi.mock('../realtime/useRealtimeRefetch', async () => {
       // does the first half, and a test asking for the second calls `load`.
       // `config` is a fresh object every render, so it stays out of the deps.
       useEffect(() => {
-        void config.load({ mounted: () => true })
+        void config.load({ isCurrent: () => true })
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [])
     },
@@ -225,7 +225,7 @@ describe('HomePage — zero rows is the page raising a fault, every time', () =>
     await waitFor(() => expect(peekFaultMessages_ForTest()).toHaveLength(1))
 
     // What a realtime membership event does: the same load, again.
-    await refetch.config!.load({ mounted: () => true })
+    await refetch.config!.load({ isCurrent: () => true })
 
     await waitFor(() => expect(peekFaultMessages_ForTest()).toHaveLength(2))
   })

@@ -3,11 +3,11 @@
 import { useEffect, useRef } from 'react'
 
 /**
- * What a game's `load` is handed. `mounted()` is true while the hook is still
+ * What a game's `load` is handed. `isCurrent()` is true while the hook is still
  * mounted AND this load is still the newest one, so a load checks it after
  * each `await` and commits nothing once it reads false.
  */
-export type GameLoad = (opts: { mounted: () => boolean }) => Promise<void>
+export type GameLoad = (opts: { isCurrent: () => boolean }) => Promise<void>
 
 /**
  * Keep a game's own tables fresh off the page's `common.games` row. Reach for
@@ -23,7 +23,7 @@ export type GameLoad = (opts: { mounted: () => boolean }) => Promise<void>
  * it comes back, whether or not anybody moved.
  *
  * `load` may be a fresh closure every render; the latest one is what runs.
- * Loads can overlap and land out of order, so each one's `mounted()` reads
+ * Loads can overlap and land out of order, so each one's `isCurrent()` reads
  * false once a newer one has started: the newest load wins, not the last to
  * land.
  */
@@ -45,11 +45,11 @@ export function useRefetchOnGameUpdate({
   })
 
   // One load per run of this effect. The cleanup runs on unmount AND before
-  // the next run, so an older load's `mounted()` reads false as soon as a
+  // the next run, so an older load's `isCurrent()` reads false as soon as a
   // newer one starts.
   useEffect(function refetchOnGameUpdate() {
     let current = true
-    void loadRef.current({ mounted: () => current })
+    void loadRef.current({ isCurrent: () => current })
     return () => {
       current = false
     }

@@ -539,7 +539,7 @@ follows it line-for-line).
 - **`components/PlayArea.tsx`** — shared; reads `game.mode`; wires `BoardCol` +
   `InfoCol`, the submit hook, the terminal message (`buildOver`), the local
   feedback slot's three standing conditions (the verdict, out of the race, whose
-  turn), and the coop peer-guess `usePeerFeedback`.
+  turn), and the coop peer-guess `useShowPeerFeedback`.
 - **`components/BoardCol.tsx` + the guess board**:
   - **On-screen keyboard, no text box.** wordiply plays on **touch alone** —
     input is the shared **`shared/onscreen-keyboard/GuessKeyboard`** (the
@@ -786,7 +786,7 @@ fixture in `setup.psql`):
   reuses **`useFoundWordSubmit`** (shipped-list, trusting-commit) with a
   wordiply validator (points = the word's length). No `<WordEntryArea>` /
   `<WordEntryInput>` (that needs a physical keyboard).
-- **Feedback:** `useFeedbackSlot` / `usePeerFeedback` / `<FeedbackPill>`.
+- **Feedback:** `useFeedbackSlot` / `useShowPeerFeedback` / `<FeedbackPill>`.
 - **Info column:** `<OpponentStrip>`, `<SetupDisclosure>`, `<Stats>`-style
   readout, `<InfoActionsRow>`, the standard actions (`act-stop-game` /
   `act-concede` / `act-restart` / `act-new-game` / `act-back-to-club`), each

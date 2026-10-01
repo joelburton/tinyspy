@@ -45,7 +45,7 @@ why the two live side by side here and neither is written in terms of the other.
 ```
 <PlayArea>                     every game's play surface
 ├── useCelebration(won)        the flip, off values GamePageLoader already awaited
-│    └── {show && <CelebrationBlockingModal title body onClose>}
+│    └── {isOpen && <CelebrationBlockingModal title body onClose>}
 │          └── <BlockingModal>       floating-panels/ — scrim, card, Escape
 │                └── <FloatingPanel>
 │                      ├── <div .content role="dialog" aria-label={title}>

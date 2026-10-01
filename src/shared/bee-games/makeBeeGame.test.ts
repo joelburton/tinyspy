@@ -8,7 +8,7 @@
  *     or the word lists re-download on every teammate submission);
  *   - found_words refetches through useRealtimeRefetch, subscribing to BOTH
  *     found_words AND games (the games line is the replay_board realtime touch),
- *     and honoring the mounted() guard.
+ *     and honoring the isCurrent() guard.
  *
  * supabase's schema-scoped chain and useRealtimeRefetch are mocked; the test
  * drives the captured `load` directly (the real hook runs it on mount/subscribe).
@@ -82,7 +82,7 @@ type RefetchConfig = {
   tables: Array<{ schema: string; table: string; filter: string }>
   channelPrefix: string
   id: string
-  load: (ctx: { mounted: () => boolean }) => Promise<void>
+  load: (ctx: { isCurrent: () => boolean }) => Promise<void>
 }
 const lastConfig = () => refetchMock.mock.calls.at(-1)![0] as RefetchConfig
 
@@ -164,7 +164,7 @@ describe('makeBeeGame — header', () => {
     const { result } = renderHook(() => useBeeGame('g1'))
     await waitFor(() => expect(result.current.failure).not.toBeNull())
 
-    await act(async () => { await lastConfig().load({ mounted: () => true }) })
+    await act(async () => { await lastConfig().load({ isCurrent: () => true }) })
 
     expect(result.current.rowsLoaded).toBe(true) // the rows really did load
     expect(result.current.failure?.detail).toContain('header-boom')
@@ -180,7 +180,7 @@ describe('makeBeeGame — header', () => {
     const { result } = renderHook(() => useBeeGame('g1'))
     await waitFor(() => expect(result.current.failure).not.toBeNull())
 
-    await act(async () => { await lastConfig().load({ mounted: () => true }) })
+    await act(async () => { await lastConfig().load({ isCurrent: () => true }) })
 
     expect(result.current.failure?.detail).toContain('header-boom')
   })
@@ -218,7 +218,7 @@ describe('makeBeeGame — found_words realtime', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.rowsLoaded).toBe(false) // load hasn't run yet (mock doesn't auto-run it)
 
-    await act(async () => { await lastConfig().load({ mounted: () => true }) })
+    await act(async () => { await lastConfig().load({ isCurrent: () => true }) })
 
     expect(fromMock).toHaveBeenCalledWith('found_words')
     expect(result.current.foundWords).toHaveLength(1)
@@ -231,7 +231,7 @@ describe('makeBeeGame — found_words realtime', () => {
     const { result } = renderHook(() => useBeeGame('g1'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    await act(async () => { await lastConfig().load({ mounted: () => true }) })
+    await act(async () => { await lastConfig().load({ isCurrent: () => true }) })
     expect(result.current.failure?.detail).toContain('rows-boom')
 
     // This list refetches on every realtime event, so an outage that ends has
@@ -239,18 +239,18 @@ describe('makeBeeGame — found_words realtime', () => {
     // explanation that stopped being true.
     rowsError.value = null
     rowsResult.value = []
-    await act(async () => { await lastConfig().load({ mounted: () => true }) })
+    await act(async () => { await lastConfig().load({ isCurrent: () => true }) })
     expect(result.current.failure).toBeNull()
   })
 
-  it('honors the mounted() guard — a superseded load never commits', async () => {
+  it('honors the isCurrent() guard — a superseded load never commits', async () => {
     rowsResult.value = [
       { game_id: 'g1', user_id: 'u1', word: 'bead', points: 1, is_pangram: false, is_bonus: false, found_at: 't1' },
     ]
     const { result } = renderHook(() => useBeeGame('g1'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    await act(async () => { await lastConfig().load({ mounted: () => false }) })
+    await act(async () => { await lastConfig().load({ isCurrent: () => false }) })
 
     expect(result.current.foundWords).toEqual([])
     expect(result.current.rowsLoaded).toBe(false)

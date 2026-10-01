@@ -70,7 +70,7 @@ export function HomePage({ authSession }: Props) {
     },
     channelPrefix: 'home-clubs',
     id: authSession.user.id,
-    load: async ({ mounted }) => {
+    load: async ({ isCurrent }) => {
       const result = await readRows(
         commonDb
           .from('clubs')
@@ -78,7 +78,7 @@ export function HomePage({ authSession }: Props) {
           .order('is_solo', { ascending: false })
           .order('created_at', { ascending: false }),
       )
-      if (!mounted()) return
+      if (!isCurrent()) return
       // Nothing to do here: `readRows` raised the modal and wrote the `[db]`
       // line (docs/envelopes.md). Record the failure so the no-rows line in
       // the frame can say something true.

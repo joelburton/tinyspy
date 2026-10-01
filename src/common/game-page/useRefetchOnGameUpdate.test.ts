@@ -47,8 +47,8 @@ describe('useRefetchOnGameUpdate', () => {
 
   it('tells an overtaken load, and one after unmount, not to commit', () => {
     const seen: (() => boolean)[] = []
-    const load: GameLoad = async ({ mounted }) => {
-      seen.push(mounted)
+    const load: GameLoad = async ({ isCurrent }) => {
+      seen.push(isCurrent)
     }
     const { rerender, unmount } = mount({ commonGameUpdatedAt: 't1', resubscribeCount: 0 }, load)
     rerender({ commonGameUpdatedAt: 't2', resubscribeCount: 0, load })

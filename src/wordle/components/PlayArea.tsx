@@ -7,7 +7,7 @@ import { peerAnswerMessage } from '../lib/answer'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
@@ -144,7 +144,7 @@ function PlayArea({
   // A teammate's accepted guess (coop), in the row's own outcome. My own land
   // on the shared board instead; in compete the log holds only my own rows
   // until the end, so there is nothing to narrate.
-  usePeerFeedback({
+  useShowPeerFeedback({
     enabled: !gd.isCompete,
     items: gd.events,
     keyOf: (guess) => String(guess.id),
@@ -206,7 +206,7 @@ function PlayArea({
       </InfoSheet>
 
       {/* My win's confetti — once, when it happens. */}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal
           title="Solved! 🎉"
           body={gd.isCompete ? 'You solved it in the fewest guesses.' : 'The team found the word.'}

@@ -16,7 +16,7 @@ import { db } from '../db'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
@@ -322,8 +322,8 @@ function PlayArea({
 
   // My partner asking the AI for a clue is narrated in the header, once, as it
   // lands; my own hint is not, since the suggestion dialog is its feedback. Old
-  // hints are not replayed on load; see `usePeerFeedback`.
-  usePeerFeedback({
+  // hints are not replayed on load; see `useShowPeerFeedback`.
+  useShowPeerFeedback({
     enabled: true,
     items: events,
     keyOf: (e) => String(e.id),
@@ -599,7 +599,7 @@ function PlayArea({
 
       {/* The win's celebration — the one modal this game shows at the end; the
           verdict itself is in-page. */}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal
           title="You win! 🎉"
           body={`All ${TOTAL_AGENTS} agents contacted.`}

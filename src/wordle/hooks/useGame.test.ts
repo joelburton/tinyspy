@@ -27,7 +27,7 @@ const { mockReadRows, refetch } = vi.hoisted(() => ({
   mockReadRows: vi.fn(),
   // The `load` the hook hands `useRefetchOnGameUpdate`, kept so a test can run
   // it.
-  refetch: { load: null as ((a: { mounted: () => boolean }) => Promise<void>) | null },
+  refetch: { load: null as ((a: { isCurrent: () => boolean }) => Promise<void>) | null },
 }))
 
 // A query builder that remembers which table it was opened on and answers every
@@ -40,7 +40,7 @@ vi.mock('../db', () => {
 })
 
 vi.mock('@/common/game-page/useRefetchOnGameUpdate', () => ({
-  useRefetchOnGameUpdate: (opts: { load: (a: { mounted: () => boolean }) => Promise<void> }) => {
+  useRefetchOnGameUpdate: (opts: { load: (a: { isCurrent: () => boolean }) => Promise<void> }) => {
     refetch.load = opts.load
   },
 }))
@@ -133,7 +133,7 @@ const ALL_GOOD = {
 async function load(ctx: GamePageCtx = CTX) {
   const { result } = renderHook(() => useGame(ctx))
   await act(async () => {
-    await refetch.load!({ mounted: () => true })
+    await refetch.load!({ isCurrent: () => true })
   })
   return result
 }
@@ -315,13 +315,13 @@ describe('wordle useGame — the outage that ended', () => {
     answer({ games_state: readFailed('PN301') })
     const { result } = renderHook(() => useGame(CTX))
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.failure).not.toBeNull()
 
     answer(ALL_GOOD)
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.failure).toBeNull()
     expect(result.current.gd?.events).toEqual([MY_GUESS, THEIR_GUESS])
@@ -334,13 +334,13 @@ describe('wordle useGame — the outage that ended', () => {
     answer({ games_state: readFailed('PN301') })
     const { result } = renderHook(() => useGame(CTX))
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.failure).not.toBeNull()
 
     answer({ games_state: ok([]) })
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.failure).toBeNull()
     expect(result.current.gd).toBeNull()

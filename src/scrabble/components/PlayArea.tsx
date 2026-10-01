@@ -622,7 +622,7 @@ type Suggested =
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
           in-page by the commit slot's verdict + the info-column outcome line. Only a COMPETE
           win celebrates — coop has no win to celebrate (see useCelebration above). */}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal title="You win! 🎉" onClose={celebration.close} />
       )}
     </div>

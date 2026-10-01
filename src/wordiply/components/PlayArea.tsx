@@ -13,7 +13,7 @@ import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { historySnapshot } from '../lib/history'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { answerMessage, answerOf, peerAnswerMessage } from '../lib/answer'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
@@ -420,7 +420,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // coop's guesses are club-wide, so a teammate's guess arrives in `guesses`;
   // surface it with its length (the one live readout — no scores). Own guesses
   // show on the board row.
-  usePeerFeedback({
+  useShowPeerFeedback({
     enabled: game?.mode === 'coop',
     // Gate the seed on the guesses fetch (separate from the header that sets
     // `game`), so a coop rejoin doesn't replay the backlog as a burst.

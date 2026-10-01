@@ -674,7 +674,7 @@ export function PlayArea({
           where this treatment started): it's carried in-page (the below-board
           pill + the outcome line in the action row, with Restart right there),
           and a coop solve gets the celebration instead. */}
-      {celebration.show && <CelebrationBlockingModal title="Solved it! 🧇" onClose={celebration.close} />}
+      {celebration.isOpen && <CelebrationBlockingModal title="Solved it! 🧇" onClose={celebration.close} />}
     </div>
   )
 }

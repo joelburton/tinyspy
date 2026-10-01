@@ -78,8 +78,8 @@ function loadedGame(over: Partial<BoggleGame> = {}): BoggleGame {
 function loaded(game: BoggleGame, foundWords: FoundWordRow[] = []): GameHook {
   // `rowsLoaded: true` because this helper builds a LOADED state — the rows
   // have arrived. It went missing while `GameHook` was hand-written, and the
-  // fake returned no such key: `usePeerFeedback`'s `ready` then fell back to
-  // its `true` default, so these tests exercised the SINGLE-fetch narration
+  // fake returned no such key: `useShowPeerFeedback`'s `ready` then fell back
+  // to its `true` default, so these tests exercised the SINGLE-fetch narration
   // path while the real hook is two-fetch.
   return { game, foundWords, loading: false, rowsLoaded: true, failure: null }
 }
@@ -514,9 +514,9 @@ describe('boggle PlayArea — trace as you type', () => {
 })
 
 describe('boggle PlayArea — coop peer narration (global header)', () => {
-  // `usePeerFeedback` seeds the backlog silently on the first loaded render,
-  // then shows a header message for each NEW peer row. So each test renders
-  // once (empty seed), pushes a peer row into the mocked useGame, and
+  // `useShowPeerFeedback` seeds the backlog silently on the first loaded
+  // render, then shows a header message for each NEW peer row. So each test
+  // renders once (empty seed), pushes a peer row into the mocked useGame, and
   // re-renders to trigger it — asserting through a spy on the slot's `show`.
 
   /** A peer's accepted found_words row (the coop header reads these). */

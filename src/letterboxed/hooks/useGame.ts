@@ -173,7 +173,7 @@ export function useGame(gameId: string, selfId: string): {
   }, [gameId])
 
   const load = useCallback(
-    async ({ mounted }: { mounted: () => boolean }) => {
+    async ({ isCurrent }: { isCurrent: () => boolean }) => {
       const [playersRes, eventsRes] = await Promise.all([
         readRows(
           db
@@ -189,7 +189,7 @@ export function useGame(gameId: string, selfId: string): {
             .order('id', { ascending: true }),
         ),
       ])
-      if (!mounted()) return
+      if (!isCurrent()) return
       // One branch each rather than one combined test, because WHICH read failed
       // is the only thing the player's sentence cannot say.
       if (playersRes.type === 'not-ok') {

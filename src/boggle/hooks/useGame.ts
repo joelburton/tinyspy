@@ -144,7 +144,7 @@ export function useGame(gameId: string): {
     ],
     channelPrefix: 'boggle',
     id: gameId,
-    load: async ({ mounted }) => {
+    load: async ({ isCurrent }) => {
       const res = await readRows(
         db
           .from('found_words')
@@ -152,7 +152,7 @@ export function useGame(gameId: string): {
           .eq('game_id', gameId)
           .order('found_at', { ascending: true }),
       )
-      if (!mounted()) return
+      if (!isCurrent()) return
       if (res.type === 'not-ok') {
         setRowsFailure(res)
         return

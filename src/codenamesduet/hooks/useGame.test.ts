@@ -16,7 +16,7 @@ import type { Envelope } from '@/common/supabase/envelope'
 const { mockReadRows, refetch } = vi.hoisted(() => ({
   mockReadRows: vi.fn(),
   // The `load` the hook hands `useRealtimeRefetch`, kept so a test can run it.
-  refetch: { load: null as ((a: { mounted: () => boolean }) => Promise<void>) | null },
+  refetch: { load: null as ((a: { isCurrent: () => boolean }) => Promise<void>) | null },
 }))
 
 // A query builder that answers every chained call with itself — `readRows` is
@@ -27,7 +27,7 @@ vi.mock('../db', () => {
 })
 
 vi.mock('@/common/realtime/useRealtimeRefetch', () => ({
-  useRealtimeRefetch: (opts: { load: (a: { mounted: () => boolean }) => Promise<void> }) => {
+  useRealtimeRefetch: (opts: { load: (a: { isCurrent: () => boolean }) => Promise<void> }) => {
     refetch.load = opts.load
   },
 }))
@@ -61,7 +61,7 @@ function mount() {
   const view = renderHook(() => useGame('g1'))
   const refetchNow = () =>
     act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
   return { result: view.result, refetchNow }
 }

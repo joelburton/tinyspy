@@ -109,7 +109,7 @@ export function useGame(gameId: string, selfId: string): {
     ],
     channelPrefix: 'setgame',
     id: gameId,
-    load: async ({ mounted }) => {
+    load: async ({ isCurrent }) => {
       const [gameRes, playersRes, eventsRes] = await Promise.all([
         // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
         // so this is 0 or 1 of them.
@@ -133,7 +133,7 @@ export function useGame(gameId: string, selfId: string): {
             .order('id', { ascending: true }),
         ),
       ])
-      if (!mounted()) return
+      if (!isCurrent()) return
       // A read can only fail as a FAULT — `readRows` never authors anything
       // else, and it has already logged the failure and raised the modal. What
       // is left is the sentence BEHIND it, plus a line naming which of the reads

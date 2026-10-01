@@ -507,7 +507,7 @@ the pill.
   channel name (`channelDedupSuffix`) — the shared Broadcast room that needed a
   stable name is gone.
 - **Peer narration** (coop-only) is the SHARED
-  `common/hooks/feedback/usePeerFeedback`, wired inline in PlayArea — no
+  `common/hooks/feedback/useShowPeerFeedback`, wired inline in PlayArea — no
   game-local hook. It diffs the `events` list (via `keyOf: (id)`), bootstrapping
   quietly on the first loaded render so a reconnect doesn't replay the backlog.
   Each *new* teammate submission fires a **global** header feedback pill —

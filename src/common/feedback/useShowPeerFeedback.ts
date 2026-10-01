@@ -26,7 +26,7 @@ import type { FeedbackSlot } from './feedbackSlotStore'
  * climbed, a `solved` flag flipping — is a delta detector rather than a
  * seen-set, and those stay hand-rolled in the games that need them.
  */
-export function usePeerFeedback<T>({
+export function useShowPeerFeedback<T>({
   enabled,
   ready = true,
   items,

@@ -8,7 +8,7 @@ import { useChangeCause } from './useChangeCause'
  *  per render — the comparison this drives happens during render. */
 const NOTHING: ReadonlySet<never> = new Set()
 
-type MoveAttention<Content, Id> = {
+type MoveAttentionOptions<Content, Id> = {
   /** This render's content — the board, the results map, whatever the diff reads. */
   content: Content
   /** What "changed" means for this game: a board string, a joined list of ranks. */
@@ -57,7 +57,7 @@ export function useMoveAttention<Content, Id>({
   moveCount,
   changed,
   quiet = false,
-}: MoveAttention<Content, Id>): ReadonlySet<Id> {
+}: MoveAttentionOptions<Content, Id>): ReadonlySet<Id> {
   const [hot, setHot] = useState<ReadonlySet<Id>>(NOTHING)
 
   // Always ready: this hook is called from a game's Board, which is mounted

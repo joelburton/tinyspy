@@ -596,7 +596,7 @@ export function PlayArea(ctx: GamePageCtx) {
           in-page by the below-board slot + the info-column outcome line. The WINNER gets
           the celebration instead — bananagrams is compete-only, so there's no
           coop win to pop it for (see useCelebration above). */}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal title="Bananas! 🍌" body="You went out first." onClose={celebration.close} />
       )}
     </>

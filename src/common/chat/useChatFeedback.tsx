@@ -1,6 +1,6 @@
 // cs-blessed-chat
 
-import { usePeerFeedback } from '../feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '../feedback/useShowPeerFeedback'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import { memberById } from '../members/memberList'
@@ -21,8 +21,8 @@ const MAX_PILL_CHARS = 80
  * roster, so a sender outside the current game is still named; `selfId` is the
  * viewer, whose own messages never pop.
  *
- * Messages already in the log at load never pop: `usePeerFeedback` seeds them
- * as seen on the first loaded render, which is why `enabled` waits on the
+ * Messages already in the log at load never pop: `useShowPeerFeedback` seeds
+ * them as seen on the first loaded render, which is why `enabled` waits on the
  * stream's `loading`.
  */
 export function useChatFeedback({
@@ -39,7 +39,7 @@ export function useChatFeedback({
   selfId: string
   globalFeedbackSlot: FeedbackSlot
 }): void {
-  usePeerFeedback({
+  useShowPeerFeedback({
     // Gate until the history has loaded so the seed captures the real backlog
     // (not an empty set that would replay everything on arrival).
     enabled: !loading,

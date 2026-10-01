@@ -49,7 +49,7 @@ export function useGame(gameId: string) {
     tables: { schema: 'codenamesduet', table: 'games', filter: `id=eq.${gameId}` },
     channelPrefix: 'codenamesduet:game',
     id: gameId,
-    load: async ({ mounted }) => {
+    load: async ({ isCurrent }) => {
       // No `.single()`: it treats zero rows as an ERROR, so a game this pair
       // cannot see arrived looking exactly like a broken connection. `readRows`
       // hands back rows, and `id` is the PK, so this is 0 or 1 of them.
@@ -59,7 +59,7 @@ export function useGame(gameId: string) {
           .select('turn_number, current_clue_giver, user_a_id, user_b_id')
           .eq('id', gameId),
       )
-      if (!mounted()) return
+      if (!isCurrent()) return
 
       // A read can only fail as a FAULT — `readRows` never authors anything
       // else, and it has already logged the failure and raised the modal. What

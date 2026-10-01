@@ -11,7 +11,7 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
@@ -581,7 +581,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Coop peer narration (global header) ───────────────
   // In coop the chain is shared, so a teammate's word changes MY board; say so.
-  usePeerFeedback({
+  useShowPeerFeedback({
     enabled: game?.mode === 'coop',
     ready: rowsLoaded,
     items: events,
@@ -792,7 +792,7 @@ export function PlayArea(ctx: GamePageCtx) {
       {/* Confetti at the MOMENT the board is covered — coop's win, and compete's
           for whoever got there first. useCelebration never pops on mount, so
           reopening a finished game doesn't re-celebrate. */}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal title="All twelve! 🐍" onClose={celebration.close} />
       )}
     </div>

@@ -29,13 +29,13 @@ import { useState } from 'react'
  *
  *     const celebration = useCelebration(gameEnding?.outcome === 'won')
  *     ...
- *     {celebration.show && <CelebrationBlockingModal title="Solved it! 🧇" onClose={celebration.close} />}
+ *     {celebration.isOpen && <CelebrationBlockingModal title="Solved it! 🧇" onClose={celebration.close} />}
  */
 export function useCelebration(won: boolean): {
-  show: boolean
+  isOpen: boolean
   close: () => void
 } {
-  const [show, setShow] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
 
   // Detected during render (React's endorsed "storing information from previous
   // renders" shape, and the house rule against setState in effects), which is
@@ -44,11 +44,11 @@ export function useCelebration(won: boolean): {
   const [prevWon, setPrevWon] = useState(won)
   if (won !== prevWon) {
     setPrevWon(won)
-    if (won) setShow(true)
+    if (won) setIsOpen(true)
   }
 
   return {
-    show,
-    close: () => setShow(false),
+    isOpen,
+    close: () => setIsOpen(false),
   }
 }

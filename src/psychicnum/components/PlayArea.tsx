@@ -11,7 +11,7 @@ import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useGame, type GameData } from '../hooks/useGame'
@@ -155,7 +155,7 @@ function PlayArea({
   // A teammate's guess, hint or spoiler (coop). My own events are the local
   // slot's and the log's, so they're skipped; in compete the log holds only my
   // own rows until the end, so there is nothing to narrate.
-  usePeerFeedback({
+  useShowPeerFeedback({
     enabled: !gd.isCompete,
     items: gd.events,
     keyOf: (event) => String(event.id),
@@ -222,7 +222,7 @@ function PlayArea({
       </InfoSheet>
 
       {/* My win's confetti — once, when it happens. */}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal
           title="You win! 🎉"
           body={gd.isCompete

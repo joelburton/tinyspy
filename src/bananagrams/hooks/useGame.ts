@@ -44,7 +44,7 @@ export function useGame(gameId: string, userId: string) {
     tables: { schema: 'bananagrams', table: 'player_boards', filter: `game_id=eq.${gameId}` },
     channelPrefix: 'bananagrams-board',
     id: gameId,
-    load: async ({ mounted }) => {
+    load: async ({ isCurrent }) => {
       // No `.maybeSingle()`: `readRows` hands back rows, and (game, user) is the
       // PK, so this is 0 or 1 of them.
       const res = await readRows(
@@ -54,7 +54,7 @@ export function useGame(gameId: string, userId: string) {
           .eq('game_id', gameId)
           .eq('user_id', userId),
       )
-      if (!mounted()) return
+      if (!isCurrent()) return
 
       // A read can only fail as a FAULT — `readRows` never authors anything
       // else, and it has already logged the failure and raised the modal. What
@@ -112,14 +112,14 @@ export function useProgress(gameId: string): ProgressRow[] {
     tables: { schema: 'bananagrams', table: 'progress', filter: `game_id=eq.${gameId}` },
     channelPrefix: 'bananagrams-progress',
     id: gameId,
-    load: async ({ mounted }) => {
+    load: async ({ isCurrent }) => {
       const res = await readRows(
         db
           .from('progress')
           .select('user_id, unplaced, placed, solved')
           .eq('game_id', gameId),
       )
-      if (!mounted()) return
+      if (!isCurrent()) return
       // The peers strip, not the board: a failed read has already raised the
       // fault modal, and the honest thing left is to keep showing the last
       // counts rather than blank the strip.

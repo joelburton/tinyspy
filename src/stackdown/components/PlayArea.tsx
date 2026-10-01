@@ -26,7 +26,7 @@ import { offBoardIds } from '../lib/board'
 import type { StackdownSetup } from '../lib/setup'
 import { ANSWER_OUTCOME, answerOf, type Answer } from '../lib/answer'
 import { useGame } from '../hooks/useGame'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
@@ -156,8 +156,8 @@ export function PlayArea({
   // no exposed tile (or too many), a hint's answer, a not-ok, the verdict —
   // show as the `<FeedbackPill>` in BoardCol's below-board slot (docs/ui.md →
   // Feedback pill). Peer narration goes to the GLOBAL header instead
-  // (usePeerFeedback). The slot lives in PlayArea because it has triggers in
-  // BOTH columns (the keyboard input engine in BoardCol; the reveal/hint
+  // (useShowPeerFeedback). The slot lives in PlayArea because it has triggers
+  // in BOTH columns (the keyboard input engine in BoardCol; the reveal/hint
   // cheats in InfoCol) plus the terminal verdict — so the coordinator owns it
   // and both columns show into it.
   const localFeedbackSlot = useFeedbackSlot('local')
@@ -571,7 +571,7 @@ export function PlayArea({
   // GLOBAL header (with their identity disc), and mark their played word on
   // THEIR TILES (`markPeerWord`). Called unconditionally before the early
   // returns; the hook no-ops off coop and until loaded.
-  usePeerFeedback({
+  useShowPeerFeedback({
     enabled: game?.mode === 'coop',
     items: submissions,
     keyOf: (s) => String(s.id),
@@ -756,7 +756,7 @@ export function PlayArea({
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
           in-page by the below-board slot + the info-column outcome line, and a coop
           clear gets the celebration instead — once, when it happens. */}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal
           title="Stack cleared! 🎉"
           body="All six words found."

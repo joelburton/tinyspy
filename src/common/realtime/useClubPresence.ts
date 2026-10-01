@@ -7,7 +7,7 @@ import { channelLeaving, releaseChannel } from './channelTeardown'
 
 /** One present member's location within the club orbit. `gameId` is
  *  the game they're viewing, or null if they're on the club page. */
-export type ClubPresenceEntry = { userId: string; gameId: string | null }
+export type MemberGameOrClub = { userId: string; gameId: string | null }
 
 /**
  * Join the club's presence channel (`club:<handle>`) and broadcast
@@ -46,8 +46,8 @@ export function useClubPresence(
   clubHandle: string | null,
   viewingGameId: string | null,
   selfId: string,
-): ClubPresenceEntry[] {
-  const [roster, setRoster] = useState<ClubPresenceEntry[]>([])
+): MemberGameOrClub[] {
+  const [roster, setRoster] = useState<MemberGameOrClub[]>([])
 
   // Subscribe once per (club, location). The presence-sync handler
   // rebuilds the roster from the full channel state on every change.
@@ -78,7 +78,7 @@ export function useClubPresence(
           string,
           Array<{ user_id?: string; game_id?: string | null }>
         >
-        const entries: ClubPresenceEntry[] = []
+        const entries: MemberGameOrClub[] = []
         for (const list of Object.values(state)) {
           for (const e of list) {
             if (e.user_id) {

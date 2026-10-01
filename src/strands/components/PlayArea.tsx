@@ -955,7 +955,7 @@ export function PlayArea(ctx: GamePageCtx) {
       </InfoSheet>
 
       {acknowledgeModal}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal
           title={isCompete ? 'You win!' : 'You found them all!'}
           body={

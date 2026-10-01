@@ -19,7 +19,7 @@
  *   - Multiple-table form: each subscribed table fires the same
  *     load.
  *   - `id` change rebuilds the channel (and removes the old).
- *   - Cleanup on unmount flips `mounted()` to false so the
+ *   - Cleanup on unmount flips `isCurrent()` to false so the
  *     caller's load can bail out before setState.
  *   - A re-rendered load reference (caller didn't memoize) does
  *     NOT thrash the channel — the deps + ref trick is what
@@ -127,10 +127,10 @@ describe('useRealtimeRefetch', () => {
     expect(load).toHaveBeenCalledTimes(1)
   })
 
-  it('passes a mounted() getter that returns true while the hook is alive', () => {
-    let capturedMounted: (() => boolean) | null = null
-    const load = vi.fn(async ({ mounted }: { mounted: () => boolean }) => {
-      capturedMounted = mounted
+  it('passes an isCurrent() getter that returns true while the hook is alive', () => {
+    let capturedIsCurrent: (() => boolean) | null = null
+    const load = vi.fn(async ({ isCurrent }: { isCurrent: () => boolean }) => {
+      capturedIsCurrent = isCurrent
     })
     renderHook(() =>
       useRealtimeRefetch({
@@ -140,14 +140,14 @@ describe('useRealtimeRefetch', () => {
         id: 'g1',
       }),
     )
-    expect(capturedMounted).not.toBeNull()
-    expect(capturedMounted!()).toBe(true)
+    expect(capturedIsCurrent).not.toBeNull()
+    expect(capturedIsCurrent!()).toBe(true)
   })
 
-  it('flips mounted() to false on unmount so the caller can bail before setState', () => {
-    let capturedMounted: (() => boolean) | null = null
-    const load = vi.fn(async ({ mounted }: { mounted: () => boolean }) => {
-      capturedMounted = mounted
+  it('flips isCurrent() to false on unmount so the caller can bail before setState', () => {
+    let capturedIsCurrent: (() => boolean) | null = null
+    const load = vi.fn(async ({ isCurrent }: { isCurrent: () => boolean }) => {
+      capturedIsCurrent = isCurrent
     })
     const { unmount } = renderHook(() =>
       useRealtimeRefetch({
@@ -157,9 +157,9 @@ describe('useRealtimeRefetch', () => {
         id: 'g1',
       }),
     )
-    expect(capturedMounted!()).toBe(true)
+    expect(capturedIsCurrent!()).toBe(true)
     unmount()
-    expect(capturedMounted!()).toBe(false)
+    expect(capturedIsCurrent!()).toBe(false)
   })
 
   it('uses a UUID-suffixed channel name', () => {

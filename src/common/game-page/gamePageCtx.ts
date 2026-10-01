@@ -131,7 +131,7 @@ export type GamePageCtx = {
   // The GLOBAL feedback slot — the header's `<PageHeaderStatusSlot>`, where
   // peer and opponent news shows. A PlayArea calls
   // `globalFeedbackSlot.show(FeedbackMessage.peer(…))`; a producer like
-  // `usePeerFeedback` takes the slot and shows into it. One instance for
+  // `useShowPeerFeedback` takes the slot and shows into it. One instance for
   // the life of the page, so it is safe in a dependency array.
   globalFeedbackSlot: FeedbackSlot
   // The club this game belongs to (`common.games.club_handle`) —

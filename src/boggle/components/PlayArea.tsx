@@ -16,7 +16,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
@@ -431,7 +431,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // suppress; own words go to the in-body local pill. boggle has no pangram, but
   // a long find (7+ letters) is its "wow" moment — flag those. Compete stays
   // silent by design (opponents' words are private; no rank ladder to announce).
-  usePeerFeedback({
+  useShowPeerFeedback({
     enabled: game?.mode === 'coop',
     // Gate the seed on the found_words fetch (separate from the header that sets
     // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.
@@ -623,7 +623,7 @@ export function PlayArea(ctx: GamePageCtx) {
           in-page by the below-board pill + the info-column outcome line. A coop TARGET
           win — the only unambiguous win boggle has — gets the celebration
           instead, once, at the moment the team crosses. */}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal
           title="Target reached! 🎉"
           body={`${myCount} words, ${myScore} points.`}

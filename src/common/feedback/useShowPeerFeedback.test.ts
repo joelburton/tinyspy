@@ -2,7 +2,7 @@
 
 import { describe, it, expect, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { usePeerFeedback } from './usePeerFeedback'
+import { useShowPeerFeedback } from './useShowPeerFeedback'
 import { FeedbackMessage } from './FeedbackMessage'
 import { createFeedbackSlot } from './feedbackSlotStore'
 
@@ -25,7 +25,7 @@ function setup(initial: Props) {
     item === 'self' ? null : FeedbackMessage.note(item)
   const { rerender } = renderHook(
     (p: Props) =>
-      usePeerFeedback({
+      useShowPeerFeedback({
         enabled: p.enabled,
         ready: p.ready,
         items: p.items,
@@ -41,7 +41,7 @@ function setup(initial: Props) {
 const textOf = (shown: ReturnType<typeof setup>['shown'], n: number) =>
   shown.mock.calls[n]![0].text
 
-describe('usePeerFeedback', () => {
+describe('useShowPeerFeedback', () => {
   it('bootstraps silently — an existing backlog at load fires nothing', () => {
     const { shown } = setup({ enabled: true, items: ['a', 'b'] })
     expect(shown).not.toHaveBeenCalled()

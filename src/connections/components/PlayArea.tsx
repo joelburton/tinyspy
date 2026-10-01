@@ -16,7 +16,7 @@ import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
@@ -331,7 +331,7 @@ function PlayArea({
   // `lib/answer.ts` gives its `_peer` twin. My own rows are excluded — my
   // answer is the local slot's. Compete never reaches here: RLS scopes the
   // guess log to the caller, so no foreign rows arrive, and we gate on coop.
-  usePeerFeedback({
+  useShowPeerFeedback({
     enabled: !isCompete,
     items: guesses,
     keyOf: (g) => String(g.id),
@@ -664,7 +664,7 @@ function PlayArea({
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
           in-page by the below-board slot + the info-column outcome line, and MY
           win gets the celebration instead — once, when it happens. */}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal
           title="You win! 🎉"
           body={

@@ -85,7 +85,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     ],
     channelPrefix: 'codenamesduet:board',
     id: gameId,
-    load: async ({ mounted }) => {
+    load: async ({ isCurrent }) => {
       // Seats + key cards are columns on codenamesduet.games (not a separate
       // game_players table). Pull the row, pick the column matching the
       // caller's seat.
@@ -115,7 +115,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
             .order('id'),
         ),
       ])
-      if (!mounted()) return
+      if (!isCurrent()) return
 
       // A read can only fail as a FAULT — `readRows` never authors anything
       // else, and it has already logged it and raised the modal. What is left

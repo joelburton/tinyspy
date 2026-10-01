@@ -39,7 +39,7 @@ function rankOf(tier: string): number {
 }
 
 /** One open panel, as the registry knows it. */
-type Entry = {
+type OpenPanel = {
   // Matches the panel shell's `data-floating-panel` value.
   id: string
   // The tier this panel ranks at for Escape — usually the one it paints at.
@@ -52,14 +52,14 @@ type Entry = {
 
 /** Every panel currently on screen. Module-level on purpose: the whole point is
  *  that Escape is answered ONCE for the app, not once per panel. */
-const open: Entry[] = []
+const open: OpenPanel[] = []
 let seqCounter = 0
 let listening = false
 
 /** The panel Escape belongs to when focus is not inside any of them: the
  *  highest tier, later mount breaking a tie. */
-function topmost(): Entry | undefined {
-  return open.reduce<Entry | undefined>((best, e) => {
+function topmost(): OpenPanel | undefined {
+  return open.reduce<OpenPanel | undefined>((best, e) => {
     if (!best) return e
     const a = rankOf(e.tier)
     const b = rankOf(best.tier)
@@ -70,7 +70,7 @@ function topmost(): Entry | undefined {
 }
 
 /** The panel containing focus, if focus is in one at all. */
-function focused(): Entry | undefined {
+function focused(): OpenPanel | undefined {
   const el = document.activeElement?.closest?.('[data-floating-panel]')
   if (!el) return undefined
   const id = el.getAttribute('data-floating-panel')
@@ -121,7 +121,7 @@ export function usePanelEscape(
   // Help teaches Escape (and its backtick) while a panel that closes on it is up.
   useOfferComponentKeyGroups(['keys-close-panel'], escape === 'close')
   useEffect(() => {
-    const entry: Entry = { id, tier, escape, onClose, seq: seqCounter++ }
+    const entry: OpenPanel = { id, tier, escape, onClose, seq: seqCounter++ }
     open.push(entry)
     if (!listening) {
       window.addEventListener('keydown', onKeyDown)

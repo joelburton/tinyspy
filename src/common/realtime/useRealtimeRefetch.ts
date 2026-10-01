@@ -29,19 +29,19 @@ export type TableSubscription = {
  * status. Must be idempotent — refetch-and-replace, not
  * accumulate-and-append.
  *
- * The `mounted()` getter guards TWO things: the component is still
+ * The `isCurrent()` getter guards TWO things: the component is still
  * mounted, AND this load is still the newest one (no later refetch
  * has started since — see the generation counter in the factory).
- * Standard usage: `await db.from(...)…`, then `if (!mounted()) return`
+ * Standard usage: `await db.from(...)…`, then `if (!isCurrent()) return`
  * before any `setState`. Skipping the check is a bug on both counts —
  * a refetch triggered just before cleanup would land its `setState`
  * after unmount (warn on React 17–18 / stale write into a later mount
  * on React 19), and a slow superseded load would clobber a newer one's
  * row picture ("last to land wins" instead of "latest refetch wins").
  */
-export type RealtimeLoad = (opts: { mounted: () => boolean }) => Promise<void>
+export type RealtimeLoad = (opts: { isCurrent: () => boolean }) => Promise<void>
 
-type Config = {
+type RealtimeRefetchOptions = {
   /** One table or several. Multiple tables fan into the same
    *  `load()` — convenient when a row and its child rows both
    *  need to drive the same refetch. For different per-table handlers, or data the
@@ -67,9 +67,9 @@ type Config = {
  *
  * The shape this factory codifies:
  *
- *   1. **Initial load on mount.** `load({ mounted })` runs once at
+ *   1. **Initial load on mount.** `load({ isCurrent })` runs once at
  *      effect start; the caller's load is responsible for its own
- *      `if (!mounted()) return` after each await before setState.
+ *      `if (!isCurrent()) return` after each await before setState.
  *   2. **Refetch on any Realtime event.** Every postgres-changes
  *      event (INSERT, UPDATE, DELETE) on the subscribed table(s)
  *      reruns `load()`. Refetch over diff because the data
@@ -86,7 +86,7 @@ type Config = {
  *      supabase-js's name-cache + StrictMode double-mount
  *      collision. See `channelDedup.ts` for the rationale.
  *   5. **Cleanup**. `mounted` flag flips false; `removeChannel`
- *      tears down the subscription. The caller's `mounted()`
+ *      tears down the subscription. The caller's `isCurrent()`
  *      reads false thereafter so any in-flight load() bails
  *      before setState.
  *
@@ -124,7 +124,7 @@ export function useRealtimeRefetch({
   load,
   channelPrefix,
   id,
-}: Config): void {
+}: RealtimeRefetchOptions): void {
   // The load callback is almost always a fresh closure on each
   // render (it captures `gameId`, `userId`, etc. from the
   // component scope). Holding it in a ref means we don't have to
@@ -163,9 +163,9 @@ export function useRealtimeRefetch({
     // OVERLAPPING loads (immediate + on-SUBSCRIBED + one per realtime event),
     // and they can resolve out of order — a slow initial load landing after a
     // fast event-triggered load would regress the row picture until the next
-    // write. So each refetch stamps a generation; the `mounted()` a load
+    // write. So each refetch stamps a generation; the `isCurrent()` a load
     // receives returns false once a NEWER refetch has started, so a superseded
-    // load skips its `setState` (callers already gate on `mounted()` before
+    // load skips its `setState` (callers already gate on `isCurrent()` before
     // committing — see RealtimeLoad). "Latest refetch wins," not "last to land."
     let generation = 0
 
@@ -176,12 +176,12 @@ export function useRealtimeRefetch({
     function refetch(cause: 'mount' | 'subscribed' | 'attached' | 'event') {
       const myGen = ++generation
       rtLog(name, `refetch #${myGen} (${cause})`)
-      // `mounted()` now means "still mounted AND still the newest load."
+      // `isCurrent()` means "still mounted AND still the newest load."
       const isCurrent = () => mounted && myGen === generation
       // Fire-and-forget. The caller's load handles its own guard + setState;
       // any rejection surfaces as an unhandled promise warning the caller's
       // load should have caught itself.
-      void loadRef.current({ mounted: isCurrent })
+      void loadRef.current({ isCurrent })
     }
 
     // Initial load before subscription comes up — gets state

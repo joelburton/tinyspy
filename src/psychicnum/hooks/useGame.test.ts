@@ -27,7 +27,7 @@ import type { PsychicnumPlayerStatus } from '../lib/statuses'
 const { mockReadRows, refetch } = vi.hoisted(() => ({
   mockReadRows: vi.fn(),
   // The `load` the hook hands `useRefetchOnGameUpdate`, kept so a test can run it.
-  refetch: { load: null as ((a: { mounted: () => boolean }) => Promise<void>) | null },
+  refetch: { load: null as ((a: { isCurrent: () => boolean }) => Promise<void>) | null },
 }))
 
 // A query builder that remembers which table it was opened on and answers
@@ -40,7 +40,7 @@ vi.mock('../db', () => {
 })
 
 vi.mock('@/common/game-page/useRefetchOnGameUpdate', () => ({
-  useRefetchOnGameUpdate: (opts: { load: (a: { mounted: () => boolean }) => Promise<void> }) => {
+  useRefetchOnGameUpdate: (opts: { load: (a: { isCurrent: () => boolean }) => Promise<void> }) => {
     refetch.load = opts.load
   },
 }))
@@ -131,7 +131,7 @@ const ALL_GOOD = {
 async function load() {
   const { result } = renderHook(() => useGame(CTX))
   await act(async () => {
-    await refetch.load!({ mounted: () => true })
+    await refetch.load!({ isCurrent: () => true })
   })
   return result
 }
@@ -187,7 +187,7 @@ describe('psychicnum useGame — a load that worked', () => {
     } as GamePageCtx
     const { result } = renderHook(() => useGame(withAllThree))
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.gd?.playersById.u1?.foundAllSecrets).toBe(true)
     expect(result.current.gd?.playersById.u2?.foundAllSecrets).toBe(false)
@@ -218,7 +218,7 @@ describe('psychicnum useGame — a load that worked', () => {
     } as GamePageCtx
     const { result } = renderHook(() => useGame(won))
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.gd?.winner?.username).toBe('moth')
     expect(result.current.gd?.turnHolder?.username).toBe('moth')
@@ -233,7 +233,7 @@ describe('psychicnum useGame — a load that worked', () => {
     } as GamePageCtx
     const { result } = renderHook(() => useGame(allThree))
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.gd?.standing.hasSolved).toBe(true)
   })
@@ -290,13 +290,13 @@ describe('psychicnum useGame — the outage that ended', () => {
     answer({ games_state: readFailed('PN301') })
     const { result } = renderHook(() => useGame(CTX))
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.failure).not.toBeNull()
 
     answer(ALL_GOOD)
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.failure).toBeNull()
     expect(result.current.gd?.board.words).toEqual(['apple', 'brick', 'cedar'])
@@ -309,13 +309,13 @@ describe('psychicnum useGame — the outage that ended', () => {
     answer({ games_state: readFailed('PN301') })
     const { result } = renderHook(() => useGame(CTX))
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.failure).not.toBeNull()
 
     answer({ games_state: ok([]) })
     await act(async () => {
-      await refetch.load!({ mounted: () => true })
+      await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.failure).toBeNull()
     expect(result.current.gd).toBeNull()

@@ -20,22 +20,22 @@ import { useCelebration } from './useCelebration'
 describe('useCelebration', () => {
   it('stays closed when the game is already won on mount', () => {
     const { result } = renderHook(() => useCelebration(true))
-    expect(result.current.show).toBe(false)
+    expect(result.current.isOpen).toBe(false)
   })
 
   it('stays closed while the game is in progress', () => {
     const { result } = renderHook(() => useCelebration(false))
-    expect(result.current.show).toBe(false)
+    expect(result.current.isOpen).toBe(false)
   })
 
   it('pops when won flips true mid-session', () => {
     const { result, rerender } = renderHook(({ won }: { won: boolean }) => useCelebration(won), {
       initialProps: { won: false },
     })
-    expect(result.current.show).toBe(false)
+    expect(result.current.isOpen).toBe(false)
 
     rerender({ won: true })
-    expect(result.current.show).toBe(true)
+    expect(result.current.isOpen).toBe(true)
   })
 
   it('stays dismissed after close across later re-renders while still won', () => {
@@ -45,10 +45,10 @@ describe('useCelebration', () => {
 
     rerender({ won: true })
     act(() => result.current.close())
-    expect(result.current.show).toBe(false)
+    expect(result.current.isOpen).toBe(false)
 
     rerender({ won: true })
-    expect(result.current.show).toBe(false)
+    expect(result.current.isOpen).toBe(false)
   })
 
   it('re-arms after won flips back false (restart), celebrating a second win', () => {
@@ -61,10 +61,10 @@ describe('useCelebration', () => {
 
     // Replay-board un-terminals the game…
     rerender({ won: false })
-    expect(result.current.show).toBe(false)
+    expect(result.current.isOpen).toBe(false)
 
     // …and the second solve celebrates again.
     rerender({ won: true })
-    expect(result.current.show).toBe(true)
+    expect(result.current.isOpen).toBe(true)
   })
 })

@@ -9,7 +9,7 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { db } from '../db'
 import { useGame, type FoundWordRow, type SpellingbeeGame } from '../hooks/useGame'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
@@ -259,10 +259,11 @@ function PlayArea(props: PlayAreaProps) {
   // Coop: a teammate's accepted word, arriving as a `foundWords` row in the
   // outcome the finder saw. A refused word never becomes a row, so there is
   // nothing to suppress; my own go to the local slot.
-  usePeerFeedback({
+  useShowPeerFeedback({
     enabled: game.mode === 'coop',
     // The rows load separately from the header, so the seed waits for them
-    // (`usePeerFeedback`'s `ready`); otherwise a rejoin replays the backlog.
+    // (`useShowPeerFeedback`'s `ready`); otherwise a rejoin replays the
+    // backlog.
     ready: rowsLoaded,
     items: foundWords,
     keyOf: (r) => `${r.user_id}:${r.word}`,
@@ -278,7 +279,7 @@ function PlayArea(props: PlayAreaProps) {
   // Compete: RLS hides opponents' words, so the peer event this mode can
   // surface is a rank CLIMB, read off `status.leaderboard`. A delta detector
   // rather than a seen-set, which is why it is hand-rolled instead of going
-  // through `usePeerFeedback`; the first pass seeds each player's last-seen
+  // through `useShowPeerFeedback`; the first pass seeds each player's last-seen
   // rank so history is not replayed. A `peerMilestone`, since a climb is where
   // a player STANDS (docs/ui.md → Feedback pill). My own rank is the RankBar's.
   const prevRankRef = useRef<Map<string, number>>(new Map())
@@ -526,7 +527,7 @@ function PlayArea(props: PlayAreaProps) {
           pill and the action-row line (docs/ui.md → Terminal results). Only a
           game with a target rank can reach it: a coop that set one, or a race,
           which always has one. */}
-      {celebration.show && (
+      {celebration.isOpen && (
         <CelebrationBlockingModal
           title="You win! 🎉"
           body={`Reached "${RANKS[targetRankIdx ?? 6]}"${isCompete ? ' first' : ''} — ${foundWordsScore}/${game.required_words_score} points.`}

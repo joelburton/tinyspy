@@ -750,9 +750,10 @@ describe('wordwheel PlayArea — the board goes inert when I can add nothing', (
 })
 
 describe('wordwheel PlayArea — coop peer narration (global header)', () => {
-  // `usePeerFeedback` seeds the backlog silently on the first loaded render,
-  // then fires a header pill for each NEW peer row. Each test renders once (empty
-  // seed), pushes a peer row into the mocked useGame, and re-renders to fire.
+  // `useShowPeerFeedback` seeds the backlog silently on the first loaded
+  // render, then fires a header pill for each NEW peer row. Each test renders
+  // once (empty seed), pushes a peer row into the mocked useGame, and
+  // re-renders to fire.
 
   /** A peer's accepted found_words row (the coop header reads these). */
   function foundRow(over: Partial<FoundWordRow> = {}): FoundWordRow {

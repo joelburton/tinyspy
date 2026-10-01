@@ -3,11 +3,11 @@
 The feedback pill a game shows under its board or in the page header, and
 everything behind it: the message and its kinds (`FeedbackMessage`), the slot
 that holds the live ones and picks which to draw (`useFeedbackSlot`), the hook
-that narrates a peer's stream into the header (`usePeerFeedback`), the any-key
-dismisser, and the registry a console trigger and a test reach a mounted slot
-through. One shape for every message the app says to a player about their own
-last action, the state they are in, or what someone else just did — and one
-rule for which of them is on screen.
+that narrates a peer's stream into the header (`useShowPeerFeedback`), the
+any-key dismisser, and the registry a console trigger and a test reach a
+mounted slot through. One shape for every message the app says to a player
+about their own last action, the state they are in, or what someone else just
+did — and one rule for which of them is on screen.
 
 ## Intro to area
 
@@ -72,7 +72,7 @@ players strip while it does, so nothing belongs there for the length of a game.
   a message is `feedbackMessage` or `feedbackMsg`; a slot is `localFeedbackSlot`
   or `globalFeedbackSlot`. The noun is always `feedback`, never `result` or
   `flash`, because how a message leaves is its kind's business, not its name's.
-  A producer is named for the stream it reads (`usePeerFeedback`,
+  A producer is named for the stream it reads (`useShowPeerFeedback`,
   `useChatFeedback`) and keeps that name in every game.
   `src/guards/feedbackNames.test.ts` holds the first rule.
 - **The slot dies with its host.** `useFeedbackSlot` makes one per PlayArea or
@@ -91,7 +91,7 @@ players strip while it does, so nothing belongs there for the length of a game.
   hint keeps its × as the only target, since a body that swallowed the tap
   would make the × look decorative.
 - **A peer's stream and a peer's state need different machinery.**
-  `usePeerFeedback` watches an append-only stream and narrates each new row,
+  `useShowPeerFeedback` watches an append-only stream and narrates each new row,
   seeding the backlog silently so a reconnect does not replay it. A signal read
   off a changing number instead — a rank climbing, a `solved` flag flipping —
   is a delta detector, and those stay in the games that need them.

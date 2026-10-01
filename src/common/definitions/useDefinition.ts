@@ -34,7 +34,7 @@ export type DefinitionResult =
   | { result: 'no-definition'; word: string; meta: WordMeta }
   | { result: 'not-a-word'; word: string }
 
-type State = {
+type DefinitionRequestState = {
   result: DefinitionResult | null
   loading: boolean
   error: string | null
@@ -56,7 +56,7 @@ type Loaded = {
  * changes and cancels the in-flight result if it changes again first, so
  * chasing cross-refs quickly never flashes a stale definition.
  */
-export function useDefinition(word: string | null): State {
+export function useDefinition(word: string | null): DefinitionRequestState {
   const [loaded, setLoaded] = useState<Loaded>({
     forWord: null,
     result: null,

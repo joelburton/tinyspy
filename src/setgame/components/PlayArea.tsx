@@ -11,7 +11,7 @@ import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBindAction } from '@/common/actions/useBindAction'
@@ -502,7 +502,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // OFF in turn-by-turn coop, where the narration is redundant: the waiting
   // note renaming itself IS the news that the previous player claimed, and
   // the log and counts both say so.
-  usePeerFeedback({
+  useShowPeerFeedback({
     enabled: game?.mode === 'coop' && !isTurnBased,
     ready: !loading,
     items: claims,

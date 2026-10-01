@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { answerMessage } from '../lib/answer'
 import type { GameData } from './useGame'
 
@@ -32,7 +32,7 @@ export function useShowOppsSolvedMessages(
       .map((p) => p.user_id),
     [gd.playersById],
   )
-  usePeerFeedback({
+  useShowPeerFeedback({
     enabled: gd.isCompete,
     items: solvedIds,
     keyOf: (id) => id,

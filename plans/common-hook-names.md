@@ -36,20 +36,25 @@ Names in C–G are proposals, to be agreed before any is changed.
   story and the e2e that caught it.
 - [x] `board-marks/useChangeCause.ts`: "exactly as before".
 
-## C. Hook and type names that don't say what they are
+## C. Hook and type names that don't say what they are (done)
 
-- [ ] `feedback/usePeerFeedback` shows a message per new peer event; its
+- [x] `feedback/usePeerFeedback` shows a message per new peer event; its
   siblings say so (`useShowEndingFeedback`, `useShowWaitingMessage`):
   `useShowPeerFeedback`.
-- [ ] Types named for a container: `usePanelEscape`'s `Entry` → `OpenPanel`;
+- [x] Types named for a container: `usePanelEscape`'s `Entry` → `OpenPanel`;
   `useClubPresence`'s `ClubPresenceEntry` → `MemberLocation`; `useDefinition`'s
   return type `State` → `DefinitionLookup`; `useMoveAttention`'s
   `MoveAttention` (its options) → `MoveAttentionOptions`; `useRealtimeRefetch`'s
   `Config` → `RealtimeRefetchConfig`.
-- [ ] `useRealtimeRefetch`'s and `useRefetchOnGameUpdate`'s `mounted()` mean
+- [x] `useRealtimeRefetch`'s and `useRefetchOnGameUpdate`'s `mounted()` mean
   "still mounted and still the newest load": `isCurrent()` / `isLatest()`.
-- [ ] `terminal/useCelebration` returns `show`, which reads as a verb; it is a
+- [x] `terminal/useCelebration` returns `show`, which reads as a verb; it is a
   yes/no: `isShown`.
+
+  As done: `useShowPeerFeedback`; `OpenPanel`; `MemberGameOrClub`;
+  `DefinitionRequestState`; `MoveAttentionOptions`; `RealtimeRefetchOptions`
+  (a hook's argument type is `<Hook>Options`); the getter is `isCurrent()`;
+  `useCelebration` returns `isOpen`, the word the app uses for a dialog.
 
 ## D. Vague names inside hooks
 
