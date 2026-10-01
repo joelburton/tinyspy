@@ -45,28 +45,28 @@ export function useBoardSelectionCursor({
   enabled,
   onToggle,
 }: BoardSelectionCursorOptions): BoardSelectionCursor {
-  const selection = useSelectionCursor<Cell>({ x: 0, y: 0 })
+  const selectionCursor = useSelectionCursor<Cell>({ x: 0, y: 0 })
   // Clamped here rather than at the move, because the board can shrink under
   // the cursor. Null only on a board with no cells.
-  const at = clampCell(selection.at, shape)
+  const at = clampCell(selectionCursor.at, shape)
   const state = () => (enabled ? 'active' : 'disabled')
 
   useBindAction('act-move-cursor', {
     describe: state,
     run: (key) => {
-      if (at !== null) selection.step(stepCell(at, key as ArrowKey, shape))
+      if (at !== null) selectionCursor.step(stepCell(at, key as ArrowKey, shape))
     },
   })
 
   useBindAction('act-toggle-tile', {
     describe: state,
     run: () => {
-      if (selection.revealed && at !== null) onToggle(at)
+      if (selectionCursor.revealed && at !== null) onToggle(at)
     },
   })
 
   return {
-    cursor: enabled && selection.revealed ? at : null,
-    setCursorTo: selection.setCursorTo,
+    cursor: enabled && selectionCursor.revealed ? at : null,
+    setCursorTo: selectionCursor.setCursorTo,
   }
 }

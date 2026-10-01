@@ -52,7 +52,7 @@ export function useTypedGuess({
   }
 
   const { actDeleteLast, actSubmit } = useCaptureKeys({
-    value: typedWord,
+    pendingText: typedWord,
     onChange: setTypedWord,
     onSubmit: submitTypedWord,
     charFor: asciiLetters('lower'),

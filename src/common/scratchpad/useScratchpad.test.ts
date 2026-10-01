@@ -131,7 +131,7 @@ describe('useScratchpad — holder guard', () => {
     // Typing claims the shared lock and echoes my text optimistically.
     act(() => result.current.setBody('hello'))
     expect(result.current.body).toBe('hello')
-    expect(result.current.editingBy).toBeNull() // I'm the holder, not a foreigner
+    expect(result.current.editingBy).toBeNull() // I'm the holder, not someone else
 
     // A body write outruns my flush (my own echo, or a racing non-holder).
     // Because I hold the lock, it must NOT clobber my in-flight text.

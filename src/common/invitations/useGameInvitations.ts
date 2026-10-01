@@ -65,7 +65,7 @@ export function useGameInvitations(authSession: Session): {
   // ended, not mine, and not already seen — resolve their display
   // name + inviter, mark them seen, and append. Stable across renders
   // (depends only on selfId) so the subscription effect doesn't churn.
-  const load = useCallback(async () => {
+  const scanForInvites = useCallback(async () => {
     // One inner-join embed, not two queries: `!inner` pushes the
     // `ended_at is null` filter into this same query, so the row set is my
     // *active* games — a handful. That matters because the result is unordered
@@ -121,18 +121,18 @@ export function useGameInvitations(authSession: Session): {
       profsRes.type === 'ok' ? profsRes.data.map((p) => [p.user_id, p.username]) : [],
     )
 
-    const built: GameInvite[] = fresh.map(({ candidate: c, gameName }) => ({
+    const newInvites: GameInvite[] = fresh.map(({ candidate: c, gameName }) => ({
       gameId: c.id,
       gametype: c.gametype,
       gameName,
       clubHandle: c.club_handle,
       inviterName: nameById.get(c.created_by) ?? 'Someone',
     }))
-    for (const inv of built) markInviteSeen(inv.gameId)
+    for (const inv of newInvites) markInviteSeen(inv.gameId)
     setPending((prev) => {
-      const have = new Set(prev.map((i) => i.gameId))
-      const add = built.filter((i) => !have.has(i.gameId))
-      return add.length ? [...prev, ...add] : prev
+      const pendingIds = new Set(prev.map((i) => i.gameId))
+      const unseenInvites = newInvites.filter((i) => !pendingIds.has(i.gameId))
+      return unseenInvites.length ? [...prev, ...unseenInvites] : prev
     })
   }, [selfId])
 
@@ -148,20 +148,20 @@ export function useGameInvitations(authSession: Session): {
           table: 'game_players',
           filter: `user_id=eq.${selfId}`,
         },
-        () => void load(),
+        () => void scanForInvites(),
       )
       // Deaf-window closer: rescan once the postgres_changes attach is
       // confirmed — an invite INSERT committed between SUBSCRIBED (the join
       // ack) and the attach is dropped. See postgresAttached.ts.
-      onPostgresAttached(ch, () => void load())
+      onPostgresAttached(ch, () => void scanForInvites())
       ch.subscribe((status) => {
-        if (status === 'SUBSCRIBED') void load()
+        if (status === 'SUBSCRIBED') void scanForInvites()
       })
       return () => {
         supabase.removeChannel(ch)
       }
     },
-    [selfId, load],
+    [selfId, scanForInvites],
   )
 
   // Entering the invited game by ANY route is a real dismissal — the

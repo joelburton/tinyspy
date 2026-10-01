@@ -113,7 +113,7 @@ export function WordEntryArea({
   // hook rather than being applied here, so the key and the button read the one
   // answer instead of each working it out.
   const { actDeleteLast, actSubmit } = useCaptureKeys({
-    value, onChange, onSubmit, disabled, busy, submitDisabled, onAnyKey, charFor,
+    pendingText: value, onChange, onSubmit, disabled, busy, submitDisabled, onAnyKey, charFor,
   })
   useArrowHistory({ recall, onChange, disabled, busy, hasHistory })
   const top = useTopFeedbackMessage(localFeedbackSlot)

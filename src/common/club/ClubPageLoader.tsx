@@ -59,7 +59,7 @@ export function ClubPageLoader({ handle, authSession }: Props) {
   // press. Read ONCE, like `useSetupDialog` reads it: a navigation intent, not
   // live state. Checked below, after the club answers — see there for why it
   // cannot be checked here.
-  const [requestedGametype] = useState(
+  const [gametype] = useState(
     () => new URLSearchParams(window.location.search).get('new'),
   )
 
@@ -119,20 +119,20 @@ export function ClubPageLoader({ handle, authSession }: Props) {
   // Either way the route ends here. The dialog is the only thing the URL asked
   // for, and opening nothing would leave the player to guess which half of what
   // they typed was wrong.
-  if (requestedGametype) {
-    const manifest = manifestFor(requestedGametype)
-    const enrolled = data.gametypes.some((g) => g.gametype === requestedGametype)
+  if (gametype) {
+    const manifest = manifestFor(gametype)
+    const enrolled = data.gametypes.some((g) => g.gametype === gametype)
     if (!manifest)
       return (
         <ErrorPage
           message={
             <>
-              There's no game type called <code>{requestedGametype}</code>. The
+              There's no game type called <code>{gametype}</code>. The
               link is wrong, or the game was removed from the app.
             </>
           }
           diagnostics={diagnosticsLine('FAULT', {
-            call: `GET /c/${handle}?new=${requestedGametype}`,
+            call: `GET /c/${handle}?new=${gametype}`,
             severity: 'fault',
             detail: 'no manifest registered for this gametype',
           })}
@@ -148,7 +148,7 @@ export function ClubPageLoader({ handle, authSession }: Props) {
             </>
           }
           diagnostics={diagnosticsLine('FAULT', {
-            call: `GET /c/${handle}?new=${requestedGametype}`,
+            call: `GET /c/${handle}?new=${gametype}`,
             severity: 'fault',
             detail: 'gametype is not in this club’s enrolled set',
           })}

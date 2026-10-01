@@ -38,6 +38,21 @@ type ConcedeResult = { result: 'conceded' }
 /** `replay_board` has ONE ok: the board was dealt again. */
 type ReplayResult = { result: 'replayed' }
 
+type StandardGameActionsOptions = {
+  db: GameRpcClient
+  gameId: string
+  isTerminal: boolean
+  // Which exit this game's mode offers: coop stops, a race concedes.
+  mode: 'coop' | 'compete'
+  // I'm out of the race — conceded, lost (out of budget, eliminated), or
+  // finished while the others play on. Never true in coop. The page's own
+  // value (`GamePageCtx`).
+  isLocallyTerminal: boolean
+
+  // The game's below-board slot, where a not-ok answer is shown.
+  localFeedbackSlot: FeedbackSlot
+}
+
 /**
  * Stop, Concede and Restart, bound for this game — the actions whose only
  * per-game part is which `db` they call and where a failure is shown.
@@ -75,20 +90,7 @@ export function useStandardGameActions({
   mode,
   isLocallyTerminal,
   localFeedbackSlot,
-}: {
-  db: GameRpcClient
-  gameId: string
-  isTerminal: boolean
-  // Which exit this game's mode offers: coop stops, a race concedes.
-  mode: 'coop' | 'compete'
-  // I'm out of the race — conceded, lost (out of budget, eliminated), or
-  // finished while the others play on. Never true in coop. The page's own
-  // value (`GamePageCtx`).
-  isLocallyTerminal: boolean
-
-  // The game's below-board slot, where a not-ok answer is shown.
-  localFeedbackSlot: FeedbackSlot
-}): StandardGameActions {
+}: StandardGameActionsOptions): StandardGameActions {
   // Stop the whole table. The body of coop's Stop, and of a race's Concede's
   // second answer, so the two say the identical thing to the server and read
   // the identical answer back.

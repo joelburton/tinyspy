@@ -83,15 +83,15 @@ export function useClubChat(clubHandle: string) {
 
     let mounted = true
 
-    // Compute the recency cutoff ONCE per subscription, not per refetch:
-    // every load() in this session shares this stable window. Recomputing it
-    // inside load() would make day-old messages visibly evaporate as the
-    // session aged past a boundary and a SUBSCRIBED refetch fired.
+    // Compute the recency cutoff ONCE per subscription, not per refetch: every
+    // loadMessages() in this session shares this stable window. Recomputing it
+    // inside loadMessages() would make day-old messages visibly evaporate as
+    // the session aged past a boundary and a SUBSCRIBED refetch fired.
     const cutoff = new Date(
       Date.now() - CHAT_HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000,
     ).toISOString()
 
-    async function load() {
+    async function loadMessages() {
       const res = await readRows(
         commonDb
           .from('messages')
@@ -115,7 +115,7 @@ export function useClubChat(clubHandle: string) {
       setLoading(false)
     }
 
-    load()
+    loadMessages()
 
     const channel = supabase
       .channel(`club-chat:${clubHandle}:${channelDedupSuffix()}`)
@@ -128,11 +128,11 @@ export function useClubChat(clubHandle: string) {
           filter: `club_handle=eq.${clubHandle}`,
         },
         (payload) => {
-          const row = payload.new as ClubMessage
+          const message = payload.new as ClubMessage
           // Append the live message — but guard against a duplicate if a refetch
           // already picked it up (the INSERT and a SUBSCRIBED load can overlap).
           setMessages((prev) =>
-            prev.some((m) => m.id === row.id) ? prev : [...prev, row],
+            prev.some((m) => m.id === message.id) ? prev : [...prev, message],
           )
         },
       )
@@ -140,9 +140,9 @@ export function useClubChat(clubHandle: string) {
     // confirmed — an INSERT committed between SUBSCRIBED (the join ack) and
     // the attach is dropped, and mergeSnapshot makes the extra load safe.
     // See postgresAttached.ts.
-    onPostgresAttached(channel, () => load())
+    onPostgresAttached(channel, () => loadMessages())
     channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') load()
+      if (status === 'SUBSCRIBED') loadMessages()
     })
 
     return () => {

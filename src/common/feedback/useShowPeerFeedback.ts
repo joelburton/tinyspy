@@ -4,6 +4,19 @@ import { useEffect, useRef } from 'react'
 import type { FeedbackMessage } from './FeedbackMessage'
 import type { FeedbackSlot } from './feedbackSlotStore'
 
+type ShowPeerFeedbackOptions<T> = {
+  enabled: boolean
+  // Whether `items` holds the real backlog yet. Defaults true (single-fetch
+  // callers). Two-fetch hooks pass their "rows loaded once" flag so the seed
+  // doesn't run against an empty pre-rows `items` and then replay the backlog.
+  ready?: boolean
+  items: readonly T[]
+  keyOf: (item: T) => string
+  // The message to show for a new peer event, or `null` to skip it.
+  messageFor: (item: T) => FeedbackMessage | null
+  globalFeedbackSlot: FeedbackSlot
+}
+
 /**
  * Narrate a peer's events into the global slot: watch an append-only stream
  * (a teammate's accepted word, an opponent's solve) and show a message for
@@ -33,18 +46,7 @@ export function useShowPeerFeedback<T>({
   keyOf,
   messageFor,
   globalFeedbackSlot,
-}: {
-  enabled: boolean
-  // Whether `items` holds the real backlog yet. Defaults true (single-fetch
-  // callers). Two-fetch hooks pass their "rows loaded once" flag so the seed
-  // doesn't run against an empty pre-rows `items` and then replay the backlog.
-  ready?: boolean
-  items: readonly T[]
-  keyOf: (item: T) => string
-  // The message to show for a new peer event, or `null` to skip it.
-  messageFor: (item: T) => FeedbackMessage | null
-  globalFeedbackSlot: FeedbackSlot
-}): void {
+}: ShowPeerFeedbackOptions<T>): void {
   // `seen` keys every event already accounted for; `null` means "not yet
   // bootstrapped" (distinct from an empty-but-seeded set).
   const seenRef = useRef<Set<string> | null>(null)

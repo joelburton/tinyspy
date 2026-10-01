@@ -9,6 +9,12 @@ import { useEffect, useRef } from 'react'
  */
 export type GameLoad = (opts: { isCurrent: () => boolean }) => Promise<void>
 
+type RefetchOnGameUpdateOptions = {
+  commonGameUpdatedAt: string
+  resubscribeCount: number
+  load: GameLoad
+}
+
 /**
  * Keep a game's own tables fresh off the page's `common.games` row. Reach for
  * it from a game's `useGame`: it runs `load` on mount, and again whenever
@@ -31,11 +37,7 @@ export function useRefetchOnGameUpdate({
   commonGameUpdatedAt,
   resubscribeCount,
   load,
-}: {
-  commonGameUpdatedAt: string
-  resubscribeCount: number
-  load: GameLoad
-}): void {
+}: RefetchOnGameUpdateOptions): void {
   // The latest `load`, so the effect below can leave it out of its
   // dependencies and still run the freshest closure. Kept in step after each
   // commit, not during render: a ref is not a render output.

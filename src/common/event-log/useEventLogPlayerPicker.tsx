@@ -27,6 +27,23 @@ export type EventLogPlayerPicker<R extends ActorRow> = {
   emptyText: string
 }
 
+type EventLogPlayerPickerOptions = {
+  players: Member[]
+  selfId: string
+  mode: 'coop' | 'compete'
+  // Distinguishes an RLS-hidden opponent log from a genuinely empty one.
+  isTerminal: boolean
+  // True when compete is still ONE shared game — a race on a single public board
+  // (scrabble's turn-based race, setgame's contended board), so `All` is literally
+  // what you're looking at and the dropdown defaults there; the per-player entries
+  // are the extra ("just my own plays").
+  competeSharesOneGame?: boolean
+  // Override for a game whose rows aren't "turns" (wordle says "guesses").
+  label?: string
+  // The empty line when nothing is HIDDEN — the honest-hidden case overrides it.
+  emptyLabel?: string
+}
+
 /**
  * The "whose turns am I looking at?" dropdown for a `<EventLog>`, plus the filtering
  * and the honesty rules that travel with it. One vocabulary, every event-log game:
@@ -54,22 +71,7 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
   competeSharesOneGame = false,
   label = 'Whose turns to show',
   emptyLabel = 'Nothing yet.',
-}: {
-  players: Member[]
-  selfId: string
-  mode: 'coop' | 'compete'
-  // Distinguishes an RLS-hidden opponent log from a genuinely empty one.
-  isTerminal: boolean
-  // True when compete is still ONE shared game — a race on a single public board
-  // (scrabble's turn-based race, setgame's contended board), so `All` is literally
-  // what you're looking at and the dropdown defaults there; the per-player entries
-  // are the extra ("just my own plays").
-  competeSharesOneGame?: boolean
-  // Override for a game whose rows aren't "turns" (wordle says "guesses").
-  label?: string
-  // The empty line when nothing is HIDDEN — the honest-hidden case overrides it.
-  emptyLabel?: string
-}): EventLogPlayerPicker<R> {
+}: EventLogPlayerPickerOptions): EventLogPlayerPicker<R> {
   const ordered = orderSelfFirst(players, selfId)
 
   // A solo game has nobody to pick between: one player, one option, no

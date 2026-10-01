@@ -7,6 +7,20 @@ import { channelLeaving, releaseChannel } from './channelTeardown'
 import { MODE_LABEL } from '../manifest/gameManifest'
 import { showToast, dismissToast } from '../toasts/toastStore'
 
+type ClubSetupPresenceOptions = {
+  clubHandle: string | null
+  selfId: string
+  /**
+   * What I'm setting up right now (with my display name for the announcement),
+   * or `null` when I'm not — which is **receive-only**: subscribe + toast peers,
+   * announce nothing. ClubPage passes the live value (driven by `activeSetup`);
+   * GamePage passes `null` so players IN a game (paused or active) still see a
+   * peer's "setting up" toast. The two pages are never mounted at once, so a
+   * single client never double-subscribes `club-setup:<handle>`.
+   */
+  mySetup: { brand: string; mode: 'coop' | 'compete'; username: string } | null
+}
+
 /**
  * "Someone's already setting up a game" heads-up. Two club members who don't
  * realize who's starting the next game would both open the setup dialog and
@@ -26,9 +40,9 @@ import { showToast, dismissToast } from '../toasts/toastStore'
  *     replay).
  *
  * ClubPage owns the ONE channel (`club-setup:<handle>`) so a single client never
- * double-subscribes the same name: it TRACKS its own setup (from `announce`,
+ * double-subscribes the same name: it TRACKS its own setup (from `mySetup`,
  * derived from `activeSetup`) and RECEIVES peers' via presence sync. When the
- * setter cancels/starts, the dialog unmounts → `announce` goes null → untrack →
+ * setter cancels/starts, the dialog unmounts → `mySetup` goes null → untrack →
  * peers' toasts clear. If they started a game, the separate INVITE toast then
  * arrives through its own DB-backed path (`useGameInvitations`).
  *
@@ -38,29 +52,17 @@ import { showToast, dismissToast } from '../toasts/toastStore'
 export function useClubSetupPresence({
   clubHandle,
   selfId,
-  announce,
-}: {
-  clubHandle: string | null
-  selfId: string
-  /**
-   * What I'm setting up right now (with my display name for the announcement),
-   * or `null` when I'm not — which is **receive-only**: subscribe + toast peers,
-   * announce nothing. ClubPage passes the live value (driven by `activeSetup`);
-   * GamePage passes `null` so players IN a game (paused or active) still see a
-   * peer's "setting up" toast. The two pages are never mounted at once, so a
-   * single client never double-subscribes `club-setup:<handle>`.
-   */
-  announce: { brand: string; mode: 'coop' | 'compete'; username: string } | null
-}): void {
+  mySetup,
+}: ClubSetupPresenceOptions): void {
   const channelRef = useRef<RealtimeChannel | null>(null)
   const subscribedRef = useRef(false)
   // The setup-toast ids we currently own, so we can drop the ones whose setter
   // has left on the next sync (mirrors the game-invite reconcile).
   const shownRef = useRef<Set<string>>(new Set())
-  // Latest announce for the async SUBSCRIBED callback (fires after mount).
-  const announceRef = useRef(announce)
+  // Latest `mySetup` for the async SUBSCRIBED callback (fires after mount).
+  const mySetupRef = useRef(mySetup)
   useEffect(() => {
-    announceRef.current = announce
+    mySetupRef.current = mySetup
   })
 
   // Subscribe once per club: peers' setup presence → toasts.
@@ -77,25 +79,25 @@ export function useClubSetupPresence({
         config: { presence: { key: selfId } },
       })
       ch.on('presence', { event: 'sync' }, () => {
-        const state = ch.presenceState() as Record<
+        const presence = ch.presenceState() as Record<
           string,
           Array<{ user_id?: string; username?: string; brand?: string; mode?: 'coop' | 'compete' }>
         >
         const present = new Set<string>()
-        for (const list of Object.values(state)) {
-          for (const e of list) {
-            if (!e.user_id || e.user_id === selfId) continue // never toast my own setup
-            const id = `setup:${e.user_id}`
+        for (const tabs of Object.values(presence)) {
+          for (const tab of tabs) {
+            if (!tab.user_id || tab.user_id === selfId) continue // never toast my own setup
+            const id = `setup:${tab.user_id}`
             present.add(id)
-            const modeLabel = e.mode ? ` ${MODE_LABEL[e.mode]}` : ''
+            const modeLabel = tab.mode ? ` ${MODE_LABEL[tab.mode]}` : ''
             showToast({
               id,
               tone: 'info',
               dismissible: false, // a live status — it clears itself when they finish
               message: (
                 <>
-                  <strong>{e.username ?? 'Someone'}</strong> is setting up a new{' '}
-                  <strong>{e.brand ?? 'game'}</strong>
+                  <strong>{tab.username ?? 'Someone'}</strong> is setting up a new{' '}
+                  <strong>{tab.brand ?? 'game'}</strong>
                   {modeLabel} game…
                 </>
               ),
@@ -110,8 +112,8 @@ export function useClubSetupPresence({
           subscribedRef.current = true
           // Apply whatever setup state already exists (dialog may have opened
           // before the channel finished subscribing).
-          const a = announceRef.current
-          if (a) void ch.track({ user_id: selfId, username: a.username, brand: a.brand, mode: a.mode })
+          const mySetup = mySetupRef.current
+          if (mySetup) void ch.track({ user_id: selfId, username: mySetup.username, brand: mySetup.brand, mode: mySetup.mode })
         }
       })
       channelRef.current = ch
@@ -137,11 +139,11 @@ export function useClubSetupPresence({
 
   // Announce (or stop announcing) MY setup as the dialog opens/closes. Primitive
   // deps (not the recreated-each-render object) so this only fires on real change.
-  // Receive-only callers pass `announce: null`, so `brand`/`mode` stay null and
+  // Receive-only callers pass `mySetup: null`, so `brand`/`mode` stay null and
   // this only ever untracks (a no-op) — they never announce.
-  const brand = announce?.brand ?? null
-  const mode = announce?.mode ?? null
-  const username = announce?.username ?? null
+  const brand = mySetup?.brand ?? null
+  const mode = mySetup?.mode ?? null
+  const username = mySetup?.username ?? null
   useEffect(function announceMySetup() {
     const ch = channelRef.current
     if (!ch || !subscribedRef.current) return // the SUBSCRIBED callback handles the initial track

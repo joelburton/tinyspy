@@ -25,12 +25,12 @@ export type CaptureKeysActions = {
 }
 
 export type CaptureKeysOptions = {
-  // The current pending text. The helper computes the next value from it
-  // (append / delete), so it must be the live value each render.
-  value: string
+  // The text typed so far. The helper computes the next text from it
+  // (append / delete), so it must be the live text each render.
+  pendingText: string
   // Set the pending text — called for an appended character and for Backspace.
   onChange: (next: string) => void
-  // Submit the current value (Enter, when non-empty).
+  // Submit the pending text (Enter, when non-empty).
   onSubmit: () => void
   // Hard-off. When true the entry is not here at all — no typing, no submit,
   // and in particular NO feedback dismissal, so a terminal sticky pill isn't
@@ -39,7 +39,7 @@ export type CaptureKeysOptions = {
   // Soft-busy. When true, a key still dismisses feedback, but no character is
   // appended/deleted and Enter doesn't submit —
   // for the brief in-flight-submit window, so a second keystroke can't append
-  // to (or re-submit) a value that's mid-RPC. Default false.
+  // to (or re-submit) text that's mid-RPC. Default false.
   busy?: boolean
   // Dismiss sticky local feedback. Called on ANY key the game sees — the
   // player's next keystroke is their next move (docs/ui.md → Feedback pill).
@@ -53,10 +53,10 @@ export type CaptureKeysOptions = {
   // Max entry length. Default 16 — no real word is longer, and it keeps the
   // typed text from overrunning its box.
   maxLength?: number
-  // The current value can't be submitted, but editing stays live: Enter is a
+  // The pending text can't be submitted, but editing stays live: Enter is a
   // no-op and the Submit button is gray, while typing and Backspace keep
   // working so the player can fix it. Distinct from `disabled` / `busy`, which
-  // freeze the whole entry — this is a per-value veto (wordwheel's word that
+  // freeze the whole entry — this is a veto on the text itself (wordwheel's word that
   // can't be spelled from the wheel's tiles).
   submitDisabled?: boolean
 }
@@ -75,7 +75,7 @@ export type CaptureKeysOptions = {
  *
  * What it owns is the universal plumbing — the bits that are the same for
  * *every* such game, so they stay identical and can't drift: the length cap, Backspace deleting the last character, Enter
- * submitting only a non-empty value, and the two gates (`disabled` for a done
+ * submitting only non-empty text, and the two gates (`disabled` for a done
  * entry, `busy` for one mid-submit).
  *
  * What stays per-game is *what may be entered* (`charFor` — letters vs digits,
@@ -88,7 +88,7 @@ export type CaptureKeysOptions = {
  * this core or with it; `<WordEntryArea>` composes the two.
  */
 export function useCaptureKeys({
-  value,
+  pendingText,
   onChange,
   onSubmit,
   disabled = false,
@@ -109,21 +109,21 @@ export function useCaptureKeys({
     describe: () => editState,
     run: (key) => {
       const ch = key === undefined ? null : charFor(key)
-      if (ch === null || value.length >= maxLength) return
-      onChange(value + ch)
+      if (ch === null || pendingText.length >= maxLength) return
+      onChange(pendingText + ch)
     },
   })
 
   // Nothing to take back on an empty entry.
   const actDeleteLast = useBindAction('act-delete-last', {
-    describe: () => (value === '' && editState === 'active' ? 'disabled' : editState),
+    describe: () => (pendingText === '' && editState === 'active' ? 'disabled' : editState),
     run: () => {
       // A press of the button is a move too, so it dismisses the last verdict
       // the way a keystroke does — the any-key `act-dismiss-feedback` below
       // covers the KEY, and this covers the click. Clearing twice on a keypress
       // costs nothing.
       onAnyKey?.()
-      onChange(value.slice(0, -1))
+      onChange(pendingText.slice(0, -1))
     },
   })
 
@@ -131,7 +131,7 @@ export function useCaptureKeys({
   // error for a word nobody typed.
   const actSubmit = useBindAction('act-submit', {
     describe: () =>
-      (value === '' || submitDisabled) && editState === 'active' ? 'disabled' : editState,
+      (pendingText === '' || submitDisabled) && editState === 'active' ? 'disabled' : editState,
     run: onSubmit,
   })
 

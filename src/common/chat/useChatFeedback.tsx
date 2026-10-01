@@ -13,6 +13,15 @@ import type { Member } from '../members/member'
  *  truncated rather than allowed to grow the slot. */
 const MAX_PILL_CHARS = 80
 
+type ChatFeedbackOptions = {
+  // The club's chat log and its load flag, as `useClubChat` returns them.
+  messages: ClubMessage[]
+  loading: boolean
+  members: Member[]
+  selfId: string
+  globalFeedbackSlot: FeedbackSlot
+}
+
 /**
  * Bridges club chat to the GLOBAL feedback slot: every NEW message from
  * another member shows as "● HANDLE: text" (the `chat` kind). Takes the stream
@@ -31,14 +40,7 @@ export function useChatFeedback({
   members,
   selfId,
   globalFeedbackSlot,
-}: {
-  // The club's chat log and its load flag, as `useClubChat` returns them.
-  messages: ClubMessage[]
-  loading: boolean
-  members: Member[]
-  selfId: string
-  globalFeedbackSlot: FeedbackSlot
-}): void {
+}: ChatFeedbackOptions): void {
   useShowPeerFeedback({
     // Gate until the history has loaded so the seed captures the real backlog
     // (not an empty set that would replay everything on arrival).

@@ -117,7 +117,7 @@ describe('useSetupDialog', () => {
     act(() => result.current.close())
 
     expect(result.current.manifest).toBeNull()
-    // The value is read once at mount, so only `requestConsumed` stands between
+    // The value is read once at mount, so only `hasBeenClosed` stands between
     // a re-render and the dialog opening again.
     rerender()
     expect(result.current.manifest).toBeNull()

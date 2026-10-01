@@ -28,27 +28,28 @@ export function useSetupDialog(startListRef: RefObject<HTMLDivElement | null>) {
   const [pressed, setPressed] = useState<GameManifest | null>(null)
 
   // Read ONCE at mount: the value is a navigation intent, not live state.
-  const [requestedGametype] = useState(
+  const [gametype] = useState(
     () => new URLSearchParams(window.location.search).get('new'),
   )
-  // Set once the intent has been acted on, so the derived value below stops
-  // re-opening the dialog.
-  const [requestConsumed, setRequestConsumed] = useState(false)
+  // Set by the first close. `gametype` outlives the URL it came from, so without
+  // this the derived value below would re-open the dialog the moment it closed.
+  const [hasBeenClosed, setHasBeenClosed] = useState(false)
 
-  // What `?new=` asked for. `ClubPageLoader` has already ended the route in an
-  // error page if the value named no game OR named one this club does not play,
-  // so by the time this hook runs the intent is startable or absent.
-  const requested = requestedGametype ? (manifestFor(requestedGametype) ?? null) : null
+  // The manifest for the link's `?new=` gametype. `ClubPageLoader` has already
+  // ended the route in an error page if the value named no game OR named one
+  // this club does not play, so by the time this hook runs it is startable or
+  // absent.
+  const linkManifest = gametype ? (manifestFor(gametype) ?? null) : null
 
-  // A press wins; otherwise the `?new=` intent until it is consumed. DERIVED at
+  // A press wins; otherwise the link's manifest until the first close. DERIVED at
   // render rather than pushed into state by an effect (the repo bans
   // setState-in-effect); both setters run in the dialog's own handlers.
-  const manifest = pressed ?? (requestConsumed ? null : requested)
+  const manifest = pressed ?? (hasBeenClosed ? null : linkManifest)
 
   // Open it on a gametype, from a start row's press.
   const open = useCallback((gametype: string) => {
-    const game = manifestFor(gametype)
-    if (!game) {
+    const manifest = manifestFor(gametype)
+    if (!manifest) {
       // Unreachable: the start list calls this with the gametype off a manifest
       // it is already holding (`onActivate={(g) => …(g.gametype)}`). It screams
       // rather than returning quietly, because quiet here is a press that does
@@ -59,7 +60,7 @@ export function useSetupDialog(startListRef: RefObject<HTMLDivElement | null>) {
       })
       return
     }
-    setPressed(game)
+    setPressed(manifest)
   }, [])
 
   // Close it, whichever way it was opened, and drop `?new=` from the URL so a
@@ -68,7 +69,7 @@ export function useSetupDialog(startListRef: RefObject<HTMLDivElement | null>) {
   // cursor comes back exactly where it was.
   const close = useCallback(() => {
     setPressed(null)
-    setRequestConsumed(true)
+    setHasBeenClosed(true)
     if (window.location.search) navigate(window.location.pathname, true)
     startListRef.current?.focus({ preventScroll: true })
   }, [startListRef])

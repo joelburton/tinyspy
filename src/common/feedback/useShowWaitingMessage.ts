@@ -5,6 +5,15 @@ import type { Actor } from '../members/member'
 import type { FeedbackSlot } from './feedbackSlotStore'
 import { FeedbackMessage } from './FeedbackMessage'
 
+type ShowWaitingMessageOptions = {
+  slot: FeedbackSlot
+  // The move is someone else's — the page's `isWaitingForTurn`, or a game's
+  // narrowing of it.
+  isWaiting: boolean
+  // The player the turn pointer names; nothing when it names nobody I know.
+  holder: Actor | null | undefined
+}
+
 /**
  * Show "Waiting for <holder>" in a game's local slot while the move is someone
  * else's, and retract it the moment it isn't — the turn arriving, the game
@@ -21,14 +30,7 @@ export function useShowWaitingMessage({
   slot,
   isWaiting,
   holder,
-}: {
-  slot: FeedbackSlot
-  // The move is someone else's — the page's `isWaitingForTurn`, or a game's
-  // narrowing of it.
-  isWaiting: boolean
-  // The player the turn pointer names; nothing when it names nobody I know.
-  holder: Actor | null | undefined
-}): void {
+}: ShowWaitingMessageOptions): void {
   const username = holder?.username
   const color = holder?.color
   useEffect(function showWaiting() {

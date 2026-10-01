@@ -121,11 +121,11 @@ export function SelectionList<T>({
   // asks (common/lists/doc.md → Two kinds of cursor; see `useSelectionCursor`).
   // Enter and Space never reveal, so no impatient second press can commit
   // something the first press appeared to ignore.
-  const selection = useSelectionCursor(0)
+  const selectionCursor = useSelectionCursor(0)
   // Clamped here rather than at the move, because the list shrinks under the
   // cursor.
-  const cursor = items.length === 0 ? -1 : Math.min(selection.at, items.length - 1)
-  const showCursor = focused && selection.revealed && cursor >= 0
+  const cursor = items.length === 0 ? -1 : Math.min(selectionCursor.at, items.length - 1)
+  const showCursor = focused && selectionCursor.revealed && cursor >= 0
 
   // Clamped to the ends — deliberately no wrap-around.
   const clamp = (next: number) => Math.max(0, Math.min(items.length - 1, next))
@@ -159,13 +159,13 @@ export function SelectionList<T>({
     // it out from under the cursor.
     if (pressed('keys-list-move', e)) {
       e.preventDefault()
-      selection.step(clamp(cursor + (e.key === 'ArrowDown' ? 1 : -1)))
+      selectionCursor.step(clamp(cursor + (e.key === 'ArrowDown' ? 1 : -1)))
     } else if (pressed('keys-list-ends', e)) {
       e.preventDefault()
-      selection.jump(e.key === 'Home' ? 0 : items.length - 1)
+      selectionCursor.jump(e.key === 'Home' ? 0 : items.length - 1)
     } else if (pressed('keys-list-page', e)) {
       e.preventDefault()
-      selection.step(clamp(cursor + (e.key === 'PageDown' ? pageSize() : -pageSize())))
+      selectionCursor.step(clamp(cursor + (e.key === 'PageDown' ? pageSize() : -pageSize())))
     } else if (pressed('keys-list-open', e)) {
       e.preventDefault()
       // INERT while the cursor is hidden, and it does not reveal either.
@@ -173,7 +173,7 @@ export function SelectionList<T>({
       // did not choose, and revealing here would make a doubled press — the
       // natural response to a key that seemed to do nothing — commit.
       // An arrow is the way in.
-      if (selection.revealed) activate(cursor)
+      if (selectionCursor.revealed) activate(cursor)
     } else if (pressed('keys-list-space', e)) {
       // Trapped so it cannot scroll the box, and then inert: choosing here
       // acts, and moving a cursor must not consent to that.
@@ -259,7 +259,7 @@ export function SelectionList<T>({
               // your first arrow reveals THAT row, not wherever the ring last
               // sat.
               onClick={() => {
-                selection.setCursorTo(i)
+                selectionCursor.setCursorTo(i)
                 activate(i)
               }}
             >

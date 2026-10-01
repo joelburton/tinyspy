@@ -90,7 +90,7 @@ export function BoardCol({
   // its key are one thing. (No `backspace` twin: `act-delete-last` already
   // dismisses the sticky reject on its way through.)
   const { actDeleteLast, actSubmit } = useCaptureKeys({
-    value: word,
+    pendingText: word,
     onChange,
     onSubmit,
     disabled: entryDisabled,

@@ -500,14 +500,14 @@ export function useCommonGame(
       // unmount cleanup can read the latest snapshot — see the
       // cleanup return below.
       ch.on('presence', { event: 'sync' }, function mirrorPresence() {
-        const state = ch.presenceState() as Record<
+        const presence = ch.presenceState() as Record<
           string,
           Array<{ user_id?: string }>
         >
         const ids = new Set<string>()
-        for (const list of Object.values(state)) {
-          for (const entry of list) {
-            if (entry.user_id) ids.add(entry.user_id)
+        for (const tabs of Object.values(presence)) {
+          for (const tab of tabs) {
+            if (tab.user_id) ids.add(tab.user_id)
           }
         }
         presentUserIdsRef.current = ids

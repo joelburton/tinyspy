@@ -39,7 +39,7 @@ export function useStickyChoice<T extends string>(
   /** Used when nothing valid is stored, and when storage is unavailable. */
   fallback: T,
 ): [T, (next: T) => void] {
-  const [value, setValue] = useState<T>(() => {
+  const [choice, setChoice] = useState<T>(() => {
     // No storage reads the same as no stored choice: you get `fallback`.
     const stored = readStored('local', key, null)
     return stored !== null && (options as readonly string[]).includes(stored)
@@ -52,12 +52,12 @@ export function useStickyChoice<T extends string>(
   // setState-in-effect anyway — see docs/code-conventions.md).
   const choose = useCallback(
     (next: T) => {
-      setValue(next)
+      setChoice(next)
       // Losing this costs the choice its stickiness; state still works.
       writeStored('local', key, next)
     },
     [key],
   )
 
-  return [value, choose]
+  return [choice, choose]
 }

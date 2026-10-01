@@ -277,7 +277,7 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
   useClubSetupPresence({
     clubHandle: handle,
     selfId,
-    announce: activeSetup
+    mySetup: activeSetup
       ? { brand: activeSetup.name, mode: activeSetup.mode, username: selfUsername }
       : null,
   })

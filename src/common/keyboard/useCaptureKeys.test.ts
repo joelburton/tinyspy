@@ -28,7 +28,7 @@ function setup(initial: Partial<CaptureKeysOptions> = {}) {
   const onSubmit = vi.fn()
   const onAnyKey = vi.fn()
   const base: CaptureKeysOptions = {
-    value: '',
+    pendingText: '',
     onChange,
     onSubmit,
     onAnyKey,
@@ -52,28 +52,28 @@ function setup(initial: Partial<CaptureKeysOptions> = {}) {
 
 describe('useCaptureKeys — core entry', () => {
   it('appends a letter (default lowercase charFor)', async () => {
-    const { onChange } = setup({ value: 'ca' })
+    const { onChange } = setup({ pendingText: 'ca' })
     await press('t')
     expect(onChange).toHaveBeenCalledWith('cat')
   })
 
   it('Backspace deletes the last character', async () => {
-    const { onChange } = setup({ value: 'cat' })
+    const { onChange } = setup({ pendingText: 'cat' })
     await press('Backspace')
     expect(onChange).toHaveBeenCalledWith('ca')
   })
 
-  it('Enter submits a non-empty value, but not an empty one', async () => {
-    const { onSubmit, update } = setup({ value: 'cat' })
+  it('Enter submits non-empty text, but not empty text', async () => {
+    const { onSubmit, update } = setup({ pendingText: 'cat' })
     await press('Enter')
     expect(onSubmit).toHaveBeenCalledTimes(1)
-    update({ value: '' })
+    update({ pendingText: '' })
     await press('Enter')
     expect(onSubmit).toHaveBeenCalledTimes(1) // unchanged — empty Enter doesn't submit
   })
 
   it('disabled stops the ENTRY dead (no edits, no submit, no dismissal)', async () => {
-    const { onChange, onAnyKey, onSubmit } = setup({ value: 'ca', disabled: true })
+    const { onChange, onAnyKey, onSubmit } = setup({ pendingText: 'ca', disabled: true })
     await press('t')
     await press('Backspace')
     await press('Enter')
@@ -84,7 +84,7 @@ describe('useCaptureKeys — core entry', () => {
   })
 
   it('busy freezes the entry but still lets a key dismiss feedback', async () => {
-    const { onChange, onSubmit, onAnyKey } = setup({ value: 'ca', busy: true })
+    const { onChange, onSubmit, onAnyKey } = setup({ pendingText: 'ca', busy: true })
     await press('t')
     await press('Backspace')
     await press('Enter')
@@ -95,19 +95,19 @@ describe('useCaptureKeys — core entry', () => {
   })
 
   it('stops at maxLength — a further letter is dropped', async () => {
-    const { onChange } = setup({ value: 'cat', maxLength: 3 })
+    const { onChange } = setup({ pendingText: 'cat', maxLength: 3 })
     await press('s')
     expect(onChange).not.toHaveBeenCalled()
   })
 
   it("stores uppercase with asciiLetters('upper')", async () => {
-    const { onChange } = setup({ value: 'CA', charFor: asciiLetters('upper') })
+    const { onChange } = setup({ pendingText: 'CA', charFor: asciiLetters('upper') })
     await press('t')
     expect(onChange).toHaveBeenCalledWith('CAT')
   })
 
   it('a letter that types ALSO dismisses feedback — the watcher does not claim the key', async () => {
-    const { onChange, onAnyKey } = setup({ value: 'ca' })
+    const { onChange, onAnyKey } = setup({ pendingText: 'ca' })
     await press('t')
     expect(onAnyKey).toHaveBeenCalledTimes(1)
     expect(onChange).toHaveBeenCalledWith('cat')
@@ -118,17 +118,17 @@ describe('useCaptureKeys — what Submit says about itself', () => {
   // `disabled` rather than `hidden`: the control stays on the row and grays,
   // because the entry is here and it is the VALUE that cannot go.
   it('is disabled, not hidden, on an empty entry', () => {
-    const { result } = setup({ value: '' })
+    const { result } = setup({ pendingText: '' })
     expect(result.current.actSubmit.describe('button').state).toBe('disabled')
   })
 
-  it('is disabled, not hidden, when the value is vetoed (submitDisabled)', () => {
-    const { result } = setup({ value: 'cat', submitDisabled: true })
+  it('is disabled, not hidden, when the text is vetoed (submitDisabled)', () => {
+    const { result } = setup({ pendingText: 'cat', submitDisabled: true })
     expect(result.current.actSubmit.describe('button').state).toBe('disabled')
   })
 
-  it('is active with a value it may submit', () => {
-    const { result } = setup({ value: 'cat' })
+  it('is active with text it may submit', () => {
+    const { result } = setup({ pendingText: 'cat' })
     expect(result.current.actSubmit.describe('button').state).toBe('active')
   })
 })

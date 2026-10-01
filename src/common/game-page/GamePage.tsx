@@ -151,12 +151,12 @@ export function GamePage({
 
   // Receive-only: while you're IN a game of this club (active OR paused), still
   // surface a peer's "setting up a new game" toast — e.g. someone abandons a
-  // stuck paused game to start the next one. `announce: null` because you can't
+  // stuck paused game to start the next one. `mySetup: null` because you can't
   // open a setup dialog from a game page (ClubPage owns the announcing side).
   useClubSetupPresence({
     clubHandle,
     selfId: authSession.user.id,
-    announce: null,
+    mySetup: null,
   })
 
   // The FULL club roster (not just this game's players) — chat is club-wide, so

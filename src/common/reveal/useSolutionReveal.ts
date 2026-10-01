@@ -16,6 +16,10 @@ export interface SolutionReveal {
   impliedBySolve: boolean
 }
 
+type SolutionRevealOptions = {
+  impliedBy?: boolean
+}
+
 /**
  * The terminal solution reveal — "am I looking at the answer?" — as LOCAL,
  * per-player, unpersisted state: nothing is written, nothing rides realtime,
@@ -39,14 +43,17 @@ export interface SolutionReveal {
  * The two terms, why the reveal is personal and temporary, and which games pass
  * what: `src/common/reveal/doc.md`.
  */
-export function useSolutionReveal({ impliedBy = false }: { impliedBy?: boolean } = {}): SolutionReveal {
+export function useSolutionReveal({ impliedBy = false }: SolutionRevealOptions = {}): SolutionReveal {
   // NULL = "no opinion, follow `impliedBy`"; only an explicit press writes here.
   // That is what keeps a solve that lands AFTER mount working: `impliedBy` is
   // false on the first render whatever the game state, since the per-player rows
   // it reads arrive a render or two later, so a `useState(impliedBy)` initializer
   // would capture that false and never notice the win.
-  const [pick, setPick] = useState<boolean | null>(null)
-  const revealed = pick ?? impliedBy
-  const toggle = useCallback(() => setPick((p) => !(p ?? impliedBy)), [impliedBy])
-  return { revealed, toggle, impliedBySolve: impliedBy && pick === null }
+  const [myChoice, setMyChoice] = useState<boolean | null>(null)
+  const revealed = myChoice ?? impliedBy
+  const toggle = useCallback(
+    () => setMyChoice((prevChoice) => !(prevChoice ?? impliedBy)),
+    [impliedBy],
+  )
+  return { revealed, toggle, impliedBySolve: impliedBy && myChoice === null }
 }

@@ -268,11 +268,11 @@ export function useScratchpad(
   }, [myId])
 
   // Derived lock view.
-  const foreign =
+  const otherHolder =
     shared && holder && holder.userId !== myId && nowTick - holder.at < STALE_MS ? holder : null
-  const editingBy = foreign ? foreign.userId : null
+  const editingBy = otherHolder ? otherHolder.userId : null
   const canEdit = !shared || editingBy === null
-  const canTakeOver = foreign !== null && nowTick - foreign.at > GRACE_MS
+  const canTakeOver = otherHolder !== null && nowTick - otherHolder.at > GRACE_MS
 
   const setBody = useCallback(
     (text: string) => {

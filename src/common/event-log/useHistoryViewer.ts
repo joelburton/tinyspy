@@ -58,9 +58,9 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   // One piece of state, because the id and the number are one answer to "which
   // `#N` did you click?" — setting or clearing either alone would let the board
   // and the banner disagree.
-  const [open, setOpen] = useState<{ id: Id; n: number | null } | null>(null)
-  const historyId = open?.id ?? null
-  const exitHistory = useCallback(() => setOpen(null), [])
+  const [openTurn, setOpenTurn] = useState<{ id: Id; n: number | null } | null>(null)
+  const historyId = openTurn?.id ?? null
+  const exitHistory = useCallback(() => setOpenTurn(null), [])
 
   // Keep a ref in sync each render, for handlers registered once that must read the
   // current value (scrabble's board-drag). Cheap; the extra render cost is nil.
@@ -82,7 +82,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
     if (historyId === null) return
     const onDocClick = (e: MouseEvent) => {
       if ((e.target as HTMLElement | null)?.closest('[data-history-handle]')) return
-      setOpen(null)
+      setOpenTurn(null)
     }
     document.addEventListener('click', onDocClick)
     return () => document.removeEventListener('click', onDocClick)
@@ -98,7 +98,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   // would only add a way for the two to disagree.
   const showHistory = useCallback((id: Id, n: number | null) => {
     setIsInfoSheetOpen(false)
-    setOpen({ id, n })
+    setOpenTurn({ id, n })
   }, [])
 
   // A KEYSTROKE RETURNS TO LIVE, and the press is spent doing it — the same key
@@ -113,7 +113,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
 
   return {
     historyId,
-    historyN: open?.n ?? null,
+    historyN: openTurn?.n ?? null,
     historyIdRef,
     isViewingHistory: historyId !== null,
     showHistory,

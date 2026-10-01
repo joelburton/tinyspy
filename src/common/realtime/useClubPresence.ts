@@ -74,15 +74,15 @@ export function useClubPresence(
       ch = joined
 
       joined.on('presence', { event: 'sync' }, () => {
-        const state = joined.presenceState() as Record<
+        const presence = joined.presenceState() as Record<
           string,
           Array<{ user_id?: string; game_id?: string | null }>
         >
         const entries: MemberGameOrClub[] = []
-        for (const list of Object.values(state)) {
-          for (const e of list) {
-            if (e.user_id) {
-              entries.push({ userId: e.user_id, gameId: e.game_id ?? null })
+        for (const tabs of Object.values(presence)) {
+          for (const tab of tabs) {
+            if (tab.user_id) {
+              entries.push({ userId: tab.user_id, gameId: tab.game_id ?? null })
             }
           }
         }

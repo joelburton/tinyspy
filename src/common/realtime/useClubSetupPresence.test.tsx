@@ -38,8 +38,8 @@ import { fakeChannel, lastFakeChannel } from './channel.fake'
 import { dismissToast, showToast, useToasts, type ToastEntry } from '../toasts/toastStore'
 
 const SELF = 'u1'
-type Announce = { brand: string; mode: 'coop' | 'compete'; username: string }
-const MY_SETUP: Announce = { brand: 'MooseWheel', mode: 'coop', username: 'joel' }
+type MySetup = { brand: string; mode: 'coop' | 'compete'; username: string }
+const MY_SETUP: MySetup = { brand: 'MooseWheel', mode: 'coop', username: 'joel' }
 
 /** A peer's presence payload, as their own `track()` sent it. */
 function peer(user_id: string, username: string) {
@@ -51,13 +51,13 @@ function peer(user_id: string, username: string) {
 let live: { current: ToastEntry[] } | null = null
 
 /** Mount the hook beside the toast list, both under one act() umbrella. */
-function mount(announce: Announce | null = null, clubHandle: string | null = 'cl1') {
+function mount(mySetup: MySetup | null = null, clubHandle: string | null = 'cl1') {
   const toasts = renderHook(() => useToasts())
   live = toasts.result
   const hook = renderHook(
-    ({ a }: { a: Announce | null }) =>
-      useClubSetupPresence({ clubHandle, selfId: SELF, announce: a }),
-    { initialProps: { a: announce } },
+    ({ mySetup }: { mySetup: MySetup | null }) =>
+      useClubSetupPresence({ clubHandle, selfId: SELF, mySetup }),
+    { initialProps: { mySetup } },
   )
   return { toasts: toasts.result, hook }
 }
@@ -180,7 +180,7 @@ describe('useClubSetupPresence — announcing my own setup', () => {
     act(() => server().subscribed())
     expect(server().track).not.toHaveBeenCalled()
 
-    act(() => hook.rerender({ a: MY_SETUP }))
+    act(() => hook.rerender({ mySetup: MY_SETUP }))
     expect(server().track).toHaveBeenCalledTimes(1)
   })
 
@@ -188,7 +188,7 @@ describe('useClubSetupPresence — announcing my own setup', () => {
     const { hook } = mount(MY_SETUP)
     act(() => server().subscribed())
 
-    act(() => hook.rerender({ a: null }))
+    act(() => hook.rerender({ mySetup: null }))
     expect(server().untrack).toHaveBeenCalledTimes(1)
   })
 
