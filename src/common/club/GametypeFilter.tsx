@@ -1,19 +1,11 @@
 // cs-blessed-club-page
 
 import { FilterSelect } from '../lists/FilterSelect'
+import type { GamesListFilter } from './useGamesListFilter'
 import styles from './clubFilters.module.css'
 
-/** One dropdown choice: a gametype FAMILY (`manifest.baseGametype`) labeled
- *  with its brand (`manifest.name`). */
-export type GametypeOption = { value: string; label: string }
-
 type Props = {
-  // The selected `baseGametype`, or `'all'`.
-  value: string
-  // The families present in the list being filtered, in display order. Excludes
-  // the `'all'` choice, which this component always renders first.
-  options: GametypeOption[]
-  onChange: (value: string) => void
+  filter: GamesListFilter
 }
 
 /**
@@ -39,14 +31,14 @@ type Props = {
  * Declining the focus is what keeps the cursor, and it matches `ModeFilter`
  * beside it.
  */
-export function GametypeFilter({ value, options, onChange }: Props) {
+export function GametypeFilter({ filter }: Props) {
   return (
     <FilterSelect
       label="Filter your games by game"
-      value={value}
-      onChange={onChange}
+      value={filter.gametype}
+      onChange={filter.setGametype}
       className={styles.closedSelect}
-      options={[{ value: 'all', label: 'All games' }, ...options]}
+      options={[{ value: 'all', label: 'All games' }, ...filter.options]}
     />
   )
 }

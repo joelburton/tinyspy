@@ -48,10 +48,10 @@ App ── /c/<handle> ──> ClubPageLoader          get_club_page, and the wa
                            ├── <main>
                            │     ├── Segmented (buttons)                  the phone's two tabs
                            │     ├── ModeFilter · GametypeFilter          twice each: the phone's row, and each column's
-                           │     ├── left column
+                           │     ├── NewGameCol                           the left column
                            │     │     ├── CurrentGameCard → GameEntry + ClubGameDeleteButton
                            │     │     └── SelectionList (lists) → StartGameRow → GameEntry   one per enrolled gametype
-                           │     └── right column
+                           │     └── YourGamesCol                         the right column
                            │           └── SelectionList (lists) → ClubGameRow → GameEntry + ClubGameDeleteButton
                            ├── ChatHost (chat)                            for the life of the page
                            ├── ClubHelpCompanion                          while Help is open
@@ -86,7 +86,8 @@ is the one component here this page does not render — `HomePage` does.
   confirm does, waits a beat for them to leave, and only then deletes. The
   broadcast is friendliness rather than correctness and never blocks the
   delete. A game that is not current has nobody in it by definition and goes
-  straight to the RPC. `handleDelete` in `ClubPage.tsx` carries the mechanics.
+  straight to the RPC. `deleteClubGame` and `sendSuspendBeforeDelete`
+  (pause-suspend) carry the mechanics.
 - **A failed games read is shown in the header's slot**, which is otherwise
   for other people's news. Nothing retries that read — it re-runs only when
   another of the club's game rows changes — so a stale list is a page to

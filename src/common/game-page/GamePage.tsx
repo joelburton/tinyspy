@@ -70,7 +70,7 @@ export function GamePage({
     globalFeedbackSlot,
   })
 
-  const { menu, actBackToClub, actStopGame, goToFollowUpGame, isHelpOpen, closeHelp } =
+  const { menu, actions, goToFollowUpGame, help } =
     useBoundPageActions({ manifest, cg, globalFeedbackSlot })
 
   useSubmitTimeoutOnExpiry({
@@ -129,7 +129,7 @@ export function GamePage({
       <PauseBoundary
         pause={cg.pause}
         players={cg.stillPlayingHumanPlayers}
-        actions={{ actBackToClub, actStopGame }}
+        actions={actions}
       >
         {/* The log is outermost so its line lands before a broken game can
             throw; the error boundary is outside the Suspense, so a chunk that
@@ -203,9 +203,9 @@ export function GamePage({
         />
       )}
 
-      {isHelpOpen && (
+      {help.isOpen && (
         <Suspense fallback={null}>
-          <manifest.help onClose={closeHelp} brand={manifest.name} />
+          <manifest.help onClose={help.close} brand={manifest.name} />
         </Suspense>
       )}
     </div>

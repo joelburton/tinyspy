@@ -13,6 +13,7 @@ import type { NotOkEnvelope } from '../supabase/envelope'
 import { rtLog } from '../realtime/realtimeDiag'
 import { computeGamePause, type GamePause } from '../pause-suspend/pause'
 import { useManualPause, type ManualPauseEvent } from '../pause-suspend/useManualPause'
+import type { SuspendEvent } from '../pause-suspend/sendSuspendBeforeDelete'
 import type { GameManifest, TimerMode } from '../manifest/gameManifest'
 import type { GamePlayer, Member } from '../members/member'
 import { useGameTimer } from '../timer/useGameTimer'
@@ -81,10 +82,6 @@ export type CommonGame = CommonGameRow & {
   // Where the viewing player stands (docs/win-lose.md → Where a player stands).
   standing: Standing
 }
-
-/** The suspend broadcast: every other peer goes back to the club page on
- *  receipt. No sender: leaving together is the whole message. */
-type SuspendEvent = { type: 'suspend' }
 
 /**
  * Everything a game page needs that isn't the game: the common.games row and

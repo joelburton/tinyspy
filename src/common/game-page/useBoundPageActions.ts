@@ -45,13 +45,12 @@ export function useBoundPageActions({
 }: BoundPageActionsOptions): {
   // What a PlayArea gets to build its menu with.
   menu: MenuApi
-  actBackToClub: BoundAction
-  actStopGame: BoundAction
+  // The pause overlay's two buttons.
+  actions: { actBackToClub: BoundAction; actStopGame: BoundAction }
   // Open the page of a game this PlayArea just started.
   goToFollowUpGame: (gameId: string) => void
-  // The Help companion is open, and closing it.
-  isHelpOpen: boolean
-  closeHelp: () => void
+  // The Help companion.
+  help: { isOpen: boolean; close: () => void }
 } {
   const [isHelpOpen, setIsHelpOpen] = useState(false)
 
@@ -112,5 +111,10 @@ export function useBoundPageActions({
 
   const closeHelp = useCallback(() => setIsHelpOpen(false), [])
 
-  return { menu, actBackToClub, actStopGame, goToFollowUpGame, isHelpOpen, closeHelp }
+  return {
+    menu,
+    actions: { actBackToClub, actStopGame },
+    goToFollowUpGame,
+    help: { isOpen: isHelpOpen, close: closeHelp },
+  }
 }

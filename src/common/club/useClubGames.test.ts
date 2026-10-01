@@ -202,12 +202,15 @@ describe('useClubGames — what an answer becomes', () => {
       ]),
     )
     await waitFor(() => expect(result.current.currentGameId).toBe('g2'))
+    expect(result.current.currentGame?.gameId).toBe('g2')
+    expect(result.current.games.map((g) => g.isCurrent)).toEqual([false, true])
   })
 
   it('reports no current game when no row claims to be one', async () => {
     const { result } = await load(ok([game({ id: 'g1', gametype: 'wordle_coop' })]))
     await waitFor(() => expect(result.current.games).toHaveLength(1))
     expect(result.current.currentGameId).toBeNull()
+    expect(result.current.currentGame).toBeNull()
   })
 
   it('drops a gametype this bundle does not have, and reports it', async () => {
@@ -251,6 +254,7 @@ describe('useClubGames — what an answer becomes', () => {
     )
     await waitFor(() => expect(result.current.currentGameId).toBe('g9'))
     expect(result.current.games).toHaveLength(0)
+    expect(result.current.currentGame).toBeNull()
   })
 })
 

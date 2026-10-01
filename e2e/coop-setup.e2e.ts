@@ -24,7 +24,7 @@ test.describe('coop setup — pacing field', () => {
 
     // Open the WordNerd COOP setup dialog. `startGameRow` takes the FIRST
     // matching row, and the start list sorts coop before compete inside a
-    // sibling pair's tie (`ClubPage`'s `startableGames`).
+    // sibling pair's tie (`useClubGametypes`' `startable`).
     await startGameRow(page, /WordNerd/).click()
 
     // The Co-op disclosure is present, collapsed, showing the current value.

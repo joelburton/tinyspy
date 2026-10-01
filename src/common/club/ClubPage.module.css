@@ -67,17 +67,6 @@
   gap: 1.25rem;
 }
 
-/* The left column's lower half: the "Start a new game" heading, fixed, above
- * the scrolling list. `flex: 1` + `min-height: 0` are what give the list a
- * definite height to scroll against — the right column doesn't need this
- * because its heading and list are the column's only children. */
-/* @@ */ .startBlock {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
 /* This page's two lists say both of these for themselves: `fills` for the
  * "take what's left of the column after the heading" half, and `density` for
  * the packed rows every entry here wants — two lines of text where home's
@@ -118,17 +107,12 @@
 }
 
 /* The mobile filter row — the showing tab's filter, directly under the tab
- * bar. Desktop puts each filter in its column's .headingRow instead (and
- * hides that row here, below), so exactly one instance of each control is
- * ever visible. */
+ * bar. Desktop puts each filter in its column's heading row instead (and
+ * a phone hides that row: clubCols.module.css), so exactly one instance of
+ * each control is ever visible. */
 /* @@ */ .mobileFilters {
   display: none;
 }
-
-/* `.headingRow` is a bare hook: the shape is the shared
- * `.heading-with-controls` (common/core-css/patterns/heading.css), and this
- * class exists only so the mobile block below can hide the row — a module
- * cannot target a global class directly. */
 
 @media (--mobile) {
   /* The bar spans the same centered well the club name and the columns do, so
@@ -159,18 +143,6 @@
   }
 
 /* @@ */   .columns[data-tab='games'] .left {
-    display: none;
-  }
-
-  /* Drop the per-section heading rows ("Start a new game" / "Your games
-   * (N)") — the tab above already names the view, so the heading just
-   * repeats it and costs vertical space. Desktop keeps them (they label the
-   * two side-by-side columns). Hiding the whole ROW takes each column's
-   * filter with it; the .mobileFilters row below the tabs is where the
-   * filter lives here instead. The "Join the current game" h3 is NOT in a
-   * .headingRow, so it stays — it's a live call to action, not a column
-   * label. */
-/* @@ */   .headingRow {
     display: none;
   }
 

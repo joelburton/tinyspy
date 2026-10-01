@@ -17,8 +17,7 @@ import type { Member } from '../members/member'
 /**
  * Display shape for one game in the club's games list: the fields of a
  * common.games row this page renders, plus the manifest of the gametype it
- * belongs to. ClubPage's `gameState` reads `isTerminal` to pick the row's
- * corner flag.
+ * belongs to.
  *
  * Anything about the GAMETYPE is reached through `manifest` rather than copied
  * flat — the filter's family and brand, the row's mode and logo. `statusLabel`
@@ -38,6 +37,8 @@ export type ListedGame = {
   // rather than when it began.
   statusChangedAt: string
   isTerminal: boolean
+  // The club's current game: its `common.games.is_current_view`.
+  isCurrent: boolean
   statusLabel: string
 }
 
@@ -72,6 +73,7 @@ function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame
     title: r.title,
     statusChangedAt: r.status_changed_at,
     isTerminal: r.ended_at !== null,
+    isCurrent: r.is_current_view,
     statusLabel: manifest.labelFor(listRow, members),
   }
 }
@@ -80,9 +82,11 @@ function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame
  * A club's games, kept fresh: one read of `common.games` plus a Realtime
  * subscription that re-reads on every change to a row of this club's.
  *
- * Returns the list in last-played order, the id of the current game (the
- * `is_current_view` row), and whether the last read failed — which only the
- * list's empty state needs, since a failure keeps the list it already has.
+ * Returns the list in last-played order; the current game (the
+ * `is_current_view` row), both as the listed game and as its id; and whether
+ * the last read failed — which only the list's empty state needs, since a
+ * failure keeps the list it already has. The id is there without the game when
+ * the current game's gametype is one this bundle doesn't know.
  *
  * **It shows its own failure**, into the slot the caller hands it, because
  * nothing retries this read. It re-runs only when another `common.games` row
@@ -131,7 +135,9 @@ export function useClubGames(
         commonDb
           .from('games')
           .select(
-            'id, gametype, title, ended_at, game_ended_reason, game_ended_reason_detail, game_ended_outcome, game_ended_by_user_id, clubpage_info, status_changed_at, is_current_view',
+            `id, gametype, title, ended_at, game_ended_reason, 
+            game_ended_reason_detail, game_ended_outcome, game_ended_by_user_id, 
+            clubpage_info, status_changed_at, is_current_view`,
           )
           .eq('club_handle', clubHandle)
           .order('status_changed_at', { ascending: false })
@@ -220,5 +226,7 @@ export function useClubGames(
     // (`ClubPageLoader`), so listing them re-subscribes nothing.
   }, [clubHandle, members, globalFeedbackSlot])
 
-  return { games, currentGameId, hasReadFailed }
+  const currentGame = games.find((g) => g.isCurrent) ?? null
+
+  return { games, currentGame, currentGameId, hasReadFailed }
 }

@@ -62,7 +62,12 @@ const { mockRunRpc, mockToast, clubGames, WORDLE, DUEL, SYRUP } = vi.hoisted(() 
   }
 })
 
-vi.mock('./useClubGames', () => ({ useClubGames: () => clubGames.current }))
+vi.mock('./useClubGames', () => ({
+  useClubGames: () => ({
+    ...clubGames.current,
+    currentGame: clubGames.current.games.find((g) => g.isCurrent) ?? null,
+  }),
+}))
 
 vi.mock('../supabase/db', () => ({ db: { rpc: (name: string) => name } }))
 
@@ -111,6 +116,7 @@ function listed(over: Partial<ListedGame> & { gameId: string; manifest: GameMani
     title: `Game ${over.gameId}`,
     statusChangedAt: '2026-09-01T00:00:00Z',
     isTerminal: false,
+    isCurrent: false,
     statusLabel: 'playing',
     ...over,
   }
@@ -175,7 +181,9 @@ describe('ClubPage — the two lists', () => {
   it('lists the games it was given, and calls the current one out as well', () => {
     clubGames.current = {
       games: [
-        listed({ gameId: 'g1', manifest: WORDLE as unknown as GameManifest, title: 'Alpha' }),
+        listed({
+          gameId: 'g1', manifest: WORDLE as unknown as GameManifest, title: 'Alpha', isCurrent: true,
+        }),
         listed({ gameId: 'g2', manifest: SYRUP as unknown as GameManifest, title: 'Beta' }),
       ],
       currentGameId: 'g1',

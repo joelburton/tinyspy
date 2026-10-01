@@ -1,12 +1,12 @@
 // cs-blessed-club-page
 
-import { MODE_FILTER_OPTIONS, type ModeFilterValue } from './modeFilterOptions'
+import { MODE_FILTER_OPTIONS } from './modeFilterOptions'
+import type { StartListFilter } from './useStartListFilter'
 import { Segmented } from '../buttons/Segmented'
 import styles from './clubFilters.module.css'
 
 type Props = {
-  value: ModeFilterValue
-  onChange: (value: ModeFilterValue) => void
+  filter: StartListFilter
   // Whether this is a solo club. Renders nothing there — see the docstring.
   soloClub: boolean
 }
@@ -25,10 +25,10 @@ type Props = {
  * offering to filter by it would be offering to sort a distinction the page
  * isn't drawing. A lone always-selected "All" was the first shape of that, and
  * it just left a button that did nothing; the heading row is happier with the
- * space. (ClubPage still pins the effective mode to `all` for a solo club, so
+ * space. (`useStartListFilter` still pins the mode to `all` for a solo club, so
  * nothing can be left filtered by a control that isn't on screen.)
  */
-export function ModeFilter({ value, onChange, soloClub }: Props) {
+export function ModeFilter({ filter, soloClub }: Props) {
   if (soloClub) return null
   return (
     <Segmented label="Filter games by mode" className={styles.modeFilter}>
@@ -37,14 +37,14 @@ export function ModeFilter({ value, onChange, soloClub }: Props) {
           key={o.value}
           type="button"
           className={styles.modeOption}
-          aria-pressed={value === o.value}
+          aria-pressed={filter.mode === o.value}
           // Don't let the press MOVE FOCUS off the start list. That list is a
           // keyboard tab stop holding the Up/Down cursor, and it sits directly
           // under this control — taking focus here would blank the cursor ring
           // every time you narrowed the list you were about to arrow through.
           // `click` still fires.
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onChange(o.value)}
+          onClick={() => filter.setMode(o.value)}
         >
           {o.label}
         </button>

@@ -1,0 +1,35 @@
+/* cs-unmet */
+
+/* Shared styles for ClubPage's two columns, NewGameCol and YourGamesCol. The
+ * columns' own boxes, and which one a phone shows, are ClubPage.module.css's
+ * `.left` and `.right`. */
+
+/* NewGameCol's lower half: the "Start a new game" heading, fixed, above
+ * the scrolling list. `flex: 1` + `min-height: 0` are what give the list a
+ * definite height to scroll against — YourGamesCol doesn't need this
+ * because its heading and list are the column's only children. */
+/* @@ */ .startBlock {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* `.headingRow` is a bare hook: the shape is the shared
+ * `.heading-with-controls` (common/core-css/patterns/heading.css), and this
+ * class exists only so the mobile block below can hide the row — a module
+ * cannot target a global class directly. */
+
+@media (--mobile) {
+  /* Drop the per-column heading rows ("Start a new game" / "Your games
+   * (N)") — the tab above already names the view, so the heading just
+   * repeats it and costs vertical space. Desktop keeps them (they label the
+   * two side-by-side columns). Hiding the whole ROW takes each column's
+   * filter with it; ClubPage's .mobileFilters row below the tabs is where the
+   * filter lives here instead. The "Join the current game" h3 is NOT in a
+   * .headingRow, so it stays — it's a live call to action, not a column
+   * label. */
+/* @@ */   .headingRow {
+    display: none;
+  }
+}

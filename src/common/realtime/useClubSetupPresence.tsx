@@ -13,8 +13,8 @@ type ClubSetupPresenceOptions = {
   /**
    * What I'm setting up right now (with my display name for the announcement),
    * or `null` when I'm not — which is **receive-only**: subscribe + toast peers,
-   * announce nothing. ClubPage passes the live value (driven by `activeSetup`);
-   * GamePage passes `null` so players IN a game (paused or active) still see a
+   * announce nothing. The club page passes the live value (from its setup
+   * dialog's manifest, in `useClubRoomPresence`); GamePage passes `null` so players IN a game (paused or active) still see a
    * peer's "setting up" toast. The two pages are never mounted at once, so a
    * single client never double-subscribes `club-setup:<handle>`.
    */
@@ -41,7 +41,7 @@ type ClubSetupPresenceOptions = {
  *
  * ClubPage owns the ONE channel (`club-setup:<handle>`) so a single client never
  * double-subscribes the same name: it TRACKS its own setup (from `mySetup`,
- * derived from `activeSetup`) and RECEIVES peers' via presence sync. When the
+ * derived from the setup dialog's manifest) and RECEIVES peers' via presence sync. When the
  * setter cancels/starts, the dialog unmounts → `mySetup` goes null → untrack →
  * peers' toasts clear. If they started a game, the separate INVITE toast then
  * arrives through its own DB-backed path (`useGameInvitations`).
