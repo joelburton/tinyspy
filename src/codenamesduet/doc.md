@@ -430,7 +430,7 @@ describes: a loader that gates on the three ways a game can fail to load, then
 `PlayArea` in the eight sections.
 
 ```
-<PlayAreaLoader {...GamePageCtx}>        useGame, useBoard, the events; the three gates
+<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame, useBoard, the events; the three gates
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the board column, and submit_guess
         │     ├── MobileStatusBar ←      phone only: StateLine, above the board

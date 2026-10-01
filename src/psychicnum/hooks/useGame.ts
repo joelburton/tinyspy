@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRefetchOnGameUpdate } from '@/common/game-page/useRefetchOnGameUpdate'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { solvedByMe } from '@/common/reveal/describeReveal'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
@@ -157,7 +157,7 @@ type GameRows = {
  * `common.game_players`.
  */
 export function makePlayersById(
-  gamePlayers: GamePageCtx['players'],
+  gamePlayers: PlayAreaLoaderProps['players'],
   requiredSecretsCount: number,
 ): Record<string, PsychicnumPlayer> {
   const players = gamePlayers.map(function makePlayer(p): PsychicnumPlayer {
@@ -183,12 +183,12 @@ export function makePlayersById(
 }
 
 /** The page's `game_status`, as psychicnum's builder writes it. */
-export function readGameStatus(ctx: GamePageCtx): PsychicnumGameStatus {
+export function readGameStatus(ctx: PlayAreaLoaderProps): PsychicnumGameStatus {
   return ctx.gameStatus as unknown as PsychicnumGameStatus
 }
 
 /** The page's setup blob, as psychicnum's setup form wrote it. */
-export function readSetup(ctx: GamePageCtx): PsychicnumSetup {
+export function readSetup(ctx: PlayAreaLoaderProps): PsychicnumSetup {
   return ctx.setup as unknown as PsychicnumSetup
 }
 
@@ -201,7 +201,7 @@ export function readSetup(ctx: GamePageCtx): PsychicnumSetup {
  * identity across renders.
  */
 export function makeGameData(
-  ctx: GamePageCtx,
+  ctx: PlayAreaLoaderProps,
   rows: GameRows,
   playersById: Record<string, PsychicnumPlayer>,
   setupRows: SetupRow[],
@@ -278,13 +278,13 @@ export function makeGameData(
  *
  * It keeps no subscription: `useRefetchOnGameUpdate` reruns the reads when
  * the page's `common.games` row moves (`commonGameUpdatedAt`) or the page's
- * channel rejoins (`resubscribeCount`), both from `GamePageCtx`.
+ * channel rejoins (`resubscribeCount`), both from `PlayAreaLoaderProps`.
  *
  * The cross-cutting machinery (members, presence, manual-pause,
  * timer) lives on `useCommonGame` inside `GamePage` — see
  * `src/common/game-page/useCommonGame.ts`.
  */
-export function useGame(ctx: GamePageCtx): {
+export function useGame(ctx: PlayAreaLoaderProps): {
   // Null until the reads are in, and when the game is absent.
   gd: GameData | null
   loading: boolean

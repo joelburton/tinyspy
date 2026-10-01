@@ -18,7 +18,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
@@ -99,9 +99,9 @@ const twoRows = [playerRow('u1'), playerRow('u2')]
  *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
  *  the page derives it (`whereIStand`), so a test sets up the facts and never
  *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
+function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as GamePageCtx['authSession'],
+    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
     players: [gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased: false,
@@ -133,13 +133,13 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       turnHolderId: facts.turnHolderId,
       draftsOffTurn: false,
     }),
-  } as unknown as GamePageCtx
+  } as unknown as PlayAreaLoaderProps
 }
 
 /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would draw
  *  — a row is a bound action now, so its words, glyph and availability come from
  *  the action rather than from the list. */
-function menuItems(ctx: GamePageCtx) {
+function menuItems(ctx: PlayAreaLoaderProps) {
   const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
   const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
   return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))

@@ -18,7 +18,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
@@ -111,10 +111,10 @@ const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
  *  roster, `isTerminal` and the turn pointer — exactly as the page derives it
  *  (`whereIStand`). A compete game (the loaded `h.result`) is always seated in
  *  a turn order, and its turn is mine unless a test sets `turnHolderId`. */
-function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
+function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const isTurnBased = over.isTurnBased ?? h.result.game?.mode === 'compete'
   const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as GamePageCtx['authSession'],
+    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
     players: [gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased,
@@ -147,7 +147,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       turnHolderId: facts.turnHolderId,
       draftsOffTurn: true,
     }),
-  } as unknown as GamePageCtx
+  } as unknown as PlayAreaLoaderProps
 }
 
 /** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what the
@@ -162,7 +162,7 @@ const okEnvelope = (data: unknown) => ({
 
 /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would
  *  draw, keyed by action id. */
-function menuItems(ctx: GamePageCtx) {
+function menuItems(ctx: PlayAreaLoaderProps) {
   const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
   const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
   return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))

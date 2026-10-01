@@ -298,7 +298,7 @@ answer does not.
 ## Frontend
 
 ```
-<PlayAreaLoader {...GamePageCtx}>        useGame, and the three gates
+<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame, and the three gates
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the board column — and submit_guess
         │     ├── MobileStatusBar ←      phone only; holds the StateLine below
@@ -322,7 +322,7 @@ answer does not.
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
 the ending, pause, chat — and unmounts this whole surface on pause. The mode is
-the page's too (`GamePageCtx.mode`, off `common.games`).
+the page's too (`PlayAreaLoaderProps.mode`, off `common.games`).
 
 **`gd`, the game data.** `useGame` hands the surface one object, `gd`, holding
 everything about this game grouped by what each value means — the board, the

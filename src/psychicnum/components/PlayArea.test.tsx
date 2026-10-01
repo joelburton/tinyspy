@@ -19,7 +19,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
@@ -52,7 +52,7 @@ vi.mock('../hooks/useGame', async (importOriginal) => {
   const { makeSetupRows } = await import('../lib/setupRows')
   return {
     ...real,
-    useGame: (ctx: GamePageCtx) => {
+    useGame: (ctx: PlayAreaLoaderProps) => {
       const playersById = real.makePlayersById(
         ctx.players,
         real.readGameStatus(ctx).required_secrets_count,
@@ -120,9 +120,9 @@ function withPlayerStatus(p: GamePlayer): GamePlayer {
  *  players' endings, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly
  *  as the page derives it (`whereIStand`), so a test sets up the facts and
  *  never hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
+function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as GamePageCtx['authSession'],
+    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
     isTerminal: false,
     isTurnBased: false,
     turnHolderId: null,
@@ -158,7 +158,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       turnHolderId: facts.turnHolderId,
       draftsOffTurn: false,
     }),
-  } as unknown as GamePageCtx
+  } as unknown as PlayAreaLoaderProps
 }
 
 // The same board in either mode — the mode is the context's (`makeCtx`), and
@@ -535,7 +535,7 @@ describe('psychicnum PlayArea — click-to-define (event log)', () => {
 
 describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
   /** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
-  function menuItems(ctx: GamePageCtx) {
+  function menuItems(ctx: PlayAreaLoaderProps) {
     const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
     const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
     return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
@@ -602,7 +602,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
 describe('psychicnum PlayArea — the secrets reveal once the game has ended', () => {
   /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would
    *  draw — which is what a bound action and a hand-written row have in common. */
-  function menuItems(ctx: GamePageCtx) {
+  function menuItems(ctx: PlayAreaLoaderProps) {
     const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
     const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
     return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))

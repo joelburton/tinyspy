@@ -20,7 +20,7 @@ import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { KeyList } from '@/common/actions/KeyList'
 import { getBoundActions } from '@/common/actions/boundActionsStore'
 import { menuRow, type MenuRow, type MenuSection } from '@/common/menu/menuModel'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
@@ -97,9 +97,9 @@ function template(): PuzzleTemplate {
  *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
  *  the page derives it (`whereIStand`), so a test sets up the facts and never
  *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
+function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as GamePageCtx['authSession'],
+    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
     players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
     isTerminal: false,
     isTurnBased: false,
@@ -304,16 +304,16 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
    *  action rather than from the list. A hidden row is dropped, the way the menu
    *  drops it. A submenu parent appears once, as itself; its children are on
    *  `.children`. */
-  function menuRows(ctx: GamePageCtx): MenuRow[] {
+  function menuRows(ctx: PlayAreaLoaderProps): MenuRow[] {
     const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
     const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
     return sections.flatMap((s) => s.items).map(menuRow).filter((r) => !r.hidden)
   }
 
-  const rowsById = (ctx: GamePageCtx) => new Map(menuRows(ctx).map((r) => [r.id, r]))
+  const rowsById = (ctx: PlayAreaLoaderProps) => new Map(menuRows(ctx).map((r) => [r.id, r]))
 
   /** The children of one submenu parent, by id. */
-  function submenuOf(ctx: GamePageCtx, parentId: string): MenuRow[] {
+  function submenuOf(ctx: PlayAreaLoaderProps, parentId: string): MenuRow[] {
     return rowsById(ctx).get(parentId)?.children ?? []
   }
 
@@ -442,7 +442,7 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
   })
 
   /** Fire the whole-grid reveal from the game menu's Reveal ▸ Grid row. */
-  const revealGrid = async (ctx: GamePageCtx) => {
+  const revealGrid = async (ctx: PlayAreaLoaderProps) => {
     const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
     const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
     const row = sections

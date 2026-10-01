@@ -20,7 +20,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Envelope } from '@/common/supabase/envelope'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
 import type { PsychicnumPlayerStatus } from '../lib/statuses'
 
@@ -83,7 +83,7 @@ const CTX = {
   isBoardInteractive: true,
   commonGameUpdatedAt: 't1',
   resubscribeCount: 0,
-} as unknown as GamePageCtx
+} as unknown as PlayAreaLoaderProps
 
 function ok<T>(data: T): Envelope<T> {
   return {
@@ -184,7 +184,7 @@ describe('psychicnum useGame — a load that worked', () => {
     const withAllThree = {
       ...CTX,
       players: [gp('u1', 'me', 'red', { player_status: playerStatus(3, 4) }), CTX.players[1]!],
-    } as GamePageCtx
+    } as PlayAreaLoaderProps
     const { result } = renderHook(() => useGame(withAllThree))
     await act(async () => {
       await refetch.load!({ isCurrent: () => true })
@@ -215,7 +215,7 @@ describe('psychicnum useGame — a load that worked', () => {
       ...CTX,
       turnHolderId: 'u2',
       players: [CTX.players[0]!, { ...CTX.players[1]!, outcome: 'won', final_ranking: 1 }],
-    } as GamePageCtx
+    } as PlayAreaLoaderProps
     const { result } = renderHook(() => useGame(won))
     await act(async () => {
       await refetch.load!({ isCurrent: () => true })
@@ -230,7 +230,7 @@ describe('psychicnum useGame — a load that worked', () => {
     const allThree = {
       ...CTX,
       players: [gp('u1', 'me', 'red', { player_status: playerStatus(3, 4) }), CTX.players[1]!],
-    } as GamePageCtx
+    } as PlayAreaLoaderProps
     const { result } = renderHook(() => useGame(allThree))
     await act(async () => {
       await refetch.load!({ isCurrent: () => true })

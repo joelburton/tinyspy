@@ -3,7 +3,7 @@
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useRef, useMemo } from 'react'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
@@ -76,7 +76,7 @@ type PeelResult =
  *  or is refused, and the new hand arrives over realtime rather than here. */
 type DumpResult = { result: 'dumped' } | null
 
-export function PlayArea(ctx: GamePageCtx) {
+export function PlayArea(ctx: PlayAreaLoaderProps) {
   // The board is worked by clicks and typing, so Tab has nowhere to go here —
   // and an empty ring is what keeps it from walking out to the browser.
   useTabRing([])

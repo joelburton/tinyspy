@@ -64,5 +64,5 @@ and `npm run report:labels` prints what every game actually says.
   answer: one fault per load, telling the player to reload.
 
 - **`manifest` and `game-page` import each other.** This direction is type-only
-  — a manifest names `GamePageCtx` to type its `PlayArea` — so the cycle is
+  — a manifest names `PlayAreaLoaderProps` to type its `PlayArea` — so the cycle is
   erased at runtime, and the import says so where it sits.

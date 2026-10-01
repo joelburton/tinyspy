@@ -2,7 +2,7 @@
 
 /**
  * Type-narrow read for `status.leaderboard` — the per-player array a compete
- * game's RPCs rewrite on every accepted move. `gamePageCtx.ts` beside this file
+ * game's RPCs rewrite on every accepted move. `playAreaLoaderProps.ts` beside this file
  * documents that convention and hands a PlayArea the status it reads from.
  *
  * Gives back an empty array when the field is missing or is not an array. That

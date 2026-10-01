@@ -27,7 +27,7 @@ export type GameRow = Pick<
  *
  * Returns:
  *  - `game`: the `games` row (`GameRow`); null once the load finds no row.
- *    The play state is `common.games`', and arrives via GamePageCtx
+ *    The play state is `common.games`', and arrives via PlayAreaLoaderProps
  *  - `loading`: true until the first load completes
  *  - `failure`: the envelope behind a failed read, for the loader to render
  *
@@ -35,7 +35,7 @@ export type GameRow = Pick<
  * any `codenamesduet.games` event, plus on every SUBSCRIBED status.
  *
  * The seated players are not read here: the loader seats the row's two ids
- * from the profiles `GamePageCtx` already holds (`lib/seats.ts`). `useBoard`
+ * from the profiles `PlayAreaLoaderProps` already holds (`lib/seats.ts`). `useBoard`
  * reads the words and the events on a channel of its own; the loader runs
  * both. Two hooks rather than one so each refetches only on its own tables:
  * an agent found mid-turn moves the board and the log but not the turn.

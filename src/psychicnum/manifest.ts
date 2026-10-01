@@ -34,7 +34,7 @@ import logoUrl from './logo.svg?url'
  *   - `name` shown in titles and on the Start button.
  *   - `mode` declaration, which the club page reads (see
  *     GameManifest.mode in src/common/manifest/gameManifest.ts);
- *     the game page reads the row's own, `GamePageCtx.mode`.
+ *     the game page reads the row's own, `PlayAreaLoaderProps.mode`.
  *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
  *     requires an opposing player (`[2, 6]`).
  *   - `labelFor`: the ended game's label reads differently per mode.
@@ -53,7 +53,7 @@ const helpLoader = lazy(() =>
   import('./components/Help').then((m) => ({ default: m.Help })),
 )
 
-// PlayArea is shared; it reads `mode` (`GamePageCtx`) for what differs.
+// PlayArea is shared; it reads `mode` (`PlayAreaLoaderProps`) for what differs.
 const playAreaLoader = lazy(() =>
   import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )

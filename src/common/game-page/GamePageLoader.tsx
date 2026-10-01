@@ -5,7 +5,15 @@ import { EnvelopeErrorPage } from '../error-page/ErrorPage'
 import { useCommonGame } from './useCommonGame'
 import { GamePage } from './GamePage'
 import { NoSuchGamePage } from './NoSuchGamePage'
-import type { GameShellProps } from './GamePageGate'
+import type { Session } from '@supabase/supabase-js'
+import type { GameManifest } from '../manifest/gameManifest'
+
+/** What the gate hands on once the URL names a real game. */
+type Props = {
+  gameId: string
+  authSession: Session
+  manifest: GameManifest
+}
 
 /**
  * The game's shared state, loaded — and the pages it can end in instead:
@@ -26,7 +34,7 @@ import type { GameShellProps } from './GamePageGate'
  *
  * Takes what the route hands down and renders nothing of its own.
  */
-export function GamePageLoader({ gameId, authSession, manifest }: GameShellProps) {
+export function GamePageLoader({ gameId, authSession, manifest }: Props) {
   const { cg, resubscribeCount, loading, failure } =
     useCommonGame(gameId, authSession, manifest)
 
@@ -44,7 +52,6 @@ export function GamePageLoader({ gameId, authSession, manifest }: GameShellProps
 
   return (
     <GamePage
-      gameId={gameId}
       authSession={authSession}
       manifest={manifest}
       cg={cg}

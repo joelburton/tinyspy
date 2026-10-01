@@ -54,7 +54,7 @@ shows them everything the team sees.
 holds nothing open. A spectator closing the tab is a non-event — correct, and
 worth pinning if spectating becomes a feature.
 
-**The shell.** `GamePageCtx.players` is the roster; a game learns it is being
+**The shell.** `PlayAreaLoaderProps.players` is the roster; a game learns it is being
 watched only by failing to find itself there. `isMyTurn` is derived from the
 turn pointer and is true in a free-for-all game — for a spectator too, which is
 why every game's `readOnly` also checks the self row. The event-log picker
@@ -100,7 +100,7 @@ would be watching rather than playing.
 
 - Do not remove the four games' notices, and do not add a fifth. wordle's stays
   by Joel's word (2026-09-22).
-- Do not write `isSpectator` into `GamePageCtx` from inside a game area; that is
+- Do not write `isSpectator` into `PlayAreaLoaderProps` from inside a game area; that is
   question 1, and it is the shell's.
 - Do not file the same item into four `todo.md`s. This file is the one home.
 - Where code has to guess what a watcher gets, the comment carries the tag

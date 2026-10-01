@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
@@ -99,7 +99,7 @@ type RevealAnswer = { result: 'revealed'; solved: boolean }
  *  call sites. */
 type ExportAnswer = { result: 'exported'; solution: (string[] | null)[][] }
 
-export function PlayArea(ctx: GamePageCtx) {
+export function PlayArea(ctx: PlayAreaLoaderProps) {
   const { gameId, players, isTerminal, isConceded, isLocallyTerminal, isBoardInteractive, playState, authSession, status, menu, clubHandle } = ctx
   const myId = authSession.user.id
 

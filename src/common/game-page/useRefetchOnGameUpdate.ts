@@ -18,7 +18,7 @@ type RefetchOnGameUpdateOptions = {
 /**
  * Keep a game's own tables fresh off the page's `common.games` row. Reach for
  * it from a game's `useGame`: it runs `load` on mount, and again whenever
- * `commonGameUpdatedAt` or `resubscribeCount` changes (both `GamePageCtx`).
+ * `commonGameUpdatedAt` or `resubscribeCount` changes (both `PlayAreaLoaderProps`).
  *
  * The game keeps no subscription of its own. Every move writes `common.games`
  * through the game's status builder in the same transaction as its own tables,

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Loading } from '../loading/Loading'
 import { EnvelopeErrorPage, ErrorPage } from '../error-page/ErrorPage'
-import type { GameManifest } from '../manifest/gameManifest'
 import { diagnosticsLine } from '../supabase/dbLog'
 import { manifestFor } from '@/gametypes'
 import { db as commonDb } from '../supabase/db'
@@ -13,25 +12,6 @@ import type { NotOkEnvelope } from '../supabase/envelope'
 import { GamePageLoader } from './GamePageLoader'
 import { NoSuchGamePage } from './NoSuchGamePage'
 import { reloadIfStaleBuild } from '../boot/reloadOnStaleBuild'
-
-/**
- * What the gate hands down once the URL has survived it: the loader takes
- * these, and passes them to the page alongside the state it loaded. Nothing
- * else is supplied from outside — the play surface and its wrappers are
- * assembled by `GamePage` off the manifest.
- */
-export type GameShellProps = {
-  // The game's id. Drives every common-side data read (common.games,
-  // common.game_players) and the channel name.
-  gameId: string
-  // Authenticated session, threaded into useCommonGame for presence tracking
-  // and re-exposed via ctx to PlayArea.
-  authSession: Session
-  // The game's manifest, resolved by the gate — so below here it is a
-  // manifest, not a lookup that might miss. Every per-game thing the shell
-  // draws or dispatches comes off it.
-  manifest: GameManifest
-}
 
 type Props = {
   // The gametype EXACTLY as the URL spelled it. Matched case-insensitively but

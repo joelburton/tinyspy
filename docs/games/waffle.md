@@ -302,7 +302,7 @@ members.
   manifest's `startGameInClub` uses (via `runEdgeFn`), then jumps the creator in
   via `ctx.goToFollowUpGame`; peers arrive via the game-invitation toast, and
   this game un-currents into the club's games list (resumable), so there's no
-  confirm. `clubHandle` + `goToFollowUpGame` are `GamePageCtx` fields (see
+  confirm. `clubHandle` + `goToFollowUpGame` are `PlayAreaLoaderProps` fields (see
   [common.md](../common.md)), so every game offers the same "same again!" item.
 - ~~**`reveal_answer(game)`**~~ — **removed 2026-08-03.** It was a mid-game
   give-up that overwrote every `waffle.players.board` with the solution and then

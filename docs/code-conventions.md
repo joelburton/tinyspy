@@ -120,7 +120,7 @@ onChange={({ coopStyle, firstTurnUserId }) =>
 
 **A DB-shaped type's name ends in `Row`** (`GameRow`, `PlayerRow`, and aliases
 of generated `Database[…]['Row']` types); a TS-native shape takes whatever names
-its role (`ClubListEntry`, `GamePageCtx`, `GameManifest`). A snake_case type
+its role (`ClubListEntry`, `PlayAreaLoaderProps`, `GameManifest`). A snake_case type
 without `Row` invites readers to forget they are touching schema-bound data.
 
 | kind | convention | examples |
@@ -248,7 +248,7 @@ Which folder a shared file goes in is [common-folders.md](common-folders.md).
 **Per-game `useGame` — pick the template by seats.** A **fixed-seat** game
 (codenamesduet's `user_a_id` / `user_b_id`) fetches its own roster, because the
 seat ⇄ user mapping lives on its row. An **open N-player** game reads `players`
-from `GamePageCtx`; `useCommonGame` has already loaded it. Don't mix them.
+from `PlayAreaLoaderProps`; `useCommonGame` has already loaded it. Don't mix them.
 
 ### Import direction
 

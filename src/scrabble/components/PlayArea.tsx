@@ -3,7 +3,7 @@
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import type { Actor, Member } from '@/common/members/member'
 import { cls } from '@/common/utils/cls'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
@@ -79,7 +79,7 @@ export function PlayArea({
   brand,
   title,
   globalFeedbackSlot,
-}: GamePageCtx) {
+}: PlayAreaLoaderProps) {
   // The board is worked by clicks and typing, so Tab has nowhere to go here —
   // and an empty ring is what keeps it from walking out to the browser.
   useTabRing([])

@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
@@ -77,7 +77,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * holds, and renders `<PlayArea>` only once there is a game to draw. Named by
  * the manifest's lazy line.
  */
-export function PlayAreaLoader(ctx: GamePageCtx) {
+export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   const { game, loading: gameLoading, failure: gameFailure } = useGame(ctx.gameId)
   // Showing the partner's key is a display choice, but `useBoard` is what turns
   // it into `peerKey`, so the choice is held here, above the read.
@@ -121,14 +121,14 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
       peerAgentsDone={board.peerAgentsDone}
       peerKeyShown={peerKeyReveal.revealed}
       togglePeerKey={peerKeyReveal.toggle}
-      // The one place the setup blob is narrowed. `GamePageCtx` types it
+      // The one place the setup blob is narrowed. `PlayAreaLoaderProps` types it
       // `Record<string, unknown>` for every game; below, it is this game's.
       setup={ctx.setup as unknown as CodenamesduetSetup}
     />
   )
 }
 
-type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
+type PlayAreaProps = Omit<PlayAreaLoaderProps, 'setup'> & {
   // The loaded game row: the turn pointer and the two seats. Non-null by
   // construction — the loader holds the gates.
   game: GameRow

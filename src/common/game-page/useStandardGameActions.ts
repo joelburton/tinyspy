@@ -46,7 +46,7 @@ type StandardGameActionsOptions = {
   mode: 'coop' | 'compete'
   // I'm out of the race — conceded, lost (out of budget, eliminated), or
   // finished while the others play on. Never true in coop. The page's own
-  // value (`GamePageCtx`).
+  // value (`PlayAreaLoaderProps`).
   isLocallyTerminal: boolean
 
   // The game's below-board slot, where a not-ok answer is shown.

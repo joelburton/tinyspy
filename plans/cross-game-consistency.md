@@ -288,7 +288,7 @@ where it fixes a behavior:
    backup — which holds no conceded rows, so the backfill is a no-op there
    today; drift none. Not yet deployed.
 3. ~~**The shared page.**~~ Done 2026-09-24: `useCommonGame` reads
-   `turn_seat` and returns the eight standing terms, and `GamePageCtx` hands
+   `turn_seat` and returns the eight standing terms, and `PlayAreaLoaderProps` hands
    them to every PlayArea; `isMyTurn` has the new meaning, and the pointer is
    `turnHolderId` everywhere (`currentTurnUserId` renamed in all sixteen games
    and `TurnStatusLine`, nothing else changed in them). `draftsOffTurn` is an

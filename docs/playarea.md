@@ -238,7 +238,7 @@ two coordinators: `PlayArea` above `PlayerBoard`. See
 Two components in `PlayArea.tsx`, and the manifest lazy-loads the first:
 
 ```tsx
-export function PlayAreaLoader(ctx: GamePageCtx) {
+export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   const { game, …, loading, failure } = useGame(ctx.gameId)
 
   if (loading) return <Loading />
@@ -248,7 +248,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   return <PlayArea {...ctx} game={game} setup={ctx.setup as unknown as <Game>Setup} />
 }
 
-function PlayArea({ game, … }: PlayAreaProps) { … }
+function PlayArea({ game, … }: PlayAreaLoaderProps) { … }
 ```
 
 The names are `GamePageLoader` → `GamePage`'s, one layer down. **The three gates
@@ -263,7 +263,7 @@ data that has not arrived.
   `GamePageGate` and `GamePageLoader` have already checked the common row, so
   reaching this gate means the game's own row is missing.
 - **The cast happens once**, in the loader's JSX, so the inner component takes
-  the game's own setup type via `Omit<GamePageCtx, 'setup'>`.
+  the game's own setup type via `Omit<PlayAreaLoaderProps, 'setup'>`.
 
 While the read is out, the header menu has no game rows and `+` does nothing,
 which is intended: a menu row for a game not yet loaded could only gray itself

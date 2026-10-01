@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useBindAction, type BoundAction } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -45,7 +45,7 @@ export type WordleActions = {
   actStopGame: BoundAction
   // Print the board and the log; the menu's alone, with no twin in the row.
   actPrintBoard: BoundAction
-  // Leave for the club page — the shell's own, off `GamePageCtx.menu`, carried
+  // Leave for the club page — the shell's own, off `PlayAreaLoaderProps.menu`, carried
   // here so a surface that places the row has every action in one object.
   actBackToClub: BoundAction
 }
@@ -78,7 +78,7 @@ export function useBindActionsAndPublishMenu({
   selfId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
-} & Pick<GamePageCtx, 'clubHandle' | 'goToFollowUpGame' | 'menu' | 'brand'>): {
+} & Pick<PlayAreaLoaderProps, 'clubHandle' | 'goToFollowUpGame' | 'menu' | 'brand'>): {
   actions: WordleActions
   answerShown: boolean
 } {

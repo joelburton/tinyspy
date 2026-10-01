@@ -72,7 +72,7 @@ what is the game:
   shared pair" and "Restart"; the menu is "GamePage menu" in two files and
   "Header menu" in one and unheaded in the rest.
 - **Fifteen files cast `setup as XSetup`** (crosswords is the exception). The
-  cast's source is `GamePageCtx.setup: Record<string, unknown>`, not `useGame`
+  cast's source is `PlayAreaLoaderProps.setup: Record<string, unknown>`, not `useGame`
   — the first survey misplaced it — and a game does it two or three times.
 - **Fifteen files end with a pure `buildOver`** (50 to 140 lines) that no hook
   touches, and no game's `lib/` has a home for it yet.

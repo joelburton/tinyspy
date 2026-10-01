@@ -7,7 +7,7 @@ import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import { Loading } from '@/common/loading/Loading'
 import { NoSuchGamePage } from '@/common/game-page/NoSuchGamePage'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { colorByUserIdMap } from '@/common/members/memberColor'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -57,7 +57,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * that binds them mounts with it — a row for a game not yet read could only
  * gray itself or lie.
  */
-export function PlayAreaLoader(ctx: GamePageCtx) {
+export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   const {
     game,
     guesses,
@@ -97,14 +97,14 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
       unionTiles={unionTiles}
       toggleTile={toggleTile}
       sendClear={sendClear}
-      // The one place the setup blob is narrowed. `GamePageCtx` types it
+      // The one place the setup blob is narrowed. `PlayAreaLoaderProps` types it
       // `Record<string, unknown>` for every game; below, it is this game's.
       setup={ctx.setup as unknown as ConnectionsSetup}
     />
   )
 }
 
-type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
+type PlayAreaProps = Omit<PlayAreaLoaderProps, 'setup'> & {
   // The loaded game row. Non-null by construction — the loader holds the gates.
   game: ConnectionsGame
   // This player's guess log (`connections.events`); RLS scopes it in compete.

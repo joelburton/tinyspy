@@ -16,7 +16,6 @@ import { reportUnhandled } from '../supabase/dbEnvelope'
 import type { CommonGame } from './useCommonGame'
 
 type BoundPageActionsOptions = {
-  gameId: string
   manifest: GameManifest
   cg: CommonGame
   // Where the overlay's Stop says a refusal.
@@ -40,7 +39,6 @@ type BoundPageActionsOptions = {
  * the game.
  */
 export function useBoundPageActions({
-  gameId,
   manifest,
   cg,
   globalFeedbackSlot,
@@ -88,7 +86,7 @@ export function useBoundPageActions({
   })
 
   const stopTheGameFromTheOverlay = async () => {
-    const res = await manifest.stopGame(gameId)
+    const res = await manifest.stopGame(cg.id)
     if (res.type === 'not-ok') {
       globalFeedbackSlot.show(FeedbackMessage.notOk(res))
     } else if (res.type === 'ok' && res.data?.result === 'ended') {

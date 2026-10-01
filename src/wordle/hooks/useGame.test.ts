@@ -19,7 +19,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Envelope } from '@/common/supabase/envelope'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
 import type { WordlePlayerStatus } from '../lib/statuses'
 
@@ -90,7 +90,7 @@ const CTX = {
   isBoardInteractive: true,
   commonGameUpdatedAt: 't1',
   resubscribeCount: 0,
-} as unknown as GamePageCtx
+} as unknown as PlayAreaLoaderProps
 
 function ok<T>(data: T): Envelope<T> {
   return {
@@ -130,7 +130,7 @@ const ALL_GOOD = {
 
 /** Mount with these page values, run one refetch, and hand back what the hook
  *  says afterwards. */
-async function load(ctx: GamePageCtx = CTX) {
+async function load(ctx: PlayAreaLoaderProps = CTX) {
   const { result } = renderHook(() => useGame(ctx))
   await act(async () => {
     await refetch.load!({ isCurrent: () => true })
@@ -185,7 +185,7 @@ describe('wordle useGame — a load that worked', () => {
         gp('u1', 'me', 'red', { player_status: playerStatus(3, 'reached_goal', true) }),
         CTX.players[1]!,
       ],
-    } as GamePageCtx
+    } as PlayAreaLoaderProps
     const gd = (await load(tied)).current.gd!
     expect(gd.playersById.u1!.isTieBrokenByClock).toBe(true)
     expect(gd.playersById.u2!.isTieBrokenByClock).toBeNull()
@@ -195,7 +195,7 @@ describe('wordle useGame — a load that worked', () => {
     answer(ALL_GOOD)
     expect((await load()).current.gd?.boardGuesses).toEqual([MY_GUESS])
     answer(ALL_GOOD)
-    const coop = { ...CTX, mode: 'coop' } as GamePageCtx
+    const coop = { ...CTX, mode: 'coop' } as PlayAreaLoaderProps
     expect((await load(coop)).current.gd?.boardGuesses).toEqual([MY_GUESS, THEIR_GUESS])
   })
 
@@ -211,7 +211,7 @@ describe('wordle useGame — a load that worked', () => {
         gp('u1', 'me', 'red', { player_status: playerStatus(4) }),
         gp('u2', 'moth', 'blue', { player_status: playerStatus(4) }),
       ],
-    } as GamePageCtx
+    } as PlayAreaLoaderProps
     expect((await load(coop)).current.gd?.readout.guessesUsed).toBe(4)
   })
 
@@ -219,7 +219,7 @@ describe('wordle useGame — a load that worked', () => {
   it('reads the budget as spent for a club member watching a compete game', async () => {
     answer(ALL_GOOD)
     const watching =
-      { ...CTX, authSession: { user: { id: 'u9' } }, isPlayer: false } as unknown as GamePageCtx
+      { ...CTX, authSession: { user: { id: 'u9' } }, isPlayer: false } as unknown as PlayAreaLoaderProps
     const gd = (await load(watching)).current.gd!
     expect(gd.me).toBeNull()
     expect(gd.readout.guessesUsed).toBe(6)
@@ -231,7 +231,7 @@ describe('wordle useGame — a load that worked', () => {
       ...CTX,
       turnHolderId: 'u2',
       players: [CTX.players[0]!, { ...CTX.players[1]!, outcome: 'won', final_ranking: 1 }],
-    } as GamePageCtx
+    } as PlayAreaLoaderProps
     const gd = (await load(won)).current.gd!
     expect(gd.winner?.username).toBe('moth')
     expect(gd.turnHolder?.username).toBe('moth')
@@ -247,7 +247,7 @@ describe('wordle useGame — a load that worked', () => {
         gp('u1', 'me', 'red', { solved_at: '2026-09-01T00:02:00Z', player_status: playerStatus(3) }),
         CTX.players[1]!,
       ],
-    } as GamePageCtx
+    } as PlayAreaLoaderProps
     expect((await load(solved)).current.gd?.standing.hasSolved).toBe(true)
   })
 
@@ -259,7 +259,7 @@ describe('wordle useGame — a load that worked', () => {
       gameEnding: {
         reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u2',
       },
-    } as GamePageCtx
+    } as PlayAreaLoaderProps
     expect((await load(coopWon)).current.gd?.standing.hasSolved).toBe(true)
   })
 

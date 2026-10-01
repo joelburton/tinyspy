@@ -1,7 +1,7 @@
 // cs-blessed-psychicnum
 
 import { cls } from '@/common/utils/cls'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { peerAnswerMessage } from '../lib/answer'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
@@ -39,7 +39,7 @@ import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
  * that binds them mounts with it — a row for a game not yet read could only
  * gray itself or lie.
  */
-export function PlayAreaLoader(ctx: GamePageCtx) {
+export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   const { gd, loading, failure } = useGame(ctx)
 
   if (loading) return <Loading />
@@ -73,7 +73,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
 }
 
 type PlayAreaProps = Pick<
-  GamePageCtx,
+  PlayAreaLoaderProps,
   | 'authSession'
   | 'globalFeedbackSlot'
   | 'clubHandle'

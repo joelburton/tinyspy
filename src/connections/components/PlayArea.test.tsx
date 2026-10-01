@@ -15,7 +15,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
@@ -116,9 +116,9 @@ function loaded(over: Partial<GameHook> = {}): GameHook {
  *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
  *  the page derives it (`whereIStand`), so a test sets up the facts and never
  *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
+function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as GamePageCtx['authSession'],
+    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
     players: [gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased: false,
@@ -701,7 +701,7 @@ describe('connections PlayArea — picks, identity, and the guess in flight', ()
       created_at: '2026-06-15T00:01:00Z',
     })
     /** Submit a wrong guess in a two-player coop game and confirm it landed. */
-    async function guessWrongly(ctx: GamePageCtx) {
+    async function guessWrongly(ctx: PlayAreaLoaderProps) {
       const user = userEvent.setup()
       h.result = loaded({
         game: game('coop'),

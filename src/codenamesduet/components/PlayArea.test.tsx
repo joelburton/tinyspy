@@ -22,7 +22,7 @@ import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import shared from '@/common/game-page/playArea.module.css'
@@ -125,7 +125,7 @@ const control = (id: string) => document.querySelector<HTMLButtonElement>(`butto
 
 /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would
  *  draw, keyed by action id. */
-function menuItems(ctx: GamePageCtx) {
+function menuItems(ctx: PlayAreaLoaderProps) {
   const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
   const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
   return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
@@ -160,13 +160,13 @@ function pointerFor(playState: string): string | null {
  *  roster, `isTerminal`, a turn order, and the pointer the server would write
  *  for the fixture's game state — exactly as the page derives it
  *  (`whereIStand`), unless a test sets `turnHolderId` itself. */
-function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
+function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
-    authSession: { user: { id: 'me' } } as unknown as GamePageCtx['authSession'],
+    authSession: { user: { id: 'me' } } as unknown as PlayAreaLoaderProps['authSession'],
     players: [
       { user_id: 'me', username: 'me', color: 'red' },
       { user_id: 'peer', username: 'peer', color: 'blue' },
-    ] as GamePageCtx['players'],
+    ] as PlayAreaLoaderProps['players'],
     playState: 'playing',
     isTerminal: false,
     isTurnBased: true,
@@ -198,7 +198,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       turnHolderId,
       draftsOffTurn: false,
     }),
-  } as unknown as GamePageCtx
+  } as unknown as PlayAreaLoaderProps
 }
 
 beforeEach(() => {
@@ -494,7 +494,7 @@ describe('codenamesduet PlayArea — the action row', () => {
  * as it holds, and — once, as it lands — the partner asking the AI for a clue.
  */
 describe('codenamesduet PlayArea — the partner, in the header', () => {
-  const texts = (ctx: GamePageCtx) =>
+  const texts = (ctx: PlayAreaLoaderProps) =>
     ctx.globalFeedbackSlot.peek().map((entry) => entry.message.text)
 
   it('says what the partner is doing now', () => {
@@ -508,7 +508,7 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     expect(texts(ctx)).toContain('waiting for you')
 
-    const over: GamePageCtx = { ...ctx, playState: 'lost', status: { reason: 'turns' }, isTerminal: true }
+    const over: PlayAreaLoaderProps = { ...ctx, playState: 'lost', status: { reason: 'turns' }, isTerminal: true }
     rerender(<PlayAreaLoader {...over} />)
     expect(texts(over)).not.toContain('waiting for you')
   })

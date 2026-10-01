@@ -365,7 +365,7 @@ describes — a loader that gates on the three ways a game can fail to load,
 then `PlayArea` in the eight sections.
 
 ```
-<PlayAreaLoader {...GamePageCtx}>        useGame (gd), and the three gates
+<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame (gd), and the three gates
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the typed word and submit_guess
         │     ├── Board                  max_guesses rows

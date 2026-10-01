@@ -114,7 +114,7 @@ export function useCommonGame(
   // The game; null while loading, when a read failed, or when it is gone.
   cg: CommonGame | null
   // Counts the channel's joins and attach confirmations; see
-  // `GamePageCtx.resubscribeCount`.
+  // `PlayAreaLoaderProps.resubscribeCount`.
   resubscribeCount: number
   // True until the first read settles, however it settles.
   loading: boolean

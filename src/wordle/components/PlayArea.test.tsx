@@ -20,7 +20,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
@@ -54,7 +54,7 @@ vi.mock('../hooks/useGame', async (importOriginal) => {
   const { makeSetupRows } = await import('../lib/setupRows')
   return {
     ...real,
-    useGame: (ctx: GamePageCtx) => {
+    useGame: (ctx: PlayAreaLoaderProps) => {
       const playersById = real.makePlayersById(ctx.players)
       const setupRows = makeSetupRows(real.readSetup(ctx), ctx.mode, ctx.players)
       return {
@@ -143,9 +143,9 @@ const SOMEONE_WON: GameEnding = {
  *  `turnHolderId` — exactly as the page derives it (`whereIStand`), so a test
  *  sets up the facts and never hand-writes an answer the page could not
  *  give. */
-function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
+function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as GamePageCtx['authSession'],
+    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
     isTurnBased: false,
     turnHolderId: null,
     gameEnding: null,
@@ -185,7 +185,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       turnHolderId: facts.turnHolderId,
       draftsOffTurn: false,
     }),
-  } as unknown as GamePageCtx
+  } as unknown as PlayAreaLoaderProps
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
@@ -432,7 +432,7 @@ describe('wordle PlayArea — the ending', () => {
   /** The game sections most recently pushed to the menu, as the ROWS the menu
    *  would draw — a row is a bound action now, so its words, glyph and
    *  availability come from the action rather than from the list. */
-  const menuItems = (ctx: GamePageCtx) => {
+  const menuItems = (ctx: PlayAreaLoaderProps) => {
     const calls = (ctx.menu.setGameSections as ReturnType<typeof vi.fn>).mock.calls
     const sections = (calls.at(-1)![0] ?? []) as MenuSection[]
     return sections.flatMap((s) => s.items).map(menuRow)
@@ -542,7 +542,7 @@ describe('wordle PlayArea — the ending', () => {
   // SPECTATING: a guess until the design settles what a watcher sees.
   it('does not celebrate for a club member watching the team win', () => {
     h.loaded = loaded(null)
-    const watching = { authSession: { user: { id: 'u9' } } as unknown as GamePageCtx['authSession'] }
+    const watching = { authSession: { user: { id: 'u9' } } as unknown as PlayAreaLoaderProps['authSession'] }
     const { rerender } = render(<PlayAreaLoader {...makeCtx(watching)} />)
     h.loaded = loaded('crane')
     rerender(
@@ -711,7 +711,7 @@ describe('wordle PlayArea — input gating', () => {
 
 describe('wordle PlayArea — peer narration (global header)', () => {
   /** A real global slot with a spy on its one door, handed to the ctx. */
-  function narrationCtx(over: Partial<GamePageCtx> = {}) {
+  function narrationCtx(over: Partial<PlayAreaLoaderProps> = {}) {
     const globalFeedbackSlot = createFeedbackSlot('global')
     const shown = vi.spyOn(globalFeedbackSlot, 'show')
     return { ctx: makeCtx({ globalFeedbackSlot, players: twoMembers, ...over }), shown }
@@ -797,7 +797,7 @@ describe('wordle PlayArea — event-log picker label', () => {
   it("names the player (not the viewer) when a club member spectates a solo game", async () => {
     // u2 (a club member, not in the game) is watching u1's solo game.
     const ctx = makeCtx({
-      authSession: { user: { id: 'u2' } } as unknown as GamePageCtx['authSession'],
+      authSession: { user: { id: 'u2' } } as unknown as PlayAreaLoaderProps['authSession'],
       players: [gp('u1', 'joel', 'red')],
     })
     render(<PlayAreaLoader {...ctx} />)

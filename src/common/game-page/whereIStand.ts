@@ -2,7 +2,7 @@
 
 import type { GamePlayer } from '../members/member'
 
-/** Where the viewing player stands — the terms `GamePageCtx` hands every
+/** Where the viewing player stands — the terms `PlayAreaLoaderProps` hands every
  *  PlayArea. Each is defined in docs/win-lose.md → Where a player stands. */
 export type Standing = {
   isPlayer: boolean

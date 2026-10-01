@@ -4,7 +4,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { buildStackdownPrintModel } from '../pdf/model'
@@ -114,7 +114,7 @@ export function PlayArea({
   menu,
   brand,
   title,
-}: GamePageCtx) {
+}: PlayAreaLoaderProps) {
   // The board is worked by clicks and typing, so Tab has nowhere to go here —
   // and an empty ring is what keeps it from walking out to the browser.
   useTabRing([])

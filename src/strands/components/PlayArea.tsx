@@ -6,7 +6,7 @@ import { cls } from '@/common/utils/cls'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import { makeSetupRows } from '../lib/setupRows'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
@@ -189,7 +189,7 @@ function buildOver({
  * dictionary, so it *cannot* classify. See the migration header for why that
  * costs nothing — the dictionary lookup forces a round trip regardless.
  */
-export function PlayArea(ctx: GamePageCtx) {
+export function PlayArea(ctx: PlayAreaLoaderProps) {
   const {
     gameId, isTerminal, isConceded, isLocallyTerminal, isStillPlaying, playState, players, authSession,
     setup, clubHandle, goToFollowUpGame, menu, brand, title,

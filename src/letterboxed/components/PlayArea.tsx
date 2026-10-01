@@ -5,7 +5,7 @@ import { useMark } from '@/common/board-marks/useMark'
 import { NO_TIMER } from '@/common/board-marks/feedbackTiming'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
@@ -101,7 +101,7 @@ type RungAnswer = {
   word: string
 }
 
-export function PlayArea(ctx: GamePageCtx) {
+export function PlayArea(ctx: PlayAreaLoaderProps) {
   const {
     gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, authSession, status,
     isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,

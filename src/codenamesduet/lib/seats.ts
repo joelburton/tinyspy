@@ -14,7 +14,7 @@ export type Player = Member & {
 
 /**
  * The two seated players, A then B: the game row's seat ids, dressed in the
- * profiles the shell already holds for this game's players (`GamePageCtx`'s
+ * profiles the shell already holds for this game's players (`PlayAreaLoaderProps`'s
  * `players`). Null when either id is not among them, which `create_game`
  * never produces — the loader treats it as no game to draw.
  */

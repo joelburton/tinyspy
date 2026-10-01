@@ -7,7 +7,8 @@ import { useTurnBell } from '../sounds/useTurnBell'
 import { useIsMobile } from '../mobile/useIsMobile'
 import { setIsInfoSheetOpen, useIsInfoSheetOpen } from '../info-sheet/infoSheetStore'
 import type { CommonGame } from './useCommonGame'
-import type { GameShellProps } from './GamePageGate'
+import type { Session } from '@supabase/supabase-js'
+import type { GameManifest } from '../manifest/gameManifest'
 import { useBoundPageActions } from './useBoundPageActions'
 import { useClubWhileInGame } from './useClubWhileInGame'
 import { useSubmitTimeoutOnExpiry } from './useSubmitTimeoutOnExpiry'
@@ -27,13 +28,12 @@ import { PlayAreaErrorBoundary } from './PlayAreaErrorBoundary'
 import { Loading } from '../loading/Loading'
 import styles from './GamePage.module.css'
 
-/** What the gate resolved (`GameShellProps`) plus what the loader waited for. */
-type Props = GameShellProps & {
-  // The game, loaded: a value, not a maybe-value — the loader does not render
-  // this page until it has one, which is most of why the loader exists.
+type Props = {
+  // The game, loaded.
   cg: CommonGame
-  // The channel's joins and attach confirmations, handed on to the PlayArea;
-  // see `GamePageCtx`.
+  manifest: GameManifest
+  authSession: Session
+  // The channel's joins and attach confirmations, handed on to the PlayArea.
   resubscribeCount: number
 }
 
@@ -48,7 +48,7 @@ type Props = GameShellProps & {
  * file never waits for anything.
  *
  * The hole in the middle is the manifest's `PlayArea`, rendered with a
- * `GamePageCtx` while the game is unpaused; `PauseBoundary` unmounts it to show
+ * `PlayAreaLoaderProps` while the game is unpaused; `PauseBoundary` unmounts it to show
  * the overlay, which is why anything that must survive a pause lives out here
  * or in the DB.
  *
@@ -56,7 +56,6 @@ type Props = GameShellProps & {
  * why the menu's sections live in a store.
  */
 export function GamePage({
-  gameId,
   authSession,
   manifest,
   cg,
@@ -66,16 +65,16 @@ export function GamePage({
   const globalFeedbackSlot = useFeedbackSlot('global')
   const clubMembers = useClubWhileInGame({
     clubHandle: cg.club_handle,
-    gameId,
+    gameId: cg.id,
     myId: authSession.user.id,
     globalFeedbackSlot,
   })
 
   const { menu, actBackToClub, actStopGame, goToFollowUpGame, isHelpOpen, closeHelp } =
-    useBoundPageActions({ gameId, manifest, cg, globalFeedbackSlot })
+    useBoundPageActions({ manifest, cg, globalFeedbackSlot })
 
   useSubmitTimeoutOnExpiry({
-    gameId,
+    gameId: cg.id,
     manifest,
     expired: cg.timer.expired,
     paused: cg.pause.paused,
@@ -96,7 +95,7 @@ export function GamePage({
   // Each game opens on the board, whichever page the last one was left on.
   useEffect(function startOnTheBoard() {
     setIsInfoSheetOpen(false)
-  }, [gameId])
+  }, [cg.id])
 
   return (
     <div className={styles.pageHeaderAndPlaySurface}>
@@ -111,7 +110,11 @@ export function GamePage({
           </>
         }
       >
-        <GameHeaderMenu logo={<GameLogo manifest={manifest} />} accountSection={accountSection} />
+        <GameHeaderMenu
+          logo={<GameLogo manifest={manifest} />}
+          accountSection={accountSection}
+        />
+
         {!isInfoSheetOpen && (
           <>
             <div className={styles.panelToggles}>
@@ -133,7 +136,7 @@ export function GamePage({
             fails to load gets the error card. */}
         <PlayAreaSlotLog
           gametype={manifest.gametype}
-          gameId={gameId}
+          gameId={cg.id}
           isGameEnded={cg.isGameEnded}
         >
           <PlayAreaErrorBoundary>
@@ -145,7 +148,13 @@ export function GamePage({
                 cg={cg}
                 manifest={manifest}
                 authSession={authSession}
-                gameId={gameId}
+                resubscribeCount={resubscribeCount}
+                globalFeedbackSlot={globalFeedbackSlot}
+                menu={menu}
+                goToFollowUpGame={goToFollowUpGame}
+                // Legacy: copied off `cg` and `manifest` for the games not yet
+                // converted; they go once the last game reads the two above.
+                gameId={cg.id}
                 brand={manifest.name}
                 title={cg.title}
                 mode={cg.mode}
@@ -165,11 +174,7 @@ export function GamePage({
                 setup={cg.setup}
                 gameStatus={cg.game_status}
                 commonGameUpdatedAt={cg.updated_at}
-                resubscribeCount={resubscribeCount}
                 clubHandle={cg.club_handle}
-                goToFollowUpGame={goToFollowUpGame}
-                globalFeedbackSlot={globalFeedbackSlot}
-                menu={menu}
               />
             </Suspense>
           </PlayAreaErrorBoundary>
@@ -187,7 +192,7 @@ export function GamePage({
       {/* Outside the pause boundary, so it survives a pause. */}
       {manifest.scratchpad !== 'none' && (
         <GameScratchpadCompanion
-          gameId={gameId}
+          gameId={cg.id}
           ownerId={
             manifest.scratchpad === 'perPlayerInCompete' && manifest.mode === 'compete'
               ? authSession.user.id

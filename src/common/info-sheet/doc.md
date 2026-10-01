@@ -172,7 +172,7 @@ space it no longer has and the page scrolls.
 it live in different subtrees — the sheet inside each game's PlayArea, since the
 thing it wraps is that game's own `InfoCol`; the button in the shell's header,
 which sits above PlayArea and re-renders independently of it. Threading a boolean
-down would mean adding it to `GamePageCtx` and touching every game, and lifting
+down would mean adding it to `PlayAreaLoaderProps` and touching every game, and lifting
 the sheet out of PlayArea is not possible when the InfoCol it wraps is the game's.
 So it is `infoSheetStore`. One slot is safe for the same structural reason the app
 shows one game at a time (`is_current_view` — `docs/common.md`): exactly one

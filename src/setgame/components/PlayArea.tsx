@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
@@ -88,7 +88,7 @@ type LeaderRow = {
  * comes back `cards-gone` — a normal not-ok, not a fault: nobody did anything
  * wrong, and the cards visibly leaving is most of the explanation.
  */
-export function PlayArea(ctx: GamePageCtx) {
+export function PlayArea(ctx: PlayAreaLoaderProps) {
   const {
     gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, authSession, status,
     isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,

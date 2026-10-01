@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -76,7 +76,7 @@ type SubmittedWord =
   | { result: 'bonus'; points: number }
   | null
 
-export function PlayArea(ctx: GamePageCtx) {
+export function PlayArea(ctx: PlayAreaLoaderProps) {
   const { gameId, players, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive, playState, setup, clubHandle, goToFollowUpGame, authSession, status, globalFeedbackSlot, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
 

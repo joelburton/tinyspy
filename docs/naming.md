@@ -267,7 +267,7 @@ parallel and doesn't trip on a name change).
 
 - Inside club-context code (ClubPage's roster, ChatBody's name resolution,
   SetupGameModal's pickers): variable name is `members`, type is `Member[]`.
-- Inside game-context code (useCommonGame's return, GamePageCtx, PlayArea props,
+- Inside game-context code (useCommonGame's return, PlayAreaLoaderProps, PlayArea props,
   per-game GameEventLog props): variable name is `players`, type is `Player[]`.
 
 So `useCommonGame` returns `players: Member[]` — the type is `Member` (the

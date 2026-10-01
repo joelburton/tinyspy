@@ -16,7 +16,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
@@ -33,7 +33,7 @@ import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { PlayAreaLoader } from './PlayArea'
 
 /** A ctx whose global slot is real, with a spy on its one door. */
-function narrationCtx(over: Partial<GamePageCtx> = {}) {
+function narrationCtx(over: Partial<PlayAreaLoaderProps> = {}) {
   const globalFeedbackSlot = createFeedbackSlot('global')
   const shown = vi.spyOn(globalFeedbackSlot, 'show')
   return { ctx: makeCtx({ globalFeedbackSlot, ...over }), shown }
@@ -92,9 +92,9 @@ const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
  *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
  *  the page derives it (`whereIStand`), so a test sets up the facts and never
  *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
+function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as GamePageCtx['authSession'],
+    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
     players: [gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased: false,
@@ -127,7 +127,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       turnHolderId: facts.turnHolderId,
       draftsOffTurn: false,
     }),
-  } as unknown as GamePageCtx
+  } as unknown as PlayAreaLoaderProps
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
@@ -721,7 +721,7 @@ describe('spellingbee PlayArea — compete opponent rank climb', () => {
     found_words_score: 10 * rank_idx,
     found_words_count: rank_idx,
   })
-  const competeCtx = (rank_idx: number, over: Partial<GamePageCtx> = {}) =>
+  const competeCtx = (rank_idx: number, over: Partial<PlayAreaLoaderProps> = {}) =>
     makeCtx({
       players: twoMembers,
       setup: { required_band: 3, legal_band: 5, target_rank: 6, timer: { kind: 'none' } },

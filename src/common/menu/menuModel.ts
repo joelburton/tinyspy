@@ -10,7 +10,7 @@ import type { BoundAction } from '../actions/useBindAction'
  * Reach for this when you are BUILDING a menu: a game assembling its header
  * menu (via `buildGameMenu` next door), or any surface handing sections to
  * `<Menu>`. The imperative side — opening a menu, replacing a game's sections —
- * is `MenuApi`, which a PlayArea receives on its `GamePageCtx` rather than
+ * is `MenuApi`, which a PlayArea receives on its `PlayAreaLoaderProps` rather than
  * importing.
  *
  * Types only, plus `isSubmenu` and `menuRow`. The rendering lives in `Menu.tsx`
@@ -156,7 +156,7 @@ export type MenuHeader = {
 }
 
 /**
- * The menu as a PlayArea sees it, on its `GamePageCtx`: the three rows the
+ * The menu as a PlayArea sees it, on its `PlayAreaLoaderProps`: the three rows the
  * shell binds and the game cannot, and the one call that replaces the game's
  * sections. Hand the rows to `buildGameMenu` with the game's own, and push the
  * result through `setGameSections` from an effect whose cleanup pushes `[]`.

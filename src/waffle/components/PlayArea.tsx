@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { cls } from '@/common/utils/cls'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
@@ -104,7 +104,7 @@ export function PlayArea({
   clubHandle,
   goToFollowUpGame,
   menu,
-}: GamePageCtx) {
+}: PlayAreaLoaderProps) {
   // The board is worked by taps, drags and its own keys, so Tab has nowhere to
   // go here — and an empty ring is what keeps it from walking out to the
   // browser.

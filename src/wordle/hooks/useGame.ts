@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRefetchOnGameUpdate } from '@/common/game-page/useRefetchOnGameUpdate'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { solvedByMe } from '@/common/reveal/describeReveal'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
@@ -138,7 +138,7 @@ type GameRows = {
  * `common.game_players`.
  */
 export function makePlayersById(
-  gamePlayers: GamePageCtx['players'],
+  gamePlayers: PlayAreaLoaderProps['players'],
 ): Record<string, WordlePlayer> {
   const players = gamePlayers.map(function makePlayer(p): WordlePlayer {
     const playerStatus = p.player_status as unknown as WordlePlayerStatus
@@ -166,12 +166,12 @@ export function makePlayersById(
 }
 
 /** The page's `game_status`, as wordle's builder writes it. */
-export function readGameStatus(ctx: GamePageCtx): WordleGameStatus {
+export function readGameStatus(ctx: PlayAreaLoaderProps): WordleGameStatus {
   return ctx.gameStatus as unknown as WordleGameStatus
 }
 
 /** The page's setup blob, as wordle's setup form wrote it. */
-export function readSetup(ctx: GamePageCtx): WordleSetup {
+export function readSetup(ctx: PlayAreaLoaderProps): WordleSetup {
   return ctx.setup as unknown as WordleSetup
 }
 
@@ -183,7 +183,7 @@ export function readSetup(ctx: GamePageCtx): WordleSetup {
  * in, already built, so the caller can hold their identity across renders.
  */
 export function makeGameData(
-  ctx: GamePageCtx,
+  ctx: PlayAreaLoaderProps,
   rows: GameRows,
   playersById: Record<string, WordlePlayer>,
   setupRows: SetupRow[],
@@ -252,9 +252,9 @@ export function makeGameData(
  *
  * It keeps no subscription: `useRefetchOnGameUpdate` reruns the reads when
  * the page's `common.games` row moves (`commonGameUpdatedAt`) or the page's
- * channel rejoins (`resubscribeCount`), both from `GamePageCtx`.
+ * channel rejoins (`resubscribeCount`), both from `PlayAreaLoaderProps`.
  */
-export function useGame(ctx: GamePageCtx): {
+export function useGame(ctx: PlayAreaLoaderProps): {
   // Null until the reads are in, and when the game is absent.
   gd: GameData | null
   loading: boolean

@@ -20,7 +20,7 @@ export const MEDIUM_GRAY = 180 // minor lines only — turn-row dividers + a tab
 export type PrintHeader = {
   // The gametype BRAND ("RackAttack", "MothCubes") — never the codename.
   brand: string
-  // This game instance's title (`common.games.title`, via `GamePageCtx.title`).
+  // This game instance's title (`common.games.title`, via `PlayAreaLoaderProps.title`).
   gameTitle: string
   // Formatted date, shown small at the top-right.
   date: string

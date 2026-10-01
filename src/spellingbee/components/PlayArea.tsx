@@ -5,7 +5,7 @@ import { cls } from '@/common/utils/cls'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { db } from '../db'
 import { useGame, type FoundWordRow, type SpellingbeeGame } from '../hooks/useGame'
@@ -48,7 +48,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * `<PlayArea>` below start with a game in hand — no `game?.`, no `?? 'coop'`,
  * no guard inside a handler for a row that cannot be missing by then.
  */
-export function PlayAreaLoader(ctx: GamePageCtx) {
+export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(ctx.gameId)
 
   if (loading) return <Loading />
@@ -70,14 +70,14 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
       game={game}
       foundWords={foundWords}
       rowsLoaded={rowsLoaded}
-      // The one place the setup blob is narrowed. `GamePageCtx` types it
+      // The one place the setup blob is narrowed. `PlayAreaLoaderProps` types it
       // `Record<string, unknown>` for every game; below, it is this game's.
       setup={ctx.setup as unknown as SpellingbeeSetup}
     />
   )
 }
 
-type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
+type PlayAreaProps = Omit<PlayAreaLoaderProps, 'setup'> & {
   // The loaded game row: the board's letters, both word lists, the mode and the
   // required-band totals. Non-null by construction — the loader holds the gates.
   game: SpellingbeeGame
