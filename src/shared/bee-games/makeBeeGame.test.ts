@@ -71,7 +71,7 @@ vi.mock('@/common/realtime/useRealtimeRefetch', () => ({
   useRealtimeRefetch: (config: unknown) => refetchMock(config),
 }))
 
-import { clearFaultsForTest } from '@/common/faults/faultStore'
+import { clearFaultMessages_ForTest } from '@/common/faults/faultStore'
 import { makeBeeGame } from './makeBeeGame'
 
 // The factory param is a schema-name union; spellingbee is a real member.
@@ -96,7 +96,7 @@ beforeEach(() => {
   refetchMock.mockClear()
   // A failed read raises the fault modal centrally, so the cases below leave
   // one behind; clearing keeps them independent.
-  clearFaultsForTest()
+  clearFaultMessages_ForTest()
 })
 
 describe('makeBeeGame — header', () => {

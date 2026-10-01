@@ -51,5 +51,5 @@ export function closeDefinition(): void {
 /** The card on screen, or null when none is — `<DefinitionHost>` is the only
  *  reader. */
 export function useShownDefinitionCard(): ShownDefinitionCard | null {
-  return useSyncExternalStore(subscribe, getShownDefinitionCard, getShownDefinitionCard)
+  return useSyncExternalStore(subscribe, getShownDefinitionCard)
 }

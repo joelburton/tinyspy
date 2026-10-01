@@ -82,7 +82,7 @@ what is the game:
 **Changed since the first survey — the menu plumbing is done:**
 
 - `actionsRef`, its type, its refresh effect and `useGlobalKeyHandler` are gone
-  from every file. Every menu row is a **bound action** (`useBoundAction`),
+  from every file. Every menu row is a **bound action** (`useBindAction`),
   and `buildGameMenu({ menu, exits, extra })` frames Help + chat above and Back
   to club below. The 119 lines of ref ritual the first survey counted do not
   exist.
@@ -116,7 +116,7 @@ Suggest a move are button-only. Each may be right; neither says so.
 - **Two opposite conventions for a binding's `run` body.** psychicnum wraps
   its hint and spoiler in `useCallback` "because the bindings below close over
   them"; wordle's new-game is "a plain function, rebuilt every render: the
-  binding below reads it at click time". wordle is right: `useBoundAction`
+  binding below reads it at click time". wordle is right: `useBindAction`
   reads its live half through a ref refreshed every render, so a stable
   callback buys a binding nothing. `useCallback` counts run 0 (four files) to
   13 (crosswords).
@@ -186,7 +186,7 @@ does today with the loader split applied:
 6. **Narration** — `usePeerFeedback` and the game's own peer effects.
 7. **The turn-history viewer** — `useHistoryViewer` and the snapshot.
 8. **The commands, bound** — the shared trio, then the game's own, then New
-   game and Print; every `useBoundAction` in one place (crosswords already
+   game and Print; every `useBindAction` in one place (crosswords already
    heads it so).
 9. **The menu** — one `publishGameMenu` effect.
 10. **Render** — the render-time derivations, then the two columns.
@@ -289,7 +289,7 @@ todo entry predates and the `reveal` area added:
 
 ### 3.7 The actions — NEW: three per-game conventions to settle at psychicnum
 
-- **A `run` body is a plain function.** `useBoundAction` reads the live half
+- **A `run` body is a plain function.** `useBindAction` reads the live half
   through a ref it refreshes every render, so `useCallback` around a body
   exists only to satisfy a deps list that no longer exists. Drop the wrap
   where the binding is the only reader; keep it where something else (a child

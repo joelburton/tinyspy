@@ -61,7 +61,7 @@ type GuessAnswer =
  * page unmounts the surface when the run changes (common/game-page/doc.md).
  *
  * One guess is out at a time: Enter's run waits for `submitGuess`, and a bound
- * action neither runs nor draws live while its run is out (`useBoundAction`'s
+ * action neither runs nor draws live while its run is out (`useBindAction`'s
  * `pending`).
  */
 export function useSubmitGuess({

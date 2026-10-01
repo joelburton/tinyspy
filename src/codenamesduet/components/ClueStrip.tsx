@@ -9,10 +9,10 @@ import { DotActor, ActorDot } from '@/common/members/ActorMention'
 import { FormSubmitButton } from '@/common/buttons/FormSubmitButton'
 import { IconSubmit } from '@/common/icons/icons'
 import { ActionButton } from '@/common/actions/ActionButton'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { useComponentKeys } from '@/common/keyboard/componentKeys'
+import { useOfferComponentKeyGroups } from '@/common/keyboard/offeredComponentKeyGroupsStore'
 import { db } from '../db'
 import type { Seat } from '../lib/phase'
 import type { ClueEvent } from '../lib/events'
@@ -240,7 +240,7 @@ function ClueForm({
   const wordRef = useRef<HTMLInputElement>(null)
   useTabRing([countRef, wordRef], 'keys-next-field')
   // Enter is the form's own submit, not a bound action; offered so Help says so.
-  useComponentKeys(['keys-submit-clue'])
+  useOfferComponentKeyGroups(['keys-submit-clue'])
 
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -322,7 +322,7 @@ function ClueForm({
   // Ask Claude for a clue. A COMMAND the page offers, so it's a bound action —
   // unlike the Submit beside it, which is this form's own submit button and
   // whose Enter belongs to the focused field rather than to the key dispatcher.
-  const actSuggestClue = useBoundAction('act-suggest-clue', {
+  const actSuggestClue = useBindAction('act-suggest-clue', {
     describe: () => ({
       state: eitherBusy ? 'disabled' : 'active',
       label: suggesting ? 'Thinking…' : 'AI',
@@ -404,7 +404,7 @@ function PassButton({
   // in the tooltip either way. No `busy` flag of its own: the action's run is
   // single-flight, so a second press while the first is out is dropped.
   const isPhone = useIsPhone()
-  const actEndTurn = useBoundAction('act-end-turn', {
+  const actEndTurn = useBindAction('act-end-turn', {
     describe: () => ({ state: 'active', label: 'Pass & End Turn' }),
     run: async () => {
       const res = await runRpc<PassAnswer>(db.rpc('pass_turn', { target_game: gameId }))

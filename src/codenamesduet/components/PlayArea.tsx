@@ -23,7 +23,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildCodenamesduetPrintModel } from '../pdf/model'
 import { printCodenamesduetPdf } from '../pdf/printCodenamesduetPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GameRow } from '../hooks/useGame'
@@ -391,7 +391,7 @@ function PlayArea({
   // shows their card to me alone and writes nothing, so the partner's own stays
   // covered until they ask. Terminal-only, because mid-game the partner's card
   // IS the game.
-  const actReveal = useBoundAction('act-reveal', {
+  const actReveal = useBindAction('act-reveal', {
     // "key cards" rather than the bare default: what this game withholds is not
     // a solution at all, it is the half of the key only your partner could see.
     describe: (asker) => {
@@ -437,7 +437,7 @@ function PlayArea({
   // registry asks NEW_GAME_CONFIRM mid-play (starting one shelves this game,
   // not ends it) and goes straight through at the end. The shared run's single
   // flight is what stops a second press sampling a second board.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
     describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
@@ -447,7 +447,7 @@ function PlayArea({
   // Print the board — a snapshot at CLICK time (common/pdf/doc.md). The peer's
   // key reaches the model only once revealed, and the model refuses it before
   // terminal regardless, so it cannot reach paper early.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
       printCodenamesduetPdf(

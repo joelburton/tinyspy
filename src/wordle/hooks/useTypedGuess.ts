@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useState } from 'react'
-import type { BoundAction } from '@/common/actions/useBoundAction'
+import type { BoundAction } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { asciiLetters, useCaptureKeys } from '@/common/keyboard/useCaptureKeys'
 import { WORD_LENGTH } from '../lib/setup'

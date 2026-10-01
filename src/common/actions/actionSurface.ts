@@ -2,7 +2,7 @@
 
 import type { AppIcon } from '../icons/icons'
 import { nameWithKey } from './nameWithKey'
-import type { BoundAction } from './useBoundAction'
+import type { BoundAction } from './useBindAction'
 
 /** What a control needs in order to BE an action: what to draw, and the props
  *  that make its `<button>` behave like one. */

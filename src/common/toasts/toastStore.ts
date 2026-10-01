@@ -107,7 +107,7 @@ export function dismissToast(id: string): void {
 
 /** Subscribe a component to the live toast list (the host uses this). */
 export function useToasts(): ToastEntry[] {
-  return useSyncExternalStore(subscribe, getToasts, getToasts)
+  return useSyncExternalStore(subscribe, getToasts)
 }
 
 /**

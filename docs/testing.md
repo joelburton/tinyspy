@@ -635,7 +635,7 @@ before trusting a green run. The full set:
 | `folderDocs` | every feature folder's `doc.md` + `todo.md` are in shape |
 | `actionIds` | an action's two spellings agree — `act-new-game` ⇄ `actNewGame` |
 | `registeredChords` | nothing outside `common/actions/` matches a registered chord by hand |
-| `componentKeys` | every hand-written key handler in `src/` matches through a row — an action's or `common/keyboard/componentKeys.ts`'s — so Help and `gmake dev-keys` can list it |
+| `componentKeyGroups` | every hand-written key handler in `src/` matches through an action or a key group (`common/keyboard/componentKeyGroups.ts`), so Help and `gmake dev-keys` can list it |
 | `commonNeverImportsShared` | `src/common/` never imports `src/shared/` — the one-way rule ([common-folders.md](common-folders.md)) |
 | `escapeListeners` | only the two sanctioned places listen for Escape globally |
 | `memberPalette` | the member color names agree between `MEMBER_COLORS` and the SQL that spells them |

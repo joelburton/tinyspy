@@ -73,6 +73,6 @@ carries, built once. `FaultModal`'s docstring lays out the three lines.
   network, so there is no honest UI path to one on demand, and the deployed
   site is the only place the modal's look can be checked where it matters. The
   twin of `window.puptoast()`.
-- **Two test seams**, `clearFaultsForTest` and `peekFaultsForTest`, exist so a
-  component test can assert that a failure was routed to the modal rather than
-  to a slot.
+- **Two test seams**, `clearFaultMessages_ForTest` and
+  `peekFaultMessages_ForTest`, exist so a component test can assert that a
+  failure was routed to the modal rather than to a slot.

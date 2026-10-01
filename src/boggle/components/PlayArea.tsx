@@ -10,7 +10,7 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { makeSetupRows } from '../lib/setupRows'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
@@ -287,7 +287,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // my own) and handed to the jsPDF renderer. Built inside `run`, so it is a
   // snapshot at CLICK time and the menu needn't rebuild as words are found.
   // Works mid-game or at the end. See common/pdf/doc.md.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       if (!game) return
@@ -396,7 +396,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // copy says shelved, not ended) and goes straight through at terminal, where
   // there is nothing to interrupt. The shared run's single flight is what stops a
   // second press building a second board.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     describe: () => 'active',
     run: createNewGame,

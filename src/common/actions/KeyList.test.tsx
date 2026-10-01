@@ -8,15 +8,15 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { KeyList } from './KeyList'
-import { useBoundAction, type ActionState } from './useBoundAction'
-import { useComponentKeys } from '../keyboard/componentKeys'
+import { useBindAction, type ActionState } from './useBindAction'
+import { useOfferComponentKeyGroups } from '../keyboard/offeredComponentKeyGroupsStore'
 
 /** A page that binds a few things and shows the list, the way Help does:
  *  something with a key, something without, and something whose state varies. */
 function Harness({ submitState = 'active' as ActionState }) {
-  useBoundAction('act-submit', { run: () => undefined, describe: () => submitState })
-  useBoundAction('act-help', { run: () => undefined, describe: () => 'active' })
-  useBoundAction('act-shuffle', { run: () => undefined, describe: () => 'active' })
+  useBindAction('act-submit', { run: () => undefined, describe: () => submitState })
+  useBindAction('act-help', { run: () => undefined, describe: () => 'active' })
+  useBindAction('act-shuffle', { run: () => undefined, describe: () => 'active' })
   return <KeyList />
 }
 
@@ -46,7 +46,7 @@ describe('KeyList', () => {
     // A toggle's two faces are the case: the row says what pressing the key
     // would do right now, which is the same answer its button gives.
     function Renamed() {
-      useBoundAction('act-shuffle', {
+      useBindAction('act-shuffle', {
         run: () => undefined,
         describe: () => ({ state: 'active', label: 'Mix the tiles' }),
       })
@@ -71,8 +71,8 @@ describe('KeyList', () => {
    */
   it('lists a command ONCE however many bindings offer it', () => {
     function Twice() {
-      useBoundAction('act-stop-game', { run: () => undefined, describe: () => 'active' })
-      useBoundAction('act-stop-game', { run: () => undefined, describe: () => 'active' })
+      useBindAction('act-stop-game', { run: () => undefined, describe: () => 'active' })
+      useBindAction('act-stop-game', { run: () => undefined, describe: () => 'active' })
       return <KeyList />
     }
     const reactSaid = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -83,11 +83,12 @@ describe('KeyList', () => {
     reactSaid.mockRestore()
   })
 
-  // The keys a component answers for itself are rows of COMPONENT_KEYS, not
-  // actions; the list shows the ones offered on the page that Help teaches.
-  it('lists an offered component key, every key of its row', () => {
+  // The keys a component answers for itself are key groups of
+  // COMPONENT_KEYGROUPS, not actions; the list shows the ones offered on the
+  // page that Help teaches.
+  it('lists an offered key group, every key of it', () => {
     function List() {
-      useComponentKeys(['keys-list-move'])
+      useOfferComponentKeyGroups(['keys-list-move'])
       return <KeyList />
     }
     render(<List />)
@@ -97,7 +98,7 @@ describe('KeyList', () => {
 
   it('leaves out a component key Help does not teach', () => {
     function Menu() {
-      useComponentKeys(['keys-menu-walk-down'])
+      useOfferComponentKeyGroups(['keys-menu-walk-down'])
       return <KeyList />
     }
     const { container } = render(<Menu />)
@@ -106,8 +107,8 @@ describe('KeyList', () => {
 
   it('lists a component key once however many components offer it', () => {
     function TwoLists() {
-      useComponentKeys(['keys-list-open'])
-      useComponentKeys(['keys-list-open'])
+      useOfferComponentKeyGroups(['keys-list-open'])
+      useOfferComponentKeyGroups(['keys-list-open'])
       return <KeyList />
     }
     render(<TwoLists />)

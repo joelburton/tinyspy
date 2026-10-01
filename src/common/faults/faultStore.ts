@@ -27,7 +27,7 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  *     wrote its `[db]` console line, so nothing is lost to diagnosis.
  */
 
-export type FaultEntry = {
+export type FaultMessage = {
   // The player-facing message. For a fault we declared, the sentence its
   // author wrote at the raise; for a raw one, Postgres's own text; for an
   // environmental failure, the frontend's sentence.
@@ -44,7 +44,10 @@ export type FaultEntry = {
 
 const QUEUE_CAP = 5
 
-let queue: FaultEntry[] = []
+let queue: FaultMessage[] = []
+// A listener is a callback: each `useCurrentFaultMessage()` caller adds one,
+// and showing or dismissing a fault calls every one to say the queue has
+// changed.
 const listeners = new Set<() => void>()
 
 function emit(): void {
@@ -56,9 +59,9 @@ function emit(): void {
  *  `[db]` line written wants `reportDbFault` (dbEnvelope.ts), which
  *  does both and then calls this. Drops the fault (UI-only — the `[db]` line
  *  already fired) when the queue is full. */
-export function showFaultModal(fault: FaultEntry): void {
+export function showFaultModal(message: FaultMessage): void {
   if (queue.length >= QUEUE_CAP) return
-  queue = [...queue, fault]
+  queue = [...queue, message]
   emit()
 }
 
@@ -68,24 +71,29 @@ export function dismissFaultModal(): void {
   emit()
 }
 
-function subscribe(cb: () => void): () => void {
-  listeners.add(cb)
-  return () => listeners.delete(cb)
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
 }
 
-/** The fault currently owed a modal, or null. Reference-stable per change. */
-export function useCurrentFault(): FaultEntry | null {
-  return useSyncExternalStore(subscribe, () => queue[0] ?? null)
+function getCurrentFaultMessage(): FaultMessage | null {
+  return queue[0] ?? null
+}
+
+/** The message of the fault on screen now — the front of the queue — or null.
+ *  Reference-stable per change. */
+export function useCurrentFaultMessage(): FaultMessage | null {
+  return useSyncExternalStore(subscribe, getCurrentFaultMessage)
 }
 
 /** Test seam: reset the queue between unit tests. */
-export function clearFaultsForTest(): void {
+export function clearFaultMessages_ForTest(): void {
   queue = []
   emit()
 }
 
 /** Test seam: the queue as-is, for component tests asserting that a fault
  *  was routed to the modal rather than a slot. */
-export function peekFaultsForTest(): readonly FaultEntry[] {
+export function peekFaultMessages_ForTest(): readonly FaultMessage[] {
   return queue
 }

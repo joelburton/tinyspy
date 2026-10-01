@@ -3,7 +3,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import { useBoardCursorKeys, type BoardCursorKeysOptions } from './useBoardCursorKeys'
 
 // The shared 2-D board-cursor keyboard: arrows move the cursor, a letter
@@ -110,7 +110,7 @@ describe('useBoardCursorKeys', () => {
   describe('what the four say about themselves', () => {
     // Each binding's state by id, read off the stack the dispatcher reads.
     const states = () =>
-      Object.fromEntries(liveBindings().map((b) => [b.id, b.describe('button').state]))
+      Object.fromEntries(getBoundActions().map((b) => [b.id, b.describe('button').state]))
 
     it('with canCommit false only the commit is disabled; the cursor keys stay live', () => {
       const cb = setup({ canCommit: false })

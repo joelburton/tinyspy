@@ -67,7 +67,7 @@ vi.mock('./ClubPage', () => ({
 }))
 
 import { ClubPageLoader } from './ClubPageLoader'
-import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'
+import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '../faults/faultStore'
 
 const authSession = { user: { id: 'ada' } } as unknown as Session
 
@@ -101,7 +101,7 @@ function draw() {
 
 beforeEach(() => {
   mockRunRpc.mockReset()
-  clearFaultsForTest()
+  clearFaultMessages_ForTest()
   window.history.replaceState(null, '', '/c/trio')
 })
 
@@ -181,13 +181,13 @@ describe('ClubPageLoader', () => {
     // A modal here would say the same sentence twice. Note the mocked `runRpc`
     // would not have raised one either, which is why the promise itself is
     // asserted at the call above rather than inferred from this.
-    expect(peekFaultsForTest()).toEqual([])
+    expect(peekFaultMessages_ForTest()).toEqual([])
   })
 
   it('screams at an answer it cannot read, and still leaves a page behind it', async () => {
     mockRunRpc.mockResolvedValue({ type: 'maybe' } as unknown as Envelope<never>)
     draw()
-    await waitFor(() => expect(peekFaultsForTest()).toHaveLength(1))
+    await waitFor(() => expect(peekFaultMessages_ForTest()).toHaveLength(1))
     expect(screen.queryByTestId('club-page')).not.toBeInTheDocument()
     // Something true is behind the modal rather than a blank page.
     expect(screen.getByRole('heading')).toBeInTheDocument()

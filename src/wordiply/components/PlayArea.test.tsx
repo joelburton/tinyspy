@@ -23,7 +23,7 @@ import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { runEdgeFn } from '@/common/supabase/dbResult'
@@ -186,7 +186,7 @@ const typedLength = () =>
   document.querySelector('ol li[class*="active"] span[aria-label$="letters"]')?.textContent ?? ''
 
 /** What a bound action says about itself right now. */
-const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
+const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
 
 /** The board row holding this word, whatever marks it is wearing. */
 const rowFor = (word: string) =>

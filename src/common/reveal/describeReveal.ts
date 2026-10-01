@@ -1,7 +1,7 @@
 // cs-blessed-reveal
 
 import { IconHideSolution } from '@/common/icons/icons'
-import type { Described } from '@/common/actions/useBoundAction'
+import type { Described } from '@/common/actions/useBindAction'
 
 /**
  * How a game's `act-reveal` looks right now — the one `describe()` every game

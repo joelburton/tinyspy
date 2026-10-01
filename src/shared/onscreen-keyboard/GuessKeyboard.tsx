@@ -2,7 +2,7 @@
 
 import { cls } from '@/common/utils/cls'
 import { actionSurface } from '@/common/actions/actionSurface'
-import type { BoundAction } from '@/common/actions/useBoundAction'
+import type { BoundAction } from '@/common/actions/useBindAction'
 import type { TileColor } from '../wordle-style/tileColor'
 import styles from './GuessKeyboard.module.css'
 

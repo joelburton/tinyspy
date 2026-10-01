@@ -131,7 +131,7 @@ binds `act-open-chat`, `act-open-menu`, `act-lookup-word` and
 `act-anagram-finder` and owns the two dialogs two of them open, so a page gets
 them by existing. Chat answers `hidden` on a page with no chat panel mounted.
 
-**A surface can show an action somebody else bound.** `useAppAction(id)` hands
+**A surface can show an action somebody else bound.** `useBoundAction(id)` hands
 back the live binding for an id — the game menu's chat row is the case, and so
 is crosswords' scratchpad row: the key is bound by the header mark, and the row
 should be that action rather than a second copy of its name and key. Null when
@@ -144,7 +144,7 @@ bound twice — `act-stop-game`, by the game and by the page for the pause overl
 — is listed once, with the words of the binding the dispatcher would fire.
 After the actions come the keys a component answers for itself — a list's
 arrows, a ring's Tab, Escape — which are not actions and are offered from
-`keyboard/componentKeys.ts` instead.
+`keyboard/componentKeyGroups.ts` instead.
 
 **A button's bubble teaches the key, but its name stays its name.** The bubble
 is `nameWithKey`: the words with the first chord on the end, "New game · +",

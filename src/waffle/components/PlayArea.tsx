@@ -21,7 +21,7 @@ import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { memberById } from '@/common/members/memberList'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
@@ -365,7 +365,7 @@ export function PlayArea({
   // read as "I just lost my game" — the copy says shelved, not ended) and goes
   // straight through at terminal; the shared run's single flight is what stops
   // a second press building a second board.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     describe: () => 'active',
     run: createNewGame,
@@ -376,7 +376,7 @@ export function PlayArea({
   // glyph moving with the words because the button is icon-only. Terminal-only:
   // the solution doesn't reach a compete client before then, so a player who
   // conceded can't peek at a race still running.
-  const actReveal = useBoundAction('act-reveal', {
+  const actReveal = useBindAction('act-reveal', {
     describe: () =>
       describeReveal({ noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal }),
     run: toggleAnswer,
@@ -398,7 +398,7 @@ export function PlayArea({
   // opponent's board AND their swaps until the game ends, so what the viewer may
   // see is what prints; the model refuses the solution before terminal on top of
   // that.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       if (!game) return

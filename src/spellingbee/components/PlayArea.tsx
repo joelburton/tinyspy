@@ -27,7 +27,7 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { makeSetupRows } from '../lib/setupRows'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
@@ -364,7 +364,7 @@ function PlayArea(props: PlayAreaProps) {
   // The registry asks NEW_GAME_CONFIRM mid-play and goes straight through at
   // terminal, where there is nothing to interrupt; the shared run's single
   // flight stops a second press building a second board.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
     describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
@@ -373,7 +373,7 @@ function PlayArea(props: PlayAreaProps) {
 
   // Print the board — a snapshot at CLICK time (common/pdf/doc.md). RLS already
   // scopes `foundWords` to what the viewer may see.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
       // The same rows call the on-screen list makes, so at terminal the missed

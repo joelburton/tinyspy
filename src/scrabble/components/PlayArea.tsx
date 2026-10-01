@@ -15,7 +15,7 @@ import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -348,7 +348,7 @@ type Suggested =
   // Ask the AI for a move — coop only (in a race a suggested play would be a win
   // button, and it reads the shared rack besides). Gray while a request is out,
   // so a second press can't stack two.
-  const actSuggestMove = useBoundAction('act-suggest-move', {
+  const actSuggestMove = useBindAction('act-suggest-move', {
     describe: () => {
       if (isCompete) return 'hidden'
       const busy = suggest.status === 'loading'
@@ -414,7 +414,7 @@ type Suggested =
   // create_game clears the club's current-view flag, so it stays resumable — the
   // copy says shelved, not ended) and goes straight through at terminal. The
   // shared run's single flight is what stops a second press dealing a second bag.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     describe: () => 'active',
     run: createNewGame,
@@ -423,7 +423,7 @@ type Suggested =
   // Print the board — a snapshot at CLICK time (common/pdf/doc.md). RLS already scoped
   // the state to what I may see (my own rack, my visible moves), so what prints
   // is what the page in front of me shows.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       if (!game) return

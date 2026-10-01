@@ -24,7 +24,7 @@ import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { StackdownGame, PlayerRow, EventRow } from '../hooks/useGame'
@@ -172,7 +172,7 @@ const okEnvelope = (data: unknown) => ({
 })
 
 /** What a bound action says about itself right now. */
-const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
+const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
 
 /** The five word slots, as the letters they hold. */
 const wordSlots = () => screen.getByLabelText('Current word').textContent ?? ''

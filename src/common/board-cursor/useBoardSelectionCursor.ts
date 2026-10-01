@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import type { ArrowKey } from './gridCursor'
 import { clampCell, stepCell, type BoardShape, type Cell } from './stepCell'
 import { useSelectionCursor } from './useSelectionCursor'
@@ -51,14 +51,14 @@ export function useBoardSelectionCursor({
   const at = clampCell(selection.at, shape)
   const state = () => (enabled ? 'active' : 'disabled')
 
-  useBoundAction('act-move-cursor', {
+  useBindAction('act-move-cursor', {
     describe: state,
     run: (key) => {
       if (at !== null) selection.step(stepCell(at, key as ArrowKey, shape))
     },
   })
 
-  useBoundAction('act-toggle-tile', {
+  useBindAction('act-toggle-tile', {
     describe: state,
     run: () => {
       if (selection.revealed && at !== null) onToggle(at)

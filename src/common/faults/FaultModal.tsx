@@ -1,7 +1,7 @@
 // cs-blessed-common-hosts
 
 import { BlockingModal } from '../floating-panels/BlockingModal'
-import { dismissFaultModal, showFaultModal, useCurrentFault } from './faultStore'
+import { dismissFaultModal, showFaultModal, useCurrentFaultMessage } from './faultStore'
 import { diagnosticsLine } from '../supabase/dbLog'
 import styles from './FaultModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
@@ -35,9 +35,9 @@ import { StandardButton } from '../buttons/StandardButton'
  * overflow silently dropped from the UI — faultStore.ts).
  */
 export function FaultModal() {
-  const fault = useCurrentFault()
+  const message = useCurrentFaultMessage()
 
-  if (!fault) return null
+  if (!message) return null
 
   return (
     <BlockingModal
@@ -49,8 +49,8 @@ export function FaultModal() {
     >
       <div className={styles.report}>
         <h3 className={styles.heading}>Error</h3>
-        <p className={styles.message}>{fault.text}</p>
-        {fault.diagnostics && <p className={styles.diagnostics}>{fault.diagnostics}</p>}
+        <p className={styles.message}>{message.text}</p>
+        {message.diagnostics && <p className={styles.diagnostics}>{message.diagnostics}</p>}
       </div>
     </BlockingModal>
   )

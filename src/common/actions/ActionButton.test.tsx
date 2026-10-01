@@ -11,12 +11,12 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ActionButton } from './ActionButton'
-import { useBoundAction, type ActionState, type LiveAction } from './useBoundAction'
+import { useBindAction, type ActionState, type LiveAction } from './useBindAction'
 import type { ActionId } from './registry'
 
 /** A component that binds one action and draws its button. */
 function Harness({ id, live, show = 'label' as const }: { id: ActionId; live: Partial<LiveAction>; show?: 'icon' | 'label' | 'both' }) {
-  const action = useBoundAction(id, { run: () => undefined, describe: () => 'active' as ActionState, ...live })
+  const action = useBindAction(id, { run: () => undefined, describe: () => 'active' as ActionState, ...live })
   return <ActionButton action={action} show={show} />
 }
 

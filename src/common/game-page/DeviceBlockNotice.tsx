@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { ActionButton } from '../actions/ActionButton'
-import type { BoundAction } from '../actions/useBoundAction'
+import type { BoundAction } from '../actions/useBindAction'
 import styles from './DeviceBlockNotice.module.css'
 
 type Props = {

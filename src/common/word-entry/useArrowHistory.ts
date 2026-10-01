@@ -1,6 +1,6 @@
 // cs-blessed-word-entry
 
-import { useBoundAction, type ActionState } from '../actions/useBoundAction'
+import { useBindAction, type ActionState } from '../actions/useBindAction'
 
 export type ArrowHistoryOptions = {
   // Whether this entry keeps a history at all. False says the game has no last
@@ -56,7 +56,7 @@ export function useArrowHistory({
   // right now, which is every other reason the arrows are off.
   const editState: ActionState = !hasHistory ? 'hidden' : disabled || busy ? 'disabled' : 'active'
 
-  useBoundAction('act-recall-last', {
+  useBindAction('act-recall-last', {
     // Nothing submitted yet, nothing to bring back.
     describe: () => (editState === 'active' && !recall ? 'disabled' : editState),
     run: () => {
@@ -64,7 +64,7 @@ export function useArrowHistory({
     },
   })
 
-  useBoundAction('act-clear-entry', {
+  useBindAction('act-clear-entry', {
     describe: () => editState,
     run: () => onChange(''),
   })

@@ -2,7 +2,7 @@
 
 import { setIsScratchpadOpen, useIsScratchpadOpen } from '../scratchpad/scratchpadOpenStore'
 import { IconScratchpad } from '../icons/icons'
-import { useBoundAction } from '../actions/useBoundAction'
+import { useBindAction } from '../actions/useBindAction'
 import { actionSurface } from '../actions/actionSurface'
 import { PageHeaderButton } from './PageHeaderButton'
 
@@ -23,7 +23,7 @@ import { PageHeaderButton } from './PageHeaderButton'
  */
 export function ScratchpadButton() {
   const open = useIsScratchpadOpen()
-  const actOpenScratchpad = useBoundAction('act-open-scratchpad', {
+  const actOpenScratchpad = useBindAction('act-open-scratchpad', {
     describe: () => ({ state: 'active', label: open ? 'Close scratchpad' : 'Open scratchpad' }),
     run: () => setIsScratchpadOpen(!open),
   })

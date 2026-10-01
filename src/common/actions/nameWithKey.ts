@@ -1,6 +1,6 @@
 // cs-blessed-actions
 
-import type { BoundAction } from './useBoundAction'
+import type { BoundAction } from './useBindAction'
 
 /**
  * A control's hover bubble: what it is called, with the action's key on the end.

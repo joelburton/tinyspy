@@ -14,7 +14,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -296,7 +296,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // that — the dispatcher gives an any-key MODE priority over a particular key —
   // but a live card key over a frozen historical board would be lying about
   // what it can do.
-  useBoundAction('act-toggle-card', {
+  useBindAction('act-toggle-card', {
     describe: () => (isBoardInteractive && !historyViewer.isViewingHistory ? 'active' : 'hidden'),
     run: (key) => {
       const slot = slotForKey(key ?? '')
@@ -306,7 +306,7 @@ export function PlayArea(ctx: GamePageCtx) {
       if (card !== null) onCardClick(card)
     },
   })
-  useBoundAction('act-clear-picks', {
+  useBindAction('act-clear-picks', {
     describe: () => (isBoardInteractive && !historyViewer.isViewingHistory ? 'active' : 'hidden'),
     run: () => {
       setPicked([])
@@ -371,7 +371,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // the priced-hint rule: a free generative hint decides a race.) The shared
   // run's single flight is what stops a fast second press running a second
   // ladder against the ring and board of the first.
-  const actHint = useBoundAction('act-hint', {
+  const actHint = useBindAction('act-hint', {
     describe: () => ({
       state: isCompete || !isBoardInteractive ? 'disabled' : 'active',
       label: hintLabel(isCompete),
@@ -426,7 +426,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game
   // rather than ending it) and goes straight through at terminal. The shared
   // run's single flight is what stops a second press dealing a second board.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     describe: () => 'active',
     run: createNewGame,
@@ -449,7 +449,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // ─── GamePage menu ─────────────────────────────────────
   // Print the board — a snapshot at CLICK time (common/pdf/doc.md), so the menu needn't
   // rebuild as cards are claimed.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       if (!game) return

@@ -29,7 +29,7 @@ points at them rather than repeating them. For terminology see
   | writing… | read |
   |---|---|
   | an RPC, read or edge-function call | [envelopes.md → The shape of a call site](envelopes.md#the-shape-of-a-call-site), `src/common/supabase/doc.md` |
-  | a command (a button, menu row or key) | `src/common/actions/doc.md` — the `ACTIONS` registry, `useBoundAction` |
+  | a command (a button, menu row or key) | `src/common/actions/doc.md` — the `ACTIONS` registry, `useBindAction` |
   | a message to the player | `src/common/feedback/doc.md` |
   | a realtime hook or channel | `src/common/realtime/doc.md` |
   | a play surface | [playarea.md](playarea.md) |
@@ -287,7 +287,7 @@ and what triggers it from the body and the deps.
 An action whose second call does real, unwanted work needs an in-flight guard
 on the **handler**, not the button — one action is reachable from a button, a
 menu row and a key. A bound action's run
-([`useBoundAction`](../src/common/actions/useBoundAction.ts)) already is
+([`useBindAction`](../src/common/actions/useBindAction.ts)) already is
 single-flight; a control that isn't an action wraps its handler in
 [`useSingleFlight`](../src/common/single-flight/useSingleFlight.ts). Don't guard
 idempotent calls every client fires (`submit_timeout`).

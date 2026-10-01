@@ -1,7 +1,7 @@
 // cs-blessed-info-sheet
 
 import { PageHeaderButton } from '../page-header/PageHeaderButton'
-import { useBoundAction } from '../actions/useBoundAction'
+import { useBindAction } from '../actions/useBindAction'
 import { actionSurface } from '../actions/actionSurface'
 import { IconInfoSheetClose, IconInfoSheetOpen } from '../icons/icons'
 import { setIsInfoSheetOpen } from './infoSheetStore'
@@ -31,7 +31,7 @@ type Props = {
 export function InfoSwitchButton({ open }: Props) {
   // The label names the DESTINATION, not the state — it's a navigation control,
   // and "Game info" / "Back to board" are what the tap gets you.
-  const actToggleInfoSheet = useBoundAction('act-toggle-info-sheet', {
+  const actToggleInfoSheet = useBindAction('act-toggle-info-sheet', {
     describe: () => ({
       state: 'active',
       label: open ? 'Back to board' : 'Game info',

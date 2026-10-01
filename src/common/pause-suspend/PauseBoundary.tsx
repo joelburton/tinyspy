@@ -1,7 +1,7 @@
 // cs-blessed-pause-suspend
 
 import type { ReactNode } from 'react'
-import type { BoundAction } from '../actions/useBoundAction'
+import type { BoundAction } from '../actions/useBindAction'
 import type { Member } from '../members/member'
 import { PauseOverlay } from './PauseOverlay'
 

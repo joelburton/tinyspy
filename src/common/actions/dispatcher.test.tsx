@@ -10,10 +10,10 @@
 import { act, render, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useActionDispatcher } from './dispatcher'
-import { useBoundAction, type ActionState, type LiveAction } from './useBoundAction'
+import { useBindAction, type ActionState, type LiveAction } from './useBindAction'
 import type { ActionId } from './registry'
 
-// The questions actions ask are `useBoundAction`'s subject, not this one's —
+// The questions actions ask are `useBindAction`'s subject, not this one's —
 // mocked so a keystroke's whole path can be tested without a modal in it.
 vi.mock('../floating-panels/confirmationService', () => ({
   askConfirmation: async () => 'confirm',
@@ -36,7 +36,7 @@ function setup(...bindings: Array<[ActionId, Partial<LiveAction>]>) {
     useActionDispatcher()
     // A fixed-length list per test, so the hook order is stable across renders.
     bindings.forEach(([id, live], i) => {
-      useBoundAction(id, { run: runs[i]!, describe: () => 'active' as ActionState, ...live })
+      useBindAction(id, { run: runs[i]!, describe: () => 'active' as ActionState, ...live })
     })
   })
   return { runs, view }
@@ -223,12 +223,12 @@ describe('the dispatcher — where a child sits in the stack', () => {
   // are pinned so the limit is a known fact; neither is a channel a binding
   // may lean on (the stack's docstring says why).
   function Child({ onRun }: { onRun: () => void }) {
-    useBoundAction('act-peel', { run: onRun, describe: () => 'active' })
+    useBindAction('act-peel', { run: onRun, describe: () => 'active' })
     return null
   }
   function Page({ onPage, onChild, child = true }: { onPage: () => void; onChild: () => void; child?: boolean }) {
     useActionDispatcher()
-    useBoundAction('act-submit', { run: onPage, describe: () => 'active' })
+    useBindAction('act-submit', { run: onPage, describe: () => 'active' })
     return child ? <Child onRun={onChild} /> : null
   }
 

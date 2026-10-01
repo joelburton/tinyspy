@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { matches } from '../actions/chord'
-import { BACKTICK } from './componentKeys'
+import { BACKTICK } from './componentKeyGroups'
 
 /**
  * Global accessibility affordance: let the backtick key `` ` `` stand in

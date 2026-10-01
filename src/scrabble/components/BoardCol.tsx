@@ -8,7 +8,7 @@ import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { askConfirmation } from '@/common/floating-panels/confirmationService'
 import type { ConfirmOptions } from '@/common/floating-panels/confirmations'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
@@ -817,7 +817,7 @@ export function BoardCol({
   // and what it does are the same answer. A key comes with the binding: Shuffle
   // answers `⌥Z` because the registry says so, and giving another one a key is
   // a line there rather than a change here.
-  const actShuffle = useBoundAction('act-shuffle', {
+  const actShuffle = useBindAction('act-shuffle', {
     // Live whenever there are tiles to reorder, a frozen board included:
     // rearranging your own rack is not acting on the game.
     describe: () => (rackTiles.length === 0 ? 'hidden' : 'active'),
@@ -826,14 +826,14 @@ export function BoardCol({
 
   // Recall — every staged tile back to the rack at once. Distinct from ⌫, which
   // takes one back.
-  const actRecallTiles = useBoundAction('act-recall-tiles', {
+  const actRecallTiles = useBindAction('act-recall-tiles', {
     describe: () => (staged.length > 0 ? 'active' : 'disabled'),
     run: recallAll,
   })
 
   // Show the staged play to teammates, read-only. Coop with somebody to show it
   // to, so it hides itself in a race and in a solo game.
-  const actSharePreview = useBoundAction('act-share-preview', {
+  const actSharePreview = useBindAction('act-share-preview', {
     describe: () => {
       if (!canShare) return 'hidden'
       return staged.length > 0 ? { state: 'active', label: 'Show move to team' } : { state: 'disabled', label: 'Show move to team' }
@@ -844,7 +844,7 @@ export function BoardCol({
   // Swap rack tiles for fresh ones — a turn-consuming move, so it waits for your
   // turn, for a pick, and for a bag deep enough to draw from. The two gates
   // a player can do something about say so in the bubble; the words stay "Swap".
-  const actExchange = useBoundAction('act-exchange', {
+  const actExchange = useBindAction('act-exchange', {
     describe: () => {
       if (!canExchange) return { state: 'disabled', label: 'Swap', tooltip: 'Need ≥ 7 tiles in the bag' }
       if (!canCommit || staged.length > 0) return { state: 'disabled', label: 'Swap' }
@@ -859,7 +859,7 @@ export function BoardCol({
 
   // Pass the turn — compete only (in coop the table simply plays on), and only
   // with nothing staged: passing is what you do INSTEAD of a move.
-  const actPass = useBoundAction('act-pass', {
+  const actPass = useBindAction('act-pass', {
     describe: () => {
       if (!isCompete) return 'hidden'
       return canCommit && staged.length === 0 ? 'active' : 'disabled'

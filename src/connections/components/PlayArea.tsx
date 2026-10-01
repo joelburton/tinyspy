@@ -28,7 +28,7 @@ import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { makeSetupRows } from '../lib/setupRows'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { db } from '../db'
@@ -359,7 +359,7 @@ function PlayArea({
   // the button, the menu row and the key all read, so none of them can drift
   // from another — and `pending` grays every surface of one for the length of
   // its run, which is why no handler here carries an in-flight flag of its own.
-  // None of them is a `useCallback`: `useBoundAction` reads its live half
+  // None of them is a `useCallback`: `useBindAction` reads its live half
   // through a ref it refreshes every render, and the bound value's identity
   // turns on `pending` alone.
 
@@ -379,7 +379,7 @@ function PlayArea({
   // Hints — the inline per-player reveal list, unfolded under the action row.
   // A toggle, so its words move with it; the list itself is InfoCol's. Gone,
   // row and button, once you can no longer submit.
-  const actHint = useBoundAction('act-hint', {
+  const actHint = useBindAction('act-hint', {
     describe: () =>
       isStillPlaying ? { state: 'active', label: hintsOpen ? 'Hide hints' : 'Hints' } : 'hidden',
     run: () => setHintsOpen((o) => !o),
@@ -388,7 +388,7 @@ function PlayArea({
   // Reveal the categories nobody got — a LOCAL display toggle: it swaps what the
   // board draws, writes nothing, and affects no peer. Both faces come from
   // `describeReveal`, which is where the rule for every game's reveal lives.
-  const actReveal = useBoundAction('act-reveal', {
+  const actReveal = useBindAction('act-reveal', {
     describe: (asker) => {
       // The one narrowing this game adds: no BUTTON while you can still play,
       // so a player who dropped out cannot spoil a race still running. The
@@ -468,7 +468,7 @@ function PlayArea({
   // game, which stays resumable) and goes straight through at terminal; the
   // shared run's single flight is what stops a second press taking two puzzles
   // out of the archive.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     // Reachable all game from the menu and `+` — NEW_GAME_CONFIRM is written
     // for that ("will be shelved, not lost", "Keep playing"). A BUTTON only at
@@ -480,7 +480,7 @@ function PlayArea({
   // Print builds its model from the live state at CLICK time (common/pdf/doc.md):
   // the bands, the remaining tiles and the log are what the VIEWER may see, so
   // RLS carries onto paper — and the menu needn't rebuild as the board moves.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
       printConnectionsPdf(

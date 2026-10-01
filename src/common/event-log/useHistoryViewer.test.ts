@@ -13,7 +13,7 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { useHistoryViewer } from './useHistoryViewer'
 import { useActionDispatcher } from '../actions/dispatcher'
-import { liveBindings } from '../actions/useBoundAction'
+import { getBoundActions } from '../actions/useBindAction'
 
 afterEach(() => {
   document.body.innerHTML = ''
@@ -130,7 +130,7 @@ describe('useHistoryViewer — act-exit-history', () => {
       return useHistoryViewer()
     })
 
-    const exit = () => liveBindings().find((b) => b.id === 'act-exit-history')
+    const exit = () => getBoundActions().find((b) => b.id === 'act-exit-history')
     expect(exit()?.describe('button').state).toBe('hidden')
 
     act(() => result.current.showHistory(1, 1))

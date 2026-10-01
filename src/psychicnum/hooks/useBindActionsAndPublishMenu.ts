@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import { useBoundAction, type BoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction, type BoundAction } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -81,7 +81,7 @@ export type PsychicnumActions = {
  * A binding is what the button, the menu row and the key all read, so none of
  * them can drift from another — and `pending` grays every surface of one for
  * the length of its run, which is why no handler here carries an in-flight
- * flag of its own. None of them is a `useCallback`: `useBoundAction` reads its
+ * flag of its own. None of them is a `useCallback`: `useBindAction` reads its
  * live half through a ref it refreshes every render, and the bound value's
  * identity turns on `pending` alone.
  *
@@ -164,14 +164,14 @@ export function useBindActionsAndPublishMenu({
   // The hint and the spoiler. Grayed rather than dropped when you can't ask:
   // the menu row is what NAMES those glyphs (docs/ui.md → the menu is the
   // legend), so a disabled row still teaches the lightbulb and the bare eye.
-  const actHint = useBoundAction('act-hint', {
+  const actHint = useBindAction('act-hint', {
     // Three states, not two: GONE once the game is over (there is no guess left
     // to nudge), gray while the game is live and you are out of guesses, live
     // otherwise. The in-flight beat is `pending`'s to gray, not this one's.
     describe: () => (gd.isGameEnded ? 'hidden' : gd.standing.isStillPlaying ? 'active' : 'disabled'),
     run: getHint,
   })
-  const actSpoiler = useBoundAction('act-spoiler', {
+  const actSpoiler = useBindAction('act-spoiler', {
     // Same three states as the hint above.
     describe: () => (gd.isGameEnded ? 'hidden' : gd.standing.isStillPlaying ? 'active' : 'disabled'),
     run: getSpoiler,
@@ -200,7 +200,7 @@ export function useBindActionsAndPublishMenu({
   // Show the three secrets, or hide them again — nothing is written and no
   // peer is affected. Both faces come from `describeReveal`, which is where the
   // rule for every game's reveal lives.
-  const actReveal = useBoundAction('act-reveal', {
+  const actReveal = useBindAction('act-reveal', {
     describe: (asker) => {
       // The one narrowing this game adds: no BUTTON until EVERYONE is done, so
       // a player who dropped out cannot spoil a race that is still running. The
@@ -247,7 +247,7 @@ export function useBindActionsAndPublishMenu({
   // read as "I just lost my game" — the text says shelved, not ended) and goes
   // straight through once the game has ended, and the shared run's single
   // flight is what stops a second press dealing a second game.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: gd.isGameEnded,
     // Reachable all game from the menu and `+` — NEW_GAME_CONFIRM is written
     // for that ("will be shelved, not lost", "Keep playing"). A BUTTON only at
@@ -259,7 +259,7 @@ export function useBindActionsAndPublishMenu({
   // Print builds its model from the live state at CLICK time (RLS already
   // scoped the events to what I may see), so it works mid-game or at the end —
   // and so the menu needn't rebuild when the board changes.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
       // The board/turn/score judgment (whose marks belong on whose board — one

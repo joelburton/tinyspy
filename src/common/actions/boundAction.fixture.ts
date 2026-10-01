@@ -2,7 +2,7 @@
 
 import { vi } from 'vitest'
 import { ACTIONS, type ActionId } from './registry'
-import type { BoundAction, Described } from './useBoundAction'
+import type { BoundAction, Described } from './useBindAction'
 
 /**
  * A bound action for a TEST — the registry's real fixed half, a stub's live

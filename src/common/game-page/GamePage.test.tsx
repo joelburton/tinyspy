@@ -23,7 +23,7 @@ import type { GameManifest } from '../manifest/gameManifest'
 import { setMyProfile } from '../session/useProfile'
 import type { Member } from '../members/member'
 import type { GameEnding } from '../terminal/gameEnding'
-import { liveBindings, type BoundAction } from '../actions/useBoundAction'
+import { getBoundActions, type BoundAction } from '../actions/useBindAction'
 import type { ActionId } from '../actions/registry'
 import { NEW_GAME_CONFIRM } from '../floating-panels/confirmations'
 import { suspendConfirm } from '../pause-suspend/suspendConfirm'
@@ -184,7 +184,7 @@ async function mount(state = commonGameState(), manifest = makeManifest()) {
 /** The page's binding for an id — the first in stack order, which is the one
  *  the dispatcher would fire. Only the page binds here, so there is one. */
 function bound(id: ActionId): BoundAction {
-  const found = liveBindings().find((b) => b.id === id)
+  const found = getBoundActions().find((b) => b.id === id)
   if (!found) throw new Error(`${id} is not bound`)
   return found
 }

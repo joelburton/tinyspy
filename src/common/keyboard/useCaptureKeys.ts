@@ -1,6 +1,6 @@
 // cs-blessed-keyboard
 
-import { useBoundAction, type ActionState, type BoundAction } from '../actions/useBoundAction'
+import { useBindAction, type ActionState, type BoundAction } from '../actions/useBindAction'
 
 /**
  * A `charFor` (see below) for ASCII letters, stored in the given case. This is
@@ -105,7 +105,7 @@ export function useCaptureKeys({
   // still learn them. `hidden` is for a key a game does not have at all.
   const editState: ActionState = disabled || busy ? 'disabled' : 'active'
 
-  useBoundAction('act-type-letter', {
+  useBindAction('act-type-letter', {
     describe: () => editState,
     run: (key) => {
       const ch = key === undefined ? null : charFor(key)
@@ -115,7 +115,7 @@ export function useCaptureKeys({
   })
 
   // Nothing to take back on an empty entry.
-  const actDeleteLast = useBoundAction('act-delete-last', {
+  const actDeleteLast = useBindAction('act-delete-last', {
     describe: () => (value === '' && editState === 'active' ? 'disabled' : editState),
     run: () => {
       // A press of the button is a move too, so it dismisses the last verdict
@@ -128,7 +128,7 @@ export function useCaptureKeys({
 
   // An empty Enter is a no-op rather than a submit — it would flash a validation
   // error for a word nobody typed.
-  const actSubmit = useBoundAction('act-submit', {
+  const actSubmit = useBindAction('act-submit', {
     describe: () =>
       (value === '' || submitDisabled) && editState === 'active' ? 'disabled' : editState,
     run: onSubmit,
@@ -138,7 +138,7 @@ export function useCaptureKeys({
   // does NOT claim the keystroke, which is how the letter that dismissed a pill
   // still types. Off entirely when the entry is done, so a terminal pill isn't
   // wiped by a stray key.
-  useBoundAction('act-dismiss-feedback', {
+  useBindAction('act-dismiss-feedback', {
     describe: () => (disabled || onAnyKey === undefined ? 'hidden' : 'active'),
     run: () => onAnyKey?.(),
   })

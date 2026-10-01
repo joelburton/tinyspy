@@ -26,8 +26,8 @@ import {
 import { cellAtPoint, useDragGesture, type DragGesture, type DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { moveCursor, planBackspace, type GridCursor } from '@/common/board-cursor/gridCursor'
 import { useBoardCursorKeys } from '@/common/board-cursor/useBoardCursorKeys'
-import { useBoundAction } from '@/common/actions/useBoundAction'
-import type { BoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
+import type { BoundAction } from '@/common/actions/useBindAction'
 import { isEditableField } from '@/common/keyboard/editableField'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -654,21 +654,21 @@ export function usePlayerBoard({
   // and ⌥Z are one thing; live whenever there are tiles to rearrange, a frozen
   // board included — reordering your own hand is not acting on the game.
   const onShuffle = () => setHandOrder(shuffleString(displayedHand))
-  const actShuffle = useBoundAction('act-shuffle', {
+  const actShuffle = useBindAction('act-shuffle', {
     describe: () => (displayedHand.length === 0 ? 'disabled' : 'active'),
     run: onShuffle,
   })
 
   // Check words — ask the server whether the board reads right now. Always
   // offered while the game is live, whatever `setup.word_check` says.
-  const actCheckBoard = useBoundAction('act-check-board', {
+  const actCheckBoard = useBindAction('act-check-board', {
     describe: () => (frozen || checking ? 'disabled' : 'active'),
     run: doWordCheck,
   })
 
   // Fit the board — a view control, so it stays live at every phase: a finished
   // board is exactly the one you want to see all of.
-  const actZoomFit = useBoundAction('act-zoom-fit', {
+  const actZoomFit = useBindAction('act-zoom-fit', {
     describe: () => 'active',
     run: centerAndFit,
   })

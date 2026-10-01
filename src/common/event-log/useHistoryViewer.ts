@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { setIsInfoSheetOpen } from '../info-sheet/infoSheetStore'
-import { useBoundAction } from '../actions/useBoundAction'
+import { useBindAction } from '../actions/useBindAction'
 
 /** The turn-history viewer's coordination state (see `useHistoryViewer`). */
 export interface HistoryViewer<Id> {
@@ -106,7 +106,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   // any-key action that CONSUMES is how a surface says it is in a mode, and the
   // dispatcher runs those ahead of every particular key, wherever each is
   // bound — so this wins the press without the board having to stand aside.
-  useBoundAction('act-exit-history', {
+  useBindAction('act-exit-history', {
     describe: () => (historyId === null ? 'hidden' : 'active'),
     run: exitHistory,
   })

@@ -261,7 +261,7 @@ moves its own items into its `todo.md` when it opens, and the file drains.
 | folder | what it is |
 |---|---|
 | `account` | your own menu and profile editing |
-| `actions` | what a command IS: the registry, `useBoundAction`, the dispatcher, `ActionButton`, `actionSurface`, `KeyList` |
+| `actions` | what a command IS: the registry, `useBindAction`, the dispatcher, `ActionButton`, `actionSurface`, `KeyList` |
 | `anagram-finder` | the anagram dialog |
 | `auth` | the pre-app screens — sign in, claim a handle |
 | `board-cursor` | arrows move a cursor over a board: the reusable key handling, the letter-grid cursor math, and the selection cursor's show/hide rules, which `lists` shares |

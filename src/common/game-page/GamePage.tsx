@@ -6,7 +6,7 @@ import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { MenuApi } from '../menu/menuModel'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
 import { useTurnBell } from '../sounds/useTurnBell'
-import { useAppAction, useBoundAction } from '../actions/useBoundAction'
+import { useBoundAction, useBindAction } from '../actions/useBindAction'
 import { useIsMobile } from '../mobile/useIsMobile'
 import { setIsInfoSheetOpen, useIsInfoSheetOpen } from '../info-sheet/infoSheetStore'
 import { useClubPresence } from '../realtime/useClubPresence'
@@ -211,14 +211,14 @@ export function GamePage({
   // Help for THIS game — the manifest's rules component. Bound here rather than
   // in each PlayArea because the page is what mounts it, and handed down on the
   // menu API for the game to place.
-  const actHelp = useBoundAction('act-help', {
+  const actHelp = useBindAction('act-help', {
     describe: () => 'active',
     run: () => setHelpOpen(true),
   })
   // Open chat, bound at the app root; the page passes it along so a game's menu
   // can show the row. Null on a page with no chat panel — never here in
   // practice, since GamePage mounts one, but the type says what it is.
-  const actChat = useAppAction('act-open-chat')
+  const actChat = useBoundAction('act-open-chat')
   // Jump to a follow-up game's page — for a PlayArea that just started the
   // next game of this same gametype (its "New game"). On ctx so per-game code
   // never touches the router or builds a gametype; going back to the CLUB is
@@ -249,7 +249,7 @@ export function GamePage({
   }, [clubHandle, commonGame.title, isTerminal, activePlayers.length, sendSuspend])
   // `<` → Back to club. The menu's row is this same binding, which is what makes
   // the key discoverable: the row shows it.
-  const actBackToClub = useBoundAction('act-back-to-club', {
+  const actBackToClub = useBindAction('act-back-to-club', {
     describe: () => 'active',
     run: requestBackToClub,
   })
@@ -266,7 +266,7 @@ export function GamePage({
   // and placed nowhere. The dialog lives on ClubPage, so this hands off with
   // `?new=<gametype>`; canceling it just leaves you on the club page, which is
   // a fine place to be. The registry asks NEW_GAME_CONFIRM first, mid-game.
-  useBoundAction('act-new-game-from-setup', {
+  useBindAction('act-new-game-from-setup', {
     terminal: isTerminal,
     describe: () => 'active',
     run: () => {
@@ -302,7 +302,7 @@ export function GamePage({
       reportUnhandled('stop_game', res)
     }
   }
-  const actStopGame = useBoundAction('act-stop-game', {
+  const actStopGame = useBindAction('act-stop-game', {
     terminal: isTerminal,
     describe: () => (paused ? 'active' : 'hidden'),
     run: stopTheGameFromTheOverlay,

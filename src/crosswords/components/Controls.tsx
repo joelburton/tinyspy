@@ -3,7 +3,7 @@
 import type { MouseEvent, ReactNode } from 'react'
 import { actionSurface } from '@/common/actions/actionSurface'
 import { nameWithKey } from '@/common/actions/nameWithKey'
-import type { BoundAction } from '@/common/actions/useBoundAction'
+import type { BoundAction } from '@/common/actions/useBindAction'
 import type { Scope } from '../lib/types'
 import { cls } from '@/common/utils/cls'
 import styles from './Controls.module.css'

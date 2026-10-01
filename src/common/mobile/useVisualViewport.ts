@@ -2,23 +2,23 @@
 
 import { useSyncExternalStore } from 'react'
 
-type ViewportMetrics = {
+type VisualViewportMetrics = {
   // Height of the region actually visible right now, in CSS pixels.
   height: number
   // How far that region has been pushed down — see the hook's docstring.
   offsetTop: number
 }
 
-// Module-level cache so getSnapshot can return a STABLE reference when nothing
-// changed — useSyncExternalStore compares snapshots with Object.is, so returning
-// a fresh object every call would loop forever. The visual viewport is a single
-// global, so one shared cache is correct.
-let cache: ViewportMetrics = { height: 0, offsetTop: 0 }
+// Module-level cache so measureVisualViewport can return a STABLE reference
+// when nothing changed — useSyncExternalStore compares snapshots with
+// Object.is, so returning a fresh object every call would loop forever. The
+// visual viewport is a single global, so one shared cache is correct.
+let cache: VisualViewportMetrics = { height: 0, offsetTop: 0 }
 
 // `window` is always there — this is an SPA, and jsdom has one. What can be
 // missing is `visualViewport` itself (old browsers, jsdom), and that is the
 // branch below: fall back to the layout viewport and subscribe to nothing.
-function currentMetrics(): ViewportMetrics {
+function currentMetrics(): VisualViewportMetrics {
   const vv = window.visualViewport
   if (vv) return { height: vv.height, offsetTop: vv.offsetTop }
   return { height: window.innerHeight, offsetTop: 0 }
@@ -37,15 +37,9 @@ function subscribe(callback: () => void): () => void {
   }
 }
 
-function getSnapshot(): ViewportMetrics {
+function measureVisualViewport(): VisualViewportMetrics {
   const next = currentMetrics()
   if (next.height !== cache.height || next.offsetTop !== cache.offsetTop) cache = next
-  return cache
-}
-
-// What a server render would read. Nothing renders this on a server, so it never
-// runs; React requires the argument, and the cache is the honest answer.
-function getServerSnapshot(): ViewportMetrics {
   return cache
 }
 
@@ -68,6 +62,6 @@ function getServerSnapshot(): ViewportMetrics {
  * Falls back to the layout viewport where `visualViewport` is unavailable (old
  * browsers, jsdom) — there's no keyboard to account for there anyway.
  */
-export function useVisualViewport(): ViewportMetrics {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+export function useVisualViewport(): VisualViewportMetrics {
+  return useSyncExternalStore(subscribe, measureVisualViewport)
 }

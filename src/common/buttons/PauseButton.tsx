@@ -1,7 +1,7 @@
 // cs-blessed-buttons
 
 import { PageHeaderButton } from '../page-header/PageHeaderButton'
-import { useBoundAction } from '../actions/useBoundAction'
+import { useBindAction } from '../actions/useBindAction'
 import { actionSurface } from '../actions/actionSurface'
 import styles from './PauseButton.module.css'
 
@@ -61,7 +61,7 @@ type Props = {
  */
 export function PauseButton({ paused, manual, onPause, onUnpause }: Props) {
   const resumable = paused && manual
-  const actPause = useBoundAction('act-pause', {
+  const actPause = useBindAction('act-pause', {
     // A presence-pause is nobody's to lift — it ends when the missing player
     // comes back — so the control is present and gray rather than absent.
     describe: () => ({

@@ -15,7 +15,7 @@ import { db } from '../db'
 import type { FoundWordRow, WordwheelGame } from '../hooks/useGame'
 import { answerMessage, answerOf } from '../lib/answer'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
@@ -266,7 +266,7 @@ export function BoardCol({
 
   // A fresh visual scan of the SAME letters, never a move. The floating button
   // below is this same binding.
-  const actShuffle = useBoundAction('act-shuffle', {
+  const actShuffle = useBindAction('act-shuffle', {
     describe: () => 'active',
     run: () => setShuffleSeed((s) => s + 1),
   })

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect, useRef, useState } from 'react'
-import { pressed } from '@/common/keyboard/componentKeys'
+import { pressed } from '@/common/keyboard/componentKeyGroups'
 import styles from './CrosswordsNumberJumpBlockingModal.module.css'
 
 type Props = {

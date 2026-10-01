@@ -10,7 +10,7 @@
  */
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { liveBindings, useBoundAction, type LiveAction } from './useBoundAction'
+import { getBoundActions, useBindAction, type LiveAction } from './useBindAction'
 
 const askConfirmation = vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm')
 const withdrawConfirmation = vi.fn()
@@ -26,35 +26,35 @@ beforeEach(() => {
 })
 
 /** Bind one action, with the parts a test cares about defaulted. */
-function bind(id: Parameters<typeof useBoundAction>[0], live: Partial<LiveAction> = {}) {
+function bind(id: Parameters<typeof useBindAction>[0], live: Partial<LiveAction> = {}) {
   const run = vi.fn()
   const full: LiveAction = { run, describe: () => 'active', ...live }
-  const view = renderHook(() => useBoundAction(id, full))
+  const view = renderHook(() => useBindAction(id, full))
   return { run, view }
 }
 
-describe('useBoundAction — the stack', () => {
+describe('useBindAction — the stack', () => {
   it('joins on mount and leaves on unmount', () => {
     const { view } = bind('act-shuffle')
-    expect(liveBindings().map((b) => b.id)).toEqual(['act-shuffle'])
+    expect(getBoundActions().map((b) => b.id)).toEqual(['act-shuffle'])
     view.unmount()
-    expect(liveBindings()).toEqual([])
+    expect(getBoundActions()).toEqual([])
   })
 
   it('holds the LATEST closure, without re-registering', () => {
     let word = 'first'
     const view = renderHook(() =>
-      useBoundAction('act-submit', { run: () => undefined, describe: () => ({ state: 'active', label: word }) }),
+      useBindAction('act-submit', { run: () => undefined, describe: () => ({ state: 'active', label: word }) }),
     )
-    expect(liveBindings()[0]!.describe('button').label).toBe('first')
+    expect(getBoundActions()[0]!.describe('button').label).toBe('first')
     word = 'second'
     view.rerender()
-    expect(liveBindings()[0]!.describe('button').label).toBe('second')
+    expect(getBoundActions()[0]!.describe('button').label).toBe('second')
     view.unmount()
   })
 })
 
-describe('useBoundAction — describe', () => {
+describe('useBindAction — describe', () => {
   it('takes a bare state as shorthand', () => {
     const { view } = bind('act-shuffle', { describe: () => 'disabled' })
     expect(view.result.current.describe('button')).toEqual({ state: 'disabled' })
@@ -68,7 +68,7 @@ describe('useBoundAction — describe', () => {
     // disabled) beside a row that had already switched to the game-over look.
     let over = false
     const view = renderHook(() =>
-      useBoundAction('act-reveal', {
+      useBindAction('act-reveal', {
         run: () => undefined,
         describe: () => (over ? { state: 'active' as const, label: 'Reveal secrets' } : 'disabled' as const),
       }),
@@ -86,7 +86,7 @@ describe('useBoundAction — describe', () => {
   })
 })
 
-describe('useBoundAction — the shared run', () => {
+describe('useBindAction — the shared run', () => {
   it('asks the registry question before acting', async () => {
     const { run, view } = bind('act-new-game')
     await act(async () => view.result.current.run())
@@ -128,7 +128,7 @@ describe('useBoundAction — the shared run', () => {
     const before = vi.fn()
     const after = vi.fn()
     let run = before
-    const view = renderHook(() => useBoundAction('act-new-game', { run, describe: () => 'active' }))
+    const view = renderHook(() => useBindAction('act-new-game', { run, describe: () => 'active' }))
 
     act(() => view.result.current.run())
     run = after
@@ -164,7 +164,7 @@ describe('useBoundAction — the shared run', () => {
   it('drops a second run while the first is still out', async () => {
     let release = () => {}
     const run = vi.fn(() => new Promise<void>((resolve) => { release = resolve }))
-    const view = renderHook(() => useBoundAction('act-shuffle', { run, describe: () => 'active' }))
+    const view = renderHook(() => useBindAction('act-shuffle', { run, describe: () => 'active' }))
 
     act(() => view.result.current.run())
     expect(view.result.current.pending).toBe(true)

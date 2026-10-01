@@ -9,7 +9,7 @@ import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { CELLS, GRID, isHole } from '../lib/waffle'
 import { BOARD_SHAPE } from '../lib/boardShape'
 import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import shared from '@/common/game-page/playArea.module.css'
@@ -214,7 +214,7 @@ export function Board({
   // Enter swaps the two picks. Key-only — a tap is the board's own swap — so
   // the action names itself for the key list, and hides on a board I can't
   // play.
-  useBoundAction('act-submit', {
+  useBindAction('act-submit', {
     describe: () => {
       if (disabled) return 'hidden'
       return { state: picks.length === 2 && !inFlight ? 'active' : 'disabled', label: 'Swap' }
@@ -228,7 +228,7 @@ export function Board({
   })
 
   // ⌫ drops the picks.
-  useBoundAction('act-clear-picks', {
+  useBindAction('act-clear-picks', {
     describe: () => {
       if (disabled) return 'hidden'
       return picks.length > 0 ? 'active' : 'disabled'

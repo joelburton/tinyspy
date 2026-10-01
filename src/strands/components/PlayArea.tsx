@@ -15,7 +15,7 @@ import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingM
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useMark } from '@/common/board-marks/useMark'
 import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/board-marks/feedbackTiming'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
@@ -402,11 +402,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // `describe` can be read on ANY render — the key list asks every binding when
   // Help opens — so everything it names is derived above the loading guards.
   const entryOff = () => trace.length === 0 || !isMyTurn || busy
-  const actDropLastCell = useBoundAction('act-drop-last-cell', {
+  const actDropLastCell = useBindAction('act-drop-last-cell', {
     describe: () => (entryOff() ? 'disabled' : 'active'),
     run: deleteLast,
   })
-  const actSubmit = useBoundAction('act-submit', {
+  const actSubmit = useBindAction('act-submit', {
     describe: () => (entryOff() ? 'disabled' : 'active'),
     run: () => {
       // The cursor goes to the word's last letter, and hides.
@@ -450,7 +450,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // pattern action, so it is handed whichever letter fired it. Inert while the
   // board is not the player's to touch — and while a past turn is open, which is
   // the viewer's key rather than the board's.
-  useBoundAction('act-extend-trace', {
+  useBindAction('act-extend-trace', {
     describe: () => (!isBoardInteractive || busy || historyViewer.isViewingHistory ? 'disabled' : 'active'),
     run: (key) => {
       if (!game || !key) return
@@ -524,7 +524,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The button always reads "Hint"; what varies is the bubble, which says where
   // the economy stands. Varying the words would resize the one control the bar
   // exists to reach.
-  const actHint = useBoundAction('act-hint', {
+  const actHint = useBindAction('act-hint', {
     describe: () => {
       const showing = (me?.active_hint_coords ?? null) !== null
       const points = me?.hint_points ?? 0
@@ -574,7 +574,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // nothing, and affects no peer. Terminal-only, since `_solution_for` withholds
   // them until the game is over for everyone, so a rival who solved early or
   // conceded can't pull them while the others are still tracing.
-  const actReveal = useBoundAction('act-reveal', {
+  const actReveal = useBindAction('act-reveal', {
     describe: () =>
       describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal }),
     run: toggleSolution,
@@ -698,7 +698,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // strands' New game is the NEXT PUZZLE nobody at the table has played, which
   // the server picks; the registry's question is the right one for it, since
   // what matters to the player is that this game is shelved rather than lost.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     describe: () => 'active',
     run: startNewGame,
@@ -708,7 +708,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // re-shielded here: `events` is already whatever RLS let through (own only, in
   // compete, until terminal) and `game.solution` is null until the reveal, so
   // the model simply has nothing early to leak.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       if (!game) return

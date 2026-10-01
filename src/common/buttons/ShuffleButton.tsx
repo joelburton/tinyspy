@@ -3,7 +3,7 @@
 import { IconShuffle } from '../icons/icons'
 import { cls } from '../utils/cls'
 import { actionSurface } from '../actions/actionSurface'
-import type { BoundAction } from '../actions/useBoundAction'
+import type { BoundAction } from '../actions/useBindAction'
 import styles from './ShuffleButton.module.css'
 
 type Props = {

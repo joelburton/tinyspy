@@ -13,7 +13,7 @@ import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { StrikeMarks } from './StrikeMarks'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import type { Cell } from '@/common/board-cursor/stepCell'
@@ -345,7 +345,7 @@ export function BoardCol({
   // while a past turn is open: a live Submit over a frozen historical board
   // would be lying about what it can do. Fewer than four picks leaves Submit
   // gray rather than firing a no-op.
-  const actSubmit = useBoundAction('act-submit', {
+  const actSubmit = useBindAction('act-submit', {
     describe: () => {
       if (!canCommit) return 'hidden'
       if (submitting) return { state: 'disabled', label: 'Submitting…' }
@@ -356,7 +356,7 @@ export function BoardCol({
 
   // Clear drops the picks — and BROADCASTS, so a teammate's board drops them
   // too.
-  const actClearPicks = useBoundAction('act-clear-picks', {
+  const actClearPicks = useBindAction('act-clear-picks', {
     describe: () => {
       if (!canPick) return 'hidden'
       return unionTiles.length === 0 ? 'disabled' : 'active'
@@ -397,7 +397,7 @@ export function BoardCol({
   // Shuffle — a fresh visual scan of the SAME sixteen tiles, never a move (the
   // picks survive it). Not gated on `isMyTurn`: rearranging your own view
   // is not acting on the board.
-  const actShuffle = useBoundAction('act-shuffle', {
+  const actShuffle = useBindAction('act-shuffle', {
     describe: () => {
       if (!isStillPlaying || isViewingHistory) return 'hidden'
       return displayedTiles.length === 0 ? 'disabled' : 'active'

@@ -17,7 +17,7 @@ import type { Player } from '../lib/seats'
 import type { KeyLabel } from '../lib/labels'
 import { isGuessable, type Seat } from '../lib/phase'
 import { BOARD_SHAPE } from '../lib/boardShape'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import type { Cell } from '@/common/board-cursor/stepCell'
@@ -276,7 +276,7 @@ export function BoardCol({
   // Enter guesses the pick. Key-only — the click is the board's own guess
   // button — so the action names itself for the key list, and it hides when I
   // am not the one guessing.
-  useBoundAction('act-submit', {
+  useBindAction('act-submit', {
     describe: () => {
       if (!canGuess) return 'hidden'
       return { state: picked !== null && inFlightPos === null ? 'active' : 'disabled', label: 'Guess' }
@@ -289,7 +289,7 @@ export function BoardCol({
   })
 
   // ⌫ un-picks.
-  useBoundAction('act-clear-picks', {
+  useBindAction('act-clear-picks', {
     describe: () => {
       if (!canGuess) return 'hidden'
       return picked !== null ? 'active' : 'disabled'

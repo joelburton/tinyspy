@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { isEditableField, isNonGameField } from '../keyboard/editableField'
 import { isPattern, isWildcard, matches, type KeySpec } from './chord'
-import { liveBindings, type BoundAction } from './useBoundAction'
+import { getBoundActions, type BoundAction } from './useBindAction'
 
 /** Ties already reported, so holding a key doesn't fill the console with the
  *  same sentence. Keyed by the ids, since that pair IS the finding. */
@@ -43,7 +43,7 @@ function reportChordTie(claimants: BoundAction[]): void {
  *
  * Mounted ONCE, in `App.tsx`, and by a spec that presses keys. Nothing else
  * calls it, and no page or game writes a key branch of its own — a component
- * gets a key by binding an action (`useBoundAction`), never by listening for
+ * gets a key by binding an action (`useBindAction`), never by listening for
  * one.
  *
  * Two gates come first (a focused text field, a floating panel), then three
@@ -85,7 +85,7 @@ export function useActionDispatcher(): void {
         return action.describe('key').state === 'active' ? key : null
       }
 
-      const live = liveBindings()
+      const live = getBoundActions()
 
       // 1. The watchers, all of them, claiming nothing: that is how any key
       //    dismisses the last message and still types its letter. Stack order
@@ -101,7 +101,7 @@ export function useActionDispatcher(): void {
       //
       // Both walk the stack forward, so a component mounted with its page wins
       // a key they both want; one mounted later does not. That order is a
-      // tiebreak, not a channel (the stack's comment in `useBoundAction.ts`);
+      // tiebreak, not a channel (the stack's comment in `useBindAction.ts`);
       // two actions live at once must not share a chord. In every pass a hidden
       // or disabled binding is skipped, so the key falls through to an outer
       // binding that wants it.

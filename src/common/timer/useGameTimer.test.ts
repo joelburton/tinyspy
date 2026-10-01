@@ -29,7 +29,7 @@ vi.mock('../supabase/db', () => ({
   },
 }))
 
-import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'
+import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '../faults/faultStore'
 import { useGameTimer } from './useGameTimer'
 
 /** `common.tick_timer`'s answer when it advanced the clock. Every key of the ok
@@ -138,7 +138,7 @@ describe('useGameTimer', () => {
   })
 
   it('swallows a poll that nothing answered — the offline case', async () => {
-    clearFaultsForTest()
+    clearFaultMessages_ForTest()
     // Nothing answered: postgrest reports a rejected fetch as `status: 0` with
     // an error, NOT as a not-ok envelope at 200. `runRpc` turns that into an
     // environmental envelope whose dbcode is null, because nothing raised.
@@ -151,7 +151,7 @@ describe('useGameTimer', () => {
       useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
     )
     await flush()
-    expect(peekFaultsForTest()).toHaveLength(0)
+    expect(peekFaultMessages_ForTest()).toHaveLength(0)
   })
 
   // The point of `presentFaults: false`: two treatments for one call. The
@@ -159,27 +159,27 @@ describe('useGameTimer', () => {
   // signed-out player should be told (Joel). And it is shown as ITSELF, not as
   // a bug — the chain declines to call a declared refusal unhandled.
   it('shows a lapsed session, in the RPC own words', async () => {
-    clearFaultsForTest()
+    clearFaultMessages_ForTest()
     vi.spyOn(console, 'error').mockImplementation(() => {})
     rpcMock.mockResolvedValue(notOk('PN011'))
     renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
     )
     await flush()
-    const shown = peekFaultsForTest().map((f) => String(f.text))
+    const shown = peekFaultMessages_ForTest().map((f) => String(f.text))
     expect(shown).toContain('nope')
     expect(shown.join(' ')).not.toContain('fell through to unhandled')
   })
 
   it('SCREAMS for a code it never declared', async () => {
-    clearFaultsForTest()
+    clearFaultMessages_ForTest()
     vi.spyOn(console, 'error').mockImplementation(() => {})
     rpcMock.mockResolvedValue(notOk('42P01')) // undefined_table: common.timers is gone
     renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
     )
     await flush()
-    expect(peekFaultsForTest().map((f) => String(f.text)).join(' ')).toContain(
+    expect(peekFaultMessages_ForTest().map((f) => String(f.text)).join(' ')).toContain(
       'fell through to unhandled',
     )
   })

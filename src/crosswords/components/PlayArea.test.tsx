@@ -18,7 +18,7 @@ import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { KeyList } from '@/common/actions/KeyList'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import { menuRow, type MenuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { whereIStand } from '@/common/game-page/whereIStand'
@@ -191,7 +191,7 @@ function rpcNames(): string[] {
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
 
 /** What a bound action says about itself right now. */
-const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
+const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
 
 /** A keystroke at the page, the way a player types with nothing focused.
  *  Awaited, because an action's run is single-flight: a second press before the

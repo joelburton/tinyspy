@@ -5,7 +5,7 @@ import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { GameStopResult } from '../manifest/gameManifest'
 import { runRpc } from '../supabase/dbResult'
-import { useBoundAction, type ActionState, type BoundAction } from '../actions/useBoundAction'
+import { useBindAction, type ActionState, type BoundAction } from '../actions/useBindAction'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 /** Stop, Concede and Restart as bound actions — hand each straight to a menu
@@ -118,7 +118,7 @@ export function useStandardGameActions({
   // `⌥⌫`.
   //
   // Irreversible, so the registry gives it the confirm and the shared run asks.
-  const actStopGame = useBoundAction('act-stop-game', {
+  const actStopGame = useBindAction('act-stop-game', {
     terminal: isTerminal,
     describe: (): ActionState => {
       if (mode === 'compete' && !isLocallyTerminal) return 'hidden'
@@ -134,7 +134,7 @@ export function useStandardGameActions({
   // race's ONE way out while you can still play, and its question is where
   // conceding and stopping the table are told apart: `runAlternative` is the
   // body for its second answer.
-  const actConcede = useBoundAction('act-concede', {
+  const actConcede = useBindAction('act-concede', {
     terminal: isTerminal,
     describe: (): ActionState | { state: ActionState; label: string } => {
       if (mode !== 'compete') return 'hidden'
@@ -170,7 +170,7 @@ export function useStandardGameActions({
   // perfectly legal thing to replay again, so it stays offered at terminal;
   // the shared run's single flight is what stops a second wipe landing on a
   // board someone has already started guessing on.
-  const actRestart = useBoundAction('act-restart', {
+  const actRestart = useBindAction('act-restart', {
     terminal: isTerminal,
     // Reachable all game from the menu and its key — RESTART_CONFIRM is written
     // for exactly that ("clears everyone's progress", "Keep playing"). It gets

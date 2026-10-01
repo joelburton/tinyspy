@@ -16,7 +16,7 @@ import { Dot } from '../members/Dot'
 import { menuRow, type MenuHeader, type MenuRow, type MenuSection } from './menuModel'
 import { useIsMobile } from '../mobile/useIsMobile'
 import { IconMenuChevron, IconSubmenu } from '../icons/icons'
-import { pressed } from '../keyboard/componentKeys'
+import { pressed } from '../keyboard/componentKeyGroups'
 import styles from './Menu.module.css'
 
 /**

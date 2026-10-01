@@ -5,7 +5,7 @@ import { BlockingModal } from '@/common/floating-panels/BlockingModal'
 import { CancelButton } from '@/common/buttons/CancelButton'
 import { SelectionList } from '@/common/lists/SelectionList'
 import { NYT_EARLIEST, WEEKDAYS } from '../../lib/nytDays'
-import { pressed } from '@/common/keyboard/componentKeys'
+import { pressed } from '@/common/keyboard/componentKeyGroups'
 import styles from './pickers.module.css'
 
 /** Today as YYYY-MM-DD (the date box's max). */

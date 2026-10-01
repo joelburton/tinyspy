@@ -13,7 +13,7 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useArrowHistory, type ArrowHistoryOptions } from './useArrowHistory'
 import { useActionDispatcher } from '../actions/dispatcher'
-import { liveBindings } from '../actions/useBoundAction'
+import { getBoundActions } from '../actions/useBindAction'
 
 /** Awaited: an action's run settles a microtask after the key. */
 async function press(key: string, target: EventTarget = window) {
@@ -34,7 +34,7 @@ function setup(initial: Partial<ArrowHistoryOptions> = {}) {
 /** What the two arrow bindings say about themselves, by id — read off the
  *  stack, since the hook hands nothing back. */
 function states() {
-  const byId = (id: string) => liveBindings().find((b) => b.id === id)!.describe('button').state
+  const byId = (id: string) => getBoundActions().find((b) => b.id === id)!.describe('button').state
   return { recall: byId('act-recall-last'), clear: byId('act-clear-entry') }
 }
 

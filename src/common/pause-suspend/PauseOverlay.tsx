@@ -4,7 +4,7 @@ import type { Member } from '../members/member'
 import { Dot } from '../members/Dot'
 import { DotActor } from '../members/ActorMention'
 import { ActionButton } from '../actions/ActionButton'
-import type { BoundAction } from '../actions/useBoundAction'
+import type { BoundAction } from '../actions/useBindAction'
 import styles from './PauseOverlay.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 

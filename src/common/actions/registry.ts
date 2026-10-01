@@ -41,7 +41,7 @@ import {
  *
  * This is the table to read when you want to know what a command IS. What it
  * DOES is the other half, supplied by whichever page or component offers it —
- * see `useBoundAction`, which joins the two. Nothing here is a function and
+ * see `useBindAction`, which joins the two. Nothing here is a function and
  * nothing here knows about a game.
  *
  * **Adding an action is adding a row here.** The id is `act-<what-it-does>`,

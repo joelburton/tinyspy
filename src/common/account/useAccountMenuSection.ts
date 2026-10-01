@@ -12,7 +12,7 @@ import {
 } from '../supabase/dbEnvelope'
 import { setIsEditProfileOpen } from './editProfileStore'
 import { setShownWordEditDialog } from '../definitions/wordEditStore'
-import { useBoundAction } from '../actions/useBoundAction'
+import { useBindAction } from '../actions/useBindAction'
 import type { MenuSection } from '../menu/menuModel'
 
 /**
@@ -51,15 +51,15 @@ export function useAccountMenuSection(): MenuSection {
   // and refusing.
   const canEditWords = profile?.can_edit_words === true
 
-  const actEditProfile = useBoundAction('act-edit-profile', {
+  const actEditProfile = useBindAction('act-edit-profile', {
     describe: () => 'active',
     run: () => setIsEditProfileOpen(true),
   })
-  const actAddWord = useBoundAction('act-add-word', {
+  const actAddWord = useBindAction('act-add-word', {
     describe: () => (canEditWords ? 'active' : 'hidden'),
     run: () => setShownWordEditDialog({ mode: 'add' }),
   })
-  const actLogOut = useBoundAction('act-log-out', {
+  const actLogOut = useBindAction('act-log-out', {
     describe: () => 'active',
     run: () => {
       supabase.auth.signOut().then(({ error }) => {

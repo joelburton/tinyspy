@@ -169,16 +169,18 @@ untrusted, so the listener cannot react to its own re-dispatch.
 **Escape is not handled here.** It stays "close what is on top," and the
 floating panels own it.
 
-**A key that is not an action is still a row.** Some keys belong to whatever
-has focus or is open rather than to the page: a selection list's arrows, a
-ring's Tab, Escape closing a panel, an open menu's walk, a form's Enter,
-crosswords' rebus box. Each is a row of `COMPONENT_KEYS` in `componentKeys.ts`
-— a label and the keys, in the same `KeySpec` shape an action's keys take —
-and the component handling it matches with `pressed(id, e)` rather than
-comparing `e.key` itself, so the row is the key. A row Help should teach
-(`inHelp`) is also OFFERED while it is live, with `useComponentKeys`, and
-Help's key list shows it after the actions: the club page's two lists offer
-their keys and its ring offers "Next list". A row that only works inside
-something Help cannot be open beside, like an open menu, is matched and never
-offered. `gmake dev-keys` finds both kinds by their ids, and the
-`componentKeys` guard holds every hand-written key handler in `src/` to a row.
+**A key that is not an action is still listed, as a key group.** Some keys
+belong to whatever has focus or is open rather than to the page: a selection
+list's arrows, a ring's Tab, Escape closing a panel, an open menu's walk, a
+form's Enter, crosswords' rebus box. Each is a key group in
+`COMPONENT_KEYGROUPS` (`componentKeyGroups.ts`) — one thing a key does, with a
+label and every key that does it, in the same `KeySpec` shape an action's keys
+take — and the component handling it matches with `pressed(id, e)` rather than
+comparing `e.key` itself, so the key group is the key. A group Help should
+teach (`inHelp`) is also OFFERED while it is live, with
+`useOfferComponentKeyGroups` (`offeredComponentKeyGroupsStore.ts`), and Help's
+key list shows it after the actions: the club page's two lists offer their
+keys and its ring offers "Next list". A group that only works inside something Help cannot be open beside, like an
+open menu, is matched and never offered. `gmake dev-keys` finds both kinds by
+their ids, and the `componentKeyGroups` guard holds every hand-written key
+handler in `src/` to a key group.

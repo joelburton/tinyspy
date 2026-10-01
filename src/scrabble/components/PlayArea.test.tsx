@@ -24,7 +24,7 @@ import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { EventRow, PlayerRow, ScrabbleGame } from '../hooks/useGame'
@@ -185,7 +185,7 @@ const press = (init: KeyboardEventInit) =>
   })
 
 /** What a bound action says about itself right now. */
-const describeOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button')
+const describeOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button')
 
 /** A control by WHICH action it is, since its words vary per state. */
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)

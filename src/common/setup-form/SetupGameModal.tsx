@@ -5,7 +5,7 @@ import { MODE_LABEL, type GameManifest } from '../manifest/gameManifest'
 import { type Member } from '../members/member'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { ActionButton } from '../actions/ActionButton'
-import { useBoundAction } from '../actions/useBoundAction'
+import { useBindAction } from '../actions/useBindAction'
 import { cls } from '../utils/cls'
 import { StandardForm } from '../forms/StandardForm'
 import { FailureLine } from '../forms/FailureLine'
@@ -121,7 +121,7 @@ export function SetupGameModal({
   // same command the in-game menu's Help row is, bound here because this is
   // where these rules are reachable from.
   const [showHelp, setShowHelp] = useState(false)
-  const actHelp = useBoundAction('act-help', {
+  const actHelp = useBindAction('act-help', {
     describe: () => (busy ? 'disabled' : 'active'),
     run: () => setShowHelp(true),
   })

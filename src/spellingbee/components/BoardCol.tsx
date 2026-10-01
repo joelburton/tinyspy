@@ -6,7 +6,7 @@ import { shuffle } from '@/common/utils/shuffle'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { RankBar } from '@/shared/rank-ladder/RankBar'
@@ -226,7 +226,7 @@ export function BoardCol({
 
   // A fresh visual scan of the SAME letters, never a move. The floating button
   // below is this same binding.
-  const actShuffle = useBoundAction('act-shuffle', {
+  const actShuffle = useBindAction('act-shuffle', {
     describe: () => 'active',
     run: () => setShuffleSeed((s) => s + 1),
   })

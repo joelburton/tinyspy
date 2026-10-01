@@ -10,7 +10,7 @@ import { channelLeaving, releaseChannel } from '../realtime/channelTeardown'
 import { cls } from '../utils/cls'
 import { navigate } from '../routing/router'
 import { gamePath } from '../routing/routes'
-import { useBoundAction } from '../actions/useBoundAction'
+import { useBindAction } from '../actions/useBindAction'
 import { useTabRing } from '../keyboard/useTabRing'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
 import { useStickyChoice } from '../web-storage/useStickyChoice'
@@ -322,22 +322,22 @@ export function ClubPage({ club, members, initialGametypes, authSession }: Props
   // `<` → Back to home (the club list), mirroring the game menu's `<` → Back to
   // club. One key, one meaning: "up a level from wherever I am". It is also the
   // menu's row, which is what makes the key discoverable — the row shows it.
-  const actBackToHome = useBoundAction('act-back-to-home', {
+  const actBackToHome = useBindAction('act-back-to-home', {
     describe: () => 'active',
     run: () => navigate('/'),
   })
 
   // The club menu's other rows. Key-less, but actions all the same: one row
   // shape, one place that says what a row is called and whether it applies.
-  const actHelp = useBoundAction('act-help', {
+  const actHelp = useBindAction('act-help', {
     describe: () => 'active',
     run: () => setHelpOpen(true),
   })
-  const actEditClub = useBoundAction('act-edit-club', {
+  const actEditClub = useBindAction('act-edit-club', {
     describe: () => 'active',
     run: () => setEditing(true),
   })
-  const actRenameClub = useBoundAction('act-rename-club', {
+  const actRenameClub = useBindAction('act-rename-club', {
     describe: () => 'active',
     run: () => {
       globalFeedbackSlot.show(FeedbackMessage.acknowledgment('noted', 'Rename club: coming soon'))

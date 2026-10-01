@@ -10,7 +10,7 @@ import type { TraceCells } from '../lib/boardTrace'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { TypedWord } from './TypedWord'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Stats, type BoggleStats } from './Stats'
@@ -231,7 +231,7 @@ export function BoardCol({
     setTurns((t) => (t + 1) % 4)
     setPath([])
   }, [])
-  const actRotate = useBoundAction('act-rotate', {
+  const actRotate = useBindAction('act-rotate', {
     describe: () => 'active',
     run: handleRotate,
   })

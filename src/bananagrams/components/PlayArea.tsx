@@ -17,7 +17,7 @@ import { IconExchange } from '@/common/icons/icons'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { ActionButton } from '@/common/actions/ActionButton'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { db } from '../db'
 import { useGame, usePeerBoards, useProgress } from '../hooks/useGame'
@@ -317,7 +317,7 @@ export function PlayArea(ctx: GamePageCtx) {
       return
     }
   }
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     describe: () => 'active',
     run: createNewGame,
@@ -333,7 +333,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Words are extracted with the same rule the server's win check uses
   // (`boardWords`), then de-duped + sorted — unscored and unattributed, it's
   // just that board's vocabulary.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (loading || initialBoard === null ? 'hidden' : 'active'),
     run: () => {
       const { peerBoards: peers, players: roster, selfId } = printDataRef.current

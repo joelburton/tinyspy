@@ -35,29 +35,14 @@ When both are done, the rules below move into `docs/` and this plan is deleted.
 
 ## Pass 1 — names and comments inside each store
 
-Done: `useIsChatPanelOpen`, `useHasChatHost` (split from `chatOpenStore`),
-`editProfileStore`, `infoSheetStore`.
-
-- [ ] `wordEditStore` — `value` → `shownWordEditDialog`, `getSnapshot` →
-  `getShownWordEditDialog`, `next` → `val`
-- [ ] `chatUnread` — `value` → `chatUnreadInfo`, `getSnapshot` →
-  `getChatUnreadInfo`, `next` → `val`
-- [ ] `definitionStore` — `Defining` / `defining` / `useDefining` →
-  `ShownDefinitionCard` / `shownDefinitionCard` / `useShownDefinitionCard`,
-  `getSnapshot` → `getShownDefinitionCard`
-- [ ] `useProfile` — the signed-in user's, so `my…`: `current` → `myProfile`,
-  `useMyProfile`, `setMyProfile`, `setMyProfileFields`, and `currentProfile`
-  → `getMyProfile`, which the hook passes in place of `getSnapshot`
-- [ ] `toastStore` — `getSnapshot` → `getToasts`
-- [ ] `useVisualViewport` — `getSnapshot` measures and caches, so not a `get`;
-  proposed `measureViewport`, not yet agreed
-- [ ] `scratchpadOpenStore` — `readInitial` inlined, `open` →
-  `isScratchpadOpen`, `setScratchpadOpen` → `setIsScratchpadOpen`,
-  `getScratchpadOpen` → `getIsScratchpadOpen` and passed to the hook
-- [ ] `faultStore` — the hook's inline getter becomes a named function; names
-  to propose
-- [ ] `gameMenuStore` — the hook's inline getter becomes a named function,
-  `next` → `val`
+Done, every store: `useIsChatPanelOpen`, `useHasChatHost` (split from
+`chatOpenStore`), `editProfileStore`, `infoSheetStore`, `wordEditStore`
+(`ShownWordEditDialog`), `chatUnread`, `definitionStore`
+(`ShownDefinitionCard`), `useProfile` (`useMyProfile` and the `my…` names),
+`toastStore`, `scratchpadOpenStore`, `faultStore`, `gameMenuStore`,
+`confirmationService`, `useVisualViewport` (`measureVisualViewport`),
+`useBindAction` (`bindingChangeCount`), and `componentKeyGroups`, whose change
+counter became the rebuilt list of offered key groups the hook returns.
 
 ## Pass 2 — file names
 
@@ -66,18 +51,20 @@ Done: `useIsChatPanelOpen`, `useHasChatHost` (split from `chatOpenStore`),
 - [ ] `common/chat/useHasChatHost.ts` → `chatHostStore.ts`
 - [ ] `common/actions/dispatcher.ts` → `useActionDispatcher.ts`: it exports
   only the hook
+- [ ] Split `common/actions/useBindAction.ts`: binding and reading what is
+  bound are different jobs. `useBindAction` and its run/describe wrapping stay;
+  the binding registry, its change count and its three readers
+  (`useBoundAction`, `useBoundActions`, `getBoundActions`) move to
+  `boundActionsStore.ts`, which exports a `registerBinding(ref)` returning the
+  release, so its `subscribe` stays private
 - [ ] Split `common/chat/chatUnread.ts`: the `ChatUnread` type, the state,
   `setChatUnread` and `useChatUnread` go to `chatUnreadStore.ts`, which
   `ChatButton` reads; `computeUnread` and the last-seen bookmark stay in
   `chatUnread.ts`, which only `Chat` calls
-- `common/keyboard/componentKeys.ts` stays whole: the offer registry exists
-  only to tell Help which of the table's rows are live, and half the files that
-  offer rows also match them, so a split would give those two imports
-- [ ] Move out of their hook files, each to a lowercase or `lib/` file beside
-  it: `cellKey` (`crosswords/hooks/useCells.ts`), `wordWithBonusDot`
-  (`shared/found-words/useFoundWordSubmit.ts`), `solvedByMe`
-  (`common/reveal/useSolutionReveal.ts`), `DUMP_COUNT` / `LETTER_SCALE` /
-  `blurActiveField` (`bananagrams/hooks/usePlayerBoard.ts`)
+- [x] Split `common/keyboard/componentKeyGroups.ts` (was `componentKeys.ts`):
+  the table and `pressed` (how a component answers its keys) stay; the offering
+  registry and its two hooks, which exist only for Help's key list, moved to
+  `offeredComponentKeyGroupsStore.ts`
 
 ## When both passes are done
 

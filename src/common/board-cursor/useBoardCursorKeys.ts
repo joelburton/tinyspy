@@ -1,7 +1,7 @@
 // cs-blessed-board-cursor
 
-import { useBoundAction } from '@/common/actions/useBoundAction'
-import type { BoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
+import type { BoundAction } from '@/common/actions/useBindAction'
 import type { ArrowKey } from './gridCursor'
 
 export type BoardCursorKeysOptions = {
@@ -69,22 +69,22 @@ export function useBoardCursorKeys({
 }: BoardCursorKeysOptions): BoardCursorKeys {
   const state = () => (enabled ? 'active' : 'disabled')
 
-  useBoundAction('act-move-cursor', {
+  useBindAction('act-move-cursor', {
     describe: state,
     run: (key) => onArrow(key as ArrowKey),
   })
 
-  useBoundAction('act-place-tile', {
+  useBindAction('act-place-tile', {
     describe: state,
     run: (key) => onLetter((key ?? '').toUpperCase()),
   })
 
-  useBoundAction('act-remove-tile', {
+  useBindAction('act-remove-tile', {
     describe: state,
     run: onBackspace,
   })
 
-  const actCommit = useBoundAction(commit, {
+  const actCommit = useBindAction(commit, {
     describe: () => (enabled && (canCommit ?? true) ? 'active' : 'disabled'),
     run: onCommit,
   })

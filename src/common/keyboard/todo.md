@@ -4,6 +4,13 @@
 
 ## Soon
 
+- **Help's key list tracks what is pressable this moment, and Help isn't for
+  that.** Help is read once, to learn a game's keys; nobody keeps it open and
+  watches the list change. Yet `offeredComponentKeyGroupsStore.ts` adds and
+  withdraws component key groups as components mount, unmount and flip
+  `live`, so the list is a live picture of the page. Help should list the keys a game has, not the ones
+  answering right now.
+
 ## Someday
 
 ## Maybe

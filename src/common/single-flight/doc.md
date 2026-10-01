@@ -3,7 +3,7 @@
 One run of an async action at a time: a second press while the first is still out
 is dropped, not queued. One hook, wrapped around the handler of anything whose
 second call would do real, unwanted work — above all the run of every bound
-action (`useBoundAction`), so a command's button, menu row and key share one
+action (`useBindAction`), so a command's button, menu row and key share one
 wait.
 
 ## Intro to area

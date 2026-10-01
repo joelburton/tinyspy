@@ -28,7 +28,7 @@ import type { GamePlayer } from '@/common/members/member'
 import type { GameEnding } from '@/common/terminal/gameEnding'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
@@ -215,7 +215,7 @@ const okEnvelope = (data: unknown) => ({
 })
 
 /** What a bound action says about itself right now. */
-const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
+const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
 
 /** A control by WHICH action it is, since its words vary per state. */
 const control = (id: string) =>
@@ -294,7 +294,7 @@ describe('wordle PlayArea — render smoke', () => {
  * — wordle has no edge function), then ctx.goToFollowUpGame.
  */
 describe('wordle PlayArea — icon-only action row', () => {
-  const bound = (id: string) => liveBindings().find((b) => b.id === id)!
+  const bound = (id: string) => getBoundActions().find((b) => b.id === id)!
 
   // The row is one list; which buttons are on screen is each action's own
   // answer, and the menu asks the same bindings.

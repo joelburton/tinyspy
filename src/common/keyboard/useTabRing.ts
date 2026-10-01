@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
-import { pressed, useComponentKeys, type ComponentKeyId } from './componentKeys'
+import { pressed, type ComponentKeyGroupId } from './componentKeyGroups'
+import { useOfferComponentKeyGroups } from './offeredComponentKeyGroupsStore'
 
 /**
  * A surface's Tab stops, in the order Tab visits them. A ref rather than an
@@ -110,8 +111,8 @@ function liveStops(ring: Ring): HTMLElement[] {
  * always includes itself in the cycle and no page attribute takes it out. So
  * containment is the part that has to be built.
  *
- * **A ring worth teaching names itself.** `offers` is the `COMPONENT_KEYS` row
- * Help's key list shows while the ring is mounted — `'keys-next-list'` on the
+ * **A ring worth teaching names itself.** `offers` is the key group Help's key
+ * list shows while the ring is mounted — `'keys-next-list'` on the
  * club page, `'keys-next-field'` on a clue form — since what Tab moves between
  * is the caller's to say. An empty ring, and a panel's, offer nothing.
  *
@@ -119,13 +120,13 @@ function liveStops(ring: Ring): HTMLElement[] {
  * left for navigation. That is the one genuine exception, and it costs nothing:
  * it already consumes the key, so it leaks nothing either.
  */
-export function useTabRing(ring: Ring, offers?: ComponentKeyId): void {
-  useComponentKeys(offers === undefined ? [] : [offers])
+export function useTabRing(ring: Ring, offers?: ComponentKeyGroupId): void {
+  useOfferComponentKeyGroups(offers === undefined ? [] : [offers])
 
   // The argument's identity changes every render (callers write it inline), so
   // the listener reads through a ref and never needs re-registering. Refreshed
   // in an effect rather than during render, which is right for a value only a
-  // listener reads (`useBoundAction` records the other half of that rule).
+  // listener reads (`useBindAction` records the other half of that rule).
   const ringRef = useRef(ring)
   useEffect(() => {
     ringRef.current = ring

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useBoundAction, type ActionState, type BoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction, type ActionState, type BoundAction } from '@/common/actions/useBindAction'
 import {
   advanceAfterFill,
   jumpClue,
@@ -120,54 +120,54 @@ export function useGridKeyboard({
   // While a peek is up, ANY key puts it away — a watcher, so the same press
   // still does whatever else it does. Which is why ⇧Space below can simply
   // open one: the watcher has already cleared the last.
-  useBoundAction('act-drop-peek', {
+  useBindAction('act-drop-peek', {
     describe: () => (peeking ? 'active' : 'hidden'),
     run: clearPeek,
   })
 
-  useBoundAction('act-move-cursor', {
+  useBindAction('act-move-cursor', {
     describe: nav,
     run: onBoard((g, c, key) => setCursor(moveCursor(g, c, key as ArrowKey))),
   })
 
-  useBoundAction('act-jump-word-edge', {
+  useBindAction('act-jump-word-edge', {
     describe: nav,
     run: onBoard((g, c, key) => setCursor(jumpWordEdge(g, c, key as ArrowKey))),
   })
 
   // Space steps on with the same word-edge stop a filled letter takes.
-  useBoundAction('act-advance-cell', {
+  useBindAction('act-advance-cell', {
     describe: nav,
     run: onBoard((g, c) => setCursor(advanceAfterFill(g, c))),
   })
 
   // ⇧Space peeks. The cursor only ever sits on a fillable cell, so there is
   // nothing to guard against.
-  useBoundAction('act-peek-cell', {
+  useBindAction('act-peek-cell', {
     describe: nav,
     run: () => {
       if (cursor) onPeek(cursor.row, cursor.col)
     },
   })
 
-  useBoundAction('act-next-clue', {
+  useBindAction('act-next-clue', {
     describe: nav,
     run: onBoard((g, c) => setCursor(jumpClue(g, c, 1))),
   })
 
-  useBoundAction('act-previous-clue', {
+  useBindAction('act-previous-clue', {
     describe: nav,
     run: onBoard((g, c) => setCursor(jumpClue(g, c, -1))),
   })
 
-  useBoundAction('act-jump-to-number', {
+  useBindAction('act-jump-to-number', {
     describe: nav,
     run: onBoard(() => onNumberJump()),
   })
 
   // A letter fills and advances. A given cell is the author's and immutable, so
   // the cursor slides off it without writing.
-  useBoundAction('act-fill-cell', {
+  useBindAction('act-fill-cell', {
     describe: write,
     run: onBoard((g, c, key) => {
       if (!isGiven(c.row, c.col)) setCell(c.row, c.col, key.toUpperCase(), pencil)
@@ -177,7 +177,7 @@ export function useGridKeyboard({
 
   // ⌫ in two steps: clear where you are, and only then retreat — so a solver
   // fixing the last letter doesn't lose the one before it as well.
-  useBoundAction('act-clear-cell', {
+  useBindAction('act-clear-cell', {
     describe: write,
     run: onBoard((g, c) => {
       if (isGiven(c.row, c.col)) {
@@ -199,7 +199,7 @@ export function useGridKeyboard({
 
   // ⇧⌫ blanks the whole current word, then drops the cursor on its first
   // editable cell so the solver can re-type straight away.
-  useBoundAction('act-clear-word', {
+  useBindAction('act-clear-word', {
     describe: write,
     run: onBoard((g, c) => {
       const word = wordCells(g, c.row, c.col, c.dir)
@@ -213,7 +213,7 @@ export function useGridKeyboard({
     }),
   })
 
-  const actRebus = useBoundAction('act-rebus', {
+  const actRebus = useBindAction('act-rebus', {
     describe: write,
     run: onBoard((_g, c) => {
       if (!isGiven(c.row, c.col)) onRebus(c.row, c.col)
@@ -222,14 +222,14 @@ export function useGridKeyboard({
 
   // Marks live on fillable cells only, and the cursor does not move — you are
   // annotating a boundary, not filling one.
-  useBoundAction('act-mark-right-edge', {
+  useBindAction('act-mark-right-edge', {
     describe: write,
     run: onBoard((_g, c) => {
       if (!isGiven(c.row, c.col)) onMark(c.row, c.col, 'right')
     }),
   })
 
-  useBoundAction('act-mark-bottom-edge', {
+  useBindAction('act-mark-bottom-edge', {
     describe: write,
     run: onBoard((_g, c) => {
       if (!isGiven(c.row, c.col)) onMark(c.row, c.col, 'bottom')

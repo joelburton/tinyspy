@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useMemo, useState } from 'react'
-import { useBoundAction, type BoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction, type BoundAction } from '@/common/actions/useBindAction'
 import { shuffle } from '@/common/utils/shuffle'
 import type { TileWord } from '../lib/tileResults'
 
@@ -31,7 +31,7 @@ export function useWordShuffle(words: readonly TileWord[]): {
   }, [wordsKey, shuffleSeed])
 
   const reshuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
-  const actShuffle = useBoundAction('act-shuffle', {
+  const actShuffle = useBindAction('act-shuffle', {
     describe: () => 'active',
     run: reshuffle,
   })

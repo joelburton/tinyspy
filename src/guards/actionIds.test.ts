@@ -16,7 +16,7 @@ import { isPattern } from '../common/actions/chord'
  * name, so it is asserted here:
  *
  *   - every registry id is `act-` plus lowercase words;
- *   - every `useBoundAction('act-x-y', …)` in `src/` that is assigned to
+ *   - every `useBindAction('act-x-y', …)` in `src/` that is assigned to
  *     anything is assigned to `actXY`.
  *
  * The second check reads the source rather than the types on purpose — the
@@ -96,20 +96,20 @@ describe('action ids', () => {
   })
 
   it('are bound to a variable spelled the same way', () => {
-    // `const actNewGame = useBoundAction('act-new-game'` — the whole shape, so
+    // `const actNewGame = useBindAction('act-new-game'` — the whole shape, so
     // a binding assigned to nothing at all is caught too.
-    const call = /(?:const|let)\s+([A-Za-z0-9_]+)\s*=\s*useBoundAction\(\s*'([^']+)'/g
+    const call = /(?:const|let)\s+([A-Za-z0-9_]+)\s*=\s*useBindAction\(\s*'([^']+)'/g
     const wrong: string[] = []
     for (const file of sourceFiles()) {
       const src = readFileSync(file, 'utf8')
       for (const [, variable, id] of src.matchAll(call)) {
         const want = boundName(id!)
-        if (variable !== want) wrong.push(`${file}: ${variable} = useBoundAction('${id}') — want ${want}`)
+        if (variable !== want) wrong.push(`${file}: ${variable} = useBindAction('${id}') — want ${want}`)
       }
     }
     expect(
       wrong,
-      "An action's two spellings have drifted. `useBoundAction('act-x-y', …)` " +
+      "An action's two spellings have drifted. `useBindAction('act-x-y', …)` " +
         'is assigned to `actXY`, so either name finds every trace of the ' +
         'action.\n\n' + wrong.join('\n'),
     ).toEqual([])

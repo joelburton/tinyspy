@@ -2,7 +2,7 @@
 
 import { useCallback, useState, type ComponentPropsWithRef, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { cls } from '../utils/cls'
-import { pressed } from '../keyboard/componentKeys'
+import { pressed } from '../keyboard/componentKeyGroups'
 import styles from './StandardForm.module.css'
 
 /**

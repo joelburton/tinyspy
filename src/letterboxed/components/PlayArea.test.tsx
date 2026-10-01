@@ -23,7 +23,7 @@ import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
@@ -31,7 +31,7 @@ import type { LetterboxedGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { PlayArea } from './PlayArea'
-import { clearFaultsForTest, peekFaultsForTest } from '@/common/faults/faultStore'
+import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '@/common/faults/faultStore'
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -163,7 +163,7 @@ const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
 
 /** The live binding for an action — the same `run` its key, its menu row and
  *  its button all fire. */
-const bound = (id: ActionId) => liveBindings().find((b) => b.id === id)!
+const bound = (id: ActionId) => getBoundActions().find((b) => b.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
@@ -176,7 +176,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
 beforeEach(() => {
-  clearFaultsForTest()
+  clearFaultMessages_ForTest()
   h.result = loaded(loadedGame())
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null, data: null })
@@ -436,7 +436,7 @@ describe('letterboxed PlayArea — a refused undo, and who wrote the words', () 
   it('a race reads as a normal pill, not as something broken', async () => {
     await undoAnswering(refusal({}))
     expect(screen.getByText('Game over').closest('[class*="fault"]')).toBeNull()
-    expect(peekFaultsForTest()).toHaveLength(0)
+    expect(peekFaultMessages_ForTest()).toHaveLength(0)
   })
 
   it('a fault raises the modal AND leaves its sentence behind', async () => {
@@ -446,7 +446,7 @@ describe('letterboxed PlayArea — a refused undo, and who wrote the words', () 
       severity: 'fault', dbcode: 'PN253', message: 'You are not in this game',
     }))
     await waitFor(() =>
-      expect(peekFaultsForTest().map((f) => f.text)).toContain('You are not in this game'))
+      expect(peekFaultMessages_ForTest().map((f) => f.text)).toContain('You are not in this game'))
     expect(screen.getByText('You are not in this game')).toBeInTheDocument()
   })
 
@@ -459,7 +459,8 @@ describe('letterboxed PlayArea — a refused undo, and who wrote the words', () 
     })
     expect(screen.queryByText(/TypeError/)).toBeNull()
     await waitFor(() =>
-      expect(peekFaultsForTest().map((f) => f.text).join(' ')).toMatch(/refresh and try again/))
+      expect(peekFaultMessages_ForTest().map((f) => f.text).join(' '))
+        .toMatch(/refresh and try again/))
   })
 })
 

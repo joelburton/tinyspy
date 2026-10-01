@@ -9,7 +9,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
 import type { GameData } from './useGame'
@@ -71,7 +71,7 @@ function setup(gd: GameData) {
 
 /** What the reveal says about itself to the asker, right now. */
 function revealState(asker: 'button' | 'menu') {
-  return liveBindings().find((b) => b.id === 'act-reveal')!.describe(asker).state
+  return getBoundActions().find((b) => b.id === 'act-reveal')!.describe(asker).state
 }
 
 describe('useBindActionsAndPublishMenu — the menu', () => {

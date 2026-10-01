@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useBoundAction, type BoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction, type BoundAction } from '@/common/actions/useBindAction'
 import type { TileWord } from '../lib/tileResults'
 
 /**
@@ -11,7 +11,7 @@ import type { TileWord } from '../lib/tileResults'
  *
  * One guess is out at a time: Submit's run waits for `submitGuess`, and a
  * bound action neither runs nor draws live while its run is out
- * (`useBoundAction`'s `pending`).
+ * (`useBindAction`'s `pending`).
  */
 export function useBoardColActions({
   pickedWord,
@@ -34,7 +34,7 @@ export function useBoardColActions({
   actSubmit: BoundAction
   actClearPicks: BoundAction
 } {
-  const actSubmit = useBoundAction('act-submit', {
+  const actSubmit = useBindAction('act-submit', {
     describe: () => (canSubmit && pickedWord !== null ? 'active' : 'disabled'),
     run: async () => {
       if (pickedWord === null) return
@@ -43,7 +43,7 @@ export function useBoardColActions({
     },
   })
 
-  const actClearPicks = useBoundAction('act-clear-picks', {
+  const actClearPicks = useBindAction('act-clear-picks', {
     describe: () => (canPick && pickedWord !== null ? 'active' : 'disabled'),
     run: () => choosePickedWord(null),
   })

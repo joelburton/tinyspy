@@ -3,7 +3,7 @@
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { GRID, MAX_CELL } from '../lib/board'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBoundAction'
+import type { BoundAction } from '@/common/actions/useBindAction'
 import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import {
   LETTER_SCALE,

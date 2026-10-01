@@ -26,7 +26,7 @@ import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
@@ -35,7 +35,7 @@ import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
 import { edgeFnTransport } from '@/common/supabase/edgeFnTransport'
 import { PlayArea } from './PlayArea'
-import { clearFaultsForTest, peekFaultsForTest } from '@/common/faults/faultStore'
+import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '@/common/faults/faultStore'
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -204,7 +204,7 @@ const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
 
 /** The live binding for an action — the same `run` its key, its menu row and
  *  its button all fire. */
-const bound = (id: ActionId) => liveBindings().find((b) => b.id === id)!
+const bound = (id: ActionId) => getBoundActions().find((b) => b.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
@@ -215,7 +215,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
 }
 
 beforeEach(() => {
-  clearFaultsForTest()
+  clearFaultMessages_ForTest()
   h.result = loaded(coopGame)
   rpc.mockReset()
   rpc.mockResolvedValue(okEnvelope)
@@ -399,7 +399,7 @@ describe('waffle PlayArea — new game (menu)', () => {
     // the words are the SERVER's — the frontend no longer rebuilds a sentence
     // from a key.
     await waitFor(() =>
-      expect(peekFaultsForTest().map((f) => f.text)).toContain(
+      expect(peekFaultMessages_ForTest().map((f) => f.text)).toContain(
         'No board could be built at that difficulty.',
       ),
     )

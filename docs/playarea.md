@@ -305,7 +305,7 @@ needed.
 ### The commands, and the one order three readers keep
 
 Every command is in one block, each handler declared directly above the binding
-that runs it. **None of them is a `useCallback`**: `useBoundAction` refreshes
+that runs it. **None of them is a `useCallback`**: `useBindAction` refreshes
 its live half through a ref during render, and the bound value's identity turns
 on `pending` alone. **No handler carries an in-flight flag**: `pending` already
 grays the button and the menu row, so a `const [hinting, setHinting]` would be a

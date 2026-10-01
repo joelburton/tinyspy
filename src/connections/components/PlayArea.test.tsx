@@ -21,7 +21,7 @@ import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
@@ -183,7 +183,7 @@ const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
 
 /** The live binding for an action — the same `run` its key, its menu row and
  *  its button all fire. */
-const bound = (id: ActionId) => liveBindings().find((b) => b.id === id)!
+const bound = (id: ActionId) => getBoundActions().find((b) => b.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one

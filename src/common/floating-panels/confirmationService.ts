@@ -31,8 +31,12 @@ import type { ConfirmAnswer, ConfirmOptions } from './confirmations'
 // fields for the host, and the original is what a withdrawal is matched against.
 type Pending = ConfirmOptions & { asked: ConfirmOptions; resolve: (answer: ConfirmAnswer) => void }
 
-let pending: Pending | null = null
-let hosted = false
+let pendingConfirmation: Pending | null = null
+// Whether a `<ConfirmationHost>` is mounted to draw a question; with none,
+// `askConfirmation` answers no at once rather than waiting forever.
+let isHostMounted = false
+// A listener is a callback: each `usePendingConfirmation()` caller adds one,
+// and asking or settling a question calls every one to say it has changed.
 const listeners = new Set<() => void>()
 
 /** Tell the host the pending question changed. */
@@ -48,19 +52,23 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
+function getPendingConfirmation(): Pending | null {
+  return pendingConfirmation
+}
+
 /**
  * Ask the question. Resolves to the act the player picked — `'confirm'`, or
  * `'alternative'` where the question offers a second way to say yes — and to
  * `null` on cancel, Escape, a superseding question, or no host mounted.
  */
 export function askConfirmation(opts: ConfirmOptions): Promise<ConfirmAnswer> {
-  if (!hosted) {
+  if (!isHostMounted) {
     console.error('askConfirmation: no <ConfirmationHost> is mounted — answering no', opts.title)
     return Promise.resolve(null)
   }
   return new Promise<ConfirmAnswer>((resolve) => {
-    pending?.resolve(null) // a superseded question answers "no"
-    pending = { ...opts, asked: opts, resolve }
+    pendingConfirmation?.resolve(null) // a superseded question answers "no"
+    pendingConfirmation = { ...opts, asked: opts, resolve }
     notify()
   })
 }
@@ -68,27 +76,27 @@ export function askConfirmation(opts: ConfirmOptions): Promise<ConfirmAnswer> {
 /** Take back a question whose asker has gone: it answers `null`, as a cancel
  *  does. A no-op when the question on screen is not this one. */
 export function withdrawConfirmation(opts: ConfirmOptions): void {
-  if (pending?.asked === opts) settleConfirmation(null)
+  if (pendingConfirmation?.asked === opts) settleConfirmation(null)
 }
 
 /** Answer the pending question. The host's buttons, and `withdrawConfirmation`. */
 export function settleConfirmation(answer: ConfirmAnswer): void {
-  pending?.resolve(answer)
-  pending = null
+  pendingConfirmation?.resolve(answer)
+  pendingConfirmation = null
   notify()
 }
 
 /** The question on screen, or null. The host subscribes; nobody else needs to. */
 export function usePendingConfirmation(): Pending | null {
-  return useSyncExternalStore(subscribe, () => pending)
+  return useSyncExternalStore(subscribe, getPendingConfirmation)
 }
 
 /** Claim the host slot, and return the release — for `<ConfirmationHost>`'s own
  *  mount effect. A question asked with no host up is refused rather than
  *  silently lost, which is why the slot is tracked at all. */
 export function registerConfirmationHost(): () => void {
-  hosted = true
+  isHostMounted = true
   return () => {
-    hosted = false
+    isHostMounted = false
   }
 }

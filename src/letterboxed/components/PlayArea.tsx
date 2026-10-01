@@ -33,7 +33,7 @@ import { makeSetupRows } from '../lib/setupRows'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import { hintOrSpoilerPillText } from '../lib/hintOrSpoiler'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { buildLetterboxedPrintModel } from '../pdf/model'
@@ -494,7 +494,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // rather than ending it) and goes straight through at terminal. The shared
   // run's single flight is what covers all three triggers at once, which a
   // `disabled` button could not.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     describe: () => 'active',
     run: createNewGame,
@@ -506,14 +506,14 @@ export function PlayArea(ctx: GamePageCtx) {
   // disabling is deliberate — a control that named a glyph the surface never
   // shows would teach a lie (crosswords drops its Reveal submenu in compete for
   // the same reason). Both go inert at terminal: there is no word left to find.
-  const actHint = useBoundAction('act-hint', {
+  const actHint = useBindAction('act-hint', {
     describe: () => {
       if (game?.mode === 'compete') return 'hidden'
       return isTerminal ? 'disabled' : 'active'
     },
     run: takeHint,
   })
-  const actSpoiler = useBoundAction('act-spoiler', {
+  const actSpoiler = useBindAction('act-spoiler', {
     describe: () => {
       if (game?.mode === 'compete') return 'hidden'
       return { state: isTerminal ? 'disabled' : 'active', label: 'Show the word' }
@@ -524,7 +524,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Reveal the seeded pair — the same toggle wearing the same two faces in the
   // menu and in the terminal row, so a player who scrolled past the row can
   // still reach it. Inert until the game is over for EVERYONE.
-  const actReveal = useBoundAction('act-reveal', {
+  const actReveal = useBindAction('act-reveal', {
     describe: () => describeReveal({ noun: 'solution', revealed: solutionShown, isTerminal }),
     run: toggleSolution,
   })
@@ -532,7 +532,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Print the board — a snapshot at CLICK time (common/pdf/doc.md). What it may SHOW
   // is decided in pdf/model.ts — notably that the solution prints only once the
   // players have revealed it on screen, which has to hold on paper too.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       if (!game) return

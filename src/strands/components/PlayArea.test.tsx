@@ -12,7 +12,7 @@ import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import { KeyList } from '@/common/actions/KeyList'
 import type { EventRow, StrandsGame, StrandsPlayer } from '../hooks/useGame'
 import { db } from '../db'
@@ -183,7 +183,7 @@ const press = (init: KeyboardEventInit) =>
   })
 
 /** What a bound action says about itself right now. */
-const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
+const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
 
 /** A control by WHICH action it is, since its words vary per state. */
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
@@ -528,7 +528,7 @@ describe('strands PlayArea — before the game has loaded', () => {
       </>,
     )
     expect(screen.getByText('Loading…')).toBeInTheDocument()
-    for (const binding of liveBindings()) expect(() => binding.describe('button')).not.toThrow()
+    for (const binding of getBoundActions()) expect(() => binding.describe('button')).not.toThrow()
   })
 })
 

@@ -2,7 +2,7 @@
 
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import type { BoundAction } from '@/common/actions/useBoundAction'
+import type { BoundAction } from '@/common/actions/useBindAction'
 import { IconExchange } from '@/common/icons/icons'
 import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { DUMP_COUNT, blurActiveField, type DragSource } from '../hooks/usePlayerBoard'

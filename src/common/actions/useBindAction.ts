@@ -99,17 +99,24 @@ export type BoundAction = {
 // parent; a component mounted in a LATER commit joins at the end, whatever its
 // depth (`dispatcher.test.tsx` pins both). That order is a tiebreak and not a
 // tool — two actions live at once must not share a chord (doc.md).
-const bindings: Array<{ current: BoundAction }> = []
+const bindingRefs: Array<{ current: BoundAction }> = []
 
+// A listener is a callback: each `useBoundActions()` / `useBoundAction()`
+// caller adds one, and a binding joining or leaving calls every one.
 const listeners = new Set<() => void>()
 
-// Bumped when a binding joins or leaves, so a surface that draws a LIST of them
-// re-renders. Deliberately not bumped when a binding merely re-renders: what a
-// bound action says is read by asking it, not by watching it.
-let version = 0
+// How many times a binding has joined or left. The hooks read it so a surface
+// that draws a LIST of bindings re-renders; deliberately not counted when a
+// binding merely re-renders: what a bound action says is read by asking it,
+// not by watching it.
+let bindingChangeCount = 0
+
+function getBindingChangeCount(): number {
+  return bindingChangeCount
+}
 
 function notify(): void {
-  version += 1
+  bindingChangeCount += 1
   for (const listener of listeners) listener()
 }
 
@@ -124,15 +131,15 @@ function subscribe(listener: () => void): () => void {
  *  when a binding joins or leaves — not when one changes what it would say, so
  *  a surface built from this asks each action as it draws. */
 export function useBoundActions(): BoundAction[] {
-  useSyncExternalStore(subscribe, () => version)
-  return bindings.map((b) => b.current)
+  useSyncExternalStore(subscribe, getBindingChangeCount)
+  return bindingRefs.map((ref_) => ref_.current)
 }
 
 /** Every binding on the page right now, in stack order, for a reader that is
  *  not a component — the key dispatcher. Read at the moment of the keystroke,
  *  never held. */
-export function liveBindings(): BoundAction[] {
-  return bindings.map((b) => b.current)
+export function getBoundActions(): BoundAction[] {
+  return bindingRefs.map((ref_) => ref_.current)
 }
 
 /**
@@ -143,10 +150,10 @@ export function liveBindings(): BoundAction[] {
  * key. Null when nothing has bound it — a page with no chat panel — and the
  * caller drops the row.
  */
-export function useAppAction(id: ActionId): BoundAction | null {
-  useSyncExternalStore(subscribe, () => version)
+export function useBoundAction(id: ActionId): BoundAction | null {
+  useSyncExternalStore(subscribe, getBindingChangeCount)
   // The first in stack order — the one the dispatcher would fire.
-  return bindings.find((b) => b.current.id === id)?.current ?? null
+  return bindingRefs.find((ref_) => ref_.current.id === id)?.current ?? null
 }
 
 /** Normalize the shorthand: a bare state means that state and the fixed label. */
@@ -158,7 +165,7 @@ function described(answer: Described | ActionState): Described {
  * Give an action a body: what it does here, whether it applies right now, and
  * what it says right now.
  *
- *     const actNewGame = useBoundAction('act-new-game', {
+ *     const actNewGame = useBindAction('act-new-game', {
  *       run: createNewGame,
  *       describe: () => (loading ? 'disabled' : 'active'),
  *       terminal: isTerminal,
@@ -173,7 +180,7 @@ function described(answer: Described | ActionState): Described {
  * gives it one and the game is not terminal, and is single-flight, so every
  * surface shares one wait. doc.md has the whole model.
  */
-export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
+export function useBindAction(id: ActionId, live: LiveAction): BoundAction {
   const spec = ACTIONS[id] as ActionSpec
 
   // The live half changes every render (it closes over the game's state), so it
@@ -277,10 +284,10 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
   // leaving is what takes the key back. Empty deps: the entry is the ref, so
   // it never needs re-registering.
   useEffect(function joinTheBindingStack() {
-    bindings.push(boundRef)
+    bindingRefs.push(boundRef)
     notify()
     return () => {
-      bindings.splice(bindings.indexOf(boundRef), 1)
+      bindingRefs.splice(bindingRefs.indexOf(boundRef), 1)
       notify()
     }
   }, [])

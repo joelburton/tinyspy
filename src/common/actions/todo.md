@@ -25,7 +25,7 @@
   that would then be true of buttons and the keyboard but not of Help.
 
 - **The never-widen constraint is an invention, and it is asserted in dev.**
-  `useBoundAction.ts:233` logs *"a placement may narrow what 'key' says, never
+  `useBindAction.ts:233` logs *"a placement may narrow what 'key' says, never
   widen it"* whenever a non-`key` asker draws something the keyboard calls
   hidden, and the `ActionAsker` docstring states it as a rule. Joel proposed the
   ASKER (`04773acd`: *"Joel rejected a hideDisabled prop … and proposed passing

@@ -6,7 +6,7 @@ import { WordLookupDialog } from '../definitions/WordLookupDialog'
 import { useHasChatHost } from '../chat/useHasChatHost'
 import { setIsChatPanelOpen } from '../chat/useIsChatPanelOpen'
 import { openPageMenu } from '../menu/pageMenuStore'
-import { useBoundAction } from './useBoundAction'
+import { useBindAction } from './useBindAction'
 
 /**
  * The four keys that work on every real page — chat, the page menu, word
@@ -31,7 +31,7 @@ export function AppActionsHost() {
   // None of the four is held in a variable: nothing here PLACES them. Binding
   // is what offers a key, and the menu rows that name these actions are built
   // where those menus are.
-  useBoundAction('act-open-chat', {
+  useBindAction('act-open-chat', {
     // A page with no chat panel does not offer chat at all — the home page.
     describe: () => (hasChatHost ? 'active' : 'hidden'),
     run: () => {
@@ -46,19 +46,19 @@ export function AppActionsHost() {
     },
   })
 
-  useBoundAction('act-open-menu', {
+  useBindAction('act-open-menu', {
     // Whatever menu is on screen registered itself; a page with none (or a game
     // whose menu is gone during a pause) gets nothing.
     describe: () => 'active',
     run: openPageMenu,
   })
 
-  useBoundAction('act-lookup-word', {
+  useBindAction('act-lookup-word', {
     describe: () => 'active',
     run: () => setLookupOpen(true),
   })
 
-  useBoundAction('act-anagram-finder', {
+  useBindAction('act-anagram-finder', {
     describe: () => 'active',
     // A toggle: the same chord closes it. (From inside the dialog's own input,
     // Escape is the close.)

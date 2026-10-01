@@ -13,7 +13,7 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { makeSetupRows } from '../lib/setupRows'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
@@ -374,14 +374,14 @@ export function PlayArea({
   // what NAMES those glyphs (docs/ui.md → the menu is the legend), and a
   // disabled row still teaches the lightbulb and the bare eye. The labels say
   // which word each acts on, which the icon-only buttons have no room for.
-  const actHint = useBoundAction('act-hint', {
+  const actHint = useBindAction('act-hint', {
     describe: () => ({
       state: isStillPlaying ? 'active' : 'disabled',
       label: 'Hint for next word',
     }),
     run: revealHint,
   })
-  const actSpoiler = useBoundAction('act-spoiler', {
+  const actSpoiler = useBindAction('act-spoiler', {
     describe: () => ({
       state: isStillPlaying ? 'active' : 'disabled',
       label: 'Cheat for next word',
@@ -393,7 +393,7 @@ export function PlayArea({
   // menu and in the terminal row, so a player who dismissed the row can still
   // reach it. Inert mid-game: there is nothing to reveal until the server
   // unshields, and nothing left to show once solving has put them all up.
-  const actReveal = useBoundAction('act-reveal', {
+  const actReveal = useBindAction('act-reveal', {
     describe: () =>
       describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal }),
     run: toggleSolution,
@@ -446,7 +446,7 @@ export function PlayArea({
   // copy says shelved, not ended) and goes straight through at terminal, where
   // there is nothing to interrupt. The shared run's single flight is what stops a
   // second press claiming a second board.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     describe: () => 'active',
     run: createNewGame,
@@ -513,7 +513,7 @@ export function PlayArea({
   // until terminal, and `solutionShown` withholds it until this viewer asks — so
   // a printout carries the answer only if the page in front of them does, and
   // can't spoil a stack they're about to run back.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       if (!game) return

@@ -13,20 +13,26 @@ import type { MenuSection } from './menuModel'
  * game that pushed it.
  */
 
-let sections: MenuSection[] = []
+let gameMenuSections: MenuSection[] = []
+// A listener is a callback: each `useGameMenuSections()` caller adds one, and
+// `setGameMenuSections` calls every one to say the sections have changed.
 const listeners = new Set<() => void>()
 
 /** Replace the game's sections. `[]` clears them — what a PlayArea's effect
  *  cleanup does, so unmounting empties the menu. */
-export function setGameMenuSections(next: MenuSection[]): void {
-  sections = next
+export function setGameMenuSections(val: MenuSection[]): void {
+  gameMenuSections = val
   for (const listener of listeners) listener()
 }
 
 /** What the game has pushed, re-rendering the caller when it changes. The
  *  menu, and nothing else. */
 export function useGameMenuSections(): MenuSection[] {
-  return useSyncExternalStore(subscribe, () => sections)
+  return useSyncExternalStore(subscribe, getGameMenuSections)
+}
+
+function getGameMenuSections(): MenuSection[] {
+  return gameMenuSections
 }
 
 function subscribe(listener: () => void): () => void {

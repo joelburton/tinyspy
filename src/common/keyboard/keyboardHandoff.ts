@@ -1,7 +1,7 @@
 // cs-blessed-keyboard
 
 import type { KeyboardEvent } from 'react'
-import { pressed } from './componentKeys'
+import { pressed } from './componentKeyGroups'
 
 /**
  * Tab inside a floating panel's text field STEPS OUT of that panel's ring, into

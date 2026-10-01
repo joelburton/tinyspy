@@ -40,5 +40,5 @@ export function useFeedbackSlot(name: SlotName): FeedbackSlot {
 
 /** The message a slot draws right now, or null — re-rendering the caller when it changes. */
 export function useTopFeedbackMessage(slot: FeedbackSlot): FeedbackMessage | null {
-  return useSyncExternalStore(slot.subscribe, slot.getTop, slot.getTop)
+  return useSyncExternalStore(slot.subscribe, slot.getTop)
 }

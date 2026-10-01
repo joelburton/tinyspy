@@ -10,16 +10,21 @@
  */
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { clearFaultsForTest, dismissFaultModal, showFaultModal, useCurrentFault } from './faultStore'
+import {
+  clearFaultMessages_ForTest,
+  dismissFaultModal,
+  showFaultModal,
+  useCurrentFaultMessage,
+} from './faultStore'
 
 afterEach(() => {
-  clearFaultsForTest()
+  clearFaultMessages_ForTest()
   vi.restoreAllMocks()
 })
 
 describe('faultStore', () => {
   it('queues FIFO and dismisses to the next', () => {
-    const { result } = renderHook(() => useCurrentFault())
+    const { result } = renderHook(() => useCurrentFaultMessage())
     act(() => {
       showFaultModal({ text: 'one' })
       showFaultModal({ text: 'two' })
@@ -35,7 +40,7 @@ describe('faultStore', () => {
     // The rule: no batching, no filtering. Beyond the cap a new fault simply
     // gets no modal — and nothing is lost to diagnosis, because whoever routed
     // it wrote its [db] console line before ever reaching the queue.
-    const { result } = renderHook(() => useCurrentFault())
+    const { result } = renderHook(() => useCurrentFaultMessage())
     act(() => {
       for (let i = 1; i <= 8; i++) showFaultModal({ text: `f${i}` })
     })

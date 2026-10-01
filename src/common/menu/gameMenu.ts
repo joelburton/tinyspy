@@ -1,6 +1,6 @@
 // cs-blessed-menu
 
-import type { BoundAction } from '../actions/useBoundAction'
+import type { BoundAction } from '../actions/useBindAction'
 import type { MenuApi, MenuHeader, MenuItem, MenuSection } from './menuModel'
 
 /**

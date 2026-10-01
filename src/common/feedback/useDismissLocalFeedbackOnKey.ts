@@ -1,6 +1,6 @@
 // cs-blessed-feedback
 
-import { useBoundAction } from '../actions/useBoundAction'
+import { useBindAction } from '../actions/useBindAction'
 
 /**
  * Dismiss the game's local feedback on ANY key — the "your next keystroke is your
@@ -20,7 +20,7 @@ import { useBoundAction } from '../actions/useBoundAction'
  * enforced in ONE place, not re-checked here. Pass the local slot's `dismiss`.
  */
 export function useDismissLocalFeedbackOnKey(dismiss: () => void): void {
-  useBoundAction('act-dismiss-feedback', {
+  useBindAction('act-dismiss-feedback', {
     describe: () => 'active',
     run: dismiss,
   })

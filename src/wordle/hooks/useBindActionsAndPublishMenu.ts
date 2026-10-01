@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import { useBoundAction, type BoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction, type BoundAction } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -107,7 +107,7 @@ export function useBindActionsAndPublishMenu({
 
   // Reveal the answer — nothing is written and no peer is affected. Both faces
   // come from `describeReveal`, where the rule for every game's reveal lives.
-  const actReveal = useBoundAction('act-reveal', {
+  const actReveal = useBindAction('act-reveal', {
     describe: (asker) => {
       // The one narrowing this game adds: no BUTTON while you can still play.
       // The menu row keeps it all game, grayed, because it NAMES the glyph
@@ -153,7 +153,7 @@ export function useBindActionsAndPublishMenu({
   // The registry asks NEW_GAME_CONFIRM mid-play and goes straight through once
   // the game has ended; the shared run's single flight stops a second press
   // dealing a second word.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: gd.isGameEnded,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
     describe:
@@ -165,7 +165,7 @@ export function useBindActionsAndPublishMenu({
   // (common/pdf/doc.md). RLS already scopes the log to what I may see, and the
   // model refuses to print the target before the end, so neither the boards nor
   // the answer can leak onto paper early.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
       printWordlePdf(

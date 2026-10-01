@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
 import { ActionButton } from '../actions/ActionButton'
-import type { BoundAction } from '../actions/useBoundAction'
+import type { BoundAction } from '../actions/useBindAction'
 import styles from './WordEntryRow.module.css'
 
 type Props = {

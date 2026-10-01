@@ -9,12 +9,15 @@ import {
   type Ref,
 } from 'react'
 import { cls } from '../utils/cls'
-import { pressed, useComponentKeys, type ComponentKeyId } from '../keyboard/componentKeys'
+import { pressed, type ComponentKeyGroupId } from '../keyboard/componentKeyGroups'
+import { useOfferComponentKeyGroups } from '../keyboard/offeredComponentKeyGroupsStore'
 import { useSelectionCursor } from '../board-cursor/useSelectionCursor'
 import styles from './SelectionList.module.css'
 
-// The rows Help teaches; Space's row is matched below and not taught.
-const LIST_KEYS: readonly ComponentKeyId[] = ['keys-list-move', 'keys-list-ends', 'keys-list-page', 'keys-list-open']
+// The key groups Help teaches; Space's group is matched below and not taught.
+const LIST_KEYS: readonly ComponentKeyGroupId[] = [
+  'keys-list-move', 'keys-list-ends', 'keys-list-page', 'keys-list-open',
+]
 
 type Props<T> = {
   // The rows, in display order. Its length IS the list's length — the cursor
@@ -143,11 +146,11 @@ export function SelectionList<T>({
     onActivate(item)
   }
 
-  // The keys, as rows of `COMPONENT_KEYS`: Help teaches them while a list is
-  // on the page, and the handler below matches the same rows. Offered while
-  // frozen too — Help itself is one of the dialogs that freezes a list, and
-  // the keys are the page's, back the moment it closes.
-  useComponentKeys(LIST_KEYS)
+  // The keys, as key groups of `COMPONENT_KEYGROUPS`: Help teaches them while a
+  // list is on the page, and the handler below matches the same groups.
+  // Offered while frozen too — Help itself is one of the dialogs that freezes a
+  // list, and the keys are the page's, back the moment it closes.
+  useOfferComponentKeyGroups(LIST_KEYS)
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (frozen) return

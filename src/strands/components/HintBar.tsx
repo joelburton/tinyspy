@@ -2,7 +2,7 @@
 
 import { cls } from '@/common/utils/cls'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBoundAction'
+import type { BoundAction } from '@/common/actions/useBindAction'
 import styles from './HintBar.module.css'
 
 type Props = {

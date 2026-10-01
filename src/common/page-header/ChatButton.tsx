@@ -6,7 +6,7 @@ import { PageHeaderButton } from './PageHeaderButton'
 import { IconChat } from '../icons/icons'
 import { useChatUnread } from '../chat/chatUnread'
 import { colorVarFor } from '../members/memberColor'
-import { useAppAction } from '../actions/useBoundAction'
+import { useBoundAction } from '../actions/useBindAction'
 import { nameWithKey } from '../actions/nameWithKey'
 import styles from './ChatButton.module.css'
 
@@ -38,7 +38,7 @@ export function ChatButton() {
   // this fill claims to name a SENDER, so with nobody to name it should stop
   // claiming — while a `<Dot>` still stands for a person who is there.
   const fill = senderColor ? colorVarFor(senderColor) : 'var(--page-text-muted-color)'
-  const actOpenChat = useAppAction('act-open-chat')
+  const actOpenChat = useBoundAction('act-open-chat')
   return (
     <PageHeaderButton
       icon={IconChat}

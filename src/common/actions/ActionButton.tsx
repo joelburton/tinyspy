@@ -2,7 +2,7 @@
 
 import { StandardButton, type StandardButtonProps } from '../buttons/StandardButton'
 import { nameWithKey } from './nameWithKey'
-import type { BoundAction } from './useBoundAction'
+import type { BoundAction } from './useBindAction'
 
 type Props = Omit<StandardButtonProps, 'label' | 'icon' | 'tone' | 'tooltip' | 'onClick'> & {
   // The action this button IS. Its words, glyph, tone, key, bubble and

@@ -6,13 +6,13 @@
  *
  *     gmake dev-keys          (or: npx tsx scripts/list-keys.ts)
  *
- * A key is one of two kinds of row, and both are found by grepping for the
- * row's id as a literal:
+ * A key is one of two kinds of entry, and both are found by grepping for the
+ * entry's id as a literal:
  *
  *   - an **action** (`ACTIONS` in `common/actions/registry.ts`), which a
- *     surface offers by calling `useBoundAction('act-…')`;
- *   - a **component key** (`COMPONENT_KEYS` in
- *     `common/keyboard/componentKeys.ts`) — a list's arrows, a ring's Tab,
+ *     surface offers by calling `useBindAction('act-…')`;
+ *   - a **key group** (`COMPONENT_KEYGROUPS` in
+ *     `common/keyboard/componentKeyGroups.ts`) — a list's arrows, a ring's Tab,
  *     Escape — which the component handling it names as `'keys-…'` when it
  *     matches or offers it.
  *
@@ -37,13 +37,16 @@
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { ACTIONS, type ActionId } from '../src/common/actions/registry'
-import { COMPONENT_KEYS, type ComponentKeyId } from '../src/common/keyboard/componentKeys'
+import {
+  COMPONENT_KEYGROUPS,
+  type ComponentKeyGroupId,
+} from '../src/common/keyboard/componentKeyGroups'
 
 const ROOT = resolve(import.meta.dirname, '..')
 const SRC = join(ROOT, 'src')
-const TABLE = join(SRC, 'common/keyboard/componentKeys.ts')
+const TABLE = join(SRC, 'common/keyboard/componentKeyGroups.ts')
 
-type RowId = ActionId | ComponentKeyId
+type EntryId = ActionId | ComponentKeyGroupId
 
 /** Every source file in `src/`, tests and fixtures left out. */
 function sourceFiles(dir: string): string[] {
@@ -69,7 +72,7 @@ function resolveImport(from: string, spec: string): string | null {
 
 // An action binding names its id as a literal — with one exception, the
 // board-cursor hook, whose caller hands its commit action in as `commit: 'act-…',`.
-const ACTION = /(?:useBoundAction\(\s*|commit:\s*)'(act-[a-z-]+)'\s*,/g
+const ACTION = /(?:useBindAction\(\s*|commit:\s*)'(act-[a-z-]+)'\s*,/g
 const COMPONENT_KEY = /'(keys-[a-z-]+)'/g
 const IMPORT = /(?:from\s+|import\s*\(\s*)'([^']+)'/g
 
@@ -92,11 +95,11 @@ function groupOf(path: string): string {
 }
 
 const files = sourceFiles(SRC)
-const found = new Map<string, Set<RowId>>() // group → ids
+const found = new Map<string, Set<EntryId>>() // group → ids
 const sharedFiles = new Map<string, string>() // shared file naming an id → its group
 const importers = new Map<string, string[]>() // file → the files that import it
 
-function record(path: string, id: RowId): void {
+function record(path: string, id: EntryId): void {
   const group = groupOf(path)
   if (!found.has(group)) found.set(group, new Set())
   found.get(group)!.add(id)
@@ -112,8 +115,11 @@ for (const path of files) {
   }
   if (path !== TABLE) {
     for (const m of text.matchAll(COMPONENT_KEY)) {
-      const id = m[1] as ComponentKeyId
-      if (!(id in COMPONENT_KEYS)) throw new Error(`${relative(ROOT, path)} names ${id}, which componentKeys.ts has no row for`)
+      const id = m[1] as ComponentKeyGroupId
+      if (!(id in COMPONENT_KEYGROUPS)) {
+        const where = relative(ROOT, path)
+        throw new Error(`${where} names ${id}, which componentKeyGroups.ts has no key group for`)
+      }
       record(path, id)
     }
   }
@@ -147,7 +153,7 @@ function usedBy(group: string): string[] {
 }
 
 // An id every game names is said once, under Every game.
-const gameSets = GAMES.map((game) => found.get(game) ?? new Set<RowId>())
+const gameSets = GAMES.map((game) => found.get(game) ?? new Set<EntryId>())
 const everyGame = new Set([...gameSets[0]].filter((id) => gameSets.every((s) => s.has(id))))
 found.set('Every game', everyGame)
 for (const set of gameSets) everyGame.forEach((id) => set.delete(id))
@@ -156,16 +162,17 @@ for (const set of gameSets) everyGame.forEach((id) => set.delete(id))
 const codeSpan = (label: string) => (label.includes('`') ? `\`\` ${label} \`\`` : `\`${label}\``)
 
 /** One row of a table: the keys, what they do, the id. Actions first, in
- *  registry order, then component keys in table order. */
-function rows(ids: Set<RowId>): string[] {
+ *  registry order, then key groups in table order. */
+function rows(ids: Set<EntryId>): string[] {
   const actions = (Object.keys(ACTIONS) as ActionId[]).filter((id) => ids.has(id)).map((id) => {
     const keys = ACTIONS[id].keys!.map((k) => codeSpan(k.label)).join(' / ')
     return `| ${keys} | ${ACTIONS[id].label} | ${id} |`
   })
-  const components = (Object.keys(COMPONENT_KEYS) as ComponentKeyId[]).filter((id) => ids.has(id)).map((id) => {
-    const row = COMPONENT_KEYS[id]
-    const keys = row.keys.map((k) => codeSpan(k.label)).join(' / ')
-    return `| ${keys} | ${row.label}${row.inHelp ? '' : ' *(not in Help)*'} | ${id} |`
+  const groupIds = Object.keys(COMPONENT_KEYGROUPS) as ComponentKeyGroupId[]
+  const components = groupIds.filter((id) => ids.has(id)).map((id) => {
+    const group = COMPONENT_KEYGROUPS[id]
+    const keys = group.keys.map((k) => codeSpan(k.label)).join(' / ')
+    return `| ${keys} | ${group.label}${group.inHelp ? '' : ' *(not in Help)*'} | ${id} |`
   })
   return [...actions, ...components]
 }

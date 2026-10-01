@@ -6,7 +6,7 @@ import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingM
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { ActionButton } from '@/common/actions/ActionButton'
-import { useAppAction, useBoundAction, type ActionState } from '@/common/actions/useBoundAction'
+import { useBoundAction, useBindAction, type ActionState } from '@/common/actions/useBindAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { useFeedbackSlot, useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
@@ -660,34 +660,34 @@ type Explained =
    *  race, so in compete it isn't there at all. */
   const revealState = (): ActionState => (mode === 'coop' ? writableState() : 'hidden')
 
-  const actPencil = useBoundAction('act-pencil', {
+  const actPencil = useBindAction('act-pencil', {
     // Named in both faces: this row says where ⌥P takes you, and a row that
     // fell back to the registry's "Pencil" in one branch would rename itself.
     describe: () => ({ state: writableState(), label: pencil ? 'Switch to pen' : 'Switch to pencil' }),
     run: () => setPencil((p) => !p),
   })
 
-  const actCheckLetter = useBoundAction('act-check-letter', {
+  const actCheckLetter = useBindAction('act-check-letter', {
     describe: writableState,
     run: () => handleCheck('letter'),
   })
-  const actCheckWord = useBoundAction('act-check-word', {
+  const actCheckWord = useBindAction('act-check-word', {
     describe: writableState,
     run: () => handleCheck('word'),
   })
-  const actCheckPuzzle = useBoundAction('act-check-puzzle', {
+  const actCheckPuzzle = useBindAction('act-check-puzzle', {
     describe: writableState,
     run: () => handleCheck('puzzle'),
   })
-  const actRevealLetter = useBoundAction('act-reveal-letter', {
+  const actRevealLetter = useBindAction('act-reveal-letter', {
     describe: revealState,
     run: () => handleReveal('letter'),
   })
-  const actRevealWord = useBoundAction('act-reveal-word', {
+  const actRevealWord = useBindAction('act-reveal-word', {
     describe: revealState,
     run: () => handleReveal('word'),
   })
-  const actRevealPuzzle = useBoundAction('act-reveal-puzzle', {
+  const actRevealPuzzle = useBindAction('act-reveal-puzzle', {
     describe: revealState,
     run: () => handleReveal('puzzle'),
   })
@@ -696,30 +696,30 @@ type Explained =
 
   // The setter's note, and the AI explainer that needs one. The explainer is for
   // cryptics and a note is the proxy, which is how crossplay gates it too.
-  const actShowNote = useBoundAction('act-show-note', {
+  const actShowNote = useBindAction('act-show-note', {
     describe: () => (hasNote ? 'active' : 'disabled'),
     run: handleShowNote,
   })
-  const actExplainClue = useBoundAction('act-explain-clue', {
+  const actExplainClue = useBindAction('act-explain-clue', {
     describe: () => (hasNote ? 'active' : 'disabled'),
     run: handleExplain,
   })
 
   // Display-only, and persisted per browser: collapse a multi-char rebus fill to
   // its first letter. Nothing about the game changes, so it is live at terminal.
-  const actCollapseRebuses = useBoundAction('act-collapse-rebuses', {
+  const actCollapseRebuses = useBindAction('act-collapse-rebuses', {
     describe: () => ({ state: 'active', label: collapseRebus ? 'Expand rebuses' : 'Collapse rebuses' }),
     run: () => setRebusPref(collapseRebus ? 'off' : 'on'),
   })
 
-  const actDownloadIpuz = useBoundAction('act-download-ipuz', {
+  const actDownloadIpuz = useBindAction('act-download-ipuz', {
     describe: () => (game ? 'active' : 'hidden'),
     run: handleDownloadIpuz,
   })
 
   // Print the puzzle — a snapshot at CLICK time (common/pdf/doc.md), which is what
   // `printStateRef` holds.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       const state = printStateRef.current
@@ -730,7 +730,7 @@ type Explained =
   // The answer key. Coop: any time. Compete: only once the game is over — an
   // answer key mid-race is a giveaway. (See handlePrintSolution: this is a UI
   // gate, not a server one.)
-  const actPrintSolution = useBoundAction('act-print-solution', {
+  const actPrintSolution = useBindAction('act-print-solution', {
     describe: () => (mode === 'compete' && !isTerminal ? 'disabled' : 'active'),
     run: handlePrintSolution,
   })
@@ -738,7 +738,7 @@ type Explained =
   // The post-game answer grid — the same toggle in the menu and in the terminal
   // row, wearing the same two faces, so a player who dismissed one can reach the
   // other. Inert until terminal: the server only unshields the solution then.
-  const actReveal = useBoundAction('act-reveal', {
+  const actReveal = useBindAction('act-reveal', {
     describe: () => describeReveal({ noun: 'solution', revealed: solutionShown, isTerminal }),
     run: toggleSolution,
   })
@@ -757,7 +757,7 @@ type Explained =
   // The registry asks NEW_GAME_CONFIRM mid-play — starting one SHELVES this
   // game (create_game clears the club's current-view flag, so it stays resumable
   // from the club page) and the copy says shelved, not ended.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     describe: () => 'active',
     run: () => navigate(`${clubPath(clubHandle)}?new=crosswords_${mode}`),
@@ -766,7 +766,7 @@ type Explained =
   // ⌥S is bound by the header's scratchpad mark, so this row is a reference to
   // that action rather than a second copy of it — and drops out on a page that
   // has no scratchpad.
-  const actOpenScratchpad = useAppAction('act-open-scratchpad')
+  const actOpenScratchpad = useBoundAction('act-open-scratchpad')
 
   // The FULL crosswords menu (crossplay order, single column): the play actions
   // ALSO live here, each advertising its own key, because crossplay's menu is

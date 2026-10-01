@@ -34,7 +34,7 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { buildWordiplyPrintModel } from '../pdf/model'
 import { printWordiplyPdf } from '../pdf/printWordiplyPdf'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
@@ -307,7 +307,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Reveal the best possible word — a LOCAL display toggle: it shows the word to
   // me alone, writes nothing, and affects no peer. Inert until the game is over
   // for everyone, so a player who conceded can't spoil a race.
-  const actReveal = useBoundAction('act-reveal', {
+  const actReveal = useBindAction('act-reveal', {
     // "best solution" rather than the bare default: what this shows is the best
     // word that existed, which a winner never has to have found.
     describe: () => describeReveal({ noun: 'best solution', revealed: solutionShown, isTerminal }),
@@ -349,7 +349,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // copy says shelved, not ended) and goes straight through at terminal, where
   // there is nothing to interrupt. The shared run's single flight is what stops a
   // second press dealing a second base.
-  const actNewGame = useBoundAction('act-new-game', {
+  const actNewGame = useBindAction('act-new-game', {
     terminal: isTerminal,
     describe: () => 'active',
     run: createNewGame,
@@ -366,7 +366,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // decided in pdf/model.ts — notably wordiply's terminal-only reveal, which has
   // to hold on paper too. RLS already scopes `guesses` to what I may see, so a
   // mid-game compete print carries only my own rows without needing a filter.
-  const actPrintBoard = useBoundAction('act-print-board', {
+  const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       if (!game) return

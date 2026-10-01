@@ -25,7 +25,7 @@ import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
-import { liveBindings } from '@/common/actions/useBoundAction'
+import { getBoundActions } from '@/common/actions/useBindAction'
 import type { ActionId } from '@/common/actions/registry'
 import { KeyList } from '@/common/actions/KeyList'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
@@ -152,7 +152,7 @@ const pickedCards = () =>
  *  nothing action still swallows the keystroke, which is how it would take the
  *  history viewer's any-key exit away from it. */
 const cardKeyState = () =>
-  liveBindings().find((b) => b.id === 'act-toggle-card')?.describe('button').state
+  getBoundActions().find((b) => b.id === 'act-toggle-card')?.describe('button').state
 
 /** A keystroke as the app-root listener sees it: from the body, with nothing
  *  focused. An Option chord matches on `code`, since ⌥ changes the character. */
@@ -162,7 +162,7 @@ const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
 
 /** The live binding for an action — the same `run` its key, its menu row and
  *  its button all fire. */
-const bound = (id: ActionId) => liveBindings().find((b) => b.id === id)!
+const bound = (id: ActionId) => getBoundActions().find((b) => b.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
@@ -335,7 +335,7 @@ describe('setgame PlayArea — before the game has loaded', () => {
       </>,
     )
     expect(screen.getByText('Loading…')).toBeInTheDocument()
-    for (const binding of liveBindings()) expect(() => binding.describe('button')).not.toThrow()
+    for (const binding of getBoundActions()) expect(() => binding.describe('button')).not.toThrow()
   })
 })
 

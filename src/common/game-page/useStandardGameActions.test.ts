@@ -7,7 +7,7 @@
  * hidden at terminal) and what each does with the answer its RPC gives back.
  *
  * The confirmation is mocked: whether a question was asked is
- * `useBoundAction`'s subject. Which of these carries one is not uniform —
+ * `useBindAction`'s subject. Which of these carries one is not uniform —
  * Restart at terminal goes straight through, and the case below says so.
  */
 

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { matches } from '../actions/chord'
-import { ESCAPE } from './componentKeys'
+import { ESCAPE } from './componentKeyGroups'
 
 /**
  * Escape dismisses this transient overlay, and nothing else acts on the press.

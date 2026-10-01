@@ -3,7 +3,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 import { IconSubmit } from '../icons/icons'
 import { actionSurface } from '../actions/actionSurface'
-import type { BoundAction } from '../actions/useBoundAction'
+import type { BoundAction } from '../actions/useBindAction'
 import { cls } from '../utils/cls'
 import sb from './StandardButton.module.css'
 import styles from './SubmitWithScore.module.css'

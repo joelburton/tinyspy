@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react'
 import { matches } from '../actions/chord'
-import { ESCAPE, useComponentKeys } from '../keyboard/componentKeys'
+import { ESCAPE } from '../keyboard/componentKeyGroups'
+import { useOfferComponentKeyGroups } from '../keyboard/offeredComponentKeyGroupsStore'
 
 /**
  * How each family answers Escape. `'close'` dismisses; `'swallow'` consumes the
@@ -118,7 +119,7 @@ export function usePanelEscape(
   onClose: () => void,
 ): void {
   // Help teaches Escape (and its backtick) while a panel that closes on it is up.
-  useComponentKeys(['keys-close-panel'], escape === 'close')
+  useOfferComponentKeyGroups(['keys-close-panel'], escape === 'close')
   useEffect(() => {
     const entry: Entry = { id, tier, escape, onClose, seq: seqCounter++ }
     open.push(entry)

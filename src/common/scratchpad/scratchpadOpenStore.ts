@@ -53,5 +53,5 @@ function subscribe(listener: () => void): () => void {
 }
 
 export function useIsScratchpadOpen(): boolean {
-  return useSyncExternalStore(subscribe, getIsScratchpadOpen, getIsScratchpadOpen)
+  return useSyncExternalStore(subscribe, getIsScratchpadOpen)
 }

@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { buildGameMenu } from './gameMenu'
 import { menuRow, type MenuItem, type MenuRow } from './menuModel'
 import { boundActionFixture } from '../actions/boundAction.fixture'
-import type { BoundAction } from '../actions/useBoundAction'
+import type { BoundAction } from '../actions/useBindAction'
 import type { ActionId } from '../actions/registry'
 
 /**

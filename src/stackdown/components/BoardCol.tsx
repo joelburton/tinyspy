@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import { cls } from '@/common/utils/cls'
 import { useMark } from '@/common/board-marks/useMark'
 import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/board-marks/feedbackTiming'
-import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
@@ -182,12 +182,12 @@ export function BoardCol({
   // a MODE priority over a particular key — but a control that stayed live over
   // a frozen board would be lying about what it can do. `canPick` covers both
   // the frozen board and the open past turn.
-  const actSubmit = useBoundAction('act-submit', {
+  const actSubmit = useBindAction('act-submit', {
     describe: () => (canSubmit ? 'active' : 'disabled'),
     run: submitWord,
   })
 
-  const actDeleteLast = useBoundAction('act-delete-last', {
+  const actDeleteLast = useBindAction('act-delete-last', {
     // A word here is picked-up TILES, so this returns the last one rather than
     // erasing a letter — the registry's name would say the wrong thing.
     describe: () => ({
@@ -206,7 +206,7 @@ export function BoardCol({
   // WordEntryArea.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  useBoundAction('act-pick-tile', {
+  useBindAction('act-pick-tile', {
     describe: () => (canPick ? 'active' : 'disabled'),
     run: (key) => {
       const letter = (key ?? '').toUpperCase()

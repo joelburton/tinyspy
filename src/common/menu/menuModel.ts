@@ -1,7 +1,7 @@
 // cs-blessed-menu
 
 import type { AppIcon } from '../icons/icons'
-import type { BoundAction } from '../actions/useBoundAction'
+import type { BoundAction } from '../actions/useBindAction'
 
 /**
  * What a menu is made of — the row, section and header types every `<Menu>`
