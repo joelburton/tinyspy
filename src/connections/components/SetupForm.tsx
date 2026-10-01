@@ -70,7 +70,7 @@ export function SetupForm({
         // why the modal is not the only place a fault is said.
         load={async (seenBy) => {
           const res = await runRpc<PuzzleAnswer>(
-            db.rpc('next_puzzle_for_club', { seen_by: seenBy }),
+            db.rpc('next_puzzle_for_club', { p_seen_by: seenBy }),
           )
           if (res.type === 'not-ok') {
             setError(res.field ?? FORM_ERROR_KEYNAME, res.message)

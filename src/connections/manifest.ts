@@ -55,10 +55,10 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     return runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: setup as ConnectionsSetup,
-        player_user_ids: playerUserIds,
-        mode,
+        p_club_handle: clubHandle,
+        p_setup: setup as ConnectionsSetup,
+        p_player_user_ids: playerUserIds,
+        p_mode: mode,
       }),
     )
   }

@@ -24,8 +24,8 @@ import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { answerMessage, type GuessResult } from '../lib/answer'
 import { reconcileLocalOrder } from '../lib/localOrder'
 import { shuffle } from '@/common/utils/shuffle'
-import type { ConnectionsGame, EventRow, MatchedCategory } from '../hooks/useGame'
-import { TILES_PER_CATEGORY, type Category } from '../lib/board'
+import type { EventRow, MatchedCategory } from '../hooks/useGame'
+import { TILES_PER_CATEGORY, type Board as BoardData, type Category } from '../lib/board'
 import type { HistorySnapshot } from '../lib/history'
 import { Board, type BoardVerdict } from './Board'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
@@ -69,7 +69,7 @@ type GuessAnswer = { result: GuessResult }
  */
 export function BoardCol({
   // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
-  game,
+  board,
   matchedCategories,
   remainingTiles,
   unmatched,
@@ -101,7 +101,8 @@ export function BoardCol({
   mistakeBudget,
 }: {
   // ── Board to render ──
-  game: ConnectionsGame
+  // The puzzle: its categories are what a guess is evaluated against.
+  board: BoardData
   // Live matched bands (shown when not viewing).
   matchedCategories: MatchedCategory[]
   // Live remaining tiles — the shuffle source; the display order derives from these.
@@ -282,21 +283,21 @@ export function BoardCol({
       return
     }
 
-    const evaluation = evaluateGuess(unionTiles, game.board.categories)
+    const evaluation = evaluateGuess(unionTiles, board.categories)
     setSubmitting(true)
     setInFlightTiles(new Set(sent))
     // Only a match names a category. The argument is OPTIONAL rather than
     // nullable, so the other two verdicts leave it out rather than send null —
     // which is why this is a spread and not a value.
     const matchedCategory =
-      evaluation.result === 'correct' ? { matched_category_rank: evaluation.rank } : {}
+      evaluation.result === 'correct' ? { p_matched_category_rank: evaluation.rank } : {}
 
     // No translation on the way up: `evaluateGuess` already answers in the word
     // the column stores.
     const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
-      target_game: gameId,
-      tiles: unionTiles,
-      result: evaluation.result,
+      p_game_id: gameId,
+      p_tiles: unionTiles,
+      p_result: evaluation.result,
       ...matchedCategory,
     }))
     setSubmitting(false)

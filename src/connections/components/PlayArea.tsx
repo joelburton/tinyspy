@@ -22,24 +22,20 @@ import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { memberById } from '@/common/members/memberList'
 import { buildConnectionsPrintModel } from '../pdf/model'
 import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
-import { makeSetupRows } from '../lib/setupRows'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBindAction } from '@/common/actions/useBindAction'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
-import { solvedByMe } from '@/common/reveal/describeReveal'
 import { db } from '../db'
 import { peerAnswerMessage } from '../lib/answer'
-import { CATEGORY_COUNT, MISTAKE_BUDGET } from '../lib/board'
-import { useGame, type ConnectionsGame, type EventRow, type MatchedCategory } from '../hooks/useGame'
-import type { PickMap } from '../lib/picks'
-import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
+import { useGame, type GameData } from '../hooks/useGame'
+import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
+import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import type { PuzzleAnswer } from '../lib/setup'
 import { historySnapshot } from '../lib/history'
-import { buildTerminalMessage } from '../lib/terminal'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
@@ -50,31 +46,18 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
  * The three gates in front of connections' play surface: the read is out, the
- * read failed, or there is no such game. Everything below starts with a game
- * in hand, which is why the surface never writes `game?.`.
+ * read failed, or there is no such game. Everything below starts with the game
+ * data in hand, which is why the surface never writes `gd?.`.
  *
  * The game's menu rows and its `+` arrive WITH the game, because the surface
  * that binds them mounts with it — a row for a game not yet read could only
  * gray itself or lie.
  */
 export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
-  const {
-    game,
-    guesses,
-    matchedCategories,
-    mistakeCount,
-    opponentFound,
-    isEliminated,
-    picks,
-    unionTiles,
-    toggleTile,
-    sendClear,
-    loading,
-    failure,
-  } = useGame(ctx.authSession, ctx.gameId)
+  const { gd, loading, failure } = useGame(ctx)
 
   if (loading) return <Loading />
-  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // A failed read is NOT a missing game. Both leave `gd` null, and saying
   // "there's no game here" about a dead connection is a confident wrong answer
   // — this is what remains once the fault modal is dismissed.
   if (failure) return <EnvelopeErrorPage envelope={failure} />
@@ -82,48 +65,29 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   // `GamePageLoader` each checked — and the connections one does not: a torn
   // write, or a game deleted while somebody had the board open. `detail` goes
   // to the console, never to the page.
-  if (!game) return <NoSuchGamePage detail={`rows=0 table=connections.games game=${ctx.gameId}`} />
+  if (!gd) return <NoSuchGamePage detail={`rows=0 table=connections.games game=${ctx.cg.id}`} />
 
   return (
     <PlayArea
-      {...ctx}
-      game={game}
-      guesses={guesses}
-      matchedCategories={matchedCategories}
-      mistakeCount={mistakeCount}
-      opponentFound={opponentFound}
-      isEliminated={isEliminated}
-      picks={picks}
-      unionTiles={unionTiles}
-      toggleTile={toggleTile}
-      sendClear={sendClear}
-      // The one place the setup blob is narrowed. `PlayAreaLoaderProps` types it
-      // `Record<string, unknown>` for every game; below, it is this game's.
-      setup={ctx.setup as unknown as ConnectionsSetup}
+      gd={gd}
+      authSession={ctx.authSession}
+      globalFeedbackSlot={ctx.globalFeedbackSlot}
+      clubHandle={ctx.cg.club_handle}
+      goToFollowUpGame={ctx.goToFollowUpGame}
+      menu={ctx.menu}
+      brand={ctx.manifest.name}
     />
   )
 }
 
-type PlayAreaProps = Omit<PlayAreaLoaderProps, 'setup'> & {
-  // The loaded game row. Non-null by construction — the loader holds the gates.
-  game: ConnectionsGame
-  // This player's guess log (`connections.events`); RLS scopes it in compete.
-  guesses: EventRow[]
-  // The categories solved so far — a projection of `guesses`, in solve order.
-  matchedCategories: MatchedCategory[]
-  // My mistakes so far, and whether they used up the budget.
-  mistakeCount: number
-  isEliminated: boolean
-  // Compete: each opponent's categories-found, from the public players rows.
-  opponentFound: ReadonlyMap<string, number>
-  // The shared picks `useGame` keeps (Broadcast in coop, local in compete):
-  // who has which tiles picked, their union, and the two senders.
-  picks: PickMap
-  unionTiles: string[]
-  toggleTile: (tile: string) => void
-  sendClear: () => void
-  // This game's setup blob, narrowed once by the loader.
-  setup: ConnectionsSetup
+type PlayAreaProps = Pick<
+  PlayAreaLoaderProps,
+  'authSession' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
+> & {
+  // The game data. Non-null by construction — the loader holds the gates.
+  gd: GameData
+  clubHandle: string
+  brand: string
 }
 
 /**
@@ -132,51 +96,26 @@ type PlayAreaProps = Omit<PlayAreaLoaderProps, 'setup'> & {
  * `<InfoCol>` the readouts and the action row, and this component decides what
  * each of them is handed.
  *
- * Both manifests mount it, and the mode (`game.mode`, fixed at create-game time)
+ * Both manifests mount it, and the mode (`gd.mode`, fixed at create-game time)
  * is what differs: whose picks the board shows (coop shares them over
  * Broadcast, compete keeps them local), whose progress a readout counts, and
- * which verdict `lib/terminal.ts` builds. What a guess is worth is decided in
- * `lib/answer.ts` and nowhere here.
+ * which verdict `lib/gameEndingMessage.ts` builds. What a guess is worth is
+ * decided in `lib/answer.ts` and nowhere here.
  *
- * Above it, `<GamePage>` owns members, the timer, play_state, pause and chat,
+ * Above it, `<GamePage>` owns members, the timer, the ending, pause and chat,
  * and unmounts this surface on pause — every piece of state below goes with it,
  * the shared picks in `useGame` included.
  */
 function PlayArea({
-  game,
-  guesses,
-  matchedCategories,
-  mistakeCount,
-  opponentFound,
-  isEliminated,
-  picks,
-  unionTiles,
-  toggleTile,
-  sendClear,
+  gd,
   authSession,
-  gameId,
-  players,
-  playState,
-  isTerminal,
-  isConceded,
-  isLocallyTerminal,
-  isStillPlaying,
-  status,
-  isTurnBased,
-  turnHolderId,
-  isMyTurn,
-  isWaitingForTurn,
-  isBoardInteractive,
-  setup,
   globalFeedbackSlot,
   clubHandle,
   goToFollowUpGame,
   menu,
   brand,
-  title,
 }: PlayAreaProps) {
-  const isCompete = game.mode === 'compete'
-  const puzzleDate = game.puzzleDate
+  const myId = authSession.user.id
 
   // ─── Page hooks ────────────────────────────────────────
   // What this surface IS, before anything this game knows: where Tab may go,
@@ -201,83 +140,54 @@ function PlayArea({
   // The notice New game shows when the archive is spent.
   const { acknowledge, acknowledgeModal } = useAcknowledge()
 
-  // Did I match all four? MY four, not the game's verdict — compete ends the
-  // race for everyone the moment one player finishes.
-  const iMatchedThemAll = matchedCategories.length >= CATEGORY_COUNT
-
   // Confetti the moment the win is MINE — the coop team's fourth category, or
   // my own fourth in a race — and never on mount: opening an already-won game
   // stays quiet (`useCelebration` states its three rules). It is the ONLY
-  // modal at terminal — the verdict itself rides the below-board pill
+  // modal at the end — the verdict itself rides the below-board pill
   // (docs/ui.md → Terminal results), and a racer who lost gets that and
   // nothing more.
-  //
-  // Both gates are correct on the first render, which is what `useCelebration`
-  // requires: `playState` comes with the page, and the matched categories come
-  // with the game — the loader holds this surface back until both are in hand.
-  const celebration = useCelebration(
-    playState === 'won' || (playState === 'won_compete' && iMatchedThemAll),
-  )
+  // SPECTATING: a club member watching has no outcome of their own, so gets
+  // none.
+  const celebration = useCelebration(gd.me?.outcome === 'won')
 
   // The board frame flashes the moment the move becomes mine: the dim is what
   // says "not yours", its lifting is a removal, and you are by definition
   // looking elsewhere when it happens. Never fires in a free-for-all game.
-  const turnFlash = useTurnStartFlash(isMyTurn)
+  const turnFlash = useTurnStartFlash(gd.standing.isMyTurn)
 
   // ─── Derived ───────────────────────────────────────────
-  // Who I am in this game and what I may still do. Where I stand — conceded,
-  // out of the race, still playing, whose move it is — comes from the page,
-  // already computed (docs/win-lose.md → Where a player stands); an elimination
-  // on the fourth mistake is one way out, and the server marks it so.
-  // `isStillPlaying` gates the tiles, the hint list and the help line, and the
-  // Hint and Reveal actions read it, so their buttons and menu rows agree.
 
-  // The terminal reveal — derived state, because the Reveal action below reads
-  // it. The categories nobody got are shown only when this viewer asks: an
-  // ended board is what the players left, their bands plus the tiles they never
-  // cracked, and Reveal swaps the four bands in for the tiles (local and
+  // The ended board's reveal — derived state, because the Reveal action below
+  // reads it. The categories nobody got are shown only when this viewer asks:
+  // an ended board is what the players left, their bands plus the tiles they
+  // never cracked, and Reveal swaps the four bands in for the tiles (local and
   // reversible; common/reveal/doc.md). `impliedBy` is the exception: matching
   // all four IS the win, and a solver's board already carries every band.
   const {
     revealed: solutionShown,
     toggle: toggleSolution,
     impliedBySolve,
-  } = useSolutionReveal({
-    impliedBy: solvedByMe({
-      isCompete,
-      playState,
-      mine: iMatchedThemAll,
-    }),
-  })
-
-  // The setup rows, built ONCE and handed to both consumers — the info column
-  // renders them as <li>s, the print model prints the same array object
-  // (common/setup-form/doc.md → Setup rows).
-  const setupRows = useMemo(
-    () => makeSetupRows(setup, game.mode, players, puzzleDate),
-    [setup, game.mode, players, puzzleDate],
-  )
+  } = useSolutionReveal({ impliedBy: gd.standing.hasSolved })
 
   // Board derivations the print model and the render both read — the same
   // values, rather than a second copy that could drift.
   const boardView = useMemo(() => {
     const matchedTiles = new Set<string>()
-    for (const mc of matchedCategories) for (const t of mc.tiles) matchedTiles.add(t)
-    const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
+    for (const mc of gd.matchedCategories) for (const t of mc.tiles) matchedTiles.add(t)
+    const matchedRanks = new Set(gd.matchedCategories.map((m) => m.rank))
     return {
       matchedTiles,
-      remainingTiles: game.board.tileOrder.filter((t) => !matchedTiles.has(t)),
+      remainingTiles: gd.puzzle.board.tileOrder.filter((t) => !matchedTiles.has(t)),
       // The categories nobody got — only while this viewer is asking for them.
       unmatched: solutionShown
-        ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
+        ? gd.puzzle.board.categories.filter((c) => !matchedRanks.has(c.rank))
         : [],
     }
-  }, [game, solutionShown, matchedCategories])
+  }, [gd.puzzle.board, solutionShown, gd.matchedCategories])
 
-  // ─── The local slot, and its three standing conditions ─
-  // Each condition is an effect on a primitive edge that shows on true and
-  // retracts in its cleanup — the slot draws whichever ranks highest. The
-  // local slot is the one for messages about ME; a peer's go in the header's.
+  // ─── The local slot, and what stands in it ─────────────
+  // The local slot is the one for messages about ME; a peer's go in the
+  // header's.
 
   // Drawn in the commit row's reserved height below the board (docs/ui.md →
   // Feedback pill): my own guess's answer, a not-ok, and the standing
@@ -286,41 +196,20 @@ function PlayArea({
   const localFeedbackSlot = useFeedbackSlot('local')
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  // The terminal message, memoized on primitives so the verdict effect sees
-  // one object per outcome; what it says per state is `lib/terminal.ts`'s.
-  //
-  // WHY it ended is the server's word (`status.reason`), never the browser
-  // clock's: the RPC that ended the game wrote the reason, and the club-list
-  // label reads the same column.
-  const reason = status?.reason as string | undefined
-  const selfWon = iMatchedThemAll
-  const terminalMessage = useMemo(
-    () =>
-      isTerminal
-        ? buildTerminalMessage({ mode: game.mode, playState, reason, selfWon, selfEliminated: isEliminated })
-        : null,
-    [isTerminal, game.mode, playState, reason, selfWon, isEliminated],
-  )
+  // The endings' messages, for the pill and the info column: the game's once
+  // it has ended, mine while I am out of the race and the others play on.
+  const gameEndingMessage = useGetGameEndingMessage(gd)
+  const playerEndingMessage = useGetPlayerEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage: terminalMessage,
-    playerEndingMessage: null,
+    gameEndingMessage,
+    playerEndingMessage,
   })
-
-  // Out of the race while the others play on: eliminated, or conceded. A
-  // standing state with the fill; the verdict outranks it when the game ends.
-  // It freezes this player's input and does not open the answer, which waits
-  // for the game to be over for everyone.
-  useEffect(function showOutOfRace() {
-    if (!isLocallyTerminal || isTerminal) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyTerminal, isTerminal, isConceded])
 
   // A teammate holds the move (turn-order coop; never in a free-for-all).
   useShowWaitingMessage({
     slot: localFeedbackSlot,
-    isWaiting: isWaitingForTurn,
-    holder: turnHolderId === null ? undefined : memberById(players, turnHolderId),
+    isWaiting: gd.standing.isWaitingForTurn,
+    holder: gd.turns.turnHolder,
   })
 
   // ─── Narration — what a PEER did, in the header slot ───
@@ -332,16 +221,15 @@ function PlayArea({
   // answer is the local slot's. Compete never reaches here: RLS scopes the
   // guess log to the caller, so no foreign rows arrive, and we gate on coop.
   useShowPeerFeedback({
-    enabled: !isCompete,
-    items: guesses,
+    enabled: !gd.isCompete,
+    items: gd.events,
     keyOf: (g) => String(g.id),
     messageFor: (g) => {
-      if (g.user_id === authSession.user.id) return null // mine → the local slot
-      const member = memberById(players, g.user_id)
+      if (g.user_id === myId) return null // mine → the local slot
       // The row is somebody else's — the line above returned for my own — so
       // its answer is the `_peer` one.
       const { outcome, text } = peerAnswerMessage(g)
-      return FeedbackMessage.peer(member, outcome, text)
+      return FeedbackMessage.peer(gd.playersById[g.user_id], outcome, text)
     },
     globalFeedbackSlot,
   })
@@ -369,20 +257,22 @@ function PlayArea({
   // unmounts the whole play surface when the run changes and the shared
   // picks in `useGame` go with it, on every client.
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
-      db,
-      gameId,
-      isTerminal,
-      mode: game.mode,
-      isLocallyTerminal,
-      localFeedbackSlot,
-    })
+    db,
+    gameId: gd.gameId,
+    isTerminal: gd.isGameEnded,
+    mode: gd.mode,
+    isLocallyTerminal: gd.standing.isLocallyTerminal,
+    localFeedbackSlot,
+  })
 
   // Hints — the inline per-player reveal list, unfolded under the action row.
   // A toggle, so its words move with it; the list itself is InfoCol's. Gone,
   // row and button, once you can no longer submit.
   const actHint = useBindAction('act-hint', {
     describe: () =>
-      isStillPlaying ? { state: 'active', label: hintsOpen ? 'Hide hints' : 'Hints' } : 'hidden',
+      gd.standing.isStillPlaying
+        ? { state: 'active', label: hintsOpen ? 'Hide hints' : 'Hints' }
+        : 'hidden',
     run: () => setHintsOpen((o) => !o),
   })
 
@@ -395,8 +285,13 @@ function PlayArea({
       // so a player who dropped out cannot spoil a race still running. The
       // menu row keeps it all game, grayed, because it NAMES the glyph
       // (docs/ui.md → the menu is the legend).
-      if (isStillPlaying && asker === 'button') return 'hidden'
-      return describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal })
+      if (gd.standing.isStillPlaying && asker === 'button') return 'hidden'
+      return describeReveal({
+        noun: 'solution',
+        revealed: solutionShown,
+        impliedBySolve,
+        isTerminal: gd.isGameEnded,
+      })
     },
     run: toggleSolution,
   })
@@ -407,11 +302,12 @@ function PlayArea({
   // `puzzle_id`), the same answer the setup dialog previews. Same setup and
   // roster, same mode, same club.
   async function createNewGame() {
+    const playerUserIds = gd.players.map((p) => p.user_id)
     // Ask what we'd get first, so a spent archive can be a NOTICE rather than
     // a failed create. The answer is advisory — `create_game` derives it again,
     // so a peer taking that puzzle in the gap costs nothing.
     const preview = await runRpc<PuzzleAnswer>(
-      db.rpc('next_puzzle_for_club', { seen_by: players.map((p) => p.user_id) }),
+      db.rpc('next_puzzle_for_club', { p_seen_by: playerUserIds }),
     )
     if (preview.type === 'not-ok' && preview.dbcode === 'PN302') {
       // The archive is spent. The server's sentence points at the setup form's
@@ -441,14 +337,14 @@ function PlayArea({
 
     // `puzzle_id` absent is how `create_game` is told to choose; carrying this
     // game's forward would restart the puzzle just finished.
-    const carried = { ...setup }
+    const carried = { ...gd.setup }
     delete carried.puzzle_id
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: carried,
-        player_user_ids: players.map((p) => p.user_id),
-        mode: game.mode,
+        p_club_handle: clubHandle,
+        p_setup: carried,
+        p_player_user_ids: playerUserIds,
+        p_mode: gd.mode,
       }),
     )
     if (res.type === 'not-ok') {
@@ -464,17 +360,17 @@ function PlayArea({
     }
   }
 
-  // New game — its `+`, its menu row and its terminal button, from one action.
+  // New game — its `+`, its menu row and its ended-game button, from one action.
   // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this
-  // game, which stays resumable) and goes straight through at terminal; the
-  // shared run's single flight is what stops a second press taking two puzzles
-  // out of the archive.
+  // game, which stays resumable) and goes straight through once the game has
+  // ended; the shared run's single flight is what stops a second press taking
+  // two puzzles out of the archive.
   const actNewGame = useBindAction('act-new-game', {
-    terminal: isTerminal,
+    terminal: gd.isGameEnded,
     // Reachable all game from the menu and `+` — NEW_GAME_CONFIRM is written
     // for that ("will be shelved, not lost", "Keep playing"). A BUTTON only at
     // the end, where "the next puzzle" is what you came to the row for.
-    describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
+    describe: (asker) => (asker === 'button' && !gd.isGameEnded ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
@@ -487,20 +383,20 @@ function PlayArea({
       printConnectionsPdf(
         buildConnectionsPrintModel({
           brand,
-          gameTitle: title,
+          gameTitle: gd.title,
           date: new Date().toLocaleDateString(),
-          categories: game.board.categories,
-          matched: matchedCategories,
+          categories: gd.puzzle.board.categories,
+          matched: gd.matchedCategories,
           unmatched: boardView.unmatched,
           remainingTiles: boardView.remainingTiles,
-          guesses,
-          players,
-          selfId: authSession.user.id,
-          mode: game.mode,
-          isTerminal,
-          mistakeCount,
-          mistakeBudget: MISTAKE_BUDGET,
-          setupRows,
+          guesses: gd.events,
+          players: gd.players,
+          selfId: myId,
+          mode: gd.mode,
+          isTerminal: gd.isGameEnded,
+          mistakeCount: gd.readout.mistakeCount,
+          mistakeBudget: gd.readout.maxMistakes,
+          setupRows: gd.setupRows,
         }),
       )
     },
@@ -526,8 +422,8 @@ function PlayArea({
         extra: [
           // The menu twin of the info column's Hints button.
           { items: [actHint] },
-          // The same three the terminal action row offers, reachable mid-game
-          // too — Reveal grayed until the game is over.
+          // The same three the ended game's action row offers, reachable
+          // mid-game too — Reveal grayed until the game is over.
           { items: [actReveal, actRestart, actNewGame] },
           { items: [actPrintBoard] },
         ],
@@ -540,107 +436,91 @@ function PlayArea({
   // Everything below is derived fresh each render and read only by the JSX —
   // nothing here is a hook, which is why it may sit after the menu effect.
 
-  // Who has bowed out of the race — the opponent strip's "out" cell. From the
-  // common roster, like `isConceded`.
-  const concededIds = new Set(
-    players.filter((p) => p.conceded).map((p) => p.user_id),
-  )
+  // The ending that applies to me: the game's once it has ended, else mine.
+  const endingMessage = gameEndingMessage ?? playerEndingMessage
 
   const { remainingTiles } = boardView
 
   // When a past turn is open, `historySnap` is that turn's board (else null =
   // live). WHOSE board it replays is the row's own author's: mid-game compete
-  // that is always me (RLS shows me nothing else), but at TERMINAL every
+  // that is always me (RLS shows me nothing else), but at the END every
   // player's rows arrive, and a `#N` on one of theirs replays THEIR grid. Coop
   // is one shared board, so the filter is a no-op there.
-  const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
+  const historyRow = historyId !== null ? gd.events.find((g) => g.id === historyId) : undefined
   const historyRows =
-    isCompete && historyRow
-      ? guesses.filter((g) => g.user_id === historyRow.user_id)
-      : guesses
+    gd.isCompete && historyRow
+      ? gd.events.filter((g) => g.user_id === historyRow.user_id)
+      : gd.events
   const historySnap =
-    historyId !== null ? historySnapshot(historyRows, game.board, historyId) : null
+    historyId !== null ? historySnapshot(historyRows, gd.puzzle.board, historyId) : null
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared grid.
   const historyActor =
-    isCompete && historyRow && historyRow.user_id !== authSession.user.id
-      ? memberById(players, historyRow.user_id)
+    gd.isCompete && historyRow && historyRow.user_id !== myId
+      ? gd.playersById[historyRow.user_id]
       : undefined
 
-  // tile → user_id. In coop this carries every peer's picks; in compete only
-  // the caller's, since the broadcast is local there.
-  const ownerByTile = new Map<string, string>()
-  for (const [userId, list] of picks) {
-    for (const t of list) ownerByTile.set(t, userId)
-  }
-
-  const colorByUserId = colorByUserIdMap(players)
-
-  const found = matchedCategories.length
+  const colorByUserId = colorByUserIdMap(gd.players)
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         // ── Board to render (live OR the historical snapshot) ──
-        game={game}
-        matchedCategories={matchedCategories}
+        board={gd.puzzle.board}
+        matchedCategories={gd.matchedCategories}
         remainingTiles={remainingTiles}
         unmatched={boardView.unmatched}
         solutionShown={solutionShown}
         historySnap={historySnap}
         historyActor={historyActor}
-        isStillPlaying={isStillPlaying}
-        isBoardInteractive={isBoardInteractive}
-        isMyTurn={isMyTurn}
-        isWaitingForTurn={isWaitingForTurn}
+        isStillPlaying={gd.standing.isStillPlaying}
+        isBoardInteractive={gd.standing.isBoardInteractive}
+        isMyTurn={gd.standing.isMyTurn}
+        isWaitingForTurn={gd.standing.isWaitingForTurn}
         myTurnJustStarted={turnFlash}
-        // The frame says "this board is not a live position", which is true in
-        // two situations, not one: the game is over for everybody (the frame
-        // wears the verdict's outcome), or this player is out of a compete race while the
-        // others play on. The second has no verdict yet, so it takes the neutral
-        // gray — their board is inert, which is all the frame claims.
-        terminalOutcome={terminalMessage ? terminalMessage.outcome : isLocallyTerminal ? 'neutral' : null}
+        // The frame says "this board is not a live position", in the outcome of
+        // the ending that applies to me: the game's once it has ended, or mine
+        // while I am out of a race the others still run.
+        terminalOutcome={endingMessage?.outcome ?? null}
         onExitHistory={exitHistory}
         // ── Tile picks (state in useGame; BoardCol renders and commits them) ──
-        ownerByTile={ownerByTile}
-        toggleTile={toggleTile}
-        sendClear={sendClear}
-        unionTiles={unionTiles}
-        selfId={authSession.user.id}
+        ownerByTile={gd.picks.ownerByTile}
+        toggleTile={gd.picks.toggleTile}
+        sendClear={gd.picks.sendClear}
+        unionTiles={gd.picks.union}
+        selfId={myId}
         colorByUserId={colorByUserId}
         // Identity is only information on a genuinely shared board: coop, with
         // somebody else here. Solo, every pick is mine; in compete the picks
         // never leave this client.
-        sharedBoard={!isCompete && players.length > 1}
+        sharedBoard={!gd.isCompete && gd.players.length > 1}
         // ── Own-guess feedback (the slot is PlayArea's) ──
         localFeedbackSlot={localFeedbackSlot}
         // ── Guess dispatch ──
-        gameId={gameId}
-        guesses={guesses}
+        gameId={gd.gameId}
+        guesses={gd.boardEvents}
         // ── Below-board readout ──
-        mistakeCount={mistakeCount}
-        mistakeBudget={MISTAKE_BUDGET}
+        mistakeCount={gd.readout.mistakeCount}
+        mistakeBudget={gd.readout.maxMistakes}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
       <InfoCol
         // ── Mode + phase ──
-        isCompete={isCompete}
-        terminalMessage={terminalMessage}
-        isStillPlaying={isStillPlaying}
-        isConceded={isConceded}
-        isTurnBased={isTurnBased}
-        turnHolderId={turnHolderId}
+        isCompete={gd.isCompete}
+        isTerminal={gd.isGameEnded}
+        endingMessage={endingMessage}
+        isStillPlaying={gd.standing.isStillPlaying}
+        isTurnBased={gd.turns.isTurnBased}
+        turnHolderId={gd.turns.turnHolderId}
         // ── State readout ──
-        found={found}
-        categoryCount={CATEGORY_COUNT}
-        mistakeCount={mistakeCount}
-        mistakeBudget={MISTAKE_BUDGET}
+        found={gd.readout.foundCount}
+        categoryCount={gd.readout.requiredCategoriesCount}
+        mistakeCount={gd.readout.mistakeCount}
+        mistakeBudget={gd.readout.maxMistakes}
         // ── Players (OpponentStrip, compete) ──
-        players={players}
-        selfId={authSession.user.id}
-        metricByUser={opponentFound}
-        concededIds={concededIds}
+        players={gd.players}
+        selfId={myId}
         // ── Action row — the same actions, in the order the menu lists them ──
         actHint={actHint}
         actReveal={actReveal}
@@ -650,12 +530,12 @@ function PlayArea({
         actStopGame={actStopGame}
         actBackToClub={menu.actBackToClub}
         // ── The hint list ──
-        categories={game.board.categories}
+        categories={gd.puzzle.board.categories}
         hintsOpen={hintsOpen}
         // ── Setup disclosure ──
-        setupRows={setupRows}
+        setupRows={gd.setupRows}
         // ── Turn-history log ──
-        guesses={guesses}
+        guesses={gd.events}
         historyId={historyId}
         onShowHistory={showHistory}
       />
@@ -668,7 +548,7 @@ function PlayArea({
         <CelebrationBlockingModal
           title="You win! 🎉"
           body={
-            isCompete
+            gd.isCompete
               ? 'You found all four first.'
               : 'All four categories found.'
           }

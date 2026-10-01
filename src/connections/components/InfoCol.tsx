@@ -8,7 +8,7 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { Board } from '../lib/board'
-import type { EventRow, Player } from '../hooks/useGame'
+import type { ConnectionsPlayer, EventRow } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
 import { HintList } from './HintList'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
@@ -31,9 +31,9 @@ export function InfoCol({
   // block below name each group. Names are shared with the other games' columns for the
   // same idea — see docs/playarea.md.
   isCompete,
-  terminalMessage,
+  isTerminal,
+  endingMessage,
   isStillPlaying,
-  isConceded,
   isTurnBased,
   turnHolderId,
   found,
@@ -42,8 +42,6 @@ export function InfoCol({
   mistakeBudget,
   players,
   selfId,
-  metricByUser,
-  concededIds,
   actHint,
   actReveal,
   actRestart,
@@ -60,13 +58,13 @@ export function InfoCol({
 }: {
   // ── Mode + phase ──
   isCompete: boolean
-  // The terminal message when the game is over (drives the action row), else null.
-  terminalMessage: TerminalMessage | null
+  isTerminal: boolean
+  // The ending that applies to me — the game's once it has ended, else mine
+  // while the others play on — for the action row's line; null while I play.
+  endingMessage: TerminalMessage | null
   // The page's standing terms (docs/win-lose.md → Where a player stands).
-  // Still in the game — gates the hint list + help (vs the out-of-the-race look).
+  // Still in the game — gates the hint list + help.
   isStillPlaying: boolean
-  // I conceded — picks the out-of-the-race wording.
-  isConceded: boolean
   // A turn-order game: render the shared TurnStatusLine, which names the
   // holder of `turnHolderId`.
   isTurnBased: boolean
@@ -79,13 +77,10 @@ export function InfoCol({
   mistakeBudget: number
 
   // ── Players (the OpponentStrip — compete) ──
-  // The roster (identity + per-player concede flags).
-  players: Player[]
+  // The players — the strip (each one's categories found, or "out" once
+  // conceded) and the event-log picker.
+  players: ConnectionsPlayer[]
   selfId: string
-  // Opponents' public categories-found counts (`connections.players.found_categories_count`).
-  metricByUser: ReadonlyMap<string, number>
-  // Who has conceded (drives the OpponentStrip "out" mid-game).
-  concededIds: Set<string>
 
   // ── Action row — listed in the order the row draws them, which is the order
   //    the game menu lists them too (docs/playarea.md) ──
@@ -126,14 +121,11 @@ export function InfoCol({
   // number the log printed beside it.
   onShowHistory: (id: number, n: number) => void
 }) {
-  // The row's line, and the only thing that varies between states: the verdict
-  // once the game is over, a neutral "you are done, they are not" while a race
-  // runs on without you, and nothing at all while you can still play.
-  const rowMessage: InfoActionsMessage | undefined = terminalMessage
-    ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
-    : isStillPlaying
-      ? undefined
-      : { text: isConceded ? 'You conceded' : 'You’re out', outcome: 'neutral' }
+  // The row's line, and the only thing that varies between states: the ending
+  // that applies to me, and nothing at all while I can still play.
+  const rowMessage: InfoActionsMessage | undefined = endingMessage
+    ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
+    : undefined
 
   return (
     <div className={shared.infoCol}>
@@ -157,7 +149,7 @@ export function InfoCol({
             turnHolderId={turnHolderId}
             players={players}
             selfId={selfId}
-            isTerminal={terminalMessage !== null}
+            isTerminal={isTerminal}
           />
         )}
 
@@ -168,15 +160,11 @@ export function InfoCol({
             players={players}
             selfId={selfId}
             metricLabel="Found"
-            metricFor={(p, isSelf) =>
-              // A dropped-out racer reads 'out' mid-game (their found-count is frozen
-              // and no longer part of the race); everyone else shows their live
-              // categories-found.
-              concededIds.has(p.user_id)
-                ? 'out'
-                : isSelf
-                  ? found
-                  : (metricByUser.get(p.user_id) ?? 0)
+            // A racer who conceded reads 'out' (their found-count is frozen
+            // and no longer part of the race); everyone else shows their live
+            // categories-found.
+            metricFor={(p) =>
+              p.playerEnding?.reason === 'conceded' ? 'out' : p.foundCategoriesCount
             }
           />
         )}
@@ -211,7 +199,7 @@ export function InfoCol({
           <ActionButton
             action={actBackToClub}
             show="icon"
-            weight={terminalMessage ? 'primary' : 'secondary'}
+            weight={isTerminal ? 'primary' : 'secondary'}
           />
         </InfoActionsRow>
         {/* The per-player hint reveals — unfolds right under the action row when
@@ -239,7 +227,7 @@ export function InfoCol({
         players={players}
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
-        isTerminal={terminalMessage !== null}
+        isTerminal={isTerminal}
         historyId={historyId}
         onShowHistory={onShowHistory}
       />

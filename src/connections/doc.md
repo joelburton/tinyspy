@@ -107,7 +107,9 @@ racer. Compete needs an opposing **player**, which is why its manifest takes
 Whichever RPC ends the game passes `common._end_game` the reason pair and the
 rankings ([common-schema.md → `common._end_game`](../../docs/common-schema.md#common_end_game--the-one-way-a-game-ends)),
 and both surfaces that name the ending read those columns: the club-list
-label and the below-board pill (`lib/terminal.ts`).
+label and the below-board pill (`lib/gameEndingMessage.ts`). A racer out
+while the others play on reads their own ending (`lib/playerEndingMessage.ts`)
+until the game's replaces it.
 
 | the ending | reason / detail | ranked |
 |---|---|---|
@@ -171,10 +173,13 @@ the game row, so two Submits at the same instant serialize.
 **Realtime is two rooms**, both stable-named because broadcasts merge only
 across matching names: `game:${gameId}` is `useCommonGame`'s (presence, the
 manual pause, the timer, the `common.games` row) and `connections:${gameId}`
-is `useGame`'s — postgres-changes on the three tables, and in coop the
-picks Broadcast (`pick` · `unpick` · `clear`, on the `pick` event). The picks are pause-transient by construction: it lives in the hook's state, and
-`PauseBoundary` unmounts the play surface on a pause, so a reconnecting
-table sees a clean grid.
+is `useGame`'s, joined in coop only, for the picks Broadcast (`pick` ·
+`unpick` · `clear`, on the `pick` event). The tables have no subscription of
+their own: every move writes `common.games` through `_write_statuses`, and
+`useGame` reruns its two reads when the page's row moves
+(`useRefetchOnGameUpdate`). The picks are pause-transient by construction:
+they live in the hook's state, and `PauseBoundary` unmounts the play surface
+on a pause, so a reconnecting table sees a clean grid.
 
 ## RPCs
 
@@ -353,7 +358,7 @@ describes — a loader that gates on the three ways a game can fail to load,
 then `PlayArea` in the eight sections.
 
 ```
-<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame, and the three gates
+<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame (gd), and the three gates
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the board column — and submit_guess
         │     ├── Board                  one grid: the solved bands, then the tiles
@@ -375,7 +380,7 @@ then `PlayArea` in the eight sections.
 ```
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
-play_state, pause, chat — and unmounts this whole surface on pause. The state
+the ending, pause, chat — and unmounts this whole surface on pause. The state
 line at the top of the info column ("2/4 categories found · 1/4 mistakes") is a
 paragraph of `InfoCol`'s own, not a component.
 
@@ -413,8 +418,9 @@ What is connections' own:
   (`lib/history.ts`): the bands matched strictly before it, this turn's four
   tiles lit by what it was, addressed by the row's id so a filter cannot move
   it, and folding the rows of whoever wrote it.
-- **The terminal** is the pill (`lib/terminal.ts`) and the frozen board; a
-  win also celebrates — the coop team's, or the racer's own. New game asks
+- **The ending** is the pill (`lib/gameEndingMessage.ts`, mine while I am out
+  of a race: `lib/playerEndingMessage.ts`) and the frozen board; a win also
+  celebrates — the coop team's, or the racer's own. New game asks
   `next_puzzle_for_club` first, so a spent archive is a notice with two ways
   forward rather than a failed create.
 - **No mobile status bar.** Both numbers are already on the play surface —
@@ -449,11 +455,11 @@ Vitest, beside the code:
 | file | pins |
 |---|---|
 | `lib/evaluate.test` | the evaluator's boundaries — 1-, 2-, 3- and 4-overlap, ties, order |
-| `lib/answer.test` · `lib/terminal.test` | every `answerType`'s words and outcome; every terminal sentence per mode and reason |
+| `lib/answer.test` · `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every `answerType`'s words and outcome; every ending's sentence per mode, reason and player outcome; a racer's own ending |
 | `lib/history.test` · `lib/localOrder.test` | the strictly-before boundary and the lit tiles; a shuffle keeps every tile |
 | `lib/picks.test` | the click rule on the union of everyone's picks, and a reducer whose no-op returns the same map |
 | `lib/setup.test` · `lib/setupRows.test` | the two keys the default leaves out; the setup rows' order, and a puzzle date that names the same day in every timezone |
-| `hooks/useGame.test` | one stable room per game, rebuilt on `gameId` and never on a session refresh |
+| `hooks/useGame.test` | `gd` from the two reads and the page's values; a failed read kept apart from an absent game; coop's one stable picks room per game, rebuilt on `gameId` and never on a session refresh, and compete joining none |
 | `components/PlayArea.test` | a failed load is not a missing game; Concede vs Stop per mode; the ended board, and Reveal / Hide; the celebration, mine only; the board-scope marks; whose pick is ringed; the in-flight dim, the verdict fill and the three ways a mark ends; attention on a band; every key, and the action row per asker |
 | `components/SetupForm.test` · `manifest.test` | the puzzle line and the date override; the setup passes through with `puzzle_id` absent unless typed |
 | `pdf/model.test` | A–D, whose bands print on whose track, and the log line |

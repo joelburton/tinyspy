@@ -312,27 +312,31 @@ describe('psychicnum PlayArea — the readout', () => {
 
 /**
  * The celebration — confetti for the win that is MINE, and never on mount.
- * Coop's gate is the ending; compete's adds my own budget row, which is safe
- * only because the loader hands this surface both at once. The reload case is
- * the one `useCelebration`'s first rule exists for.
+ * The gate is my own outcome as the server ranked it (`gd.me.outcome`), in
+ * both modes; the surface works nothing out from the counts. The reload case
+ * is the one `useCelebration`'s first rule exists for.
  */
 describe('psychicnum PlayArea — the celebration', () => {
   // Me and moth, with the secrets each has found.
   const two = (mine: number, moths: number) =>
     [counted('u1', 'me', 'red', mine), counted('u2', 'moth', 'blue', moths)]
+  /** The same player, ranked first — `won`, as `_end_game` writes it. */
+  const won = (p: GamePlayer): GamePlayer => ({ ...p, outcome: 'won', final_ranking: 1 })
+  /** The same player, beaten — `lost`, as `_end_game` writes it. */
+  const lost = (p: GamePlayer): GamePlayer => ({ ...p, outcome: 'lost' })
   const confetti = () => screen.queryByText(/You win!/)
 
-  it('pops for the player who completed the set, even when my count lands a render late', () => {
+  it('pops for the player the server ranked first', () => {
     h.loaded = loaded(competeGame)
     const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: two(2, 0) })} />)
     expect(confetti()).toBeNull()
 
-    // The winning guess can reach the client as the ending first and my count
-    // after it. Either order is a false→true flip during the session, so the
-    // modal pops once.
-    rerender(<PlayAreaLoader {...makeCtx({ players: two(2, 0), mode: 'compete', gameEnding: GAME_WON })} />)
-    expect(confetti()).toBeNull()
-    rerender(<PlayAreaLoader {...makeCtx({ players: two(3, 0), mode: 'compete', gameEnding: GAME_WON })} />)
+    const [me, moth] = two(3, 0)
+    rerender(
+      <PlayAreaLoader
+        {...makeCtx({ players: [won(me!), lost(moth!)], mode: 'compete', gameEnding: GAME_WON })}
+      />,
+    )
     expect(confetti()).toBeInTheDocument()
     expect(screen.getByText('You found all three first.')).toBeInTheDocument()
   })
@@ -340,20 +344,31 @@ describe('psychicnum PlayArea — the celebration', () => {
   it('stays quiet for the player who was beaten', () => {
     h.loaded = loaded(competeGame)
     const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: two(1, 0) })} />)
-    rerender(<PlayAreaLoader {...makeCtx({ players: two(1, 3), mode: 'compete', gameEnding: GAME_WON })} />)
+    const [me, moth] = two(1, 3)
+    rerender(
+      <PlayAreaLoader
+        {...makeCtx({ players: [lost(me!), won(moth!)], mode: 'compete', gameEnding: GAME_WON })}
+      />,
+    )
     expect(confetti()).toBeNull()
   })
 
   it('stays quiet on opening a race already won — reviewing is not winning', () => {
     h.loaded = loaded(competeGame)
-    render(<PlayAreaLoader {...makeCtx({ players: two(3, 0), mode: 'compete', gameEnding: GAME_WON })} />)
+    const [me, moth] = two(3, 0)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({ players: [won(me!), lost(moth!)], mode: 'compete', gameEnding: GAME_WON })}
+      />,
+    )
     expect(confetti()).toBeNull()
   })
 
   it('pops for the coop team on the third secret, whoever guessed it', () => {
     h.loaded = loaded(coopGame)
     const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: two(1, 2) })} />)
-    rerender(<PlayAreaLoader {...makeCtx({ players: two(1, 2), gameEnding: GAME_WON })} />)
+    // A coop win ranks the whole team first.
+    rerender(<PlayAreaLoader {...makeCtx({ players: two(1, 2).map(won), gameEnding: GAME_WON })} />)
     expect(confetti()).toBeInTheDocument()
     expect(screen.getByText('All three secret words found.')).toBeInTheDocument()
   })

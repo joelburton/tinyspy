@@ -119,8 +119,11 @@ function PlayArea({
   // off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
   const infoSheet = useInfoSheet()
 
-  // Confetti the moment the win is MINE. It is shown only when it happens.
-  const celebration = useCelebration(gd.standing.hasSolved)
+  // Confetti the moment the win is MINE, as the server ranked it. It is shown
+  // only when it happens.
+  // SPECTATING: a club member watching has no outcome of their own, so gets
+  // none.
+  const celebration = useCelebration(gd.me?.outcome === 'won')
 
   // The board frame flashes the moment the move becomes mine.
   const turnFlash = useTurnStartFlash(gd.standing.isMyTurn)

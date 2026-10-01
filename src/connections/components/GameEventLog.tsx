@@ -6,8 +6,9 @@ import { memberById } from '@/common/members/memberList'
 import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
+import type { Member } from '@/common/members/member'
 import type { Category } from '../lib/board'
-import type { EventRow, Player } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 import styles from './GameEventLog.module.css'
 
 type Props = {
@@ -18,7 +19,7 @@ type Props = {
   // The board's four categories, public in both modes — names a correct
   // guess's category, an opponent's too.
   categories: Category[]
-  players: Player[]
+  players: Member[]
   selfId: string
   mode: 'coop' | 'compete'
   // Distinguishes an opponent's RLS-hidden log from a genuinely empty one.
