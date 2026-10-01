@@ -7,7 +7,7 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { ScrabbleSetup } from '../lib/setup'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -38,7 +38,7 @@ const rating = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1))
  * scrabble's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): turn/score
  * readout → OpponentStrip → action row → help → setup disclosure → Moves log. Every
- * command arrives as a bound action this column places; the one callback up is
+ * command arrives as an action this column places; the one callback up is
  * `onShowHistory`. PlayArea owns the RPCs + coordination. Prop names match the other games' columns for the
  * same idea (docs/playarea.md).
  */
@@ -108,18 +108,18 @@ export function InfoCol({
 
   // ── Action row (Stop/Concede, back-to-club at terminal) ──
   /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
-  actStopGame: BoundAction
+  actStopGame: Action
   /** Drop out of a race while the others play on — hidden outside compete. */
-  actConcede: BoundAction
+  actConcede: Action
   /** Deal this game again from scratch — same setup, roster and seats, fresh bag
    *  and racks. scrabble's grid is the standard layout, so a replay is a re-deal
    *  rather than a puzzle reset. */
-  actRestart: BoundAction
+  actRestart: Action
   /** Start a fresh follow-up game — same setup + roster, a NEW game id. Disables
    *  itself while the create is in flight. */
-  actNewGame: BoundAction
+  actNewGame: Action
   /** Leave for the club — the shell's own action, off `ctx.menu`. */
-  actBackToClub: BoundAction
+  actBackToClub: Action
 
   // ── Suggest-a-move (docs/games/scrabble.md §11) ──
   /** The suggest box's state, or null to not render it at all (compete — the
@@ -127,7 +127,7 @@ export function InfoCol({
   suggest: SuggestState | null
   /** Ask the AI for a move — it grays itself while a request is out and where
    *  the ask isn't available; the box below collapses entirely when idle. */
-  actSuggestMove: BoundAction
+  actSuggestMove: Action
   /** Stage a suggested move's tiles on the board (BoardCol applies it). */
   onApplySuggestion: (move: RankedMove) => void
 

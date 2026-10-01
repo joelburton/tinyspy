@@ -3,19 +3,19 @@
 import type { MouseEvent, ReactNode } from 'react'
 import { actionSurface } from '@/common/actions/actionSurface'
 import { nameWithKey } from '@/common/actions/nameWithKey'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { Scope } from '../lib/types'
 import { cls } from '@/common/utils/cls'
 import styles from './Controls.module.css'
 
 /** The three scopes of one assistance family, each its own action. */
-export type ScopeActions = Record<Scope, BoundAction>
+export type ScopeActions = Record<Scope, Action>
 
 type Props = {
   /** Is the pen or the pencil selected? The pair below is two destinations for
    *  one toggle, and this is which one you are already at. */
   pencil: boolean
-  actPencil: BoundAction
+  actPencil: Action
   check: ScopeActions
   /** Reveal is coop-only, and says so itself: in a race all three hide and the
    *  group goes with them. */
@@ -41,7 +41,7 @@ const keepFocusOffTheBoard = (e: MouseEvent) => e.preventDefault()
  * the shielded solution.
  *
  * Every square IS its action — what it does, whether it is live and which key
- * also does it all arrive with the binding — so this file arranges buttons and
+ * also does it all arrive with the action — so this file arranges buttons and
  * decides nothing about them. Which is why there is no `mode` and no `disabled`
  * prop: a race's Reveal squares hide themselves, and a frozen board grays
  * everything at once.

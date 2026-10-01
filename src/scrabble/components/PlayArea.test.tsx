@@ -22,9 +22,9 @@ import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { EventRow, PlayerRow, ScrabbleGame } from '../hooks/useGame'
@@ -134,9 +134,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -184,8 +184,8 @@ const press = (init: KeyboardEventInit) =>
     fireEvent.keyDown(document.body, init)
   })
 
-/** What a bound action says about itself right now. */
-const describeOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button')
+/** What an action says about itself right now. */
+const describeOf = (id: string) => getActions().find((b) => b.id === id)?.describe('button')
 
 /** A control by WHICH action it is, since its words vary per state. */
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
@@ -480,7 +480,7 @@ describe('scrabble PlayArea — show a move (coop)', () => {
 })
 
 /**
- * The rack row's commands, read through their bindings. What matters here is
+ * The rack row's commands, read through their actions. What matters here is
  * the REASON a control gives when it is gray: Exchange says which of its three
  * gates is shut, and the button's bubble is that sentence.
  */

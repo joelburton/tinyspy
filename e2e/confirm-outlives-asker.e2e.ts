@@ -12,7 +12,7 @@ import { boardReady } from './helpers/ready'
  * outlive the page that asked it: bea opens "Restart this game?", ada suspends
  * the game from her tab, ada's broadcast moves bea to the club page — and the
  * question stayed there, where pressing Restart fired `replay_board` on the
- * game bea had just left, wiping it for everyone. The binding that asked now
+ * game bea had just left, wiping it for everyone. The action that asked now
  * takes its question back when it unmounts (common/actions → useBindAction).
  *
  * The found word bea submits first is what a stray Restart would have wiped, so

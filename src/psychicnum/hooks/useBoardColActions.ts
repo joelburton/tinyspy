@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useBindAction, type BoundAction } from '@/common/actions/useBindAction'
+import { useBindAction, type Action } from '@/common/actions/useBindAction'
 import type { TileWord } from '../lib/tileResults'
 
 /**
@@ -9,8 +9,8 @@ import type { TileWord } from '../lib/tileResults'
  * pick whether or not the keyboard cursor shows, since the pick is always
  * drawn. The board's own Shuffle is bound with the board (`useWordShuffle`).
  *
- * One guess is out at a time: Submit's run waits for `submitGuess`, and a
- * bound action neither runs nor draws live while its run is out
+ * One guess is out at a time: Submit's run waits for `submitGuess`, and an
+ * action neither runs nor draws live while its run is out
  * (`useBindAction`'s `pending`).
  */
 export function useBoardColActions({
@@ -31,8 +31,8 @@ export function useBoardColActions({
   clearPickedWord: () => void
   submitGuess: (word: TileWord) => Promise<void>
 }): {
-  actSubmit: BoundAction
-  actClearPicks: BoundAction
+  actSubmit: Action
+  actClearPicks: Action
 } {
   const actSubmit = useBindAction('act-submit', {
     describe: () => (canSubmit && pickedWord !== null ? 'active' : 'disabled'),

@@ -2,7 +2,7 @@
 
 /**
  * Tests for the one key listener: the two gates, auto-repeat, who wins when two
- * bindings want a key, and the wildcard that watches without claiming.
+ * actions want a key, and the wildcard that watches without claiming.
  *
  * Each test binds real actions off the registry and presses a real window
  * keydown, so what is exercised is the whole path a keystroke actually takes.
@@ -10,7 +10,7 @@
 import { act, render, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useActionDispatcher } from './useActionDispatcher'
-import { useBindAction, type ActionState, type LiveAction } from './useBindAction'
+import { useBindAction, type ActionState, type BindActionOptions } from './useBindAction'
 import type { ActionId } from './registry'
 
 // The questions actions ask are `useBindAction`'s subject, not this one's —
@@ -28,15 +28,15 @@ async function press(init: KeyboardEventInit & { key: string }, target?: Element
   })
 }
 
-/** Mount the dispatcher plus a list of bindings, in the order given (so the
+/** Mount the dispatcher plus a list of actions, in the order given (so the
  *  last is the innermost). */
-function setup(...bindings: Array<[ActionId, Partial<LiveAction>]>) {
-  const runs = bindings.map(() => vi.fn())
+function setup(...actionsToBind: Array<[ActionId, Partial<BindActionOptions>]>) {
+  const runs = actionsToBind.map(() => vi.fn())
   const view = renderHook(() => {
     useActionDispatcher()
     // A fixed-length list per test, so the hook order is stable across renders.
-    bindings.forEach(([id, live], i) => {
-      useBindAction(id, { run: runs[i]!, describe: () => 'active' as ActionState, ...live })
+    actionsToBind.forEach(([id, options], i) => {
+      useBindAction(id, { run: runs[i]!, describe: () => 'active' as ActionState, ...options })
     })
   })
   return { runs, view }
@@ -79,7 +79,7 @@ describe('the dispatcher — matching', () => {
 })
 
 describe('the dispatcher — state', () => {
-  it('skips a hidden or disabled binding, so the key can fall through', async () => {
+  it('skips a hidden or disabled action, so the key can fall through', async () => {
     // Both want ⌥⌫; the fixture disables Stop, so Concede answers.
     const { runs, view } = setup(
       ['act-concede', {}],
@@ -91,8 +91,8 @@ describe('the dispatcher — state', () => {
     view.unmount()
   })
 
-  it('a disabled binding still keeps the key from the browser', async () => {
-    // Space with no legal peel must not scroll the page; the binding is here,
+  it('a disabled action still keeps the key from the browser', async () => {
+    // Space with no legal peel must not scroll the page; the action is here,
     // just not right now.
     const { runs, view } = setup(['act-peel', { describe: () => 'disabled' as ActionState }])
     const e = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
@@ -104,7 +104,7 @@ describe('the dispatcher — state', () => {
     view.unmount()
   })
 
-  it('a hidden binding leaves the key to the browser', async () => {
+  it('a hidden action leaves the key to the browser', async () => {
     const { view } = setup(['act-peel', { describe: () => 'hidden' as ActionState }])
     const e = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
     await act(async () => {
@@ -114,10 +114,10 @@ describe('the dispatcher — state', () => {
     view.unmount()
   })
 
-  // Two bindings in ONE component are in call order, and the earlier is the
+  // Two actions in ONE component are in call order, and the earlier is the
   // "inner" one — see the stack's docstring. It is arbitrary and nothing should
   // lean on it; it is pinned only so a change to the walk is visible.
-  it('gives the key to the first binding that wants it, within one component', async () => {
+  it('gives the key to the first action that wants it, within one component', async () => {
     const { runs, view } = setup(['act-peel', {}], ['act-submit', {}])
     await press({ key: 'Enter' })
     expect(runs[0]).toHaveBeenCalledTimes(1)
@@ -202,7 +202,7 @@ describe('the dispatcher — the watchers', () => {
     view.unmount()
   })
 
-  it('a consuming wildcard beats an INNER binding too — a mode is not a key', async () => {
+  it('a consuming wildcard beats an INNER action too — a mode is not a key', async () => {
     // The order the real games are in: the viewer belongs to the page and the
     // board's keys to a column inside it, so the inner one would win on
     // position. It must not: while a past turn is open the next keystroke means
@@ -216,11 +216,11 @@ describe('the dispatcher — the watchers', () => {
 })
 
 describe('the dispatcher — where a child sits in the stack', () => {
-  // What `setup` above cannot say: its bindings all sit in ONE component, where
-  // order is just call order. A binding joins from an effect, React runs
+  // What `setup` above cannot say: its actions all sit in ONE component, where
+  // order is just call order. An action joins from an effect, React runs
   // effects children first, and a later commit appends — so a child mounted
   // WITH its page sits ahead of it, and one mounted LATER sits behind it. Both
-  // are pinned so the limit is a known fact; neither is a channel a binding
+  // are pinned so the limit is a known fact; neither is a channel an action
   // may lean on (the stack's docstring says why).
   function Child({ onRun }: { onRun: () => void }) {
     useBindAction('act-peel', { run: onRun, describe: () => 'active' })

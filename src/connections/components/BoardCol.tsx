@@ -340,7 +340,7 @@ export function BoardCol({
     }
   }
 
-  // The board's commands. Each is ONE binding behind both its button and its
+  // The board's commands. Each is ONE action behind both its button and its
   // key, so the two can't disagree about whether it applies, and each is hidden
   // while a past turn is open: a live Submit over a frozen historical board
   // would be lying about what it can do. Fewer than four picks leaves Submit

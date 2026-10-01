@@ -14,11 +14,11 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { KeyList } from '@/common/actions/KeyList'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import { menuRow, type MenuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
@@ -119,9 +119,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -136,7 +136,7 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
- *  Any test that TYPES needs it: the grid's keys are bound actions, and a bare
+ *  Any test that TYPES needs it: the grid's keys are actions, and a bare
  *  `render` binds them with nothing feeding them keys. */
 function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
   useActionDispatcher()
@@ -187,8 +187,8 @@ function rpcNames(): string[] {
  *  second discriminator. */
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
 
-/** What a bound action says about itself right now. */
-const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
+/** What an action says about itself right now. */
+const stateOf = (id: string) => getActions().find((b) => b.id === id)?.describe('button').state
 
 /** A keystroke at the page, the way a player types with nothing focused.
  *  Awaited, because an action's run is single-flight: a second press before the
@@ -299,7 +299,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(screen.queryByText('Check skips pencil marks')).not.toBeInTheDocument()
   })
 
-  /** Every TOP-LEVEL row the menu would draw, in order — a row is a bound
+  /** Every TOP-LEVEL row the menu would draw, in order — a row is an
    *  action now, so its words, glyph, key hint and availability come from the
    *  action rather than from the list. A hidden row is dropped, the way the menu
    *  drops it. A submenu parent appears once, as itself; its children are on
@@ -328,7 +328,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
       // the labeled twin that writes that shortcut down (gameMenu.ts).
       'act-help', 'act-open-chat',
       'act-pencil', 'act-rebus', 'act-collapse-rebuses',
-      // No Scratchpad row: ⌥S is the header mark's binding, and nothing binds it
+      // No Scratchpad row: ⌥S is the header mark's action, and nothing binds it
       // in a bare PlayArea render.
       'act-show-note', 'act-explain-clue', 'act-print-board', 'act-download-ipuz', 'act-print-solution',
       'check', 'reveal',
@@ -647,7 +647,7 @@ describe('crosswords PlayArea — the page chords', () => {
 })
 
 /**
- * The help list, generated from the same bindings the dispatcher fires. What
+ * The help list, generated from the same actions the dispatcher fires. What
  * it shows is each key's label and what the action is CALLED at that moment —
  * which for the check/reveal ladder is the registry's scope word alone.
  */

@@ -13,14 +13,14 @@ and its line in the help list are four views of one idea, and none of them can
 disagree with the others about what it is called, what key fires it, or
 whether it is available right now. This folder exists to make that so.
 
-The thing is an action, and it has two halves. The fixed half is what the app
-decides once and every game inherits: what the action is called, its glyph,
+The thing is an action, and it has two halves. Its definition is what the app
+decides once and every game inherits — what the action is called, its glyph,
 its keys, its tone, and the question it asks before it acts. That lives in the
 registry, a plain table with no functions in it, and it is the reason shuffle
 answers to the same key in every game that offers shuffle — a game does not
-choose. The live half is what only the offering page can know: what the command
+choose. Its options are what only the offering page can know — what the command
 actually does here, whether it applies at this moment, and what it says right
-now. A game supplies that by binding, and the two halves joined are a bound
+now. A game supplies them by binding, and the two halves joined are the
 action, which is all any surface ever sees.
 
 Binding is offering. There is no list of "which keys this game wants" —
@@ -30,7 +30,7 @@ commands, and a component mounted inside it binds the keys it owns, so what is
 available is simply what is mounted. That is also what makes the help list
 trustworthy, since the list and the dispatcher read the same registrations.
 
-A bound action answers one question, `describe()`, and everything reads that
+An action answers one question, `describe()`, and everything reads that
 one answer: a menu row grays, a button disables and a key does nothing for the
 same stated reason, and they cannot disagree. Keys go through one listener at
 the app root, and nothing else in the app listens for a game key. That is the
@@ -44,14 +44,14 @@ escape the list.
 different words, a different glyph, or the reason it is the state it is, for
 this moment. The reason goes into the button's bubble in place of the name and
 key ("Find 2 more valid words" on a Hint that is not yet earned); it comes from
-the binding rather than the placement because the conditions that decide the
+the action rather than the placement because the conditions that decide the
 state are the ones that know why. `hidden` and `disabled` say different things
 and the distinction matters: hidden is "not here at this moment", which is how
 a play-only action leaves at terminal, while disabled is "here, and not right
 now", which is Submit with an empty entry.
 
 **`describe()` is asked BY someone, and the asker names itself.** Four
-surfaces read a binding — a button, a menu row, Help's key list and the
+surfaces read an action — a button, a menu row, Help's key list and the
 dispatcher — and they can want different answers: a game offers Restart from
 the menu and by key all game, and gives it a button only at the end. So
 `describe` takes an `ActionAsker` (`button` · `menu` · `help` · `key`), and the
@@ -75,7 +75,7 @@ dismisses the last message and still types its letter. An interceptor is a
 surface declaring a MODE — while a past turn is open, the next key means "back
 to the live board", whatever else is bound — and a mode outranks any
 particular key, which is a claim about the moment rather than about
-specificity. Everything else is a command, taken in the order the bindings
+specificity. Everything else is a command, taken in the order the actions
 mounted: a component mounted with its page sits ahead of the page and wins a
 key they both want, while one mounted later sits behind everything already
 there. That order is a tiebreak and nothing more — two commands that can be
@@ -104,8 +104,8 @@ for a game chord.
 
 **Two gates come before any pass, and they are the app's, not an action's.** A
 keystroke aimed at a focused text field belongs to that field, and one aimed at
-anything inside a floating panel belongs to the panel; neither reaches a
-binding. The field gate is the one an action can opt out of, through `inField`
+anything inside a floating panel belongs to the panel; neither reaches an
+action. The field gate is the one an action can opt out of, through `inField`
 on its registry row: `'never'` (the default), `'game-inputs'` (from a game's
 own input, marked `data-game-input`, but not from chat or a form — the shell's
 `/ ? ~` work this way, so you can reach chat mid-clue), or `'always'`
@@ -115,15 +115,15 @@ own input, marked `data-game-input`, but not from chat or a form — the shell's
 letters, ⌫, the arrows, Space, Tab — because repeating is the point; a command
 does not, so holding `+` cannot start games at the OS repeat rate.
 
-**A binding that is here but disabled still keeps its key from the browser.**
+**An action that is here but disabled still keeps its key from the browser.**
 The passes skip it so a sibling that wants the key gets it, but when nothing
 takes the key a disabled match prevents the default, so Space with no legal
-peel does not scroll the page. A hidden binding leaves the key alone.
+peel does not scroll the page. A hidden action leaves the key alone.
 
-**The live half has two knobs besides `run` and `describe`.** `terminal` is
+**The options have two knobs besides `run` and `describe`.** `terminal` is
 what skips the registry's question — at terminal there is nothing left to
-interrupt — and a binding whose row carries a `confirm` passes it. `runAlternative`
-is the body for a question's second answer. A `BoundAction` also carries `pending`, true from the press until
+interrupt — and an action whose row carries a `confirm` passes it. `runAlternative`
+is the body for a question's second answer. An `Action` also carries `pending`, true from the press until
 the run settles, the question included; every surface reads it to gray.
 
 **The shell's four keys are bound once, at the app root.** `AppActionsHost`
@@ -131,17 +131,17 @@ binds `act-open-chat`, `act-open-menu`, `act-lookup-word` and
 `act-anagram-finder` and owns the two dialogs two of them open, so a page gets
 them by existing. Chat answers `hidden` on a page with no chat panel mounted.
 
-**A surface can show an action somebody else bound.** `useBoundAction(id)` hands
-back the live binding for an id — the game menu's chat row is the case, and so
+**A surface can show an action somebody else bound.** `useAction(id)` hands
+back the action bound for an id — the game menu's chat row is the case, and so
 is crosswords' scratchpad row: the key is bound by the header mark, and the row
 should be that action rather than a second copy of its name and key. Null when
 nothing has bound it, and the caller drops the row.
 
 **The key list is one row per command.** `<KeyList>`, at the bottom of every
-help companion, loops over the bound actions that have a key and are not
+help companion, loops over the actions that have a key and are not
 hidden: the first key, and what the action is called at that moment. An action
 bound twice — `act-stop-game`, by the game and by the page for the pause overlay
-— is listed once, with the words of the binding the dispatcher would fire.
+— is listed once, with the words of the action the dispatcher would fire.
 After the actions come the keys a component answers for itself — a list's
 arrows, a ring's Tab, Escape — which are not actions and are offered from
 `keyboard/componentKeyGroups.ts` instead.
@@ -201,7 +201,7 @@ carries the same three lines. A question only one game asks
 stays inside that game's callback. The asking goes through
 `common/floating-panels/confirmationService.ts`, which exists precisely because
 the code doing the asking is not a component and has nothing to render into.
-**A binding that unmounts under its question takes it back** — a peer's suspend
+**An action that unmounts under its question takes it back** — a peer's suspend
 navigating away, a pause taking the play surface — and runs nothing if an answer
 arrives anyway: its subject is gone, and the answer would otherwise run through a
 ref that outlived it.
@@ -210,7 +210,7 @@ ref that outlived it.
 everyone are both things to do and they differ in what they do — subtly enough
 that two red buttons side by side can only name the difference, where a question
 has room to explain it. So a registry question can carry a second answer
-(`alternativeLabel`), and the binding supplies its body (`runAlternative`); the
+(`alternativeLabel`), and the action supplies its body (`runAlternative`); the
 answer says which act was picked. It stops at two — past that it is a menu,
 not a question.
 
@@ -221,7 +221,7 @@ reads gray rather than live. **A menu row grays for the same flight** — a row
 that silently does nothing for a second, while advertising a key, reads as a
 promise it isn't keeping.
 
-**A surface reads a bound action when it draws it.** For anything the game
+**A surface reads an action when it draws it.** For anything the game
 renders that is automatic. The menu is the one surface the game does not
 render — it draws its rows when it opens, and asks then. Nothing the player does
 can change a row while the menu is up (activating a row closes the menu first,
@@ -232,7 +232,7 @@ regardless.
 
 **Testing a surface that takes an action it does not bind** — a game's
 `ctx.menu.actBackToClub`, a `<WordEntryRow>`'s two keys, a menu built from rows —
-uses `boundActionFixture(id)`: the registry's real fixed half with a `vi.fn()`
+uses `actionFixture(id)`: the registry's real definition with a `vi.fn()`
 run, so the test asserts which action fired without dragging a React tree and
 the dispatcher in. A test that fires a confirming action for real mounts
 `<ConfirmationHost />`, since the host lives in `App.tsx` and a question with no

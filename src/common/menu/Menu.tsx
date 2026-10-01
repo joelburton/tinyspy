@@ -72,7 +72,7 @@ type Props = {
  * popover of grouped rows, with the keyboard contract in
  * common/menu/doc.md. Reach for it
  * through `<PageHeaderMenu>`, which is its only renderer; hand it sections of
- * bound actions (`MenuSection`, next door in `menuModel.ts`) and it draws them.
+ * actions (`MenuSection`, next door in `menuModel.ts`) and it draws them.
  *
  * A row may open a submenu (`MenuSubmenu`): a flyout beside the row on
  * desktop, a drill-down that replaces the list on mobile — doc.md → Intro to area.
@@ -118,7 +118,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   // without leaving an undefined slot.
   const itemRefsRef = useRef<Map<number, HTMLButtonElement>>(new Map())
 
-  // What each section DRAWS, asked once per render. A bound action answers for
+  // What each section DRAWS, asked once per render. An action answers for
   // itself here — its words, its key, whether it applies — and a row that says
   // it is hidden drops out before anything counts rows, so what is left is what
   // is on screen.

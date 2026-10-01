@@ -109,7 +109,7 @@ count** — are shown **only at the end**. Mid-game the felt state is "I found a
 7-letter word"; the payoff ("that's 78% of the best") lands at terminal.
 
 The **longest possible word** goes one step further: even at terminal it waits
-for the **Reveal best solution** button (`act-reveal`, one bound action carrying
+for the **Reveal best solution** button (`act-reveal`, one action carrying
 both faces — the action row and the menu twin place the SAME one — see [ui.md →
 Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). The
 score says how well you did *without naming the answer*, so a table that wants
@@ -546,7 +546,7 @@ follows it line-for-line).
     Wordle-style QWERTY + Enter/Backspace, extracted so wordle + wordiply share
     one; wordle tints its keys from the shared `--wordle-*` palette, wordiply
     uses neutral keys). A physical keyboard still works via `useCaptureKeys`
-    feeding the same `word` state — and the Enter and ⌫ CAPS are the two bound
+    feeding the same `word` state — and the Enter and ⌫ CAPS are the two
     actions that hook hands back, so a cap and its key can't disagree about
     whether the move is available — and both go gray on an EMPTY entry, so Enter
     there does nothing rather than asking for letters. `↑` recalls the last word
@@ -577,7 +577,7 @@ follows it line-for-line).
   opponent's `n/5`; at terminal switch to length score %), then the **action
   row** — ICON-ONLY: playing = both exits, each hiding itself in the mode that
   isn't its own, + back-to-club; terminal = the outcome line + Restart / Reveal
-  / New game / primary Club — every one an `<ActionButton>` over a bound action;
+  / New game / primary Club — every one an `<ActionButton>` over an action;
   a conceded compete player (the others race on) gets the `InfoActionsRow` "You
   conceded" line + the below-board out-of-race message — then the
   **`<SetupDisclosure>`** (difficulty band, timer), then the **asked-for

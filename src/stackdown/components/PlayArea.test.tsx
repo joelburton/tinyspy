@@ -22,9 +22,9 @@ import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { StackdownGame, PlayerRow, EventRow } from '../hooks/useGame'
@@ -120,9 +120,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -137,7 +137,7 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
 }
 
 /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would draw
- *  — a row is a bound action now, so its words, glyph and availability come from
+ *  — a row is an action now, so its words, glyph and availability come from
  *  the action rather than from the list. */
 function menuItems(ctx: PlayAreaLoaderProps) {
   const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
@@ -146,7 +146,7 @@ function menuItems(ctx: PlayAreaLoaderProps) {
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
- *  Any test that TYPES needs it: the board's tile keys are bound actions, and a
+ *  Any test that TYPES needs it: the board's tile keys are actions, and a
  *  bare `render` binds them with nothing feeding them keys. */
 function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
   useActionDispatcher()
@@ -171,8 +171,8 @@ const okEnvelope = (data: unknown) => ({
   error: null,
 })
 
-/** What a bound action says about itself right now. */
-const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
+/** What an action says about itself right now. */
+const stateOf = (id: string) => getActions().find((b) => b.id === id)?.describe('button').state
 
 /** The five word slots, as the letters they hold. */
 const wordSlots = () => screen.getByLabelText('Current word').textContent ?? ''
@@ -327,7 +327,7 @@ describe('stackdown PlayArea — turn-history viewer', () => {
   }
 
   // The keystroke half needs the dispatcher: exiting the viewer is the hook's own
-  // bound action now, and the board's tile keys go DISABLED while a turn is open
+  // action now, and the board's tile keys go DISABLED while a turn is open
   // so the press falls through to it.
   it('clicking a word row replays that turn; a keystroke returns to live', async () => {
     const user = userEvent.setup()

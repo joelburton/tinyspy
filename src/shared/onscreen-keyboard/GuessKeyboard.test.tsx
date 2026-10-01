@@ -17,7 +17,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { GuessKeyboard, type KeyColor } from './GuessKeyboard'
 import styles from './GuessKeyboard.module.css'
 
@@ -26,8 +26,8 @@ function draw(over: Partial<Parameters<typeof GuessKeyboard>[0]> = {}) {
   render(
     <GuessKeyboard
       onKey={onKey}
-      actSubmit={boundActionFixture('act-submit')}
-      actDelete={boundActionFixture('act-delete-last')}
+      actSubmit={actionFixture('act-submit')}
+      actDelete={actionFixture('act-delete-last')}
       {...over}
     />,
   )
@@ -77,11 +77,11 @@ describe('GuessKeyboard — what can be pressed', () => {
     expect(onKey).not.toHaveBeenCalled()
   })
 
-  it('grays a COMMAND cap when its binding is, and leaves the letters live', () => {
-    // The docstring's central claim: a cap and its physical key are one binding
+  it('grays a COMMAND cap when its action is, and leaves the letters live', () => {
+    // The docstring's central claim: a cap and its physical key are one action
     // drawn twice, so Enter goes gray over an empty guess while every letter
     // beside it stays pressable. Nothing asserted it.
-    draw({ actSubmit: boundActionFixture('act-submit', () => ({ state: 'disabled' })) })
+    draw({ actSubmit: actionFixture('act-submit', () => ({ state: 'disabled' })) })
     expect(cap('Enter')).toBeDisabled()
     expect(cap('Backspace')).toBeEnabled()
     expect(cap('q')).toBeEnabled()

@@ -13,7 +13,7 @@ import { COMPONENT_KEYGROUPS, type ComponentKeyGroupId } from './componentKeyGro
 
 // How many components offer each component key group right now: two lists on
 // one page offer the same groups and Help lists them once. Module-level for
-// the same reason the action bindings are — the reader is Help's list, which
+// the same reason the actions are — the reader is Help's list, which
 // sits in no subtree of the component offering.
 const offers = new Map<ComponentKeyGroupId, number>()
 // The component key groups offered right now, in table order — rebuilt as a

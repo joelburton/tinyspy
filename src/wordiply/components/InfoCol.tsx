@@ -5,7 +5,7 @@ import { type GamePlayer } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -74,7 +74,7 @@ export function InfoCol({
   /** Show the best possible word — or put it away again. A local display toggle
    *  shared with the menu twin; nothing is written, no peer affected, and it
    *  carries its own two faces. */
-  actReveal: BoundAction
+  actReveal: Action
   /** The terminal message when the game is over (drives the action row), else null. */
   over: TerminalMessage | null
   /** Compete: I conceded but the others race on — the terminal LOOK. */
@@ -109,18 +109,18 @@ export function InfoCol({
 
   // ── Action row ──
   /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
-  actStopGame: BoundAction
+  actStopGame: Action
   /** Drop out of a race while the others play on — hidden outside compete. */
-  actConcede: BoundAction
+  actConcede: Action
   /** Play this base again from scratch. */
-  actRestart: BoundAction
+  actRestart: Action
   /** Start a fresh follow-up game — same setup, new base + id. Disables itself
    *  while the create is in flight. */
-  actNewGame: BoundAction
-  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
+  actNewGame: Action
+  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE action
    *  for both rows: it navigates directly at terminal and routes through the
    *  suspend-confirm flow mid-game. */
-  actBackToClub: BoundAction
+  actBackToClub: Action
 
   // ── Setup disclosure ──
   setup: WordiplySetup

@@ -36,7 +36,7 @@ and what the commit is. The pointer side of the letter-grid boards is
 
 ```
 common/board-cursor/
- ├── useBoardCursorKeys.ts    the letter-grid cursor's four bound actions; the game's callbacks
+ ├── useBoardCursorKeys.ts    the letter-grid cursor's four actions; the game's callbacks
  ├── gridCursor.ts            moveCursor · stepBack · planBackspace
  ├── gridCursor.module.css    the ring: .cursor + .cursorH / .cursorV
  ├── useSelectionCursor.ts    a selection cursor's show/hide rules
@@ -59,7 +59,7 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
   keystroke aimed at a focused field never arrives, and a disabled action
   still keeps its key from the browser (Space never scrolls the page).
   `enabled` disables them all; `canCommit` disables only the commit, and the
-  same answer grays the commit's button, which is the binding the hook
+  same answer grays the commit's button, which is the action the hook
   returns.
 - **The commit brings its own keys.** `commit` names the action, and the
   registry says which keys it carries: `act-submit` Enter, `act-peel` Enter

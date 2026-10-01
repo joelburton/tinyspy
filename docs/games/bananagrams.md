@@ -168,7 +168,7 @@ and the cursor stays. On an empty cell, the cursor steps back one cell in the
 current direction and the tile there, if any, returns to the hand — so one
 press right after typing takes back the letter just typed (`planBackspace`).
 
-**Keyboard focus + gating.** The board's keys are bound actions, so the app's
+**Keyboard focus + gating.** The board's keys are actions, so the app's
 one dispatcher keeps them from stealing keystrokes they shouldn't: a modified
 chord never matches a pattern key (`Cmd-R` reloads instead of placing an "R");
 only bare `a`–`z`, Backspace, the arrows, and Enter/Space (peel) are bound; and
@@ -462,7 +462,7 @@ collide at ~1-in-16M, which a club of friends will never reach.
   Peel; the locally-terminal row keeps Club alone — see [New
   game](#new-game--a-fresh-deal-restart--the-same-deal-again)). A **conceded**
   player's board is frozen: the pointer handlers bail via a ref, and the shared
-  **`useBoardCursorKeys`** keyboard (the 2-D board-cursor entry, four bound
+  **`useBoardCursorKeys`** keyboard (the 2-D board-cursor entry, four
   actions — arrows move, a letter places from the
   hand, Backspace returns a tile, and the commit is this game's peel) is passed
   `enabled: !isConceded`, which grays all four. Every board mutation writes the

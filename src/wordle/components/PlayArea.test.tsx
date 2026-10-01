@@ -26,9 +26,9 @@ import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
 import type { GamePlayer } from '@/common/members/member'
 import type { GameEnding } from '@/common/terminal/gameEnding'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
@@ -171,9 +171,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     isTerminal: facts.gameEnding !== null,
@@ -189,7 +189,7 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
- *  Any test that TYPES needs it: wordle's guess keys are bound actions, and a
+ *  Any test that TYPES needs it: wordle's guess keys are actions, and a
  *  bare `render` binds them with nothing feeding them keys. */
 function WithKeys(props: React.ComponentProps<typeof PlayAreaLoader>) {
   useActionDispatcher()
@@ -214,8 +214,8 @@ const okEnvelope = (data: unknown) => ({
   error: null,
 })
 
-/** What a bound action says about itself right now. */
-const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
+/** What an action says about itself right now. */
+const stateOf = (id: string) => getActions().find((action) => action.id === id)?.describe('button').state
 
 /** A control by WHICH action it is, since its words vary per state. */
 const control = (id: string) =>
@@ -294,16 +294,16 @@ describe('wordle PlayArea — render smoke', () => {
  * — wordle has no edge function), then ctx.goToFollowUpGame.
  */
 describe('wordle PlayArea — icon-only action row', () => {
-  const bound = (id: string) => getBoundActions().find((b) => b.id === id)!
+  const getAction = (id: string) => getActions().find((action) => action.id === id)!
 
   // The row is one list; which buttons are on screen is each action's own
-  // answer, and the menu asks the same bindings.
+  // answer, and the menu asks the same actions.
   it('Reveal, Restart and New game are menu rows all game, and buttons only at the end', () => {
     h.loaded = loaded(null)
     render(<PlayAreaLoader {...makeCtx()} />)
     for (const id of ['act-reveal', 'act-restart', 'act-new-game'] as const) {
-      expect(bound(id).describe('button').state).toBe('hidden')
-      expect(bound(id).describe('menu').state).not.toBe('hidden')
+      expect(getAction(id).describe('button').state).toBe('hidden')
+      expect(getAction(id).describe('menu').state).not.toBe('hidden')
     }
   })
 
@@ -312,19 +312,19 @@ describe('wordle PlayArea — icon-only action row', () => {
     expect(screen.getByText('Waiting for others')).toBeInTheDocument()
     // Possible here, not right now: the answer waits for the race to end for
     // everyone, and the tooltip says so.
-    expect(bound('act-reveal').describe('button').state).toBe('disabled')
+    expect(getAction('act-reveal').describe('button').state).toBe('disabled')
     expect(control('act-reveal')).toBeDisabled()
     // Out of the race, so conceding is closed and stopping for all is the flag.
     expect(control('act-concede')).not.toBeInTheDocument()
     expect(control('act-stop-game')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Back to club' })).toBeInTheDocument()
     // Moving on is still a menu thing until the game is over.
-    expect(bound('act-restart').describe('button').state).toBe('hidden')
-    expect(bound('act-new-game').describe('button').state).toBe('hidden')
+    expect(getAction('act-restart').describe('button').state).toBe('hidden')
+    expect(getAction('act-new-game').describe('button').state).toBe('hidden')
   })
 
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
-    // ONE binding for both rows: it navigates directly once the game has ended
+    // ONE action for both rows: it navigates directly once the game has ended
     // and routes through the suspend-confirm flow mid-game, so the game picks
     // between no callbacks and cannot pick wrong.
     const user = userEvent.setup()
@@ -430,7 +430,7 @@ describe('wordle PlayArea — icon-only action row', () => {
  */
 describe('wordle PlayArea — the ending', () => {
   /** The game sections most recently pushed to the menu, as the ROWS the menu
-   *  would draw — a row is a bound action now, so its words, glyph and
+   *  would draw — a row is an action now, so its words, glyph and
    *  availability come from the action rather than from the list. */
   const menuItems = (ctx: PlayAreaLoaderProps) => {
     const calls = (ctx.menu.setGameSections as ReturnType<typeof vi.fn>).mock.calls
@@ -1224,7 +1224,7 @@ describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
 
 /**
  * The two on-screen caps that ARE actions. ⌫ and Enter take what they do from
- * the same two bindings the physical keys fire, so a cap and its key cannot
+ * the same two actions the physical keys fire, so a cap and its key cannot
  * disagree about whether the move is available — on an empty guess, both gray.
  */
 describe('wordle PlayArea — the ⌫ and Enter caps follow the entry', () => {

@@ -12,9 +12,9 @@
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { boundActionFixture } from '../actions/boundAction.fixture'
+import { actionFixture } from '../actions/action.fixture'
 import type { ActionId } from '../actions/registry'
-import type { BoundAction } from '../actions/useBindAction'
+import type { Action } from '../actions/useBindAction'
 import { IconRestart, type AppIcon } from '../icons/icons'
 import { installFakeMatchMedia } from '../mobile/matchMedia.fake'
 import { MOBILE_QUERY } from '../mobile/useIsMobile'
@@ -42,7 +42,7 @@ function renderMenu(
 }
 
 /**
- * A row for these tests. Every menu row is a bound action, so a fixture is one:
+ * A row for these tests. Every menu row is an action, so a fixture is one:
  * the `id` is a real registry id — which is where the row's glyph and its
  * shortcut come from — and the WORDS come from `describe`, the half a game
  * varies. Most of these ids are picked for carrying no key of their own, so a
@@ -59,8 +59,8 @@ type TestRow = {
   icon?: AppIcon
 }
 
-function row({ id, label, disabled, onClick, icon }: TestRow): BoundAction {
-  const action = boundActionFixture(id, () => ({
+function row({ id, label, disabled, onClick, icon }: TestRow): Action {
+  const action = actionFixture(id, () => ({
     state: disabled ? 'disabled' : 'active',
     label,
     icon,

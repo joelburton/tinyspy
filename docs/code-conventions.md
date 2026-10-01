@@ -304,7 +304,7 @@ plainest).
 
 An action whose second call does real, unwanted work needs an in-flight guard
 on the **handler**, not the button — one action is reachable from a button, a
-menu row and a key. A bound action's run
+menu row and a key. An action's run
 ([`useBindAction`](../src/common/actions/useBindAction.ts)) already is
 single-flight; a control that isn't an action wraps its handler in
 [`useSingleFlight`](../src/common/single-flight/useSingleFlight.ts). Don't guard

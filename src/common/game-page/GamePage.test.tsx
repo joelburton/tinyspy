@@ -3,7 +3,7 @@
 /**
  * Tests for the actions the game shell binds itself rather than leaving to a
  * game — the pause overlay's Stop game, New game from setup, and Back to club —
- * read through the binding stack the way the dispatcher and the key list read
+ * read through the action stack the way the dispatcher and the key list read
  * them: what each says about itself as the game's state moves, and what its run
  * does. (Help is bound here too; it opens a companion and has no states to
  * move through, so it is not a subject of this file.)
@@ -23,8 +23,8 @@ import type { GameManifest } from '../manifest/gameManifest'
 import { setMyProfile } from '../session/myProfileStore'
 import type { Member } from '../members/member'
 import type { GameEnding } from '../terminal/gameEnding'
-import { type BoundAction } from '../actions/useBindAction'
-import { getBoundActions } from '../actions/boundActionsStore'
+import { type Action } from '../actions/useBindAction'
+import { getActions } from '../actions/actionsStore'
 import type { ActionId } from '../actions/registry'
 import { NEW_GAME_CONFIRM } from '../floating-panels/confirmations'
 import { suspendConfirm } from '../pause-suspend/suspendConfirm'
@@ -197,10 +197,10 @@ async function mount(state = commonGameState(), manifest = makeManifest()) {
   return { view, state, manifest }
 }
 
-/** The page's binding for an id — the first in stack order, which is the one
+/** The page's action for an id — the first in stack order, which is the one
  *  the dispatcher would fire. Only the page binds here, so there is one. */
-function bound(id: ActionId): BoundAction {
-  const found = getBoundActions().find((b) => b.id === id)
+function getAction(id: ActionId): Action {
+  const found = getActions().find((action) => action.id === id)
   if (!found) throw new Error(`${id} is not bound`)
   return found
 }
@@ -311,20 +311,20 @@ describe('act-stop-game, bound for the pause overlay', () => {
 
   it('is hidden while the game is playing — the PlayArea owns ⌥⌫ then', async () => {
     await mount()
-    expect(bound('act-stop-game').describe('button').state).toBe('hidden')
+    expect(getAction('act-stop-game').describe('button').state).toBe('hidden')
     // `describe()` is not "is it on screen": the overlay is up only when paused.
     expect(screen.queryByText('play')).toBeInTheDocument()
   })
 
   it('is active while paused', async () => {
     await mount(commonGameState({ paused: true }))
-    expect(bound('act-stop-game').describe('button').state).toBe('active')
+    expect(getAction('act-stop-game').describe('button').state).toBe('active')
     expect(screen.queryByText('play')).toBeNull()
   })
 
   it('asks, then fires the manifest stopGame with the game id', async () => {
     const { manifest } = await mount(commonGameState({ paused: true }))
-    act(() => bound('act-stop-game').run())
+    act(() => getAction('act-stop-game').run())
     await flush()
     expect(askConfirmation).toHaveBeenCalledTimes(1)
     expect(manifest.stopGame).toHaveBeenCalledWith(GAME_ID)
@@ -337,12 +337,12 @@ describe('act-new-game-from-setup', () => {
   // the handle is still unknown.
   it('is active on a loaded game', async () => {
     await mount()
-    expect(bound('act-new-game-from-setup').describe('button').state).toBe('active')
+    expect(getAction('act-new-game-from-setup').describe('button').state).toBe('active')
   })
 
   it('goes straight to the club page with ?new=<gametype> once the game is over', async () => {
     await mount(commonGameState(over))
-    act(() => bound('act-new-game-from-setup').run())
+    act(() => getAction('act-new-game-from-setup').run())
     await flush()
     expect(askConfirmation).not.toHaveBeenCalled()
     expect(mockNavigate).toHaveBeenCalledWith('/c/moths?new=psychicnum_coop')
@@ -350,7 +350,7 @@ describe('act-new-game-from-setup', () => {
 
   it('asks the new-game question first mid-game, and goes when answered yes', async () => {
     await mount()
-    act(() => bound('act-new-game-from-setup').run())
+    act(() => getAction('act-new-game-from-setup').run())
     await flush()
     expect(askConfirmation).toHaveBeenCalledWith(NEW_GAME_CONFIRM)
     expect(mockNavigate).toHaveBeenCalledWith('/c/moths?new=psychicnum_coop')
@@ -359,7 +359,7 @@ describe('act-new-game-from-setup', () => {
   it('stays put when the question is answered no', async () => {
     askConfirmation.mockResolvedValue(null)
     await mount()
-    act(() => bound('act-new-game-from-setup').run())
+    act(() => getAction('act-new-game-from-setup').run())
     await flush()
     expect(mockNavigate).not.toHaveBeenCalled()
   })
@@ -368,7 +368,7 @@ describe('act-new-game-from-setup', () => {
 describe('act-back-to-club', () => {
   it('navigates straight to the club once the game is over — leaving affects nobody', async () => {
     const { state } = await mount(commonGameState(over))
-    act(() => bound('act-back-to-club').run())
+    act(() => getAction('act-back-to-club').run())
     await flush()
     expect(mockNavigate).toHaveBeenCalledWith('/c/moths')
     expect(state.cg!.sendSuspend).not.toHaveBeenCalled()
@@ -376,7 +376,7 @@ describe('act-back-to-club', () => {
 
   it('suspends at once mid-game in a SOLO game — nobody to surprise', async () => {
     const { state } = await mount()
-    act(() => bound('act-back-to-club').run())
+    act(() => getAction('act-back-to-club').run())
     await flush()
     expect(state.cg!.sendSuspend).toHaveBeenCalledTimes(1)
     expect(mockNavigate).not.toHaveBeenCalled()
@@ -385,7 +385,7 @@ describe('act-back-to-club', () => {
 
   it('asks the suspend question mid-game with peers, and suspends on yes', async () => {
     const { state } = await mount(commonGameState({ players: [ADA, BEA] }))
-    act(() => bound('act-back-to-club').run())
+    act(() => getAction('act-back-to-club').run())
     await flush()
     // The words name the game, so the question is built per title rather than
     // being a constant to compare against.
@@ -396,7 +396,7 @@ describe('act-back-to-club', () => {
   it('stays in the game when the suspend question is answered no', async () => {
     askConfirmation.mockResolvedValue(null)
     const { state } = await mount(commonGameState({ players: [ADA, BEA] }))
-    act(() => bound('act-back-to-club').run())
+    act(() => getAction('act-back-to-club').run())
     await flush()
     expect(state.cg!.sendSuspend).not.toHaveBeenCalled()
     expect(mockNavigate).not.toHaveBeenCalled()

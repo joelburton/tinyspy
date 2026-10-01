@@ -19,9 +19,9 @@ import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
@@ -138,9 +138,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -181,9 +181,9 @@ const BACKSPACE = { key: 'Backspace' }
 const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
 const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
 
-/** The live binding for an action — the same `run` its key, its menu row and
+/** The page's action for an id — the same `run` its key, its menu row and
  *  its button all fire. */
-const bound = (id: ActionId) => getBoundActions().find((b) => b.id === id)!
+const getAction = (id: ActionId) => getActions().find((action) => action.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
@@ -911,8 +911,8 @@ describe('connections PlayArea — attention', () => {
 })
 
 /**
- * The keys, through the app-root dispatcher. Each key is a bound action's, so
- * what these pin is the wiring: the chord reaches the binding, the binding
+ * The keys, through the app-root dispatcher. Each key is an action's, so
+ * what these pin is the wiring: the chord reaches the action, the action
  * says when it applies (Enter and ⌫ go HIDDEN rather than inert where the
  * board is not this player's to touch, so they do not swallow a key another
  * binding wanted), it asks the registry's question mid-game and skips it at
@@ -931,7 +931,7 @@ describe('connections PlayArea — the keys', () => {
   it('Enter submits the four picked tiles', async () => {
     h.result = fourPicked()
     render(<WithKeys {...makeCtx()} />)
-    expect(bound('act-submit').describe('button').state).toBe('active')
+    expect(getAction('act-submit').describe('button').state).toBe('active')
 
     press(ENTER)
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('submit_guess', expect.anything()))
@@ -944,7 +944,7 @@ describe('connections PlayArea — the keys', () => {
       unionTiles: ['a', 'b'],
     })
     render(<WithKeys {...makeCtx()} />)
-    expect(bound('act-submit').describe('button').state).toBe('disabled')
+    expect(getAction('act-submit').describe('button').state).toBe('disabled')
 
     await act(async () => press(ENTER))
     expect(rpc).not.toHaveBeenCalled()
@@ -959,7 +959,7 @@ describe('connections PlayArea — the keys', () => {
       sendClear,
     })
     render(<WithKeys {...makeCtx({ players: twoMembers })} />)
-    expect(bound('act-clear-picks').describe('button').state).toBe('active')
+    expect(getAction('act-clear-picks').describe('button').state).toBe('active')
 
     await act(async () => press(BACKSPACE))
     expect(sendClear).toHaveBeenCalledTimes(1)
@@ -968,36 +968,36 @@ describe('connections PlayArea — the keys', () => {
   it("both leave on a teammate's turn — hidden, not merely inert", () => {
     h.result = fourPicked()
     render(<WithKeys {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />)
-    expect(bound('act-submit').describe('button').state).toBe('hidden')
-    expect(bound('act-clear-picks').describe('button').state).toBe('hidden')
+    expect(getAction('act-submit').describe('button').state).toBe('hidden')
+    expect(getAction('act-clear-picks').describe('button').state).toBe('hidden')
   })
 
   it('both leave once the board is finished', () => {
     h.result = fourPicked({ mistakeCount: 4 })
     render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
-    expect(bound('act-submit').describe('button').state).toBe('hidden')
-    expect(bound('act-clear-picks').describe('button').state).toBe('hidden')
+    expect(getAction('act-submit').describe('button').state).toBe('hidden')
+    expect(getAction('act-clear-picks').describe('button').state).toBe('hidden')
   })
 
   // The row is one list, every action listed once; which buttons are on screen
-  // is each action's own answer, and the menu asks the same bindings.
+  // is each action's own answer, and the menu asks the same actions.
   describe('the action row answers per asker', () => {
     it('Restart, New game and Reveal are menu rows all game, and buttons only at the end', () => {
       h.result = loaded()
       render(<WithKeys {...makeCtx()} />)
       for (const id of ['act-restart', 'act-new-game', 'act-reveal'] as const) {
-        expect(bound(id).describe('button').state).toBe('hidden')
-        expect(bound(id).describe('menu').state).not.toBe('hidden')
+        expect(getAction(id).describe('button').state).toBe('hidden')
+        expect(getAction(id).describe('menu').state).not.toBe('hidden')
       }
     })
 
     it('Hints is gone, row and button, once I can no longer submit', () => {
       h.result = loaded({ isEliminated: true })
       render(<WithKeys {...makeCtx({ players: [meOut] })} />)
-      expect(bound('act-hint').describe('button').state).toBe('hidden')
-      expect(bound('act-hint').describe('menu').state).toBe('hidden')
+      expect(getAction('act-hint').describe('button').state).toBe('hidden')
+      expect(getAction('act-hint').describe('menu').state).toBe('hidden')
       // …and the Reveal button appears in its place, grayed until everyone is done.
-      expect(bound('act-reveal').describe('button').state).toBe('disabled')
+      expect(getAction('act-reveal').describe('button').state).toBe('disabled')
     })
   })
 
@@ -1103,10 +1103,10 @@ describe('connections PlayArea — the keys', () => {
     it('leaves with the board — hidden once the game is over', async () => {
       // The finished board is a RECORD of where the players got to, so it
       // stays put; the key goes hidden rather than inert so it does not
-      // swallow a keystroke another binding wanted.
+      // swallow a keystroke another action wanted.
       h.result = loaded({ game: game('coop'), mistakeCount: 4 })
       render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
-      expect(bound('act-shuffle').describe('button').state).toBe('hidden')
+      expect(getAction('act-shuffle').describe('button').state).toBe('hidden')
       const before = tileOrder()
 
       vi.spyOn(Math, 'random').mockReturnValue(0)
@@ -1116,7 +1116,7 @@ describe('connections PlayArea — the keys', () => {
   })
 
   describe('Restart', () => {
-    // Keyless, so mid-game it is fired as the menu row would fire it: the bound
+    // Keyless, so mid-game it is fired as the menu row would fire it: the action's
     // run, which is where the registry's question is asked.
     it('mid-game asks first, and Keep playing wipes nothing', async () => {
       const user = userEvent.setup()
@@ -1128,7 +1128,7 @@ describe('connections PlayArea — the keys', () => {
         </>,
       )
 
-      act(() => bound('act-restart').run())
+      act(() => getAction('act-restart').run())
       expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
       await user.click(screen.getByRole('button', { name: 'Keep playing' }))
       await waitFor(() => expect(screen.queryByText('Restart this game?')).not.toBeInTheDocument())
@@ -1145,7 +1145,7 @@ describe('connections PlayArea — the keys', () => {
         </>,
       )
 
-      act(() => bound('act-restart').run())
+      act(() => getAction('act-restart').run())
       await answer(user, 'Restart')
       await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
     })
@@ -1178,7 +1178,7 @@ describe('connections PlayArea — the selection cursor', () => {
     [...document.querySelectorAll('[data-tile]')]
       .filter((t) => /selectionCursor/.test(t.className))
       .map((t) => t.getAttribute('data-tile'))
-  // Awaited: a bound action's run settles a microtask after the keystroke.
+  // Awaited: an action's run settles a microtask after the keystroke.
   const key = (k: string) => act(async () => press({ key: k }))
 
   it('is hidden until an arrow; the first arrow rings the first tile, the next moves it', async () => {

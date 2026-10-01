@@ -2,20 +2,20 @@
 
 import { StandardButton, type StandardButtonProps } from '../buttons/StandardButton'
 import { nameWithKey } from './nameWithKey'
-import type { BoundAction } from './useBindAction'
+import type { Action } from './useBindAction'
 
 type Props = Omit<StandardButtonProps, 'label' | 'icon' | 'tone' | 'tooltip' | 'onClick'> & {
   // The action this button IS. Its words, glyph, tone, key, bubble and
   // availability all come from here — the button decides none of them. A
   // reason for a gray button is the action's too, through `describe().tooltip`.
-  action: BoundAction
+  action: Action
 }
 
 /**
  * A button that fires an action.
  *
  * Reach for this for any command a game offers: New game, Shuffle, Concede,
- * Submit. Pass the bound action and say how the button should draw
+ * Submit. Pass the action and say how the button should draw
  * (`show`) and how loud it is here (`weight`) — those two are the placement's,
  * and everything else the action already knows.
  *
@@ -31,9 +31,8 @@ export function ActionButton({ action, ...rest }: Props) {
   const { state, label, icon, tooltip: reason } = action.describe('button')
   if (state === 'hidden') return null
 
-  const { spec } = action
-  const words = label ?? spec.label
-  const chord = spec.keys?.[0]?.label
+  const words = label ?? action.defn.label
+  const chord = action.defn.keys?.[0]?.label
   // The bubble: the action's reason for this moment, else the name with its
   // key. Without a key there is nothing to add, so the button keeps
   // StandardButton's own rule (the name, when the words aren't already on
@@ -45,8 +44,8 @@ export function ActionButton({ action, ...rest }: Props) {
       label={words}
       // A toggle's face, when it has one: on an icon-only button the glyph is
       // the label, so it moves with the words or the two disagree.
-      icon={icon ?? spec.icon}
-      tone={spec.tone}
+      icon={icon ?? action.defn.icon}
+      tone={action.defn.tone}
       tooltip={bubble}
       // …but the button is still CALLED "Stop game", not "Stop game · ⌥⌫". A
       // standard button takes its accessible name from the tooltip when it has

@@ -783,7 +783,7 @@ export function BoardCol({
   // rather than a branch inside the board's keys.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  // Board-cursor keyboard — the shared 2-D placement engine, four bound
+  // Board-cursor keyboard — the shared 2-D placement engine, four
   // actions. scrabble supplies what the keys do: type stages a tile, Backspace
   // takes a staged one back (`planBackspace` picks which), and the commit is a
   // SUBMIT of the staged word.
@@ -813,8 +813,8 @@ export function BoardCol({
   const canExchange = game.bagCount >= 7
 
   // ─── The rack + commit row's own commands ──────────────
-  // Each is ONE binding behind its control, so what a button says about itself
-  // and what it does are the same answer. A key comes with the binding: Shuffle
+  // Each is ONE action behind its control, so what a button says about itself
+  // and what it does are the same answer. A key comes with the action: Shuffle
   // answers `⌥Z` because the registry says so, and giving another one a key is
   // a line there rather than a change here.
   const actShuffle = useBindAction('act-shuffle', {

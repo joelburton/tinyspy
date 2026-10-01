@@ -9,7 +9,7 @@ import { setIsInfoSheetOpen, useIsInfoSheetOpen } from '../info-sheet/infoSheetS
 import type { CommonGame } from './useCommonGame'
 import type { Session } from '@supabase/supabase-js'
 import type { GameManifest } from '../manifest/gameManifest'
-import { useBoundPageActions } from './useBoundPageActions'
+import { usePageActions } from './usePageActions'
 import { useClubWhileInGame } from './useClubWhileInGame'
 import { useSubmitTimeoutOnExpiry } from './useSubmitTimeoutOnExpiry'
 import { PauseAndClock } from './PauseAndClock'
@@ -71,7 +71,7 @@ export function GamePage({
   })
 
   const { menu, actions, goToFollowUpGame, help } =
-    useBoundPageActions({ manifest, cg, globalFeedbackSlot })
+    usePageActions({ manifest, cg, globalFeedbackSlot })
 
   useSubmitTimeoutOnExpiry({
     gameId: cg.id,

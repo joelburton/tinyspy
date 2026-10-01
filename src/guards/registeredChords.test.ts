@@ -3,7 +3,7 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { ACTIONS, type ActionSpec } from '../common/actions/registry'
+import { ACTIONS, type ActionDefinition } from '../common/actions/registry'
 import { isPattern } from '../common/actions/chord'
 
 /**
@@ -59,7 +59,7 @@ function ownedLiterals(): { codes: string[]; characters: string[] } {
   const codes = new Set<string>()
   const characters = new Set<string>()
   for (const spec of Object.values(ACTIONS)) {
-    for (const key of (spec as ActionSpec).keys ?? []) {
+    for (const key of (spec as ActionDefinition).keys ?? []) {
       if (isPattern(key)) continue
       if (key.code !== undefined) codes.add(key.code)
       // A NAMED key (Enter, Tab, ⌫, an arrow, Space) is a key a focused field

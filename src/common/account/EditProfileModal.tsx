@@ -8,7 +8,7 @@ import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
 import { FailureLine } from '../forms/FailureLine'
 import { useMyProfile, setMyProfileFields } from '../session/myProfileStore'
 import { NormalModal } from '../floating-panels/NormalModal'
-import actionRow from '../floating-panels/modalActions.module.css'
+import buttonRow from '../floating-panels/modalButtons.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { ReadOnlyField } from '../fields/ReadOnlyField'
@@ -135,7 +135,7 @@ export function EditProfileModal({ onSaved, onCancel }: Props) {
 
               <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
 
-              <div className={actionRow.modalActions}>
+              <div className={buttonRow.modalButtons}>
                 <CancelButton show="label" onClick={onCancel} disabled={busy} />
                 <FormSubmitButton
                   show="label"

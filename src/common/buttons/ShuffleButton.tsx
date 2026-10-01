@@ -3,14 +3,14 @@
 import { IconShuffle } from '../icons/icons'
 import { cls } from '../utils/cls'
 import { actionSurface } from '../actions/actionSurface'
-import type { BoundAction } from '../actions/useBindAction'
+import type { Action } from '../actions/useBindAction'
 import styles from './ShuffleButton.module.css'
 
 type Props = {
   /** The action this pill fires — `act-shuffle`, or boggle's `act-rotate`. Its
    *  key rides in the hover bubble, and its state decides whether the control is
    *  live, so the pill and the key can't disagree. */
-  action: BoundAction
+  action: Action
   /** What to CALL it here, when the action's own word isn't specific enough:
    *  "Shuffle the words", "Shuffle rack". The key is appended either way.
    *  Defaults to the action's label. */
@@ -29,7 +29,7 @@ type Props = {
  * **Not a `<StandardButton>`, and driven by an action anyway.** The round pill
  * and the spinning glyph are its own (docs/ui.md's button taxonomy lists it
  * among the families that are not the standard button) — but what it DOES,
- * what it is called and which key also does it come from the binding it is
+ * what it is called and which key also does it come from the action it is
  * given, like any other surface. A bespoke look is not a reason to write a
  * command down twice.
  *

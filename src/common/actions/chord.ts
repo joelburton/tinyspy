@@ -20,7 +20,7 @@ export type Chord = {
   // chord that holds Option, because Option changes the character the key
   // produces and the physical key is the only stable thing left.
   code?: string
-  // ⌥ must be HELD. Absent means it must be UP: an unmodified binding never
+  // ⌥ must be HELD. Absent means it must be UP: an unmodified action never
   // fires with Option down, so ⌥⌫ cannot also trip a bare Backspace.
   alt?: boolean
   // ⌃ must be held; absent means up. Nothing binds one today — Ctrl is the

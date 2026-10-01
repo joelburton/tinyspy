@@ -361,7 +361,7 @@ export function PlayArea({
     }
   }, [gameMode, clubHandle, goToFollowUpGame, localFeedbackSlot])
 
-  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // New game — its `+`, its menu row and its terminal button, from one action.
   // The registry asks NEW_GAME_CONFIRM mid-play (an accidental `+` should not
   // read as "I just lost my game" — the copy says shelved, not ended) and goes
   // straight through at terminal; the shared run's single flight is what stops
@@ -430,8 +430,8 @@ export function PlayArea({
   })
 
   // The FULL waffle menu. `buildGameMenu` supplies the framing (Help + chat
-  // above, Back to club below); the middle is this game's own rows, each one a
-  // binding it already made — so a row's words, glyph, key and availability come
+  // above, Back to club below); the middle is this game's own rows, each one an
+  // action it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. The effect
   // re-runs only when the SHAPE changes, which is why every dep is stable.
   useEffect(function publishGameMenu() {

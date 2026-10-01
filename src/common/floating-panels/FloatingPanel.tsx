@@ -485,7 +485,7 @@ function PanelRnd({
             `data-floating-panel` marks the subtree as "a panel owns the
             keyboard here": the action dispatcher stands down for events
             focused inside it, so Enter activates a modal's button rather than
-            firing a bound action. (Tab needs no marker — the panel's own ring
+            firing an action. (Tab needs no marker — the panel's own ring
             is the innermost one while it is open; see `useTabRing`.) Its
             VALUE is the panel's id, which is how `usePanelEscape` maps focus
             back to a registered panel — the selector doesn't care, since

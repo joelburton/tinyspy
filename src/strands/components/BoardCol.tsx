@@ -7,7 +7,7 @@ import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import type { Coord } from '../lib/board'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import { WordEntryRow } from '@/common/word-entry/WordEntryRow'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import { WordEntryInput } from '@/common/word-entry/WordEntryInput'
 import { Board, type FoundPath } from './Board'
 import { HintBar } from './HintBar'
@@ -39,10 +39,10 @@ type Props = {
   onExitHistory: () => void
   // The word being traced, as text. Empty when nothing is selected.
   echo: string
-  // Take back the last traced cell — ⌫ and the button, one binding.
-  actDelete: BoundAction
-  // Submit the trace — Enter and the button, one binding.
-  actSubmit: BoundAction
+  // Take back the last traced cell — ⌫ and the button, one action.
+  actDelete: Action
+  // Submit the trace — Enter and the button, one action.
+  actSubmit: Action
   // Cells a typed letter matched when it matched several — ringed red for a beat.
   ambiguous: Coord[]
   // PlayArea's below-board slot. While it holds a message — a move's result,
@@ -53,8 +53,8 @@ type Props = {
   hintPoints: number
   hintCost: number
   hintShowing: boolean
-  // Cash a hint — the bar's button IS this binding.
-  actHint: BoundAction
+  // Cash a hint — the bar's button IS this action.
+  actHint: Action
 }
 
 /**

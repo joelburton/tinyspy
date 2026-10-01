@@ -18,7 +18,7 @@
   gap: var(--spacer-5);
 }
 
-/* The one thing the shared `modalActions` row does not do: sit at the BOTTOM of
+/* The one thing the shared `modalButtons` row does not do: sit at the BOTTOM of
    this dialog however short the form above it is. */
 /* @@ */ .pinBottom {
   margin-top: auto;

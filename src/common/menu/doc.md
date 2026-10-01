@@ -7,7 +7,7 @@ The one menu in every page header — the chevron-wrapped logo that opens a list
 There is a single `<Menu>`, rendered by `PageHeaderMenu`, and everything else
 here exists so a caller can hand it rows without also handing it decisions. A row is an action (`common/actions`), so its words, its
 glyph, its shortcut and whether it applies right now all arrive with the
-binding. The exception is a submenu row, which earns it by not being a command:
+action. The exception is a submenu row, which earns it by not being a command:
 opening is the whole behavior, so there is nothing to run and no key to
 advertise.
 
@@ -27,7 +27,7 @@ arrowing through it never doubles as a move on a board.
 
 **`menuRow` is the one place a row is read on its way in**, which is what lets
 `<Menu>` lay out labels and glyphs without ever asking what kind of row it
-has. A row grays while its action is still out: `menuRow` reads the binding's
+has. A row grays while its action is still out: `menuRow` reads the action's
 `pending` alongside its state, so a row cannot advertise a key for a run it
 would drop.
 
@@ -78,7 +78,7 @@ The other pages' menus keep the usual Escape-returns-focus.
 **Rows are read when the menu draws them, which is when it opens.** Nothing the
 player does reaches past an open menu, so the only staleness possible is a
 change from another player while it sits open; closing and reopening fixes it,
-and a stale row is safe to click, since the run reads the live binding.
+and a stale row is safe to click, since the run reads the live action.
 
 **A long menu never grows the page.** The popover is capped at the viewport's
 height less the header and scrolls inside itself.

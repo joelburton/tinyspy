@@ -19,7 +19,7 @@ import styles from './InfoCol.module.css'
  * wordle's info column: the shared readouts in the fixed order
  * (docs/playarea.md → Info-column readouts) — the guess count, the whose-turn
  * line, the opponent strip, the action row, help, the answer once revealed,
- * setup, then the event log. Every command is a bound action PlayArea hands
+ * setup, then the event log. Every command is an action PlayArea hands
  * down; an action that does not apply draws nothing, which is how one row
  * serves coop and compete.
  */

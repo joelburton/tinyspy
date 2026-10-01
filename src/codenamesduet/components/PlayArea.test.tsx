@@ -14,10 +14,10 @@
  * clickable.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { ACTIONS } from '@/common/actions/registry'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import userEvent from '@testing-library/user-event'
@@ -184,9 +184,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     turnHolderId,
@@ -564,15 +564,15 @@ describe('codenamesduet PlayArea — the guesser’s Pass and the giver’s AI',
     expect(pass.className).toMatch(/normal/)
     expect(pass.className).not.toMatch(/caution/)
     // …and the registry row it draws from names no tone of its own.
-    const endTurn = getBoundActions().find((b) => b.id === 'act-end-turn')
-    expect(endTurn?.spec).toBe(ACTIONS['act-end-turn'])
+    const endTurn = getActions().find((b) => b.id === 'act-end-turn')
+    expect(endTurn?.defn).toBe(ACTIONS['act-end-turn'])
     expect(ACTIONS['act-end-turn']).not.toHaveProperty('tone')
   })
 
   it('Suggest a clue is the clue-giver’s and not the guesser’s', () => {
     const { unmount } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(control('act-suggest-clue')).toBeNull()
-    expect(getBoundActions().some((b) => b.id === 'act-suggest-clue')).toBe(false)
+    expect(getActions().some((b) => b.id === 'act-suggest-clue')).toBe(false)
     unmount()
 
     asClueGiver()
@@ -724,7 +724,7 @@ describe('codenamesduet PlayArea — the selection cursor', () => {
 
   it('names Enter "Guess" for the key list', () => {
     render(<WithKeys {...makeCtx()} />)
-    const guess = getBoundActions().find((b) => b.id === 'act-submit')!
+    const guess = getActions().find((b) => b.id === 'act-submit')!
     expect(guess.describe('help').label).toBe('Guess')
   })
 
@@ -791,6 +791,6 @@ describe('codenamesduet PlayArea — the selection cursor', () => {
     expect(ringed()).toEqual([])
     expect(picked()).toEqual([])
     expect(rpc).not.toHaveBeenCalledWith('submit_guess', expect.anything())
-    expect(getBoundActions().find((b) => b.id === 'act-submit')?.describe('help').state).toBe('hidden')
+    expect(getActions().find((b) => b.id === 'act-submit')?.describe('help').state).toBe('hidden')
   })
 })

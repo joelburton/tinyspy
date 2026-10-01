@@ -672,7 +672,7 @@ tablet viewports: fit invariants + the sheet round-trip).
 and its crossword cursor (arrow keys move it, a perpendicular arrow rotates →/↓,
 typing places a matching rack tile / a blank declared by the typed letter, then
 advances). The keyboard cursor rides the **shared `useBoardCursorKeys`** (the
-2-D board-cursor hook, four bound actions); what scrabble supplies is that only
+2-D board-cursor hook, four actions); what scrabble supplies is that only
 STAGED tiles are editable — committed tiles are locked, and typing and
 Backspace both pass over them — and its
 COMMIT is `act-submit`, which plays the staged word (vs bananagrams' peel). The

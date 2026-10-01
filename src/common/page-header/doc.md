@@ -112,6 +112,6 @@ HomePage (home) · ClubPage (club) · GamePage (game-page)
   already says who and whether they are here, and the game header splits its
   contents across the board page and the info page; the header itself is the
   same strip on both (docs/mobile.md).
-- `ChatButton` shows the app-root `act-open-chat` through `useBoundAction` (its
+- `ChatButton` shows the app-root `act-open-chat` through `useAction` (its
   bubble names the key via `nameWithKey`); `ScratchpadButton` binds
   `act-open-scratchpad` itself.

@@ -39,7 +39,7 @@ export type ArrowHistoryOptions = {
  * the characters going in, this is about the whole entry coming back — and a
  * game may want one without the other.
  *
- * Two bound actions, so the arrows appear in the game's key list beside its
+ * Two actions, so the arrows appear in the game's key list beside its
  * commands, and so an arrow that has nothing to do says so: recall with no last
  * entry is disabled rather than silently inert.
  */

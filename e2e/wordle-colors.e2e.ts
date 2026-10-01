@@ -276,7 +276,7 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
 
   // ENTER is a Submit, so it is the action blue with white ink. With the entry
   // EMPTY — as it is now, the guess having just landed — the cap is the same
-  // bound action the physical key answers to, and that action is gray with
+  // action the physical key answers to, and that action is gray with
   // nothing to submit: no hover, the resting fill under the pointer too.
   const idle = await look('Enter')
   expect(idle.resting).toEqual({ fill: await token('--button-normal-primary-color'), ink: white })

@@ -24,7 +24,7 @@ import type { ConfirmAnswer, ConfirmOptions } from './confirmations'
  *
  * The host sits above every route, so a question survives its asker unless the
  * asker takes it back: `withdrawConfirmation`, which the action run calls when
- * the binding that asked unmounts.
+ * the action that asked unmounts.
  */
 
 // `asked` is the options object as the caller passed it — the spread copies its

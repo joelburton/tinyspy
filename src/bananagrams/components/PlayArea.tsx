@@ -289,7 +289,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // straight through at terminal. The shared run's single flight is what stops a
   // second press dealing a second game.
   //
-  // A plain function, rebuilt every render: the binding reads it at click time,
+  // A plain function, rebuilt every render: the action reads it at click time,
   // so `ctx` is whatever the last realtime refetch left.
   const createNewGame = async () => {
     const res = await runRpc<CreatedGame>(
@@ -380,8 +380,8 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   })
 
   // The FULL bananagrams menu. `buildGameMenu` supplies the framing (Help + chat
-  // above, Back to club below); the middle is this game's own rows, each one a
-  // binding it already made. The game is compete-only, so the only exit row is
+  // above, Back to club below); the middle is this game's own rows, each one an
+  // action it already made. The game is compete-only, so the only exit row is
   // Concede — which reads "Concede / Stop game", because a race offers both
   // endings inside its question (useStandardGameActions).
   useEffect(function publishGameMenu() {

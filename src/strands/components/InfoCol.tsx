@@ -6,7 +6,7 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
@@ -55,20 +55,20 @@ type Props = {
   setupRows: SetupRow[]
   // ── Actions ──
   /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
-  actStopGame: BoundAction
+  actStopGame: Action
   /** Drop out of a race while the others play on — hidden outside compete, and
    *  gray once you have SOLVED it (conceding would forfeit a banked win). */
-  actConcede: BoundAction
+  actConcede: Action
   /** Trace this board again from scratch. */
-  actRestart: BoundAction
+  actRestart: Action
   /** Start the next puzzle nobody here has played. Disables itself while the
    *  create is in flight. */
-  actNewGame: BoundAction
+  actNewGame: Action
   /** Show the unfound words — or put them away again. A local display toggle
    *  carrying its own two faces, the inert "solution already shown" included. */
-  actReveal: BoundAction
+  actReveal: Action
   /** Leave for the club — the shell's own action, off `ctx.menu`. */
-  actBackToClub: BoundAction
+  actBackToClub: Action
   // ── Turn-history viewer ──
   historyId: number | null
   /** Straight through to the log: opening a `#N` hands up the row's id and the

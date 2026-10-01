@@ -2,7 +2,7 @@
 
 import type { AppIcon } from '../icons/icons'
 import { nameWithKey } from './nameWithKey'
-import type { BoundAction } from './useBindAction'
+import type { Action } from './useBindAction'
 
 /** What a control needs in order to BE an action: what to draw, and the props
  *  that make its `<button>` behave like one. */
@@ -27,7 +27,7 @@ export type ActionSurface = {
 }
 
 /**
- * Drive a BESPOKE control from a bound action.
+ * Drive a BESPOKE control from an action.
  *
  * `<ActionButton>` is the ordinary way to place an action; this is for the
  * controls that are deliberately not standard buttons — the board's round
@@ -38,15 +38,15 @@ export type ActionSurface = {
  * `name` overrides the action's own words where a surface is more specific
  * ("Shuffle the words", "Shuffle rack"); the key is appended either way.
  */
-export function actionSurface(action: BoundAction, name?: string): ActionSurface {
+export function actionSurface(action: Action, name?: string): ActionSurface {
   // A bespoke control is still a control being drawn, so it asks what
   // `<ActionButton>` asks.
   const { state, label, icon, tooltip } = action.describe('button')
-  const called = name ?? label ?? action.spec.label
+  const called = name ?? label ?? action.defn.label
   return {
     hidden: state === 'hidden',
     label: called,
-    icon: icon ?? action.spec.icon,
+    icon: icon ?? action.defn.icon,
     buttonProps: {
       disabled: state === 'disabled' || action.pending,
       onClick: () => action.run(),

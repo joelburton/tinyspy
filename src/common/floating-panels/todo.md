@@ -39,7 +39,7 @@
 ## Won't do
 
 - **The action row's pin-to-bottom stays `WordEditDialog`'s own.** The row is
-  shared (`modalActions.module.css`); `WordEditDialog` adds only `.pinBottom`
+  shared (`modalButtons.module.css`); `WordEditDialog` adds only `.pinBottom`
   (`margin-top: auto`) so the row sits at the foot of that tall dialog however
   short the form. Joel, 2026-09-24: *"keep only for wordeditdialog"* — one
   dialog wants it, so it is not a shared variant.

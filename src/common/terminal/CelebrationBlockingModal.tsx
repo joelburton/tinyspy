@@ -59,7 +59,7 @@ export function CelebrationBlockingModal({ title, body, onClose, playSound: with
   return (
     <BlockingModal
       onClose={onClose}
-      actions={
+      buttons={
         // The way out is the only button, so it is the filled one: a
         // celebration with a lone gray outline button undersells itself.
         <StandardButton show="label" label="Nice!" fullWidth ref={focusRef} weight="primary" onClick={onClose} />

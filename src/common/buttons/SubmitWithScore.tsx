@@ -3,7 +3,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 import { IconSubmit } from '../icons/icons'
 import { actionSurface } from '../actions/actionSurface'
-import type { BoundAction } from '../actions/useBindAction'
+import type { Action } from '../actions/useBindAction'
 import { cls } from '../utils/cls'
 import sb from './StandardButton.module.css'
 import styles from './SubmitWithScore.module.css'
@@ -14,7 +14,7 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'disabled
   /** The action this button IS — `act-submit`. What it does, whether it can be
    *  pressed and which key also does it all come from here; the SCORE is the
    *  only thing this control decides. */
-  action: BoundAction
+  action: Action
 }
 
 /**

@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 
 /**
  * The ⌥~ anagram finder, end to end: the REAL chord (Alt+Shift+Backquote — the
- * binding matches e.code, so this exercises the mac dead-key path the unit
+ * action matches e.code, so this exercises the mac dead-key path the unit
  * tests can only simulate), the real `common.anagrams` RPC against the
  * imported dictionary, and the pin semantics from the feature's own spec:
  * "Acer" finds ACER and ACRE but never RACE.

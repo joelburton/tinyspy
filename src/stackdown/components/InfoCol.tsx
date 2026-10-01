@@ -6,7 +6,7 @@ import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { StackdownSetup } from '../lib/setup'
@@ -20,7 +20,7 @@ import styles from './InfoCol.module.css'
  * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
  * state readout → OpponentStrip → action row → help → setup disclosure → terminal
  * words reveal → GameEventLog log. Every mutation is a named callback up
- * (`onShowHistory`); every COMMAND arrives as a bound action this column places. PlayArea owns the
+ * (`onShowHistory`); every COMMAND arrives as an action this column places. PlayArea owns the
  * RPCs and the coordination state. See docs/playarea.md.
  */
 export function InfoCol({
@@ -87,22 +87,22 @@ export function InfoCol({
   // ── Action row (cheats + Stop/Concede, back-to-club at terminal) ──
   /** The two rungs of the hint ladder — a hint toward the next word, or the
    *  word itself. Both carry their own "which word" wording. */
-  actHint: BoundAction
+  actHint: Action
   /** Mid-game cheat: hand over the next word (the amber bare eye). Named for
    *  what it does to a LIVE game — distinct from `actReveal` below, which opens
    *  the whole solution once the game is over. */
-  actSpoiler: BoundAction
+  actSpoiler: Action
   /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
-  actStopGame: BoundAction
+  actStopGame: Action
   /** Drop out of a race while the others play on — hidden outside compete. */
-  actConcede: BoundAction
+  actConcede: Action
   /** Restart THIS stack — same tiles, same solution — from scratch. */
-  actRestart: BoundAction
+  actRestart: Action
   /** Start a fresh follow-up game — same setup + roster, a newly claimed board.
    *  Disables itself while the create is in flight. */
-  actNewGame: BoundAction
+  actNewGame: Action
   /** Leave for the club — the shell's own action, off `ctx.menu`. */
-  actBackToClub: BoundAction
+  actBackToClub: Action
 
   // ── Setup disclosure + terminal words reveal ──
   setup: StackdownSetup
@@ -116,7 +116,7 @@ export function InfoCol({
   /** Show the words — or put them away again. A local display toggle shared with
    *  the menu twin; nothing is written and no peer is affected, and it carries
    *  its own faces, the inert "solution already shown" included. */
-  actReveal: BoundAction
+  actReveal: Action
 
   // ── Turn-history log (GameEventLog) ──
   /** Every row the log renders and the viewer replays. */

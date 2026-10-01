@@ -4,18 +4,18 @@
  * Tests for the one action button: that it draws what the action says, that a
  * hidden action draws nothing, and that its bubble teaches the key.
  *
- * Mounted against a REAL bound action rather than a hand-made object, so what
+ * Mounted against a REAL action rather than a hand-made object, so what
  * is tested is the pair as a caller uses it.
  */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ActionButton } from './ActionButton'
-import { useBindAction, type ActionState, type LiveAction } from './useBindAction'
+import { useBindAction, type ActionState, type BindActionOptions } from './useBindAction'
 import type { ActionId } from './registry'
 
 /** A component that binds one action and draws its button. */
-function Harness({ id, live, show = 'label' as const }: { id: ActionId; live: Partial<LiveAction>; show?: 'icon' | 'label' | 'both' }) {
+function Harness({ id, live, show = 'label' as const }: { id: ActionId; live: Partial<BindActionOptions>; show?: 'icon' | 'label' | 'both' }) {
   const action = useBindAction(id, { run: () => undefined, describe: () => 'active' as ActionState, ...live })
   return <ActionButton action={action} show={show} />
 }
@@ -48,7 +48,7 @@ describe('ActionButton', () => {
 
   it("puts the action's reason in the bubble, in place of the name and key", () => {
     // The words stay the action's — the reason is WHY it is in this state,
-    // and it comes from the binding, not the placement.
+    // and it comes from the action, not the placement.
     render(<Harness id="act-shuffle" live={{ describe: () => ({ state: 'disabled', tooltip: 'Nothing to shuffle yet' }) }} />)
     const button = screen.getByRole('button', { name: /shuffle/i })
     expect(button.dataset.tooltip).toBe('Nothing to shuffle yet')

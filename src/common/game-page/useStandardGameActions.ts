@@ -5,15 +5,15 @@ import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { GameStopResult } from '../manifest/gameManifest'
 import { runRpc } from '../supabase/dbResult'
-import { useBindAction, type ActionState, type BoundAction } from '../actions/useBindAction'
+import { useBindAction, type ActionState, type Action } from '../actions/useBindAction'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
-/** Stop, Concede and Restart as bound actions — hand each straight to a menu
+/** Stop, Concede and Restart as actions — hand each straight to a menu
  *  list or an `<ActionButton>`. */
 export type StandardGameActions = {
-  actStopGame: BoundAction
-  actConcede: BoundAction
-  actRestart: BoundAction
+  actStopGame: Action
+  actConcede: Action
+  actRestart: Action
 }
 
 /** The minimal slice of a schema-scoped client this hook calls, so a game can
@@ -78,7 +78,7 @@ type StandardGameActionsOptions = {
  *
  * **New game is NOT here.** Creating the next game diverges per game — which
  * call makes it, and what setup it carries over — by more than the handful of
- * shared lines a binding here would save. Each game binds `act-new-game` itself.
+ * shared lines an action here would save. Each game binds `act-new-game` itself.
  *
  * Nothing here asks a confirmation: each action's question lives in the registry
  * and the shared run asks it, mid-game only.

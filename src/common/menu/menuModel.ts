@@ -1,7 +1,7 @@
 // cs-blessed-menu
 
 import type { AppIcon } from '../icons/icons'
-import type { BoundAction } from '../actions/useBindAction'
+import type { Action } from '../actions/useBindAction'
 
 /**
  * What a menu is made of — the row, section and header types every `<Menu>`
@@ -56,7 +56,7 @@ export type MenuSubmenu = {
   // glyph, and `AppIcon` is its type so a row and its button are handed the
   // identical value.
   icon?: AppIcon
-  items: BoundAction[]
+  items: Action[]
 }
 
 /**
@@ -70,7 +70,7 @@ export type MenuSubmenu = {
  *
  * See docs/ui.md → "GamePage menu" for the placement + activation contract.
  */
-export type MenuItem = BoundAction | MenuSubmenu
+export type MenuItem = Action | MenuSubmenu
 
 /** Narrow a row to the submenu arm. A function rather than an inline
  *  `'items' in item` so the discriminant is named in one place. */
@@ -97,7 +97,7 @@ export type MenuRow = {
 }
 
 /**
- * Read one row on its way into the menu — a bound action's words, glyph,
+ * Read one row on its way into the menu — an action's words, glyph,
  * shortcut and state, or a submenu's own — so `<Menu>` never asks what kind of row
  * it has. A hidden action becomes a row with `hidden`, which the menu drops
  * before it counts rows for keyboard navigation; an action still out is
@@ -121,11 +121,11 @@ export function menuRow(item: MenuItem): MenuRow {
   const { state, label, icon } = item.describe('menu')
   return {
     id: item.id,
-    label: label ?? item.spec.label,
+    label: label ?? item.defn.label,
     // A toggle's face, when it has one — the menu is the legend that teaches
     // the buttons' glyphs, so it has to show the one the button is wearing.
-    icon: icon ?? item.spec.icon,
-    shortcut: item.spec.keys?.[0]?.label,
+    icon: icon ?? item.defn.icon,
+    shortcut: item.defn.keys?.[0]?.label,
     // An action still out is not one to fire again, and the row says so.
     disabled: state === 'disabled' || item.pending,
     hidden: state === 'hidden',
@@ -165,15 +165,15 @@ export type MenuApi = {
   // Help for THIS game — the manifest's `help` component, opened as a row in
   // the menu. Bound by the game page, because it is the page that knows which
   // rules to show; place it with `buildGameMenu`.
-  actHelp: BoundAction
+  actHelp: Action
   // "Back to club": navigates directly for a terminal game, or opens the
   // suspend-confirm modal mid-game. Also carries `<`, so a menu row built from
   // it advertises the key. Place it in a menu, or as an `<ActionButton>` in a
   // terminal row.
-  actBackToClub: BoundAction
+  actBackToClub: Action
   // Open chat, bound at the app root rather than here — the game page only
   // passes it along so a menu can show it. Null on a page with no chat panel.
-  actChat: BoundAction | null
+  actChat: Action | null
   // Replace the game's ENTIRE header menu. Every game owns its whole
   // menu — the shell injects nothing — so the game supplies all sections
   // (dividers appear between them). Use the `buildGameMenu` helper (common/menu/

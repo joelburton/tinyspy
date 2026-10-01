@@ -7,7 +7,7 @@ import { signIn } from './helpers/session'
 /**
  * The `+` shortcut for New game, and the confirm that guards it mid-play.
  *
- * `+` is `act-new-game`, bound by the game that offers it — the same bound
+ * `+` is `act-new-game`, bound by the game that offers it — the same
  * action as its menu row, so the key works on any game that offers New game at
  * all, including one whose only affordance is the menu, with no per-game wiring.
  *
@@ -28,7 +28,7 @@ test('“+” starts a new game, after confirming mid-play', async ({ browser })
   const originalUrl = page.url()
 
   // See "New game" in the menu before pressing the key: the row is the same
-  // bound action the key fires, so its presence says the game has bound
+  // action the key fires, so its presence says the game has bound
   // `act-new-game` (and doubles as the "it's in the menu" assertion).
   await page.getByRole('button', { name: /game menu/i }).click()
   await expect(page.getByRole('menuitem', { name: /New game/ })).toBeVisible()

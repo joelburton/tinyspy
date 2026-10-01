@@ -423,7 +423,7 @@ written once the race ends — a tie for first names no winner.
   zeroes the shared clock, and the statuses are rewritten. Confirmed mid-game;
   unconfirmed at terminal. pgTAP: `replay_test.sql`.
 - **"New game"** (`act-new-game`, its `+` key, its menu row and its terminal
-  button all one binding; FE-only): a fresh game — new id, new board — with THIS
+  button all one action; FE-only): a fresh game — new id, new board — with THIS
   game's setup + roster + mode via the same `boggle-build-board` edge function
   the manifest uses; the creator jumps in via `ctx.goToFollowUpGame`. Mid-play it asks
   first (starting one SHELVES this game rather than ending it); at terminal it
@@ -481,7 +481,7 @@ flower.
   4/5/6); the letter scales with each tile through `container-type: size` +
   `42cqmin`, kept (rather than waffle's column-count-tuned `--side/12`)
   precisely because it's **n-agnostic**. The shared `ShuffleButton` (⟲) **floats
-  over the board's top-right** — a bespoke round pill driven by a bound action
+  over the board's top-right** — a bespoke round pill driven by an action
   (`act-rotate`, also **⌥Z**) — and does a **cosmetic 90° matrix rotation** of
   the displayed grid — tiles reposition but each letter stays upright (a matrix
   rotation, not a CSS spin), so the board is readable from any side. **Local to
@@ -555,7 +555,7 @@ flower.
 **Stop game** is surfaced in both places per the common convention (see
 [common-schema.md →
 Stop](../common-schema.md#stop--every-gametypes-stop_game)): an
-info-column action-row button *and* a GamePage menu row — the SAME bound action
+info-column action-row button *and* a GamePage menu row — the SAME action
 in both, arranged by `buildGameMenu`. The terminal message comes from a unified
 `buildOver` — the shared `TerminalMessage` shape (`{pillText, infoColText,
 outcome, actor?}`, `src/common/terminal/terminalMessage.ts`) — shown into the

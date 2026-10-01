@@ -45,14 +45,14 @@ import {
  * nothing here knows about a game.
  *
  * **Adding an action is adding a row here.** The id is `act-<what-it-does>`,
- * and the binding that gives it a body is named `actWhatItDoes`, so both are
+ * and the action that gives it a body is named `actWhatItDoes`, so both are
  * greppable and a guard holds the two spellings together
  * (`src/guards/actionIds.test.ts`). One meaning per row: if a game wants
  * "Check letter" where another says "Check", those are two rows, not one row
  * with an override.
  */
-export type ActionSpec = {
-  // What the action is CALLED. A binding may say something else for a moment
+export type ActionDefinition = {
+  // What the action is CALLED. An action may say something else for a moment
   // ("Submit · 24") through its `describe`; this is what it is called the rest
   // of the time, and what the key list shows.
   label: string
@@ -71,7 +71,7 @@ export type ActionSpec = {
   // there is nothing left to interrupt. A bespoke question that only one game
   // asks stays inside that game's callback instead.
   // A question with two ways to say yes (`ConfirmOptions.alternativeLabel`)
-  // runs the binding's `runAlternative` for the second.
+  // runs the action's `runAlternative` for the second.
   confirm?: ConfirmOptions
   // May a HELD key fire it over and over? False for every command — holding
   // `+` would otherwise start games at the OS repeat rate — and true for the
@@ -348,7 +348,7 @@ export const ACTIONS = {
     label: 'Back to the live board',
     keys: [{ pattern: 'any', label: 'any key' }],
   },
-} as const satisfies Record<`act-${string}`, ActionSpec>
+} as const satisfies Record<`act-${string}`, ActionDefinition>
 
 /** Every action's id, as a union — so binding a typo is a compile error rather
  *  than a key that silently never fires. */

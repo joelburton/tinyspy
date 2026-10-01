@@ -1,7 +1,7 @@
 /* cs-blessed-setup-form */
 
 /* The three rules that are the setup dialog's own. Everything else it needs is
- * shared: the column is <StandardForm>'s, the buttons are the `modalActions`
+ * shared: the column is <StandardForm>'s, the buttons are the `modalButtons`
  * row, the red line is <FailureLine>, and the surface, padding, backdrop,
  * drag-handle and close X are <FloatingPanel>'s. */
 

@@ -3,8 +3,8 @@
 import { useEffect } from 'react'
 import { isEditableField, isNonGameField } from '../keyboard/editableField'
 import { isPattern, isWildcard, matches, type KeySpec } from './chord'
-import { type BoundAction } from './useBindAction'
-import { getBoundActions } from './boundActionsStore'
+import { type Action } from './useBindAction'
+import { getActions } from './actionsStore'
 
 /** Ties already reported, so holding a key doesn't fill the console with the
  *  same sentence. Keyed by the ids, since that pair IS the finding. */
@@ -24,7 +24,7 @@ const reportedTies = new Set<string>()
  * actions can be on screen at once depends on what is mounted and on what each
  * one's `describe` says at that moment.
  */
-function reportChordTie(claimants: BoundAction[]): void {
+function reportChordTie(claimants: Action[]): void {
   const ids = claimants.map((a) => a.id)
   if (new Set(ids).size < 2) return
   const seen = ids.join(' ')
@@ -32,7 +32,7 @@ function reportChordTie(claimants: BoundAction[]): void {
   reportedTies.add(seen)
   console.warn(
     `[actions] ${ids.join(' and ')} are both live and both answer ` +
-      `${claimants[0]!.spec.keys?.[0]?.label ?? 'this key'} — ${ids[0]} won because of ` +
+      `${claimants[0]!.defn.keys?.[0]?.label ?? 'this key'} — ${ids[0]} won because of ` +
       'where it was bound, which is not a decision. Give one of them a different key, ' +
       'or make sure they cannot be active at the same time.',
   )
@@ -63,9 +63,9 @@ export function useActionDispatcher(): void {
       const nonGame = isNonGameField(target)
 
       // Is this action allowed to fire from where the focus is?
-      function reachable(action: BoundAction): boolean {
+      function reachable(action: Action): boolean {
         if (!editable) return true
-        switch (action.spec.inField ?? 'never') {
+        switch (action.defn.inField ?? 'never') {
           case 'always':
             return true
           case 'game-inputs':
@@ -78,21 +78,21 @@ export function useActionDispatcher(): void {
       // Which of this action's keys is this keystroke, if any — and is the
       // action in a state to take it? Returns the matched key, because a
       // pattern action has to be told which one it got.
-      function takes(action: BoundAction): KeySpec | null {
-        const key = action.spec.keys?.find((spec) => matches(spec, e))
+      function takes(action: Action): KeySpec | null {
+        const key = action.defn.keys?.find((spec) => matches(spec, e))
         if (!key) return null
-        if (e.repeat && !action.spec.repeat) return null
+        if (e.repeat && !action.defn.repeat) return null
         if (!reachable(action)) return null
         return action.describe('key').state === 'active' ? key : null
       }
 
-      const live = getBoundActions()
+      const live = getActions()
 
       // 1. The watchers, all of them, claiming nothing: that is how any key
       //    dismisses the last message and still types its letter. Stack order
       //    is deliberately not consulted — "dismiss" happens on every key.
       for (const action of live) {
-        if (action.spec.consumes === false && takes(action)) action.run(e.key)
+        if (action.defn.consumes === false && takes(action)) action.run(e.key)
       }
 
       // 2. An interceptor, if a surface has one live: a consuming wildcard is a
@@ -104,14 +104,14 @@ export function useActionDispatcher(): void {
       // a key they both want; one mounted later does not. That order is a
       // tiebreak, not a channel (the stack's comment in `useBindAction.ts`);
       // two actions live at once must not share a chord. In every pass a hidden
-      // or disabled binding is skipped, so the key falls through to an outer
+      // or disabled action is skipped, so the key falls through to an outer
       // binding that wants it.
       const answers = (wildcard: boolean) => {
-        const claimants: BoundAction[] = []
+        const claimants: Action[] = []
         let first: KeySpec | null = null
         for (const action of live) {
-          if (action.spec.consumes === false) continue
-          if ((action.spec.keys?.some(isWildcard) ?? false) !== wildcard) continue
+          if (action.defn.consumes === false) continue
+          if ((action.defn.keys?.some(isWildcard) ?? false) !== wildcard) continue
           const key = takes(action)
           if (!key) continue
           claimants.push(action)
@@ -131,14 +131,14 @@ export function useActionDispatcher(): void {
       if (answers(true)) return
       if (answers(false)) return
 
-      // Nothing live took it. A binding that is here but DISABLED still keeps
+      // Nothing live took it. An action that is here but DISABLED still keeps
       // the key from the browser — Space with no legal peel must not scroll the
       // page — without standing in the way of a sibling that wanted it, which
       // the walks above already gave their chance. Anything matching nothing at
       // all goes to the browser, which is what keeps Cmd-R working.
       for (const action of live) {
-        if (action.spec.consumes === false || action.spec.keys?.some(isWildcard)) continue
-        const key = action.spec.keys?.find((spec) => matches(spec, e))
+        if (action.defn.consumes === false || action.defn.keys?.some(isWildcard)) continue
+        const key = action.defn.keys?.find((spec) => matches(spec, e))
         if (!key || !reachable(action)) continue
         if (action.describe('key').state === 'disabled') {
           e.preventDefault()

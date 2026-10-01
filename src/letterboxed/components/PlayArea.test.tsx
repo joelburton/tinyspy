@@ -21,9 +21,9 @@ import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
@@ -120,9 +120,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     brand: 'SnakeBox',
     title: 'New game',
@@ -139,7 +139,7 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
 }
 
 /** Flatten what PlayArea handed `menu.setGameSections` into id → ROW — what the
- *  menu would actually draw, since a row is a bound action now and its words,
+ *  menu would actually draw, since a row is an action now and its words,
  *  glyph and availability come from the action rather than the list. */
 function menuItems(ctx: PlayAreaLoaderProps) {
   const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
@@ -161,9 +161,9 @@ const press = (key: KeyboardEventInit) => fireEvent.keyDown(document.body, key)
 const PLUS = { key: '+' }
 const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
 
-/** The live binding for an action — the same `run` its key, its menu row and
+/** The page's action for an id — the same `run` its key, its menu row and
  *  its button all fire. */
-const bound = (id: ActionId) => getBoundActions().find((b) => b.id === id)!
+const getAction = (id: ActionId) => getActions().find((action) => action.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
@@ -584,8 +584,8 @@ describe('letterboxed PlayArea — a refused word shakes its letters', () => {
 })
 
 /**
- * The keys, through the app-root dispatcher. Each key is a bound action's, so
- * what these pin is the wiring: the chord reaches the binding, the binding asks
+ * The keys, through the app-root dispatcher. Each key is an action's, so
+ * what these pin is the wiring: the chord reaches the action, the action asks
  * the registry's question mid-game and skips it at terminal, and the answer
  * runs the same call the button does.
  */
@@ -596,8 +596,8 @@ describe('letterboxed PlayArea — the keys', () => {
   it('neither history arrow is offered — a word joins the chain, not a history', () => {
     render(<WithKeys {...makeCtx()} />)
 
-    expect(bound('act-recall-last').describe('help').state).toBe('hidden')
-    expect(bound('act-clear-entry').describe('help').state).toBe('hidden')
+    expect(getAction('act-recall-last').describe('help').state).toBe('hidden')
+    expect(getAction('act-clear-entry').describe('help').state).toBe('hidden')
   })
 
   it('+ at terminal starts the next game with no question', async () => {
@@ -667,7 +667,7 @@ describe('letterboxed PlayArea — the keys', () => {
   })
 
   describe('Restart', () => {
-    // Keyless, so mid-game it is fired as the menu row would fire it: the bound
+    // Keyless, so mid-game it is fired as the menu row would fire it: the action's
     // run, which is where the registry's question is asked.
     it('mid-game asks first, and Keep playing wipes nothing', async () => {
       const user = userEvent.setup()
@@ -678,7 +678,7 @@ describe('letterboxed PlayArea — the keys', () => {
         </>,
       )
 
-      act(() => bound('act-restart').run())
+      act(() => getAction('act-restart').run())
       expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
       await user.click(screen.getByRole('button', { name: 'Keep playing' }))
       await waitFor(() => expect(screen.queryByText('Restart this game?')).not.toBeInTheDocument())
@@ -694,7 +694,7 @@ describe('letterboxed PlayArea — the keys', () => {
         </>,
       )
 
-      act(() => bound('act-restart').run())
+      act(() => getAction('act-restart').run())
       await answer(user, 'Restart')
       await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
     })

@@ -194,7 +194,7 @@ function PlayArea({
   // reached by the header's InfoSwitchButton. Desktop is unchanged.
   const infoSheet = useInfoSheet()
 
-  // The inline hint list, open or closed — the Hints binding toggles it, and
+  // The inline hint list, open or closed — the Hints action toggles it, and
   // InfoCol draws the list under its action row.
   const [hintsOpen, setHintsOpen] = useState(false)
 
@@ -230,9 +230,9 @@ function PlayArea({
   // already computed (docs/win-lose.md → Where a player stands); an elimination
   // on the fourth mistake is one way out, and the server marks it so.
   // `isStillPlaying` gates the tiles, the hint list and the help line, and the
-  // Hint and Reveal bindings read it, so their buttons and menu rows agree.
+  // Hint and Reveal actions read it, so their buttons and menu rows agree.
 
-  // The terminal reveal — derived state, because the Reveal binding below reads
+  // The terminal reveal — derived state, because the Reveal action below reads
   // it. The categories nobody got are shown only when this viewer asks: an
   // ended board is what the players left, their bands plus the tiles they never
   // cracked, and Reveal swaps the four bands in for the tiles (local and
@@ -356,12 +356,12 @@ function PlayArea({
 
   // ─── The commands, bound ───────────────────────────────
   // Every command this game offers, in one order that three readers keep: this
-  // block, the info column's prop list, and the menu's rows. A binding is what
+  // block, the info column's prop list, and the menu's rows. An action is what
   // the button, the menu row and the key all read, so none of them can drift
   // from another — and `pending` grays every surface of one for the length of
   // its run, which is why no handler here carries an in-flight flag of its own.
-  // None of them is a `useCallback`: `useBindAction` reads its live half
-  // through a ref it refreshes every render, and the bound value's identity
+  // None of them is a `useCallback`: `useBindAction` reads its options
+  // through a ref it refreshes every render, and the action's identity
   // turns on `pending` alone.
 
   // The shared trio — Stop / Concede / Restart. connections' own bit is which
@@ -464,7 +464,7 @@ function PlayArea({
     }
   }
 
-  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // New game — its `+`, its menu row and its terminal button, from one action.
   // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this
   // game, which stays resumable) and goes straight through at terminal; the
   // shared run's single flight is what stops a second press taking two puzzles
@@ -508,8 +508,8 @@ function PlayArea({
 
   // ─── The menu ──────────────────────────────────────────
   // The FULL connections menu. `buildGameMenu` supplies the framing (Help + chat
-  // above, Back to club below); the middle is this game's own rows, each one a
-  // binding it already made — so a row's words, glyph, key and availability come
+  // above, Back to club below); the middle is this game's own rows, each one an
+  // action it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. The effect
   // re-runs only when the SHAPE changes, which is why every dep is stable.
   //
@@ -641,7 +641,7 @@ function PlayArea({
         selfId={authSession.user.id}
         metricByUser={opponentFound}
         concededIds={concededIds}
-        // ── Action row — the same bindings, in the order the menu lists them ──
+        // ── Action row — the same actions, in the order the menu lists them ──
         actHint={actHint}
         actReveal={actReveal}
         actRestart={actRestart}

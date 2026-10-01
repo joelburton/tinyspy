@@ -17,7 +17,7 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  * psychicnum's info column: the shared readouts in the fixed order
  * (docs/playarea.md → Info-column readouts) — the state line, the whose-turn
  * line, the opponent strip, the action row, help, setup, then the event log.
- * Every command is a bound action PlayArea hands down; an action that does not
+ * Every command is an action PlayArea hands down; an action that does not
  * apply draws nothing, which is how one row serves coop and compete.
  */
 export function InfoCol({

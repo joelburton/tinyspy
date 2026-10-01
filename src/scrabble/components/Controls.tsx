@@ -4,7 +4,7 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import { SubmitWithScore } from '@/common/buttons/SubmitWithScore'
 import { cls } from '@/common/utils/cls'
 import styles from './PlayArea.module.css'
@@ -31,15 +31,15 @@ import shared from '@/common/game-page/playArea.module.css'
  *     action, doubling as the live score preview ("+score", or an em-dash on an
  *     empty board). Enabled for any placed tiles (an illegal shape is explained
  *     by a pill on submit, not by disabling) — and **Enter** is the same
- *     binding, so the key and the button are gray at the same moments.
+ *     action, so the key and the button are gray at the same moments.
  *
  * The **Share** button sits beside Recall on the LEFT — not in the commit slot —
  * so it stays visible when a pill takes the slot over. It broadcasts the staged
  * tiles for teammates to preview (see useSharedMove), and hides itself where
  * there is nobody to show them to (a race, or a solo game).
  *
- * Every one of them is a BOUND ACTION: what it does, what it is called, whether
- * it can be pressed and which key also does it come from the binding, which the
+ * Every one of them is an ACTION: what it does, what it is called, whether
+ * it can be pressed and which key also does it come from the action, which the
  * board column makes. This row decides placement and nothing else.
  */
 export function Controls({
@@ -56,16 +56,16 @@ export function Controls({
    *  DRAWS, where the action says whether it can be pressed. */
   submitScore: number | null
   /** Play the staged word. Also Enter, from the board cursor. */
-  actSubmit: BoundAction
+  actSubmit: Action
   /** Take every staged tile back to the rack at once. */
-  actRecallTiles: BoundAction
+  actRecallTiles: Action
   /** Show the staged play to teammates, read-only. Hides itself where there is
    *  nobody to show it to. */
-  actSharePreview: BoundAction
+  actSharePreview: Action
   /** Swap rack tiles for fresh ones — it carries its own reason when it can't. */
-  actExchange: BoundAction
+  actExchange: Action
   /** Pass the turn. Hides itself in coop. */
-  actPass: BoundAction
+  actPass: Action
   /** PlayArea's below-board slot, drawn IN the commit slot (replacing the
    *  commit buttons + filling its width) while it holds anything. */
   localFeedbackSlot: FeedbackSlot

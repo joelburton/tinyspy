@@ -2,7 +2,7 @@
 
 /**
  * Tests for the generated key list: it shows the keys that are actually bound,
- * in the words they are called by right now, and it re-reads when a binding
+ * in the words they are called by right now, and it re-reads when an action
  * comes or goes.
  */
 import { render, screen } from '@testing-library/react'
@@ -21,7 +21,7 @@ function Harness({ submitState = 'active' as ActionState }) {
 }
 
 describe('KeyList', () => {
-  it('lists a bound action by its first key', () => {
+  it('lists an action by its first key', () => {
     render(<Harness />)
     expect(screen.getByText('⌥Z')).toBeTruthy()
     expect(screen.getByText('Shuffle')).toBeTruthy()
@@ -42,7 +42,7 @@ describe('KeyList', () => {
     expect(screen.getByText('Submit')).toBeTruthy()
   })
 
-  it("shows the binding's words for this moment, not the registry's", () => {
+  it("shows the action's words for this moment, not the registry's", () => {
     // A toggle's two faces are the case: the row says what pressing the key
     // would do right now, which is the same answer its button gives.
     function Renamed() {
@@ -69,7 +69,7 @@ describe('KeyList', () => {
    * are kept apart by describing themselves out of each other's way, which is
    * two files agreeing rather than something the list can rely on.
    */
-  it('lists a command ONCE however many bindings offer it', () => {
+  it('lists a command ONCE however many actions offer it', () => {
     function Twice() {
       useBindAction('act-stop-game', { run: () => undefined, describe: () => 'active' })
       useBindAction('act-stop-game', { run: () => undefined, describe: () => 'active' })

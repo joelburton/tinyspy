@@ -2,7 +2,7 @@
 
 import { cls } from '@/common/utils/cls'
 import { actionSurface } from '@/common/actions/actionSurface'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { TileColor } from '../wordle-style/tileColor'
 import styles from './GuessKeyboard.module.css'
 
@@ -25,17 +25,17 @@ export type KeyColor = Exclude<TileColor, 'blank'>
 
 type Props = {
   onKey: (letter: string) => void
-  // Submit the guess, and delete its last letter. The SAME two bindings the
+  // Submit the guess, and delete its last letter. The SAME two actions the
   // physical keyboard answers to (`useCaptureKeys` hands them back), so a cap
   // and its key can't disagree about whether the move is available — including
   // the empty-guess case, where both are gray.
   //
   // The 26 letters are NOT actions and shouldn't be: a letter cap is a KEY, not
   // a command. The one action behind them is the pattern `act-type-letter`,
-  // which is handed whichever letter fired it — twenty-six bindings each
+  // which is handed whichever letter fired it — twenty-six actions each
   // hard-coding its own letter would be a registry entry per keycap.
-  actSubmit: BoundAction
-  actDelete: BoundAction
+  actSubmit: Action
+  actDelete: Action
   // No move to make right now — not your turn, a guess in flight, or the game
   // is over. The keyboard stays on screen either way: its caps carry the color
   // each letter has earned, which is a readout of the game and is worth most
@@ -66,7 +66,7 @@ export function GuessKeyboard({
   disabled = false,
   keyColors,
 }: Props) {
-  // A keycap keeps its own chrome and takes what it DOES from the binding — the
+  // A keycap keeps its own chrome and takes what it DOES from the action — the
   // same bargain the board's round shuffle pill makes. `aria-label` stays the
   // cap's own ("Backspace", not "Delete the last letter"): what is written on a
   // key is the key, and the tooltip carries the action's name.

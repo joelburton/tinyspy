@@ -24,9 +24,9 @@ import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
@@ -165,9 +165,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -202,9 +202,9 @@ const press = (key: KeyboardEventInit) => fireEvent.keyDown(document.body, key)
 const PLUS = { key: '+' }
 const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
 
-/** The live binding for an action — the same `run` its key, its menu row and
+/** The page's action for an id — the same `run` its key, its menu row and
  *  its button all fire. */
-const bound = (id: ActionId) => getBoundActions().find((b) => b.id === id)!
+const getAction = (id: ActionId) => getActions().find((action) => action.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
@@ -424,7 +424,7 @@ describe('waffle PlayArea — icon-only action rows', () => {
   const FIXTURE_SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
 
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
-    // ONE binding for both rows now: it navigates directly at terminal and
+    // ONE action for both rows now: it navigates directly at terminal and
     // routes through the suspend-confirm flow mid-game, so the game no longer
     // picks between two callbacks and no longer can pick wrong.
     const user = userEvent.setup()
@@ -747,8 +747,8 @@ describe('waffle PlayArea — a swap in flight', () => {
 })
 
 /**
- * The keys, through the app-root dispatcher. Each key is a bound action's, so
- * what these pin is the wiring: the chord reaches the binding, the binding asks
+ * The keys, through the app-root dispatcher. Each key is an action's, so
+ * what these pin is the wiring: the chord reaches the action, the action asks
  * the registry's question mid-game and skips it at terminal, and the answer
  * runs the same call the button does.
  */
@@ -823,7 +823,7 @@ describe('waffle PlayArea — the keys', () => {
   })
 
   describe('Restart mid-game', () => {
-    // Keyless, so it is fired as the menu row would fire it: the bound run,
+    // Keyless, so it is fired as the menu row would fire it: the action's run,
     // which is where the registry's question is asked. (The terminal case,
     // where it goes straight through, is under "terminal flow".)
     it('asks first, and Keep playing wipes nothing', async () => {
@@ -835,7 +835,7 @@ describe('waffle PlayArea — the keys', () => {
         </>,
       )
 
-      act(() => bound('act-restart').run())
+      act(() => getAction('act-restart').run())
       expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
       await user.click(screen.getByRole('button', { name: 'Keep playing' }))
       await waitFor(() => expect(screen.queryByText('Restart this game?')).not.toBeInTheDocument())
@@ -851,7 +851,7 @@ describe('waffle PlayArea — the keys', () => {
         </>,
       )
 
-      act(() => bound('act-restart').run())
+      act(() => getAction('act-restart').run())
       await answer(user, 'Restart')
       await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
     })
@@ -874,7 +874,7 @@ describe('waffle PlayArea — the selection cursor', () => {
   const positions = Array.from({ length: 25 }, (_, p) => p).filter((p) => !HOLES.includes(p))
   const ringed = () => positions.filter((p) => /selectionCursor/.test(tileAt(p).className))
   const picked = () => positions.filter((p) => /picked/.test(tileAt(p).className))
-  // Awaited: a bound action's run settles a microtask after the keystroke.
+  // Awaited: an action's run settles a microtask after the keystroke.
   const key = (k: string) => act(async () => press({ key: k }))
   const swapsSent = () => rpc.mock.calls.filter(([fn]) => fn === 'submit_swap')
 
@@ -910,7 +910,7 @@ describe('waffle PlayArea — the selection cursor', () => {
 
   it('names Enter "Swap" for the key list', () => {
     render(<WithKeys {...makeCtx()} />)
-    expect(bound('act-submit').describe('help').label).toBe('Swap')
+    expect(getAction('act-submit').describe('help').label).toBe('Swap')
   })
 
   it('a third pick is refused; Space on a picked tile un-picks it', async () => {
@@ -995,6 +995,6 @@ describe('waffle PlayArea — the selection cursor', () => {
     await key(' ')
     expect(ringed()).toEqual([])
     expect(picked()).toEqual([])
-    expect(bound('act-submit').describe('help').state).toBe('hidden')
+    expect(getAction('act-submit').describe('help').state).toBe('hidden')
   })
 })

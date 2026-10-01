@@ -1,7 +1,7 @@
 // cs-blessed-board-cursor
 
 import { useBindAction } from '@/common/actions/useBindAction'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { ArrowKey } from './gridCursor'
 
 export type BoardCursorKeysOptions = {
@@ -28,11 +28,11 @@ export type BoardCursorKeysOptions = {
   canCommit?: boolean
 }
 
-/** What the caller gets back — the commit binding, to place as a button. The
+/** What the caller gets back — the commit action, to place as a button. The
  *  other actions are keys with no control of their own: nothing on screen "is"
  *  the left arrow. */
 export type BoardCursorKeys = {
-  actCommit: BoundAction
+  actCommit: Action
 }
 
 /**
@@ -42,10 +42,10 @@ export type BoardCursorKeys = {
  * those DOES is the game's, supplied as callbacks: which cells can be edited,
  * where a placed tile comes from, and what the move is.
  *
- * This owns the binding, as four bound actions — `act-move-cursor`,
+ * This binds four actions — `act-move-cursor`,
  * `act-place-tile`, `act-remove-tile`, and the game's own commit. The arrows
  * and the letters are PATTERN actions, handed whichever key fired them, which
- * is what makes four arrows and twenty-six letters two bindings rather than
+ * is what makes four arrows and twenty-six letters two actions rather than
  * thirty.
  *
  * **Nothing here reads the window.** The modifier bail, the focused-input guard

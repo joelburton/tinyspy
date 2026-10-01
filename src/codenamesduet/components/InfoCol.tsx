@@ -5,7 +5,7 @@ import { cls } from '@/common/utils/cls'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { InfoDisclosure } from '@/common/info-sheet/InfoDisclosure'
@@ -25,7 +25,7 @@ import styles from './InfoCol.module.css'
  * readouts): the state line → the finished-player banners → the action row →
  * help → the key-card and setup disclosures → the event log. There is no
  * opponent strip: the partner's status rides the header pill. Every command
- * arrives as a bound action this column places; the one callback up is
+ * arrives as an action this column places; the one callback up is
  * `onShowHistory`. Prop names are the other games' for the same idea.
  */
 export function InfoCol({
@@ -83,20 +83,20 @@ export function InfoCol({
   //    `describe` decides whether its button is there ──
   // Show the partner's key card, or cover it again — a local display toggle.
   // A button only at the end.
-  actReveal: BoundAction
+  actReveal: Action
   // Run this board back — same words, same key cards. A button only at the end;
   // the menu and its key all game.
-  actRestart: BoundAction
+  actRestart: Action
   // A fresh game with this setup and roster, on a new board. A button only at
   // the end; the menu and `+` all game.
-  actNewGame: BoundAction
+  actNewGame: Action
   // Placed as every game's row places it, and never drawn: duet is coop, so it
   // hides itself.
-  actConcede: BoundAction
+  actConcede: Action
   // Stop the game for the whole table. Gone at the end.
-  actStopGame: BoundAction
+  actStopGame: Action
   // Leave for the club — the shell's own action, off `ctx.menu`.
-  actBackToClub: BoundAction
+  actBackToClub: Action
 
   // ── Key card + setup disclosures ──
   // My key card, in board order.

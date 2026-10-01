@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useState } from 'react'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { asciiLetters, useCaptureKeys } from '@/common/keyboard/useCaptureKeys'
 import { WORD_LENGTH } from '../lib/setup'
@@ -35,8 +35,8 @@ export function useTypedGuess({
 }): {
   typedWord: string
   typeLetter: (letter: string) => void
-  actDeleteLast: BoundAction
-  actSubmit: BoundAction
+  actDeleteLast: Action
+  actSubmit: Action
 } {
   const [typedWord, setTypedWord] = useState('')
 

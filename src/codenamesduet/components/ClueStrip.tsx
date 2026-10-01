@@ -239,7 +239,7 @@ function ClueForm({
   const countRef = useRef<HTMLInputElement>(null)
   const wordRef = useRef<HTMLInputElement>(null)
   useTabRing([countRef, wordRef], 'keys-next-field')
-  // Enter is the form's own submit, not a bound action; offered so Help says so.
+  // Enter is the form's own submit, not an action; offered so Help says so.
   useOfferComponentKeyGroups(['keys-submit-clue'])
 
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
@@ -319,7 +319,7 @@ function ClueForm({
   const submittable = count !== '' && word.trim().length > 0
   const eitherBusy = busy || suggesting
 
-  // Ask Claude for a clue. A COMMAND the page offers, so it's a bound action —
+  // Ask Claude for a clue. A COMMAND the page offers, so it's an action —
   // unlike the Submit beside it, which is this form's own submit button and
   // whose Enter belongs to the focused field rather than to the key dispatcher.
   const actSuggestClue = useBindAction('act-suggest-clue', {
@@ -366,7 +366,7 @@ function ClueForm({
           data-game-input
         />
         {/* Submit — the clue box is a REAL form (docs/ui.md → Real forms), so
-            this is the form's commit rather than a bound action: it submits, and
+            this is the form's commit rather than an action: it submits, and
             the game's own `onSubmit` reads the two fields. The up-triangle says
             "sends this clue up to your partner". */}
         <FormSubmitButton

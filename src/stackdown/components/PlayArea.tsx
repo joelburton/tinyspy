@@ -77,7 +77,7 @@ type HintAnswer = { result: 'hint'; hint: string }
  *     up (`onSubmitWord`) and "back to live" (`onExitHistory`).
  *   - **`<InfoCol>`** — the state readout, OpponentStrip, action row, setup
  *     disclosure, terminal words reveal, and the GameEventLog log. Every command
- *     arrives as a bound action it places; the one callback up is `onShowHistory`.
+ *     arrives as an action it places; the one callback up is `onShowHistory`.
  *
  * The load-bearing seam: BoardCol owns *editing*; PlayArea hands it *the board to
  * show*. That's what makes turn-history a drop-in (see docs/playarea.md).
@@ -408,7 +408,7 @@ export function PlayArea({
   // confirm; the creator jumps in via ctx.goToFollowUpGame, peers arrive via the
   // game-invitation toast.
   //
-  // A plain function, rebuilt every render: the binding below reads it at click
+  // A plain function, rebuilt every render: the action below reads it at click
   // time, so `setup` and `players` are whatever the last realtime refetch left,
   // and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
@@ -441,7 +441,7 @@ export function PlayArea({
     }
   }
 
-  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // New game — its `+`, its menu row and its terminal button, from one action.
   // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
   // create_game clears the club's current-view flag, so it stays resumable — the
   // copy says shelved, not ended) and goes straight through at terminal, where
@@ -543,8 +543,8 @@ export function PlayArea({
   })
 
   // The FULL stackdown menu. `buildGameMenu` supplies the framing (Help + chat
-  // above, Back to club below); the middle is this game's own rows, each one a
-  // binding it already made — so a row's words, glyph, key and availability come
+  // above, Back to club below); the middle is this game's own rows, each one an
+  // action it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. The hint rungs
   // and Reveal are the menu twins of the info column's buttons: the row is what
   // NAMES those glyphs, which is why they gray rather than drop.

@@ -21,9 +21,9 @@ import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import { gp } from '@/common/members/gamePlayer.fixture'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { runEdgeFn } from '@/common/supabase/dbResult'
@@ -121,9 +121,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -185,8 +185,8 @@ const press = (init: KeyboardEventInit) =>
 const typedLength = () =>
   document.querySelector('ol li[class*="active"] span[aria-label$="letters"]')?.textContent ?? ''
 
-/** What a bound action says about itself right now. */
-const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
+/** What an action says about itself right now. */
+const stateOf = (id: string) => getActions().find((b) => b.id === id)?.describe('button').state
 
 /** The board row holding this word, whatever marks it is wearing. */
 const rowFor = (word: string) =>

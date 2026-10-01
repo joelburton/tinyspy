@@ -18,7 +18,7 @@
   at terminal — End, Concede, Hint, Reveal — is gone from Help the moment the
   game ends, which is the same thing the ruling objects to. Two shapes:
   per-action (each decides, as the entry keys just did) or per-list (`KeyList`
-  stops filtering `hidden` and simply lists every bound action with a key,
+  stops filtering `hidden` and simply lists every action with a key,
   which states the rule once where it belongs). The second is wider — it
   changes Help in all sixteen games — and would want `doc.md`'s sentence about
   `hidden` being "how a play-only action leaves at terminal" rewritten, since

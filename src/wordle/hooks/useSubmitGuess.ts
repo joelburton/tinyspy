@@ -60,7 +60,7 @@ type GuessAnswer =
  * arrive, so no branch can leave a word stuck. A Restart needs no gate: the
  * page unmounts the surface when the run changes (common/game-page/doc.md).
  *
- * One guess is out at a time: Enter's run waits for `submitGuess`, and a bound
+ * One guess is out at a time: Enter's run waits for `submitGuess`, and an
  * action neither runs nor draws live while its run is out (`useBindAction`'s
  * `pending`).
  */

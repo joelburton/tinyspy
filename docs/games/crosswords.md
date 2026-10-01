@@ -381,7 +381,7 @@ sizing).
   CDC row payloads **directly** (per-cell `version` "newer wins") with
   optimistic `set_cell` echo + compete owner-drop, refetch only on `SUBSCRIBED`.
 - **`useGridKeyboard`** — the full grid key set (ported from crossplay's
-  PuzzleView) as **bound actions** (`common/actions`): letters (fill +
+  PuzzleView) as **actions** (`common/actions`): letters (fill +
   advance), Backspace (two-step) / Shift+Backspace (clear word), Space (advance)
   / Shift+Space (read-only zoom-peek of a squeezed rebus), arrows /
   Shift+arrows (word edge), Tab / Shift+Tab (jump clue), Shift+Enter (rebus
@@ -398,7 +398,7 @@ sizing).
   - **⌥-letter shortcuts** (crossplay parity — the port's identity is
     keyboard-first): **⌥P** pen/pencil, **⌥C** / **⌥⇧C** check letter / word,
     **⌥R** / **⌥⇧R** reveal letter / word (coop only), **⌥N** show note, **⌥X**
-    explain cryptic clue, **⌥S** scratchpad (the header mark's own binding, so
+    explain cryptic clue, **⌥S** scratchpad (the header mark's own action, so
     it works in every game that has one). Each chord is matched on `e.code`
     (physical key) so Mac ⌥ dead-keys (⌥C = ç, ⌥N = ˜) don't matter, and each is
     the SAME action as its menu row and its square in the tool bar. **⌥M menu is
@@ -554,7 +554,7 @@ Scratchpad (⌥S) / Print board (PDF) / Download as .ipuz / Print answer key (PD
 · **Check ▸** Letter (⌥C) / Word (⌥⇧C) / Grid · **Reveal ▸** Letter (⌥R) / Word
 (⌥⇧R) / Grid *(the whole submenu drops out in compete, since all three children
 hide themselves)* · Restart / Reveal solution / New game (`+`) · **Concede game
-/ Stop game** (⌥⌫) · **Back to club** (`<`). Every row is a bound action, so its
+/ Stop game** (⌥⌫) · **Back to club** (`<`). Every row is an action, so its
 words, glyph, key hint and availability come from the action rather than being
 typed here a second time — which is what makes a row and the square beside it in
 the tool bar the same thing. Notables: **Collapse rebuses** is a display-only
@@ -574,7 +574,7 @@ crosswords join the rest of the roster in having a replay at all
 solution** is the terminal-only answer key (see *Terminal* above). The menu is
 long, so the popover scrolls — the page never does.
 
-The board reads no `window` keydowns — its keys are bound actions — but the
+The board reads no `window` keydowns — its keys are actions — but the
 shared `Menu` is still given **`returnFocusOnClose={false}`** by
 `GameHeaderMenu.tsx`: while the trigger has focus its own `onTriggerKeyDown`
 stops propagation, so a trigger that kept focus after close would swallow the

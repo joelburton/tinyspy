@@ -3,18 +3,18 @@
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
 import { ActionButton } from '../actions/ActionButton'
-import type { BoundAction } from '../actions/useBindAction'
+import type { Action } from '../actions/useBindAction'
 import styles from './WordEntryRow.module.css'
 
 type Props = {
   // The entry display this row wraps — a `<WordEntryInput>`, a grid of slots, …
   children: ReactNode
   // Take back the last thing entered (a character, a tile, a traced cell) —
-  // the same binding as the `⌫` key, so the two cannot disagree about when
+  // the same action as the `⌫` key, so the two cannot disagree about when
   // there is anything to take back.
-  actDelete: BoundAction
-  // Commit what's entered — the same binding as `Enter`.
-  actSubmit: BoundAction
+  actDelete: Action
+  // Commit what's entered — the same action as `Enter`.
+  actSubmit: Action
   // Extra class on the row — e.g. a per-game font-size override.
   className?: string
 }
@@ -31,7 +31,7 @@ type Props = {
  * and its own display of whatever is being entered. The games on each side, and
  * what they enter: doc.md → Intro to area.
  *
- * **The two buttons ARE the two keys.** Each takes the bound action its key
+ * **The two buttons ARE the two keys.** Each takes the action its key
  * fires, so "is there anything to delete?" and "may this submit?" are answered
  * once, by the action, rather than by a `deleteDisabled` prop the caller works
  * out again — which is how a button and its key come to disagree.

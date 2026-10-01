@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import { useBindAction, type BoundAction } from '@/common/actions/useBindAction'
+import { useBindAction, type Action } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
@@ -21,7 +21,7 @@ import type { GameData } from './useGame'
 /**
  * Every command wordle offers, bound once: the info column's action row places
  * them, the menu lists them, and their keys fire them — all reading the same
- * binding, so the surfaces cannot drift.
+ * action, so the surfaces cannot drift.
  */
 export type WordleActions = {
   // Each key is spelled as its action's id (`act-reveal` → `actReveal`), so a
@@ -30,24 +30,24 @@ export type WordleActions = {
   //
   // Show the word — or put it away again. A local display toggle, no RPC; it
   // carries its own faces, the inert "solution already shown" included.
-  actReveal: BoundAction
+  actReveal: Action
   // Restart THIS game — same word — from scratch.
-  actRestart: BoundAction
+  actRestart: Action
   // Start a fresh follow-up game — same setup, new target + id. Disables itself
   // while the create is in flight.
-  actNewGame: BoundAction
+  actNewGame: Action
   // Drop out of a compete game while the others play on — hidden in coop, and
   // once you are out (solved, out of guesses, conceded), when Stop takes its
   // place.
-  actConcede: BoundAction
+  actConcede: Action
   // Stop the game for the whole table — coop's exit; it hides itself in
   // compete until you are out.
-  actStopGame: BoundAction
+  actStopGame: Action
   // Print the board and the log; the menu's alone, with no twin in the row.
-  actPrintBoard: BoundAction
+  actPrintBoard: Action
   // Leave for the club page — the shell's own, off `PlayAreaLoaderProps.menu`, carried
   // here so a surface that places the row has every action in one object.
-  actBackToClub: BoundAction
+  actBackToClub: Action
 }
 
 /**
@@ -55,13 +55,13 @@ export type WordleActions = {
  * the `actions`, for the info column's action row, and `answerShown`, the
  * reveal's local state, which the info column reads to show the word.
  *
- * A binding is what the button, the menu row and the key all read, so none of
+ * An action is what the button, the menu row and the key all read, so none of
  * them can drift from another — and `pending` grays every surface of one for
  * the length of its run, which is why no handler here carries an in-flight
  * flag of its own.
  *
  * **The menu reads as the info column's action row does.** The two are views
- * of the same bindings, so a player who learned the row finds the menu in the
+ * of the same actions, so a player who learned the row finds the menu in the
  * same order (docs/playarea.md). Print is the one row with no twin in the row,
  * and sits after them.
  */
@@ -149,7 +149,7 @@ export function useBindActionsAndPublishMenu({
     }
   }
 
-  // New game — its `+`, its menu row and its ending button, from one binding.
+  // New game — its `+`, its menu row and its ending button, from one action.
   // The registry asks NEW_GAME_CONFIRM mid-play and goes straight through once
   // the game has ended; the shared run's single flight stops a second press
   // dealing a second word.
@@ -193,7 +193,7 @@ export function useBindActionsAndPublishMenu({
 
   // The FULL wordle game menu. `buildGameMenu` supplies the framing (Help and
   // chat above, Back to club below); the middle is this game's own rows, each
-  // one a binding made above, so a row's words, glyph, key and availability
+  // one an action made above, so a row's words, glyph, key and availability
   // come from the action rather than being typed a second time here.
   useEffect(function publishGameMenu() {
     menu.setGameSections(

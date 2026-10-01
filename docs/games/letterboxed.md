@@ -298,7 +298,7 @@ iconography](../ui.md#button-iconography)):
 
 Both rungs also appear as **menu rows** ("Hint" / "Show the word") — the menu is
 where their lightbulb and bare-eye glyphs get named ([ui.md → the menu is the
-legend](../ui.md#button-iconography)). Row and button are the SAME bound action
+legend](../ui.md#button-iconography)). Row and button are the SAME action
 (`act-hint` / `act-spoiler`), which is what makes them coop-only in one place:
 each hides itself in compete, where the server refuses it too, so neither the
 row nor the button asks about mode. The menu carries **Reveal solution**

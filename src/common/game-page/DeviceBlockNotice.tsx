@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { ActionButton } from '../actions/ActionButton'
-import type { BoundAction } from '../actions/useBindAction'
+import type { Action } from '../actions/useBindAction'
 import styles from './DeviceBlockNotice.module.css'
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
   // SHELL's `act-back-to-club` (`ctx.menu.actBackToClub`), not a callback — a
   // blocked player leaves a live game exactly the way anyone else does, which
   // means shelving it so the others are told rather than left waiting.
-  actBackToClub: BoundAction
+  actBackToClub: Action
 }
 
 /**

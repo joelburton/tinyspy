@@ -20,7 +20,7 @@ marks each recommendation as it stands now: still open, done, or new.
 
 Joel has been making the app more human-understandable. The per-game
 `PlayArea.tsx` files are large and mix concerns: the data hook and its gates,
-the derivations, the below-board feedback, the input engine, the bound
+the derivations, the below-board feedback, the input engine, the
 actions, the menu, narration, and a terminal-text builder. What would improve
 readability and understanding — and now that the pieces a PlayArea composes
 are shared, what shape should the composition itself have?
@@ -50,14 +50,14 @@ what is the game:
 | `useCelebration`, `useTurnStartFlash` | 14 / 4 | the coop-win confetti; the your-turn flash |
 | `useHistoryViewer` | 9 (+ scrabble's own) | the turn-history viewer |
 | `summaryRows` via `setupRows` | 15 | the setup rows, built once for the column and the paper |
-| `publishGameMenu` effect via `buildGameMenu` | 16 | the menu, pushed from the bindings |
+| `publishGameMenu` effect via `buildGameMenu` | 16 | the menu, pushed from the actions |
 | a pure `buildOver` tail | 15 | the terminal message per play state |
 
 **Still true from the first survey:**
 
 - **Null guards before the loading gate.** `game?.` appears 0 to 16 times per
   file (spellingbee, wordwheel 16; boggle, wordiply 14), and `if (!game)
-  return` sits inside handlers and bound actions in twelve files. Six comments
+  return` sits inside handlers and actions in twelve files. Six comments
   say some version of "above the early returns because effects must be", nine
   say "menu exists pre-load, but there's no mode yet", and print's `describe`
   answers `game ? 'active' : 'hidden'` in most games for the same reason.
@@ -82,7 +82,7 @@ what is the game:
 **Changed since the first survey — the menu plumbing is done:**
 
 - `actionsRef`, its type, its refresh effect and `useGlobalKeyHandler` are gone
-  from every file. Every menu row is a **bound action** (`useBindAction`),
+  from every file. Every menu row is an **action** (`useBindAction`),
   and `buildGameMenu({ menu, exits, extra })` frames Help + chat above and Back
   to club below. The 119 lines of ref ritual the first survey counted do not
   exist.
@@ -113,16 +113,16 @@ Suggest a move are button-only. Each may be right; neither says so.
   already carries the item ("Collapse the info-column action row's branches",
   filed 2026-09-14 with psychicnum as the worked example), so the recommendation
   below points at it rather than restating it.
-- **Two opposite conventions for a binding's `run` body.** psychicnum wraps
-  its hint and spoiler in `useCallback` "because the bindings below close over
+- **Two opposite conventions for an action's `run` body.** psychicnum wraps
+  its hint and spoiler in `useCallback` "because the actions below close over
   them"; wordle's new-game is "a plain function, rebuilt every render: the
-  binding below reads it at click time". wordle is right: `useBindAction`
-  reads its live half through a ref refreshed every render, so a stable
-  callback buys a binding nothing. `useCallback` counts run 0 (four files) to
+  action below reads it at click time". wordle is right: `useBindAction`
+  reads its options through a ref refreshed every render, so a stable
+  callback buys an action nothing. `useCallback` counts run 0 (four files) to
   13 (crosswords).
 - **Per-game in-flight flags beside actions that already carry `pending`.**
   psychicnum's `hinting` / `spoiling` and stackdown's `submitting` are
-  `useState` booleans read by `describe` to gray a button — where the bound
+  `useState` booleans read by `describe` to gray a button — where the
   action's own `pending` (from `useSingleFlight`) already grays the button and
   the menu row for the same flight (`common/actions/doc.md`). Where the action
   is the only caller, the flag is the old system's leftover.
@@ -192,14 +192,14 @@ does today with the loader split applied:
 10. **Render** — the render-time derivations, then the two columns.
 11. **`buildOver`** — until 3.4 moves it out.
 
-Section 8 before 9 is the one hard constraint (the menu lists the bindings);
+Section 8 before 9 is the one hard constraint (the menu lists the actions);
 the rest is a reading order and Joel's call. The header text for the shared
 sections should be the same words in every file ("End / Concede / Restart —
 the shared trio", not three variants).
 
 ### 3.3 The menu — plumbing DONE; the order and the effect are OPEN
 
-**Done.** A row is a binding; nothing in a PlayArea keeps handler identities
+**Done.** A row is an action; nothing in a PlayArea keeps handler identities
 in step with the menu. The first survey's `useEffectEvent` / `useGameMenu`
 proposal is moot as plumbing.
 
@@ -221,16 +221,16 @@ buildGameMenu({
 ```
 
 The builder then owns where a slot sits and the divider between slots, and a
-game only says which bindings it has. `extra` survives for crosswords' twenty
+game only says which actions it has. `extra` survives for crosswords' twenty
 rows. Whether the slots are worth it against today's `extra` sections is a
 question of whether the drift above matters to a player who switches games;
 it is a one-file change to the builder either way.
 
 **Open: the effect.** Sixteen files write the same `publishGameMenu` effect —
 `menu.setGameSections(buildGameMenu(...))`, a cleanup that clears, and a deps
-list naming every binding (nine names in psychicnum). A `useGameMenu(menu,
+list naming every action (nine names in psychicnum). A `useGameMenu(menu,
 sections)` hook that owns the effect and the cleanup would leave a game with
-one call. One thing to know first: a bound action's identity flips when its
+one call. One thing to know first: an action's identity flips when its
 `pending` flips, so the effect re-pushes the menu on every in-flight toggle.
 Harmless today — only the menu re-renders — and the hook is where to say so
 once instead of in sixteen deps comments.
@@ -238,7 +238,7 @@ once instead of in sixteen deps comments.
 **Open: a row for every command, or a reason.** setgame's Hint and scrabble's
 Suggest a move are bound with no menu row; the menu is the legend that names a
 glyph (`docs/ui.md`), so a command with a button and no row teaches nothing.
-Each game's area decides, and writes the reason at the binding if it stays
+Each game's area decides, and writes the reason at the action if it stays
 button-only.
 
 ### 3.4 Move `buildOver` out of the component file — OPEN
@@ -263,7 +263,7 @@ docstring or doc. Three families to delete outright rather than shorten:
   games used to clean up here", "moved into BoardCol");
 - the fifteen "above the early returns" / "pre-load" comments, which 3.1 makes
   false;
-- psychicnum's "both are useCallbacks up here … because the bindings below
+- psychicnum's "both are useCallbacks up here … because the actions below
   close over them", which is false today (3.7).
 
 Most files would drop well under a third comment lines.
@@ -271,7 +271,7 @@ Most files would drop well under a third comment lines.
 ### 3.6 The unconditional action row — OPEN, filed per game already
 
 psychicnum's InfoCol mounts ONE `<InfoActionsRow>` holding every button, and
-each binding's `describe(asker)` decides whether its button is there; every
+each action's `describe(asker)` decides whether its button is there; every
 other InfoCol branches in render. The item is in each game's `todo.md` with
 the shape, the state rule (`hidden` = not possible in this state, `disabled` =
 possible here, not right now, with a tooltip), and the two things the collapse
@@ -289,18 +289,18 @@ todo entry predates and the `reveal` area added:
 
 ### 3.7 The actions — NEW: three per-game conventions to settle at psychicnum
 
-- **A `run` body is a plain function.** `useBindAction` reads the live half
+- **A `run` body is a plain function.** `useBindAction` reads the options
   through a ref it refreshes every render, so `useCallback` around a body
   exists only to satisfy a deps list that no longer exists. Drop the wrap
-  where the binding is the only reader; keep it where something else (a child
+  where the action is the only reader; keep it where something else (a child
   prop, another effect) genuinely needs the identity.
-- **No in-flight flag where `pending` covers it.** A bound action's `pending`
+- **No in-flight flag where `pending` covers it.** An action's `pending`
   is set from the press through the question to the answer, and both the
   button and the menu row gray on it. A game keeps its own flag only when
   something other than those surfaces reads it (stackdown's `submitting`
   dims the board, which is a real second reader; psychicnum's `hinting` and
   `spoiling` have none).
-- **Every binding in one section, in one order** — the shared trio, the game's
+- **Every action in one section, in one order** — the shared trio, the game's
   own, then New game and Print — and the same section in the InfoCol prop list
   and the menu. `docs/playarea.md`'s prop vocabulary already has `act*` names;
   the order is what is missing.

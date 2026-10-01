@@ -7,7 +7,7 @@ import { db as commonDb } from '../supabase/db'
 import { runRpc } from '../supabase/dbResult'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { FailureLine } from '../forms/FailureLine'
-import actionRow from '../floating-panels/modalActions.module.css'
+import buttonRow from '../floating-panels/modalButtons.module.css'
 import styles from './CreateClubModal.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
@@ -242,7 +242,7 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
                 field's own message renders under that field, not here. */}
             <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
 
-            <div className={actionRow.modalActions}>
+            <div className={buttonRow.modalButtons}>
               <CancelButton show="label" onClick={onCancel} disabled={busy} />
               <FormSubmitButton
                 show="label"

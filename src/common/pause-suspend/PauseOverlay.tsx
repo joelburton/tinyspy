@@ -4,18 +4,18 @@ import type { Member } from '../members/member'
 import { Dot } from '../members/Dot'
 import { DotActor } from '../members/ActorMention'
 import { ActionButton } from '../actions/ActionButton'
-import type { BoundAction } from '../actions/useBindAction'
+import type { Action } from '../actions/useBindAction'
 import type { GamePause } from './pause'
 import styles from './PauseOverlay.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 
 /** The two ways out of a pause that won't clear. Bound by the game page, which
- *  sits above the boundary that unmounts the game's own bindings. */
+ *  sits above the boundary that unmounts the game's own actions. */
 export type PauseActions = {
   // Leave for the club, shelving the game.
-  actBackToClub: BoundAction
+  actBackToClub: Action
   // Stop the game; hidden unless paused.
-  actStopGame: BoundAction
+  actStopGame: Action
 }
 
 type Props = {

@@ -1,8 +1,8 @@
 // cs-unmet
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useBindAction, type BoundAction } from '../actions/useBindAction'
-import { useBoundAction } from '../actions/boundActionsStore'
+import { useBindAction, type Action } from '../actions/useBindAction'
+import { useAction } from '../actions/actionsStore'
 import { askConfirmation } from '../floating-panels/confirmationService'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
@@ -15,7 +15,7 @@ import { clubPath, gamePath } from '../routing/routes'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 import type { CommonGame } from './useCommonGame'
 
-type BoundPageActionsOptions = {
+type PageActionsOptions = {
   manifest: GameManifest
   cg: CommonGame
   // Where the overlay's Stop says a refusal.
@@ -38,15 +38,15 @@ type BoundPageActionsOptions = {
  * A game's menu sections are cleared when the page unmounts, so they go with
  * the game.
  */
-export function useBoundPageActions({
+export function usePageActions({
   manifest,
   cg,
   globalFeedbackSlot,
-}: BoundPageActionsOptions): {
+}: PageActionsOptions): {
   // What a PlayArea gets to build its menu with.
   menu: MenuApi
   // The pause overlay's two buttons.
-  actions: { actBackToClub: BoundAction; actStopGame: BoundAction }
+  actions: { actBackToClub: Action; actStopGame: Action }
   // Open the page of a game this PlayArea just started.
   goToFollowUpGame: (gameId: string) => void
   // The Help companion.
@@ -63,7 +63,7 @@ export function useBoundPageActions({
     run: () => setIsHelpOpen(true),
   })
   // Bound at the app root; passed along for the game's menu.
-  const actChat = useBoundAction('act-open-chat')
+  const actChat = useAction('act-open-chat')
 
   const requestBackToClub = useCallback(async () => {
     // Called through a local, not as `cg.sendSuspend()`: a method call makes the

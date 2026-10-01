@@ -8,8 +8,8 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { actionFixture } from '@/common/actions/action.fixture'
+import { getActions } from '@/common/actions/actionsStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
 import type { GameData } from './useGame'
@@ -49,9 +49,9 @@ function setup(gd: GameData) {
   const setGameSections = vi.fn()
   const menu = {
     setGameSections,
-    actHelp: boundActionFixture('act-help'),
-    actChat: boundActionFixture('act-open-chat'),
-    actBackToClub: boundActionFixture('act-back-to-club'),
+    actHelp: actionFixture('act-help'),
+    actChat: actionFixture('act-open-chat'),
+    actBackToClub: actionFixture('act-back-to-club'),
   } as unknown as MenuApi
   const { result } = renderHook(() =>
     useBindActionsAndPublishMenu({
@@ -71,7 +71,7 @@ function setup(gd: GameData) {
 
 /** What the reveal says about itself to the asker, right now. */
 function revealState(asker: 'button' | 'menu') {
-  return getBoundActions().find((b) => b.id === 'act-reveal')!.describe(asker).state
+  return getActions().find((b) => b.id === 'act-reveal')!.describe(asker).state
 }
 
 describe('useBindActionsAndPublishMenu — the menu', () => {

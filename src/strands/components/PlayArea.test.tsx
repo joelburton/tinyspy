@@ -8,11 +8,11 @@ import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import { KeyList } from '@/common/actions/KeyList'
 import type { EventRow, StrandsGame, StrandsPlayer } from '../hooks/useGame'
 import { db } from '../db'
@@ -129,9 +129,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -146,7 +146,7 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
 }
 
 /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would draw
- *  — a row is a bound action now, so its words, glyph and availability come from
+ *  — a row is an action now, so its words, glyph and availability come from
  *  the action rather than from the list. */
 function menuItems(ctx: PlayAreaLoaderProps) {
   const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
@@ -182,8 +182,8 @@ const press = (init: KeyboardEventInit) =>
     fireEvent.keyDown(document.body, init)
   })
 
-/** What a bound action says about itself right now. */
-const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
+/** What an action says about itself right now. */
+const stateOf = (id: string) => getActions().find((b) => b.id === id)?.describe('button').state
 
 /** A control by WHICH action it is, since its words vary per state. */
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
@@ -513,13 +513,13 @@ describe('strands PlayArea — + and ⌥⌫ through the dispatcher', () => {
 })
 
 describe('strands PlayArea — before the game has loaded', () => {
-  // A binding joins the stack on the FIRST render, before the loading guard
+  // An action joins the stack on the FIRST render, before the loading guard
   // has anything to show, and its `describe` can be read right then: the key
-  // list asks every live binding when Help opens, and the dispatcher asks ⌫
+  // list asks every live action when Help opens, and the dispatcher asks ⌫
   // and Enter's on any press. So nothing a `describe` names may be derived
   // below the guards — `isLocallyDone` and `waiting` once were, and a keypress
   // on a loading page threw.
-  it('every binding can describe itself while the page is still loading', () => {
+  it('every action can describe itself while the page is still loading', () => {
     h.result = loaded({ loading: true, game: null, me: null })
     render(
       <>
@@ -528,7 +528,7 @@ describe('strands PlayArea — before the game has loaded', () => {
       </>,
     )
     expect(screen.getByText('Loading…')).toBeInTheDocument()
-    for (const binding of getBoundActions()) expect(() => binding.describe('button')).not.toThrow()
+    for (const action of getActions()) expect(() => action.describe('button')).not.toThrow()
   })
 })
 

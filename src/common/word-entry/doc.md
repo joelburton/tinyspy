@@ -23,7 +23,7 @@ real cursor sitting in the chat box.
 
 `<WordEntryRow>` is the line that box sits on: take-back, the display, commit. The two
 buttons are not controls of their own with their own idea of when they are
-allowed to act — each is handed the very bound action its key fires, so "is
+allowed to act — each is handed the very action its key fires, so "is
 there anything to take back" and "may this submit" are answered once, by the
 action, and a button and its key cannot drift apart.
 

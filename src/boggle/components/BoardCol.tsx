@@ -226,7 +226,7 @@ export function BoardCol({
   // plainly active: rotating writes nothing and reaches nobody else, so the
   // post-game fidget is deliberate. Rotating invalidates the traced path's
   // coords (they point at view positions), so clear it — said once for the key
-  // and the round pill below, which are one binding.
+  // and the round pill below, which are one action.
   const handleRotate = useCallback(() => {
     setTurns((t) => (t + 1) % 4)
     setPath([])

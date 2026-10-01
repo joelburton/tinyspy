@@ -317,7 +317,7 @@ members.
   the board they actually played — and **Hide brings that board straight back**,
   which a rewrite could never do. Nothing autoreveals but your own solve, which
   puts the board you just made on screen anyway (`impliedBy`). Offered from the
-  game menu AND the terminal action row, both the SAME bound action
+  game menu AND the terminal action row, both the SAME action
   (`act-reveal`) wearing the same two faces — its words and its glyph move
   together, so a row and a button can't disagree about which face is on. pgTAP:
   `boards_untouched_test.sql`.
@@ -541,9 +541,9 @@ layout](../playarea.md#playarea-layout)):
   iconography](../ui.md#button-iconography)): during play the two exits plus
   back-to-club; at terminal the bold outcome line + Restart / Reveal (the
   terminal-local reveal) / New game / primary back-to-club, in
-  `InfoActionsRow`'s children. Every one is an `<ActionButton>` over a bound
+  `InfoActionsRow`'s children. Every one is an `<ActionButton>` over an
   action ([common/actions](../../src/common/actions/doc.md)), including
-  back-to-club: ONE binding serves both rows, navigating directly at terminal
+  back-to-club: ONE action serves both rows, navigating directly at terminal
   and routing through the shell's **suspend-confirm** flow mid-game. Stay-here
   options sit left of the leave option. `GameEventLog` renders its own `<tr>`
   rows on the shared `<EventLog>` table — the outcome bar (`neutral`) + "#N" +

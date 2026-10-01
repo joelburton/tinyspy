@@ -7,12 +7,12 @@
  * spacing above it. The panel/surface chrome stays on <FloatingPanel> (or each
  * dialog's own shell); this owns only the button row.
  *
- * Imported directly (`import actionRow from '.../modalActions.module.css'`)
- * and applied as `actionRow.modalActions`.
+ * Imported directly (`import buttonRow from '.../modalButtons.module.css'`)
+ * and applied as `buttonRow.modalButtons`.
  *
  * Button ORDER is the caller's JSX, in macOS convention: Cancel on the left,
  * the default/confirm action rightmost (see docs/ui.md → Dialog buttons). */
-/* @@ */ .modalActions {
+/* @@ */ .modalButtons {
   display: flex;
   justify-content: flex-end;
   gap: var(--spacer-3);
@@ -37,6 +37,6 @@
  *
  * Bespoke on purpose: the vocabulary has no value for a control's minimum
  * width. */
-/* @@ */ .modalActions button:not([data-icon-only]) {
+/* @@ */ .modalButtons button:not([data-icon-only]) {
   min-width: 6rem;
 }

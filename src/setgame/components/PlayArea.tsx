@@ -252,9 +252,9 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // gated on a claim being in flight: the rest of the board stays live so a
   // fast player can start their next set while this one is still traveling.
   // The three cards being claimed are made unclickable individually.
-  // Derived here, above the loading guards, because the Hint binding's
+  // Derived here, above the loading guards, because the Hint action's
   // `describe` names it and can be read on any render — the key list asks every
-  // binding when Help opens.
+  // action when Help opens.
   const isCompete = game?.mode === 'compete'
 
   const onCardClick = useCallback(
@@ -287,10 +287,10 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // here — and an empty ring is what keeps it from walking out to the browser.
   useTabRing([])
 
-  // A letter under each card, and Backspace clears the picks. Two bound
+  // A letter under each card, and Backspace clears the picks. Two
   // actions, so the keys and the cards say the same thing: `act-toggle-card`
   // is a PATTERN action — it is handed whichever letter fired it, which is what
-  // makes twenty-one cards one binding rather than twenty-one.
+  // makes twenty-one cards one action rather than twenty-one.
   //
   // Both hide while a past turn is open. The viewer's exit does not depend on
   // that — the dispatcher gives an any-key MODE priority over a particular key —
@@ -389,7 +389,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
     localFeedbackSlot,
   })
 
-  // A plain function, rebuilt every render: the binding below reads it at click
+  // A plain function, rebuilt every render: the action below reads it at click
   // time, so `setup` and `players` are whatever the last realtime refetch left,
   // and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
@@ -422,7 +422,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
     }
   }
 
-  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // New game — its `+`, its menu row and its terminal button, from one action.
   // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game
   // rather than ending it) and goes straight through at terminal. The shared
   // run's single flight is what stops a second press dealing a second board.
@@ -474,8 +474,8 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   })
 
   // The FULL setgame menu. `buildGameMenu` supplies the framing (Help + chat
-  // above, Back to club below); the middle is this game's own rows, each one a
-  // binding it already made — so a row's words, glyph, key and availability come
+  // above, Back to club below); the middle is this game's own rows, each one an
+  // action it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. The effect
   // re-runs only when the SHAPE changes, which is why every dep is stable.
   useEffect(function publishGameMenu() {

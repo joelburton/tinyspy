@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import { useBindAction, type BoundAction } from '@/common/actions/useBindAction'
+import { useBindAction, type Action } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
@@ -37,7 +37,7 @@ type SpoilerAnswer = {
 /**
  * Every command psychicnum offers, bound. The info column's action row places
  * them; the menu lists them; each one's key, glyph and availability come from
- * the binding, so the surfaces cannot drift.
+ * the action, so the surfaces cannot drift.
  */
 export type PsychicnumActions = {
   // Each key is spelled as its action's id (`act-hint` → `actHint`), so a grep
@@ -45,32 +45,32 @@ export type PsychicnumActions = {
   //
   // Ask for a clue. Grayed rather than gone when you can't ask — the glyph is
   // worth teaching either way.
-  actHint: BoundAction
+  actHint: Action
   // Mid-game cheat: hand over one unfound secret word (the amber bare-eye
   // glyph). Logs to the event log like a hint does.
-  actSpoiler: BoundAction
+  actSpoiler: Action
   // Show the three secrets at game-over (their tiles go green) — or hide them
   // again. A local display toggle shared with the menu twin; nothing is
   // written, no peer affected. It carries its own two faces, so a surface
   // places one button either way.
-  actReveal: BoundAction
+  actReveal: Action
   // Hunt the SAME board + secrets again from scratch.
-  actRestart: BoundAction
+  actRestart: Action
   // Start a fresh follow-up game — same setup + players, a new board + secrets.
   // Disables itself while the create is in flight, so a slow network reads as
   // "working" rather than "nothing happened".
-  actNewGame: BoundAction
+  actNewGame: Action
   // Drop out of a race; the others keep going. Hidden outside one.
-  actConcede: BoundAction
+  actConcede: Action
   // The whole table stops, with no result. Hidden in a race that doesn't
   // offer it — so the pair above can be placed unconditionally.
-  actStopGame: BoundAction
+  actStopGame: Action
   // Print the board and the log; the menu's alone, with no twin in the row.
-  actPrintBoard: BoundAction
+  actPrintBoard: Action
   // Leave for the club page — the shell's own, off `PlayAreaLoaderProps.menu`,
   // carried here so a surface that places the row has every action in one
   // object.
-  actBackToClub: BoundAction
+  actBackToClub: Action
 }
 
 /**
@@ -78,15 +78,15 @@ export type PsychicnumActions = {
  * back the `actions`, for the info column's action row, and `secretsShown`,
  * the reveal's local state, which the board reads to turn the secrets green.
  *
- * A binding is what the button, the menu row and the key all read, so none of
+ * An action is what the button, the menu row and the key all read, so none of
  * them can drift from another — and `pending` grays every surface of one for
  * the length of its run, which is why no handler here carries an in-flight
  * flag of its own. None of them is a `useCallback`: `useBindAction` reads its
- * live half through a ref it refreshes every render, and the bound value's
+ * options through a ref it refreshes every render, and the action's
  * identity turns on `pending` alone.
  *
  * **The menu reads as the info column's action row does, divider for
- * divider.** The two are views of the same bindings, so a player who learned
+ * divider.** The two are views of the same actions, so a player who learned
  * the row finds the menu in the same order (docs/playarea.md). Print is the one
  * row with no twin in the row, and sits after them.
  */
@@ -242,7 +242,7 @@ export function useBindActionsAndPublishMenu({
     }
   }
 
-  // New game — its `+`, its menu row and its ending button, from one binding.
+  // New game — its `+`, its menu row and its ending button, from one action.
   // The registry asks NEW_GAME_CONFIRM mid-play (an accidental `+` should not
   // read as "I just lost my game" — the text says shelved, not ended) and goes
   // straight through once the game has ended, and the shared run's single
@@ -285,7 +285,7 @@ export function useBindActionsAndPublishMenu({
 
   // The FULL psychicnum game menu. `buildGameMenu` supplies the framing (Help +
   // chat above, Back to club below); the middle is this game's own rows, each
-  // one a binding made above — so a row's words, glyph, key and availability
+  // one an action made above — so a row's words, glyph, key and availability
   // come from the action rather than being typed here a second time. The
   // effect re-runs only when the SHAPE changes, which is why every dep is a
   // stable value.
@@ -302,7 +302,7 @@ export function useBindActionsAndPublishMenu({
           {
             items: [
               // The menu twin of the ending row's boxed-eye button — the same
-              // binding, so a player who has scrolled past the row reaches the
+              // action, so a player who has scrolled past the row reaches the
               // identical toggle, wearing the identical face.
               actReveal,
               // The same pair the ending's action row offers, reachable mid-game too.

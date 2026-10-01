@@ -43,7 +43,7 @@ export function FaultModal() {
     <BlockingModal
       family="modal-fault"
       onClose={dismissFaultModal}
-      actions={
+      buttons={
         <StandardButton show="label" label="Close" weight="primary" onClick={dismissFaultModal} autoFocus />
       }
     >

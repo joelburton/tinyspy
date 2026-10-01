@@ -10,7 +10,7 @@ import { cls } from '../utils/cls'
 import { StandardForm } from '../forms/StandardForm'
 import { FailureLine } from '../forms/FailureLine'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
-import actionRow from '../floating-panels/modalActions.module.css'
+import buttonRow from '../floating-panels/modalButtons.module.css'
 import styles from './SetupGameModal.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
@@ -280,11 +280,11 @@ export function SetupGameModal({
               {/* Help first, away from the pair — it opens the rules on top of this
                   dialog, which stays open behind. Then Cancel and Start in macOS
                   order. */}
-              <div className={actionRow.modalActions}>
+              <div className={buttonRow.modalButtons}>
                 <ActionButton
                   action={actHelp}
                   show="icon"
-                  className={actionRow.leading}
+                  className={buttonRow.leading}
                 />
                 <CancelButton show="label" onClick={onCancel} disabled={busy} />
                 <FormSubmitButton

@@ -16,7 +16,7 @@
  *   - paused toggle remounts children (mount-counter assertion)
  *   - presence-only pause: the roster list, with the absent peer named
  *   - manual pause: "X paused the game" + Resume button
- *   - the Stop-game escape: placed from a bound action, and absent when that
+ *   - the Stop-game escape: placed from an action, and absent when that
  *     action says it is hidden
  *
  * The overlay is otherwise a black box here: its text is read only far enough
@@ -30,7 +30,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { PauseBoundary } from './PauseBoundary'
 import type { PauseActions } from './PauseOverlay'
 import type { GamePause } from './pause'
-import { boundActionFixture } from '../actions/boundAction.fixture'
+import { actionFixture } from '../actions/action.fixture'
 import type { Member } from '../members/member'
 
 const ADA: Member = {
@@ -63,8 +63,8 @@ function pauseOf(over: Partial<GamePause> = {}): GamePause {
 /** The two ways out, as the page binds them. */
 function actionsOf(over: Partial<PauseActions> = {}): PauseActions {
   return {
-    actBackToClub: boundActionFixture('act-back-to-club'),
-    actStopGame: boundActionFixture('act-stop-game'),
+    actBackToClub: actionFixture('act-back-to-club'),
+    actStopGame: actionFixture('act-stop-game'),
     ...over,
   }
 }
@@ -167,13 +167,13 @@ describe('PauseBoundary', () => {
     expect(onResume).toHaveBeenCalledTimes(1)
   })
 
-  // The escape from a wedged presence-pause. It is a bound action rather than a
+  // The escape from a wedged presence-pause. It is an action rather than a
   // callback because the overlay REPLACES the play area — the game's own
-  // `act-stop-game` goes off the binding stack with it — so `GamePage`, which is
+  // `act-stop-game` goes off the action stack with it — so `GamePage`, which is
   // above this boundary, binds a second one and hides it unless paused.
   it('places Stop game on the overlay, and fires the action it was given', async () => {
     const user = userEvent.setup()
-    const actStopGame = boundActionFixture('act-stop-game')
+    const actStopGame = actionFixture('act-stop-game')
     render(
       <PauseBoundary pause={pauseOf()} players={[BEA]} actions={actionsOf({ actStopGame })}>
         <div>play</div>
@@ -189,7 +189,7 @@ describe('PauseBoundary', () => {
         pause={pauseOf()}
         players={[BEA]}
         actions={actionsOf({
-          actStopGame: boundActionFixture('act-stop-game', () => ({ state: 'hidden' })),
+          actStopGame: actionFixture('act-stop-game', () => ({ state: 'hidden' })),
         })}
       >
         <div>play</div>

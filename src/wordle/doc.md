@@ -420,7 +420,7 @@ What is wordle's own:
   arrives.
 - **The keyboard is the alphabet's record.** Each cap wears the strongest
   color its letter has earned across the live rows; Enter and ⌫ are the same
-  bound actions the physical keys answer to, so a cap and its key cannot
+  actions the physical keys answer to, so a cap and its key cannot
   disagree, and both go gray on an empty row (`lib/colors.ts`'s
   `makeKeyColors`, which the printout's keyboard uses too). Once the game has
   ended the keyboard stays, disabled, because its caps are the record of the

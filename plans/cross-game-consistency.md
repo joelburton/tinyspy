@@ -21,7 +21,7 @@ common-tables, which builds step 7; then §5.
 Already consistent, and not work: the `useGame` returns (`game` / `loading` /
 `failure`), the history names, `summaryRows`, `localFeedbackSlot`,
 `terminalMessage`, the reveal pairs (`<noun>Shown` / `toggle<Noun>`), the
-`act*` bindings and their order, every `db.ts`, and in SQL the table, view,
+`act*` actions and their order, every `db.ts`, and in SQL the table, view,
 policy and RPC names and their parameters.
 
 ---
@@ -425,7 +425,7 @@ where it fixes a behavior:
    which is `!isBoardInteractive`: the three take `isBoardInteractive` now,
    and `isTerminal` left them with it. The conceder's row, which placed no
    button at all, places the two exits — failing test first (the old test
-   read End off its binding, never off the page). Its comment claimed the row
+   read End off its action, never off the page). Its comment claimed the row
    "keeps Club alone"; it never placed Club, and the comment now says what
    the row does. Unit + its 11 e2e + the cross-game specs, `concede` among
    them, green. scrabble done 2026-09-25, after step 8 (`myConceded` /
@@ -1087,7 +1087,7 @@ verb too — `makeRosterRow`, `makeCoopRows`, `makeCenterLettersRow`,
   docs/supabase.md.
 - The New-game paragraph in wordle, spellingbee, wordwheel and codenamesduet
   docs; the owner is `common/actions/doc.md`.
-- The binding / feedback-slot / menu blocks in every `PlayArea.tsx`; the
+- The action / feedback-slot / menu blocks in every `PlayArea.tsx`; the
   owners are `common/actions`, `common/feedback` and `menu/gameMenu.ts`. The
   slot line has also drifted (the owner says the lowest-ranked message
   shows).

@@ -6,14 +6,14 @@
  * keeps no history at all, they inherit the dispatcher's focused-field gate,
  * and each says the right thing about itself.
  *
- * The arrows are bound actions, so the harness mounts the app's key dispatcher
+ * The arrows are actions, so the harness mounts the app's key dispatcher
  * beside the hook and presses real keydowns.
  */
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useArrowHistory, type ArrowHistoryOptions } from './useArrowHistory'
 import { useActionDispatcher } from '../actions/useActionDispatcher'
-import { getBoundActions } from '../actions/boundActionsStore'
+import { getActions } from '../actions/actionsStore'
 
 /** Awaited: an action's run settles a microtask after the key. */
 async function press(key: string, target: EventTarget = window) {
@@ -31,10 +31,10 @@ function setup(initial: Partial<ArrowHistoryOptions> = {}) {
   return { onChange }
 }
 
-/** What the two arrow bindings say about themselves, by id — read off the
+/** What the two arrow actions say about themselves, by id — read off the
  *  stack, since the hook hands nothing back. */
 function states() {
-  const byId = (id: string) => getBoundActions().find((b) => b.id === id)!.describe('button').state
+  const byId = (id: string) => getActions().find((b) => b.id === id)!.describe('button').state
   return { recall: byId('act-recall-last'), clear: byId('act-clear-entry') }
 }
 

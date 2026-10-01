@@ -215,7 +215,7 @@ export function useGame(gameId: string, selfId: string): {
     tables: [
       { schema: 'letterboxed', table: 'players', filter: `game_id=eq.${gameId}` },
       { schema: 'letterboxed', table: 'events', filter: `game_id=eq.${gameId}` },
-      // The games row never changes mid-play, so this binding is quiet today —
+      // The games row never changes mid-play, so this action is quiet today —
       // kept so any future write to it wakes clients rather than silently not.
       // It obliges games' membership in the publication (the central
       // realtime_publication_test pins all three: one unpublished bound table

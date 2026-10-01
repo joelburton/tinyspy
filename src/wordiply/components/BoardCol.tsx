@@ -86,7 +86,7 @@ export function BoardCol({
     [localFeedbackSlot, onChange],
   )
   // Physical keyboard (desktop convenience) drives the SAME word + submit — and
-  // hands back the two bindings the ⌫ and Enter caps below place, so a cap and
+  // hands back the two actions the ⌫ and Enter caps below place, so a cap and
   // its key are one thing. (No `backspace` twin: `act-delete-last` already
   // dismisses the sticky reject on its way through.)
   const { actDeleteLast, actSubmit } = useCaptureKeys({

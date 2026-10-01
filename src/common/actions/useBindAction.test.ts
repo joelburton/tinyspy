@@ -1,7 +1,7 @@
 // cs-blessed-actions
 
 /**
- * Tests for the live half: joining and leaving the stack, the shared run's
+ * Tests for binding: joining and leaving the stack, the shared run's
  * confirmation and single flight, and the shorthand `describe` answer.
  *
  * The confirmation service is mocked because what matters here is WHETHER the
@@ -10,8 +10,8 @@
  */
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { useBindAction, type LiveAction } from './useBindAction'
-import { getBoundActions } from './boundActionsStore'
+import { useBindAction, type BindActionOptions } from './useBindAction'
+import { getActions } from './actionsStore'
 
 const askConfirmation = vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm')
 const withdrawConfirmation = vi.fn()
@@ -27,9 +27,9 @@ beforeEach(() => {
 })
 
 /** Bind one action, with the parts a test cares about defaulted. */
-function bind(id: Parameters<typeof useBindAction>[0], live: Partial<LiveAction> = {}) {
+function bind(id: Parameters<typeof useBindAction>[0], live: Partial<BindActionOptions> = {}) {
   const run = vi.fn()
-  const full: LiveAction = { run, describe: () => 'active', ...live }
+  const full: BindActionOptions = { run, describe: () => 'active', ...live }
   const view = renderHook(() => useBindAction(id, full))
   return { run, view }
 }
@@ -37,9 +37,9 @@ function bind(id: Parameters<typeof useBindAction>[0], live: Partial<LiveAction>
 describe('useBindAction — the stack', () => {
   it('joins on mount and leaves on unmount', () => {
     const { view } = bind('act-shuffle')
-    expect(getBoundActions().map((b) => b.id)).toEqual(['act-shuffle'])
+    expect(getActions().map((b) => b.id)).toEqual(['act-shuffle'])
     view.unmount()
-    expect(getBoundActions()).toEqual([])
+    expect(getActions()).toEqual([])
   })
 
   it('holds the LATEST closure, without re-registering', () => {
@@ -47,10 +47,10 @@ describe('useBindAction — the stack', () => {
     const view = renderHook(() =>
       useBindAction('act-submit', { run: () => undefined, describe: () => ({ state: 'active', label: word }) }),
     )
-    expect(getBoundActions()[0]!.describe('button').label).toBe('first')
+    expect(getActions()[0]!.describe('button').label).toBe('first')
     word = 'second'
     view.rerender()
-    expect(getBoundActions()[0]!.describe('button').label).toBe('second')
+    expect(getActions()[0]!.describe('button').label).toBe('second')
     view.unmount()
   })
 })
@@ -121,7 +121,7 @@ describe('useBindAction — the shared run', () => {
   })
 
   it('runs the body from the moment of the ANSWER, not the moment of the press', async () => {
-    // The game keeps rendering while the question is up, and a binding's
+    // The game keeps rendering while the question is up, and an action's
     // callback closes over that render's state. The one that runs must be the
     // one on the stack when the answer lands.
     let settle: (answer: 'confirm' | null) => void = () => {}
@@ -142,7 +142,7 @@ describe('useBindAction — the shared run', () => {
   })
 
   it('takes its question back, and runs nothing, when it unmounts under the question', async () => {
-    // The question is drawn above every route, so a binding can unmount while
+    // The question is drawn above every route, so an action can unmount while
     // it is up — a peer's suspend navigates away, a pause takes the play surface
     // — and an answer then would run on a game the player has left.
     let settle: (answer: 'confirm' | null) => void = () => {}

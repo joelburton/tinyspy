@@ -6,7 +6,7 @@ import { PageHeaderButton } from './PageHeaderButton'
 import { IconChat } from '../icons/icons'
 import { useChatUnread } from '../chat/chatUnreadStore'
 import { colorVarFor } from '../members/memberColor'
-import { useBoundAction } from '../actions/boundActionsStore'
+import { useAction } from '../actions/actionsStore'
 import { nameWithKey } from '../actions/nameWithKey'
 import styles from './ChatButton.module.css'
 
@@ -27,7 +27,7 @@ import styles from './ChatButton.module.css'
  * **It shows the key but does not fire it.** `/` is its own command — reach
  * chat, and stay there if you are already in it — while this mark TOGGLES, so
  * clicking it is how you close the panel. Two behaviors, deliberately; the
- * bubble reads the chord off the action so it can't drift from the binding.
+ * bubble reads the chord off the action so it can't drift from the action.
  */
 export function ChatButton() {
   const open = useIsChatPanelOpen()
@@ -38,7 +38,7 @@ export function ChatButton() {
   // this fill claims to name a SENDER, so with nobody to name it should stop
   // claiming — while a `<Dot>` still stands for a person who is there.
   const fill = senderColor ? colorVarFor(senderColor) : 'var(--page-text-muted-color)'
-  const actOpenChat = useBoundAction('act-open-chat')
+  const actOpenChat = useAction('act-open-chat')
   return (
     <PageHeaderButton
       icon={IconChat}

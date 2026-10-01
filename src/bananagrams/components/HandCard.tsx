@@ -2,7 +2,7 @@
 
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import { IconExchange } from '@/common/icons/icons'
 import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { blurActiveField } from '@/common/keyboard/keyboardHandoff'
@@ -51,9 +51,9 @@ export function HandCard({
   errFlash: boolean
   errNonce: number
   onHandPointerDown: (index: number, letter: string, e: ReactPointerEvent) => void
-  /** The hand's ⟲ rotate — a bound action, so the pill and ⌥Z are one thing and
+  /** The hand's ⟲ rotate — an action, so the pill and ⌥Z are one thing and
    *  it grays itself when there is nothing to rearrange. */
-  actShuffle: BoundAction
+  actShuffle: Action
   /** Is dumping wired (PlayArea passed `onDump`)? Gates the dump zone. */
   hasDump: boolean
   /** The board responds to me (the page's `isBoardInteractive`) — the dump and

@@ -69,7 +69,7 @@ export function ConfirmationBlockingModal({
     <BlockingModal
       title={title}
       onClose={onCancel}
-      actions={
+      buttons={
         <>
           <CancelButton
             show="label"

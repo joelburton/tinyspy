@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { FloatingPanel, type PanelFamily } from './FloatingPanel'
-import actionRow from './modalActions.module.css'
+import buttonRow from './modalButtons.module.css'
 import styles from './BlockingModal.module.css'
 
 type Props = {
@@ -18,7 +18,7 @@ type Props = {
   // The body — whatever this modal is about.
   children: ReactNode
   // The footer row. Pass the buttons; the row and its layout are ours.
-  actions: ReactNode
+  buttons: ReactNode
   // Which of the two blocking families this is. Both stop the world; the fault
   // sits strictly above, because an error must be readable mid-question, and
   // it SWALLOWS Escape where a confirmation accepts it.
@@ -33,7 +33,7 @@ type Props = {
  * Reach for this to stop the world and ask something: nothing underneath is
  * live, and the player answers it now (docs/ui.md → Floating panels).
  *
- * Give it a `title`, a body, and the footer `actions` — every other decision
+ * Give it a `title`, a body, and the footer `buttons` — every other decision
  * the category makes is made here and is not a prop, because a blocking modal
  * that differed from its siblings would be claiming something about itself
  * that isn't true. doc.md → Intro to area covers which decisions those are.
@@ -50,7 +50,7 @@ export function BlockingModal({
   title,
   onClose,
   children,
-  actions,
+  buttons,
   family = 'modal-blocking',
 }: Props) {
   return (
@@ -67,7 +67,7 @@ export function BlockingModal({
     >
       {title !== undefined && <h2 className={styles.title}>{title}</h2>}
       {children}
-      <div className={actionRow.modalActions}>{actions}</div>
+      <div className={buttonRow.modalButtons}>{buttons}</div>
     </FloatingPanel>
   )
 }

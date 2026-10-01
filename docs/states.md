@@ -226,7 +226,7 @@ partner). When the absent player returns, pause clears automatically.
 
 ### Leaving the game page — terminal vs non-terminal
 
-The UI bar for "leaving" depends on whether the game has ended — three shapes (`useBoundPageActions`'s
+The UI bar for "leaving" depends on whether the game has ended — three shapes (`usePageActions`'s
 Back to club):
 
 - **Terminal**. Trivial to leave. Members are reviewing the endgame (the matched

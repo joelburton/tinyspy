@@ -322,7 +322,7 @@ describe('when there is nothing to work on', () => {
   })
 })
 
-describe('the rebus binding', () => {
+describe('the rebus action', () => {
   it('comes back, so PlayArea can place it as a menu row', async () => {
     const s = setup()
     expect(s.view.result.current.actRebus.id).toBe('act-rebus')

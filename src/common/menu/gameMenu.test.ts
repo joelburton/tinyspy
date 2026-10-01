@@ -3,8 +3,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { buildGameMenu } from './gameMenu'
 import { menuRow, type MenuItem, type MenuRow } from './menuModel'
-import { boundActionFixture } from '../actions/boundAction.fixture'
-import type { BoundAction } from '../actions/useBindAction'
+import { actionFixture } from '../actions/action.fixture'
+import type { Action } from '../actions/useBindAction'
 import type { ActionId } from '../actions/registry'
 
 /**
@@ -21,13 +21,13 @@ import type { ActionId } from '../actions/registry'
  * here because that is how `<Menu>` sees a row.
  */
 
-/** A bound action, as a menu sees one. Hand-made rather than bound through the
- *  hook: what this file tests is arrangement, and a real binding would drag a
+/** An action, as a menu sees one. Hand-made rather than bound through the
+ *  hook: what this file tests is arrangement, and a real action would drag a
  *  React tree and a key dispatcher in with it. */
-function action(id: string, over: Partial<BoundAction> = {}): BoundAction {
+function action(id: string, over: Partial<Action> = {}): Action {
   return {
     id: id as ActionId,
-    spec: { label: id },
+    defn: { label: id },
     run: vi.fn(),
     describe: () => ({ state: 'active' }),
     pending: false,
@@ -91,7 +91,7 @@ describe('buildGameMenu', () => {
     const sections = buildGameMenu({
       menu,
       exits: [actStopGame],
-      extra: [{ items: [boundActionFixture('act-print-board')] }],
+      extra: [{ items: [actionFixture('act-print-board')] }],
     })
     expect(idsOf(sections)).toEqual([
       'act-help', 'act-open-chat', 'act-print-board', 'act-stop-game', 'act-back-to-club',

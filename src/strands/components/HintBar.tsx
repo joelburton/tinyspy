@@ -2,7 +2,7 @@
 
 import { cls } from '@/common/utils/cls'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import styles from './HintBar.module.css'
 
 type Props = {
@@ -16,7 +16,7 @@ type Props = {
    *  showing", "Find N more valid words", "Reveal the tiles of one theme word"
    *  — because what this control can do depends on the economy, not on the
    *  bar. Its words stay "Hint". */
-  actHint: BoundAction
+  actHint: Action
 }
 
 /**

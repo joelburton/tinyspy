@@ -6,7 +6,7 @@ import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { WordList, type WordListRow } from '@/common/word-list/WordList'
@@ -18,7 +18,7 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  * boggle's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): word/score
  * readout → OpponentStrip (compete) → action row → help → setup disclosure → the
- * found-words `<WordList>`. Every command arrives as a bound action this column
+ * found-words `<WordList>`. Every command arrives as an action this column
  * simply places — what it does, whether it applies right now and which key also
  * fires it are the action's own business. Prop names match the other games'
  * columns for the same idea (docs/playarea.md).
@@ -76,18 +76,18 @@ export function InfoCol({
   //  Playing: Stop/Concede + back-to-club. Terminal: Restart + New game +
   //  back-to-club.)
   /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
-  actStopGame: BoundAction
+  actStopGame: Action
   /** Drop out of a race while the others play on — hidden outside compete. */
-  actConcede: BoundAction
+  actConcede: Action
   /** Restart THIS board — same faces, finds wiped. */
-  actRestart: BoundAction
+  actRestart: Action
   /** Start a fresh follow-up game — same setup, new board + id. Disables itself
    *  while the create is in flight, so a slow network reads as "working". */
-  actNewGame: BoundAction
-  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
+  actNewGame: Action
+  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE action
    *  for both rows: it navigates directly at terminal and routes through the
    *  suspend-confirm flow mid-game. */
-  actBackToClub: BoundAction
+  actBackToClub: Action
 
   // ── Setup disclosure ──
   setup: BoggleSetup

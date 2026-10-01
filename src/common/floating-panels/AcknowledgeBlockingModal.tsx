@@ -42,7 +42,7 @@ export function AcknowledgeBlockingModal({
     <BlockingModal
       title={title}
       onClose={onAcknowledge}
-      actions={
+      buttons={
         <StandardButton show="label" label={okLabel} weight="primary" onClick={onAcknowledge} autoFocus />
       }
     >

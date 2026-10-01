@@ -15,7 +15,7 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GRID, idx, setChar } from '../lib/board'
 import { usePlayerBoard, type UsePlayerBoardInput } from './usePlayerBoard'
@@ -32,12 +32,12 @@ vi.mock('@/shared/grid-and-drag/useDragGesture', () => ({
   useDragGesture: () => ({ drag: null, hover: null, start: mockStart }),
 }))
 // The cursor keyboard is captured rather than driven: what this file tests is
-// what bananagrams supplies (the callbacks), not the shared binding. It hands
-// back a commit binding, so the fake does too.
+// what bananagrams supplies (the callbacks), not the shared action. It hands
+// back a commit action, so the fake does too.
 vi.mock('@/common/board-cursor/useBoardCursorKeys', () => ({
   useBoardCursorKeys: (cfg: typeof keyCfg.current) => {
     keyCfg.current = cfg
-    return { actCommit: boundActionFixture('act-peel') }
+    return { actCommit: actionFixture('act-peel') }
   },
 }))
 

@@ -33,7 +33,7 @@ export function ScrabbleBlankPickerBlockingModal({
   onCancel: () => void
 }) {
   return (
-    <BlockingModal title="This blank stands for…" onClose={onCancel} actions={<CancelButton show="label" onClick={onCancel} />}>
+    <BlockingModal title="This blank stands for…" onClose={onCancel} buttons={<CancelButton show="label" onClick={onCancel} />}>
       <div className={styles.grid}>
         {ALPHABET.map((letter) => (
           <button

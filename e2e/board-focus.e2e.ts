@@ -106,7 +106,7 @@ test('psychicnum: clicking a tile leaves no focus behind, and ⌥Z shuffles', as
   const order = () => page.$$eval(tiles, (ts) => ts.map((t) => t.textContent).join(''))
   const before = await order()
   for (let i = 0; i < 8 && (await order()) === before; i++) {
-    // The physical key: Option changes the character, so the binding matches
+    // The physical key: Option changes the character, so the action matches
     // `code` and this is what a player's ⌥Z actually sends.
     await page.keyboard.press('Alt+KeyZ')
     await page.waitForTimeout(120)

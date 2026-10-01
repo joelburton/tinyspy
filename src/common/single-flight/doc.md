@@ -2,7 +2,7 @@
 
 One run of an async action at a time: a second press while the first is still out
 is dropped, not queued. One hook, wrapped around the handler of anything whose
-second call would do real, unwanted work — above all the run of every bound
+second call would do real, unwanted work — above all the run of every
 action (`useBindAction`), so a command's button, menu row and key share one
 wait.
 
@@ -31,7 +31,7 @@ something that happened.
 
 Reach for this where a second call does work the first one already did. A call
 every client is meant to fire (a timeout submission) is fine arriving twice.
-Every bound action goes through it regardless — End and Concede included, even
+Every action goes through it regardless — End and Concede included, even
 though the state they flip would stop them anyway — because the gate is what
 lets a button behind an open question read gray rather than live.
 
@@ -50,4 +50,4 @@ lets a button behind an open question read gray rather than live.
   question rather than two stacked. Canceling clears the gate like any other
   path.
 - **A MENU ROW grays while its action is out**: `menuRow` in
-  `common/menu/menuModel.ts` reads the binding's `pending`.
+  `common/menu/menuModel.ts` reads the action's `pending`.

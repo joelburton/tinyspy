@@ -6,7 +6,7 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
@@ -46,7 +46,7 @@ type Props = {
   // ── Hint (coop only) ──
   /** Ask for a hint. The SAME binding the board column's mobile copy places;
    *  it carries its own gray "No hints when competing" face. */
-  actHint: BoundAction
+  actHint: Action
   hintsUsed: number
   // ── Event log ──
   historyId: number | null
@@ -55,16 +55,16 @@ type Props = {
   onShowHistory: (id: number, n: number) => void
   // ── Actions ──
   /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
-  actStopGame: BoundAction
+  actStopGame: Action
   /** Drop out of a race while the others play on — hidden outside compete. */
-  actConcede: BoundAction
+  actConcede: Action
   /** Deal this board again from scratch. */
-  actRestart: BoundAction
+  actRestart: Action
   /** Start a fresh follow-up game — same setup, new deal + id. Disables itself
    *  while the create is in flight, so a slow network reads as "working". */
-  actNewGame: BoundAction
+  actNewGame: Action
   /** Leave for the club — the shell's own action, off `ctx.menu`. */
-  actBackToClub: BoundAction
+  actBackToClub: Action
   // ── Setup echo ──
   setupRows: SetupRow[]
 }

@@ -1,6 +1,6 @@
 // cs-blessed-keyboard
 
-import { useBindAction, type ActionState, type BoundAction } from '../actions/useBindAction'
+import { useBindAction, type ActionState, type Action } from '../actions/useBindAction'
 
 /**
  * A `charFor` (see below) for ASCII letters, stored in the given case. This is
@@ -17,11 +17,11 @@ export function asciiLetters(store: 'lower' | 'upper' = 'lower') {
 }
 
 /** The two entry keys that also have a button — handed back so `<WordEntryRow>` can
- *  place the very bindings the keys fire. Typing and dismissal have no button,
+ *  place the very actions the keys fire. Typing and dismissal have no button,
  *  so they are offered and not returned. */
 export type CaptureKeysActions = {
-  actDeleteLast: BoundAction
-  actSubmit: BoundAction
+  actDeleteLast: Action
+  actSubmit: Action
 }
 
 export type CaptureKeysOptions = {

@@ -3,13 +3,13 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import { useBoardCursorKeys, type BoardCursorKeysOptions } from './useBoardCursorKeys'
 
 // The shared 2-D board-cursor keyboard: arrows move the cursor, a letter
 // places, Backspace removes, and the commit fires on the keys its OWN action
 // carries — Enter for a submit, Enter or Space for a peel. Everything is inert
-// while disabled, and each binding says so — the commit on its own narrower
+// while disabled, and each action says so — the commit on its own narrower
 // gate, the rest together on `enabled`.
 //
 // The dispatcher's gates are NOT retested here: a modified chord never matches
@@ -67,7 +67,7 @@ describe('useBoardCursorKeys', () => {
     peel.view.unmount()
   })
 
-  it('hands back the commit binding, so a game can place it as a button', async () => {
+  it('hands back the commit action, so a game can place it as a button', async () => {
     const cb = vi.fn()
     const { result, unmount } = renderHook(() =>
       useBoardCursorKeys({
@@ -109,9 +109,9 @@ describe('useBoardCursorKeys', () => {
   })
 
   describe('what the four say about themselves', () => {
-    // Each binding's state by id, read off the stack the dispatcher reads.
+    // Each action's state by id, read off the stack the dispatcher reads.
     const states = () =>
-      Object.fromEntries(getBoundActions().map((b) => [b.id, b.describe('button').state]))
+      Object.fromEntries(getActions().map((b) => [b.id, b.describe('button').state]))
 
     it('with canCommit false only the commit is disabled; the cursor keys stay live', () => {
       const cb = setup({ canCommit: false })

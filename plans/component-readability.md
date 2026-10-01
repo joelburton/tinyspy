@@ -94,7 +94,7 @@ it works.
 - **BoardCol owns the move:** `usePickedWord` (the pick, and `shownPickedWord`),
   `useSubmitGuess` (the RPC, the local refusal, `inFlightWord`), and
   `useBoardColActions` (Submit, Clear).
-- **One in-flight guard:** a bound action's own `pending` blocks a second
+- **One in-flight guard:** an action's own `pending` blocks a second
   Submit. There's no `isSubmitting` alongside it.
 - **Before the return,** complex conditions become named values
   (`isDecidedByShown`, `buttonShow`, `isLocalFeedbackShown`).

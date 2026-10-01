@@ -7,7 +7,7 @@ import { useCelebration } from '@/common/terminal/useCelebration'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { useBindAction, type ActionState } from '@/common/actions/useBindAction'
-import { useBoundAction } from '@/common/actions/boundActionsStore'
+import { useAction } from '@/common/actions/actionsStore'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { useFeedbackSlot, useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
@@ -304,7 +304,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
     return cells.get(cellKey(row, col))?.fill ?? null
   }
 
-  // The grid's own keys, as the bound actions they are: a binding is asked what
+  // The grid's own keys, as the actions they are: an action is asked what
   // it does at the moment the key lands.
   const { actRebus } = useGridKeyboard({
     // Terminal keeps the keys ALIVE for navigation — walking the revealed grid
@@ -768,7 +768,7 @@ type Explained =
   // ⌥S is bound by the header's scratchpad mark, so this row is a reference to
   // that action rather than a second copy of it — and drops out on a page that
   // has no scratchpad.
-  const actOpenScratchpad = useBoundAction('act-open-scratchpad')
+  const actOpenScratchpad = useAction('act-open-scratchpad')
 
   // The FULL crosswords menu (crossplay order, single column): the play actions
   // ALSO live here, each advertising its own key, because crossplay's menu is

@@ -211,7 +211,7 @@ left per game.
 |---|---|---|
 | **`Board`** | one board: its tiles and the marks on them, their display order and the control floated on it (the Shuffle), and the keyboard cursor over them | grouped props down (`tiles`, `marks`, `historyView`); a pick up |
 | **`BoardCol`** | the move being built and sent: the pending move, the move RPC, Clear and Submit; draws `Board` and the below-board slot | takes the board to show (live or a snapshot) and `isBoardInteractive` |
-| **`InfoCol`** | arranging the shared pieces (`OpponentStrip`, `InfoActionsRow`, `SetupDisclosure`, `EventLog`) around the game's readout | props down, including the bound actions it places; a few named callbacks up. Next to no state |
+| **`InfoCol`** | arranging the shared pieces (`OpponentStrip`, `InfoActionsRow`, `SetupDisclosure`, `EventLog`) around the game's readout | props down, including the actions it places; a few named callbacks up. Next to no state |
 | **`PlayArea`** | game data (`useGame`), the RPCs, and the state both columns need (the viewed turn, the local slot) | wires the two columns together |
 
 **The load-bearing contract: `BoardCol` owns the move; `PlayArea` hands it the
@@ -304,15 +304,15 @@ needed.
 
 ### The commands, and the one order three readers keep
 
-Every command is in one block, each handler declared directly above the binding
+Every command is in one block, each handler declared directly above the action
 that runs it. **None of them is a `useCallback`**: `useBindAction` refreshes
-its live half through a ref during render, and the bound value's identity turns
+its options through a ref during render, and the action's identity turns
 on `pending` alone. **No handler carries an in-flight flag**: `pending` already
 grays the button and the menu row, so a `const [hinting, setHinting]` would be a
 second source for one fact.
 
-The bindings block, the info column's prop list and the game menu's rows read in
-one order, because the row and the menu are two views of one set of bindings.
+The actions block, the info column's prop list and the game menu's rows read in
+one order, because the row and the menu are two views of one set of actions.
 psychicnum's is:
 
 ```

@@ -216,7 +216,7 @@ function PlayArea({
   // ─── Derived ────────────────────────────────────────
   // Who I am in this game and what I may still do, read off the props and the
   // loader's rows. Named here because the sections below share them: the
-  // standing condition, the bindings' `describe`s, the print model and both
+  // standing condition, the actions' `describe`s, the print model and both
   // columns all ask the same questions, and they must not answer them
   // differently.
 
@@ -233,7 +233,7 @@ function PlayArea({
     [setup, players],
   )
 
-  // Seat/roster derivations, read by the print model (built in the binding's
+  // Seat/roster derivations, read by the print model (built in the action's
   // run) and the render alike, so both see the SAME values.
   const peer = players.find((p) => p.user_id !== authSession.user.id)
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
@@ -368,7 +368,7 @@ function PlayArea({
 
   // ─── The commands, bound ────────────────────────────
   // Every command this game offers, in one order that three readers keep: this
-  // block, the info column's prop list, and the menu's rows. A binding is what
+  // block, the info column's prop list, and the menu's rows. An action is what
   // the button, the menu row and the key all read, so none of them can drift
   // from another — and `pending` grays every surface of one for the length of
   // its run, so no handler keeps an in-flight flag of its own.
@@ -433,7 +433,7 @@ function PlayArea({
     }
   }
 
-  // Its `+`, its menu row and its terminal button, from one binding. The
+  // Its `+`, its menu row and its terminal button, from one action. The
   // registry asks NEW_GAME_CONFIRM mid-play (starting one shelves this game,
   // not ends it) and goes straight through at the end. The shared run's single
   // flight is what stops a second press sampling a second board.
@@ -477,7 +477,7 @@ function PlayArea({
 
   // ─── The menu ───────────────────────────────────────
   // `buildGameMenu` supplies the framing (Help and chat above, Back to club
-  // below); the middle is this game's own rows, each one a binding made above,
+  // below); the middle is this game's own rows, each one an action made above,
   // so a row's words, glyph, key and availability come from the action rather
   // than being typed a second time here.
 

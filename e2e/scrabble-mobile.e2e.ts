@@ -66,7 +66,7 @@ test.describe('scrabble mobile', () => {
 
       // … and the board + the whole rack/controls block are on-screen. The
       // Submit button is the bottom-right of the controls row (its own second
-      // row on the phone), so it's the binding below-board corner.
+      // row on the phone), so it's the action below-board corner.
       const boardBox = (await page.locator('[data-board]').boundingBox())!
       expect(boardBox.x + boardBox.width).toBeLessThanOrEqual(m.iw + 1)
       const rackBox = (await rack.boundingBox())!

@@ -10,7 +10,7 @@ import { setShownWordEditDialog, type ShownWordEditDialog } from './wordEditStor
 import { askConfirmation } from '../floating-panels/confirmationService'
 import { Dialog } from '../floating-panels/Dialog'
 import { cls } from '../utils/cls'
-import actionRow from '../floating-panels/modalActions.module.css'
+import buttonRow from '../floating-panels/modalButtons.module.css'
 import styles from './WordEditDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
@@ -365,13 +365,13 @@ export function WordEditDialog({ request }: { request: ShownWordEditDialog }) {
               <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
               {/* Delete is the LEADING action — alone on the left, away from the
                   pair you reach for on the way out. */}
-              <div className={cls(actionRow.modalActions, styles.pinBottom)}>
+              <div className={cls(buttonRow.modalButtons, styles.pinBottom)}>
                 {editing && (
                   <StandardButton
                     show="label"
                     label="Delete"
                     tone="destructive"
-                    className={actionRow.leading}
+                    className={buttonRow.leading}
                     onClick={() => void onDelete(values.note)}
                     disabled={busy}
                   />

@@ -4,7 +4,7 @@ import { cls } from '@/common/utils/cls'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import type { Card as CardCode } from '../lib/cards'
 import type { FlashKind } from '../lib/flash'
@@ -33,7 +33,7 @@ type Props = {
   // Ask for a hint. The SAME binding the info column places, so the two copies
   // can't come to say different things — including the gray "No hints when
   // competing" face, which the action carries.
-  actHint: BoundAction
+  actHint: Action
   onCardClick: (card: CardCode) => void
   // PlayArea's below-board slot — a claim's result, the terminal verdict,
   // "you're out", or the your-turn prompt.
@@ -64,7 +64,7 @@ type Props = {
  * to read their own score — and, in this game, to ask for a hint. **The hint
  * button is duplicated there on purpose**: asking is a routine move here, not a
  * rescue, and routine moves belong on the play surface. Both copies are the same
- * BOUND ACTION, so they cannot come to say different things.
+ * ACTION, so they cannot come to say different things.
  */
 export function BoardCol({
   board,

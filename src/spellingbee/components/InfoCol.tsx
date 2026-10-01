@@ -7,7 +7,7 @@ import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { WordList, type WordListRow } from '@/common/word-list/WordList'
@@ -21,7 +21,7 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
  * state (RankBar + Stats) → OpponentStrip (compete) → action row → setup
  * disclosure → the found-words `<WordList>`. There is no help line. Every
- * command arrives as a bound action this column simply places — what it does,
+ * command arrives as an action this column simply places — what it does,
  * whether it applies right now and which key also fires it are the action's
  * own business. Prop names match the other games' columns for the same idea
  * (docs/playarea.md).
@@ -84,19 +84,19 @@ export function InfoCol({
   // Who has conceded — the strip's "out" cell mid-game.
   concededIds: Set<string>
 
-  // ── Action row — the same bindings, in the order the menu lists them ──
+  // ── Action row — the same actions, in the order the menu lists them ──
   // Restart THIS board — same letters, finds wiped. A button only at terminal.
-  actRestart: BoundAction
+  actRestart: Action
   // Start a fresh follow-up game — same setup, new board + id. A button only
   // at terminal; disables itself while the create is in flight.
-  actNewGame: BoundAction
+  actNewGame: Action
   // Drop out of a race while the others play on — hidden outside compete.
-  actConcede: BoundAction
+  actConcede: Action
   // Stop the game for the whole table — coop's exit; it hides itself in a race.
-  actStopGame: BoundAction
+  actStopGame: Action
   // Leave for the club — the shell's own action, off `ctx.menu`. It navigates
   // directly at terminal and routes through the suspend-confirm flow mid-game.
-  actBackToClub: BoundAction
+  actBackToClub: Action
 
   // ── Setup disclosure ──
   // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
@@ -156,7 +156,7 @@ export function InfoCol({
         {/* ONE row, one order, every action listed once: which of them is on
             screen is each action's own answer, since `<ActionButton>` draws
             nothing for one that says it is hidden. The game menu lists the same
-            bindings in the same order (docs/playarea.md). Icon-only: the
+            actions in the same order (docs/playarea.md). Icon-only: the
             tooltips carry the labels. */}
         <InfoActionsRow message={rowMessage}>
           <ActionButton action={actRestart} show="icon" />

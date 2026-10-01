@@ -1,8 +1,8 @@
 // cs-blessed-actions
 
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { ACTIONS, type ActionId, type ActionSpec } from './registry'
-import { registerBinding } from './boundActionsStore'
+import { ACTIONS, type ActionId, type ActionDefinition } from './registry'
+import { registerAction } from './actionsStore'
 import type { AppIcon } from '../icons/icons'
 import { askConfirmation, withdrawConfirmation } from '../floating-panels/confirmationService'
 import type { ConfirmAnswer, ConfirmOptions } from '../floating-panels/confirmations'
@@ -37,7 +37,7 @@ export type ActionState = 'active' | 'hidden' | 'disabled'
 export type ActionAsker = 'button' | 'menu' | 'help' | 'key'
 
 /**
- * What a binding says about itself when asked. The words and the glyph are
+ * What an action says about itself when asked. The words and the glyph are
  * optional and fall back to the registry's, so an action that always looks
  * the same answers with a bare state. What may vary here and what may not is
  * doc.md's ("how an action looks now versus what it is").
@@ -57,8 +57,8 @@ export type Described = {
   tooltip?: string
 }
 
-/** The live half a binding supplies. */
-export type LiveAction = {
+/** The half of an action the page that binds it supplies. */
+export type BindActionOptions = {
   // Do the thing. A pattern action (any letter, any arrow) receives the key
   // that fired it. May be async; the wrapper waits for it.
   run: (key?: string) => void | Promise<void>
@@ -78,9 +78,9 @@ export type LiveAction = {
 
 /** A registry entry joined to a game's callbacks: the whole action, and the
  *  only shape any surface sees. */
-export type BoundAction = {
+export type Action = {
   id: ActionId
-  spec: ActionSpec
+  defn: ActionDefinition
   run: (key?: string) => void
   // How this looks to the surface asking — every reader names itself.
   describe: (asker: ActionAsker) => Described
@@ -113,26 +113,26 @@ function described(answer: Described | ActionState): Described {
  * gives it one and the game is not terminal, and is single-flight, so every
  * surface shares one wait. doc.md has the whole model.
  */
-export function useBindAction(id: ActionId, live: LiveAction): BoundAction {
-  const spec = ACTIONS[id] as ActionSpec
+export function useBindAction(id: ActionId, options: BindActionOptions): Action {
+  const defn = ACTIONS[id] as ActionDefinition
 
-  // The live half changes every render (it closes over the game's state), so it
-  // is read through a ref and nothing below is rebuilt when it does. Refreshed
+  // The options change every render (they close over the game's state), so they
+  // are read through a ref and nothing below is rebuilt when it does. Refreshed
   // DURING the render, not in an effect: `describe()` is read while the tree is
   // rendering (an info column asks about an action its PlayArea bound in the
   // same pass), and an effect-refreshed ref would answer from the render
   // before. The rule this waives guards a discarded render's writes outliving
   // it; nothing here is at risk, since the ref is only read back in this render
-  // or later at keypress. It also keeps the bound action's identity still,
+  // or later at keypress. It also keeps the action's identity still,
   // which a game's menu effect lists in its deps.
-  const liveRef = useRef(live)
+  const optionsRef = useRef(options)
   // eslint-disable-next-line react-hooks/refs -- read back in this same render
-  liveRef.current = live
+  optionsRef.current = options
 
-  // Whether this binding is still mounted, and the question it is waiting on.
-  // The question is drawn at the app root, above every route, so it outlives a
-  // binding that unmounts under it — a route change, or a pause taking the play
-  // surface away — and the answer would then run through `liveRef`, which
+  // Whether this action is still mounted, and the question it is waiting on.
+  // The question is drawn at the app root, above every route, so it outlives an
+  // action that unmounts under it — a route change, or a pause taking the play
+  // surface away — and the answer would then run through `optionsRef`, which
   // outlives it too. Unmounting takes the question back and refuses the answer.
   const mountedRef = useRef(true)
   const askingRef = useRef<ConfirmOptions | null>(null)
@@ -149,10 +149,10 @@ export function useBindAction(id: ActionId, live: LiveAction): BoundAction {
   // having to remember to ask — and stops one of them from forgetting.
   const ask = useCallback(
     async (key?: string) => {
-      const asked = liveRef.current
+      const asked = optionsRef.current
       // At terminal the question is not asked — there is nothing left to
       // interrupt.
-      const question = spec.confirm
+      const question = defn.confirm
       let answer: ConfirmAnswer = 'confirm'
       if (question && !asked.terminal) {
         askingRef.current = question
@@ -161,34 +161,34 @@ export function useBindAction(id: ActionId, live: LiveAction): BoundAction {
         } finally {
           askingRef.current = null
         }
-        // The binding that asked has gone: its subject is gone with it.
+        // The action that asked has gone: its subject is gone with it.
         if (answer === null || !mountedRef.current) return
       }
       // Read AGAIN after the wait: the game keeps rendering while the question
       // is up (realtime, the clock), and the body that runs must be the one
       // from the moment of the answer, not the moment of the press.
-      const now = liveRef.current
+      const now = optionsRef.current
       if (answer === 'alternative') {
         await now.runAlternative?.()
         return
       }
       await now.run(key)
     },
-    [spec],
+    [defn],
   )
   // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
   // On the handler, so the button, the menu row and the key are covered at once.
   const [run, pending] = useSingleFlight(ask)
 
   const describe = useCallback((asker: ActionAsker) => {
-    const answer = described(liveRef.current.describe(asker))
+    const answer = described(optionsRef.current.describe(asker))
     // A placement may narrow what `key` says, never widen it (see ActionAsker).
     // Checked here because this is the one road every read takes, and only in
     // development: the cost is a second `describe` call, and what it catches —
     // a control that works while its chord is dead — is invisible until
     // someone presses the key.
     if (import.meta.env.DEV && asker !== 'key' && answer.state !== 'hidden') {
-      if (described(liveRef.current.describe('key')).state === 'hidden') {
+      if (described(optionsRef.current.describe('key')).state === 'hidden') {
         console.error(
           `[actions] ${id} draws for '${asker}' but is hidden to the keyboard — ` +
             `a placement may narrow what 'key' says, never widen it.`,
@@ -201,24 +201,24 @@ export function useBindAction(id: ActionId, live: LiveAction): BoundAction {
   // Identity changes only when `pending` flips, so a surface holding this value
   // is holding something that stays true: `run` and `describe` are stable and
   // read the ref, and `pending` is the one thing on here that is a snapshot.
-  const bound = useMemo<BoundAction>(
-    () => ({ id, spec, run, describe, pending }),
-    [id, spec, run, describe, pending],
+  const action = useMemo<Action>(
+    () => ({ id, defn, run, describe, pending }),
+    [id, defn, run, describe, pending],
   )
 
   // The stack entry, refreshed during the render for the same reason as above:
   // the help list draws from this stack while rendering, and the dispatcher
   // reads it at keypress — both want the newest one, neither the last.
-  const boundRef = useRef(bound)
+  const actionRef = useRef(action)
   // eslint-disable-next-line react-hooks/refs -- the stack must hold this render's
-  boundRef.current = bound
+  actionRef.current = action
 
   // Join the stack for as long as this is mounted — binding is offering, and
   // leaving is what takes the key back. Empty deps: the entry is the ref, so
   // it never needs re-registering.
   useEffect(function joinTheBindingStack() {
-    return registerBinding(boundRef)
+    return registerAction(actionRef)
   }, [])
 
-  return bound
+  return action
 }

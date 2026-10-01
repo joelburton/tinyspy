@@ -82,7 +82,7 @@ unmounted the moment the pause clears, so an action bound inside it would leave
 the dispatcher's stack with it. `GamePage` sits above the boundary and stays
 mounted, so it binds both and the overlay merely places them. Its `act-stop-game`
 hides itself unless paused, which is what keeps it from ever being live alongside
-the game's own binding of that action.
+the game's own `act-stop-game`.
 
 **The render tree.** Only the banner is drawn from this folder. The suspend
 question is not a component here at all — `suspendConfirm(title)` is words, and
@@ -98,9 +98,9 @@ GamePage                              the shell, above the pause — stays mount
                         ├── DotActor         "X paused the game" (members/)
                         ├── StandardButton   Resume (buttons/)
                         └── ActionButton × 2 back to club, stop game — both
-                                             bound by useBoundPageActions
+                                             bound by usePageActions
 
-useBoundPageActions: Back to club, multiplayer, mid-game:
+usePageActions: Back to club, multiplayer, mid-game:
 └── askConfirmation(suspendConfirm(title))    drawn by ConfirmationHost, at the
                                               app root (floating-panels/)
 ```

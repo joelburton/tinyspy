@@ -225,7 +225,7 @@ export function BoardCol({
   }, [outerLetters, shuffleSeed])
 
   // A fresh visual scan of the SAME letters, never a move. The floating button
-  // below is this same binding.
+  // below is this same action.
   const actShuffle = useBindAction('act-shuffle', {
     describe: () => 'active',
     run: () => setShuffleSeed((s) => s + 1),

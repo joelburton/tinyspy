@@ -8,7 +8,7 @@
   gap: var(--spacer-3);
   justify-content: flex-end;
   align-items: center;
-  /* Tighter above than the shared `modalActions` row's `--spacer-1`: this row
+  /* Tighter above than the shared `modalButtons` row's `--spacer-1`: this row
    * ends a page, not a dialog, and it follows the failure line directly. */
   margin-top: var(--spacer-4);
 }

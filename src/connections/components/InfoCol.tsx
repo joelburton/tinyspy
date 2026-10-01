@@ -3,7 +3,7 @@
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -18,7 +18,7 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  * connections' info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
  * whose-turn line (turn-order) → OpponentStrip (compete) → action row → the hint
- * list → help → setup disclosure → event log. Every command is a BOUND ACTION the
+ * list → help → setup disclosure → event log. Every command is an ACTION the
  * PlayArea handed down (`actHint`, `actStopGame`, …), so this column places buttons
  * and decides nothing about them — an action that does not apply here draws
  * nothing, which is how one row serves coop and compete. What is a callback is
@@ -90,23 +90,23 @@ export function InfoCol({
   // ── Action row — listed in the order the row draws them, which is the order
   //    the game menu lists them too (docs/playarea.md) ──
   // Unfold / fold the inline hint list. Carries its own two faces.
-  actHint: BoundAction
+  actHint: Action
   // Show the categories nobody solved — or put them away, bringing back the
   // board as the game ended. A local display toggle; nothing is written, and it
   // carries its own two faces (see PlayArea's useSolutionReveal).
-  actReveal: BoundAction
+  actReveal: Action
   // Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle.
-  actRestart: BoundAction
+  actRestart: Action
   // Start the NEXT unplayed daily puzzle — connections' archive is dated, so
   // this walks forward rather than re-rolling a board. Disables itself while
   // the create is in flight, so a slow network reads as "working".
-  actNewGame: BoundAction
+  actNewGame: Action
   // Drop out of a race while the others play on — hidden outside compete.
-  actConcede: BoundAction
+  actConcede: Action
   // Stop the game for the whole table — coop's exit; it hides itself in a race.
-  actStopGame: BoundAction
+  actStopGame: Action
   // Leave for the club — the shell's own action, off `ctx.menu`.
-  actBackToClub: BoundAction
+  actBackToClub: Action
 
   // ── The hint list ──
   // The board's 4 categories — feeds the inline HintList (first-tile reveals).
@@ -185,7 +185,7 @@ export function InfoCol({
             screen right now is each action's own answer — `<ActionButton>` draws
             nothing for an action that says it is hidden — so no branch here can
             disagree with what the menu shows. The game menu lists the same
-            bindings in this same order (docs/playarea.md). */}
+            actions in this same order (docs/playarea.md). */}
         <InfoActionsRow message={rowMessage}>
           {/* Hints toggles the inline HintList below; aria-pressed says whether
               it is unfolded. */}

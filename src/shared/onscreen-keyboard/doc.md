@@ -14,9 +14,9 @@ The caps are not all the same kind of thing, and that is the distinction worth
 carrying away. The 26 letters are **keys** — they call back with a character and
 nothing more. A letter is not a command, and making each one an action would
 mean twenty-six registry entries each hard-coding its own letter. ⌫ and Enter
-are **the game's own bindings**, the same two the physical keyboard answers to,
+are **the game's own actions**, the same two the physical keyboard answers to,
 worn here through `actionSurface`. That is why a cap and its key can never
-disagree about whether the move is available: they are one binding drawn twice.
+disagree about whether the move is available: they are one action drawn twice.
 It is also why Enter can sit gray over an empty guess while every letter beside
 it is live.
 

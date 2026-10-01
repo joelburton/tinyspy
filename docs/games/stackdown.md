@@ -442,7 +442,7 @@ entry](../playarea.md#text-entry--capture-not-input)). What stackdown cannot use
 is `<WordEntryArea>`, the row with the capture keyboard attached: its "entry" is
 a grid of picked-up **tiles**, not a text buffer, so `WordEntryArea`'s capture
 keyboard, arrow-history and string `value` have nothing to bind to. stackdown
-binds its own ⌫ and ↵ and hands the row those two bindings, which is what makes
+binds its own ⌫ and ↵ and hands the row those two actions, which is what makes
 its buttons the same buttons as everywhere else.
 
 - **Filling the fifth slot does not submit.** You commit deliberately — the
@@ -552,14 +552,14 @@ the pill.
   board + WordEntry input engine + the local feedback slot; takes the board to
   render — live or a `lib/history` snapshot — plus `readOnly`, and emits the
   completed word up), `InfoCol` (the info column: state, compete OpponentStrip,
-  action row of Reveal-hint/Reveal-word cheats + Stop/Concede as bound actions,
+  action row of Reveal-hint/Reveal-word cheats + Stop/Concede as actions,
   help, setup, the asked-for words reveal, and the GameEventLog log), `PlayArea`
   (the thin two-column coordinator: `useGame` + the submit + game-over + the
   history `historyId`; in compete it filters the log to the caller's own so it
   doesn't swap to an everyone's-words view at terminal), `SetupForm` (the
   word-difficulty band + timer — the board is dealt at random from the chosen
   band's pool), `Help`.
-- **Keyboard input** (in `BoardCol`, as three bound actions — `act-pick-tile`,
+- **Keyboard input** (in `BoardCol`, as three actions — `act-pick-tile`,
   `act-delete-last`, `act-submit` — so each key and its control are one thing):
   Backspace returns the most recent tile; a letter key plays the matching tile —
   but only when exactly one exposed tile bears it (the word is the selection

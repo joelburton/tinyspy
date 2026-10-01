@@ -7,7 +7,7 @@ import { gametypes } from '@/gametypes'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { FailureLine } from '../forms/FailureLine'
 import { ModeBadge } from './ModeBadge'
-import actionRow from '../floating-panels/modalActions.module.css'
+import buttonRow from '../floating-panels/modalButtons.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { CheckboxListField } from '../fields/CheckboxListField'
@@ -141,7 +141,7 @@ export function EditClubModal({
             />
 
             <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
-            <div className={actionRow.modalActions}>
+            <div className={buttonRow.modalButtons}>
               <CancelButton show="label" onClick={onCancel} disabled={busy} />
               <FormSubmitButton
                 show="label"

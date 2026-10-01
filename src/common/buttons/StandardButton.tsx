@@ -208,7 +208,7 @@ export function StandardButton({
       // it is what the bubble says and what tests find the button by.
       aria-label={ariaLabel}
       // A glyph with no words, said in the DOM so another stylesheet can ask.
-      // `modalActions` uses it to keep its text-button width floor off a lone
+      // `modalButtons` uses it to keep its text-button width floor off a lone
       // icon; the class that draws it is hashed per module and unreachable
       // from there.
       data-icon-only={iconOnly ? '' : undefined}

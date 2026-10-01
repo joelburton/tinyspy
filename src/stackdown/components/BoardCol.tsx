@@ -175,7 +175,7 @@ export function BoardCol({
   }, [canDelete, localFeedbackSlot, retractTo, currentWord.length])
 
   // ─── The board's three keys ───────────────────────────────────
-  // Each is ONE binding behind both its control and its key. DISABLED rather
+  // Each is ONE action behind both its control and its key. DISABLED rather
   // than hidden where they don't apply: the ⌫ / Submit buttons keep their slot
   // so the region never reflows (the reserve-the-slot rule, docs/ui.md). The
   // history viewer's any-key exit needs no help from this — the dispatcher gives

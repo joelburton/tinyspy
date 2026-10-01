@@ -27,9 +27,9 @@ import type { GamePlayer } from '@/common/members/member'
 import type { GameEnding } from '@/common/terminal/gameEnding'
 import type { PsychicnumGameStatus, PsychicnumPlayerStatus } from '../lib/statuses'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { EventRow } from '../hooks/useGame'
@@ -145,9 +145,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -193,9 +193,9 @@ const PLUS = { key: '+' }
 const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
 const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
 
-/** The live binding for an action — the same `run` its key, its menu row and
+/** The page's action for an id — the same `run` its key, its menu row and
  *  its button all fire. */
-const bound = (id: ActionId) => getBoundActions().find((b) => b.id === id)!
+const getAction = (id: ActionId) => getActions().find((action) => action.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
@@ -601,7 +601,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
  */
 describe('psychicnum PlayArea — the secrets reveal once the game has ended', () => {
   /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would
-   *  draw — which is what a bound action and a hand-written row have in common. */
+   *  draw — which is what an action and a hand-written row have in common. */
   function menuItems(ctx: PlayAreaLoaderProps) {
     const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
     const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
@@ -813,8 +813,8 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
 })
 
 /**
- * The keys, through the app-root dispatcher. Each key is a bound action's, so
- * what these pin is the wiring: the chord reaches the binding, the binding asks
+ * The keys, through the app-root dispatcher. Each key is an action's, so
+ * what these pin is the wiring: the chord reaches the action, the action asks
  * the registry's question mid-game and skips it once the game has ended, and
  * the answer runs the same RPC the button does.
  */
@@ -904,7 +904,7 @@ describe('psychicnum PlayArea — the keys', () => {
     })
     const nextShuffleDiffers = () => vi.spyOn(Math, 'random').mockReturnValue(0.999999)
 
-    // Awaited: the bound run is async (single-flight, then the question that
+    // Awaited: the action's run is async (single-flight, then the question that
     // isn't asked here), so the re-order lands a tick after the keystroke.
     it('rearranges the same words mid-game, with no round trip', async () => {
       render(<WithKeys {...makeCtx()} />)
@@ -921,7 +921,7 @@ describe('psychicnum PlayArea — the keys', () => {
 
     it('still works on a finished board — the fidget is deliberate', async () => {
       render(<WithKeys {...ended()} />)
-      expect(bound('act-shuffle').describe('button').state).toBe('active')
+      expect(getAction('act-shuffle').describe('button').state).toBe('active')
       const before = boardOrder()
 
       nextShuffleDiffers()
@@ -931,7 +931,7 @@ describe('psychicnum PlayArea — the keys', () => {
   })
 
   describe('Restart', () => {
-    // Keyless, so it is fired as the menu row would fire it: the bound run, which
+    // Keyless, so it is fired as the menu row would fire it: the action's run, which
     // is where the registry's question is asked.
     it('mid-game asks first, and Keep playing wipes nothing', async () => {
       const user = userEvent.setup()
@@ -942,7 +942,7 @@ describe('psychicnum PlayArea — the keys', () => {
         </>,
       )
 
-      act(() => bound('act-restart').run())
+      act(() => getAction('act-restart').run())
       expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
       await user.click(screen.getByRole('button', { name: 'Keep playing' }))
       await waitFor(() => expect(screen.queryByText('Restart this game?')).not.toBeInTheDocument())
@@ -958,7 +958,7 @@ describe('psychicnum PlayArea — the keys', () => {
         </>,
       )
 
-      act(() => bound('act-restart').run())
+      act(() => getAction('act-restart').run())
       await answer(user, 'Restart')
       await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
     })
@@ -992,7 +992,7 @@ describe('psychicnum PlayArea — the selection cursor', () => {
   /** The words wearing the cursor ring — at most one. */
   const ringed = () => WORDS.filter((w) => /selectionCursor/.test(tileFor(w).className))
   const isPicked = (word: string) => /picked/.test(tileFor(word).className)
-  // Awaited: a bound action's run settles a microtask after the keystroke.
+  // Awaited: an action's run settles a microtask after the keystroke.
   const key = (k: string) => act(async () => press({ key: k }))
   const guessed = (word: string) =>
     waitFor(() => expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_guess: word }))

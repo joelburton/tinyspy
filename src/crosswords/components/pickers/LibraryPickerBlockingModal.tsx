@@ -145,7 +145,7 @@ export function LibraryPickerBlockingModal({ clubHandle, onPick, onClose }: Prop
   }, [puzzles, query])
 
   return (
-    <BlockingModal title="Library" onClose={onClose} actions={<CancelButton show="label" onClick={onClose} />}>
+    <BlockingModal title="Library" onClose={onClose} buttons={<CancelButton show="label" onClick={onClose} />}>
       <div className={styles.body}>
         <input
           className={styles.search}

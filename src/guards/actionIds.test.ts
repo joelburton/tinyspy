@@ -3,7 +3,7 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { ACTIONS, type ActionSpec } from '../common/actions/registry'
+import { ACTIONS, type ActionDefinition } from '../common/actions/registry'
 import { isPattern } from '../common/actions/chord'
 
 /**
@@ -22,7 +22,7 @@ import { isPattern } from '../common/actions/chord'
  * The second check reads the source rather than the types on purpose — the
  * variable name is not a value and there is nothing else to ask.
  *
- * A binding assigned to NOTHING is fine and is not checked. Some bindings are
+ * An action assigned to NOTHING is fine and is not checked. Some actions are
  * offered rather than placed — the shell's four keys, bound at the app root by
  * a host that renders neither a button nor a row for them — and there is no
  * second spelling to keep in step when nothing holds the value.
@@ -60,7 +60,7 @@ describe('every chord says what shift is doing', () => {
     // about somebody's keyboard layout.
     const wrong: string[] = []
     for (const [id, spec] of Object.entries(ACTIONS)) {
-      for (const key of (spec as ActionSpec).keys ?? []) {
+      for (const key of (spec as ActionDefinition).keys ?? []) {
         if (isPattern(key)) continue
         // A character key is one printable character. Space is `' '`, which is
         // a named key wearing a character's clothes.
@@ -97,7 +97,7 @@ describe('action ids', () => {
 
   it('are bound to a variable spelled the same way', () => {
     // `const actNewGame = useBindAction('act-new-game'` — the whole shape, so
-    // a binding assigned to nothing at all is caught too.
+    // an action assigned to nothing at all is caught too.
     const call = /(?:const|let)\s+([A-Za-z0-9_]+)\s*=\s*useBindAction\(\s*'([^']+)'/g
     const wrong: string[] = []
     for (const file of sourceFiles()) {

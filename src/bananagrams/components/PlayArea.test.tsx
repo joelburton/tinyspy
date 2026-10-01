@@ -24,9 +24,9 @@ import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { ProgressRow } from '../hooks/useGame'
@@ -104,9 +104,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -156,8 +156,8 @@ const press = (init: KeyboardEventInit) =>
     fireEvent.keyDown(document.body, init)
   })
 
-/** What a bound action says about itself right now. */
-const stateOf = (id: string) => getBoundActions().find((b) => b.id === id)?.describe('button').state
+/** What an action says about itself right now. */
+const stateOf = (id: string) => getActions().find((b) => b.id === id)?.describe('button').state
 
 beforeEach(() => {
   h.game = loaded()
@@ -315,7 +315,7 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
     const { rerender } = render(<PlayArea {...makeCtx({ players: two })} />)
     expect(stateOf('act-stop-game')).toBe('hidden')
     expect(stateOf('act-concede')).toBe('active')
-    // The button follows the binding: only Concede draws.
+    // The button follows the action: only Concede draws.
     expect(document.querySelector('button[data-action="act-stop-game"]')).toBeNull()
     expect(document.querySelector('button[data-action="act-concede"]')).not.toBeNull()
 
@@ -326,7 +326,7 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
     })} />)
     expect(stateOf('act-stop-game')).toBe('active')
     expect(stateOf('act-concede')).toBe('hidden')
-    // …and the button follows the binding: the "You conceded" row draws Stop,
+    // …and the button follows the action: the "You conceded" row draws Stop,
     // the one flag.
     expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()

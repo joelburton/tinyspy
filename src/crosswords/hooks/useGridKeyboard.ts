@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useBindAction, type ActionState, type BoundAction } from '@/common/actions/useBindAction'
+import { useBindAction, type ActionState, type Action } from '@/common/actions/useBindAction'
 import {
   advanceAfterFill,
   jumpClue,
@@ -14,7 +14,7 @@ import {
 import type { Cell, MarkSide } from '../lib/types'
 
 /** The live play state the grid's keys act on. PlayArea passes it fresh every
- *  render — there is no ref, because a binding is asked what it does at the
+ *  render — there is no ref, because an action is asked what it does at the
  *  moment the key is pressed. */
 export type GridKeysOptions = {
   /** May the board be worked at all? False while the game is paused or this
@@ -57,15 +57,15 @@ export type GridKeysOptions = {
   onMark: (row: number, col: number, side: MarkSide) => void
 }
 
-/** What the caller gets back: the rebus binding, which is also a menu row. The
+/** What the caller gets back: the rebus action, which is also a menu row. The
  *  rest are keys with no control of their own — nothing on screen "is" the
  *  left arrow. */
 export type GridKeys = {
-  actRebus: BoundAction
+  actRebus: Action
 }
 
 /**
- * The crossword grid's keys, as the bound actions they are — the port of
+ * The crossword grid's keys, as the actions they are — the port of
  * crossplay's PuzzleView keyboard.
  *
  * A letter fills the cell under the cursor and moves on; ⌫ clears it and
@@ -74,7 +74,7 @@ export type GridKeys = {
  * rebus overlay; `#` jumps to a clue number; `|` and `_` cycle a cryptic
  * word-break mark on a cell's right / bottom edge.
  *
- * **Nothing here reads the window.** Each key is a bound action, so the gates
+ * **Nothing here reads the window.** Each key is an action, so the gates
  * belong to the one dispatcher: a modified chord
  * never matches a pattern key, a keystroke aimed at chat never reaches an
  * action, and a floating panel with focus stops every one of them.

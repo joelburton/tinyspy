@@ -314,7 +314,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
     run: toggleSolution,
   })
 
-  // A plain function, rebuilt every render: the binding below reads it at click
+  // A plain function, rebuilt every render: the action below reads it at click
   // time, so `setup` and `players` are whatever the last realtime refetch left,
   // and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
@@ -343,7 +343,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
     }
   }
 
-  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // New game — its `+`, its menu row and its terminal button, from one action.
   // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
   // create_game clears the club's current-view flag, so it stays resumable — the
   // copy says shelved, not ended) and goes straight through at terminal, where
@@ -396,10 +396,10 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   })
 
   // The FULL wordiply menu. `buildGameMenu` supplies the framing (Help + chat
-  // above, Back to club below); the middle is this game's own rows, each one a
-  // binding it already made — so a row's words, glyph, key and availability come
+  // above, Back to club below); the middle is this game's own rows, each one an
+  // action it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. Reveal wears the
-  // same two faces here as on the terminal button, because it IS that binding.
+  // same two faces here as on the terminal button, because it IS that action.
   useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({

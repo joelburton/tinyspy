@@ -1,6 +1,6 @@
 // cs-blessed-actions
 
-import type { BoundAction } from './useBindAction'
+import type { Action } from './useBindAction'
 
 /**
  * A control's hover bubble: what it is called, with the action's key on the end.
@@ -15,7 +15,7 @@ import type { BoundAction } from './useBindAction'
  * rule everywhere: a second chord is a second way to press it, not a second
  * thing to teach.
  */
-export function nameWithKey(name: string, action: BoundAction): string {
-  const chord = action.spec.keys?.[0]?.label
+export function nameWithKey(name: string, action: Action): string {
+  const chord = action.defn.keys?.[0]?.label
   return chord === undefined ? name : `${name} · ${chord}`
 }

@@ -133,7 +133,7 @@ live game asks only when there are other players to surprise.
 ### Dialog buttons
 
 Every dialog's buttons sit right-justified, **the primary action rightmost**
-and Cancel to its left, from one shared rule (`modalActions.module.css`). The
+and Cancel to its left, from one shared rule (`modalButtons.module.css`). The
 pause banner is the exception: it stands in for the board rather than asking a
 question, so its buttons center.
 
@@ -181,7 +181,7 @@ other players to surprise. [`common/game-page`](../src/common/game-page/doc.md).
 
 **Each game owns its whole menu**, framing included — the shell injects
 nothing, and `buildGameMenu` assembles the standard shape. **A row is an
-action**, so its words, glyph, key and availability all come from the binding,
+action**, so its words, glyph, key and availability all come from the action,
 and the menu decides nothing. **`<` means "up a level"** on every page.
 [`common/menu`](../src/common/menu/doc.md).
 

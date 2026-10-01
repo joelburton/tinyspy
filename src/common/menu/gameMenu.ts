@@ -1,6 +1,6 @@
 // cs-blessed-menu
 
-import type { BoundAction } from '../actions/useBindAction'
+import type { Action } from '../actions/useBindAction'
 import type { MenuApi, MenuHeader, MenuItem, MenuSection } from './menuModel'
 
 /**
@@ -10,7 +10,7 @@ import type { MenuApi, MenuHeader, MenuItem, MenuSection } from './menuModel'
  * top, the game's own `extra` sections in the middle, and the game's **exits** +
  * **Back to club** at the bottom.
  *
- * Every row is a bound action, so this arranges rows and decides nothing about
+ * Every row is an action, so this arranges rows and decides nothing about
  * them: which exit a mode offers, whether one is available and what key it
  * answers to are the actions' own business (`useStandardGameActions` binds End,
  * Concede and Restart; `common/actions` holds what they are). A row an action
@@ -25,7 +25,7 @@ export function buildGameMenu(opts: {
   // The game's exits, in the order they should read. Concede goes before End
   // where a race offers both — it is the mode's primary exit, and the first
   // one on the list is the one a player reaches for.
-  exits: BoundAction[]
+  exits: Action[]
   // The game's own sections, inserted between Help and the exits.
   extra?: MenuSection[]
   // An info block pinned at the VERY TOP of the menu, above Help — a

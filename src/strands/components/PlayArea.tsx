@@ -393,14 +393,14 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
     onTileClick(at)
   }
 
-  // ⌫ and Enter, as the two bindings the word-entry row places. ONE gate for both:
+  // ⌫ and Enter, as the two actions the word-entry row places. ONE gate for both:
   // with nothing traced there is nothing to take back OR submit, and a frozen
   // board freezes them too — submitting asks the turn, and strands does not
   // draft off-turn, so taking a letter back asks the same. They go DISABLED rather than hidden, so the row
   // keeps its slot and never reflows — and a disabled action leaves its key for
   // whoever else wants it, which is how the history viewer gets Backspace.
   //
-  // `describe` can be read on ANY render — the key list asks every binding when
+  // `describe` can be read on ANY render — the key list asks every action when
   // Help opens — so everything it names is derived above the loading guards.
   const entryOff = () => trace.length === 0 || !isMyTurn || busy
   const actDropLastCell = useBindAction('act-drop-last-cell', {
@@ -695,7 +695,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
       return
     }
   }
-  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // New game — its `+`, its menu row and its terminal button, from one action.
   // strands' New game is the NEXT PUZZLE nobody at the table has played, which
   // the server picks; the registry's question is the right one for it, since
   // what matters to the player is that this game is shelved rather than lost.
@@ -740,8 +740,8 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   })
 
   // The FULL strands menu. `buildGameMenu` supplies the framing (Help + chat
-  // above, Back to club below); the middle is this game's own rows, each one a
-  // binding it already made — so a row's words, glyph, key and availability come
+  // above, Back to club below); the middle is this game's own rows, each one an
+  // action it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. Every action the
   // terminal row offers is ALSO a row here, which is the roster's rule.
   useEffect(function publishGameMenu() {

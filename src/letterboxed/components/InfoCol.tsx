@@ -7,7 +7,7 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { SetupRow } from '@/common/setup-form/setupRows'
@@ -99,26 +99,26 @@ export function InfoCol({
   // ── Action row ──
   /** The two rungs of the hint ladder. Both hide themselves in compete, where
    *  the server refuses them too, so this column places them without asking. */
-  actHint: BoundAction
-  actSpoiler: BoundAction
+  actHint: Action
+  actSpoiler: Action
   /** Show the seeded pair — or put it away again. A local display toggle shared
    *  with the menu twin; nothing is written and no peer is affected, and it
    *  carries its own two faces. */
-  actReveal: BoundAction
+  actReveal: Action
   /** Is the pair on screen right now? Not the button's business (the action
    *  carries its own two faces) — this column reads it to draw the pair itself. */
   solutionShown: boolean
   /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
-  actStopGame: BoundAction
+  actStopGame: Action
   /** Drop out of a race while the others play on — hidden outside compete. */
-  actConcede: BoundAction
+  actConcede: Action
   /** Play this board again from scratch. */
-  actRestart: BoundAction
+  actRestart: Action
   /** Start a fresh follow-up game — same setup, new board + id. Disables itself
    *  while the create is in flight, so a slow network reads as "working". */
-  actNewGame: BoundAction
+  actNewGame: Action
   /** Leave for the club — the shell's own action, off `ctx.menu`. */
-  actBackToClub: BoundAction
+  actBackToClub: Action
   // ── Turn-history viewer ──
   /** The move open on the board, or null when live. */
   historyId: number | null

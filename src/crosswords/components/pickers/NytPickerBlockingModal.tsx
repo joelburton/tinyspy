@@ -58,7 +58,7 @@ export function NytPickerBlockingModal({ onPick, onClose }: Props) {
     <BlockingModal
       title="New York Times"
       onClose={onClose}
-      actions={<CancelButton show="label" onClick={onClose} />}
+      buttons={<CancelButton show="label" onClick={onClose} />}
     >
       <div className={styles.body}>
         <p className={styles.lead}>

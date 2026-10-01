@@ -265,7 +265,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/CurrentGameCard.module.css': ['0.6rem'],
       'src/common/club/ClubPage.module.css': ['1rem', '1.25rem'],
       // Two of its three literals left with `.buttonRow`, which is the shared
-      // `modalActions` row now that this is a modal (F36). The label/hint gap
+      // `modalButtons` row now that this is a modal (F36). The label/hint gap
       // is what remains.
       'src/common/club/CreateClubModal.module.css': ['0.4rem'],
       // The gap under a checkbox row and under a date override — both moved

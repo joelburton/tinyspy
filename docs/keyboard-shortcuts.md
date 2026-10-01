@@ -42,10 +42,10 @@ keys.
 
 ## How a keystroke is routed
 
-One listener at the app root fires whichever bound action answers a keystroke,
+One listener at the app root fires whichever action answers a keystroke,
 after two gates: a focused text field keeps its keys unless the action opts out,
 and focus inside a floating panel hands the keyboard to the panel. The gates,
 Tab rings, backtick and the key groups are
 [`common/keyboard/doc.md`](../src/common/keyboard/doc.md); the three passes a
-keystroke makes, chords, `repeat`, and what a disabled binding does with its key
+keystroke makes, chords, `repeat`, and what a disabled action does with its key
 are [`common/actions/doc.md`](../src/common/actions/doc.md).

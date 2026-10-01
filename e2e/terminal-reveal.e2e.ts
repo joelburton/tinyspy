@@ -71,7 +71,7 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   // going inert — the way back has to be as reachable as the way in.
   await revealRow.click()
   await expect(words).toBeVisible()
-  // The same binding, wearing its other face.
+  // The same action, wearing its other face.
   const hideRow = actionButton(page, 'act-reveal')
   await expect(hideRow).toBeVisible()
   await openMenu()

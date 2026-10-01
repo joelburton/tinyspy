@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useMemo, useState } from 'react'
-import { useBindAction, type BoundAction } from '@/common/actions/useBindAction'
+import { useBindAction, type Action } from '@/common/actions/useBindAction'
 import { shuffle } from '@/common/utils/shuffle'
 import type { TileWord } from '../lib/tileResults'
 
@@ -19,7 +19,7 @@ import type { TileWord } from '../lib/tileResults'
  */
 export function useWordShuffle(words: readonly TileWord[]): {
   shuffledWords: TileWord[]
-  actShuffle: BoundAction
+  actShuffle: Action
 } {
   const [shuffleSeed, setShuffleSeed] = useState(0)
   // '\n' never appears inside a dictionary word.

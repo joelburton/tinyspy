@@ -21,9 +21,9 @@ import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
-import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import { getBoundActions } from '@/common/actions/boundActionsStore'
+import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { BoggleGame, FoundWordRow } from '../hooks/useGame'
@@ -121,9 +121,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: boundActionFixture('act-help'),
-      actChat: boundActionFixture('act-open-chat'),
-      actBackToClub: boundActionFixture('act-back-to-club'),
+      actHelp: actionFixture('act-help'),
+      actChat: actionFixture('act-open-chat'),
+      actBackToClub: actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -139,7 +139,7 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
  *  Any test that TYPES needs it: the entry's letters, Backspace and Enter are
- *  bound actions now, and a bare `render` binds them with nothing feeding them
+ *  actions now, and a bare `render` binds them with nothing feeding them
  *  keys. */
 function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
   useActionDispatcher()
@@ -154,9 +154,9 @@ const PLUS = { key: '+' }
 const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
 const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
 
-/** The live binding for an action — the same `run` its key, its menu row and
+/** The page's action for an id — the same `run` its key, its menu row and
  *  its button all fire. */
-const bound = (id: ActionId) => getBoundActions().find((b) => b.id === id)!
+const getAction = (id: ActionId) => getActions().find((action) => action.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
@@ -323,7 +323,7 @@ describe('boggle PlayArea — render smoke', () => {
  */
 describe('boggle PlayArea — icon-only action rows', () => {
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
-    // ONE binding for both rows: it navigates directly at terminal and routes
+    // ONE action for both rows: it navigates directly at terminal and routes
     // through the suspend-confirm flow mid-game, so the game no longer picks
     // between two callbacks and no longer can pick wrong.
     const user = userEvent.setup()
@@ -675,8 +675,8 @@ describe('boggle PlayArea — concede', () => {
 })
 
 /**
- * The keys, through the app-root dispatcher. Each key is a bound action's, so
- * what these pin is the wiring: the chord reaches the binding, the binding asks
+ * The keys, through the app-root dispatcher. Each key is an action's, so
+ * what these pin is the wiring: the chord reaches the action, the action asks
  * the registry's question mid-game and skips it at terminal, and the answer
  * runs the same call the button does.
  */
@@ -750,7 +750,7 @@ describe('boggle PlayArea — the keys', () => {
   describe('⌥Z rotates the board', () => {
     // A quarter turn of the SAME sixteen faces — the top-left corner takes a
     // different face, and four turns bring the first one back. Awaited: the
-    // bound run is async, so the turn lands a tick after the keystroke.
+    // action's run is async, so the turn lands a tick after the keystroke.
     it('turns the view a quarter, with no round trip', async () => {
       render(<WithKeys {...makeCtx()} />)
       const before = boardFaces()
@@ -768,7 +768,7 @@ describe('boggle PlayArea — the keys', () => {
 
     it('still works on a finished board — the fidget is deliberate', async () => {
       render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
-      expect(bound('act-rotate').describe('button').state).toBe('active')
+      expect(getAction('act-rotate').describe('button').state).toBe('active')
       const before = boardFaces()
 
       await act(async () => press(OPT_Z))
@@ -777,7 +777,7 @@ describe('boggle PlayArea — the keys', () => {
   })
 
   describe('Restart mid-game', () => {
-    // Keyless, so it is fired as the menu row would fire it: the bound run,
+    // Keyless, so it is fired as the menu row would fire it: the action's run,
     // which is where the registry's question is asked. (The terminal case,
     // where it goes straight through, is under "icon-only action rows".)
     it('asks first, and Keep playing wipes nothing', async () => {
@@ -789,7 +789,7 @@ describe('boggle PlayArea — the keys', () => {
         </>,
       )
 
-      act(() => bound('act-restart').run())
+      act(() => getAction('act-restart').run())
       expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
       await user.click(screen.getByRole('button', { name: 'Keep playing' }))
       await waitFor(() => expect(screen.queryByText('Restart this game?')).not.toBeInTheDocument())
@@ -805,7 +805,7 @@ describe('boggle PlayArea — the keys', () => {
         </>,
       )
 
-      act(() => bound('act-restart').run())
+      act(() => getAction('act-restart').run())
       await answer(user, 'Restart')
       await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
     })

@@ -2,17 +2,17 @@
 
 import { useSyncExternalStore } from 'react'
 import type { ActionId } from './registry'
-import type { BoundAction } from './useBindAction'
+import type { Action } from './useBindAction'
 
 /**
- * Every action bound on the page right now. `useBindAction` puts each binding
- * here while its component is mounted (`registerBinding`); everything that
+ * Every action bound on the page right now. `useBindAction` puts each action
+ * here while its component is mounted (`registerAction`); everything that
  * shows or fires actions without binding them reads from here — Help's key
- * list and the game menu (`useBoundActions`, `useBoundAction`), and the key
- * dispatcher (`getBoundActions`).
+ * list and the game menu (`useActions`, `useAction`), and the key
+ * dispatcher (`getActions`).
  */
 
-// The stack of live bindings, in the order they mounted. Module-level rather
+// The stack of live actions, in the order they mounted. Module-level rather
 // than a context because the reader that has to decide is a window listener,
 // and a window listener sits in no subtree. Each entry holds a REF, refreshed
 // every render, so a reader at keypress gets the current closure without
@@ -23,15 +23,15 @@ import type { BoundAction } from './useBindAction'
 // parent; a component mounted in a LATER commit joins at the end, whatever its
 // depth (`useActionDispatcher.test.tsx` pins both). That order is a tiebreak
 // and not a tool — two actions live at once must not share a chord (doc.md).
-const bindingRefs: Array<{ current: BoundAction }> = []
+const bindingRefs: Array<{ current: Action }> = []
 
-// A listener is a callback: each `useBoundActions()` / `useBoundAction()`
-// caller adds one, and a binding joining or leaving calls every one.
+// A listener is a callback: each `useActions()` / `useAction()`
+// caller adds one, and an action joining or leaving calls every one.
 const listeners = new Set<() => void>()
 
-// How many times a binding has joined or left. The hooks read it so a surface
-// that draws a LIST of bindings re-renders; deliberately not counted when a
-// binding merely re-renders: what a bound action says is read by asking it,
+// How many times an action has joined or left. The hooks read it so a surface
+// that draws a LIST of actions re-renders; deliberately not counted when an
+// action merely re-renders: what an action says is read by asking it,
 // not by watching it.
 let bindingChangeCount = 0
 
@@ -52,9 +52,9 @@ function subscribe(listener: () => void): () => void {
 }
 
 /** Join the stack, and return the release that leaves it. `useBindAction`
- *  calls it from an effect, so each binding sits in the stack for exactly as
+ *  calls it from an effect, so each action sits in the stack for exactly as
  *  long as its component is mounted. */
-export function registerBinding(ref_: { current: BoundAction }): () => void {
+export function registerAction(ref_: { current: Action }): () => void {
   bindingRefs.push(ref_)
   notify()
   return () => {
@@ -63,18 +63,18 @@ export function registerBinding(ref_: { current: BoundAction }): () => void {
   }
 }
 
-/** Every binding on the page right now, in stack order. Re-renders the caller
- *  when a binding joins or leaves — not when one changes what it would say, so
+/** Every action on the page right now, in stack order. Re-renders the caller
+ *  when an action joins or leaves — not when one changes what it would say, so
  *  a surface built from this asks each action as it draws. */
-export function useBoundActions(): BoundAction[] {
+export function useActions(): Action[] {
   useSyncExternalStore(subscribe, getBindingChangeCount)
   return bindingRefs.map((ref_) => ref_.current)
 }
 
-/** Every binding on the page right now, in stack order, for a reader that is
+/** Every action on the page right now, in stack order, for a reader that is
  *  not a component — the key dispatcher. Read at the moment of the keystroke,
  *  never held. */
-export function getBoundActions(): BoundAction[] {
+export function getActions(): Action[] {
   return bindingRefs.map((ref_) => ref_.current)
 }
 
@@ -86,7 +86,7 @@ export function getBoundActions(): BoundAction[] {
  * key. Null when nothing has bound it — a page with no chat panel — and the
  * caller drops the row.
  */
-export function useBoundAction(id: ActionId): BoundAction | null {
+export function useAction(id: ActionId): Action | null {
   useSyncExternalStore(subscribe, getBindingChangeCount)
   // The first in stack order — the one the dispatcher would fire.
   return bindingRefs.find((ref_) => ref_.current.id === id)?.current ?? null

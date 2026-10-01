@@ -3,7 +3,7 @@
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { GRID, MAX_CELL } from '../lib/board'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { blurActiveField } from '@/common/keyboard/keyboardHandoff'
 import { type Cell, type DragSource } from '../hooks/usePlayerBoard'
@@ -47,7 +47,7 @@ export function BoardArena({
   onZoom: (next: number) => void
   // Re-center the board and fit it to the viewport. `usePlayerBoard` binds it;
   // this places it.
-  actZoomFit: BoundAction
+  actZoomFit: Action
   /** The placement grid (`GRID*GRID` chars, '.' = empty). */
   board: string
   cursor: GridCursor

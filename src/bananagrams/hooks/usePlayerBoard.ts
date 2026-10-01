@@ -28,7 +28,7 @@ import { cellAtPoint, useDragGesture, type DragGesture, type DragState } from '@
 import { moveCursor, planBackspace, type GridCursor } from '@/common/board-cursor/gridCursor'
 import { useBoardCursorKeys } from '@/common/board-cursor/useBoardCursorKeys'
 import { useBindAction } from '@/common/actions/useBindAction'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
@@ -144,17 +144,17 @@ export type PlayerBoardEngine = {
   // ── Actions ──
   declaring: boolean
   doPeel: () => Promise<void>
-  /** PEEL, as the binding behind both its key and its button — the board cursor
+  /** PEEL, as the action behind both its key and its button — the board cursor
    *  binds it (Enter and Space come with the action) and hands it back so the
    *  board's action row can place the same one. */
-  actPeel: BoundAction
-  /** The hand's ⟲ rotate, and ⌥Z, as one binding. */
-  actShuffle: BoundAction
+  actPeel: Action
+  /** The hand's ⟲ rotate, and ⌥Z, as one action. */
+  actShuffle: Action
   /** Ask the server whether the board is legal right now and paint what isn't. */
-  actCheckBoard: BoundAction
+  actCheckBoard: Action
   /** Re-center the board and fit it to the viewport. A view control, live at
    *  every phase. */
-  actZoomFit: BoundAction
+  actZoomFit: Action
   /** Ask the server whether the board is legal right now and paint what isn't
    *  (the **Check words** button). Always offered, whatever `setup.word_check`
    *  says — that option governs when the server ENFORCES words, not whether you
@@ -536,7 +536,7 @@ export function usePlayerBoard({
   // (`doPeel` self-no-ops when a peel isn't legal). Every one goes inert while
   // conceded: the board freezes and the others keep racing.
   //
-  // `actPeel` comes back out so the Peel BUTTON is that same binding — one
+  // `actPeel` comes back out so the Peel BUTTON is that same action — one
   // thing behind the key and the control.
   const { actCommit: actPeel } = useBoardCursorKeys({
     enabled: !frozen,

@@ -5,7 +5,7 @@ import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { BoundAction } from '@/common/actions/useBindAction'
+import type { Action } from '@/common/actions/useBindAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { WaffleSetup } from '../lib/setup'
@@ -20,7 +20,7 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  * waffle's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): swap-state
  * readout → progressive answer reveal → OpponentStrip → action row → help → setup
- * disclosure → swap log. Every command is a BOUND ACTION the PlayArea handed down
+ * disclosure → swap log. Every command is an ACTION the PlayArea handed down
  * (`actStopGame`, `actConcede`, …), so this column places buttons and decides
  * nothing about them; the history-viewer selection (`onShowHistory`) is the one
  * callback. Prop names match the other games' columns for the same idea (see
@@ -95,24 +95,24 @@ export function InfoCol({
   //    Reveal + New game + back-to-club.) ──
   /** The whole table stops, with no result. Hidden in a race that doesn't offer
    *  it, so the pair can be placed unconditionally. */
-  actStopGame: BoundAction
+  actStopGame: Action
   /** Drop out of a race; the others keep going. Hidden outside one, and once
    *  you are out (solved, out of swaps, conceded), when Stop takes its place. */
-  actConcede: BoundAction
+  actConcede: Action
   /** Restart THIS board from scratch. */
-  actRestart: BoundAction
+  actRestart: Action
   /** Show the answer — or put it away again, bringing back the board the
    *  players finished with. A local display toggle, no RPC (see PlayArea's
    *  useSolutionReveal); it carries its own two faces, so this column places one
    *  button either way. */
-  actReveal: BoundAction
+  actReveal: Action
   /** Start a fresh follow-up game — same setup, new board + id. Disables itself
    *  while the create is in flight, so a slow network reads as "working". */
-  actNewGame: BoundAction
-  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
+  actNewGame: Action
+  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE action
    *  for both rows: it navigates directly at terminal and routes through the
    *  suspend-confirm flow mid-game. */
-  actBackToClub: BoundAction
+  actBackToClub: Action
 
   // ── Setup disclosure + answer reveal ──
   setup: WaffleSetup
