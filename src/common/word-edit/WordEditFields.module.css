@@ -1,4 +1,4 @@
-/* cs-blessed-definitions */
+/* cs-unmet */
 
 /* Band / crude / slur on one row — three small numbers, not three rows.
  *
@@ -16,10 +16,4 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacer-5);
-}
-
-/* The one thing the shared `modalButtons` row does not do: sit at the BOTTOM of
-   this dialog however short the form above it is. */
-/* @@ */ .pinBottom {
-  margin-top: auto;
 }

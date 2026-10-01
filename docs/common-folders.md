@@ -278,7 +278,7 @@ moves its own items into its `todo.md` when it opens, and the file drains.
 | `chat` | the club chat panel end to end (its header mark is in `page-header`) |
 | `club` | the club room and everything on it |
 | `core-css` | the stylesheets every page loads, plus `patterns/` |
-| `definitions` | click-a-word lookup and dictionary curation |
+| `definitions` | click-a-word lookup and the word lookup dialog |
 | `devtools` | pages that ship for the author, not for players (palette, font specimen) |
 | `error-page` | the stand-in when a page can't render |
 | `faults` | the fault sink and its modal |
@@ -318,6 +318,7 @@ moves its own items into its `todo.md` when it opens, and the file drains.
 | `event-log` | the chronological history readout and its viewer |
 | `utils` | simple logic helpers with no feature — plain functions only, no hooks |
 | `web-storage` | `localStorage` and `sessionStorage`, wrapped so a browser that blocks them can't throw |
+| `word-edit` | the dictionary-curation dialog: edit a word, or add one |
 | `word-entry` | the typed-word box and its row |
 | `word-list` | the alphabetical finds readout |
 

@@ -11,7 +11,7 @@ import {
   reportDbFault,
 } from '../supabase/dbEnvelope'
 import { setIsEditProfileOpen } from './editProfileStore'
-import { setShownWordEditDialog } from '../definitions/wordEditStore'
+import { setShownWordEditDialog } from '../word-edit/wordEditStore'
 import { useBindAction } from '../actions/useBindAction'
 import type { MenuSection } from '../menu/menuModel'
 

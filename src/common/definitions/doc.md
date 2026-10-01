@@ -1,10 +1,9 @@
 # definitions
 
 Click any dictionary word the app shows and a small card defines it; the `~`
-key looks up a word that isn't on screen. The same folder holds the form a
-trusted player uses to fix the word list when a definition, band or flag is
-wrong. Where definitions live, how they are fetched, and the curation RPCs are
-[docs/common.md](../../../docs/common.md)'s; this folder is the frontend.
+key looks up a word that isn't on screen. Where definitions live and how they
+are fetched are [docs/common.md](../../../docs/common.md)'s; this folder is the
+frontend.
 
 ## Intro to area
 
@@ -21,12 +20,8 @@ cross-references into links. A surface has only to render each word as
 `<DefinableWord>`; a single host at the app root draws the card, so a dozen
 surfaces show definable words with no wiring of their own.
 
-Curation is the other half. A trusted player who sees a wrong band, a missing
-definition, or a word that shouldn't be in the list at all can fix it on the
-spot instead of writing it down for later, from a link at the bottom of every
-definition or an "Add word" item in the account menu. A save applies to the
-live word list at once and journals the change for the upstream word-list
-process to fold in later.
+Fixing a wrong definition is [word-edit](../word-edit/doc.md)'s; the link to it
+sits at the bottom of every definition this folder draws.
 
 ## Details
 
@@ -44,9 +39,6 @@ App ──> DefinitionHost                  one, at the root beside the other ho
 AppActionsHost (actions) ── ~ ──> WordLookupDialog
                                   └── Dialog (floating-panels) → StandardForm (forms) + TextField (fields)
                                       └── DefinitionView             the same view, its first word typed
-
-App ── "Edit word…" / "Add word" ──> WordEditDialog                  editors only
-                                     └── Dialog → StandardForm → TextField · NumberField · CheckboxField (fields)
 ```
 
 **A surface that shows definable words does exactly one thing: it renders each
@@ -70,13 +62,3 @@ which is also how a "see X" cross-reference is chased — so the two hosts diffe
 only in how the first word is chosen: a click, or a typed query. Escape closes
 the card and only the card, so a definition opened from inside the anagram
 finder does not take the finder with it.
-
-**Curation is one dialog in two modes.** Editors get the "Edit word…" link at
-the bottom of every definition because every definition surface renders the
-same view, and the "Add word" item in the account menu. Both openers set a
-shared store, and the one dialog mounts at the app root in either mode. A save
-applies to the live word list at once and writes a journal row; the journal is
-what the upstream word-list process reads later to fold the fixes into its
-source, so the app captures first and the reconciliation happens elsewhere.
-The form sends only the fields that changed, and the journal therefore never
-claims an untouched column was edited.

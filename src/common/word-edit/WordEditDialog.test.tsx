@@ -110,6 +110,14 @@ describe('WordEditDialog', () => {
     expect(args.fields).toMatchObject({ difficulty: 3, american: true, slang: false })
   })
 
+  it('says so when the word is gone, rather than loading forever', async () => {
+    // Another editor deleted it between the popover and this Edit click.
+    mockWordRows.mockResolvedValue({ data: [], error: null })
+    render(<WordEditDialog request={{ mode: 'edit', word: 'acre' }} />)
+    expect(await screen.findByText('No such word: acre')).toBeInTheDocument()
+    expect(screen.queryByText('Loading…')).toBeNull()
+  })
+
   // Cancel is the way out that reads as a choice: the titlebar's X and Escape
   // both leave without saving, but neither sits beside Save the way a button
   // does.

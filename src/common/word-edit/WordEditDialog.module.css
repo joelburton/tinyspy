@@ -1,0 +1,7 @@
+/* cs-blessed-definitions */
+
+/* The one thing the shared `modalButtons` row does not do: sit at the BOTTOM of
+   this dialog however short the form above it is. */
+/* @@ */ .pinBottom {
+  margin-top: auto;
+}
