@@ -129,19 +129,22 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: null }, 'Stop'],
     ],
   },
+  // connections._write_statuses: the two counts are coop's team numbers and null in
+  // compete; the winner is compete's alone.
   connections: {
-    playing: { found_categories_count: 2, mistake_count: 1 },
-    shared: [['ended', { reason: 'manual', found_categories_count: 2 }, 'manual end']],
+    live: { found_categories_count: 2, mistake_count: 1, winner_user_id: null },
     coop: [
-      ['won', { found_categories_count: 4, mistake_count: 1 }, 'solved'],
-      ['lost', { reason: 'mistakes', found_categories_count: 2 }, 'four mistakes'],
-      ['lost', { reason: 'timeout', found_categories_count: 2 }, 'timeout'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { found_categories_count: 4, mistake_count: 1, winner_user_id: null }, 'solved'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { found_categories_count: 2, mistake_count: 4, winner_user_id: null }, 'four mistakes'],
+      [{ outcome: 'lost', reason: 'timeout' }, { found_categories_count: 2, mistake_count: 1, winner_user_id: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { found_categories_count: 2, mistake_count: 1, winner_user_id: null }, 'Stop'],
     ],
     compete: [
-      ['won_compete', W, 'won the race'],
-      ['lost_compete', { reason: 'mistakes' }, 'everyone hit four mistakes'],
-      ['lost_compete', { reason: 'timeout' }, 'timeout'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { found_categories_count: null, mistake_count: null, winner_user_id: 'u-alice' }, 'won the race'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { found_categories_count: null, mistake_count: null, winner_user_id: null }, 'everyone hit four mistakes'],
+      [{ outcome: 'lost', reason: 'timeout' }, { found_categories_count: null, mistake_count: null, winner_user_id: null }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { found_categories_count: null, mistake_count: null, winner_user_id: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { found_categories_count: null, mistake_count: null, winner_user_id: null }, 'Stop'],
     ],
   },
   spellingbee: {

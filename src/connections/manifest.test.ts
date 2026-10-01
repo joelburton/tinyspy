@@ -54,13 +54,13 @@ describe('connectionsCoopGame.startGameInClub', () => {
     ])
     expect(res).toEqual({ type: 'ok', data: { id: 'new-game' } })
     expect(rpcCalls[0]!.name).toBe('create_game')
-    expect(rpcCalls[0]!.args.target_club).toBe('pals')
-    expect(rpcCalls[0]!.args.player_user_ids).toEqual(['cade-id'])
+    expect(rpcCalls[0]!.args.p_club_handle).toBe('pals')
+    expect(rpcCalls[0]!.args.p_player_user_ids).toEqual(['cade-id'])
   })
 
   it('sends NO puzzle_id when the setup carries none — that is how the server is told to choose', async () => {
     await connectionsCoopGame.startGameInClub('pals', { timer: { kind: 'none' } }, ['cade-id'])
-    const setup = rpcCalls[0]!.args.setup as Record<string, unknown>
+    const setup = rpcCalls[0]!.args.p_setup as Record<string, unknown>
     expect('puzzle_id' in setup).toBe(false)
   })
 
@@ -70,7 +70,7 @@ describe('connectionsCoopGame.startGameInClub', () => {
     await connectionsCoopGame.startGameInClub('pals', { puzzle_id: 'p1', timer: { kind: 'none' } }, [
       'cade-id',
     ])
-    expect((rpcCalls[0]!.args.setup as Record<string, unknown>).puzzle_id).toBe('p1')
+    expect((rpcCalls[0]!.args.p_setup as Record<string, unknown>).puzzle_id).toBe('p1')
   })
 
   it('surfaces a create_game failure as a not-ok envelope rather than an id', async () => {

@@ -6,8 +6,12 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { count, verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
+import type { GameEndedReason } from '@/common/terminal/gameEnding'
 import { DEFAULT_CONNECTIONS_SETUP, type ConnectionsSetup } from './lib/setup'
 import { CATEGORY_COUNT, MISTAKE_BUDGET } from './lib/board'
+import type { ConnectionsClubpageInfo } from './lib/statuses'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -70,14 +74,20 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-// The club-list `status` blob, read by both `labelFor`s.
-type StatusBlob = Record<string, unknown>
+// The club-list line reads the list row's `gameEnding` and its `clubpage_info`
+// (`ConnectionsClubpageInfo`: coop's team counts, null in compete, and
+// compete's winner). Each mode's labelFor handles its own endings.
 
-/** Why a compete race ended with nobody solving it (connections' terminals). */
-const COMPETE_LOSS: Record<string, string> = {
+/** Why a game ended with nobody winning (connections' losses). */
+const LOSS: Partial<Record<GameEndedReason, string>> = {
+  resource_exhausted: `${MISTAKE_BUDGET} mistakes`,
   timeout: 'out of time',
-  mistakes: `${MISTAKE_BUDGET} mistakes`,
   conceded: 'all conceded',
+}
+
+/** A member's username, or undefined for an id that names nobody. */
+function usernameOf(members: readonly Member[], userId: string | null) {
+  return userId === null ? undefined : memberById(members, userId)?.username
 }
 
 // The single source of truth for this game's user-facing brand name.
@@ -116,27 +126,27 @@ export const connectionsCoopGame: GameManifest = {
   startGameInClub: startGameInClubFactory('coop'),
 
   labelFor: (row) => {
-    const s = (row.status ?? {}) as StatusBlob
-    const matched = (s.found_categories_count as number | undefined) ?? 0
-    const mistakes = (s.mistake_count as number | undefined) ?? 0
+    const clubpageInfo = row.clubpageInfo as ConnectionsClubpageInfo
     // "categories", the game's own noun (doc.md → Vocabulary), throughout.
-    const categories = tally(matched, CATEGORY_COUNT, 'categories')
-    switch (row.play_state) {
-      case 'playing':
-        return statusLine(
-          verdict('Playing'), categories, tally(mistakes, MISTAKE_BUDGET, 'mistakes'))
+    const categories = tally(clubpageInfo.found_categories_count, CATEGORY_COUNT, 'categories')
+    if (row.gameEnding === null) {
+      return statusLine(
+        verdict('Playing'),
+        categories,
+        tally(clubpageInfo.mistake_count, MISTAKE_BUDGET, 'mistakes'),
+      )
+    }
+    switch (row.gameEnding.outcome) {
       case 'won':
         // Solving means every category, so the mistakes are the story.
-        return statusLine(verdict('Won'), count(mistakes, 'mistake'))
+        return statusLine(verdict('Won'), count(clubpageInfo.mistake_count, 'mistake'))
       case 'lost':
-        return statusLine(
-          verdict('Lost', s.reason === 'timeout' ? 'out of time' : `${MISTAKE_BUDGET} mistakes`),
-          categories)
-      // Manual end (connections.stop_game) — neutral, no win/loss framing.
-      case 'ended':
+        return statusLine(verdict('Lost', LOSS[row.gameEnding.reason] ?? null), categories)
+      // A Stop (connections.stop_game) — neutral, no win/loss framing.
+      case 'neutral':
         return statusLine(verdict('Ended'), categories)
       default:
-        return row.play_state
+        return row.gameEnding.outcome
     }
   },
 
@@ -174,31 +184,26 @@ export const connectionsCompeteGame: GameManifest = {
   startGameInClub: startGameInClubFactory('compete'),
 
   // Compete's labels carry no counts: each racer's are their own, and this
-  // line is readable by the whole club (the RPC writes an empty mid-game
-  // status in compete for the same reason). The terminal line names the
-  // winner, frozen onto status by submit_guess, so review reads "ada won the
-  // race." Mode itself is the card's <ModeBadge>.
-  labelFor: (row) => {
-    const s = (row.status ?? {}) as StatusBlob
-    switch (row.play_state) {
-      case 'playing':
-        return verdict('Playing')
-      case 'won_compete':
-        return wonBy(s.winner_username as string | undefined)
-      // "no winner" for every cause but one: a table everybody walked away
-      // from has no winner to mention, where a race played to the end does.
-      // The roster keeps the same asymmetry (`npm run report:labels`),
-      // which is why the branch is not the redundancy it looks like —
-      // `COMPETE_LOSS` already holds the words.
-      case 'lost_compete':
-        return (s.reason as string) === 'conceded'
-          ? verdict('Lost', 'all conceded')
-          : statusLine(verdict('Lost', COMPETE_LOSS[(s.reason as string) ?? ''] ?? null), 'no winner')
-      // Manual end (connections.stop_game) — neutral, no winner.
-      case 'ended':
+  // line is readable by the whole club (the builder writes null counts in
+  // compete for the same reason). The ended line names the winner
+  // (`clubpage_info.winner_user_id`), so review reads "Won by ada." Mode
+  // itself is the card's <ModeBadge>.
+  labelFor: (row, members) => {
+    const clubpageInfo = row.clubpageInfo as ConnectionsClubpageInfo
+    if (row.gameEnding === null) return verdict('Playing')
+    switch (row.gameEnding.outcome) {
+      case 'won':
+        return wonBy(usernameOf(members, clubpageInfo.winner_user_id))
+      // "all conceded" already says nobody won; the others need spelling out.
+      case 'lost':
+        return row.gameEnding.reason === 'conceded'
+          ? verdict('Lost', LOSS.conceded)
+          : statusLine(verdict('Lost', LOSS[row.gameEnding.reason] ?? null), 'no winner')
+      // A Stop (connections.stop_game) — neutral, no winner.
+      case 'neutral':
         return verdict('Ended')
       default:
-        return row.play_state
+        return row.gameEnding.outcome
     }
   },
 
