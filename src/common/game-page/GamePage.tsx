@@ -14,7 +14,6 @@ import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
 import type { CommonGame } from './useCommonGame'
 import type { GameShellProps } from './GamePageGate'
-import type { GamePlayer, Member } from '../members/member'
 import { formatTimerSeconds } from '../timer/timerLabel'
 import { useClubRoster } from '../club/useClubRoster'
 import { navigate } from '../routing/router'
@@ -40,48 +39,11 @@ import styles from './GamePage.module.css'
 import { askConfirmation } from '../floating-panels/confirmationService'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
-/**
- * What the gate resolved (`GameShellProps`) plus the state the loader waited for.
- *
- * Every member of the second half comes from one `useCommonGame` call in the
- * loader. They are listed one by one rather than passed as a single `game`
- * object so this block IS the page's contract: what it draws from, in the open.
- */
+/** What the gate resolved (`GameShellProps`) plus what the loader waited for. */
 type Props = GameShellProps & {
-  // The game's row. A row, not a maybe-row — the loader does not render this
-  // page until it has one, which is most of why the loader exists.
-  commonGame: CommonGame
-  // Everyone in the game.
-  players: GamePlayer[]
-  // The presence-pause roster: `players` minus anyone locally terminal, and the
-  // bots. What PauseBoundary watches and the overlay lists.
-  activePlayers: GamePlayer[]
-  // Somebody in `activePlayers` is off the channel, or somebody clicked Pause.
-  // Forced false once the game has ended.
-  paused: boolean
-  // User ids currently on the game's realtime channel — paired with
-  // `activePlayers` to tell present from absent in the pause overlay.
-  presentUserIds: Set<string>
-  // Who clicked Pause, null when the pause is presence-only.
-  manuallyPausedBy: Member | null
-  // Broadcast the manual pause / its release to every peer, this tab included.
-  sendManualPause: () => void
-  sendManualUnpause: () => void
-  // Shelve the game and leave: broadcasts to every peer, then navigates self.
-  sendSuspend: () => void
-  // The game clock — seconds to show, and whether a countdown has run out.
-  timer: { displaySeconds: number; expired: boolean }
-  // Where the viewing player stands, handed on to the PlayArea as they are; see
-  // `GamePageCtx`.
-  isPlayer: boolean
-  isConceded: boolean
-  isLocallyTerminal: boolean
-  isStillPlaying: boolean
-  isTurnBased: boolean
-  turnHolderId: string | null
-  isMyTurn: boolean
-  isWaitingForTurn: boolean
-  isBoardInteractive: boolean
+  // The game, loaded: a value, not a maybe-value — the loader does not render
+  // this page until it has one, which is most of why the loader exists.
+  cg: CommonGame
   // The channel's joins and attach confirmations, handed on to the PlayArea;
   // see `GamePageCtx`.
   resubscribeCount: number
@@ -109,25 +71,7 @@ export function GamePage({
   gameId,
   authSession,
   manifest,
-  commonGame,
-  players,
-  activePlayers,
-  paused,
-  presentUserIds,
-  manuallyPausedBy,
-  sendManualPause,
-  sendManualUnpause,
-  sendSuspend,
-  timer,
-  isPlayer,
-  isConceded,
-  isLocallyTerminal,
-  isStillPlaying,
-  isTurnBased,
-  turnHolderId,
-  isMyTurn,
-  isWaitingForTurn,
-  isBoardInteractive,
+  cg,
   resubscribeCount,
 }: Props) {
   // ─── What this page is about ────────────────────────────────────────────
@@ -135,10 +79,10 @@ export function GamePage({
   // The club this game belongs to. Every club-shaped URL and both presence
   // announcements come off it, and it is always a real handle — the loader
   // waited for the row.
-  const clubHandle = commonGame.club_handle
+  const clubHandle = cg.club_handle
   // Is the game over? Whether it has an ending, the same answer every PlayArea
   // is handed, so the page and the game cannot disagree.
-  const isTerminal = commonGame.gameEnding !== null
+  const isTerminal = cg.gameEnding !== null
   const HelpComponent = manifest.help
   const PlayArea = manifest.PlayArea
 
@@ -169,7 +113,7 @@ export function GamePage({
   // game has to remember it. A game whose turn is its own rings from its own
   // code. Only a turn-based game has a turn to arrive: every move is mine in a
   // free-for-all, so its `isMyTurn` rising (a restart) is no arrival.
-  useTurnBell(isTurnBased && isMyTurn)
+  useTurnBell(cg.turns.isTurnBased && cg.standing.isMyTurn)
 
   // ─── The shell's own state ──────────────────────────────────────────────
   // Whether the per-game Help companion is mounted. Opened by `act-help`,
@@ -240,14 +184,17 @@ export function GamePage({
   //     broadcasts + navigates self; peers navigate themselves on receipt, and
   //     the last leaver clears is_current_view via cleanup.
   const requestBackToClub = useCallback(async () => {
+    // Called through a local, not as `cg.sendSuspend()`: a method call makes the
+    // hooks lint rule ask for all of `cg` in the deps.
+    const sendSuspend = cg.sendSuspend
     if (isTerminal) navigate(clubPath(clubHandle))
-    // `activePlayers`, not `players`: the question is "are there peers this
-    // would surprise", and a bot is nobody to surprise — a game whose only
-    // other seat is an AI leaves the same way a solo game does, without a
-    // confirm.
-    else if (activePlayers.length <= 1) sendSuspend()
-    else if ((await askConfirmation(suspendConfirm(commonGame.title))) === 'confirm') sendSuspend()
-  }, [clubHandle, commonGame.title, isTerminal, activePlayers.length, sendSuspend])
+    // `stillPlayingHumanPlayers`, not `players`: the question is "are there
+    // peers this would surprise", and a bot is nobody to surprise — a game
+    // whose only other seat is an AI leaves the same way a solo game does,
+    // without a confirm.
+    else if (cg.stillPlayingHumanPlayers.length <= 1) sendSuspend()
+    else if ((await askConfirmation(suspendConfirm(cg.title))) === 'confirm') sendSuspend()
+  }, [clubHandle, isTerminal, cg.title, cg.stillPlayingHumanPlayers.length, cg.sendSuspend])
   // `<` → Back to club. The menu's row is this same binding, which is what makes
   // the key discoverable: the row shows it.
   const actBackToClub = useBindAction('act-back-to-club', {
@@ -305,7 +252,7 @@ export function GamePage({
   }
   const actStopGame = useBindAction('act-stop-game', {
     terminal: isTerminal,
-    describe: () => (paused ? 'active' : 'hidden'),
+    describe: () => (cg.pause.paused ? 'active' : 'hidden'),
     run: stopTheGameFromTheOverlay,
   })
 
@@ -316,14 +263,14 @@ export function GamePage({
   // count-up is the answer to "how long did that take?", which is exactly the
   // sort of thing you want to see once you are done — `useGameTimer` stops
   // ticking at the game's end, so it freezes on the final figure.
-  const timerKind = commonGame.timer_mode.kind
+  const timerKind = cg.timer.mode.kind
   const showTimer =
     timerKind === 'countup' || (timerKind === 'countdown' && !isTerminal)
   // The clock is STOPPED whenever it is not counting — paused, or the game is
   // over (`useGameTimer` keys `running` off the game's end). Both go red: red
   // says "these digits are not moving", which is a fact about the clock rather
   // than a judgment about why.
-  const timerStopped = paused || isTerminal
+  const timerStopped = cg.pause.paused || isTerminal
 
   // Fire the timeout-loss when the countdown hits 0 — on the expired
   // TRANSITION (false → true), not the level. Replay-board un-terminals a
@@ -339,10 +286,10 @@ export function GamePage({
     // No moves while paused — including this one. Returning BEFORE the edge
     // is recorded keeps the defer contract: a timeout that comes due exactly
     // as a pause engages resolves on resume (the edge is still unconsumed).
-    if (paused) return
+    if (cg.pause.paused) return
     const wasExpired = prevExpiredRef.current
-    prevExpiredRef.current = timer.expired
-    if (!timer.expired || wasExpired) return
+    prevExpiredRef.current = cg.timer.expired
+    if (!cg.timer.expired || wasExpired) return
     if (isTerminal) return // a peer already ended it
     void manifest.submitTimeout(gameId).then(function logHowTheTimeoutLanded(res) {
       // THE RACE IS THE NORMAL CASE and it is not shown to anyone. Every
@@ -363,7 +310,7 @@ export function GamePage({
         reportUnhandled('submit_timeout', res)
       }
     })
-  }, [timer.expired, paused, isTerminal, gameId, manifest])
+  }, [cg.timer.expired, cg.pause.paused, isTerminal, gameId, manifest])
 
   return (
     <div className={styles.pageHeaderAndPlaySurface}>
@@ -398,15 +345,15 @@ export function GamePage({
                     do nothing. */}
                 {!isTerminal && (
                   <PauseButton
-                    paused={paused}
-                    manual={manuallyPausedBy !== null}
-                    onPause={sendManualPause}
-                    onUnpause={sendManualUnpause}
+                    paused={cg.pause.paused}
+                    manual={cg.pause.manuallyPausedBy !== null}
+                    onPause={cg.pause.sendManualPause}
+                    onUnpause={cg.pause.sendManualUnpause}
                   />
                 )}
                 {showTimer && (
                   <span className={cls(styles.timer, timerStopped && styles.timerStopped)}>
-                    {formatTimerSeconds(timer.displaySeconds)}
+                    {formatTimerSeconds(cg.timer.displaySeconds)}
                   </span>
                 )}
               </>
@@ -431,17 +378,17 @@ export function GamePage({
               <ChatButton />
               {manifest.scratchpad?.enabled && <ScratchpadButton />}
             </div>
-            <PageHeaderStatusSlot players={players} globalFeedbackSlot={globalFeedbackSlot} />
+            <PageHeaderStatusSlot players={cg.players} globalFeedbackSlot={globalFeedbackSlot} />
           </>
         )}
       </PageHeader>
 
       <PauseBoundary
-        paused={paused}
-        players={activePlayers}
-        presentUserIds={presentUserIds}
-        manuallyPausedBy={manuallyPausedBy}
-        onResume={sendManualUnpause}
+        paused={cg.pause.paused}
+        players={cg.stillPlayingHumanPlayers}
+        presentUserIds={cg.pause.presentUserIds}
+        manuallyPausedBy={cg.pause.manuallyPausedBy}
+        onResume={cg.pause.sendManualUnpause}
         // One escape hatch from a wedged presence-pause: shelve the game and
         // go. The SAME action every other surface places, so leaving from the
         // overlay is the same act it is anywhere else — a game with peers asks
@@ -479,30 +426,30 @@ export function GamePage({
                   leaves `ended_at` exactly as it was, and its statuses may come
                   back the same. */}
               <PlayArea
-                key={commonGame.restart_count}
+                key={cg.restart_count}
                 authSession={authSession}
                 gameId={gameId}
                 brand={manifest.name}
-                title={commonGame.title}
-                mode={commonGame.mode}
-                players={players}
-                gameEnding={commonGame.gameEnding}
+                title={cg.title}
+                mode={cg.mode}
+                players={cg.players}
+                gameEnding={cg.gameEnding}
                 isTerminal={isTerminal}
-                timer={timer}
-                isPlayer={isPlayer}
-                isConceded={isConceded}
-                isLocallyTerminal={isLocallyTerminal}
-                isStillPlaying={isStillPlaying}
-                isTurnBased={isTurnBased}
-                turnHolderId={turnHolderId}
-                isMyTurn={isMyTurn}
-                isWaitingForTurn={isWaitingForTurn}
-                isBoardInteractive={isBoardInteractive}
-                setup={commonGame.setup}
-                gameStatus={commonGame.game_status}
-                commonGameUpdatedAt={commonGame.updated_at}
+                timer={cg.timer}
+                isPlayer={cg.standing.isPlayer}
+                isConceded={cg.standing.isConceded}
+                isLocallyTerminal={cg.standing.isLocallyTerminal}
+                isStillPlaying={cg.standing.isStillPlaying}
+                isTurnBased={cg.turns.isTurnBased}
+                turnHolderId={cg.turns.turnHolderId}
+                isMyTurn={cg.standing.isMyTurn}
+                isWaitingForTurn={cg.standing.isWaitingForTurn}
+                isBoardInteractive={cg.standing.isBoardInteractive}
+                setup={cg.setup}
+                gameStatus={cg.game_status}
+                commonGameUpdatedAt={cg.updated_at}
                 resubscribeCount={resubscribeCount}
-                clubHandle={commonGame.club_handle}
+                clubHandle={cg.club_handle}
                 goToFollowUpGame={goToFollowUpGame}
                 globalFeedbackSlot={globalFeedbackSlot}
                 menu={menuApi}
@@ -524,7 +471,7 @@ export function GamePage({
           closed. It holds the club's chat subscription, so it also pops a new
           message from another member in the header's global slot. */}
       <Chat
-        clubHandle={commonGame.club_handle}
+        clubHandle={cg.club_handle}
         members={clubMembers}
         selfId={authSession.user.id}
         globalFeedbackSlot={globalFeedbackSlot}

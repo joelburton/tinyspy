@@ -52,6 +52,8 @@ export const bananagramsGame: GameManifest = {
   // docs/code-conventions.md → "Per-game player counts".
   numberOfPlayers: [1, 6],
 
+  draftsOffTurn: false,
+
   PlayArea: lazy(() =>
     import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
   ),

@@ -174,6 +174,7 @@ export const crosswordsCoopGame: GameManifest = {
   help: helpLoader,
   // Solo (1, in a solo club) or coop (up to 8). Agrees with create_game.
   numberOfPlayers: [1, 8],
+  draftsOffTurn: false,
   PlayArea: playAreaLoader,
   // Shared notepad (coop) / private per-player pad (compete — a shared pad
   // would leak solving progress).
@@ -201,6 +202,7 @@ export const crosswordsCompeteGame: GameManifest = {
   help: helpLoader,
   // Compete needs an opponent; the RPC enforces ≥2 too.
   numberOfPlayers: [2, 8],
+  draftsOffTurn: false,
   PlayArea: playAreaLoader,
   // Shared notepad (coop) / private per-player pad (compete — a shared pad
   // would leak solving progress).

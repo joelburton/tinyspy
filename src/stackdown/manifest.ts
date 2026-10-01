@@ -118,6 +118,8 @@ export const stackdownCoopGame: GameManifest = {
   // Solo or coop up to 6. Must agree with _require_player_count_max(6).
   numberOfPlayers: [1, 6],
 
+  draftsOffTurn: false,
+
   PlayArea: playAreaLoader,
 
   setupForm: {
@@ -148,6 +150,8 @@ export const stackdownCompeteGame: GameManifest = {
 
   // Compete needs an opposing PLAYER. Lower bound 2; the RPC enforces it.
   numberOfPlayers: [2, 6],
+
+  draftsOffTurn: false,
 
   PlayArea: playAreaLoader,
 

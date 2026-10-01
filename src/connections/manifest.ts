@@ -103,6 +103,8 @@ export const connectionsCoopGame: GameManifest = {
   // connections.create_game.
   numberOfPlayers: [1, 6],
 
+  draftsOffTurn: false,
+
   PlayArea: playAreaLoader,
 
   setupForm: {
@@ -157,6 +159,8 @@ export const connectionsCompeteGame: GameManifest = {
   // bound 2 hides the Start button in solo clubs; the RPC also
   // enforces it server-side.
   numberOfPlayers: [2, 6],
+
+  draftsOffTurn: false,
 
   PlayArea: playAreaLoader,
 

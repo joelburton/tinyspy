@@ -136,6 +136,7 @@ export const boggleCoopGame: GameManifest = {
   // Plays solo (1, in a solo club) or coop (up to 8). Must agree with
   // boggle.create_game's player-count guard.
   numberOfPlayers: [1, 8],
+  draftsOffTurn: false,
   PlayArea: playAreaLoader,
   setupForm: {
     intro:
@@ -161,6 +162,7 @@ export const boggleCompeteGame: GameManifest = {
   help: helpLoader,
   // Compete needs an opposing player; the RPC enforces ≥2 too.
   numberOfPlayers: [2, 8],
+  draftsOffTurn: false,
   PlayArea: playAreaLoader,
   setupForm: {
     intro:

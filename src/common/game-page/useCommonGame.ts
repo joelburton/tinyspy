@@ -1,7 +1,7 @@
 // cs-blessed-game-page
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
+import type { RealtimeChannel, Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../supabase/db'
 import { navigate } from '../routing/router'
 import { clubPath } from '../routing/routes'
@@ -11,97 +11,93 @@ import { onPostgresAttached } from '../realtime/postgresAttached'
 import { readRows, runRpc } from '../supabase/dbResult'
 import type { NotOkEnvelope } from '../supabase/envelope'
 import { rtLog } from '../realtime/realtimeDiag'
-import { computePause } from '../pause-suspend/pause'
-import type { TimerMode } from '../manifest/gameManifest'
+import { computeGamePause } from '../pause-suspend/pause'
+import { useManualPause, type ManualPauseEvent } from '../pause-suspend/useManualPause'
+import type { GameManifest, TimerMode } from '../manifest/gameManifest'
 import type { GamePlayer, Member } from '../members/member'
 import { useGameTimer } from '../timer/useGameTimer'
 import { reportUnhandled } from '../supabase/dbEnvelope'
-import { whereIStand } from './whereIStand'
+import { whereIStand, type Standing } from './whereIStand'
 import type { GameEnding } from '../terminal/gameEnding'
 import { readGameEnding } from '../terminal/readGameEnding'
 
-/**
- * The subset of common.games a game page sees. Mirrors the row shape, so the
- * shell and the manifests can read setup-derived chrome without dipping into
- * per-gametype row state.
- */
-export type CommonGame = {
+/** The game's `common.games` row, as the page reads it: its columns, with the
+ *  ending assembled from its own. */
+export type CommonGameRow = {
   id: string
-  // The owning club's handle — the column on common.games, not a key to look a
-  // club up by, so every club-shaped URL on the page is buildable off the row
-  // with no deferred fetch.
   club_handle: string
   gametype: string
-  // Coop or compete, fixed at create; see `GamePageCtx.mode`.
   mode: 'coop' | 'compete'
   title: string
-  // The setup form's record, frozen at create: read to show the form's choices
-  // back and to replay them, never for the game's logic.
+  // The setup form's record, frozen at create.
   setup: Record<string, unknown>
-  // True when this game is the club's current view (the one whose URL members
-  // auto-route into). At most one per club — guarded by a partial unique index.
-  // Orthogonal to the ending: a current-view game can be over (a club still
-  // reviewing the end-state); a non-current game can be unfinished (a
-  // suspended game waiting to be resumed). See docs/states.md.
+  // This game is the club's current view (docs/states.md).
   is_current_view: boolean
-  // How the game ended, or null while it is played — read off the row's
-  // `ended_at` and the columns beside it.
+  // How the game ended; null while it is played.
   gameEnding: GameEnding | null
-  // Which RUN of this board we are on — 0 until the first restart, then +1 per
-  // restart. The page keys the play surface on it, so a restart takes every
-  // piece of a game's local state with it rather than each game hunting its own
-  // leftovers. Nothing reads the VALUE; only that it changed.
+  // How many times the game has been restarted.
   restart_count: number
-  // The game's copy of what the info column shows; see `GamePageCtx.gameStatus`.
+  // The game's copy of what the info column shows.
   game_status: Record<string, unknown>
-  // Moved by every write to the row; see `GamePageCtx.commonGameUpdatedAt`.
   updated_at: string
-  // The timer, from `common.timers`: its kind and a countdown's length were
-  // copied there from the setup at create, and are what the game reads.
-  timer_mode: TimerMode
   started_at: string
   ended_at: string | null
-  // The turn pointer, for a game played in turns (docs/common-schema.md →
-  // Turn-order). The hook hands it on as `turnHolderId`; whether a game has
-  // turns at all is `isTurnBased`, never a null here.
+  // Whose turn it is; null when nobody's.
   current_turn_user_id: string | null
 }
 
 
-/**
- * Broadcast event shape for the manual-pause feature. Pauser's
- * user_id rides along so peers can render "Bea paused the game"
- * overlay line; the receiver looks up the member by id (no need
- * to ship usernames over the wire).
- *
- * Any-player-resume: there's no privileged "original pauser"
- * check. Any connected player can fire `manualUnpause`.
- */
-type ManualPauseEvent =
-  | { type: 'manualPause'; userId: string }
-  | { type: 'manualUnpause' }
+/** Whether the game takes turns, and whose turn it is. */
+export type GameTurns = {
+  // The players were seated in a turn order.
+  isTurnBased: boolean
+  // Whose turn it is, as stored; it outlives the end.
+  turnHolderId: string | null
+}
+
+/** Whether the game is paused, and the controls: what the header's Pause
+ *  button and the pause overlay draw from. How it is worked out is
+ *  `computeGamePause`'s. */
+export type GamePause = {
+  // Somebody the game waits for is away, or somebody clicked Pause.
+  paused: boolean
+  // Who is connected to the game right now.
+  presentUserIds: Set<string>
+  // Who clicked Pause; null when nobody did.
+  manuallyPausedBy: Member | null
+  // Pause and resume for every peer, this tab included.
+  sendManualPause: () => void
+  sendManualUnpause: () => void
+}
 
 /**
- * Broadcast payload sent when a peer shelves the game. Every OTHER peer
- * navigates back to the club page on receipt; the sender navigates itself,
- * because a broadcast does not echo (see `sendSuspend`). No userId field —
- * the action is uniform, and the disappearance into the club page is itself
- * the signal. The club's pointer is cleared by the last tab out, in the join
- * effect's cleanup below.
+ * **`cg`, the common game** — everything the page knows about THIS game, and
+ * what it can do to it, grouped by meaning: the `common.games` row's fields,
+ * the roster, the turns, where I stand, the pause and the clock. Where each
+ * came from (the row, `common.game_players`, presence, the timer) is
+ * `useCommonGame`'s business, never the reader's.
  */
+export type CommonGame = CommonGameRow & {
+  // Everyone in the game.
+  players: GamePlayer[]
+  // The human players who haven't ended: who the pause waits for.
+  stillPlayingHumanPlayers: GamePlayer[]
+  // Whether the game is paused, and the controls.
+  pause: GamePause
+  // Shelve the game and send every peer, this tab included, to the club page.
+  sendSuspend: () => void
+  // The game clock: its kind (and a countdown's length), the seconds to show,
+  // and whether a countdown has run out.
+  timer: { mode: TimerMode; displaySeconds: number; expired: boolean }
+  // Whether the game takes turns, and whose turn it is.
+  turns: GameTurns
+  // Where the viewing player stands (docs/win-lose.md → Where a player stands).
+  standing: Standing
+}
+
+/** The suspend broadcast: every other peer goes back to the club page on
+ *  receipt. No sender: leaving together is the whole message. */
 type SuspendEvent = { type: 'suspend' }
-
-/** What `common.unset_current_view` puts in `data` when it cleared the
- *  pointer. Nullable because its other `ok` — PA001, the game is gone —
- *  arrives through a raise, and `common._raised_envelope` builds `data: null`.
- *  ClubPage's heal declares the same shape for the same RPC. */
-type UnsetAnswer = { result: 'cleared' } | null
-
-/** What `common.set_current_view` puts in `data` when it flipped the pointer.
- *  Nullable for the same reason as its twin above: its other `ok` — PA003, the
- *  game is gone — arrives through a raise, and `common._raised_envelope` builds
- *  `data: null`. */
-type SetAnswer = { result: 'set' } | null
 
 /**
  * Everything a game page needs that isn't the game: the common.games row and
@@ -116,8 +112,7 @@ type SetAnswer = { result: 'set' } | null
  *
  * It also says where the viewing player stands — the standing terms
  * (docs/win-lose.md → Where a player stands), each computed once here so no
- * game recomputes them. `draftsOffTurn` is the manifest's, and only `isBoardInteractive` reads
- * it.
+ * game recomputes them; `isBoardInteractive` reads the manifest's `draftsOffTurn`.
  *
  * Every field of the returned object is documented on the return type below.
  * Nothing here half-runs: the hook joins the channel and asserts
@@ -127,316 +122,82 @@ type SetAnswer = { result: 'set' } | null
 export function useCommonGame(
   gameId: string,
   authSession: Session,
-  draftsOffTurn: boolean,
+  manifest: GameManifest,
 ): {
-  // The common.games row, or null while loading — and also when the read failed
-  // or the game is gone, which `failure` below tells apart.
-  commonGame: CommonGame | null
-  // common.game_players ⨯ their profiles: everyone in the game.
-  players: GamePlayer[]
-  // The presence-pause roster: `players` minus everyone the game is no longer
-  // waiting for. This is the exact set the pause machinery watches — a player
-  // who is locally terminal (conceded, eliminated, out of budget, or finished
-  // while the others play out) is excluded, because their absence must not
-  // wedge the game for the people still playing.
-  // The pause overlay lists these members (present ones filled, absent ones a
-  // hollow ring).
-  activePlayers: GamePlayer[]
-  // The union of the two pauses: somebody in `activePlayers` is off the
-  // channel, or somebody clicked Pause. Forced false once the game has ended.
-  paused: boolean
-  // User ids currently on the game's realtime channel. Paired with
-  // `activePlayers` to tell present (filled dot) from absent (hollow gray ring)
-  // in the pause overlay — same present/away split the club-page
-  // `PageHeaderPlayersStrip` draws.
-  presentUserIds: Set<string>
-  // Who clicked Pause, null when the pause is presence-only. A club member
-  // watching without having joined resolves to a nameless stand-in rather than
-  // nothing, so their click still takes effect.
-  manuallyPausedBy: Member | null
-  // Broadcast the manual pause / its release to every peer, this tab included.
-  sendManualPause: () => void
-  sendManualUnpause: () => void
-  // Shelve the game and leave: broadcasts to every peer, then navigates self to
-  // the club page. What `act-back-to-club` does mid-game, from whichever
-  // surface placed it — after a confirm when there are peers to surprise,
-  // straight away for a solo game.
-  sendSuspend: () => void
-  // The game clock — seconds to show, and whether a countdown has run out.
-  timer: { displaySeconds: number; expired: boolean }
-  // Where the viewing player stands. Each means exactly what its formula says
-  // (docs/win-lose.md → Where a player stands), and nothing else. Before the
-  // row loads, nobody is a player and every flag is false.
-  isPlayer: boolean
-  isConceded: boolean
-  isLocallyTerminal: boolean
-  isStillPlaying: boolean
-  isTurnBased: boolean
-  turnHolderId: string | null
-  isMyTurn: boolean
-  isWaitingForTurn: boolean
-  isBoardInteractive: boolean
-  // How many times the channel has joined (SUBSCRIBED, reconnects included) or
-  // confirmed its postgres_changes attach — each a moment this hook reloads
-  // too. See `GamePageCtx.resubscribeCount`.
+  // The game; null while loading, when a read failed, or when it is gone.
+  cg: CommonGame | null
+  // Counts the channel's joins and attach confirmations; see
+  // `GamePageCtx.resubscribeCount`.
   resubscribeCount: number
-  // False once the initial fetch has settled, however it settled.
+  // True until the first read settles, however it settles.
   loading: boolean
-  // Set when a read FAILED, which is not the same as the game being absent.
-  // `GamePageLoader` renders this instead of "There's no game here."
+  // A read that failed — not the same as the game being gone.
   failure: NotOkEnvelope | null
 } {
-  const [commonGame, setCommonGame] = useState<CommonGame | null>(null)
-  const [players, setPlayers] = useState<GamePlayer[]>([])
-  // Whether the players were seated in a turn order (any `turn_seat` set) —
-  // fixed when the game is created. Read off the roster with the players.
-  const [isTurnBased, setIsTurnBased] = useState(false)
+  // What the newest read found; null until the first one answers.
+  const [lastRead, setLastRead] = useState<CommonGameRead | null>(null)
   const [presentUserIds, setPresentUserIds] = useState<Set<string>>(
     () => new Set(),
   )
-  // user_id of whoever clicked the most recent un-resolved manual
-  // pause. null when no manual pause is in effect.
-  const [manuallyPausedById, setManuallyPausedById] = useState<string | null>(
-    null,
-  )
-  const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
   const [resubscribeCount, setResubscribeCount] = useState(0)
-  // Held in state so a new effect run (StrictMode double-mount,
-  // gameId change) gets a fresh channel and re-renders consumers.
-  // The setChannel-in-effect below is intentional — the realtime
-  // channel IS the external system being synced into React state.
-  const [channel, setChannel] = useState<
-    ReturnType<typeof supabase.channel> | null
-  >(null)
-  // The same channel, reachable synchronously from the effect's cleanup.
-  // The state above is for consumers (it must re-render them); the cleanup
-  // can't read it, because the channel may be created AFTER the effect body
-  // returns — the join waits on any in-flight teardown of the same room name.
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-
-  // Mirror of presentUserIds the cleanup callback can read at
-  // unmount time without being a stale closure capture. Written
-  // alongside setPresentUserIds inside the presence-sync handler
-  // (not during render); the hook fires unset_current_view IFF
-  // this ref says I'm the only viewer at the moment of unmount
-  // — see the effect's cleanup below for the full story.
+  // The room's channel, in state so the senders re-render with it. Set from
+  // the join effect on purpose: the channel IS the external system.
+  const [channel, setChannel] = useState<RealtimeChannel | null>(null)
+  // The same channel for the cleanup, which can't read state: the join may
+  // happen after the effect body returns, waiting out a previous teardown.
+  const channelRef = useRef<RealtimeChannel | null>(null)
+  // The latest presence, for the cleanup's last-viewer check.
   const presentUserIdsRef = useRef<Set<string>>(new Set())
-
-  // Mirror of commonGame.club_handle that the suspend-broadcast
-  // handler can read at receive time. The handler is registered
-  // once on subscribe (before commonGame loads); a ref decouples
-  // it from the load-time setState. Written by `load()` below
-  // alongside setCommonGame.
+  // The club handle, for the suspend handler, which is attached before the
+  // row loads.
   const clubHandleRef = useRef<string>('')
 
-  // Idempotent apply for manual-pause events. The senders below call this
-  // directly (optimistic local apply) AND broadcast; with realtime-js's
-  // `broadcast: { self: false }` default there's no echo to the sender, so
-  // this runs once locally and once per peer. Idempotent regardless — a
-  // repeat lands on the same value and React's referential-equality setState
-  // bail-out drops it — which is what makes the rebroadcast-on-peer-join
-  // effect below safe.
-  const applyManualPause = useCallback((event: ManualPauseEvent) => {
-    if (event.type === 'manualPause') {
-      setManuallyPausedById(event.userId)
-    } else {
-      setManuallyPausedById(null)
-    }
-  }, [])
+  const { manuallyPausedById, applyManualPause, sendManualPause, sendManualUnpause } =
+    useManualPause({ channel, myId: authSession.user.id, presentUserIds })
 
-  // Join this game's shared Realtime room: load the row + roster,
-  // attach the postgres-changes / broadcast / presence handlers,
-  // subscribe, and assert current-view on connect. The matching
-  // cleanup leaves the room (unset_current_view if last viewer,
-  // untrack, removeChannel). See the hook docstring above for the
-  // "shared room" framing this name echoes.
+  // Join the game's room: read the game, attach the handlers, subscribe and
+  // claim the club's current view. Leaving releases it if I am the last viewer.
   useEffect(function joinGameRoom() {
     let mounted = true
-    // Monotonic generation for out-of-order protection: this effect fires
-    // overlapping loads (initial + on-SUBSCRIBED + one per postgres-changes
-    // event), which can resolve out of order. Each `load()` stamps a
-    // generation and commits only if it's still the newest — so a slow initial
-    // load landing after a fast event-load can't regress the ending or the
-    // roster. Same fix as useRealtimeRefetch's factory.
+    // Loads overlap (the first, on join, and one per change) and can land out
+    // of order; only the newest may commit, so a slow one can't roll the game
+    // back. Same fix as useRealtimeRefetch's.
     let generation = 0
 
     async function load() {
-      // Already dead on arrival. Not the same question as the guard after the
-      // await, which asks whether the world changed WHILE we waited — this one
-      // catches a `load()` that should never have started: the cleanup below
-      // does `void releaseChannel(ch)` without awaiting it, so the channel can
-      // still deliver an event, or `onPostgresAttached` still fire, for a
-      // moment after this hook unmounted. Three reads, certain to be discarded.
+      // Already dead on arrival: the cleanup releases the channel without
+      // awaiting it, so an event can still call this just after unmount.
       if (!mounted) return
       const myGen = ++generation
-      // Common-side row + player roster + profile usernames.
-      // Two queries instead of an embed: game_players → profiles
-      // is on user_id, easy enough to read directly with explicit
-      // column control.
-      //
-      // No embed of clubs(handle) either: common.games.club_handle IS the
-      // club's handle, so the club-page URL comes off this row directly.
-      const [gameRes, playersRes, timerRes] = await Promise.all([
-        // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
-        // so this is 0 or 1 of them.
-        readRows(
-          commonDb
-            .from('games')
-            .select(
-              'id, club_handle, gametype, mode, title, setup, is_current_view, restart_count, game_status, updated_at, started_at, ended_at, game_ended_reason, game_ended_reason_detail, game_ended_outcome, game_ended_by_user_id, current_turn_user_id',
-            )
-            .eq('id', gameId),
-        ),
-        readRows(
-          commonDb
-            .from('game_players')
-            .select(
-              'user_id, player_ended_at, player_ended_reason, player_ended_reason_detail, final_ranking, outcome, solved_at, player_status, turn_seat',
-            )
-            .eq('game_id', gameId),
-        ),
-        readRows(
-          commonDb
-            .from('timers')
-            .select('kind, countdown_seconds_at_setup')
-            .eq('game_id', gameId),
-        ),
-      ])
+      const read = await readCommonGame(gameId)
       if (!mounted || myGen !== generation) return
 
-      // A read can only fail as a FAULT — `readRows` never authors anything
-      // else, and it has already logged the failure and raised the modal. What
-      // is left is the envelope BEHIND it, which already names which read died.
-      //
-      // One branch each rather than one combined test, because WHICH read failed
-      // is the only thing the player's sentence cannot say.
-      if (gameRes.type === 'not-ok') {
-        setFailure(gameRes)
-        setLoading(false)
-        return
-      }
-      if (playersRes.type === 'not-ok') {
-        setFailure(playersRes)
-        setLoading(false)
-        return
-      }
-      if (timerRes.type === 'not-ok') {
-        setFailure(timerRes)
-        setLoading(false)
-        return
-      }
-      // A load that worked clears a previous one's failure: this refetches on
-      // every realtime event, so an outage that ends should take its sentence
-      // with it rather than leaving the shell behind a stale explanation.
-      setFailure(null)
-
-      // ZERO ROWS is the caller's to read, and `GamePageLoader` reads it as the
-      // game being gone — which is only true because the read WORKED.
-      const gameData = gameRes.data[0]
-      const playerRows = playersRes.data
-      if (!gameData) {
-        setCommonGame(null)
-        setPlayers([])
-        setIsTurnBased(false)
-        setLoading(false)
-        return
-      }
-
-      let playerList: GamePlayer[] = []
-      const userIds = (playerRows ?? []).map((r) => r.user_id)
-      if (userIds.length > 0) {
-        const profilesRes = await readRows(
-          commonDb
-            .from('profiles')
-            .select('user_id, username, color, ai_member')
-            .in('user_id', userIds),
+      if (read.kind === 'loaded') {
+        // What this load saw, timestamped — the moment a lost event shows up
+        // as "the last refetch saw a game still in progress".
+        rtLog(
+          `game:${gameId}`,
+          `load #${myGen}: ended_at=${read.row.ended_at}` +
+            ` updated_at=${read.row.updated_at} players=${read.players.length}`,
         )
-        if (!mounted || myGen !== generation) return
-        if (profilesRes.type === 'not-ok') {
-          setFailure(profilesRes)
-          setLoading(false)
-          return
-        }
-        const profileData = profilesRes.data
-        // Merge the profile (username/color) with the per-player
-        // game_players bits (the ending, ranking and status) into one
-        // GamePlayer.
-        const byId = new Map(
-          (playerRows ?? []).map((r) => [r.user_id, r]),
-        )
-        playerList = (profileData ?? []).map(function mergeGamePlayerBits(prof) {
-          const gp = byId.get(prof.user_id)
-          const { ai_member, ...member } = prof
-          return {
-            ...(member as Member),
-            player_ended_at: gp?.player_ended_at ?? null,
-            player_ended_reason:
-              (gp?.player_ended_reason as GamePlayer['player_ended_reason']) ?? null,
-            player_ended_reason_detail: gp?.player_ended_reason_detail ?? null,
-            final_ranking: gp?.final_ranking ?? null,
-            outcome: (gp?.outcome as GamePlayer['outcome']) ?? null,
-            solved_at: gp?.solved_at ?? null,
-            player_status: (gp?.player_status as GamePlayer['player_status']) ?? {},
-            ai_member,
-          }
-        })
+        clubHandleRef.current = read.row.club_handle
       }
-
-      // Diagnostics: what this load actually saw. The lost-event failure
-      // mode ends with "the last refetch saw a game still in progress" —
-      // this line is that moment, timestamped, in a real browser's console.
-      rtLog(
-        `game:${gameId}`,
-        `load #${myGen}: ended_at=${gameData.ended_at}` +
-          ` updated_at=${gameData.updated_at} players=${playerList.length}`,
-      )
-
-      clubHandleRef.current = gameData.club_handle
-      setCommonGame({
-        id: gameData.id,
-        club_handle: gameData.club_handle,
-        gametype: gameData.gametype,
-        mode: gameData.mode as CommonGame['mode'],
-        title: gameData.title,
-        setup: gameData.setup as CommonGame['setup'],
-        is_current_view: gameData.is_current_view,
-        gameEnding: readGameEnding(gameData),
-        restart_count: gameData.restart_count,
-        game_status: gameData.game_status as CommonGame['game_status'],
-        updated_at: gameData.updated_at,
-        timer_mode: timerModeOf(timerRes.data[0]),
-        started_at: gameData.started_at,
-        ended_at: gameData.ended_at,
-        current_turn_user_id: gameData.current_turn_user_id,
-      })
-      setPlayers(playerList)
-      setIsTurnBased((playerRows ?? []).some((r) => r.turn_seat !== null))
-      setLoading(false)
+      setLastRead(read)
     }
 
-    // A stable ROOM name: every connected peer for this game joins the SAME
-    // Realtime topic — required for presence to see everyone and broadcasts to
-    // reach all peers, so it can't take a dedup suffix the way the per-client
-    // data channels do. That exposes it to the teardown race: a remount inside
-    // the previous mount's leave round-trip (StrictMode's double-mount;
-    // club↔game navigation) would be handed the dying channel back, whose
-    // .subscribe() never reaches SUBSCRIBED. `channelLeaving` waits it out;
-    // nothing pending is the fast path, so a first mount joins on the spot.
-    // Full mechanism: channelTeardown.ts.
+    // One name for every peer, so presence and broadcasts reach them all — which
+    // means a quick remount must wait out the previous mount's leave
+    // (channelTeardown.ts).
     const room = `game:${gameId}`
     let canceled = false
 
     function joinRoom() {
-      // Guards the deferred path only — this effect can tear down again while
-      // the previous channel is still leaving.
+      // The effect may have torn down while the join waited.
       if (canceled) return
       const ch = supabase.channel(room)
 
-      // Postgres-changes on common.games for this gameId. Every move writes
-      // the row through its status builder, so this is how the page — and,
-      // through `updated_at`, each game's own hook — learns of every move,
-      // the ending and the is_current_view flip.
+      // Every move writes the row, so this is how the page — and, through
+      // `updated_at`, each game's own hook — hears of every move and the end.
       ch.on(
         'postgres_changes',
         {
@@ -448,10 +209,7 @@ export function useCommonGame(
         load,
       )
 
-      // Postgres-changes on common.game_players for this game: a player's
-      // ending, ranking and `player_status`. The builder writes these with
-      // common.games in the same transaction, so the listener above fires
-      // too; this one keeps a write to the roster alone from going unseen.
+      // A write to the roster alone (a player's ending, ranking, status).
       ch.on(
         'postgres_changes',
         {
@@ -463,53 +221,29 @@ export function useCommonGame(
         load,
       )
 
-      // Manual-pause Broadcast, from a peer — our own sends do not echo (the
-      // senders below apply locally first). Idempotent apply, because the
-      // rebroadcast-on-peer-join effect below repeats the same event.
+      // A peer's manual pause; see `useManualPause`.
       ch.on('broadcast', { event: 'manualPause' }, ({ payload }) =>
         applyManualPause(payload as ManualPauseEvent),
       )
 
-      // Suspend Broadcast. When one peer shelves the game, every OTHER
-      // connected peer navigates back to the club page here; the sender does
-      // not receive its own broadcast and navigates itself in `sendSuspend`.
-      // The resulting cascade of unmounts feeds last-viewer-leaves into
-      // unset_current_view; whichever cleanup runs last clears the flag. The
-      // clubHandleRef indirection is so the handler resolves the current
-      // handle at receive-time rather than at register-time (load() runs
-      // later).
+      // A peer shelved the game: go back to the club too.
       ch.on('broadcast', { event: 'suspend' }, function navigateToTheClub() {
         const handle = clubHandleRef.current
         if (!handle) return
         navigate(clubPath(handle))
       })
 
-      // The deaf-window closer: SUBSCRIBED below is only the join ack, and a
-      // common.games/game_players write landing before the WAL poller really
-      // carries this channel's subscription is dropped — for THIS channel
-      // that's a game ending invisibly (the exact bug the pinned repro spec
-      // demonstrates). Re-read once the attach is confirmed. See
-      // postgresAttached.ts.
+      // Re-read once the change feed is really attached: a write landing
+      // between the join and the attach is otherwise lost (postgresAttached.ts).
       onPostgresAttached(ch, function reloadOnAttach() {
         void load()
         setResubscribeCount((n) => n + 1)
       })
 
-      // Presence: dedupe to user_ids so multiple tabs of the same
-      // user don't double-count. We also mirror to a ref so the
-      // unmount cleanup can read the latest snapshot — see the
-      // cleanup return below.
+      // Presence: who is connected. Mirrored to a ref for the cleanup, which
+      // reads it at unmount to decide whether I am the last viewer.
       ch.on('presence', { event: 'sync' }, function mirrorPresence() {
-        const presence = ch.presenceState() as Record<
-          string,
-          Array<{ user_id?: string }>
-        >
-        const ids = new Set<string>()
-        for (const tabs of Object.values(presence)) {
-          for (const tab of tabs) {
-            if (tab.user_id) ids.add(tab.user_id)
-          }
-        }
+        const ids = readPresentUserIds(ch)
         presentUserIdsRef.current = ids
         setPresentUserIds(ids)
         rtLog(room, `presence sync: [${[...ids].join(', ')}]`)
@@ -520,39 +254,9 @@ export function useCommonGame(
           load()
           setResubscribeCount((n) => n + 1)
           ch.track({ user_id: authSession.user.id })
-          // First-viewer-mount write: flip this game to the
-          // club's current view (and vacate any prior one).
-          // Idempotent server-side — re-mounting an already-
-          // current game is a no-op. Fires on every SUBSCRIBED
-          // (including reconnects), which is what we want: a
-          // member who reconnects re-asserts they're viewing.
-          // See docs/states.md → "Lifecycle: when is_current_view
-          // flips" and the matching common.set_current_view RPC.
-          //
-          // A console line is the whole response, and the severity below is
-          // what buys that: a fault is the only not-ok this RPC can give
-          // (PN011 / PN012, from _require_club_member) and `runRpc` has already
-          // raised its modal. Nobody asked for this write — it rides on the
-          // subscribe ack — so there is no surface owed an answer, and the RPC
-          // is idempotent, so a transient failure self-heals at the next
-          // reconnect. Same shape as `unset_current_view` below.
-          void runRpc<SetAnswer>(
-            commonDb.rpc('set_current_view', { target_game: gameId }),
-          ).then(function logHowSetCurrentViewLanded(res) {
-            if (res.type === 'not-ok' && res.severity === 'fault') {
-              console.error('set_current_view failed', res.message)
-            } else if (res.type === 'ok' && res.dbcode === 'PA003') {
-              // The game was deleted out from under us — the reconnect case,
-              // not a race: this ack fires again on every resubscribe. Nothing
-              // to make current, and this is the wrong messenger anyway;
-              // `load()` finds zero rows and `GamePageLoader` says it properly.
-            } else if (res.type === 'ok' && res.data?.result === 'set') {
-              // Flipped, or already true — the RPC's own `is_current_view =
-              // false` guard absorbing a re-assert.
-            } else {
-              reportUnhandled('set_current_view', res)
-            }
-          })
+          // On every join, reconnects included: a member who reconnects
+          // re-asserts they're viewing.
+          assertCurrentView(gameId)
         }
       })
       setChannel(ch)
@@ -561,9 +265,6 @@ export function useCommonGame(
 
     const pending = channelLeaving(room)
     if (pending) {
-      // The previous mount of this room is still mid-leave (StrictMode
-      // double-mount; club↔game navigation). Log both ends so a join that
-      // never happened is traceable to a teardown that never resolved.
       rtLog(room, 'join deferred: waiting for previous teardown')
       void pending.then(joinRoom)
     } else joinRoom()
@@ -574,54 +275,16 @@ export function useCommonGame(
       mounted = false
       canceled = true
 
-      // Last-viewer-leave write. Fire unset_current_view IFF
-      // the latest presence snapshot says I'm the only viewer
-      // — `{me}` or the not-yet-synced empty set (which covers
-      // the StrictMode quick-mount-unmount cycle where presence
-      // never propagated; the RPC's `is_current_view = true`
-      // guard makes a stale-fire harmless). A presence set with
-      // other user_ids means someone else is still viewing —
-      // they'll fire unset themselves when they become last.
-      //
-      // The two-peers-leave-simultaneously race (both see
-      // {me, you}, both skip the unset) is a known acceptable
-      // gap: the next club-page visit re-establishes the
-      // pointer via set_current_view's vacate-others step.
+      // The last viewer out clears the club's pointer. "Last" is the latest
+      // presence snapshot holding only me, or nothing yet (a StrictMode
+      // mount-unmount before presence synced; a stale clear is harmless). Two
+      // peers leaving at once can both skip it: an accepted gap, since the next
+      // set_current_view vacates a straggler.
       const ids = presentUserIdsRef.current
       const iAmLastOrUnknown =
         ids.size === 0 || (ids.size === 1 && ids.has(authSession.user.id))
       rtLog(room, `leaving (lastViewer=${iAmLastOrUnknown})`)
-      if (iAmLastOrUnknown) {
-        // Same shape as set_current_view above, and unasked-for in the same
-        // way: nobody clicked it, so nothing is owed an answer beyond the
-        // modal `runRpc` raises. The RPC is idempotent (its `is_current_view =
-        // true` guard absorbs no-ops), and a game deleted out from under us
-        // comes back `ok`, so a transient failure leaves nothing behind. A
-        // persistent one leaves the club's pointer stuck on a stale game until
-        // the next set_current_view clears it as a straggler.
-        void runRpc<UnsetAnswer>(
-          commonDb.rpc('unset_current_view', { target_game: gameId }),
-        ).then(function logHowUnsetCurrentViewLanded(res) {
-          if (res.type === 'not-ok' && res.severity === 'fault') {
-            // The severity is asserted, not assumed, and it is the reason a
-            // console line is enough: a fault is the only not-ok this RPC can
-            // give (PN011 / PN012, from _require_club_member) and `runRpc` has
-            // already put its modal up. This tab is on its way out and has no
-            // surface left to say anything on, so a race or a service-error
-            // would have nowhere to go — better the scream below than a quiet
-            // log line. Same reasoning as ClubPage's heal, the other caller.
-            console.error('unset_current_view failed', res.message)
-          } else if (res.type === 'ok' && res.dbcode === 'PA001') {
-            // The game was deleted out from under us. Not a failure: a deleted
-            // game has no pointer to leave behind, which is the job done.
-          } else if (res.type === 'ok' && res.data?.result === 'cleared') {
-            // Cleared, or already false — the RPC's own `is_current_view =
-            // true` guard absorbing a peer who got there first.
-          } else {
-            reportUnhandled('unset_current_view', res)
-          }
-        })
-      }
+      if (iAmLastOrUnknown) releaseCurrentView(gameId)
 
       const ch = channelRef.current
       channelRef.current = null
@@ -636,43 +299,8 @@ export function useCommonGame(
     }
   }, [applyManualPause, gameId, authSession.user.id])
 
-  // Re-broadcast active manual-pause whenever the set of connected
-  // peers changes, so a peer joining mid-pause (or reconnecting
-  // after the original pauser closed their tab) lands in the same
-  // paused state instead of seeing a phantom-resumed board.
-  useEffect(function rebroadcastManualPause() {
-    if (!channel || manuallyPausedById === null) return
-    channel.send({
-      type: 'broadcast',
-      event: 'manualPause',
-      payload: { type: 'manualPause', userId: manuallyPausedById },
-    })
-  }, [channel, manuallyPausedById, presentUserIds])
-
-  // Manual-pause broadcasters. Optimistic local apply + broadcast.
-  const sendManualPause = useCallback(() => {
-    if (!channel) return
-    const event: ManualPauseEvent = {
-      type: 'manualPause',
-      userId: authSession.user.id,
-    }
-    applyManualPause(event)
-    channel.send({ type: 'broadcast', event: 'manualPause', payload: event })
-  }, [applyManualPause, channel, authSession.user.id])
-
-  const sendManualUnpause = useCallback(() => {
-    if (!channel) return
-    const event: ManualPauseEvent = { type: 'manualUnpause' }
-    applyManualPause(event)
-    channel.send({ type: 'broadcast', event: 'manualPause', payload: event })
-  }, [applyManualPause, channel])
-
-  // Suspend-now broadcaster. Fires the broadcast first so peers start
-  // navigating, then navigates self.
-  //
-  // The self-navigate is REQUIRED, not belt-and-braces: realtime-js defaults to
-  // `broadcast: { self: false }` and we don't override it, so the handler above
-  // never runs on the sender's own channel.
+  // Tell the peers, then go: a broadcast doesn't echo to its sender, so this
+  // tab navigates itself.
   const sendSuspend = useCallback(() => {
     if (!channel) return
     const event: SuspendEvent = { type: 'suspend' }
@@ -681,99 +309,257 @@ export function useCommonGame(
     if (handle) navigate(clubPath(handle))
   }, [channel])
 
-  // Presence-pause + manual-pause unify into a single `paused`
-  // flag. The two sources can coexist; the union truthy-ness is
-  // what consumers care about.
-  //
-  // Short-circuit on game-end: once `ended_at` is populated,
-  // pause is moot — the game is over. Forcing paused=false in
-  // this case lets PauseBoundary remount PlayArea so it renders
-  // the terminal result (the verdict pill + per-game review state).
-  // Without this, a terminal-during-pause edge case (stale-tab
-  // peer fires submit_timeout, etc.) would leave the overlay
-  // stuck up over a game that's already done.
-  // Locally terminal players are dropped from the presence-pause roster: a
-  // player who conceded or is otherwise done must NOT wedge everyone else
-  // behind a "Waiting for <name>…" overlay when they close the tab.
-  // Invited-but-not-yet-joined players stay counted — that presence-pause IS
-  // deliberate.
-  // …and minus the bots. A bot holds a seat and can win, but it never opens a
-  // tab, so counting it here would park every game with one behind the pause
-  // overlay forever. Filtered HERE rather than inside computePause because
-  // `activePlayers` is also what the overlay draws its present/absent dots
-  // from — patching the flag alone would leave a permanently hollow bot ring.
-  const activePlayers = players.filter(
-    (p) => p.player_ended_at === null && !p.ai_member,
-  )
-  const presencePaused = computePause(presentUserIds, activePlayers)
-  const manuallyPausedBy: Member | null = manuallyPausedById
-    ? players.find((m) => m.user_id === manuallyPausedById) ??
-      // The pauser can be a club member spectating (on the game page without
-      // having joined as a player), so they're not in `players`. Resolve to a
-      // labeled pseudo-member so the pause still TAKES EFFECT (and the overlay
-      // reads "Someone paused") instead of silently no-opping — clicking Pause
-      // was otherwise a dead control for a non-player. Unknown color falls
-      // through to body-text in colorVarFor.
-      { user_id: manuallyPausedById, username: 'Someone', color: '' }
-    : null
-  const paused =
-    (presencePaused || manuallyPausedBy !== null)
-    && commonGame?.ended_at == null
+  // The newest read, taken apart. A failed or gone read leaves the game null.
+  const loaded = lastRead?.kind === 'loaded' ? lastRead : null
+  const row = loaded?.row ?? null
+  const players = loaded?.players ?? []
+  const isTurnBased = loaded?.isTurnBased ?? false
 
-  // Timer. The additive tick clock (common.timers) — mode from
-  // setup; `running` gates the per-second driver so the count only
-  // advances during live, unpaused play. Pre-load (commonGame null)
-  // → running=false, so the hook stays callable but idle until the
-  // game loads.
+  const { stillPlayingHumanPlayers, manuallyPausedBy, paused } = computeGamePause({
+    players,
+    presentUserIds,
+    manuallyPausedById,
+    isGameEnded: (row?.ended_at ?? null) !== null,
+  })
+
+  // Idle until the game loads, and stopped once it ends.
   const timer = useGameTimer({
     gameId,
     paused,
-    mode: commonGame?.timer_mode ?? { kind: 'none' },
-    running: commonGame != null && commonGame.gameEnding === null,
+    mode: loaded?.timerMode ?? { kind: 'none' },
+    running: row !== null && row.gameEnding === null,
   })
 
-  // ─── Where I stand ─── see `whereIStand`.
-  const turnHolderId = commonGame?.current_turn_user_id ?? null
-  const {
-    isPlayer,
-    isConceded,
-    isLocallyTerminal,
-    isStillPlaying,
-    isMyTurn,
-    isWaitingForTurn,
-    isBoardInteractive,
-  } = whereIStand({
+  const turnHolderId = row?.current_turn_user_id ?? null
+  const standing = whereIStand({
     players,
     myId: authSession.user.id,
-    isTerminal: (commonGame?.gameEnding ?? null) !== null,
+    isGameEnded: (row?.gameEnding ?? null) !== null,
     isTurnBased,
     turnHolderId,
-    draftsOffTurn,
+    draftsOffTurn: manifest.draftsOffTurn,
   })
 
+  const cg: CommonGame | null = loaded === null
+    ? null
+    : {
+        ...loaded.row,
+        players,
+        stillPlayingHumanPlayers,
+        pause: {
+          paused,
+          presentUserIds,
+          manuallyPausedBy,
+          sendManualPause,
+          sendManualUnpause,
+        },
+        sendSuspend,
+        timer: { mode: loaded.timerMode, ...timer },
+        turns: { isTurnBased, turnHolderId },
+        standing,
+      }
+
   return {
-    commonGame,
-    players,
-    activePlayers,
-    paused,
-    presentUserIds,
-    manuallyPausedBy,
-    sendManualPause,
-    sendManualUnpause,
-    sendSuspend,
-    timer,
-    isPlayer,
-    isConceded,
-    isLocallyTerminal,
-    isStillPlaying,
-    isTurnBased,
-    turnHolderId,
-    isMyTurn,
-    isWaitingForTurn,
-    isBoardInteractive,
+    cg,
     resubscribeCount,
-    loading,
-    failure,
+    loading: lastRead === null,
+    failure: lastRead?.kind === 'failed' ? lastRead.failure : null,
+  }
+}
+
+/**
+ * Read who is connected to the room: the user ids in its presence. Presence
+ * keeps one record per connection, so a player with two tabs is counted once.
+ */
+function readPresentUserIds(ch: RealtimeChannel): Set<string> {
+  const presence = ch.presenceState() as Record<string, Array<{ user_id?: string }>>
+  const ids = new Set<string>()
+  for (const tabs of Object.values(presence)) {
+    for (const tab of tabs) {
+      if (tab.user_id) ids.add(tab.user_id)
+    }
+  }
+  return ids
+}
+
+/** What `common.unset_current_view` puts in `data` when it cleared the
+ *  pointer. Nullable because its other `ok` — PA001, the game is gone —
+ *  arrives through a raise, and `common._raised_envelope` builds `data: null`.
+ *  ClubPage's heal declares the same shape for the same RPC. */
+type UnsetAnswer = { result: 'cleared' } | null
+
+/** What `common.set_current_view` puts in `data` when it flipped the pointer.
+ *  Nullable for the same reason as its twin above: its other `ok` — PA003, the
+ *  game is gone — arrives through a raise, and `common._raised_envelope` builds
+ *  `data: null`. */
+type SetAnswer = { result: 'set' } | null
+
+/**
+ * Make this game the club's current view, vacating any other (docs/states.md →
+ * Lifecycle: when is_current_view flips). Idempotent: re-asserting a current
+ * game is a no-op.
+ *
+ * Nobody asked for this write — it rides on the join — so no surface is owed
+ * an answer. A console line is the whole response, which is enough because a
+ * fault is the only not-ok it can give (PN011 / PN012, from
+ * `_require_club_member`) and `runRpc` has already raised its modal; a
+ * transient failure heals at the next reconnect.
+ */
+function assertCurrentView(gameId: string): void {
+  void runRpc<SetAnswer>(
+    commonDb.rpc('set_current_view', { target_game: gameId }),
+  ).then(function logHowSetCurrentViewLanded(res) {
+    if (res.type === 'not-ok' && res.severity === 'fault') {
+      console.error('set_current_view failed', res.message)
+    } else if (res.type === 'ok' && res.dbcode === 'PA003') {
+      // The game was deleted out from under us — on a reconnect, since this
+      // fires on every join. Not this call's to say: the load finds zero rows
+      // and `GamePageLoader` says it properly.
+    } else if (res.type === 'ok' && res.data?.result === 'set') {
+      // Flipped, or already true.
+    } else {
+      reportUnhandled('set_current_view', res)
+    }
+  })
+}
+
+/**
+ * Clear the club's current-view pointer from this game, as the last viewer
+ * leaves. Idempotent, and a game deleted out from under us comes back `ok`.
+ *
+ * Unasked-for like `assertCurrentView`, and answered the same way: a fault is
+ * the only not-ok and `runRpc` has raised its modal; this tab is on its way out
+ * with no surface left to speak on. A persistent failure leaves the pointer on
+ * a stale game until the next set_current_view clears it. ClubPage's heal is
+ * the other caller of this RPC.
+ */
+function releaseCurrentView(gameId: string): void {
+  void runRpc<UnsetAnswer>(
+    commonDb.rpc('unset_current_view', { target_game: gameId }),
+  ).then(function logHowUnsetCurrentViewLanded(res) {
+    if (res.type === 'not-ok' && res.severity === 'fault') {
+      console.error('unset_current_view failed', res.message)
+    } else if (res.type === 'ok' && res.dbcode === 'PA001') {
+      // The game was deleted: it has no pointer to leave behind.
+    } else if (res.type === 'ok' && res.data?.result === 'cleared') {
+      // Cleared, or already false — a peer got there first.
+    } else {
+      reportUnhandled('unset_current_view', res)
+    }
+  })
+}
+
+/** What one read of the game found. */
+type CommonGameRead =
+  | {
+      kind: 'loaded'
+      row: CommonGameRow
+      timerMode: TimerMode
+      players: GamePlayer[]
+      isTurnBased: boolean
+    }
+  // Zero rows. Only a read that WORKED can say this, which is why
+  // `GamePageLoader` may read it as the game being gone.
+  | { kind: 'gone' }
+  // A read failed. `readRows` only fails as a fault, and has already logged it
+  // and raised the modal; the envelope names which read died.
+  | { kind: 'failed'; failure: NotOkEnvelope }
+
+/**
+ * Read the game: its `common.games` row, its roster (`common.game_players`
+ * merged with each player's profile) and its timer.
+ *
+ * The roster and its profiles are two reads rather than an embed, for explicit
+ * column control. Nothing reads `clubs`: the row's `club_handle` IS the club's
+ * handle.
+ */
+async function readCommonGame(gameId: string): Promise<CommonGameRead> {
+  const [gameRes, playersRes, timerRes] = await Promise.all([
+    // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK, so
+    // this is 0 or 1 of them.
+    readRows(
+      commonDb
+        .from('games')
+        .select(
+          'id, club_handle, gametype, mode, title, setup, is_current_view, restart_count, game_status, updated_at, started_at, ended_at, game_ended_reason, game_ended_reason_detail, game_ended_outcome, game_ended_by_user_id, current_turn_user_id',
+        )
+        .eq('id', gameId),
+    ),
+    readRows(
+      commonDb
+        .from('game_players')
+        .select(
+          'user_id, player_ended_at, player_ended_reason, player_ended_reason_detail, final_ranking, outcome, solved_at, player_status, turn_seat',
+        )
+        .eq('game_id', gameId),
+    ),
+    readRows(
+      commonDb
+        .from('timers')
+        .select('kind, countdown_seconds_at_setup')
+        .eq('game_id', gameId),
+    ),
+  ])
+  // One check each rather than one combined test: WHICH read failed is the one
+  // thing the player's sentence cannot say, and the envelope can.
+  if (gameRes.type === 'not-ok') return { kind: 'failed', failure: gameRes }
+  if (playersRes.type === 'not-ok') return { kind: 'failed', failure: playersRes }
+  if (timerRes.type === 'not-ok') return { kind: 'failed', failure: timerRes }
+
+  const gameData = gameRes.data[0]
+  if (!gameData) return { kind: 'gone' }
+  const playerRows = playersRes.data
+
+  let players: GamePlayer[] = []
+  const userIds = playerRows.map((r) => r.user_id)
+  if (userIds.length > 0) {
+    const profilesRes = await readRows(
+      commonDb
+        .from('profiles')
+        .select('user_id, username, color, ai_member')
+        .in('user_id', userIds),
+    )
+    if (profilesRes.type === 'not-ok') return { kind: 'failed', failure: profilesRes }
+    const rowById = new Map(playerRows.map((r) => [r.user_id, r]))
+    players = profilesRes.data.map(function mergeGamePlayerBits(prof) {
+      const gp = rowById.get(prof.user_id)
+      const { ai_member, ...member } = prof
+      return {
+        ...(member as Member),
+        player_ended_at: gp?.player_ended_at ?? null,
+        player_ended_reason:
+          (gp?.player_ended_reason as GamePlayer['player_ended_reason']) ?? null,
+        player_ended_reason_detail: gp?.player_ended_reason_detail ?? null,
+        final_ranking: gp?.final_ranking ?? null,
+        outcome: (gp?.outcome as GamePlayer['outcome']) ?? null,
+        solved_at: gp?.solved_at ?? null,
+        player_status: (gp?.player_status as GamePlayer['player_status']) ?? {},
+        ai_member,
+      }
+    })
+  }
+
+  return {
+    kind: 'loaded',
+    row: {
+      id: gameData.id,
+      club_handle: gameData.club_handle,
+      gametype: gameData.gametype,
+      mode: gameData.mode as CommonGameRow['mode'],
+      title: gameData.title,
+      setup: gameData.setup as CommonGameRow['setup'],
+      is_current_view: gameData.is_current_view,
+      gameEnding: readGameEnding(gameData),
+      restart_count: gameData.restart_count,
+      game_status: gameData.game_status as CommonGameRow['game_status'],
+      updated_at: gameData.updated_at,
+      started_at: gameData.started_at,
+      ended_at: gameData.ended_at,
+      current_turn_user_id: gameData.current_turn_user_id,
+    },
+    timerMode: timerModeOf(timerRes.data[0]),
+    players,
+    isTurnBased: playerRows.some((r) => r.turn_seat !== null),
   }
 }
 

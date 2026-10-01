@@ -61,6 +61,8 @@ export const codenamesduetGame: GameManifest = {
   // cross-reference convention.
   numberOfPlayers: [2, 2],
 
+  draftsOffTurn: false,
+
   PlayArea: lazy(() =>
     import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
   ),

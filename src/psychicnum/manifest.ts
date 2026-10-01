@@ -136,6 +136,8 @@ export const psychicnumCoopGame: GameManifest = {
   // _require_player_count_max(6) call in psychicnum.create_game.
   numberOfPlayers: [1, 6],
 
+  draftsOffTurn: false,
+
   PlayArea: playAreaLoader,
 
   setupForm: {
@@ -185,6 +187,8 @@ export const psychicnumCompeteGame: GameManifest = {
   // degenerate. Lower bound 2 hides the Start button in solo
   // clubs; the RPC also enforces this server-side.
   numberOfPlayers: [2, 6],
+
+  draftsOffTurn: false,
 
   PlayArea: playAreaLoader,
 

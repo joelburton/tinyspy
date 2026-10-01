@@ -163,6 +163,8 @@ export const letterboxedCoopGame: GameManifest = {
   // with the player-count guard in letterboxed.create_game.
   numberOfPlayers: [1, 6],
 
+  draftsOffTurn: false,
+
   PlayArea: playAreaLoader,
 
   setupForm: {
@@ -194,6 +196,8 @@ export const letterboxedCompeteGame: GameManifest = {
 
   // Compete needs an opposing PLAYER. The RPC enforces >= 2 too.
   numberOfPlayers: [2, 6],
+
+  draftsOffTurn: false,
 
   PlayArea: playAreaLoader,
 

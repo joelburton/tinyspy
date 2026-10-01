@@ -141,6 +141,8 @@ export const waffleCoopGame: GameManifest = {
   // _require_player_count_max(6) in waffle.create_game.
   numberOfPlayers: [1, 6],
 
+  draftsOffTurn: false,
+
   PlayArea: playAreaLoader,
 
   setupForm: {
@@ -171,6 +173,8 @@ export const waffleCompeteGame: GameManifest = {
   // Lower bound 2 hides the Start button in solo clubs; the RPC also
   // enforces it. Must agree with _require_player_count_max(6).
   numberOfPlayers: [2, 6],
+
+  draftsOffTurn: false,
 
   PlayArea: playAreaLoader,
 

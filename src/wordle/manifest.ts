@@ -108,6 +108,8 @@ export const wordleCoopGame: GameManifest = {
   // Solo or coop up to 6. Must agree with _require_player_count_max(6).
   numberOfPlayers: [1, 6],
 
+  draftsOffTurn: false,
+
   PlayArea: playAreaLoader,
 
   setupForm: {
@@ -161,6 +163,8 @@ export const wordleCompeteGame: GameManifest = {
   // Compete needs an opposing PLAYER. Must agree with create_game, which
   // checks both ends for a race (PN498 below 2, _require_player_count_max(6)).
   numberOfPlayers: [2, 6],
+
+  draftsOffTurn: false,
 
   PlayArea: playAreaLoader,
 

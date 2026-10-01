@@ -16,8 +16,10 @@ the gate that acts on it, and the banner that says what happened.
 
 The rule is `computePause`, a pure function of two things: the user ids realtime
 reports as connected, and the players this game expects. Anyone expected and not
-connected is missing, and a game with somebody missing is paused. `useCommonGame`
-unions that answer with the manual pause into a single boolean and hands it down.
+connected is missing, and a game with somebody missing is paused. The manual
+pause is `useManualPause`'s: who pressed Pause, and the broadcast that tells the
+others. `computeGamePause` unions the two into a single boolean, and
+`useCommonGame` hands it down.
 
 The gate is `PauseBoundary`, which takes that boolean and renders either the play
 surface or the banner, never both. It *unmounts* the play surface rather than
@@ -50,7 +52,7 @@ postgres_changes, broadcast and presence together; it derives the connected ids
 there and calls this helper with them. A `usePause` would need either a second
 channel or a share of the first, and both are worse than a function.
 
-**Who counts as expected is `useCommonGame`'s decision**: the game's players
+**Who counts as expected is `computeGamePause`'s decision**: the game's players
 minus everyone the game is no longer waiting for — anyone whose
 `common.game_players.player_ended_at` is set (conceded, eliminated, out of
 budget, or finished ahead of the others in a race that plays out), and the

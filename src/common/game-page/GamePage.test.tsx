@@ -28,7 +28,7 @@ import { getBoundActions } from '../actions/boundActionsStore'
 import type { ActionId } from '../actions/registry'
 import { NEW_GAME_CONFIRM } from '../floating-panels/confirmations'
 import { suspendConfirm } from '../pause-suspend/suspendConfirm'
-import type { CommonGame, useCommonGame } from './useCommonGame'
+import type { CommonGameRow, GameTurns, useCommonGame } from './useCommonGame'
 
 const { mockUseCommonGame, mockNavigate, askConfirmation, mockManifestFor, roster } = vi.hoisted(() => ({
   mockUseCommonGame: vi.fn(),
@@ -104,6 +104,7 @@ function makeManifest(over: Partial<GameManifest> = {}): GameManifest {
     logoUrl: '',
     help: () => null,
     numberOfPlayers: [1, 6],
+    draftsOffTurn: false,
     PlayArea: () => <div>play</div>,
     setupForm: { Component: () => null, defaults: {} },
     startGameInClub: vi.fn(),
@@ -119,14 +120,14 @@ type CommonGameState = ReturnType<typeof useCommonGame>
 type Overrides = {
   paused?: boolean
   players?: Member[]
-  game?: Partial<CommonGame> | null
+  game?: Partial<CommonGameRow> | null
 }
 
 /** What the mocked `useCommonGame` answers: a loaded, playing, solo game by
  *  default. `game: null` is the row gone, which the loader turns into the "no
  *  such game" card rather than passing down. */
 function commonGameState({ paused = false, players = [ADA], game = {} }: Overrides = {}) {
-  const commonGame: CommonGame | null =
+  const row: CommonGameRow | null =
     game === null
       ? null
       : {
@@ -141,29 +142,41 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
           restart_count: 0,
           game_status: {},
           updated_at: '2026-09-10T00:00:00Z',
-          timer_mode: { kind: 'none' },
           started_at: '2026-09-10T00:00:00Z',
           ended_at: null,
           current_turn_user_id: null,
           ...game,
         }
   return {
-    commonGame,
-    players,
-    activePlayers: players,
-    paused,
-    presentUserIds: new Set(players.map((p) => p.user_id)),
-    manuallyPausedBy: null,
-    sendManualPause: vi.fn(),
-    sendManualUnpause: vi.fn(),
-    sendSuspend: vi.fn(),
-    timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
+    cg: row === null ? null : {
+      ...row,
+      players,
+      stillPlayingHumanPlayers: players,
+      pause: {
+        paused,
+        presentUserIds: new Set(players.map((p) => p.user_id)),
+        manuallyPausedBy: null,
+        sendManualPause: vi.fn(),
+        sendManualUnpause: vi.fn(),
+      },
+      sendSuspend: vi.fn(),
+      timer: { mode: { kind: 'none' }, displaySeconds: 0, expired: false },
+      turns: { isTurnBased: false, turnHolderId: null },
+      standing: { isMyTurn: true },
+    },
+    resubscribeCount: 0,
     // `loading` false with a null row is the shape `GamePageLoader` shows "no
     // such game" for. The page below it never sees that combination.
     loading: false,
     failure: null,
   } as unknown as CommonGameState
+}
+
+/** The same state with the turns and my turn set, as a turn-order refetch
+ *  would hand them. */
+function withTurns(state: CommonGameState, turns: GameTurns, isMyTurn: boolean): CommonGameState {
+  const cg = state.cg!
+  return { ...state, cg: { ...cg, turns, standing: { ...cg.standing, isMyTurn } } }
 }
 
 const over: Overrides = { game: { ended_at: '2026-09-10T01:00:00Z', gameEnding: STOPPED } }
@@ -356,14 +369,14 @@ describe('act-back-to-club', () => {
     act(() => bound('act-back-to-club').run())
     await flush()
     expect(mockNavigate).toHaveBeenCalledWith('/c/moths')
-    expect(state.sendSuspend).not.toHaveBeenCalled()
+    expect(state.cg!.sendSuspend).not.toHaveBeenCalled()
   })
 
   it('suspends at once mid-game in a SOLO game — nobody to surprise', async () => {
     const { state } = await mount()
     act(() => bound('act-back-to-club').run())
     await flush()
-    expect(state.sendSuspend).toHaveBeenCalledTimes(1)
+    expect(state.cg!.sendSuspend).toHaveBeenCalledTimes(1)
     expect(mockNavigate).not.toHaveBeenCalled()
     expect(askConfirmation).not.toHaveBeenCalled()
   })
@@ -375,7 +388,7 @@ describe('act-back-to-club', () => {
     // The words name the game, so the question is built per title rather than
     // being a constant to compare against.
     expect(askConfirmation).toHaveBeenCalledWith(suspendConfirm('Secrets'))
-    expect(state.sendSuspend).toHaveBeenCalledTimes(1)
+    expect(state.cg!.sendSuspend).toHaveBeenCalledTimes(1)
   })
 
   it('stays in the game when the suspend question is answered no', async () => {
@@ -383,7 +396,7 @@ describe('act-back-to-club', () => {
     const { state } = await mount(commonGameState({ players: [ADA, BEA] }))
     act(() => bound('act-back-to-club').run())
     await flush()
-    expect(state.sendSuspend).not.toHaveBeenCalled()
+    expect(state.cg!.sendSuspend).not.toHaveBeenCalled()
     expect(mockNavigate).not.toHaveBeenCalled()
   })
 
@@ -410,14 +423,13 @@ describe('GamePage — the turn bell', () => {
 
   /** A turn-order game whose pointer names `holder` — the standing
    *  `useCommonGame` would compute for ada. */
-  const turnState = (holder: string, game: Partial<CommonGame> = {}) => {
+  const turnState = (holder: string, game: Partial<CommonGameRow> = {}) => {
     const isTerminal = (game.gameEnding ?? null) !== null
-    return {
-      ...commonGameState({ players: [ADA, BEA], game: { current_turn_user_id: holder, ...game } }),
-      isTurnBased: true,
-      turnHolderId: holder,
-      isMyTurn: !isTerminal && holder === 'ada',
-    }
+    return withTurns(
+      commonGameState({ players: [ADA, BEA], game: { current_turn_user_id: holder, ...game } }),
+      { isTurnBased: true, turnHolderId: holder },
+      !isTerminal && holder === 'ada',
+    )
   }
 
   /** Hand the page a new common row, as a realtime refetch would. */
@@ -452,16 +464,13 @@ describe('GamePage — the turn bell', () => {
     // Every move is mine in a free-for-all game, so restarting a finished one
     // makes `isMyTurn` rise — but no turn arrived.
     const ended = { ended_at: '2026-09-10T01:00:00Z', gameEnding: STOPPED }
-    const { view } = await mount({
-      ...commonGameState({ players: [ADA, BEA], game: ended }),
-      isTurnBased: false,
-      isMyTurn: false,
-    } as CommonGameState)
-    moveTo(view, {
-      ...commonGameState({ players: [ADA, BEA], game: { restart_count: 1 } }),
-      isTurnBased: false,
-      isMyTurn: true,
-    } as CommonGameState)
+    const noTurns = { isTurnBased: false, turnHolderId: null }
+    const { view } = await mount(
+      withTurns(commonGameState({ players: [ADA, BEA], game: ended }), noTurns, false),
+    )
+    moveTo(view, withTurns(
+      commonGameState({ players: [ADA, BEA], game: { restart_count: 1 } }), noTurns, true,
+    ))
     expect(play).not.toHaveBeenCalled()
   })
 

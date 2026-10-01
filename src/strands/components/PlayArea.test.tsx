@@ -137,7 +137,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     ...whereIStand({
       players: facts.players,
       myId: facts.authSession.user.id,
-      isTerminal: facts.isTerminal,
+      isGameEnded: facts.isTerminal,
       isTurnBased: facts.isTurnBased,
       turnHolderId: facts.turnHolderId,
       draftsOffTurn: false,

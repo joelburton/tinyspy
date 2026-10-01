@@ -131,6 +131,8 @@ export const strandsCoopGame: GameManifest = {
   // Plays solo or up to 6. Must agree with the guard in strands.create_game.
   numberOfPlayers: [1, 6],
 
+  draftsOffTurn: false,
+
   PlayArea: playAreaLoader,
 
   setupForm: {
@@ -163,6 +165,8 @@ export const strandsCompeteGame: GameManifest = {
 
   // Compete needs an opposing PLAYER; create_game enforces >= 2 too.
   numberOfPlayers: [2, 6],
+
+  draftsOffTurn: false,
 
   PlayArea: playAreaLoader,
 

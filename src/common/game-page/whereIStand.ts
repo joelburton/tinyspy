@@ -24,7 +24,7 @@ export type Standing = {
 export function whereIStand({
   players,
   myId,
-  isTerminal,
+  isGameEnded,
   isTurnBased,
   turnHolderId,
   draftsOffTurn,
@@ -33,8 +33,8 @@ export function whereIStand({
   players: GamePlayer[]
   // The viewing player's user id.
   myId: string
-  // The game has ended: `common.games.ended_at` is set.
-  isTerminal: boolean
+  // The game has ended: it has a `gameEnding`.
+  isGameEnded: boolean
   // The players were seated in a turn order.
   isTurnBased: boolean
   // `common.games.current_turn_user_id`.
@@ -46,7 +46,7 @@ export function whereIStand({
   const isPlayer = me !== undefined
   const isConceded = me?.player_ended_reason === 'conceded'
   const isLocallyTerminal = (me?.player_ended_at ?? null) !== null
-  const isStillPlaying = isPlayer && !isTerminal && !isLocallyTerminal
+  const isStillPlaying = isPlayer && !isGameEnded && !isLocallyTerminal
   const isMyTurn = isStillPlaying && (!isTurnBased || turnHolderId === myId)
   const isWaitingForTurn = isStillPlaying && !isMyTurn
   const isBoardInteractive = draftsOffTurn ? isStillPlaying : isMyTurn

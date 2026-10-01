@@ -16,8 +16,8 @@ import type { GameShellProps } from './GamePageGate'
  * React runs every hook before any early return — so a page that loads its own
  * state has to narrow a nullable row at each of the half-dozen hooks that come
  * before the guard, and bind actions during renders where the club handle is
- * still `''`. Splitting the wait out means the row and its neighbors arrive as
- * ordinary props with nothing to narrow.
+ * still `''`. Splitting the wait out means `cg` arrives as a value, with nothing
+ * to narrow.
  *
  * `GamePageGate` already proved the row existed, so this is about what happens
  * AFTER: `useCommonGame` refetches on every realtime event, so a game someone
@@ -27,37 +27,19 @@ import type { GameShellProps } from './GamePageGate'
  * Takes what the route hands down and renders nothing of its own.
  */
 export function GamePageLoader({ gameId, authSession, manifest }: GameShellProps) {
-  const {
-    commonGame,
-    players,
-    activePlayers,
-    paused,
-    presentUserIds,
-    manuallyPausedBy,
-    sendManualPause,
-    sendManualUnpause,
-    sendSuspend,
-    timer,
-    isPlayer,
-    isConceded,
-    isLocallyTerminal,
-    isStillPlaying,
-    isTurnBased,
-    turnHolderId,
-    isMyTurn,
-    isWaitingForTurn,
-    isBoardInteractive,
-    resubscribeCount,
-    loading,
-    failure,
-  } = useCommonGame(gameId, authSession, manifest.draftsOffTurn ?? false)
+  const { cg, resubscribeCount, loading, failure } =
+    useCommonGame(gameId, authSession, manifest)
 
   if (loading) return <Loading />
-  // A failed read is NOT a missing game — both leave `commonGame` null, and
+
+  // A failed read is NOT a missing game — both leave `cg` null, and
   // only one of them means the game is gone.
   if (failure) return <EnvelopeErrorPage envelope={failure} />
-  if (!commonGame) {
-    return <NoSuchGamePage detail={`rows=0 gametype=${manifest.gametype} game=${gameId}`} />
+
+  if (!cg) {
+    return (
+      <NoSuchGamePage
+        detail={`rows=0 gametype=${manifest.gametype} game=${gameId}`} />)
   }
 
   return (
@@ -65,25 +47,7 @@ export function GamePageLoader({ gameId, authSession, manifest }: GameShellProps
       gameId={gameId}
       authSession={authSession}
       manifest={manifest}
-      commonGame={commonGame}
-      players={players}
-      activePlayers={activePlayers}
-      paused={paused}
-      presentUserIds={presentUserIds}
-      manuallyPausedBy={manuallyPausedBy}
-      sendManualPause={sendManualPause}
-      sendManualUnpause={sendManualUnpause}
-      sendSuspend={sendSuspend}
-      timer={timer}
-      isPlayer={isPlayer}
-      isConceded={isConceded}
-      isLocallyTerminal={isLocallyTerminal}
-      isStillPlaying={isStillPlaying}
-      isTurnBased={isTurnBased}
-      turnHolderId={turnHolderId}
-      isMyTurn={isMyTurn}
-      isWaitingForTurn={isWaitingForTurn}
-      isBoardInteractive={isBoardInteractive}
+      cg={cg}
       resubscribeCount={resubscribeCount}
     />
   )

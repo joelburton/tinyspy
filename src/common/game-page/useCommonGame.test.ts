@@ -10,7 +10,7 @@
  * and the unified `paused` flag every consumer reads.
  *
  * **What's covered here:**
- *   - Initial load populates `commonGame`, `players`, and clears
+ *   - Initial load populates `cg`, its `players`, and clears
  *     `loading` (the row + roster + club handle path).
  *   - `paused` correctly unifies presence-pause + manual-pause
  *     (via the broadcast handler) and short-circuits to false
@@ -89,6 +89,12 @@ vi.mock('../timer/useGameTimer', () => ({
 }))
 
 import { useCommonGame } from './useCommonGame'
+import type { GameManifest } from '../manifest/gameManifest'
+
+/** A manifest carrying only what the hook reads from one. */
+function manifestWith(draftsOffTurn: boolean): GameManifest {
+  return { draftsOffTurn } as GameManifest
+}
 
 // ---- Per-test channel state ----
 
@@ -296,23 +302,23 @@ function firePresenceSync() {
 }
 
 describe('useCommonGame — initial load', () => {
-  it('populates commonGame + players + club_handle and clears loading', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+  it('populates cg + players + club_handle and clears loading', async () => {
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
 
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.commonGame).toMatchObject({
+    expect(result.current.cg).toMatchObject({
       id: 'g1',
       club_handle: 'club-one',
       gametype: 'codenamesduet',
       title: 'Game One',
     })
-    expect(result.current.players).toEqual(GAME_PLAYERS)
+    expect(result.current.cg!.players).toEqual(GAME_PLAYERS)
   })
 
   it('reads the ending off the row, null while the game is played', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.commonGame?.gameEnding).toBeNull()
+    expect(result.current.cg?.gameEnding).toBeNull()
   })
 
   it('reads the ending columns of a game that has ended', async () => {
@@ -326,9 +332,9 @@ describe('useCommonGame — initial load', () => {
       const rows = table === 'timers' ? TIMER_ROWS : PLAYER_ROWS
       return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
     })
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.commonGame?.gameEnding).toEqual({
+    expect(result.current.cg?.gameEnding).toEqual({
       reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'ada',
     })
   })
@@ -343,9 +349,9 @@ describe('useCommonGame — initial load', () => {
         : table === 'games' ? [GAME_ROW] : PLAYER_ROWS
       return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
     })
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.commonGame?.timer_mode).toEqual({ kind: 'countdown', seconds: 90 })
+    expect(result.current.cg?.timer.mode).toEqual({ kind: 'countdown', seconds: 90 })
   })
 })
 
@@ -373,16 +379,10 @@ describe('useCommonGame — where I stand', () => {
   }
 
   async function standing(draftsOffTurn = false, authSession = fakeSession) {
-    const { result } = renderHook(() => useCommonGame('g1', authSession, draftsOffTurn))
+    const { result } = renderHook(() => useCommonGame('g1', authSession, manifestWith(draftsOffTurn)))
     await waitFor(() => expect(result.current.loading).toBe(false))
-    const {
-      isPlayer, isConceded, isLocallyTerminal, isStillPlaying,
-      isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
-    } = result.current
-    return {
-      isPlayer, isConceded, isLocallyTerminal, isStillPlaying,
-      isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
-    }
+    const { turns, standing } = result.current.cg!
+    return { ...standing, ...turns }
   }
 
   // ada and bea seated in a turn order.
@@ -483,10 +483,10 @@ describe('useCommonGame — a dead read is not an absent game', () => {
       }
       return { select: () => ({ eq: () => Promise.resolve({ data: [], error: null, status: 200 }) }) }
     })
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.failure).toMatchObject({ type: 'not-ok', message: 'permission denied' })
-    expect(result.current.commonGame).toBeNull()
+    expect(result.current.cg).toBeNull()
   })
 
   // The other half: zero rows is a real answer, and must NOT set a failure —
@@ -499,16 +499,16 @@ describe('useCommonGame — a dead read is not an absent game', () => {
         in: () => Promise.resolve({ data: [], error: null, status: 200 }),
       }),
     }))
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.failure).toBeNull()
-    expect(result.current.commonGame).toBeNull()
+    expect(result.current.cg).toBeNull()
   })
 })
 
 describe('useCommonGame — paused unification', () => {
   it('paused is false when no one is missing and no manual pause is in effect', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Mark both players present.
@@ -518,11 +518,11 @@ describe('useCommonGame — paused unification', () => {
     }
     act(() => firePresenceSync())
 
-    expect(result.current.paused).toBe(false)
+    expect(result.current.cg!.pause.paused).toBe(false)
   })
 
   it('paused is true (presence) when a peer is missing', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Only ada is present; bea is missing.
@@ -531,15 +531,15 @@ describe('useCommonGame — paused unification', () => {
     }
     act(() => firePresenceSync())
 
-    expect(result.current.paused).toBe(true)
-    expect(result.current.manuallyPausedBy).toBeNull()
+    expect(result.current.cg!.pause.paused).toBe(true)
+    expect(result.current.cg!.pause.manuallyPausedBy).toBeNull()
   })
 
   it('paused stays false when the only missing player has conceded', async () => {
     // cara conceded (quit the race), then closed her tab. The
     // remaining players must keep racing — a conceder's absence
     // must NOT raise the presence-pause overlay for everyone else.
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // ada + bea present; cara (conceded) absent.
@@ -549,12 +549,12 @@ describe('useCommonGame — paused unification', () => {
     }
     act(() => firePresenceSync())
 
-    expect(result.current.paused).toBe(false)
+    expect(result.current.cg!.pause.paused).toBe(false)
     // The roster the pause watches is where cara's absence stops mattering:
     // she is off it, so nobody is waiting on her. dai and zed-bot are off it
     // too, for the other two reasons — nothing is left for dai to do, and
     // zed-bot is never going to arrive.
-    expect(result.current.activePlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
+    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
   })
 
   it('paused stays false when the only missing player is done playing', async () => {
@@ -564,7 +564,7 @@ describe('useCommonGame — paused unification', () => {
     // parked behind the pause overlay. dai did NOT concede: in wordle, waffle
     // and strands the first player to go locally terminal is the one who
     // SOLVED, and may be the winner.
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     presenceStateRecord = {
@@ -574,11 +574,11 @@ describe('useCommonGame — paused unification', () => {
     }
     act(() => firePresenceSync())
 
-    expect(result.current.paused).toBe(false)
-    expect(result.current.activePlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
+    expect(result.current.cg!.pause.paused).toBe(false)
+    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
     // …and they are still a player of the game everywhere participation
     // counts — the strip, the standings, the end-of-game results.
-    expect(result.current.players.map((p) => p.user_id)).toContain('dai')
+    expect(result.current.cg!.players.map((p) => p.user_id)).toContain('dai')
   })
 
   it('a bot never pauses the game, and never draws an absent dot', async () => {
@@ -586,7 +586,7 @@ describe('useCommonGame — paused unification', () => {
     // end_game writes it a result — but it has no tab and no presence. If it
     // counted here, every game with an AI opponent would sit behind the pause
     // overlay from the first move to the last.
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Every HUMAN who has not conceded is present; the bot is not, and never
@@ -597,17 +597,18 @@ describe('useCommonGame — paused unification', () => {
     }
     act(() => firePresenceSync())
 
-    expect(result.current.paused).toBe(false)
-    // `activePlayers` is also what the overlay draws its present/absent dots
-    // from, which is why the filter is here rather than inside computePause:
+    expect(result.current.cg!.pause.paused).toBe(false)
+    // `stillPlayingHumanPlayers` is also what the overlay draws its
+    // present/absent dots from, which is why the filter is here rather than
+    // inside computePause:
     // a bot on that list would be a permanently hollow ring.
-    expect(result.current.activePlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
+    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
     // …and it is still a player of the game everywhere participation counts.
-    expect(result.current.players.map((p) => p.user_id)).toContain('zed-bot')
+    expect(result.current.cg!.players.map((p) => p.user_id)).toContain('zed-bot')
   })
 
   it('paused is true (manual) when sendManualPause fires, even with everyone present', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Everyone present.
@@ -617,13 +618,13 @@ describe('useCommonGame — paused unification', () => {
     }
     act(() => firePresenceSync())
 
-    act(() => result.current.sendManualPause())
-    expect(result.current.paused).toBe(true)
-    expect(result.current.manuallyPausedBy?.user_id).toBe('ada')
+    act(() => result.current.cg!.pause.sendManualPause())
+    expect(result.current.cg!.pause.paused).toBe(true)
+    expect(result.current.cg!.pause.manuallyPausedBy?.user_id).toBe('ada')
   })
 
   it('sendManualUnpause clears the manual pause', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
@@ -631,12 +632,12 @@ describe('useCommonGame — paused unification', () => {
     }
     act(() => firePresenceSync())
 
-    act(() => result.current.sendManualPause())
-    expect(result.current.paused).toBe(true)
+    act(() => result.current.cg!.pause.sendManualPause())
+    expect(result.current.cg!.pause.paused).toBe(true)
 
-    act(() => result.current.sendManualUnpause())
-    expect(result.current.paused).toBe(false)
-    expect(result.current.manuallyPausedBy).toBeNull()
+    act(() => result.current.cg!.pause.sendManualUnpause())
+    expect(result.current.cg!.pause.paused).toBe(false)
+    expect(result.current.cg!.pause.manuallyPausedBy).toBeNull()
   })
 
   it('paused short-circuits to false once the game ends (ended_at set)', async () => {
@@ -680,14 +681,14 @@ describe('useCommonGame — paused unification', () => {
       throw new Error(`unexpected table: ${table}`)
     })
 
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Put the game into a manual-paused state with someone missing.
     presenceStateRecord = { ada: [{ user_id: 'ada' }] }
     act(() => firePresenceSync())
-    act(() => result.current.sendManualPause())
-    expect(result.current.paused).toBe(true)
+    act(() => result.current.cg!.pause.sendManualPause())
+    expect(result.current.cg!.pause.paused).toBe(true)
 
     // The game ends server-side; postgres-changes refetches and
     // loads the row with ended_at. Paused should now be false
@@ -699,18 +700,18 @@ describe('useCommonGame — paused unification', () => {
     })
 
     await waitFor(() =>
-      expect(result.current.commonGame?.ended_at).toBe('2026-01-01T01:00:00Z'),
+      expect(result.current.cg?.ended_at).toBe('2026-01-01T01:00:00Z'),
     )
-    expect(result.current.paused).toBe(false)
+    expect(result.current.cg!.pause.paused).toBe(false)
   })
 })
 
 describe('useCommonGame — manual-pause broadcast wiring', () => {
   it('sendManualPause broadcasts a manualPause event with the local user id', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    act(() => result.current.sendManualPause())
+    act(() => result.current.cg!.pause.sendManualPause())
     expect(sendSpy).toHaveBeenCalledWith({
       type: 'broadcast',
       event: 'manualPause',
@@ -719,12 +720,12 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
   })
 
   it('sendManualUnpause broadcasts a manualUnpause event', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    act(() => result.current.sendManualPause())
+    act(() => result.current.cg!.pause.sendManualPause())
     sendSpy.mockClear()
-    act(() => result.current.sendManualUnpause())
+    act(() => result.current.cg!.pause.sendManualUnpause())
     expect(sendSpy).toHaveBeenCalledWith({
       type: 'broadcast',
       event: 'manualPause',
@@ -733,7 +734,7 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
   })
 
   it('receives a peer manualPause broadcast and sets manuallyPausedBy', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
@@ -748,12 +749,12 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
       }),
     )
 
-    expect(result.current.paused).toBe(true)
-    expect(result.current.manuallyPausedBy?.user_id).toBe('bea')
+    expect(result.current.cg!.pause.paused).toBe(true)
+    expect(result.current.cg!.pause.manuallyPausedBy?.user_id).toBe('bea')
   })
 
   it('a manualPause from a non-player (spectator) still pauses, labeled "Someone"', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
@@ -769,13 +770,13 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
       }),
     )
 
-    expect(result.current.paused).toBe(true)
-    expect(result.current.manuallyPausedBy?.user_id).toBe('zork')
-    expect(result.current.manuallyPausedBy?.username).toBe('Someone')
+    expect(result.current.cg!.pause.paused).toBe(true)
+    expect(result.current.cg!.pause.manuallyPausedBy?.user_id).toBe('zork')
+    expect(result.current.cg!.pause.manuallyPausedBy?.username).toBe('Someone')
   })
 
   it('receives a peer manualUnpause and clears manuallyPausedBy', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
@@ -787,15 +788,15 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
         payload: { type: 'manualPause', userId: 'bea' },
       }),
     )
-    expect(result.current.paused).toBe(true)
+    expect(result.current.cg!.pause.paused).toBe(true)
 
     act(() =>
       handlers['broadcast:manualPause']?.({
         payload: { type: 'manualUnpause' },
       }),
     )
-    expect(result.current.paused).toBe(false)
-    expect(result.current.manuallyPausedBy).toBeNull()
+    expect(result.current.cg!.pause.paused).toBe(false)
+    expect(result.current.cg!.pause.manuallyPausedBy).toBeNull()
   })
 })
 
@@ -806,7 +807,7 @@ describe('useCommonGame — deaf-window closer', () => {
   // what closes that window (postgresAttached.ts; pinned end-to-end by
   // e2e/realtime-deaf-window.e2e.ts).
   it('re-loads when the postgres_changes attach is confirmed', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     const gamesReads = () =>
@@ -819,7 +820,7 @@ describe('useCommonGame — deaf-window closer', () => {
   })
 
   it('counts the attach in resubscribeCount, so a game reloads its own rows too', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     const before = result.current.resubscribeCount
@@ -830,7 +831,7 @@ describe('useCommonGame — deaf-window closer', () => {
   })
 
   it('ignores system payloads that are not the attach ok', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     const gamesReads = () =>

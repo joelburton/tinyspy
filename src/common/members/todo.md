@@ -38,7 +38,7 @@
   `common.game_players` row as the page reads it, and a converted game reads it
   only in its `useGame`, where it builds its own (psychicnum's
   `PsychicnumPlayer`). With no bare-`GamePlayer` reader left in a game, the
-  name should say it is common's: `CommonGamePlayer`, beside `CommonGame` and
+  name should say it is common's: `CommonGamePlayer`, beside `CommonGame`, `CommonGameRow` and
   `CommonGameListRow`.
 
 ## Maybe
