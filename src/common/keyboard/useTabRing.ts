@@ -58,7 +58,7 @@ function innermost(): (typeof rings)[number] | undefined {
  *  one column at a time on mobile, and Tab must not park the keyboard on the
  *  list that isn't showing. Asked in rects rather than `offsetParent`, which a
  *  `position: fixed` element has none of however plainly it is showing. */
-function onScreen(el: HTMLElement | null): el is HTMLElement {
+function isOnScreen(el: HTMLElement | null): el is HTMLElement {
   return el !== null && el.isConnected && el.getClientRects().length > 0
 }
 
@@ -71,7 +71,7 @@ const FOCUSABLE =
  *  web, so a panel that marks a scroll region with it means the same thing here.
  *  Filtered rather than selected against: the clauses above would match such an
  *  element anyway, since most of them name a tag. */
-function programmaticOnly(el: HTMLElement): boolean {
+function isProgrammaticOnly(el: HTMLElement): boolean {
   return el.getAttribute('tabindex') === '-1'
 }
 
@@ -79,11 +79,11 @@ function programmaticOnly(el: HTMLElement): boolean {
  *  container's focusable descendants in DOM order; either way, only the ones
  *  actually on screen. */
 function liveStops(ring: Ring): HTMLElement[] {
-  if (Array.isArray(ring)) return ring.map((stop) => stop.current).filter(onScreen)
+  if (Array.isArray(ring)) return ring.map((stop) => stop.current).filter(isOnScreen)
   const within = ring.within.current
   if (within === null) return []
   return Array.from(within.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-    (el) => !programmaticOnly(el) && onScreen(el),
+    (el) => !isProgrammaticOnly(el) && isOnScreen(el),
   )
 }
 

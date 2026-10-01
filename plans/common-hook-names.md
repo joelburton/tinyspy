@@ -89,14 +89,17 @@ Names in C–G are proposals, to be agreed before any is changed.
   As done: `isImportant`; `hasReadFailed` (ClubPage's `hasGamesReadFailed`);
   `isShared`; `arePlayersOffered`; `isListening`.
 
-## F. Functions not led by a verb
+## F. Functions not led by a verb (done)
 
-- [ ] `useCommonGame`'s `timerModeOf`; `useBoardCursorKeys`' and
+- [x] `useCommonGame`'s `timerModeOf`; `useBoardCursorKeys`' and
   `useBoardSelectionCursor`'s `state`; `useMoveAttention`'s `changed`;
   `useEventLogPlayerPicker`'s `defaultSelection`; `useWordListFilter`'s
   `emptyTextFor`; `useCaptureKeys`' `asciiLetters`; `useBacktickEscape`'s
   `backtickToEscape`; `usePanelEscape`'s `rankOf`, `topmost`, `focused`;
   `useTabRing`'s `innermost`, `onScreen`, `programmaticOnly`, `liveStops`.
+
+  As done: only the yes/no checks, which take an `is`: `isOnScreen`,
+  `isProgrammaticOnly`. The rest are left for when each file is next read.
 
 ## G. Module-level arrow functions
 
