@@ -21,6 +21,10 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Envelope } from '@/common/supabase/envelope'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import {
+  makePlayAreaLoaderProps,
+  type PlayAreaFacts,
+} from '@/common/game-page/playAreaLoaderProps.fixture'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
 import type { PsychicnumPlayerStatus } from '../lib/statuses'
 
@@ -58,32 +62,27 @@ const playerStatus = (found: number, used: number, ended: PsychicnumPlayerStatus
   found_secrets_count: found, guesses_used: used, player_ended_reason: ended,
 })
 
-/** The page's values, as `GamePage` hands them: me (u1) and moth (u2), a
- *  compete game in play, moth conceded. */
-const CTX = {
-  gameId: GAME_ID,
-  authSession: { user: { id: 'u1' } },
-  mode: 'compete',
-  title: 'A game',
-  setup: { max_guesses: 7, word_count: 10, band: 3, timer: { kind: 'none' } },
-  gameStatus: { required_secrets_count: 3, max_guesses: 7 },
-  players: [
-    gp('u1', 'me', 'red', { player_status: playerStatus(1, 2) }),
-    gp('u2', 'moth', 'blue', { ...CONCEDED, player_status: playerStatus(0, 3, 'conceded') }),
-  ],
-  gameEnding: null,
-  isTurnBased: false,
-  turnHolderId: null,
-  isPlayer: true,
-  isConceded: false,
-  isLocallyTerminal: false,
-  isStillPlaying: true,
-  isMyTurn: true,
-  isWaitingForTurn: false,
-  isBoardInteractive: true,
-  commonGameUpdatedAt: 't1',
-  resubscribeCount: 0,
-} as unknown as PlayAreaLoaderProps
+/** Me (u1) and moth (u2), moth conceded. */
+const PLAYERS = [
+  gp('u1', 'me', 'red', { player_status: playerStatus(1, 2) }),
+  gp('u2', 'moth', 'blue', { ...CONCEDED, player_status: playerStatus(0, 3, 'conceded') }),
+]
+
+/** The page's values, as `GamePage` hands them: a compete game in play by
+ *  default. */
+function makeCtx(over: PlayAreaFacts = {}): PlayAreaLoaderProps {
+  return makePlayAreaLoaderProps({
+    gameId: GAME_ID,
+    mode: 'compete',
+    setup: { max_guesses: 7, word_count: 10, band: 3, timer: { kind: 'none' } },
+    gameStatus: { required_secrets_count: 3, max_guesses: 7 },
+    players: PLAYERS,
+    updatedAt: 't1',
+    ...over,
+  })
+}
+
+const CTX = makeCtx()
 
 function ok<T>(data: T): Envelope<T> {
   return {
@@ -181,10 +180,9 @@ describe('psychicnum useGame — a load that worked', () => {
 
   it('says whether each player found every secret, against the board\'s count', async () => {
     answer(ALL_GOOD)
-    const withAllThree = {
-      ...CTX,
-      players: [gp('u1', 'me', 'red', { player_status: playerStatus(3, 4) }), CTX.players[1]!],
-    } as PlayAreaLoaderProps
+    const withAllThree = makeCtx({
+      players: [gp('u1', 'me', 'red', { player_status: playerStatus(3, 4) }), PLAYERS[1]!],
+    })
     const { result } = renderHook(() => useGame(withAllThree))
     await act(async () => {
       await refetch.load!({ isCurrent: () => true })
@@ -211,11 +209,11 @@ describe('psychicnum useGame — a load that worked', () => {
 
   it('names compete\'s winner and the turn holder as players', async () => {
     answer(ALL_GOOD)
-    const won = {
-      ...CTX,
+    const won = makeCtx({
+      isTurnBased: true,
       turnHolderId: 'u2',
-      players: [CTX.players[0]!, { ...CTX.players[1]!, outcome: 'won', final_ranking: 1 }],
-    } as PlayAreaLoaderProps
+      players: [PLAYERS[0]!, { ...PLAYERS[1]!, outcome: 'won', final_ranking: 1 }],
+    })
     const { result } = renderHook(() => useGame(won))
     await act(async () => {
       await refetch.load!({ isCurrent: () => true })
@@ -227,10 +225,9 @@ describe('psychicnum useGame — a load that worked', () => {
   it('says I have solved once I found every secret in compete, and not before', async () => {
     answer(ALL_GOOD)
     expect((await load()).current.gd?.standing.hasSolved).toBe(false)
-    const allThree = {
-      ...CTX,
-      players: [gp('u1', 'me', 'red', { player_status: playerStatus(3, 4) }), CTX.players[1]!],
-    } as PlayAreaLoaderProps
+    const allThree = makeCtx({
+      players: [gp('u1', 'me', 'red', { player_status: playerStatus(3, 4) }), PLAYERS[1]!],
+    })
     const { result } = renderHook(() => useGame(allThree))
     await act(async () => {
       await refetch.load!({ isCurrent: () => true })

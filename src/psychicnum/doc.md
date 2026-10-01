@@ -322,7 +322,7 @@ answer does not.
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
 the ending, pause, chat — and unmounts this whole surface on pause. The mode is
-the page's too (`PlayAreaLoaderProps.mode`, off `common.games`).
+the page's too (`cg.mode`, off `common.games`).
 
 **`gd`, the game data.** `useGame` hands the surface one object, `gd`, holding
 everything about this game grouped by what each value means — the board, the

@@ -78,7 +78,9 @@ export function useBindActionsAndPublishMenu({
   selfId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
-} & Pick<PlayAreaLoaderProps, 'clubHandle' | 'goToFollowUpGame' | 'menu' | 'brand'>): {
+  clubHandle: string
+  brand: string
+} & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): {
   actions: WordleActions
   answerShown: boolean
 } {

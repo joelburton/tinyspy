@@ -8,7 +8,7 @@ import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import type { EndOutcome, GameEnding, PlayerEndedReason } from '@/common/terminal/gameEnding'
 import { db } from '../db'
-import type { Member } from '@/common/members/member'
+import type { GamePlayer, Member } from '@/common/members/member'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import type { PsychicnumSetup } from '../lib/setup'
 import { makeSetupRows } from '../lib/setupRows'
@@ -157,7 +157,7 @@ type GameRows = {
  * `common.game_players`.
  */
 export function makePlayersById(
-  gamePlayers: PlayAreaLoaderProps['players'],
+  gamePlayers: GamePlayer[],
   requiredSecretsCount: number,
 ): Record<string, PsychicnumPlayer> {
   const players = gamePlayers.map(function makePlayer(p): PsychicnumPlayer {
@@ -184,12 +184,12 @@ export function makePlayersById(
 
 /** The page's `game_status`, as psychicnum's builder writes it. */
 export function readGameStatus(ctx: PlayAreaLoaderProps): PsychicnumGameStatus {
-  return ctx.gameStatus as unknown as PsychicnumGameStatus
+  return ctx.cg.game_status as unknown as PsychicnumGameStatus
 }
 
 /** The page's setup blob, as psychicnum's setup form wrote it. */
 export function readSetup(ctx: PlayAreaLoaderProps): PsychicnumSetup {
-  return ctx.setup as unknown as PsychicnumSetup
+  return ctx.cg.setup as unknown as PsychicnumSetup
 }
 
 /**
@@ -206,8 +206,9 @@ export function makeGameData(
   playersById: Record<string, PsychicnumPlayer>,
   setupRows: SetupRow[],
 ): GameData {
+  const { cg } = ctx
   const gameStatus = readGameStatus(ctx)
-  const isCompete = ctx.mode === 'compete'
+  const isCompete = cg.mode === 'compete'
   const maxGuesses = gameStatus.max_guesses
   const me = playersById[ctx.authSession.user.id] ?? null
   const players = Object.values(playersById)
@@ -222,10 +223,10 @@ export function makeGameData(
   const guesses = rows.events.filter((e) => e.kind === 'guess')
 
   return {
-    gameId: ctx.gameId,
-    mode: ctx.mode,
+    gameId: cg.id,
+    mode: cg.mode,
     isCompete,
-    title: ctx.title,
+    title: cg.title,
     setup: readSetup(ctx),
     setupRows,
     secrets: rows.secrets,
@@ -235,11 +236,13 @@ export function makeGameData(
       foundSecretsCount: isCompete ? (me?.foundSecretsCount ?? 0) : teamFoundSecretsCount,
       guessesUsed: isCompete ? (me?.guessesUsed ?? maxGuesses) : teamGuessesUsed,
     },
-    isTurnBased: ctx.isTurnBased,
-    turnHolderId: ctx.turnHolderId,
-    turnHolder: ctx.turnHolderId === null ? null : (playersById[ctx.turnHolderId] ?? null),
-    gameEnding: ctx.gameEnding,
-    isGameEnded: ctx.gameEnding !== null,
+    isTurnBased: cg.turns.isTurnBased,
+    turnHolderId: cg.turns.turnHolderId,
+    turnHolder: cg.turns.turnHolderId === null
+      ? null
+      : (playersById[cg.turns.turnHolderId] ?? null),
+    gameEnding: cg.gameEnding,
+    isGameEnded: cg.isGameEnded,
     winner: isCompete ? (players.find((p) => p.outcome === 'won') ?? null) : null,
     board: {
       words: rows.words,
@@ -254,16 +257,16 @@ export function makeGameData(
     playersById,
     me,
     standing: {
-      isPlayer: ctx.isPlayer,
-      isConceded: ctx.isConceded,
-      isPlayerEnded: ctx.isLocallyTerminal,
-      isStillPlaying: ctx.isStillPlaying,
-      isMyTurn: ctx.isMyTurn,
-      isWaitingForTurn: ctx.isWaitingForTurn,
-      isBoardInteractive: ctx.isBoardInteractive,
+      isPlayer: cg.standing.isPlayer,
+      isConceded: cg.standing.isConceded,
+      isPlayerEnded: cg.standing.isLocallyTerminal,
+      isStillPlaying: cg.standing.isStillPlaying,
+      isMyTurn: cg.standing.isMyTurn,
+      isWaitingForTurn: cg.standing.isWaitingForTurn,
+      isBoardInteractive: cg.standing.isBoardInteractive,
       hasSolved: solvedByMe({
         isCompete,
-        gameOutcome: ctx.gameEnding?.outcome ?? null,
+        gameOutcome: cg.gameEnding?.outcome ?? null,
         mine: me?.foundAllSecrets ?? false,
       }),
     },
@@ -277,8 +280,8 @@ export function makeGameData(
  * (the log; RLS scopes it to the caller in compete).
  *
  * It keeps no subscription: `useRefetchOnGameUpdate` reruns the reads when
- * the page's `common.games` row moves (`commonGameUpdatedAt`) or the page's
- * channel rejoins (`resubscribeCount`), both from `PlayAreaLoaderProps`.
+ * the page's `common.games` row moves (`cg.updated_at`) or the page's channel
+ * rejoins (`resubscribeCount`).
  *
  * The cross-cutting machinery (members, presence, manual-pause,
  * timer) lives on `useCommonGame` inside `GamePage` — see
@@ -293,13 +296,14 @@ export function useGame(ctx: PlayAreaLoaderProps): {
   // for a game that is absent.
   failure: NotOkEnvelope | null
 } {
-  const { gameId } = ctx
+  const { cg } = ctx
+  const gameId = cg.id
   const [rows, setRows] = useState<GameRows | null>(null)
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
   useRefetchOnGameUpdate({
-    commonGameUpdatedAt: ctx.commonGameUpdatedAt,
+    commonGameUpdatedAt: cg.updated_at,
     resubscribeCount: ctx.resubscribeCount,
     load: async ({ isCurrent }) => {
       // No `.maybeSingle()`: `readRows` hands back rows, and `game_id` is the
@@ -365,13 +369,13 @@ export function useGame(ctx: PlayAreaLoaderProps): {
   // the log only when a read lands.
   const requiredSecretsCount = readGameStatus(ctx).required_secrets_count
   const playersById = useMemo(
-    () => makePlayersById(ctx.players, requiredSecretsCount),
-    [ctx.players, requiredSecretsCount],
+    () => makePlayersById(cg.players, requiredSecretsCount),
+    [cg.players, requiredSecretsCount],
   )
   const setup = readSetup(ctx)
   const setupRows = useMemo(
-    () => makeSetupRows(setup, ctx.mode, ctx.players),
-    [setup, ctx.mode, ctx.players],
+    () => makeSetupRows(setup, cg.mode, cg.players),
+    [setup, cg.mode, cg.players],
   )
   const gd = rows === null ? null : makeGameData(ctx, rows, playersById, setupRows)
 

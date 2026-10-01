@@ -54,7 +54,7 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   if (!gd) {
     return (
       <NoSuchGamePage
-        detail={`rows=0 view=psychicnum.games_state game=${ctx.gameId}`}
+        detail={`rows=0 view=psychicnum.games_state game=${ctx.cg.id}`}
       />
     )
   }
@@ -64,25 +64,22 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
       gd={gd}
       authSession={ctx.authSession}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
-      clubHandle={ctx.clubHandle}
+      clubHandle={ctx.cg.club_handle}
       goToFollowUpGame={ctx.goToFollowUpGame}
       menu={ctx.menu}
-      brand={ctx.brand}
+      brand={ctx.manifest.name}
     />
   )
 }
 
 type PlayAreaProps = Pick<
   PlayAreaLoaderProps,
-  | 'authSession'
-  | 'globalFeedbackSlot'
-  | 'clubHandle'
-  | 'goToFollowUpGame'
-  | 'menu'
-  | 'brand'
+  'authSession' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
 > & {
   // The game data. Non-null by construction — the loader holds the gates.
   gd: GameData
+  clubHandle: string
+  brand: string
 }
 
 /**

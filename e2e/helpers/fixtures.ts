@@ -990,10 +990,10 @@ export async function createConnectionsGame(
   const res = await asUser(creator.session.access_token)
     .schema('connections')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: { puzzle_id: puzzle.data.id, timer: { kind: 'none' } },
-      player_user_ids: playerUserIds,
-      mode,
+      p_club_handle: club.handle,
+      p_setup: { puzzle_id: puzzle.data.id, timer: { kind: 'none' } },
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
     })
   return { id: createdGameId(res, 'connections.create_game'), gametype: `connections_${mode}` }
 }
@@ -1008,10 +1008,10 @@ async function createConnectionsGameFrom(
   const res = await asUser(club.members[0].session.access_token)
     .schema('connections')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: { puzzle_id, timer: { kind: 'none' } },
-      player_user_ids: playerUserIds,
-      mode,
+      p_club_handle: club.handle,
+      p_setup: { puzzle_id, timer: { kind: 'none' } },
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
     })
   return { id: createdGameId(res, 'connections.create_game'), gametype: `connections_${mode}` }
 }

@@ -21,12 +21,14 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
+import {
+  makePlayAreaLoaderProps,
+  type PlayAreaFacts,
+} from '@/common/game-page/playAreaLoaderProps.fixture'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
 import type { GamePlayer } from '@/common/members/member'
 import type { GameEnding } from '@/common/terminal/gameEnding'
-import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
@@ -55,8 +57,8 @@ vi.mock('../hooks/useGame', async (importOriginal) => {
   return {
     ...real,
     useGame: (ctx: PlayAreaLoaderProps) => {
-      const playersById = real.makePlayersById(ctx.players)
-      const setupRows = makeSetupRows(real.readSetup(ctx), ctx.mode, ctx.players)
+      const playersById = real.makePlayersById(ctx.cg.players)
+      const setupRows = makeSetupRows(real.readSetup(ctx), ctx.cg.mode, ctx.cg.players)
       return {
         gd: real.makeGameData(ctx, h.loaded, playersById, setupRows),
         loading: false,
@@ -138,54 +140,20 @@ const SOMEONE_WON: GameEnding = {
   reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u2',
 }
 
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  players' endings, whether the game has ended, `isTurnBased` and
- *  `turnHolderId` — exactly as the page derives it (`whereIStand`), so a test
- *  sets up the facts and never hand-writes an answer the page could not
- *  give. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    isTurnBased: false,
-    turnHolderId: null,
-    gameEnding: null,
-    ...over,
-    players: (over.players ?? [gp('u1', 'me', 'red')]).map(withPlayerStatus),
-  }
+/** A play surface's context: a wordle game, solo coop by default, with where I
+ *  stand derived from the facts (`makePlayAreaLoaderProps`). */
+function makeCtx(over: PlayAreaFacts = {}): PlayAreaLoaderProps {
   const gameStatus: WordleGameStatus = { max_guesses: 6 }
-  return {
-    gameId: 'g1',
+  return makePlayAreaLoaderProps({
     brand: 'WordNerd',
-    title: 'Test game',
-    mode: 'coop',
-    timer: { displaySeconds: 0, expired: false },
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
     // would crash timerLabel, exactly the kind of render bug these tests
     // guard).
     setup: { max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' } },
     gameStatus,
-    commonGameUpdatedAt: '2026-09-01T00:00:00Z',
-    resubscribeCount: 0,
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
-    },
-    ...facts,
-    isTerminal: facts.gameEnding !== null,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.gameEnding !== null,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId: facts.turnHolderId,
-      draftsOffTurn: false,
-    }),
-  } as unknown as PlayAreaLoaderProps
+    ...over,
+    players: (over.players ?? [gp('u1', 'me', 'red')]).map(withPlayerStatus),
+  })
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
@@ -411,7 +379,7 @@ describe('wordle PlayArea — icon-only action row', () => {
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('create_game', {
         p_club_handle: 'testclub',
-        p_setup: ctx.setup,
+        p_setup: ctx.cg.setup,
         p_player_user_ids: ['u1'],
         p_mode: 'coop',
       }),
@@ -676,7 +644,6 @@ describe('wordle PlayArea — the ending', () => {
             reason: 'conceded', reasonDetail: 'conceded', outcome: 'lost', endedByUserId: 'u2',
           },
           players: [gp('u1', 'me', 'red', CONCEDED), gp('u2', 'moth', 'blue', CONCEDED)],
-          timer: { displaySeconds: 30, expired: false },
         })}
       />,
     )
@@ -711,7 +678,7 @@ describe('wordle PlayArea — input gating', () => {
 
 describe('wordle PlayArea — peer narration (global header)', () => {
   /** A real global slot with a spy on its one door, handed to the ctx. */
-  function narrationCtx(over: Partial<PlayAreaLoaderProps> = {}) {
+  function narrationCtx(over: PlayAreaFacts = {}) {
     const globalFeedbackSlot = createFeedbackSlot('global')
     const shown = vi.spyOn(globalFeedbackSlot, 'show')
     return { ctx: makeCtx({ globalFeedbackSlot, players: twoMembers, ...over }), shown }
@@ -757,7 +724,11 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     shown.mockClear()
     // moth solves → narrated (the only peer event compete can surface).
     const mothSolved = [twoMembers[0]!, gp('u2', 'moth', 'blue', SOLVED_WAITING)]
-    rerender(<PlayAreaLoader {...{ ...ctx, players: mothSolved.map(withPlayerStatus) }} />)
+    rerender(
+      <PlayAreaLoader
+        {...{ ...ctx, cg: { ...ctx.cg, players: mothSolved.map(withPlayerStatus) } }}
+      />,
+    )
     expect(shown).toHaveBeenCalledTimes(1)
     const feedbackMsg = shown.mock.calls[0]![0]
     expect(feedbackMsg.actor?.username).toBe('moth')

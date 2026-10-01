@@ -50,32 +50,29 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   // `GamePageLoader` each checked — and wordle's does not: a torn write, or a
   // game deleted while somebody had the board open. `detail` goes to the
   // console, never to the page.
-  if (!gd) return <NoSuchGamePage detail={`rows=0 view=wordle.games_state game=${ctx.gameId}`} />
+  if (!gd) return <NoSuchGamePage detail={`rows=0 view=wordle.games_state game=${ctx.cg.id}`} />
 
   return (
     <PlayArea
       gd={gd}
       authSession={ctx.authSession}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
-      clubHandle={ctx.clubHandle}
+      clubHandle={ctx.cg.club_handle}
       goToFollowUpGame={ctx.goToFollowUpGame}
       menu={ctx.menu}
-      brand={ctx.brand}
+      brand={ctx.manifest.name}
     />
   )
 }
 
 type PlayAreaProps = Pick<
   PlayAreaLoaderProps,
-  | 'authSession'
-  | 'globalFeedbackSlot'
-  | 'clubHandle'
-  | 'goToFollowUpGame'
-  | 'menu'
-  | 'brand'
+  'authSession' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
 > & {
   // The game data. Non-null by construction — the loader holds the gates.
   gd: GameData
+  clubHandle: string
+  brand: string
 }
 
 /**

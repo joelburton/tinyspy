@@ -21,11 +21,12 @@ is also the menu, the players strip that a message can take over, the pause
 button, the clock, and on a phone the switch between the board page and the
 info page. The shared state is `useCommonGame`: the `common.games` row, the
 roster, presence, the two kinds of pause, suspend, and the timer. What a game
-gets is `PlayAreaLoaderProps`, one object of props the shell hands its `PlayArea`,
-carrying the row's useful fields, the clock, where the viewing player stands
-(docs/win-lose.md → Where a player stands), the global feedback
-slot, the menu API and the one navigation a game does for itself (into a
-follow-up game; going back to the club is an action on the menu API). A game
+gets is `PlayAreaLoaderProps`, one object of props the shell hands its `PlayArea`:
+`cg`, the common game (the row's fields, the players, the clock, the turns and
+where the viewing player stands — docs/win-lose.md → Where a player stands), its
+manifest, the session, the global feedback slot, the menu API and the one
+navigation a game does for itself (into a follow-up game; going back to the
+club is an action on the menu API). A game
 reads that object and renders a board.
 
 Everything cross-peer runs through one Realtime channel named `game:<gameId>`,

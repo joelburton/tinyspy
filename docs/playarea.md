@@ -239,31 +239,32 @@ Two components in `PlayArea.tsx`, and the manifest lazy-loads the first:
 
 ```tsx
 export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
-  const { game, …, loading, failure } = useGame(ctx.gameId)
+  const { gd, loading, failure } = useGame(ctx)
 
   if (loading) return <Loading />
   if (failure) return <EnvelopeErrorPage envelope={failure} />
-  if (!game) return <NoSuchGamePage detail={`rows=0 view=<game>.games_state game=${ctx.gameId}`} />
+  if (!gd) return <NoSuchGamePage detail={`rows=0 view=<game>.games_state game=${ctx.cg.id}`} />
 
-  return <PlayArea {...ctx} game={game} setup={ctx.setup as unknown as <Game>Setup} />
+  return <PlayArea gd={gd} authSession={ctx.authSession} … />
 }
 
-function PlayArea({ game, … }: PlayAreaLoaderProps) { … }
+function PlayArea({ gd, … }: PlayAreaProps) { … }
 ```
 
 The names are `GamePageLoader` → `GamePage`'s, one layer down. **The three gates
-are the point**: everything below starts with a game in hand, so the surface
-never writes `game?.`, never defaults a mode, and never guards a handler against
-data that has not arrived.
+are the point**: everything below starts with the game data in hand, so the
+surface never writes `gd?.`, never defaults a mode, and never guards a handler
+against data that has not arrived.
 
 - **`<Loading>`**, the word every page shows for that moment.
 - **`<EnvelopeErrorPage>`**, because a failed read is not a missing game. Both
-  leave `game` null, and only one of them means the game is gone.
+  leave `gd` null, and only one of them means the game is gone.
 - **`<NoSuchGamePage>`**, whose `detail` names the read that came back empty.
   `GamePageGate` and `GamePageLoader` have already checked the common row, so
   reaching this gate means the game's own row is missing.
-- **The cast happens once**, in the loader's JSX, so the inner component takes
-  the game's own setup type via `Omit<PlayAreaLoaderProps, 'setup'>`.
+- **The inner component declares its own props**: `gd` and a `Pick` of the
+  loader props it passes on. The setup blob is narrowed once, inside `useGame`,
+  so `gd.setup` is already the game's own type.
 
 While the read is out, the header menu has no game rows and `+` does nothing,
 which is intended: a menu row for a game not yet loaded could only gray itself

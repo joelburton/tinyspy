@@ -152,29 +152,6 @@ export function GamePage({
                 globalFeedbackSlot={globalFeedbackSlot}
                 menu={menu}
                 goToFollowUpGame={goToFollowUpGame}
-                // Legacy: copied off `cg` and `manifest` for the games not yet
-                // converted; they go once the last game reads the two above.
-                gameId={cg.id}
-                brand={manifest.name}
-                title={cg.title}
-                mode={cg.mode}
-                players={cg.players}
-                gameEnding={cg.gameEnding}
-                isTerminal={cg.isGameEnded}
-                timer={cg.timer}
-                isPlayer={cg.standing.isPlayer}
-                isConceded={cg.standing.isConceded}
-                isLocallyTerminal={cg.standing.isLocallyTerminal}
-                isStillPlaying={cg.standing.isStillPlaying}
-                isTurnBased={cg.turns.isTurnBased}
-                turnHolderId={cg.turns.turnHolderId}
-                isMyTurn={cg.standing.isMyTurn}
-                isWaitingForTurn={cg.standing.isWaitingForTurn}
-                isBoardInteractive={cg.standing.isBoardInteractive}
-                setup={cg.setup}
-                gameStatus={cg.game_status}
-                commonGameUpdatedAt={cg.updated_at}
-                clubHandle={cg.club_handle}
               />
             </Suspense>
           </PlayAreaErrorBoundary>

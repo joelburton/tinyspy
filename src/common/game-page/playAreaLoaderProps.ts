@@ -1,8 +1,6 @@
 // cs-blessed-game-page
 
 import type { Session } from '@supabase/supabase-js'
-import type { GamePlayer } from '../members/member'
-import type { GameEnding } from '../terminal/gameEnding'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import type { MenuApi } from '../menu/menuModel'
 import type { GameManifest } from '../manifest/gameManifest'
@@ -57,29 +55,4 @@ export type PlayAreaLoaderProps = {
   // `menu.actBackToClub`, which knows when to ask first. Identity is stable
   // across renders.
   goToFollowUpGame: (gameId: string) => void
-
-  // ─── Legacy ───
-  // Copied off `cg` and `manifest` for the games not yet converted; each line
-  // names where a converted game reads it. They go once the last game does.
-  gameId: string // cg.id
-  brand: string // manifest.name
-  title: string // cg.title
-  mode: 'coop' | 'compete' // cg.mode
-  players: GamePlayer[] // cg.players
-  gameEnding: GameEnding | null // cg.gameEnding
-  isTerminal: boolean // cg.isGameEnded
-  timer: { displaySeconds: number; expired: boolean } // cg.timer
-  isPlayer: boolean // cg.standing.isPlayer
-  isConceded: boolean // cg.standing.isConceded
-  isLocallyTerminal: boolean // cg.standing.isLocallyTerminal
-  isStillPlaying: boolean // cg.standing.isStillPlaying
-  isTurnBased: boolean // cg.turns.isTurnBased
-  turnHolderId: string | null // cg.turns.turnHolderId
-  isMyTurn: boolean // cg.standing.isMyTurn
-  isWaitingForTurn: boolean // cg.standing.isWaitingForTurn
-  isBoardInteractive: boolean // cg.standing.isBoardInteractive
-  setup: Record<string, unknown> // cg.setup
-  gameStatus: Record<string, unknown> // cg.game_status
-  commonGameUpdatedAt: string // cg.updated_at
-  clubHandle: string // cg.club_handle
 }

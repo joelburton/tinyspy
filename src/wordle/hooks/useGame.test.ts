@@ -20,6 +20,11 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Envelope } from '@/common/supabase/envelope'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import {
+  makePlayAreaLoaderProps,
+  type PlayAreaFacts,
+} from '@/common/game-page/playAreaLoaderProps.fixture'
+import type { Session } from '@supabase/supabase-js'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
 import type { WordlePlayerStatus } from '../lib/statuses'
 
@@ -62,35 +67,30 @@ function playerStatus(
   return { guesses_used: used, player_ended_reason: ended, tie_broken_by_clock: tie }
 }
 
-/** The page's values, as `GamePage` hands them: me (u1) and moth (u2), a
- *  compete game in play, moth conceded. */
-const CTX = {
-  gameId: GAME_ID,
-  authSession: { user: { id: 'u1' } },
-  mode: 'compete',
-  title: 'A game',
-  setup: {
-    max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' },
-    coop_style: 'free-for-all',
-  },
-  gameStatus: { max_guesses: 6 },
-  players: [
-    gp('u1', 'me', 'red', { player_status: playerStatus(2) }),
-    gp('u2', 'moth', 'blue', { ...CONCEDED, player_status: playerStatus(3, 'conceded') }),
-  ],
-  gameEnding: null,
-  isTurnBased: false,
-  turnHolderId: null,
-  isPlayer: true,
-  isConceded: false,
-  isLocallyTerminal: false,
-  isStillPlaying: true,
-  isMyTurn: true,
-  isWaitingForTurn: false,
-  isBoardInteractive: true,
-  commonGameUpdatedAt: 't1',
-  resubscribeCount: 0,
-} as unknown as PlayAreaLoaderProps
+/** Me (u1) and moth (u2), moth conceded. */
+const PLAYERS = [
+  gp('u1', 'me', 'red', { player_status: playerStatus(2) }),
+  gp('u2', 'moth', 'blue', { ...CONCEDED, player_status: playerStatus(3, 'conceded') }),
+]
+
+/** The page's values, as `GamePage` hands them: a compete game in play by
+ *  default. */
+function makeCtx(over: PlayAreaFacts = {}): PlayAreaLoaderProps {
+  return makePlayAreaLoaderProps({
+    gameId: GAME_ID,
+    mode: 'compete',
+    setup: {
+      max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' },
+      coop_style: 'free-for-all',
+    },
+    gameStatus: { max_guesses: 6 },
+    players: PLAYERS,
+    updatedAt: 't1',
+    ...over,
+  })
+}
+
+const CTX = makeCtx()
 
 function ok<T>(data: T): Envelope<T> {
   return {
@@ -179,13 +179,12 @@ describe('wordle useGame — a load that worked', () => {
 
   it('copies each player\'s tie_broken_by_clock', async () => {
     answer(ALL_GOOD)
-    const tied = {
-      ...CTX,
+    const tied = makeCtx({
       players: [
         gp('u1', 'me', 'red', { player_status: playerStatus(3, 'reached_goal', true) }),
-        CTX.players[1]!,
+        PLAYERS[1]!,
       ],
-    } as PlayAreaLoaderProps
+    })
     const gd = (await load(tied)).current.gd!
     expect(gd.playersById.u1!.isTieBrokenByClock).toBe(true)
     expect(gd.playersById.u2!.isTieBrokenByClock).toBeNull()
@@ -195,7 +194,7 @@ describe('wordle useGame — a load that worked', () => {
     answer(ALL_GOOD)
     expect((await load()).current.gd?.boardGuesses).toEqual([MY_GUESS])
     answer(ALL_GOOD)
-    const coop = { ...CTX, mode: 'coop' } as PlayAreaLoaderProps
+    const coop = makeCtx({ mode: 'coop' })
     expect((await load(coop)).current.gd?.boardGuesses).toEqual([MY_GUESS, THEIR_GUESS])
   })
 
@@ -204,22 +203,20 @@ describe('wordle useGame — a load that worked', () => {
     expect((await load()).current.gd?.readout.guessesUsed).toBe(2)
     // Coop writes the team's count on every player.
     answer(ALL_GOOD)
-    const coop = {
-      ...CTX,
+    const coop = makeCtx({
       mode: 'coop',
       players: [
         gp('u1', 'me', 'red', { player_status: playerStatus(4) }),
         gp('u2', 'moth', 'blue', { player_status: playerStatus(4) }),
       ],
-    } as PlayAreaLoaderProps
+    })
     expect((await load(coop)).current.gd?.readout.guessesUsed).toBe(4)
   })
 
   // SPECTATING: a guess until the design settles what a watcher sees.
   it('reads the budget as spent for a club member watching a compete game', async () => {
     answer(ALL_GOOD)
-    const watching =
-      { ...CTX, authSession: { user: { id: 'u9' } }, isPlayer: false } as unknown as PlayAreaLoaderProps
+    const watching = makeCtx({ authSession: { user: { id: 'u9' } } as unknown as Session })
     const gd = (await load(watching)).current.gd!
     expect(gd.me).toBeNull()
     expect(gd.readout.guessesUsed).toBe(6)
@@ -227,11 +224,11 @@ describe('wordle useGame — a load that worked', () => {
 
   it('names compete\'s winner and the turn holder as players', async () => {
     answer(ALL_GOOD)
-    const won = {
-      ...CTX,
+    const won = makeCtx({
+      isTurnBased: true,
       turnHolderId: 'u2',
-      players: [CTX.players[0]!, { ...CTX.players[1]!, outcome: 'won', final_ranking: 1 }],
-    } as PlayAreaLoaderProps
+      players: [PLAYERS[0]!, { ...PLAYERS[1]!, outcome: 'won', final_ranking: 1 }],
+    })
     const gd = (await load(won)).current.gd!
     expect(gd.winner?.username).toBe('moth')
     expect(gd.turnHolder?.username).toBe('moth')
@@ -241,25 +238,23 @@ describe('wordle useGame — a load that worked', () => {
     answer(ALL_GOOD)
     expect((await load()).current.gd?.standing.hasSolved).toBe(false)
     answer(ALL_GOOD)
-    const solved = {
-      ...CTX,
+    const solved = makeCtx({
       players: [
         gp('u1', 'me', 'red', { solved_at: '2026-09-01T00:02:00Z', player_status: playerStatus(3) }),
-        CTX.players[1]!,
+        PLAYERS[1]!,
       ],
-    } as PlayAreaLoaderProps
+    })
     expect((await load(solved)).current.gd?.standing.hasSolved).toBe(true)
   })
 
   it('says I have solved in coop when the team won', async () => {
     answer(ALL_GOOD)
-    const coopWon = {
-      ...CTX,
+    const coopWon = makeCtx({
       mode: 'coop',
       gameEnding: {
         reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u2',
       },
-    } as PlayAreaLoaderProps
+    })
     expect((await load(coopWon)).current.gd?.standing.hasSolved).toBe(true)
   })
 

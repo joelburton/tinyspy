@@ -20,14 +20,15 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
-import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import {
+  makePlayAreaLoaderProps,
+  type PlayAreaFacts,
+} from '@/common/game-page/playAreaLoaderProps.fixture'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
 import type { GamePlayer } from '@/common/members/member'
 import type { GameEnding } from '@/common/terminal/gameEnding'
 import type { PsychicnumGameStatus, PsychicnumPlayerStatus } from '../lib/statuses'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import { actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
@@ -54,10 +55,10 @@ vi.mock('../hooks/useGame', async (importOriginal) => {
     ...real,
     useGame: (ctx: PlayAreaLoaderProps) => {
       const playersById = real.makePlayersById(
-        ctx.players,
+        ctx.cg.players,
         real.readGameStatus(ctx).required_secrets_count,
       )
-      const setupRows = makeSetupRows(real.readSetup(ctx), ctx.mode, ctx.players)
+      const setupRows = makeSetupRows(real.readSetup(ctx), ctx.cg.mode, ctx.cg.players)
       return {
         gd: real.makeGameData(ctx, h.loaded, playersById, setupRows),
         loading: false,
@@ -116,49 +117,18 @@ function withPlayerStatus(p: GamePlayer): GamePlayer {
   return { ...p, player_status: playerStatus }
 }
 
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  players' endings, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly
- *  as the page derives it (`whereIStand`), so a test sets up the facts and
- *  never hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    isTerminal: false,
-    isTurnBased: false,
-    turnHolderId: null,
-    ...over,
-    players: (over.players ?? [gp('u1', 'me', 'red')]).map(withPlayerStatus),
-  }
+/** A play surface's context: a psychicnum game, solo coop by default, with
+ *  where I stand derived from the facts (`makePlayAreaLoaderProps`). */
+function makeCtx(over: PlayAreaFacts = {}): PlayAreaLoaderProps {
   const gameStatus: PsychicnumGameStatus = { required_secrets_count: 3, max_guesses: 7 }
-  return {
-    gameId: 'g1',
-    mode: 'coop',
-    gameEnding: null,
-    timer: { displaySeconds: 0, expired: false },
+  return makePlayAreaLoaderProps({
+    brand: 'PsychicNum',
     // A realistic setup blob — the setup rows read `max_guesses` + `band`.
     setup: { max_guesses: 7, word_count: 10, band: 3, timer: { kind: 'none' } },
     gameStatus,
-    commonGameUpdatedAt: '2026-09-01T00:00:00Z',
-    resubscribeCount: 0,
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
-    },
-    ...facts,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.isTerminal,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId: facts.turnHolderId,
-      draftsOffTurn: false,
-    }),
-  } as unknown as PlayAreaLoaderProps
+    ...over,
+    players: (over.players ?? [gp('u1', 'me', 'red')]).map(withPlayerStatus),
+  })
 }
 
 // The same board in either mode — the mode is the context's (`makeCtx`), and
@@ -360,9 +330,9 @@ describe('psychicnum PlayArea — the celebration', () => {
     // The winning guess can reach the client as the ending first and my count
     // after it. Either order is a false→true flip during the session, so the
     // modal pops once.
-    rerender(<PlayAreaLoader {...makeCtx({ players: two(2, 0), mode: 'compete', gameEnding: GAME_WON, isTerminal: true })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ players: two(2, 0), mode: 'compete', gameEnding: GAME_WON })} />)
     expect(confetti()).toBeNull()
-    rerender(<PlayAreaLoader {...makeCtx({ players: two(3, 0), mode: 'compete', gameEnding: GAME_WON, isTerminal: true })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ players: two(3, 0), mode: 'compete', gameEnding: GAME_WON })} />)
     expect(confetti()).toBeInTheDocument()
     expect(screen.getByText('You found all three first.')).toBeInTheDocument()
   })
@@ -370,20 +340,20 @@ describe('psychicnum PlayArea — the celebration', () => {
   it('stays quiet for the player who was beaten', () => {
     h.loaded = loaded(competeGame)
     const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: two(1, 0) })} />)
-    rerender(<PlayAreaLoader {...makeCtx({ players: two(1, 3), mode: 'compete', gameEnding: GAME_WON, isTerminal: true })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ players: two(1, 3), mode: 'compete', gameEnding: GAME_WON })} />)
     expect(confetti()).toBeNull()
   })
 
   it('stays quiet on opening a race already won — reviewing is not winning', () => {
     h.loaded = loaded(competeGame)
-    render(<PlayAreaLoader {...makeCtx({ players: two(3, 0), mode: 'compete', gameEnding: GAME_WON, isTerminal: true })} />)
+    render(<PlayAreaLoader {...makeCtx({ players: two(3, 0), mode: 'compete', gameEnding: GAME_WON })} />)
     expect(confetti()).toBeNull()
   })
 
   it('pops for the coop team on the third secret, whoever guessed it', () => {
     h.loaded = loaded(coopGame)
     const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: two(1, 2) })} />)
-    rerender(<PlayAreaLoader {...makeCtx({ players: two(1, 2), gameEnding: GAME_WON, isTerminal: true })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ players: two(1, 2), gameEnding: GAME_WON })} />)
     expect(confetti()).toBeInTheDocument()
     expect(screen.getByText('All three secret words found.')).toBeInTheDocument()
   })
@@ -617,7 +587,7 @@ describe('psychicnum PlayArea — the secrets reveal once the game has ended', (
    *  them once the game has ended). */
   const ended = () => {
     h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    return makeCtx({ isTerminal: true, gameEnding: GAME_LOST })
+    return makeCtx({gameEnding: GAME_LOST })
   }
 
   it('a coop WIN shows them unasked — the team found all three', () => {
@@ -626,7 +596,7 @@ describe('psychicnum PlayArea — the secrets reveal once the game has ended', (
     // where teammates found 2 and 1 NEITHER row reads three, and a per-player
     // bit would leave the winners pressing Reveal.
     h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, gameEnding: GAME_WON })} />)
+    render(<PlayAreaLoader {...makeCtx({gameEnding: GAME_WON })} />)
     expect(greenTiles()).toBe(3)
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
@@ -693,7 +663,7 @@ describe('psychicnum PlayArea — the secrets reveal once the game has ended', (
   it('is named in the menu once it appears', () => {
     // An inert row that fell through to the registry's bare "Reveal" would
     // rename itself as the game ended, which is why both branches name it.
-    const ctx = makeCtx({ isTerminal: true, gameEnding: GAME_LOST })
+    const ctx = makeCtx({gameEnding: GAME_LOST })
     render(<PlayAreaLoader {...ctx} />)
     expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
   })
@@ -717,7 +687,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
 
   it('bands the finished board in its outcome', () => {
     h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    const { container } = render(<PlayAreaLoader {...makeCtx({ isTerminal: true, gameEnding: GAME_WON })} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx({gameEnding: GAME_WON })} />)
 
     expect(gridIn(container).className).toMatch(/endingFrame/)
     expect(gridIn(container).className).toMatch(/endingFrame_won/)
@@ -776,7 +746,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     // A rival's guess ends the race while my pick is still pending.
     h.loaded = loaded({ ...competeGame, secrets: ['alpha', 'charlie', 'echo'] })
     const rivalWon = [gp('u1', 'me', 'red'), counted('u2', 'moth', 'blue', 3)]
-    rerender(<PlayAreaLoader {...makeCtx({ players: rivalWon, mode: 'compete', gameEnding: GAME_WON, isTerminal: true })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ players: rivalWon, mode: 'compete', gameEnding: GAME_WON })} />)
     expect(tile().className).not.toMatch(/picked/)
   })
 
@@ -800,7 +770,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
   it('says nothing when the answer is revealed', async () => {
     const user = userEvent.setup()
     h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    const { container } = render(<PlayAreaLoader {...makeCtx({ isTerminal: true, gameEnding: GAME_LOST })} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx({gameEnding: GAME_LOST })} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
 
@@ -821,7 +791,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
 describe('psychicnum PlayArea — the keys', () => {
   const ended = () => {
     h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    return makeCtx({ isTerminal: true, gameEnding: GAME_LOST })
+    return makeCtx({gameEnding: GAME_LOST })
   }
 
   it('+ once the game has ended starts the next game with no question', async () => {
