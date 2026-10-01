@@ -99,6 +99,11 @@ is the one component here this page does not render — `HomePage` does.
   fresh game whose options you want to change first. The page reads it once,
   and closing the dialog drops it from the URL so a refresh does not reopen
   it. `useSetupDialog` is where a press and an arrival become one answer.
+- **A `?new=` link the club can't honor still lands on the club page.** It
+  checks what a start row would — the game exists, and this club plays it —
+  and when either fails it opens nothing and says which in a toast that stays
+  until dismissed. The club page is still there, so the player can pick a game
+  themselves, and the toast leaves the members strip alone.
 - **The two filters persist differently, because they mean different things.**
   The mode filter is a standing taste ("I'm here for compete games") that
   narrows a menu of things you could start and hides nothing that exists, so it

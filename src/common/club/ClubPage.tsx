@@ -58,8 +58,7 @@ export type ClubPageData = {
 
 type Props = {
   club: ClubRow
-  // The club's members, alphabetical. Fixed for the page's life: membership is
-  // set at creation.
+  // The club's members, alphabetical.
   members: Member[]
   // The club's gametypes as they were at load; `useClubGametypes` owns them
   // from there.
@@ -96,7 +95,11 @@ export function ClubPage({
 
   const startListRef = useRef<HTMLDivElement | null>(null)
   const gamesListRef = useRef<HTMLDivElement | null>(null)
-  const setupDialog = useSetupDialog(startListRef)
+  const setupDialog = useSetupDialog({
+    startListRef,
+    clubName: club.name,
+    clubGametypes: clubGametypes.allowed,
+  })
 
   const presentUserIds = useClubRoomPresence({
     clubHandle: club.handle,
@@ -116,7 +119,8 @@ export function ClubPage({
   useTabRing([startListRef, gamesListRef], 'keys-next-list')
 
   // An open dialog owns Enter and the arrows, so the lists keep their cursors.
-  const kbDialogUp = setupDialog.manifest !== null
+  const isAnyDialogOpen =
+    setupDialog.manifest !== null
     || pageActions.editClub.isOpen
     || pageActions.help.isOpen
 
@@ -198,7 +202,7 @@ export function ClubPage({
               startListRef={startListRef}
               numMembers={members.length}
               soloClub={club.is_solo}
-              isFrozen={kbDialogUp}
+              isFrozen={isAnyDialogOpen}
               onStart={setupDialog.open}
               onDelete={deleteClubGame}
             />
@@ -209,7 +213,7 @@ export function ClubPage({
               gamesListRef={gamesListRef}
               hasReadFailed={clubGames.hasReadFailed}
               soloClub={club.is_solo}
-              isFrozen={kbDialogUp}
+              isFrozen={isAnyDialogOpen}
               onDelete={deleteClubGame}
             />
           </section>
