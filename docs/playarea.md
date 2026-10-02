@@ -245,7 +245,7 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!gd) return <NoSuchGamePage detail={`rows=0 view=<game>.games_state game=${ctx.cg.id}`} />
 
-  return <PlayArea gd={gd} authSession={ctx.authSession} … />
+  return <PlayArea gd={gd} auth={ctx.auth} … />
 }
 
 function PlayArea({ gd, … }: PlayAreaProps) { … }

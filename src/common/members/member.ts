@@ -54,13 +54,11 @@ export type Member = {
 export type Actor = Pick<Member, 'username' | 'color'>
 
 /**
- * A game player: a [Member] plus the per-player bits that live on
+ * A game player's row: a [Member] plus the per-player bits that live on
  * `common.game_players` (as opposed to the profile). Distinct from
  * Member because a chat sender is a Member but never a game player.
- * `GamePlayer` is a superset, so anything typed `Member[]` still
- * accepts `GamePlayer[]` — a game's OpponentStrip / event-log can keep
- * their `Member` props while the PlayArea reads the ending off the
- * same roster.
+ * What `useCommonGame` reads; the page hands games the [GamePlayer]
+ * built on it, which adds where the player stands.
  *
  *   - `player_ended_at` and its reason pair
  *                    — this player stopped playing while the game went
@@ -91,7 +89,7 @@ export type Actor = Pick<Member, 'username' | 'color'>
  *                      must not count toward the pause or draw a
  *                      permanently hollow dot.
  */
-export type GamePlayer = Member & {
+export type GamePlayerRow = Member & {
   player_ended_at: string | null
   player_ended_reason: PlayerEndedReason | null
   player_ended_reason_detail: string | null
@@ -101,3 +99,37 @@ export type GamePlayer = Member & {
   player_status: Record<string, unknown>
   ai_member: boolean
 }
+
+/**
+ * Where a player stands — the per-player terms of docs/win-lose.md → Where a
+ * player stands, each a formula over the row and the game, computed by
+ * `computePlayerStanding` for every seat. A component asks these of a player
+ * (`p.isOnTurn`, `gd.me.isOnTurn`) and never compares the turn pointer to an
+ * id itself.
+ */
+export type PlayerStanding = {
+  // Walked away from a compete game; never true in coop.
+  isConceded: boolean
+  // Not playing any more, for whatever reason; the game may go on.
+  isLocallyTerminal: boolean
+  // The game still wants moves from this player.
+  isStillPlaying: boolean
+  // Still playing, and the move is theirs.
+  isOnTurn: boolean
+  // Still playing, and the move is someone else's.
+  isWaitingForTurn: boolean
+  // The board responds to this player (`draftsOffTurn` keeps it live off-turn).
+  isBoardInteractive: boolean
+  // Solved, in a game with something to solve. A coop solve stamps every
+  // teammate's `solved_at`, so this reads right in both modes.
+  hasSolved: boolean
+}
+
+/**
+ * A game player as the page hands them to a game: the row, and where they
+ * stand. `GamePlayer` is a superset of `Member`, so anything typed `Member[]`
+ * still accepts `GamePlayer[]` — a game's OpponentStrip / event-log can keep
+ * their `Member` props while the PlayArea reads the ending off the same
+ * roster. `cg.me` is one of these: the viewer's own entry in `cg.players`.
+ */
+export type GamePlayer = GamePlayerRow & PlayerStanding

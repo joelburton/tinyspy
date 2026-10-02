@@ -25,7 +25,7 @@ import {
   type PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
-import type { GamePlayer } from '@/common/members/member'
+import type { GamePlayer, GamePlayerRow } from '@/common/members/member'
 import type { GameEnding } from '@/common/terminal/gameEnding'
 import type { PsychicnumGameStatus, PsychicnumPlayerStatus } from '../lib/statuses'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
@@ -107,7 +107,7 @@ const SPENT = {
 /** A player's `player_status` as the builder writes it, its reason kept in
  *  step with the player's own column. A fixture player with no status of its
  *  own gets this, so a test sets the ending once. */
-function withPlayerStatus(p: GamePlayer): GamePlayer {
+function withPlayerStatus<P extends GamePlayerRow>(p: P): P {
   if (Object.keys(p.player_status).length > 0) return p
   const playerStatus: PsychicnumPlayerStatus = {
     found_secrets_count: 0,
@@ -606,12 +606,18 @@ describe('psychicnum PlayArea — the secrets reveal once the game has ended', (
   }
 
   it('a coop WIN shows them unasked — the team found all three', () => {
-    // The coop half of `solvedByMe`, and a case a per-player bit gets wrong:
-    // psychicnum bumps `found_secrets_count` per CALLER, so in a coop game
-    // where teammates found 2 and 1 NEITHER row reads three, and a per-player
-    // bit would leave the winners pressing Reveal.
+    // `found_secrets_count` is per CALLER, so a teammate who found one of the
+    // three never reads three; what says they solved is `solved_at`, which the
+    // winning guess stamps on every teammate.
     h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    render(<PlayAreaLoader {...makeCtx({gameEnding: GAME_WON })} />)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          gameEnding: GAME_WON,
+          players: [gp('u1', 'me', 'red', { solved_at: '2026-06-15T00:05:00Z' })],
+        })}
+      />,
+    )
     expect(greenTiles()).toBe(3)
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })

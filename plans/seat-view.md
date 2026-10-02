@@ -116,10 +116,18 @@ appears.)
   player list without the caller (PN510); pinned directly in common's pgTAP
   and through psychicnum's `create_game`. No e2e fixture seated a game without
   its creator.
-- **Common.** `whereIStand` becomes a per-player computation
-  (`standingOf(player, …)` or folded into the players' construction in
-  `useCommonGame`); `Standing` goes; `cg.me`; `PlayAreaLoaderProps.auth`; the
-  test fixture; `useStandardGameActions`' options; `solvedByMe` deleted.
+- **Common (done 2026-10-01).** `computePlayerStanding(player, game)` in
+  `game-page/playerStanding.ts` computes the standing terms for every seat and
+  `useCommonGame` folds them onto each `GamePlayer` (`GamePlayerRow` is the
+  columns alone; `PlayerStanding` the terms); `Standing` and `whereIStand` are
+  gone; `cg.me`; `PlayAreaLoaderProps.auth`; the test fixture derives the
+  standing and requires the viewer among the players; `solvedByMe` deleted —
+  `hasSolved` is `solved_at !== null`, which holds because psychicnum, wordle
+  and connections stamp every teammate on a coop solve. **A game whose coop
+  solve does not (stackdown sets a per-game bit in compete only; strands' coop
+  branch stamps nobody) fixes that SQL in its own conversion.** The three
+  converted games read `cg.me` into their `gd.standing` for now; their
+  reshape moves it onto the player.
 - **Each converted game** (psychicnum, wordle, connections): `useGame` builds
   the player type with the fields above and `me`; PlayArea, BoardCol, InfoCol,
   Board and the hooks read `gd.me.…` and `p.…`; `readout`, `standing`,

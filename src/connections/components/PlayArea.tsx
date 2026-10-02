@@ -55,7 +55,7 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   return (
     <PlayArea
       gd={gd}
-      authSession={ctx.authSession}
+      auth={ctx.auth}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
       clubHandle={ctx.cg.club_handle}
       goToFollowUpGame={ctx.goToFollowUpGame}
@@ -67,7 +67,7 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
 
 type PlayAreaProps = Pick<
   PlayAreaLoaderProps,
-  'authSession' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
+  'auth' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
 > & {
   // The game data. Non-null by construction — the loader holds the gates.
   gd: GameData
@@ -91,14 +91,14 @@ type PlayAreaProps = Pick<
  */
 function PlayArea({
   gd,
-  authSession,
+  auth,
   globalFeedbackSlot,
   clubHandle,
   goToFollowUpGame,
   menu,
   brand,
 }: PlayAreaProps) {
-  const myId = authSession.user.id
+  const myId = auth.user.id
 
   // ─── Page hooks ────────────────────────────────────────
 

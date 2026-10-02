@@ -57,12 +57,6 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        {/* SPECTATING: a guess until the design settles what a watcher
-            sees. */}
-        {!gd.standing.isPlayer && (
-          <p className={shared.infoHelp}>Watching — you&rsquo;re not in this game.</p>
-        )}
-
         <p className={shared.infoState}>
           <strong>{gd.readout.guessesUsed}/{gd.readout.maxGuesses}</strong> guesses
         </p>

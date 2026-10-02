@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react'
 import { useRefetchOnGameUpdate } from '@/common/game-page/useRefetchOnGameUpdate'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { solvedByMe } from '@/common/reveal/describeReveal'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import type { EndOutcome, GameEnding, PlayerEndedReason } from '@/common/terminal/gameEnding'
@@ -115,7 +114,6 @@ export type GameData = {
   // Where I stand (docs/win-lose.md → Where a player stands), as the page
   // worked it out.
   standing: {
-    isPlayer: boolean
     isConceded: boolean
     isPlayerEnded: boolean
     isStillPlaying: boolean
@@ -194,13 +192,13 @@ export function makeGameData(
   const { cg } = ctx
   const isCompete = cg.mode === 'compete'
   const maxGuesses = readGameStatus(ctx).max_guesses
-  const me = playersById[ctx.authSession.user.id] ?? null
+  const me = playersById[ctx.auth.user.id] ?? null
   const players = Object.values(playersById)
   // Coop writes the team's count on every player, so any one of them carries
   // it; a game always has at least one player.
   const teamGuessesUsed = players[0]!.guessesUsed
   const boardGuesses = isCompete
-    ? rows.events.filter((e) => e.user_id === ctx.authSession.user.id)
+    ? rows.events.filter((e) => e.user_id === ctx.auth.user.id)
     : rows.events
 
   return {
@@ -234,18 +232,13 @@ export function makeGameData(
     playersById,
     me,
     standing: {
-      isPlayer: cg.standing.isPlayer,
-      isConceded: cg.standing.isConceded,
-      isPlayerEnded: cg.standing.isLocallyTerminal,
-      isStillPlaying: cg.standing.isStillPlaying,
-      isMyTurn: cg.standing.isMyTurn,
-      isWaitingForTurn: cg.standing.isWaitingForTurn,
-      isBoardInteractive: cg.standing.isBoardInteractive,
-      hasSolved: solvedByMe({
-        isCompete,
-        gameOutcome: cg.gameEnding?.outcome ?? null,
-        mine: me !== null && me.solvedAt !== null,
-      }),
+      isConceded: cg.me.isConceded,
+      isPlayerEnded: cg.me.isLocallyTerminal,
+      isStillPlaying: cg.me.isStillPlaying,
+      isMyTurn: cg.me.isOnTurn,
+      isWaitingForTurn: cg.me.isWaitingForTurn,
+      isBoardInteractive: cg.me.isBoardInteractive,
+      hasSolved: cg.me.hasSolved,
     },
   }
 }

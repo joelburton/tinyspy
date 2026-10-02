@@ -30,7 +30,7 @@ type SolutionRevealOptions = {
  * `impliedBy` says this player is looking at the answer already, so the control
  * has nothing left to do. It means one thing: **their own board-solution IS the
  * puzzle-solution** — wordle's typed target, waffle's solved grid. Those games
- * pass `solvedByMe(...)`; their solver starts revealed and `impliedBySolve`
+ * pass `gd.me.hasSolved`; their solver starts revealed and `impliedBySolve`
  * stays true until they choose otherwise, which is what the game's Reveal
  * button reads to go inert. A game whose puzzle-solution is a distinct artifact
  * (the author's grid, the partner's key card) passes nothing — no way of

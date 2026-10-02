@@ -27,7 +27,7 @@ import {
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
-import type { GamePlayer } from '@/common/members/member'
+import type { GamePlayer, GamePlayerRow } from '@/common/members/member'
 import type { GameEnding } from '@/common/terminal/gameEnding'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
@@ -84,6 +84,9 @@ function loaded(target: string | null = null, events: EventRow[] = []): Loaded {
 /** Two club members, both playing. */
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
+/** The viewer once the target is typed: `submit_guess` stamps `solved_at`. */
+const solvedMe = gp('u1', 'me', 'red', { solved_at: '2026-06-15T00:05:00Z' })
+
 /** The ending columns of a compete player who solved and waits on the rest —
  *  `neutral`, since fewer guesses may yet beat it, as `submit_guess` writes
  *  it. */
@@ -124,7 +127,7 @@ function playerStatus(
 /** A player's `player_status` as the builder writes it, its reason kept in
  *  step with the player's own column. A fixture player with no status of its
  *  own gets this, so a test sets the ending once. */
-function withPlayerStatus(p: GamePlayer): GamePlayer {
+function withPlayerStatus<P extends GamePlayerRow>(p: P): P {
   if (Object.keys(p.player_status).length > 0) return p
   return { ...p, player_status: playerStatus(0, p.player_ended_reason) }
 }
@@ -243,7 +246,7 @@ describe('wordle PlayArea — render smoke', () => {
 
   it('renders an ended game without crashing', () => {
     h.loaded = loaded('crane')
-    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />)
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON, players: [solvedMe] })} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
     // The info-column outcome line, and — since this is a coop WIN — the answer
     // line with it: solving is the one thing that shows the word unasked.
@@ -334,7 +337,7 @@ describe('wordle PlayArea — icon-only action row', () => {
     // You can only solve a wordle by typing the answer, so a solver is already
     // looking at it — the info-column line just makes it click-to-define.
     h.loaded = loaded('crane')
-    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON })} />)
+    render(<PlayAreaLoader {...makeCtx({ gameEnding: COOP_WON, players: [solvedMe] })} />)
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
     const reveal = screen.getByRole('button', { name: 'Solution already shown' })
     expect(reveal).toBeDisabled()
@@ -505,24 +508,6 @@ describe('wordle PlayArea — the ending', () => {
       />,
     )
     expect(screen.getByRole('dialog', { name: 'Solved! 🎉' })).toBeInTheDocument()
-  })
-
-  // SPECTATING: a guess until the design settles what a watcher sees.
-  it('does not celebrate for a club member watching the team win', () => {
-    h.loaded = loaded(null)
-    const watching = { authSession: { user: { id: 'u9' } } as unknown as PlayAreaLoaderProps['authSession'] }
-    const { rerender } = render(<PlayAreaLoader {...makeCtx(watching)} />)
-    h.loaded = loaded('crane')
-    rerender(
-      <PlayAreaLoader
-        {...makeCtx({
-          ...watching,
-          gameEnding: COOP_WON,
-          players: [gp('u1', 'me', 'red', { outcome: 'won', final_ranking: 1 })],
-        })}
-      />,
-    )
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('does not celebrate when mounted into an already-won game', () => {
@@ -763,17 +748,6 @@ describe('wordle PlayArea — event-log picker label', () => {
     expect(await filterOptions()).not.toContain('You')
     // No aggregate in a solo game — "Team" of one is the same list twice.
     expect(await filterOptions()).not.toContain('Team')
-  })
-
-  it("names the player (not the viewer) when a club member spectates a solo game", async () => {
-    // u2 (a club member, not in the game) is watching u1's solo game.
-    const ctx = makeCtx({
-      authSession: { user: { id: 'u2' } } as unknown as PlayAreaLoaderProps['authSession'],
-      players: [gp('u1', 'joel', 'red')],
-    })
-    render(<PlayAreaLoader {...ctx} />)
-    expect(await filterOptions()).toContain('joel')
-    expect(await filterOptions()).not.toContain('You')
   })
 
   it('shows "Team" AND each player in a multi-player coop game', async () => {

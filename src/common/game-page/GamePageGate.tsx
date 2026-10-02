@@ -24,7 +24,7 @@ type Props = {
   // survives because the not-found page echoes what the URL actually said.
   urlGametype: string
   gameId: string
-  authSession: Session
+  auth: Session
 }
 
 /** Could this string BE a game id? Not "does the game exist" — that is a
@@ -64,9 +64,9 @@ const isGameId = (s: string) =>
  * modal per `22P02`, and the answer is knowable without asking. In the render
  * it picks the page. Two different jobs — *don't ask*, and *say why*.
  */
-export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
+export function GamePageGate({ urlGametype, gameId, auth }: Props) {
   const manifest = manifestFor(urlGametype.toLowerCase())
-  const answer = useCanOpenGame(gameId, authSession.user.id)
+  const answer = useCanOpenGame(gameId, auth.user.id)
 
   // Entering a game fetches its chunk anyway, so the stale-build check rides
   // along; a tab open across a deploy reloads here rather than playing on old
@@ -122,7 +122,7 @@ export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
   return (
     <GamePageLoader
       gameId={gameId}
-      authSession={authSession}
+      auth={auth}
       manifest={manifest}/>)
 }
 

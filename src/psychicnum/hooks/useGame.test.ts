@@ -222,11 +222,14 @@ describe('psychicnum useGame — a load that worked', () => {
     expect(result.current.gd?.turnHolder?.username).toBe('moth')
   })
 
-  it('says I have solved once I found every secret in compete, and not before', async () => {
+  it('says I have solved once my solve is recorded, and not before', async () => {
     answer(ALL_GOOD)
     expect((await load()).current.gd?.standing.hasSolved).toBe(false)
     const allThree = makeCtx({
-      players: [gp('u1', 'me', 'red', { player_status: playerStatus(3, 4) }), PLAYERS[1]!],
+      players: [
+        gp('u1', 'me', 'red', { solved_at: '2026-06-15T00:05:00Z', player_status: playerStatus(3, 4) }),
+        PLAYERS[1]!,
+      ],
     })
     const { result } = renderHook(() => useGame(allThree))
     await act(async () => {

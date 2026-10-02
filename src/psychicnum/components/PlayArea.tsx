@@ -62,7 +62,7 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   return (
     <PlayArea
       gd={gd}
-      authSession={ctx.authSession}
+      auth={ctx.auth}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
       clubHandle={ctx.cg.club_handle}
       goToFollowUpGame={ctx.goToFollowUpGame}
@@ -74,7 +74,7 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
 
 type PlayAreaProps = Pick<
   PlayAreaLoaderProps,
-  'authSession' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
+  'auth' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
 > & {
   // The game data. Non-null by construction — the loader holds the gates.
   gd: GameData
@@ -99,7 +99,7 @@ type PlayAreaProps = Pick<
  */
 function PlayArea({
   gd,
-  authSession,
+  auth,
   globalFeedbackSlot,
   clubHandle,
   goToFollowUpGame,
@@ -160,7 +160,7 @@ function PlayArea({
     items: gd.events,
     keyOf: (event) => String(event.id),
     messageFor: (event) => {
-      if (event.user_id === authSession.user.id) return null
+      if (event.user_id === auth.user.id) return null
       const { outcome, text } = peerAnswerMessage(event)
       return FeedbackMessage.peer(gd.playersById[event.user_id], outcome, text)
     },
@@ -168,18 +168,18 @@ function PlayArea({
   })
 
   // An opponent found a secret (compete): say so, never which.
-  useShowOppsFoundMessages(gd, authSession.user.id, globalFeedbackSlot)
+  useShowOppsFoundMessages(gd, auth.user.id, globalFeedbackSlot)
 
   // ─── The turn-history view ─────────────────────────────
   // Which past turn, if any, is open on the board, and that turn replayed.
-  const historyView = useHistoryView(gd, authSession.user.id)
+  const historyView = useHistoryView(gd, auth.user.id)
 
   // ─── The commands, and the menu that lists them ────────
   // Every command this game offers: the info column's action row places them,
   // the menu lists them, and the reveal's state comes back for the board.
   const { actions, secretsShown } = useActionsAndMenu({
     gd,
-    myId: authSession.user.id,
+    myId: auth.user.id,
     localFeedbackSlot,
     clubHandle,
     goToFollowUpGame,
@@ -214,7 +214,7 @@ function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           gd={gd}
-          myId={authSession.user.id}
+          myId={auth.user.id}
           endingMessage={endingMessage}
           actions={actions}
           historyView={historyView}

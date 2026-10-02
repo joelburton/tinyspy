@@ -15,10 +15,10 @@ import { computeGamePause, type GamePause } from '../pause-suspend/pause'
 import { useManualPause, type ManualPauseEvent } from '../pause-suspend/useManualPause'
 import type { SuspendEvent } from '../pause-suspend/sendSuspendBeforeDelete'
 import type { GameManifest, TimerMode } from '../manifest/gameManifest'
-import type { GamePlayer } from '../members/member'
+import type { GamePlayer, GamePlayerRow } from '../members/member'
 import { useGameTimer } from '../timer/useGameTimer'
 import { reportUnhandled } from '../supabase/dbEnvelope'
-import { whereIStand, type Standing } from './whereIStand'
+import { computePlayerStanding } from './playerStanding'
 import type { GameEnding } from '../terminal/gameEnding'
 import { readGameEnding } from '../terminal/readGameEnding'
 
@@ -59,15 +59,19 @@ export type GameTurns = {
 /**
  * **`cg`, the common game** — everything the page knows about THIS game, and
  * what it can do to it, grouped by meaning: the `common.games` row's fields,
- * the roster, the turns, where I stand, the pause and the clock. Where each
- * came from (the row, `common.game_players`, presence, the timer) is
- * `useCommonGame`'s business, never the reader's.
+ * the roster with where each player stands, me, the turns, the pause and the
+ * clock. Where each came from (the row, `common.game_players`, presence, the
+ * timer) is `useCommonGame`'s business, never the reader's. Read-only: the
+ * hook builds it and nothing else writes it.
  */
 export type CommonGame = CommonGameRow & {
   // The game has ended: it has a `gameEnding`.
   isGameEnded: boolean
-  // Everyone in the game.
+  // Everyone in the game, each with where they stand.
   players: GamePlayer[]
+  // My player: the same object as my entry in `players`. Never null — you
+  // must be seated to open a game, and the gate has checked.
+  me: GamePlayer
   // The human players who haven't ended: who the pause waits for.
   stillPlayingHumanPlayers: GamePlayer[]
   // Whether the game is paused, and the controls.
@@ -79,8 +83,6 @@ export type CommonGame = CommonGameRow & {
   timer: { mode: TimerMode; displaySeconds: number; expired: boolean }
   // Whether the game takes turns, and whose turn it is.
   turns: GameTurns
-  // Where the viewing player stands (docs/win-lose.md → Where a player stands).
-  standing: Standing
 }
 
 /**
@@ -94,18 +96,19 @@ export type CommonGame = CommonGameRow & {
  * the last peer to leave it is who clears the club's current-view pointer.
  * doc.md argues why that name can never take a per-tab suffix.
  *
- * It also says where the viewing player stands — the standing terms
- * (docs/win-lose.md → Where a player stands), each computed once here so no
- * game recomputes them; `isBoardInteractive` reads the manifest's `draftsOffTurn`.
+ * It also says where every player stands — the standing terms
+ * (docs/win-lose.md → Where a player stands), computed once here per seat so
+ * no game recomputes them; `isBoardInteractive` reads the manifest's
+ * `draftsOffTurn`. `auth` is the signed-in user, whose seat is `cg.me`.
  *
  * Every field of the returned object is documented on the return type below.
  * Nothing here half-runs: the hook joins the channel and asserts
  * `set_current_view` as soon as it is called, so the caller must already know
- * the game exists.
+ * the game exists and that the user is seated in it.
  */
 export function useCommonGame(
   gameId: string,
-  authSession: Session,
+  auth: Session,
   manifest: GameManifest,
 ): {
   // The game; null while loading, when a read failed, or when it is gone.
@@ -137,7 +140,7 @@ export function useCommonGame(
   const clubHandleRef = useRef<string>('')
 
   const { manuallyPausedById, applyManualPause, sendManualPause, sendManualUnpause } =
-    useManualPause({ channel, myId: authSession.user.id, presentUserIds })
+    useManualPause({ channel, myId: auth.user.id, presentUserIds })
 
   // Join the game's room: read the game, attach the handlers, subscribe and
   // claim the club's current view. Leaving releases it if I am the last viewer.
@@ -237,7 +240,7 @@ export function useCommonGame(
         if (status === 'SUBSCRIBED') {
           load()
           setResubscribeCount((n) => n + 1)
-          ch.track({ user_id: authSession.user.id })
+          ch.track({ user_id: auth.user.id })
           // On every join, reconnects included: a member who reconnects
           // re-asserts they're viewing.
           assertCurrentView(gameId)
@@ -266,7 +269,7 @@ export function useCommonGame(
       // set_current_view vacates a straggler.
       const ids = presentUserIdsRef.current
       const iAmLastOrUnknown =
-        ids.size === 0 || (ids.size === 1 && ids.has(authSession.user.id))
+        ids.size === 0 || (ids.size === 1 && ids.has(auth.user.id))
       rtLog(room, `leaving (lastViewer=${iAmLastOrUnknown})`)
       if (iAmLastOrUnknown) releaseCurrentView(gameId)
 
@@ -281,7 +284,7 @@ export function useCommonGame(
       }
       void releaseChannel(ch)
     }
-  }, [applyManualPause, gameId, authSession.user.id])
+  }, [applyManualPause, gameId, auth.user.id])
 
   // Tell the peers, then go: a broadcast doesn't echo to its sender, so this
   // tab navigates itself.
@@ -297,8 +300,22 @@ export function useCommonGame(
   const loaded = lastRead?.kind === 'loaded' ? lastRead : null
   const row = loaded?.row ?? null
   const isGameEnded = (row?.gameEnding ?? null) !== null
-  const players = loaded?.players ?? []
   const isTurnBased = loaded?.isTurnBased ?? false
+  const turnHolderId = row?.current_turn_user_id ?? null
+
+  // Each row with where that player stands: the same comparison for every
+  // seat, so no component asks it of the pointer itself.
+  const players: GamePlayer[] = (loaded?.players ?? []).map(function addStanding(p) {
+    return {
+      ...p,
+      ...computePlayerStanding(p, {
+        isGameEnded,
+        isTurnBased,
+        turnHolderId,
+        draftsOffTurn: manifest.draftsOffTurn,
+      }),
+    }
+  })
 
   const { stillPlayingHumanPlayers, manuallyPausedBy, paused } = computeGamePause({
     players,
@@ -315,22 +332,14 @@ export function useCommonGame(
     running: row !== null && !isGameEnded,
   })
 
-  const turnHolderId = row?.current_turn_user_id ?? null
-  const standing = whereIStand({
-    players,
-    myId: authSession.user.id,
-    isGameEnded,
-    isTurnBased,
-    turnHolderId,
-    draftsOffTurn: manifest.draftsOffTurn,
-  })
-
   const cg: CommonGame | null = loaded === null
     ? null
     : {
         ...loaded.row,
         isGameEnded,
         players,
+        // The gate has checked that I am seated, so this cannot miss.
+        me: players.find((p) => p.id === auth.user.id)!,
         stillPlayingHumanPlayers,
         pause: {
           paused,
@@ -342,7 +351,6 @@ export function useCommonGame(
         sendSuspend,
         timer: { mode: loaded.timerMode, ...timer },
         turns: { isTurnBased, turnHolderId },
-        standing,
       }
 
   return {
@@ -441,7 +449,7 @@ type CommonGameRead =
       kind: 'loaded'
       row: CommonGameRow
       timerMode: TimerMode
-      players: GamePlayer[]
+      players: GamePlayerRow[]
       isTurnBased: boolean
     }
   // Zero rows. Only a read that WORKED can say this, which is why
@@ -496,7 +504,7 @@ async function readCommonGame(gameId: string): Promise<CommonGameRead> {
   if (!gameData) return { kind: 'gone' }
   const playerRows = playersRes.data
 
-  let players: GamePlayer[] = []
+  let players: GamePlayerRow[] = []
   const userIds = playerRows.map((r) => r.user_id)
   if (userIds.length > 0) {
     const profilesRes = await readRows(

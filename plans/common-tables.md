@@ -66,7 +66,7 @@ Four were weighed (Joel, 2026-09-27):
   gametype fact becomes jsonb, which is harder to validate and to read.
 - **`common.games` holds only what the club page needs.** Turn order and
   conceding are shared machinery — `common._advance_turn`, `common.concede`,
-  the turn bell, `whereIStand` — and it is shared because the facts sit in one
+  the turn bell, `computePlayerStanding` — and it is shared because the facts sit in one
   table with one shape. Split across sixteen tables, that code is copied per
   game or names its table at run time.
 - **The club page also reads `common.game_players`.** A second subscription
@@ -466,7 +466,7 @@ it once the front end lands. Before it:
    - §3a step 6 is done (2026-09-25; verified 2026-09-27: no game defines
      its own `readOnly`, `cellsClickable`, `isLocallyDone`, `canPlay` or
      `myConceded` any more). Every game reads the page's values, so changing
-     what those values are built from touches `whereIStand` and
+     what those values are built from touches `computePlayerStanding` and
      `useCommonGame`, not sixteen PlayAreas.
    - §3b's 7c, the Stop names (done 2026-09-27), and §4's cheap renames
      (built 2026-09-27, N8 included). Neither touches stored data. Next:

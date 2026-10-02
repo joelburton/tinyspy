@@ -41,8 +41,9 @@ result could have shown the player the puzzle-solution already.
 So `impliedBy` is one sentence over the two terms: **this player's
 board-solution IS the puzzle-solution.** It is asked per player and per run,
 never "was it won" — a race ends with a winner who may not be me, and a player
-who lost made no board-solution to begin with. `solvedByMe` is how each mode
-asks whether they made one. The table below says which games answer which way,
+who lost made no board-solution to begin with. `gd.me.hasSolved` is how a game
+asks whether they made one: the player's own `solved_at`, which a coop solve
+stamps on every teammate. The table below says which games answer which way,
 and what each passes.
 
 The games with no answer to show, and the three word games whose found/missed
@@ -53,7 +54,7 @@ filter already IS the control, mount none of this.
 ```
 <PlayArea>                              ten of the sixteen games
 └── useSolutionReveal({ impliedBy? })    local, per-player, unpersisted
-     ├── impliedBy: solvedByMe({ isCompete, gameOutcome, mine })   the six where a board-solution IS the puzzle-solution
+     ├── impliedBy: gd.me.hasSolved          the six where a board-solution IS the puzzle-solution
      └── revealed · impliedBySolve → describeReveal({ noun, … }), placed as the game's act-reveal
            impliedBySolve → disabled, "Solution already shown"
            revealed       → "Hide <noun>" + IconHideSolution
@@ -62,12 +63,12 @@ filter already IS the control, mount none of this.
 
 | game | its puzzle-solution | a board-solution reaches it | `impliedBy` | its `noun` |
 |---|---|---|---|---|
-| connections | the four categories | yes — each match resolves into a band | `solvedByMe` | solution |
-| psychicnum | the three secrets | yes — finding all three IS the win | `solvedByMe` | solution |
-| stackdown | the six words, in order | yes — you played every one | `solvedByMe` | solution |
-| strands | the theme words + spangram | yes — they tile the board exactly | `solvedByMe` | solution |
-| waffle | the solved grid | yes — by definition | `solvedByMe` | solution |
-| wordle | the target word | yes — you can only finish by typing it | `solvedByMe` | solution |
+| connections | the four categories | yes — each match resolves into a band | `hasSolved` | solution |
+| psychicnum | the three secrets | yes — finding all three IS the win | `hasSolved` | solution |
+| stackdown | the six words, in order | yes — you played every one | `hasSolved` | solution |
+| strands | the theme words + spangram | yes — they tile the board exactly | `hasSolved` | solution |
+| waffle | the solved grid | yes — by definition | `hasSolved` | solution |
+| wordle | the target word | yes — you can only finish by typing it | `hasSolved` | solution |
 | codenamesduet | the partner's key card | **no** — a win contacts all fifteen agents and still never names your bystanders | — | **key cards** |
 | crosswords | the author's grid | **no** — rebuses and quantum clues | — | solution |
 | letterboxed | the seeded pair | **no** — any covering chain wins | — | solution |
@@ -85,13 +86,12 @@ puts it in FRONT of the call rather than inside: psychicnum hides the BUTTON
 while you are still hunting (`asker === 'button'`) and keeps the menu row and
 the Help list, which is where the glyph is named.
 
-**Coop asks the GAME, compete asks ME.** In compete the verdict is no proxy —
-a race is won by someone, and the racer three guesses off never produced the
-word. In coop there is one board and one outcome, so the game's outcome `won`
-answers it, and the per-player bit is unreliable there in a different way per
-game: stackdown writes `players.solved` only in compete, strands' coop branch
-never sets it, and psychicnum counts found secrets per CALLER, so two teammates
-finding two and one leave neither at three.
+**Both modes ask ME.** The verdict is no proxy — a race is won by someone, and
+the racer three guesses off never produced the word — so the answer is the
+player's own `common.game_players.solved_at`. It is right in coop too because
+a coop solve stamps every teammate at the solving move; a game whose coop SQL
+does not yet do that (stackdown, strands) fixes it as it converts
+([plans/seat-view.md](../../../plans/seat-view.md) → What this touches).
 
 **Every gated game offers the reveal twice** — an `<ActionButton>` in the
 terminal action row and a game-menu row, both placing the same `act-reveal`

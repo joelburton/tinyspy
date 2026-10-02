@@ -179,7 +179,8 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
       sendSuspend: vi.fn(),
       timer: { mode: { kind: 'none' }, displaySeconds: 0, expired: false },
       turns: { isTurnBased: false, turnHolderId: null },
-      standing: { isMyTurn: true },
+      // Ada's seat, as far as the shell reads it.
+      me: { ...players[0], isOnTurn: true },
     },
     resubscribeCount: 0,
     // `loading` false with a null row is the shape `GamePageLoader` shows "no
@@ -191,9 +192,9 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
 
 /** The same state with the turns and my turn set, as a turn-order refetch
  *  would hand them. */
-function withTurns(state: CommonGameState, turns: GameTurns, isMyTurn: boolean): CommonGameState {
+function withTurns(state: CommonGameState, turns: GameTurns, isOnTurn: boolean): CommonGameState {
   const cg = state.cg!
-  return { ...state, cg: { ...cg, turns, standing: { ...cg.standing, isMyTurn } } }
+  return { ...state, cg: { ...cg, turns, me: { ...cg.me, isOnTurn } } }
 }
 
 const over: Overrides = { game: { ended_at: '2026-09-10T01:00:00Z', gameEnding: STOPPED } }
@@ -204,7 +205,7 @@ async function mount(state = commonGameState(), manifest = makeManifest()) {
   mockUseCommonGame.mockReturnValue(state)
   mockManifestFor.mockReturnValue(manifest)
   const view = render(
-    <GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} authSession={authSession} />,
+    <GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} auth={authSession} />,
   )
   await act(async () => {
     await Promise.resolve()
@@ -258,7 +259,7 @@ describe('GamePage — mounting', () => {
 
     const OTHER_GAME = '99999999-8888-7777-6666-555555555555'
     view.rerender(
-      <GamePageGate urlGametype={GAMETYPE} gameId={OTHER_GAME} authSession={authSession} />,
+      <GamePageGate urlGametype={GAMETYPE} gameId={OTHER_GAME} auth={authSession} />,
     )
     // Before the new read answers, the old surface must already be gone.
     expect(screen.queryByText('play')).toBeNull()
@@ -284,7 +285,7 @@ describe('GamePage — mounting', () => {
     // cannot name the thing the link asks for, which is a fault, not a 404.
     mockUseCommonGame.mockReturnValue(commonGameState())
     mockManifestFor.mockReturnValue(undefined)
-    render(<GamePageGate urlGametype="noodle" gameId={GAME_ID} authSession={authSession} />)
+    render(<GamePageGate urlGametype="noodle" gameId={GAME_ID} auth={authSession} />)
     await act(async () => { await Promise.resolve() })
     expect(screen.getByText(/There's no game type called/)).toBeInTheDocument()
     expect(screen.getByText('noodle')).toBeInTheDocument()
@@ -328,12 +329,12 @@ describe('act-stop-game, bound for the pause overlay', () => {
     // A row arriving with the same run does NOT remount it — only the run
     // changing does, or every refetch would throw the board away.
     mockUseCommonGame.mockReturnValue(commonGameState({ game: { title: 'Secrets II' } }))
-    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} authSession={authSession} />)
+    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} auth={authSession} />)
     await act(async () => { await Promise.resolve() })
     expect(mounts).toBe(1)
 
     mockUseCommonGame.mockReturnValue(commonGameState({ game: { restart_count: 1 } }))
-    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} authSession={authSession} />)
+    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} auth={authSession} />)
     await act(async () => { await Promise.resolve() })
     expect(mounts).toBe(2)
   })
@@ -466,7 +467,7 @@ describe('GamePage — the turn bell', () => {
   /** Hand the page a new common row, as a realtime refetch would. */
   function moveTo(view: Awaited<ReturnType<typeof mount>>['view'], next: CommonGameState) {
     mockUseCommonGame.mockReturnValue(next)
-    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} authSession={authSession} />)
+    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} auth={authSession} />)
   }
 
   it('rings once when the turn passes to me', async () => {

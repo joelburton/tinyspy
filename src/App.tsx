@@ -150,7 +150,7 @@ export default function App() {
           key={game.gameId}
           urlGametype={game.gametype}
           gameId={game.gameId}
-          authSession={authSession}
+          auth={authSession}
         />
       )
 

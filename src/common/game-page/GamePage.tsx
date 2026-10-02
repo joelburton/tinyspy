@@ -32,7 +32,7 @@ type Props = {
   // The game, loaded.
   cg: CommonGame
   manifest: GameManifest
-  authSession: Session
+  auth: Session
   // The channel's joins and attach confirmations, handed on to the PlayArea.
   resubscribeCount: number
 }
@@ -56,7 +56,7 @@ type Props = {
  * why the menu's sections live in a store.
  */
 export function GamePage({
-  authSession,
+  auth,
   manifest,
   cg,
   resubscribeCount,
@@ -66,7 +66,7 @@ export function GamePage({
   const clubMembers = useClubWhileInGame({
     clubHandle: cg.club_handle,
     gameId: cg.id,
-    myId: authSession.user.id,
+    myId: auth.user.id,
     globalFeedbackSlot,
   })
 
@@ -83,7 +83,7 @@ export function GamePage({
 
   // The bell when the turn becomes mine, for every game on the common turn
   // pointer. Only a turn-based game has a turn to arrive.
-  useTurnBell(cg.turns.isTurnBased && cg.standing.isMyTurn)
+  useTurnBell(cg.turns.isTurnBased && cg.me.isOnTurn)
 
   const accountSection = useAccountMenuSection()
 
@@ -147,7 +147,7 @@ export function GamePage({
                 key={cg.restart_count}
                 cg={cg}
                 manifest={manifest}
-                authSession={authSession}
+                auth={auth}
                 resubscribeCount={resubscribeCount}
                 globalFeedbackSlot={globalFeedbackSlot}
                 menu={menu}
@@ -162,7 +162,7 @@ export function GamePage({
       <ChatHost
         clubHandle={cg.club_handle}
         members={clubMembers}
-        myId={authSession.user.id}
+        myId={auth.user.id}
         globalFeedbackSlot={globalFeedbackSlot}
       />
 
@@ -172,10 +172,10 @@ export function GamePage({
           gameId={cg.id}
           ownerId={
             manifest.scratchpad === 'perPlayerInCompete' && manifest.mode === 'compete'
-              ? authSession.user.id
+              ? auth.user.id
               : null
           }
-          myId={authSession.user.id}
+          myId={auth.user.id}
           members={clubMembers}
         />
       )}

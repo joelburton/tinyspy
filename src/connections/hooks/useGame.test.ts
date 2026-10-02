@@ -27,6 +27,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Envelope } from '@/common/supabase/envelope'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
+import { computePlayerStanding } from '@/common/game-page/playerStanding'
 import type { GamePlayer } from '@/common/members/member'
 import type { Board } from '../lib/board'
 import type { ConnectionsPlayerStatus } from '../lib/statuses'
@@ -101,15 +102,22 @@ function makeCtx(
   const {
     mode = 'compete',
     myId = 'u1',
-    players = [
+    players: playerRows = [
       gp('u1', 'me', 'red', { player_status: playerStatus(1, 2) }),
       gp('u2', 'moth', 'blue', { ...CONCEDED, player_status: playerStatus(0, 3, 'conceded') }),
     ],
     gameEnding = null,
     turnHolderId = null,
   } = over
+  const isGameEnded = gameEnding !== null
+  const isTurnBased = turnHolderId !== null
+  // Where each stands is derived, as the page derives it.
+  const players = playerRows.map((p) => ({
+    ...p,
+    ...computePlayerStanding(p, { isGameEnded, isTurnBased, turnHolderId, draftsOffTurn: false }),
+  }))
   return {
-    authSession: { user: { id: myId } },
+    auth: { user: { id: myId } },
     resubscribeCount: 0,
     cg: {
       id: GAME_ID,
@@ -119,18 +127,10 @@ function makeCtx(
       game_status: { required_categories_count: 4, max_mistakes: 4 },
       players,
       gameEnding,
-      isGameEnded: gameEnding !== null,
+      isGameEnded,
       updated_at: 't1',
-      turns: { isTurnBased: turnHolderId !== null, turnHolderId },
-      standing: {
-        isPlayer: players.some((p) => p.id === myId),
-        isConceded: false,
-        isLocallyTerminal: false,
-        isStillPlaying: true,
-        isMyTurn: true,
-        isWaitingForTurn: false,
-        isBoardInteractive: true,
-      },
+      turns: { isTurnBased, turnHolderId },
+      me: players.find((p) => p.id === myId),
     },
   } as unknown as PlayAreaLoaderProps
 }
@@ -305,14 +305,6 @@ describe('connections useGame — a load that worked', () => {
   })
 
   // SPECTATING: a guess until the design settles what a watcher sees.
-  it('reads no matches and the budget spent for a club member watching a compete game', async () => {
-    answer(ALL_GOOD)
-    const gd = (await load(makeCtx({ myId: 'u9' }))).current.gd!
-    expect(gd.me).toBeNull()
-    expect(gd.readout.foundCount).toBe(0)
-    expect(gd.readout.mistakeCount).toBe(4)
-  })
-
   it('names compete\'s winner and the turn holder as players', async () => {
     answer(ALL_GOOD)
     const gd = (await load(makeCtx({
@@ -338,7 +330,7 @@ describe('connections useGame — a load that worked', () => {
       .toBe(false)
   })
 
-  it('says I have solved in compete once my solve is recorded, and in coop when the team won', async () => {
+  it('says I have solved once my solve is recorded — in coop, the team\'s solve stamps me too', async () => {
     answer(ALL_GOOD)
     expect((await load()).current.gd?.standing.hasSolved).toBe(false)
     answer(ALL_GOOD)
@@ -350,9 +342,14 @@ describe('connections useGame — a load that worked', () => {
     })
     expect((await load(solved)).current.gd?.standing.hasSolved).toBe(true)
     answer(ALL_GOOD)
+    // A teammate made the fourth match: `submit_guess` stamps every player.
     const coopWon = makeCtx({
       mode: 'coop',
       gameEnding: { reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u2' },
+      players: [
+        gp('u1', 'me', 'red', { solved_at: '2026-06-15T00:05:00Z', player_status: playerStatus(4, 0) }),
+        gp('u2', 'moth', 'blue', { solved_at: '2026-06-15T00:05:00Z', player_status: playerStatus(4, 0) }),
+      ],
     })
     expect((await load(coopWon)).current.gd?.standing.hasSolved).toBe(true)
   })
@@ -372,7 +369,6 @@ describe('connections useGame — a load that worked', () => {
     const gd = (await load()).current.gd!
     expect(gd.me?.username).toBe('me')
     expect(gd.standing.isMyTurn).toBe(true)
-    expect(gd.standing.isPlayer).toBe(true)
   })
 
   it('builds the setup rows with the puzzle\'s date', async () => {
@@ -467,7 +463,7 @@ describe('connections useGame — the picks room', () => {
 
     // A new Session object, as a refresh hands React. The room is keyed on the
     // game, so nothing may tear it down.
-    rerender({ ...coop, authSession: { user: { id: 'u1' } } } as unknown as PlayAreaLoaderProps)
+    rerender({ ...coop, auth: { user: { id: 'u1' } } } as unknown as PlayAreaLoaderProps)
     expect(mockChannel).toHaveBeenCalledTimes(1)
     expect(mockRemoveChannel).not.toHaveBeenCalled()
   })

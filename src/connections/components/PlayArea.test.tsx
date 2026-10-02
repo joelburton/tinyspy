@@ -24,7 +24,7 @@ import {
   type PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
-import type { GamePlayer } from '@/common/members/member'
+import type { GamePlayer, GamePlayerRow } from '@/common/members/member'
 import type { GameEnding } from '@/common/terminal/gameEnding'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
@@ -181,7 +181,7 @@ function playerStatus(
 /** A player's `player_status`, kept in step with the player's own ending
  *  column. A fixture player with no status of its own gets this, so a test
  *  sets the ending once. */
-function withPlayerStatus(p: GamePlayer): GamePlayer {
+function withPlayerStatus<P extends GamePlayerRow>(p: P): P {
   if (Object.keys(p.player_status).length > 0) return p
   return { ...p, player_status: playerStatus(0, 0, p.player_ended_reason) }
 }

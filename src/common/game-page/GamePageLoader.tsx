@@ -11,7 +11,7 @@ import type { GameManifest } from '../manifest/gameManifest'
 /** What the gate hands on once the URL names a real game. */
 type Props = {
   gameId: string
-  authSession: Session
+  auth: Session
   manifest: GameManifest
 }
 
@@ -34,9 +34,9 @@ type Props = {
  *
  * Takes what the route hands down and renders nothing of its own.
  */
-export function GamePageLoader({ gameId, authSession, manifest }: Props) {
+export function GamePageLoader({ gameId, auth, manifest }: Props) {
   const { cg, resubscribeCount, loading, failure } =
-    useCommonGame(gameId, authSession, manifest)
+    useCommonGame(gameId, auth, manifest)
 
   if (loading) return <Loading />
 
@@ -52,7 +52,7 @@ export function GamePageLoader({ gameId, authSession, manifest }: Props) {
 
   return (
     <GamePage
-      authSession={authSession}
+      auth={auth}
       manifest={manifest}
       cg={cg}
       resubscribeCount={resubscribeCount}

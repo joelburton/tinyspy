@@ -24,7 +24,6 @@ import {
   makePlayAreaLoaderProps,
   type PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
-import type { Session } from '@supabase/supabase-js'
 import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
 import type { WordlePlayerStatus } from '../lib/statuses'
 
@@ -218,15 +217,6 @@ describe('wordle useGame — a load that worked', () => {
     expect((await load(coop)).current.gd?.readout.guessesUsed).toBe(4)
   })
 
-  // SPECTATING: a guess until the design settles what a watcher sees.
-  it('reads the budget as spent for a club member watching a compete game', async () => {
-    answer(ALL_GOOD)
-    const watching = makeCtx({ authSession: { user: { id: 'u9' } } as unknown as Session })
-    const gd = (await load(watching)).current.gd!
-    expect(gd.me).toBeNull()
-    expect(gd.readout.guessesUsed).toBe(6)
-  })
-
   it('names compete\'s winner and the turn holder as players', async () => {
     answer(ALL_GOOD)
     const won = makeCtx({
@@ -252,13 +242,14 @@ describe('wordle useGame — a load that worked', () => {
     expect((await load(solved)).current.gd?.standing.hasSolved).toBe(true)
   })
 
-  it('says I have solved in coop when the team won', async () => {
+  it('says I have solved in coop when the team won — the solving guess stamps every teammate', async () => {
     answer(ALL_GOOD)
     const coopWon = makeCtx({
       mode: 'coop',
       gameEnding: {
         reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u2',
       },
+      players: PLAYERS.map((p) => ({ ...p, solved_at: '2026-06-15T00:05:00Z' })),
     })
     expect((await load(coopWon)).current.gd?.standing.hasSolved).toBe(true)
   })

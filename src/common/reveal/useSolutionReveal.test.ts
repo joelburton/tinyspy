@@ -3,36 +3,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { useSolutionReveal } from './useSolutionReveal'
-import { solvedByMe } from './describeReveal'
-
-/**
- * `solvedByMe` — "did I produce the solution?", the input to `impliedBy`.
- *
- * The coop half is not a convenience. The per-player solved bit is unreliable
- * in coop, differently in each game: stackdown sets `players.solved` only in
- * compete, strands' coop branch ends the game without touching it, and
- * psychicnum counts per CALLER, so two teammates finding 2 and 1 leaves
- * neither at three.
- */
-describe('solvedByMe', () => {
-  it('coop asks the GAME — one board, one outcome', () => {
-    expect(solvedByMe({ isCompete: false, gameOutcome: 'won', mine: false })).toBe(true)
-    // …and only a WIN counts: a Stop, a loss or a game still played solved nothing.
-    expect(solvedByMe({ isCompete: false, gameOutcome: 'neutral', mine: false })).toBe(false)
-    expect(solvedByMe({ isCompete: false, gameOutcome: 'lost', mine: false })).toBe(false)
-    expect(solvedByMe({ isCompete: false, gameOutcome: null, mine: false })).toBe(false)
-  })
-
-  it('compete asks ME — the verdict is not a proxy for my own board', () => {
-    // The whole reason this doesn't read the game's outcome: a race is `won`
-    // when SOMEONE won, and handing the loser the answer is what we're avoiding.
-    expect(solvedByMe({ isCompete: true, gameOutcome: 'won', mine: false })).toBe(false)
-    expect(solvedByMe({ isCompete: true, gameOutcome: 'won', mine: true })).toBe(true)
-    // A player who solved but lost the race on its ranking still consumed
-    // their board.
-    expect(solvedByMe({ isCompete: true, gameOutcome: 'lost', mine: true })).toBe(true)
-  })
-})
 
 /**
  * The reveal's two halves: the player's own choice, and the default implied

@@ -6,8 +6,6 @@ import { supabase } from '@/common/supabase/supabase'
 import { channelLeaving, releaseChannel } from '@/common/realtime/channelTeardown'
 import { useRefetchOnGameUpdate } from '@/common/game-page/useRefetchOnGameUpdate'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import type { Standing } from '@/common/game-page/whereIStand'
-import { solvedByMe } from '@/common/reveal/describeReveal'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import type { Outcome } from '@/common/outcomes/outcomes'
@@ -176,7 +174,13 @@ export type GameData = {
   me: ConnectionsPlayer | null
   // Where I stand (docs/win-lose.md → Where a player stands), as the page
   // worked it out, plus connections' two.
-  standing: Standing & {
+  standing: {
+    isConceded: boolean
+    isLocallyTerminal: boolean
+    isStillPlaying: boolean
+    isMyTurn: boolean
+    isWaitingForTurn: boolean
+    isBoardInteractive: boolean
     // I matched all four — in coop, my team did (docs/win-lose.md → `solved`).
     hasSolved: boolean
     // Compete: I spent the mistake budget, so I am out while the race goes on.
@@ -308,7 +312,7 @@ export function makeGameData({
   sendClear,
 }: GameDataInputs): GameData {
   const { cg } = ctx
-  const myId = ctx.authSession.user.id
+  const myId = ctx.auth.user.id
   const isCompete = cg.mode === 'compete'
   const gameStatus = readGameStatus(ctx)
   const me = playersById[myId] ?? null
@@ -378,12 +382,13 @@ export function makeGameData({
     playersById,
     me,
     standing: {
-      ...cg.standing,
-      hasSolved: solvedByMe({
-        isCompete,
-        gameOutcome: cg.gameEnding?.outcome ?? null,
-        mine: me !== null && me.solvedAt !== null,
-      }),
+      isConceded: cg.me.isConceded,
+      isLocallyTerminal: cg.me.isLocallyTerminal,
+      isStillPlaying: cg.me.isStillPlaying,
+      isMyTurn: cg.me.isOnTurn,
+      isWaitingForTurn: cg.me.isWaitingForTurn,
+      isBoardInteractive: cg.me.isBoardInteractive,
+      hasSolved: cg.me.hasSolved,
       isEliminated:
         isCompete && me !== null && me.mistakeCount >= gameStatus.max_mistakes,
     },
@@ -417,7 +422,7 @@ export function useGame(ctx: PlayAreaLoaderProps): {
 } {
   const { cg } = ctx
   const gameId = cg.id
-  const myId = ctx.authSession.user.id
+  const myId = ctx.auth.user.id
   const isCompete = cg.mode === 'compete'
   const [rows, setRows] = useState<GameRows | null>(null)
   const [loading, setLoading] = useState(true)

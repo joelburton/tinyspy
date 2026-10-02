@@ -28,7 +28,8 @@ export type PlayAreaLoaderProps = {
   cg: CommonGame
   // This game's manifest.
   manifest: GameManifest
-  authSession: Session
+  // The signed-in user: `auth.user.id`. Their player is `cg.me`.
+  auth: Session
   // How many times the page's channel has joined (reconnects included) or
   // confirmed its postgres_changes attach. `useRefetchOnGameUpdate` refetches
   // on each too, so a read that failed while the connection was down retries

@@ -226,13 +226,30 @@ const PROFILES = [
   { user_id: 'dai', username: 'dai', color: 'purple', ai_member: false },
   { user_id: 'zed-bot', username: 'zed-bot', color: 'brown', ai_member: true },
 ]
-// The hook merges the game_players per-player bits onto each profile.
+/** Where a player stands who is still in a free-for-all game. */
+const PLAYING = {
+  isConceded: false,
+  isLocallyTerminal: false,
+  isStillPlaying: true,
+  isOnTurn: true,
+  isWaitingForTurn: false,
+  isBoardInteractive: true,
+  hasSolved: false,
+}
+/** …and one who is out of it: nothing is theirs to do. */
+const OUT = {
+  ...PLAYING, isLocallyTerminal: true, isStillPlaying: false, isOnTurn: false, isBoardInteractive: false,
+}
+// The hook merges the game_players per-player bits onto each profile, and
+// adds where each stands: cara conceded, dai is done, the rest play on.
 const GAME_PLAYERS = PLAYER_ROWS.map(function mergeProfile(row) {
   const { turn_seat: _seat, user_id, ...bits } = row
   const profile = PROFILES.find((p) => p.user_id === user_id)!
+  const standing =
+    user_id === 'cara' ? { ...OUT, isConceded: true } : user_id === 'dai' ? OUT : PLAYING
   return {
     id: user_id, username: profile.username, color: profile.color,
-    ai_member: profile.ai_member, ...bits,
+    ai_member: profile.ai_member, ...bits, ...standing,
   }
 })
 
@@ -359,10 +376,12 @@ describe('useCommonGame — initial load', () => {
 })
 
 /**
- * **Where I stand** — the standing terms, one formula each (docs/win-lose.md →
- * Where a player stands), computed once here for every PlayArea.
+ * **Where each player stands** — the standing terms, one formula each
+ * (docs/win-lose.md → Where a player stands), computed here for every seat so
+ * no PlayArea compares the turn pointer to an id itself. `cg.me` is ada's
+ * entry; the same object sits in `cg.players`.
  */
-describe('useCommonGame — where I stand', () => {
+describe('useCommonGame — where each player stands', () => {
   type PlayerRow = Record<string, unknown>
 
   // Answer the reads with this game row and roster instead of the defaults.
@@ -381,11 +400,12 @@ describe('useCommonGame — where I stand', () => {
     })
   }
 
-  async function standing(draftsOffTurn = false, authSession = fakeSession) {
-    const { result } = renderHook(() => useCommonGame('g1', authSession, manifestWith(draftsOffTurn)))
+  /** The loaded game's `me` (ada) with the turns beside it, and bea's entry. */
+  async function standing(draftsOffTurn = false) {
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(draftsOffTurn)))
     await waitFor(() => expect(result.current.loading).toBe(false))
-    const { turns, standing } = result.current.cg!
-    return { ...standing, ...turns }
+    const { turns, me, players } = result.current.cg!
+    return { ...me, ...turns, bea: players.find((p) => p.id === 'bea')! }
   }
 
   // ada and bea seated in a turn order.
@@ -394,47 +414,60 @@ describe('useCommonGame — where I stand', () => {
     { ...PLAYER_ROWS[1], turn_seat: 1 },
   ]
 
+  it('me is my own entry in players — the same object', async () => {
+    serve({ current_turn_user_id: null }, PLAYER_ROWS)
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const { me, players } = result.current.cg!
+    expect(me.id).toBe('ada')
+    expect(players).toContain(me)
+  })
+
   it('a free-for-all game: still playing, and every move is mine', async () => {
     serve({ current_turn_user_id: null }, PLAYER_ROWS)
-    expect(await standing()).toEqual({
-      isPlayer: true, isConceded: false, isLocallyTerminal: false, isStillPlaying: true,
-      isTurnBased: false, turnHolderId: null, isMyTurn: true, isWaitingForTurn: false,
-      isBoardInteractive: true,
+    expect(await standing()).toMatchObject({
+      isConceded: false, isLocallyTerminal: false, isStillPlaying: true,
+      isTurnBased: false, turnHolderId: null, isOnTurn: true, isWaitingForTurn: false,
+      isBoardInteractive: true, hasSolved: false,
     })
   })
 
-  it('a turn game on a teammate\'s turn: still playing, waiting, the board inert', async () => {
+  it('a turn game on a teammate\'s turn: I wait with an inert board, and the teammate is on turn', async () => {
     serve({ current_turn_user_id: 'bea' }, SEATED)
     expect(await standing()).toMatchObject({
       isStillPlaying: true, isTurnBased: true, turnHolderId: 'bea',
-      isMyTurn: false, isWaitingForTurn: true, isBoardInteractive: false,
+      isOnTurn: false, isWaitingForTurn: true, isBoardInteractive: false,
+      bea: { isOnTurn: true, isWaitingForTurn: false, isBoardInteractive: true },
     })
   })
 
   it('a game that drafts off-turn keeps the board live while I wait', async () => {
     serve({ current_turn_user_id: 'bea' }, SEATED)
     expect(await standing(true)).toMatchObject({
-      isMyTurn: false, isWaitingForTurn: true, isBoardInteractive: true,
+      isOnTurn: false, isWaitingForTurn: true, isBoardInteractive: true,
     })
   })
 
   it('a turn game on my turn', async () => {
     serve({ current_turn_user_id: 'ada' }, SEATED)
     expect(await standing()).toMatchObject({
-      isMyTurn: true, isWaitingForTurn: false, isBoardInteractive: true,
+      isOnTurn: true, isWaitingForTurn: false, isBoardInteractive: true,
+      bea: { isOnTurn: false, isWaitingForTurn: true },
     })
   })
 
   it('a turn game whose pointer names nobody is nobody\'s turn, never everybody\'s', async () => {
     serve({ current_turn_user_id: null }, SEATED)
-    expect(await standing()).toMatchObject({ isTurnBased: true, turnHolderId: null, isMyTurn: false })
+    expect(await standing()).toMatchObject({
+      isTurnBased: true, turnHolderId: null, isOnTurn: false, bea: { isOnTurn: false },
+    })
   })
 
   it('a finished game is nobody\'s turn, though the pointer still names me', async () => {
     serve({ current_turn_user_id: 'ada', ...ENDED_ROW }, SEATED)
     expect(await standing()).toMatchObject({
-      isStillPlaying: false, turnHolderId: 'ada', isMyTurn: false, isWaitingForTurn: false,
-      isBoardInteractive: false,
+      isStillPlaying: false, turnHolderId: 'ada', isOnTurn: false, isWaitingForTurn: false,
+      isBoardInteractive: false, bea: { isStillPlaying: false },
     })
   })
 
@@ -442,23 +475,20 @@ describe('useCommonGame — where I stand', () => {
     serve({}, [{ ...PLAYER_ROWS[0], ...CONCEDED_ROW }, PLAYER_ROWS[1]])
     expect(await standing(true)).toMatchObject({
       isConceded: true, isLocallyTerminal: true, isStillPlaying: false,
-      isMyTurn: false, isWaitingForTurn: false, isBoardInteractive: false,
+      isOnTurn: false, isWaitingForTurn: false, isBoardInteractive: false,
     })
   })
 
   it('a racer who is done without conceding is locally terminal, not conceded', async () => {
     serve({}, [{ ...PLAYER_ROWS[0], ...EXHAUSTED_ROW }, PLAYER_ROWS[1]])
     expect(await standing()).toMatchObject({
-      isConceded: false, isLocallyTerminal: true, isStillPlaying: false, isMyTurn: false,
+      isConceded: false, isLocallyTerminal: true, isStillPlaying: false, isOnTurn: false,
     })
   })
 
-  it('a club member watching is not a player, and never has the turn', async () => {
-    serve({}, PLAYER_ROWS)
-    const watcher = { user: { id: 'eve' } } as unknown as Session
-    expect(await standing(true, watcher)).toMatchObject({
-      isPlayer: false, isStillPlaying: false, isMyTurn: false, isBoardInteractive: false,
-    })
+  it('a solved player has solved, in either mode — a coop solve stamps every teammate', async () => {
+    serve({}, [{ ...PLAYER_ROWS[0], solved_at: '2026-01-01T00:30:00Z' }, PLAYER_ROWS[1]])
+    expect(await standing()).toMatchObject({ hasSolved: true, bea: { hasSolved: false } })
   })
 })
 
