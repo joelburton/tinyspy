@@ -57,6 +57,19 @@ export type GTeam = {
   guessesUsed: number
 }
 
+/**
+ * What the state line shows: the finds against the secrets, the guesses
+ * against the budget — the team's in coop, my own in compete. Decided once, in
+ * `makeGameData`, so the line draws it and picks nothing. Named for its
+ * reader: this is what to SHOW there, not a fact other components read.
+ */
+export type GStateLineData = {
+  foundSecretsCount: number
+  requiredSecretsCount: number
+  guessesUsed: number
+  maxGuesses: number
+}
+
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
  *  player (`GEvent`). */
 export type GEventRaw = {
@@ -120,6 +133,8 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                  # seat order
  *   playersById
  *   me                                    # same object as playersById[auth.user.id]
+ *   stateLineData: {foundSecretsCount, requiredSecretsCount, guessesUsed, maxGuesses}
+ *                                         # what the state line shows: the team's in coop, my own in compete
  *
  * player:
  *   id
@@ -171,6 +186,8 @@ export type GGameData =
   // My entry in `playersById`: the same object. My own board is always mine
   // to see.
   me: GPlayer & { board: GBoard }
+  // What the state line shows: the team's counts in coop, my own in compete.
+  stateLineData: GStateLineData
 }
 
 /** One player of this game, as `gd` holds them: the blob's player, with the

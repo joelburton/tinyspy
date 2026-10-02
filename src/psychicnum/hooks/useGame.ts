@@ -46,6 +46,12 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     .filter((e) => seeRival || isMine(e.userId))
     .map(({ userId, ...row }) => ({ ...row, by: playersById[userId]! }))
 
+  // The gate has checked that I am seated, and my own board is never withheld.
+  const me = playersById[myId] as GGameData['me']
+  // What the state line shows: the team's counts where the game has one, else
+  // my own (plans/team-facts.md).
+  const teamOrMe = raw.team ?? me
+
   const { turns, ending, ...rest } = raw
   return {
     ...rest,
@@ -62,8 +68,13 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     events,
     players,
     playersById,
-    // The gate has checked that I am seated, and my own board is never withheld.
-    me: playersById[myId] as GGameData['me'],
+    me,
+    stateLineData: {
+      foundSecretsCount: teamOrMe.foundSecretsCount,
+      requiredSecretsCount: me.requiredSecretsCount,
+      guessesUsed: teamOrMe.guessesUsed,
+      maxGuesses: me.maxGuesses,
+    },
   }
 }
 

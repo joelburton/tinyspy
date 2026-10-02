@@ -132,8 +132,11 @@ part of every `game_data` (`common._make_json_game_data`) psychicnum's own:
 
 Every player's counts are their own, on `psychicnum.players` and on their
 player in the blob, in both modes; `team` is their sum, and is null in a race,
-which has no team ([plans/team-facts.md](../../plans/team-facts.md)). A readout
-shows `gd.team` where there is one and `gd.me` otherwise. Compete's summary
+which has no team ([plans/team-facts.md](../../plans/team-facts.md)).
+`gd.stateLineData` is what the state line shows — the team's counts where
+there is one, else my own, against the secrets and the budget — decided once in
+`useGame`, so the line and the board's move count read it and pick nothing.
+Compete's summary
 carries no progress; the race's winner is the common `ending.winner`.
 `psychicnum._rebuild_data_cols_for_all()` rewrites every psychicnum game's
 blobs without re-dating them, for a shape change.

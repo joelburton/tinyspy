@@ -55,8 +55,12 @@ Each game had answered the question its own way. This plan answers it once.
 
 The FE still branches on mode, but the branch becomes "which fact do I show":
 a coop readout shows `gd.team`, a compete readout shows `gd.me` beside the
-rivals. That is a presentational choice and belongs in the component. "How do I
-compute this" never does.
+rivals. **Where that pick lives (Joel, 2026-10-02): in `gd`.** "How this game
+works" stays in `gd`, so `useGame` decides once — psychicnum's
+`gd.stateLineData` is the team's counts where there is one, else mine — and no
+component picks. The field is named for its reader, since it is what to SHOW
+there and not a fact for other components to scrounge.
+"How do I compute this" never leaves the hook either way.
 
 ## The naming rule for a loose copy
 

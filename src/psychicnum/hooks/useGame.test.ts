@@ -93,9 +93,17 @@ describe('psychicnum makeGameData — the links become players', () => {
     expect(gd.brand).toBe('PsychicNum')
   })
 
-  it('a race has no team', () => {
+  it('the state line shows the team\'s counts in coop, against the secrets and the budget', () => {
+    const gd = makeGameData(makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
+    expect(gd.stateLineData).toEqual({
+      foundSecretsCount: 1, requiredSecretsCount: 3, guessesUsed: 2, maxGuesses: 7,
+    })
+  })
+
+  it('a race has no team, so the state line shows my own', () => {
     const gd = makeGameData(makeGameDataRaw({ mode: 'compete', players: TWO, events: EVENTS }), 'u1')
     expect(gd.team).toBeNull()
+    expect([gd.stateLineData.foundSecretsCount, gd.stateLineData.guessesUsed]).toEqual([1, 1])
   })
 })
 
