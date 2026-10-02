@@ -16,19 +16,22 @@
 --   submit_timeout   ends the game when the countdown runs out
 --   replay_board     restarts the same board from scratch
 --
--- and the view `games_state`, the game row with the secrets once it has ended.
+-- What the frontend reads is none of this schema's tables: `_write_statuses`
+-- writes the page blobs onto `common.games` after every move (plans/seat-view.md
+-- → The page is written, not assembled), and the page reads those.
 --
 -- What is particular to psychicnum (src/psychicnum/doc.md has the rest):
 --   - The secrets are hidden by a column grant, not a policy: no client can
---     select `secrets`, and `games_state` hands them over only once the game
+--     select `secrets`, and the playarea blob carries them only once the game
 --     has ended.
 --   - The guess budget is shared in coop and each player's own in compete. A
 --     guess counts up only the guesser's row, in both modes, so coop's spent
 --     budget is the sum of the rows.
 --   - A compete race ends when decided: the first to find all three wins, and
 --     the others are short of the goal and unranked. Its timeout ranks nobody.
---   - Guesses are the one mode-aware read: coop sees everyone's, compete only
---     your own until the game ends.
+--   - What a racer may see of a rival mid-race — not their guesses, not their
+--     board — is the hook's rule (src/psychicnum/hooks/useGame.ts), not a
+--     policy's: the blob carries everything, the hook withholds.
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -37,7 +40,7 @@
 grant usage on schema psychicnum to authenticated;
 
 -- Games: any club member sees the row. (`secrets` is additionally
--- column-hidden, regardless of policy — see the games_state view.)
+-- column-hidden, regardless of policy — see the grant below.)
 drop policy if exists games_select on psychicnum.games;
 create policy games_select on psychicnum.games
   for select to authenticated
@@ -64,18 +67,9 @@ create policy players_select on psychicnum.players
     )
   );
 
--- Guesses: branch on the game's mode.
---   coop    — every club member sees every guess (default).
---   compete — each player sees only their own guesses DURING PLAY;
---             everyone's open once the game has ended.
---
--- Why compete opens at the end (2026-08-02): the event log grew
--- the shared "whose turns?" picker, and its whole value in compete
--- is the post-game read-through — "how did moth spend their
--- budget?". Hiding an opponent's guesses DURING play is the real
--- rule (their guesses are their strategy); hiding them after the
--- game has ended just withholds the interesting part. Same shape
--- as stackdown / connections / waffle.
+-- Guesses: any club member sees every row. Who may see a rival's guesses
+-- mid-race is the hook's rule (src/psychicnum/hooks/useGame.ts), applied to
+-- the playarea blob; nothing reads this table from the client.
 drop policy if exists events_select on psychicnum.events;
 create policy events_select on psychicnum.events
   for select to authenticated
@@ -84,13 +78,12 @@ create policy events_select on psychicnum.events
       select 1 from common.games cg
        where cg.id = events.game_id
          and common._is_club_member(cg.club_handle)
-         and (cg.mode = 'coop' or events.user_id = (select auth.uid()) or cg.ended_at is not null)
     )
   );
 
--- Grants: every column on psychicnum.games EXCEPT `secrets`. The games_state
--- view below (via `_secrets_for`) is the only authenticated read path for
--- `secrets`.
+-- Grants: every column on psychicnum.games EXCEPT `secrets`. The playarea blob
+-- (`_make_json_puzzle`) is the only path a client has to them, and it carries
+-- them only once the game has ended.
 grant select
   (game_id, words, max_guesses)
   on psychicnum.games to authenticated;
@@ -98,64 +91,201 @@ grant select
 grant select on psychicnum.players to authenticated;
 grant select on psychicnum.events to authenticated;
 
+-- The view the frontend read before the page blobs, and the definer it read
+-- the secrets through. supabase/sql is re-applied, not diffed, so the drops
+-- stay.
 drop view if exists psychicnum.games_state;
 drop function if exists psychicnum._secrets_for(uuid);
 
 -- ============================================================
--- psychicnum._secrets_for
+-- The page blobs — what the page shows, written by this game's builder
 -- ============================================================
--- The game's three secrets once it has ended, in either mode; null while it
--- is played. A definer, so it can read the column no client is granted; the
--- games_state view is its one caller.
-create or replace function psychicnum._secrets_for(p_game_id uuid)
-returns text[]
+-- `_write_statuses` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled): the
+-- shell through `common._write_shell`, and these two of psychicnum's own. The
+-- playarea is the common part (supabase/sql/common.sql → The page blobs'
+-- common parts) with psychicnum's facts on top; the pieces below build each
+-- part, so `select playarea from common.games` shows the page what it gets.
+--
+--   playarea, psychicnum's part:
+--     puzzle: {words, secrets}             secrets null until the game ends
+--     events: [{id, userId, word, correct, kind, at}, …]
+--                                          every player's; what a racer may see
+--                                          of a rival mid-race is the hook's rule
+--     players: [player, …]                 the common player, plus:
+--       requiredSecretsCount, maxGuesses   the same on every player
+--       foundSecretsCount, guessesUsed     own in compete; the team's, on every player, in coop
+--       board: {tileResults, decidedBy}    what this seat's tiles show: word → was it a
+--                                          secret, word → who guessed it; one board in
+--                                          coop, each racer's own in compete
+--
+--   clubpage:
+--     foundSecretsCount, guessesUsed       the team's in coop; null in compete, whose
+--                                          club line shows no progress
+--     requiredSecretsCount, maxGuesses
+--     winner                               compete's, the player ranked first; null
+--                                          until the end, and always null in coop
+--
+-- The statuses (`game_status`, `player_status`, `clubpage_info`) are written
+-- beside them until the club page reads `clubpage`:
+--
+--   game_status    { required_secrets_count, max_guesses }
+--   player_status  { found_secrets_count, guesses_used, player_ended_reason }
+--   clubpage_info  { found_secrets_count, required_secrets_count,
+--                    guesses_used, max_guesses, winner_user_id }
+
+-- The board's words, and the three secrets once the game has ended.
+create or replace function psychicnum._make_json_puzzle(pg psychicnum.games, p_ended boolean)
+returns jsonb
 language sql
-stable
-security definer
+immutable
 set search_path = psychicnum, common, public, extensions
 as $$
-  select case when c.ended_at is not null then p.secrets else null end
-    from psychicnum.games p
-    join common.games c on c.id = p.game_id
-   where p.game_id = p_game_id
+  select jsonb_build_object(
+    'words',   to_jsonb(pg.words),
+    'secrets', case when p_ended then to_jsonb(pg.secrets) end);
 $$;
 
-revoke execute on function psychicnum._secrets_for(uuid) from public;
-grant execute on function psychicnum._secrets_for(uuid) to authenticated;
+revoke execute on function psychicnum._make_json_puzzle(psychicnum.games, boolean) from public;
 
--- ============================================================
--- psychicnum.games_state — the game row the frontend reads
--- ============================================================
--- Every readable column of psychicnum.games, plus the secrets through
--- `_secrets_for`, so they arrive the moment the game ends.
-create view psychicnum.games_state with (security_invoker = true) as
-  select
-    game_id,
-    words,
-    max_guesses,
-    psychicnum._secrets_for(game_id) as secrets
-  from psychicnum.games;
+-- The log: every guess, hint and spoiler, in the order of play.
+create or replace function psychicnum._make_json_events(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = psychicnum, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',      e.id,
+           'userId',  e.user_id,
+           'word',    e.word,
+           'correct', e.is_correct,
+           'kind',    e.kind,
+           'at',      e.created_at) order by e.id), '[]'::jsonb)
+    from psychicnum.events e
+   where e.game_id = p_game_id;
+$$;
 
-grant select on psychicnum.games_state to authenticated;
-revoke insert, update, delete on psychicnum.games_state from authenticated;
+revoke execute on function psychicnum._make_json_events(uuid) from public;
+
+-- What one seat's tiles show: each guessed word → whether it was a secret, and
+-- → who guessed it. Hint and spoiler rows mark no tile. In coop every seat
+-- shows the team's guesses; in compete, the seat's own.
+create or replace function psychicnum._make_json_board(p_game_id uuid, p_user_id uuid, p_mode text)
+returns jsonb
+language sql
+stable
+set search_path = psychicnum, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'tileResults', coalesce(jsonb_object_agg(e.word, e.is_correct), '{}'::jsonb),
+    'decidedBy',   coalesce(jsonb_object_agg(e.word, e.user_id), '{}'::jsonb))
+    from psychicnum.events e
+   where e.game_id = p_game_id
+     and e.kind = 'guess'
+     and (p_mode = 'coop' or e.user_id = p_user_id);
+$$;
+
+revoke execute on function psychicnum._make_json_board(uuid, uuid, text) from public;
+
+-- Every player as psychicnum's playarea shows them: the common player, with the
+-- budget, the counts and this seat's board.
+create or replace function psychicnum._make_json_players(p_game_id uuid)
+returns jsonb
+language plpgsql
+stable
+set search_path = psychicnum, common, public, extensions
+as $$
+declare
+  v_mode text;
+  v_max_guesses int;
+  v_required_secrets_count int;
+  -- Coop's team numbers: each row holds its player's own share (each correct
+  -- guess is one player's, and no secret can be found twice), so the sums
+  -- count every find and every guess once.
+  v_team_found int;
+  v_team_used int;
+begin
+  select cg.mode, pg.max_guesses, array_length(pg.secrets, 1)
+    into v_mode, v_max_guesses, v_required_secrets_count
+    from psychicnum.games pg
+    join common.games cg on cg.id = pg.game_id
+   where pg.game_id = p_game_id;
+
+  select sum(found_secrets_count), sum(guesses_used)
+    into v_team_found, v_team_used
+    from psychicnum.players
+   where game_id = p_game_id;
+
+  return (
+    select jsonb_agg(
+             cp.player || jsonb_build_object(
+               'requiredSecretsCount', v_required_secrets_count,
+               'maxGuesses',           v_max_guesses,
+               'foundSecretsCount',    case when v_mode = 'coop' then v_team_found else pp.found_secrets_count end,
+               'guessesUsed',          case when v_mode = 'coop' then v_team_used else pp.guesses_used end,
+               'board',                psychicnum._make_json_board(p_game_id, cp.id, v_mode))
+             order by cp.ord)
+      from common._make_json_players(p_game_id) cp
+      join psychicnum.players pp on pp.game_id = p_game_id and pp.user_id = cp.id
+  );
+end;
+$$;
+
+revoke execute on function psychicnum._make_json_players(uuid) from public;
+
+-- The whole playarea blob: the common part, with psychicnum's puzzle, log and
+-- players on top.
+create or replace function psychicnum._make_json_playarea(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = psychicnum, common, public, extensions
+as $$
+  select common._make_json_playarea(p_game_id) || jsonb_build_object(
+           'puzzle',  psychicnum._make_json_puzzle(pg, cg.ended_at is not null),
+           'events',  psychicnum._make_json_events(p_game_id),
+           'players', psychicnum._make_json_players(p_game_id))
+    from psychicnum.games pg
+    join common.games cg on cg.id = pg.game_id
+   where pg.game_id = p_game_id;
+$$;
+
+revoke execute on function psychicnum._make_json_playarea(uuid) from public;
+
+-- The club line's numbers.
+create or replace function psychicnum._make_json_clubpage(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = psychicnum, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'foundSecretsCount',    case when cg.mode = 'coop' then team.found end,
+    'requiredSecretsCount', array_length(pg.secrets, 1),
+    'guessesUsed',          case when cg.mode = 'coop' then team.used end,
+    'maxGuesses',           pg.max_guesses,
+    'winner',               case when cg.mode = 'compete' then (
+                              select gp.user_id from common.game_players gp
+                               where gp.game_id = p_game_id and gp.final_ranking = 1
+                               limit 1) end)
+    from psychicnum.games pg
+    join common.games cg on cg.id = pg.game_id
+   cross join (select sum(found_secrets_count) as found, sum(guesses_used) as used
+                 from psychicnum.players where game_id = p_game_id) team
+   where pg.game_id = p_game_id;
+$$;
+
+revoke execute on function psychicnum._make_json_clubpage(uuid) from public;
 
 -- ============================================================
 -- psychicnum._write_statuses — the page's copies of the game
 -- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from psychicnum's own tables, assigning
--- each whole (plans/common-tables.md → The statuses). Every key is always
--- present, null when it has no value:
---
---   game_status    { required_secrets_count, max_guesses }
---   player_status  { found_secrets_count, guesses_used, player_ended_reason }
---                  — each count is that player's own, in both modes; coop's
---                  team numbers are the sums over the players
---   clubpage_info  { found_secrets_count, required_secrets_count,
---                    guesses_used, max_guesses, winner_user_id }
---                  — the found and used counts are the team's in coop and
---                  null in compete, whose club line shows no progress; the
---                  winner is compete's, null until the end
+-- Writes the page blobs (`playarea`, `clubpage`, and the shell through
+-- `common._write_shell`) and the statuses (`game_status`, every
+-- `player_status`, `clubpage_info`) from psychicnum's own tables, assigning
+-- each whole. Every key is always present, null when it has no value; the
+-- shapes are drawn above.
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,
 -- false from a rebuild (the pass over every game, a repair by hand), so a
@@ -215,13 +345,49 @@ begin
              select user_id from common.game_players
               where game_id = p_game_id and final_ranking = 1
               limit 1) end),
+         playarea = psychicnum._make_json_playarea(p_game_id),
+         clubpage = psychicnum._make_json_clubpage(p_game_id),
          status_changed_at = case when p_update_status_changed_at
                                   then now() else status_changed_at end
    where id = p_game_id;
+
+  perform common._write_shell(p_game_id);
 end;
 $$;
 
 revoke execute on function psychicnum._write_statuses(uuid, boolean) from public;
+
+-- The name this had for a day; supabase/sql is re-applied, not diffed.
+drop function if exists psychicnum.rebuild_pages();
+
+-- ============================================================
+-- psychicnum._rebuild_pages — every psychicnum game's blobs, rewritten
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- runs the builder over every psychicnum game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function psychicnum._rebuild_pages()
+returns int
+language plpgsql
+security definer
+set search_path = psychicnum, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('psychicnum_coop', 'psychicnum_compete')
+  loop
+    perform psychicnum._write_statuses(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function psychicnum._rebuild_pages() from public;
 
 drop function if exists psychicnum.create_game(text, jsonb, uuid[], text);
 
@@ -1164,8 +1330,8 @@ drop function if exists psychicnum.replay_board(uuid);
 -- Turn-order coop goes back to the player seated first; common._reset_game
 -- rewinds the pointer.
 --
--- The secrets re-hide on their own: games_state gates them on
--- common.games.ended_at, which reset_game clears.
+-- The secrets re-hide on their own: the playarea blob carries them only while
+-- common.games.ended_at is set, which reset_game clears before the rebuild.
 create or replace function psychicnum.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql

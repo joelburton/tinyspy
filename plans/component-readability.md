@@ -31,29 +31,29 @@ the tile it draws). Each pass:
 
 ## `gd` — what `useGame` returns
 
-- **One object, `gd`, grouped by meaning, never by source.** Where a value came
-  from (the page's row, a status copy, the game's tables) is `makeGameData`'s
-  business. A fact the statuses carry is read from them; otherwise from the
-  tables. A key goes into a status because the page shows it, never only to
-  feed `gd` (plans/common-tables.md → The statuses).
-- **Groups are real concepts;** a lone value stays flat. psychicnum's:
-  `readout` (the state line's counts), `board` (words, `tileResults`,
-  `decidedBy`, `guessCount`), `standing` (where I stand), and the players.
-  Ending values are flat: `gameEnding`, `isGameEnded`, `winner`.
+- **One object, `gd`: the playarea blob, read.** The game's builder writes the
+  blob in the page's names (plans/seat-view.md → The page is written, not
+  assembled); `makeGameData` turns its links into players, builds the setup
+  rows, and applies the seat rule. Nothing is read from a table; a fact goes
+  into the blob because the page shows it.
+- **Every seat fact is on the player** (plans/seat-view.md → One home): the
+  counts, the budget, the board, where they stand (`p.onTurn`, `p.conceded`,
+  `p.solved`). The viewer is `gd.me`, one of them. Groups the game owns are
+  real concepts: psychicnum's `puzzle` (words, secrets), `turns`, `ending`, and
+  on each player `board` (`tileResults`, `decidedBy`).
 - **Players:** `gd.players` (the list, seat order) and `gd.playersById` (the
   same objects), plus `gd.me`. The game's player type is `Member & { … }`
   (psychicnum's `PsychicnumPlayer`), so it goes straight to shared pieces that
-  take `Member[]`. `GamePlayer` is read only inside `useGame`. No `roster`
-  beside `gd`; no alias like `Player = Member`.
+  take `Member[]`. No `roster` beside `gd`; no alias like `Player = Member`.
 - **Don't destructure a group back into loose names.** `tiles.results` says
   what it is and where it came from; a bare `results` is generic. Read the
-  field through its group (`gd.standing.isMyTurn`, `tiles.results`).
+  field through its group (`gd.me.onTurn`, `tiles.results`).
 - **What a child gets:** the two columns take `gd` whole. A leaf gets fields or
   its own groups, never `gd`: `Board` takes `tiles`, `marks`, `historyView`;
-  `StateLine` takes `readout`.
-- **Identity:** `gd` is rebuilt each render. What an effect depends on keeps its
-  identity: memoize the players and setup rows, and depend on fields
-  (`gd.standing.isMyTurn`), never on a group.
+  `StateLine` takes a player.
+- **Identity:** `gd` is memoized on the blob, so it is rebuilt when the page
+  hands down a new one and not on every render. What an effect depends on is
+  a field (`gd.me.onTurn`), never a group.
 
 ## Endings
 
@@ -119,9 +119,12 @@ it works.
 - **Ask the answer table, don't fake a row:** a tile's color is
   `getGuessOutcome(word, isCorrect)` in `lib/answer.ts`, which `eventToOutcome`
   also calls — not a made-up event handed to `eventToOutcome`.
-- **One rule, written once:** `canPick` (`isInteractive && !isViewingHistory`)
-  feeds both the cursor and the tile's `isDisabled`; the cursor's position is
-  worked out once per render, not once per tile.
+- **One rule, written once, named for its purpose:** `BoardCol` computes
+  `canPick` (`gd.me.onTurn && !historyView.isViewing`) once and hands it to
+  `Board` — the cursor and the tile's `isDisabled` — and to Clear and Submit,
+  which add the pick. `Board` is never taught whose turn it is or why a past
+  turn blocks a click; it is told "the tiles take picks right now". A game
+  with no off-turn drafting has that one gate, not scrabble's two.
 
 ## InfoCol
 

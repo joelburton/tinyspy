@@ -1,13 +1,14 @@
 // cs-blessed-psychicnum
 
 /*
- * The shape of `gd` this hook is converging on (plans/seat-view.md): every
- * seat fact on the player, the viewer one of them.
+ * What this hook returns: `gd`, the playarea blob with its links turned into
+ * players and the seat rule applied (plans/seat-view.md).
  *
  * gd:
  *   id
  *   gametype
  *   brand
+ *   club: {handle}
  *   mode
  *   coop
  *   compete
@@ -17,9 +18,10 @@
  *   setupRows
  *   puzzle: {words, secrets}              # secrets null until the game ends
  *   turns: {holder}                       # null: no turn order; holder null: nobody's turn now
- *   ending: {reason, detail, by, winner}  # null while playing; by is a player
+ *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
+ *   ended
  *   outcome                               # null until the game ends
- *   events                                # the log; my rows only, mid-race
+ *   events: [{id, by, word, correct, kind, at}, …]   # the log, by a player; my rows only, mid-race
  *   players: [player, …]                  # seat order
  *   playersById
  *   me                                    # same object as playersById[auth.user.id]
@@ -28,6 +30,7 @@
  *   id
  *   username
  *   color
+ *   ai
  *   seat                                  # null in a free-for-all game
  *   ending: {at, reason, detail}          # null unless they ended before the game ended
  *   outcome                               # null until written
@@ -42,384 +45,141 @@
  *   maxGuesses                            # the same on every player
  *   foundSecretsCount                     # own in compete; the team's, on every player, in coop
  *   guessesUsed                           # own in compete; the team's, on every player, in coop
- *   board: {tileResults, decidedBy}       # what this seat's tiles show; null for an opponent mid-race
+ *   board: {tileResults, decidedBy}       # what this seat's tiles show; null for a rival mid-race
  */
 
-import { useMemo, useState } from 'react'
-import { useRefetchOnGameUpdate } from '@/common/game-page/useRefetchOnGameUpdate'
+import { useMemo } from 'react'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnvelope } from '@/common/supabase/envelope'
-import type { EndOutcome, GameEnding, PlayerEndedReason } from '@/common/terminal/gameEnding'
-import { db } from '../db'
-import type { GamePlayer, Member } from '@/common/members/member'
 import type { SetupRow } from '@/common/setup-form/setupRows'
-import type { PsychicnumSetup } from '../lib/setup'
+import type { PsychicnumPlayarea, PsychicnumPlayareaEvent, PsychicnumPlayareaPlayer } from '../lib/playarea'
 import { makeSetupRows } from '../lib/setupRows'
-import type { PsychicnumGameStatus, PsychicnumPlayerStatus } from '../lib/statuses'
 import type { TileResults, TileWord } from '../lib/tileResults'
 
-/**
- * One row from `psychicnum.events`. In coop the FE receives
- * every player's guess; in compete the RLS policy filters
- * server-side so the FE only ever receives its own user_id's
- * rows. PlayArea renders them the same way either way; the
- * filtering is invisible to the FE.
- */
-export type EventRow = {
-  // The row's own id, and the order of play.
-  id: number
-  user_id: string
-  // The text this row carries. For 'guess'/'spoiler' it's a `TileWord`; for
-  // 'hint' it's the CLUE text (or "No hint available"), which is why this is
-  // a plain string.
-  word: string
-  is_correct: boolean
-  // 'guess' = a real guess (colors the board, counts toward the win);
-  // 'spoiler' = a secret word handed over (the answer);
-  // 'hint' = a clue for a secret.
-  kind: 'guess' | 'hint' | 'spoiler'
-  created_at: string
+/** What one seat's tiles show. */
+export type PsychicnumBoard = {
+  // Each guessed word → whether it was a secret: the board's permanent green
+  // and red. Hint and spoiler rows mark no tile.
+  tileResults: TileResults
+  // Each guessed word → who guessed it.
+  decidedBy: ReadonlyMap<TileWord, PsychicnumPlayer>
 }
 
-/** One player of this game, as `gd` holds them: who they are (a `Member`, so
- *  a player can go wherever a member is taken), and this game's facts about
- *  them. */
-export type PsychicnumPlayer = Member & {
-  // Null while this player plays on; set once their play ended while the game
-  // went on — out of guesses in compete, or conceded.
-  playerEnding: {
-    at: string
-    reason: PlayerEndedReason
-    reasonDetail: string
-  } | null
-  // How they came out; both null until the game ends.
-  outcome: EndOutcome | null
-  finalRanking: number | null
-  solvedAt: string | null
-  // Their own counts, in both modes; coop's team numbers are the sums.
-  foundSecretsCount: number
-  guessesUsed: number
-  // They found every secret the board hides: the win, in compete.
-  foundAllSecrets: boolean
+/** One row of the log, as `gd` holds it: the blob's row, with its player. */
+export type PsychicnumEvent = Omit<PsychicnumPlayareaEvent, 'userId'> & {
+  // Who guessed, asked, or was handed the spoiler.
+  by: PsychicnumPlayer
+}
+
+/** One player of this game, as `gd` holds them: the blob's player, with the
+ *  board's ids turned into players — or null, for a rival mid-race. */
+export type PsychicnumPlayer = Omit<PsychicnumPlayareaPlayer, 'board'> & {
+  board: PsychicnumBoard | null
 }
 
 /**
  * **`gd`, the game data** — everything the play surface knows about THIS
- * game, in one object grouped by what each value means. Where a value came
- * from (the page's `common.games` row, a status copy, psychicnum's own tables)
- * is `makeGameData`'s business, never the reader's.
+ * game, in one object. It is the playarea blob the game's builder wrote
+ * (`PsychicnumPlayarea`), with its links turned into players, the setup rows
+ * built, and the seat rule applied: what I may not see yet is not here.
+ * Read-only: `useGame` builds it and nothing else writes it.
  */
-export type GameData = {
-  gameId: string
-  mode: 'coop' | 'compete'
-  isCompete: boolean
-  // The players are working one board together: coop with more than one of
-  // them. Solo, and in compete, each board is one player's own.
-  isSharedBoard: boolean
-  title: string
-  // The setup form's record: New game replays it.
-  setup: PsychicnumSetup
+export type GameData = Omit<PsychicnumPlayarea, 'turns' | 'ending' | 'events' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
-  // (common/setup-form/doc.md → Setup rows). Literally the same object, which
-  // beats "both call the same function": this is the game whose two
-  // hand-written lists had drifted into reporting different facts on paper
-  // than on screen.
+  // (common/setup-form/doc.md → Setup rows).
   setupRows: SetupRow[]
-  // The three secret words; null until the game ends (the view hands them
-  // over then).
-  secrets: TileWord[] | null
-  // The state line's four counts ("1/3 found · 4/7 guesses used").
-  readout: {
-    // How many secrets the board hides.
-    requiredSecretsCount: number
-    // The guess budget: the team's in coop, each player's own in compete.
-    maxGuesses: number
-    // The counts that apply to me: the team's in coop, my own in compete.
-    // SPECTATING: a club member watching a compete game has none, so reads as
-    // nothing found and the budget spent.
-    foundSecretsCount: number
-    guessesUsed: number
-  }
-  isTurnBased: boolean
-  // The turn pointer as stored; a record, not a claim — it outlives the end.
-  turnHolderId: string | null
-  // The player it names; null in a free-for-all game.
-  turnHolder: PsychicnumPlayer | null
-  // How the game ended; null while it is played.
-  gameEnding: GameEnding | null
-  isGameEnded: boolean
-  // Compete's winner, the one who completed the set; null until someone has,
-  // and always null in coop, where the team wins together.
-  winner: PsychicnumPlayer | null
-  board: {
-    // The words shown as tiles; three of them are the secrets.
-    words: TileWord[]
-    // Each guessed word, and whether it was a secret — the board's permanent
-    // green and red. Hint and spoiler rows mark no tile.
-    tileResults: TileResults
-    // Each guessed word → who guessed it.
-    decidedBy: ReadonlyMap<TileWord, PsychicnumPlayer>
-    // How many guesses have been made — what tells the attention flash a
-    // board changed by being played into.
-    guessCount: number
-  }
-  // The log: guesses, hints and spoilers, in the order of play. RLS scopes it
-  // to my own rows in compete until the game ends.
-  events: EventRow[]
-  // The players in seat order, and the same objects keyed by user id.
+  turns: { holder: PsychicnumPlayer | null } | null
+  // The log, by player; mid-race in compete, my rows only.
+  events: PsychicnumEvent[]
+  ending: {
+    reason: NonNullable<PsychicnumPlayarea['ending']>['reason']
+    detail: string
+    by: PsychicnumPlayer | null
+    winner: PsychicnumPlayer | null
+  } | null
+  // The players in seat order, and the same objects keyed by id.
   players: PsychicnumPlayer[]
   playersById: Record<string, PsychicnumPlayer>
-  // My entry in `playersById`; null for a club member watching.
-  me: PsychicnumPlayer | null
-  // Where I stand (docs/win-lose.md → Where a player stands), as the page
-  // worked it out.
-  standing: {
-    isConceded: boolean
-    isPlayerEnded: boolean
-    isStillPlaying: boolean
-    isMyTurn: boolean
-    isWaitingForTurn: boolean
-    isBoardInteractive: boolean
-    // I completed the puzzle — in coop, my team did (docs/win-lose.md →
-    // `solved`). Finding all three IS the win here, so it is also the win
-    // that is mine.
-    hasSolved: boolean
-  }
-}
-
-/** What psychicnum's own reads bring back: the `games_state` view's board and
- *  secrets, and the log. */
-type GameRows = {
-  words: TileWord[]
-  secrets: TileWord[] | null
-  events: EventRow[]
+  // My entry in `playersById`: the same object. My own board is always mine
+  // to see.
+  me: PsychicnumPlayer & { board: PsychicnumBoard }
 }
 
 /**
- * The page's players as `gd` holds them, keyed by user id. Each one's counts
- * and ending reason come from their `player_status`, the rest from
- * `common.game_players`.
+ * The seat rule: what a racer may not see yet. Mid-race in compete, a rival's
+ * guesses are their strategy, so their rows leave the log and their board is
+ * null; the game's end opens everything. Coop withholds nothing: one board,
+ * one team.
  */
-export function makePlayersById(
-  gamePlayers: GamePlayer[],
-  requiredSecretsCount: number,
-): Record<string, PsychicnumPlayer> {
-  const players = gamePlayers.map(function makePlayer(p): PsychicnumPlayer {
-    const playerStatus = p.player_status as unknown as PsychicnumPlayerStatus
-    const endedReason = playerStatus.player_ended_reason
-    return {
-      id: p.id,
-      username: p.username,
-      color: p.color,
-      playerEnding:
-        endedReason !== null && p.player_ended_at !== null
-          ? { at: p.player_ended_at, reason: endedReason, reasonDetail: p.player_ended_reason_detail ?? '' }
-          : null,
-      outcome: p.outcome,
-      finalRanking: p.final_ranking,
-      solvedAt: p.solved_at,
-      foundSecretsCount: playerStatus.found_secrets_count,
-      guessesUsed: playerStatus.guesses_used,
-      foundAllSecrets: playerStatus.found_secrets_count >= requiredSecretsCount,
-    }
-  })
-  return Object.fromEntries(players.map((p) => [p.id, p]))
-}
-
-/** The page's `game_status`, as psychicnum's builder writes it. */
-export function readGameStatus(ctx: PlayAreaLoaderProps): PsychicnumGameStatus {
-  return ctx.cg.game_status as unknown as PsychicnumGameStatus
-}
-
-/** The page's setup blob, as psychicnum's setup form wrote it. */
-export function readSetup(ctx: PlayAreaLoaderProps): PsychicnumSetup {
-  return ctx.cg.setup as unknown as PsychicnumSetup
+function maySeeRival(playarea: PsychicnumPlayarea): boolean {
+  return playarea.coop || playarea.ended
 }
 
 /**
- * Build `gd` from the page's values and psychicnum's own rows. A fact the
- * statuses carry is read from them (the budget and the secret count from
- * `game_status`, each player's from their `player_status`, in
- * `makePlayersById`); everything else from the tables. `playersById` and
- * `setupRows` are handed in, already built, so the caller can hold their
- * identity across renders.
+ * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
+ * reads what the surface would.
  */
-export function makeGameData(
-  ctx: PlayAreaLoaderProps,
-  rows: GameRows,
-  playersById: Record<string, PsychicnumPlayer>,
-  setupRows: SetupRow[],
-): GameData {
-  const { cg } = ctx
-  const gameStatus = readGameStatus(ctx)
-  const isCompete = cg.mode === 'compete'
-  const maxGuesses = gameStatus.max_guesses
-  const me = playersById[ctx.auth.user.id] ?? null
-  const players = Object.values(playersById)
+export function makeGameData(playarea: PsychicnumPlayarea, myId: string): GameData {
+  const seeRival = maySeeRival(playarea)
+  const isMine = (id: string) => id === myId
 
-  // No secret can be found twice and each guess is one player's, so coop's
-  // sums count every find and every guess once.
-  const teamFoundSecretsCount = players.reduce((sum, p) => sum + p.foundSecretsCount, 0)
-  const teamGuessesUsed = players.reduce((sum, p) => sum + p.guessesUsed, 0)
-
-  // The board's marks come from the guess rows alone. A revealed secret is not
-  // among them, which is what keeps it dot-less: nobody guessed it.
-  const guesses = rows.events.filter((e) => e.kind === 'guess')
-
-  return {
-    gameId: cg.id,
-    mode: cg.mode,
-    isCompete,
-    isSharedBoard: !isCompete && players.length > 1,
-    title: cg.title,
-    setup: readSetup(ctx),
-    setupRows,
-    secrets: rows.secrets,
-    readout: {
-      requiredSecretsCount: gameStatus.required_secrets_count,
-      maxGuesses,
-      foundSecretsCount: isCompete ? (me?.foundSecretsCount ?? 0) : teamFoundSecretsCount,
-      guessesUsed: isCompete ? (me?.guessesUsed ?? maxGuesses) : teamGuessesUsed,
-    },
-    isTurnBased: cg.turns.isTurnBased,
-    turnHolderId: cg.turns.turnHolderId,
-    turnHolder: cg.turns.turnHolderId === null
-      ? null
-      : (playersById[cg.turns.turnHolderId] ?? null),
-    gameEnding: cg.gameEnding,
-    isGameEnded: cg.isGameEnded,
-    winner: isCompete ? (players.find((p) => p.outcome === 'won') ?? null) : null,
-    board: {
-      words: rows.words,
-      tileResults: new Map(guesses.map((guess) => [guess.word, guess.is_correct])),
+  // The players first, boards empty, so a board's `decidedBy` can point at
+  // them; then each board, from the blob's ids.
+  const players: PsychicnumPlayer[] = playarea.players.map((p) => ({ ...p, board: null }))
+  const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
+  for (const [i, p] of playarea.players.entries()) {
+    if (!seeRival && !isMine(p.id)) continue
+    players[i]!.board = {
+      tileResults: new Map(Object.entries(p.board.tileResults)),
       // Every guess is a seated player's: a player's rows go with their
       // profile (`on delete cascade`), so the lookup cannot miss.
-      decidedBy: new Map(guesses.map((guess) => [guess.word, playersById[guess.user_id]!])),
-      guessCount: guesses.length,
-    },
-    events: rows.events,
+      decidedBy: new Map(Object.entries(p.board.decidedBy).map(([word, id]) => [word, playersById[id]!])),
+    }
+  }
+
+  // Links that cannot miss get a bare lookup; an ending's `by` may be null for
+  // a timeout.
+  const playerOf = (id: string | null) => (id === null ? null : playersById[id]!)
+
+  const events: PsychicnumEvent[] = playarea.events
+    .filter((e) => seeRival || isMine(e.userId))
+    .map(({ userId, ...row }) => ({ ...row, by: playersById[userId]! }))
+
+  const { turns, ending, ...rest } = playarea
+  return {
+    ...rest,
+    setupRows: makeSetupRows(playarea.setup, playarea.mode, players),
+    turns: turns === null ? null : { holder: playerOf(turns.holder) },
+    ending: ending === null
+      ? null
+      : { reason: ending.reason, detail: ending.detail, by: playerOf(ending.by), winner: playerOf(ending.winner) },
+    events,
     players,
     playersById,
-    me,
-    standing: {
-      isConceded: cg.me.isConceded,
-      isPlayerEnded: cg.me.isLocallyTerminal,
-      isStillPlaying: cg.me.isStillPlaying,
-      isMyTurn: cg.me.isOnTurn,
-      isWaitingForTurn: cg.me.isWaitingForTurn,
-      isBoardInteractive: cg.me.isBoardInteractive,
-      hasSolved: cg.me.hasSolved,
-    },
+    // The gate has checked that I am seated, and my own board is never withheld.
+    me: playersById[myId] as GameData['me'],
   }
 }
 
 /**
- * Per-gametype data hook for psychicnum (both modes share it): `gd`, the game
- * data, built from the page's values and psychicnum's own two reads — the
- * `games_state` view (the board, and the secrets once ended) and `events`
- * (the log; RLS scopes it to the caller in compete).
+ * Per-gametype data hook for psychicnum (both modes share it): `gd`, built
+ * from the playarea blob the page was handed and who I am. No reads and no
+ * subscription: the page re-reads the blob on every move, and this is a pure
+ * function of it (plans/seat-view.md → The page is written, not assembled).
  *
- * It keeps no subscription: `useRefetchOnGameUpdate` reruns the reads when
- * the page's `common.games` row moves (`cg.updated_at`) or the page's channel
- * rejoins (`resubscribeCount`).
+ * A game whose builder has not written a blob yet cannot be drawn; the throw
+ * lands in `PlayAreaErrorBoundary`'s card.
  *
- * The cross-cutting machinery (members, presence, manual-pause,
- * timer) lives on `useCommonGame` inside `GamePage` — see
- * `src/common/game-page/useCommonGame.ts`.
+ * The cross-cutting machinery (presence, manual-pause, timer) lives on
+ * `useCommonGame` inside `GamePage` — see `src/common/game-page/useCommonGame.ts`.
  */
-export function useGame(ctx: PlayAreaLoaderProps): {
-  // Null until the reads are in, and when the game is absent.
-  gd: GameData | null
-  loading: boolean
-  // Set when a read FAILED, which is not the same as the game being absent.
-  // The loader renders `<EnvelopeErrorPage>` for this, and `<NoSuchGamePage>`
-  // for a game that is absent.
-  failure: NotOkEnvelope | null
-} {
-  const { cg } = ctx
-  const gameId = cg.id
-  const [rows, setRows] = useState<GameRows | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
-
-  useRefetchOnGameUpdate({
-    commonGameUpdatedAt: cg.updated_at,
-    resubscribeCount: ctx.resubscribeCount,
-    load: async ({ isCurrent }) => {
-      // No `.maybeSingle()`: `readRows` hands back rows, and `game_id` is the
-      // PK, so this is 0 or 1 of them.
-      const gameRes = await readRows(
-        db
-          .from('games_state')
-          .select('words, secrets')
-          .eq('game_id', gameId),
-      )
-      if (!isCurrent()) return
-
-      // A read can only fail as a FAULT — `readRows` never authors anything
-      // else, and it has already logged the failure and raised the modal.
-      if (gameRes.type === 'not-ok') {
-        setFailure(gameRes)
-        setLoading(false)
-        return
-      }
-      // A load that worked clears a previous one's failure: this refetches on
-      // every move and every rejoin, so an outage that ends should take its
-      // sentence with it rather than leaving the surface behind a stale
-      // explanation. Cleared HERE, before the zero-rows return below, so a game
-      // deleted during the outage reads as "not found" rather than as the
-      // outage.
-      setFailure(null)
-
-      // ZERO ROWS is the caller's to read: no game with that id, or one this
-      // club cannot see.
-      const gameData = gameRes.data[0]
-      if (!gameData) {
-        setRows(null)
-        setLoading(false)
-        return
-      }
-
-      const eventsRes = await readRows(
-        db
-          .from('events')
-          .select('id, user_id, word, is_correct, kind, created_at')
-          .eq('game_id', gameId)
-          .order('id', { ascending: true }),
-      )
-      if (!isCurrent()) return
-      if (eventsRes.type === 'not-ok') {
-        setFailure(eventsRes)
-        setLoading(false)
-        return
-      }
-
-      setRows({
-        words: gameData.words as TileWord[],
-        secrets: gameData.secrets as TileWord[] | null,
-        events: eventsRes.data as EventRow[],
-      })
-      setLoading(false)
-    },
-  })
-
-  // `gd` is rebuilt every render — a handful of assignments — but what an
-  // effect may depend on keeps its identity: the players and the setup rows are
-  // rebuilt only when the page's players or setup change, and the board and
-  // the log only when a read lands.
-  const requiredSecretsCount = readGameStatus(ctx).required_secrets_count
-  const playersById = useMemo(
-    () => makePlayersById(cg.players, requiredSecretsCount),
-    [cg.players, requiredSecretsCount],
-  )
-  const setup = readSetup(ctx)
-  const setupRows = useMemo(
-    () => makeSetupRows(setup, cg.mode, cg.players),
-    [setup, cg.mode, cg.players],
-  )
-  const gd = rows === null ? null : makeGameData(ctx, rows, playersById, setupRows)
-
-  return { gd, loading, failure }
+export function useGame(ctx: PlayAreaLoaderProps): { gd: GameData } {
+  const playarea = ctx.playarea as PsychicnumPlayarea | null
+  if (playarea === null) {
+    throw new Error(`psychicnum: game ${ctx.cg.id} has no playarea blob; run psychicnum._rebuild_pages()`)
+  }
+  const myId = ctx.auth.user.id
+  // Rebuilt when the page hands down a new blob, and not on every render.
+  const gd = useMemo(() => makeGameData(playarea, myId), [playarea, myId])
+  return { gd }
 }

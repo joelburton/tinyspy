@@ -48,9 +48,11 @@ type Props = {
   marks: BoardMarks
   // The past turn open on the board, if any.
   historyView: HistoryView
-  // The board responds to me (the page's `isBoardInteractive`).
-  isInteractive: boolean
-  // The players are working one board together (`gd.isSharedBoard`).
+  // The tiles take a click or a key right now. When they may is `BoardCol`'s
+  // to say.
+  canPick: boolean
+  // The players are working one board together: `gd.oneBoard` with more than
+  // one of them at it.
   isSharedBoard: boolean
   // Picks a word, or un-picks with null.
   onPick: (word: TileWord | null) => void
@@ -70,12 +72,10 @@ export function Board({
   tiles,
   marks,
   historyView,
-  isInteractive,
+  canPick,
   isSharedBoard,
   onPick,
 }: Props) {
-  const canPick = isInteractive && !historyView.isViewing
-
   const shuffle = useTileShuffle(tiles.words)
   const boardShape = makeBoardShape(shuffle.tiles.length)
   const tileCursor = useTileCursor({
@@ -93,7 +93,9 @@ export function Board({
   })
 
   const cursorPosition =
-    tileCursor.cell === null ? null : positionAt(tileCursor.cell.x, tileCursor.cell.y, boardShape.numCols)
+    tileCursor.cell === null
+      ? null
+      : positionAt(tileCursor.cell.x, tileCursor.cell.y, boardShape.numCols)
 
   return (
     <div
@@ -108,7 +110,7 @@ export function Board({
           shared.hugRectWidth,
           styles.grid,
           historyView.isViewing && historyViewerStyles.historyFrame,
-          marks.isWaitingForTurn && !isInteractive && shared.dimNotYourTurn,
+          marks.isWaitingForTurn && shared.dimNotYourTurn,
           marks.myTurnJustStarted && shared.yourTurnFlash,
           makeEndingFrameClasses(marks.endingOutcome, historyView.isViewing),
         )}

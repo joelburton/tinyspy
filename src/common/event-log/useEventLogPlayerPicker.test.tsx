@@ -17,10 +17,10 @@ import { describe, expect, it } from 'vitest'
 import { gp } from '../members/gamePlayer.fixture'
 import { useEventLogPlayerPicker } from './useEventLogPlayerPicker'
 
-type Row = { user_id: string; word: string }
+type Row = { by: { id: string }; word: string }
 const rows: Row[] = [
-  { user_id: 'u1', word: 'mine' },
-  { user_id: 'u2', word: 'theirs' },
+  { by: { id: 'u1' }, word: 'mine' },
+  { by: { id: 'u2' }, word: 'theirs' },
 ]
 const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 

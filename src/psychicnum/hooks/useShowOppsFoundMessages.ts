@@ -29,7 +29,7 @@ export function useShowOppsFoundMessages(
   const foundSecretsCountSeenRef = useRef<Map<string, number>>(new Map())
   const isSeededRef = useRef(false)
   useEffect(function showOppsFoundMessages() {
-    if (!gd.isCompete) return
+    if (!gd.compete) return
     const seen = foundSecretsCountSeenRef.current
     if (!isSeededRef.current) {
       isSeededRef.current = true
@@ -47,5 +47,5 @@ export function useShowOppsFoundMessages(
       const { outcome, text } = answerMessage({ answerType: 'found_peer' })
       globalFeedbackSlot.show(FeedbackMessage.peer(player, outcome, text))
     }
-  }, [gd.players, gd.isCompete, myId, globalFeedbackSlot])
+  }, [gd.players, gd.compete, myId, globalFeedbackSlot])
 }

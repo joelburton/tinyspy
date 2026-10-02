@@ -2,8 +2,7 @@
 
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
-import { memberById } from '@/common/members/memberList'
-import type { EventRow } from '../hooks/useGame'
+import type { PsychicnumEvent } from '../hooks/useGame'
 
 /**
  * Build the psychicnum print model — the pure half, away from jsPDF so the
@@ -37,9 +36,9 @@ export type PsychicnumPrintModel = PrintHeader & {
 
 /** Fold one set of events into the shared words' per-tile states; only the
  *  guesses mark a tile. */
-function boardOf(words: readonly string[], events: readonly EventRow[]): PrintTile[] {
+function boardOf(words: readonly string[], events: readonly PsychicnumEvent[]): PrintTile[] {
   const results = new Map<string, boolean>()
-  for (const event of events) if (event.kind === 'guess') results.set(event.word, event.is_correct)
+  for (const event of events) if (event.kind === 'guess') results.set(event.word, event.correct)
   return words.map((w) => ({
     word: w.toUpperCase(),
     state: results.has(w) ? (results.get(w) ? 'correct' : 'miss') : 'undecided',
@@ -47,7 +46,7 @@ function boardOf(words: readonly string[], events: readonly EventRow[]): PrintTi
 }
 
 /** The on-screen event-log wording, one row per guess/hint/spoiler. */
-function turnsOf(events: readonly EventRow[], whoOf: (event: EventRow) => string): TurnRow[] {
+function turnsOf(events: readonly PsychicnumEvent[], whoOf: (event: PsychicnumEvent) => string): TurnRow[] {
   return events.map((event, i) => ({
     seq: i + 1,
     who: whoOf(event),
@@ -56,7 +55,7 @@ function turnsOf(events: readonly EventRow[], whoOf: (event: EventRow) => string
         ? `Hint: ${event.word}`
         : event.kind === 'spoiler'
           ? `${event.word.toUpperCase()} — Spoiler`
-          : `${event.word.toUpperCase()} — ${event.is_correct ? 'Correct' : 'Wrong'}`,
+          : `${event.word.toUpperCase()} — ${event.correct ? 'Correct' : 'Wrong'}`,
   }))
 }
 
@@ -70,16 +69,14 @@ export function buildPsychicnumPrintModel(o: {
   words: readonly string[]
   // Every event the viewer can see — guesses, hints, spoilers. Compete
   // mid-game: only their own.
-  events: EventRow[]
+  events: PsychicnumEvent[]
   // How many secrets the board hides.
   requiredSecretsCount: number
   players: { id: string; username: string }[]
   myId: string
   setupRows: SetupRow[]
 }): PsychicnumPrintModel {
-  const nameOf = (id: string) => memberById(o.players, id)?.username ?? 'someone'
-
-  const track = (who: string, events: EventRow[], whoOf: (event: EventRow) => string): PrintTrack => {
+  const track = (who: string, events: PsychicnumEvent[], whoOf: (event: PsychicnumEvent) => string): PrintTrack => {
     const board = boardOf(o.words, events)
     const found = board.filter((t) => t.state === 'correct').length
     const used = events.filter((event) => event.kind === 'guess').length
@@ -98,18 +95,18 @@ export function buildPsychicnumPrintModel(o: {
   // misleading.
   let tracks: PrintTrack[]
   if (o.mode === 'coop') {
-    tracks = [track('Team', o.events, (event) => nameOf(event.user_id))]
+    tracks = [track('Team', o.events, (event) => event.by.username)]
   } else if (o.isGameEnded) {
     tracks = o.players.map((p) =>
       track(
         p.id === o.myId ? `${p.username} (you)` : p.username,
-        o.events.filter((event) => event.user_id === p.id),
+        o.events.filter((event) => event.by.id === p.id),
         () => p.username,
       ),
     )
   } else {
     tracks = [
-      track('You', o.events.filter((event) => event.user_id === o.myId), () => 'you'),
+      track('You', o.events.filter((event) => event.by.id === o.myId), () => 'you'),
     ]
   }
 

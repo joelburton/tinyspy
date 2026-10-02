@@ -349,12 +349,20 @@ the first instance; the next game's blob starts from it.
      until the change message's size matters; reading the columns directly
      changes nothing above them. psychicnum's page mounts on this and fails at
      its hook, which is the signal to go on.
-  4. **psychicnum's playarea.** Its `_write_statuses` writes `playarea` and
-     `clubpage` on top of the common player fields, in named pieces
-     (`_make_json_board` and the like), each pinned in pgTAP; a
-     rebuild-every-page RPC beside it. Its `useGame` becomes the blob, `me`
-     and the links, with its seat rule for what a racer may see; its reads,
-     `useRefetchOnGameUpdate` and the convenience RLS it leaned on go.
+  4. **psychicnum's playarea** (done 2026-10-02). Its `_write_statuses` writes
+     `playarea` and `clubpage` on top of `common._make_json_playarea`, in named
+     pieces (`_make_json_puzzle`, `_make_json_events`, `_make_json_board`,
+     `_make_json_players`, `_make_json_clubpage`), each pinned in pgTAP
+     (`tests/psychicnum/playarea_test.sql`), and calls `common._write_shell`;
+     `psychicnum._rebuild_pages()` beside it. Its `useGame` is a pure function
+     of the blob and `auth.user.id`: the links become players, and the seat
+     rule withholds a rival's rows and board mid-race. Its reads,
+     `useRefetchOnGameUpdate`, the `games_state` view, `_secrets_for` and the
+     mode arm of `events_select` went (the inventory is
+     plans/areas/psychicnum.md → The convenience RLS). The statuses are still
+     written beside the blobs until the club page reads `clubpage`. The log's
+     rows are camelCase in the blob (`userId`, `correct`, `at`), as every
+     other key is.
   docs/win-lose.md's formulas and code-conventions' naming section carry the
   path names once this ships.
 - **Each converted game after it** (wordle, connections): the same, starting

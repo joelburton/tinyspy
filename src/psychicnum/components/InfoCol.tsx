@@ -41,24 +41,24 @@ export function InfoCol({
 
   // A player who has ended reads "out"; everyone else shows their progress.
   function getScoreOrOut(player: PsychicnumPlayer) {
-    return player.playerEnding ? 'out' : player.foundSecretsCount
+    return player.ending ? 'out' : player.foundSecretsCount
   }
 
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
         <p className={shared.infoState}>
-          <StateLine readout={gd.readout} />
+          <StateLine player={gd.me} />
         </p>
-        {gd.isTurnBased && (
+        {gd.turns !== null && (
           <TurnStatusLine
-            turnHolderId={gd.turnHolderId}
+            turnHolderId={gd.turns.holder?.id ?? null}
             players={gd.players}
             myId={myId}
-            isTerminal={gd.isGameEnded}
+            isTerminal={gd.ended}
           />
         )}
-        {gd.isCompete && (
+        {gd.compete && (
           <OpponentStrip
             players={gd.players}
             myId={myId}
@@ -85,13 +85,13 @@ export function InfoCol({
           <ActionButton
             action={actions.actBackToClub}
             show="icon"
-            weight={gd.isGameEnded ? 'primary' : 'secondary'}
+            weight={gd.ended ? 'primary' : 'secondary'}
           />
         </InfoActionsRow>
 
         {/* Only on my move: while I wait the board is inert, and the prompt
             would misdirect. */}
-        {gd.standing.isMyTurn && (
+        {gd.me.onTurn && (
           <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>
         )}
 
@@ -103,7 +103,7 @@ export function InfoCol({
         players={gd.players}
         myId={myId}
         mode={gd.mode}
-        isGameEnded={gd.isGameEnded}
+        isGameEnded={gd.ended}
         historyView={historyView}
       />
     </div>

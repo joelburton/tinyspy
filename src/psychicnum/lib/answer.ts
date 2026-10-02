@@ -74,11 +74,11 @@ export function answerMessage(answer: Answer): AnswerMessage {
 }
 
 /** The columns of a `psychicnum.events` row that say what it WAS. Narrower
- *  than `EventRow` on purpose: nothing here may reach for an author, an id or a
+ *  than `PsychicnumEvent` on purpose: nothing here may reach for an author, an id or a
  *  timestamp, which belong to the surface drawing the row. */
 type LoggedEvent = {
   kind: 'guess' | 'hint' | 'spoiler'
-  is_correct: boolean
+  correct: boolean
   word: string
 }
 
@@ -89,13 +89,13 @@ type LoggedEvent = {
  * there, not a sentence), so it takes the outcome and nothing else.
  *
  * `kind` is read FIRST, and this is the trap it exists for: a hint and a
- * spoiler row are both written `is_correct = true`, so asking about the verdict
+ * spoiler row are both written `correct = true`, so asking about the verdict
  * before asking what the row IS would read either as a correct guess.
  */
 export function eventToOutcome(row: LoggedEvent): Outcome {
   if (row.kind === 'hint') return answerMessage({ answerType: 'hint' }).outcome
   if (row.kind === 'spoiler') return answerMessage({ answerType: 'spoiler' }).outcome
-  return getGuessOutcome(row.word, row.is_correct)
+  return getGuessOutcome(row.word, row.correct)
 }
 
 /** What COLOR a guessed word is — the board's decided tile, and the log's
@@ -117,7 +117,7 @@ export function peerAnswerMessage(row: LoggedEvent): AnswerMessage {
   if (row.kind === 'hint') return answerMessage({ answerType: 'hint_peer' })
   if (row.kind === 'spoiler') return answerMessage({ answerType: 'spoiler_peer' })
   return answerMessage({
-    answerType: row.is_correct ? 'hit_peer' : 'miss_peer',
+    answerType: row.correct ? 'hit_peer' : 'miss_peer',
     word: row.word,
   })
 }

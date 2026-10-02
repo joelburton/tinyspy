@@ -6,7 +6,7 @@ import type { Member } from '../members/member'
 import { FilterSelect } from '../lists/FilterSelect'
 
 /** The minimum a row needs for this hook to filter it: who made it. */
-type ActorRow = { user_id: string }
+type ActorRow = { by: { id: string } }
 
 /** The two aggregate selections. Neither is a user id, so they can't collide. */
 const ALL = 'all'
@@ -129,7 +129,7 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
 
   return {
     dropdown,
-    filter: (rows) => (showsEveryone ? [...rows] : rows.filter((r) => r.user_id === picked)),
+    filter: (rows) => (showsEveryone ? [...rows] : rows.filter((r) => r.by.id === picked)),
     picked,
     showsEveryone,
     emptyText:

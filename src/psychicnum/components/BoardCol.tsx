@@ -45,17 +45,18 @@ export function BoardCol({
   endingOutcome: EndOutcome | null
   myTurnJustStarted: boolean
 }) {
-  // A past turn on screen blocks every write to the board.
-  const canPick = gd.standing.isBoardInteractive && !historyView.isViewing
-  const canSubmit = gd.standing.isMyTurn && !historyView.isViewing
+  // The board takes picks on my move alone, and never while a past turn is on
+  // screen: a click then is the viewer's exit, and must not also pick. Submit
+  // sends the pick under the same gate.
+  const canPick = gd.me.onTurn && !historyView.isViewing
 
   const pick = usePickedTile({
     localFeedbackSlot,
-    isStillPlaying: gd.standing.isStillPlaying,
+    isStillPlaying: gd.me.stillPlaying,
     isViewingHistory: historyView.isViewing,
   })
   const submission = useSubmitGuess({
-    gameId: gd.gameId,
+    gameId: gd.id,
     tileResults,
     localFeedbackSlot,
     isViewingHistory: historyView.isViewing,
@@ -63,7 +64,6 @@ export function BoardCol({
   const actions = useBoardColActions({
     pickedTile: pick.tile,
     canPick,
-    canSubmit,
     choosePickedTile: pick.choose,
     clearPickedTile: pick.clear,
     submitGuess: submission.send,
@@ -82,26 +82,29 @@ export function BoardCol({
       {/* The info column's StateLine, for a phone, where that column is
           off-canvas (see `MobileStatusBar`). */}
       <MobileStatusBar>
-        <StateLine readout={gd.readout} />
+        <StateLine player={gd.me} />
       </MobileStatusBar>
 
       <Board
         tiles={{
-          words: gd.board.words,
+          words: gd.puzzle.words,
           results: tileResults,
-          decidedBy: gd.board.decidedBy,
-          moveCount: gd.board.guessCount,
+          decidedBy: gd.me.board.decidedBy,
+          // The guesses on my board: the team's in coop, my own in compete.
+          moveCount: gd.me.guessesUsed,
         }}
         marks={{
           pickedTile: pick.shownTile,
           inFlightGuess: submission.inFlight,
           endingOutcome,
-          isWaitingForTurn: gd.standing.isWaitingForTurn,
+          isWaitingForTurn: gd.me.waitingForTurn,
           myTurnJustStarted,
         }}
         historyView={historyView}
-        isInteractive={gd.standing.isBoardInteractive}
-        isSharedBoard={gd.isSharedBoard}
+        canPick={canPick}
+        // Whose dot goes on a tile is worth saying only where it can differ:
+        // on one board with more than one player at it.
+        isSharedBoard={gd.oneBoard && gd.players.length > 1}
         onPick={pick.choose}
       />
 

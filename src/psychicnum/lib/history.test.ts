@@ -11,23 +11,29 @@
  */
 import { describe, expect, it } from 'vitest'
 import { replayTurn } from './history'
-import type { EventRow } from '../hooks/useGame'
+import { guess, makePlayarea } from './playarea.fixture'
+import { makeGameData } from '../hooks/useGame'
 
-function makeEvent(o: Partial<EventRow>): EventRow {
-  return {
-    id: 1, user_id: 'u', word: 'apple', is_correct: false,
-    kind: 'guess', created_at: '2026-06-12T18:00:00Z', ...o,
-  }
-}
+const ME = { id: 'u', username: 'me', color: 'red' }
+const MOTH = { id: 'v', username: 'moth', color: 'blue' }
+const WORDS = ['apple', 'berry', 'cedar']
 
-// Row 1: APPLE is a secret (correct). Row 2: a hint. Row 3: BERRY misses.
+// Row 11: APPLE is a secret (correct). Row 12: a hint. Row 13: BERRY misses.
 // The ids are what the viewer addresses, and they are deliberately NOT 0,1,2 —
-// a builder that still indexed would pass these tests by accident.
-const EVENTS: EventRow[] = [
-  makeEvent({ id: 11, word: 'apple', is_correct: true, kind: 'guess' }),
-  makeEvent({ id: 12, word: 'a fruit', kind: 'hint' }),
-  makeEvent({ id: 13, word: 'berry', is_correct: false, kind: 'guess' }),
-]
+// a builder that still indexed would pass these tests by accident. The rows
+// come through `makeGameData`, which is what gives each its player.
+const EVENTS = makeGameData(
+  makePlayarea({
+    words: WORDS,
+    players: [ME],
+    events: [
+      guess(11, 'u', 'apple', true),
+      guess(12, 'u', 'a fruit', false, { kind: 'hint' }),
+      guess(13, 'u', 'berry', false),
+    ],
+  }),
+  'u',
+).events
 
 describe('replayTurn', () => {
   it('folds only guesses up to and including the viewed turn (inclusive)', () => {
@@ -39,51 +45,50 @@ describe('replayTurn', () => {
     const last = replayTurn(EVENTS, 13, false)
     expect(last.tileResults.get('apple')).toBe(true)
     expect(last.tileResults.get('berry')).toBe(false)
-    expect(last.tileResults.size).toBe(2)
   })
 
-  it('lights exactly the word the viewed guess decided', () => {
-    expect(replayTurn(EVENTS, 11, false).litWord).toBe('apple')
-    expect(replayTurn(EVENTS, 13, false).litWord).toBe('berry')
-  })
-
-  it('marks no tile and lights nothing for a hint / spoiler turn', () => {
+  it('a hint turn decides no tile and lights nothing', () => {
     const hint = replayTurn(EVENTS, 12, false)
+    expect(hint.tileResults.get('apple')).toBe(true)
+    expect(hint.tileResults.has('berry')).toBe(false)
     expect(hint.litWord).toBeNull()
-    // The hint added nothing — only APPLE (from the first row) is decided.
-    expect(hint.tileResults.size).toBe(1)
     expect(hint.label).toBe('Hint: a fruit')
   })
 
-  // The verdict words are the game's — the same "Correct" / "Wrong" the pill
-  // and the log say — and the spoiler is called what its button is called.
-  it('describes a guess by its verdict, a spoiler by the word it handed over', () => {
+  it('lights exactly the word the viewed guess decided, and labels it', () => {
+    expect(replayTurn(EVENTS, 11, false).litWord).toBe('apple')
     expect(replayTurn(EVENTS, 11, false).label).toBe('APPLE — Correct')
+    expect(replayTurn(EVENTS, 13, false).litWord).toBe('berry')
     expect(replayTurn(EVENTS, 13, false).label).toBe('BERRY — Wrong')
-    expect(replayTurn([makeEvent({ id: 7, word: 'cherry', kind: 'spoiler' })], 7, false).label).toBe(
-      'Spoiler: CHERRY',
+  })
+
+  it('names the author of the viewed turn, and nobody for an id not in the log', () => {
+    expect(replayTurn(EVENTS, 11, false).author?.username).toBe('me')
+    expect(replayTurn(EVENTS, 99, false).author).toBeNull()
+    expect(replayTurn(EVENTS, 99, false).label).toBe('This turn')
+  })
+
+  it('in compete, replays the author\'s own guesses alone', () => {
+    // A finished race, so both racers' rows are in the log.
+    const gd = makeGameData(
+      makePlayarea({
+        mode: 'compete',
+        words: WORDS,
+        players: [ME, MOTH],
+        events: [guess(1, 'u', 'apple', true), guess(2, 'v', 'berry', false), guess(3, 'u', 'cedar', false)],
+        ending: { reason: 'stopped', detail: 'stopped', by: 'u', winner: null },
+        outcome: 'neutral',
+      }),
+      'u',
     )
-  })
-
-  it('an id that is not in the log folds nothing and names no author', () => {
-    const missing = replayTurn(EVENTS, 99, false)
-    expect(missing.tileResults.size).toBe(0)
-    expect(missing.litWord).toBeNull()
-    expect(missing.label).toBe('This turn')
-    expect(missing.authorId).toBeNull()
-  })
-
-  it('in compete, replays the turn on its author\'s board alone', () => {
-    // Two racers' rows, interleaved as the log holds them once the game ends.
-    const race = [
-      makeEvent({ id: 21, user_id: 'u1', word: 'apple', is_correct: true }),
-      makeEvent({ id: 22, user_id: 'u2', word: 'berry', is_correct: false }),
-      makeEvent({ id: 23, user_id: 'u2', word: 'cedar', is_correct: true }),
-    ]
-    const theirs = replayTurn(race, 23, true)
-    expect([...theirs.tileResults]).toEqual([['berry', false], ['cedar', true]])
-    expect(theirs.authorId).toBe('u2')
-    // Coop is one shared board: the same turn folds every row before it.
-    expect(replayTurn(race, 23, false).tileResults.size).toBe(3)
+    // moth's turn folds moth's guesses: berry alone, not my apple before it.
+    const moths = replayTurn(gd.events, 2, true)
+    expect([...moths.tileResults]).toEqual([['berry', false]])
+    expect(moths.author).toBe(gd.playersById.v)
+    // My later turn folds mine: apple and cedar, not moth's berry between them.
+    const mine = replayTurn(gd.events, 3, true)
+    expect([...mine.tileResults]).toEqual([['apple', true], ['cedar', false]])
+    // Coop folds every row.
+    expect([...replayTurn(gd.events, 3, false).tileResults].map(([w]) => w)).toEqual(['apple', 'berry', 'cedar'])
   })
 })

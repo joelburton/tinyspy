@@ -26,8 +26,8 @@ import {
  * half of this arrangement, and what makes this file the only place the outcome
  * lives.
  */
-const row = (o: Partial<{ kind: 'guess' | 'hint' | 'spoiler'; is_correct: boolean; word: string }> = {}) =>
-  ({ kind: 'guess' as const, is_correct: false, word: 'berry', ...o })
+const row = (o: Partial<{ kind: 'guess' | 'hint' | 'spoiler'; correct: boolean; word: string }> = {}) =>
+  ({ kind: 'guess' as const, correct: false, word: 'berry', ...o })
 
 describe('answerMessage', () => {
   it('uppercases the word and leads with it', () => {
@@ -104,27 +104,27 @@ describe('answerMessage', () => {
 })
 
 describe('eventToOutcome', () => {
-  // kind before is_correct: a hint and a spoiler row are both written
-  // `is_correct = true`, so asking about the verdict first reads either as a
+  // kind before correct: a hint and a spoiler row are both written
+  // `correct = true`, so asking about the verdict first reads either as a
   // hit — and a spoiler would go green where it must be red.
-  it('reads kind before is_correct', () => {
-    expect(eventToOutcome(row({ kind: 'hint', is_correct: true, word: 'a fruit' }))).toBe('warning')
-    expect(eventToOutcome(row({ kind: 'spoiler', is_correct: true, word: 'apple' }))).toBe('lost')
+  it('reads kind before correct', () => {
+    expect(eventToOutcome(row({ kind: 'hint', correct: true, word: 'a fruit' }))).toBe('warning')
+    expect(eventToOutcome(row({ kind: 'spoiler', correct: true, word: 'apple' }))).toBe('lost')
   })
 
   it('splits a guess on its verdict', () => {
-    expect(eventToOutcome(row({ is_correct: true, word: 'apple' }))).toBe('won')
-    expect(eventToOutcome(row({ is_correct: false, word: 'berry' }))).toBe('lost')
+    expect(eventToOutcome(row({ correct: true, word: 'apple' }))).toBe('won')
+    expect(eventToOutcome(row({ correct: false, word: 'berry' }))).toBe('lost')
   })
 
   // It takes no viewer, and this is what makes that safe: a row is the same
   // color to everyone, so the log needs to know only what the row WAS.
   it('answers what the pair agrees on, for every kind', () => {
     for (const r of [
-      row({ is_correct: true, word: 'apple' }),
-      row({ is_correct: false, word: 'berry' }),
-      row({ kind: 'hint', is_correct: true, word: 'a fruit' }),
-      row({ kind: 'spoiler', is_correct: true, word: 'apple' }),
+      row({ correct: true, word: 'apple' }),
+      row({ correct: false, word: 'berry' }),
+      row({ kind: 'hint', correct: true, word: 'a fruit' }),
+      row({ kind: 'spoiler', correct: true, word: 'apple' }),
     ]) {
       expect(eventToOutcome(r)).toBe(peerAnswerMessage(r).outcome)
     }
@@ -134,8 +134,8 @@ describe('eventToOutcome', () => {
 describe('getGuessOutcome', () => {
   // The board's decided tile and the log's guess row read one answer.
   it('colors a guessed word as the log colors its row', () => {
-    expect(getGuessOutcome('apple', true)).toBe(eventToOutcome(row({ is_correct: true, word: 'apple' })))
-    expect(getGuessOutcome('berry', false)).toBe(eventToOutcome(row({ is_correct: false, word: 'berry' })))
+    expect(getGuessOutcome('apple', true)).toBe(eventToOutcome(row({ correct: true, word: 'apple' })))
+    expect(getGuessOutcome('berry', false)).toBe(eventToOutcome(row({ correct: false, word: 'berry' })))
   })
 })
 
@@ -144,18 +144,18 @@ describe('peerAnswerMessage', () => {
   // here is a `_peer` one by construction — which is what keeps a spoiler from
   // being given the words that name a word.
   it('gives a teammate’s row the peer words', () => {
-    expect(peerAnswerMessage(row({ is_correct: true, word: 'apple' })))
+    expect(peerAnswerMessage(row({ correct: true, word: 'apple' })))
       .toEqual({ outcome: 'won', text: 'Correct: APPLE' })
-    expect(peerAnswerMessage(row({ kind: 'hint', is_correct: true, word: 'a fruit' })))
+    expect(peerAnswerMessage(row({ kind: 'hint', correct: true, word: 'a fruit' })))
       .toEqual({ outcome: 'warning', text: 'got hint' })
-    expect(peerAnswerMessage(row({ kind: 'spoiler', is_correct: true, word: 'apple' })))
+    expect(peerAnswerMessage(row({ kind: 'spoiler', correct: true, word: 'apple' })))
       .toEqual({ outcome: 'lost', text: 'got spoiler' })
   })
 
   it('never repeats a hint’s clue or a spoiler’s word', () => {
-    expect(peerAnswerMessage(row({ kind: 'spoiler', is_correct: true, word: 'apple' })).text)
+    expect(peerAnswerMessage(row({ kind: 'spoiler', correct: true, word: 'apple' })).text)
       .not.toContain('APPLE')
-    expect(peerAnswerMessage(row({ kind: 'hint', is_correct: true, word: 'a fruit' })).text)
+    expect(peerAnswerMessage(row({ kind: 'hint', correct: true, word: 'a fruit' })).text)
       .not.toContain('fruit')
   })
 })

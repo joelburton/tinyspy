@@ -39,11 +39,13 @@ looking at" pointer is cleared by whichever peer is last to leave the room, and
 a peer can only know it is last if everyone was counted in the same place. Split
 the name and presence sets stop merging: either nobody believes they are last
 and the pointer sticks, or everybody does and it thrashes. A game's own
-`useGame` hook opens no channel: every move writes the room's `common.games` row
-through the game's status builder, so `useGame` reloads its own rows through
-`useRefetchOnGameUpdate` when that row's `updated_at` moves, and again whenever
-the room rejoins. (A game not yet converted by plans/common-tables.md step 5
-still opens a per-tab channel for its rows.)
+`useGame` hook opens no channel and, once the game is on the page blobs, makes
+no read: every move writes the room's `common.games` row through the game's
+status builder, the page re-reads the blobs, and `useGame` is a pure function
+of the one it is handed. (A game not yet on the blobs still reloads its own
+rows through `useRefetchOnGameUpdate` when that row's `updated_at` moves; one
+not yet converted by plans/common-tables.md step 5 still opens a per-tab
+channel for them.)
 
 Leaving has three shapes, and one action — Back to club, placed by the menu, the
 info column's action row, the pause overlay and the device-block card alike —

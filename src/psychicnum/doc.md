@@ -16,12 +16,12 @@ turn, or end the game. It is told all of it.
 **And it is told twice, on two channels that arrive at different moments.** The
 `submit_guess` reply carries the caller's own result, and the below-board pill
 reads it immediately. The board's permanent green or red does not come from
-that reply at all: it comes from the `psychicnum.events` row, which every
-client reads again when the move's status builder writes `common.games` and the
-page's subscription hears it — what every player sees and what a reload
+that reply at all: it comes from the playarea blob the move's builder writes
+onto `common.games`, which every client reads again when the page's
+subscription hears the row change — what every player sees and what a reload
 rebuilds from. Everything else a move sets off — the ending, a teammate's
-progress, the turn moving on — travels the same way, as rows, which is why the
-reply can be about one player and nothing else.
+progress, the turn moving on — travels the same way, in the blob, which is why
+the reply can be about one player and nothing else.
 
 **And it is the control.** psychicnum is the deliberately minimal game — the
 smallest amount of game logic that still exercises the whole multi-game shell —
@@ -109,46 +109,52 @@ teammate's in coop.
 
 ## Schema
 
-Three tables and a view, in `supabase/migrations/20260615000002_psychicnum.sql`
-(shape) and `supabase/sql/psychicnum.sql` (behavior).
+Three tables, in `supabase/migrations/20260615000002_psychicnum.sql` (shape)
+and `supabase/sql/psychicnum.sql` (behavior). The frontend reads none of them:
+it reads the page blobs the builder writes onto `common.games`.
 
 | | |
 |---|---|
 | `psychicnum.games` | one row per game, keyed `game_id` to `common.games` — the board `words`, the three `secrets`, and `max_guesses`, each budget's size, copied from setup |
-| `psychicnum.players` | one row per player: `guesses_used` (counting up against `max_guesses`) and `found_secrets_count`. **Club-wide readable in both modes** — the budget strip and compete's opponent tension are built on it |
+| `psychicnum.players` | one row per player: `guesses_used` (counting up against `max_guesses`) and `found_secrets_count` |
 | `psychicnum.events` | the turn log, append-only. `kind` is `guess`, `hint` or `spoiler`; `word` holds the guessed word, the clue, or the spoiled word depending on which |
-| `psychicnum.games_state` | the view the frontend reads. Every readable column of `games`, plus `secrets` through `_secrets_for()` |
 
-**The statuses** are written by `psychicnum._write_statuses` at create, at
-Restart and at the end of every move, each assigned whole with every key
-present:
+**The page blobs** are written by `psychicnum._write_statuses` at create, at
+Restart and at the end of every move, each assigned whole
+([plans/seat-view.md](../../plans/seat-view.md) → The page is written, not
+assembled): the shell through `common._write_shell`, and on top of the common
+part of every playarea (`common._make_json_playarea`) psychicnum's own:
 
-| status | keys |
+| blob | psychicnum's part |
 |---|---|
-| `game_status` | `required_secrets_count`, `max_guesses` |
-| each `player_status` | `found_secrets_count`, `guesses_used`, `player_ended_reason` |
-| `clubpage_info` | `found_secrets_count`, `required_secrets_count`, `guesses_used`, `max_guesses`, `winner_user_id` |
+| `playarea` | `puzzle: {words, secrets}` (the secrets null until the game ends); `events`, every player's rows; on each player `requiredSecretsCount`, `maxGuesses`, `foundSecretsCount`, `guessesUsed` and `board: {tileResults, decidedBy}`, this seat's tiles |
+| `clubpage` | `foundSecretsCount`, `requiredSecretsCount`, `guessesUsed`, `maxGuesses`, `winner` |
 
-Every player's counts are their own, in both modes, on `psychicnum.players`
-and in their `player_status`. Coop's team numbers — the club line's two counts,
-and the state line on the page — are the sums over the players. Compete's club line
-carries no progress — a player's count is their own — so its two counts are
-null, and `winner_user_id` names the finder once the race is won.
+Every player's counts are their own on `psychicnum.players`; the blob carries
+the team's on every player in coop, and each racer's own in compete. Compete's
+club line carries no progress, so its two counts are null, and `winner` names
+the finder once the race is won. `psychicnum._rebuild_pages()` rewrites every
+psychicnum game's blobs without re-dating them, for a shape change.
+
+The statuses (`game_status`, `player_status`, `clubpage_info`) are written
+beside the blobs, in the same keys as before, until the club page reads
+`clubpage`.
 
 ### Two things worth knowing before reading the SQL
 
 **The secrets are hidden by a column GRANT, not by a policy** — a client
 asking `psychicnum.games` for `secrets` gets SQLSTATE 42501 whatever any policy
-says, and the view hands them over only once the game has ended. So the
-frontend never holds the answer key during play: not in a prop, not in a store,
-not there at all. `docs/code-conventions.md` points here as the repo's worked
-example; the mechanism is commented at `_secrets_for` and the `games_select`
-policy.
+says, and the playarea blob carries them only once the game has ended
+(`_make_json_puzzle`). So the frontend never holds the answer key during play:
+not in a prop, not in a store, not there at all. `docs/code-conventions.md`
+points here as the repo's worked example.
 
-**`events` is the only mode-aware RLS in this game**, and its third arm carries
-three rules at once: coop shows everyone every row, compete shows a player only
-their own — and **the game's end opens everybody's**, which is what lets the event
-log's player picker read a finished race back. Commented at `events_select`.
+**What a racer may see of a rival is the hook's rule, not a policy's.** The
+blob carries every player's rows and every seat's board, and `useGame`
+withholds a rival's mid-race — their guesses are their strategy — and opens
+them at the game's end, which is what lets the event log's player picker read
+a finished race back. The policies on this game's tables are club-member reads
+in both modes; nothing on the client reads them.
 
 ## RPCs
 
@@ -298,7 +304,7 @@ answer does not.
 ## Frontend
 
 ```
-<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame, and the three gates
+<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame: the blob becomes gd
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the board column — and submit_guess
         │     ├── MobileStatusBar ←      phone only; holds the StateLine below
@@ -321,26 +327,22 @@ answer does not.
 ```
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
-the ending, pause, chat — and unmounts this whole surface on pause. The mode is
-the page's too (`cg.mode`, off `common.games`).
+pause, chat — and unmounts this whole surface on pause.
 
-**`gd`, the game data.** `useGame` hands the surface one object, `gd`, holding
-everything about this game grouped by what each value means — the board, the
-log (`events`), the players with their own counts and endings, `me`, and where I
-stand (`standing`) — and never by where it came from. A fact the statuses carry
-is read from them (the budget and the secret count from `game_status`, each
-player's counts and ending reason from their `player_status`; `lib/statuses.ts`
-has the types); everything else from the tables: the board's words and the
-secrets from `games_state`, the log from `events`, the rest from the page's
-`common.games` and `common.game_players` rows. `useGame` keeps no subscription:
-`useRefetchOnGameUpdate` reruns its reads whenever the page's `common.games`
-row moves or the page's channel rejoins. The two columns, `BoardCol` and
-`InfoCol`, take `gd` whole; everything below them takes its own props. A
-player in `gd` (`PsychicnumPlayer`) is a `Member` plus psychicnum's facts, so
-`gd.players` goes straight to the shared pieces that take `Member[]`, and
-`gd.playersById` holds the same players by id. `Board` takes its props in
-groups — `tiles` (what is on them) and `marks` (what the board wears on and
-around them) — and `historyView` whole.
+**`gd`, the game data.** `useGame` hands the surface one object, `gd`: the
+playarea blob the page was handed (`lib/playarea.ts` is its type), with its
+links turned into players (`turns.holder`, `ending.by`, `ending.winner`, each
+board's `decidedBy`), the setup rows built, and the seat rule applied — in
+compete, mid-race, a rival's rows leave the log and their `board` is null. It
+is a pure function of the blob and who I am; no reads, no subscription. Every
+fact about a seat is on the player (`gd.me.onTurn`, `p.foundSecretsCount`,
+`gd.me.board`), and a component asks a player, never the table. The two
+columns, `BoardCol` and `InfoCol`, take `gd` whole; everything below them takes
+its own props. A player in `gd` (`PsychicnumPlayer`) is a `Member` plus
+psychicnum's facts, so `gd.players` goes straight to the shared pieces that take
+`Member[]`, and `gd.playersById` holds the same players by id. `Board` takes
+its props in groups — `tiles` (what is on them) and `marks` (what the board
+wears on and around them) — and `historyView` whole.
 
 `BoardCol` builds and sends the guess: the picked word and `submit_guess`.
 `Board` owns the board itself: its display order and Shuffle, and the keyboard

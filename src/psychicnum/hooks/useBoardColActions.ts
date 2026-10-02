@@ -16,16 +16,13 @@ import type { TileWord } from '../lib/tileResults'
 export function useBoardColActions({
   pickedTile,
   canPick,
-  canSubmit,
   choosePickedTile,
   clearPickedTile,
   submitGuess,
 }: {
   pickedTile: TileWord | null
-  // A pick can be made or cleared right now.
+  // The board takes picks right now; Submit adds the pick itself.
   canPick: boolean
-  // It is my move, and a guess can go.
-  canSubmit: boolean
   choosePickedTile: (word: TileWord | null) => void
   // Un-pick without dismissing the slot's result (see `usePickedTile`).
   clearPickedTile: () => void
@@ -35,7 +32,7 @@ export function useBoardColActions({
   actClearPicks: Action
 } {
   const actSubmit = useBindAction('act-submit', {
-    describe: () => (canSubmit && pickedTile !== null ? 'active' : 'disabled'),
+    describe: () => (canPick && pickedTile !== null ? 'active' : 'disabled'),
     run: async () => {
       if (pickedTile === null) return
       clearPickedTile()

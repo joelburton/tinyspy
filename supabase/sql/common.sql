@@ -1869,7 +1869,7 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --     title, setup
 --     turns: {holder}                      null: no turn order; holder null: nobody's turn now
 --     ending: {reason, detail, by, winner} null while playing; winner: the player ranked 1
---     outcome                              null until the game ends
+--     ended, outcome                       outcome null until the game ends
 --     players: [player, …]                 seat order; by username in a free-for-all game
 --
 --   player:
@@ -2029,6 +2029,7 @@ begin
     'turns',    case when common._is_turn_based(p_game_id)
                   then jsonb_build_object('holder', g.current_turn_user_id) end,
     'ending',   common._make_json_ending(g),
+    'ended',    g.ended_at is not null,
     'outcome',  g.game_ended_outcome,
     'players',  (select jsonb_agg(cp.player order by cp.ord)
                    from common._make_json_players(p_game_id) cp));

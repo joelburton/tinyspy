@@ -7,29 +7,31 @@
  */
 import { describe, expect, it } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import type { EventRow, GameData } from './useGame'
+import { guess, makePlayarea } from '../lib/playarea.fixture'
+import { makeGameData, type GameData } from './useGame'
 import { useHistoryView } from './useHistoryView'
 
-const EVENTS: EventRow[] = [
-  { id: 1, user_id: 'u1', word: 'apple', is_correct: true, kind: 'guess', created_at: '2026-01-01' },
-  { id: 2, user_id: 'u2', word: 'berry', is_correct: false, kind: 'guess', created_at: '2026-01-01' },
-]
+const EVENTS = [guess(1, 'u1', 'apple', true), guess(2, 'u2', 'berry', false)]
 
-/** Just what the hook reads: the log, the mode, and the players by id. */
-function gdWith(isCompete: boolean): GameData {
-  return {
-    isCompete,
-    events: EVENTS,
-    playersById: {
-      u1: { user_id: 'u1', username: 'me', color: 'red' },
-      u2: { user_id: 'u2', username: 'moth', color: 'blue' },
-    },
-  } as unknown as GameData
+/** Me and moth, each with a guess in the log. A finished game, so a rival's
+ *  rows are in the log in compete too. */
+function gdWith(mode: 'coop' | 'compete'): GameData {
+  return makeGameData(
+    makePlayarea({
+      mode,
+      words: ['apple', 'berry', 'cedar'],
+      events: EVENTS,
+      players: [{ id: 'u1', username: 'me', color: 'red' }, { id: 'u2', username: 'moth', color: 'blue' }],
+      ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+      outcome: 'neutral',
+    }),
+    'u1',
+  )
 }
 
 describe('useHistoryView', () => {
   it('is live until a turn is opened', () => {
-    const { result } = renderHook(() => useHistoryView(gdWith(false), 'u1'))
+    const { result } = renderHook(() => useHistoryView(gdWith('coop')))
     expect(result.current.isViewing).toBe(false)
     expect(result.current.viewedEventId).toBeNull()
     expect(result.current.tileResults).toBeNull()
@@ -37,7 +39,7 @@ describe('useHistoryView', () => {
   })
 
   it('replays the turn it opens, and goes back to live on exit', () => {
-    const { result } = renderHook(() => useHistoryView(gdWith(false), 'u1'))
+    const { result } = renderHook(() => useHistoryView(gdWith('coop')))
     act(() => result.current.show(1, 1))
     expect(result.current.isViewing).toBe(true)
     expect(result.current.viewedEventId).toBe(1)
@@ -48,17 +50,17 @@ describe('useHistoryView', () => {
   })
 
   it('names the actor for a rival\'s board in compete', () => {
-    const { result } = renderHook(() => useHistoryView(gdWith(true), 'u1'))
+    const { result } = renderHook(() => useHistoryView(gdWith('compete')))
     act(() => result.current.show(2, 1))
     expect(result.current.actor?.username).toBe('moth')
   })
 
   it('names nobody for my own board, or for any turn in coop', () => {
-    const compete = renderHook(() => useHistoryView(gdWith(true), 'u1'))
+    const compete = renderHook(() => useHistoryView(gdWith('compete')))
     act(() => compete.result.current.show(1, 1))
     expect(compete.result.current.actor).toBeUndefined()
 
-    const coop = renderHook(() => useHistoryView(gdWith(false), 'u1'))
+    const coop = renderHook(() => useHistoryView(gdWith('coop')))
     act(() => coop.result.current.show(2, 2))
     expect(coop.result.current.actor).toBeUndefined()
   })

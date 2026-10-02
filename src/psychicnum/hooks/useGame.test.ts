@@ -1,333 +1,157 @@
 // cs-fixed-psychicnum
 
 /**
- * WHAT TWO READS AND THE PAGE'S VALUES BECOME, AND WHAT A FAILED READ LEAVES
- * BEHIND.
+ * WHAT THE PLAYAREA BLOB BECOMES, AND WHAT A RACER MAY NOT SEE.
  *
- * When the hook reloads is `useRefetchOnGameUpdate`'s contract and its own
- * tests'. Stubbed here so the load body can be run on demand, because the
- * body is what belongs to psychicnum: two reads, `gd` built from them and the
- * page's values, and the distinctions a failure has to keep.
- *
- * Two of those distinctions are invisible in the returned state unless you
- * look for them. An absent game and a failed read BOTH leave `gd` null, and
- * only `failure` tells the page which one to draw. And WHICH read failed is
- * the one thing a player's sentence cannot say, so the two are branched
- * separately rather than folded into one test — a fold typechecks perfectly
- * and reports the wrong outage.
+ * `makeGameData` is a pure function of the blob and who I am, so this tests it
+ * directly: the links turned into players, the boards into maps, the setup
+ * rows built — and the seat rule, which is the one thing the blob does not
+ * carry: a rival's rows and board are withheld mid-race and nowhere else.
  */
 
-import { act, renderHook } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Envelope } from '@/common/supabase/envelope'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import {
-  makePlayAreaLoaderProps,
-  type PlayAreaFacts,
-} from '@/common/game-page/playAreaLoaderProps.fixture'
-import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
-import type { PsychicnumPlayerStatus } from '../lib/statuses'
+import { renderHook } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { CONCEDED, guess, makePlayarea, makePsychicnumCtx } from '../lib/playarea.fixture'
+import { makeGameData, useGame } from './useGame'
 
-const { mockReadRows, refetch } = vi.hoisted(() => ({
-  mockReadRows: vi.fn(),
-  // The `load` the hook hands `useRefetchOnGameUpdate`, kept so a test can run it.
-  refetch: { load: null as ((a: { isCurrent: () => boolean }) => Promise<void>) | null },
-}))
-
-// A query builder that remembers which table it was opened on and answers
-// every chained call with itself — `readRows` is mocked, so the chain only has
-// to survive being built, and the table is how the mock knows which read this is.
-vi.mock('../db', () => {
-  const on = (table: string): unknown =>
-    new Proxy({ table }, { get: (t, key) => (key === 'table' ? t.table : () => on(t.table)) })
-  return { db: { from: (table: string) => on(table) } }
-})
-
-vi.mock('@/common/game-page/useRefetchOnGameUpdate', () => ({
-  useRefetchOnGameUpdate: (opts: { load: (a: { isCurrent: () => boolean }) => Promise<void> }) => {
-    refetch.load = opts.load
-  },
-}))
-
-vi.mock('@/common/supabase/dbResult', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/common/supabase/dbResult')>()),
-  readRows: mockReadRows,
-}))
-
-import { useGame } from './useGame'
-
-const GAME_ID = 'g1'
-
-const playerStatus = (found: number, used: number, ended: PsychicnumPlayerStatus['player_ended_reason'] = null) => ({
-  found_secrets_count: found, guesses_used: used, player_ended_reason: ended,
-})
-
-/** Me (u1) and moth (u2), moth conceded. */
-const PLAYERS = [
-  gp('u1', 'me', 'red', { player_status: playerStatus(1, 2) }),
-  gp('u2', 'moth', 'blue', { ...CONCEDED, player_status: playerStatus(0, 3, 'conceded') }),
+/** Me (u1) and moth (u2); each has guessed once. */
+const TWO = [
+  { id: 'u1', username: 'me', color: 'red' },
+  { id: 'u2', username: 'moth', color: 'blue' },
 ]
+const EVENTS = [guess(1, 'u1', 'alpha', true), guess(2, 'u2', 'bravo', false)]
 
-/** The page's values, as `GamePage` hands them: a compete game in play by
- *  default. */
-function makeCtx(over: PlayAreaFacts = {}): PlayAreaLoaderProps {
-  return makePlayAreaLoaderProps({
-    gameId: GAME_ID,
-    mode: 'compete',
-    setup: { max_guesses: 7, word_count: 10, band: 3, timer: { kind: 'none' } },
-    gameStatus: { required_secrets_count: 3, max_guesses: 7 },
-    players: PLAYERS,
-    updatedAt: 't1',
-    ...over,
-  })
-}
-
-const CTX = makeCtx()
-
-function ok<T>(data: T): Envelope<T> {
-  return {
-    type: 'ok', data, severity: null, field: null, meta: null,
-    dbcode: null, detail: null, message: null, outcome: null,
-  }
-}
-
-/** A read that failed. Only a FAULT can reach here — a read authors nothing
- *  else — and `dbcode` is what makes one failure tellable from another. */
-function readFailed(dbcode: string): Envelope<never> {
-  return {
-    type: 'not-ok', data: null, outcome: null, severity: 'fault',
-    message: 'The board could not be loaded.', field: null, meta: null,
-    dbcode, detail: null,
-  }
-}
-
-const GAME_ROW = {
-  words: ['apple', 'brick', 'cedar'],
-  secrets: null,
-}
-const EVENT_ROW = {
-  id: 1, user_id: 'u1', word: 'apple', is_correct: true,
-  kind: 'guess', created_at: '2026-09-01T00:01:00Z',
-}
-
-/** Answer each of the two reads by the table it was opened on, so a test
- *  says what it means rather than counting calls in load order. */
-function answer(by: { games_state?: unknown; events?: unknown }) {
-  mockReadRows.mockImplementation((query: { table: keyof typeof by }) => {
-    const res = by[query.table]
-    if (!res) throw new Error(`no fixture for the ${String(query.table)} read`)
-    return Promise.resolve(res)
-  })
-}
-
-/** Everything present and readable — the ordinary load. */
-const ALL_GOOD = {
-  games_state: ok([GAME_ROW]),
-  events: ok([EVENT_ROW]),
-}
-
-/** Mount, run one refetch, and hand back what the hook says afterwards. */
-async function load(ctx: PlayAreaLoaderProps = CTX) {
-  const { result } = renderHook(() => useGame(ctx))
-  await act(async () => {
-    await refetch.load!({ isCurrent: () => true })
-  })
-  return result
-}
-
-beforeEach(() => {
-  vi.clearAllMocks()
-  refetch.load = null
-})
-
-describe('psychicnum useGame — a load that worked', () => {
-  it('builds gd from the reads and the page, and stops loading', async () => {
-    answer(ALL_GOOD)
-    const result = await load()
-    const gd = result.current.gd!
-
-    expect(gd.board.words).toEqual(['apple', 'brick', 'cedar'])
-    expect(gd.events).toEqual([EVENT_ROW])
-    expect(gd.mode).toBe('compete')
-    expect(result.current.loading).toBe(false)
-    expect(result.current.failure).toBeNull()
+describe('psychicnum makeGameData — the links become players', () => {
+  it('me is my own entry in players — the same object', () => {
+    const gd = makeGameData(makePlayarea({ players: TWO }), 'u1')
+    expect(gd.me.username).toBe('me')
+    expect(gd.players).toContain(gd.me)
+    expect(gd.playersById.u1).toBe(gd.me)
   })
 
-  it('keeps the secrets null while the game is live — the view withholds them', async () => {
-    answer(ALL_GOOD)
-    expect((await load()).current.gd?.secrets).toBeNull()
+  it('names the turn holder as a player', () => {
+    const gd = makeGameData(makePlayarea({ players: TWO, turnHolderId: 'u2' }), 'u1')
+    expect(gd.turns?.holder).toBe(gd.playersById.u2)
   })
 
-  it('reads the budget and the secret count off game_status', async () => {
-    answer(ALL_GOOD)
-    const gd = (await load()).current.gd!
-    expect(gd.readout.maxGuesses).toBe(7)
-    expect(gd.readout.requiredSecretsCount).toBe(3)
+  it('a free-for-all game has no turns', () => {
+    expect(makeGameData(makePlayarea({ players: TWO }), 'u1').turns).toBeNull()
   })
 
-  it('keys the players by id, in the page\'s order, each with their own counts and ending', async () => {
-    answer(ALL_GOOD)
-    const gd = (await load()).current.gd!
-    expect(Object.keys(gd.playersById)).toEqual(['u1', 'u2'])
-    expect(gd.playersById.u1!.username).toBe('me')
-    expect([gd.playersById.u1!.foundSecretsCount, gd.playersById.u1!.guessesUsed]).toEqual([1, 2])
-    expect([gd.playersById.u2!.foundSecretsCount, gd.playersById.u2!.guessesUsed]).toEqual([0, 3])
-    expect(gd.playersById.u1!.playerEnding).toBeNull()
-    expect(gd.playersById.u2!.playerEnding).toEqual({
-      at: CONCEDED.player_ended_at, reason: 'conceded', reasonDetail: 'conceded',
-    })
+  it('names who ended the game and the winner as players', () => {
+    const gd = makeGameData(
+      makePlayarea({
+        mode: 'compete',
+        players: TWO,
+        ending: { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u2' },
+        outcome: 'won',
+      }),
+      'u1',
+    )
+    expect(gd.ending?.by).toBe(gd.playersById.u2)
+    expect(gd.ending?.winner).toBe(gd.playersById.u2)
+    expect(gd.ended).toBe(true)
   })
 
-  it('says whether each player found every secret, against the board\'s count', async () => {
-    answer(ALL_GOOD)
-    const withAllThree = makeCtx({
-      players: [gp('u1', 'me', 'red', { player_status: playerStatus(3, 4) }), PLAYERS[1]!],
-    })
-    const { result } = renderHook(() => useGame(withAllThree))
-    await act(async () => {
-      await refetch.load!({ isCurrent: () => true })
-    })
-    expect(result.current.gd?.playersById.u1?.foundAllSecrets).toBe(true)
-    expect(result.current.gd?.playersById.u2?.foundAllSecrets).toBe(false)
+  it('a timeout nobody\'s turn covers ended by nobody', () => {
+    const gd = makeGameData(
+      makePlayarea({
+        players: TWO,
+        ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+        outcome: 'lost',
+      }),
+      'u1',
+    )
+    expect(gd.ending).toEqual({ reason: 'timeout', detail: 'timeout', by: null, winner: null })
   })
 
-  it('shapes the board from the guess rows alone', async () => {
-    const hint = { ...EVENT_ROW, id: 2, word: 'a clue', kind: 'hint' }
-    const miss = { ...EVENT_ROW, id: 3, user_id: 'u2', word: 'brick', is_correct: false }
-    answer({ ...ALL_GOOD, events: ok([EVENT_ROW, hint, miss]) })
-    const gd = (await load()).current.gd!
-    expect([...gd.board.tileResults]).toEqual([['apple', true], ['brick', false]])
-    expect(gd.board.decidedBy.get('brick')?.username).toBe('moth')
-    expect(gd.board.guessCount).toBe(2)
+  it('gives each log row its player', () => {
+    const gd = makeGameData(makePlayarea({ players: TWO, events: EVENTS }), 'u1')
+    expect(gd.events[0]!.by).toBe(gd.me)
+    expect(gd.events[1]!.by).toBe(gd.playersById.u2)
+    expect(gd.events[0]).not.toHaveProperty('userId')
   })
 
-  it('gives the counts that apply to me — my own in compete', async () => {
-    answer(ALL_GOOD)
-    const gd = (await load()).current.gd!
-    expect([gd.readout.foundSecretsCount, gd.readout.guessesUsed]).toEqual([1, 2])
+  it('turns a board into maps, with the deciders as players', () => {
+    const gd = makeGameData(makePlayarea({ players: TWO, events: EVENTS }), 'u1')
+    expect([...gd.me.board.tileResults]).toEqual([['alpha', true], ['bravo', false]])
+    expect(gd.me.board.decidedBy.get('bravo')).toBe(gd.playersById.u2)
   })
 
-  it('names compete\'s winner and the turn holder as players', async () => {
-    answer(ALL_GOOD)
-    const won = makeCtx({
-      isTurnBased: true,
-      turnHolderId: 'u2',
-      players: [PLAYERS[0]!, { ...PLAYERS[1]!, outcome: 'won', final_ranking: 1 }],
-    })
-    const { result } = renderHook(() => useGame(won))
-    await act(async () => {
-      await refetch.load!({ isCurrent: () => true })
-    })
-    expect(result.current.gd?.winner?.username).toBe('moth')
-    expect(result.current.gd?.turnHolder?.username).toBe('moth')
+  it('builds the setup rows once, for the info column and the printout', () => {
+    const gd = makeGameData(makePlayarea({ players: TWO }), 'u1')
+    expect(gd.setupRows.map((r) => r.key)).toContain('max_guesses')
   })
 
-  it('says I have solved once my solve is recorded, and not before', async () => {
-    answer(ALL_GOOD)
-    expect((await load()).current.gd?.standing.hasSolved).toBe(false)
-    const allThree = makeCtx({
-      players: [
-        gp('u1', 'me', 'red', { solved_at: '2026-06-15T00:05:00Z', player_status: playerStatus(3, 4) }),
-        PLAYERS[1]!,
-      ],
-    })
-    const { result } = renderHook(() => useGame(allThree))
-    await act(async () => {
-      await refetch.load!({ isCurrent: () => true })
-    })
-    expect(result.current.gd?.standing.hasSolved).toBe(true)
-  })
-
-  it('calls the board shared only in coop with somebody else here', async () => {
-    answer(ALL_GOOD)
-    expect((await load()).current.gd?.isSharedBoard).toBe(false)
-    answer(ALL_GOOD)
-    expect((await load(makeCtx({ mode: 'coop' }))).current.gd?.isSharedBoard).toBe(true)
-    answer(ALL_GOOD)
-    const solo = makeCtx({ mode: 'coop', players: [PLAYERS[0]!] })
-    expect((await load(solo)).current.gd?.isSharedBoard).toBe(false)
-  })
-
-  it('picks my own entry out as me, and carries where I stand', async () => {
-    answer(ALL_GOOD)
-    const gd = (await load()).current.gd!
-    expect(gd.me?.username).toBe('me')
-    expect(gd.standing.isMyTurn).toBe(true)
-    expect(gd.standing.isPlayerEnded).toBe(false)
+  it('carries the puzzle, the counts and the rest through from the blob', () => {
+    const gd = makeGameData(makePlayarea({ players: TWO, events: EVENTS, secrets: null }), 'u1')
+    expect(gd.puzzle.words).toEqual(['alpha', 'bravo', 'charlie', 'delta', 'echo'])
+    expect(gd.puzzle.secrets).toBeNull()
+    expect([gd.me.foundSecretsCount, gd.me.guessesUsed]).toEqual([1, 2])
+    expect(gd.brand).toBe('PsychicNum')
   })
 })
 
-describe('psychicnum useGame — no such game', () => {
-  it('leaves gd null WITHOUT a failure, so the page says "not found" and not "offline"', async () => {
-    // Zero rows is the caller's to read: no game with that id, or one this
-    // club cannot see. Nothing failed, so nothing may claim it did.
-    answer({ games_state: ok([]) })
-    const result = await load()
+describe('psychicnum makeGameData — the seat rule', () => {
+  const race = (over = {}) => makePlayarea({ mode: 'compete', players: TWO, events: EVENTS, ...over })
 
-    expect(result.current.gd).toBeNull()
-    expect(result.current.failure).toBeNull()
-    expect(result.current.loading).toBe(false)
+  it('mid-race, a rival\'s rows leave the log and their board is withheld', () => {
+    const gd = makeGameData(race(), 'u1')
+    expect(gd.events.map((e) => e.id)).toEqual([1])
+    expect(gd.playersById.u2!.board).toBeNull()
+    // My own is always mine to see.
+    expect([...gd.me.board.tileResults]).toEqual([['alpha', true]])
   })
 
-  it('does not go on to read the log', async () => {
-    answer({ games_state: ok([]) })
-    await load()
-    expect(mockReadRows).toHaveBeenCalledTimes(1)
+  it('the race\'s end opens everything', () => {
+    const gd = makeGameData(
+      race({ ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null }, outcome: 'neutral' }),
+      'u1',
+    )
+    expect(gd.events.map((e) => e.id)).toEqual([1, 2])
+    expect([...gd.playersById.u2!.board!.tileResults]).toEqual([['bravo', false]])
+  })
+
+  it('coop withholds nothing: one board, one team', () => {
+    const gd = makeGameData(makePlayarea({ players: TWO, events: EVENTS }), 'u1')
+    expect(gd.events).toHaveLength(2)
+    expect(gd.playersById.u2!.board).toEqual(gd.me.board)
+  })
+
+  it('a rival\'s counts stay visible mid-race — the strip shows them', () => {
+    const gd = makeGameData(race(), 'u1')
+    expect([gd.playersById.u2!.foundSecretsCount, gd.playersById.u2!.guessesUsed]).toEqual([0, 1])
+  })
+
+  it('a conceder is still a player, with their ending', () => {
+    const gd = makeGameData(race({ players: [TWO[0]!, { ...TWO[1]!, ...CONCEDED }] }), 'u1')
+    expect(gd.playersById.u2!.conceded).toBe(true)
+    expect(gd.playersById.u2!.ending?.reason).toBe('conceded')
+    expect(gd.playersById.u2!.stillPlaying).toBe(false)
   })
 })
 
-describe('psychicnum useGame — a read that failed', () => {
-  it('keeps the game read’s own failure', async () => {
-    answer({ games_state: readFailed('PN301') })
-    const result = await load()
-
-    expect(result.current.failure?.dbcode).toBe('PN301')
-    expect(result.current.gd).toBeNull()
-    expect(result.current.loading).toBe(false)
+describe('psychicnum useGame', () => {
+  it('hands back gd built from the blob the page was handed, for me', () => {
+    const ctx = makePsychicnumCtx({ players: TWO })
+    const { result } = renderHook(() => useGame(ctx))
+    expect(result.current.gd.me.id).toBe('u1')
+    expect(result.current.gd.id).toBe('g1')
   })
 
-  it('keeps the EVENTS read’s failure, not the game read’s success', async () => {
-    answer({ ...ALL_GOOD, events: readFailed('PN303') })
-    expect((await load()).current.failure?.dbcode).toBe('PN303')
-  })
-})
-
-describe('psychicnum useGame — the outage that ended', () => {
-  it('clears the failure on the next load that worked', async () => {
-    // This refetches on every move and every rejoin, so a recovered outage has
-    // to take its sentence with it — otherwise the board comes back under a
-    // stale explanation of why it is missing.
-    answer({ games_state: readFailed('PN301') })
-    const { result } = renderHook(() => useGame(CTX))
-    await act(async () => {
-      await refetch.load!({ isCurrent: () => true })
-    })
-    expect(result.current.failure).not.toBeNull()
-
-    answer(ALL_GOOD)
-    await act(async () => {
-      await refetch.load!({ isCurrent: () => true })
-    })
-    expect(result.current.failure).toBeNull()
-    expect(result.current.gd?.board.words).toEqual(['apple', 'brick', 'cedar'])
+  it('keeps gd while the blob is the same, and rebuilds it for a new one', () => {
+    const ctx = makePsychicnumCtx({ players: TWO })
+    const { result, rerender } = renderHook((c) => useGame(c), { initialProps: ctx })
+    const first = result.current.gd
+    rerender({ ...ctx })
+    expect(result.current.gd).toBe(first)
+    rerender(makePsychicnumCtx({ players: TWO, events: EVENTS }))
+    expect(result.current.gd).not.toBe(first)
+    expect(result.current.gd.events).toHaveLength(2)
   })
 
-  it('clears it too when the next load finds the game gone', async () => {
-    // A friend deleted the game during the outage: the read works and finds
-    // zero rows. That is "not found", and the stale outage sentence must not
-    // stand in front of it.
-    answer({ games_state: readFailed('PN301') })
-    const { result } = renderHook(() => useGame(CTX))
-    await act(async () => {
-      await refetch.load!({ isCurrent: () => true })
-    })
-    expect(result.current.failure).not.toBeNull()
-
-    answer({ games_state: ok([]) })
-    await act(async () => {
-      await refetch.load!({ isCurrent: () => true })
-    })
-    expect(result.current.failure).toBeNull()
-    expect(result.current.gd).toBeNull()
+  it('throws for a game whose builder has not written a blob', () => {
+    const ctx = { ...makePsychicnumCtx(), playarea: null }
+    expect(() => renderHook(() => useGame(ctx))).toThrow(/no playarea blob/)
   })
 })

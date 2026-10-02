@@ -12,129 +12,75 @@
  * psychicnum.concede; coop offers Stop → psychicnum.stop_game; a conceded opponent
  * reads "out" mid-game; and after I concede I get the player-ended look.
  *
- * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; everything else — the board, Clear/Submit, strip, action row — renders for
- * real. Mirrors wordle's concede tests (the elimination template, commit c1b5df8).
+ * The surface is a pure function of the playarea blob the page hands it, so a
+ * test builds that blob from the game's facts (`makePsychicnumCtx`) and
+ * nothing is mocked but `db`; everything — the board, Clear/Submit, strip,
+ * action row — renders for real. Mirrors wordle's concede tests (the
+ * elimination template, commit c1b5df8).
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import {
-  makePlayAreaLoaderProps,
-  type PlayAreaFacts,
-} from '@/common/game-page/playAreaLoaderProps.fixture'
-import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
-import type { GamePlayer, GamePlayerRow } from '@/common/members/member'
-import type { GameEnding } from '@/common/terminal/gameEnding'
-import type { PsychicnumGameStatus, PsychicnumPlayerStatus } from '../lib/statuses'
+import type { CommonPlayarea } from '@/common/game-page/playarea'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
-import type { EventRow } from '../hooks/useGame'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
+import {
+  CONCEDED,
+  SPENT,
+  guess,
+  makePsychicnumCtx,
+  type PlayareaFacts,
+  type PlayerFacts,
+} from '../lib/playarea.fixture'
 import { db } from '../db'
 import { PlayAreaLoader } from './PlayArea'
 
-/** What psychicnum's own reads bring back: the board, the secrets, the log. */
-type Loaded = { words: string[]; secrets: string[] | null; events: EventRow[] }
-
-// A mutable holder the mocked useGame builds `gd` from each render — set per
-// test before render(). The rest of `gd` is the context's, built by the real
-// `makeGameData` from the real players and setup rows, so a player's counts
-// are set on their `player_status` in `makeCtx`, where the page puts them.
-// `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory, so the
-// factory can close over it safely.
-const h = vi.hoisted(() => ({ loaded: null as unknown as Loaded }))
-vi.mock('../hooks/useGame', async (importOriginal) => {
-  const real = await importOriginal<typeof import('../hooks/useGame')>()
-  const { makeSetupRows } = await import('../lib/setupRows')
-  return {
-    ...real,
-    useGame: (ctx: PlayAreaLoaderProps) => {
-      const playersById = real.makePlayersById(
-        ctx.cg.players,
-        real.readGameStatus(ctx).required_secrets_count,
-      )
-      const setupRows = makeSetupRows(real.readSetup(ctx), ctx.cg.mode, ctx.cg.players)
-      return {
-        gd: real.makeGameData(ctx, h.loaded, playersById, setupRows),
-        loading: false,
-        failure: null,
-      }
-    },
-  }
-})
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
-/** The reads for a board; the log is empty unless a test hands it rows. */
-function loaded(board: { words: string[]; secrets: string[] | null }, events: EventRow[] = []): Loaded {
-  return { ...board, events }
-}
-
-/** A player with the counts their `player_status` carries. */
-function counted(id: string, name: string, color: string, found: number, used = 0): GamePlayer {
-  return gp(id, name, color, {
-    player_status: { found_secrets_count: found, guesses_used: used, player_ended_reason: null },
-  })
-}
-
 /** A board word list — Board renders a tile per word; needs at least one. */
 const WORDS = ['alpha', 'bravo', 'charlie', 'delta', 'echo']
 
+/** The three secrets, where a test needs the game to have ended with them. */
+const SECRETS = ['alpha', 'charlie', 'echo']
+
+const ME: PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
+const MOTH: PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
+
+/** A player with the counts their own rows carry. */
+const counted = (p: PlayerFacts, found: number, used = 0): PlayerFacts => ({ ...p, found, used })
+/** The same player, ranked first — `won`, as `_end_game` writes it. */
+const won = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'won', finalRanking: 1 })
+/** The same player, beaten — `lost`, as `_end_game` writes it. */
+const lost = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'lost' })
+
 /** The two game endings the tests reach for: the set completed, and every
- *  budget spent. */
-const GAME_WON: GameEnding = {
-  reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u1',
+ *  budget spent — each with the game's outcome beside it. */
+const GAME_WON: Pick<PlayareaFacts, 'ending' | 'outcome'> = {
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+  outcome: 'won',
 }
-const GAME_LOST: GameEnding = {
-  reason: 'resource_exhausted', reasonDetail: 'exhausted', outcome: 'lost', endedByUserId: 'u1',
-}
-
-/** The ending columns of a compete player whose budget ran out, for `gp`'s
- *  `over` — eliminated, so `lost` at once, as `submit_guess` writes it. */
-const SPENT = {
-  player_ended_at: '2026-09-03T00:00:00Z',
-  player_ended_reason: 'resource_exhausted',
-  player_ended_reason_detail: 'exhausted',
+const GAME_LOST: Pick<PlayareaFacts, 'ending' | 'outcome'> = {
+  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1', winner: null },
   outcome: 'lost',
-} as const
-
-/** A player's `player_status` as the builder writes it, its reason kept in
- *  step with the player's own column. A fixture player with no status of its
- *  own gets this, so a test sets the ending once. */
-function withPlayerStatus<P extends GamePlayerRow>(p: P): P {
-  if (Object.keys(p.player_status).length > 0) return p
-  const playerStatus: PsychicnumPlayerStatus = {
-    found_secrets_count: 0,
-    guesses_used: 0,
-    player_ended_reason: p.player_ended_reason,
-  }
-  return { ...p, player_status: playerStatus }
+}
+/** The same game, won by moth. */
+const MOTH_WON: Pick<PlayareaFacts, 'ending' | 'outcome'> = {
+  ending: { ...(GAME_WON.ending as NonNullable<CommonPlayarea['ending']>), by: 'u2', winner: 'u2' },
+  outcome: 'won',
 }
 
-/** A play surface's context: a psychicnum game, solo coop by default, with
- *  where I stand derived from the facts (`makePlayAreaLoaderProps`). */
-function makeCtx(over: PlayAreaFacts = {}): PlayAreaLoaderProps {
-  const gameStatus: PsychicnumGameStatus = { required_secrets_count: 3, max_guesses: 7 }
-  return makePlayAreaLoaderProps({
-    brand: 'PsychicNum',
-    // A realistic setup blob — the setup rows read `max_guesses` + `band`.
-    setup: { max_guesses: 7, word_count: 10, band: 3, timer: { kind: 'none' } },
-    gameStatus,
-    ...over,
-    players: (over.players ?? [gp('u1', 'me', 'red')]).map(withPlayerStatus),
-  })
+/** A play surface's context: a psychicnum game, solo coop by default, built
+ *  from the facts the way the builder would build it. */
+function makeCtx(facts: PlayareaFacts = {}): PlayAreaLoaderProps {
+  return makePsychicnumCtx({ words: WORDS, ...facts })
 }
-
-// The same board in either mode — the mode is the context's (`makeCtx`), and
-// the two names only say which one a test is about.
-const coopGame = { words: WORDS, secrets: null as string[] | null }
-const competeGame = coopGame
 
 /** An `ok` envelope, in the shape `runRpc` unwraps. `data.result` is what the
  *  call sites branch on, so a stub without it is an answer they correctly
@@ -180,7 +126,6 @@ const boardOrder = () =>
   [...document.querySelectorAll('[data-board] [data-tile]')].map((t) => t.getAttribute('data-tile'))
 
 beforeEach(() => {
-  h.loaded = loaded(coopGame)
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null })
 })
@@ -188,10 +133,9 @@ beforeEach(() => {
 describe('psychicnum PlayArea — concede', () => {
   it('compete shows Concede and calls psychicnum.concede on click', async () => {
     const user = userEvent.setup()
-    h.loaded = loaded(competeGame)
     render(
       <>
-        <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')] })} />
+        <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, MOTH] })} />
         <ConfirmationHost />
       </>,
     )
@@ -205,7 +149,6 @@ describe('psychicnum PlayArea — concede', () => {
 
   it('coop shows Stop (not Concede) and calls stop_game', async () => {
     const user = userEvent.setup()
-    h.loaded = loaded(coopGame)
     render(
       <>
         <PlayAreaLoader {...makeCtx()} />
@@ -218,7 +161,7 @@ describe('psychicnum PlayArea — concede', () => {
     // the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: 'Stop game' }))
     const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
-    await user.click(confirms[confirms.length - 1])
+    await user.click(confirms[confirms.length - 1]!)
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
@@ -233,41 +176,17 @@ describe('psychicnum PlayArea — concede', () => {
   })
 
   it('marks a conceded opponent "out" in the strip', () => {
-    h.loaded = loaded(competeGame)
-    render(
-      <PlayAreaLoader
-        {...makeCtx({
-          mode: 'compete',
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', CONCEDED)],
-        })}
-      />,
-    )
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...CONCEDED }] })} />)
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
   it('marks an opponent out of guesses "out" too', () => {
-    h.loaded = loaded(competeGame)
-    render(
-      <PlayAreaLoader
-        {...makeCtx({
-          mode: 'compete',
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', SPENT)],
-        })}
-      />,
-    )
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...SPENT }] })} />)
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
   it('shows the "You conceded" player-ended look after I concede', () => {
-    h.loaded = loaded(competeGame)
-    render(
-      <PlayAreaLoader
-        {...makeCtx({
-          mode: 'compete',
-          players: [gp('u1', 'me', 'red', CONCEDED), gp('u2', 'moth', 'blue')],
-        })}
-      />,
-    )
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...CONCEDED }, MOTH] })} />)
     // The info-column action row swaps to the player-ended LOOK ("You conceded"),
     // and the below-board slot narrates the drop-out ("Conceded — race
     // continues", `buildPlayerEndingMessage`'s pill).
@@ -277,19 +196,19 @@ describe('psychicnum PlayArea — concede', () => {
 })
 
 /**
- * The state readout: the found count and the budget come from each player's
- * counts and the game's budget and secret count, all read off the statuses.
+ * The state readout: the counts the player carries — the team's in coop, my
+ * own in compete — against the budget and the secret count.
  */
 describe('psychicnum PlayArea — the readout', () => {
   // The info column and the mobile strip draw the same line, so read the first.
   const readout = () => screen.getAllByText(/found ·/)[0]!.textContent
 
-  it('sums the coop team\'s finds and guesses across every player, against game_status', () => {
+  it('shows the coop team\'s finds and guesses, summed across every player', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
-          players: [counted('u1', 'me', 'red', 1, 3), counted('u2', 'moth', 'blue', 1, 2)],
-          gameStatus: { required_secrets_count: 3, max_guesses: 9 },
+          players: [counted(ME, 1, 3), counted(MOTH, 1, 2)],
+          setup: { max_guesses: 9, word_count: 10, band: 3, timer: { kind: 'none' } },
         })}
       />,
     )
@@ -297,15 +216,7 @@ describe('psychicnum PlayArea — the readout', () => {
   })
 
   it('counts only my own finds and budget in a race', () => {
-    h.loaded = loaded(competeGame)
-    render(
-      <PlayAreaLoader
-        {...makeCtx({
-          mode: 'compete',
-          players: [counted('u1', 'me', 'red', 1, 2), counted('u2', 'moth', 'blue', 2, 5)],
-        })}
-      />,
-    )
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [counted(ME, 1, 2), counted(MOTH, 2, 5)] })} />)
     expect(readout()).toBe('1/3 found · 2/7 guesses used')
   })
 })
@@ -318,23 +229,17 @@ describe('psychicnum PlayArea — the readout', () => {
  */
 describe('psychicnum PlayArea — the celebration', () => {
   // Me and moth, with the secrets each has found.
-  const two = (mine: number, moths: number) =>
-    [counted('u1', 'me', 'red', mine), counted('u2', 'moth', 'blue', moths)]
-  /** The same player, ranked first — `won`, as `_end_game` writes it. */
-  const won = (p: GamePlayer): GamePlayer => ({ ...p, outcome: 'won', final_ranking: 1 })
-  /** The same player, beaten — `lost`, as `_end_game` writes it. */
-  const lost = (p: GamePlayer): GamePlayer => ({ ...p, outcome: 'lost' })
+  const two = (mine: number, moths: number) => [counted(ME, mine), counted(MOTH, moths)]
   const confetti = () => screen.queryByText(/You win!/)
 
   it('pops for the player the server ranked first', () => {
-    h.loaded = loaded(competeGame)
     const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: two(2, 0) })} />)
     expect(confetti()).toBeNull()
 
     const [me, moth] = two(3, 0)
     rerender(
       <PlayAreaLoader
-        {...makeCtx({ players: [won(me!), lost(moth!)], mode: 'compete', gameEnding: GAME_WON })}
+        {...makeCtx({ mode: 'compete', players: [won(me!), lost(moth!)], secrets: SECRETS, ...GAME_WON })}
       />,
     )
     expect(confetti()).toBeInTheDocument()
@@ -342,33 +247,30 @@ describe('psychicnum PlayArea — the celebration', () => {
   })
 
   it('stays quiet for the player who was beaten', () => {
-    h.loaded = loaded(competeGame)
     const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: two(1, 0) })} />)
     const [me, moth] = two(1, 3)
     rerender(
       <PlayAreaLoader
-        {...makeCtx({ players: [lost(me!), won(moth!)], mode: 'compete', gameEnding: GAME_WON })}
+        {...makeCtx({ mode: 'compete', players: [lost(me!), won(moth!)], secrets: SECRETS, ...MOTH_WON })}
       />,
     )
     expect(confetti()).toBeNull()
   })
 
   it('stays quiet on opening a race already won — reviewing is not winning', () => {
-    h.loaded = loaded(competeGame)
     const [me, moth] = two(3, 0)
     render(
       <PlayAreaLoader
-        {...makeCtx({ players: [won(me!), lost(moth!)], mode: 'compete', gameEnding: GAME_WON })}
+        {...makeCtx({ mode: 'compete', players: [won(me!), lost(moth!)], secrets: SECRETS, ...GAME_WON })}
       />,
     )
     expect(confetti()).toBeNull()
   })
 
   it('pops for the coop team on the third secret, whoever guessed it', () => {
-    h.loaded = loaded(coopGame)
     const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: two(1, 2) })} />)
     // A coop win ranks the whole team first.
-    rerender(<PlayAreaLoader {...makeCtx({ players: two(1, 2).map(won), gameEnding: GAME_WON })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ players: two(1, 2).map(won), secrets: SECRETS, ...GAME_WON })} />)
     expect(confetti()).toBeInTheDocument()
     expect(screen.getByText('All three secret words found.')).toBeInTheDocument()
   })
@@ -385,23 +287,13 @@ describe('psychicnum PlayArea — a wrong guess is pointed at, then shaken', () 
   const tileFor = (word: string) =>
     document.querySelector(`[data-tile="${word}"]`) as HTMLElement
 
-  function guessRow(word: string, isCorrect: boolean): EventRow {
-    return {
-      id: 1, user_id: 'u1', word, is_correct: isCorrect,
-      kind: 'guess', created_at: '2026-01-01T00:00:01Z',
-    }
-  }
-
   it('flashes the tile, then shakes it once the flash has handed the red back', () => {
     vi.useFakeTimers()
     try {
-      h.loaded = loaded(coopGame)
-      const ctx = makeCtx()
-      const { rerender } = render(<PlayAreaLoader {...ctx} />)
+      const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
 
       // The guess lands — a move, so the board points at where it went.
-      h.loaded = loaded(coopGame, [guessRow('bravo', false)])
-      act(() => rerender(<PlayAreaLoader {...ctx} />))
+      act(() => rerender(<PlayAreaLoader {...makeCtx({ events: [guess(1, 'u1', 'bravo', false)] })} />))
       expect(tileFor('bravo').className).toMatch(/attentionFlash/)
       expect(tileFor('bravo').className).not.toMatch(/verdictShake/)
 
@@ -417,11 +309,8 @@ describe('psychicnum PlayArea — a wrong guess is pointed at, then shaken', () 
   it('never shakes a correct guess', () => {
     vi.useFakeTimers()
     try {
-      h.loaded = loaded(coopGame)
-      const ctx = makeCtx()
-      const { rerender } = render(<PlayAreaLoader {...ctx} />)
-      h.loaded = loaded(coopGame, [guessRow('bravo', true)])
-      act(() => rerender(<PlayAreaLoader {...ctx} />))
+      const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
+      act(() => rerender(<PlayAreaLoader {...makeCtx({ events: [guess(1, 'u1', 'bravo', true)] })} />))
 
       act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS))
       expect(tileFor('bravo').className).not.toMatch(/verdictShake/)
@@ -433,16 +322,7 @@ describe('psychicnum PlayArea — a wrong guess is pointed at, then shaken', () 
 
 describe('psychicnum PlayArea — turn order', () => {
   it('on a teammate’s turn: shows "Waiting for …" and gates the guess prompt', () => {
-    h.loaded = loaded(coopGame)
-    render(
-      <PlayAreaLoader
-        {...makeCtx({
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
-          isTurnBased: true,
-          turnHolderId: 'u2',
-        })}
-      />,
-    )
+    render(<PlayAreaLoader {...makeCtx({ players: [ME, MOTH], turnHolderId: 'u2' })} />)
     // The current player is named TWICE while I wait: the info column's
     // TurnStatusLine (desktop) and the below-board `waiting()` note (the only
     // whose-turn indicator on mobile, where the column is off-canvas). Both
@@ -466,32 +346,14 @@ describe('psychicnum PlayArea — turn order', () => {
   })
 
   it('on my turn: shows "Your turn", the guess prompt, and the play actions', () => {
-    h.loaded = loaded(coopGame)
-    render(
-      <PlayAreaLoader
-        {...makeCtx({
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
-          isTurnBased: true,
-          turnHolderId: 'u1',
-        })}
-      />,
-    )
+    render(<PlayAreaLoader {...makeCtx({ players: [ME, MOTH], turnHolderId: 'u1' })} />)
     expect(screen.getByText('Your turn')).toBeInTheDocument()
     expect(screen.getByText(/hit submit/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /hint/i })).toBeInTheDocument()
   })
 
   it('free-for-all (no turn order): renders no turn line', () => {
-    h.loaded = loaded(coopGame)
-    render(
-      <PlayAreaLoader
-        {...makeCtx({
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
-          isTurnBased: false,
-          turnHolderId: null,
-        })}
-      />,
-    )
+    render(<PlayAreaLoader {...makeCtx({ players: [ME, MOTH] })} />)
     expect(screen.queryByText('Your turn')).not.toBeInTheDocument()
     expect(screen.queryByText(/Waiting for/)).not.toBeInTheDocument()
   })
@@ -499,11 +361,16 @@ describe('psychicnum PlayArea — turn order', () => {
 
 describe('psychicnum PlayArea — click-to-define (event log)', () => {
   it('makes a guessed word in the log a define affordance (not the hint sentence)', () => {
-    h.loaded = loaded(coopGame, [
-      { id: 1, user_id: 'u1', word: 'bravo', is_correct: false, kind: 'guess', created_at: '2026-07-02' },
-      { id: 2, user_id: 'u1', word: 'a paid assassin', is_correct: false, kind: 'hint', created_at: '2026-07-02' },
-    ])
-    render(<PlayAreaLoader {...makeCtx()} />)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          events: [
+            guess(1, 'u1', 'bravo', false),
+            guess(2, 'u1', 'a paid assassin', false, { kind: 'hint' }),
+          ],
+        })}
+      />,
+    )
     // The guessed word is definable...
     const define = screen.getByTitle('Click to define')
     expect(define).toHaveTextContent('BRAVO')
@@ -550,17 +417,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
     // Out of budget in a race that goes on — the server marks me as a player
     // who has ended: disabled, but STILL THERE — a grayed row still teaches its
     // glyph, which is why the pair is never dropped.
-    h.loaded = loaded(competeGame)
-    const spent = makeCtx({
-      mode: 'compete',
-      players: [
-        gp('u1', 'me', 'red', {
-          ...SPENT,
-          player_status: { found_secrets_count: 0, guesses_used: 7, player_ended_reason: 'resource_exhausted' },
-        }),
-        gp('u2', 'moth', 'blue'),
-      ],
-    })
+    const spent = makeCtx({ mode: 'compete', players: [{ ...counted(ME, 0, 7), ...SPENT }, MOTH] })
     render(<PlayAreaLoader {...spent} />)
     const items = menuItems(spent)
     expect(items.get('act-hint')?.disabled).toBe(true)
@@ -598,24 +455,16 @@ describe('psychicnum PlayArea — the secrets reveal once the game has ended', (
   const greenTiles = () =>
     screen.getAllByRole('button').filter((b) => b.className.includes('decided_won')).length
 
-  /** A finished game whose secrets have reached this client (the server sends
-   *  them once the game has ended). */
-  const ended = () => {
-    h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    return makeCtx({gameEnding: GAME_LOST })
-  }
+  /** A finished game whose secrets have reached this client (the builder
+   *  writes them once the game has ended). */
+  const ended = () => makeCtx({ secrets: SECRETS, ...GAME_LOST })
 
   it('a coop WIN shows them unasked — the team found all three', () => {
-    // `found_secrets_count` is per CALLER, so a teammate who found one of the
-    // three never reads three; what says they solved is `solved_at`, which the
-    // winning guess stamps on every teammate.
-    h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
+    // `foundSecretsCount` is the team's, but what says I solved is `solvedAt`,
+    // which the winning guess stamps on every teammate.
     render(
       <PlayAreaLoader
-        {...makeCtx({
-          gameEnding: GAME_WON,
-          players: [gp('u1', 'me', 'red', { solved_at: '2026-06-15T00:05:00Z' })],
-        })}
+        {...makeCtx({ secrets: SECRETS, ...GAME_WON, players: [{ ...ME, solvedAt: '2026-06-15T00:05:00Z' }] })}
       />,
     )
     expect(greenTiles()).toBe(3)
@@ -684,7 +533,7 @@ describe('psychicnum PlayArea — the secrets reveal once the game has ended', (
   it('is named in the menu once it appears', () => {
     // An inert row that fell through to the registry's bare "Reveal" would
     // rename itself as the game ended, which is why both branches name it.
-    const ctx = makeCtx({gameEnding: GAME_LOST })
+    const ctx = makeCtx({ secrets: SECRETS, ...GAME_LOST })
     render(<PlayAreaLoader {...ctx} />)
     expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
   })
@@ -707,8 +556,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     container.querySelector('[data-board] > div') as HTMLElement
 
   it('bands the finished board in its outcome', () => {
-    h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    const { container } = render(<PlayAreaLoader {...makeCtx({gameEnding: GAME_WON })} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx({ secrets: SECRETS, ...GAME_WON })} />)
 
     expect(gridIn(container).className).toMatch(/endingFrame/)
     expect(gridIn(container).className).toMatch(/endingFrame_won/)
@@ -716,14 +564,8 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
   })
 
   it('frames my board in my own outcome once I have ended, while the race runs on', () => {
-    h.loaded = loaded(competeGame)
     const { container } = render(
-      <PlayAreaLoader
-        {...makeCtx({
-          mode: 'compete',
-          players: [gp('u1', 'me', 'red', CONCEDED), gp('u2', 'moth', 'blue')],
-        })}
-      />,
+      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...CONCEDED }, MOTH] })} />,
     )
     expect(gridIn(container).className).toMatch(/endingFrame_lost/)
   })
@@ -735,16 +577,16 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
   })
 
   it('dims the board while a teammate holds the move, and flashes when it arrives', () => {
-    const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+    const two = [ME, MOTH]
     const { container, rerender } = render(
-      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: two })} />,
+      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', players: two })} />,
     )
     expect(gridIn(container).className).toMatch(/dimNotYourTurn/)
     // An EVENT, so never on mount: opening a game on your own turn is not being
     // handed it.
     expect(gridIn(container).className).not.toMatch(/yourTurnFlash/)
 
-    rerender(<PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u1', players: two })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ turnHolderId: 'u1', players: two })} />)
 
     expect(gridIn(container).className).toMatch(/yourTurnFlash/)
     expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)
@@ -756,8 +598,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
   // game over does to a mark).
   it('drops a pending selection once the game ends, and once I am out of the race', async () => {
     const user = userEvent.setup()
-    const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
-    h.loaded = loaded(competeGame)
+    const two = [ME, MOTH]
     const { container, rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: two })} />)
     const tile = () => within(gridIn(container)).getByRole('button', { name: 'alpha' })
 
@@ -765,33 +606,29 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     expect(tile().className).toMatch(/picked/)
 
     // A rival's guess ends the race while my pick is still pending.
-    h.loaded = loaded({ ...competeGame, secrets: ['alpha', 'charlie', 'echo'] })
-    const rivalWon = [gp('u1', 'me', 'red'), counted('u2', 'moth', 'blue', 3)]
-    rerender(<PlayAreaLoader {...makeCtx({ players: rivalWon, mode: 'compete', gameEnding: GAME_WON })} />)
+    const rivalWon = [lost(ME), won(counted(MOTH, 3))]
+    rerender(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: rivalWon, secrets: SECRETS, ...MOTH_WON })} />)
     expect(tile().className).not.toMatch(/picked/)
   })
 
   it('drops a pending selection when I concede', async () => {
     const user = userEvent.setup()
-    const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
-    h.loaded = loaded(competeGame)
-    const { container, rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: two })} />)
+    const { container, rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, MOTH] })} />)
     const tile = () => within(gridIn(container)).getByRole('button', { name: 'alpha' })
 
     await user.click(tile())
     expect(tile().className).toMatch(/picked/)
 
-    rerender(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [gp('u1', 'me', 'red', CONCEDED), two[1]] })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...CONCEDED }, MOTH] })} />)
     expect(tile().className).not.toMatch(/picked/)
   })
 
-  // The attention flash reads the event log, not the board — so the one board
-  // change nobody played into stays silent. Revealing turns three tiles green at
-  // once, which a diff would call three simultaneous moves.
+  // The attention flash reads the guesses made, not the board — so the one
+  // board change nobody played into stays silent. Revealing turns three tiles
+  // green at once, which a diff would call three simultaneous moves.
   it('says nothing when the answer is revealed', async () => {
     const user = userEvent.setup()
-    h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    const { container } = render(<PlayAreaLoader {...makeCtx({gameEnding: GAME_LOST })} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx({ secrets: SECRETS, ...GAME_LOST })} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
 
@@ -810,10 +647,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
  * the answer runs the same RPC the button does.
  */
 describe('psychicnum PlayArea — the keys', () => {
-  const ended = () => {
-    h.loaded = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    return makeCtx({gameEnding: GAME_LOST })
-  }
+  const ended = () => makeCtx({ secrets: SECRETS, ...GAME_LOST })
 
   it('+ once the game has ended starts the next game with no question', async () => {
     rpc.mockResolvedValue(okEnvelope({ result: 'created', id: 'fresh-game-id' }))
@@ -866,10 +700,9 @@ describe('psychicnum PlayArea — the keys', () => {
 
   it('⌥⌫ in compete asks to concede, and yes calls concede', async () => {
     const user = userEvent.setup()
-    h.loaded = loaded(competeGame)
     render(
       <>
-        <WithKeys {...makeCtx({ mode: 'compete', players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')] })} />
+        <WithKeys {...makeCtx({ mode: 'compete', players: [ME, MOTH] })} />
         <ConfirmationHost />
       </>,
     )
@@ -1095,10 +928,7 @@ describe('psychicnum PlayArea — the selection cursor', () => {
   })
 
   it('Space passes over a decided tile', async () => {
-    h.loaded = loaded(coopGame, [
-      { id: 1, user_id: 'u1', word: 'alpha', is_correct: false, kind: 'guess', created_at: '2026-01-01T00:00:01Z' },
-    ])
-    render(<WithKeys {...makeCtx()} />)
+    render(<WithKeys {...makeCtx({ events: [guess(1, 'u1', 'alpha', false)] })} />)
     await key('ArrowRight')
     expect(ringed()).toEqual(['alpha'])
     await key(' ')
@@ -1107,15 +937,7 @@ describe('psychicnum PlayArea — the selection cursor', () => {
 
   it('a board I cannot play takes no ring and no keys', async () => {
     // A teammate holds the move.
-    render(
-      <WithKeys
-        {...makeCtx({
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
-          isTurnBased: true,
-          turnHolderId: 'u2',
-        })}
-      />,
-    )
+    render(<WithKeys {...makeCtx({ players: [ME, MOTH], turnHolderId: 'u2' })} />)
     await key('ArrowRight')
     await key(' ')
     await key('Enter')

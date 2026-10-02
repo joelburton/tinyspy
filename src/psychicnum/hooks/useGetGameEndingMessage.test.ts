@@ -2,66 +2,78 @@
 
 import { describe, expect, it } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import type { GameEnding } from '@/common/terminal/gameEnding'
-import type { GameData } from './useGame'
+import type { CommonPlayarea } from '@/common/game-page/playarea'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
+import { makePlayarea } from '../lib/playarea.fixture'
+import { makeGameData, type GameData } from './useGame'
 import { useGetGameEndingMessage } from './useGetGameEndingMessage'
 
-/** Just what the hook reads: the mode, the ending, the winner and whether I
- *  solved. */
+const ME = { id: 'u1', username: 'me', color: 'red' }
+const MOTH = { id: 'u2', username: 'moth', color: 'blue' }
+
+/** A game with the ending the hook reads: who won it, and how I came out. */
 function gdWith(o: {
   mode?: 'coop' | 'compete'
-  gameEnding: Pick<GameEnding, 'outcome' | 'reason'> | null
-  winnerName?: string
-  hasSolved?: boolean
+  ending: CommonPlayarea['ending']
+  outcome?: EndOutcome | null
+  myOutcome?: EndOutcome | null
 }): GameData {
-  return {
-    mode: o.mode ?? 'coop',
-    gameEnding: o.gameEnding,
-    winner: o.winnerName === undefined ? null : { username: o.winnerName },
-    standing: { hasSolved: o.hasSolved ?? false },
-  } as unknown as GameData
+  return makeGameData(
+    makePlayarea({
+      mode: o.mode ?? 'coop',
+      players: [{ ...ME, outcome: o.myOutcome ?? null }, MOTH],
+      ending: o.ending,
+      outcome: o.outcome ?? (o.ending === null ? null : 'won'),
+    }),
+    'u1',
+  )
 }
 
-const WON: Pick<GameEnding, 'outcome' | 'reason'> = { outcome: 'won', reason: 'reached_goal' }
+const WON = { reason: 'reached_goal' as const, detail: 'solved', by: 'u1', winner: 'u1' }
 
 describe('useGetGameEndingMessage', () => {
   it('is null while the game is played', () => {
-    const { result } = renderHook(() => useGetGameEndingMessage(gdWith({ gameEnding: null })))
+    const { result } = renderHook(() => useGetGameEndingMessage(gdWith({ ending: null })))
     expect(result.current).toBeNull()
   })
 
   it('builds the message for the ending', () => {
     const { result } = renderHook(() =>
-      useGetGameEndingMessage(gdWith({ gameEnding: WON, hasSolved: true })),
+      useGetGameEndingMessage(gdWith({ ending: WON, myOutcome: 'won' })),
     )
     expect(result.current).toEqual({ pillText: 'Won: all found', infoColText: 'You won!', outcome: 'won' })
   })
 
   it('names compete\'s winner when it is not me', () => {
     const { result } = renderHook(() =>
-      useGetGameEndingMessage(gdWith({ mode: 'compete', gameEnding: WON, winnerName: 'moth' })),
+      useGetGameEndingMessage(gdWith({ mode: 'compete', ending: { ...WON, by: 'u2', winner: 'u2' }, myOutcome: 'lost' })),
     )
     expect(result.current?.infoColText).toBe('moth won')
   })
 
   it('keeps its identity across a reload that rebuilds the ending object', () => {
-    // The page rebuilds `gameEnding` on every reload; the message must not,
-    // or the effect that shows it would retract and re-show the pill.
+    // The blob is rebuilt on every reload; the message must not be, or the
+    // effect that shows it would retract and re-show the pill.
     const { result, rerender } = renderHook((gd: GameData) => useGetGameEndingMessage(gd), {
-      initialProps: gdWith({ gameEnding: WON }),
+      initialProps: gdWith({ ending: WON, myOutcome: 'won' }),
     })
     const first = result.current
-    rerender(gdWith({ gameEnding: { ...WON } }))
+    rerender(gdWith({ ending: { ...WON }, myOutcome: 'won' }))
     expect(result.current).toBe(first)
   })
 
   it('is a new message when the ending changes', () => {
     const { result, rerender } = renderHook((gd: GameData) => useGetGameEndingMessage(gd), {
-      initialProps: gdWith({ gameEnding: WON }),
+      initialProps: gdWith({ ending: WON, myOutcome: 'won' }),
     })
     const first = result.current
-    rerender(gdWith({ gameEnding: { outcome: 'lost', reason: 'timeout' } }))
+    rerender(gdWith({
+      ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+      outcome: 'lost',
+      myOutcome: 'lost',
+    }))
     expect(result.current).not.toBe(first)
     expect(result.current?.pillText).toBe('Lost: out of time')
   })
 })
+

@@ -7,23 +7,32 @@
 import { describe, expect, it } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import type { PlayerEndedReason } from '@/common/terminal/gameEnding'
-import type { GameData } from './useGame'
+import { makePlayarea } from '../lib/playarea.fixture'
+import { makeGameData, type GameData } from './useGame'
 import { useGetPlayerEndingMessage } from './useGetPlayerEndingMessage'
 
-/** A compete game with my ending overridable; only what the hook reads. */
+/** A compete game with my ending overridable. */
 function gdWith(over: {
-  isGameEnded?: boolean
+  ended?: boolean
   reason?: PlayerEndedReason
 }): GameData {
-  const playerEnding = over.reason
-    ? { at: '2026-09-29T00:00:00Z', reason: over.reason, reasonDetail: over.reason }
-    : null
-  // The database writes the outcome in the same update as the reason.
-  const outcome = over.reason ? 'lost' : null
-  return {
-    isGameEnded: over.isGameEnded ?? false,
-    me: { playerEnding, outcome },
-  } as unknown as GameData
+  return makeGameData(
+    makePlayarea({
+      mode: 'compete',
+      players: [
+        {
+          id: 'u1', username: 'me', color: 'red',
+          ending: over.reason ? { at: '2026-09-29T00:00:00Z', reason: over.reason, detail: over.reason } : null,
+          // The database writes the outcome in the same update as the reason.
+          outcome: over.reason ? 'lost' : null,
+        },
+        { id: 'u2', username: 'moth', color: 'blue' },
+      ],
+      ending: over.ended ? { reason: 'stopped', detail: 'stopped', by: 'u2', winner: null } : null,
+      outcome: over.ended ? 'neutral' : null,
+    }),
+    'u1',
+  )
 }
 
 function messageFor(gd: GameData) {
@@ -40,7 +49,7 @@ describe('useGetPlayerEndingMessage', () => {
   })
 
   it('is null once the game has ended, when the game ending replaces it', () => {
-    expect(messageFor(gdWith({ isGameEnded: true, reason: 'conceded' }))).toBeNull()
+    expect(messageFor(gdWith({ ended: true, reason: 'conceded' }))).toBeNull()
   })
 
   it('keeps its identity while my ending holds', () => {

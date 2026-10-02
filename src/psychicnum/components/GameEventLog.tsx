@@ -1,7 +1,6 @@
 // cs-blessed-psychicnum
 
 import { cls } from '@/common/utils/cls'
-import { memberById } from '@/common/members/memberList'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import {
   EventLog,
@@ -13,15 +12,15 @@ import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import { eventToOutcome } from '../lib/answer'
 import type { Member } from '@/common/members/member'
-import type { EventRow } from '../hooks/useGame'
+import type { PsychicnumEvent } from '../hooks/useGame'
 import type { HistoryView } from '../hooks/useHistoryView'
 import styles from './GameEventLog.module.css'
 
 type Props = {
-  // Every turn the viewer can see. Coop: the whole shared game. Compete: the
-  // viewer's own during play, and (once the game has ended, when RLS opens)
-  // everyone's.
-  events: EventRow[]
+  // Every turn the viewer can see (`gd.events`). Coop: the whole shared game.
+  // Compete: the viewer's own during play, and everyone's once the game has
+  // ended.
+  events: PsychicnumEvent[]
   players: Member[]
   myId: string
   mode: 'coop' | 'compete'
@@ -39,8 +38,8 @@ type Props = {
  *   - a **hint** (a clue) → one cell spanning both, "Hint: <clue>".
  *
  * Whose turns show is the shared `useEventLogPlayerPicker`'s: "Team" or "All"
- * plus each player. In compete an opponent's rows are hidden by RLS until the
- * game ends, which is what the picker's empty text says.
+ * plus each player. In compete an opponent's rows are withheld until the game
+ * ends (`useGame`'s seat rule), which is what the picker's empty text says.
  */
 export function GameEventLog({
   events,
@@ -50,7 +49,7 @@ export function GameEventLog({
   isGameEnded,
   historyView,
 }: Props) {
-  const eventLogPicker = useEventLogPlayerPicker<EventRow>({
+  const eventLogPicker = useEventLogPlayerPicker<PsychicnumEvent>({
     players,
     myId: myId,
     mode,
@@ -59,13 +58,10 @@ export function GameEventLog({
   })
   const shownEvents = eventLogPicker.filter(events)
 
-  function drawActorCell(userId: string) {
-    return <EventLogActor actor={memberById(players, userId)} />
-  }
 
   // The NUMBER counts 1, 2, 3 under whatever filter is on; the handle is the
   // row's own id, so the board opens the event the number is beside.
-  function drawTurnNumber(event: EventRow, index: number) {
+  function drawTurnNumber(event: PsychicnumEvent, index: number) {
     return (
       <EventLogNumber
         n={index + 1}
@@ -76,9 +72,9 @@ export function GameEventLog({
   }
 
   // The verdict word is the log's own; its color is `lib/answer.ts`'s.
-  function makeResultText(event: EventRow): string {
+  function makeResultText(event: PsychicnumEvent): string {
     if (event.kind === 'spoiler') return 'Spoiler'
-    else if (event.is_correct) return 'Correct'
+    else if (event.correct) return 'Correct'
     else return 'Wrong'
   }
 
@@ -95,7 +91,7 @@ export function GameEventLog({
               <td colSpan={2} className={cls(gameEventLog.main, styles.hint)}>
                 <span className={gameEventLog.muted}>Hint:</span> {event.word}
               </td>
-              {drawActorCell(event.user_id)}
+              <EventLogActor actor={event.by} />
             </tr>
           )
         }
@@ -109,7 +105,7 @@ export function GameEventLog({
               <DefinableWord word={event.word} />
             </td>
             <td className={gameEventLog.main}>{makeResultText(event)}</td>
-            {drawActorCell(event.user_id)}
+            <EventLogActor actor={event.by} />
           </tr>
         )
       })}

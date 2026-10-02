@@ -11,32 +11,27 @@ import { renderHook } from '@testing-library/react'
 import { actionFixture } from '@/common/actions/action.fixture'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
-import type { GameData } from './useGame'
+import { CONCEDED, makePlayarea } from '../lib/playarea.fixture'
+import { makeGameData, type GameData } from './useGame'
 import { useActionsAndMenu } from './useActionsAndMenu'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
-/** A game in play, with where I stand overridable; only what the actions read. */
-function gdWith(over: { isGameEnded?: boolean; isStillPlaying?: boolean; isCompete?: boolean } = {}): GameData {
-  const isGameEnded = over.isGameEnded ?? false
-  return {
-    gameId: 'g1',
-    mode: over.isCompete ? 'compete' : 'coop',
-    isCompete: over.isCompete ?? false,
-    title: 'A game',
-    setup: {},
-    isGameEnded,
-    board: { words: [] },
-    events: [],
-    players: [],
-    playersById: {},
-    readout: { requiredSecretsCount: 3 },
-    standing: {
-      isPlayerEnded: false,
-      isStillPlaying: over.isStillPlaying ?? !isGameEnded,
-      hasSolved: false,
-    },
-  } as unknown as GameData
+const ME = { id: 'u1', username: 'me', color: 'red' }
+const MOTH = { id: 'u2', username: 'moth', color: 'blue' }
+const STOPPED = { reason: 'stopped' as const, detail: 'stopped', by: 'u1', winner: null }
+
+/** A game in play, with the facts the actions read overridable. */
+function gdWith(over: { ended?: boolean; outOfTheRace?: boolean } = {}): GameData {
+  return makeGameData(
+    makePlayarea({
+      mode: over.outOfTheRace ? 'compete' : 'coop',
+      players: over.outOfTheRace ? [{ ...ME, ...CONCEDED }, MOTH] : [ME],
+      ending: over.ended ? STOPPED : null,
+      outcome: over.ended ? 'neutral' : null,
+    }),
+    'u1',
+  )
 }
 
 /** Mount the hook with a fake menu, and hand back what it published. */
@@ -53,10 +48,8 @@ function setup(gd: GameData) {
       gd,
       myId: 'u1',
       localFeedbackSlot: createFeedbackSlot('local'),
-      clubHandle: 'club',
       goToFollowUpGame: vi.fn(),
       menu,
-      brand: 'PsychicNum',
     }),
   )
   const sections = (setGameSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
@@ -94,7 +87,7 @@ describe('useActionsAndMenu — the hint and the spoiler', () => {
   })
 
   it('gray while the game runs on without me', () => {
-    const { rows } = setup(gdWith({ isCompete: true, isStillPlaying: false }))
+    const { rows } = setup(gdWith({ outOfTheRace: true }))
     expect(rows.get('act-hint')?.disabled).toBe(true)
     expect(rows.get('act-spoiler')?.disabled).toBe(true)
   })
@@ -102,7 +95,7 @@ describe('useActionsAndMenu — the hint and the spoiler', () => {
   it('go once the game has ended', () => {
     // Still in the published sections: a hidden row drops out when the menu
     // draws, not before.
-    const { rows } = setup(gdWith({ isGameEnded: true }))
+    const { rows } = setup(gdWith({ ended: true }))
     expect(rows.get('act-hint')?.hidden).toBe(true)
     expect(rows.get('act-spoiler')?.hidden).toBe(true)
   })
@@ -110,7 +103,7 @@ describe('useActionsAndMenu — the hint and the spoiler', () => {
 
 describe('useActionsAndMenu — the reveal', () => {
   it('starts with the secrets hidden', () => {
-    const { result } = setup(gdWith({ isGameEnded: true }))
+    const { result } = setup(gdWith({ ended: true }))
     expect(result.current.secretsShown).toBe(false)
   })
 })

@@ -17,10 +17,10 @@ import type { GameData } from './useGame'
  * outcome strings, not on `gd.me`, which is rebuilt on every reload.
  */
 export function useGetPlayerEndingMessage(gd: GameData): TerminalMessage | null {
-  const reason = gd.isGameEnded ? null : (gd.me?.playerEnding?.reason ?? null)
+  const reason = gd.ended ? null : (gd.me.ending?.reason ?? null)
   // Written in the same update as the reason (`common._set_player_ended`,
   // `common._concede`).
-  const outcome = gd.me?.outcome ?? null
+  const outcome = gd.me.outcome
   return useMemo(
     () =>
       reason === null || outcome === null

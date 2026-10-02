@@ -1,9 +1,11 @@
 // cs-blessed-psychicnum
 
-import type { GameData } from '../hooks/useGame'
+import type { PsychicnumPlayer } from '../hooks/useGame'
 
 /**
- * psychicnum's core live-state readout — "1/3 found · 4/7 guesses used".
+ * psychicnum's core live-state readout — "1/3 found · 4/7 guesses used" — for
+ * one player: the viewer's own counts in compete, the team's in coop, as the
+ * player carries them.
  *
  * Its own component because it's rendered TWICE, in two places that must never
  * drift: the info column's `.infoState` line (desktop) and the mobile
@@ -14,15 +16,15 @@ import type { GameData } from '../hooks/useGame'
  * The counters are bold and the labels aren't: the numbers are what's read at
  * a glance.
  */
-export function StateLine({ readout }: { readout: GameData['readout'] }) {
+export function StateLine({ player }: { player: PsychicnumPlayer }) {
   return (
     <>
       <strong>
-        {readout.foundSecretsCount}/{readout.requiredSecretsCount}
+        {player.foundSecretsCount}/{player.requiredSecretsCount}
       </strong>{' '}
       found ·{' '}
       <strong>
-        {readout.guessesUsed}/{readout.maxGuesses}
+        {player.guessesUsed}/{player.maxGuesses}
       </strong>{' '}
       guesses used
     </>

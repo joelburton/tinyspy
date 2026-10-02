@@ -24,50 +24,22 @@ import { useShowOppsFoundMessages } from '../hooks/useShowOppsFoundMessages'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
-import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { Loading } from '@/common/loading/Loading'
-import { NoSuchGamePage } from '@/common/game-page/NoSuchGamePage'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 
 /**
- * The three gates in front of psychicnum's play surface: the read is out, the
- * read failed, or there is no such game. Everything below starts with the game
- * data in hand, which is why the surface never writes `gd?.`.
- *
- * The game's menu rows and its `+` arrive WITH the game, because the surface
- * that binds them mounts with it — a row for a game not yet read could only
- * gray itself or lie.
+ * The manifest's component: builds `gd` from the blob the page was handed and
+ * draws the surface.
  */
 export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
-  const { gd, loading, failure } = useGame(ctx)
-
-  if (loading) return <Loading />
-  // A failed read is NOT a missing game. Both leave `gd` null, and saying
-  // "there's no game here" about a dead connection is a confident wrong answer
-  // — this is what remains once the fault modal is dismissed.
-  if (failure) return <EnvelopeErrorPage envelope={failure} />
-  // Reaching this means the COMMON row exists — `GamePageGate` and
-  // `GamePageLoader` each checked — and the psychicnum one does not: a torn
-  // write, or a game deleted while somebody had the board open. `detail` goes
-  // to the console, never to the page.
-  if (!gd) {
-    return (
-      <NoSuchGamePage
-        detail={`rows=0 view=psychicnum.games_state game=${ctx.cg.id}`}
-      />
-    )
-  }
-
+  const { gd } = useGame(ctx)
   return (
     <PlayArea
       gd={gd}
       auth={ctx.auth}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
-      clubHandle={ctx.cg.club_handle}
       goToFollowUpGame={ctx.goToFollowUpGame}
       menu={ctx.menu}
-      brand={ctx.manifest.name}
     />
   )
 }
@@ -76,10 +48,7 @@ type PlayAreaProps = Pick<
   PlayAreaLoaderProps,
   'auth' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
 > & {
-  // The game data. Non-null by construction — the loader holds the gates.
   gd: GameData
-  clubHandle: string
-  brand: string
 }
 
 /**
@@ -94,23 +63,21 @@ type PlayAreaProps = Pick<
  * split: green means "a secret was found" in both modes, so nothing here
  * teaches a compete-only color.
  *
- * Above it, `<GamePage>` owns members, the timer, the ending, pause and chat,
- * and unmounts this surface on pause — every piece of state below goes with it.
+ * Above it, `<GamePage>` owns members, the timer, pause and chat, and unmounts
+ * this surface on pause — every piece of state below goes with it.
  */
 function PlayArea({
   gd,
   auth,
   globalFeedbackSlot,
-  clubHandle,
   goToFollowUpGame,
   menu,
-  brand,
 }: PlayAreaProps) {
   // ─── Page hooks ────────────────────────────────────────
   // What this surface IS, before anything this game knows: where Tab may go,
   // where the info column sits on a phone, and the two things that fire at a
   // moment rather than describing a state — the win's confetti and the frame's
-  // flash when the turn becomes mine.
+  // flash (and the bell) when the turn becomes mine.
 
   // Tab isn't used; an empty ring keeps it from reaching browser chrome.
   useTabRing([])
@@ -121,12 +88,10 @@ function PlayArea({
 
   // Confetti the moment the win is MINE, as the server ranked it. It is shown
   // only when it happens.
-  // SPECTATING: a club member watching has no outcome of their own, so gets
-  // none.
-  const celebration = useCelebration(gd.me?.outcome === 'won')
+  const celebration = useCelebration(gd.me.outcome === 'won')
 
-  // The board frame flashes the moment the move becomes mine.
-  const turnFlash = useTurnStartFlash(gd.standing.isMyTurn)
+  // The board frame flashes and the bell rings the moment the move becomes mine.
+  const turnFlash = useTurnStartFlash(gd.me.onTurn)
 
   // ─── The local slot, and what stands in it ─────────────
 
@@ -145,8 +110,8 @@ function PlayArea({
   // A teammate holds the move (turn-order coop; never in a free-for-all).
   useShowWaitingMessage({
     slot: localFeedbackSlot,
-    isWaiting: gd.standing.isWaitingForTurn,
-    holder: gd.turnHolder,
+    isWaiting: gd.me.waitingForTurn,
+    holder: gd.turns?.holder ?? null,
   })
 
   // ─── What a PEER did, in the header slot ───────────────
@@ -156,13 +121,13 @@ function PlayArea({
   // slot's and the log's, so they're skipped; in compete the log holds only my
   // own rows until the end, so there is nothing to narrate.
   useShowPeerFeedback({
-    enabled: !gd.isCompete,
+    enabled: gd.coop,
     items: gd.events,
     keyOf: (event) => String(event.id),
     messageFor: (event) => {
-      if (event.user_id === auth.user.id) return null
+      if (event.by === gd.me) return null
       const { outcome, text } = peerAnswerMessage(event)
-      return FeedbackMessage.peer(gd.playersById[event.user_id], outcome, text)
+      return FeedbackMessage.peer(event.by, outcome, text)
     },
     globalFeedbackSlot,
   })
@@ -172,7 +137,7 @@ function PlayArea({
 
   // ─── The turn-history view ─────────────────────────────
   // Which past turn, if any, is open on the board, and that turn replayed.
-  const historyView = useHistoryView(gd, auth.user.id)
+  const historyView = useHistoryView(gd)
 
   // ─── The commands, and the menu that lists them ────────
   // Every command this game offers: the info column's action row places them,
@@ -181,18 +146,16 @@ function PlayArea({
     gd,
     myId: auth.user.id,
     localFeedbackSlot,
-    clubHandle,
     goToFollowUpGame,
     menu,
-    brand,
   })
 
   // ─── Render ────────────────────────────────────────────
 
   // The live board, with the secrets added while I have them revealed.
   const liveTileResults = secretsShown
-    ? addRevealedSecrets(gd.board.tileResults, gd.secrets ?? [])
-    : gd.board.tileResults
+    ? addRevealedSecrets(gd.me.board.tileResults, gd.puzzle.secrets ?? [])
+    : gd.me.board.tileResults
 
   // The ending that applies to me: the game's once it has ended, else mine.
   const endingMessage = gameEndingMessage ?? playerEndingMessage
@@ -225,7 +188,7 @@ function PlayArea({
       {celebration.isOpen && (
         <CelebrationBlockingModal
           title="You win! 🎉"
-          body={gd.isCompete
+          body={gd.compete
             ? 'You found all three first.'
             : 'All three secret words found.'}
           onClose={celebration.close}

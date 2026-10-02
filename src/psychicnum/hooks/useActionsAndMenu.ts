@@ -94,17 +94,13 @@ export function useActionsAndMenu({
   gd,
   myId,
   localFeedbackSlot,
-  clubHandle,
   goToFollowUpGame,
   menu,
-  brand,
 }: {
   gd: GameData
   myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
-  clubHandle: string
-  brand: string
 } & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): {
   actions: PsychicnumActions
   secretsShown: boolean
@@ -117,10 +113,12 @@ export function useActionsAndMenu({
   // again.
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
-    gameId: gd.gameId,
-    isTerminal: gd.isGameEnded,
+    gameId: gd.id,
+    isTerminal: gd.ended,
     mode: gd.mode,
-    isLocallyTerminal: gd.standing.isPlayerEnded,
+    // Out of the race while the game goes on; a conceder, a solver, a player
+    // whose budget is spent.
+    isLocallyTerminal: !gd.me.stillPlaying && !gd.ended,
     localFeedbackSlot,
   })
 
@@ -130,7 +128,7 @@ export function useActionsAndMenu({
   // means one thing only: the whole solution at game-over, which is local FE
   // state and no RPC at all.
   async function getHint() {
-    const res = await runRpc<HintAnswer>(db.rpc('request_hint', { p_game_id: gd.gameId }))
+    const res = await runRpc<HintAnswer>(db.rpc('request_hint', { p_game_id: gd.id }))
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
@@ -148,7 +146,7 @@ export function useActionsAndMenu({
   }
 
   async function getSpoiler() {
-    const res = await runRpc<SpoilerAnswer>(db.rpc('request_spoiler', { p_game_id: gd.gameId }))
+    const res = await runRpc<SpoilerAnswer>(db.rpc('request_spoiler', { p_game_id: gd.id }))
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
@@ -170,12 +168,12 @@ export function useActionsAndMenu({
     // Three states, not two: GONE once the game is over (there is no guess left
     // to nudge), gray while the game is live and you are out of guesses, live
     // otherwise. The in-flight beat is `pending`'s to gray, not this one's.
-    describe: () => (gd.isGameEnded ? 'hidden' : gd.standing.isStillPlaying ? 'active' : 'disabled'),
+    describe: () => (gd.ended ? 'hidden' : gd.me.stillPlaying ? 'active' : 'disabled'),
     run: getHint,
   })
   const actSpoiler = useBindAction('act-spoiler', {
     // Same three states as the hint above.
-    describe: () => (gd.isGameEnded ? 'hidden' : gd.standing.isStillPlaying ? 'active' : 'disabled'),
+    describe: () => (gd.ended ? 'hidden' : gd.me.stillPlaying ? 'active' : 'disabled'),
     run: getSpoiler,
   })
 
@@ -189,7 +187,7 @@ export function useActionsAndMenu({
   // same control hides them again. The secrets themselves are on every client
   // once the game has ended, so this is purely which tiles go green.
   //
-  // `impliedBy: hasSolved` is the exception: finding all three IS the win
+  // `impliedBy: me.solved` is the exception: finding all three IS the win
   // here, and a found secret's tile is already green — so a solver is looking
   // at the answer key and showing it adds nothing. MY three, not the game's
   // verdict: compete's loser found fewer.
@@ -197,7 +195,7 @@ export function useActionsAndMenu({
     revealed: secretsShown,
     toggle: toggleSecrets,
     impliedBySolve,
-  } = useSolutionReveal({ impliedBy: gd.standing.hasSolved })
+  } = useSolutionReveal({ impliedBy: gd.me.solved })
 
   // Show the three secrets, or hide them again — nothing is written and no
   // peer is affected. Both faces come from `describeReveal`, which is where the
@@ -208,8 +206,8 @@ export function useActionsAndMenu({
       // a player who dropped out cannot spoil a race that is still running. The
       // menu row and the Help list keep it all game, grayed, because they NAME
       // the glyph (docs/ui.md → the menu is the legend).
-      if (gd.standing.isStillPlaying && asker === 'button') return 'hidden'
-      return describeReveal({ noun: 'solution', revealed: secretsShown, impliedBySolve, isTerminal: gd.isGameEnded })
+      if (gd.me.stillPlaying && asker === 'button') return 'hidden'
+      return describeReveal({ noun: 'solution', revealed: secretsShown, impliedBySolve, isTerminal: gd.ended })
     },
     run: toggleSecrets,
   })
@@ -223,7 +221,7 @@ export function useActionsAndMenu({
   async function createNewGame() {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
-        p_club_handle: clubHandle,
+        p_club_handle: gd.club.handle,
         p_setup: gd.setup,
         p_player_user_ids: gd.players.map((player) => player.id),
         p_mode: gd.mode,
@@ -250,17 +248,17 @@ export function useActionsAndMenu({
   // straight through once the game has ended, and the shared run's single
   // flight is what stops a second press dealing a second game.
   const actNewGame = useBindAction('act-new-game', {
-    terminal: gd.isGameEnded,
+    terminal: gd.ended,
     // Reachable all game from the menu and `+` — NEW_GAME_CONFIRM is written
     // for that ("will be shelved, not lost", "Keep playing"). A BUTTON only at
     // the end, where "deal another" is what you came to the row for.
-    describe: (asker) => (asker === 'button' && !gd.isGameEnded ? 'hidden' : 'active'),
+    describe: (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
-  // Print builds its model from the live state at CLICK time (RLS already
-  // scoped the events to what I may see), so it works mid-game or at the end —
-  // and so the menu needn't rebuild when the board changes.
+  // Print builds its model from the live state at CLICK time (`gd.events` is
+  // already what I may see), so it works mid-game or at the end — and so the
+  // menu needn't rebuild when the board changes.
   const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
@@ -269,14 +267,14 @@ export function useActionsAndMenu({
       // the pure builder; see pdf/model.ts.
       printPsychicnumPdf(
         buildPsychicnumPrintModel({
-          brand,
+          brand: gd.brand,
           gameTitle: gd.title,
           date: new Date().toLocaleDateString(),
           mode: gd.mode,
-          isGameEnded: gd.isGameEnded,
-          words: gd.board.words,
+          isGameEnded: gd.ended,
+          words: gd.puzzle.words,
           events: gd.events,
-          requiredSecretsCount: gd.readout.requiredSecretsCount,
+          requiredSecretsCount: gd.me.requiredSecretsCount,
           players: gd.players,
           myId,
           setupRows: gd.setupRows,

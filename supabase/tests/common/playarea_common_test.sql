@@ -108,6 +108,7 @@ select is(
     'setup',    '{"timer": {"kind": "none"}}'::jsonb,
     'turns',    null,
     'ending',   null,
+    'ended',    false,
     'outcome',  null,
     'players',  jsonb_build_array(
       pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada', null),

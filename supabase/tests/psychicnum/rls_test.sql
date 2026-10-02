@@ -1,23 +1,19 @@
 -- cs-blessed-psychicnum
 
 -- ============================================================
--- Test: RLS + the games_state view + per-mode guess visibility
+-- Test: RLS — a club member reads every row, an outsider none
 -- ============================================================
 --
 -- Three users: ada + bea play together (in different games); dee
 -- is signed in but outside their club.
 --
 -- What we check:
+--   - a club member sees every row of games, players and events, in both
+--     modes: what a racer may see of a rival mid-race is the hook's rule
+--     (src/psychicnum/hooks/useGame.ts), applied to the playarea blob, not
+--     a policy's — the client reads none of these tables
 --   - dee's SELECTs against any psychicnum table return zero rows
 --   - dee's mutating RPCs throw
---   - games_state hides secrets while playing, surfaces post-terminal
---   - **Mode-aware guess RLS**:
---       coop:    ada sees bea's guesses and vice versa
---       compete: each player sees ONLY their own guesses DURING
---                play, and everyone's once the game is terminal
---                (what the event log's "whose turns?" picker reads)
---   - players table is club-wide visible in BOTH modes (the
---     "opponents see my budget but not my guesses" property)
 --
 -- The column-level grant on `secrets` (storage-layer protection)
 -- is checked in create_game_test.sql; not duplicated here.
@@ -26,7 +22,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(19);
+select plan(12);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -36,7 +32,7 @@ create temp table club on commit drop as
 select pg_temp.create_club('test club', array['ada','bea']) as handle;
 
 -- ============================================================
--- COOP RLS — guesses are club-wide visible
+-- COOP — guesses are club-wide visible
 -- ============================================================
 
 create temp table coop_g on commit drop as
@@ -64,7 +60,7 @@ select is(
   'coop: ada sees her own guess (1 row)'
 );
 
--- (2) bea sees ada's guess too (coop = club-wide visibility)
+-- (2) bea sees ada's guess too (club-wide visibility)
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select count(*)::int from psychicnum.events where game_id = (select id from coop_g)),
@@ -81,8 +77,12 @@ select is(
 );
 
 -- ============================================================
--- COMPETE RLS — guesses are caller-only
+-- COMPETE — the same: every row, every club member
 -- ============================================================
+-- An opponent's guesses are their strategy, and a racer must not see them
+-- mid-race — but the client never reads this table. The playarea blob carries
+-- every row, and the hook withholds a rival's; that rule is pinned in
+-- src/psychicnum/hooks/useGame.test.ts.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table comp_g on commit drop as
@@ -106,56 +106,35 @@ select psychicnum.submit_guess((select id from comp_g), 'delta');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select psychicnum.submit_guess((select id from comp_g), 'echo');
 
--- (4) ada sees only HER own guess (1 row)
+-- (4) ada sees both rows
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
-  1,
-  'compete: ada sees only her own guess (1 of 2 rows visible)'
+  2,
+  'compete: ada sees both guesses — the policy is the club''s, the seat rule is the hook''s'
 );
 
--- (5) ada specifically does NOT see bea's guess
-select is(
-  (select count(*)::int from psychicnum.events
-    where game_id = (select id from comp_g)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  0,
-  'compete: ada sees zero rows for bea''s guesses'
-);
-
--- (6) bea sees only her own (1 row)
+-- (5) bea sees both too
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
-  1,
-  'compete: bea sees only her own guess'
-);
-
--- (7) ground-truth (postgres bypass) confirms both rows actually exist
-reset role;
-select is(
-  (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
   2,
-  'compete: both rows exist in storage (postgres bypass confirms)'
+  'compete: bea sees both guesses'
 );
 
 -- ============================================================
 -- Players table is club-wide visible in compete (budget strip)
 -- ============================================================
--- The "opponents see my remaining budget but not my guesses"
--- property requires that psychicnum.players stay club-wide
--- visible even in compete mode. Both modes share the same
--- players_select policy.
 
--- (8) ada sees both player rows including bea's
+-- (6) ada sees both player rows including bea's
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*)::int from psychicnum.players where game_id = (select id from comp_g)),
   2,
-  'compete: ada can see both player rows (opponent budget strip)'
+  'compete: ada can see both player rows'
 );
 
--- (9) bea sees both too
+-- (7) bea sees both too
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select count(*)::int from psychicnum.players where game_id = (select id from comp_g)),
@@ -184,83 +163,15 @@ select is(
   'dee cannot SELECT psychicnum.events (RLS)'
 );
 select is(
-  (select count(*)::int from psychicnum.games_state where game_id = (select id from comp_g)),
+  (select count(*)::int from common.games where id = (select id from comp_g)),
   0,
-  'dee cannot SELECT games_state (RLS through underlying table)'
+  'dee cannot SELECT the game''s common row, where the page blobs live (RLS)'
 );
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_g), 'alpha'),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
   'dee cannot call submit_guess (_require_game_player gate)'
-);
-
--- ============================================================
--- Compete guesses OPEN at terminal
--- ============================================================
--- The during-play gate (tests 4-6) is the real rule: an
--- opponent's guesses are their strategy. Once the game has ENDED
--- there's nothing left to protect, and the event log's "whose
--- turns?" picker exists precisely to read the other player's game
--- back — so events_select carries an `or cg.ended_at is not null` arm
--- (2026-08-02, matching stackdown / connections / waffle).
---
--- Deliberately LAST: ending comp_g would change what the earlier
--- during-play assertions mean.
-
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select psychicnum.stop_game((select id from comp_g));
-
--- (15) ada now sees BOTH guesses — hers and bea's
-select is(
-  (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
-  2,
-  'compete: ada sees both guesses once the game is terminal'
-);
-
--- (16) and bea sees ada's, symmetrically
-select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  (select count(*)::int from psychicnum.events
-    where game_id = (select id from comp_g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  1,
-  'compete: bea sees ada''s guess once the game is terminal'
-);
-
--- (17) but a NON-member still sees nothing: the terminal arm
--- widens the MODE gate, not the club gate.
-select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-select is(
-  (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
-  0,
-  'compete: terminal does NOT open guesses to non-members'
-);
-
--- ============================================================
--- games_state.secrets gate
--- ============================================================
--- NULL during play (even for members); the real array after
--- terminal. End the coop_g game (ada finds all three secrets) and
--- check secrets surfaces for the OTHER member (bea), not just the
--- caller who ended it.
-
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  (select secrets from psychicnum.games_state where game_id = (select id from coop_g)),
-  null::text[],
-  'games_state.secrets is NULL while playing'
-);
-
-select psychicnum.submit_guess((select id from coop_g), 'alpha');
-select psychicnum.submit_guess((select id from coop_g), 'bravo');
-select psychicnum.submit_guess((select id from coop_g), 'charlie');
-
-select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  (select secrets from psychicnum.games_state where game_id = (select id from coop_g)),
-  array['alpha', 'bravo', 'charlie'],
-  'games_state.secrets surfaces to ANY club member once terminal'
 );
 
 -- ============================================================
