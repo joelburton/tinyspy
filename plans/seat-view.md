@@ -171,7 +171,7 @@ gd:                                       # the common part is every line not ma
   title
   setup
   setupRows                               # game
-  puzzle: {words, secrets}                # game; secrets null until the game ends
+  puzzle: {words, secrets}                # game; what the game is solved against (docs/naming.md → puzzle); secrets null until the game ends
   turns: {holder}                         # null: no turn order; holder null: nobody's turn now
   ending: {reason, detail, by, winner}    # null while playing; by is a player
   outcome                                 # null until the game ends

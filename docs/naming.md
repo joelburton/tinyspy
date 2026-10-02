@@ -156,29 +156,28 @@ concept is too thin to bother extracting.
 
 ### puzzle
 
-A *prewritten, replayable game source* — distinct from `board` (the
-per-game-instance copy of the puzzle's content, with any per-game state like a
-shuffled tileOrder). A puzzle exists ahead of time; players pick it from a list
-and `create_game` copies it into a fresh `board`.
+*What a game is solved against*, dealt and frozen when `create_game` runs:
+wordle's hidden word, psychicnum's board words with the three secrets among
+them, a crossword's grid. On the page it is `gd.puzzle`, with whatever is
+secret in it null until the game ends. It is not the players' doing (`events`,
+the players) and not the knobs they chose (`setup`); it is what the knobs
+produced.
 
-The split lets the source stay pristine across multiple plays (a club can replay
-yesterday's puzzle without contaminating it) and gives us a place to attach
-puzzle-source metadata (NYT puzzle number + date for connections; future
-Sunday-NYT-crossword constructor names).
+A **pregenerated puzzle** exists before any game: a row in `<game>.puzzles`,
+authored or built ahead by a generator and imported — connections, crosswords,
+stackdown. `create_game` takes a `puzzleId`, copies the row's content onto the
+game and keeps the id (`<game>.games.puzzle_id`), so the source stays pristine
+across replays and carries its own metadata (NYT puzzle number and date for
+connections). The setup form has a picker. (crosswords also takes an inline
+NYT-by-date source beside its library.) Prose says "pregenerated" only where
+the difference matters, and plain "puzzle" everywhere else.
 
-Two kinds of gametype shake out from this:
+Every other game's puzzle is made at `create_game` from the setup and the
+dictionary — a random draw from a word pool — and lives on the game's own row:
+spellingbee, codenamesduet, psychicnum, wordle, boggle. No `puzzles` table, no
+picker.
 
-- **Generated-board games** (spellingbee, codenamesduet, psychicnum, boggle):
-  each game gets a fresh board synthesized by `create_game` from random draws of
-  a word pool / random number. No puzzles, no `<game>.puzzles` table. The setup
-  form has no puzzle picker.
-- **Puzzle-based games** (connections, crosswords): puzzles exist as prewritten
-  rows in `<game>.puzzles`, imported from external archives. `create_game`
-  accepts a `puzzleId` and copies the chosen puzzle's content into the new
-  board. The setup form has a picker. (crosswords also supports an inline
-  NYT-by-date source alongside its curated library.)
-
-Per-gametype `puzzles` tables stay narrow (different shapes for Connections vs.
+Per-gametype `puzzles` tables stay narrow (different shapes for connections vs.
 crosswords) rather than collapsing into a common `puzzle` table with a generic
 `content jsonb`. Cross-cutting "which puzzles a club has played" lives on the
 per-game `<game>.games.puzzle_id` FK.
