@@ -6,8 +6,8 @@ import type { ClubMessage } from './useClubChat'
 import type { Member } from '../members/member'
 
 const members = [
-  { user_id: 'alice', username: 'alice', color: 'orange' },
-  { user_id: 'bob', username: 'bob', color: 'blue' },
+  { id: 'alice', username: 'alice', color: 'orange' },
+  { id: 'bob', username: 'bob', color: 'blue' },
 ] as Member[]
 
 function msg(user_id: string, sent_at: string, content = 'hi'): ClubMessage {

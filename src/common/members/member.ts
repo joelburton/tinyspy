@@ -32,7 +32,9 @@ import type { EndOutcome, PlayerEndedReason } from '../terminal/gameEnding'
  * rationale.
  */
 export type Member = {
-  user_id: string
+  // The account's id: `common.profiles.user_id`. Named `id` here because a
+  // player is a player, not a "user" — `gd.me.id`, `playersById[p.id]`.
+  id: string
   username: string
   // A palette NAME from `common.profiles.color` — 'red' … 'pink', never a
   // hex. `colorVarFor` resolves it to the fill variable, `borderVarFor` to

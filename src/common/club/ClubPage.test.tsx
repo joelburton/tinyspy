@@ -101,8 +101,8 @@ const authSession = { user: { id: 'ada' } } as unknown as Session
 
 const CLUB = { handle: 'trio', name: 'Trio', is_solo: false }
 const MEMBERS = [
-  { user_id: 'ada', username: 'ada', color: 'red' },
-  { user_id: 'bea', username: 'bea', color: 'blue' },
+  { id: 'ada', username: 'ada', color: 'red' },
+  { id: 'bea', username: 'bea', color: 'blue' },
 ]
 const ENROLLED = [
   { gametype: 'wordle_coop', default_setup: null },

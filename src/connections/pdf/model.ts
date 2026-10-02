@@ -79,7 +79,7 @@ export function buildConnectionsPrintModel(o: {
   // Tiles still on the viewer's board, in display order.
   remainingTiles: string[]
   guesses: EventRow[]
-  players: { user_id: string; username: string }[]
+  players: { id: string; username: string }[]
   myId: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
@@ -116,8 +116,8 @@ export function buildConnectionsPrintModel(o: {
   // only the bands THEY earned; everything else stays the plain tile grid
   // (in category order — their board's own shuffle isn't what the printout
   // is about). The full answer already prints once, on the viewer's track.
-  const rivalTrack = (p: { user_id: string; username: string }): PrintTrack => {
-    const guesses = o.guesses.filter((g) => g.user_id === p.user_id)
+  const rivalTrack = (p: { id: string; username: string }): PrintTrack => {
+    const guesses = o.guesses.filter((g) => g.user_id === p.id)
     const solved = new Set(
       guesses
         .filter((g) => g.matched && g.matched_category_rank != null)
@@ -140,7 +140,7 @@ export function buildConnectionsPrintModel(o: {
     tracks = [viewerTrack('Team', o.guesses, (g) => nameOf(g.user_id))]
   } else if (o.isTerminal) {
     tracks = o.players.map((p) =>
-      p.user_id === o.myId
+      p.id === o.myId
         ? viewerTrack(
             `${p.username} (you)`,
             o.guesses.filter((g) => g.user_id === o.myId),

@@ -21,8 +21,8 @@ import type { FeedbackMessage } from '../feedback/FeedbackMessage'
 type Stream = { messages: ClubMessage[]; loading: boolean }
 
 const MEMBERS: Member[] = [
-  { user_id: 'u-bea', username: 'bea', color: 'blue' },
-  { user_id: 'u-self', username: 'me', color: 'red' },
+  { id: 'u-bea', username: 'bea', color: 'blue' },
+  { id: 'u-self', username: 'me', color: 'red' },
 ]
 
 const row = (id: string, user_id: string, content: string): ClubMessage => ({

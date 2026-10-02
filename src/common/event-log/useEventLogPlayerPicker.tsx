@@ -79,13 +79,13 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
   const solo = players.length < 2
   const aggregate = solo ? null : mode === 'coop' ? TEAM : ALL
 
-  const viewerIsPlayer = players.some((p) => p.user_id === myId)
+  const viewerIsPlayer = players.some((p) => p.id === myId)
 
   // The aggregate is the default in coop — it IS the shared game. In compete
   // your own board is what you're looking at, so that's the default there
   // (unless the whole race happens on one board — see competeSharesOneGame).
   function defaultSelection(): string {
-    if (solo) return ordered[0]?.user_id ?? ''
+    if (solo) return ordered[0]?.id ?? ''
     if (mode === 'coop') return TEAM
     if (competeSharesOneGame) return ALL
     if (viewerIsPlayer) return myId
@@ -102,7 +102,7 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
   const [chosen, setChosen] = useState<string | null>(null)
   const offered = new Set<string>([
     ...(aggregate ? [aggregate] : []),
-    ...players.map((p) => p.user_id),
+    ...players.map((p) => p.id),
   ])
   const picked = chosen !== null && offered.has(chosen) ? chosen : fallback
 
@@ -122,7 +122,7 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
         ...(aggregate ? [{ value: aggregate, label: aggregate === TEAM ? 'Team' : 'All' }] : []),
         // Players carry their identity disc; the Team/All aggregate above
         // doesn't, so FilterSelect indents it to match.
-        ...ordered.map((p) => ({ value: p.user_id, label: p.username, dot: p.color })),
+        ...ordered.map((p) => ({ value: p.id, label: p.username, dot: p.color })),
       ]}
     />
   )

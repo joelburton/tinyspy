@@ -123,7 +123,7 @@ function makeCtx(
       updated_at: 't1',
       turns: { isTurnBased: turnHolderId !== null, turnHolderId },
       standing: {
-        isPlayer: players.some((p) => p.user_id === myId),
+        isPlayer: players.some((p) => p.id === myId),
         isConceded: false,
         isLocallyTerminal: false,
         isStillPlaying: true,

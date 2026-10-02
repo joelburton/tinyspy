@@ -58,9 +58,9 @@ export function OpponentStrip<P extends Member>({
       <div className={styles.entries}>
         <span className={styles.metricLabel}>{metricLabel}:</span>
         {ordered.map((p, i) => {
-          const isSelf = p.user_id === myId
+          const isSelf = p.id === myId
           return (
-            <span key={p.user_id} className={styles.entry}>
+            <span key={p.id} className={styles.entry}>
               {i > 0 && <span className={styles.sep}>·</span>}
               {/* Identity rides the DOT, not the name (docs/ui.md → Player
                   identity = a colored disc): the shared disc in the player's

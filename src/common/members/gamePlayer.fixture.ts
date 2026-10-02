@@ -13,13 +13,13 @@ import type { GamePlayer, Member } from './member'
  * `gp('u2', 'moth', 'blue', CONCEDED)`.
  */
 export function gp(
-  user_id: string,
+  id: string,
   username: string,
   color: string,
   over: Partial<Omit<GamePlayer, keyof Member>> = {},
 ): GamePlayer {
   return {
-    user_id,
+    id,
     username,
     color,
     player_ended_at: null,

@@ -42,7 +42,7 @@ export function whereIStand({
   // The manifest's `draftsOffTurn`.
   draftsOffTurn: boolean
 }): Standing {
-  const me = players.find((p) => p.user_id === myId)
+  const me = players.find((p) => p.id === myId)
   const isPlayer = me !== undefined
   const isConceded = me?.player_ended_reason === 'conceded'
   const isLocallyTerminal = (me?.player_ended_at ?? null) !== null

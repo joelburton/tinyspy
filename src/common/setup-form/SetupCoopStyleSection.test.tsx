@@ -20,8 +20,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { SetupCoopStyleSection } from './SetupCoopStyleSection'
 import type { Member } from '../members/member'
 
-const ada: Member = { user_id: 'ada', username: 'ada', color: 'red' }
-const bea: Member = { user_id: 'bea', username: 'bea', color: 'blue' }
+const ada: Member = { id: 'ada', username: 'ada', color: 'red' }
+const bea: Member = { id: 'bea', username: 'bea', color: 'blue' }
 
 describe('SetupCoopStyleSection', () => {
   it('renders nothing for compete', () => {
@@ -150,7 +150,7 @@ describe('SetupCoopStyleSection', () => {
       <SetupCoopStyleSection
         errors={{}}
         mode="coop"
-        players={[bea, { user_id: 'cade', username: 'cade', color: 'green' }]}
+        players={[bea, { id: 'cade', username: 'cade', color: 'green' }]}
         coopStyle="turns"
         firstTurnUserId="ada"
         onChange={onChange}

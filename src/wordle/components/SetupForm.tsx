@@ -32,7 +32,7 @@ export function SetupForm({
   const set = setValue as SetupSetter<WordleValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
-  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
+  const players = members.filter((m) => s.player_user_ids.has(m.id))
 
   // Disclosure summaries carry the current values so each section reads without
   // opening. Answer source 0 is the curated Wordle list — not a difficulty band

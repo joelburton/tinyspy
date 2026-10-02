@@ -37,10 +37,10 @@ export function PageHeaderPlayersStrip({ players, presentUserIds }: Props) {
     <div className={styles.strip}>
       {players.map((p) => {
         // No presence set → treat everyone as present (filled dot).
-        const present = presentUserIds ? presentUserIds.has(p.user_id) : true
+        const present = presentUserIds ? presentUserIds.has(p.id) : true
         return (
           <span
-            key={p.user_id}
+            key={p.id}
             className={styles.entry}
             // The styled hover bubble (TooltipHost), the same mechanism every
             // other hover text in the header uses — never the native `title`.

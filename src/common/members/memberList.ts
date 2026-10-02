@@ -22,27 +22,27 @@
  *
  * Returns a new array; does not mutate the input.
  */
-export function orderSelfFirst<T extends { user_id: string; username: string }>(
+export function orderSelfFirst<T extends { id: string; username: string }>(
   players: T[],
   myId: string,
 ): T[] {
   return [...players].sort((a, b) => {
-    if (a.user_id === myId) return -1
-    if (b.user_id === myId) return 1
+    if (a.id === myId) return -1
+    if (b.id === myId) return 1
     return a.username.localeCompare(b.username)
   })
 }
 
 /**
- * Find a member in a roster by user id — the "who is this `user_id`?" lookup
- * every game does to attribute a guess or a turn to its actor.
+ * Find a member in a roster by id — the "who is this?" lookup every game does
+ * to attribute a guess or a turn to its actor, from the `user_id` a row names.
  *
  * Returns `undefined` for an id the roster doesn't hold yet — it loads after the
  * page, or failed to load — so a caller rendering a name needs a fallback.
  */
-export function memberById<T extends { user_id: string }>(
+export function memberById<T extends { id: string }>(
   members: readonly T[],
-  userId: string,
+  id: string,
 ): T | undefined {
-  return members.find((m) => m.user_id === userId)
+  return members.find((m) => m.id === id)
 }

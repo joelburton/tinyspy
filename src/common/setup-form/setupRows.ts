@@ -97,7 +97,7 @@ export function makeCoopRows(
     },
   ]
   if (style === 'turns') {
-    const first = players.find((p) => p.user_id === setup.first_turn_user_id)
+    const first = players.find((p) => p.id === setup.first_turn_user_id)
     rows.push({
       key: 'first_turn_user_id',
       label: 'First turn',

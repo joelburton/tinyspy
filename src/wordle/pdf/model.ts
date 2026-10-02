@@ -76,7 +76,7 @@ export function buildWordlePrintModel(o: {
   wordLength: number
   // Every guess the viewer can see. Compete mid-game: only their own.
   guesses: EventRow[]
-  players: { user_id: string; username: string }[]
+  players: { id: string; username: string }[]
   myId: string
   // From the game row — the FE only holds it post-game.
   target: string | null
@@ -136,9 +136,9 @@ export function buildWordlePrintModel(o: {
   } else if (o.isGameEnded) {
     tracks = o.players.map((p) =>
       track(
-        p.user_id === o.myId ? `${p.username} (you)` : p.username,
-        o.guesses.filter((g) => g.user_id === p.user_id),
-        o.solvedBy.has(p.user_id),
+        p.id === o.myId ? `${p.username} (you)` : p.username,
+        o.guesses.filter((g) => g.user_id === p.id),
+        o.solvedBy.has(p.id),
       ),
     )
   } else {

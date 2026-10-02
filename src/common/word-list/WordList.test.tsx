@@ -23,8 +23,8 @@ import type { Member } from '../members/member'
 import { pickFilter } from '../lists/filterSelectHelpers'
 
 const PLAYERS: Member[] = [
-  { user_id: 'ada', username: 'ada', color: 'red' },
-  { user_id: 'bea', username: 'bea', color: 'blue' },
+  { id: 'ada', username: 'ada', color: 'red' },
+  { id: 'bea', username: 'bea', color: 'blue' },
 ]
 
 const ROWS: WordListRow[] = [

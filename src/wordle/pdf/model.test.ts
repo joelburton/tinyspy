@@ -23,7 +23,7 @@ const base = {
   mode: 'compete' as const, isGameEnded: false,
   maxGuesses: 6, wordLength: 5,
   guesses: [] as EventRow[],
-  players: [{ user_id: 'u1', username: 'me' }, { user_id: 'u2', username: 'moth' }],
+  players: [{ id: 'u1', username: 'me' }, { id: 'u2', username: 'moth' }],
   myId: 'u1',
   target: 'crane',
   answerShown: false,

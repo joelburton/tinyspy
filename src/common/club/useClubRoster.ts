@@ -65,7 +65,9 @@ export function useClubRoster(clubHandle: string): {
           setFailure(profilesRes)
           return
         }
-        setMembers(profilesRes.data as Member[])
+        setMembers(profilesRes.data.map(function readMember(prof): Member {
+          return { id: prof.user_id, username: prof.username, color: prof.color }
+        }))
       }
       load()
       return () => {

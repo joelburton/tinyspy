@@ -29,7 +29,7 @@ export function useShowOppsSolvedMessages(
     () => Object
       .values(gd.playersById)
       .filter((p) => p.solvedAt !== null)
-      .map((p) => p.user_id),
+      .map((p) => p.id),
     [gd.playersById],
   )
   useShowPeerFeedback({

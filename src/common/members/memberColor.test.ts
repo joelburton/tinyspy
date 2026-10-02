@@ -103,17 +103,17 @@ describe('defaultColorFor', () => {
 describe('colorByUserIdMap', () => {
   it('maps each member to their pre-resolved color var', () => {
     const m = colorByUserIdMap([
-      { user_id: 'ada', color: 'red', username: 'ada' },
-      { user_id: 'bea', color: 'blue', username: 'bea' },
+      { id: 'ada', color: 'red', username: 'ada' },
+      { id: 'bea', color: 'blue', username: 'bea' },
     ])
     expect(m.get('ada')).toBe('var(--member-red-fill-color)')
     expect(m.get('bea')).toBe('var(--member-blue-fill-color)')
   })
 
-  it('returns undefined for a user_id not in the roster', () => {
+  it('returns undefined for an id not in the roster', () => {
     // Callers should treat missing values as "no color known
     // yet" and skip the styling — the helper doesn't synthesize.
-    const m = colorByUserIdMap([{ user_id: 'ada', color: 'red' }])
+    const m = colorByUserIdMap([{ id: 'ada', color: 'red' }])
     expect(m.get('dee')).toBeUndefined()
   })
 
@@ -122,8 +122,8 @@ describe('colorByUserIdMap', () => {
     // member's entry should fall through to body-text — not
     // poison the rest of the map.
     const m = colorByUserIdMap([
-      { user_id: 'ada', color: 'red' },
-      { user_id: 'bea', color: 'chartreuse' },
+      { id: 'ada', color: 'red' },
+      { id: 'bea', color: 'chartreuse' },
     ])
     expect(m.get('ada')).toBe('var(--member-red-fill-color)')
     expect(m.get('bea')).toBe('var(--page-text-color)')

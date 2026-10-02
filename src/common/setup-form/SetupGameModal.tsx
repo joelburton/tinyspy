@@ -89,7 +89,7 @@ export function SetupGameModal({
   const initialValues = {
     ...(manifest.setupForm.defaults as Record<string, unknown>),
     ...((savedDefault ?? {}) as Record<string, unknown>),
-    player_user_ids: new Set(members.map((m) => m.user_id)),
+    player_user_ids: new Set(members.map((m) => m.id)),
   }
   const [busy, setBusy] = useState(false)
   // What is wrong, keyed by field name. The server contributes one entry per

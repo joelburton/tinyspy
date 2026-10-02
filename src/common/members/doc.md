@@ -2,7 +2,7 @@
 
 Who someone is, the color that identifies them, and the two marks that show it —
 a disc on its own, or a disc beside a name. Also the small operations every list
-of people needs: put the viewer first, and answer who a `user_id` belongs to.
+of people needs: put the viewer first, and answer who an id belongs to.
 
 ## Intro to area
 

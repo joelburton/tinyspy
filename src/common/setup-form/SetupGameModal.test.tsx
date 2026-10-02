@@ -29,8 +29,8 @@ import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
 const MESSAGE = 'The server said this exact thing.'
 
 const MEMBERS = [
-  { user_id: 'self', username: 'joel', color: 'red' },
-  { user_id: 'moth', username: 'moth', color: 'blue' },
+  { id: 'self', username: 'joel', color: 'red' },
+  { id: 'moth', username: 'moth', color: 'blue' },
 ] as Member[]
 
 /** Stands in for a game's setup body: the players picker every body renders,

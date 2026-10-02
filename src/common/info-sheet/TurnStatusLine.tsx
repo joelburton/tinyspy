@@ -65,5 +65,5 @@ export function TurnStatusLine({
   // possessive "name's turn" — we don't apostrophize usernames), an
   // ellipsis for the wait. Shares `waitingForText` with the below-board
   // whose-turn message, so the two surfaces can't word it differently.
-  return <p className={shared.infoState}>{waitingForText(players.find((p) => p.user_id === turnHolderId))}</p>
+  return <p className={shared.infoState}>{waitingForText(players.find((p) => p.id === turnHolderId))}</p>
 }

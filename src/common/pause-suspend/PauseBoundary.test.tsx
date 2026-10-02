@@ -34,12 +34,12 @@ import { actionFixture } from '../actions/action.fixture'
 import type { Member } from '../members/member'
 
 const ADA: Member = {
-  user_id: 'ada',
+  id: 'ada',
   username: 'ada',
   color: 'red',
 }
 const BEA: Member = {
-  user_id: 'bea',
+  id: 'bea',
   username: 'bea',
   color: 'blue',
 }

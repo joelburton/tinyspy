@@ -18,8 +18,8 @@ import { expectFieldContract } from './fieldContract'
 import type { Member } from '../members/member'
 
 const MEMBERS = [
-  { user_id: 'self', username: 'joel', color: 'red' },
-  { user_id: 'moth', username: 'moth', color: 'blue' },
+  { id: 'self', username: 'joel', color: 'red' },
+  { id: 'moth', username: 'moth', color: 'blue' },
 ] as Member[]
 
 function draw(value: Set<string>, onChange = vi.fn()) {

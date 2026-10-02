@@ -24,7 +24,7 @@ import type { GamePlayer, Member } from '../members/member'
  * paused defines both words and is the only place that does.
  */
 export function computePause(presentUserIds: Set<string>, players: Member[]): boolean {
-  return players.length > 0 && players.some((m) => !presentUserIds.has(m.user_id))
+  return players.length > 0 && players.some((m) => !presentUserIds.has(m.id))
 }
 
 /** The game page's pause, worked out: who it waits for, who paused it by
@@ -74,8 +74,8 @@ export function computeGamePause({
   )
   const manuallyPausedBy: Member | null = manuallyPausedById === null
     ? null
-    : players.find((m) => m.user_id === manuallyPausedById)
-      ?? { user_id: manuallyPausedById, username: 'Someone', color: '' }
+    : players.find((m) => m.id === manuallyPausedById)
+      ?? { id: manuallyPausedById, username: 'Someone', color: '' }
   const presencePaused = computePause(presentUserIds, stillPlayingHumanPlayers)
   const paused = (presencePaused || manuallyPausedBy !== null) && !isGameEnded
   return { stillPlayingHumanPlayers, manuallyPausedBy, paused }

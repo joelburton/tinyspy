@@ -228,9 +228,12 @@ const PROFILES = [
 ]
 // The hook merges the game_players per-player bits onto each profile.
 const GAME_PLAYERS = PLAYER_ROWS.map(function mergeProfile(row) {
-  const { turn_seat: _seat, ...bits } = row
-  const profile = PROFILES.find((p) => p.user_id === row.user_id)!
-  return { ...profile, ...bits }
+  const { turn_seat: _seat, user_id, ...bits } = row
+  const profile = PROFILES.find((p) => p.user_id === user_id)!
+  return {
+    id: user_id, username: profile.username, color: profile.color,
+    ai_member: profile.ai_member, ...bits,
+  }
 })
 
 beforeEach(() => {
@@ -554,7 +557,7 @@ describe('useCommonGame — paused unification', () => {
     // she is off it, so nobody is waiting on her. dai and zed-bot are off it
     // too, for the other two reasons — nothing is left for dai to do, and
     // zed-bot is never going to arrive.
-    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
+    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.id)).toEqual(['ada', 'bea'])
   })
 
   it('paused stays false when the only missing player is done playing', async () => {
@@ -575,10 +578,10 @@ describe('useCommonGame — paused unification', () => {
     act(() => firePresenceSync())
 
     expect(result.current.cg!.pause.paused).toBe(false)
-    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
+    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.id)).toEqual(['ada', 'bea'])
     // …and they are still a player of the game everywhere participation
     // counts — the strip, the standings, the end-of-game results.
-    expect(result.current.cg!.players.map((p) => p.user_id)).toContain('dai')
+    expect(result.current.cg!.players.map((p) => p.id)).toContain('dai')
   })
 
   it('a bot never pauses the game, and never draws an absent dot', async () => {
@@ -602,9 +605,9 @@ describe('useCommonGame — paused unification', () => {
     // present/absent dots from, which is why the filter is here rather than
     // inside computePause:
     // a bot on that list would be a permanently hollow ring.
-    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
+    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.id)).toEqual(['ada', 'bea'])
     // …and it is still a player of the game everywhere participation counts.
-    expect(result.current.cg!.players.map((p) => p.user_id)).toContain('zed-bot')
+    expect(result.current.cg!.players.map((p) => p.id)).toContain('zed-bot')
   })
 
   it('paused is true (manual) when sendManualPause fires, even with everyone present', async () => {
@@ -620,7 +623,7 @@ describe('useCommonGame — paused unification', () => {
 
     act(() => result.current.cg!.pause.sendManualPause())
     expect(result.current.cg!.pause.paused).toBe(true)
-    expect(result.current.cg!.pause.manuallyPausedBy?.user_id).toBe('ada')
+    expect(result.current.cg!.pause.manuallyPausedBy?.id).toBe('ada')
   })
 
   it('sendManualUnpause clears the manual pause', async () => {
@@ -750,7 +753,7 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
     )
 
     expect(result.current.cg!.pause.paused).toBe(true)
-    expect(result.current.cg!.pause.manuallyPausedBy?.user_id).toBe('bea')
+    expect(result.current.cg!.pause.manuallyPausedBy?.id).toBe('bea')
   })
 
   it('a manualPause from a non-player (spectator) still pauses, labeled "Someone"', async () => {
@@ -771,7 +774,7 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
     )
 
     expect(result.current.cg!.pause.paused).toBe(true)
-    expect(result.current.cg!.pause.manuallyPausedBy?.user_id).toBe('zork')
+    expect(result.current.cg!.pause.manuallyPausedBy?.id).toBe('zork')
     expect(result.current.cg!.pause.manuallyPausedBy?.username).toBe('Someone')
   })
 

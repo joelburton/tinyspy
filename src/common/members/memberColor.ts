@@ -95,7 +95,7 @@ export function defaultColorFor(username: string): string {
 }
 
 /**
- * Build a `user_id → color CSS var` lookup map from a member roster — for a
+ * Build a `member id → color CSS var` lookup map from a member roster — for a
  * surface painting many owned things at once, so it resolves the roster once
  * instead of per item.
  *
@@ -103,7 +103,7 @@ export function defaultColorFor(username: string): string {
  * the player owns, never their name.
  */
 export function colorByUserIdMap<
-  M extends { user_id: string; color: string },
+  M extends { id: string; color: string },
 >(members: readonly M[]): ReadonlyMap<string, string> {
-  return new Map(members.map((m) => [m.user_id, colorVarFor(m.color)]))
+  return new Map(members.map((m) => [m.id, colorVarFor(m.color)]))
 }

@@ -72,18 +72,18 @@ export function PlayersField({
     // <SetupSection> around it draws that.
     <Field label={label} group help={help} entryHelp={entryHelp} error={error} name={name} className={className}>
       {members.map((m) => {
-        const isSelf = m.user_id === myId
+        const isSelf = m.id === myId
         return (
           <label
-            key={m.user_id}
+            key={m.id}
             className={styles.row}
             title={isSelf ? "You're always a player" : undefined}
           >
             <input
-              name={`${name}.${m.user_id}`}
+              name={`${name}.${m.id}`}
               type="checkbox"
-              checked={value.has(m.user_id)}
-              onChange={() => toggle(m.user_id)}
+              checked={value.has(m.id)}
+              onChange={() => toggle(m.id)}
               disabled={disabled || isSelf}
             />
             <Dot color={m.color} className={styles.dot} />

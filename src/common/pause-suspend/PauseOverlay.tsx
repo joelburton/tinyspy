@@ -52,7 +52,7 @@ export function PauseOverlay({ pause, players, actions }: Props) {
   // Anyone on the list but off the channel is who we're waiting on, which is
   // what draws the roster. Whether the game is paused at all is not asked here — the
   // boundary decided that before rendering this.
-  const someoneMissing = players.some((m) => !pause.presentUserIds.has(m.user_id))
+  const someoneMissing = players.some((m) => !pause.presentUserIds.has(m.id))
 
   return (
     <div className={styles.overlay} role="status" aria-live="polite">
@@ -64,9 +64,9 @@ export function PauseOverlay({ pause, players, actions }: Props) {
                 its rows are left-aligned, so every dot shares one column. */}
             <ul className={styles.roster}>
               {players.map((m) => {
-                const present = pause.presentUserIds.has(m.user_id)
+                const present = pause.presentUserIds.has(m.id)
                 return (
-                  <li key={m.user_id} className={styles.rosterItem}>
+                  <li key={m.id} className={styles.rosterItem}>
                     {/* Present: their color disc. Absent: a hollow gray ring
                         (--dot-ring override) — "not here" reads at a glance. */}
                     <Dot

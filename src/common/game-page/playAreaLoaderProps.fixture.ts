@@ -100,7 +100,7 @@ export function makePlayAreaLoaderProps(facts: PlayAreaFacts = {}): PlayAreaLoad
       stillPlayingHumanPlayers: players.filter((p) => p.player_ended_at === null),
       pause: {
         paused: false,
-        presentUserIds: new Set(players.map((p) => p.user_id)),
+        presentUserIds: new Set(players.map((p) => p.id)),
         manuallyPausedBy: null,
         sendManualPause: vi.fn(),
         sendManualUnpause: vi.fn(),

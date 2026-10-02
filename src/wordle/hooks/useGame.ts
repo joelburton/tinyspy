@@ -147,7 +147,7 @@ export function makePlayersById(
     const playerStatus = p.player_status as unknown as WordlePlayerStatus
     const endedReason = playerStatus.player_ended_reason
     return {
-      user_id: p.user_id,
+      id: p.id,
       username: p.username,
       color: p.color,
       playerEnding:
@@ -165,7 +165,7 @@ export function makePlayersById(
       isTieBrokenByClock: playerStatus.tie_broken_by_clock,
     }
   })
-  return Object.fromEntries(players.map((p) => [p.user_id, p]))
+  return Object.fromEntries(players.map((p) => [p.id, p]))
 }
 
 /** The page's `game_status`, as wordle's builder writes it. */

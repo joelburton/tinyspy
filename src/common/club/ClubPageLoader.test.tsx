@@ -56,8 +56,8 @@ function loaded(): Envelope<ClubPageData> {
       result: 'loaded',
       club: { handle: 'trio', name: 'Trio', is_solo: false },
       members: [
-        { user_id: 'ada', username: 'ada', color: 'red' },
-        { user_id: 'bea', username: 'bea', color: 'blue' },
+        { id: 'ada', username: 'ada', color: 'red' },
+        { id: 'bea', username: 'bea', color: 'blue' },
       ],
       gametypes: [{ gametype: 'wordle_coop', default_setup: null }],
     },

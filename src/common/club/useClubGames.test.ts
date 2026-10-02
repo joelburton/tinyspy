@@ -39,8 +39,8 @@ const { mockReadRows, mockReportUnknown, realtime, REGISTRY, SYRUP } = vi.hoiste
     ...manifest('namer_coop', 'Namer'),
     labelFor: (
       row: { gameEnding: { endedByUserId: string | null } | null },
-      members: readonly { user_id: string; username: string }[],
-    ) => `ended by ${members.find((m) => m.user_id === row.gameEnding?.endedByUserId)?.username ?? 'nobody'}`,
+      members: readonly { id: string; username: string }[],
+    ) => `ended by ${members.find((m) => m.id === row.gameEnding?.endedByUserId)?.username ?? 'nobody'}`,
   }
   return {
     mockReadRows: vi.fn(),
@@ -133,7 +133,7 @@ function theReadFailed(): Envelope<never> {
   }
 }
 
-const MEMBERS: Member[] = [{ user_id: 'u-moth', username: 'moth', color: 'blue' }]
+const MEMBERS: Member[] = [{ id: 'u-moth', username: 'moth', color: 'blue' }]
 
 /** A slot that records what was shown into it. */
 function slot() {

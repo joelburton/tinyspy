@@ -32,8 +32,8 @@ const base = {
   events: [] as EventRow[],
   requiredSecretsCount: 3,
   players: [
-    { user_id: 'u1', username: 'me' },
-    { user_id: 'u2', username: 'moth' },
+    { id: 'u1', username: 'me' },
+    { id: 'u2', username: 'moth' },
   ],
   myId: 'u1',
   setupRows: [{ key: 'max_guesses', label: 'Guesses', value: '7' }],

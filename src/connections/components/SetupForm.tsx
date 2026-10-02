@@ -32,7 +32,7 @@ export function SetupForm({
   const set = setValue as SetupSetter<ConnectionsValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
-  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
+  const players = members.filter((m) => s.player_user_ids.has(m.id))
 
   return (
     <>
@@ -60,7 +60,7 @@ export function SetupForm({
       <SetupNextPuzzleSection
         errors={errors}
         brand={brand}
-        seenBy={players.map((p) => p.user_id)}
+        seenBy={players.map((p) => p.id)}
         // Both RPCs answer one way — a puzzle — and not finding one is a
         // not-ok (the archive is spent; no puzzle that day). The section has
         // no third state, so a not-ok returns null, and its message goes where

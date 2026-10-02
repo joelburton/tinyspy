@@ -59,7 +59,7 @@ export function BoardCol({
 
   const verdict = useVerdictMark({
     guesses: gd.boardEvents,
-    myId: gd.me?.user_id ?? null,
+    myId: gd.me?.id ?? null,
     localFeedbackSlot,
     isViewingHistory: historyView.isViewing,
   })

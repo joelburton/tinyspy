@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest'
 import { TurnStatusLine } from './TurnStatusLine'
 import type { Member } from '../members/member'
 
-const ada: Member = { user_id: 'ada', username: 'ada', color: 'red' }
-const bea: Member = { user_id: 'bea', username: 'bea', color: 'blue' }
+const ada: Member = { id: 'ada', username: 'ada', color: 'red' }
+const bea: Member = { id: 'bea', username: 'bea', color: 'blue' }
 const players = [ada, bea]
 
 describe('TurnStatusLine', () => {

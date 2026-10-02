@@ -37,7 +37,7 @@ export function useClubRoomPresence({
 
   // I'm a member of any club whose page I can load: `get_club_page` refuses
   // anyone else.
-  const selfUsername = members.find((m) => m.user_id === myId)!.username
+  const selfUsername = members.find((m) => m.id === myId)!.username
   useClubSetupPresence({
     clubHandle,
     myId,

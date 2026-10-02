@@ -80,7 +80,9 @@ it — so the same number on six players is a view of one row, not two truths.
 `gd.me.user_id` says "user" about a player. A player's id is `id`: `gd.me.id`,
 `p.id`, `playersById[p.id]`. This renames the common `Member.user_id` field,
 which chat, club and presence read too, so it is cross-cutting and lands as
-its own commit inside step 3; the database column stays `user_id`.
+its own commit inside step 3 (done 2026-10-01 across the common layer and the
+three converted games; the unconverted games pick it up as each converts); the
+database column stays `user_id`.
 
 `gd` and `cg` are **read-only, fully frozen**: the hook builds them and nothing
 else writes them, ever. A surface that wants a different value rebuilds its

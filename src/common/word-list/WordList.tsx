@@ -114,7 +114,7 @@ export function WordList({
   // few hundred; the player list itself is small enough that either would do.
   const colorByUser = useMemo(() => {
     const m = new Map<string, string>()
-    for (const p of players) m.set(p.user_id, p.color)
+    for (const p of players) m.set(p.id, p.color)
     return m
   }, [players])
 

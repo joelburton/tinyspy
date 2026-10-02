@@ -16,9 +16,9 @@ import { errorUnder } from '../fields/errorUnder'
 import type { Member } from '../members/member'
 
 const MEMBERS = [
-  { user_id: 'self', username: 'joel', color: 'red' },
-  { user_id: 'moth', username: 'moth', color: 'blue' },
-  { user_id: 'leah', username: 'leah', color: 'green' },
+  { id: 'self', username: 'joel', color: 'red' },
+  { id: 'moth', username: 'moth', color: 'blue' },
+  { id: 'leah', username: 'leah', color: 'green' },
 ] as Member[]
 
 function draw(

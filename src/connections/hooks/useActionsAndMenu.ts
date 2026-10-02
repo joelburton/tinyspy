@@ -145,7 +145,7 @@ export function useActionsAndMenu({
   // mode. The server picks the date (`next_puzzle_for_club`, reached by
   // omitting `puzzle_id`), the same answer the setup dialog previews.
   async function createNewGame() {
-    const playerUserIds = gd.players.map((p) => p.user_id)
+    const playerUserIds = gd.players.map((p) => p.id)
     // Ask first, so a spent archive is a NOTICE rather than a failed create.
     // The answer is advisory — `create_game` derives it again.
     const preview = await runRpc<PuzzleAnswer>(

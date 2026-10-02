@@ -42,7 +42,7 @@ export function SetupForm({
   // The checked subset of the roster, in `members` order — a control that must
   // name the ACTUAL players (the turn-order "First player" picker) lists only
   // who'll play, not the whole club.
-  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
+  const players = members.filter((m) => s.player_user_ids.has(m.id))
 
   // Disclosure summaries carry the current values, so a section reads without
   // being opened. Singular "Dictionary": this game draws from one band.

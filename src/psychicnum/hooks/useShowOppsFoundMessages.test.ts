@@ -9,7 +9,7 @@ import { useShowOppsFoundMessages } from './useShowOppsFoundMessages'
 /** A player with a count of secrets found; nothing else here is read. */
 function player(userId: string, username: string, found: number): PsychicnumPlayer {
   return {
-    user_id: userId, username, color: 'blue', playerEnding: null, outcome: null,
+    id: userId, username, color: 'blue', playerEnding: null, outcome: null,
     finalRanking: null, solvedAt: null, foundSecretsCount: found, guessesUsed: 0,
     foundAllSecrets: false,
   }

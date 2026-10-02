@@ -73,7 +73,7 @@ export function buildPsychicnumPrintModel(o: {
   events: EventRow[]
   // How many secrets the board hides.
   requiredSecretsCount: number
-  players: { user_id: string; username: string }[]
+  players: { id: string; username: string }[]
   myId: string
   setupRows: SetupRow[]
 }): PsychicnumPrintModel {
@@ -102,8 +102,8 @@ export function buildPsychicnumPrintModel(o: {
   } else if (o.isGameEnded) {
     tracks = o.players.map((p) =>
       track(
-        p.user_id === o.myId ? `${p.username} (you)` : p.username,
-        o.events.filter((event) => event.user_id === p.user_id),
+        p.id === o.myId ? `${p.username} (you)` : p.username,
+        o.events.filter((event) => event.user_id === p.id),
         () => p.username,
       ),
     )

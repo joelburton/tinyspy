@@ -107,9 +107,9 @@ export function SetupCoopStyleSection({
   useEffect(
     function seedFirstTurn() {
       if (!active || !isTurns) return
-      const stillSelected = players.some((p) => p.user_id === firstTurnUserId)
+      const stillSelected = players.some((p) => p.id === firstTurnUserId)
       if (!stillSelected) {
-        onChange({ coopStyle, firstTurnUserId: players[0].user_id })
+        onChange({ coopStyle, firstTurnUserId: players[0].id })
       }
     },
     [active, isTurns, players, firstTurnUserId, coopStyle, onChange],
@@ -117,7 +117,7 @@ export function SetupCoopStyleSection({
 
   if (!active) return null
 
-  const firstName = players.find((p) => p.user_id === firstTurnUserId)?.username
+  const firstName = players.find((p) => p.id === firstTurnUserId)?.username
   const summaryValue = isTurns
     ? `turns${firstName ? ` (${firstName} first)` : ''}`
     : 'free-for-all'
@@ -151,7 +151,7 @@ export function SetupCoopStyleSection({
           onChange={(id) => onChange({ coopStyle, firstTurnUserId: id })}
         >
           {players.map((p) => (
-            <option key={p.user_id} value={p.user_id}>
+            <option key={p.id} value={p.id}>
               {p.username}
             </option>
           ))}

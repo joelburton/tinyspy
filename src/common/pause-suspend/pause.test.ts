@@ -28,9 +28,9 @@ import type { Member } from '../members/member'
 // Color isn't relevant to computePause's logic, but the
 // Member shape requires it — pick distinct values so any
 // future test that does care can tell the personas apart.
-const ada: Member = { user_id: 'ada', username: 'ada', color: 'red' }
-const bea: Member = { user_id: 'bea', username: 'bea', color: 'blue' }
-const cade: Member = { user_id: 'cade', username: 'cade', color: 'green' }
+const ada: Member = { id: 'ada', username: 'ada', color: 'red' }
+const bea: Member = { id: 'bea', username: 'bea', color: 'blue' }
+const cade: Member = { id: 'cade', username: 'cade', color: 'green' }
 
 describe('computePause', () => {
   it('is false when every member is present', () => {

@@ -133,7 +133,7 @@ export function useActionsAndMenu({
       db.rpc('create_game', {
         p_club_handle: clubHandle,
         p_setup: gd.setup,
-        p_player_user_ids: gd.players.map((p) => p.user_id),
+        p_player_user_ids: gd.players.map((p) => p.id),
         p_mode: gd.mode,
       }),
     )
@@ -186,7 +186,7 @@ export function useActionsAndMenu({
           answerShown,
           solvedBy:
               new Set(gd.players.filter(
-                  (p) => p.solvedAt !== null).map((p) => p.user_id)),
+                  (p) => p.solvedAt !== null).map((p) => p.id)),
           setupRows: gd.setupRows,
         }),
       )

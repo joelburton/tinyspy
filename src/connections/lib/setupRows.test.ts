@@ -19,8 +19,8 @@ import type { ConnectionsSetup } from './setup'
 const SETUP: ConnectionsSetup = { timer: { kind: 'none' }, coop_style: 'free-for-all' }
 
 const PLAYERS: Member[] = [
-  { user_id: 'u1', username: 'ada', color: 'blue' },
-  { user_id: 'u2', username: 'bea', color: 'green' },
+  { id: 'u1', username: 'ada', color: 'blue' },
+  { id: 'u2', username: 'bea', color: 'green' },
 ]
 
 /** The setup row's value for one key, or undefined if the key produced no row. */

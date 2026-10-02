@@ -97,8 +97,8 @@ const PARTS_AS_ROWS: Record<string, string> = {
 }
 
 const PLAYERS: Member[] = [
-  { user_id: 'u1', username: 'ada', color: 'blue' },
-  { user_id: 'u2', username: 'bea', color: 'green' },
+  { id: 'u1', username: 'ada', color: 'blue' },
+  { id: 'u2', username: 'bea', color: 'green' },
 ]
 
 /**

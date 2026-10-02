@@ -101,7 +101,7 @@ export function useWordListFilter({
   const whoOffered = [
     ALL,
     ...(hasMissed ? [FOUND, MISSED] : []),
-    ...(arePlayersOffered ? ordered.map((p) => p.user_id) : []),
+    ...(arePlayersOffered ? ordered.map((p) => p.id) : []),
   ]
 
   // State holds only what the USER picked; the default is DERIVED every render.
@@ -176,7 +176,7 @@ export function useWordListFilter({
             // Players carry their identity disc; the fixed options above don't,
             // so FilterSelect indents them to match (see FilterOption.dot).
             ...(arePlayersOffered
-              ? ordered.map((p) => ({ value: p.user_id, label: p.username, dot: p.color }))
+              ? ordered.map((p) => ({ value: p.id, label: p.username, dot: p.color }))
               : []),
           ]}
         />
@@ -207,7 +207,7 @@ function emptyTextFor(kind: Kind, who: string, players: Member[], isTerminal: bo
   // Reachable only at terminal, where Found is the default.
   if (who === FOUND) return kindWord ? `No ${kindWord} words found.` : 'Nothing found.'
   if (who !== ALL) {
-    const name = players.find((p) => p.user_id === who)?.username ?? 'that player'
+    const name = players.find((p) => p.id === who)?.username ?? 'that player'
     return kindWord ? `No ${kindWord} words from ${name}${yet}.` : `Nothing from ${name}${yet}.`
   }
   return kindWord ? `No ${kindWord} words${yet}.` : `No words${yet}.`

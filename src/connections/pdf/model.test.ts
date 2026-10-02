@@ -49,8 +49,8 @@ const base = {
   remainingTiles: [] as string[],
   guesses: [] as EventRow[],
   players: [
-    { user_id: 'u1', username: 'me' },
-    { user_id: 'u2', username: 'moth' },
+    { id: 'u1', username: 'me' },
+    { id: 'u2', username: 'moth' },
   ],
   myId: 'u1',
   mode: 'coop' as const,

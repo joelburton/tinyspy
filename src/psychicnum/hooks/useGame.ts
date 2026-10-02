@@ -167,7 +167,7 @@ export function makePlayersById(
     const playerStatus = p.player_status as unknown as PsychicnumPlayerStatus
     const endedReason = playerStatus.player_ended_reason
     return {
-      user_id: p.user_id,
+      id: p.id,
       username: p.username,
       color: p.color,
       playerEnding:
@@ -182,7 +182,7 @@ export function makePlayersById(
       foundAllSecrets: playerStatus.found_secrets_count >= requiredSecretsCount,
     }
   })
-  return Object.fromEntries(players.map((p) => [p.user_id, p]))
+  return Object.fromEntries(players.map((p) => [p.id, p]))
 }
 
 /** The page's `game_status`, as psychicnum's builder writes it. */

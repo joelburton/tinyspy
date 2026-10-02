@@ -76,9 +76,9 @@ export function PlayersSection({
           <span>Players: &nbsp;</span>
           <span className={styles.playerDots}>
             {members
-              .filter((m) => value.has(m.user_id))
+              .filter((m) => value.has(m.id))
               .map((m) => (
-                <Dot key={m.user_id} color={m.color} className={styles.playerDot} />
+                <Dot key={m.id} color={m.color} className={styles.playerDot} />
               ))}
           </span>
         </>

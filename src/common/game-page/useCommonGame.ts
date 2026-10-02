@@ -15,7 +15,7 @@ import { computeGamePause, type GamePause } from '../pause-suspend/pause'
 import { useManualPause, type ManualPauseEvent } from '../pause-suspend/useManualPause'
 import type { SuspendEvent } from '../pause-suspend/sendSuspendBeforeDelete'
 import type { GameManifest, TimerMode } from '../manifest/gameManifest'
-import type { GamePlayer, Member } from '../members/member'
+import type { GamePlayer } from '../members/member'
 import { useGameTimer } from '../timer/useGameTimer'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 import { whereIStand, type Standing } from './whereIStand'
@@ -509,9 +509,10 @@ async function readCommonGame(gameId: string): Promise<CommonGameRead> {
     const rowById = new Map(playerRows.map((r) => [r.user_id, r]))
     players = profilesRes.data.map(function mergeGamePlayerBits(prof) {
       const gp = rowById.get(prof.user_id)
-      const { ai_member, ...member } = prof
       return {
-        ...(member as Member),
+        id: prof.user_id,
+        username: prof.username,
+        color: prof.color,
         player_ended_at: gp?.player_ended_at ?? null,
         player_ended_reason:
           (gp?.player_ended_reason as GamePlayer['player_ended_reason']) ?? null,
@@ -520,7 +521,7 @@ async function readCommonGame(gameId: string): Promise<CommonGameRead> {
         outcome: (gp?.outcome as GamePlayer['outcome']) ?? null,
         solved_at: gp?.solved_at ?? null,
         player_status: (gp?.player_status as GamePlayer['player_status']) ?? {},
-        ai_member,
+        ai_member: prof.ai_member,
       }
     })
   }
