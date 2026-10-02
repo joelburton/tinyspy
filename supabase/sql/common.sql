@@ -34,6 +34,9 @@
 --                              everyone has conceded
 --   _stop                      the Stop: ends the game with no result
 --   _set_player_ended          ends one player while the game plays on
+--   _write_shell               writes the page's shell blob onto the game
+--   _make_json_players         every player as the shell shows them, for a
+--                              game's builder to add its fields to
 --   _assign_turn_order         seats a turn-order game
 --   _advance_turn              hands the turn to the next player still in
 --   _require_turn              refuses a move out of turn
@@ -1090,6 +1093,7 @@ drop function if exists common.create_game(text, text, uuid[], text, jsonb, json
 --   - Insert its common.timers row, with the timer's kind and
 --     countdown length copied from `setup.timer`.
 --   - Insert one common.game_players row per uid.
+--   - Write the page's shell blob (`_write_shell`).
 --   - Return the new game id.
 --
 -- Size constraints (exactly-2 for codenamesduet, at-least-1 for the
@@ -1209,6 +1213,10 @@ begin
 
   insert into common.game_players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) as uid;
+
+  -- The page's shell, as of a game nobody has moved in; the game's status
+  -- builder rewrites it once its own rows are in (see `_write_shell`).
+  perform common._write_shell(new_id);
 
   -- Auto-save the saved subset to the (club, gametype) row in
   -- clubs_gametypes so the next setup dialog can pre-fill it.
@@ -1818,6 +1826,205 @@ $$;
 -- No grant to authenticated; internal helper (reached from the
 -- gametype RPCs, which are themselves definers).
 revoke execute on function common._set_player_ended(uuid, uuid, text, text, text) from public;
+
+
+-- ============================================================
+-- The shell — what GamePage shows, written onto common.games.shell
+-- ============================================================
+-- The page is written, not assembled (plans/seat-view.md → The page is
+-- written, not assembled): the shell blob is everything GamePage reads about a
+-- game, in the page's own names, the same shape for every gametype. It is
+-- written at create and rewritten by each game's status builder after every
+-- move, so `select shell from common.games` shows the page what it gets.
+--
+-- Each player inside it carries the facts every game shares — who they are,
+-- their seat, how and whether they ended, and where they stand (docs/win-lose.md
+-- → Where a player stands, formula for formula). A game's own builder starts
+-- its playarea players from the same objects (`_make_json_players`) and adds
+-- its fields, so the common fields cannot drift between games.
+--
+-- A JSON null means "no value right now"; every key is always present. A
+-- group that may not apply is null as a whole: `turns` in a free-for-all game,
+-- `ending` while the game is played, a player's `ending` while they play.
+-- Links are ids in JSON (`turns.holder`, `ending.by`, `ending.winner`); the
+-- page turns them into players.
+--
+--   shell:
+--     id, gametype, brand, club: {handle}
+--     mode, coop, compete, oneBoard
+--     title, setup, restartCount
+--     turns: {holder}                      null: no turn order; holder null: nobody's turn now
+--     ending: {reason, detail, by, winner} null while playing; winner: the player ranked 1
+--     ended, outcome                       outcome null until the game ends
+--     players: [player, …]                 seat order; by username in a free-for-all game
+--
+--   player:
+--     id, username, color, ai, seat        seat null in a free-for-all game
+--     ending: {at, reason, detail}         null unless they ended before the game did
+--     outcome, finalRanking, solvedAt      null until written
+--     conceded, solved, stillPlaying, onTurn, waitingForTurn
+
+-- The game has a turn order: its players were seated when it was created.
+-- Fixed for the game's life; a free-for-all game never gains seats.
+create or replace function common._is_turn_based(p_game_id uuid)
+returns boolean
+language sql
+stable
+set search_path = common, public, extensions
+as $$
+  select exists (
+    select 1 from common.game_players
+     where game_id = p_game_id and turn_seat is not null
+  );
+$$;
+
+revoke execute on function common._is_turn_based(uuid) from public;
+
+-- One player as the shell shows them: the row, the profile, and where they
+-- stand against the game. `p_turn_based` is passed rather than asked per
+-- player, since it is one fact about the game.
+create or replace function common._make_json_player(
+  gp common.game_players,
+  prof common.profiles,
+  g common.games,
+  p_turn_based boolean
+)
+returns jsonb
+language plpgsql
+immutable
+set search_path = common, public, extensions
+as $$
+declare
+  -- The standing terms, each a formula over the row and the game
+  -- (docs/win-lose.md → Where a player stands).
+  conceded      boolean := gp.player_ended_reason is not distinct from 'conceded';
+  still_playing boolean := g.ended_at is null and gp.player_ended_at is null;
+  on_turn       boolean := still_playing
+                           and (not p_turn_based
+                                or g.current_turn_user_id is not distinct from gp.user_id);
+begin
+  return jsonb_build_object(
+    'id',             gp.user_id,
+    'username',       prof.username,
+    'color',          prof.color,
+    'ai',             prof.ai_member,
+    'seat',           gp.turn_seat,
+    'ending',         case when gp.player_ended_at is not null then jsonb_build_object(
+                        'at',     gp.player_ended_at,
+                        'reason', gp.player_ended_reason,
+                        'detail', gp.player_ended_reason_detail) end,
+    'outcome',        gp.outcome,
+    'finalRanking',   gp.final_ranking,
+    'solvedAt',       gp.solved_at,
+    'conceded',       conceded,
+    'solved',         gp.solved_at is not null,
+    'stillPlaying',   still_playing,
+    'onTurn',         on_turn,
+    'waitingForTurn', still_playing and not on_turn
+  );
+end;
+$$;
+
+revoke execute on function common._make_json_player(common.game_players, common.profiles, common.games, boolean) from public;
+
+-- Every player of a game as the shell shows them, in seat order — by username
+-- in a free-for-all game, which has no seats. `ord` is that order, for a
+-- builder that aggregates them; `id` is for joining the game's own rows:
+--
+--   select jsonb_agg(cp.player || jsonb_build_object(…) order by cp.ord)
+--     from common._make_json_players(p_game_id) cp
+--     join <game>.players pp on pp.user_id = cp.id
+create or replace function common._make_json_players(p_game_id uuid)
+returns table (ord int, id uuid, player jsonb)
+language sql
+stable
+set search_path = common, public, extensions
+as $$
+  select row_number() over (order by gp.turn_seat, prof.username)::int,
+         gp.user_id,
+         common._make_json_player(gp, prof, g, common._is_turn_based(p_game_id))
+    from common.game_players gp
+    join common.profiles prof on prof.user_id = gp.user_id
+    join common.games g on g.id = gp.game_id
+   where gp.game_id = p_game_id
+   order by 1;
+$$;
+
+revoke execute on function common._make_json_players(uuid) from public;
+
+-- How the game ended, or null while it is played. `by` is the player whose act
+-- ended it (null for a timeout nobody's turn covers); `winner` the player
+-- ranked first, null when nobody was.
+create or replace function common._make_json_ending(g common.games)
+returns jsonb
+language sql
+stable
+set search_path = common, public, extensions
+as $$
+  select case when g.ended_at is not null then jsonb_build_object(
+    'reason', g.game_ended_reason,
+    'detail', g.game_ended_reason_detail,
+    'by',     g.game_ended_by_user_id,
+    'winner', (select gp.user_id from common.game_players gp
+                where gp.game_id = g.id and gp.final_ranking = 1
+                order by gp.turn_seat, gp.user_id
+                limit 1)
+  ) end;
+$$;
+
+revoke execute on function common._make_json_ending(common.games) from public;
+
+-- Write the game's shell blob. Called by `_create_game` once the players are
+-- seated, and by each game's status builder after every move, so the shell is
+-- as fresh as the statuses beside it. Writes nothing else: `status_changed_at`
+-- is the builder's, `updated_at` the trigger's.
+create or replace function common._write_shell(p_game_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  g          common.games%rowtype;
+  gt         common.gametypes%rowtype;
+  turn_based boolean;
+  players    jsonb;
+begin
+  select * into g from common.games where id = p_game_id;
+  if not found then
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for p_game_id';
+  end if;
+  select * into gt from common.gametypes where gametype = g.gametype;
+
+  turn_based := common._is_turn_based(p_game_id);
+  select jsonb_agg(cp.player order by cp.ord) into players
+    from common._make_json_players(p_game_id) cp;
+
+  update common.games
+     set shell = jsonb_build_object(
+           'id',           g.id,
+           'gametype',     g.gametype,
+           'brand',        gt.brand,
+           'club',         jsonb_build_object('handle', g.club_handle),
+           'mode',         g.mode,
+           'coop',         g.mode = 'coop',
+           'compete',      g.mode = 'compete',
+           'oneBoard',     gt.one_board,
+           'title',        g.title,
+           'setup',        g.setup,
+           'restartCount', g.restart_count,
+           'turns',        case when turn_based
+                             then jsonb_build_object('holder', g.current_turn_user_id) end,
+           'ending',       common._make_json_ending(g),
+           'ended',        g.ended_at is not null,
+           'outcome',      g.game_ended_outcome,
+           'players',      players)
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function common._write_shell(uuid) from public;
 
 
 -- Dropped, not replaced: this returned `void` before it answered in an

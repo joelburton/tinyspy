@@ -85,6 +85,18 @@ bookkeeping — they are seconds when nobody ticks. The frontend half is
   object and never merges. The game calls it at create, at Restart and at the
   end of every move. They are club-readable, so they carry only what every
   player already sees.
+- **The shell** — `games.shell` — is what `GamePage` shows, the same shape for
+  every gametype, written whole by `common._write_shell`: at create, and by
+  each game's status builder after every move. Each player in it carries the
+  facts every game shares and where they stand ([win-lose.md → Where a player
+  stands](win-lose.md#where-a-player-stands--the-terms-as-formulas)); a game's
+  builder starts its own players from the same objects
+  (`common._make_json_players`). The shape is drawn in
+  `supabase/sql/common.sql` → The shell, and pinned whole in
+  `supabase/tests/common/shell_test.sql`. The other two page blobs, `clubpage`
+  and `playarea`, are each game's builder's
+  ([plans/seat-view.md](../plans/seat-view.md) → The page is written, not
+  assembled).
 - **`status_changed_at`** is when the game's status last changed, and the club
   list sorts and dates games by it. Only the builder writes it, and only when
   its caller passes `p_update_status_changed_at` true — a create, a Restart, a
@@ -101,8 +113,9 @@ helpers — `_require_valid_timer`, `_require_valid_mode`,
 header, passing the mode it checked: it checks the caller and every player
 are in the club (AI accounts exempt), moves the current-game pointer to the
 new game, inserts the `common.games` row, the clock (its kind and length
-copied from `setup.timer`) and one `game_players` row per player, and saves
-the club's `default_setup`. The game then inserts its own detail rows under
+copied from `setup.timer`) and one `game_players` row per player, writes the
+page's shell, and saves the club's `default_setup`. The game then inserts its
+own detail rows under
 the returned id, runs its status builder, and answers `{ result: 'created',
 id }`. psychicnum's is the model to copy (`supabase/sql/psychicnum.sql`).
 
