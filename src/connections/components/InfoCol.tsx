@@ -42,12 +42,10 @@ export function InfoCol({
   // Is the inline hint list unfolded? The Hints action toggles this.
   hintsOpen: boolean
 }) {
-  const { isStillPlaying } = gd.standing
-  const { foundCount, requiredCategoriesCount, mistakeCount, maxMistakes } = gd.readout
 
   // The row's line, and the only thing that varies between states: the ending
   // that applies to me, and nothing at all while I can still play.
-  const rowMessage: InfoActionsMessage | undefined = endingMessage
+  const actionRowMessage: InfoActionsMessage | undefined = endingMessage
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
@@ -58,11 +56,11 @@ export function InfoCol({
             board column's, on the commit row. */}
         <p className={shared.infoState}>
           <strong>
-            {foundCount}/{requiredCategoriesCount}
+            {gd.readout.foundCount}/{gd.readout.requiredCategoriesCount}
           </strong>{' '}
           categories found ·{' '}
           <strong>
-            {mistakeCount}/{maxMistakes}
+            {gd.readout.mistakeCount}/{gd.readout.maxMistakes}
           </strong>{' '}
           mistakes
         </p>
@@ -98,7 +96,7 @@ export function InfoCol({
             nothing for an action that says it is hidden — so no branch here can
             disagree with what the menu shows. The game menu lists the same
             actions in this same order (docs/playarea.md). */}
-        <InfoActionsRow message={rowMessage}>
+        <InfoActionsRow message={actionRowMessage}>
           {/* Hints toggles the inline HintList below; aria-pressed says whether
               it is unfolded. */}
           <ActionButton action={actions.actHint} show="icon" aria-pressed={hintsOpen} />
@@ -130,11 +128,11 @@ export function InfoCol({
         {/* The per-player hint reveals — unfolds right under the action row when
             Hints is on; stays mounted (so revealed tiles persist across toggles),
             and folds with the Hints button once you can no longer submit. */}
-        <HintList categories={gd.puzzle.board.categories} open={hintsOpen && isStillPlaying} />
+        <HintList categories={gd.puzzle.board.categories} open={hintsOpen && gd.standing.isStillPlaying} />
 
         {/* Help — shown only while you are in the game (never silently swaps);
             the eliminated state is carried loudly by the action row above. */}
-        {isStillPlaying && (
+        {gd.standing.isStillPlaying && (
           <p className={shared.infoHelp}>Pick 4 tiles that share a category, then Submit.</p>
         )}
 

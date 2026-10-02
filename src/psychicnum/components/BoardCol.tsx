@@ -46,9 +46,8 @@ export function BoardCol({
   myTurnJustStarted: boolean
 }) {
   // A past turn on screen blocks every write to the board.
-  const isViewingHistory = historyView.isViewing
-  const canPick = gd.standing.isBoardInteractive && !isViewingHistory
-  const canSubmit = gd.standing.isMyTurn && !isViewingHistory
+  const canPick = gd.standing.isBoardInteractive && !historyView.isViewing
+  const canSubmit = gd.standing.isMyTurn && !historyView.isViewing
 
   const {
     pickedTile,
@@ -58,13 +57,13 @@ export function BoardCol({
   } = usePickedTile({
     localFeedbackSlot,
     isStillPlaying: gd.standing.isStillPlaying,
-    isViewingHistory,
+    isViewingHistory: historyView.isViewing,
   })
   const { submitGuess, inFlightGuess } = useSubmitGuess({
     gameId: gd.gameId,
     tileResults,
     localFeedbackSlot,
-    isViewingHistory,
+    isViewingHistory: historyView.isViewing,
   })
   const actions = useBoardColActions({
     pickedTile,
@@ -78,11 +77,6 @@ export function BoardCol({
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // ─── Render ────────────────────────────────────────────
-
-  // Who decided each tile, only where the answer can differ: a shared board
-  // (compete shows you only your own guesses) with more than one player on it.
-  const isDecidedByShown = !gd.isCompete && gd.players.length > 1
-  const shownDecidedBy = isDecidedByShown ? gd.board.decidedBy : null
 
   const isPhone = useIsPhone()
   const buttonShow = isPhone ? 'icon' : 'both'
@@ -100,7 +94,7 @@ export function BoardCol({
         tiles={{
           words: gd.board.words,
           results: tileResults,
-          decidedBy: shownDecidedBy,
+          decidedBy: gd.board.decidedBy,
           moveCount: gd.board.guessCount,
         }}
         marks={{
@@ -112,6 +106,7 @@ export function BoardCol({
         }}
         historyView={historyView}
         isInteractive={gd.standing.isBoardInteractive}
+        isSharedBoard={gd.isSharedBoard}
         onPick={choosePickedTile}
       />
 
@@ -122,10 +117,10 @@ export function BoardCol({
         <div
           className={cls(
             shared.moveAreaOrLocalFeedback,
-            isViewingHistory && historyViewerStyles.historyBannerHost,
+            historyView.isViewing && historyViewerStyles.historyBannerHost,
           )}
         >
-          {isViewingHistory && (
+          {historyView.isViewing && (
             <HistoryBanner
               label={historyView.label}
               actor={historyView.actor}

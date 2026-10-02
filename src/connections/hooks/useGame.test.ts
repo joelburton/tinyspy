@@ -357,6 +357,16 @@ describe('connections useGame — a load that worked', () => {
     expect((await load(coopWon)).current.gd?.standing.hasSolved).toBe(true)
   })
 
+  it('calls the board shared only in coop with somebody else here', async () => {
+    answer(ALL_GOOD)
+    expect((await load()).current.gd?.isSharedBoard).toBe(false)
+    answer(ALL_GOOD)
+    expect((await load(makeCtx({ mode: 'coop' }))).current.gd?.isSharedBoard).toBe(true)
+    answer(ALL_GOOD)
+    const solo = makeCtx({ mode: 'coop', players: [gp('u1', 'me', 'red', { player_status: playerStatus(0, 0) })] })
+    expect((await load(solo)).current.gd?.isSharedBoard).toBe(false)
+  })
+
   it('picks my own entry out as me, and carries where I stand', async () => {
     answer(ALL_GOOD)
     const gd = (await load()).current.gd!

@@ -101,6 +101,9 @@ export type GameData = {
   gameId: string
   mode: 'coop' | 'compete'
   isCompete: boolean
+  // The players are working one board together: coop with more than one of
+  // them. Solo, and in compete, each board is one player's own.
+  isSharedBoard: boolean
   title: string
   // The setup form's record: New game replays it.
   setup: ConnectionsSetup
@@ -332,6 +335,7 @@ export function makeGameData({
     gameId: cg.id,
     mode: cg.mode,
     isCompete,
+    isSharedBoard: !isCompete && players.length > 1,
     title: cg.title,
     setup: readSetup(ctx),
     setupRows,

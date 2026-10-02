@@ -67,10 +67,9 @@ export function Board({
   // Brand name (manifest) for the grid's `aria-label`, a test handle.
   brand: string
 }) {
-  const isViewingHistory = historyView.isViewing
   const shownRows = historyView.rows ?? grid.liveRows
   const typingRowIndex = canType ? shownRows.length : -1
-  const flipBaseline = useFlipBaseline(grid.liveRows.length, isViewingHistory)
+  const flipBaseline = useFlipBaseline(grid.liveRows.length, historyView.isViewing)
 
   return (
     <div
@@ -82,10 +81,10 @@ export function Board({
         className={cls(
           shared.hugRectWidth,
           styles.grid,
-          isViewingHistory && history.historyFrame,
+          historyView.isViewing && history.historyFrame,
           marks.isWaitingForTurn && !canType && shared.dimNotYourTurn,
           marks.myTurnJustStarted && shared.yourTurnFlash,
-          makeEndingFrameClasses(marks.endingOutcome, isViewingHistory),
+          makeEndingFrameClasses(marks.endingOutcome, historyView.isViewing),
         )}
         role="grid"
         aria-label={`${brand} board`}
@@ -117,7 +116,7 @@ export function Board({
               colors={guessRow?.colors ?? null}
               marks={{
                 // A past turn's rows are final, so they never flip.
-                isFlipping: !isViewingHistory && !!guessRow && rowIndex >= flipBaseline,
+                isFlipping: !historyView.isViewing && !!guessRow && rowIndex >= flipBaseline,
                 isInFlight: isInFlightRow,
                 isHistoryLit: rowIndex === historyView.litBoardRow,
                 refusedGuessMark,

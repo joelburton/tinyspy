@@ -10,7 +10,6 @@ import type { GameData } from '../hooks/useGame'
 import type { HistoryView } from '../hooks/useHistoryView'
 import { useSubmitGuess } from '../hooks/useSubmitGuess'
 import { useTypedGuess } from '../hooks/useTypedGuess'
-import type { BoardRow } from '../lib/board'
 import { makeKeyColors } from '../lib/colors'
 import { Board } from './Board'
 import styles from './BoardCol.module.css'
@@ -42,20 +41,16 @@ export function BoardCol({
   myTurnJustStarted: boolean
 }) {
   // A past turn on screen blocks every write to the board.
-  const isViewingHistory = historyView.isViewing
-
-  // The live board: every guess on coop's shared board, my own in compete.
-  const liveRows: BoardRow[] = gd.boardGuesses.map((g) => ({ guess: g.word, colors: g.colors }))
 
   const { submitGuess, inFlightGuess, refusedGuessMark } = useSubmitGuess({
     gameId: gd.gameId,
-    liveRows,
+    liveRows: gd.boardRows,
     localFeedbackSlot,
   })
   // The game lets me guess, and no guess of mine is still out.
   const canGuess = gd.standing.isBoardInteractive && inFlightGuess === null
   // …and the live board is the one on screen.
-  const canType = canGuess && !isViewingHistory
+  const canType = canGuess && !historyView.isViewing
   const { typedWord, typeLetter, actions } = useTypedGuess({
     localFeedbackSlot,
     canType,
@@ -65,15 +60,15 @@ export function BoardCol({
   // ─── Render ────────────────────────────────────────────
 
   // The word still out belongs to the live board only.
-  const shownInFlightWord = isViewingHistory ? null : inFlightGuess
+  const shownInFlightGuess = historyView.isViewing ? null : inFlightGuess
 
   return (
     <div className={shared.boardCol}>
       <Board
-        grid={{ liveRows, maxGuesses: gd.readout.maxGuesses }}
+        grid={{ liveRows: gd.boardRows, maxGuesses: gd.readout.maxGuesses }}
         marks={{
           typedWord,
-          inFlightGuess: shownInFlightWord,
+          inFlightGuess: shownInFlightGuess,
           refusedGuessMark,
           endingOutcome,
           isWaitingForTurn: gd.standing.isWaitingForTurn,
@@ -104,7 +99,7 @@ export function BoardCol({
           {/* Stays once the game has ended, disabled. Its caps hold the color
               every letter earned, the record of the game just played. */}
           <GuessKeyboard
-            keyColors={makeKeyColors(liveRows)}
+            keyColors={makeKeyColors(gd.boardRows)}
             onKey={typeLetter}
             actSubmit={actions.actSubmit}
             actDelete={actions.actDeleteLast}

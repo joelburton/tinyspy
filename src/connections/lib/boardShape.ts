@@ -11,7 +11,7 @@ import { TILES_PER_CATEGORY } from './board'
  * have (16, 12, 8, 4). Four across because a category is four tiles, and a
  * solved one becomes a band in place of a row of them.
  */
-export function boardShape(tileCount: number): BoardShape {
+export function makeBoardShape(tileCount: number): BoardShape {
   const numCols = TILES_PER_CATEGORY
   return {
     numCols,

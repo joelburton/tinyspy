@@ -10,6 +10,7 @@ import type { EndOutcome, GameEnding, PlayerEndedReason } from '@/common/termina
 import type { GamePlayer, Member } from '@/common/members/member'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { db } from '../db'
+import type { BoardRow } from '../lib/board'
 import type { WordleSetup } from '../lib/setup'
 import { makeSetupRows } from '../lib/setupRows'
 import type { WordleGameStatus, WordlePlayerStatus } from '../lib/statuses'
@@ -101,6 +102,8 @@ export type GameData = {
   // The rows on the board I play: every guess on coop's shared board, only my
   // own in compete.
   boardGuesses: EventRow[]
+  // The same guesses as the board draws them: each one's word and colors.
+  boardRows: BoardRow[]
   // The log: every guess I may see, in the order of play. RLS scopes it to my
   // own rows in compete until the game ends.
   events: EventRow[]
@@ -196,6 +199,9 @@ export function makeGameData(
   // Coop writes the team's count on every player, so any one of them carries
   // it; a game always has at least one player.
   const teamGuessesUsed = players[0]!.guessesUsed
+  const boardGuesses = isCompete
+    ? rows.events.filter((e) => e.user_id === ctx.authSession.user.id)
+    : rows.events
 
   return {
     gameId: cg.id,
@@ -221,9 +227,8 @@ export function makeGameData(
     winner: isCompete
       ? (players.find((p) => p.outcome === 'won') ?? null)
       : null,
-    boardGuesses: isCompete
-      ? rows.events.filter((e) => e.user_id === ctx.authSession.user.id)
-      : rows.events,
+    boardGuesses,
+    boardRows: boardGuesses.map((g) => ({ guess: g.word, colors: g.colors })),
     events: rows.events,
     players,
     playersById,

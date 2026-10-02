@@ -12,7 +12,7 @@ import type { Cell } from '@/common/board-cursor/stepCell'
 import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { boardShape } from '../lib/boardShape'
+import { makeBoardShape } from '../lib/boardShape'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
@@ -23,8 +23,6 @@ import styles from './Board.module.css'
 
 const COLS = 4
 
-/** Empty lit-tile set — a stable reference so a live render never lights a tile. */
-const NO_TILES: ReadonlySet<string> = new Set()
 
 type Props = {
   // Categories resolved by a correct guess.
@@ -66,9 +64,8 @@ type Props = {
   verdict: Mark<BoardVerdict> | null
   // user_id → resolved color var, for the identity ring.
   colorByUserId: ReadonlyMap<string, string>
-  // Is this board SHARED — a coop game with somebody else in it? Only then is
-  // a pick ringed in its picker's color, and then every pick is, mine included.
-  sharedBoard: boolean
+  // The players are working one board together (`gd.isSharedBoard`).
+  isSharedBoard: boolean
   // A teammate holds the move (the page's `isWaitingForTurn`): the board-scope
   // dim, unless the board is interactive.
   isWaitingForTurn: boolean
@@ -120,36 +117,35 @@ export function Board({
   inFlightGuess,
   verdict,
   colorByUserId,
-  sharedBoard,
+  isSharedBoard,
   isWaitingForTurn,
   myTurnJustStarted,
   endingOutcome,
   moveCount,
 }: Props) {
-  const isViewingHistory = historyView.isViewing
   // May I pick a tile right now? A past turn on screen blocks it: any click
   // or key there leaves history.
-  const canPick = isBoardInteractive && !isViewingHistory
+  const canPick = isBoardInteractive && !historyView.isViewing
 
   // ─── The display order, and the cursor over it ─────────
   const { displayedTiles, actShuffle } = useTileShuffle({
     remainingTiles,
-    canShuffle: isStillPlaying && !isViewingHistory,
+    canShuffle: isStillPlaying && !historyView.isViewing,
   })
   // The cursor sits on a CELL, so a shuffle moves the tiles under it, and a
   // solved band — a row fewer — pulls it onto the nearest tile left.
-  const shape = boardShape(displayedTiles.length)
+  const boardShape = makeBoardShape(displayedTiles.length)
   const { cursor, setCursorTo } = useBoardSelectionCursor({
-    shape,
+    shape: boardShape,
     enabled: canPick,
     onToggle: (cell: Cell) => {
-      const tile = displayedTiles[positionAt(cell.x, cell.y, shape.numCols)]
+      const tile = displayedTiles[positionAt(cell.x, cell.y, boardShape.numCols)]
       if (tile !== undefined) onPick(tile)
     },
   })
   // A tile click: the cursor moves there, hidden, and the click does its move.
   function pickClickedTile(tile: string) {
-    setCursorTo(cellAt(displayedTiles.indexOf(tile), shape.numCols))
+    setCursorTo(cellAt(displayedTiles.indexOf(tile), boardShape.numCols))
     onPick(tile)
   }
 
@@ -158,10 +154,8 @@ export function Board({
   // else the solved bands in rank order, the revealed ones, and the loose
   // tiles — and how many rows that makes, which is what sizes it.
   const shownMatched = historyView.matched ?? matched
-  const shownUnmatched = isViewingHistory ? [] : unmatched
+  const shownUnmatched = historyView.isViewing ? [] : unmatched
   const tiles = historyView.tiles ?? (solutionShown ? [] : displayedTiles)
-  const historyLitTiles = historyView.litTiles ?? NO_TILES
-  const historyLitOutcome = historyView.litOutcome ?? 'lost'
   const sortedMatched = [...shownMatched].sort((a, b) => a.rank - b.rank)
   // Total rows = one per band + the tile rows. Always 4 for a standard
   // 16-tile / 4×4 board, but computed so the cap math stays correct if a
@@ -186,7 +180,7 @@ export function Board({
     // Quiet only while viewing a past turn: the lit tiles there are already
     // the mark. A player's OWN band is marked like anyone else's — it lands at
     // the top of the board while they were reading tiles.
-    quiet: isViewingHistory,
+    quiet: historyView.isViewing,
     changed: (before, now) => {
       const had = new Set(before.map((m) => m.rank))
       return new Set(now.map((m) => m.rank).filter((r) => !had.has(r)))
@@ -240,10 +234,10 @@ export function Board({
         className={cls(
           shared.hugRectWidth,
           styles.grid,
-          isViewingHistory && history.historyFrame,
+          historyView.isViewing && history.historyFrame,
           isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
-          makeEndingFrameClasses(endingOutcome, isViewingHistory),
+          makeEndingFrameClasses(endingOutcome, historyView.isViewing),
         )}
       >
         {sortedMatched.map((mc) => band(mc, false))}
@@ -256,12 +250,12 @@ export function Board({
           // `--peer-color` and a ring drawn against an undefined token is an
           // invalid declaration rather than a subtle bug.
           const ownerColor =
-            sharedBoard && ownerId !== undefined ? colorByUserId.get(ownerId) : undefined
+            isSharedBoard && ownerId !== undefined ? colorByUserId.get(ownerId) : undefined
           const isInFlight = inFlightGuess.has(tile)
           const isVerdict = verdict?.value.tiles.has(tile) ?? false
           // One of the four tiles the viewed turn guessed — tinted the outcome
           // color and outlined in the history blue.
-          const isHistoryLit = historyLitTiles.has(tile)
+          const isHistoryLit = historyView.litTiles?.has(tile) ?? false
           return (
             <button
               // Keyed on the verdict's nonce while it is wearing one, so that
@@ -274,7 +268,7 @@ export function Board({
               // Shuffle control lives inside the board root, so "a button in
               // the board" isn't specific enough to mean "a tile").
               data-tile={tile}
-              disabled={!isBoardInteractive || isViewingHistory}
+              disabled={!isBoardInteractive || historyView.isViewing}
               className={cls(
                 shared.tileFace,
                 shared.tile,
@@ -292,7 +286,8 @@ export function Board({
                 isVerdict && shared.verdictFill,
                 isVerdict && verdict && OUTCOME_TO_VERDICT_CLASS[verdict.value.outcome],
                 isHistoryLit && shared.verdictFill,
-                isHistoryLit && OUTCOME_TO_VERDICT_CLASS[historyLitOutcome],
+                // Set together with `litTiles`, which `isHistoryLit` read.
+                isHistoryLit && OUTCOME_TO_VERDICT_CLASS[historyView.litOutcome!],
                 isHistoryLit && styles.historyTile,
                 cursor !== null && positionAt(cursor.x, cursor.y, COLS) === i && shared.selectionCursor,
               )}

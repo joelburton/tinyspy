@@ -127,8 +127,8 @@ const ALL_GOOD = {
 }
 
 /** Mount, run one refetch, and hand back what the hook says afterwards. */
-async function load() {
-  const { result } = renderHook(() => useGame(CTX))
+async function load(ctx: PlayAreaLoaderProps = CTX) {
+  const { result } = renderHook(() => useGame(ctx))
   await act(async () => {
     await refetch.load!({ isCurrent: () => true })
   })
@@ -233,6 +233,16 @@ describe('psychicnum useGame — a load that worked', () => {
       await refetch.load!({ isCurrent: () => true })
     })
     expect(result.current.gd?.standing.hasSolved).toBe(true)
+  })
+
+  it('calls the board shared only in coop with somebody else here', async () => {
+    answer(ALL_GOOD)
+    expect((await load()).current.gd?.isSharedBoard).toBe(false)
+    answer(ALL_GOOD)
+    expect((await load(makeCtx({ mode: 'coop' }))).current.gd?.isSharedBoard).toBe(true)
+    answer(ALL_GOOD)
+    const solo = makeCtx({ mode: 'coop', players: [PLAYERS[0]!] })
+    expect((await load(solo)).current.gd?.isSharedBoard).toBe(false)
   })
 
   it('picks my own entry out as me, and carries where I stand', async () => {

@@ -54,15 +54,14 @@ export function BoardCol({
   solutionShown: boolean
 }) {
   // A past turn on screen blocks every write to the board.
-  const isViewingHistory = historyView.isViewing
-  const canPick = gd.standing.isBoardInteractive && !isViewingHistory
-  const canSubmit = gd.standing.isMyTurn && !isViewingHistory
+  const canPick = gd.standing.isBoardInteractive && !historyView.isViewing
+  const canSubmit = gd.standing.isMyTurn && !historyView.isViewing
 
   const verdictMark = useVerdictMark({
     guesses: gd.boardEvents,
     myId: gd.me?.user_id ?? null,
     localFeedbackSlot,
-    isViewingHistory,
+    isViewingHistory: historyView.isViewing,
   })
   const { submitGuess, inFlightGuess } = useSubmitGuess({
     gd,
@@ -94,12 +93,7 @@ export function BoardCol({
   // No picks are drawn on a board that can't take a move — a past turn, or a
   // player who is finished — though the broadcast state itself outlives both.
   const shownOwnerByTile =
-    isViewingHistory || !gd.standing.isStillPlaying ? NO_OWNERS : gd.picks.ownerByTile
-
-  // Identity is only information on a genuinely shared board: coop, with
-  // somebody else here. Solo, every pick is mine; in compete the picks never
-  // leave this client.
-  const isSharedBoard = !gd.isCompete && gd.players.length > 1
+    historyView.isViewing || !gd.standing.isStillPlaying ? NO_OWNERS : gd.picks.ownerByTile
 
   const isPhone = useIsPhone()
   const buttonShow = isPhone ? 'icon' : 'both'
@@ -120,7 +114,7 @@ export function BoardCol({
         inFlightGuess={inFlightGuess}
         verdict={verdictMark.mark}
         colorByUserId={colorByUserIdMap(gd.players)}
-        sharedBoard={isSharedBoard}
+        isSharedBoard={gd.isSharedBoard}
         isWaitingForTurn={gd.standing.isWaitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
         endingOutcome={endingOutcome}
@@ -135,7 +129,7 @@ export function BoardCol({
         <div
           className={cls(
             shared.moveAreaOrLocalFeedback,
-            isViewingHistory && history.historyBannerHost,
+            historyView.isViewing && history.historyBannerHost,
           )}
         >
           {historyView.label !== null && (

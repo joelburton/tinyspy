@@ -198,6 +198,11 @@ describe('wordle useGame — a load that worked', () => {
     expect((await load(coop)).current.gd?.boardGuesses).toEqual([MY_GUESS, THEIR_GUESS])
   })
 
+  it('draws the board\'s guesses as rows of word and colors', async () => {
+    answer(ALL_GOOD)
+    expect((await load()).current.gd?.boardRows).toEqual([{ guess: 'crane', colors: 'xygxx' }])
+  })
+
   it('gives the count that applies to me — my own in compete, the team\'s in coop', async () => {
     answer(ALL_GOOD)
     expect((await load()).current.gd?.readout.guessesUsed).toBe(2)

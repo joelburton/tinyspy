@@ -25,9 +25,9 @@ export type BoardTiles = {
   // Each guessed word → whether it was a secret: the live board's (in compete,
   // my guesses only), or a past turn's.
   results: TileResults
-  // Each guessed word → who guessed it, or null when this board names no
-  // guessers. A revealed secret is not in it: nobody guessed it.
-  decidedBy: ReadonlyMap<TileWord, Actor> | null
+  // Each guessed word → who guessed it. A revealed secret is not in it: nobody
+  // guessed it.
+  decidedBy: ReadonlyMap<TileWord, Actor>
   // How many guesses the server has recorded.
   moveCount: number
 }
@@ -50,6 +50,8 @@ type Props = {
   historyView: HistoryView
   // The board responds to me (the page's `isBoardInteractive`).
   isInteractive: boolean
+  // The players are working one board together (`gd.isSharedBoard`).
+  isSharedBoard: boolean
   // Picks a word, or un-picks with null.
   onPick: (word: TileWord | null) => void
 }
@@ -69,10 +71,10 @@ export function Board({
   marks,
   historyView,
   isInteractive,
+  isSharedBoard,
   onPick,
 }: Props) {
-  const isViewingHistory = historyView.isViewing
-  const canPick = isInteractive && !isViewingHistory
+  const canPick = isInteractive && !historyView.isViewing
 
   const { displayedTiles, actShuffle } = useTileShuffle(tiles.words)
   const boardShape = makeBoardShape(displayedTiles.length)
@@ -87,12 +89,11 @@ export function Board({
   const { flashingTiles, shakingTiles } = useDecidedTileMarks({
     results: tiles.results,
     moveCount: tiles.moveCount,
-    isViewingHistory,
+    isViewingHistory: historyView.isViewing,
   })
 
-  const { numCols, numRows } = boardShape
   const cursorPosition =
-    cursor === null ? null : positionAt(cursor.x, cursor.y, numCols)
+    cursor === null ? null : positionAt(cursor.x, cursor.y, boardShape.numCols)
 
   return (
     <div
@@ -100,20 +101,20 @@ export function Board({
       // The e2e handle for board measurement.
       data-board
       // The counts size the board (Board.module.css).
-      style={{ ['--cols' as string]: numCols, ['--rows' as string]: numRows }}
+      style={{ ['--cols' as string]: boardShape.numCols, ['--rows' as string]: boardShape.numRows }}
     >
       <div
         className={cls(
           shared.hugRectWidth,
           styles.grid,
-          isViewingHistory && historyViewerStyles.historyFrame,
+          historyView.isViewing && historyViewerStyles.historyFrame,
           marks.isWaitingForTurn && !isInteractive && shared.dimNotYourTurn,
           marks.myTurnJustStarted && shared.yourTurnFlash,
-          makeEndingFrameClasses(marks.endingOutcome, isViewingHistory),
+          makeEndingFrameClasses(marks.endingOutcome, historyView.isViewing),
         )}
         style={{
-          gridTemplateColumns: `repeat(${numCols}, 1fr)`,
-          gridTemplateRows: `repeat(${numRows}, 1fr)`,
+          gridTemplateColumns: `repeat(${boardShape.numCols}, 1fr)`,
+          gridTemplateRows: `repeat(${boardShape.numRows}, 1fr)`,
         }}
       >
         {displayedTiles.map((word, index) => {
@@ -126,7 +127,9 @@ export function Board({
               key={word}
               word={word}
               decidedOutcome={decidedOutcome}
-              guesser={tiles.decidedBy?.get(word)}
+              // Who guessed a tile is worth saying only where it can differ:
+              // on a board the players share.
+              guesser={isSharedBoard ? tiles.decidedBy.get(word) : undefined}
               marks={{
                 isPicked: marks.pickedTile === word,
                 isUnderCursor: cursorPosition === index,
