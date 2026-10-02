@@ -10,7 +10,7 @@ import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import type { GameEndedReason } from '@/common/terminal/gameEnding'
 import { DEFAULT_WORDLE_SETUP, legalError, type WordleSetup } from './lib/setup'
-import type { WordleClubpageInfo } from './lib/statuses'
+import type { WordleSummaryData } from './lib/statuses'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -58,9 +58,9 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-// The club-list line reads the list row's `gameEnding` and its `clubpage_info`
-// (`WordleClubpageInfo`: coop's shared guess count, null in compete, compete's
-// winner and their count, and the answer band). The answer band rides on
+// The summary reads the game's `summary_data` (`WordleSummaryData`: the common
+// part with its ending; coop's shared guess count, null in compete; compete's
+// winner's count; and the answer band). The answer band rides on
 // every line — a game drawn from the curated Wordle answer list plays very
 // differently from one drawn from the "Expert" end of the dictionary. Each
 // mode's summaryFor handles its own endings.
@@ -78,7 +78,7 @@ function usernameOf(members: readonly Member[], userId: string | null) {
 }
 
 /**
- * The answer band (`clubpage_info.answer_band`, copied from the setup): 0 is
+ * The answer band (`summary_data`'s `answerBand`, copied from the setup): 0 is
  * the curated NYT-Wordle answer list, 1..6 are the shared dictionary bands.
  * Rendered in the same `dict "…"` slot the other band-sensitive games use,
  * because to a player it answers the same question — how hard are the words
@@ -123,17 +123,19 @@ export const wordleCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: (row) => {
-    const clubpageInfo = row.clubpageInfo as WordleClubpageInfo
-    const dict = answerDictLabel(clubpageInfo.answer_band)
-    const used = tally(clubpageInfo.guesses_used, clubpageInfo.max_guesses, 'guesses')
-    if (row.gameEnding === null) return statusLine(verdict('Playing'), used, dict)
-    switch (row.gameEnding.outcome) {
+  summaryFor: (data) => {
+    const summary = data as WordleSummaryData
+    const dict = answerDictLabel(summary.answerBand)
+    const used = tally(summary.guessesUsed, summary.maxGuesses, 'guesses')
+    if (summary.ending === null) return statusLine(verdict('Playing'), used, dict)
+    // Written with the ending.
+    const outcome = summary.outcome!
+    switch (outcome) {
       case 'won':
         return statusLine(verdict('Won'), used, dict)
       case 'lost':
         // The guess count is redundant once the reason IS "out of guesses".
-        return row.gameEnding.reason === 'timeout'
+        return summary.ending.reason === 'timeout'
           ? statusLine(verdict('Lost', LOSS.timeout), used, dict)
           : statusLine(verdict('Lost', LOSS.resource_exhausted), dict)
       // A Stop (stop_game). No 'answer revealed' variant: revealing is a
@@ -142,7 +144,7 @@ export const wordleCoopGame: GameManifest = {
       case 'neutral':
         return statusLine(verdict('Ended'), dict)
       default:
-        return row.gameEnding.outcome
+        return outcome
     }
   },
 
@@ -180,29 +182,31 @@ export const wordleCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  summaryFor: (row, members) => {
-    const clubpageInfo = row.clubpageInfo as WordleClubpageInfo
-    const dict = answerDictLabel(clubpageInfo.answer_band)
+  summaryFor: (data, members) => {
+    const summary = data as WordleSummaryData
+    const dict = answerDictLabel(summary.answerBand)
     // No progress: guesses are private until the game ends, and this line is
     // readable by the whole club.
-    if (row.gameEnding === null) return statusLine(verdict('Playing'), dict)
-    switch (row.gameEnding.outcome) {
+    if (summary.ending === null) return statusLine(verdict('Playing'), dict)
+    // Written with the ending.
+    const outcome = summary.outcome!
+    switch (outcome) {
       case 'won':
         return statusLine(
-          wonBy(usernameOf(members, clubpageInfo.winner_user_id)),
-          count(clubpageInfo.winner_guesses_count, 'guess', 'guesses'),
+          wonBy(usernameOf(members, summary.ending.winner)),
+          count(summary.winnerGuessesCount, 'guess', 'guesses'),
           dict,
         )
       case 'lost':
         // "all conceded" already says nobody won; the others need spelling out.
-        return row.gameEnding.reason === 'conceded'
+        return summary.ending.reason === 'conceded'
           ? verdict('Lost', LOSS.conceded)
-          : statusLine(verdict('Lost', LOSS[row.gameEnding.reason] ?? null), 'no winner')
+          : statusLine(verdict('Lost', LOSS[summary.ending.reason] ?? null), 'no winner')
       // A Stop (stop_game).
       case 'neutral':
         return statusLine(verdict('Ended'), dict)
       default:
-        return row.gameEnding.outcome
+        return outcome
     }
   },
 

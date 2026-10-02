@@ -1,12 +1,13 @@
 // cs-unmet
 
+import type { SummaryData } from '@/common/manifest/summaryData'
 import type { PlayerEndedReason } from '@/common/terminal/gameEnding'
 
 /**
- * connections' three copies, as `connections._write_statuses` writes them
- * (supabase/sql/connections.sql). Every key is always present, null when it
- * has no value, so no key here is optional. `useGame` copies the first two
- * into `gd`; the summary reads the third.
+ * connections' copies on `common.games`, as `connections._write_statuses`
+ * writes the first two (supabase/sql/connections.sql). Every key is always
+ * present, null when it has no value, so no key here is optional. `useGame`
+ * copies the first two into `gd`; the summary reads the third.
  */
 
 /** `common.games.game_status`: the table-facts, fixed at create. */
@@ -27,12 +28,15 @@ export type ConnectionsPlayerStatus = {
 }
 
 /**
- * `common.games.clubpage_info`. The two counts are coop's team numbers and
- * null in compete, whose summary shows no progress; the winner is compete's,
- * null until the end and always null in coop.
+ * `common.games.summary_data`: the common part, and connections' keys beside
+ * it. connections' builder writes it once connections is on the page blobs
+ * (plans/seat-view.md → The page is written, not assembled); until then the
+ * club page lists no connections game, and this is the shape its summary is
+ * written against. The two counts are coop's team numbers and null in compete,
+ * whose summary shows no progress; the race's winner is the common
+ * `ending.winner`.
  */
-export type ConnectionsClubpageInfo = {
-  found_categories_count: number | null
-  mistake_count: number | null
-  winner_user_id: string | null
+export type ConnectionsSummaryData = SummaryData & {
+  foundCategoriesCount: number | null
+  mistakeCount: number | null
 }

@@ -345,10 +345,10 @@ select is(
   'coop: a correct guess that empties the budget still ends the game'
 );
 
--- The club line's tally must INCLUDE this last find: the builder runs after
+-- The summary's tally must INCLUDE this last find: the builder runs after
 -- the ending, from the players' rows, so the final readout says 1/3.
 select is(
-  (select clubpage_info->>'found_secrets_count'
+  (select summary_data->>'foundSecretsCount'
      from common.games where id = (select id from coop_loss_hit)),
   '1',
   'coop: the exhausting correct guess is counted in the final tally'

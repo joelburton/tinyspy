@@ -1,7 +1,8 @@
 // cs-unmet
 
 import { lazy } from 'react'
-import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
+import type { SummaryData } from '@/common/manifest/summaryData'
 import { db } from './db'
 import { count, dictLabel, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
@@ -74,7 +75,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
  * and their own count, and this line is club-wide readable.
  */
 function summaryFor(mode: 'coop' | 'compete') {
-  return (row: CommonGameListRow): string => {
+  return (row: SummaryData): string => {
     const s = (row.status ?? {}) as {
       winner_username?: string; reason?: string
       // Coop only — compete never updates these (a live count leaks a racer's

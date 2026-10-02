@@ -61,6 +61,9 @@ create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
+-- The common part of a game's summary_data, as written: psychicnum's keys sit beside it.
+create function pg_temp.common_summary(game uuid) returns jsonb language sql as
+  $$ select common._make_json_summary_data(game, (select status_changed_at from common.games where id = game)) $$;
 create function pg_temp.shell_data(game uuid) returns jsonb language sql as
   $$ select shell_data from common.games where id = game $$;
 create function pg_temp.player(game uuid, uid uuid) returns jsonb language sql as
@@ -121,13 +124,15 @@ select is(
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
-  '{"foundSecretsCount": 0, "requiredSecretsCount": 3, "guessesUsed": 0, "maxGuesses": 5, "winner": null}'::jsonb,
-  'the fresh coop game''s club line: nothing found, nothing used, no winner'
+  pg_temp.common_summary(pg_temp.coop())
+    || '{"foundSecretsCount": 0, "requiredSecretsCount": 3, "guessesUsed": 0, "maxGuesses": 5}'::jsonb,
+  'the fresh coop game''s summary: the common part, then nothing found and nothing used'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),
-  '{"foundSecretsCount": null, "requiredSecretsCount": 3, "guessesUsed": null, "maxGuesses": 5, "winner": null}'::jsonb,
-  'the fresh compete game''s club line carries no progress'
+  pg_temp.common_summary(pg_temp.compete())
+    || '{"foundSecretsCount": null, "requiredSecretsCount": 3, "guessesUsed": null, "maxGuesses": 5}'::jsonb,
+  'the fresh compete game''s summary carries no progress'
 );
 
 -- ─── (2) Mid-game coop: ada hits, bea misses ───
@@ -177,8 +182,9 @@ select is(
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
-  '{"foundSecretsCount": 1, "requiredSecretsCount": 3, "guessesUsed": 2, "maxGuesses": 5, "winner": null}'::jsonb,
-  'coop: the club line has the team''s finds and the team''s used count'
+  pg_temp.common_summary(pg_temp.coop())
+    || '{"foundSecretsCount": 1, "requiredSecretsCount": 3, "guessesUsed": 2, "maxGuesses": 5}'::jsonb,
+  'coop: the summary has the team''s finds and the team''s used count'
 );
 
 -- ─── (3) Mid-game compete: ada misses, bea hits ───
@@ -215,8 +221,9 @@ select is(
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),
-  '{"foundSecretsCount": null, "requiredSecretsCount": 3, "guessesUsed": null, "maxGuesses": 5, "winner": null}'::jsonb,
-  'compete: the club line still carries no progress, and no winner yet'
+  pg_temp.common_summary(pg_temp.compete())
+    || '{"foundSecretsCount": null, "requiredSecretsCount": 3, "guessesUsed": null, "maxGuesses": 5}'::jsonb,
+  'compete: the summary still carries no progress, and no ending yet'
 );
 
 -- ─── (4) The endings ───
@@ -269,14 +276,14 @@ select is(
   'the conceder conceded and lost'
 );
 select is(
-  pg_temp.summary_data(pg_temp.compete()) ->> 'winner',
+  pg_temp.summary_data(pg_temp.compete()) -> 'ending' ->> 'winner',
   'bea22222-2222-2222-2222-222222222222',
-  'compete: the club line names the winner at the end'
+  'compete: the summary''s ending names the winner'
 );
 select is(
-  pg_temp.summary_data(pg_temp.coop()) -> 'winner',
+  pg_temp.summary_data(pg_temp.coop()) -> 'ending' -> 'winner',
   'null'::jsonb,
-  'coop: the club line names no winner'
+  'coop: the summary''s ending names no winner'
 );
 select is(
   (pg_temp.shell_data(pg_temp.coop()) ->> 'ended')::boolean,

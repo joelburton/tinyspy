@@ -2,7 +2,8 @@
 
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
-import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
+import type { SummaryData } from '@/common/manifest/summaryData'
 import { deckSize } from './lib/cards'
 import { CLAIM_SIZE } from './lib/picks'
 import { db } from './db'
@@ -82,7 +83,7 @@ const BRAND = 'HareTrigger'
  * is left. Both public — every claim happened face-up — so unlike wordle's or
  * stackdown's compete labels there is nothing to withhold.
  */
-function coopLabel(row: CommonGameListRow): string {
+function coopLabel(row: SummaryData): string {
   const s = (row.status ?? {}) as StatusBlob
   const sets = (s.sets_found as number | undefined) ?? 0
   const left = (s.deck_left as number | undefined) ?? 0
@@ -116,7 +117,7 @@ function coopLabel(row: CommonGameListRow): string {
  * alone; the deck running dry ends it for everybody — so a win names the player
  * with the most sets, and a tie names nobody (co-winners).
  */
-function competeLabel(row: CommonGameListRow): string {
+function competeLabel(row: SummaryData): string {
   const s = (row.status ?? {}) as StatusBlob
   const leaderboard = readLeaderboard<LeaderRow>(s)
   const sets = (s.sets_found as number | undefined) ?? 0

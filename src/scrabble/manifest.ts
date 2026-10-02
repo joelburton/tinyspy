@@ -2,7 +2,8 @@
 
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
-import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
+import type { SummaryData } from '@/common/manifest/summaryData'
 import { db } from './db'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
@@ -66,7 +67,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
  * and 'blocked' is compete-only (it counts passes; coop has no turns to pass).
  */
 function summaryFor(mode: 'coop' | 'compete') {
-  return (row: CommonGameListRow): string => {
+  return (row: SummaryData): string => {
     const s = (row.status ?? {}) as {
       team_score?: number; bag_count?: number
       winner_username?: string | null; winner_score?: number; reason?: string

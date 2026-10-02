@@ -30,7 +30,7 @@ const { mockReadRows, mockReportUnknown, realtime, REGISTRY, SYRUP } = vi.hoiste
     gametype,
     name,
     mode: 'coop' as const,
-    summaryFor: (row: { gameEnding: { outcome: string } | null }) => `label:${row.gameEnding?.outcome ?? 'playing'}`,
+    summaryFor: (summary: { outcome: string | null }) => `label:${summary.outcome ?? 'playing'}`,
   })
   const WORDLE = manifest('wordle_coop', 'WordNerd')
   const SYRUP = manifest('syrup_coop', 'SyrupSwap')
@@ -38,9 +38,9 @@ const { mockReadRows, mockReportUnknown, realtime, REGISTRY, SYRUP } = vi.hoiste
   const NAMER = {
     ...manifest('namer_coop', 'Namer'),
     summaryFor: (
-      row: { gameEnding: { endedByUserId: string | null } | null },
+      summary: { ending: { by: string | null } | null },
       members: readonly { id: string; username: string }[],
-    ) => `ended by ${members.find((m) => m.id === row.gameEnding?.endedByUserId)?.username ?? 'nobody'}`,
+    ) => `ended by ${members.find((m) => m.id === summary.ending?.by)?.username ?? 'nobody'}`,
   }
   return {
     mockReadRows: vi.fn(),
@@ -89,32 +89,34 @@ vi.mock('../manifest/unknownGametype', () => ({
 
 import { useClubGames } from './useClubGames'
 
+/** One `common.games` row as the listing selects it: the key, the pointer, and the blob. */
 type GameRow = {
   id: string
-  gametype: string
-  title: string
-  ended_at: string | null
-  game_ended_reason: string | null
-  game_ended_reason_detail: string | null
-  game_ended_outcome: string | null
-  game_ended_by_user_id: string | null
-  clubpage_info: unknown
-  status_changed_at: string
   is_current_view: boolean
+  summary_data: Record<string, unknown> | null
 }
 
-function game(over: Partial<GameRow> & { id: string; gametype: string }): GameRow {
+/** A row whose blob is a fresh game's; `ending` and `outcome` end it. */
+function game(over: {
+  id: string
+  gametype: string
+  title?: string
+  is_current_view?: boolean
+  ending?: Record<string, unknown>
+  outcome?: string
+}): GameRow {
+  const { is_current_view = false, ending = null, outcome = null, ...blob } = over
   return {
-    title: `Game ${over.id}`,
-    ended_at: null,
-    game_ended_reason: null,
-    game_ended_reason_detail: null,
-    game_ended_outcome: null,
-    game_ended_by_user_id: null,
-    clubpage_info: {},
-    status_changed_at: '2026-09-01T00:00:00Z',
-    is_current_view: false,
-    ...over,
+    id: over.id,
+    is_current_view,
+    summary_data: {
+      title: `Game ${over.id}`,
+      statusChangedAt: '2026-09-01T00:00:00Z',
+      ended: ending !== null,
+      outcome,
+      ending,
+      ...blob,
+    },
   }
 }
 
@@ -171,9 +173,8 @@ describe('useClubGames — what an answer becomes', () => {
   it('resolves each row to its manifest and its status label', async () => {
     const { result } = await load(
       ok([game({
-        id: 'g1', gametype: 'syrup_coop', ended_at: '2026-09-02T00:00:00Z',
-        game_ended_reason: 'reached_goal', game_ended_reason_detail: 'solved',
-        game_ended_outcome: 'won',
+        id: 'g1', gametype: 'syrup_coop', outcome: 'won',
+        ending: { reason: 'reached_goal', detail: 'solved', by: null, winner: null },
       })]),
     )
     await waitFor(() => expect(result.current.games).toHaveLength(1))
@@ -185,9 +186,8 @@ describe('useClubGames — what an answer becomes', () => {
   it('hands each label the club members, to name a user id with', async () => {
     const { result } = await load(
       ok([game({
-        id: 'g1', gametype: 'namer_coop', ended_at: '2026-09-02T00:00:00Z',
-        game_ended_reason: 'stopped', game_ended_reason_detail: 'stopped',
-        game_ended_outcome: 'neutral', game_ended_by_user_id: 'u-moth',
+        id: 'g1', gametype: 'namer_coop', outcome: 'neutral',
+        ending: { reason: 'stopped', detail: 'stopped', by: 'u-moth', winner: null },
       })]),
     )
     await waitFor(() => expect(result.current.games).toHaveLength(1))
@@ -243,6 +243,21 @@ describe('useClubGames — what an answer becomes', () => {
       'gametype_from_the_future',
       'another_future_gametype',
     ])
+  })
+
+  it('drops a game whose builder has not written its blob, without reporting it', async () => {
+    // A game not yet on the page blobs (plans/seat-view.md) has nothing the
+    // list can show, and its gametype is not the bundle's fault.
+    const { result } = await load(
+      ok([
+        game({ id: 'g1', gametype: 'wordle_coop', title: 'Alpha' }),
+        { id: 'g2', is_current_view: true, summary_data: null },
+      ]),
+    )
+    await waitFor(() => expect(result.current.games).toHaveLength(1))
+    expect(result.current.games[0]!.title).toBe('Alpha')
+    expect(result.current.currentGameId).toBe('g2')
+    expect(mockReportUnknown).toHaveBeenCalledWith([])
   })
 
   it('still reads the current pointer off a row it dropped', async () => {

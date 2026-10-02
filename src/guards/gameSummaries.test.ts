@@ -2,9 +2,9 @@
 
 import { describe, expect, it } from 'vitest'
 import { gametypes } from '@/gametypes'
-import type { CommonGameListRow } from '@/common/manifest/gameManifest'
+import type { SummaryData } from '@/common/manifest/summaryData'
 import type { Member } from '@/common/members/member'
-import type { GameEnding } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
 
 /**
  * The **summary** every game renders, per play state, checked by
@@ -39,17 +39,17 @@ type Family = {
 }
 
 /**
- * A family whose label reads the list row's `gameEnding` and its `clubpage_info` — the shape a game
- * takes when plans/common-tables.md step 5 converts it. The families still in the old shape
- * above convert one game at a time, and this becomes the only shape once the last does.
+ * A family whose summary reads the game's `summary_data` — the shape a game takes when it
+ * converts onto the page blobs (plans/seat-view.md). The families still in the old shape above
+ * convert one game at a time, and this becomes the only shape once the last does.
+ *
+ * An ending case names the outcome and reason, and the winner where the summary names one;
+ * `ending.by` is always alice.
  */
-type GameEndingCase = [
-  gameEnding: Pick<GameEnding, 'outcome' | 'reason'>,
-  clubpageInfo: Record<string, unknown>,
-  note: string,
-]
+type EndingCase = { outcome: EndOutcome; reason: GameEndedReason; winner?: string }
+type GameEndingCase = [ending: EndingCase, summary: Record<string, unknown>, note: string]
 type GameEndingFamily = {
-  /** The mid-game `clubpage_info`, every key present as the builder writes it. */
+  /** The mid-game `summary_data`, every key present as the builder writes it. */
   live: Record<string, unknown>
   shared?: GameEndingCase[]
   coop?: GameEndingCase[]
@@ -57,7 +57,7 @@ type GameEndingFamily = {
 }
 
 /** The club a label names its players from; every case's winner and ender is alice. */
-const MEMBERS: Member[] = [{ user_id: 'u-alice', username: 'alice', color: 'red' }]
+const MEMBERS: Member[] = [{ id: 'u-alice', username: 'alice', color: 'red' }]
 
 /** A family in the new shape, told apart from an old one by its `live` blob. */
 function isGameEndingFamily(fam: Family | GameEndingFamily): fam is GameEndingFamily {
@@ -111,40 +111,40 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       ['lost_compete', { reason: 'unsolved' }, 'nobody solved it'],
     ],
   },
-  // psychicnum._write_statuses: the found and used counts are the team's in coop and null
-  // in compete; the winner is compete's alone.
+  // psychicnum._make_json_summary_data: the found and used counts are the team's in coop
+  // and null in compete; the winner is compete's alone.
   psychicnum: {
-    live: { found_secrets_count: 2, required_secrets_count: 3, guesses_used: 2, max_guesses: 7, winner_user_id: null },
+    live: { foundSecretsCount: 2, requiredSecretsCount: 3, guessesUsed: 2, maxGuesses: 7, winner: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal' }, { found_secrets_count: 3, required_secrets_count: 3, guesses_used: 5, max_guesses: 7, winner_user_id: null }, 'found them all'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { found_secrets_count: 2, required_secrets_count: 3, guesses_used: 7, max_guesses: 7, winner_user_id: null }, 'out of guesses'],
-      [{ outcome: 'lost', reason: 'timeout' }, { found_secrets_count: 2, required_secrets_count: 3, guesses_used: 4, max_guesses: 7, winner_user_id: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { found_secrets_count: 2, required_secrets_count: 3, guesses_used: 4, max_guesses: 7, winner_user_id: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { foundSecretsCount: 3, requiredSecretsCount: 3, guessesUsed: 5, maxGuesses: 7, winner: null }, 'found them all'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { foundSecretsCount: 2, requiredSecretsCount: 3, guessesUsed: 7, maxGuesses: 7, winner: null }, 'out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { foundSecretsCount: 2, requiredSecretsCount: 3, guessesUsed: 4, maxGuesses: 7, winner: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { foundSecretsCount: 2, requiredSecretsCount: 3, guessesUsed: 4, maxGuesses: 7, winner: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: 'u-alice' }, 'won the race'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: null }, 'budgets exhausted'],
-      [{ outcome: 'lost', reason: 'timeout' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: null }, 'timeout'],
-      [{ outcome: 'lost', reason: 'conceded' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: null }, 'all conceded'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { found_secrets_count: null, required_secrets_count: 3, guesses_used: null, max_guesses: 7, winner_user_id: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { foundSecretsCount: null, requiredSecretsCount: 3, guessesUsed: null, maxGuesses: 7 }, 'won the race'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { foundSecretsCount: null, requiredSecretsCount: 3, guessesUsed: null, maxGuesses: 7, winner: null }, 'budgets exhausted'],
+      [{ outcome: 'lost', reason: 'timeout' }, { foundSecretsCount: null, requiredSecretsCount: 3, guessesUsed: null, maxGuesses: 7, winner: null }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { foundSecretsCount: null, requiredSecretsCount: 3, guessesUsed: null, maxGuesses: 7, winner: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { foundSecretsCount: null, requiredSecretsCount: 3, guessesUsed: null, maxGuesses: 7, winner: null }, 'Stop'],
     ],
   },
-  // connections._write_statuses: the two counts are coop's team numbers and null in
-  // compete; the winner is compete's alone.
+  // connections' summary_data, as its builder writes it at conversion: the two counts are
+  // coop's team numbers and null in compete; the winner is the common ending's.
   connections: {
-    live: { found_categories_count: 2, mistake_count: 1, winner_user_id: null },
+    live: { foundCategoriesCount: 2, mistakeCount: 1 },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal' }, { found_categories_count: 4, mistake_count: 1, winner_user_id: null }, 'solved'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { found_categories_count: 2, mistake_count: 4, winner_user_id: null }, 'four mistakes'],
-      [{ outcome: 'lost', reason: 'timeout' }, { found_categories_count: 2, mistake_count: 1, winner_user_id: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { found_categories_count: 2, mistake_count: 1, winner_user_id: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { foundCategoriesCount: 4, mistakeCount: 1 }, 'solved'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { foundCategoriesCount: 2, mistakeCount: 4 }, 'four mistakes'],
+      [{ outcome: 'lost', reason: 'timeout' }, { foundCategoriesCount: 2, mistakeCount: 1 }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { foundCategoriesCount: 2, mistakeCount: 1 }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal' }, { found_categories_count: null, mistake_count: null, winner_user_id: 'u-alice' }, 'won the race'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { found_categories_count: null, mistake_count: null, winner_user_id: null }, 'everyone hit four mistakes'],
-      [{ outcome: 'lost', reason: 'timeout' }, { found_categories_count: null, mistake_count: null, winner_user_id: null }, 'timeout'],
-      [{ outcome: 'lost', reason: 'conceded' }, { found_categories_count: null, mistake_count: null, winner_user_id: null }, 'all conceded'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { found_categories_count: null, mistake_count: null, winner_user_id: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { foundCategoriesCount: null, mistakeCount: null }, 'won the race'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { foundCategoriesCount: null, mistakeCount: null }, 'everyone hit four mistakes'],
+      [{ outcome: 'lost', reason: 'timeout' }, { foundCategoriesCount: null, mistakeCount: null }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { foundCategoriesCount: null, mistakeCount: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { foundCategoriesCount: null, mistakeCount: null }, 'Stop'],
     ],
   },
   spellingbee: {
@@ -229,22 +229,23 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
-  // wordle._write_statuses: the used count is coop's shared one and null in compete; the
-  // winner and their count are compete's alone; the answer band is the setup's.
+  // wordle's summary_data, as its builder writes it at conversion: the used count is coop's
+  // shared one and null in compete; the winner's count is compete's alone; the answer band is
+  // the setup's.
   wordle: {
-    live: { guesses_used: 3, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null },
+    live: { guessesUsed: 3, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal' }, { guesses_used: 4, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'solved'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { guesses_used: 6, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'out of guesses'],
-      [{ outcome: 'lost', reason: 'timeout' }, { guesses_used: 3, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { guesses_used: 3, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { guessesUsed: 4, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'solved'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { guessesUsed: 6, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { guessesUsed: 3, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { guessesUsed: 3, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal' }, { guesses_used: null, max_guesses: 6, answer_band: 0, winner_user_id: 'u-alice', winner_guesses_count: 4 }, 'someone won'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { guesses_used: null, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'everyone out of guesses'],
-      [{ outcome: 'lost', reason: 'timeout' }, { guesses_used: null, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'timeout'],
-      [{ outcome: 'lost', reason: 'conceded' }, { guesses_used: null, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'all conceded'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { guesses_used: null, max_guesses: 6, answer_band: 0, winner_user_id: null, winner_guesses_count: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { guessesUsed: null, maxGuesses: 6, answerBand: 0, winnerGuessesCount: 4 }, 'someone won'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { guessesUsed: null, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'everyone out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { guessesUsed: null, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { guessesUsed: null, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { guessesUsed: null, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'Stop'],
     ],
   },
   stackdown: {
@@ -400,26 +401,32 @@ function casesFor<C>(
   return [...(fam.shared ?? []), ...(mode === 'compete' ? (fam.compete ?? []) : (fam.coop ?? []))]
 }
 
-/** A listing row in the new shape: a null game ending is a game still played. */
-const makeListRow = (
+/** A game's summary_data in the new shape: a null ending is a game still played. */
+const makeSummaryData = (
   gametype: string,
-  gameEnding: Pick<GameEnding, 'outcome' | 'reason'> | null,
-  clubpageInfo: Record<string, unknown>,
-): CommonGameListRow => ({
+  ending: EndingCase | null,
+  own: Record<string, unknown>,
+): SummaryData => ({
   id: 'g',
   gametype,
-  gameEnding: gameEnding && { ...gameEnding, reasonDetail: gameEnding.reason, endedByUserId: 'u-alice' },
-  clubpageInfo,
+  title: 'A game',
+  statusChangedAt: '2026-09-01T00:00:00Z',
+  ended: ending !== null,
+  outcome: ending?.outcome ?? null,
+  ending: ending && { reason: ending.reason, detail: ending.reason, by: 'u-alice', winner: ending.winner ?? null },
+  ...own,
 })
 
+/** A row in the OLD shape, for a game not yet on the page blobs; its summaryFor still reads
+ *  `play_state` and `status`, which the common blob does not carry, so the cast is a lie the
+ *  game's conversion removes. */
 const row = (
   gametype: string,
   state: string,
   status: Record<string, unknown>,
   setup: Record<string, unknown>,
-): CommonGameListRow => ({
-  id: 'g', gametype, play_state: state, is_terminal: state !== 'playing', status, setup,
-})
+): SummaryData =>
+  ({ id: 'g', gametype, play_state: state, is_terminal: state !== 'playing', status, setup }) as unknown as SummaryData
 
 /** Every summary as a markdown table, one `| game | state | message |` row per case. */
 function buildTable(): string {
@@ -428,18 +435,18 @@ function buildTable(): string {
     const fam = CASES[m.baseGametype]
     if (!fam) continue
     if (isGameEndingFamily(fam)) {
-      const labelOf = (gameEnding: GameEndingCase[0] | null, clubpageInfo: Record<string, unknown>) =>
-        m.summaryFor(makeListRow(m.gametype, gameEnding, clubpageInfo), MEMBERS)
+      const labelOf = (ending: EndingCase | null, own: Record<string, unknown>) =>
+        m.summaryFor(makeSummaryData(m.gametype, ending, own), MEMBERS)
       lines.push(`| **${m.gametype}** | playing | \`${labelOf(null, fam.live)}\` |`)
-      for (const [gameEnding, clubpageInfo, note] of casesFor(m.mode, fam)) {
+      for (const [ending, own, note] of casesFor(m.mode, fam)) {
         lines.push(
-          `| | ${gameEnding.outcome}/${gameEnding.reason} — ${note} | \`${labelOf(gameEnding, clubpageInfo)}\` |`,
+          `| | ${ending.outcome}/${ending.reason} — ${note} | \`${labelOf(ending, own)}\` |`,
         )
       }
       continue
     }
     const label = (state: string, status: Record<string, unknown>) =>
-      m.summaryFor(row(m.gametype, state, status, fam.setup ?? {}))
+      m.summaryFor(row(m.gametype, state, status, fam.setup ?? {}), MEMBERS)
     lines.push(`| **${m.gametype}** | playing | \`${label('playing', fam.playing)}\` |`)
     for (const [state, status, note] of casesFor(m.mode, fam)) {
       lines.push(`| | ${state} — ${note} | \`${label(state, status)}\` |`)
@@ -491,17 +498,17 @@ describe('game status labels', () => {
       let unknown: string
       if (isGameEndingFamily(fam)) {
         // A game ending whose outcome and reason no game writes today.
-        const futureGameEnding = {
+        const futureEnding = {
           outcome: 'an_outcome_from_the_future',
           reason: 'a_reason_from_the_future',
-        } as unknown as GameEndingCase[0]
-        const playing = m.summaryFor(makeListRow(m.gametype, null, fam.live), MEMBERS)
-        unknown = m.summaryFor(makeListRow(m.gametype, futureGameEnding, fam.live), MEMBERS)
+        } as unknown as EndingCase
+        const playing = m.summaryFor(makeSummaryData(m.gametype, null, fam.live), MEMBERS)
+        unknown = m.summaryFor(makeSummaryData(m.gametype, futureEnding, fam.live), MEMBERS)
         readsAsLive = unknown === playing
       } else {
         const setup = fam.setup ?? {}
-        const playing = m.summaryFor(row(m.gametype, 'playing', fam.playing, setup))
-        unknown = m.summaryFor(row(m.gametype, 'a_state_from_the_future', fam.playing, setup))
+        const playing = m.summaryFor(row(m.gametype, 'playing', fam.playing, setup), MEMBERS)
+        unknown = m.summaryFor(row(m.gametype, 'a_state_from_the_future', fam.playing, setup), MEMBERS)
         readsAsLive = unknown === playing
       }
       if (readsAsLive && !UNKNOWN_READS_AS_LIVE.has(m.gametype)) {

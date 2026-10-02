@@ -37,12 +37,12 @@ export function useClubRoomPresence({
 
   // I'm a member of any club whose page I can load: `get_club_page` refuses
   // anyone else.
-  const selfUsername = members.find((m) => m.id === myId)!.username
+  const username = members.find((m) => m.id === myId)!.username
   useClubSetupPresence({
     clubHandle,
     myId,
     mySetup: setupManifest
-      ? { brand: setupManifest.name, mode: setupManifest.mode, username: selfUsername }
+      ? { brand: setupManifest.name, mode: setupManifest.mode, username }
       : null,
   })
 

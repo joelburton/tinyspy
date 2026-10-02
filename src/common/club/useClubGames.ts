@@ -8,20 +8,20 @@ import { channelDedupSuffix } from '../realtime/channelDedup'
 import { onPostgresAttached } from '../realtime/postgresAttached'
 import { manifestFor } from '@/gametypes'
 import { reportUnknownGametypes } from '../manifest/unknownGametype'
-import type { CommonGameListRow, GameManifest } from '../manifest/gameManifest'
-import { readGameEnding, type GameEndingColumns } from '../terminal/readGameEnding'
+import type { GameManifest } from '../manifest/gameManifest'
+import type { SummaryData } from '../manifest/summaryData'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { FeedbackSlot } from '../feedback/useFeedbackSlot'
 import type { Member } from '../members/member'
 
 /**
- * Display shape for one game in the club's games list: the fields of a
- * common.games row this page renders, plus the manifest of the gametype it
- * belongs to.
+ * Display shape for one game in the club's games list: what this page shows
+ * of the game's `summary_data`, plus the manifest of the gametype it belongs
+ * to.
  *
  * Anything about the GAMETYPE is reached through `manifest` rather than copied
  * flat — the filter's family and brand, the row's mode and logo. `summary`
- * is the exception because it isn't a field at all: it's `summaryFor(row,
+ * is the exception because it isn't a field at all: it's `summaryFor(data,
  * members)`, a call that needs the game as well as the gametype.
  */
 export type ListedGame = {
@@ -31,10 +31,9 @@ export type ListedGame = {
   // takes it as given instead of looking it up again.
   manifest: GameManifest
   title: string
-  // `common.games.status_changed_at` — when the game's status last changed: a
-  // create, a Restart, a move or the end. The card dates by it and the list
-  // orders by it, so a long-suspended game reads by when it was last played
-  // rather than when it began.
+  // When the game's status last changed: a create, a Restart, a move or the
+  // end. The card dates by it and the list orders by it, so a long-suspended
+  // game reads by when it was last played rather than when it began.
   statusChangedAt: string
   isTerminal: boolean
   // The club's current game: its `common.games.is_current_view`.
@@ -43,38 +42,35 @@ export type ListedGame = {
 }
 
 /** One `common.games` row as the listing selects it — the select string in
- *  `useClubGames` names these columns. */
-type ClubGamesRow = GameEndingColumns & {
+ *  `useClubGames` names these columns. Everything shown is in the blob; the
+ *  pointer is read beside it because common flips it without the game's
+ *  builder, and the id is the row's key. */
+type ClubGamesRow = {
   id: string
-  gametype: string
-  title: string
-  clubpage_info: unknown
-  status_changed_at: string
   is_current_view: boolean
+  summary_data: unknown
 }
 
 /**
- * One listing row's display entry, or null for a gametype this bundle doesn't
- * know — the caller drops those and reports them. `members` is the club's, for
- * the label to name a user id with.
+ * One listing row's display entry, or null for a row the list cannot show: a
+ * gametype this bundle doesn't know (the caller reports those), or a game
+ * whose builder does not write `summary_data` yet (plans/seat-view.md → The
+ * page is written, not assembled). `members` is the club's, for the summary
+ * to name a user id with.
  */
 function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame | null {
-  const manifest = manifestFor(r.gametype)
+  if (r.summary_data === null) return null
+  const data = r.summary_data as SummaryData
+  const manifest = manifestFor(data.gametype)
   if (!manifest) return null
-  const listRow: CommonGameListRow = {
-    id: r.id,
-    gametype: r.gametype,
-    gameEnding: readGameEnding(r),
-    clubpageInfo: r.clubpage_info as CommonGameListRow['clubpageInfo'],
-  }
   return {
-    gameId: r.id,
+    gameId: data.id,
     manifest,
-    title: r.title,
-    statusChangedAt: r.status_changed_at,
-    isTerminal: r.ended_at !== null,
+    title: data.title,
+    statusChangedAt: data.statusChangedAt,
+    isTerminal: data.ended,
     isCurrent: r.is_current_view,
-    summary: manifest.summaryFor(listRow, members),
+    summary: manifest.summaryFor(data, members),
   }
 }
 
@@ -125,20 +121,16 @@ export function useClubGames(
 
     async function loadGames() {
       const myGen = ++generation
-      // One read into common.games: everything a label needs is on the
-      // row, so each row's label is the matching manifest's pure
-      // `summaryFor`. A gametype this bundle's registry doesn't have is skipped
-      // and then REPORTED — see `reportUnknownGametypes`; it means this tab
-      // predates a deploy, and the list it draws is quietly short until the
-      // player reloads.
+      // One read into common.games: everything a summary needs is in the
+      // game's `summary_data`, so each row's summary is the matching
+      // manifest's pure `summaryFor`. A gametype this bundle's registry
+      // doesn't have is skipped and then REPORTED — see
+      // `reportUnknownGametypes`; it means this tab predates a deploy, and the
+      // list it draws is quietly short until the player reloads.
       const res = await readRows(
         commonDb
           .from('games')
-          .select(
-            `id, gametype, title, ended_at, game_ended_reason, 
-            game_ended_reason_detail, game_ended_outcome, game_ended_by_user_id, 
-            clubpage_info, status_changed_at, is_current_view`,
-          )
+          .select('id, is_current_view, summary_data')
           .eq('club_handle', clubHandle)
           .order('status_changed_at', { ascending: false })
           // Explicit bound so a long-lived club can't drift into PostgREST's
@@ -177,8 +169,9 @@ export function useClubGames(
       // Collected across the whole load, not reported per row: one fault for
       // one stale bundle, however many of its games the club has.
       const unknownGametypes = rows
-        .filter((r) => !manifestFor(r.gametype))
-        .map((r) => r.gametype)
+        .filter((r) => r.summary_data !== null)
+        .map((r) => (r.summary_data as SummaryData).gametype)
+        .filter((gametype) => !manifestFor(gametype))
       setCurrentGameId(currentId)
       setGames(listed)
       reportUnknownGametypes(unknownGametypes)

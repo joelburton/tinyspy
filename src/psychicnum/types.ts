@@ -16,6 +16,7 @@
 
 import type { Action } from '@/common/actions/useBindAction'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/gameManifest'
 import type { Actor } from '@/common/members/member'
 import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
@@ -355,20 +356,19 @@ export type GAnswer =
   | { answerType: 'already_guessed' }
 
 /**
- * `common.games.clubpage_info`, as `psychicnum._rebuild_data_cols` writes it
- * (supabase/sql/psychicnum.sql). Every key is always present, null when it has
- * no value, so no key here is optional. The summary (`manifest.ts`'s
- * `summaryFor`) reads it; the play surface reads `game_data` instead
- * (`GGameDataRaw`).
+ * `common.games.summary_data`, as `psychicnum._rebuild_data_cols` writes it
+ * (supabase/sql/psychicnum.sql): the common part, and psychicnum's counts
+ * beside it. Every key is always present, null when it has no value, so no key
+ * here is optional. The summary (`manifest.ts`'s `summaryFor`) reads it as
+ * written, so there is no polished pair and no `Raw`; the play surface reads
+ * `game_data` instead (`GGameDataRaw`).
  *
  * The found and used counts are the team's in coop and null in compete, whose
- * summary shows no progress; the winner is compete's, null until the end and
- * always null in coop.
+ * summary shows no progress. The race's winner is the common `ending.winner`.
  */
-export type GClubpageInfo = {
-  found_secrets_count: number | null
-  required_secrets_count: number
-  guesses_used: number | null
-  max_guesses: number
-  winner_user_id: string | null
+export type GSummaryData = SummaryData & {
+  foundSecretsCount: number | null
+  requiredSecretsCount: number
+  guessesUsed: number | null
+  maxGuesses: number
 }

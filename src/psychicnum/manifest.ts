@@ -11,7 +11,7 @@ import { memberById } from '@/common/members/memberList'
 import type { GameEndedReason } from '@/common/terminal/gameEnding'
 import { DEFAULT_PSYCHICNUM_SETUP } from './lib/setup'
 import logoUrl from './logo.svg?url'
-import type { GSetup, GClubpageInfo } from './types'
+import type { GSetup, GSummaryData } from './types'
 
 /**
  * psychicnum's registration with the shell — **two manifests,
@@ -80,22 +80,22 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     )
 }
 
-// The club-list line reads the list row's `gameEnding` and its `clubpage_info`
-// (`GClubpageInfo`: the team's found and used counts in coop, null in
-// compete, and compete's winner). Each mode's summaryFor handles its own
-// endings; the helper below covers the mid-game line.
+// The summary reads the game's `summary_data` (`GSummaryData`: the common part
+// with its ending, and the team's found and used counts, null in compete). Each
+// mode's summaryFor handles its own endings; the helper below covers the
+// mid-game line.
 
 /**
  * The mid-game progress, COOP only. In compete every player holds their own
  * budget and hunts the same three secrets independently, and a found-count
  * would tell you exactly how close your opponent is. This line is club-wide
- * readable, so compete says nothing — and its `clubpage_info` counts are null.
+ * readable, so compete says nothing — and its `summary_data` counts are null.
  */
-function labelMidGame(clubpageInfo: GClubpageInfo) {
+function labelMidGame(summary: GSummaryData) {
   return statusLine(
     verdict('Playing'),
-    tally(clubpageInfo.found_secrets_count, clubpageInfo.required_secrets_count, 'found'),
-    tally(clubpageInfo.guesses_used, clubpageInfo.max_guesses, 'guesses'),
+    tally(summary.foundSecretsCount, summary.requiredSecretsCount, 'found'),
+    tally(summary.guessesUsed, summary.maxGuesses, 'guesses'),
   )
 }
 
@@ -148,24 +148,26 @@ export const psychicnumCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: (row, members) => {
-    const clubpageInfo = row.clubpageInfo as GClubpageInfo
-    if (row.gameEnding === null) return labelMidGame(clubpageInfo)
-    const found = tally(clubpageInfo.found_secrets_count, clubpageInfo.required_secrets_count, 'found')
-    switch (row.gameEnding.outcome) {
+  summaryFor: (data, members) => {
+    const summary = data as GSummaryData
+    if (summary.ending === null) return labelMidGame(summary)
+    const found = tally(summary.foundSecretsCount, summary.requiredSecretsCount, 'found')
+    // Written with the ending.
+    const outcome = summary.outcome!
+    switch (outcome) {
       case 'won': {
         // A team win, but naming who landed the third secret is the fun bit:
         // the guess that found it is the act that ended the game.
-        const guesser = usernameOf(members, row.gameEnding.endedByUserId)
+        const guesser = usernameOf(members, summary.ending.by)
         return statusLine(verdict('Won'), guesser && `${guesser} guessed it`)
       }
       case 'lost':
-        return statusLine(verdict('Lost', LOSS[row.gameEnding.reason] ?? null), found)
+        return statusLine(verdict('Lost', LOSS[summary.ending.reason] ?? null), found)
       // A Stop (stop_game).
       case 'neutral':
         return statusLine(verdict('Ended'), found)
       default:
-        return row.gameEnding.outcome
+        return outcome
     }
   },
 
@@ -201,26 +203,28 @@ export const psychicnumCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  summaryFor: (row, members) => {
-    const clubpageInfo = row.clubpageInfo as GClubpageInfo
+  summaryFor: (data, members) => {
+    const summary = data as GSummaryData
     // No progress: every player's budget and finds are their own (see
     // labelMidGame), and this line is readable by the whole club.
-    if (row.gameEnding === null) return verdict('Playing')
-    switch (row.gameEnding.outcome) {
+    if (summary.ending === null) return verdict('Playing')
+    // Written with the ending.
+    const outcome = summary.outcome!
+    switch (outcome) {
       case 'won':
-        return wonBy(usernameOf(members, clubpageInfo.winner_user_id))
+        return wonBy(usernameOf(members, summary.ending.winner))
       case 'lost':
         return statusLine(
-          verdict('Lost', LOSS[row.gameEnding.reason] ?? null),
+          verdict('Lost', LOSS[summary.ending.reason] ?? null),
           // "no winner" is what every-budget-spent and the clock need said;
           // all conceded says it already.
-          row.gameEnding.reason === 'conceded' ? null : 'no winner',
+          summary.ending.reason === 'conceded' ? null : 'no winner',
         )
       // A Stop (stop_game).
       case 'neutral':
         return verdict('Ended')
       default:
-        return row.gameEnding.outcome
+        return outcome
     }
   },
 

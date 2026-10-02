@@ -18,7 +18,7 @@ carry each function's full contract and outcomes. How every RPC answers is
 | `clubs_members` | who is in each club. Fixed at creation |
 | `gametypes` | the registered gametypes, one row per sibling (`wordle_coop`, `wordle_compete`), each registered by its game's migration: `min_players`, `default_enroll`, `brand` (the user-facing name, the same on both siblings) and `one_board` (every player's moves land on one board; false, each plays their own copy) |
 | `clubs_gametypes` | which gametypes a club can start, and `default_setup`, the club's last-used setup for each — written by `common._create_game` on every start |
-| `games` | the shared header of every game: its club, gametype, `mode`, `title`, `setup`, `is_current_view`, `created_by`, `current_turn_user_id`, `restart_count`; `started_at`, and the ending — `ended_at`, the reason pair (`game_ended_reason`, `game_ended_reason_detail`), `game_ended_outcome`, `game_ended_by_user_id`; the copies the status builder writes (`game_status`, `clubpage_info`, and the three page blobs `summary_data`, `shell_data`, `game_data` — null until a game's builder writes them; [plans/seat-view.md](../plans/seat-view.md) → The page is written, not assembled); and the two dates, `status_changed_at` and `updated_at` ([Title, statuses and the two dates](#title-statuses-and-the-two-dates)). A game's own detail row shares its id |
+| `games` | the shared header of every game: its club, gametype, `mode`, `title`, `setup`, `is_current_view`, `created_by`, `current_turn_user_id`, `restart_count`; `started_at`, and the ending — `ended_at`, the reason pair (`game_ended_reason`, `game_ended_reason_detail`), `game_ended_outcome`, `game_ended_by_user_id`; the three page blobs the game's builder writes (`summary_data`, `shell_data`, `game_data` — null until a game's builder writes them; [plans/seat-view.md](../plans/seat-view.md) → The page is written, not assembled); and the two dates, `status_changed_at` and `updated_at` ([Title, statuses and the two dates](#title-statuses-and-the-two-dates)). A game's own detail row shares its id |
 | `game_players` | who plays each game, frozen at creation: `turn_seat`, `joined_at`; the player's ending while the game goes on (`player_ended_at` and its reason pair); `solved_at`; `outcome`, written when the player ends and again at the game's end; `final_ranking`, written at the game's end; and `player_status`, the builder's copy |
 | `timers` | the game clock, one row per game ([The game clock](#the-game-clock)) |
 | `messages` | club chat: one thread per club across every game, 1–1000 characters; a message starting `!` is important and force-opens chat for the others |
@@ -79,12 +79,11 @@ bookkeeping — they are seconds when nobody ticks. The frontend half is
 - **`title`** is built by each game's `create_game` (and rewritten by its moves
   where the game says so); the rules every title follows are
   [game-summary.md](game-summary.md).
-- **The statuses** — `games.game_status`, each `game_players.player_status`,
-  and `games.clubpage_info` for the club page — are copies of the game's own
-  tables, written by one status builder per game, which assigns the whole
-  object and never merges. The game calls it at create, at Restart and at the
-  end of every move. They are club-readable, so they carry only what every
-  player already sees.
+- **The statuses** — `games.game_status`, each `game_players.player_status`
+  and `games.clubpage_info` — are the copies a game not yet on the page blobs
+  writes, and nothing reads; a game's conversion stops writing them, and a
+  migration retires the columns once the last game has. They are club-readable,
+  so they carry only what every player already sees.
 - **The page blobs** — `games.shell_data`, `games.game_data`, `games.summary_data` —
   are what one reader each shows, in that reader's names
   ([plans/seat-view.md](../plans/seat-view.md) → The page is written, not
@@ -94,9 +93,13 @@ bookkeeping — they are seconds when nobody ticks. The frontend half is
   part — the mode, the turn, the ending, each player's standing ([win-lose.md →
   Where a player stands](win-lose.md#where-a-player-stands--the-terms-as-formulas))
   — comes from `common._make_json_game_data`, and the game's builder adds its
-  own fields on top. Both shapes are drawn in `supabase/sql/common.sql` → The
-  page blobs' common parts, and pinned whole in
-  `supabase/tests/common/shell_data_test.sql` and `game_data_common_test.sql`.
+  own fields on top. `summary_data` is a list of games' — the club page's today
+  — and is built the same way: the common part (the game named and dated, and
+  its ending) from `common._make_json_summary_data`, the game's numbers beside
+  it; the list reads the blob and `is_current_view`, nothing else of the row.
+  The shapes are drawn in `supabase/sql/common.sql` → The page blobs' common
+  parts, and pinned whole in `supabase/tests/common/shell_data_test.sql`,
+  `game_data_common_test.sql` and `summary_data_test.sql`.
 - **`status_changed_at`** is when the game's status last changed, and the club
   list sorts and dates games by it. Only the builder writes it, and only when
   its caller passes `p_update_status_changed_at` true — a create, a Restart, a

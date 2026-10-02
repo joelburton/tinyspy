@@ -14,9 +14,10 @@ type ClubSetupPresenceOptions = {
    * What I'm setting up right now (with my display name for the announcement),
    * or `null` when I'm not — which is **receive-only**: subscribe + toast peers,
    * announce nothing. The club page passes the live value (from its setup
-   * dialog's manifest, in `useClubRoomPresence`); GamePage passes `null` so players IN a game (paused or active) still see a
-   * peer's "setting up" toast. The two pages are never mounted at once, so a
-   * single client never double-subscribes `club-setup:<handle>`.
+   * dialog's manifest, in `useClubRoomPresence`); GamePage passes `null` so
+   * players IN a game (paused or active) still see a peer's "setting up" toast.
+   * The two pages are never mounted at once, so a single client never
+   * double-subscribes `club-setup:<handle>`.
    */
   mySetup: { brand: string; mode: 'coop' | 'compete'; username: string } | null
 }

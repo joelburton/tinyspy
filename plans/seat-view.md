@@ -224,9 +224,14 @@ read by SQL only, except the two the subscriptions filter on, `id` and
 **Three jsonb columns, one per reader**, each complete for its reader, so no
 page merges two sources:
 
-- **`summary_data`** — the game summed up in a line: what a list of games shows
-  for it. The club page's list is its one reader today; a page of my games
-  across clubs would read the same column. Today's `clubpage_info`, whole.
+- **`summary_data`** — the game summed up in a line: everything a list of
+  games shows for it, so the blob stands on its own as game_data does: `id`,
+  `gametype`, `title`, `statusChangedAt`, `ended`, `outcome`, the `ending`
+  group, and the game's numbers beside them. The club page's list is its one
+  reader today; a page of my games across clubs would read the same column
+  (done 2026-10-02: the club page reads the blob and `is_current_view`, which
+  common flips without the game's builder; a game not yet writing the blob is
+  not listed).
 - **`shell_data`** — what `GamePage` shows: **the same shape for every game**,
   written by one common function. From the shell's reads today: `id`,
   `gametype`, `club: {handle}` (a group, so a count or a description has a
@@ -360,10 +365,9 @@ the first instance; the next game's blob starts from it.
      rule withholds a rival's rows and board mid-race. Its reads,
      `useRefetchOnGameUpdate`, the `games_state` view, `_secrets_for` and the
      mode arm of `events_select` went (the inventory is
-     plans/areas/psychicnum.md → The convenience RLS). The statuses are still
-     written beside the blobs until the club page reads `summary_data`. The log's
-     rows are camelCase in the blob (`userId`, `correct`, `at`), as every
-     other key is.
+     plans/areas/psychicnum.md → The convenience RLS). The statuses are not
+     written any more; the club page reads `summary_data`. The log's rows are
+     camelCase in the blob (`userId`, `correct`, `at`), as every other key is.
   docs/win-lose.md's formulas and code-conventions' naming section carry the
   path names once this ships.
 - **Each converted game after it** (wordle, connections): the same, starting

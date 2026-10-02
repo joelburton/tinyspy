@@ -26,11 +26,11 @@
  *   - **A winner is `Won by alice`**, no parentheses — "by alice" reads as
  *     English, and parentheses are for the why.
  *   - **A summary may only say what every player already sees.** It's
- *     rendered from `common.games.clubpage_info`, which is readable by the
+ *     rendered from `common.games.summary_data`, which is readable by the
  *     whole club, so a compete game's private per-player progress must NOT
  *     appear there — that's why several compete labels are a bare `Playing`.
  *   - **Every `summaryFor` reads the ending first.** A game that has ended never
- *     renders the live line, whatever its `clubpage_info` says.
+ *     renders the live line, whatever its `summary_data` says.
  */
 
 import { DIFFICULTY_LABELS } from '../setup-form/difficulty'

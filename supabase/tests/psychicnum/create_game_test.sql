@@ -437,8 +437,8 @@ select is(
 -- ============================================================
 -- The statuses are written at create (a live game never shows `{}`)
 -- ============================================================
--- The full key set at every stage is statuses_test.sql's; this pins that
--- create writes them. Coop's club line carries the team's 0/3 and 0/7;
+-- The full key set at every stage is game_data_test.sql's; this pins that
+-- create writes them. Coop's summary carries the team's 0/3 and 0/7;
 -- compete's carries no progress.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table seeded_coop on commit drop as
@@ -453,14 +453,16 @@ create temp table seeded_cmp on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select is(
-  (select clubpage_info from common.games where id = (select id from seeded_coop)),
-  '{"found_secrets_count": 0, "required_secrets_count": 3, "guesses_used": 0,
-    "max_guesses": 7, "winner_user_id": null}'::jsonb,
+  (select summary_data @> '{"foundSecretsCount": 0, "requiredSecretsCount": 3, "guessesUsed": 0,
+                           "maxGuesses": 7, "ending": null}'::jsonb
+     from common.games where id = (select id from seeded_coop)),
+  true,
   'coop writes the team''s 0/3 found and 0/7 used for the summary at create');
 select is(
-  (select clubpage_info from common.games where id = (select id from seeded_cmp)),
-  '{"found_secrets_count": null, "required_secrets_count": 3, "guesses_used": null,
-    "max_guesses": 7, "winner_user_id": null}'::jsonb,
+  (select summary_data @> '{"foundSecretsCount": null, "requiredSecretsCount": 3, "guessesUsed": null,
+                           "maxGuesses": 7, "ending": null}'::jsonb
+     from common.games where id = (select id from seeded_cmp)),
+  true,
   'compete writes no progress for the summary');
 select is(
   (select count(*)::int

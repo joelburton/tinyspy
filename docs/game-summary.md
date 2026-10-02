@@ -48,12 +48,12 @@ Multi-word titles join with a dash: `APPLE-BERRY-CHERRY`.
 
 ## The summary
 
-`manifest.summaryFor(row)`: a **pure, synchronous** function of one `common.games`
-row (see [`common/manifest`](../src/common/manifest/doc.md)), which ClubPage
-calls through each row's gametype. Everything a label needs must therefore
-already be on the row, which is why the RPCs write a `status` jsonb blob for it
-to read. And because `status` is club-readable, the rule for titles holds here
-too: a line says only what every player already sees.
+`manifest.summaryFor(summary, members)`: a **pure, synchronous** function of the
+game's `summary_data` (see [`common/manifest`](../src/common/manifest/doc.md)),
+which ClubPage calls through the blob's gametype. Everything a summary needs
+must therefore already be in the blob, which is why the game's builder writes it
+whole after every move. And because `summary_data` is club-readable, the rule
+for titles holds here too: a line says only what every player already sees.
 
 Every line has one shape:
 

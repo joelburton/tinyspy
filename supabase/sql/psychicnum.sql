@@ -122,20 +122,15 @@ drop function if exists psychicnum._secrets_for(uuid);
 --                                          secret, word → who guessed it; one board in
 --                                          coop, each racer's own in compete
 --
---   summary_data — the game summed up in a line, for the club page's list and
---   any page that lists games:
+--   summary_data, psychicnum's part (the common part names and dates the game
+--   and carries its ending; the winner is `ending.winner`):
 --     foundSecretsCount, guessesUsed       the team's in coop; null in compete, whose
 --                                          summary shows no progress
 --     requiredSecretsCount, maxGuesses
---     winner                               compete's, the player ranked first; null
---                                          until the end, and always null in coop
 --
--- `clubpage_info` is written beside them until the club page reads
--- `summary_data`; `game_status` and `player_status` are not, since nothing
--- reads psychicnum's any more (the columns stay until a migration retires them):
---
---   clubpage_info  { found_secrets_count, required_secrets_count,
---                    guesses_used, max_guesses, winner_user_id }
+-- The statuses (`game_status`, `player_status`, `clubpage_info`) are not
+-- written: nothing reads psychicnum's any more. The columns stay until a
+-- migration retires them for every game.
 
 -- The board's words, and the three secrets once the game has ended.
 create or replace function psychicnum._make_json_puzzle(pg psychicnum.games, p_ended boolean)
@@ -262,21 +257,24 @@ $$;
 revoke execute on function psychicnum._make_json_game_data(uuid) from public;
 
 -- The game summed up: the numbers a list of games shows for this one.
-create or replace function psychicnum._make_json_summary_data(p_game_id uuid)
+-- The shape this had before the common part joined it; supabase/sql is
+-- re-applied, not diffed.
+drop function if exists psychicnum._make_json_summary_data(uuid);
+
+create or replace function psychicnum._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
 returns jsonb
 language sql
 stable
 set search_path = psychicnum, common, public, extensions
 as $$
-  select jsonb_build_object(
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
     'foundSecretsCount',    case when cg.mode = 'coop' then team.found end,
     'requiredSecretsCount', array_length(pg.secrets, 1),
     'guessesUsed',          case when cg.mode = 'coop' then team.used end,
-    'maxGuesses',           pg.max_guesses,
-    'winner',               case when cg.mode = 'compete' then (
-                              select gp.user_id from common.game_players gp
-                               where gp.game_id = p_game_id and gp.final_ranking = 1
-                               limit 1) end)
+    'maxGuesses',           pg.max_guesses)
     from psychicnum.games pg
     join common.games cg on cg.id = pg.game_id
    cross join (select sum(found_secrets_count) as found, sum(guesses_used) as used
@@ -284,7 +282,7 @@ as $$
    where pg.game_id = p_game_id;
 $$;
 
-revoke execute on function psychicnum._make_json_summary_data(uuid) from public;
+revoke execute on function psychicnum._make_json_summary_data(uuid, timestamptz) from public;
 
 -- The names this had while it wrote the statuses; supabase/sql is re-applied,
 -- not diffed.
@@ -294,8 +292,8 @@ drop function if exists psychicnum._write_statuses(uuid, boolean);
 -- psychicnum._rebuild_data_cols — one game's data columns, rebuilt
 -- ============================================================
 -- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
--- through `common._make_json_shell_data`) and `clubpage_info` from psychicnum's
--- own tables, assigning each whole. Every RPC calls it after a move; it is
+-- through `common._make_json_shell_data`) from psychicnum's own tables,
+-- assigning each whole. Every RPC calls it after a move; it is
 -- also the repair for one game by hand. Every key is always present, null when
 -- it has no value; the shapes are drawn above.
 --
@@ -312,43 +310,18 @@ security definer
 set search_path = psychicnum, common, public, extensions
 as $$
 declare
-  v_mode text;
-  v_max_guesses int;
-  v_required_secrets_count int;
-  v_team_found int;
-  v_team_used int;
+  v_status_changed_at timestamptz;
 begin
-  select cg.mode, pg.max_guesses, array_length(pg.secrets, 1)
-    into v_mode, v_max_guesses, v_required_secrets_count
-    from psychicnum.games pg
-    join common.games cg on cg.id = pg.game_id
-   where pg.game_id = p_game_id;
-
-  -- Coop's team numbers: each player's row holds their own share (each correct
-  -- guess is one player's, and no secret can be found twice), so the team's
-  -- finds and the team's spent budget are both sums.
-  if v_mode = 'coop' then
-    select sum(found_secrets_count), sum(guesses_used)
-      into v_team_found, v_team_used
-      from psychicnum.players
-     where game_id = p_game_id;
-  end if;
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
 
   update common.games
-     set clubpage_info = jsonb_build_object(
-           'found_secrets_count', v_team_found,
-           'required_secrets_count', v_required_secrets_count,
-           'guesses_used', v_team_used,
-           'max_guesses', v_max_guesses,
-           'winner_user_id', case when v_mode = 'compete' then (
-             select user_id from common.game_players
-              where game_id = p_game_id and final_ranking = 1
-              limit 1) end),
-         game_data = psychicnum._make_json_game_data(p_game_id),
-         summary_data = psychicnum._make_json_summary_data(p_game_id),
+     set game_data = psychicnum._make_json_game_data(p_game_id),
+         summary_data = psychicnum._make_json_summary_data(p_game_id, v_status_changed_at),
          shell_data = common._make_json_shell_data(p_game_id),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
+         status_changed_at = v_status_changed_at
    where id = p_game_id;
 end;
 $$;

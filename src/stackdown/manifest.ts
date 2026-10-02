@@ -2,7 +2,8 @@
 
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
-import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
+import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
+import type { SummaryData } from '@/common/manifest/summaryData'
 import { db } from './db'
 import { dictLabel, verdict, setupNum, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
@@ -69,7 +70,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
  * the board invariant guarantees every stack is clearable.
  */
 function summaryFor(mode: 'coop' | 'compete') {
-  return (row: CommonGameListRow): string => {
+  return (row: SummaryData): string => {
     const s = (row.status ?? {}) as {
       winner_username?: string; reason?: string
       found_words_count?: number; required_words_count?: number

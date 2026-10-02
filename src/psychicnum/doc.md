@@ -128,17 +128,16 @@ part of every `game_data` (`common._make_json_game_data`) psychicnum's own:
 | blob | psychicnum's part |
 |---|---|
 | `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `events`, every player's rows; on each player `requiredSecretsCount`, `maxGuesses`, `foundSecretsCount`, `guessesUsed` and `board: {tileResults, decidedBy}`, this seat's tiles |
-| `summary_data` | `foundSecretsCount`, `requiredSecretsCount`, `guessesUsed`, `maxGuesses`, `winner` |
+| `summary_data` | `foundSecretsCount`, `requiredSecretsCount`, `guessesUsed`, `maxGuesses` |
 
 Every player's counts are their own on `psychicnum.players`; the blob carries
 the team's on every player in coop, and each racer's own in compete. Compete's
-summary carries no progress, so its two counts are null, and `winner` names
-the finder once the race is won. `psychicnum._rebuild_data_cols_for_all()`
+summary carries no progress, so its two counts are null; the race's winner is
+the common `ending.winner`. `psychicnum._rebuild_data_cols_for_all()`
 rewrites every psychicnum game's blobs without re-dating them, for a shape
 change.
 
-`clubpage_info` is written beside the blobs, in the same keys as before, until
-the club page reads `summary_data`. `game_status` and `player_status` are not:
+The statuses (`game_status`, `player_status`, `clubpage_info`) are not written:
 nothing reads psychicnum's any more. The columns stay until a migration retires
 them for every game.
 

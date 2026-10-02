@@ -32,22 +32,27 @@ export type GameDataRaw = {
   setup: Record<string, unknown>
   // Null: no turn order. `holder` null: nobody's turn right now.
   turns: { holder: string | null } | null
-  // Null while the game is played. `by` is the player whose act ended it, null
-  // for a timeout nobody's turn covers; `winner` the player ranked first, null
-  // when nobody was.
-  ending: {
-    reason: GameEndedReason
-    // The game's own word for the act: 'solved', 'exhausted', 'stopped'.
-    detail: string
-    by: string | null
-    winner: string | null
-  } | null
+  // Null while the game is played.
+  ending: GameEndingRaw | null
   // The game has ended.
   ended: boolean
   // Null until the game ends.
   outcome: EndOutcome | null
   // Everyone in the game, in seat order.
   players: PlayerRaw[]
+}
+
+/**
+ * How a game ended, as `common._make_json_ending` writes it into game_data and
+ * summary_data. `by` is the player whose act ended it, null for a timeout
+ * nobody's turn covers; `winner` the player ranked first, null when nobody was.
+ */
+export type GameEndingRaw = {
+  reason: GameEndedReason
+  // The game's own word for the act: 'solved', 'exhausted', 'stopped'.
+  detail: string
+  by: string | null
+  winner: string | null
 }
 
 /**

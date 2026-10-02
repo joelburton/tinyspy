@@ -38,6 +38,8 @@
 --                              each game's builder to write
 --   _make_json_game_data       the common part of a game's game_data, for
 --                              its builder to add its fields to
+--   _make_json_summary_data    the common part of a game's summary_data, for
+--                              its builder to add its fields to
 --   _make_json_players         every player as a game_data shows them, for
 --                              a game's builder to join its rows to
 --   _assign_turn_order         seats a turn-order game
@@ -1832,7 +1834,6 @@ $$;
 -- gametype RPCs, which are themselves definers).
 revoke execute on function common._set_player_ended(uuid, uuid, text, text, text) from public;
 
-
 -- ============================================================
 -- The page blobs' common parts — shell_data, and what every game_data shares
 -- ============================================================
@@ -1887,6 +1888,12 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --     ending: {at, reason, detail}         null unless they ended before the game did
 --     outcome, finalRanking, solvedAt      null until written
 --     conceded, solved, stillPlaying, onTurn, waitingForTurn
+--
+--   summary_data, the common part:
+--     id, gametype, title
+--     statusChangedAt                      the same instant the builder writes to the column
+--     ending: {reason, detail, by, winner} null while playing
+--     ended, outcome                       outcome null until the game ends
 
 -- The game has a turn order: its players were seated when it was created.
 -- Fixed for the game's life; a free-for-all game never gains seats.
@@ -2111,6 +2118,41 @@ end;
 $$;
 
 revoke execute on function common._make_json_shell_data(uuid) from public;
+
+-- The common part of a game's summary_data: the game named and dated, and how
+-- it ended. A game's builder adds its own keys beside these. The builder
+-- passes the instant it writes to `status_changed_at` in the same statement,
+-- so the blob and the column never disagree.
+create or replace function common._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language plpgsql
+stable
+set search_path = common, public, extensions
+as $$
+declare
+  g common.games%rowtype;
+begin
+  select * into g from common.games where id = p_game_id;
+  if not found then
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for p_game_id';
+  end if;
+
+  return jsonb_build_object(
+    'id',              g.id,
+    'gametype',        g.gametype,
+    'title',           g.title,
+    'statusChangedAt', p_status_changed_at,
+    'ending',          common._make_json_ending(g),
+    'ended',           g.ended_at is not null,
+    'outcome',         g.game_ended_outcome);
+end;
+$$;
+
+revoke execute on function common._make_json_summary_data(uuid, timestamptz) from public;
 
 
 -- Dropped, not replaced: this returned `void` before it answered in an
