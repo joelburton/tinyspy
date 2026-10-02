@@ -87,3 +87,5 @@ deno.lock
 # editor backup / vim undo files (can hold secrets)
 *~
 *.un~
+
+.mcp.json
