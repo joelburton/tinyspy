@@ -38,10 +38,9 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   puzzle: {
     // The words shown as tiles; three of them are the secrets.
     words: GTileWord[]
-    // Null until the game ends.
+    // Null until the game ends, since they're a aecret
     secrets: GTileWord[] | null
   }
-  // The log: guesses, hints and spoilers, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
 }
@@ -55,7 +54,7 @@ export type GEventRaw = {
   // The text this row carries. For 'guess' / 'spoiler' it's a `GTileWord`; for
   // 'hint' it's the CLUE text (or "No hint available"), which is why this is
   // a plain string.
-  word: string
+  word: GTileWord | string
   correct: boolean
   // 'guess' = a real guess (colors the board, counts toward the win);
   // 'spoiler' = a secret word handed over (the answer);
@@ -138,7 +137,8 @@ export type GPlayerRaw = PlayerRaw & {
  * built, and the seat rule applied: what I may not see yet is not here.
  * Read-only: `useGame` builds it and nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'players'> & {
+export type GGameData =
+  Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -230,36 +230,14 @@ export type GSetup = SetupOf<GSetupValues>
  * the action, so the surfaces cannot drift.
  */
 export type GActions = {
-  // Each key is spelled as its action's id (`act-hint` → `actHint`), so a grep
-  // for either finds every trace of the action (src/guards/actionIds.test.ts).
-  //
-  // Ask for a clue. Grayed rather than gone when you can't ask — the glyph is
-  // worth teaching either way.
   actHint: Action
-  // Mid-game cheat: hand over one unfound secret word (the amber bare-eye
-  // glyph). Logs to the event log like a hint does.
   actSpoiler: Action
-  // Show the three secrets at game-over (their tiles go green) — or hide them
-  // again. A local display toggle shared with the menu twin; nothing is
-  // written, no peer affected. It carries its own two faces, so a surface
-  // places one button either way.
   actReveal: Action
-  // Hunt the SAME board + secrets again from scratch.
   actRestart: Action
-  // Start a fresh follow-up game — same setup + players, a new board + secrets.
-  // Disables itself while the create is in flight, so a slow network reads as
-  // "working" rather than "nothing happened".
   actNewGame: Action
-  // Drop out of a race; the others keep going. Hidden outside one.
   actConcede: Action
-  // The whole table stops, with no result. Hidden in a race that doesn't
-  // offer it — so the pair above can be placed unconditionally.
   actStopGame: Action
-  // Print the board and the log; the menu's alone, with no twin in the row.
   actPrintBoard: Action
-  // Leave for the club page — the shell's own, off `PlayAreaLoaderProps.menu`,
-  // carried here so a surface that places the row has every action in one
-  // object.
   actBackToClub: Action
 }
 
@@ -327,7 +305,7 @@ export type GTileResults = ReadonlyMap<GTileWord, boolean>
  * feedback.
  */
 export type GAnswer =
-  // My correct guess.
+// My correct guess.
   | { answerType: 'hit'; word: GTileWord }
   // A coop teammate's, on the board we share.
   | { answerType: 'hit_peer'; word: GTileWord }
