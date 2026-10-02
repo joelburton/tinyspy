@@ -1,6 +1,5 @@
 // cs-blessed-wordle
 
-import type { EndOutcome } from '@/common/terminal/gameEnding'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { GuessKeyboard } from '@/shared/onscreen-keyboard/GuessKeyboard'
@@ -24,15 +23,11 @@ export function BoardCol({
   gd,
   historyView,
   localFeedbackSlot,
-  endingOutcome,
   myTurnJustStarted,
 }: {
   gd: GGameData
   historyView: GHistoryView
   localFeedbackSlot: FeedbackSlot
-  // The ending that applies to me — bands the board in its outcome, and the
-  // keyboard goes with it. Null while I play.
-  endingOutcome: EndOutcome | null
   // True for a beat as the turn becomes mine — the frame flashes yellow.
   myTurnJustStarted: boolean
 }) {
@@ -65,7 +60,9 @@ export function BoardCol({
           typedWord: entry.word,
           inFlightGuess: shownInFlightGuess,
           refusedGuessMark: submission.refusedMark,
-          endingOutcome,
+          // Bands the board once I have ended: the game's ending, or mine
+          // while the others play on.
+          endingOutcome: gd.me.outcome,
           isWaitingForTurn: gd.me.waitingForTurn,
           myTurnJustStarted,
         }}

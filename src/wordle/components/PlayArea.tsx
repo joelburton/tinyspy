@@ -88,9 +88,6 @@ function PlayArea({
   // The board frame flashes and the bell rings the moment the move becomes mine.
   const turnFlash = useTurnStartFlash(gd.me.onTurn)
 
-  // ─── The local slot, and what stands in it ─────────────
-
-  // The slot under the board is for messages about ME.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // The endings' messages, for the pill and the info column: the game's once
@@ -156,7 +153,6 @@ function PlayArea({
         gd={gd}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
-        endingOutcome={endingMessage?.outcome ?? null}
         myTurnJustStarted={turnFlash}
       />
 
