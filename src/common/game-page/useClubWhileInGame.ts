@@ -31,7 +31,7 @@ export function useClubWhileInGame({
   globalFeedbackSlot,
 }: ClubWhileInGameOptions): Member[] {
   useClubPresence(clubHandle, gameId, myId)
-  useClubSetupPresence({ clubHandle, selfId: myId, mySetup: null })
+  useClubSetupPresence({ clubHandle, myId: myId, mySetup: null })
   const { members, failure } = useClubRoster(clubHandle)
 
   useEffect(function showRosterFailure() {

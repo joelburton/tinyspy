@@ -26,7 +26,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * was typed.
  */
 export function SetupForm({
-  brand, mode, members, selfId, numberOfPlayers, values, set: setValue, errors, setError,
+  brand, mode, members, myId, numberOfPlayers, values, set: setValue, errors, setError,
 }: SetupBodyProps) {
   const s = values as ConnectionsValues
   const set = setValue as SetupSetter<ConnectionsValues>
@@ -38,7 +38,7 @@ export function SetupForm({
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         error={errors.player_user_ids}
         value={s.player_user_ids}

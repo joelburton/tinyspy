@@ -84,10 +84,10 @@ export function inviteCutoffIso(now: number = Date.now()): string {
  */
 export function newInviteCandidates(
   candidates: InviteCandidate[],
-  ctx: { selfId: string; seen: ReadonlySet<string> },
+  ctx: { myId: string; seen: ReadonlySet<string> },
 ): InviteCandidate[] {
   return candidates.filter(
-    (c) => c.created_by !== ctx.selfId && !ctx.seen.has(c.id),
+    (c) => c.created_by !== ctx.myId && !ctx.seen.has(c.id),
   )
 }
 

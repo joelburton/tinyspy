@@ -37,7 +37,7 @@ function draw({ mode = 'compete' as 'coop' | 'compete', values = {}, errors = {}
       brand="Scrabble"
       clubHandle="moths"
       members={MEMBERS}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[2, 4]}
       values={{
         ...DEFAULT_SCRABBLE_SETUP,

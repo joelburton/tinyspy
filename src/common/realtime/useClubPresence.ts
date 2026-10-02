@@ -45,7 +45,7 @@ export type MemberGameOrClub = { userId: string; gameId: string | null }
 export function useClubPresence(
   clubHandle: string | null,
   viewingGameId: string | null,
-  selfId: string,
+  myId: string,
 ): MemberGameOrClub[] {
   const [roster, setRoster] = useState<MemberGameOrClub[]>([])
 
@@ -69,7 +69,7 @@ export function useClubPresence(
       // effect can be torn down again while the previous channel is leaving.
       if (canceled) return
       const joined = supabase.channel(room, {
-        config: { presence: { key: selfId } },
+        config: { presence: { key: myId } },
       })
       ch = joined
 
@@ -91,7 +91,7 @@ export function useClubPresence(
 
       joined.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          void joined.track({ user_id: selfId, game_id: viewingGameId })
+          void joined.track({ user_id: myId, game_id: viewingGameId })
         }
       })
     }
@@ -111,7 +111,7 @@ export function useClubPresence(
       void ch.untrack()
       void releaseChannel(ch)
     }
-  }, [clubHandle, selfId, viewingGameId])
+  }, [clubHandle, myId, viewingGameId])
 
   // Derived, not setState'd in the effect: with no club we simply
   // report an empty roster (the effect never subscribes), and with one
@@ -126,7 +126,7 @@ export function useClubPresence(
   // forever. Once the sync reports us, `roster` itself is the answer.
   return useMemo(() => {
     if (!clubHandle) return []
-    if (roster.some((e) => e.userId === selfId)) return roster
-    return [{ userId: selfId, gameId: viewingGameId }, ...roster]
-  }, [clubHandle, roster, selfId, viewingGameId])
+    if (roster.some((e) => e.userId === myId)) return roster
+    return [{ userId: myId, gameId: viewingGameId }, ...roster]
+  }, [clubHandle, roster, myId, viewingGameId])
 }

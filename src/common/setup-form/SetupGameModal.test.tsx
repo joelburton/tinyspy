@@ -35,13 +35,13 @@ const MEMBERS = [
 
 /** Stands in for a game's setup body: the players picker every body renders,
  *  plus one field of its own, read and written the way a real one does. */
-function Body({ values, set, members, selfId, numberOfPlayers, errors }: SetupBodyProps) {
+function Body({ values, set, members, myId, numberOfPlayers, errors }: SetupBodyProps) {
   const v = values as { guesses: number; player_user_ids: Set<string> }
   return (
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         value={v.player_user_ids}
         onChange={(next) => set('player_user_ids', next)}
@@ -78,7 +78,7 @@ function draw(over: Partial<GameManifest> = {}, savedDefault?: unknown, soloClub
     <SetupGameModal
       manifest={manifest(over)}
       members={MEMBERS}
-      selfId="self"
+      myId="self"
       clubHandle="moths"
       soloClub={soloClub}
       savedDefault={savedDefault}

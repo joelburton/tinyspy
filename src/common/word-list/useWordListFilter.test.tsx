@@ -37,7 +37,7 @@ const setup = (over: Partial<Parameters<typeof useWordListFilter>[0]> = {}) =>
     useWordListFilter({
       rows: ended,
       players: two,
-      selfId: 'u1',
+      myId: 'u1',
       isCompete: false,
       isTerminal: true,
       hasBonus: true,
@@ -137,7 +137,7 @@ describe('useWordListFilter — what each axis gates on', () => {
 describe('useWordListFilter — filtering', () => {
   function Probe(over: Partial<Parameters<typeof useWordListFilter>[0]> = {}) {
     const f = useWordListFilter({
-      rows: ended, players: two, selfId: 'u1', isCompete: false, isTerminal: true, hasBonus: true, ...over,
+      rows: ended, players: two, myId: 'u1', isCompete: false, isTerminal: true, hasBonus: true, ...over,
     })
     const rows = (over.rows ?? ended) as WordListRow[]
     return (
@@ -216,7 +216,7 @@ describe('useWordListFilter — filtering', () => {
 describe('useWordListFilter — the empty line names the filter', () => {
   function Probe({ isTerminal = true }: { isTerminal?: boolean } = {}) {
     const f = useWordListFilter({
-      rows: ended, players: two, selfId: 'u1', isCompete: false, isTerminal, hasBonus: true,
+      rows: ended, players: two, myId: 'u1', isCompete: false, isTerminal, hasBonus: true,
     })
     return (<>{f.picker}<p data-testid="empty">{f.emptyText}</p></>)
   }

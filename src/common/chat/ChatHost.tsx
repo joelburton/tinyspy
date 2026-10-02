@@ -16,7 +16,7 @@ type Props = {
   clubHandle: string
   members: Member[]
   // The viewing member — their own messages never count as unread.
-  selfId: string
+  myId: string
   // The page's global slot, where a new message from another member pops as a
   // pill whether the panel is open or closed.
   globalFeedbackSlot: FeedbackSlot
@@ -33,7 +33,7 @@ type Props = {
 export function ChatHost({
   clubHandle,
   members,
-  selfId,
+  myId,
   globalFeedbackSlot,
 }: Props) {
   // In a store, so the header's button can flip it from outside this tree.
@@ -45,10 +45,10 @@ export function ChatHost({
   const { messages, loading } = useClubChat(clubHandle)
 
   // A new message from another member also pops in the page's global slot.
-  useChatFeedback({ messages, loading, members, selfId, globalFeedbackSlot })
+  useChatFeedback({ messages, loading, members, myId, globalFeedbackSlot })
 
   useOpenOnImportantMessage({ messages, loading })
-  useTrackUnread({ clubHandle, messages, loading, isOpen, members, selfId })
+  useTrackUnread({ clubHandle, messages, loading, isOpen, members, myId })
 
   if (!isOpen) return null
   return (

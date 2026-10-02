@@ -272,9 +272,9 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // A ref rather than effect deps: `ctx.players` is a fresh array identity most
   // renders, so listing it would rebuild this game's whole menu on every one of
   // them.
-  const printDataRef = useRef({ peerBoards, players: ctx.players, selfId: ctx.authSession.user.id })
+  const printDataRef = useRef({ peerBoards, players: ctx.players, myId: ctx.authSession.user.id })
   useEffect(() => {
-    printDataRef.current = { peerBoards, players: ctx.players, selfId: ctx.authSession.user.id }
+    printDataRef.current = { peerBoards, players: ctx.players, myId: ctx.authSession.user.id }
   }, [peerBoards, ctx.players, ctx.authSession.user.id])
 
   // ─── New game ───────────────────────────────────────────────────────────
@@ -336,7 +336,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   const actPrintBoard = useBindAction('act-print-board', {
     describe: () => (loading || initialBoard === null ? 'hidden' : 'active'),
     run: () => {
-      const { peerBoards: peers, players: roster, selfId } = printDataRef.current
+      const { peerBoards: peers, players: roster, myId } = printDataRef.current
       const nameOf = (userId: string) =>
         roster.find((p) => p.user_id === userId)?.username ?? 'someone'
 
@@ -345,7 +345,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
         const words = Array.from(new Set(boardWords(raw))).sort()
         const placed = boardLetters(raw).length
         return {
-          who: userId === selfId ? `${nameOf(userId)} (you)` : nameOf(userId),
+          who: userId === myId ? `${nameOf(userId)} (you)` : nameOf(userId),
           board: boardToGrid(raw),
           words,
           result:
@@ -357,9 +357,9 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
       // The caller's own board comes from the LIVE ref, not from `peerBoards`:
       // the FE owns the grid between snapshots, so the server's copy can trail
       // the tile you just dragged. Everyone else's comes from the read.
-      const mine = trackOf(selfId, boardRef.current)
+      const mine = trackOf(myId, boardRef.current)
       const others = peers
-        .filter((r) => r.user_id !== selfId)
+        .filter((r) => r.user_id !== myId)
         .map((r) => trackOf(r.user_id, r.board))
       // Roster order for the rest, so two printouts of the same game agree.
       others.sort((a, b) => a.who.localeCompare(b.who))
@@ -410,8 +410,8 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   //
   // bananagrams' status carries only `winner_username` (no winner uuid — see
   // the peel-win block in the migration), so the test is a name comparison.
-  const selfId = ctx.authSession.user.id
-  const selfUsername = ctx.players.find((p) => p.user_id === selfId)?.username
+  const myId = ctx.authSession.user.id
+  const selfUsername = ctx.players.find((p) => p.user_id === myId)?.username
   // Gate on the winner EXISTING, not on the display fallback: 'someone' is a
   // legal username (^[a-z][a-z0-9-]{2,14}$), so comparing against it would pop
   // confetti for a player actually called "someone" on a no-winner terminal
@@ -528,7 +528,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
       {/* Opponents — bananagrams keeps its own vertical, closest-to-done strip
           (a race affordance the horizontal OpponentStrip can't express), which
           now also marks conceded peers as "out". Renders nothing in solo. */}
-      <PeersStrip players={ctx.players} progress={progress} selfId={selfId} />
+      <PeersStrip players={ctx.players} progress={progress} myId={myId} />
 
       {/* Help — only while the player can still act. */}
       {!over && !isLocallyTerminal && (

@@ -29,7 +29,7 @@ export type EventLogPlayerPicker<R extends ActorRow> = {
 
 type EventLogPlayerPickerOptions = {
   players: Member[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   // Distinguishes an RLS-hidden opponent log from a genuinely empty one.
   isTerminal: boolean
@@ -59,27 +59,27 @@ type EventLogPlayerPickerOptions = {
  * Everyone is named by handle, you included. doc.md → Details says why the
  * results travel together rather than being re-derived per game.
  *
- *     const eventLogPicker = useEventLogPlayerPicker({ players, selfId, mode, isTerminal })
+ *     const eventLogPicker = useEventLogPlayerPicker({ players, myId, mode, isTerminal })
  *     const shown = eventLogPicker.filter(rows)
  *     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}>
  */
 export function useEventLogPlayerPicker<R extends ActorRow>({
   players,
-  selfId,
+  myId,
   mode,
   isTerminal,
   competeSharesOneGame = false,
   label = 'Whose turns to show',
   emptyLabel = 'Nothing yet.',
 }: EventLogPlayerPickerOptions): EventLogPlayerPicker<R> {
-  const ordered = orderSelfFirst(players, selfId)
+  const ordered = orderSelfFirst(players, myId)
 
   // A solo game has nobody to pick between: one player, one option, no
   // aggregate (a "Team" of one, or "All" of one, would be the same list twice).
   const solo = players.length < 2
   const aggregate = solo ? null : mode === 'coop' ? TEAM : ALL
 
-  const viewerIsPlayer = players.some((p) => p.user_id === selfId)
+  const viewerIsPlayer = players.some((p) => p.user_id === myId)
 
   // The aggregate is the default in coop — it IS the shared game. In compete
   // your own board is what you're looking at, so that's the default there
@@ -88,7 +88,7 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
     if (solo) return ordered[0]?.user_id ?? ''
     if (mode === 'coop') return TEAM
     if (competeSharesOneGame) return ALL
-    if (viewerIsPlayer) return selfId
+    if (viewerIsPlayer) return myId
     return ALL
   }
   const fallback = defaultSelection()
@@ -136,7 +136,7 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
       // Only a SINGLE opponent's log is honestly "hidden": an aggregate view
       // still carries my own rows mid-game, so an empty one really does mean
       // nobody has played.
-      mode === 'compete' && !showsEveryone && picked !== selfId && !isTerminal
+      mode === 'compete' && !showsEveryone && picked !== myId && !isTerminal
         ? 'Hidden until game ends.'
         : emptyLabel,
   }

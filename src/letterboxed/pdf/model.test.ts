@@ -39,7 +39,7 @@ const base = {
   date: '5 Aug 2026',
   sides: 'abcdefghijkl',
   solution: ['adgjbehk', 'kcfil'],
-  selfId: ALICE,
+  myId: ALICE,
   summary: '3/12 letters · 1/5 words',
   setupRows: [{ key: 'legal_band', label: 'Dictionary', value: '5 (Obscure)' }],
 }

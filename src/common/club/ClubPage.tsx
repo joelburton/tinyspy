@@ -83,7 +83,7 @@ export function ClubPage({
   initialGametypes,
   authSession,
 }: Props) {
-  const selfId = authSession.user.id
+  const myId = authSession.user.id
 
   // The header's feedback slot. This page has no second slot, so its own news
   // goes here too (club/doc.md → A failed games read).
@@ -103,13 +103,13 @@ export function ClubPage({
 
   const presentUserIds = useClubRoomPresence({
     clubHandle: club.handle,
-    selfId,
+    myId,
     members,
     currentGameId: clubGames.currentGameId,
     setupManifest: setupDialog.manifest,
   })
 
-  const startFilter = useStartListFilter(selfId, club.is_solo, clubGametypes.startable)
+  const startFilter = useStartListFilter(myId, club.is_solo, clubGametypes.startable)
   const gamesFilter = useGamesListFilter(clubGames.games)
 
   // Which column a phone shows; desktop shows both and ignores it.
@@ -223,7 +223,7 @@ export function ClubPage({
       <ChatHost
         clubHandle={club.handle}
         members={members}
-        selfId={selfId}
+        myId={myId}
         globalFeedbackSlot={globalFeedbackSlot}
       />
 
@@ -233,7 +233,7 @@ export function ClubPage({
         <SetupGameModal
           manifest={setupDialog.manifest}
           members={members}
-          selfId={selfId}
+          myId={myId}
           clubHandle={club.handle}
           soloClub={club.is_solo}
           savedDefault={clubGametypes.savedDefaults.get(setupDialog.manifest.gametype)}

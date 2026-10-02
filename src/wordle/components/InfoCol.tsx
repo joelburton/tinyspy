@@ -70,7 +70,7 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={gd.turnHolderId}
             players={gd.players}
-            selfId={myId}
+            myId={myId}
             isTerminal={gd.isGameEnded}
           />
         )}
@@ -80,7 +80,7 @@ export function InfoCol({
         {gd.isCompete && (
           <OpponentStrip
             players={gd.players}
-            selfId={myId}
+            myId={myId}
             metricLabel="Guesses"
             metricFor={getGuessesOrOut}
           />

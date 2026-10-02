@@ -162,7 +162,7 @@ export function GamePage({
       <ChatHost
         clubHandle={cg.club_handle}
         members={clubMembers}
-        selfId={authSession.user.id}
+        myId={authSession.user.id}
         globalFeedbackSlot={globalFeedbackSlot}
       />
 

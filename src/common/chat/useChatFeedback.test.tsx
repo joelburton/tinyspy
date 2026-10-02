@@ -48,7 +48,7 @@ function setup(members: Member[] = MEMBERS) {
   const midLoad: Stream = { messages: [], loading: true }
   const { rerender } = renderHook(
     (stream: Stream) =>
-      useChatFeedback({ ...stream, members, selfId: 'u-self', globalFeedbackSlot }),
+      useChatFeedback({ ...stream, members, myId: 'u-self', globalFeedbackSlot }),
     { initialProps: midLoad },
   )
   return { shown, rerender }

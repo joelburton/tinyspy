@@ -31,7 +31,7 @@ import { SetupSection } from '@/common/setup-form/SetupSection'
  * `common/setup-form/setupForm.ts`).
  */
 export function SetupForm({
-  members, selfId, numberOfPlayers, values, set: setValue, errors,
+  members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as CodenamesduetValues
   const set = setValue as SetupSetter<CodenamesduetValues>
@@ -59,7 +59,7 @@ export function SetupForm({
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         error={errors.player_user_ids}
         value={s.player_user_ids}

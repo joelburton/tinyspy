@@ -36,7 +36,7 @@ function draw({
       brand="PsychicNum"
       clubHandle="moths"
       members={members}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 6]}
       values={{
         ...DEFAULT_PSYCHICNUM_SETUP,

@@ -44,7 +44,7 @@ export function InfoCol({
   remaining,
   parSwaps,
   players,
-  selfId,
+  myId,
   playerStates,
   concededIds,
   actStopGame,
@@ -86,7 +86,7 @@ export function InfoCol({
 
   // ── Players (the OpponentStrip) ──
   players: Member[]
-  selfId: string
+  myId: string
   playerStates: WafflePlayerState[]
   concededIds: Set<string>
 
@@ -169,7 +169,7 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
-            selfId={selfId}
+            myId={myId}
             isTerminal={over !== null}
           />
         )}
@@ -184,7 +184,7 @@ export function InfoCol({
         {isCompete && (
           <OpponentStrip
             players={players}
-            selfId={selfId}
+            myId={myId}
             metricLabel="Swaps"
             metricFor={(player) => {
               // A conceded player is 'out' mid-game — they dropped out, so their
@@ -260,7 +260,7 @@ export function InfoCol({
       <GameEventLog
         swaps={swaps}
         players={players}
-        selfId={selfId}
+        myId={myId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={over !== null}
         historyId={historyId}

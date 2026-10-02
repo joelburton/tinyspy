@@ -33,7 +33,7 @@ function draw({ mode = 'coop' as 'coop' | 'compete', values = {}, errors = {} as
       brand="HareTrigger"
       clubHandle="moths"
       members={MEMBERS}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 6]}
       values={{
         ...DEFAULT_SETGAME_SETUP_COOP,

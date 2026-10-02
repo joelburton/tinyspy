@@ -13,7 +13,7 @@ type Props = {
    *  own during play, and (once terminal, when RLS opens) everyone's. */
   swaps: EventRow[]
   players: Member[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
   isTerminal: boolean
@@ -59,7 +59,7 @@ type Props = {
 export function GameEventLog({
   swaps,
   players,
-  selfId,
+  myId,
   mode,
   isTerminal,
   historyId,
@@ -67,7 +67,7 @@ export function GameEventLog({
 }: Props) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
-    selfId,
+    myId,
     mode,
     isTerminal,
     label: 'Whose swaps to show',

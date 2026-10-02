@@ -67,7 +67,7 @@ export function BoardCol({
   // ── The move ──
   gameId,
   mode,
-  selfId,
+  myId,
   isBoardInteractive,
   isMyTurn,
   foundWords,
@@ -93,7 +93,7 @@ export function BoardCol({
   // ── The move ──
   gameId: string
   mode: 'coop' | 'compete'
-  selfId: string
+  myId: string
   // The page's standing terms (docs/win-lose.md → Where a player stands). The
   // hive and the entry take letters while the board is interactive; the engine
   // commits a word while the move is mine. Both go false once the game is over
@@ -144,7 +144,7 @@ export function BoardCol({
   const { word, setWord, lastWord, submit } =
     useFoundWordSubmit({
       mode,
-      userId: selfId,
+      userId: myId,
       isMyTurn,
       minWordLength: 4,
       localFeedbackSlot,

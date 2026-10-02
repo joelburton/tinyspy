@@ -97,7 +97,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   const { game, players: rows, events, claims, lastClaim, teamFound, loading, failure } =
     useGame(gameId, authSession.user.id)
 
-  const selfId = authSession.user.id
+  const myId = authSession.user.id
   const setgameSetup = setup as SetgameSetup
 
   const setupRows = useMemo(
@@ -167,7 +167,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
     // hook handed back, which is the server's.
     setDepart({
       leaving: claimTransition(shown, board).leaving,
-      mine: lastClaim?.user_id === selfId,
+      mine: lastClaim?.user_id === myId,
     })
   } else if (cause) {
     setShown([...board])
@@ -329,7 +329,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   const [ring, setRing] = useState<CardCode[]>([])
   const [seenClaims, setSeenClaims] = useState<number | null>(null)
   if (!loading && seenClaims !== claims.length) {
-    setRing(seenClaims === null ? ringFromLog(events, selfId) : [])
+    setRing(seenClaims === null ? ringFromLog(events, myId) : [])
     setSeenClaims(claims.length)
   }
 
@@ -508,7 +508,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
     items: claims,
     keyOf: (c) => String(c.id),
     messageFor: (c) => {
-      if (c.user_id === selfId) return null
+      if (c.user_id === myId) return null
       const member = players.find((p) => p.user_id === c.user_id)
       return FeedbackMessage.peer(member, ANSWER_OUTCOME.claim, 'found a set')
     },
@@ -534,7 +534,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   const statusOutcome = (status?.reason as string | undefined) ?? null
   const winnerId = (status?.winner_user_id as string | undefined) ?? null
   const winners = useMemo(() => leaderboard.filter((e) => e.won), [leaderboard])
-  const iWon = winnerId === selfId || (winnerId === null && winners.some((e) => e.user_id === selfId))
+  const iWon = winnerId === myId || (winnerId === null && winners.some((e) => e.user_id === myId))
   const topFound = winners[0]?.sets_found ?? 0
   const nameOf = (id: string | undefined) => players.find((p) => p.user_id === id)?.username ?? 'a player'
   const winnerNames =
@@ -644,7 +644,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
           historyId={historyViewer.historyId}
           onShowHistory={historyViewer.showHistory}
           players={players}
-          selfId={selfId}
+          myId={myId}
           foundByUser={foundByUser}
           concededIds={concededIds}
           actHint={actHint}

@@ -82,7 +82,7 @@ export function buildWordiplyPrintModel(o: {
   /** EVERY row the viewer may see — the log prints rejects too. */
   guesses: EventRow[]
   players: { user_id: string; username: string }[]
-  selfId: string
+  myId: string
   /** Accepted-guess count, the one live readout. */
   guessesUsed: number
   maxGuesses: number
@@ -105,8 +105,8 @@ export function buildWordiplyPrintModel(o: {
     o.mode === 'compete'
       ? [...o.guesses].sort((a, b) => {
           if (a.user_id !== b.user_id) {
-            if (a.user_id === o.selfId) return -1
-            if (b.user_id === o.selfId) return 1
+            if (a.user_id === o.myId) return -1
+            if (b.user_id === o.myId) return 1
             return nameOf(a.user_id).localeCompare(nameOf(b.user_id))
           }
           return a.id - b.id

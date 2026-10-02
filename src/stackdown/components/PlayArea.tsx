@@ -531,7 +531,7 @@ export function PlayArea({
           solution: solutionShown ? game.solution : null,
           submissions,
           players,
-          selfId: authSession.user.id,
+          myId: authSession.user.id,
           mode: menuMode,
           isTerminal,
           found: foundCount,
@@ -734,7 +734,7 @@ export function PlayArea({
         hintCount={hintCount}
         spoilerCount={spoilerCount}
         players={players}
-        selfId={authSession.user.id}
+        myId={authSession.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
         actHint={actHint}

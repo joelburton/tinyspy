@@ -38,7 +38,7 @@ function draw({
       brand="Wordle"
       clubHandle="moths"
       members={members}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 6]}
       values={{
         ...DEFAULT_WORDLE_SETUP,

@@ -29,7 +29,7 @@ const base = {
   playerBoards: [board('u1'), board('u2')],
   swaps: [] as EventRow[],
   players: [{ user_id: 'u1', username: 'me' }, { user_id: 'u2', username: 'moth' }],
-  selfId: 'u1',
+  myId: 'u1',
   solutionWords: ['ABCDE', 'FGHIJ'],
   answerShown: false,
   setupRows: [{ key: 'extra_swaps', label: 'Extra swaps', value: '5' }],

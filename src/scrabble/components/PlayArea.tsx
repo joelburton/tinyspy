@@ -583,7 +583,7 @@ type Suggested =
         memberColorOf={memberColorOf}
         canShare={canShare}
         shareMove={shareMove}
-        selfId={authSession.user.id}
+        myId={authSession.user.id}
         registerSuggestionApplier={registerSuggestionApplier}
       />
 
@@ -600,7 +600,7 @@ type Suggested =
           teamScore={game.teamScore}
           bagCount={game.bagCount}
           players={players}
-          selfId={authSession.user.id}
+          myId={authSession.user.id}
           playerStates={playerStates}
           concededIds={concededIds}
           actStopGame={actStopGame}

@@ -15,7 +15,7 @@ describe('TurnStatusLine', () => {
       <TurnStatusLine
         turnHolderId="ada"
         players={players}
-        selfId="ada"
+        myId="ada"
         isTerminal={false}
       />,
     )
@@ -28,7 +28,7 @@ describe('TurnStatusLine', () => {
       <TurnStatusLine
         turnHolderId="bea"
         players={players}
-        selfId="ada"
+        myId="ada"
         isTerminal={false}
       />,
     )
@@ -44,7 +44,7 @@ describe('TurnStatusLine', () => {
       <TurnStatusLine
         turnHolderId="ghost"
         players={players}
-        selfId="ada"
+        myId="ada"
         isTerminal={false}
       />,
     )
@@ -56,7 +56,7 @@ describe('TurnStatusLine', () => {
       <TurnStatusLine
         turnHolderId="bea"
         players={players}
-        selfId="ada"
+        myId="ada"
         isTerminal
       />,
     )

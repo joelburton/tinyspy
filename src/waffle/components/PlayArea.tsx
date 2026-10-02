@@ -415,7 +415,7 @@ export function PlayArea({
           playerBoards: playerStates,
           swaps,
           players,
-          selfId: authSession.user.id,
+          myId: authSession.user.id,
           // The six words, derived the same way the on-screen reveal derives
           // them: every word is fully green against the solution itself.
           solutionWords: game.solution
@@ -652,7 +652,7 @@ export function PlayArea({
         remaining={remaining}
         parSwaps={game.par_swaps}
         players={players}
-        selfId={authSession.user.id}
+        myId={authSession.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
         actStopGame={actStopGame}

@@ -25,7 +25,7 @@ import '../theme.css'
  * preview's card colors are silently undefined.)
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
+  mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as SetgameValues
   const set = setValue as SetupSetter<SetgameValues>
@@ -37,7 +37,7 @@ export function SetupForm({
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         error={errors.player_user_ids}
         value={s.player_user_ids}

@@ -66,7 +66,7 @@ export function buildWafflePrintModel(o: {
   /** Every swap the viewer can see. Compete mid-game: only their own. */
   swaps: EventRow[]
   players: { user_id: string; username: string }[]
-  selfId: string
+  myId: string
   /** The six words, from the gated view — null until the server releases them. */
   solutionWords: string[] | null
   /**
@@ -115,12 +115,12 @@ export function buildWafflePrintModel(o: {
     tracks = o.players.flatMap((pl) => {
       const p = byUser.get(pl.user_id)
       if (!p) return []
-      const who = pl.user_id === o.selfId ? `${pl.username} (you)` : pl.username
+      const who = pl.user_id === o.myId ? `${pl.username} (you)` : pl.username
       return [track(who, p, o.swaps.filter((s) => s.user_id === pl.user_id), false)]
     })
   } else {
-    const p = byUser.get(o.selfId)
-    tracks = p ? [track('You', p, o.swaps.filter((s) => s.user_id === o.selfId), false)] : []
+    const p = byUser.get(o.myId)
+    tracks = p ? [track('You', p, o.swaps.filter((s) => s.user_id === o.myId), false)] : []
   }
 
   return {

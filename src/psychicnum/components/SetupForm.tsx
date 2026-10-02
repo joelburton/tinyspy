@@ -32,7 +32,7 @@ import {
  * shape and this game's, and they are the file's only ones.
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
+  mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   // The boundary between the manifest's game-agnostic `unknown` and
   // psychicnum's own shape — one cast for what the form holds, one for how it
@@ -54,7 +54,7 @@ export function SetupForm({
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         error={errors.player_user_ids}
         value={s.player_user_ids}

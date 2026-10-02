@@ -56,7 +56,7 @@ export function BoardCol({
   const canGuess = gd.standing.isBoardInteractive && inFlightWord === null
   // …and the live board is the one on screen.
   const canType = canGuess && !isViewingHistory
-  const { typedWord, typeLetter, actDeleteLast, actSubmit } = useTypedGuess({
+  const { typedWord, typeLetter, actions } = useTypedGuess({
     localFeedbackSlot,
     canType,
     submitGuess,
@@ -106,8 +106,8 @@ export function BoardCol({
           <GuessKeyboard
             keyColors={makeKeyColors(liveRows)}
             onKey={typeLetter}
-            actSubmit={actSubmit}
-            actDelete={actDeleteLast}
+            actSubmit={actions.actSubmit}
+            actDelete={actions.actDeleteLast}
             disabled={!canGuess}
           />
         </div>

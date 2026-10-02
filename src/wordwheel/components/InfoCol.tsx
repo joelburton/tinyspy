@@ -39,7 +39,7 @@ export function InfoCol({
   requiredWordsCount,
   // ── Opponent strip (compete) ──
   players,
-  selfId,
+  myId,
   targetRankIdx,
   selfRankIdx,
   metricByUser,
@@ -74,7 +74,7 @@ export function InfoCol({
   // ── Opponent strip (compete) ──
   // The roster (identity + the concede/result bits `terminalOutcomeVerb` reads).
   players: GamePlayer[]
-  selfId: string
+  myId: string
   // The compete target rank index, or null (coop / not set). Gates the strip.
   targetRankIdx: number | null
   // The caller's own rank index, so "You" tracks the RankBar.
@@ -131,7 +131,7 @@ export function InfoCol({
         {isCompete && targetRankIdx !== null && (
           <OpponentStrip
             players={players}
-            selfId={selfId}
+            myId={myId}
             metricLabel="Rank"
             leading={
               <>
@@ -178,7 +178,7 @@ export function InfoCol({
       <WordList
         rows={wordRows}
         players={players}
-        selfId={selfId}
+        myId={myId}
         isCompete={isCompete}
         isTerminal={isTerminal}
         hasBonus={hasBonus}

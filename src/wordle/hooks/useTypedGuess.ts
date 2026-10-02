@@ -35,8 +35,8 @@ export function useTypedGuess({
 }): {
   typedWord: string
   typeLetter: (letter: string) => void
-  actDeleteLast: Action
-  actSubmit: Action
+  // The entry's two commands, on their keys and the on-screen keyboard.
+  actions: { actDeleteLast: Action; actSubmit: Action }
 } {
   const [typedWord, setTypedWord] = useState('')
 
@@ -61,5 +61,5 @@ export function useTypedGuess({
     maxLength: WORD_LENGTH,
   })
 
-  return { typedWord, typeLetter, actDeleteLast, actSubmit }
+  return { typedWord, typeLetter, actions: { actDeleteLast, actSubmit } }
 }

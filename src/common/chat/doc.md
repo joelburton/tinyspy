@@ -37,7 +37,7 @@ are [docs/common.md](../../../docs/common.md)'s.
 **The four props are the whole contract.** `clubHandle` says which
 conversation. `members` is the full club roster — the whole club, not this
 game's players, so a message from someone who isn't playing still resolves to a
-name and a color. `selfId` is the viewer, whose own messages are never unread
+name and a color. `myId` is the viewer, whose own messages are never unread
 and never pop. `globalFeedbackSlot` is the page's header slot, which chat may
 write a pill into.
 

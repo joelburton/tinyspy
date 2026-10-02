@@ -27,7 +27,7 @@ import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL, type AiLevel, type ScrabbleValues }
  * Controlled component; state lives in the SetupGameModal wrapper.
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
+  mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as ScrabbleValues
   const set = setValue as SetupSetter<ScrabbleValues>
@@ -48,7 +48,7 @@ export function SetupForm({
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         error={errors.player_user_ids}
         value={s.player_user_ids}

@@ -46,7 +46,7 @@ export function buildTerminalMessage({
   foundWordsScore,
   requiredWordsScore,
   selfRankIdx,
-  selfId,
+  myId,
 }: {
   mode: 'coop' | 'compete'
   playState: string
@@ -62,7 +62,7 @@ export function buildTerminalMessage({
   foundWordsScore: number
   requiredWordsScore: number
   selfRankIdx: number
-  selfId: string
+  myId: string
 }): TerminalMessage {
   const rankName = RANKS[selfRankIdx]
   const points = `${foundWordsScore}/${requiredWordsScore} points`
@@ -72,7 +72,7 @@ export function buildTerminalMessage({
     const targetRankName = RANKS[targetRankIdx ?? 6]
 
     if (playState === 'won_compete') {
-      if (winnerId === selfId) {
+      if (winnerId === myId) {
         return {
           pillText: `Won: "${targetRankName}" ${points}`,
           infoColText: 'You won!',

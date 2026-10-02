@@ -36,7 +36,7 @@ import styles from './GameEventLog.module.css'
 export function GameEventLog({
   events,
   players,
-  selfId,
+  myId,
   mode,
   isTerminal,
   historyId,
@@ -45,7 +45,7 @@ export function GameEventLog({
   /** Every event the viewer can see — claims and hints, oldest first. */
   events: EventRow[]
   players: Member[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
   /** The event currently open in the board viewer (highlights its row), or
@@ -57,7 +57,7 @@ export function GameEventLog({
 }) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
-    selfId,
+    myId,
     mode,
     isTerminal,
     // setgame's compete race happens on ONE shared board, like scrabble's — so

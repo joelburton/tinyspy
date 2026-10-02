@@ -68,7 +68,7 @@ export type EventRow = {
  * story of any game in the roster, and the only reason `games_state` exists at
  * all is to keep the undealt deck's order off the wire.
  */
-export function useGame(gameId: string, selfId: string): {
+export function useGame(gameId: string, myId: string): {
   game: SetgameGame | null
   players: SetgamePlayer[]
   /** The caller's own row. */
@@ -174,8 +174,8 @@ export function useGame(gameId: string, selfId: string): {
   const lastClaim = claims.length ? claims[claims.length - 1] : null
 
   const me = useMemo(
-    () => players.find((p) => p.user_id === selfId) ?? null,
-    [players, selfId],
+    () => players.find((p) => p.user_id === myId) ?? null,
+    [players, myId],
   )
 
   return {

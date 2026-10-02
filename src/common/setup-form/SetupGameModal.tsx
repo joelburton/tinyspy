@@ -24,7 +24,7 @@ type Props = {
   members: Member[]
   // The creating user. Always a player — their checkbox in the picker is locked
   // on (you can't start a game you don't play in).
-  selfId: string
+  myId: string
   // Club the game would start in.
   clubHandle: string
   // One-player club (`common.clubs.is_solo`, read by ClubPage). Decides the
@@ -69,7 +69,7 @@ type Props = {
  * accepted.
  */
 export function SetupGameModal({
-  manifest, members, selfId, clubHandle, soloClub, savedDefault, onStarted, onCancel,
+  manifest, members, myId, clubHandle, soloClub, savedDefault, onStarted, onCancel,
 }: Props) {
   // Seed setup from the manifest's defaults merged UNDER the
   // club's saved default (if any). Saved fields override the
@@ -265,7 +265,7 @@ export function SetupGameModal({
                   brand={manifest.name}
                   clubHandle={clubHandle}
                   mode={manifest.mode}
-                  selfId={selfId}
+                  myId={myId}
                   numberOfPlayers={manifest.numberOfPlayers}
                   values={values}
                   set={set}

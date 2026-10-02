@@ -51,7 +51,7 @@ import { CheckboxField } from '@/common/fields/CheckboxField'
  * between the manifest's `unknown` setup and our narrow shape.
  */
 export function SetupForm({
-  members, selfId, numberOfPlayers, values, set: setValue, errors,
+  members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as BananagramsValues
   const set = setValue as SetupSetter<BananagramsValues>
@@ -72,7 +72,7 @@ export function SetupForm({
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         error={errors.player_user_ids}
         value={s.player_user_ids}

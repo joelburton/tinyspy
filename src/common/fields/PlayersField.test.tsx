@@ -27,7 +27,7 @@ function draw(value: Set<string>, onChange = vi.fn()) {
     <PlayersField
       name="player_user_ids"
       members={MEMBERS}
-      selfId="self"
+      myId="self"
       value={value}
       onChange={onChange}
     />,
@@ -36,7 +36,7 @@ function draw(value: Set<string>, onChange = vi.fn()) {
 }
 
 expectFieldContract((props) => (
-  render(<PlayersField members={MEMBERS} selfId="self" value={new Set(['self'])} onChange={() => {}} {...props} />)
+  render(<PlayersField members={MEMBERS} myId="self" value={new Set(['self'])} onChange={() => {}} {...props} />)
 ))
 
 describe('PlayersField', () => {

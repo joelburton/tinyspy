@@ -101,7 +101,7 @@ export type StrandsPlayer = {
  * tables (plus common.games) carries everything. Recorded here so the absence
  * doesn't read as an oversight.
  */
-export function useGame(gameId: string, selfId: string): {
+export function useGame(gameId: string, myId: string): {
   game: StrandsGame | null
   /** Every player's row (rivals' private fields arrive null mid-game). */
   players: StrandsPlayer[]
@@ -225,14 +225,14 @@ export function useGame(gameId: string, selfId: string): {
       events.filter(
         (e) =>
           (e.result === 'theme' || e.result === 'spangram')
-          && (game?.mode === 'coop' || e.user_id === selfId),
+          && (game?.mode === 'coop' || e.user_id === myId),
       ),
-    [events, game?.mode, selfId],
+    [events, game?.mode, myId],
   )
 
   const me = useMemo(
-    () => players.find((p) => p.user_id === selfId) ?? null,
-    [players, selfId],
+    () => players.find((p) => p.user_id === myId) ?? null,
+    [players, myId],
   )
 
   return { game, players, me, events, found, loading, rowsLoaded, failure }

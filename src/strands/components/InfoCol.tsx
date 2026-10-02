@@ -48,7 +48,7 @@ type Props = {
   /** Per-player hints used, for the opponent strip. */
   hintsByUser: Map<string, number>
   solvedIds: Set<string>
-  selfId: string
+  myId: string
   // ── Setup echo ──
   setup: StrandsSetup
   /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
@@ -104,7 +104,7 @@ export function InfoCol({
   players,
   hintsByUser,
   solvedIds,
-  selfId,
+  myId,
   setupRows,
   actStopGame,
   actConcede,
@@ -138,7 +138,7 @@ export function InfoCol({
         {isCompete && (
           <OpponentStrip
             players={players}
-            selfId={selfId}
+            myId={myId}
             metricLabel="Hints"
             metricFor={(p, isSelf) => {
               const hints = hintsByUser.get(p.user_id) ?? 0
@@ -163,7 +163,7 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
-            selfId={selfId}
+            myId={myId}
             isTerminal={isTerminal}
           />
         )}
@@ -232,7 +232,7 @@ export function InfoCol({
       <GameEventLog
         events={events}
         players={players}
-        selfId={selfId}
+        myId={myId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
         historyId={historyId}

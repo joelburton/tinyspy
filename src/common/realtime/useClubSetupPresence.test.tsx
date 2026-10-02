@@ -56,7 +56,7 @@ function mount(mySetup: MySetup | null = null, clubHandle: string | null = 'cl1'
   live = toasts.result
   const hook = renderHook(
     ({ mySetup }: { mySetup: MySetup | null }) =>
-      useClubSetupPresence({ clubHandle, selfId: SELF, mySetup }),
+      useClubSetupPresence({ clubHandle, myId: SELF, mySetup }),
     { initialProps: { mySetup } },
   )
   return { toasts: toasts.result, hook }

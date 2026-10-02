@@ -52,7 +52,7 @@ type Props = {
   // The game's players, for the finder-color lookup on each found row.
   players: Member[]
   // The viewer, for the WHO filter's self-first ordering.
-  selfId: string
+  myId: string
   // Compete gates the per-player filter options until terminal (RLS).
   isCompete: boolean
   isTerminal: boolean
@@ -79,12 +79,12 @@ type Props = {
 export function WordList({
   rows,
   players,
-  selfId,
+  myId,
   isCompete,
   isTerminal,
   hasBonus,
 }: Props) {
-  const wordFilter = useWordListFilter({ rows, players, selfId, isCompete, isTerminal, hasBonus })
+  const wordFilter = useWordListFilter({ rows, players, myId, isCompete, isTerminal, hasBonus })
   const shown = wordFilter.filter(rows)
 
   // The heading tallies THE FILTERED LIST — "Words: 7 · Score: 10" — so the

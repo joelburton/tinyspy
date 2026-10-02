@@ -35,7 +35,7 @@ export function InfoCol({
   score,
   stats,
   players,
-  selfId,
+  myId,
   metricByUser,
   concededIds,
   actStopGame,
@@ -65,7 +65,7 @@ export function InfoCol({
   // ── Players (the OpponentStrip — compete) ──
   /** The roster (identity + per-player concede/result bits terminalOutcomeVerb reads). */
   players: GamePlayer[]
-  selfId: string
+  myId: string
   /** Each peer's score, from the compete leaderboard (self reads `myScore`). */
   metricByUser: ReadonlyMap<string, number>
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
@@ -118,7 +118,7 @@ export function InfoCol({
         {isCompete && (
           <OpponentStrip
             players={players}
-            selfId={selfId}
+            myId={myId}
             metricLabel="Score"
             metricFor={(p, isSelf) => {
               const peerScore = isSelf ? score : (metricByUser.get(p.user_id) ?? 0)
@@ -178,7 +178,7 @@ export function InfoCol({
       <WordList
         rows={wordRows}
         players={players}
-        selfId={selfId}
+        myId={myId}
         isCompete={isCompete}
         isTerminal={isTerminal}
         hasBonus={hasBonus}

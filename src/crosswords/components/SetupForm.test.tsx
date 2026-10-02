@@ -49,7 +49,7 @@ function draw({
       brand="CrossPlay"
       clubHandle="moths"
       members={members}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 8]}
       values={{
         ...CROSSWORDS_DEFAULTS,

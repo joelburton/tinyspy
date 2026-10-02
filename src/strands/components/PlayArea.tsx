@@ -196,8 +196,8 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
     isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
   } = ctx
 
-  const selfId = authSession.user.id
-  const { game, players: playerStates, me, events, found, loading, failure } = useGame(gameId, selfId)
+  const myId = authSession.user.id
+  const { game, players: playerStates, me, events, found, loading, failure } = useGame(gameId, myId)
   // Mode comes off the loaded game row (denormalized from strands.games.mode),
   // which is how every sibling-pair game branches.
   const isCompete = game?.mode === 'compete'
@@ -267,8 +267,8 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
    * one board would draw a board nobody ever had.
    */
   const historyRows = useMemo(
-    () => (isCompete ? events.filter((g) => g.user_id === selfId) : events),
-    [events, isCompete, selfId],
+    () => (isCompete ? events.filter((g) => g.user_id === myId) : events),
+    [events, isCompete, myId],
   )
 
   const consumed = consumedCells(found.map((f) => ({ path: f.path })))
@@ -732,7 +732,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
           events,
           players,
           playerStates,
-          selfId,
+          myId,
           solution: game.solution,
         }),
       )
@@ -769,7 +769,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // one object per outcome. The compete arm reads the winners off the roster
   // and the hint counts off the now-open player rows, reduced here to the
   // few values the text needs.
-  const iWon = memberById(players, selfId)?.result?.won === true
+  const iWon = memberById(players, myId)?.result?.won === true
   const winners = players.filter((p) => p.result?.won === true)
   const winnerNames = winners.map((p) => p.username).join(' + ')
   const iSolved = me?.solved ?? false
@@ -859,7 +859,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared board.
   const historyActor =
-    isCompete && historyRow && historyRow.user_id !== selfId
+    isCompete && historyRow && historyRow.user_id !== myId
       ? memberById(players, historyRow.user_id)
       : undefined
   // The words nobody found, drawn as gray lines — ONLY while this viewer is
@@ -940,7 +940,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
           hintsSpent={me?.hints_spent ?? 0}
           events={events}
           players={players}
-          selfId={authSession.user.id}
+          myId={authSession.user.id}
           setup={strandsSetup}
           setupRows={setupRows}
           actStopGame={actStopGame}

@@ -11,10 +11,10 @@ type Props = AllFieldProps<Set<string>> & {
   members: Member[]
   // The creating user. Always a player — their row is checked and disabled,
   // because you cannot start a game you are not in.
-  selfId: string
+  myId: string
   // Fired with WHO IS PLAYING NOW, like any other field reporting its new
   // value — not with the row that was clicked. The field has both the current
-  // set and `selfId`, so it is the one place that can apply the toggle and the
+  // set and `myId`, so it is the one place that can apply the toggle and the
   // can't-remove-yourself rule together.
   onChange: (next: Set<string>) => void
 }
@@ -45,7 +45,7 @@ type Props = AllFieldProps<Set<string>> & {
 export function PlayersField({
   name,
   members,
-  selfId,
+  myId,
   value,
   onChange,
   disabled,
@@ -59,7 +59,7 @@ export function PlayersField({
     // The creator can't deselect themselves. Their checkbox is `disabled`
     // below, so this is the same rule stated where the value is computed —
     // both halves in one file, rather than agreeing by luck across two.
-    if (userId === selfId) return
+    if (userId === myId) return
     const next = new Set(value)
     if (next.has(userId)) next.delete(userId)
     else next.add(userId)
@@ -72,7 +72,7 @@ export function PlayersField({
     // <SetupSection> around it draws that.
     <Field label={label} group help={help} entryHelp={entryHelp} error={error} name={name} className={className}>
       {members.map((m) => {
-        const isSelf = m.user_id === selfId
+        const isSelf = m.user_id === myId
         return (
           <label
             key={m.user_id}

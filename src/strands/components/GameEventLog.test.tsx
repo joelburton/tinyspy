@@ -46,7 +46,7 @@ function renderLog(events: EventRow[], onShowHistory = vi.fn()) {
     <GameEventLog
       events={events}
       players={PLAYERS}
-      selfId={ADA}
+      myId={ADA}
       mode="coop"
       isTerminal={false}
       historyId={null}

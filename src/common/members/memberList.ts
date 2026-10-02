@@ -24,11 +24,11 @@
  */
 export function orderSelfFirst<T extends { user_id: string; username: string }>(
   players: T[],
-  selfId: string,
+  myId: string,
 ): T[] {
   return [...players].sort((a, b) => {
-    if (a.user_id === selfId) return -1
-    if (b.user_id === selfId) return 1
+    if (a.user_id === myId) return -1
+    if (b.user_id === myId) return 1
     return a.username.localeCompare(b.username)
   })
 }

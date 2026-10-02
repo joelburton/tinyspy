@@ -24,7 +24,7 @@ const base = {
   foundWordsScore: 47,
   requiredWordsScore: 50,
   selfRankIdx: 5,
-  selfId: 'u1',
+  myId: 'u1',
 }
 
 const alice = { username: 'alice', color: 'blue' }

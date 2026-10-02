@@ -66,7 +66,7 @@ export function BoardCol({
     localFeedbackSlot,
     isViewingHistory,
   })
-  const { actSubmit, actClearPicks } = useBoardColActions({
+  const actions = useBoardColActions({
     pickedWord,
     canPick,
     canSubmit,
@@ -138,9 +138,9 @@ export function BoardCol({
             </div>
           ) : (
             <div className={styles.moveArea}>
-              <ActionButton action={actClearPicks} show={buttonShow} />
+              <ActionButton action={actions.actClearPicks} show={buttonShow} />
               <ActionButton
-                  action={actSubmit}
+                  action={actions.actSubmit}
                   show={buttonShow}
                   weight="primary" />
             </div>

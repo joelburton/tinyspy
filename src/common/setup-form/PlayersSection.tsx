@@ -10,7 +10,7 @@ type Props = {
   // The club roster, in the order it should be listed.
   members: Member[]
   // The creating user, whose row is locked on.
-  selfId: string
+  myId: string
   // Who is checked right now — the form's `player_user_ids`.
   value: Set<string>
   onChange: (next: Set<string>) => void
@@ -44,7 +44,7 @@ type Props = {
  */
 export function PlayersSection({
   members,
-  selfId,
+  myId,
   value,
   onChange,
   numberOfPlayers,
@@ -87,7 +87,7 @@ export function PlayersSection({
       <PlayersField
         name="player_user_ids"
         members={members}
-        selfId={selfId}
+        myId={myId}
         value={value}
         onChange={onChange}
         disabled={disabled}

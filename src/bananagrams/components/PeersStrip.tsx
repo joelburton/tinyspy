@@ -8,7 +8,7 @@ import styles from './PeersStrip.module.css'
 type Props = {
   players: GamePlayer[]
   progress: ProgressRow[]
-  selfId: string
+  myId: string
 }
 
 /**
@@ -22,14 +22,14 @@ type Props = {
  * tiles-left ascending (closest to finishing at the top); conceded peers (who
  * have dropped out of the race) sink to the bottom, shown as "out".
  */
-export function PeersStrip({ players, progress, selfId }: Props) {
+export function PeersStrip({ players, progress, myId }: Props) {
   const byUser = new Map(progress.map((p) => [p.user_id, p]))
   // Conceded players are out of the race → sort them last regardless of count;
   // among active players, closest-to-done first.
   const rank = (p: GamePlayer) =>
     (p.conceded ? 1e9 : 0) + (byUser.get(p.user_id)?.unplaced ?? Infinity)
   const peers = players
-    .filter((p) => p.user_id !== selfId)
+    .filter((p) => p.user_id !== myId)
     .sort((a, b) => rank(a) - rank(b))
 
   if (peers.length === 0) return null

@@ -383,7 +383,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
           isTerminal,
           guesses,
           players,
-          selfId: authSession.user.id,
+          myId: authSession.user.id,
           guessesUsed,
           maxGuesses: MAX_GUESSES,
           lengthScore: lengthScore(longest, game.max_word_length),
@@ -468,7 +468,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
             maxWordLength: game?.max_word_length ?? 0,
             winnerId,
             winners,
-            selfId: authSession.user.id,
+            myId: authSession.user.id,
             soleWinner:
               soleWinnerName === undefined
                 ? undefined
@@ -572,7 +572,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
           base={base}
           opponentReveal={opponentReveal}
           players={players}
-          selfId={authSession.user.id}
+          myId={authSession.user.id}
           guessesByUser={guessesByUser}
           scoreByUser={scoreByUser}
           concededIds={concededIds}
@@ -623,7 +623,7 @@ function buildOver({
   maxWordLength,
   winnerId,
   winners,
-  selfId,
+  myId,
   soleWinner,
   tiedNames,
 }: {
@@ -638,7 +638,7 @@ function buildOver({
   winnerId: string | null
   /** The leaderboard rows flagged `won` — every tied player on a co-win. */
   winners: LeaderRow[]
-  selfId: string
+  myId: string
   /** The one winner when there is exactly one, resolved to name + color. */
   soleWinner: Actor | undefined
   /** The winners' names joined with " & ", for a co-win. */
@@ -650,7 +650,7 @@ function buildOver({
       // every tied player is flagged won in the leaderboard, so I read my own
       // row rather than trust a single-winner id. The winners share one score
       // (they tied on it), so any winner row gives the % to show.
-      const iWon = winnerId === selfId || (winnerId === null && winners.some((e) => e.user_id === selfId))
+      const iWon = winnerId === myId || (winnerId === null && winners.some((e) => e.user_id === myId))
       const pct = winners[0]?.length_score ?? 0
       const shared = winners.length > 1
       if (iWon) {

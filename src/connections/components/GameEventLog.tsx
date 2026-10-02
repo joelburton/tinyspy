@@ -59,7 +59,7 @@ export function GameEventLog({
 }: Props) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
-    selfId: myId,
+    myId: myId,
     mode,
     isTerminal,
     label: 'Whose guesses to show',

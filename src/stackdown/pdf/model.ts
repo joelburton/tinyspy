@@ -75,7 +75,7 @@ export function buildStackdownPrintModel(o: {
   solution: string[] | null
   submissions: EventRow[]
   players: { user_id: string; username: string }[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
   /** Words cleared so far, and the target (six). */
@@ -121,13 +121,13 @@ export function buildStackdownPrintModel(o: {
   } else if (o.isTerminal) {
     tracks = o.players.map((pl) =>
       track(
-        pl.user_id === o.selfId ? `${pl.username} (you)` : pl.username,
+        pl.user_id === o.myId ? `${pl.username} (you)` : pl.username,
         o.submissions.filter((s) => s.user_id === pl.user_id),
         false,
       ),
     )
   } else {
-    tracks = [track('You', o.submissions.filter((s) => s.user_id === o.selfId), false)]
+    tracks = [track('You', o.submissions.filter((s) => s.user_id === o.myId), false)]
   }
 
   const shown = tracks[0]?.tiles.length ?? 0

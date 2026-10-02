@@ -73,7 +73,7 @@ export type SetupBodyProps = {
   mode: 'coop' | 'compete'
   // The creating user. Always a player — their row in the picker is
   // checked and locked, because you cannot start a game you are not in.
-  selfId: string
+  myId: string
   // The manifest's `[min, max]`. The body renders the picker, so it is
   // the body that must say "Pick at least 2 players." — the same bound
   // the modal gates Start on.

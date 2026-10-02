@@ -16,7 +16,7 @@ type Props = {
    *  place rejects are shown; the board and the scores take `validGuesses`. */
   guesses: EventRow[]
   players: Member[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
   isTerminal: boolean
@@ -66,11 +66,11 @@ const REJECT_LABEL: Record<NonNullable<EventRow['reason']>, string> = {
  * is the question the log exists to answer.
  */
 export function GameEventLog({
-  guesses, players, selfId, mode, isTerminal, historyId, onShowHistory,
+  guesses, players, myId, mode, isTerminal, historyId, onShowHistory,
 }: Props) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
-    selfId,
+    myId,
     mode,
     isTerminal,
     label: 'Whose guesses to show',

@@ -138,9 +138,9 @@ Comments on each button go; the actions' own rules live with the actions.
   says so. No new synonym for an existing word (`roster`, `racer`, `budget`,
   `commit` for submit).
 - The viewing player is `my…` / `me`, never `self…` — `myId`, `gd.me`,
-  `isMyTurn` (docs/code-conventions.md → Names about the viewing player). A
-  shared component that still takes `selfId` is called `selfId={myId}` until
-  it is renamed; a game never declares a `selfId` of its own.
+  `isMyTurn` (docs/code-conventions.md → Names about the viewing player). The
+  shared components take `myId` too; a game converting from `selfWon`,
+  `selfSolved` or `selfRankIdx` picks the `my…` name that reads best.
 - An action hook is `use<Component>Actions`, with no "bind".
 - A name says what the value is (`isPhone`, `isLocalFeedbackShown`,
   `getScoreOrOut`).

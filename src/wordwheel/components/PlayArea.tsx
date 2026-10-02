@@ -232,7 +232,7 @@ function PlayArea(props: PlayAreaProps) {
             foundWordsScore,
             requiredWordsScore,
             selfRankIdx,
-            selfId: authSession.user.id,
+            myId: authSession.user.id,
           })
         : null,
     [isTerminal, game.mode, playState, reason, winnerId, winnerName, winnerColor, targetRankIdx,
@@ -480,7 +480,7 @@ function PlayArea(props: PlayAreaProps) {
         // ── The move (BoardCol owns the engine and submit_word) ──
         gameId={gameId}
         mode={game.mode}
-        selfId={authSession.user.id}
+        myId={authSession.user.id}
         isBoardInteractive={isBoardInteractive}
         isMyTurn={isMyTurn}
         foundWords={foundWords}
@@ -505,7 +505,7 @@ function PlayArea(props: PlayAreaProps) {
         requiredWordsCount={game.required_words_count}
         // ── Opponent strip (compete) ──
         players={players}
-        selfId={authSession.user.id}
+        myId={authSession.user.id}
         targetRankIdx={targetRankIdx}
         selfRankIdx={selfRankIdx}
         metricByUser={rankByUser}

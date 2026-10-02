@@ -84,12 +84,12 @@ export function nextHint(board: readonly Card[], showing: readonly Card[]): Card
  */
 export function ringFromLog(
   events: readonly { kind: 'claim' | 'hint'; user_id: string; cards: Card[] }[],
-  selfId: string,
+  myId: string,
 ): Card[] {
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i]
     if (event.kind === 'claim') return []
-    if (event.user_id === selfId) return event.cards
+    if (event.user_id === myId) return event.cards
   }
   return []
 }

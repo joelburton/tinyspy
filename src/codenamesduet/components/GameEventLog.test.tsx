@@ -96,7 +96,7 @@ function renderLog(props: {
       clues={props.clues}
       guesses={props.guesses}
       players={PLAYERS}
-      selfId="ada"
+      myId="ada"
       turnNumber={props.turnNumber ?? 99}
       isTerminal={props.isTerminal ?? false}
       turnBudget={9}
@@ -286,7 +286,7 @@ describe('GameEventLog — the history link', () => {
         ]}
         guesses={[]}
         players={PLAYERS}
-        selfId="ada"
+        myId="ada"
         turnNumber={99}
         isTerminal={false}
         turnBudget={9}

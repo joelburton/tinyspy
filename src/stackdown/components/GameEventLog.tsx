@@ -44,7 +44,7 @@ import styles from './GameEventLog.module.css'
 export function GameEventLog({
   submissions,
   players,
-  selfId,
+  myId,
   mode,
   isTerminal,
   historyId,
@@ -54,7 +54,7 @@ export function GameEventLog({
    *  the viewer's own during play, and (once terminal, when RLS opens) everyone's. */
   submissions: EventRow[]
   players: Member[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
   isTerminal: boolean
@@ -68,7 +68,7 @@ export function GameEventLog({
 }) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
-    selfId,
+    myId,
     mode,
     isTerminal,
     emptyLabel: 'No words yet.',

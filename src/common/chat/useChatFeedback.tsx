@@ -18,7 +18,7 @@ type ChatFeedbackOptions = {
   messages: ClubMessage[]
   loading: boolean
   members: Member[]
-  selfId: string
+  myId: string
   globalFeedbackSlot: FeedbackSlot
 }
 
@@ -27,7 +27,7 @@ type ChatFeedbackOptions = {
  * another member shows as "● HANDLE: text" (the `chat` kind). Takes the stream
  * rather than opening one, so `<ChatHost>` — which already holds it for the unread
  * badge and the `!` detector — is the only caller. `members` is the FULL club
- * roster, so a sender outside the current game is still named; `selfId` is the
+ * roster, so a sender outside the current game is still named; `myId` is the
  * viewer, whose own messages never pop.
  *
  * Messages already in the log at load never pop: `useShowPeerFeedback` seeds
@@ -38,7 +38,7 @@ export function useChatFeedback({
   messages,
   loading,
   members,
-  selfId,
+  myId,
   globalFeedbackSlot,
 }: ChatFeedbackOptions): void {
   useShowPeerFeedback({
@@ -48,7 +48,7 @@ export function useChatFeedback({
     items: messages,
     keyOf: (m) => m.id,
     messageFor: (m) => {
-      if (m.user_id === selfId) return null // my own message — never pop it back at me
+      if (m.user_id === myId) return null // my own message — never pop it back at me
       const member = memberById(members, m.user_id)
       // Mirror ChatBody: a leading '!' is the "force-open for everyone" marker,
       // not part of the shown text.

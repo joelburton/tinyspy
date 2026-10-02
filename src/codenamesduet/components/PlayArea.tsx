@@ -580,7 +580,7 @@ function PlayArea({
         clues={clues}
         guesses={guesses}
         players={players}
-        selfId={authSession.user.id}
+        myId={authSession.user.id}
         isTerminal={isTerminal}
         historyId={historyId}
         onShowHistory={showHistory}

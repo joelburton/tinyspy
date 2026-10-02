@@ -22,12 +22,12 @@ export type StartListFilter = {
  * unfiltered, so the stored choice is ignored there rather than trusted.
  */
 export function useStartListFilter(
-  selfId: string,
+  myId: string,
   soloClub: boolean,
   startable: GameManifest[],
 ): StartListFilter {
   const [storedMode, setMode] = useStickyChoice<ModeFilterValue>(
-    `puzpuzpuz:club:modeFilter:${selfId}`,
+    `puzpuzpuz:club:modeFilter:${myId}`,
     MODE_FILTER_VALUES,
     'all',
   )

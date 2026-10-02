@@ -26,7 +26,7 @@ import { answerMaxBand, GUESS_OPTIONS, WORD_LENGTH, type WordleValues } from '..
  * gating itself by mode.
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
+  mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as WordleValues
   const set = setValue as SetupSetter<WordleValues>
@@ -46,7 +46,7 @@ export function SetupForm({
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         error={errors.player_user_ids}
         value={s.player_user_ids}

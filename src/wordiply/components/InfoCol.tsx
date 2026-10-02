@@ -49,7 +49,7 @@ export function InfoCol({
   opponentReveal,
   // ── Opponent strip (compete) ──
   players,
-  selfId,
+  myId,
   guessesByUser,
   scoreByUser,
   concededIds,
@@ -100,7 +100,7 @@ export function InfoCol({
 
   // ── Opponent strip (compete) ──
   players: GamePlayer[]
-  selfId: string
+  myId: string
   /** Each player's guesses used (the mid-game metric). */
   guessesByUser: ReadonlyMap<string, number>
   /** Each player's length score % (the terminal metric). */
@@ -164,7 +164,7 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
-            selfId={selfId}
+            myId={myId}
             isTerminal={isTerminal}
           />
         )}
@@ -175,7 +175,7 @@ export function InfoCol({
         {isCompete && (
           <OpponentStrip
             players={players}
-            selfId={selfId}
+            myId={myId}
             metricLabel={isTerminal ? 'Length' : 'Guesses'}
             metricFor={(p) => {
               if (!isTerminal) {
@@ -249,7 +249,7 @@ export function InfoCol({
       <GameEventLog
         guesses={allGuesses}
         players={players}
-        selfId={selfId}
+        myId={myId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
         historyId={historyId}

@@ -35,7 +35,7 @@ const ROWS: WordListRow[] = [
 
 const base = {
   players: PLAYERS,
-  selfId: 'ada',
+  myId: 'ada',
   isCompete: false,
   isTerminal: true,
   hasBonus: false,

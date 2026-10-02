@@ -41,14 +41,14 @@ import styles from './GameEventLog.module.css'
 export function GameEventLog({
   plays,
   players,
-  selfId,
+  myId,
   mode,
   historyId,
   onShowHistory,
 }: {
   plays: EventRow[]
   players: Member[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   /** The turn currently open in the board viewer (highlights its row), or null. */
   historyId: number | null
@@ -61,7 +61,7 @@ export function GameEventLog({
     // handle), so a bot takes its alphabetical place rather than being
     // segregated. It plays like anyone else; it reads back like anyone else.
     players,
-    selfId,
+    myId,
     mode,
     // Every play is public here (the board is public), so no row is ever
     // RLS-hidden and the honest-hidden empty text can't apply.

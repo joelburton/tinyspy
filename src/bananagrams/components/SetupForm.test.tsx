@@ -37,7 +37,7 @@ function draw({ values = {}, errors = {} as FormErrors } = {}) {
       brand="MonkeyGrams"
       clubHandle="moths"
       members={MEMBERS}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 8]}
       values={{
         ...DEFAULT_BANANAGRAMS_SETUP,

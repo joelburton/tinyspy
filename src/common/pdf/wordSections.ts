@@ -32,7 +32,7 @@ export function buildWordSections(
   // The roster, in the order sections should appear.
   players: { user_id: string; username: string }[],
   // Marks the viewer's own section: "joel (you)".
-  selfId: string,
+  myId: string,
 ): WordSection[] {
   if (mode === 'coop') return [{ who: null, tally: null, words }]
 
@@ -43,7 +43,7 @@ export function buildWordSections(
     const mine = found.filter((w) => w.found!.who === p.username)
     const points = mine.reduce((s, w) => s + w.found!.points, 0)
     return {
-      who: p.user_id === selfId ? `${p.username} (you)` : p.username,
+      who: p.user_id === myId ? `${p.username} (you)` : p.username,
       tally: `${mine.length} word${mine.length === 1 ? '' : 's'} · ${points} pt${points === 1 ? '' : 's'}`,
       // `found: null` renders the bare word — which is what we want inside a
       // player's own section, minus the redundant name.

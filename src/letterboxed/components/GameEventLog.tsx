@@ -39,7 +39,7 @@ import styles from './PlayArea.module.css'
 export function GameEventLog({
   events,
   players,
-  selfId,
+  myId,
   mode,
   isTerminal,
   historyId,
@@ -47,7 +47,7 @@ export function GameEventLog({
 }: {
   events: EventRow[]
   players: GamePlayer[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
   /** The move open in the board viewer, or null when live. */
@@ -58,7 +58,7 @@ export function GameEventLog({
 }) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
-    selfId,
+    myId,
     mode,
     isTerminal,
     label: 'Whose moves to show',

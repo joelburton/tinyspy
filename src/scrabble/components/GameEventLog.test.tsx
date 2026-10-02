@@ -55,7 +55,7 @@ function renderLog(mode: 'coop' | 'compete' = 'compete', players: Member[] = PLA
     <GameEventLog
       plays={PLAYS}
       players={players}
-      selfId="u1"
+      myId="u1"
       mode={mode}
       historyId={null}
       onShowHistory={() => {}}
@@ -110,7 +110,7 @@ describe('scrabble GameEventLog — the whose-moves picker', () => {
       <GameEventLog
         plays={[PLAYS[0]]}
         players={PLAYERS}
-        selfId="u1"
+        myId="u1"
         mode="compete"
         historyId={null}
         onShowHistory={() => {}}

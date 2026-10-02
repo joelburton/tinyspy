@@ -91,11 +91,11 @@ export type EventRow = {
  *     what tells everyone the board restarted (its events DELETEs alone would
  *     not: postgres_changes filters don't reliably match deletes).
  *
- * `selfId` comes from the caller (GamePage already holds the session) — the
+ * `myId` comes from the caller (GamePage already holds the session) — the
  * strands shape. players_state masks a rival's chain to null, and "my row" is
  * the one whose chain is authoritative, so the id picks it out.
  */
-export function useGame(gameId: string, selfId: string): {
+export function useGame(gameId: string, myId: string): {
   game: LetterboxedGame | null
   /** Every visible player row, including rivals' (chain masked). */
   playerRows: PlayerRow[]
@@ -228,8 +228,8 @@ export function useGame(gameId: string, selfId: string): {
   })
 
   const myRow = useMemo(
-    () => playerRows.find((r) => r.user_id === selfId) ?? null,
-    [playerRows, selfId],
+    () => playerRows.find((r) => r.user_id === myId) ?? null,
+    [playerRows, myId],
   )
 
   // The header's wins: it can never be retried, so once it has failed the board

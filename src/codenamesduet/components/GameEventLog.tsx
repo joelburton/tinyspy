@@ -25,7 +25,7 @@ type Props = {
   // row's seat letter ('A'/'B') back to the person.
   players: Player[]
   // The viewer, so the picker can order them first.
-  selfId: string
+  myId: string
   // The game's current turn number (`games.turn_number`). Lets a guess-less
   // turn read "(clue given)" while it's still live vs "(no guesses)" once it
   // has ended.
@@ -92,7 +92,7 @@ export function GameEventLog({
   clues,
   guesses,
   players,
-  selfId,
+  myId,
   turnNumber,
   isTerminal,
   turnBudget,
@@ -101,7 +101,7 @@ export function GameEventLog({
 }: Props) {
   const eventLogPicker = useEventLogPlayerPicker({
     players,
-    selfId,
+    myId,
     mode: 'coop',
     // Coop: every clue and guess is shared, so nothing is ever RLS-hidden and
     // the honest-hidden empty text can't apply.

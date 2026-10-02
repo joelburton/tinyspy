@@ -199,7 +199,7 @@ export function BoardCol({
   memberColorOf,
   canShare,
   shareMove,
-  selfId,
+  myId,
   registerSuggestionApplier,
 }: {
   // ── Mobile-only status strip ──
@@ -251,7 +251,7 @@ export function BoardCol({
   // Broadcast my staged tiles to teammates for a read-only preview.
   shareMove: (payload: SharedMovePayload) => void
   // My user id — stamped on a broadcast as its `sharerId`.
-  selfId: string
+  myId: string
 
   // ── Suggest-a-move (coop only — see docs/games/scrabble.md §11) ──
   // Register (or, with null, unregister) the "stage this suggested move"
@@ -771,12 +771,12 @@ export function BoardCol({
     const ev = evaluatePlay(board, placements)
     shareMove({
       placements,
-      sharerId: selfId,
+      sharerId: myId,
       baseVersion: game.version,
       words: ev.valid ? ev.words.map((w) => w.word) : [],
       score: ev.valid ? ev.score : 0,
     })
-  }, [staged, board, shareMove, selfId, game.version])
+  }, [staged, board, shareMove, myId, game.version])
 
   // Any key dismisses a gesture-cleared result. A NON-consuming watcher, so the
   // same press still stages its tile — which is why this is the shared hook

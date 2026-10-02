@@ -29,7 +29,7 @@ function draw(
   return render(
     <PlayersSection
       members={extra.members ?? MEMBERS}
-      selfId="self"
+      myId="self"
       value={value}
       onChange={() => {}}
       numberOfPlayers={numberOfPlayers}

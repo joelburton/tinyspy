@@ -9,7 +9,7 @@ import { useHealAbandonedCurrentGame } from './useHealAbandonedCurrentGame'
 
 type ClubRoomPresenceOptions = {
   clubHandle: string
-  selfId: string
+  myId: string
   members: Member[]
   // The `is_current_view` game's id, or null.
   currentGameId: string | null
@@ -27,20 +27,20 @@ type ClubRoomPresenceOptions = {
  */
 export function useClubRoomPresence({
   clubHandle,
-  selfId,
+  myId,
   members,
   currentGameId,
   setupManifest,
 }: ClubRoomPresenceOptions): Set<string> {
-  const presence = useClubPresence(clubHandle, null, selfId)
+  const presence = useClubPresence(clubHandle, null, myId)
   useHealAbandonedCurrentGame(currentGameId, presence)
 
   // I'm a member of any club whose page I can load: `get_club_page` refuses
   // anyone else.
-  const selfUsername = members.find((m) => m.user_id === selfId)!.username
+  const selfUsername = members.find((m) => m.user_id === myId)!.username
   useClubSetupPresence({
     clubHandle,
-    selfId,
+    myId,
     mySetup: setupManifest
       ? { brand: setupManifest.name, mode: setupManifest.mode, username: selfUsername }
       : null,

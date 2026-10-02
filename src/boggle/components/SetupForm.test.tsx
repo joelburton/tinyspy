@@ -44,7 +44,7 @@ function draw({
       brand="MothCubes"
       clubHandle="moths"
       members={members}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 8]}
       values={{
         ...DEFAULT_BOGGLE_SETUP_COOP,

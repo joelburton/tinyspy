@@ -48,11 +48,11 @@ export function setChatLastSeen(clubHandle: string, sentAt: string): void {
 export function computeUnread(
   messages: ClubMessage[],
   lastSeen: string | null,
-  selfId: string,
+  myId: string,
   members: Member[],
 ): ChatUnread {
   const unread = messages.filter(
-    (m) => m.user_id !== selfId && (!lastSeen || m.sent_at > lastSeen),
+    (m) => m.user_id !== myId && (!lastSeen || m.sent_at > lastSeen),
   )
   if (unread.length === 0) return { count: 0, senderColor: null }
   const latest = unread[unread.length - 1]

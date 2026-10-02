@@ -51,7 +51,7 @@ const base = {
   header: { mode: 'coop' as const, brand: 'PaulPath', gameTitle: 't', date: 'd', summary: 's', setupRows: [] },
   board: ['ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF'],
   players,
-  selfId: ADA,
+  myId: ADA,
 }
 
 describe('buildPrintModel — the shield holds on paper', () => {

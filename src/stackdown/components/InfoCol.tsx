@@ -36,7 +36,7 @@ export function InfoCol({
   hintCount,
   spoilerCount,
   players,
-  selfId,
+  myId,
   playerStates,
   concededIds,
   actHint,
@@ -78,7 +78,7 @@ export function InfoCol({
   // ── Players (the OpponentStrip + the log's identity discs) ──
   /** The roster (identity + per-player concede flags). */
   players: Member[]
-  selfId: string
+  myId: string
   /** Public per-player tallies (found_count / solved); `self` is derived from these. */
   playerStates: PlayerRow[]
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
@@ -127,7 +127,7 @@ export function InfoCol({
    *  number the log printed beside it. */
   onShowHistory: (id: number, n: number) => void
 }) {
-  const self = playerStates.find((p) => p.user_id === selfId)
+  const self = playerStates.find((p) => p.user_id === myId)
 
   return (
     <div className={shared.infoCol}>
@@ -150,7 +150,7 @@ export function InfoCol({
         {isCompete && (
           <OpponentStrip
             players={players}
-            selfId={selfId}
+            myId={myId}
             metricLabel="Found"
             metricFor={(player, isSelf) => {
               // Mid-game a conceder reads as "out" (dropped from the race). At
@@ -253,7 +253,7 @@ export function InfoCol({
       <GameEventLog
         submissions={submissions}
         players={players}
-        selfId={selfId}
+        myId={myId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
         historyId={historyId}

@@ -43,7 +43,7 @@ function draw({
       brand="WordWire"
       clubHandle="moths"
       members={members}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 6]}
       values={{
         ...DEFAULT_WORDIPLY_SETUP_COOP,

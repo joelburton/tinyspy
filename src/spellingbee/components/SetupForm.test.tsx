@@ -49,7 +49,7 @@ function draw({
       brand="FreeBee"
       clubHandle="moths"
       members={members}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 6]}
       values={{
         ...DEFAULT_SPELLINGBEE_SETUP_COOP,

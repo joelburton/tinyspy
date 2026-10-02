@@ -41,7 +41,7 @@ const base = {
     { user_id: 'u1', username: 'me' },
     { user_id: 'u2', username: 'moth' },
   ],
-  selfId: 'u1',
+  myId: 'u1',
   mode: 'coop' as const,
   isTerminal: false,
   found: 2,

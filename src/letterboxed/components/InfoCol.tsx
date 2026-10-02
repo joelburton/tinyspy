@@ -45,7 +45,7 @@ export function InfoCol({
   events,
   // ── Players & opponent strip (compete) ──
   players,
-  selfId,
+  myId,
   isCompete,
   wordsByUser,
   coveredByUser,
@@ -86,7 +86,7 @@ export function InfoCol({
   events: EventRow[]
   // ── Players & opponent strip (compete) ──
   players: GamePlayer[]
-  selfId: string
+  myId: string
   isCompete: boolean
   wordsByUser: Map<string, number>
   coveredByUser: Map<string, number>
@@ -142,7 +142,7 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
-            selfId={selfId}
+            myId={myId}
             isTerminal={isTerminal}
           />
         )}
@@ -155,7 +155,7 @@ export function InfoCol({
         {isCompete && (
           <OpponentStrip
             players={players}
-            selfId={selfId}
+            myId={myId}
             metricLabel="Covered"
             metricFor={(p) =>
               concededIds.has(p.user_id)
@@ -245,7 +245,7 @@ export function InfoCol({
       <GameEventLog
         events={events}
         players={players}
-        selfId={selfId}
+        myId={myId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
         historyId={historyId}

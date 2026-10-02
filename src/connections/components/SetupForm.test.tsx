@@ -46,7 +46,7 @@ function draw({
       brand="Connections"
       clubHandle="moths"
       members={MEMBERS}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 6]}
       values={{
         ...DEFAULT_CONNECTIONS_SETUP,

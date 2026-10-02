@@ -58,7 +58,7 @@ export function BoardCol({
   const canPick = gd.standing.isBoardInteractive && !isViewingHistory
   const canSubmit = gd.standing.isMyTurn && !isViewingHistory
 
-  const { verdictMark, showVerdictFor, clearVerdictMark } = useVerdictMark({
+  const verdictMark = useVerdictMark({
     guesses: gd.boardEvents,
     myId: gd.me?.user_id ?? null,
     localFeedbackSlot,
@@ -67,9 +67,9 @@ export function BoardCol({
   const { submitGuess, inFlightTiles } = useSubmitGuess({
     gd,
     localFeedbackSlot,
-    showVerdictFor,
+    showVerdictFor: verdictMark.showFor,
   })
-  const { actSubmit, actClearPicks } = useBoardColActions({
+  const actions = useBoardColActions({
     canPick,
     canSubmit,
     unionTiles: gd.picks.union,
@@ -82,7 +82,7 @@ export function BoardCol({
   function pickTile(tile: string) {
     if (!canPick) return
     localFeedbackSlot.dismiss()
-    clearVerdictMark()
+    verdictMark.clear()
     gd.picks.toggleTile(tile)
   }
 
@@ -118,7 +118,7 @@ export function BoardCol({
         ownerByTile={shownOwnerByTile}
         onPick={pickTile}
         inFlightTiles={inFlightTiles}
-        verdict={verdictMark}
+        verdict={verdictMark.mark}
         colorByUserId={colorByUserIdMap(gd.players)}
         sharedBoard={isSharedBoard}
         isWaitingForTurn={gd.standing.isWaitingForTurn}
@@ -158,12 +158,12 @@ export function BoardCol({
                 <StrikeMarks used={gd.readout.mistakeCount} total={gd.readout.maxMistakes} />
               </div>
               <ActionButton
-                action={actClearPicks}
+                action={actions.actClearPicks}
                 show={buttonShow}
                 className={styles.inputButton}
               />
               <ActionButton
-                action={actSubmit}
+                action={actions.actSubmit}
                 show={buttonShow}
                 weight="primary"
                 className={styles.inputButton}

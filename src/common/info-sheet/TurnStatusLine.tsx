@@ -11,7 +11,7 @@ type Props = {
   // The game's players, to resolve the current player's name + color.
   players: Member[]
   // The viewer's user id — decides "Your turn" vs "Waiting for …".
-  selfId: string
+  myId: string
   // At terminal the line goes inert (no "waiting for …" nag) but KEEPS
   // its height, so the play→terminal transition doesn't reflow the
   // column below it (the repo's no-reflow rule).
@@ -37,7 +37,7 @@ type Props = {
 export function TurnStatusLine({
   turnHolderId,
   players,
-  selfId,
+  myId,
   isTerminal,
 }: Props) {
   // Terminal: hold the line's height rather than nagging about whose turn it
@@ -53,7 +53,7 @@ export function TurnStatusLine({
     return <p className={shared.infoState}>{' '}</p>
   }
 
-  if (turnHolderId === selfId) {
+  if (turnHolderId === myId) {
     return (
       <p className={shared.infoState}>
         <strong>Your turn</strong>

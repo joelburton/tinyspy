@@ -40,7 +40,7 @@ type Props = {
   events: EventRow[]
   // ── Per-player (compete strip, and the coop terminal breakdown) ──
   players: GamePlayer[]
-  selfId: string
+  myId: string
   foundByUser: ReadonlyMap<string, number>
   concededIds: Set<string>
   // ── Hint (coop only) ──
@@ -96,7 +96,7 @@ export function InfoCol({
   lastClaim,
   events,
   players,
-  selfId,
+  myId,
   foundByUser,
   concededIds,
   actHint,
@@ -124,7 +124,7 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
-            selfId={selfId}
+            myId={myId}
             isTerminal={isTerminal}
           />
         )}
@@ -137,7 +137,7 @@ export function InfoCol({
         {isCompete && (
           <OpponentStrip
             players={players}
-            selfId={selfId}
+            myId={myId}
             metricLabel="Sets"
             metricFor={(p) => {
               const n = foundByUser.get(p.user_id) ?? 0
@@ -194,7 +194,7 @@ export function InfoCol({
       <GameEventLog
         events={events}
         players={players}
-        selfId={selfId}
+        myId={myId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
         historyId={historyId}

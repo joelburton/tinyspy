@@ -52,7 +52,7 @@ export function GameEventLog({
 }: Props) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
-    selfId: myId,
+    myId: myId,
     mode,
     isTerminal: isGameEnded,
     emptyLabel: 'No turns yet.',

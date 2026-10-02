@@ -31,7 +31,7 @@ function draw({ errors = {} as FormErrors, members = MEMBERS } = {}) {
       brand="StackDown"
       clubHandle="moths"
       members={members}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 6]}
       values={{
         ...DEFAULT_STACKDOWN_SETUP,

@@ -156,7 +156,7 @@ export function buildPrintModel(args: {
   events: readonly EventRow[]
   players: readonly Member[]
   playerStates: readonly StrandsPlayer[]
-  selfId: string
+  myId: string
   solution: StrandsSolution | null
 }): StrandsPrintModel {
   // A type predicate, not a plain boolean: it narrows the row to a GUESS, which
@@ -188,7 +188,7 @@ export function buildPrintModel(args: {
       ? [trackFor(null)]
       : args.isTerminal
         ? args.players.map((p) => trackFor(p.user_id))
-        : [trackFor(args.selfId)]
+        : [trackFor(args.myId)]
 
   return {
     ...args.header,

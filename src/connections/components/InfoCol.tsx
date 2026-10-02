@@ -72,7 +72,7 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={gd.turns.turnHolderId}
             players={gd.players}
-            selfId={myId}
+            myId={myId}
             isTerminal={gd.isGameEnded}
           />
         )}
@@ -82,7 +82,7 @@ export function InfoCol({
         {gd.isCompete && (
           <OpponentStrip
             players={gd.players}
-            selfId={myId}
+            myId={myId}
             metricLabel="Found"
             // A racer who conceded reads 'out' (their found-count is frozen
             // and no longer part of the race); everyone else shows their live

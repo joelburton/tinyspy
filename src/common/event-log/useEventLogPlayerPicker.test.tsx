@@ -28,7 +28,7 @@ const setup = (over: Partial<Parameters<typeof useEventLogPlayerPicker>[0]> = {}
   renderHook(() =>
     useEventLogPlayerPicker<Row>({
       players: two,
-      selfId: 'u1',
+      myId: 'u1',
       mode: 'compete',
       isTerminal: false,
       ...over,
@@ -98,7 +98,7 @@ describe('useEventLogPlayerPicker — the default selection', () => {
     // landed. (The codenamesduet-history.e2e flake this was found by.)
     function Probe({ players }: { players: typeof two }) {
       const picker = useEventLogPlayerPicker<Row>({
-        players, selfId: 'u1', mode: 'coop', isTerminal: false,
+        players, myId: 'u1', mode: 'coop', isTerminal: false,
       })
       return <p data-testid="rows">{picker.filter(rows).map((r) => r.word).join(',') || 'none'}</p>
     }
@@ -113,7 +113,7 @@ describe('useEventLogPlayerPicker — the default selection', () => {
   it('falls back when the picked player stops being offered', async () => {
     function Probe({ players }: { players: typeof two }) {
       const picker = useEventLogPlayerPicker<Row>({
-        players, selfId: 'u1', mode: 'coop', isTerminal: false,
+        players, myId: 'u1', mode: 'coop', isTerminal: false,
       })
       return (
         <>
@@ -131,7 +131,7 @@ describe('useEventLogPlayerPicker — the default selection', () => {
   })
 
   it('a spectator has no board of their own, so compete defaults to All', () => {
-    const { result } = setup({ selfId: 'u9' })
+    const { result } = setup({ myId: 'u9' })
     expect(result.current.picked).toBe('all')
     expect(result.current.filter(rows)).toHaveLength(2)
   })
@@ -141,7 +141,7 @@ describe('useEventLogPlayerPicker — the honest empty line', () => {
   function Probe({ isTerminal }: { isTerminal: boolean }) {
     const picker = useEventLogPlayerPicker<Row>({
       players: two,
-      selfId: 'u1',
+      myId: 'u1',
       mode: 'compete',
       isTerminal,
       emptyLabel: 'No guesses yet.',

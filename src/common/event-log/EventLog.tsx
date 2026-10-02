@@ -24,7 +24,7 @@ import history from './historyViewer.module.css'
  * the empty state and its wording all come out of `useEventLogPlayerPicker`, and
  * the panel draws both itself, so there is nothing to wire (doc.md → Details).
  *
- *     const eventLogPicker = useEventLogPlayerPicker({ players, selfId, mode, isTerminal })
+ *     const eventLogPicker = useEventLogPlayerPicker({ players, myId, mode, isTerminal })
  *     const shown = eventLogPicker.filter(rows)
  *     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}> …the <tr>s… </EventLog>
  */

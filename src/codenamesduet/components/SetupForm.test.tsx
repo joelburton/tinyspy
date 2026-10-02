@@ -32,7 +32,7 @@ function draw({ values = {}, errors = {} as FormErrors } = {}) {
       brand="Codenames Duet"
       clubHandle="moths"
       members={MEMBERS}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[2, 2]}
       values={{
         ...DEFAULT_CODENAMESDUET_SETUP,

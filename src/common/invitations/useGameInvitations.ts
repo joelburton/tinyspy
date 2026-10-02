@@ -56,7 +56,7 @@ export function useGameInvitations(authSession: Session): {
   dismiss: (gameId: string) => void
   join: (invite: GameInvite) => void
 } {
-  const selfId = authSession.user.id
+  const myId = authSession.user.id
   const currentGameId = matchGameRoute(usePath())?.gameId ?? null
   // All surfaced-and-not-yet-acted-on invitations (across pages).
   const [pending, setPending] = useState<GameInvite[]>([])
@@ -64,7 +64,7 @@ export function useGameInvitations(authSession: Session): {
   // Scan for new invitations: the games I'm a player in that haven't
   // ended, not mine, and not already seen — resolve their display
   // name + inviter, mark them seen, and append. Stable across renders
-  // (depends only on selfId) so the subscription effect doesn't churn.
+  // (depends only on myId) so the subscription effect doesn't churn.
   const scanForInvites = useCallback(async () => {
     // One inner-join embed, not two queries: `!inner` pushes the
     // `ended_at is null` filter into this same query, so the row set is my
@@ -75,7 +75,7 @@ export function useGameInvitations(authSession: Session): {
       commonDb
         .from('game_players')
         .select('games!inner(id, gametype, club_handle, created_by)')
-        .eq('user_id', selfId)
+        .eq('user_id', myId)
         .is('games.ended_at', null)
         // …and recent, which is load-bearing: `ended_at is null` is not a
         // staleness bound, so without this the scan returns every unfinished
@@ -99,7 +99,7 @@ export function useGameInvitations(authSession: Session): {
     // reload (`reportUnknownGametypes`).
     const unknownGametypes: string[] = []
     const fresh: { candidate: InviteCandidate; gameName: string }[] = []
-    for (const c of newInviteCandidates(candidates, { selfId, seen: loadSeenInvites() })) {
+    for (const c of newInviteCandidates(candidates, { myId, seen: loadSeenInvites() })) {
       const manifest = manifestFor(c.gametype)
       if (!manifest) unknownGametypes.push(c.gametype)
       else fresh.push({ candidate: c, gameName: manifest.name })
@@ -134,19 +134,19 @@ export function useGameInvitations(authSession: Session): {
       const unseenInvites = newInvites.filter((i) => !pendingIds.has(i.gameId))
       return unseenInvites.length ? [...prev, ...unseenInvites] : prev
     })
-  }, [selfId])
+  }, [myId])
 
   // Subscribe once: game_players INSERTs for me + a (re)connect rescan.
   useEffect(
     function watchInvitations() {
-      const ch = supabase.channel(`game-invites:${selfId}:${channelDedupSuffix()}`)
+      const ch = supabase.channel(`game-invites:${myId}:${channelDedupSuffix()}`)
       ch.on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'common',
           table: 'game_players',
-          filter: `user_id=eq.${selfId}`,
+          filter: `user_id=eq.${myId}`,
         },
         () => void scanForInvites(),
       )
@@ -161,7 +161,7 @@ export function useGameInvitations(authSession: Session): {
         supabase.removeChannel(ch)
       }
     },
-    [selfId, scanForInvites],
+    [myId, scanForInvites],
   )
 
   // Entering the invited game by ANY route is a real dismissal — the

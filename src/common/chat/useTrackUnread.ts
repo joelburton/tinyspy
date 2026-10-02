@@ -14,7 +14,7 @@ type TrackUnreadOptions = {
   isOpen: boolean
   members: Member[]
   // My own messages never count as unread.
-  selfId: string
+  myId: string
 }
 
 /**
@@ -29,7 +29,7 @@ export function useTrackUnread({
   loading,
   isOpen,
   members,
-  selfId,
+  myId,
 }: TrackUnreadOptions): void {
   useEffect(function trackUnread() {
     if (loading) return
@@ -40,7 +40,7 @@ export function useTrackUnread({
       return
     }
     setChatUnread(
-      computeUnread(messages, getChatLastSeen(clubHandle), selfId, members)
+      computeUnread(messages, getChatLastSeen(clubHandle), myId, members)
     )
-  }, [messages, isOpen, loading, selfId, members, clubHandle])
+  }, [messages, isOpen, loading, myId, members, clubHandle])
 }

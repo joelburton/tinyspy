@@ -75,7 +75,7 @@ export function buildLetterboxedPrintModel(o: {
   players: GamePlayer[]
   playerRows: PlayerRow[]
   events: EventRow[]
-  selfId: string
+  myId: string
   /** The on-screen status line, repeated under the title. */
   summary: string
   setupRows: SetupRow[]

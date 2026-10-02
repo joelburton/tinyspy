@@ -42,7 +42,7 @@ function draw({
       brand="Waffle"
       clubHandle="moths"
       members={members}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 6]}
       values={{
         ...DEFAULT_WAFFLE_SETUP,

@@ -56,7 +56,7 @@ export type WordListFilter = {
  * per-player entries only where peers' words are visible. Players are named by
  * handle, yours included.
  *
- *     const f = useWordListFilter({ rows, players, selfId, isCompete, isTerminal, hasBonus })
+ *     const f = useWordListFilter({ rows, players, myId, isCompete, isTerminal, hasBonus })
  *     const shown = f.filter(rows)
  *
  * Why the axes are shaped this way, and why only one of them is gated, is in
@@ -65,7 +65,7 @@ export type WordListFilter = {
 export function useWordListFilter({
   rows,
   players,
-  selfId,
+  myId,
   isCompete,
   isTerminal,
   hasBonus,
@@ -73,7 +73,7 @@ export function useWordListFilter({
   // The unfiltered rows — the option set is partly derived from what is IN them.
   rows: readonly WordListRow[]
   players: Member[]
-  selfId: string
+  myId: string
   isCompete: boolean
   // Gates the per-player options in compete, where RLS hides peers until the end.
   isTerminal: boolean
@@ -84,7 +84,7 @@ export function useWordListFilter({
   const [kindChosen, setKindChosen] = useState<Kind | null>(null)
   const [whoChosen, setWhoChosen] = useState<string | null>(null)
 
-  const ordered = orderSelfFirst(players, selfId)
+  const ordered = orderSelfFirst(players, myId)
 
   // Found/Missed only mean something once BOTH kinds of row can exist. Derived
   // from the rows rather than from `isTerminal` so a team that found everything

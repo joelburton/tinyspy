@@ -29,7 +29,7 @@ const PUZZLE_KEYS: Array<keyof PuzzleChoice> = [
 ]
 
 export function SetupForm({
-  clubHandle, members, selfId, numberOfPlayers, values, set: setValue, errors,
+  clubHandle, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as CrosswordsValues
   const set = setValue as SetupSetter<CrosswordsValues>
@@ -41,7 +41,7 @@ export function SetupForm({
     <div className={styles.setup}>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         value={s.player_user_ids}
         error={errors.player_user_ids}

@@ -31,7 +31,7 @@ import { EXTRA_SWAP_OPTIONS, type WaffleValues } from '../lib/setup'
  * from its own values, and waffle-build-board says so under that name.
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
+  mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as WaffleValues
   const set = setValue as SetupSetter<WaffleValues>
@@ -52,7 +52,7 @@ export function SetupForm({
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         value={s.player_user_ids}
         error={errors.player_user_ids}

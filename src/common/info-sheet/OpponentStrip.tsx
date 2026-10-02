@@ -11,7 +11,7 @@ import styles from './OpponentStrip.module.css'
 // look them back up by id.
 type Props<P extends Member> = {
   players: P[]
-  selfId: string
+  myId: string
   // The per-player metric cell — the one thing each game supplies. The
   // `isSelf` flag lets a game read its own value from a live local
   // computation (so "You" updates in lock step with the rest of the UI)
@@ -46,19 +46,19 @@ type Props<P extends Member> = {
  */
 export function OpponentStrip<P extends Member>({
   players,
-  selfId,
+  myId,
   metricFor,
   metricLabel,
   leading,
 }: Props<P>) {
-  const ordered = orderSelfFirst(players, selfId)
+  const ordered = orderSelfFirst(players, myId)
   return (
     <div className={styles.strip}>
       {leading && <div className={styles.leading}>{leading}</div>}
       <div className={styles.entries}>
         <span className={styles.metricLabel}>{metricLabel}:</span>
         {ordered.map((p, i) => {
-          const isSelf = p.user_id === selfId
+          const isSelf = p.user_id === myId
           return (
             <span key={p.user_id} className={styles.entry}>
               {i > 0 && <span className={styles.sep}>·</span>}

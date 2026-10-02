@@ -548,7 +548,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
           players,
           playerRows,
           events,
-          selfId: authSession.user.id,
+          myId: authSession.user.id,
           summary: `${lettersCovered}/${BOARD_SIZE} letters · ${chain.length}/${maxWords} words`,
           setupRows,
         }),
@@ -640,7 +640,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
             statusOutcome,
             winnerId,
             leaderboard,
-            selfId: authSession.user.id,
+            myId: authSession.user.id,
             lettersCovered,
             wordsUsed: chain.length,
           })
@@ -767,7 +767,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
           solution={game.solution}
           events={events}
           players={players}
-          selfId={authSession.user.id}
+          myId={authSession.user.id}
           isCompete={isCompete}
           wordsByUser={wordsByUser}
           coveredByUser={coveredByUser}
@@ -816,7 +816,7 @@ function buildOver({
   statusOutcome,
   winnerId,
   leaderboard,
-  selfId,
+  myId,
   lettersCovered,
   wordsUsed,
 }: {
@@ -829,7 +829,7 @@ function buildOver({
   /** `status.winner_id` — the solve-path winner, or null. */
   winnerId: string | null
   leaderboard: LeaderRow[]
-  selfId: string
+  myId: string
   lettersCovered: number
   wordsUsed: number
 }): TerminalMessage {
@@ -851,7 +851,7 @@ function buildOver({
 
   // Compete.
   if (playState === 'won_compete') {
-    if (winnerId === selfId) {
+    if (winnerId === myId) {
       return {
         outcome: 'won',
         pillText: `Won: all twelve in ${wordsUsed} ${wordsUsed === 1 ? 'word' : 'words'}`,
@@ -864,7 +864,7 @@ function buildOver({
     // own row — leaderboard[0] would tell one tied winner they lost.
     if (timedOut) {
       const winners = leaderboard.filter((e) => e.won)
-      const iWon = winners.some((e) => e.user_id === selfId)
+      const iWon = winners.some((e) => e.user_id === myId)
       const covered = winners[0]?.letters_covered ?? 0
       if (iWon) {
         return {

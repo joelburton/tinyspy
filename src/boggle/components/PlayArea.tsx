@@ -482,7 +482,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
             myCount,
             myScore,
             isConceded,
-            selfId: myId,
+            myId: myId,
             winnerId,
             winner: winnerName === undefined ? undefined : { username: winnerName, color: winnerColor ?? '' },
             leaderMax,
@@ -598,7 +598,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
         stats={stats}
         // ── Players (OpponentStrip, compete) ──
         players={players}
-        selfId={myId}
+        myId={myId}
         metricByUser={scoreByUser}
         concededIds={concededIds}
         // ── Action row ──
@@ -656,7 +656,7 @@ function buildOver({
   myCount,
   myScore,
   isConceded,
-  selfId,
+  myId,
   winnerId,
   winner,
   leaderMax,
@@ -671,7 +671,7 @@ function buildOver({
   myCount: number
   myScore: number
   isConceded: boolean
-  selfId: string
+  myId: string
   /** A target crosser — `status.winner_user_id`, or null. */
   winnerId: string | null
   winner: Actor | undefined
@@ -720,7 +720,7 @@ function buildOver({
   // A target win is a RACE the server already decided: the crosser (named in the
   // status) wins outright, everyone else loses — no leaderboard comparison.
   if (isTarget) {
-    if (winnerId === selfId) {
+    if (winnerId === myId) {
       return {
         pillText: `Won: ${tally}`,
         infoColText: 'You won!',

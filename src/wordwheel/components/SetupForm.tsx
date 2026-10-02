@@ -32,7 +32,7 @@ import { NO_TARGET, splitCustomLetters, TARGET_RANK_CHOICES } from '@/shared/bee
  * wordwheel's narrow shape.
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
+  mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as WordwheelValues
   const set = setValue as SetupSetter<WordwheelValues>
@@ -66,7 +66,7 @@ export function SetupForm({
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         value={s.player_user_ids}
         error={errors.player_user_ids}

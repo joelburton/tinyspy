@@ -2,7 +2,7 @@
 
 /**
  * The verdict fill's two raisers and two endings: my own answer shown through
- * `showVerdictFor`, which leaves with its pill; a teammate's wrong guess
+ * `showFor`, which leaves with its pill; a teammate's wrong guess
  * arriving in the log, which marks their four and ends mine; a teammate's
  * correct guess, which ends it with no mark; and my own row arriving, which
  * ends nothing.
@@ -41,51 +41,51 @@ function setup(guesses: EventRow[] = [], isViewingHistory = false) {
 describe('useVerdictMark', () => {
   it('fills the tiles my answer is about, in its outcome, and shows the message', () => {
     const { result, slot } = setup()
-    act(() => result.current.showVerdictFor(['a', 'b', 'e', 'i'], FeedbackMessage.result('lost', 'Wrong')))
-    expect([...result.current.verdictMark!.value.tiles]).toEqual(['a', 'b', 'e', 'i'])
-    expect(result.current.verdictMark!.value.outcome).toBe('lost')
+    act(() => result.current.showFor(['a', 'b', 'e', 'i'], FeedbackMessage.result('lost', 'Wrong')))
+    expect([...result.current.mark!.value.tiles]).toEqual(['a', 'b', 'e', 'i'])
+    expect(result.current.mark!.value.outcome).toBe('lost')
     expect(slot.peek().map((e) => e.message.text)).toEqual(['Wrong'])
   })
 
   it('leaves with its pill', () => {
     const { result, slot } = setup()
-    act(() => result.current.showVerdictFor(['a'], FeedbackMessage.result('lost', 'Wrong')))
-    expect(result.current.verdictMark).not.toBeNull()
+    act(() => result.current.showFor(['a'], FeedbackMessage.result('lost', 'Wrong')))
+    expect(result.current.mark).not.toBeNull()
     act(() => slot.dismiss())
-    expect(result.current.verdictMark).toBeNull()
+    expect(result.current.mark).toBeNull()
   })
 
   it('survives my own row arriving back over realtime', () => {
     const { result, rerender } = setup()
-    act(() => result.current.showVerdictFor(['a', 'b', 'e', 'i'], FeedbackMessage.result('lost', 'Wrong')))
+    act(() => result.current.showFor(['a', 'b', 'e', 'i'], FeedbackMessage.result('lost', 'Wrong')))
     rerender({ guesses: [MY_WRONG] })
-    expect(result.current.verdictMark).not.toBeNull()
+    expect(result.current.mark).not.toBeNull()
   })
 
   it('hands the mark to a teammate\'s wrong guess — their four, not mine', () => {
     const { result, rerender } = setup()
-    act(() => result.current.showVerdictFor(['a', 'b', 'e', 'i'], FeedbackMessage.result('lost', 'Wrong')))
+    act(() => result.current.showFor(['a', 'b', 'e', 'i'], FeedbackMessage.result('lost', 'Wrong')))
     rerender({ guesses: [THEIR_WRONG] })
-    expect([...result.current.verdictMark!.value.tiles]).toEqual(['c', 'd', 'f', 'g'])
+    expect([...result.current.mark!.value.tiles]).toEqual(['c', 'd', 'f', 'g'])
   })
 
   it('goes when a teammate\'s guess is RIGHT — the band says it instead', () => {
     const { result, rerender } = setup()
-    act(() => result.current.showVerdictFor(['e', 'f', 'g', 'm'], FeedbackMessage.result('near', 'One away')))
+    act(() => result.current.showFor(['e', 'f', 'g', 'm'], FeedbackMessage.result('near', 'One away')))
     rerender({ guesses: [THEIR_MATCH] })
-    expect(result.current.verdictMark).toBeNull()
+    expect(result.current.mark).toBeNull()
   })
 
   it('marks nothing for a row arriving while a past turn is open', () => {
     const { result, rerender } = setup([], true)
     rerender({ guesses: [THEIR_WRONG] })
-    expect(result.current.verdictMark).toBeNull()
+    expect(result.current.mark).toBeNull()
   })
 
   it('clears on demand', () => {
     const { result } = setup()
-    act(() => result.current.showVerdictFor(['a'], FeedbackMessage.result('lost', 'Wrong')))
-    act(() => result.current.clearVerdictMark())
-    expect(result.current.verdictMark).toBeNull()
+    act(() => result.current.showFor(['a'], FeedbackMessage.result('lost', 'Wrong')))
+    act(() => result.current.clear())
+    expect(result.current.mark).toBeNull()
   })
 })

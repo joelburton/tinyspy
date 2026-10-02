@@ -24,7 +24,7 @@ import { ManualBoardField } from '@/common/fields/ManualBoardField'
  * body renders `value` and signals via `onChange`.
  */
 export function SetupForm({
-  mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
+  mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
   const s = values as WordiplyValues
   const set = setValue as SetupSetter<WordiplyValues>
@@ -43,7 +43,7 @@ export function SetupForm({
     <>
       <PlayersSection
         members={members}
-        selfId={selfId}
+        myId={myId}
         numberOfPlayers={numberOfPlayers}
         value={s.player_user_ids}
         error={errors.player_user_ids}

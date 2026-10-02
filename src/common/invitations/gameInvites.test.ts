@@ -30,13 +30,13 @@ const candidate = (over: Partial<InviteCandidate>): InviteCandidate => ({
 
 describe('newInviteCandidates', () => {
   it('keeps a game someone else added me to that I have not seen', () => {
-    const got = newInviteCandidates([candidate({})], { selfId: me, seen: new Set() })
+    const got = newInviteCandidates([candidate({})], { myId: me, seen: new Set() })
     expect(got.map((c) => c.id)).toEqual(['g1'])
   })
 
   it('drops a game I created (I am already in it)', () => {
     const got = newInviteCandidates([candidate({ created_by: me })], {
-      selfId: me,
+      myId: me,
       seen: new Set(),
     })
     expect(got).toEqual([])
@@ -44,7 +44,7 @@ describe('newInviteCandidates', () => {
 
   it('drops a game whose invite was already surfaced (seen)', () => {
     const got = newInviteCandidates([candidate({ id: 'g1' })], {
-      selfId: me,
+      myId: me,
       seen: new Set(['g1']),
     })
     expect(got).toEqual([])
@@ -57,7 +57,7 @@ describe('newInviteCandidates', () => {
         candidate({ id: 'seen' }),
         candidate({ id: 'fresh' }),
       ],
-      { selfId: me, seen: new Set(['seen']) },
+      { myId: me, seen: new Set(['seen']) },
     )
     expect(got.map((c) => c.id)).toEqual(['fresh'])
   })

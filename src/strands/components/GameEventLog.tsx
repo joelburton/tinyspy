@@ -21,7 +21,7 @@ import styles from './GameEventLog.module.css'
 type Props = {
   events: EventRow[]
   players: Member[]
-  selfId: string
+  myId: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
   /** The turn open in the board viewer — the row's own id — or null when live. */
@@ -97,7 +97,7 @@ const BODY: Partial<Record<GuessResult, string>> = {
 export function GameEventLog({
   events,
   players,
-  selfId,
+  myId,
   mode,
   isTerminal,
   historyId,
@@ -109,7 +109,7 @@ export function GameEventLog({
   // a spent hint is a row here and isn't one.
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
-    selfId,
+    myId,
     mode,
     isTerminal,
     label: 'Whose turns to show',

@@ -49,7 +49,7 @@ function draw({
       brand="SnakeBox"
       clubHandle="moths"
       members={members}
-      selfId="self"
+      myId="self"
       numberOfPlayers={[1, 6]}
       values={{
         ...DEFAULT_LETTERBOXED_SETUP_COOP,

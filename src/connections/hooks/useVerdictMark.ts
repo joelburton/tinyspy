@@ -22,7 +22,7 @@ export type BoardVerdict = {
  * its pill wears. The two are one message arriving in two places, so they
  * share a color and a lifetime.
  *
- * **Raised two ways.** `showVerdictFor(tiles, message)` shows the message into
+ * **Raised two ways.** `showFor(tiles, message)` shows the message into
  * the slot and fills the tiles, for my own guess's answer and for a refusal.
  * A TEAMMATE's wrong guess arriving in the log marks their four here too —
  * their own client marked the same four from its own answer a beat earlier. A
@@ -61,15 +61,15 @@ export function useVerdictMark({
 }): {
   // The mark to draw, or null — gone with its slot entry, or when nothing is
   // being judged.
-  verdictMark: Mark<BoardVerdict> | null
+  mark: Mark<BoardVerdict> | null
   // Show a message into the slot and fill these tiles in its outcome.
-  showVerdictFor: (tiles: readonly string[], message: FeedbackMessage) => void
-  clearVerdictMark: () => void
+  showFor: (tiles: readonly string[], message: FeedbackMessage) => void
+  clear: () => void
 } {
   const [verdict, showVerdict, clearVerdict] =
     useMark<BoardVerdict & { msgId: string | null }>(NO_TIMER)
 
-  function showVerdictFor(tiles: readonly string[], message: FeedbackMessage) {
+  function showFor(tiles: readonly string[], message: FeedbackMessage) {
     const msgId = localFeedbackSlot.show(message)
     showVerdict(
       { tiles: new Set(tiles), outcome: message.outcome, msgId },
@@ -108,8 +108,8 @@ export function useVerdictMark({
   }
 
   return {
-    verdictMark: isMarkShown ? verdict : null,
-    showVerdictFor,
-    clearVerdictMark: clearVerdict,
+    mark: isMarkShown ? verdict : null,
+    showFor,
+    clear: clearVerdict,
   }
 }

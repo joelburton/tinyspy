@@ -4,6 +4,12 @@
 
 ## Soon
 
+- **`TileWord` and `WordTile` do not communicate their difference** (Joel,
+  2026-10-01). The type is the text written on a tile (`lib/tileResults.ts`);
+  the component draws one tile (`components/WordTile.tsx`). Two names built
+  from the same two words, in opposite orders, for two different things.
+  Finesse better names, with Joel, before the next game makes its tile
+  component.
 
 - **Doc and comments that say what the code does not.**
   - `doc.md`, under `psychicnum.request_spoiler(target_game)`: "in coop

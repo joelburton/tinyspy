@@ -58,7 +58,7 @@ export function InfoCol({
   teamScore,
   bagCount,
   players,
-  selfId,
+  myId,
   playerStates,
   concededIds,
   actStopGame,
@@ -102,7 +102,7 @@ export function InfoCol({
   // ── Players (the OpponentStrip) ──
   /** The roster (GamePlayer — carries the concede/result bits terminalOutcomeVerb reads). */
   players: GamePlayer[]
-  selfId: string
+  myId: string
   playerStates: PlayerRow[]
   concededIds: Set<string>
 
@@ -183,7 +183,7 @@ export function InfoCol({
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
-            selfId={selfId}
+            myId={myId}
             isTerminal={isTerminal}
           />
         )}
@@ -200,7 +200,7 @@ export function InfoCol({
         {isCompete && (
           <OpponentStrip
             players={scoreRoster}
-            selfId={selfId}
+            myId={myId}
             metricLabel="Score"
             metricFor={(player) => {
               // Mid-game a conceder reads as "out".
@@ -308,7 +308,7 @@ export function InfoCol({
       <GameEventLog
         plays={plays}
         players={players}
-        selfId={selfId}
+        myId={myId}
         mode={isCompete ? 'compete' : 'coop'}
         historyId={historyId}
         onShowHistory={onShowHistory}
