@@ -1,5 +1,62 @@
 // cs-blessed-game-page
 
+/*
+ * What this hook returns, as built today.
+ *
+ * useCommonGame(gameId, auth, manifest):
+ *   cg                                    # null while loading, after a failed read, or when the game is gone
+ *   resubscribeCount
+ *   loading
+ *   failure                               # null unless a read failed
+ *
+ * cg:
+ *   id
+ *   club_handle
+ *   gametype
+ *   mode
+ *   title
+ *   setup
+ *   is_current_view
+ *   gameEnding: {reason, reasonDetail, outcome, endedByUserId}   # null while playing
+ *   isGameEnded
+ *   restart_count
+ *   game_status
+ *   updated_at
+ *   started_at
+ *   ended_at
+ *   current_turn_user_id
+ *   players: [player, …]
+ *   me                                    # same object as my entry in players
+ *   stillPlayingHumanPlayers              # who the pause waits for
+ *   pause: {paused, presentUserIds, manuallyPausedBy, sendManualPause, sendManualUnpause}
+ *   sendSuspend
+ *   timer:
+ *     mode: {kind, seconds}               # seconds only for a countdown
+ *     displaySeconds
+ *     expired
+ *   turns: {isTurnBased, turnHolderId}
+ *
+ * player:
+ *   id
+ *   username
+ *   color
+ *   player_ended_at
+ *   player_ended_reason
+ *   player_ended_reason_detail
+ *   final_ranking
+ *   outcome
+ *   solved_at
+ *   player_status
+ *   ai_member
+ *   isConceded
+ *   isLocallyTerminal
+ *   isStillPlaying
+ *   isOnTurn
+ *   isWaitingForTurn
+ *   isBoardInteractive
+ *   hasSolved
+ */
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimeChannel, Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../supabase/db'

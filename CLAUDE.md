@@ -169,9 +169,8 @@ game's area, consult both.
 | [plans/playarea-readability.md](plans/playarea-readability.md) | The target shape for each game's `PlayArea.tsx`; read it per game area |
 | [plans/component-readability.md](plans/component-readability.md) | What psychicnum settled for `gd`, the endings, PlayArea, Board/BoardCol and InfoCol; read it per game area, beside playarea-readability |
 | [plans/common-tables.md](plans/common-tables.md) | Where a game's facts live: `common.games`, `common.game_players`, `<game>.games`; builds cross-game-consistency's step 7, and holds the order of what is left |
-| [plans/seat-view.md](plans/seat-view.md) | **Decided, being built.** No spectating; `auth`; `gd.me` is my player; every seat fact on the player type. Pauses the game passes until the three converted games carry it |
+| [plans/seat-view.md](plans/seat-view.md) | **Decided, being built.** No spectating; `auth`; `gd.me` is my player; every seat fact on the player type; the page is three builder-written blobs on `common.games`. Pauses the game passes until the three converted games carry it |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
-| [plans/DO-NOT-READ-shaped-page-copy.md](plans/DO-NOT-READ-shaped-page-copy.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: one builder-written copy of everything a game page shows |
 | [plans/DO-NOT-READ-grouped-values.md](plans/DO-NOT-READ-grouped-values.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: grouping what hooks return and props carry into named objects |
 
 ## Audience — friends, not strangers

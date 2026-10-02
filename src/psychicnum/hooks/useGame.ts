@@ -1,5 +1,50 @@
 // cs-blessed-psychicnum
 
+/*
+ * The shape of `gd` this hook is converging on (plans/seat-view.md): every
+ * seat fact on the player, the viewer one of them.
+ *
+ * gd:
+ *   id
+ *   gametype
+ *   brand
+ *   mode
+ *   coop
+ *   compete
+ *   oneBoard
+ *   title
+ *   setup
+ *   setupRows
+ *   puzzle: {words, secrets}              # secrets null until the game ends
+ *   turns: {holder}                       # null: no turn order; holder null: nobody's turn now
+ *   ending: {reason, detail, by, winner}  # null while playing; by is a player
+ *   outcome                               # null until the game ends
+ *   events                                # the log; my rows only, mid-race
+ *   players: [player, …]                  # seat order
+ *   playersById
+ *   me                                    # same object as playersById[auth.user.id]
+ *
+ * player:
+ *   id
+ *   username
+ *   color
+ *   seat                                  # null in a free-for-all game
+ *   ending: {at, reason, detail}          # null unless they ended before the game ended
+ *   outcome                               # null until written
+ *   finalRanking                          # null until written
+ *   solvedAt
+ *   conceded
+ *   solved
+ *   stillPlaying
+ *   onTurn
+ *   waitingForTurn
+ *   requiredSecretsCount                  # the same on every player
+ *   maxGuesses                            # the same on every player
+ *   foundSecretsCount                     # own in compete; the team's, on every player, in coop
+ *   guessesUsed                           # own in compete; the team's, on every player, in coop
+ *   board: {tileResults, decidedBy}       # what this seat's tiles show; null for an opponent mid-race
+ */
+
 import { useMemo, useState } from 'react'
 import { useRefetchOnGameUpdate } from '@/common/game-page/useRefetchOnGameUpdate'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'

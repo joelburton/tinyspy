@@ -250,18 +250,21 @@ create table common.clubs_members (
 -- affects which Start buttons a solo club is offered, never move
 -- legality (each create_game re-checks its own member count).
 --
--- ┌─ Convention for new gametypes ──────────────────────────┐
--- │ Each gametype's baseline migration must self-register,  │
--- │ declaring its minimum player count:                     │
--- │                                                         │
--- │   insert into common.gametypes (gametype, min_players)  │
--- │   values ('boggle', 1)                                  │
--- │   on conflict do nothing;                               │
--- │                                                         │
--- │ Every game baseline does this at the bottom of its      │
--- │ file; a sibling coop/compete pair registers one row     │
--- │ each (coop usually min 1, compete min 2).               │
--- └─────────────────────────────────────────────────────────┘
+-- ┌─ Convention for new gametypes ──────────────────────────────────┐
+-- │ Each gametype's baseline migration must self-register,          │
+-- │ declaring its minimum player count, its brand and whether the   │
+-- │ game has one board (the last two added by 20261001000000, and   │
+-- │ required there):                                                │
+-- │                                                                 │
+-- │   insert into common.gametypes                                  │
+-- │     (gametype, min_players, brand, one_board)                   │
+-- │   values ('boggle_coop', 1, 'MothCubes', true)                  │
+-- │   on conflict do nothing;                                       │
+-- │                                                                 │
+-- │ Every game baseline does this at the bottom of its file; a      │
+-- │ sibling coop/compete pair registers one row each (coop usually  │
+-- │ min 1, compete min 2).                                          │
+-- └─────────────────────────────────────────────────────────────────┘
 
 create table common.gametypes (
   gametype text primary key,

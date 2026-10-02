@@ -27,7 +27,7 @@ the hook, where `playerEndingReason` *"can make me pause to think 'is this a
 local variable? or something passed as a group'."*
 
 Taken further (with the one-read idea in
-[DO-NOT-READ-shaped-page-copy.md](DO-NOT-READ-shaped-page-copy.md)), what the
+[seat-view.md → decision 8](seat-view.md), which decided it), what the
 page hands a game could be one object, **`gd`**, the game data: everything
 that came from loading starts with `gd.`, and nothing else does. Joel: `ctx`
 is vague (*"context of what?"*); `gd` is cryptically short, but appears in

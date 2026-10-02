@@ -91,15 +91,193 @@ own; a hook that wants to add one adds it in `makeGameData`. Their types are
 
 ### 6. What null means on another player
 
-Null on another player's field means **the server withheld it** (compete RLS
-mid-game: an opponent's `board` and `picks`), never "didn't compute". At the
-end the rows arrive and the fields fill in.
+Null on another player's field means **this seat may not see it yet** (a race
+in progress: an opponent's `board` and `picks`), never "didn't compute". At the
+end the fields fill in. Under decision 8 the one that withholds is the game's
+`useGame`, by a named rule per game, not a policy.
 
 A seat fact that is expensive and that only I read today still goes on the
 player type, null for the others, with a comment saying "computed for me
 only": promoting it later fills in a value and moves no reader. (`gd.my…` for
 a viewer-only value has no present example; that rule is not written until one
 appears.)
+
+### 7. One shape: `cg` is the common part of `gd`, and `gd` extends it
+
+Settled 2026-10-01 over psychicnum's sketch (the working copy sits at the top
+of `src/psychicnum/hooks/useGame.ts`; the names are still being refined, and
+nothing here is blessed).
+
+**Why.** `cg` was built as "what the page read" and every game restated it as
+`gd` under other names: a second shaping per game, and a page group (pause, the
+timer) riding into the game for nothing. Where a fact came from is internal to
+the hook that builds it, so `cg` builds the common facts ONCE in their final
+names, and a game's `useGame` only adds what its own tables know.
+
+- **`cg` takes the final names** below, players included. Facts a gametype
+  states — `brand`, `oneBoard` — come off the manifest onto `cg` the way
+  `draftsOffTurn` does, so a game needs its manifest for nothing and
+  `manifest` leaves `PlayAreaLoaderProps`. `winner` is common's too: the
+  player ranked first.
+- **`gd` extends `cg`.** `gd.players` is `cg.players` with fields added, never
+  rebuilt, so `me` stays one object through both; `gd` adds `puzzle`,
+  `events`, `setupRows`, and on each player the counts and the `board`.
+- **The page's things leave `cg`.** Pause, the timer, `sendSuspend`,
+  `stillPlayingHumanPlayers`, `is_current_view`, `restart_count`,
+  `updated_at` are the shell's; `useCommonGame` returns them beside the game,
+  and they go on neither `cg` nor `gd`. A Pause button in an InfoCol one day is
+  an action the page binds, like Stop.
+
+**Naming inside a group.** The `is…`/`has…` rules were written for
+free-standing names; a path supplies the context, so inside a group a
+predicate about the subject is bare: `me.conceded`, `me.solved`, `me.onTurn`,
+`turns.holder`, `ending.by`. The prefix stays where the bare word would name a
+thing (`isBoardInteractive`, never `boardInteractive`). A group that may not
+apply is null as a whole (`turns === null`: no turn order; `ending === null`:
+still playing), and a null inside it means "none right now" (`turns.holder`).
+A player, not an id, wherever the lookup cannot miss (`holder`, `by`).
+`outcome` sits top-level on the game and on the player, since a player's
+outcome arrives at the game's end whether or not they ended early.
+
+**The shape**, with `#` where a name does not say it. `oneBoard` is "the game
+has one board" (true in solo coop), a fact; "shared", which the Boards read to
+decide whose dot goes on a tile, is `oneBoard && players.length > 1` and is the
+Board's to ask. `board` is what this seat's tiles show and nothing a sentence
+about the game would quote: `guessCount` went, because it was `guessesUsed`
+read from the rows for the flash's timing, and two lookalike names must not
+hide a difference only one reader knows.
+
+```
+gd:                                       # cg is every line that is not marked game
+  id
+  gametype
+  brand
+  mode
+  coop
+  compete
+  oneBoard
+  title
+  setup
+  setupRows                               # game
+  puzzle: {words, secrets}                # game; secrets null until the game ends
+  turns: {holder}                         # null: no turn order; holder null: nobody's turn now
+  ending: {reason, detail, by, winner}    # null while playing; by is a player
+  outcome                                 # null until the game ends
+  events                                  # game; the log; my rows only, mid-race
+  players: [player, …]                    # seat order
+  playersById
+  me                                      # same object as playersById[auth.user.id]
+
+player:
+  id
+  username
+  color
+  seat                                    # null in a free-for-all game
+  ending: {at, reason, detail}            # null unless they ended before the game ended
+  outcome                                 # null until written
+  finalRanking                            # null until written
+  solvedAt
+  conceded
+  solved
+  stillPlaying
+  onTurn
+  waitingForTurn
+  requiredSecretsCount                    # game; the same on every player
+  maxGuesses                              # game; the same on every player
+  foundSecretsCount                       # game; own in compete; the team's, on every player, in coop
+  guessesUsed                             # game; own in compete; the team's, on every player, in coop
+  board: {tileResults, decidedBy}         # game; what this seat's tiles show; null for an opponent mid-race
+```
+
+`isBoardInteractive` is not on a game's player: only scrabble drafts off-turn,
+and another game that lets you act off-turn may not be about the board at all.
+The common term stays computed until scrabble's area decides what it is.
+`winner` singular or plural (setgame's ties) is not yet decided.
+
+### 8. The page is written, not assembled: three blobs on `common.games`
+
+Decided 2026-10-01, from the ideas-only shaped-page exploration that sat
+beside the plans (retired with this). Decision 7's
+shape stands; this decides WHO builds it. Taken now, before any game's `gd`
+maker is written from split reads, because the two would have been thrown away
+within the week.
+
+**The idea.** Each game's status builder writes, in the move's own
+transaction, everything a page shows onto `common.games`, already in the
+page's shape and names. The front end reads that and nothing else from the
+game's tables; the RPCs keep working on the real tables. The real columns are
+read by SQL only, except the two the subscriptions filter on, `id` and
+`club_handle`, and `updated_at`, the refetch signal.
+
+**Three jsonb columns, one per reader**, each complete for its reader, so no
+page merges two sources:
+
+- **`clubpage`** — what the club page's list shows: today's `clubpage_info`,
+  whole.
+- **`shell`** — what `GamePage` shows: **the same shape for every game**,
+  written by one common function. From the shell's reads today: `id`,
+  `gametype`, `club: {handle}` (a group, so a count or a description has a
+  home later), `title`, `restart_count`, `ended`, the roster (`id`,
+  `username`, `color`, `ai`, `stillPlaying`), and `setup` if the shell ever
+  wants it. `cg` is this blob read through one static type, plus `me`.
+- **`playarea`** — what the play surface shows, in decision 7's shape: the
+  game's own, written by the game's builder on top of the common player
+  fields, which a common helper writes so they cannot drift between games.
+  `gd` is this blob plus `me` and the id-to-player links (`turns.holder`,
+  `ending.by`, `ending.winner`, `decidedBy` are ids in JSON and players in
+  `gd`). It carries `events`: one less table, and the end of "the status
+  says five while the rows say four".
+
+Every blob carries `id`, `gametype` and the club's handle, so one printed or
+stored on its own never leaves you wondering which game it was. `setup` goes
+into whichever blobs want it; it is frozen at create, so the copy is never
+stale.
+
+**Two pass-through views, no logic.** `club_games_view` returns `clubpage`;
+`game_view` returns `shell` and `playarea`. The table grants the client its
+filter columns and the signal, so a Postgres Changes message is a nudge and
+each page answers it by re-reading its view. A view shapes nothing per caller:
+that was tried on paper and became a second builder in a worse language.
+
+**Reads collapse.** The club page reads one view. `useCommonGame` reads
+`game_view` and `common.timers` (the tick must not re-send the game row), joins
+the room, and hands the playarea blob down inside `cg`, opaque to common. A
+game's `useGame` makes no read at all; it is a pure function of the blob and
+`auth.user.id`. The gate reads the seat off the shell's roster. Only a game
+with writes outside the builder (crosswords' cells) keeps a read of its own.
+
+**The security line is `useGame`.** What a seat may not see yet — an
+opponent's guesses mid-race, the secrets before the end, found words that are
+not yours — is withheld by the game's hook, by a named, Vitest-tested rule,
+not by a policy or a view. This is not security and does not pretend to be
+(CLAUDE.md → Trust model); it protects the components from ever being handed
+what they must not show. **Every convenience RLS and view the FE leans on
+today moves to the hook on purpose**: before a game converts, its policies and
+views that mention `auth.uid()` or `ended_at` are listed in its area file, and
+each one is taken over or dropped by name.
+
+**The shape rule across games.** The playarea blob cannot be identical between
+gametypes, but it is as alike as the games allow: the same concept wears the
+same name everywhere (`winners`, never a game's "champions"; `mistakes`, never
+"budgeted errors"), per docs/win-lose.md's vocabulary. psychicnum's sketch is
+the first instance; the next game's blob starts from it.
+
+**Known, to settle when met.**
+
+- `is_current_view` is written outside the builder (`set_current_view`), so it
+  stays a readable real column for the club page, or that RPC rewrites the
+  clubpage blob. The first is simpler and honest: it is a pointer, not a page
+  fact.
+- Whether a subscription's filter column must be granted for the subscription
+  to deliver: one test on the local stack before the first view.
+- A profile color changed mid-game reaches an open game at the next move.
+  Accepted.
+- A shape change needs every past game rebuilt, so a rebuild-every-page RPC
+  ships with the first builder, not after.
+- crosswords, scrabble and bananagrams (writes outside the builder, large
+  rows) get their tweaks when their areas open.
+- Secrets that should truly be hidden could move to a table the builder merges
+  from; overkill now, written down so the door is known.
 
 ## What this touches
 
@@ -128,12 +306,46 @@ appears.)
   branch stamps nobody) fixes that SQL in its own conversion.** The three
   converted games read `cg.me` into their `gd.standing` for now; their
   reshape moves it onto the player.
-- **Each converted game** (psychicnum, wordle, connections): `useGame` builds
-  the player type with the fields above and `me`; PlayArea, BoardCol, InfoCol,
-  Board and the hooks read `gd.me.…` and `p.…`; `readout`, `standing`,
-  `boardEvents` / `boardRows` / `matchedCategories` / `remainingTiles` /
-  `picks` move under `board` and `picks` on the player; every `SPECTATING:`
-  branch and tag goes (sixteen files today); tests follow.
+- **The builders, per decision 8, psychicnum first — boldly.** Every
+  unconverted game is broken until its turn anyway, so the slice goes
+  straight through and each game's tests catch it up. In order:
+  1. **Migration (shape).** `clubpage`, `shell` and `playarea` on
+     `common.games`, nullable so an unconverted game's row is empty rather
+     than failing; `game_status` and `player_status` stay until a later
+     migration retires them (Joel's call). `brand` and `oneBoard` on
+     `common.gametypes`, seeded for every gametype in the same file; the
+     manifest keeps its copy, kept in sync by hand for now, and what to evict
+     from it is decided later.
+  2. **`common._write_shell(game_id)`** and the common helper for the player
+     fields every game shares (`seat` from `turn_seat`, the roster in seat
+     order, the standing terms per seat — `computePlayerStanding` moves here),
+     called from `_create_game` and from each game's `_write_statuses`.
+     Written as named pieces a reader can follow — plpgsql has no block
+     scoping to lean on — each pinned in pgTAP, so `select shell from
+     common.games` shows the page what it gets.
+  3. **`useCommonGame` on the shell.** It reads `shell` and `playarea` off
+     `common.games` and nothing else from that table; subscribes to the row;
+     reads and ticks the timer exactly as today (`common.timers` is
+     untouched); returns `cg` (the shell blob, `me`, the playarea blob opaque)
+     with pause, timer and `sendSuspend` beside it. The gate reads the seat off
+     the shell. `manifest` leaves `PlayAreaLoaderProps`. The two pass-through
+     views wait until the change message's size matters; reading the columns
+     directly changes nothing above them. psychicnum's page mounts on this and
+     fails at its hook, which is the signal to go on.
+  4. **psychicnum's playarea.** Its `_write_statuses` writes `playarea` and
+     `clubpage` on top of the common player fields, in named pieces
+     (`_make_json_board` and the like), each pinned in pgTAP; a
+     rebuild-every-page RPC beside it. Its `useGame` becomes the blob, `me`
+     and the links, with its seat rule for what a racer may see; its reads,
+     `useRefetchOnGameUpdate` and the convenience RLS it leaned on go.
+  docs/win-lose.md's formulas and code-conventions' naming section carry the
+  path names once this ships.
+- **Each converted game after it** (wordle, connections): the same, starting
+  from psychicnum's blob shape; PlayArea, BoardCol, InfoCol, Board and the
+  hooks read `gd.me.…` and `p.…`; `readout`, `standing`, `boardEvents` /
+  `boardRows` / `matchedCategories` / `remainingTiles` / `picks` move under
+  `board` and `picks` on the player; every `SPECTATING:` branch and tag goes
+  (sixteen files today); tests follow.
 - **Then** connections' InfoCol and Board passes resume on the new shape, and
   the next game converts straight onto it.
 
