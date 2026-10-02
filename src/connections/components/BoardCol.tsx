@@ -64,7 +64,7 @@ export function BoardCol({
     localFeedbackSlot,
     isViewingHistory,
   })
-  const { submitGuess, inFlightTiles } = useSubmitGuess({
+  const { submitGuess, inFlightGuess } = useSubmitGuess({
     gd,
     localFeedbackSlot,
     showVerdictFor: verdictMark.showFor,
@@ -117,7 +117,7 @@ export function BoardCol({
         isStillPlaying={gd.standing.isStillPlaying}
         ownerByTile={shownOwnerByTile}
         onPick={pickTile}
-        inFlightTiles={inFlightTiles}
+        inFlightGuess={inFlightGuess}
         verdict={verdictMark.mark}
         colorByUserId={colorByUserIdMap(gd.players)}
         sharedBoard={isSharedBoard}

@@ -295,7 +295,7 @@ docstring names:
 Which board is on screen   live, or a past turn's snapshot — and everything that
                            would WRITE to the board answers to it
 The pending move           the pick, the move RPC and the column's commands, each
-                           a hook (psychicnum: usePickedWord, useSubmitGuess,
+                           a hook (psychicnum: usePickedTile, useSubmitGuess,
                            useBoardColActions)
 Render                     the named values the JSX reads, then the JSX
 ```

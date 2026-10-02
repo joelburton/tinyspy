@@ -129,12 +129,12 @@ describe('useSubmitGuess', () => {
     const { result } = setup(['a', 'b', 'e', 'i'])
     let done: Promise<void>
     act(() => { done = result.current.submitGuess() })
-    expect([...result.current.inFlightTiles]).toEqual(['a', 'b', 'e', 'i'])
+    expect([...result.current.inFlightGuess]).toEqual(['a', 'b', 'e', 'i'])
     await act(async () => {
       answer(okAnswer('wrong'))
       await done
     })
-    expect(result.current.inFlightTiles.size).toBe(0)
+    expect(result.current.inFlightGuess.size).toBe(0)
   })
 
   it('leaves the picks in place after a not-ok, filled in the pill\'s outcome', async () => {

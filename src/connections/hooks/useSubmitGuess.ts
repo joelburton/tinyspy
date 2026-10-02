@@ -43,7 +43,7 @@ type GuessAnswer = { result: GuessResult }
  *   four tiles are still sitting there un-played, filled in the pill's own
  *   outcome, whatever it is.
  *
- * `inFlightTiles` are the four out with the server, wearing the in-flight dim
+ * `inFlightGuess` is the four tiles out with the server, wearing the in-flight dim
  * until the answer lands, rather than a verdict guessed locally. They are a
  * copy taken at SEND: the picks are cleared on the way out, and a teammate can
  * move them in coop.
@@ -63,9 +63,9 @@ export function useSubmitGuess({
   showVerdictFor: (tiles: readonly string[], message: FeedbackMessage) => void
 }): {
   submitGuess: () => Promise<void>
-  inFlightTiles: ReadonlySet<string>
+  inFlightGuess: ReadonlySet<string>
 } {
-  const [inFlightTiles, setInFlightTiles] = useState<ReadonlySet<string>>(NO_TILES)
+  const [inFlightGuess, setInFlightGuess] = useState<ReadonlySet<string>>(NO_TILES)
 
   async function submitGuess() {
     const sent = [...gd.picks.union]
@@ -79,7 +79,7 @@ export function useSubmitGuess({
     }
 
     const evaluation = evaluateGuess(sent, gd.puzzle.board.categories)
-    setInFlightTiles(new Set(sent))
+    setInFlightGuess(new Set(sent))
     // Only a match names a category. The argument is OPTIONAL rather than
     // nullable, so the other two verdicts leave it out rather than send null.
     const matchedCategory =
@@ -90,7 +90,7 @@ export function useSubmitGuess({
       p_result: evaluation.result,
       ...matchedCategory,
     }))
-    setInFlightTiles(NO_TILES)
+    setInFlightGuess(NO_TILES)
 
     if (res.type === 'not-ok') {
       showVerdictFor(sent, FeedbackMessage.notOk(res))
@@ -121,5 +121,5 @@ export function useSubmitGuess({
     }
   }
 
-  return { submitGuess, inFlightTiles }
+  return { submitGuess, inFlightGuess }
 }

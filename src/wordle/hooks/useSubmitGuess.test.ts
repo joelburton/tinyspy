@@ -63,10 +63,10 @@ describe('useSubmitGuess', () => {
     expect(isAccepted).toBe(true)
     expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_guess: 'slate' })
     // The reply is in, but the row is not: the word stays.
-    expect(result.current.inFlightWord).toBe('slate')
+    expect(result.current.inFlightGuess).toBe('slate')
 
     rerender({ rows: [{ guess: 'slate', colors: 'xxgyx' }] })
-    expect(result.current.inFlightWord).toBeNull()
+    expect(result.current.inFlightGuess).toBeNull()
   })
 
   it('takes a soft-rejected word back and rings the row in the answer\'s own outcome', async () => {
@@ -79,7 +79,7 @@ describe('useSubmitGuess', () => {
       isAccepted = await result.current.submitGuess('slate')
     })
     expect(isAccepted).toBe(false)
-    expect(result.current.inFlightWord).toBeNull()
+    expect(result.current.inFlightGuess).toBeNull()
     // `duplicate` is a warning (lib/answer.ts), not the loss a default would
     // say.
     expect(result.current.refusedGuessMark?.value).toBe('warning')
@@ -100,7 +100,7 @@ describe('useSubmitGuess', () => {
       isAccepted = await result.current.submitGuess('slate')
     })
     expect(isAccepted).toBe(false)
-    expect(result.current.inFlightWord).toBeNull()
+    expect(result.current.inFlightGuess).toBeNull()
     expect(result.current.refusedGuessMark?.value).toBe('lost')
     expect(shown).toHaveBeenCalledTimes(1)
   })

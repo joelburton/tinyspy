@@ -88,11 +88,11 @@ it works.
 
 ## Board and BoardCol
 
-- **Board owns the board:** its display order and Shuffle (`useWordShuffle`,
-  which binds `act-shuffle`), and the keyboard cursor (`useWordCursor`), which
+- **Board owns the board:** its display order and Shuffle (`useTileShuffle`,
+  which binds `act-shuffle`), and the keyboard cursor (`useTileCursor`), which
   reports a pick up through `onPick`. Board makes its own Shuffle button.
-- **BoardCol owns the move:** `usePickedWord` (the pick, and `shownPickedWord`),
-  `useSubmitGuess` (the RPC, the local refusal, `inFlightWord`), and
+- **BoardCol owns the move:** `usePickedTile` (the pick, and `shownPickedTile`),
+  `useSubmitGuess` (the RPC, the local refusal, `inFlightGuess`), and
   `useBoardColActions` (Submit, Clear).
 - **One in-flight guard:** an action's own `pending` blocks a second
   Submit. There's no `isSubmitting` alongside it.
@@ -112,7 +112,7 @@ it works.
   `styles[`decided_${decidedOutcome}`]`, the same pattern as the ending frame.
 - **The marks that follow a decision** (the attention flash, then the
   head-shake on a wrong one) are one hook, `useDecidedTileMarks`, returning
-  `{ flashingWords, shakingWords }`; the long rationale is its docstring.
+  `{ flashingTiles, shakingTiles }`; the long rationale is its docstring.
 - **Ask the answer table, don't fake a row:** a tile's color is
   `getGuessOutcome(word, isCorrect)` in `lib/answer.ts`, which `eventToOutcome`
   also calls — not a made-up event handed to `eventToOutcome`.

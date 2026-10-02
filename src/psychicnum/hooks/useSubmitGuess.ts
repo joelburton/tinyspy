@@ -34,7 +34,7 @@ type GuessAnswer = { result: 'hit' | 'miss'; found_all: boolean }
  *   the person who made it. So two branches cover three server returns (the
  *   win, the guess that spends the last of the budget, the ordinary one).
  *
- * `inFlightWord` is the word with the server, whose tile takes the in-flight
+ * `inFlightGuess` is the word with the server, whose tile takes the in-flight
  * dim; null when nothing is out, and null while a past turn is open (that is
  * not the board the guess is on). It holds until the RESULT lands in
  * `tileResults` rather than until the RPC resolves: the reply and the colored
@@ -56,7 +56,7 @@ export function useSubmitGuess({
   isViewingHistory: boolean
 }): {
   submitGuess: (word: TileWord) => Promise<void>
-  inFlightWord: TileWord | null
+  inFlightGuess: TileWord | null
 } {
   // The word I last sent, or null. Nothing clears it when the result lands;
   // what is still in flight is derived below.
@@ -97,6 +97,6 @@ export function useSubmitGuess({
   const isInFlightShown = !isSubmittedWordDecided && !isViewingHistory
   return {
     submitGuess,
-    inFlightWord: isInFlightShown ? submittedWord : null,
+    inFlightGuess: isInFlightShown ? submittedWord : null,
   }
 }

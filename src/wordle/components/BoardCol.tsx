@@ -47,13 +47,13 @@ export function BoardCol({
   // The live board: every guess on coop's shared board, my own in compete.
   const liveRows: BoardRow[] = gd.boardGuesses.map((g) => ({ guess: g.word, colors: g.colors }))
 
-  const { submitGuess, inFlightWord, refusedGuessMark } = useSubmitGuess({
+  const { submitGuess, inFlightGuess, refusedGuessMark } = useSubmitGuess({
     gameId: gd.gameId,
     liveRows,
     localFeedbackSlot,
   })
   // The game lets me guess, and no guess of mine is still out.
-  const canGuess = gd.standing.isBoardInteractive && inFlightWord === null
+  const canGuess = gd.standing.isBoardInteractive && inFlightGuess === null
   // …and the live board is the one on screen.
   const canType = canGuess && !isViewingHistory
   const { typedWord, typeLetter, actions } = useTypedGuess({
@@ -65,7 +65,7 @@ export function BoardCol({
   // ─── Render ────────────────────────────────────────────
 
   // The word still out belongs to the live board only.
-  const shownInFlightWord = isViewingHistory ? null : inFlightWord
+  const shownInFlightWord = isViewingHistory ? null : inFlightGuess
 
   return (
     <div className={shared.boardCol}>
@@ -73,7 +73,7 @@ export function BoardCol({
         grid={{ liveRows, maxGuesses: gd.readout.maxGuesses }}
         marks={{
           typedWord,
-          inFlightWord: shownInFlightWord,
+          inFlightGuess: shownInFlightWord,
           refusedGuessMark,
           endingOutcome,
           isWaitingForTurn: gd.standing.isWaitingForTurn,

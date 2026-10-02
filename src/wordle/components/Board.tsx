@@ -29,7 +29,7 @@ export type BoardMarks = {
   typedWord: string
   // My guess out with the server, drawn uncolored in the next row until its
   // colored row lands; null when nothing is out.
-  inFlightWord: string | null
+  inFlightGuess: string | null
   // A refused guess: the typing row rings and shakes in its outcome.
   refusedGuessMark: Mark<Outcome> | null
   // The ending that applies to me; null while I play.
@@ -96,14 +96,14 @@ export function Board({
           const isTypingRow = rowIndex === typingRowIndex
           // The in-flight word sits in the first empty row.
           const isInFlightRow =
-            !guessRow && marks.inFlightWord !== null && rowIndex === shownRows.length
+            !guessRow && marks.inFlightGuess !== null && rowIndex === shownRows.length
           const refusedGuessMark = isTypingRow ? marks.refusedGuessMark : null
 
           // What the row's tiles spell: its guess, the word out with the
           // server, or what is being typed.
           function getRowWord(): string {
             if (guessRow) return guessRow.guess
-            if (isInFlightRow) return marks.inFlightWord!
+            if (isInFlightRow) return marks.inFlightGuess!
             if (isTypingRow) return marks.typedWord
             return ''
           }

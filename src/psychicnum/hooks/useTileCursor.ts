@@ -14,20 +14,20 @@ import type { TileResults, TileWord } from '../lib/tileResults'
  * The cursor sits on a CELL, so a shuffle moves the words under it; the pick,
  * being a word, moves with its tile.
  */
-export function useWordCursor({
-  shuffledWords,
+export function useTileCursor({
+  displayedTiles,
   boardShape,
   results,
-  pickedWord,
+  pickedTile,
   canPick,
   onPick,
 }: {
   // The words in the order the board draws them.
-  shuffledWords: readonly TileWord[]
+  displayedTiles: readonly TileWord[]
   boardShape: BoardShape
   // A decided tile cannot be picked, by key or by click.
   results: TileResults
-  pickedWord: TileWord | null
+  pickedTile: TileWord | null
   // Whether a pick is possible right now; the cursor is inert while not.
   canPick: boolean
   // Pick a word, or un-pick with null.
@@ -37,14 +37,14 @@ export function useWordCursor({
   pickClickedTile: (word: TileWord) => void
 } {
   function wordAtCell(cell: Cell): TileWord | undefined {
-    return shuffledWords[positionAt(cell.x, cell.y, boardShape.numCols)]
+    return displayedTiles[positionAt(cell.x, cell.y, boardShape.numCols)]
   }
 
   // Space toggles, so a second press un-picks.
   function togglePickAtCell(cell: Cell) {
     const word = wordAtCell(cell)
     if (word === undefined || results.has(word)) return
-    onPick(pickedWord === word ? null : word)
+    onPick(pickedTile === word ? null : word)
   }
 
   const { cursor, setCursorTo } = useBoardSelectionCursor({
@@ -54,7 +54,7 @@ export function useWordCursor({
   })
 
   function pickClickedTile(word: TileWord) {
-    setCursorTo(cellAt(shuffledWords.indexOf(word), boardShape.numCols))
+    setCursorTo(cellAt(displayedTiles.indexOf(word), boardShape.numCols))
     onPick(word)
   }
 

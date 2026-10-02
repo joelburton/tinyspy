@@ -17,14 +17,14 @@ import type { TileWord } from '../lib/tileResults'
  * a STRING rather than the array: `useGame` hands a fresh array on every
  * reload, and keying on it would reshuffle the board on every guess.
  */
-export function useWordShuffle(words: readonly TileWord[]): {
-  shuffledWords: TileWord[]
+export function useTileShuffle(words: readonly TileWord[]): {
+  displayedTiles: TileWord[]
   actShuffle: Action
 } {
   const [shuffleSeed, setShuffleSeed] = useState(0)
   // '\n' never appears inside a dictionary word.
   const wordsKey = words.join('\n')
-  const shuffledWords = useMemo(() => {
+  const displayedTiles = useMemo(() => {
     if (wordsKey === '') return []
     void shuffleSeed
     return shuffle(wordsKey.split('\n'))
@@ -36,5 +36,5 @@ export function useWordShuffle(words: readonly TileWord[]): {
     run: reshuffle,
   })
 
-  return { shuffledWords, actShuffle }
+  return { displayedTiles, actShuffle }
 }

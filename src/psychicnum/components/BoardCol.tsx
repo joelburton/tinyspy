@@ -14,7 +14,7 @@ import shared from '@/common/game-page/playArea.module.css'
 import historyViewerStyles from '@/common/event-log/historyViewer.module.css'
 import type { GameData } from '../hooks/useGame'
 import type { HistoryView } from '../hooks/useHistoryView'
-import { usePickedWord } from '../hooks/usePickedWord'
+import { usePickedTile } from '../hooks/usePickedTile'
 import { useSubmitGuess } from '../hooks/useSubmitGuess'
 import { useBoardColActions } from '../hooks/useBoardColActions'
 import type { TileResults } from '../lib/tileResults'
@@ -51,27 +51,27 @@ export function BoardCol({
   const canSubmit = gd.standing.isMyTurn && !isViewingHistory
 
   const {
-    pickedWord,
-    shownPickedWord,
-    choosePickedWord,
-    clearPickedWord,
-  } = usePickedWord({
+    pickedTile,
+    shownPickedTile,
+    choosePickedTile,
+    clearPickedTile,
+  } = usePickedTile({
     localFeedbackSlot,
     isStillPlaying: gd.standing.isStillPlaying,
     isViewingHistory,
   })
-  const { submitGuess, inFlightWord } = useSubmitGuess({
+  const { submitGuess, inFlightGuess } = useSubmitGuess({
     gameId: gd.gameId,
     tileResults,
     localFeedbackSlot,
     isViewingHistory,
   })
   const actions = useBoardColActions({
-    pickedWord,
+    pickedTile,
     canPick,
     canSubmit,
-    choosePickedWord,
-    clearPickedWord,
+    choosePickedTile,
+    clearPickedTile,
     submitGuess,
   })
 
@@ -104,15 +104,15 @@ export function BoardCol({
           moveCount: gd.board.guessCount,
         }}
         marks={{
-          pickedWord: shownPickedWord,
-          inFlightWord,
+          pickedTile: shownPickedTile,
+          inFlightGuess,
           endingOutcome,
           isWaitingForTurn: gd.standing.isWaitingForTurn,
           myTurnJustStarted,
         }}
         historyView={historyView}
         isInteractive={gd.standing.isBoardInteractive}
-        onPick={choosePickedWord}
+        onPick={choosePickedTile}
       />
 
       {/* The slot under the board: Clear and Submit, or the local feedback

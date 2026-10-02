@@ -27,46 +27,46 @@ describe('useDecidedTileMarks', () => {
 
   it('marks nothing on mount', () => {
     const { result } = setup({ results: ONE_GUESS, moveCount: 1, isViewingHistory: false })
-    expect([...result.current.flashingWords]).toEqual([])
-    expect([...result.current.shakingWords]).toEqual([])
+    expect([...result.current.flashingTiles]).toEqual([])
+    expect([...result.current.shakingTiles]).toEqual([])
   })
 
   it('flashes a right guess as it lands, and never shakes it', () => {
     const { result, rerender } = setup({ results: ONE_GUESS, moveCount: 1, isViewingHistory: false })
     rerender({ results: new Map([...ONE_GUESS, ['berry', true]]), moveCount: 2, isViewingHistory: false })
-    expect([...result.current.flashingWords]).toEqual(['berry'])
+    expect([...result.current.flashingTiles]).toEqual(['berry'])
 
     act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS))
-    expect([...result.current.shakingWords]).toEqual([])
+    expect([...result.current.shakingTiles]).toEqual([])
   })
 
   it('shakes a wrong guess once its flash is done, and not before', () => {
     const { result, rerender } = setup({ results: ONE_GUESS, moveCount: 1, isViewingHistory: false })
     rerender({ results: new Map([...ONE_GUESS, ['cedar', false]]), moveCount: 2, isViewingHistory: false })
-    expect([...result.current.flashingWords]).toEqual(['cedar'])
+    expect([...result.current.flashingTiles]).toEqual(['cedar'])
 
     act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS - 1))
-    expect([...result.current.shakingWords]).toEqual([])
+    expect([...result.current.shakingTiles]).toEqual([])
     act(() => vi.advanceTimersByTime(1))
-    expect([...result.current.shakingWords]).toEqual(['cedar'])
+    expect([...result.current.shakingTiles]).toEqual(['cedar'])
 
     // The shake is a beat, then gone.
     act(() => vi.advanceTimersByTime(VERDICT_SHAKE_MS))
-    expect([...result.current.shakingWords]).toEqual([])
+    expect([...result.current.shakingTiles]).toEqual([])
   })
 
   it('says nothing about a reveal, which no guess caused', () => {
     const { result, rerender } = setup({ results: ONE_GUESS, moveCount: 1, isViewingHistory: false })
     // The secrets revealed: tiles turn, and the guess count does not move.
     rerender({ results: new Map([...ONE_GUESS, ['delta', true]]), moveCount: 1, isViewingHistory: false })
-    expect([...result.current.flashingWords]).toEqual([])
+    expect([...result.current.flashingTiles]).toEqual([])
   })
 
   it('says nothing while a past turn is open', () => {
     const { result, rerender } = setup({ results: ONE_GUESS, moveCount: 1, isViewingHistory: true })
     rerender({ results: new Map([...ONE_GUESS, ['cedar', false]]), moveCount: 2, isViewingHistory: true })
-    expect([...result.current.flashingWords]).toEqual([])
+    expect([...result.current.flashingTiles]).toEqual([])
     act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS))
-    expect([...result.current.shakingWords]).toEqual([])
+    expect([...result.current.shakingTiles]).toEqual([])
   })
 })

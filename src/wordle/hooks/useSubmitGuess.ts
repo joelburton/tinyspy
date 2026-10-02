@@ -53,7 +53,7 @@ type GuessAnswer =
  * colored row, and a win with it, arrive over realtime the way they reach
  * everyone else.
  *
- * `inFlightWord` is the accepted-but-not-yet-drawn guess: kept on the board,
+ * `inFlightGuess` is the accepted-but-not-yet-drawn guess: kept on the board,
  * uncolored, from the moment it is sent until its colored row is among
  * `liveRows`, so the letters don't blink out during the round trip; the row
  * then flips in place. Derived from the rows rather than cleared when they
@@ -75,7 +75,7 @@ export function useSubmitGuess({
   localFeedbackSlot: FeedbackSlot
 }): {
   submitGuess: (word: string) => Promise<boolean>
-  inFlightWord: string | null
+  inFlightGuess: string | null
   refusedGuessMark: Mark<Outcome> | null
 } {
   // The word I last sent, or null. Cleared by a refusal; it outlives an
@@ -84,7 +84,7 @@ export function useSubmitGuess({
   // `liveRows` only grows within a run, so once the row has landed it stays.
   const hasSubmittedWordLanded =
     submittedWord !== null && liveRows.some((row) => row.guess === submittedWord)
-  const inFlightWord = hasSubmittedWordLanded ? null : submittedWord
+  const inFlightGuess = hasSubmittedWordLanded ? null : submittedWord
 
   // `WORD_ANSWER_MS` is the beat for a word wearing its answer, and the row
   // keys on the mark's nonce, so refusing the same word twice shakes twice.
@@ -135,5 +135,5 @@ export function useSubmitGuess({
     }
   }
 
-  return { submitGuess, inFlightWord, refusedGuessMark }
+  return { submitGuess, inFlightGuess, refusedGuessMark }
 }

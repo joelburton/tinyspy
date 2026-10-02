@@ -12,8 +12,8 @@ import { getGuessOutcome } from '../lib/answer'
 import { makeBoardShape } from '../lib/boardShape'
 import type { TileResults, TileWord } from '../lib/tileResults'
 import type { HistoryView } from '../hooks/useHistoryView'
-import { useWordShuffle } from '../hooks/useWordShuffle'
-import { useWordCursor } from '../hooks/useWordCursor'
+import { useTileShuffle } from '../hooks/useTileShuffle'
+import { useTileCursor } from '../hooks/useTileCursor'
 import { useDecidedTileMarks } from '../hooks/useDecidedTileMarks'
 import { WordTile } from './WordTile'
 import styles from './Board.module.css'
@@ -34,8 +34,8 @@ export type BoardTiles = {
 
 /** What the board wears on and around its tiles. */
 export type BoardMarks = {
-  pickedWord: TileWord | null
-  inFlightWord: TileWord | null
+  pickedTile: TileWord | null
+  inFlightGuess: TileWord | null
   endingOutcome: EndOutcome | null
   // A teammate holds the move.
   isWaitingForTurn: boolean
@@ -74,17 +74,17 @@ export function Board({
   const isViewingHistory = historyView.isViewing
   const canPick = isInteractive && !isViewingHistory
 
-  const { shuffledWords, actShuffle } = useWordShuffle(tiles.words)
-  const boardShape = makeBoardShape(shuffledWords.length)
-  const { cursor, pickClickedTile } = useWordCursor({
-    shuffledWords,
+  const { displayedTiles, actShuffle } = useTileShuffle(tiles.words)
+  const boardShape = makeBoardShape(displayedTiles.length)
+  const { cursor, pickClickedTile } = useTileCursor({
+    displayedTiles,
     boardShape,
     results: tiles.results,
-    pickedWord: marks.pickedWord,
+    pickedTile: marks.pickedTile,
     canPick,
     onPick,
   })
-  const { flashingWords, shakingWords } = useDecidedTileMarks({
+  const { flashingTiles, shakingTiles } = useDecidedTileMarks({
     results: tiles.results,
     moveCount: tiles.moveCount,
     isViewingHistory,
@@ -116,7 +116,7 @@ export function Board({
           gridTemplateRows: `repeat(${numRows}, 1fr)`,
         }}
       >
-        {shuffledWords.map((word, index) => {
+        {displayedTiles.map((word, index) => {
           const isGuessed = tiles.results.has(word)
           const decidedOutcome = isGuessed
             ? getGuessOutcome(word, tiles.results.get(word)!)
@@ -128,11 +128,11 @@ export function Board({
               decidedOutcome={decidedOutcome}
               guesser={tiles.decidedBy?.get(word)}
               marks={{
-                isPicked: marks.pickedWord === word,
+                isPicked: marks.pickedTile === word,
                 isUnderCursor: cursorPosition === index,
-                isInFlight: marks.inFlightWord === word,
-                isFlashing: flashingWords.has(word),
-                isShaking: shakingWords.has(word),
+                isInFlight: marks.inFlightGuess === word,
+                isFlashing: flashingTiles.has(word),
+                isShaking: shakingTiles.has(word),
                 isHistoryLit: historyView.litWord === word,
               }}
               isDisabled={isGuessed || !canPick}

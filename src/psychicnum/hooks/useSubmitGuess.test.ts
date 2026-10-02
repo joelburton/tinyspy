@@ -55,9 +55,9 @@ describe('useSubmitGuess', () => {
     const { result, rerender } = setup(LIVE)
     await act(() => result.current.submitGuess('apple'))
     // The reply is in; the colored tile is not yet.
-    expect(result.current.inFlightWord).toBe('apple')
+    expect(result.current.inFlightGuess).toBe('apple')
     rerender({ ...LIVE, tileResults: new Map([['apple', false]]) })
-    expect(result.current.inFlightWord).toBeNull()
+    expect(result.current.inFlightGuess).toBeNull()
   })
 
   it('shows nothing in flight while a past turn is open', async () => {
@@ -65,6 +65,6 @@ describe('useSubmitGuess', () => {
     const { result, rerender } = setup(LIVE)
     await act(() => result.current.submitGuess('apple'))
     rerender({ ...LIVE, isViewingHistory: true })
-    expect(result.current.inFlightWord).toBeNull()
+    expect(result.current.inFlightGuess).toBeNull()
   })
 })

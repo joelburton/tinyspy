@@ -56,7 +56,7 @@ type Props = {
   onPick: (tile: string) => void
   // The tiles of a guess that is OUT — sent, waiting on the server. They wear
   // the shared in-flight dim until the answer lands.
-  inFlightTiles: ReadonlySet<string>
+  inFlightGuess: ReadonlySet<string>
   // The verdict on the last guess, filling its tiles in its pill's outcome
   // (`useVerdictMark`). Null while nothing is being judged. Its PHASE is the
   // mark's two beats, and the tiles draw both off it: the attention flash
@@ -117,7 +117,7 @@ export function Board({
   isStillPlaying,
   ownerByTile,
   onPick,
-  inFlightTiles,
+  inFlightGuess,
   verdict,
   colorByUserId,
   sharedBoard,
@@ -257,7 +257,7 @@ export function Board({
           // invalid declaration rather than a subtle bug.
           const ownerColor =
             sharedBoard && ownerId !== undefined ? colorByUserId.get(ownerId) : undefined
-          const isInFlight = inFlightTiles.has(tile)
+          const isInFlight = inFlightGuess.has(tile)
           const isVerdict = verdict?.value.tiles.has(tile) ?? false
           // One of the four tiles the viewed turn guessed — tinted the outcome
           // color and outlined in the history blue.
