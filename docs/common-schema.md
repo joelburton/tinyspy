@@ -85,18 +85,18 @@ bookkeeping — they are seconds when nobody ticks. The frontend half is
   object and never merges. The game calls it at create, at Restart and at the
   end of every move. They are club-readable, so they carry only what every
   player already sees.
-- **The shell** — `games.shell` — is what `GamePage` shows, the same shape for
-  every gametype, written whole by `common._write_shell`: at create, and by
-  each game's status builder after every move. Each player in it carries the
-  facts every game shares and where they stand ([win-lose.md → Where a player
-  stands](win-lose.md#where-a-player-stands--the-terms-as-formulas)); a game's
-  builder starts its own players from the same objects
-  (`common._make_json_players`). The shape is drawn in
-  `supabase/sql/common.sql` → The shell, and pinned whole in
-  `supabase/tests/common/shell_test.sql`. The other two page blobs, `clubpage`
-  and `playarea`, are each game's builder's
+- **The page blobs** — `games.shell`, `games.playarea`, `games.clubpage` —
+  are what one reader each shows, in that reader's names
   ([plans/seat-view.md](../plans/seat-view.md) → The page is written, not
-  assembled).
+  assembled). The shell is `GamePage`'s and nothing more: the same shape for
+  every gametype, written whole by `common._write_shell` at create and from
+  each game's builder after every move. The playarea is the game's; its common
+  part — the mode, the turn, the ending, each player's standing ([win-lose.md →
+  Where a player stands](win-lose.md#where-a-player-stands--the-terms-as-formulas))
+  — comes from `common._make_json_playarea`, and the game's builder adds its
+  own fields on top. Both shapes are drawn in `supabase/sql/common.sql` → The
+  page blobs' common parts, and pinned whole in
+  `supabase/tests/common/shell_test.sql` and `playarea_common_test.sql`.
 - **`status_changed_at`** is when the game's status last changed, and the club
   list sorts and dates games by it. Only the builder writes it, and only when
   its caller passes `p_update_status_changed_at` true — a create, a Restart, a

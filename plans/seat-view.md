@@ -102,31 +102,43 @@ only": promoting it later fills in a value and moves no reader. (`gd.my…` for
 a viewer-only value has no present example; that rule is not written until one
 appears.)
 
-### 7. One shape: `cg` is the common part of `gd`, and `gd` extends it
+### 7. One shape per reader: the common part of every `gd`, and `cg` beside it
 
 Settled 2026-10-01 over psychicnum's sketch (the working copy sits at the top
 of `src/psychicnum/hooks/useGame.ts`; the names are still being refined, and
-nothing here is blessed).
+nothing here is blessed). Reworded 2026-10-02 once decision 8 made the reader
+define each blob: "common" had been two things under one word.
 
 **Why.** `cg` was built as "what the page read" and every game restated it as
 `gd` under other names: a second shaping per game, and a page group (pause, the
 timer) riding into the game for nothing. Where a fact came from is internal to
-the hook that builds it, so `cg` builds the common facts ONCE in their final
-names, and a game's `useGame` only adds what its own tables know.
+the builder, so the facts every game shares are built ONCE, in their final
+names, and a game's builder only adds what its own tables know.
 
-- **`cg` takes the final names** below, players included. Facts a gametype
-  states — `brand`, `oneBoard` — come off the manifest onto `cg` the way
-  `draftsOffTurn` does, so a game needs its manifest for nothing and
-  `manifest` leaves `PlayAreaLoaderProps`. `winner` is common's too: the
-  player ranked first.
-- **`gd` extends `cg`.** `gd.players` is `cg.players` with fields added, never
-  rebuilt, so `me` stays one object through both; `gd` adds `puzzle`,
-  `events`, `setupRows`, and on each player the counts and the `board`.
-- **The page's things leave `cg`.** Pause, the timer, `sendSuspend`,
-  `stillPlayingHumanPlayers`, `is_current_view`, `restart_count`,
-  `updated_at` are the shell's; `useCommonGame` returns them beside the game,
-  and they go on neither `cg` nor `gd`. A Pause button in an InfoCol one day is
-  an action the page binds, like Stop.
+- **The common part of every `gd`** is the game facts every game shares —
+  `brand`, `mode`, `coop`, `compete`, `oneBoard`, `title`, `setup`, `turns`,
+  `ending`, `outcome` — and the player with the standing terms. One common SQL
+  helper writes it (`common._make_json_playarea`), each game's builder adds
+  its own fields on top, and that is what keeps the shared fields from
+  drifting between games. `brand` and `oneBoard` come off
+  `common.gametypes`, so a game needs its manifest for nothing and `manifest`
+  leaves `PlayAreaLoaderProps`. `winner` is common's too: the player ranked
+  first.
+- **`cg` is the shell: what `GamePage` reads, and nothing more.** `id`,
+  `gametype`, `club`, `title`, `restartCount`, `ended`, and a roster of
+  `id`, `username`, `color`, `ai`, `stillPlaying`, every field with a page
+  reader. The page never sees a seat, an outcome or whose turn it is. So `gd`
+  does not extend `cg`: both come whole from the database, the fields they
+  share are written by the same helper, and `cg.me` and `gd.me` are two
+  objects, the page's view of me and the game's.
+- **The page's things stay the page's.** Pause, the timer, `sendSuspend`,
+  `stillPlayingHumanPlayers`, `is_current_view`, `updated_at`: `useCommonGame`
+  returns them beside `cg`, and they go on neither `cg` nor `gd`. A Pause
+  button in an InfoCol one day is an action the page binds, like Stop.
+- **The turn bell moves into the game**, beside the your-turn flash. Both are
+  one moment (`useTurnArrival`) with two effects, and the flash already lives
+  in each game's PlayArea; one hook, called once with `gd.me.onTurn`, does
+  both. That is the one page read of the turn, and it goes with step 3.
 
 **Naming inside a group.** The `is…`/`has…` rules were written for
 free-standing names; a path supplies the context, so inside a group a
@@ -148,7 +160,7 @@ read from the rows for the flash's timing, and two lookalike names must not
 hide a difference only one reader knows.
 
 ```
-gd:                                       # cg is every line that is not marked game
+gd:                                       # the common part is every line not marked game
   id
   gametype
   brand
@@ -316,13 +328,14 @@ the first instance; the next game's blob starts from it.
      `common.gametypes`, seeded for every gametype in the same file; the
      manifest keeps its copy, kept in sync by hand for now, and what to evict
      from it is decided later.
-  2. **`common._write_shell(game_id)`** and the common helper for the player
-     fields every game shares (`seat` from `turn_seat`, the roster in seat
-     order, the standing terms per seat — `computePlayerStanding` moves here),
-     called from `_create_game` and from each game's `_write_statuses`.
-     Written as named pieces a reader can follow — plpgsql has no block
-     scoping to lean on — each pinned in pgTAP, so `select shell from
-     common.games` shows the page what it gets.
+  2. **`common._write_shell(game_id)`** and **`common._make_json_playarea`**,
+     the common part of every playarea (`seat` from `turn_seat`, the players
+     in seat order, the standing terms per seat — `computePlayerStanding`
+     moves here), the first called from `_create_game` and both from each
+     game's `_write_statuses`. Written as named pieces a reader can follow —
+     plpgsql has no block scoping to lean on — each pinned in pgTAP, so
+     `select shell from common.games` shows the page what it gets. (Done
+     2026-10-02.)
   3. **`useCommonGame` on the shell.** It reads `shell` and `playarea` off
      `common.games` and nothing else from that table; subscribes to the row;
      reads and ticks the timer exactly as today (`common.timers` is

@@ -1,30 +1,31 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: the shell blob — common._write_shell and its pieces
+-- Test: the shell blob — common._write_shell
 -- ============================================================
--- `common.games.shell` is what GamePage shows, written whole by
--- common._write_shell: at create by common._create_game, and after every
--- move by each game's status builder (supabase/sql/common.sql → The shell).
--- This file pins the blob a page gets through a game's life:
+-- `common.games.shell` is what GamePage shows and nothing more, written whole
+-- by common._write_shell: at create by common._create_game, and after every
+-- move by each game's status builder (supabase/sql/common.sql → The page
+-- blobs' common parts). This file pins the blob a page gets:
 --
---   1. A fresh free-for-all game, as a whole: the gametype's brand and
---      one_board, no turns, nobody ended, every player on turn
---   2. A turn-order game: seat order, the holder, who waits; the turn advances
---   3. A player who ended while the game plays on, and one who conceded
---   4. The game's ending: reason, by, winner; every player's outcome
---   5. A Restart undoes all of it and counts, in both games
+--   1. A fresh game, as a whole: the five-field roster, nobody ended
+--   2. A player who ended while the game plays on leaves the roster's
+--      stillPlaying; the game is not ended
+--   3. The game's ending
+--   4. A Restart undoes it and counts
+--   5. The roster is in seat order
 --
 -- The common helpers do not write the shell themselves — a game's builder
 -- does, after them — so this file calls _write_shell by hand where a builder
--- would. See games_test.sql for the as_jwt_only trick.
+-- would. The player facts a playarea shows are playarea_common_test.sql's.
+-- See games_test.sql for the as_jwt_only trick.
 -- ============================================================
 
 begin;
 
 set search_path = common, public, extensions;
 
-select plan(27);
+select plan(9);
 
 \ir ../_shared/setup.psql
 
@@ -72,106 +73,33 @@ create function pg_temp.player(game uuid, uid uuid) returns jsonb language sql a
   $$ select p from jsonb_array_elements((select shell -> 'players' from common.games where id = game)) p
       where p ->> 'id' = uid::text $$;
 
--- A player who has not moved: what every seat of a fresh game shows.
-create function pg_temp.fresh_player(uid uuid, name text, seat int) returns jsonb language sql as $$
+-- A player as the shell shows them while they play.
+create function pg_temp.playing(uid uuid, name text) returns jsonb language sql as $$
   select jsonb_build_object(
-    'id',             uid,
-    'username',       name,
-    'color',          (select color from common.profiles where user_id = uid),
-    'ai',             false,
-    'seat',           seat,
-    'ending',         null,
-    'outcome',        null,
-    'finalRanking',   null,
-    'solvedAt',       null,
-    'conceded',       false,
-    'solved',         false,
-    'stillPlaying',   true,
-    'onTurn',         true,
-    'waitingForTurn', false)
+    'id',           uid,
+    'username',     name,
+    'color',        (select color from common.profiles where user_id = uid),
+    'ai',           false,
+    'stillPlaying', true)
 $$;
 
--- ─── (1) A fresh free-for-all game, as a whole ───
+-- ─── (1) A fresh game, as a whole ───
 select is(
   pg_temp.shell(pg_temp.race()),
   jsonb_build_object(
     'id',           pg_temp.race(),
     'gametype',     'spellingbee_compete',
-    'brand',        'FreeBee',
     'club',         jsonb_build_object('handle', (select handle from club)),
-    'mode',         'compete',
-    'coop',         false,
-    'compete',      true,
-    'oneBoard',     false,
     'title',        'test-title',
-    'setup',        '{"timer": {"kind": "none"}}'::jsonb,
     'restartCount', 0,
-    'turns',        null,
-    'ending',       null,
     'ended',        false,
-    'outcome',      null,
     'players',      jsonb_build_array(
-      pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada', null),
-      pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea', null))),
-  '_create_game writes the whole shell of a fresh game: no turns, no ending, both players on turn, by username'
+      pg_temp.playing('ada11111-1111-1111-1111-111111111111', 'ada'),
+      pg_temp.playing('bea22222-2222-2222-2222-222222222222', 'bea'))),
+  '_create_game writes the whole shell of a fresh game: the roster, nobody ended, by username'
 );
 
--- ─── (2) A turn-order game ───
-select common._assign_turn_order(pg_temp.turns(), 'bea22222-2222-2222-2222-222222222222');
-select common._write_shell(pg_temp.turns());
-
-select is(
-  pg_temp.shell(pg_temp.turns()) -> 'turns',
-  jsonb_build_object('holder', 'bea22222-2222-2222-2222-222222222222'),
-  'a seated game has turns, and the holder is the first player'
-);
-select is(
-  (select jsonb_agg(p ->> 'username') from jsonb_array_elements(pg_temp.shell(pg_temp.turns()) -> 'players') p),
-  '["bea", "ada"]'::jsonb,
-  'players come in seat order'
-);
-select is(
-  pg_temp.player(pg_temp.turns(), 'bea22222-2222-2222-2222-222222222222'),
-  pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea', 0),
-  'the holder: seat 0, on turn'
-);
-select is(
-  pg_temp.player(pg_temp.turns(), 'ada11111-1111-1111-1111-111111111111'),
-  pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada', 1)
-    || '{"onTurn": false, "waitingForTurn": true}'::jsonb,
-  'the other player: seat 1, still playing, waiting for the turn'
-);
-select is(
-  (pg_temp.shell(pg_temp.turns()) ->> 'coop')::boolean
-    and (pg_temp.shell(pg_temp.turns()) ->> 'oneBoard')::boolean
-    and pg_temp.shell(pg_temp.turns()) ->> 'brand' = 'PsychicNum',
-  true,
-  'coop, one board and the brand come off the gametype'
-);
-
-select common._advance_turn(pg_temp.turns());
-select common._write_shell(pg_temp.turns());
-
-select is(
-  pg_temp.shell(pg_temp.turns()) -> 'turns' ->> 'holder',
-  'ada11111-1111-1111-1111-111111111111',
-  'advancing the turn moves the holder'
-);
-select is(
-  (pg_temp.player(pg_temp.turns(), 'ada11111-1111-1111-1111-111111111111') ->> 'onTurn')::boolean,
-  true,
-  '… and the new holder is on turn'
-);
-select is(
-  (pg_temp.player(pg_temp.turns(), 'bea22222-2222-2222-2222-222222222222') ->> 'waitingForTurn')::boolean,
-  true,
-  '… while the old one waits'
-);
-
--- ─── (3) A player ends while the game plays on ───
--- ada solves; the game writes solved_at itself, and tells common she ended.
-update common.game_players set solved_at = now()
- where game_id = pg_temp.race() and user_id = 'ada11111-1111-1111-1111-111111111111';
+-- ─── (2) A player ends while the game plays on ───
 select common._set_player_ended(
   pg_temp.race(), 'ada11111-1111-1111-1111-111111111111',
   'reached_goal', 'solved', 'won');
@@ -179,19 +107,13 @@ select common._write_shell(pg_temp.race());
 
 select is(
   pg_temp.player(pg_temp.race(), 'ada11111-1111-1111-1111-111111111111'),
-  pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada', null) || jsonb_build_object(
-    'ending',       jsonb_build_object('at', now(), 'reason', 'reached_goal', 'detail', 'solved'),
-    'outcome',      'won',
-    'solvedAt',     now(),
-    'solved',       true,
-    'stillPlaying', false,
-    'onTurn',       false),
-  'a solver: her ending, solved, her early outcome; no longer playing or on turn'
+  pg_temp.playing('ada11111-1111-1111-1111-111111111111', 'ada') || '{"stillPlaying": false}'::jsonb,
+  'a player who ended is no longer still playing, and the shell says nothing else about it'
 );
 select is(
   pg_temp.player(pg_temp.race(), 'bea22222-2222-2222-2222-222222222222'),
-  pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea', null),
-  'the other racer plays on, unchanged'
+  pg_temp.playing('bea22222-2222-2222-2222-222222222222', 'bea'),
+  'the other player plays on'
 );
 select is(
   (pg_temp.shell(pg_temp.race()) ->> 'ended')::boolean,
@@ -199,30 +121,7 @@ select is(
   'one player ending does not end the game'
 );
 
--- bea concedes.
-select pg_temp.as_jwt_only('bea22222-2222-2222-2222-222222222222');
-select common._concede(pg_temp.race());
-reset role;
-select set_config('request.jwt.claims', '', true);
-select common._write_shell(pg_temp.race());
-
-select is(
-  pg_temp.player(pg_temp.race(), 'bea22222-2222-2222-2222-222222222222'),
-  pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea', null) || jsonb_build_object(
-    'ending',       jsonb_build_object('at', now(), 'reason', 'conceded', 'detail', 'conceded'),
-    'outcome',      'lost',
-    'conceded',     true,
-    'stillPlaying', false,
-    'onTurn',       false),
-  'a conceder: conceded, lost at once, out of the game'
-);
-select is(
-  (pg_temp.shell(pg_temp.race()) ->> 'ended')::boolean,
-  false,
-  'a concession beside a solver does not end the game'
-);
-
--- ─── (4) The game ends ───
+-- ─── (3) The game ends ───
 select common._end_game(
   pg_temp.race(), 'reached_goal', 'solved', 'ada11111-1111-1111-1111-111111111111',
   p_is_no_result => false,
@@ -230,84 +129,48 @@ select common._end_game(
 select common._write_shell(pg_temp.race());
 
 select is(
-  pg_temp.shell(pg_temp.race()) -> 'ending',
-  jsonb_build_object(
-    'reason', 'reached_goal',
-    'detail', 'solved',
-    'by',     'ada11111-1111-1111-1111-111111111111',
-    'winner', 'ada11111-1111-1111-1111-111111111111'),
-  'the ending: reason pair, who ended it, the player ranked first'
-);
-select is(
   (pg_temp.shell(pg_temp.race()) ->> 'ended')::boolean,
   true,
   'ended'
 );
 select is(
-  pg_temp.shell(pg_temp.race()) ->> 'outcome',
-  'won',
-  'the game''s outcome'
-);
-select is(
-  (pg_temp.player(pg_temp.race(), 'ada11111-1111-1111-1111-111111111111') ->> 'finalRanking')::int,
-  1,
-  'the winner is ranked 1'
-);
-select is(
-  pg_temp.player(pg_temp.race(), 'ada11111-1111-1111-1111-111111111111') ->> 'outcome',
-  'won',
-  '… and won'
-);
-select is(
-  pg_temp.player(pg_temp.race(), 'bea22222-2222-2222-2222-222222222222') -> 'finalRanking',
-  'null'::jsonb,
-  'the conceder is unranked'
-);
-select is(
-  pg_temp.player(pg_temp.race(), 'bea22222-2222-2222-2222-222222222222') ->> 'outcome',
-  'lost',
-  '… and lost'
+  (select jsonb_agg(p -> 'stillPlaying') from jsonb_array_elements(pg_temp.shell(pg_temp.race()) -> 'players') p),
+  '[false, false]'::jsonb,
+  '… and nobody is still playing'
 );
 
--- ─── (5) A Restart undoes all of it ───
+-- ─── (4) A Restart undoes it and counts ───
 select common._reset_game(pg_temp.race());
 select common._write_shell(pg_temp.race());
 
 select is(
-  pg_temp.shell(pg_temp.race()) -> 'players',
-  jsonb_build_array(
-    pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada', null),
-    pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea', null)),
-  'after a Restart every player is fresh again'
-);
-select is(
-  pg_temp.shell(pg_temp.race()) -> 'ending',
-  'null'::jsonb,
-  '… the ending is gone'
-);
-select is(
-  (pg_temp.shell(pg_temp.race()) ->> 'ended')::boolean,
-  false,
-  '… the game is being played'
-);
-select is(
-  pg_temp.shell(pg_temp.race()) -> 'outcome',
-  'null'::jsonb,
-  '… with no outcome yet'
-);
-select is(
-  (pg_temp.shell(pg_temp.race()) ->> 'restartCount')::int,
-  1,
-  '… and the restart is counted'
+  pg_temp.shell(pg_temp.race()),
+  jsonb_build_object(
+    'id',           pg_temp.race(),
+    'gametype',     'spellingbee_compete',
+    'club',         jsonb_build_object('handle', (select handle from club)),
+    'title',        'test-title',
+    'restartCount', 1,
+    'ended',        false,
+    'players',      jsonb_build_array(
+      pg_temp.playing('ada11111-1111-1111-1111-111111111111', 'ada'),
+      pg_temp.playing('bea22222-2222-2222-2222-222222222222', 'bea'))),
+  'after a Restart the shell is the fresh one, with the restart counted'
 );
 
-select common._reset_game(pg_temp.turns());
+-- ─── (5) The roster is in seat order ───
+select common._assign_turn_order(pg_temp.turns(), 'bea22222-2222-2222-2222-222222222222');
 select common._write_shell(pg_temp.turns());
 
 select is(
-  pg_temp.shell(pg_temp.turns()) -> 'turns' ->> 'holder',
-  'bea22222-2222-2222-2222-222222222222',
-  'a Restart hands the turn back to seat 0'
+  (select jsonb_agg(p ->> 'username') from jsonb_array_elements(pg_temp.shell(pg_temp.turns()) -> 'players') p),
+  '["bea", "ada"]'::jsonb,
+  'a seated game lists its players by seat'
+);
+select is(
+  pg_temp.shell(pg_temp.turns()) ? 'turns',
+  false,
+  '… and the shell carries nothing about the turn: that is the playarea''s'
 );
 
 select * from finish();

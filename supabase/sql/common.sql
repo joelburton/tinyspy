@@ -35,8 +35,10 @@
 --   _stop                      the Stop: ends the game with no result
 --   _set_player_ended          ends one player while the game plays on
 --   _write_shell               writes the page's shell blob onto the game
---   _make_json_players         every player as the shell shows them, for a
---                              game's builder to add its fields to
+--   _make_json_playarea        the common part of a game's playarea blob,
+--                              for its builder to add its fields to
+--   _make_json_players         every player as a playarea shows them, for
+--                              a game's builder to join its rows to
 --   _assign_turn_order         seats a turn-order game
 --   _advance_turn              hands the turn to the next player still in
 --   _require_turn              refuses a move out of turn
@@ -1829,19 +1831,26 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 
 
 -- ============================================================
--- The shell — what GamePage shows, written onto common.games.shell
+-- The page blobs' common parts — the shell, and what every playarea shares
 -- ============================================================
 -- The page is written, not assembled (plans/seat-view.md → The page is
--- written, not assembled): the shell blob is everything GamePage reads about a
--- game, in the page's own names, the same shape for every gametype. It is
--- written at create and rewritten by each game's status builder after every
--- move, so `select shell from common.games` shows the page what it gets.
+-- written, not assembled): each blob on `common.games` is everything one reader
+-- shows, in that reader's own names. Two of them have a common part, built
+-- here:
 --
--- Each player inside it carries the facts every game shares — who they are,
--- their seat, how and whether they ended, and where they stand (docs/win-lose.md
--- → Where a player stands, formula for formula). A game's own builder starts
--- its playarea players from the same objects (`_make_json_players`) and adds
--- its fields, so the common fields cannot drift between games.
+--   shell     Everything GamePage reads, the same shape for every gametype,
+--             and nothing more: the page never sees a seat or an outcome.
+--             `_write_shell` assigns it whole, at create and from each game's
+--             status builder after every move, so `select shell from
+--             common.games` shows the page what it gets.
+--
+--   playarea  The game's own blob, whose game facts and player facts every
+--             game shares — the mode, the turn, the ending, each player's
+--             standing (docs/win-lose.md → Where a player stands, formula for
+--             formula). `_make_json_playarea` builds that common part; the
+--             game's builder adds its own fields and its players on top
+--             (`_make_json_players` joined to the game's rows), so the shared
+--             fields cannot drift between games.
 --
 -- A JSON null means "no value right now"; every key is always present. A
 -- group that may not apply is null as a whole: `turns` in a free-for-all game,
@@ -1850,12 +1859,17 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 -- page turns them into players.
 --
 --   shell:
+--     id, gametype, club: {handle}
+--     title, restartCount, ended
+--     players: [{id, username, color, ai, stillPlaying}, …]   seat order
+--
+--   playarea, the common part:
 --     id, gametype, brand, club: {handle}
 --     mode, coop, compete, oneBoard
---     title, setup, restartCount
+--     title, setup
 --     turns: {holder}                      null: no turn order; holder null: nobody's turn now
 --     ending: {reason, detail, by, winner} null while playing; winner: the player ranked 1
---     ended, outcome                       outcome null until the game ends
+--     outcome                              null until the game ends
 --     players: [player, …]                 seat order; by username in a free-for-all game
 --
 --   player:
@@ -1880,9 +1894,9 @@ $$;
 
 revoke execute on function common._is_turn_based(uuid) from public;
 
--- One player as the shell shows them: the row, the profile, and where they
--- stand against the game. `p_turn_based` is passed rather than asked per
--- player, since it is one fact about the game.
+-- One player as every game's playarea shows them: the row, the profile, and
+-- where they stand against the game. `p_turn_based` is passed rather than
+-- asked per player, since it is one fact about the game.
 create or replace function common._make_json_player(
   gp common.game_players,
   prof common.profiles,
@@ -1927,9 +1941,9 @@ $$;
 
 revoke execute on function common._make_json_player(common.game_players, common.profiles, common.games, boolean) from public;
 
--- Every player of a game as the shell shows them, in seat order — by username
--- in a free-for-all game, which has no seats. `ord` is that order, for a
--- builder that aggregates them; `id` is for joining the game's own rows:
+-- Every player of a game as its playarea shows them, in seat order — by
+-- username in a free-for-all game, which has no seats. `ord` is that order,
+-- for a builder that aggregates them; `id` is for joining the game's own rows:
 --
 --   select jsonb_agg(cp.player || jsonb_build_object(…) order by cp.ord)
 --     from common._make_json_players(p_game_id) cp
@@ -1974,6 +1988,74 @@ $$;
 
 revoke execute on function common._make_json_ending(common.games) from public;
 
+-- The common part of a game's playarea blob: the game facts every game
+-- shares, and its players as `_make_json_players` shows them. A game's status
+-- builder puts its own fields on top, and replaces `players` with the same
+-- objects extended by its rows:
+--
+--   playarea = common._make_json_playarea(p_game_id) || jsonb_build_object(
+--     'puzzle', …,
+--     'players', (select jsonb_agg(cp.player || jsonb_build_object(…) order by cp.ord)
+--                   from common._make_json_players(p_game_id) cp
+--                   join <game>.players pp on pp.user_id = cp.id))
+create or replace function common._make_json_playarea(p_game_id uuid)
+returns jsonb
+language plpgsql
+stable
+set search_path = common, public, extensions
+as $$
+declare
+  g  common.games%rowtype;
+  gt common.gametypes%rowtype;
+begin
+  select * into g from common.games where id = p_game_id;
+  if not found then
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for p_game_id';
+  end if;
+  select * into gt from common.gametypes where gametype = g.gametype;
+
+  return jsonb_build_object(
+    'id',       g.id,
+    'gametype', g.gametype,
+    'brand',    gt.brand,
+    'club',     jsonb_build_object('handle', g.club_handle),
+    'mode',     g.mode,
+    'coop',     g.mode = 'coop',
+    'compete',  g.mode = 'compete',
+    'oneBoard', gt.one_board,
+    'title',    g.title,
+    'setup',    g.setup,
+    'turns',    case when common._is_turn_based(p_game_id)
+                  then jsonb_build_object('holder', g.current_turn_user_id) end,
+    'ending',   common._make_json_ending(g),
+    'outcome',  g.game_ended_outcome,
+    'players',  (select jsonb_agg(cp.player order by cp.ord)
+                   from common._make_json_players(p_game_id) cp));
+end;
+$$;
+
+revoke execute on function common._make_json_playarea(uuid) from public;
+
+-- One player as the shell shows them: who they are, and whether the pause
+-- still waits for them. Picked off the playarea's player so the standing has
+-- one formula.
+create or replace function common._make_json_shell_player(player jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = common, public, extensions
+as $$
+  select jsonb_build_object(
+    'id',           player -> 'id',
+    'username',     player -> 'username',
+    'color',        player -> 'color',
+    'ai',           player -> 'ai',
+    'stillPlaying', player -> 'stillPlaying');
+$$;
+
+revoke execute on function common._make_json_shell_player(jsonb) from public;
+
 -- Write the game's shell blob. Called by `_create_game` once the players are
 -- seated, and by each game's status builder after every move, so the shell is
 -- as fresh as the statuses beside it. Writes nothing else: `status_changed_at`
@@ -1985,40 +2067,27 @@ security definer
 set search_path = common, public, extensions
 as $$
 declare
-  g          common.games%rowtype;
-  gt         common.gametypes%rowtype;
-  turn_based boolean;
-  players    jsonb;
+  g       common.games%rowtype;
+  players jsonb;
 begin
   select * into g from common.games where id = p_game_id;
   if not found then
     raise exception 'game-not-found|' using errcode = 'P0002',
       detail = 'no common.games row for p_game_id';
   end if;
-  select * into gt from common.gametypes where gametype = g.gametype;
 
-  turn_based := common._is_turn_based(p_game_id);
-  select jsonb_agg(cp.player order by cp.ord) into players
+  select jsonb_agg(common._make_json_shell_player(cp.player) order by cp.ord)
+    into players
     from common._make_json_players(p_game_id) cp;
 
   update common.games
      set shell = jsonb_build_object(
            'id',           g.id,
            'gametype',     g.gametype,
-           'brand',        gt.brand,
            'club',         jsonb_build_object('handle', g.club_handle),
-           'mode',         g.mode,
-           'coop',         g.mode = 'coop',
-           'compete',      g.mode = 'compete',
-           'oneBoard',     gt.one_board,
            'title',        g.title,
-           'setup',        g.setup,
            'restartCount', g.restart_count,
-           'turns',        case when turn_based
-                             then jsonb_build_object('holder', g.current_turn_user_id) end,
-           'ending',       common._make_json_ending(g),
            'ended',        g.ended_at is not null,
-           'outcome',      g.game_ended_outcome,
            'players',      players)
    where id = p_game_id;
 end;
