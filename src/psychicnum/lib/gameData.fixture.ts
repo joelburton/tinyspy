@@ -27,6 +27,7 @@ export type PlayerFacts = {
   solvedAt?: string | null
   // Their own counts, as `psychicnum.players` holds them. Left out, they are
   // counted off the log's guess rows, as the game's own rows would hold them.
+  // The team's are their sum.
   found?: number
   used?: number
 }
@@ -77,8 +78,9 @@ export function guess(
 
 /**
  * Build the `game_data` blob `psychicnum._rebuild_data_cols` would write from these
- * facts: the counts summed for coop, each seat's board folded from the log in
- * the mode's scope, and where every player stands derived.
+ * facts: each player's own counts, the team's summed from them in coop, each
+ * seat's board folded from the log in the mode's scope, and where every player
+ * stands derived.
  */
 export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
   const {
@@ -101,8 +103,12 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
   const ownGuesses = (p: PlayerFacts) => events.filter((e) => e.kind === 'guess' && e.userId === p.id)
   const foundOf = (p: PlayerFacts) => p.found ?? ownGuesses(p).filter((e) => e.correct).length
   const usedOf = (p: PlayerFacts) => p.used ?? ownGuesses(p).length
-  const teamFound = playerFacts.reduce((sum, p) => sum + foundOf(p), 0)
-  const teamUsed = playerFacts.reduce((sum, p) => sum + usedOf(p), 0)
+  const team = coop
+    ? {
+      foundSecretsCount: playerFacts.reduce((sum, p) => sum + foundOf(p), 0),
+      guessesUsed: playerFacts.reduce((sum, p) => sum + usedOf(p), 0),
+    }
+    : null
 
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
@@ -125,8 +131,8 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
       waitingForTurn: stillPlaying && !onTurn,
       requiredSecretsCount: 3,
       maxGuesses: setup.max_guesses,
-      foundSecretsCount: coop ? teamFound : foundOf(p),
-      guessesUsed: coop ? teamUsed : usedOf(p),
+      foundSecretsCount: foundOf(p),
+      guessesUsed: usedOf(p),
       board: {
         tileResults: Object.fromEntries(own.map((e) => [e.word, e.correct])),
         decidedBy: Object.fromEntries(own.map((e) => [e.word, e.userId])),
@@ -150,6 +156,7 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
     ended,
     outcome,
     puzzle: { words, secrets },
+    team,
     events,
     players,
   }

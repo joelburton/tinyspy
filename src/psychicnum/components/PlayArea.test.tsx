@@ -196,8 +196,8 @@ describe('psychicnum PlayArea — concede', () => {
 })
 
 /**
- * The state readout: the counts the player carries — the team's in coop, my
- * own in compete — against the budget and the secret count.
+ * The state readout: the team's counts in coop, my own in compete, against the
+ * budget and the secret count.
  */
 describe('psychicnum PlayArea — the readout', () => {
   // The info column and the mobile strip draw the same line, so read the first.
@@ -460,8 +460,8 @@ describe('psychicnum PlayArea — the secrets reveal once the game has ended', (
   const ended = () => makeCtx({ secrets: SECRETS, ...GAME_LOST })
 
   it('a coop WIN shows them unasked — the team found all three', () => {
-    // `foundSecretsCount` is the team's, but what says I solved is `solvedAt`,
-    // which the winning guess stamps on every teammate.
+    // The finds are the team's, but what says I solved is `solvedAt`, which
+    // the winning guess stamps on every teammate.
     render(
       <PlayAreaLoader
         {...makeCtx({ secrets: SECRETS, ...GAME_WON, players: [{ ...ME, solvedAt: '2026-06-15T00:05:00Z' }] })}

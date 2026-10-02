@@ -127,15 +127,16 @@ part of every `game_data` (`common._make_json_game_data`) psychicnum's own:
 
 | blob | psychicnum's part |
 |---|---|
-| `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `events`, every player's rows; on each player `requiredSecretsCount`, `maxGuesses`, `foundSecretsCount`, `guessesUsed` and `board: {tileResults, decidedBy}`, this seat's tiles |
-| `summary_data` | `foundSecretsCount`, `requiredSecretsCount`, `guessesUsed`, `maxGuesses` |
+| `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `team: {foundSecretsCount, guessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `requiredSecretsCount`, `maxGuesses`, their own `foundSecretsCount` and `guessesUsed`, and `board: {tileResults, decidedBy}`, this seat's tiles |
+| `summary_data` | `team`, the same group; `requiredSecretsCount`, `maxGuesses` |
 
-Every player's counts are their own on `psychicnum.players`; the blob carries
-the team's on every player in coop, and each racer's own in compete. Compete's
-summary carries no progress, so its two counts are null; the race's winner is
-the common `ending.winner`. `psychicnum._rebuild_data_cols_for_all()`
-rewrites every psychicnum game's blobs without re-dating them, for a shape
-change.
+Every player's counts are their own, on `psychicnum.players` and on their
+player in the blob, in both modes; `team` is their sum, and is null in a race,
+which has no team ([plans/team-facts.md](../../plans/team-facts.md)). A readout
+shows `gd.team` where there is one and `gd.me` otherwise. Compete's summary
+carries no progress; the race's winner is the common `ending.winner`.
+`psychicnum._rebuild_data_cols_for_all()` rewrites every psychicnum game's
+blobs without re-dating them, for a shape change.
 
 The statuses (`game_status`, `player_status`, `clubpage_info`) are not written:
 nothing reads psychicnum's any more. The columns stay until a migration retires

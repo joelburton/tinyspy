@@ -1,12 +1,12 @@
 // cs-blessed-psychicnum
 
-import type { GPlayer } from '../types'
+import type { GGameData } from '../types'
 
 
 /**
- * psychicnum's core live-state readout — "1/3 found · 4/7 guesses used" — for
- * one player: the viewer's own counts in compete, the team's in coop, as the
- * player carries them.
+ * psychicnum's core live-state readout — "1/3 found · 4/7 guesses used". The
+ * counts are the team's in coop and my own in compete: `gd.team` where the
+ * game has one, else `gd.me` (plans/team-facts.md).
  *
  * Its own component because it's rendered TWICE, in two places that must never
  * drift: the info column's `.infoState` line (desktop) and the mobile
@@ -17,15 +17,16 @@ import type { GPlayer } from '../types'
  * The counters are bold and the labels aren't: the numbers are what's read at
  * a glance.
  */
-export function StateLine({ player }: { player: GPlayer }) {
+export function StateLine({ gd }: { gd: GGameData }) {
+  const counts = gd.team ?? gd.me
   return (
     <>
       <strong>
-        {player.foundSecretsCount}/{player.requiredSecretsCount}
+        {counts.foundSecretsCount}/{gd.me.requiredSecretsCount}
       </strong>{' '}
       found ·{' '}
       <strong>
-        {player.guessesUsed}/{player.maxGuesses}
+        {counts.guessesUsed}/{gd.me.maxGuesses}
       </strong>{' '}
       guesses used
     </>

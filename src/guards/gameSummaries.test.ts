@@ -111,22 +111,22 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       ['lost_compete', { reason: 'unsolved' }, 'nobody solved it'],
     ],
   },
-  // psychicnum._make_json_summary_data: the found and used counts are the team's in coop
-  // and null in compete; the winner is compete's alone.
+  // psychicnum._make_json_summary_data: `team` holds the found and used counts in coop and
+  // is null in compete (plans/team-facts.md); the winner is the common ending's.
   psychicnum: {
-    live: { foundSecretsCount: 2, requiredSecretsCount: 3, guessesUsed: 2, maxGuesses: 7, winner: null },
+    live: { team: { foundSecretsCount: 2, guessesUsed: 2 }, requiredSecretsCount: 3, maxGuesses: 7 },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal' }, { foundSecretsCount: 3, requiredSecretsCount: 3, guessesUsed: 5, maxGuesses: 7, winner: null }, 'found them all'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { foundSecretsCount: 2, requiredSecretsCount: 3, guessesUsed: 7, maxGuesses: 7, winner: null }, 'out of guesses'],
-      [{ outcome: 'lost', reason: 'timeout' }, { foundSecretsCount: 2, requiredSecretsCount: 3, guessesUsed: 4, maxGuesses: 7, winner: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { foundSecretsCount: 2, requiredSecretsCount: 3, guessesUsed: 4, maxGuesses: 7, winner: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { team: { foundSecretsCount: 3, guessesUsed: 5 }, requiredSecretsCount: 3, maxGuesses: 7 }, 'found them all'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: { foundSecretsCount: 2, guessesUsed: 7 }, requiredSecretsCount: 3, maxGuesses: 7 }, 'out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { foundSecretsCount: 2, guessesUsed: 4 }, requiredSecretsCount: 3, maxGuesses: 7 }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { foundSecretsCount: 2, guessesUsed: 4 }, requiredSecretsCount: 3, maxGuesses: 7 }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { foundSecretsCount: null, requiredSecretsCount: 3, guessesUsed: null, maxGuesses: 7 }, 'won the race'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { foundSecretsCount: null, requiredSecretsCount: 3, guessesUsed: null, maxGuesses: 7, winner: null }, 'budgets exhausted'],
-      [{ outcome: 'lost', reason: 'timeout' }, { foundSecretsCount: null, requiredSecretsCount: 3, guessesUsed: null, maxGuesses: 7, winner: null }, 'timeout'],
-      [{ outcome: 'lost', reason: 'conceded' }, { foundSecretsCount: null, requiredSecretsCount: 3, guessesUsed: null, maxGuesses: 7, winner: null }, 'all conceded'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { foundSecretsCount: null, requiredSecretsCount: 3, guessesUsed: null, maxGuesses: 7, winner: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: null, requiredSecretsCount: 3, maxGuesses: 7 }, 'won the race'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: null, requiredSecretsCount: 3, maxGuesses: 7 }, 'budgets exhausted'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, requiredSecretsCount: 3, maxGuesses: 7 }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, requiredSecretsCount: 3, maxGuesses: 7 }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, requiredSecretsCount: 3, maxGuesses: 7 }, 'Stop'],
     ],
   },
   // connections' summary_data, as its builder writes it at conversion: the two counts are

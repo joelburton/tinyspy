@@ -81,21 +81,26 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 }
 
 // The summary reads the game's `summary_data` (`GSummaryData`: the common part
-// with its ending, and the team's found and used counts, null in compete). Each
-// mode's summaryFor handles its own endings; the helper below covers the
-// mid-game line.
+// with its ending, and `team`, the team's found and used counts, null in
+// compete). Each mode's summaryFor handles its own endings; the helpers below
+// cover coop's tallies.
+
+/** The team's finds against the secrets. Coop always has a team. */
+function foundTally(summary: GSummaryData) {
+  return tally(summary.team!.foundSecretsCount, summary.requiredSecretsCount, 'found')
+}
 
 /**
  * The mid-game progress, COOP only. In compete every player holds their own
  * budget and hunts the same three secrets independently, and a found-count
  * would tell you exactly how close your opponent is. This line is club-wide
- * readable, so compete says nothing — and its `summary_data` counts are null.
+ * readable, so compete says nothing — and its `summary_data.team` is null.
  */
 function labelMidGame(summary: GSummaryData) {
   return statusLine(
     verdict('Playing'),
-    tally(summary.foundSecretsCount, summary.requiredSecretsCount, 'found'),
-    tally(summary.guessesUsed, summary.maxGuesses, 'guesses'),
+    foundTally(summary),
+    tally(summary.team!.guessesUsed, summary.maxGuesses, 'guesses'),
   )
 }
 
@@ -151,7 +156,7 @@ export const psychicnumCoopGame: GameManifest = {
   summaryFor: (data, members) => {
     const summary = data as GSummaryData
     if (summary.ending === null) return labelMidGame(summary)
-    const found = tally(summary.foundSecretsCount, summary.requiredSecretsCount, 'found')
+    const found = foundTally(summary)
     // Written with the ending.
     const outcome = summary.outcome!
     switch (outcome) {
@@ -205,8 +210,8 @@ export const psychicnumCompeteGame: GameManifest = {
 
   summaryFor: (data, members) => {
     const summary = data as GSummaryData
-    // No progress: every player's budget and finds are their own (see
-    // labelMidGame), and this line is readable by the whole club.
+    // No progress: a race has no team, every player's budget and finds are
+    // their own (see labelMidGame), and this line is readable by the whole club.
     if (summary.ending === null) return verdict('Playing')
     // Written with the ending.
     const outcome = summary.outcome!

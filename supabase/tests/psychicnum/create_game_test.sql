@@ -453,13 +453,13 @@ create temp table seeded_cmp on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select is(
-  (select summary_data @> '{"foundSecretsCount": 0, "requiredSecretsCount": 3, "guessesUsed": 0,
+  (select summary_data @> '{"team": {"foundSecretsCount": 0, "guessesUsed": 0}, "requiredSecretsCount": 3,
                            "maxGuesses": 7, "ending": null}'::jsonb
      from common.games where id = (select id from seeded_coop)),
   true,
   'coop writes the team''s 0/3 found and 0/7 used for the summary at create');
 select is(
-  (select summary_data @> '{"foundSecretsCount": null, "requiredSecretsCount": 3, "guessesUsed": null,
+  (select summary_data @> '{"team": null, "requiredSecretsCount": 3,
                            "maxGuesses": 7, "ending": null}'::jsonb
      from common.games where id = (select id from seeded_cmp)),
   true,

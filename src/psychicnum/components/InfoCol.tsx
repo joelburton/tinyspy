@@ -46,7 +46,7 @@ export function InfoCol({
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
         <p className={shared.infoState}>
-          <StateLine player={gd.me} />
+          <StateLine gd={gd} />
         </p>
         {gd.turns !== null && (
           <TurnStatusLine

@@ -87,8 +87,15 @@ describe('psychicnum makeGameData — the links become players', () => {
     const gd = makeGameData(makeGameDataRaw({ players: TWO, events: EVENTS, secrets: null }), 'u1')
     expect(gd.puzzle.words).toEqual(['alpha', 'bravo', 'charlie', 'delta', 'echo'])
     expect(gd.puzzle.secrets).toBeNull()
-    expect([gd.me.foundSecretsCount, gd.me.guessesUsed]).toEqual([1, 2])
+    // My own hit and my one guess; the team's two guesses with the one find.
+    expect([gd.me.foundSecretsCount, gd.me.guessesUsed]).toEqual([1, 1])
+    expect(gd.team).toEqual({ foundSecretsCount: 1, guessesUsed: 2 })
     expect(gd.brand).toBe('PsychicNum')
+  })
+
+  it('a race has no team', () => {
+    const gd = makeGameData(makeGameDataRaw({ mode: 'compete', players: TWO, events: EVENTS }), 'u1')
+    expect(gd.team).toBeNull()
   })
 })
 

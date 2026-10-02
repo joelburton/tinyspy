@@ -41,8 +41,20 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     // Null until the game ends, since they're a aecret
     secrets: GTileWord[] | null
   }
+  // What the team shares; null in compete, where there is no team.
+  team: GTeam | null
   events: GEventRaw[]
   players: GPlayerRaw[]
+}
+
+/**
+ * What the team shares in coop (plans/team-facts.md): the finds and the guesses
+ * summed over every player's own. The budget they count against is
+ * `maxGuesses`, on every player.
+ */
+export type GTeam = {
+  foundSecretsCount: number
+  guessesUsed: number
 }
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
@@ -71,7 +83,7 @@ export type GPlayerRaw = PlayerRaw & {
   // The guess budget: the team's in coop, each player's own in compete. The
   // same on every player.
   maxGuesses: number
-  // Own in compete; the team's, on every player, in coop.
+  // This player's own, in every mode; the team's are `team`'s.
   foundSecretsCount: number
   guessesUsed: number
   // What this seat's tiles show: each guessed word → whether it was a secret,
@@ -99,6 +111,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   setup
  *   setupRows
  *   puzzle: {words, secrets}              # secrets null until the game ends
+ *   team: {foundSecretsCount, guessesUsed}  # what the team shares; null in compete
  *   turns: {holder}                       # null: no turn order; holder null: nobody's turn now
  *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
  *   ended
@@ -125,8 +138,8 @@ export type GPlayerRaw = PlayerRaw & {
  *   waitingForTurn
  *   requiredSecretsCount                  # the same on every player
  *   maxGuesses                            # the same on every player
- *   foundSecretsCount                     # own in compete; the team's, on every player, in coop
- *   guessesUsed                           # own in compete; the team's, on every player, in coop
+ *   foundSecretsCount                     # own, in every mode
+ *   guessesUsed                           # own, in every mode
  *   board: {tileResults, decidedBy}       # what this seat's tiles show; null for a rival mid-race
  */
 
@@ -341,12 +354,12 @@ export type GAnswer =
  * written, so there is no polished pair and no `Raw`; the play surface reads
  * `game_data` instead (`GGameDataRaw`).
  *
- * The found and used counts are the team's in coop and null in compete, whose
- * summary shows no progress. The race's winner is the common `ending.winner`.
+ * `team` is the same group `game_data` carries: the team's finds and guesses in
+ * coop, null in compete, whose summary shows no progress. The race's winner is
+ * the common `ending.winner`.
  */
 export type GSummaryData = SummaryData & {
-  foundSecretsCount: number | null
+  team: GTeam | null
   requiredSecretsCount: number
-  guessesUsed: number | null
   maxGuesses: number
 }

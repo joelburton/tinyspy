@@ -79,7 +79,7 @@ select is(
     where game_id = (select id from g1) and guesses_used = 0 and found_secrets_count = 0),
   2::bigint, 'coop: replay → both players back to no guesses used, nothing found');
 select is(
-  (select (summary_data->>'guessesUsed')::int from common.games where id = (select id from g1)),
+  (select (summary_data->'team'->>'guessesUsed')::int from common.games where id = (select id from g1)),
   0, 'coop: replay → the summary shows no guesses used again');
 select is(
   (select count(*) from common.game_players

@@ -80,7 +80,7 @@ export function BoardCol({
       {/* The info column's StateLine, for a phone, where that column is
           off-canvas (see `MobileStatusBar`). */}
       <MobileStatusBar>
-        <StateLine player={gd.me} />
+        <StateLine gd={gd} />
       </MobileStatusBar>
 
       <Board
@@ -89,7 +89,7 @@ export function BoardCol({
           results: tileResults,
           decidedBy: gd.me.board.decidedBy,
           // The guesses on my board: the team's in coop, my own in compete.
-          moveCount: gd.me.guessesUsed,
+          moveCount: (gd.team ?? gd.me).guessesUsed,
         }}
         marks={{
           pickedTile: pick.shownTile,

@@ -112,19 +112,24 @@ drop function if exists psychicnum._secrets_for(uuid);
 --
 --   game_data, psychicnum's part:
 --     puzzle: {words, secrets}             secrets null until the game ends
+--     team: {foundSecretsCount, guessesUsed}
+--                                          what the team shares, summed over the rows;
+--                                          null in compete, where there is no team
+--                                          (plans/team-facts.md)
 --     events: [{id, userId, word, correct, kind, at}, …]
 --                                          every player's; what a racer may see
 --                                          of a rival mid-race is the hook's rule
 --     players: [player, …]                 the common player, plus:
 --       requiredSecretsCount, maxGuesses   the same on every player
---       foundSecretsCount, guessesUsed     own in compete; the team's, on every player, in coop
+--       foundSecretsCount, guessesUsed     this player's own, in every mode
 --       board: {tileResults, decidedBy}    what this seat's tiles show: word → was it a
 --                                          secret, word → who guessed it; one board in
 --                                          coop, each racer's own in compete
 --
 --   summary_data, psychicnum's part (the common part names and dates the game
 --   and carries its ending; the winner is `ending.winner`):
---     foundSecretsCount, guessesUsed       the team's in coop; null in compete, whose
+--     team: {foundSecretsCount, guessesUsed}
+--                                          the same group; null in compete, whose
 --                                          summary shows no progress
 --     requiredSecretsCount, maxGuesses
 --
@@ -186,8 +191,28 @@ $$;
 
 revoke execute on function psychicnum._make_json_board(uuid, uuid, text) from public;
 
+-- What the team shares: the finds and the guesses summed over every row. Each
+-- row holds its player's own share (each correct guess is one player's, and no
+-- secret can be found twice), so the sums count every find and every guess
+-- once. Null in compete, where there is no team (plans/team-facts.md).
+create or replace function psychicnum._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = psychicnum, common, public, extensions
+as $$
+  select case when cg.mode = 'coop' then jsonb_build_object(
+           'foundSecretsCount', (select sum(found_secrets_count) from psychicnum.players where game_id = p_game_id),
+           'guessesUsed',       (select sum(guesses_used) from psychicnum.players where game_id = p_game_id))
+         end
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function psychicnum._make_json_team(uuid) from public;
+
 -- Every player as psychicnum's game_data shows them: the common player, with
--- the budget, the counts and this seat's board.
+-- the budget, their own counts and this seat's board.
 create or replace function psychicnum._make_json_players(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -198,11 +223,6 @@ declare
   v_mode text;
   v_max_guesses int;
   v_required_secrets_count int;
-  -- Coop's team numbers: each row holds its player's own share (each correct
-  -- guess is one player's, and no secret can be found twice), so the sums
-  -- count every find and every guess once.
-  v_team_found int;
-  v_team_used int;
 begin
   select cg.mode, pg.max_guesses, array_length(pg.secrets, 1)
     into v_mode, v_max_guesses, v_required_secrets_count
@@ -210,18 +230,13 @@ begin
     join common.games cg on cg.id = pg.game_id
    where pg.game_id = p_game_id;
 
-  select sum(found_secrets_count), sum(guesses_used)
-    into v_team_found, v_team_used
-    from psychicnum.players
-   where game_id = p_game_id;
-
   return (
     select jsonb_agg(
              cp.player || jsonb_build_object(
                'requiredSecretsCount', v_required_secrets_count,
                'maxGuesses',           v_max_guesses,
-               'foundSecretsCount',    case when v_mode = 'coop' then v_team_found else pp.found_secrets_count end,
-               'guessesUsed',          case when v_mode = 'coop' then v_team_used else pp.guesses_used end,
+               'foundSecretsCount',    pp.found_secrets_count,
+               'guessesUsed',          pp.guesses_used,
                'board',                psychicnum._make_json_board(p_game_id, cp.id, v_mode))
              order by cp.ord)
       from common._make_json_players(p_game_id) cp
@@ -237,8 +252,8 @@ revoke execute on function psychicnum._make_json_players(uuid) from public;
 drop function if exists psychicnum._make_json_playarea(uuid);
 drop function if exists psychicnum._make_json_clubpage(uuid);
 
--- The whole game_data blob: the common part, with psychicnum's puzzle, log and
--- players on top.
+-- The whole game_data blob: the common part, with psychicnum's puzzle, team,
+-- log and players on top.
 create or replace function psychicnum._make_json_game_data(p_game_id uuid)
 returns jsonb
 language sql
@@ -247,6 +262,7 @@ set search_path = psychicnum, common, public, extensions
 as $$
   select common._make_json_game_data(p_game_id) || jsonb_build_object(
            'puzzle',  psychicnum._make_json_puzzle(pg, cg.ended_at is not null),
+           'team',    psychicnum._make_json_team(p_game_id),
            'events',  psychicnum._make_json_events(p_game_id),
            'players', psychicnum._make_json_players(p_game_id))
     from psychicnum.games pg
@@ -271,14 +287,10 @@ stable
 set search_path = psychicnum, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
-    'foundSecretsCount',    case when cg.mode = 'coop' then team.found end,
+    'team',                 psychicnum._make_json_team(p_game_id),
     'requiredSecretsCount', array_length(pg.secrets, 1),
-    'guessesUsed',          case when cg.mode = 'coop' then team.used end,
     'maxGuesses',           pg.max_guesses)
     from psychicnum.games pg
-    join common.games cg on cg.id = pg.game_id
-   cross join (select sum(found_secrets_count) as found, sum(guesses_used) as used
-                 from psychicnum.players where game_id = p_game_id) team
    where pg.game_id = p_game_id;
 $$;
 

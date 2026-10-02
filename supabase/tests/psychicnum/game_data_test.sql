@@ -26,7 +26,7 @@
 begin;
 set search_path = psychicnum, common, public, extensions;
 
-select plan(33);
+select plan(35);
 
 \ir ../_shared/setup.psql
 
@@ -116,23 +116,24 @@ select is(
     'puzzle',   jsonb_build_object(
       'words',   '["zalpha","zbravo","zcharlie","zdelta","zecho","zfoxtrot","zgolf","zhotel"]'::jsonb,
       'secrets', null),
+    'team',     '{"foundSecretsCount": 0, "guessesUsed": 0}'::jsonb,
     'events',   '[]'::jsonb,
     'players',  jsonb_build_array(
       pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada'),
       pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea'))),
-  'the whole game_data of a fresh coop game: the common part, the puzzle with its secrets withheld, no log, fresh players with empty boards'
+  'the whole game_data of a fresh coop game: the common part, the puzzle with its secrets withheld, a team with nothing yet, no log, fresh players with empty boards'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"foundSecretsCount": 0, "requiredSecretsCount": 3, "guessesUsed": 0, "maxGuesses": 5}'::jsonb,
-  'the fresh coop game''s summary: the common part, then nothing found and nothing used'
+    || '{"team": {"foundSecretsCount": 0, "guessesUsed": 0}, "requiredSecretsCount": 3, "maxGuesses": 5}'::jsonb,
+  'the fresh coop game''s summary: the common part, then a team with nothing found and nothing used'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"foundSecretsCount": null, "requiredSecretsCount": 3, "guessesUsed": null, "maxGuesses": 5}'::jsonb,
-  'the fresh compete game''s summary carries no progress'
+    || '{"team": null, "requiredSecretsCount": 3, "maxGuesses": 5}'::jsonb,
+  'the fresh compete game''s summary has no team, so no progress'
 );
 
 -- ─── (2) Mid-game coop: ada hits, bea misses ───
@@ -156,10 +157,15 @@ select is(
   '… each with its row id and its time'
 );
 select is(
-  (select jsonb_agg(jsonb_build_array(p -> 'foundSecretsCount', p -> 'guessesUsed'))
+  (select jsonb_agg(jsonb_build_array(p -> 'foundSecretsCount', p -> 'guessesUsed') order by p ->> 'id')
      from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
-  '[[1, 2], [1, 2]]'::jsonb,
-  'coop: the team''s finds and the team''s used count, on every player'
+  '[[1, 1], [0, 1]]'::jsonb,
+  'coop: each player''s own finds and own used count — ada''s hit, bea''s miss'
+);
+select is(
+  pg_temp.game_data(pg_temp.coop()) -> 'team',
+  '{"foundSecretsCount": 1, "guessesUsed": 2}'::jsonb,
+  'coop: the team''s finds and used count, summed over the rows, in game_data.team'
 );
 select is(
   pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board',
@@ -183,7 +189,7 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"foundSecretsCount": 1, "requiredSecretsCount": 3, "guessesUsed": 2, "maxGuesses": 5}'::jsonb,
+    || '{"team": {"foundSecretsCount": 1, "guessesUsed": 2}, "requiredSecretsCount": 3, "maxGuesses": 5}'::jsonb,
   'coop: the summary has the team''s finds and the team''s used count'
 );
 
@@ -220,9 +226,14 @@ select is(
   'compete: the log carries both racers'' rows — what a racer may see is the hook''s rule'
 );
 select is(
+  pg_temp.game_data(pg_temp.compete()) -> 'team',
+  'null'::jsonb,
+  'compete: no team in game_data — every count is a player''s own'
+);
+select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"foundSecretsCount": null, "requiredSecretsCount": 3, "guessesUsed": null, "maxGuesses": 5}'::jsonb,
+    || '{"team": null, "requiredSecretsCount": 3, "maxGuesses": 5}'::jsonb,
   'compete: the summary still carries no progress, and no ending yet'
 );
 

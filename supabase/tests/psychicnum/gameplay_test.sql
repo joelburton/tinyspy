@@ -348,7 +348,7 @@ select is(
 -- The summary's tally must INCLUDE this last find: the builder runs after
 -- the ending, from the players' rows, so the final readout says 1/3.
 select is(
-  (select summary_data->>'foundSecretsCount'
+  (select summary_data->'team'->>'foundSecretsCount'
      from common.games where id = (select id from coop_loss_hit)),
   '1',
   'coop: the exhausting correct guess is counted in the final tally'
