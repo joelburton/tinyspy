@@ -2876,7 +2876,8 @@ begin
   -- start list — but an empty array says that without the caller checking.
   select coalesce(jsonb_agg(m order by m.username), '[]'::jsonb) into v_members
   from (
-    select p.user_id, p.username, p.color
+    -- A `Member` as the page reads it: `id`, never `user_id`.
+    select p.user_id as id, p.username, p.color
     from common.clubs_members cm
     join common.profiles p on p.user_id = cm.user_id
     where cm.club_handle = target_handle

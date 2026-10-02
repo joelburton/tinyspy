@@ -90,10 +90,10 @@ select is(
 -- Every member carries the three fields `Member` declares; a missing
 -- color is what renders an identity disc neutral.
 select is(
-  (select bool_and(m ? 'user_id' and m ? 'username' and m ? 'color')
+  (select bool_and(m ? 'id' and m ? 'username' and m ? 'color' and not m ? 'user_id')
      from jsonb_array_elements((select env from page) -> 'data' -> 'members') m),
   true,
-  'each member carries user_id, username and color');
+  'each member carries id, username and color — the Member shape, not the column name');
 
 select is(
   (select count(*) from jsonb_array_elements((select env from page) -> 'data' -> 'gametypes')),
