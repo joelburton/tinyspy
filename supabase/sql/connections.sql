@@ -407,8 +407,7 @@ drop function if exists connections.create_game(text, jsonb, uuid[], text);
 -- `p_player_user_ids` is the explicit list of who's actually playing THIS
 -- game. Defaults are not enforced server-side; the FE's setup dialog
 -- defaults to all current club members but lets the player pick a subset.
--- The caller does NOT have to be in it (the "Ada facilitates a game between
--- Bea and Cade" case is supported).
+-- The caller must be in it (common._create_game checks).
 --
 -- Setup shape:
 --   {

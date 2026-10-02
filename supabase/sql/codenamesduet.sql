@@ -606,8 +606,7 @@ begin
       detail = 'no clues in sudden death';
   end if;
 
-  -- A club member who didn't sit down at this game can't submit clues, but
-  -- can still watch.
+  -- A club member who didn't sit down at this game can't submit clues.
   caller_id := common._require_game_player(p_game_id);
 
   caller_seat := case caller_id

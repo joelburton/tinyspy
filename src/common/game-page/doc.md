@@ -81,13 +81,14 @@ game" — true of the rows, false of the player (`gameDeletedFirst.test.ts`).
 **The three components, and the tree the last of them renders.** `App` matches
 the route and renders `GamePageGate` with the URL's two parts and the session,
 and nothing else. The gate resolves the gametype and asks whether the game
-exists; `GamePageLoader` calls `useCommonGame` and waits; `GamePage` draws.
+exists and the signed-in user has a seat in it; `GamePageLoader` calls
+`useCommonGame` and waits; `GamePage` draws.
 Each hands its props straight down, so the page receives what the gate resolved
 plus everything the loader waited for — as values, never as maybe-values:
 
 ```
 App                                  matches /g/<gametype>/<gameId>
-└── GamePageGate                     which game type, and does this game exist?
+└── GamePageGate                     which game type, does this game exist, am I in it?
     └── GamePageLoader               join the room, wait for its state
         └── GamePage                 the shell — everything below is common/
             ├── PageHeader           menu(logo) · chat + scratchpad · status slot | pause · timer · switch
@@ -114,13 +115,16 @@ Either of the first two can end the route instead of descending. Every way a
 game URL can come to nothing is the gate's, and they wear two screens on
 purpose: a gametype the registry has never heard of is a fault (an error page
 with a diagnostics line — the app cannot name what the link asks for), while
-a malformed id or an id that names no row is a calm `<NoSuchGamePage>`. The
-gate also shows `<Loading>` while its read is out and an error page if that
-read failed; the loader shows the same three for what happens after, since a
-game deleted mid-session arrives at it as zero rows.
+a malformed id or an id that names no row is a calm `<NoSuchGamePage>`. A game
+the user has no seat in is neither screen: there is no spectating, so the gate
+sends them to the club page with a toast saying why, and nothing of the game
+mounts first. The gate also shows `<Loading>` while its reads are out and an
+error page if one failed; the loader shows the same three for what happens
+after, since a game deleted mid-session arrives at it as zero rows.
 
-**The existence check is its own component, and that is why there are three.**
-The gate does one `select id` and mounts nothing until it answers — including
+**The pre-flight check is its own component, and that is why there are three.**
+The gate does two cheap reads — the game's row, and the user's seat in it —
+and mounts nothing until they answer — including
 when the id CHANGES under it, which happens inside this route: the invitation
 toast is mounted at the root, so accepting one from a game page swaps the
 params and nothing else. So the gate holds its answer next to the id it
@@ -135,8 +139,8 @@ channel, tracks presence and asserts `set_current_view` — for a game that may
 not be there. React forbids calling a hook conditionally, so the only place
 `useCommonGame` can wait for the gate's answer is a component the gate has not
 mounted yet. Sequencing it internally instead would mean teaching a long hook
-to half-run, which is worse than one extra primary-key lookup on a path about
-to make six more reads. The answer is three-way on purpose: a read that FAILED
+to half-run, which is worse than two extra indexed lookups on a path about
+to make six more reads. The answer keeps a failed read apart on purpose: a read that FAILED
 is not a game that is gone, and collapsing them would tell a player their game
 was deleted because the network blinked.
 

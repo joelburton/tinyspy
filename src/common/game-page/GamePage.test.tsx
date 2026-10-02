@@ -30,14 +30,18 @@ import { NEW_GAME_CONFIRM } from '../floating-panels/confirmations'
 import { suspendConfirm } from '../pause-suspend/suspendConfirm'
 import type { CommonGameRow, GameTurns, useCommonGame } from './useCommonGame'
 
-const { mockUseCommonGame, mockNavigate, askConfirmation, mockManifestFor, roster } = vi.hoisted(() => ({
-  mockUseCommonGame: vi.fn(),
-  mockNavigate: vi.fn(),
-  askConfirmation: vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm'),
-  mockManifestFor: vi.fn(),
-  // What the roster fetch answers; a test sets `failure` to fail it.
-  roster: { members: [] as unknown[], failure: null as unknown },
-}))
+const { mockUseCommonGame, mockNavigate, askConfirmation, mockManifestFor, mockShowToast, roster, seat } =
+  vi.hoisted(() => ({
+    mockUseCommonGame: vi.fn(),
+    mockNavigate: vi.fn(),
+    askConfirmation: vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm'),
+    mockManifestFor: vi.fn(),
+    mockShowToast: vi.fn(),
+    // What the roster fetch answers; a test sets `failure` to fail it.
+    roster: { members: [] as unknown[], failure: null as unknown },
+    // Whether the gate's seat read finds the signed-in user in the game.
+    seat: { seated: true },
+  }))
 
 // The gate resolves the URL's gametype through the registry, so a test supplies
 // its manifest here rather than as a prop.
@@ -53,17 +57,28 @@ vi.mock('../routing/router', async (importOriginal) => ({
 vi.mock('../floating-panels/confirmationService', () => ({
   askConfirmation: (...args: unknown[]) => askConfirmation(...(args as [])),
 }))
-// The pre-flight "does this game exist" read: one row, always.
+// The gate's two pre-flight reads: the game's row (one, always) and the
+// signed-in user's seat in it (one, unless a test clears `seat.seated`). The
+// builder is a thenable that takes any number of `.eq`s, as the real one does.
 vi.mock('../supabase/db', () => ({
   db: {
-    from: () => ({
-      select: () => ({
-        eq: (_col: string, id: string) =>
-          Promise.resolve({ data: [{ id }], error: null, status: 200 }),
-      }),
+    from: (table: string) => ({
+      select: () => {
+        const rows =
+          table === 'games' ? [{ id: 'the-game', club_handle: 'moths' }]
+          : seat.seated ? [{ user_id: 'ada' }]
+          : []
+        const query = {
+          eq: () => query,
+          then: (resolve: (settled: unknown) => void) =>
+            resolve({ data: rows, error: null, status: 200 }),
+        }
+        return query
+      },
     }),
   },
 }))
+vi.mock('../toasts/toastStore', () => ({ showToast: mockShowToast }))
 vi.mock('../realtime/useClubPresence', () => ({ useClubPresence: () => [] }))
 vi.mock('../realtime/useClubSetupPresence', () => ({ useClubSetupPresence: () => undefined }))
 vi.mock('../club/useClubRoster', () => ({ useClubRoster: () => roster }))
@@ -210,7 +225,9 @@ const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0))
 
 beforeEach(() => {
   roster.failure = null
+  seat.seated = true
   mockNavigate.mockClear()
+  mockShowToast.mockClear()
   askConfirmation.mockClear()
   askConfirmation.mockResolvedValue('confirm')
 })
@@ -248,6 +265,18 @@ describe('GamePage — mounting', () => {
 
     await act(async () => { await Promise.resolve() })
     expect(mounts).toBe(2)
+  })
+
+  it('sends a member with no seat in the game back to the club, and says why', async () => {
+    // There is no spectating: a club member can read the game's rows, but only
+    // a player opens its page. Nothing of the game mounts first — the loader
+    // joins the room and asserts the current view, and a watcher must do
+    // neither — and the navigation REPLACES, so Back does not bounce them in again.
+    seat.seated = false
+    await mount()
+    expect(screen.queryByText('play')).toBeNull()
+    expect(mockNavigate).toHaveBeenCalledWith('/c/moths', true)
+    expect(mockShowToast.mock.calls[0]![0]!.message).toBe("You're not in this game")
   })
 
   it('says so when the URL names a gametype the registry has never heard of', async () => {

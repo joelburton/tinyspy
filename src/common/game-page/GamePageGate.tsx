@@ -8,7 +8,10 @@ import { diagnosticsLine } from '../supabase/dbLog'
 import { manifestFor } from '@/gametypes'
 import { db as commonDb } from '../supabase/db'
 import { readRows } from '../supabase/dbResult'
-import type { NotOkEnvelope } from '../supabase/envelope'
+import type { Envelope, NotOkEnvelope } from '../supabase/envelope'
+import { navigate } from '../routing/router'
+import { clubPath } from '../routing/routes'
+import { showToast } from '../toasts/toastStore'
 import { GamePageLoader } from './GamePageLoader'
 import { NoSuchGamePage } from './NoSuchGamePage'
 import { reloadIfStaleBuild } from '../boot/reloadOnStaleBuild'
@@ -32,32 +35,38 @@ const isGameId = (s: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
 
 /**
- * **Can this URL name a game at all? — asked once, before anything else runs.**
- * The first of the game route's three components: this gate, then
- * `GamePageLoader`, then `GamePage`. Renders nothing of its own beyond the
- * waiting, error and not-found pages.
+ * **Can this URL name a game, and is the signed-in user in it? — asked once,
+ * before anything else runs.** The first of the game route's three components:
+ * this gate, then `GamePageLoader`, then `GamePage`. Renders nothing of its
+ * own beyond the waiting, error and not-found pages.
  *
  * Every way a game URL can come to nothing is answered here, which is why the
  * route hands over the gametype as the URL spelled it rather than a manifest:
- * an unknown gametype, an id that cannot be one, an id that names no row, and
- * a read that failed are four different answers and they belong together.
+ * an unknown gametype, an id that cannot be one, an id that names no row, a
+ * game the user has no seat in, and a read that failed are five different
+ * answers and they belong together.
  *
- * One cheap `select id` and three answers, and NOTHING below mounts until it
- * says yes. **That gate is the reason the route is three components and not
- * two**: `useCommonGame` cannot be called conditionally, and calling it does
- * far more than fetch — it joins the realtime channel, tracks presence and
- * asserts `set_current_view`. Those must not run for a game that may not be
- * there, so the only place they can live is a child this component has not
- * mounted yet.
+ * Two cheap reads and NOTHING below mounts until they say yes. **That gate is
+ * the reason the route is three components and not two**: `useCommonGame`
+ * cannot be called conditionally, and calling it does far more than fetch —
+ * it joins the realtime channel, tracks presence and asserts
+ * `set_current_view`. Those must not run for a game that may not be there, or
+ * for a member who may not open it, so the only place they can live is a
+ * child this component has not mounted yet.
  *
- * **Why the id test appears twice.** In `useGameExists` it prevents the
+ * **There is no spectating.** A club member without a seat in the game is
+ * sent back to the club page, with a toast saying why — you must be seated to
+ * open a game (CLAUDE.md → Audience). The read policies stay club-gated; this
+ * gate is the whole of the rule.
+ *
+ * **Why the id test appears twice.** In `useCanOpenGame` it prevents the
  * request: an id that cannot be a uuid is a `22P02` per query and a fault
  * modal per `22P02`, and the answer is knowable without asking. In the render
  * it picks the page. Two different jobs — *don't ask*, and *say why*.
  */
 export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
   const manifest = manifestFor(urlGametype.toLowerCase())
-  const exists = useGameExists(gameId)
+  const answer = useCanOpenGame(gameId, authSession.user.id)
 
   // Entering a game fetches its chunk anyway, so the stale-build check rides
   // along; a tab open across a deploy reloads here rather than playing on old
@@ -65,6 +74,15 @@ export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
   useEffect(function checkBuildOnEntry() {
     void reloadIfStaleBuild('game-page')
   }, [gameId])
+
+  // `replace`, so Back does not land on the page that just turned them away.
+  // The toast's id is stable: opening a second such link replaces it rather
+  // than stacking another.
+  useEffect(function sendAnUnseatedMemberBack() {
+    if (answer.kind !== 'not-seated') return
+    showToast({ id: 'not-in-game', message: "You're not in this game", tone: 'error' })
+    navigate(clubPath(answer.clubHandle), true)
+  }, [answer])
 
   // A gametype the registry has never heard of is a different thing from a
   // game that isn't there, and the two wear different screens on purpose: this
@@ -90,14 +108,16 @@ export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
   if (!isGameId(gameId)) return (
     <NoSuchGamePage detail={`not a game id: ${gameId}`}/>)
 
-  if (exists === 'checking') return <Loading/>
+  // Not seated shows the same waiting page: the effect above is already
+  // navigating away, and nothing of the game may be drawn meanwhile.
+  if (answer.kind === 'checking' || answer.kind === 'not-seated') return <Loading/>
 
-  if (exists === 'no')
+  if (answer.kind === 'no-such-game')
     return (
       <NoSuchGamePage
         detail={`rows=0 gametype=${manifest.gametype} game=${gameId}`}/>)
 
-  if (exists !== 'yes') return <EnvelopeErrorPage envelope={exists}/>
+  if (answer.kind === 'failed') return <EnvelopeErrorPage envelope={answer.failure}/>
 
   return (
     <GamePageLoader
@@ -106,11 +126,29 @@ export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
       manifest={manifest}/>)
 }
 
+/** What the gate's reads found about this id, for this user. */
+type CanOpenAnswer =
+  // No answer yet for THIS id, or an id that could never be one.
+  | { kind: 'checking' }
+  // The game is there and the user has a seat in it.
+  | { kind: 'seated' }
+  // The game is there and the user has no seat in it; the club to send them to.
+  | { kind: 'not-seated'; clubHandle: string }
+  // Zero rows. Only a read that WORKED can say this.
+  | { kind: 'no-such-game' }
+  // A read failed — not the same as the game being gone. The envelope names
+  // which read died.
+  | { kind: 'failed'; failure: NotOkEnvelope }
+
+const CHECKING: CanOpenAnswer = { kind: 'checking' }
+
 /**
- * Does the game with this id exist? `'yes'`, `'no'`, the not-ok envelope of a
- * read that failed, or `'checking'` until the server has answered for THIS id.
- * An id that cannot be a game id is never asked about, so it stays
- * `'checking'`; the gate turns it away before reading this.
+ * May the signed-in user open the game with this id? `'seated'` when the game
+ * exists and they are one of its players; `'not-seated'` when it exists and
+ * they are not; `'no-such-game'`, the failure of a read that failed, or
+ * `'checking'` until the server has answered for THIS id. An id that cannot be
+ * a game id is never asked about, so it stays `'checking'`; the gate turns it
+ * away before reading this.
  *
  * The answer is stored WITH the id it answers for, and the result DERIVED from
  * the pair, so an id with no answer yet is `'checking'` by construction rather
@@ -129,39 +167,51 @@ export function GamePageGate({ urlGametype, gameId, authSession }: Props) {
  * more: a render is synchronous so it cannot await, and a render that gets
  * discarded must not write state.
  */
-
-type ExistsAnswer = 'yes' | 'no' | 'checking' | NotOkEnvelope
-
-function useGameExists(gameId: string): ExistsAnswer {
+function useCanOpenGame(gameId: string, myId: string): CanOpenAnswer {
   const [answer, setAnswer] = useState<{
     id: string
-    exists: ExistsAnswer
+    canOpen: CanOpenAnswer
   } | null>(null)
 
-  useEffect(function askWhetherTheGameExists() {
+  useEffect(function askWhetherICanOpenTheGame() {
     if (!isGameId(gameId)) return
     let mounted = true
 
     async function readAndAnswer() {
-      const res =
-        await readRows(commonDb.from('games').select('id').eq('id', gameId))
+      // The seat is its own read rather than an embed, so the two answers stay
+      // apart: a game that is gone and a game I am not in look alike in a join.
+      const [gameRes, seatRes] = await Promise.all([
+        readRows(commonDb.from('games').select('id, club_handle').eq('id', gameId)),
+        readRows(
+          commonDb.from('game_players').select('user_id')
+            .eq('game_id', gameId).eq('user_id', myId),
+        ),
+      ])
       if (!mounted) return
-      // Three-way on purpose. Collapsing a FAILED read into "no" would tell a
-      // player their game is gone because the network blinked — the confident
-      // wrong answer this whole area exists to stop.
-      setAnswer({
-        id: gameId,
-        exists: res.type === 'not-ok' ? res : res.data.length > 0
-          ? 'yes'
-          : 'no',
-      })
+      setAnswer({ id: gameId, canOpen: answerFrom(gameRes, seatRes) })
     }
 
     void readAndAnswer()
     return function ignoreALateAnswer() {
       mounted = false
     }
-  }, [gameId])
+  }, [gameId, myId])
 
-  return answer?.id === gameId ? answer.exists : 'checking'
+  return answer?.id === gameId ? answer.canOpen : CHECKING
+}
+
+/** The answer the two reads add up to. Five-way on purpose: collapsing a
+ *  FAILED read into "no such game" would tell a player their game is gone
+ *  because the network blinked — the confident wrong answer this whole area
+ *  exists to stop. */
+function answerFrom(
+  gameRes: Envelope<{ id: string; club_handle: string }[]>,
+  seatRes: Envelope<{ user_id: string }[]>,
+): CanOpenAnswer {
+  if (gameRes.type === 'not-ok') return { kind: 'failed', failure: gameRes }
+  if (seatRes.type === 'not-ok') return { kind: 'failed', failure: seatRes }
+  const game = gameRes.data[0]
+  if (!game) return { kind: 'no-such-game' }
+  if (seatRes.data.length === 0) return { kind: 'not-seated', clubHandle: game.club_handle }
+  return { kind: 'seated' }
 }

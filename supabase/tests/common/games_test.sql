@@ -36,7 +36,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(49);
+select plan(50);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -157,6 +157,24 @@ select throws_ok(
   'PN059',
   'BUG: game with no players',
   'create_game: empty player_user_ids is rejected'
+);
+
+-- ============================================================
+-- common._create_game — rejects when the caller is not a player
+-- ============================================================
+-- ada starts a game for bea alone. Nobody starts a game they are not in: only
+-- a player can open its page, and the setup form locks the creator's row on.
+
+select throws_ok(
+  format(
+    $$ select common._create_game(%L, 'connections_coop', 'coop',
+       array['bea22222-2222-2222-2222-222222222222'::uuid],
+       'test-title', '{"timer": {"kind": "none"}}'::jsonb, null) $$,
+    (select handle from club)
+  ),
+  'PN510',
+  'BUG: caller not among the players',
+  'create_game: a player list without the caller is rejected'
 );
 
 -- ============================================================

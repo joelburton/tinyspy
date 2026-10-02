@@ -5,7 +5,8 @@
 -- ============================================================
 --
 -- One RPC, two modes ('coop' and 'compete'). What we cover:
---   1. Auth + membership gating (same in both modes)
+--   1. Auth + membership gating (same in both modes), and the caller
+--      among the players
 --   2. Mode validation: rejected when not in {coop, compete}
 --   3. Compete-mode player-count floor (>= 2 players)
 --   4. Setup-shape validation: max_guesses, word_count, band, timer
@@ -23,7 +24,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(36);
+select plan(37);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -79,6 +80,20 @@ select pg_temp.envelope_is(
     'coop'),
   '{"type":"not-ok","severity":"fault","dbcode":"PN012"}'::jsonb,
   'a non-member gets the membership gate, through this function''s own handler'
+);
+
+-- ada (a member) starts a game for bea alone. Nobody starts a game they are
+-- not in — only a player can open its page — and the setup form locks the
+-- creator's row on, so a list without them is a fault.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  psychicnum.create_game(
+    (select handle from club),
+    '{"max_guesses": 7, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['bea22222-2222-2222-2222-222222222222'::uuid],
+    'coop'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN510"}'::jsonb,
+  'a player list without the caller is a fault — the creator''s row is locked on'
 );
 
 -- ============================================================

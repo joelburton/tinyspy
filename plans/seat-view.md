@@ -1,6 +1,6 @@
 # The seat's view — `gd.me` is my player, and a player holds every fact about a seat
 
-**Status: DECIDED 2026-10-01, nothing built.** Joel and Claude settled this in
+**Status: DECIDED 2026-10-01, being built.** Joel and Claude settled this in
 one conversation at the end of connections' BoardCol pass; this file is the
 record. It pauses the per-game component passes (connections' InfoCol and
 Board) until the three converted games — psychicnum, wordle, connections —
@@ -101,16 +101,19 @@ appears.)
 
 ## What this touches
 
-- **Writing first (done 2026-10-02).** CLAUDE.md → Audience ("Spectators are
+- **Writing first (done 2026-10-01).** CLAUDE.md → Audience ("Spectators are
   friends too" goes; you must be seated to open a game), the plans table (this
   file in, the spectating plan deleted), README, docs/common-schema.md
   (seated-only; `create_game` requires the caller seated), docs/win-lose.md →
   Where a player stands (the terms are per player; `isOnTurn`; `isPlayer`
   gone), docs/code-conventions.md → Names about the viewing player (`auth`,
   `gd.me`, frozen `gd`/`cg`), docs/playarea.md's vocabulary line.
-- **The gate.** `GamePageGate` / `GamePageLoader`: not seated → the club page
-  with a toast. Every `create_game` gains the seated-caller check and a pgTAP
-  case; the e2e fixtures that seat a game without its creator follow.
+- **The gate (done 2026-10-01).** `GamePageGate` reads the game's row and the
+  user's seat before anything mounts: not seated → the club page with a toast.
+  `common._create_game`, which every game's `create_game` calls, refuses a
+  player list without the caller (PN510); pinned directly in common's pgTAP
+  and through psychicnum's `create_game`. No e2e fixture seated a game without
+  its creator.
 - **Common.** `whereIStand` becomes a per-player computation
   (`standingOf(player, …)` or folded into the players' construction in
   `useCommonGame`); `Standing` goes; `cg.me`; `PlayAreaLoaderProps.auth`; the

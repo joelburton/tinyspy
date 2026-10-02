@@ -1069,9 +1069,12 @@ drop function if exists common.create_game(text, text, uuid[], text, jsonb, json
 -- Responsibilities:
 --   - Auth + caller membership in p_club_handle (via
 --     _require_club_member). The caller must be a club member to
---     start a game in this club; they do NOT have to appear in
---     p_player_user_ids (the "Ada facilitates a game between Bea
---     and Cade" case is supported).
+--     start a game in this club.
+--   - The caller is one of the players: nobody starts a game they
+--     are not in, because only a player can open its page
+--     (docs/common-schema.md → Only a player opens a game). The
+--     setup form locks the creator's row on, so a list without
+--     them is a bug.
 --   - Validate every uid in p_player_user_ids is a member of
 --     the club at game-create time. Players are frozen at
 --     creation; later membership changes to clubs_members don't
@@ -1097,6 +1100,7 @@ drop function if exists common.create_game(text, text, uuid[], text, jsonb, json
 -- Raises:
 --   - PN011 / PN012 via _require_club_member
 --   - PN059 'BUG: game with no players'
+--   - PN510 'BUG: caller not among the players'
 --   - PN060 'BUG: player not in this club: X, Y'
 create or replace function common._create_game(
   p_club_handle text,
@@ -1133,6 +1137,13 @@ begin
     raise exception 'BUG: game with no players'
       using errcode = 'PN059', hint = 'fault', column = 'player_user_ids',
       detail = 'player_user_ids was empty';
+  end if;
+
+  -- auth.uid() is non-null here: _require_club_member has checked it.
+  if not (auth.uid() = any (p_player_user_ids)) then
+    raise exception 'BUG: caller not among the players'
+      using errcode = 'PN510', hint = 'fault', column = '_',
+      detail = 'the creator must be in player_user_ids';
   end if;
 
   -- Identify any listed uid that isn't in clubs_members for this
@@ -1225,8 +1236,7 @@ revoke execute on function common._create_game(text, text, text, uuid[], text, j
 -- etc.) where the question is "is this caller actually playing
 -- this specific game" — finer than club membership, since with
 -- the per-game player roster a club member who didn't sit down at
--- this game can't take actions in it (but can still watch via
--- the club-wide RLS on common.games).
+-- this game can't take actions in it.
 --
 -- Returns the caller's user_id, which mid-game RPCs use for
 -- their downstream inserts.
