@@ -198,7 +198,7 @@ export type GameManifest = {
   //     can seat a game its own caller cannot then open, since the game page
   //     gates on `_require_game_player`. Left permissive on purpose: friends do
   //     not hand-build requests, and the lock is a UX decision rather than a
-  //     defense (docs/common-schema.md → Membership gates viewing).
+  //     defense (docs/common-schema.md → Only a player opens a game, and only a player acts).
   //
   // Returns the ENVELOPE, so a validation that names a column can reach the
   // box that wrote it: `SetupGameModal` writes `errors[field]`, and the setup

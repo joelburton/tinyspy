@@ -346,8 +346,8 @@ the same in both, or reading the second game means re-deriving the first.
   the same order. There is no `React.memo` in the app, so grouping props into
   objects buys nothing. Use a real object only for a cluster that always travels
   together to one child, such as the OpponentStrip's inputs.
-- **One vocabulary.** The standing terms — `isTerminal`, `isPlayer`,
-  `isConceded`, `isLocallyTerminal`, `isStillPlaying`, `isMyTurn`,
+- **One vocabulary.** The standing terms — `isTerminal`,
+  `isConceded`, `isLocallyTerminal`, `isStillPlaying`, `isOnTurn`,
   `isWaitingForTurn`, `isBoardInteractive` — mean what [win-lose.md → Where a player
   stands](win-lose.md#where-a-player-stands--the-terms-as-formulas) defines, and
   nothing else. Beside them: `terminalMessage`, `isCompete`, `historyLabel`, `onExitHistory`,

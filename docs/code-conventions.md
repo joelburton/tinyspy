@@ -161,11 +161,19 @@ of its own. See [naming.md → player](naming.md#player) and
 ### Names about the viewing player
 
 **`my`, never `self`.** `self` reads as "this component"; `me` is always a
-person. A value about the viewing player is `my…` (`myId`, `myBudget`).
+person. A value about the viewing player is `my…` (`myBudget`).
+
+**The viewer is a player: `gd.me`.** Every page is one seat's view (there is
+no spectating — [plans/seat-view.md](../plans/seat-view.md)), so `gd.me` is my
+entry in `gd.playersById`, never null, and whatever is asked about a player is
+asked of `gd.me` the same way it is asked of any `p` in `gd.players`:
+`gd.me.isOnTurn`, `p.isOnTurn`. The signed-in user is `auth.user.id`
+(`auth: Session` on the loader props). `gd` and `cg` are read-only: the hook
+builds them, nothing else writes them.
 
 **A boolean reads as a yes/no question** — `is…` by default, `amI…` where that
-is the clearer question. Pick the one that reads most naturally: `isMyTurn`
-(not `amIOnTurn`), `isEliminated`. The standing flags read as one set with
+is the clearer question. Pick the one that reads most naturally: `isOnTurn`
+(a player's), `isEliminated`. The standing flags read as one set with
 `isTerminal`, so it is `isConceded`, not `amIConceded`. A bare past participle
 is not a boolean name — `won` may be a message or a winner — so a flag always
 carries its `is` / `amI`. Its setter and getter carry the full name too:
@@ -175,9 +183,9 @@ carries its `is` / `amI`. Its setter and getter carry the full name too:
 the bare word (`solved`); state, a long component, and any component that also
 shows the other players carry the full name.
 
-**The standing terms** — `isTerminal`, `isPlayer`, `isConceded`,
-`isLocallyTerminal`, `isStillPlaying`, `isTurnBased`, `turnHolderId`,
-`isMyTurn`, `isWaitingForTurn`, `isBoardInteractive` — each mean exactly one
+**The standing terms** — `isTerminal`, `isTurnBased`, `turnHolderId` about the
+game; `isConceded`, `isLocallyTerminal`, `isStillPlaying`, `isOnTurn`,
+`isWaitingForTurn`, `isBoardInteractive` about a player — each mean exactly one
 thing, defined as a
 formula in [win-lose.md → Where a player
 stands](win-lose.md#where-a-player-stands--the-terms-as-formulas). Use a term

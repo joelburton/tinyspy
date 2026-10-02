@@ -31,7 +31,7 @@ This is software for **groups of friends** playing together — not a public mat
 
 The metaphor that anchors everything: this app **replaces a group of friends on a Zoom call playing one game together**. Not a games server, not a community hub. Like a Zoom call:
 
-- **everyone present is a friend** — playing, or a club member watching (what a watcher sees is not yet designed; see `plans/spectating.md`);
+- **everyone present is a player** — a game's page opens only for the friends seated in it;
 - **only one game happens at a time** — the whole group is on the same thing;
 - **starting a new game invites the group into it** — each friend gets a "… added you to a new game" toast with a Join button, and the game waits, paused, until everyone's there (you don't half-join a Zoom call).
 

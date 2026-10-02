@@ -135,6 +135,12 @@ in each formula. (The code is converging on these —
 [plans/cross-game-consistency.md](../plans/cross-game-consistency.md) tracks
 what still differs.)
 
+The terms about a player are facts about a seat, computed for every player in
+the game and read off the player (`p.isOnTurn`); the viewer is one of them,
+`gd.me`, and is always a player
+([plans/seat-view.md](../plans/seat-view.md)). "I" below reads as "this
+player".
+
 A negation is `!isFoo` or an `isNotFoo` that means exactly that ([code
 conventions → Names about the viewing
 player](code-conventions.md#names-about-the-viewing-player)); a negated idea
@@ -145,11 +151,6 @@ with a formula of its own is a new term, and goes here.
 //   Doesn't mean: I'm out. A player who finished or conceded while the others
 //   play on doesn't make it true.
 isTerminal = common.games.ended_at !== null
-
-// isPlayer — I'm seated in this game.
-//   Doesn't mean: I'm still playing. A player stays a player after the game,
-//   or their part in it, ends. A club member watching is not a player.
-isPlayer = /* I have a common.game_players row */
 
 // isConceded — I walked away from a compete game, and forfeit any win.
 //   Doesn't mean: I'm out for any other reason. A player who solved, was
@@ -166,10 +167,10 @@ isLocallyTerminal = me.player_ended_at !== null      // common.game_players.play
 // so every conceder is locally terminal:
 //   isConceded → isLocallyTerminal
 
-// isStillPlaying — I'm a player, and the game still wants moves from me.
+// isStillPlaying — the game still wants moves from me.
 //   Doesn't mean: it's my turn. Waiting for my turn is still playing.
-//   Implied by isMyTurn: whoever has the turn is still playing.
-isStillPlaying = isPlayer && !isTerminal && !isLocallyTerminal
+//   Implied by isOnTurn: whoever has the turn is still playing.
+isStillPlaying = !isTerminal && !isLocallyTerminal
 
 // isTurnBased — this game has a turn order. Fixed when the game is created.
 //   Doesn't mean: someone holds the turn right now.
@@ -183,40 +184,42 @@ isTurnBased = /* the players were seated in a turn order: common.game_players.tu
 //   !isTurnBased. Never ask "is it my turn?" of this alone.
 turnHolderId = common.games.current_turn_user_id
 
-// isMyTurn — I'm still playing, and the move is mine: I hold the turn, or the
+// isOnTurn — I'm still playing, and the move is mine: I hold the turn, or the
 //   game has no turn order (a free-for-all game, where every player may move).
 //   Doesn't mean: the pointer merely names me. A player who is out, or a
 //   finished game, never has the turn; and a turn-based game whose pointer
 //   names nobody is nobody's turn, never everybody's. A game with its own turn
 //   structure (codenamesduet's sudden death, where the move belongs to whoever
-//   still has words to guess) supplies isMyTurn itself — by this same meaning.
-isMyTurn = isStillPlaying && (!isTurnBased || turnHolderId === me)
+//   still has words to guess) supplies isOnTurn itself — by this same meaning.
+//   Asked of the viewer it is gd.me.isOnTurn; the hook derives it, so no
+//   component compares the pointer to an id itself.
+isOnTurn = isStillPlaying && (!isTurnBased || turnHolderId === p.id)
 
 // isWaitingForTurn — I'm still playing, and the move is someone else's.
-//   Only possible in a turn-based game: in a free-for-all isMyTurn is
+//   Only possible in a turn-based game: in a free-for-all isOnTurn is
 //   isStillPlaying.
 //   Doesn't mean: I'm out, or the game is over — nothing is coming to either.
 //   Doesn't mean: the board is inert — a game that drafts off-turn (scrabble)
 //   keeps it live while I wait. So a board dims on
 //   isWaitingForTurn && !isBoardInteractive, and the whose-turn line and the
 //   waiting message read isWaitingForTurn alone.
-isWaitingForTurn = isStillPlaying && !isMyTurn
+isWaitingForTurn = isStillPlaying && !isOnTurn
 
 // draftsOffTurn — the game lets a waiting player try out a move on the board
 //   (scrabble: place tiles, not play them). A fixed fact about the game — its
 //   manifest.
 //   Doesn't mean: a move can be committed off-turn. Committing always asks
-//   isMyTurn.
+//   isOnTurn.
 draftsOffTurn = manifest.draftsOffTurn
 
 // isBoardInteractive — the board responds to me: things hover, and it takes a
 //   click, a drag or a key. When it isn't, it is shown but inert.
-//   Doesn't mean: I may commit a move — that is isMyTurn, and a game that
-//   drafts off-turn has an interactive board while !isMyTurn. Doesn't mean:
+//   Doesn't mean: I may commit a move — that is isOnTurn, and a game that
+//   drafts off-turn has an interactive board while !isOnTurn. Doesn't mean:
 //   I'm not viewing a past turn — the history viewer blocks input itself.
 //   Doesn't mean: no move is in flight — the single-flight `pending` blocks
 //   that.
-isBoardInteractive = draftsOffTurn ? isStillPlaying : isMyTurn
+isBoardInteractive = draftsOffTurn ? isStillPlaying : isOnTurn
 
 // isViewingHistory — a past turn is drawn on the board.
 //   Doesn't mean: !isBoardInteractive. It changes what the board SHOWS; the

@@ -169,7 +169,7 @@ game's area, consult both.
 | [plans/playarea-readability.md](plans/playarea-readability.md) | The target shape for each game's `PlayArea.tsx`; read it per game area |
 | [plans/component-readability.md](plans/component-readability.md) | What psychicnum settled for `gd`, the endings, PlayArea, Board/BoardCol and InfoCol; read it per game area, beside playarea-readability |
 | [plans/common-tables.md](plans/common-tables.md) | Where a game's facts live: `common.games`, `common.game_players`, `<game>.games`; builds cross-game-consistency's step 7, and holds the order of what is left |
-| [plans/spectating.md](plans/spectating.md) | Proposed, nothing decided: what a watching club member sees |
+| [plans/seat-view.md](plans/seat-view.md) | **Decided, being built.** No spectating; `auth`; `gd.me` is my player; every seat fact on the player type. Pauses the game passes until the three converted games carry it |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
 | [plans/DO-NOT-READ-shaped-page-copy.md](plans/DO-NOT-READ-shaped-page-copy.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: one builder-written copy of everything a game page shows |
 | [plans/DO-NOT-READ-grouped-values.md](plans/DO-NOT-READ-grouped-values.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: grouping what hooks return and props carry into named objects |
@@ -184,15 +184,17 @@ friends on a Zoom call playing one game together**. Use it as a forcing function
 when a UX or schema question is ambiguous — "what would the Zoom-call answer
 be?"
 
-- **Spectators are friends too.** A club member can open a game they are not
-  seated in and watch it — what they see and may do is not yet designed (see
-  [plans/spectating.md](plans/spectating.md)). Presence-pause counts the game's
-  ROSTER: it fires the moment a player isn't connected, because someone-missing
-  means the call has stalled, and a watcher's coming and going changes nothing.
+- **You must be seated to open a game. There is no spectating.** A club member
+  who opens a game they are not in is sent back to the club page. Every page is
+  one player's view of the game, which is why `gd.me` is never null
+  ([plans/seat-view.md](plans/seat-view.md)). Nobody starts a game they are not
+  in, either: `create_game` requires the caller among the players.
+  Presence-pause counts the game's ROSTER: it fires the moment a player isn't
+  connected, because someone-missing means the call has stalled.
 - **One game at a time.** The whole group is on the same thing; structurally
   enforced by the `is_current_view` partial unique index on `common.games`.
 - **No "find an open game" listings, no public lobby, no random pairings, no
-  leaderboards-among-strangers.** Watching is for club members only.
+  leaderboards-among-strangers.**
 
 The social primitive is the **club**: a named, persistent group of friends who
 play games together. The club IS the Zoom call — a venue that exists between

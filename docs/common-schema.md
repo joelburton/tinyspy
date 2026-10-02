@@ -331,15 +331,17 @@ policies: every write is an RPC. Reads:
 - **`gametypes`** is readable by all; a scratchpad row by the game's players
   (and a private pad by its owner).
 
-### Membership gates viewing; playership gates acting
+### Only a player opens a game, and only a player acts
 
-A game's players are a subset of the club, frozen at creation. **Any member may
-watch** any of the club's games — the read policies are club-gated — while
-**only a player may act**: every move RPC gates on `_require_game_player`. The
-exceptions are viewing-adjacent (`set_current_view`, `unset_current_view`,
-`tick_timer` take a club member, since a watcher drives the pointer and the
-clock too). What a watcher sees is
-[plans/spectating.md](../plans/spectating.md).
+A game's players are a subset of the club, frozen at creation, and the creator
+is one of them: `create_game` refuses a `p_player_user_ids` that leaves the
+caller out. **Only a player opens the game's page** — the game page sends a
+member who is not seated back to the club — and **only a player may act**:
+every move RPC gates on `_require_game_player`. The read policies stay
+club-gated, since a member reading rows for a page they cannot open does no
+harm; `set_current_view`, `unset_current_view` and `tick_timer` take a club
+member for the same reason. There is no spectating
+([plans/seat-view.md](../plans/seat-view.md)).
 
 ### Realtime publication
 
