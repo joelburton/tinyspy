@@ -37,7 +37,7 @@ beforeEach(() => rpc.mockReset())
 describe('useSubmitGuess', () => {
   it('refuses a word already on the board without calling the server', async () => {
     const { result, shown } = setup({ ...LIVE, tileResults: new Map([['apple', false]]) })
-    await act(() => result.current.submitGuess('apple'))
+    await act(() => result.current.send('apple'))
     expect(rpc).not.toHaveBeenCalled()
     expect(shown.mock.calls[0][0].text).toBe('Already guessed')
   })
@@ -45,7 +45,7 @@ describe('useSubmitGuess', () => {
   it('sends the guess and shows its answer', async () => {
     rpc.mockResolvedValue(okEnvelope({ result: 'hit', found_all: false }))
     const { result, shown } = setup(LIVE)
-    await act(() => result.current.submitGuess('apple'))
+    await act(() => result.current.send('apple'))
     expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_guess: 'apple' })
     expect(shown.mock.calls[0][0].text).toBe('Correct: APPLE')
   })
@@ -53,18 +53,18 @@ describe('useSubmitGuess', () => {
   it('keeps the word in flight until its result is on the board', async () => {
     rpc.mockResolvedValue(okEnvelope({ result: 'miss', found_all: false }))
     const { result, rerender } = setup(LIVE)
-    await act(() => result.current.submitGuess('apple'))
+    await act(() => result.current.send('apple'))
     // The reply is in; the colored tile is not yet.
-    expect(result.current.inFlightGuess).toBe('apple')
+    expect(result.current.inFlight).toBe('apple')
     rerender({ ...LIVE, tileResults: new Map([['apple', false]]) })
-    expect(result.current.inFlightGuess).toBeNull()
+    expect(result.current.inFlight).toBeNull()
   })
 
   it('shows nothing in flight while a past turn is open', async () => {
     rpc.mockResolvedValue(okEnvelope({ result: 'miss', found_all: false }))
     const { result, rerender } = setup(LIVE)
-    await act(() => result.current.submitGuess('apple'))
+    await act(() => result.current.send('apple'))
     rerender({ ...LIVE, isViewingHistory: true })
-    expect(result.current.inFlightGuess).toBeNull()
+    expect(result.current.inFlight).toBeNull()
   })
 })

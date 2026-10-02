@@ -49,29 +49,24 @@ export function BoardCol({
   const canPick = gd.standing.isBoardInteractive && !historyView.isViewing
   const canSubmit = gd.standing.isMyTurn && !historyView.isViewing
 
-  const {
-    pickedTile,
-    shownPickedTile,
-    choosePickedTile,
-    clearPickedTile,
-  } = usePickedTile({
+  const pick = usePickedTile({
     localFeedbackSlot,
     isStillPlaying: gd.standing.isStillPlaying,
     isViewingHistory: historyView.isViewing,
   })
-  const { submitGuess, inFlightGuess } = useSubmitGuess({
+  const submission = useSubmitGuess({
     gameId: gd.gameId,
     tileResults,
     localFeedbackSlot,
     isViewingHistory: historyView.isViewing,
   })
   const actions = useBoardColActions({
-    pickedTile,
+    pickedTile: pick.tile,
     canPick,
     canSubmit,
-    choosePickedTile,
-    clearPickedTile,
-    submitGuess,
+    choosePickedTile: pick.choose,
+    clearPickedTile: pick.clear,
+    submitGuess: submission.send,
   })
 
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
@@ -98,8 +93,8 @@ export function BoardCol({
           moveCount: gd.board.guessCount,
         }}
         marks={{
-          pickedTile: shownPickedTile,
-          inFlightGuess,
+          pickedTile: pick.shownTile,
+          inFlightGuess: submission.inFlight,
           endingOutcome,
           isWaitingForTurn: gd.standing.isWaitingForTurn,
           myTurnJustStarted,
@@ -107,7 +102,7 @@ export function BoardCol({
         historyView={historyView}
         isInteractive={gd.standing.isBoardInteractive}
         isSharedBoard={gd.isSharedBoard}
-        onPick={choosePickedTile}
+        onPick={pick.choose}
       />
 
       {/* The slot under the board: Clear and Submit, or the local feedback

@@ -128,24 +128,24 @@ export function Board({
   const canPick = isBoardInteractive && !historyView.isViewing
 
   // ─── The display order, and the cursor over it ─────────
-  const { displayedTiles, actShuffle } = useTileShuffle({
+  const shuffle = useTileShuffle({
     remainingTiles,
     canShuffle: isStillPlaying && !historyView.isViewing,
   })
   // The cursor sits on a CELL, so a shuffle moves the tiles under it, and a
   // solved band — a row fewer — pulls it onto the nearest tile left.
-  const boardShape = makeBoardShape(displayedTiles.length)
-  const { cursor, setCursorTo } = useBoardSelectionCursor({
+  const boardShape = makeBoardShape(shuffle.tiles.length)
+  const selectionCursor = useBoardSelectionCursor({
     shape: boardShape,
     enabled: canPick,
     onToggle: (cell: Cell) => {
-      const tile = displayedTiles[positionAt(cell.x, cell.y, boardShape.numCols)]
+      const tile = shuffle.tiles[positionAt(cell.x, cell.y, boardShape.numCols)]
       if (tile !== undefined) onPick(tile)
     },
   })
   // A tile click: the cursor moves there, hidden, and the click does its move.
   function pickClickedTile(tile: string) {
-    setCursorTo(cellAt(displayedTiles.indexOf(tile), boardShape.numCols))
+    selectionCursor.setTo(cellAt(shuffle.tiles.indexOf(tile), boardShape.numCols))
     onPick(tile)
   }
 
@@ -155,7 +155,7 @@ export function Board({
   // tiles — and how many rows that makes, which is what sizes it.
   const shownMatched = historyView.matched ?? matched
   const shownUnmatched = historyView.isViewing ? [] : unmatched
-  const tiles = historyView.tiles ?? (solutionShown ? [] : displayedTiles)
+  const tiles = historyView.tiles ?? (solutionShown ? [] : shuffle.tiles)
   const sortedMatched = [...shownMatched].sort((a, b) => a.rank - b.rank)
   // Total rows = one per band + the tile rows. Always 4 for a standard
   // 16-tile / 4×4 board, but computed so the cap math stays correct if a
@@ -289,7 +289,9 @@ export function Board({
                 // Set together with `litTiles`, which `isHistoryLit` read.
                 isHistoryLit && OUTCOME_TO_VERDICT_CLASS[historyView.litOutcome!],
                 isHistoryLit && styles.historyTile,
-                cursor !== null && positionAt(cursor.x, cursor.y, COLS) === i && shared.selectionCursor,
+                selectionCursor.cell !== null
+                  && positionAt(selectionCursor.cell.x, selectionCursor.cell.y, COLS) === i
+                  && shared.selectionCursor,
               )}
               style={ownerColor ? { ['--peer-color' as string]: ownerColor } : undefined}
               onClick={() => pickClickedTile(tile)}
@@ -310,7 +312,7 @@ export function Board({
       {/* Shuffle floats over the board's top-right, inside the board root (the
           `position: relative` anchor) so it hugs the VISUAL board. Its action
           hides itself once the board cannot be shuffled. */}
-      <ShuffleButton action={actShuffle} tooltip="Shuffle tiles" className={shared.floatingShuffle} />
+      <ShuffleButton action={shuffle.actShuffle} tooltip="Shuffle tiles" className={shared.floatingShuffle} />
     </div>
   )
 }

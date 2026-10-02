@@ -29,7 +29,7 @@ export function useTileShuffle({
   remainingTiles: readonly string[]
   canShuffle: boolean
 }): {
-  displayedTiles: string[]
+  tiles: string[]
   actShuffle: Action
 } {
   // Null until the first shuffle: the board's own order.
@@ -46,5 +46,5 @@ export function useTileShuffle({
     run: () => setLocalOrder(shuffle(displayedTiles)),
   })
 
-  return { displayedTiles, actShuffle }
+  return { tiles: displayedTiles, actShuffle }
 }

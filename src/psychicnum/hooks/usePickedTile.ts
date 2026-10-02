@@ -14,7 +14,7 @@ import type { TileWord } from '../lib/tileResults'
  * is open. Waiting my turn is not that: the pick stays for when the turn comes
  * back.
  *
- * Two ways to change it. `choosePickedTile` is the player's own gesture (a
+ * Two ways to change it. `choose` is the player's own gesture (a
  * tile, Space, Clear), so it also dismisses a result the slot shows until the
  * next gesture. `clearPickedTile` is for Submit, which is about to show a
  * result of its own and must not dismiss it.
@@ -28,27 +28,27 @@ export function usePickedTile({
   isStillPlaying: boolean
   isViewingHistory: boolean
 }): {
-  pickedTile: TileWord | null
-  shownPickedTile: TileWord | null
-  choosePickedTile: (word: TileWord | null) => void
-  clearPickedTile: () => void
+  tile: TileWord | null
+  shownTile: TileWord | null
+  choose: (word: TileWord | null) => void
+  clear: () => void
 } {
   const [pickedTile, setPickedTile] = useState<TileWord | null>(null)
 
-  const choosePickedTile = useCallback(
+  const choose = useCallback(
     (word: TileWord | null) => {
       localFeedbackSlot.dismiss()
       setPickedTile(word)
     },
     [localFeedbackSlot],
   )
-  const clearPickedTile = useCallback(() => setPickedTile(null), [])
+  const clear = useCallback(() => setPickedTile(null), [])
 
   const isPickShown = isStillPlaying && !isViewingHistory
   return {
-    pickedTile,
-    shownPickedTile: isPickShown ? pickedTile : null,
-    choosePickedTile,
-    clearPickedTile,
+    tile: pickedTile,
+    shownTile: isPickShown ? pickedTile : null,
+    choose,
+    clear,
   }
 }

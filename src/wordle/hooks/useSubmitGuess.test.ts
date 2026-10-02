@@ -44,7 +44,7 @@ describe('useSubmitGuess', () => {
     const { result, shown } = setup()
     let isAccepted = true
     await act(async () => {
-      isAccepted = await result.current.submitGuess('cra')
+      isAccepted = await result.current.send('cra')
     })
     expect(isAccepted).toBe(false)
     expect(rpc).not.toHaveBeenCalled()
@@ -58,15 +58,15 @@ describe('useSubmitGuess', () => {
     const { result, rerender } = setup()
     let isAccepted = false
     await act(async () => {
-      isAccepted = await result.current.submitGuess('slate')
+      isAccepted = await result.current.send('slate')
     })
     expect(isAccepted).toBe(true)
     expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_guess: 'slate' })
     // The reply is in, but the row is not: the word stays.
-    expect(result.current.inFlightGuess).toBe('slate')
+    expect(result.current.inFlight).toBe('slate')
 
     rerender({ rows: [{ guess: 'slate', colors: 'xxgyx' }] })
-    expect(result.current.inFlightGuess).toBeNull()
+    expect(result.current.inFlight).toBeNull()
   })
 
   it('takes a soft-rejected word back and rings the row in the answer\'s own outcome', async () => {
@@ -76,13 +76,13 @@ describe('useSubmitGuess', () => {
     const { result, shown } = setup()
     let isAccepted = true
     await act(async () => {
-      isAccepted = await result.current.submitGuess('slate')
+      isAccepted = await result.current.send('slate')
     })
     expect(isAccepted).toBe(false)
-    expect(result.current.inFlightGuess).toBeNull()
+    expect(result.current.inFlight).toBeNull()
     // `duplicate` is a warning (lib/answer.ts), not the loss a default would
     // say.
-    expect(result.current.refusedGuessMark?.value).toBe('warning')
+    expect(result.current.refusedMark?.value).toBe('warning')
     expect(shown).toHaveBeenCalledTimes(1)
   })
 
@@ -97,11 +97,11 @@ describe('useSubmitGuess', () => {
     const { result, shown } = setup()
     let isAccepted = true
     await act(async () => {
-      isAccepted = await result.current.submitGuess('slate')
+      isAccepted = await result.current.send('slate')
     })
     expect(isAccepted).toBe(false)
-    expect(result.current.inFlightGuess).toBeNull()
-    expect(result.current.refusedGuessMark?.value).toBe('lost')
+    expect(result.current.inFlight).toBeNull()
+    expect(result.current.refusedMark?.value).toBe('lost')
     expect(shown).toHaveBeenCalledTimes(1)
   })
 })

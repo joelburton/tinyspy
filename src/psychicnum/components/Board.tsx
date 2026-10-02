@@ -76,24 +76,24 @@ export function Board({
 }: Props) {
   const canPick = isInteractive && !historyView.isViewing
 
-  const { displayedTiles, actShuffle } = useTileShuffle(tiles.words)
-  const boardShape = makeBoardShape(displayedTiles.length)
-  const { cursor, pickClickedTile } = useTileCursor({
-    displayedTiles,
+  const shuffle = useTileShuffle(tiles.words)
+  const boardShape = makeBoardShape(shuffle.tiles.length)
+  const tileCursor = useTileCursor({
+    displayedTiles: shuffle.tiles,
     boardShape,
     results: tiles.results,
     pickedTile: marks.pickedTile,
     canPick,
     onPick,
   })
-  const { flashingTiles, shakingTiles } = useDecidedTileMarks({
+  const decidedMarks = useDecidedTileMarks({
     results: tiles.results,
     moveCount: tiles.moveCount,
     isViewingHistory: historyView.isViewing,
   })
 
   const cursorPosition =
-    cursor === null ? null : positionAt(cursor.x, cursor.y, boardShape.numCols)
+    tileCursor.cell === null ? null : positionAt(tileCursor.cell.x, tileCursor.cell.y, boardShape.numCols)
 
   return (
     <div
@@ -117,7 +117,7 @@ export function Board({
           gridTemplateRows: `repeat(${boardShape.numRows}, 1fr)`,
         }}
       >
-        {displayedTiles.map((word, index) => {
+        {shuffle.tiles.map((word, index) => {
           const isGuessed = tiles.results.has(word)
           const decidedOutcome = isGuessed
             ? getGuessOutcome(word, tiles.results.get(word)!)
@@ -134,19 +134,19 @@ export function Board({
                 isPicked: marks.pickedTile === word,
                 isUnderCursor: cursorPosition === index,
                 isInFlight: marks.inFlightGuess === word,
-                isFlashing: flashingTiles.has(word),
-                isShaking: shakingTiles.has(word),
+                isFlashing: decidedMarks.flashing.has(word),
+                isShaking: decidedMarks.shaking.has(word),
                 isHistoryLit: historyView.litWord === word,
               }}
               isDisabled={isGuessed || !canPick}
-              onClick={() => pickClickedTile(word)}
+              onClick={() => tileCursor.pickClicked(word)}
             />
           )
         })}
       </div>
       {/* Shuffle floats over board's top-right and stays after game ended. */}
       <ShuffleButton
-        action={actShuffle}
+        action={shuffle.actShuffle}
         tooltip="Shuffle the words"
         className={shared.floatingShuffle}
       />

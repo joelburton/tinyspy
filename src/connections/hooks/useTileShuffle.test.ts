@@ -18,7 +18,7 @@ afterEach(() => {
 describe('useTileShuffle', () => {
   it('shows the board\'s own order until the first shuffle', () => {
     const { result } = renderHook(() => useTileShuffle({ remainingTiles: TILES, canShuffle: true }))
-    expect(result.current.displayedTiles).toEqual(TILES)
+    expect(result.current.tiles).toEqual(TILES)
     expect(result.current.actShuffle.describe('button').state).toBe('active')
   })
 
@@ -31,13 +31,13 @@ describe('useTileShuffle', () => {
       { initialProps: { remainingTiles: TILES } },
     )
     act(() => result.current.actShuffle.run())
-    const shuffled = result.current.displayedTiles
+    const shuffled = result.current.tiles
     expect(shuffled).not.toEqual(TILES)
     expect([...shuffled].sort()).toEqual([...TILES].sort())
 
     // The first category matched: its four leave, the others stay where they were.
     rerender({ remainingTiles: ['e', 'f', 'g', 'h'] })
-    expect(result.current.displayedTiles).toEqual(shuffled.filter((t) => 'efgh'.includes(t)))
+    expect(result.current.tiles).toEqual(shuffled.filter((t) => 'efgh'.includes(t)))
   })
 
   it('hides the Shuffle where the board cannot be shuffled', () => {

@@ -33,8 +33,8 @@ export function useTileCursor({
   // Pick a word, or un-pick with null.
   onPick: (word: TileWord | null) => void
 }): {
-  cursor: Cell | null
-  pickClickedTile: (word: TileWord) => void
+  cell: Cell | null
+  pickClicked: (word: TileWord) => void
 } {
   function wordAtCell(cell: Cell): TileWord | undefined {
     return displayedTiles[positionAt(cell.x, cell.y, boardShape.numCols)]
@@ -47,16 +47,16 @@ export function useTileCursor({
     onPick(pickedTile === word ? null : word)
   }
 
-  const { cursor, setCursorTo } = useBoardSelectionCursor({
+  const selectionCursor = useBoardSelectionCursor({
     shape: boardShape,
     enabled: canPick,
     onToggle: togglePickAtCell,
   })
 
-  function pickClickedTile(word: TileWord) {
-    setCursorTo(cellAt(displayedTiles.indexOf(word), boardShape.numCols))
+  function pickClicked(word: TileWord) {
+    selectionCursor.setTo(cellAt(displayedTiles.indexOf(word), boardShape.numCols))
     onPick(word)
   }
 
-  return { cursor, pickClickedTile }
+  return { cell: selectionCursor.cell, pickClicked }
 }

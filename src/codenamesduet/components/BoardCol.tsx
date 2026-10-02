@@ -257,7 +257,7 @@ export function BoardCol({
     setPickedAt(picked === position ? null : position)
   }
 
-  const { cursor, setCursorTo } = useBoardSelectionCursor({
+  const { cell: cursor, setTo: setCursorTo } = useBoardSelectionCursor({
     shape: BOARD_SHAPE,
     enabled: canGuess,
     onToggle: toggleAt,

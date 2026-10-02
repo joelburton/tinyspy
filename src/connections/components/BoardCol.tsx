@@ -57,22 +57,22 @@ export function BoardCol({
   const canPick = gd.standing.isBoardInteractive && !historyView.isViewing
   const canSubmit = gd.standing.isMyTurn && !historyView.isViewing
 
-  const verdictMark = useVerdictMark({
+  const verdict = useVerdictMark({
     guesses: gd.boardEvents,
     myId: gd.me?.user_id ?? null,
     localFeedbackSlot,
     isViewingHistory: historyView.isViewing,
   })
-  const { submitGuess, inFlightGuess } = useSubmitGuess({
+  const submission = useSubmitGuess({
     gd,
     localFeedbackSlot,
-    showVerdictFor: verdictMark.showFor,
+    showVerdictFor: verdict.showFor,
   })
   const actions = useBoardColActions({
     canPick,
     canSubmit,
     unionTiles: gd.picks.union,
-    submitGuess,
+    submitGuess: submission.send,
     sendClear: gd.picks.sendClear,
   })
 
@@ -81,7 +81,7 @@ export function BoardCol({
   function pickTile(tile: string) {
     if (!canPick) return
     localFeedbackSlot.dismiss()
-    verdictMark.clear()
+    verdict.clear()
     gd.picks.toggleTile(tile)
   }
 
@@ -111,8 +111,8 @@ export function BoardCol({
         isStillPlaying={gd.standing.isStillPlaying}
         ownerByTile={shownOwnerByTile}
         onPick={pickTile}
-        inFlightGuess={inFlightGuess}
-        verdict={verdictMark.mark}
+        inFlightGuess={submission.inFlight}
+        verdict={verdict.mark}
         colorByUserId={colorByUserIdMap(gd.players)}
         isSharedBoard={gd.isSharedBoard}
         isWaitingForTurn={gd.standing.isWaitingForTurn}

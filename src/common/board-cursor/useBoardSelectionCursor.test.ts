@@ -29,7 +29,7 @@ function setup(over: Partial<BoardSelectionCursorOptions> = {}) {
     },
     { initialProps: over },
   )
-  return { ...cb, view, cursor: () => view.result.current.cursor }
+  return { ...cb, view, cursor: () => view.result.current.cell }
 }
 
 describe('useBoardSelectionCursor', () => {
@@ -58,7 +58,7 @@ describe('useBoardSelectionCursor', () => {
   it('a click moves the cursor and hides it; the next arrow shows it there', async () => {
     const s = setup()
     await press('ArrowRight')
-    act(() => s.view.result.current.setCursorTo({ x: 2, y: 1 }))
+    act(() => s.view.result.current.setTo({ x: 2, y: 1 }))
     expect(s.cursor()).toBeNull()
     await press('ArrowLeft')
     expect(s.cursor()).toEqual({ x: 2, y: 1 })

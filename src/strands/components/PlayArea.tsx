@@ -380,7 +380,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // `clickTile`'s own rule. A typed letter or a submitted word moves it to the
   // trace's end and hides it, as a click does: the next arrow shows it there,
   // so after a letter that rings red it starts beside the candidates.
-  const { cursor, setCursorTo } = useBoardSelectionCursor({
+  const { cell: cursor, setTo: setCursorTo } = useBoardSelectionCursor({
     shape: BOARD_SHAPE,
     enabled: !boardDisabled && !historyViewer.isViewingHistory,
     onToggle: (cell) => onTileClick(coordAt(cell)),

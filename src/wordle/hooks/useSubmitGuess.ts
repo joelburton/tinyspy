@@ -43,24 +43,24 @@ type GuessAnswer =
 /**
  * Sending a guess, and the word still out with the server.
  *
- * `submitGuess(word)` resolves to whether the guess was accepted, so the entry
+ * `send(word)` resolves to whether the guess was accepted, so the entry
  * knows to clear what was typed. A short word is refused here, without a
  * call. A soft reject (`duplicate`, `notAWord`) and a not-ok both leave the
  * typed row where it is, shake it in the answer's own outcome
- * (`refusedGuessMark`, which `<Board>` reads), and say why in the local slot;
+ * (`refusedMark`, which `<Board>` reads), and say why in the local slot;
  * the words come from `lib/answer.ts` or the envelope, so the ring and the pill
  * cannot name two different things. An accepted guess shows nothing extra: its
  * colored row, and a win with it, arrive over realtime the way they reach
  * everyone else.
  *
- * `inFlightGuess` is the accepted-but-not-yet-drawn guess: kept on the board,
+ * `inFlight` is the accepted-but-not-yet-drawn guess: kept on the board,
  * uncolored, from the moment it is sent until its colored row is among
  * `liveRows`, so the letters don't blink out during the round trip; the row
  * then flips in place. Derived from the rows rather than cleared when they
  * arrive, so no branch can leave a word stuck. A Restart needs no gate: the
  * page unmounts the surface when the run changes (common/game-page/doc.md).
  *
- * One guess is out at a time: Enter's run waits for `submitGuess`, and an
+ * One guess is out at a time: Enter's run waits for `send`, and an
  * action neither runs nor draws live while its run is out (`useBindAction`'s
  * `pending`).
  */
@@ -74,9 +74,9 @@ export function useSubmitGuess({
   liveRows: readonly BoardRow[]
   localFeedbackSlot: FeedbackSlot
 }): {
-  submitGuess: (word: string) => Promise<boolean>
-  inFlightGuess: string | null
-  refusedGuessMark: Mark<Outcome> | null
+  send: (word: string) => Promise<boolean>
+  inFlight: string | null
+  refusedMark: Mark<Outcome> | null
 } {
   // The word I last sent, or null. Cleared by a refusal; it outlives an
   // accepted guess, so what is still out is derived below.
@@ -84,11 +84,11 @@ export function useSubmitGuess({
   // `liveRows` only grows within a run, so once the row has landed it stays.
   const hasSubmittedWordLanded =
     submittedWord !== null && liveRows.some((row) => row.guess === submittedWord)
-  const inFlightGuess = hasSubmittedWordLanded ? null : submittedWord
+  const inFlight = hasSubmittedWordLanded ? null : submittedWord
 
   // `WORD_ANSWER_MS` is the beat for a word wearing its answer, and the row
   // keys on the mark's nonce, so refusing the same word twice shakes twice.
-  const [refusedGuessMark, showRefusedGuessMark] = useMark<Outcome>(WORD_ANSWER_MS)
+  const [refusedMark, showRefusedGuessMark] = useMark<Outcome>(WORD_ANSWER_MS)
 
   /** Both soft rejects: nothing was burned, so the typed row stays and
    *  shakes. */
@@ -99,7 +99,7 @@ export function useSubmitGuess({
     localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
   }
 
-  async function submitGuess(word: string): Promise<boolean> {
+  async function send(word: string): Promise<boolean> {
     if (word.length !== WORD_LENGTH) {
       const { outcome, text } = answerMessage({ answerType: 'too_short' })
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
@@ -135,5 +135,5 @@ export function useSubmitGuess({
     }
   }
 
-  return { submitGuess, inFlightGuess, refusedGuessMark }
+  return { send, inFlight, refusedMark }
 }

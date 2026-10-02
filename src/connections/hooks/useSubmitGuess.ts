@@ -29,7 +29,7 @@ type GuessAnswer = { result: GuessResult }
 /**
  * Sending the picked four, and the tiles still out with the server.
  *
- * `submitGuess()` shows its answer in the local slot and on the four tiles it
+ * `send()` shows its answer in the local slot and on the four tiles it
  * is about (`showVerdictFor`), then clears the picks, so every verdict leaves
  * the board in the same state.
  *
@@ -43,12 +43,12 @@ type GuessAnswer = { result: GuessResult }
  *   four tiles are still sitting there un-played, filled in the pill's own
  *   outcome, whatever it is.
  *
- * `inFlightGuess` is the four tiles out with the server, wearing the in-flight dim
+ * `inFlight` is the four tiles out with the server, wearing the in-flight dim
  * until the answer lands, rather than a verdict guessed locally. They are a
  * copy taken at SEND: the picks are cleared on the way out, and a teammate can
  * move them in coop.
  *
- * One guess is out at a time: Submit's run waits for `submitGuess`, and an
+ * One guess is out at a time: Submit's run waits for `send`, and an
  * action neither runs nor draws live while its run is out (`useBindAction`'s
  * `pending`).
  */
@@ -62,12 +62,12 @@ export function useSubmitGuess({
   // Show a message and fill the tiles it is about (`useVerdictMark`).
   showVerdictFor: (tiles: readonly string[], message: FeedbackMessage) => void
 }): {
-  submitGuess: () => Promise<void>
-  inFlightGuess: ReadonlySet<string>
+  send: () => Promise<void>
+  inFlight: ReadonlySet<string>
 } {
-  const [inFlightGuess, setInFlightGuess] = useState<ReadonlySet<string>>(NO_TILES)
+  const [inFlight, setInFlightGuess] = useState<ReadonlySet<string>>(NO_TILES)
 
-  async function submitGuess() {
+  async function send() {
     const sent = [...gd.picks.union]
     if (sent.length !== TILES_PER_CATEGORY) return
 
@@ -121,5 +121,5 @@ export function useSubmitGuess({
     }
   }
 
-  return { submitGuess, inFlightGuess }
+  return { send, inFlight }
 }

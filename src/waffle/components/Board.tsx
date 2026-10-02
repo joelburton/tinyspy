@@ -205,7 +205,7 @@ export function Board({
     else if (picks.length < 2) setPicks([...picks, pos])
   }
 
-  const { cursor, setCursorTo } = useBoardSelectionCursor({
+  const { cell: cursor, setTo: setCursorTo } = useBoardSelectionCursor({
     shape: BOARD_SHAPE,
     enabled: !disabled,
     onToggle: toggleAt,

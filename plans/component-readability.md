@@ -91,9 +91,12 @@ it works.
 - **Board owns the board:** its display order and Shuffle (`useTileShuffle`,
   which binds `act-shuffle`), and the keyboard cursor (`useTileCursor`), which
   reports a pick up through `onPick`. Board makes its own Shuffle button.
-- **BoardCol owns the move:** `usePickedTile` (the pick, and `shownPickedTile`),
-  `useSubmitGuess` (the RPC, the local refusal, `inFlightGuess`), and
-  `useBoardColActions` (Submit, Clear).
+- **BoardCol owns the move:** `usePickedTile` (`pick.tile`, `pick.shownTile`,
+  `pick.choose`, `pick.clear`), `useSubmitGuess` (`submission.send`,
+  `submission.inFlight`, the local refusal), and `useBoardColActions`
+  (`actions.actSubmit`, `actions.actClearPicks`). A hook that returns a named
+  thing is kept as that thing and read through its name, with the subject
+  said once: `verdict.clear`, not `clearVerdictMark` loose.
 - **One in-flight guard:** an action's own `pending` blocks a second
   Submit. There's no `isSubmitting` alongside it.
 - **Before the return,** complex conditions become named values

@@ -18,7 +18,7 @@ import type { TileWord } from '../lib/tileResults'
  * reload, and keying on it would reshuffle the board on every guess.
  */
 export function useTileShuffle(words: readonly TileWord[]): {
-  displayedTiles: TileWord[]
+  tiles: TileWord[]
   actShuffle: Action
 } {
   const [shuffleSeed, setShuffleSeed] = useState(0)
@@ -36,5 +36,5 @@ export function useTileShuffle(words: readonly TileWord[]): {
     run: reshuffle,
   })
 
-  return { displayedTiles, actShuffle }
+  return { tiles: displayedTiles, actShuffle }
 }

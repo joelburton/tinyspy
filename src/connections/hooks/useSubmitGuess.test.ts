@@ -77,7 +77,7 @@ beforeEach(() => {
 describe('useSubmitGuess', () => {
   it('sends nothing short of four tiles', async () => {
     const { result } = setup(['a', 'b'])
-    await act(() => result.current.submitGuess())
+    await act(() => result.current.send())
     expect(rpc).not.toHaveBeenCalled()
   })
 
@@ -87,7 +87,7 @@ describe('useSubmitGuess', () => {
       outcome: 'lost', matched_category_rank: null, created_at: 't',
     }
     const { result, sendClear, showVerdictFor } = setup(['a', 'b', 'e', 'i'], [tried])
-    await act(() => result.current.submitGuess())
+    await act(() => result.current.send())
     expect(rpc).not.toHaveBeenCalled()
     expect(showVerdictFor).toHaveBeenCalledWith(
       ['a', 'b', 'e', 'i'],
@@ -99,7 +99,7 @@ describe('useSubmitGuess', () => {
   it('works the verdict out itself and sends it up, with the matched rank', async () => {
     rpc.mockResolvedValue(okAnswer('correct'))
     const { result, sendClear, slot, showVerdictFor } = setup(['a', 'b', 'c', 'd'])
-    await act(() => result.current.submitGuess())
+    await act(() => result.current.send())
     expect(rpc).toHaveBeenCalledWith('submit_guess', {
       p_game_id: 'g1', p_tiles: ['a', 'b', 'c', 'd'], p_result: 'correct', p_matched_category_rank: 0,
     })
@@ -112,7 +112,7 @@ describe('useSubmitGuess', () => {
   it('sends a miss without a rank, and fills the four on the answer', async () => {
     rpc.mockResolvedValue(okAnswer('oneAway'))
     const { result, sendClear, showVerdictFor } = setup(['a', 'b', 'c', 'e'])
-    await act(() => result.current.submitGuess())
+    await act(() => result.current.send())
     expect(rpc).toHaveBeenCalledWith('submit_guess', {
       p_game_id: 'g1', p_tiles: ['a', 'b', 'c', 'e'], p_result: 'oneAway',
     })
@@ -128,19 +128,19 @@ describe('useSubmitGuess', () => {
     rpc.mockReturnValue(new Promise((resolve) => { answer = resolve }))
     const { result } = setup(['a', 'b', 'e', 'i'])
     let done: Promise<void>
-    act(() => { done = result.current.submitGuess() })
-    expect([...result.current.inFlightGuess]).toEqual(['a', 'b', 'e', 'i'])
+    act(() => { done = result.current.send() })
+    expect([...result.current.inFlight]).toEqual(['a', 'b', 'e', 'i'])
     await act(async () => {
       answer(okAnswer('wrong'))
       await done
     })
-    expect(result.current.inFlightGuess.size).toBe(0)
+    expect(result.current.inFlight.size).toBe(0)
   })
 
   it('leaves the picks in place after a not-ok, filled in the pill\'s outcome', async () => {
     rpc.mockResolvedValue(RACE)
     const { result, sendClear, showVerdictFor } = setup(['a', 'b', 'c', 'd'])
-    await act(() => result.current.submitGuess())
+    await act(() => result.current.send())
     expect(showVerdictFor).toHaveBeenCalledWith(
       ['a', 'b', 'c', 'd'],
       expect.objectContaining({ outcome: 'warning' }),

@@ -33,7 +33,7 @@ export function useTypedGuess({
   // Resolves to whether the guess was accepted (`useSubmitGuess`).
   submitGuess: (word: string) => Promise<boolean>
 }): {
-  typedWord: string
+  word: string
   typeLetter: (letter: string) => void
   // The entry's two commands, on their keys and the on-screen keyboard.
   actions: { actDeleteLast: Action; actSubmit: Action }
@@ -61,5 +61,5 @@ export function useTypedGuess({
     maxLength: WORD_LENGTH,
   })
 
-  return { typedWord, typeLetter, actions: { actDeleteLast, actSubmit } }
+  return { word: typedWord, typeLetter, actions: { actDeleteLast, actSubmit } }
 }

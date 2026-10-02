@@ -42,34 +42,34 @@ export function BoardCol({
 }) {
   // A past turn on screen blocks every write to the board.
 
-  const { submitGuess, inFlightGuess, refusedGuessMark } = useSubmitGuess({
+  const submission = useSubmitGuess({
     gameId: gd.gameId,
     liveRows: gd.boardRows,
     localFeedbackSlot,
   })
   // The game lets me guess, and no guess of mine is still out.
-  const canGuess = gd.standing.isBoardInteractive && inFlightGuess === null
+  const canGuess = gd.standing.isBoardInteractive && submission.inFlight === null
   // …and the live board is the one on screen.
   const canType = canGuess && !historyView.isViewing
-  const { typedWord, typeLetter, actions } = useTypedGuess({
+  const entry = useTypedGuess({
     localFeedbackSlot,
     canType,
-    submitGuess,
+    submitGuess: submission.send,
   })
 
   // ─── Render ────────────────────────────────────────────
 
   // The word still out belongs to the live board only.
-  const shownInFlightGuess = historyView.isViewing ? null : inFlightGuess
+  const shownInFlightGuess = historyView.isViewing ? null : submission.inFlight
 
   return (
     <div className={shared.boardCol}>
       <Board
         grid={{ liveRows: gd.boardRows, maxGuesses: gd.readout.maxGuesses }}
         marks={{
-          typedWord,
+          typedWord: entry.word,
           inFlightGuess: shownInFlightGuess,
-          refusedGuessMark,
+          refusedGuessMark: submission.refusedMark,
           endingOutcome,
           isWaitingForTurn: gd.standing.isWaitingForTurn,
           myTurnJustStarted,
@@ -100,9 +100,9 @@ export function BoardCol({
               every letter earned, the record of the game just played. */}
           <GuessKeyboard
             keyColors={makeKeyColors(gd.boardRows)}
-            onKey={typeLetter}
-            actSubmit={actions.actSubmit}
-            actDelete={actions.actDeleteLast}
+            onKey={entry.typeLetter}
+            actSubmit={entry.actions.actSubmit}
+            actDelete={entry.actions.actDeleteLast}
             disabled={!canGuess}
           />
         </div>

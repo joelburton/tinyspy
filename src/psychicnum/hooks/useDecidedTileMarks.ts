@@ -40,8 +40,8 @@ export function useDecidedTileMarks({
   moveCount: number
   isViewingHistory: boolean
 }): {
-  flashingTiles: ReadonlySet<TileWord>
-  shakingTiles: ReadonlySet<TileWord>
+  flashing: ReadonlySet<TileWord>
+  shaking: ReadonlySet<TileWord>
 } {
   const flashingTiles = useMoveAttention({
     content: results,
@@ -68,7 +68,7 @@ export function useDecidedTileMarks({
   }, [wrongWordsKey, shakeWrongWords])
 
   return {
-    flashingTiles,
-    shakingTiles: shakeMark?.value.words ?? NO_WORDS,
+    flashing: flashingTiles,
+    shaking: shakeMark?.value.words ?? NO_WORDS,
   }
 }

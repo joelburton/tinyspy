@@ -9,7 +9,7 @@ const WORDS = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot']
 describe('useTileShuffle', () => {
   it('draws every word once', () => {
     const { result } = renderHook(() => useTileShuffle(WORDS))
-    expect([...result.current.displayedTiles].sort()).toEqual([...WORDS].sort())
+    expect([...result.current.tiles].sort()).toEqual([...WORDS].sort())
   })
 
   // A reload hands a fresh array of the same words; the board must not
@@ -18,16 +18,16 @@ describe('useTileShuffle', () => {
     const { result, rerender } = renderHook((words: string[]) => useTileShuffle(words), {
       initialProps: [...WORDS],
     })
-    const first = result.current.displayedTiles
+    const first = result.current.tiles
     rerender([...WORDS])
-    expect(result.current.displayedTiles).toBe(first)
+    expect(result.current.tiles).toBe(first)
   })
 
   it('Shuffle deals a new order of the same words', () => {
     const { result } = renderHook(() => useTileShuffle(WORDS))
-    const first = result.current.displayedTiles
+    const first = result.current.tiles
     act(() => result.current.actShuffle.run())
-    expect(result.current.displayedTiles).not.toBe(first)
-    expect([...result.current.displayedTiles].sort()).toEqual([...WORDS].sort())
+    expect(result.current.tiles).not.toBe(first)
+    expect([...result.current.tiles].sort()).toEqual([...WORDS].sort())
   })
 })
