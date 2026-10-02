@@ -45,8 +45,8 @@ type StandardGameActionsOptions = {
   // Which exit this game's mode offers: coop stops, a race concedes.
   mode: 'coop' | 'compete'
   // I'm out of the race — conceded, lost (out of budget, eliminated), or
-  // finished while the others play on. Never true in coop. The page's own
-  // value (`cg.me.isLocallyTerminal`).
+  // finished while the others play on. Never true in coop. Off the page's
+  // shell that is `!cg.me.stillPlaying && !cg.ended`.
   isLocallyTerminal: boolean
 
   // The game's below-board slot, where a not-ok answer is shown.

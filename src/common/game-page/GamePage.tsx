@@ -3,10 +3,9 @@
 import { Suspense, useEffect } from 'react'
 import { useFeedbackSlot } from '../feedback/useFeedbackSlot'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
-import { useTurnBell } from '../sounds/useTurnBell'
 import { useIsMobile } from '../mobile/useIsMobile'
 import { setIsInfoSheetOpen, useIsInfoSheetOpen } from '../info-sheet/infoSheetStore'
-import type { CommonGame } from './useCommonGame'
+import type { useCommonGame } from './useCommonGame'
 import type { Session } from '@supabase/supabase-js'
 import type { GameManifest } from '../manifest/gameManifest'
 import { usePageActions } from './usePageActions'
@@ -28,13 +27,14 @@ import { PlayAreaErrorBoundary } from './PlayAreaErrorBoundary'
 import { Loading } from '../loading/Loading'
 import styles from './GamePage.module.css'
 
-type Props = {
-  // The game, loaded.
-  cg: CommonGame
+/** What `useCommonGame` returned once the game loaded, less the waiting. */
+type LoadedCommonGame = Omit<ReturnType<typeof useCommonGame>, 'cg' | 'loading' | 'failure'> & {
+  cg: NonNullable<ReturnType<typeof useCommonGame>['cg']>
+}
+
+type Props = LoadedCommonGame & {
   manifest: GameManifest
   auth: Session
-  // The channel's joins and attach confirmations, handed on to the PlayArea.
-  resubscribeCount: number
 }
 
 /**
@@ -59,31 +59,31 @@ export function GamePage({
   auth,
   manifest,
   cg,
+  playarea,
+  pause,
+  timer,
+  sendSuspend,
   resubscribeCount,
 }: Props) {
   // The header's feedback slot, shared with the PlayArea.
   const globalFeedbackSlot = useFeedbackSlot('global')
   const clubMembers = useClubWhileInGame({
-    clubHandle: cg.club_handle,
+    clubHandle: cg.club.handle,
     gameId: cg.id,
     myId: auth.user.id,
     globalFeedbackSlot,
   })
 
   const { menu, actions, goToFollowUpGame, help } =
-    usePageActions({ manifest, cg, globalFeedbackSlot })
+    usePageActions({ manifest, cg, pause, sendSuspend, globalFeedbackSlot })
 
   useSubmitTimeoutOnExpiry({
     gameId: cg.id,
     manifest,
-    expired: cg.timer.expired,
-    paused: cg.pause.paused,
-    isGameEnded: cg.isGameEnded,
+    expired: timer.expired,
+    paused: pause.paused,
+    isGameEnded: cg.ended,
   })
-
-  // The bell when the turn becomes mine, for every game on the common turn
-  // pointer. Only a turn-based game has a turn to arrive.
-  useTurnBell(cg.turns.isTurnBased && cg.me.isOnTurn)
 
   const accountSection = useAccountMenuSection()
 
@@ -105,7 +105,9 @@ export function GamePage({
       <PageHeader
         right={
           <>
-            {(!isMobile || isInfoSheetOpen) && <PauseAndClock cg={cg} />}
+            {(!isMobile || isInfoSheetOpen) && (
+              <PauseAndClock pause={pause} timer={timer} ended={cg.ended} />
+            )}
             {isMobile && <InfoSwitchButton open={isInfoSheetOpen} />}
           </>
         }
@@ -127,8 +129,8 @@ export function GamePage({
       </PageHeader>
 
       <PauseBoundary
-        pause={cg.pause}
-        players={cg.stillPlayingHumanPlayers}
+        pause={pause}
+        players={pause.stillPlayingHumanPlayers}
         actions={actions}
       >
         {/* The log is outermost so its line lands before a broken game can
@@ -137,16 +139,16 @@ export function GamePage({
         <PlayAreaSlotLog
           gametype={manifest.gametype}
           gameId={cg.id}
-          isGameEnded={cg.isGameEnded}
+          isGameEnded={cg.ended}
         >
           <PlayAreaErrorBoundary>
             <Suspense fallback={<Loading />}>
               {/* Keyed on the restart count, so a restart mounts a fresh surface
                   and the finished run's local state goes with it. */}
               <manifest.PlayArea
-                key={cg.restart_count}
+                key={cg.restartCount}
                 cg={cg}
-                manifest={manifest}
+                playarea={playarea}
                 auth={auth}
                 resubscribeCount={resubscribeCount}
                 globalFeedbackSlot={globalFeedbackSlot}
@@ -160,7 +162,7 @@ export function GamePage({
 
       {/* Chat is the club's, so it gets the whole club's members. */}
       <ChatHost
-        clubHandle={cg.club_handle}
+        clubHandle={cg.club.handle}
         members={clubMembers}
         myId={auth.user.id}
         globalFeedbackSlot={globalFeedbackSlot}

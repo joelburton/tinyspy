@@ -3,49 +3,47 @@
 /**
  * Tests for useCommonGame.
  *
- * useCommonGame is the linchpin of the GamePage layer — it owns
- * the shared Realtime room for one game across all peers (presence,
- * manual-pause broadcast, suspend broadcast, postgres-changes on
- * the row), the cross-cutting common.games row + roster + timer,
- * and the unified `paused` flag every consumer reads.
+ * useCommonGame is the linchpin of the GamePage layer — it owns the shared
+ * Realtime room for one game across all peers (presence, manual-pause
+ * broadcast, suspend broadcast, postgres-changes on the row), the read of the
+ * two page blobs and the timer, and the unified `paused` flag every consumer
+ * reads.
  *
  * **What's covered here:**
- *   - Initial load populates `cg`, its `players`, and clears
- *     `loading` (the row + roster + club handle path).
- *   - `paused` correctly unifies presence-pause + manual-pause
- *     (via the broadcast handler) and short-circuits to false
- *     once `ended_at` is set (terminal short-circuit).
- *   - `sendManualPause` / `sendManualUnpause` apply optimistically
- *     to local state AND broadcast over the channel.
- *   - Receiving a peer's `manualPause` broadcast sets
- *     `manuallyPausedBy`; receiving `manualUnpause` clears it.
+ *   - Initial load populates `cg` from the shell, `me` as my entry in it,
+ *     hands the playarea blob through opaque, and clears `loading`.
+ *   - A game whose builder has not written a shell is a failure, named.
+ *   - `paused` correctly unifies presence-pause + manual-pause (via the
+ *     broadcast handler) and short-circuits to false once the shell says the
+ *     game ended.
+ *   - `sendManualPause` / `sendManualUnpause` apply optimistically to local
+ *     state AND broadcast over the channel.
+ *   - Receiving a peer's `manualPause` broadcast sets `manuallyPausedBy`;
+ *     receiving `manualUnpause` clears it.
  *
- * **Deferred to manual smoke / future tests** (intentionally not
- * covered — modeling the full supabase API in mocks would dwarf
- * the value):
- *   - Presence sync → `presentUserIds` derivation. The pure
- *     unification logic is testable via the manual-pause path
- *     above, but the presence-sync wiring is exercised in the
- *     browser whenever a peer disconnects.
- *   - `set_current_view` / `unset_current_view` RPCs on
- *     SUBSCRIBED / unmount, and the "last viewer leaving"
- *     condition that gates the unset.
+ * **Deferred to manual smoke / future tests** (intentionally not covered —
+ * modeling the full supabase API in mocks would dwarf the value):
+ *   - Presence sync → `presentUserIds` derivation. The pure unification logic
+ *     is testable via the manual-pause path above, but the presence-sync
+ *     wiring is exercised in the browser whenever a peer disconnects.
+ *   - `set_current_view` / `unset_current_view` RPCs on SUBSCRIBED / unmount,
+ *     and the "last viewer leaving" condition that gates the unset.
  *   - Suspend-broadcast → navigate.
  *   - `rebroadcastManualPause` on presence change.
  *
  * Mocking strategy
  * ----------------
- * Same shape as useClubChat.test.ts / useAuthSession.test.ts: vi.hoisted
- * spies stand in for the Supabase channel, the schema-scoped DB
- * client, and the router's navigate. The channel's `.on()` calls
- * for `postgres_changes`, `broadcast`, and `presence` all flow
- * through one capture so tests can fire specific event types by
- * name.
+ * Same shape as useClubChat.test.ts / useAuthSession.test.ts: vi.hoisted spies
+ * stand in for the Supabase channel, the schema-scoped DB client, and the
+ * router's navigate. The channel's `.on()` calls for `postgres_changes`,
+ * `broadcast`, and `presence` all flow through one capture so tests can fire
+ * specific event types by name.
  */
 
 import { renderHook, waitFor, act } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Shell } from './shell'
 
 type AnyHandler = (...args: unknown[]) => void
 
@@ -89,12 +87,6 @@ vi.mock('../timer/useGameTimer', () => ({
 }))
 
 import { useCommonGame } from './useCommonGame'
-import type { GameManifest } from '../manifest/gameManifest'
-
-/** A manifest carrying only what the hook reads from one. */
-function manifestWith(draftsOffTurn: boolean): GameManifest {
-  return { draftsOffTurn } as GameManifest
-}
 
 // ---- Per-test channel state ----
 
@@ -146,112 +138,53 @@ function buildChannel() {
   return ch
 }
 
-const GAME_ROW = {
+// ada = self, bea = a live peer, cara = a peer who is out of the game
+// (conceded, finished, or out of budget — the game is not waiting for her),
+// zed-bot = an AI opponent. Each of the last two exercises one exclusion from
+// the presence-pause roster: cara has nothing left to do, and zed-bot is never
+// going to open a tab at all.
+const PLAYERS: Shell['players'] = [
+  { id: 'ada', username: 'ada', color: 'red', ai: false, stillPlaying: true },
+  { id: 'bea', username: 'bea', color: 'blue', ai: false, stillPlaying: true },
+  { id: 'cara', username: 'cara', color: 'green', ai: false, stillPlaying: false },
+  { id: 'zed-bot', username: 'zed-bot', color: 'brown', ai: true, stillPlaying: true },
+]
+
+/** The shell `common._write_shell` writes for a game in play. */
+const SHELL: Shell = {
   id: 'g1',
-  club_handle: 'club-one',
   gametype: 'codenamesduet',
-  mode: 'coop',
+  club: { handle: 'club-one' },
   title: 'Game One',
-  setup: { timer: { kind: 'none' } },
-  is_current_view: true,
-  restart_count: 0,
-  game_status: {},
-  updated_at: '2026-01-01T00:00:00Z',
-  started_at: '2026-01-01T00:00:00Z',
-  ended_at: null,
-  game_ended_reason: null,
-  game_ended_reason_detail: null,
-  game_ended_outcome: null,
-  game_ended_by_user_id: null,
-  current_turn_user_id: null,
+  restartCount: 0,
+  ended: false,
+  players: PLAYERS,
 }
 
-/** The ending columns of a game that has ended, as `common._end_game` writes
- *  them. */
-const ENDED_ROW = {
-  ended_at: '2026-01-01T01:00:00Z',
-  game_ended_reason: 'reached_goal',
-  game_ended_reason_detail: 'solved',
-  game_ended_outcome: 'won',
-  game_ended_by_user_id: 'ada',
+/** …and once the game has ended: nobody is still playing. */
+const ENDED_SHELL: Shell = {
+  ...SHELL,
+  ended: true,
+  players: PLAYERS.map((p) => ({ ...p, stillPlaying: false })),
 }
+
+const PLAYAREA = { gametype: 'codenamesduet', puzzle: { words: ['a'] } }
+
+const GAME_ROW = { shell: SHELL, playarea: PLAYAREA }
 
 const TIMER_ROWS = [{ kind: 'none', countdown_seconds_at_setup: null }]
 
-/** A `common.game_players` row: still playing, unranked, no status. */
-const playerRow = (user_id: string, over: Record<string, unknown> = {}) => ({
-  user_id,
-  player_ended_at: null,
-  player_ended_reason: null,
-  player_ended_reason_detail: null,
-  final_ranking: null,
-  outcome: null,
-  solved_at: null,
-  player_status: {},
-  turn_seat: null as number | null,
-  ...over,
-})
-
-/** The ending columns of a player who conceded. */
-const CONCEDED_ROW = {
-  player_ended_at: '2026-01-01T00:00:00Z',
-  player_ended_reason: 'conceded',
-  player_ended_reason_detail: 'conceded',
+/** Answer the reads with these rows instead of the defaults. */
+function serve(gameRows: unknown[], timerRows: unknown[] = TIMER_ROWS) {
+  mockSchemaFrom.mockImplementation((table: string) => {
+    // Rows, not a single row: `readRows` dropped `.maybeSingle()`, which
+    // treated a game this club cannot see as indistinguishable from a broken
+    // connection.
+    const rows = table === 'games' ? gameRows : table === 'timers' ? timerRows : null
+    if (rows === null) throw new Error(`unexpected table: ${table}`)
+    return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
+  })
 }
-
-/** The ending columns of a player who is out of guesses. */
-const EXHAUSTED_ROW = {
-  player_ended_at: '2026-01-01T00:00:00Z',
-  player_ended_reason: 'resource_exhausted',
-  player_ended_reason_detail: 'exhausted',
-}
-
-// ada = self, bea = a live peer, cara = a peer who has conceded, dai = a player
-// who is DONE without conceding (finished, eliminated, out of budget — the game
-// is not waiting for them), zed-bot = an AI opponent. Each of the last three
-// exercises one exclusion from the presence-pause roster: cara quit, dai has
-// nothing left to do, and zed-bot is never going to open a tab at all. Nobody
-// has a `turn_seat`: a free-for-all game.
-const PLAYER_ROWS = [
-  playerRow('ada'),
-  playerRow('bea'),
-  playerRow('cara', CONCEDED_ROW),
-  playerRow('dai', EXHAUSTED_ROW),
-  playerRow('zed-bot'),
-]
-const PROFILES = [
-  { user_id: 'ada', username: 'ada', color: 'red', ai_member: false },
-  { user_id: 'bea', username: 'bea', color: 'blue', ai_member: false },
-  { user_id: 'cara', username: 'cara', color: 'green', ai_member: false },
-  { user_id: 'dai', username: 'dai', color: 'purple', ai_member: false },
-  { user_id: 'zed-bot', username: 'zed-bot', color: 'brown', ai_member: true },
-]
-/** Where a player stands who is still in a free-for-all game. */
-const PLAYING = {
-  isConceded: false,
-  isLocallyTerminal: false,
-  isStillPlaying: true,
-  isOnTurn: true,
-  isWaitingForTurn: false,
-  isBoardInteractive: true,
-  hasSolved: false,
-}
-/** …and one who is out of it: nothing is theirs to do. */
-const OUT = {
-  ...PLAYING, isLocallyTerminal: true, isStillPlaying: false, isOnTurn: false, isBoardInteractive: false,
-}
-// The hook merges the game_players per-player bits onto each profile, and
-// adds where each stands: cara conceded, dai is done, the rest play on.
-const GAME_PLAYERS = PLAYER_ROWS.map(function mergeProfile(row) {
-  const { turn_seat: _seat, user_id, ...bits } = row
-  const profile = PROFILES.find((p) => p.user_id === user_id)!
-  const standing =
-    user_id === 'cara' ? { ...OUT, isConceded: true } : user_id === 'dai' ? OUT : PLAYING
-  return {
-    id: user_id, username: profile.username, color: profile.color,
-    ai_member: profile.ai_member, ...bits, ...standing,
-  }
-})
 
 beforeEach(() => {
   for (const k of Object.keys(handlers)) delete handlers[k]
@@ -271,44 +204,8 @@ beforeEach(() => {
   mockRpc.mockResolvedValue({ data: { type: 'ok' }, error: null })
   mockNavigate.mockClear()
 
-  // Default DB chain — tests can override per-table behavior by
-  // re-mocking mockSchemaFrom inside the test, but the happy-path
-  // returns the GAME_ROW + PLAYER_ROWS + PROFILES.
   mockSchemaFrom.mockReset()
-  mockSchemaFrom.mockImplementation((table: string) => {
-    if (table === 'games') {
-      return {
-        select: () => ({
-          // Rows, not a single row: `readRows` dropped `.maybeSingle()`, which
-          // treated a game this club cannot see as indistinguishable from a
-          // broken connection.
-          eq: () => Promise.resolve({ data: [GAME_ROW], error: null, status: 200 }),
-        }),
-      }
-    }
-    if (table === 'game_players') {
-      return {
-        select: () => ({
-          eq: () => Promise.resolve({ data: PLAYER_ROWS, error: null, status: 200 }),
-        }),
-      }
-    }
-    if (table === 'profiles') {
-      return {
-        select: () => ({
-          in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }),
-        }),
-      }
-    }
-    if (table === 'timers') {
-      return {
-        select: () => ({
-          eq: () => Promise.resolve({ data: TIMER_ROWS, error: null, status: 200 }),
-        }),
-      }
-    }
-    throw new Error(`unexpected table: ${table}`)
-  })
+  serve([GAME_ROW])
 })
 
 afterEach(() => {
@@ -321,174 +218,46 @@ function firePresenceSync() {
   handlers['presence:sync']?.()
 }
 
-describe('useCommonGame — initial load', () => {
-  it('populates cg + players + club_handle and clears loading', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
+/** Render the hook and wait for the first read to settle. */
+async function load() {
+  const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+  await waitFor(() => expect(result.current.loading).toBe(false))
+  return result
+}
 
-    await waitFor(() => expect(result.current.loading).toBe(false))
+describe('useCommonGame — initial load', () => {
+  it('cg is the shell, with me as my own entry in players — the same object', async () => {
+    const result = await load()
     expect(result.current.cg).toMatchObject({
       id: 'g1',
-      club_handle: 'club-one',
       gametype: 'codenamesduet',
+      club: { handle: 'club-one' },
       title: 'Game One',
+      restartCount: 0,
+      ended: false,
     })
-    expect(result.current.cg!.players).toEqual(GAME_PLAYERS)
-  })
-
-  it('reads the ending off the row, null while the game is played', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.cg?.gameEnding).toBeNull()
-  })
-
-  it('reads the ending columns of a game that has ended', async () => {
-    mockSchemaFrom.mockImplementation((table: string) => {
-      if (table === 'games') {
-        return { select: () => ({ eq: () => Promise.resolve({ data: [{ ...GAME_ROW, ...ENDED_ROW }], error: null, status: 200 }) }) }
-      }
-      if (table === 'profiles') {
-        return { select: () => ({ in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }) }) }
-      }
-      const rows = table === 'timers' ? TIMER_ROWS : PLAYER_ROWS
-      return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
-    })
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.cg?.gameEnding).toEqual({
-      reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'ada',
-    })
-  })
-
-  it('reads the timer off common.timers, not the setup', async () => {
-    mockSchemaFrom.mockImplementation((table: string) => {
-      if (table === 'profiles') {
-        return { select: () => ({ in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }) }) }
-      }
-      const rows = table === 'timers'
-        ? [{ kind: 'countdown', countdown_seconds_at_setup: 90 }]
-        : table === 'games' ? [GAME_ROW] : PLAYER_ROWS
-      return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
-    })
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.cg?.timer.mode).toEqual({ kind: 'countdown', seconds: 90 })
-  })
-})
-
-/**
- * **Where each player stands** — the standing terms, one formula each
- * (docs/win-lose.md → Where a player stands), computed here for every seat so
- * no PlayArea compares the turn pointer to an id itself. `cg.me` is ada's
- * entry; the same object sits in `cg.players`.
- */
-describe('useCommonGame — where each player stands', () => {
-  type PlayerRow = Record<string, unknown>
-
-  // Answer the reads with this game row and roster instead of the defaults.
-  function serve(game: Record<string, unknown>, rows: PlayerRow[]) {
-    mockSchemaFrom.mockImplementation((table: string) => {
-      if (table === 'games') {
-        return { select: () => ({ eq: () => Promise.resolve({ data: [{ ...GAME_ROW, ...game }], error: null, status: 200 }) }) }
-      }
-      if (table === 'game_players') {
-        return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
-      }
-      if (table === 'timers') {
-        return { select: () => ({ eq: () => Promise.resolve({ data: TIMER_ROWS, error: null, status: 200 }) }) }
-      }
-      return { select: () => ({ in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }) }) }
-    })
-  }
-
-  /** The loaded game's `me` (ada) with the turns beside it, and bea's entry. */
-  async function standing(draftsOffTurn = false) {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(draftsOffTurn)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-    const { turns, me, players } = result.current.cg!
-    return { ...me, ...turns, bea: players.find((p) => p.id === 'bea')! }
-  }
-
-  // ada and bea seated in a turn order.
-  const SEATED = [
-    { ...PLAYER_ROWS[0], turn_seat: 0 },
-    { ...PLAYER_ROWS[1], turn_seat: 1 },
-  ]
-
-  it('me is my own entry in players — the same object', async () => {
-    serve({ current_turn_user_id: null }, PLAYER_ROWS)
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
     const { me, players } = result.current.cg!
+    expect(players).toEqual(PLAYERS)
     expect(me.id).toBe('ada')
     expect(players).toContain(me)
   })
 
-  it('a free-for-all game: still playing, and every move is mine', async () => {
-    serve({ current_turn_user_id: null }, PLAYER_ROWS)
-    expect(await standing()).toMatchObject({
-      isConceded: false, isLocallyTerminal: false, isStillPlaying: true,
-      isTurnBased: false, turnHolderId: null, isOnTurn: true, isWaitingForTurn: false,
-      isBoardInteractive: true, hasSolved: false,
-    })
+  it('hands the playarea blob through untouched', async () => {
+    const result = await load()
+    expect(result.current.playarea).toEqual(PLAYAREA)
   })
 
-  it('a turn game on a teammate\'s turn: I wait with an inert board, and the teammate is on turn', async () => {
-    serve({ current_turn_user_id: 'bea' }, SEATED)
-    expect(await standing()).toMatchObject({
-      isStillPlaying: true, isTurnBased: true, turnHolderId: 'bea',
-      isOnTurn: false, isWaitingForTurn: true, isBoardInteractive: false,
-      bea: { isOnTurn: true, isWaitingForTurn: false, isBoardInteractive: true },
-    })
+  it('a null playarea passes through as null — the game\'s builder has not written one', async () => {
+    serve([{ shell: SHELL, playarea: null }])
+    const result = await load()
+    expect(result.current.cg).not.toBeNull()
+    expect(result.current.playarea).toBeNull()
   })
 
-  it('a game that drafts off-turn keeps the board live while I wait', async () => {
-    serve({ current_turn_user_id: 'bea' }, SEATED)
-    expect(await standing(true)).toMatchObject({
-      isOnTurn: false, isWaitingForTurn: true, isBoardInteractive: true,
-    })
-  })
-
-  it('a turn game on my turn', async () => {
-    serve({ current_turn_user_id: 'ada' }, SEATED)
-    expect(await standing()).toMatchObject({
-      isOnTurn: true, isWaitingForTurn: false, isBoardInteractive: true,
-      bea: { isOnTurn: false, isWaitingForTurn: true },
-    })
-  })
-
-  it('a turn game whose pointer names nobody is nobody\'s turn, never everybody\'s', async () => {
-    serve({ current_turn_user_id: null }, SEATED)
-    expect(await standing()).toMatchObject({
-      isTurnBased: true, turnHolderId: null, isOnTurn: false, bea: { isOnTurn: false },
-    })
-  })
-
-  it('a finished game is nobody\'s turn, though the pointer still names me', async () => {
-    serve({ current_turn_user_id: 'ada', ...ENDED_ROW }, SEATED)
-    expect(await standing()).toMatchObject({
-      isStillPlaying: false, turnHolderId: 'ada', isOnTurn: false, isWaitingForTurn: false,
-      isBoardInteractive: false, bea: { isStillPlaying: false },
-    })
-  })
-
-  it('a conceder is locally terminal, and out', async () => {
-    serve({}, [{ ...PLAYER_ROWS[0], ...CONCEDED_ROW }, PLAYER_ROWS[1]])
-    expect(await standing(true)).toMatchObject({
-      isConceded: true, isLocallyTerminal: true, isStillPlaying: false,
-      isOnTurn: false, isWaitingForTurn: false, isBoardInteractive: false,
-    })
-  })
-
-  it('a racer who is done without conceding is locally terminal, not conceded', async () => {
-    serve({}, [{ ...PLAYER_ROWS[0], ...EXHAUSTED_ROW }, PLAYER_ROWS[1]])
-    expect(await standing()).toMatchObject({
-      isConceded: false, isLocallyTerminal: true, isStillPlaying: false, isOnTurn: false,
-    })
-  })
-
-  it('a solved player has solved, in either mode — a coop solve stamps every teammate', async () => {
-    serve({}, [{ ...PLAYER_ROWS[0], solved_at: '2026-01-01T00:30:00Z' }, PLAYER_ROWS[1]])
-    expect(await standing()).toMatchObject({ hasSolved: true, bea: { hasSolved: false } })
+  it('reads the timer off common.timers', async () => {
+    serve([GAME_ROW], [{ kind: 'countdown', countdown_seconds_at_setup: 90 }])
+    const result = await load()
+    expect(result.current.timer.mode).toEqual({ kind: 'countdown', seconds: 90 })
   })
 })
 
@@ -497,7 +266,7 @@ describe('useCommonGame — where each player stands', () => {
  *
  * This gate runs before any play surface mounts, so `GamePage` saying "There's
  * no game here." for an outage overrode all sixteen of them, whatever they had
- * worked out for themselves. Zero rows and a dead read both left `gameData`
+ * worked out for themselves. Zero rows and a dead read both left the game
  * null, and only one of them means the game is gone.
  */
 describe('useCommonGame — a dead read is not an absent game', () => {
@@ -516,8 +285,7 @@ describe('useCommonGame — a dead read is not an absent game', () => {
       }
       return { select: () => ({ eq: () => Promise.resolve({ data: [], error: null, status: 200 }) }) }
     })
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
     expect(result.current.failure).toMatchObject({ type: 'not-ok', message: 'permission denied' })
     expect(result.current.cg).toBeNull()
   })
@@ -526,23 +294,27 @@ describe('useCommonGame — a dead read is not an absent game', () => {
   // otherwise a deleted game would show an error page instead of the sentence
   // written for it.
   it('leaves failure null when the read worked and found nothing', async () => {
-    mockSchemaFrom.mockImplementation(() => ({
-      select: () => ({
-        eq: () => Promise.resolve({ data: [], error: null, status: 200 }),
-        in: () => Promise.resolve({ data: [], error: null, status: 200 }),
-      }),
-    }))
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    serve([], [])
+    const result = await load()
     expect(result.current.failure).toBeNull()
+    expect(result.current.cg).toBeNull()
+  })
+
+  it('a game with no shell yet is a failure that says so, not a game that is gone', async () => {
+    // An unconverted game's row, or one not yet rebuilt: the builder has not
+    // written the page. Saying "no such game" would be the confident wrong
+    // answer; the error page names the real one.
+    serve([{ shell: null, playarea: null }])
+    const result = await load()
+    expect(result.current.failure).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    expect(result.current.failure!.detail).toContain('g1')
     expect(result.current.cg).toBeNull()
   })
 })
 
 describe('useCommonGame — paused unification', () => {
   it('paused is false when no one is missing and no manual pause is in effect', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
 
     // Mark both players present.
     presenceStateRecord = {
@@ -551,12 +323,11 @@ describe('useCommonGame — paused unification', () => {
     }
     act(() => firePresenceSync())
 
-    expect(result.current.cg!.pause.paused).toBe(false)
+    expect(result.current.pause.paused).toBe(false)
   })
 
   it('paused is true (presence) when a peer is missing', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
 
     // Only ada is present; bea is missing.
     presenceStateRecord = {
@@ -564,85 +335,57 @@ describe('useCommonGame — paused unification', () => {
     }
     act(() => firePresenceSync())
 
-    expect(result.current.cg!.pause.paused).toBe(true)
-    expect(result.current.cg!.pause.manuallyPausedBy).toBeNull()
+    expect(result.current.pause.paused).toBe(true)
+    expect(result.current.pause.manuallyPausedBy).toBeNull()
   })
 
-  it('paused stays false when the only missing player has conceded', async () => {
-    // cara conceded (quit the race), then closed her tab. The
-    // remaining players must keep racing — a conceder's absence
-    // must NOT raise the presence-pause overlay for everyone else.
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+  it('paused stays false when the only missing player is out of the game', async () => {
+    // cara conceded, solved early or spent her budget, then closed her tab.
+    // The remaining players must keep playing — her absence must NOT raise
+    // the presence-pause overlay for everyone else.
+    const result = await load()
 
-    // ada + bea present; cara (conceded) absent.
+    // ada + bea present; cara absent.
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
       bea: [{ user_id: 'bea' }],
     }
     act(() => firePresenceSync())
 
-    expect(result.current.cg!.pause.paused).toBe(false)
+    expect(result.current.pause.paused).toBe(false)
     // The roster the pause watches is where cara's absence stops mattering:
-    // she is off it, so nobody is waiting on her. dai and zed-bot are off it
-    // too, for the other two reasons — nothing is left for dai to do, and
-    // zed-bot is never going to arrive.
-    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.id)).toEqual(['ada', 'bea'])
-  })
-
-  it('paused stays false when the only missing player is done playing', async () => {
-    // dai is locally terminal — solved their board in a best-style race,
-    // spent their budget, or was eliminated — and then closed the tab. The
-    // game is not waiting for them, so the players still going must not be
-    // parked behind the pause overlay. dai did NOT concede: in wordle, waffle
-    // and strands the first player to go locally terminal is the one who
-    // SOLVED, and may be the winner.
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-
-    presenceStateRecord = {
-      ada: [{ user_id: 'ada' }],
-      bea: [{ user_id: 'bea' }],
-      cara: [{ user_id: 'cara' }],
-    }
-    act(() => firePresenceSync())
-
-    expect(result.current.cg!.pause.paused).toBe(false)
-    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.id)).toEqual(['ada', 'bea'])
-    // …and they are still a player of the game everywhere participation
-    // counts — the strip, the standings, the end-of-game results.
-    expect(result.current.cg!.players.map((p) => p.id)).toContain('dai')
-  })
-
-  it('a bot never pauses the game, and never draws an absent dot', async () => {
-    // zed-bot holds a game_players row like any player — it can win, and
-    // end_game writes it a result — but it has no tab and no presence. If it
-    // counted here, every game with an AI opponent would sit behind the pause
-    // overlay from the first move to the last.
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-
-    // Every HUMAN who has not conceded is present; the bot is not, and never
-    // will be.
-    presenceStateRecord = {
-      ada: [{ user_id: 'ada' }],
-      bea: [{ user_id: 'bea' }],
-    }
-    act(() => firePresenceSync())
-
-    expect(result.current.cg!.pause.paused).toBe(false)
-    // `stillPlayingHumanPlayers` is also what the overlay draws its
-    // present/absent dots from, which is why the filter is here rather than
-    // inside computePause:
-    // a bot on that list would be a permanently hollow ring.
-    expect(result.current.cg!.stillPlayingHumanPlayers.map((p) => p.id)).toEqual(['ada', 'bea'])
-    // …and it is still a player of the game everywhere participation counts.
+    // she is off it, so nobody is waiting on her. zed-bot is off it too, for
+    // the other reason — it is never going to arrive.
+    expect(result.current.pause.stillPlayingHumanPlayers.map((p) => p.id)).toEqual(['ada', 'bea'])
+    // …and they are still players of the game everywhere participation
+    // counts — the strip, the ranking, the end-of-game results.
+    expect(result.current.cg!.players.map((p) => p.id)).toContain('cara')
     expect(result.current.cg!.players.map((p) => p.id)).toContain('zed-bot')
   })
 
+  it('a bot never pauses the game, and never draws an absent dot', async () => {
+    // zed-bot holds a seat like any player — it can win, and end_game writes
+    // it a result — but it has no tab and no presence. If it counted here,
+    // every game with an AI opponent would sit behind the pause overlay from
+    // the first move to the last.
+    const result = await load()
+
+    // Every HUMAN still playing is present; the bot is not, and never will be.
+    presenceStateRecord = {
+      ada: [{ user_id: 'ada' }],
+      bea: [{ user_id: 'bea' }],
+    }
+    act(() => firePresenceSync())
+
+    expect(result.current.pause.paused).toBe(false)
+    // `stillPlayingHumanPlayers` is also what the overlay draws its
+    // present/absent dots from, which is why the filter is here rather than
+    // inside computePause: a bot on that list would be a permanently hollow ring.
+    expect(result.current.pause.stillPlayingHumanPlayers.map((p) => p.id)).toEqual(['ada', 'bea'])
+  })
+
   it('paused is true (manual) when sendManualPause fires, even with everyone present', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
 
     // Everyone present.
     presenceStateRecord = {
@@ -651,100 +394,72 @@ describe('useCommonGame — paused unification', () => {
     }
     act(() => firePresenceSync())
 
-    act(() => result.current.cg!.pause.sendManualPause())
-    expect(result.current.cg!.pause.paused).toBe(true)
-    expect(result.current.cg!.pause.manuallyPausedBy?.id).toBe('ada')
+    act(() => result.current.pause.sendManualPause())
+    expect(result.current.pause.paused).toBe(true)
+    expect(result.current.pause.manuallyPausedBy?.id).toBe('ada')
   })
 
   it('sendManualUnpause clears the manual pause', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
       bea: [{ user_id: 'bea' }],
     }
     act(() => firePresenceSync())
 
-    act(() => result.current.cg!.pause.sendManualPause())
-    expect(result.current.cg!.pause.paused).toBe(true)
+    act(() => result.current.pause.sendManualPause())
+    expect(result.current.pause.paused).toBe(true)
 
-    act(() => result.current.cg!.pause.sendManualUnpause())
-    expect(result.current.cg!.pause.paused).toBe(false)
-    expect(result.current.cg!.pause.manuallyPausedBy).toBeNull()
+    act(() => result.current.pause.sendManualUnpause())
+    expect(result.current.pause.paused).toBe(false)
+    expect(result.current.pause.manuallyPausedBy).toBeNull()
   })
 
-  it('paused short-circuits to false once the game ends (ended_at set)', async () => {
-    // First load returns a non-terminal row; then a postgres-
-    // changes event fires the row again with ended_at populated.
-    const endedRow = { ...GAME_ROW, ...ENDED_ROW }
+  it('paused short-circuits to false once the game ends', async () => {
+    // First load returns a game in play; then a postgres-changes event fires
+    // and the shell comes back ended.
     let firstCall = true
     mockSchemaFrom.mockImplementation((table: string) => {
       if (table === 'games') {
         return {
           select: () => ({
             eq: async () => {
-              const row = firstCall ? GAME_ROW : endedRow
+              const row = firstCall ? GAME_ROW : { ...GAME_ROW, shell: ENDED_SHELL }
               firstCall = false
               return { data: [row], error: null, status: 200 }
             },
           }),
         }
       }
-      if (table === 'game_players') {
-        return {
-          select: () => ({
-            eq: () => Promise.resolve({ data: PLAYER_ROWS, error: null, status: 200 }),
-          }),
-        }
-      }
-      if (table === 'profiles') {
-        return {
-          select: () => ({
-            in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }),
-          }),
-        }
-      }
-      if (table === 'timers') {
-        return {
-          select: () => ({
-            eq: () => Promise.resolve({ data: TIMER_ROWS, error: null, status: 200 }),
-          }),
-        }
-      }
-      throw new Error(`unexpected table: ${table}`)
+      return { select: () => ({ eq: () => Promise.resolve({ data: TIMER_ROWS, error: null, status: 200 }) }) }
     })
 
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
 
     // Put the game into a manual-paused state with someone missing.
     presenceStateRecord = { ada: [{ user_id: 'ada' }] }
     act(() => firePresenceSync())
-    act(() => result.current.cg!.pause.sendManualPause())
-    expect(result.current.cg!.pause.paused).toBe(true)
+    act(() => result.current.pause.sendManualPause())
+    expect(result.current.pause.paused).toBe(true)
 
-    // The game ends server-side; postgres-changes refetches and
-    // loads the row with ended_at. Paused should now be false
-    // even though manuallyPausedBy is still set — the terminal
-    // short-circuit takes priority so PauseBoundary remounts
-    // PlayArea to render its terminal state.
+    // The game ends server-side; postgres-changes refetches and loads the
+    // ended shell. Paused should now be false even though manuallyPausedBy is
+    // still set — the ended short-circuit takes priority so PauseBoundary
+    // remounts PlayArea to render the ending.
     await act(async () => {
       await handlers['postgres_changes']?.()
     })
 
-    await waitFor(() =>
-      expect(result.current.cg?.ended_at).toBe('2026-01-01T01:00:00Z'),
-    )
-    expect(result.current.cg!.pause.paused).toBe(false)
+    await waitFor(() => expect(result.current.cg?.ended).toBe(true))
+    expect(result.current.pause.paused).toBe(false)
   })
 })
 
 describe('useCommonGame — manual-pause broadcast wiring', () => {
   it('sendManualPause broadcasts a manualPause event with the local user id', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
 
-    act(() => result.current.cg!.pause.sendManualPause())
+    act(() => result.current.pause.sendManualPause())
     expect(sendSpy).toHaveBeenCalledWith({
       type: 'broadcast',
       event: 'manualPause',
@@ -753,12 +468,11 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
   })
 
   it('sendManualUnpause broadcasts a manualUnpause event', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
 
-    act(() => result.current.cg!.pause.sendManualPause())
+    act(() => result.current.pause.sendManualPause())
     sendSpy.mockClear()
-    act(() => result.current.cg!.pause.sendManualUnpause())
+    act(() => result.current.pause.sendManualUnpause())
     expect(sendSpy).toHaveBeenCalledWith({
       type: 'broadcast',
       event: 'manualPause',
@@ -767,8 +481,7 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
   })
 
   it('receives a peer manualPause broadcast and sets manuallyPausedBy', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
       bea: [{ user_id: 'bea' }],
@@ -782,35 +495,12 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
       }),
     )
 
-    expect(result.current.cg!.pause.paused).toBe(true)
-    expect(result.current.cg!.pause.manuallyPausedBy?.id).toBe('bea')
-  })
-
-  it('a manualPause from a non-player (spectator) still pauses, labeled "Someone"', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-    presenceStateRecord = {
-      ada: [{ user_id: 'ada' }],
-      bea: [{ user_id: 'bea' }],
-    }
-    act(() => firePresenceSync())
-
-    // A club member watching without having joined (not in `players`) clicks
-    // Pause. The pause must still take effect — not silently no-op.
-    act(() =>
-      handlers['broadcast:manualPause']?.({
-        payload: { type: 'manualPause', userId: 'zork' },
-      }),
-    )
-
-    expect(result.current.cg!.pause.paused).toBe(true)
-    expect(result.current.cg!.pause.manuallyPausedBy?.id).toBe('zork')
-    expect(result.current.cg!.pause.manuallyPausedBy?.username).toBe('Someone')
+    expect(result.current.pause.paused).toBe(true)
+    expect(result.current.pause.manuallyPausedBy?.id).toBe('bea')
   })
 
   it('receives a peer manualUnpause and clears manuallyPausedBy', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
       bea: [{ user_id: 'bea' }],
@@ -821,15 +511,15 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
         payload: { type: 'manualPause', userId: 'bea' },
       }),
     )
-    expect(result.current.cg!.pause.paused).toBe(true)
+    expect(result.current.pause.paused).toBe(true)
 
     act(() =>
       handlers['broadcast:manualPause']?.({
         payload: { type: 'manualUnpause' },
       }),
     )
-    expect(result.current.cg!.pause.paused).toBe(false)
-    expect(result.current.cg!.pause.manuallyPausedBy).toBeNull()
+    expect(result.current.pause.paused).toBe(false)
+    expect(result.current.pause.manuallyPausedBy).toBeNull()
   })
 })
 
@@ -840,8 +530,7 @@ describe('useCommonGame — deaf-window closer', () => {
   // what closes that window (postgresAttached.ts; pinned end-to-end by
   // e2e/realtime-deaf-window.e2e.ts).
   it('re-loads when the postgres_changes attach is confirmed', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    await load()
 
     const gamesReads = () =>
       mockSchemaFrom.mock.calls.filter((c) => c[0] === 'games').length
@@ -853,8 +542,7 @@ describe('useCommonGame — deaf-window closer', () => {
   })
 
   it('counts the attach in resubscribeCount, so a game reloads its own rows too', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    const result = await load()
 
     const before = result.current.resubscribeCount
     act(() => {
@@ -864,8 +552,7 @@ describe('useCommonGame — deaf-window closer', () => {
   })
 
   it('ignores system payloads that are not the attach ok', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession, manifestWith(false)))
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    await load()
 
     const gamesReads = () =>
       mockSchemaFrom.mock.calls.filter((c) => c[0] === 'games').length

@@ -57,8 +57,8 @@ export type Actor = Pick<Member, 'username' | 'color'>
  * A game player's row: a [Member] plus the per-player bits that live on
  * `common.game_players` (as opposed to the profile). Distinct from
  * Member because a chat sender is a Member but never a game player.
- * What `useCommonGame` reads; the page hands games the [GamePlayer]
- * built on it, which adds where the player stands.
+ * The shape the games not yet on the playarea blob still read; a game's
+ * player comes off that blob as each converts (plans/seat-view.md).
  *
  *   - `player_ended_at` and its reason pair
  *                    — this player stopped playing while the game went
@@ -130,6 +130,6 @@ export type PlayerStanding = {
  * stand. `GamePlayer` is a superset of `Member`, so anything typed `Member[]`
  * still accepts `GamePlayer[]` — a game's OpponentStrip / event-log can keep
  * their `Member` props while the PlayArea reads the ending off the same
- * roster. `cg.me` is one of these: the viewer's own entry in `cg.players`.
+ * roster.
  */
 export type GamePlayer = GamePlayerRow & PlayerStanding

@@ -19,15 +19,17 @@ all of that and the game never has to think about it.
 What the shell owns divides cleanly. The chrome is the header — the logo that
 is also the menu, the players strip that a message can take over, the pause
 button, the clock, and on a phone the switch between the board page and the
-info page. The shared state is `useCommonGame`: the `common.games` row, the
-roster, presence, the two kinds of pause, suspend, and the timer. What a game
-gets is `PlayAreaLoaderProps`, one object of props the shell hands its `PlayArea`:
-`cg`, the common game (the row's fields, the players, the clock, the turns and
-where the viewing player stands — docs/win-lose.md → Where a player stands), its
-manifest, the session, the global feedback slot, the menu API and the one
-navigation a game does for itself (into a follow-up game; going back to the
-club is an action on the menu API). A game
-reads that object and renders a board.
+info page. The shared state is `useCommonGame`: the two page blobs each game's
+status builder writes onto `common.games` (plans/seat-view.md → The page is
+written, not assembled), presence, the two kinds of pause, suspend, and the
+timer. The `shell` blob is everything this page shows, the same shape for every
+game, and `cg` is that blob plus `me`, my entry in its roster; the `playarea`
+blob is the game's, handed down opaque. What a game gets is
+`PlayAreaLoaderProps`, one object of props the shell hands its `PlayArea`:
+`cg`, `playarea`, the session, the global feedback slot, the menu API and the
+one navigation a game does for itself (into a follow-up game; going back to the
+club is an action on the menu API). A game reads that object and renders a
+board.
 
 Everything cross-peer runs through one Realtime channel named `game:<gameId>`,
 which the code calls the shared room. Presence rosters and broadcasts only reach
@@ -123,8 +125,8 @@ error page if one failed; the loader shows the same three for what happens
 after, since a game deleted mid-session arrives at it as zero rows.
 
 **The pre-flight check is its own component, and that is why there are three.**
-The gate does two cheap reads — the game's row, and the user's seat in it —
-and mounts nothing until they answer — including
+The gate does one cheap read — the game's row with its shell, whose roster
+says whether the user has a seat — and mounts nothing until it answers — including
 when the id CHANGES under it, which happens inside this route: the invitation
 toast is mounted at the root, so accepting one from a game page swaps the
 params and nothing else. So the gate holds its answer next to the id it

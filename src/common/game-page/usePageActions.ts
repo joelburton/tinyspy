@@ -13,11 +13,15 @@ import { suspendConfirm } from '../pause-suspend/suspendConfirm'
 import { navigate } from '../routing/router'
 import { clubPath, gamePath } from '../routing/routes'
 import { reportUnhandled } from '../supabase/dbEnvelope'
-import type { CommonGame } from './useCommonGame'
+import type { GamePause } from '../pause-suspend/pause'
+import type { CommonGame } from './shell'
 
 type PageActionsOptions = {
   manifest: GameManifest
   cg: CommonGame
+  pause: GamePause
+  // Shelve the game and send every peer to the club page.
+  sendSuspend: () => void
   // Where the overlay's Stop says a refusal.
   globalFeedbackSlot: FeedbackSlot
 }
@@ -41,6 +45,8 @@ type PageActionsOptions = {
 export function usePageActions({
   manifest,
   cg,
+  pause,
+  sendSuspend,
   globalFeedbackSlot,
 }: PageActionsOptions): {
   // What a PlayArea gets to build its menu with.
@@ -66,22 +72,19 @@ export function usePageActions({
   const actChat = useAction('act-open-chat')
 
   const requestBackToClub = useCallback(async () => {
-    // Called through a local, not as `cg.sendSuspend()`: a method call makes the
-    // hooks lint rule ask for all of `cg` in the deps.
-    const sendSuspend = cg.sendSuspend
-    if (cg.isGameEnded) navigate(clubPath(cg.club_handle))
-    else if (cg.stillPlayingHumanPlayers.length <= 1) sendSuspend()
+    if (cg.ended) navigate(clubPath(cg.club.handle))
+    else if (pause.stillPlayingHumanPlayers.length <= 1) sendSuspend()
     else if ((await askConfirmation(suspendConfirm(cg.title))) === 'confirm') sendSuspend()
-  }, [cg.club_handle, cg.isGameEnded, cg.title, cg.stillPlayingHumanPlayers.length, cg.sendSuspend])
+  }, [cg.club.handle, cg.ended, cg.title, pause.stillPlayingHumanPlayers.length, sendSuspend])
   const actBackToClub = useBindAction('act-back-to-club', {
     describe: () => 'active',
     run: requestBackToClub,
   })
 
   useBindAction('act-new-game-from-setup', {
-    terminal: cg.isGameEnded,
+    terminal: cg.ended,
     describe: () => 'active',
-    run: () => navigate(`${clubPath(cg.club_handle)}?new=${manifest.gametype}`),
+    run: () => navigate(`${clubPath(cg.club.handle)}?new=${manifest.gametype}`),
   })
 
   const stopTheGameFromTheOverlay = async () => {
@@ -95,8 +98,8 @@ export function usePageActions({
     }
   }
   const actStopGame = useBindAction('act-stop-game', {
-    terminal: cg.isGameEnded,
-    describe: () => (cg.pause.paused ? 'active' : 'hidden'),
+    terminal: cg.ended,
+    describe: () => (pause.paused ? 'active' : 'hidden'),
     run: stopTheGameFromTheOverlay,
   })
 

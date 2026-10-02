@@ -253,7 +253,7 @@ that was tried on paper and became a second builder in a worse language.
 
 **Reads collapse.** The club page reads one view. `useCommonGame` reads
 `game_view` and `common.timers` (the tick must not re-send the game row), joins
-the room, and hands the playarea blob down inside `cg`, opaque to common. A
+the room, and hands the playarea blob down beside `cg`, opaque to common. A
 game's `useGame` makes no read at all; it is a pure function of the blob and
 `auth.user.id`. The gate reads the seat off the shell's roster. Only a game
 with writes outside the builder (crosswords' cells) keeps a read of its own.
@@ -336,15 +336,19 @@ the first instance; the next game's blob starts from it.
      plpgsql has no block scoping to lean on — each pinned in pgTAP, so
      `select shell from common.games` shows the page what it gets. (Done
      2026-10-02.)
-  3. **`useCommonGame` on the shell.** It reads `shell` and `playarea` off
-     `common.games` and nothing else from that table; subscribes to the row;
-     reads and ticks the timer exactly as today (`common.timers` is
-     untouched); returns `cg` (the shell blob, `me`, the playarea blob opaque)
-     with pause, timer and `sendSuspend` beside it. The gate reads the seat off
-     the shell. `manifest` leaves `PlayAreaLoaderProps`. The two pass-through
-     views wait until the change message's size matters; reading the columns
-     directly changes nothing above them. psychicnum's page mounts on this and
-     fails at its hook, which is the signal to go on.
+  3. **`useCommonGame` on the shell** (done 2026-10-02). It reads `shell` and
+     `playarea` off `common.games` and nothing else from that table;
+     subscribes to the row alone; reads and ticks the timer exactly as before
+     (`common.timers` is untouched); returns `cg` (the shell blob plus `me`),
+     `playarea` (opaque, beside `cg` rather than inside it, since the shell is
+     what the page reads and nothing more), and pause, timer and `sendSuspend`
+     beside them. The gate reads the seat off the shell in one read. A null
+     shell is a named failure (PN511), not a missing game. `manifest` leaves
+     `PlayAreaLoaderProps`. The turn bell moved into `useTurnStartFlash`, so
+     the page reads nothing about the turn. The two pass-through views wait
+     until the change message's size matters; reading the columns directly
+     changes nothing above them. psychicnum's page mounts on this and fails at
+     its hook, which is the signal to go on.
   4. **psychicnum's playarea.** Its `_write_statuses` writes `playarea` and
      `clubpage` on top of the common player fields, in named pieces
      (`_make_json_board` and the like), each pinned in pgTAP; a

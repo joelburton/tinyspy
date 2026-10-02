@@ -1,6 +1,7 @@
 // cs-blessed-pause-suspend
 
-import type { GamePlayer, Member } from '../members/member'
+import type { Member } from '../members/member'
+import type { ShellPlayer } from '../game-page/shell'
 
 /**
  * Answers "is this game paused because somebody is missing?" — the presence
@@ -30,7 +31,7 @@ export function computePause(presentUserIds: Set<string>, players: Member[]): bo
 /** The game page's pause, worked out: who it waits for, who paused it by
  *  hand, and whether it is paused. */
 export type GamePauseState = {
-  stillPlayingHumanPlayers: GamePlayer[]
+  stillPlayingHumanPlayers: ShellPlayer[]
   manuallyPausedBy: Member | null
   paused: boolean
 }
@@ -62,33 +63,35 @@ export function computeGamePause({
   players,
   presentUserIds,
   manuallyPausedById,
-  isGameEnded,
+  ended,
 }: {
-  players: GamePlayer[]
+  players: ShellPlayer[]
   presentUserIds: Set<string>
   manuallyPausedById: string | null
-  isGameEnded: boolean
+  // The game has ended.
+  ended: boolean
 }): GamePauseState {
-  const stillPlayingHumanPlayers = players.filter(
-    (p) => p.player_ended_at === null && !p.ai_member,
-  )
+  const stillPlayingHumanPlayers = players.filter((p) => p.stillPlaying && !p.ai)
   const manuallyPausedBy: Member | null = manuallyPausedById === null
     ? null
     : players.find((m) => m.id === manuallyPausedById)
       ?? { id: manuallyPausedById, username: 'Someone', color: '' }
   const presencePaused = computePause(presentUserIds, stillPlayingHumanPlayers)
-  const paused = (presencePaused || manuallyPausedBy !== null) && !isGameEnded
+  const paused = (presencePaused || manuallyPausedBy !== null) && !ended
   return { stillPlayingHumanPlayers, manuallyPausedBy, paused }
 }
 
-/** Whether the game is paused, and the controls: what the header's Pause
- *  button and the pause overlay draw from. How it is worked out is
- *  `computeGamePause`'s. */
+/** Whether the game is paused, who it waits for, and the controls: what the
+ *  header's Pause button and the pause overlay draw from. How it is worked out
+ *  is `computeGamePause`'s. */
 export type GamePause = {
   // Somebody the game waits for is away, or somebody clicked Pause.
   paused: boolean
   // Who is connected to the game right now.
   presentUserIds: Set<string>
+  // The human players who haven't ended: who the pause waits for, and whom
+  // the overlay draws a dot for.
+  stillPlayingHumanPlayers: ShellPlayer[]
   // Who clicked Pause; null when nobody did.
   manuallyPausedBy: Member | null
   // Pause and resume for every peer, this tab included.

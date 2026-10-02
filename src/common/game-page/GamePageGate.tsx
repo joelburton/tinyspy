@@ -15,6 +15,7 @@ import { showToast } from '../toasts/toastStore'
 import { GamePageLoader } from './GamePageLoader'
 import { NoSuchGamePage } from './NoSuchGamePage'
 import { reloadIfStaleBuild } from '../boot/reloadOnStaleBuild'
+import { noShellEnvelope, type Shell } from './shell'
 
 type Props = {
   // The gametype EXACTLY as the URL spelled it. Matched case-insensitively but
@@ -46,7 +47,7 @@ const isGameId = (s: string) =>
  * game the user has no seat in, and a read that failed are five different
  * answers and they belong together.
  *
- * Two cheap reads and NOTHING below mounts until they say yes. **That gate is
+ * One cheap read and NOTHING below mounts until it says yes. **That gate is
  * the reason the route is three components and not two**: `useCommonGame`
  * cannot be called conditionally, and calling it does far more than fetch —
  * it joins the realtime channel, tracks presence and asserts
@@ -178,17 +179,13 @@ function useCanOpenGame(gameId: string, myId: string): CanOpenAnswer {
     let mounted = true
 
     async function readAndAnswer() {
-      // The seat is its own read rather than an embed, so the two answers stay
-      // apart: a game that is gone and a game I am not in look alike in a join.
-      const [gameRes, seatRes] = await Promise.all([
-        readRows(commonDb.from('games').select('id, club_handle').eq('id', gameId)),
-        readRows(
-          commonDb.from('game_players').select('user_id')
-            .eq('game_id', gameId).eq('user_id', myId),
-        ),
-      ])
+      // The seat is read off the shell's roster, which the game's builder
+      // writes (supabase/sql/common.sql → The page blobs' common parts).
+      const gameRes = await readRows(
+        commonDb.from('games').select('id, club_handle, shell').eq('id', gameId),
+      )
       if (!mounted) return
-      setAnswer({ id: gameId, canOpen: answerFrom(gameRes, seatRes) })
+      setAnswer({ id: gameId, canOpen: answerFrom(gameId, myId, gameRes) })
     }
 
     void readAndAnswer()
@@ -200,18 +197,21 @@ function useCanOpenGame(gameId: string, myId: string): CanOpenAnswer {
   return answer?.id === gameId ? answer.canOpen : CHECKING
 }
 
-/** The answer the two reads add up to. Five-way on purpose: collapsing a
- *  FAILED read into "no such game" would tell a player their game is gone
- *  because the network blinked — the confident wrong answer this whole area
- *  exists to stop. */
+/** The answer the read adds up to. Five-way on purpose: collapsing a FAILED
+ *  read into "no such game" would tell a player their game is gone because the
+ *  network blinked — the confident wrong answer this whole area exists to stop.
+ *  A game with no shell yet is a failure too, named as such, rather than a
+ *  seat nobody holds. */
 function answerFrom(
-  gameRes: Envelope<{ id: string; club_handle: string }[]>,
-  seatRes: Envelope<{ user_id: string }[]>,
+  gameId: string,
+  myId: string,
+  gameRes: Envelope<{ id: string; club_handle: string; shell: unknown }[]>,
 ): CanOpenAnswer {
   if (gameRes.type === 'not-ok') return { kind: 'failed', failure: gameRes }
-  if (seatRes.type === 'not-ok') return { kind: 'failed', failure: seatRes }
   const game = gameRes.data[0]
   if (!game) return { kind: 'no-such-game' }
-  if (seatRes.data.length === 0) return { kind: 'not-seated', clubHandle: game.club_handle }
+  if (game.shell === null) return { kind: 'failed', failure: noShellEnvelope(gameId) }
+  const seated = (game.shell as Shell).players.some((p) => p.id === myId)
+  if (!seated) return { kind: 'not-seated', clubHandle: game.club_handle }
   return { kind: 'seated' }
 }

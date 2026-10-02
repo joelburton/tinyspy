@@ -3,8 +3,7 @@
 import type { Session } from '@supabase/supabase-js'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import type { MenuApi } from '../menu/menuModel'
-import type { GameManifest } from '../manifest/gameManifest'
-import type { CommonGame } from './useCommonGame'
+import type { CommonGame } from './shell'
 
 /**
  * What a game is HANDED while it is being played — the values `<GamePage>`
@@ -24,10 +23,12 @@ import type { CommonGame } from './useCommonGame'
  * game and playing one are different moments with different audiences.
  */
 export type PlayAreaLoaderProps = {
-  // The game, as the page has it.
+  // The game, as the page has it: the shell, plus me.
   cg: CommonGame
-  // This game's manifest.
-  manifest: GameManifest
+  // The game's playarea blob, as its status builder wrote it
+  // (plans/seat-view.md → The page is written, not assembled). The game's
+  // `useGame` reads it as its own type; null until the builder has written one.
+  playarea: unknown
   // The signed-in user: `auth.user.id`. Their player is `cg.me`.
   auth: Session
   // How many times the page's channel has joined (reconnects included) or

@@ -28,16 +28,16 @@ click, and jsdom implements no media. It hands back a `stop`, which the jingle
 uses when its dialog is dismissed early. Adding a sound is a file in
 `public/audio/` and a line in `SOUND_FILES`.
 
-**The bell's moment is the turn's arrival**, read from
-`board-marks/useTurnArrival` — the same count the yellow `useTurnStartFlash`
-frame reads, so the two land together. `useTurnBell` rings on each new
-arrival, never on mount, and preloads the file so the first ring is not late.
+**The bell's moment is the turn's arrival**, and it is rung by
+`board-marks/useTurnStartFlash`, the same hook that puts the yellow frame
+around the board: one `useTurnArrival` count, two effects, so the sound and
+the frame cannot mark different moments. It rings on each new arrival, never
+on mount, and preloads the file so the first ring is not late.
 
-**`GamePage` calls `useTurnBell` once**, with the common turn pointer
-(`common.games.current_turn_user_id`, moved by `common._advance_turn`), so
-every game on that pointer rings with no game code. It passes
-`isTurnBased && isMyTurn`, so a finished game never rings, and neither does a
-free-for-all restarting.
+**Each game calls that hook once**, from its PlayArea, with whether the turn is
+mine (`gd.me.onTurn`). A finished game passes false, which is a falling edge
+and never rings; a free-for-all game's value never rises, so it never rings
+either.
 
 **The setting is written by `common.update_profile`** from the Edit profile
 dialog, and defaults to on for every account (`account/doc.md`).

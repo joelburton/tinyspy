@@ -4,9 +4,9 @@ import { useState } from 'react'
 
 /**
  * How many times the turn has ARRIVED — become mine — since this component
- * mounted. Each arrival bumps the count, so a consumer keys on it: the yellow
- * frame (`useTurnStartFlash`) and the bell (`sounds/useTurnBell`) mark the
- * same moment because they read the same number.
+ * mounted. Each arrival bumps the count, so a consumer keys on it:
+ * `useTurnStartFlash` reads it for both the yellow frame and the bell, which is
+ * what makes them mark the same moment.
  *
  * Two rules:
  *
@@ -16,8 +16,8 @@ import { useState } from 'react'
  *      coming back is a fresh arrival.
  *
  * In a free-for-all game `myTurn` is true for as long as I'm playing, so the
- * count stays 0 — a restart remounts the play surface, and `GamePage`'s bell
- * passes false for a game with no turn order.
+ * count stays 0 — a restart remounts the play surface, so the count starts
+ * over at 0 rather than seeing a rise.
  * A caller that must not mark an arrival in some state — a finished game —
  * passes `false` for it, which is a falling edge rather than an arrival.
  *

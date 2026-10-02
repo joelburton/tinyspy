@@ -1,11 +1,20 @@
 // cs-blessed-board-marks
 
+/**
+ * The frame and the bell mark the turn's arrival and no other moment.
+ * `playSound` is mocked: whether a ring is AUDIBLE is its business, pinned in
+ * its own test.
+ */
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { YOUR_TURN_FLASH_MS } from './feedbackTiming'
+
+const { mockPlay } = vi.hoisted(() => ({ mockPlay: vi.fn(() => () => {}) }))
+vi.mock('../sounds/playSound', () => ({ playSound: mockPlay, preloadSound: vi.fn() }))
+
 import { useTurnStartFlash } from './useTurnStartFlash'
 
-describe('useTurnStartFlash', () => {
+describe('useTurnStartFlash — the frame', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
@@ -97,5 +106,41 @@ describe('useTurnStartFlash', () => {
     rerender({ mine: true })
     unmount()
     expect(() => act(() => vi.advanceTimersByTime(YOUR_TURN_FLASH_MS))).not.toThrow()
+  })
+})
+
+describe('useTurnStartFlash — the bell', () => {
+  beforeEach(() => mockPlay.mockClear())
+
+  it('does not ring on mount, even when it is already my turn', () => {
+    renderHook(() => useTurnStartFlash(true))
+    expect(mockPlay).not.toHaveBeenCalled()
+  })
+
+  it('rings once when the turn becomes mine, and again on the next arrival', () => {
+    const { rerender } = renderHook(({ mine }) => useTurnStartFlash(mine), {
+      initialProps: { mine: false },
+    })
+    rerender({ mine: true })
+    expect(mockPlay).toHaveBeenCalledTimes(1)
+    expect(mockPlay).toHaveBeenCalledWith('bell')
+
+    rerender({ mine: true }) // still mine
+    rerender({ mine: false }) // leaving
+    expect(mockPlay).toHaveBeenCalledTimes(1)
+
+    rerender({ mine: true })
+    expect(mockPlay).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not ring when the value is only becoming known', () => {
+    // A game whose rows are still loading passes null; the first known value
+    // seeds the detector without counting, so a page that opens on my turn
+    // stays quiet.
+    const { rerender } = renderHook(({ mine }) => useTurnStartFlash(mine), {
+      initialProps: { mine: null as boolean | null },
+    })
+    rerender({ mine: true })
+    expect(mockPlay).not.toHaveBeenCalled()
   })
 })

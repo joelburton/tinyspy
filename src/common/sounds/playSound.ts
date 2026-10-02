@@ -4,7 +4,7 @@ import { getMyProfile } from '../session/myProfileStore'
 
 /** Every sound the app plays, by name, and its file under `public/audio/`. */
 const SOUND_FILES = {
-  // The turn became yours (`useTurnBell`).
+  // The turn became yours (`board-marks/useTurnStartFlash`).
   bell: '/audio/bell.mp3',
   // A win (`CelebrationBlockingModal`).
   tada: '/audio/tada.mp3',

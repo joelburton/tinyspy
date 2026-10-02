@@ -47,13 +47,14 @@
   server decides it once, in `create_game` — from `setup.coop_style =
   'turns'` in the coop games that offer it, and always for codenamesduet and
   scrabble compete — but records it only as a side effect, the players'
-  `turn_seat`. `useCommonGame` works it out from that ("anyone has a seat"),
-  since the pointer can't say it: codenamesduet nulls `current_turn_user_id`
-  mid-game. A new migration adds `is_turn_based boolean not null default
-  false` and backfills it from the seats. One writer keeps the column and the
-  seats agreeing: `common._assign_turn_order` sets it as it seats, and scrabble
-  compete, which seats its players itself, goes through a common helper that
-  does the same. `useCommonGame` then reads the row's `is_turn_based`.
+  `turn_seat`. `common._is_turn_based` works it out from that ("anyone has a
+  seat") for the playarea blob's `turns`, since the pointer can't say it:
+  codenamesduet nulls `current_turn_user_id` mid-game. A new migration adds
+  `is_turn_based boolean not null default false` and backfills it from the
+  seats. One writer keeps the column and the seats agreeing:
+  `common._assign_turn_order` sets it as it seats, and scrabble compete, which
+  seats its players itself, goes through a common helper that does the same.
+  `_is_turn_based` then reads the column.
 
 ## Someday
 

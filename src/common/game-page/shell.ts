@@ -1,0 +1,58 @@
+// cs-unmet
+
+import type { Member } from '../members/member'
+import type { NotOkEnvelope } from '../supabase/envelope'
+import { faultEnvelope, OUR_BUG_TO_CODE_AND_TEXT } from '../supabase/dbEnvelope'
+
+/**
+ * The shell blob: what `common._write_shell` writes onto `common.games.shell`,
+ * the same shape for every gametype (supabase/sql/common.sql → The page blobs'
+ * common parts). It is everything `GamePage` shows about a game, and nothing
+ * more: the page never sees a seat, an outcome or whose turn it is. Those are
+ * the playarea's, which is the game's.
+ */
+export type Shell = {
+  id: string
+  gametype: string
+  club: { handle: string }
+  title: string
+  // How many times the game has been restarted; the play surface is keyed on
+  // it, so a restart mounts a fresh one.
+  restartCount: number
+  // The game has ended.
+  ended: boolean
+  // Everyone in the game, in seat order.
+  players: ShellPlayer[]
+}
+
+/** A player as the shell shows them: who they are, and whether the pause
+ *  still waits for them. */
+export type ShellPlayer = Member & {
+  // This seat is an AI opponent: it never opens a tab.
+  ai: boolean
+  // The game still wants moves from this player.
+  stillPlaying: boolean
+}
+
+/**
+ * **`cg`, the common game** — the shell, plus `me`: the signed-in user's own
+ * entry in `players`, the same object. Never null, because you must be seated
+ * to open a game and the gate has checked. Read-only: `useCommonGame` builds it
+ * and nothing else writes it.
+ */
+export type CommonGame = Shell & { me: ShellPlayer }
+
+/**
+ * The failure a read reports for a game whose shell is null: its builder has
+ * not written the page, so there is nothing to draw. Named rather than folded
+ * into "no such game", because the game is there and saying otherwise would
+ * be the confident wrong answer this area exists to stop.
+ */
+export function noShellEnvelope(gameId: string): NotOkEnvelope {
+  return faultEnvelope(
+    null,
+    OUR_BUG_TO_CODE_AND_TEXT.noShell.text,
+    `common.games.shell is null for ${gameId}: its status builder has not written it`,
+    OUR_BUG_TO_CODE_AND_TEXT.noShell.code,
+  )
+}

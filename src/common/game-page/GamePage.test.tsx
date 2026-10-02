@@ -18,17 +18,15 @@
 import { useEffect } from 'react'
 import { act, render, screen } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GameManifest } from '../manifest/gameManifest'
-import { setMyProfile } from '../session/myProfileStore'
-import type { Member } from '../members/member'
-import type { GameEnding } from '../terminal/gameEnding'
 import { type Action } from '../actions/useBindAction'
 import { getActions } from '../actions/actionsStore'
 import type { ActionId } from '../actions/registry'
 import { NEW_GAME_CONFIRM } from '../floating-panels/confirmations'
 import { suspendConfirm } from '../pause-suspend/suspendConfirm'
-import type { CommonGameRow, GameTurns, useCommonGame } from './useCommonGame'
+import type { useCommonGame } from './useCommonGame'
+import type { Shell, ShellPlayer } from './shell'
 
 const { mockUseCommonGame, mockNavigate, askConfirmation, mockManifestFor, mockShowToast, roster, seat } =
   vi.hoisted(() => ({
@@ -39,7 +37,7 @@ const { mockUseCommonGame, mockNavigate, askConfirmation, mockManifestFor, mockS
     mockShowToast: vi.fn(),
     // What the roster fetch answers; a test sets `failure` to fail it.
     roster: { members: [] as unknown[], failure: null as unknown },
-    // Whether the gate's seat read finds the signed-in user in the game.
+    // Whether the shell the gate reads seats the signed-in user.
     seat: { seated: true },
   }))
 
@@ -57,17 +55,15 @@ vi.mock('../routing/router', async (importOriginal) => ({
 vi.mock('../floating-panels/confirmationService', () => ({
   askConfirmation: (...args: unknown[]) => askConfirmation(...(args as [])),
 }))
-// The gate's two pre-flight reads: the game's row (one, always) and the
-// signed-in user's seat in it (one, unless a test clears `seat.seated`). The
-// builder is a thenable that takes any number of `.eq`s, as the real one does.
+// The gate's one pre-flight read: the game's row with its shell, whose roster
+// seats the signed-in user unless a test clears `seat.seated`. The builder is
+// a thenable that takes any number of `.eq`s, as the real one does.
 vi.mock('../supabase/db', () => ({
   db: {
-    from: (table: string) => ({
+    from: () => ({
       select: () => {
-        const rows =
-          table === 'games' ? [{ id: 'the-game', club_handle: 'moths' }]
-          : seat.seated ? [{ user_id: 'ada' }]
-          : []
+        const players = seat.seated ? [{ id: 'ada' }] : []
+        const rows = [{ id: 'the-game', club_handle: 'moths', shell: { players } }]
         const query = {
           eq: () => query,
           then: (resolve: (settled: unknown) => void) =>
@@ -89,14 +85,10 @@ vi.mock('../chat/ChatHost', () => ({ ChatHost: () => null }))
 
 import { GamePageGate } from './GamePageGate'
 
-/** The ending a stopped game carries, for the tests that need one. */
-const STOPPED: GameEnding = {
-  reason: 'stopped', reasonDetail: 'stopped', outcome: 'neutral', endedByUserId: 'ada',
-}
 const GAME_ID = '11111111-2222-3333-4444-555555555555'
 const GAMETYPE = 'psychicnum_coop'
-const ADA: Member = { id: 'ada', username: 'ada', color: 'red' }
-const BEA: Member = { id: 'bea', username: 'bea', color: 'blue' }
+const ADA: ShellPlayer = { id: 'ada', username: 'ada', color: 'red', ai: false, stillPlaying: true }
+const BEA: ShellPlayer = { id: 'bea', username: 'bea', color: 'blue', ai: false, stillPlaying: true }
 const authSession = { user: { id: 'ada' } } as unknown as Session
 
 const ENDED_OK = {
@@ -135,69 +127,50 @@ type CommonGameState = ReturnType<typeof useCommonGame>
 
 type Overrides = {
   paused?: boolean
-  players?: Member[]
-  game?: Partial<CommonGameRow> | null
+  players?: ShellPlayer[]
+  game?: Partial<Shell> | null
 }
 
 /** What the mocked `useCommonGame` answers: a loaded, playing, solo game by
  *  default. `game: null` is the row gone, which the loader turns into the "no
  *  such game" card rather than passing down. */
-function commonGameState({ paused = false, players = [ADA], game = {} }: Overrides = {}) {
-  const row: CommonGameRow | null =
+function commonGameState({ paused = false, players = [ADA], game = {} }: Overrides = {}): CommonGameState {
+  const shell: Shell | null =
     game === null
       ? null
       : {
           id: GAME_ID,
-          club_handle: 'moths',
           gametype: 'psychicnum_coop',
-          mode: 'coop',
+          club: { handle: 'moths' },
           title: 'Secrets',
-          setup: {},
-          is_current_view: true,
-          gameEnding: null,
-          restart_count: 0,
-          game_status: {},
-          updated_at: '2026-09-10T00:00:00Z',
-          started_at: '2026-09-10T00:00:00Z',
-          ended_at: null,
-          current_turn_user_id: null,
+          restartCount: 0,
+          ended: false,
+          players,
           ...game,
         }
   return {
-    cg: row === null ? null : {
-      ...row,
-      isGameEnded: row.gameEnding !== null,
-      players,
+    // Ada's seat is her entry, as the hook finds it.
+    cg: shell === null ? null : { ...shell, me: shell.players[0]! },
+    playarea: null,
+    pause: {
+      paused,
+      presentUserIds: new Set(players.map((p) => p.id)),
       stillPlayingHumanPlayers: players,
-      pause: {
-        paused,
-        presentUserIds: new Set(players.map((p) => p.id)),
-        manuallyPausedBy: null,
-        sendManualPause: vi.fn(),
-        sendManualUnpause: vi.fn(),
-      },
-      sendSuspend: vi.fn(),
-      timer: { mode: { kind: 'none' }, displaySeconds: 0, expired: false },
-      turns: { isTurnBased: false, turnHolderId: null },
-      // Ada's seat, as far as the shell reads it.
-      me: { ...players[0], isOnTurn: true },
+      manuallyPausedBy: null,
+      sendManualPause: vi.fn(),
+      sendManualUnpause: vi.fn(),
     },
+    timer: { mode: { kind: 'none' }, displaySeconds: 0, expired: false },
+    sendSuspend: vi.fn(),
     resubscribeCount: 0,
-    // `loading` false with a null row is the shape `GamePageLoader` shows "no
+    // `loading` false with a null shell is the shape `GamePageLoader` shows "no
     // such game" for. The page below it never sees that combination.
     loading: false,
     failure: null,
-  } as unknown as CommonGameState
+  }
 }
 
-/** The same state with the turns and my turn set, as a turn-order refetch
- *  would hand them. */
-function withTurns(state: CommonGameState, turns: GameTurns, isOnTurn: boolean): CommonGameState {
-  const cg = state.cg!
-  return { ...state, cg: { ...cg, turns, me: { ...cg.me, isOnTurn } } }
-}
-
-const over: Overrides = { game: { ended_at: '2026-09-10T01:00:00Z', gameEnding: STOPPED } }
+const over: Overrides = { game: { ended: true } }
 
 /** Mount the whole route — gate, loader, page — over the pre-flight read;
  *  resolves once the play surface is up (or the pause overlay, when paused). */
@@ -243,7 +216,7 @@ describe('GamePage — mounting', () => {
     // Reachable from inside a game: the invitation toast is mounted in App, so
     // `join` navigates /g/<type>/A → /g/<type>/B, which changes this route's
     // params without unmounting it. The gate is what has to notice, because
-    // GamePage keys the surface on `restart_count` — right for a restart,
+    // GamePage keys the surface on `restartCount` — right for a restart,
     // silent about a different game — and a game's own useGame hook refetches
     // on `gameId` without clearing what it already holds. So without the gate
     // going back to 'checking', the player reads game A's board under B's URL.
@@ -270,9 +243,10 @@ describe('GamePage — mounting', () => {
 
   it('sends a member with no seat in the game back to the club, and says why', async () => {
     // There is no spectating: a club member can read the game's rows, but only
-    // a player opens its page. Nothing of the game mounts first — the loader
-    // joins the room and asserts the current view, and a watcher must do
-    // neither — and the navigation REPLACES, so Back does not bounce them in again.
+    // a player opens its page. The seat is read off the shell's roster. Nothing
+    // of the game mounts first — the loader joins the room and asserts the
+    // current view, and a watcher must do neither — and the navigation
+    // REPLACES, so Back does not bounce them in again.
     seat.seated = false
     await mount()
     expect(screen.queryByText('play')).toBeNull()
@@ -326,14 +300,14 @@ describe('act-stop-game, bound for the pause overlay', () => {
     const { view } = await mount(commonGameState(), makeManifest({ PlayArea: Counting }))
     expect(mounts).toBe(1)
 
-    // A row arriving with the same run does NOT remount it — only the run
+    // A shell arriving with the same run does NOT remount it — only the run
     // changing does, or every refetch would throw the board away.
     mockUseCommonGame.mockReturnValue(commonGameState({ game: { title: 'Secrets II' } }))
     view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} auth={authSession} />)
     await act(async () => { await Promise.resolve() })
     expect(mounts).toBe(1)
 
-    mockUseCommonGame.mockReturnValue(commonGameState({ game: { restart_count: 1 } }))
+    mockUseCommonGame.mockReturnValue(commonGameState({ game: { restartCount: 1 } }))
     view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} auth={authSession} />)
     await act(async () => { await Promise.resolve() })
     expect(mounts).toBe(2)
@@ -363,8 +337,8 @@ describe('act-stop-game, bound for the pause overlay', () => {
 
 describe('act-new-game-from-setup', () => {
   // Active from the first render: `GamePageLoader` does not render the page
-  // without a row, and a row always carries its club, so there is no beat where
-  // the handle is still unknown.
+  // without a shell, and a shell always carries its club, so there is no beat
+  // where the handle is still unknown.
   it('is active on a loaded game', async () => {
     await mount()
     expect(getAction('act-new-game-from-setup').describe('button').state).toBe('active')
@@ -401,14 +375,14 @@ describe('act-back-to-club', () => {
     act(() => getAction('act-back-to-club').run())
     await flush()
     expect(mockNavigate).toHaveBeenCalledWith('/c/moths')
-    expect(state.cg!.sendSuspend).not.toHaveBeenCalled()
+    expect(state.sendSuspend).not.toHaveBeenCalled()
   })
 
   it('suspends at once mid-game in a SOLO game — nobody to surprise', async () => {
     const { state } = await mount()
     act(() => getAction('act-back-to-club').run())
     await flush()
-    expect(state.cg!.sendSuspend).toHaveBeenCalledTimes(1)
+    expect(state.sendSuspend).toHaveBeenCalledTimes(1)
     expect(mockNavigate).not.toHaveBeenCalled()
     expect(askConfirmation).not.toHaveBeenCalled()
   })
@@ -420,7 +394,7 @@ describe('act-back-to-club', () => {
     // The words name the game, so the question is built per title rather than
     // being a constant to compare against.
     expect(askConfirmation).toHaveBeenCalledWith(suspendConfirm('Secrets'))
-    expect(state.cg!.sendSuspend).toHaveBeenCalledTimes(1)
+    expect(state.sendSuspend).toHaveBeenCalledTimes(1)
   })
 
   it('stays in the game when the suspend question is answered no', async () => {
@@ -428,88 +402,7 @@ describe('act-back-to-club', () => {
     const { state } = await mount(commonGameState({ players: [ADA, BEA] }))
     act(() => getAction('act-back-to-club').run())
     await flush()
-    expect(state.cg!.sendSuspend).not.toHaveBeenCalled()
+    expect(state.sendSuspend).not.toHaveBeenCalled()
     expect(mockNavigate).not.toHaveBeenCalled()
-  })
-
-})
-
-/**
- * The turn bell, rung by the shell for every game on the common turn pointer —
- * here a two-player psychicnum coop game in turn order, which needs no code of
- * its own to ring. `playSound` is left REAL and the audio element spied, so the
- * player's "Enable sounds" setting is exercised end to end.
- */
-describe('GamePage — the turn bell', () => {
-  const PROFILE = { username: 'ada', color: 'red', can_edit_words: false, sounds_enabled: true }
-  let play: ReturnType<typeof vi.spyOn>
-
-  beforeEach(() => {
-    play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
-    setMyProfile(PROFILE)
-  })
-  afterEach(() => {
-    play.mockRestore()
-    setMyProfile(null)
-  })
-
-  /** A turn-order game whose pointer names `holder` — the standing
-   *  `useCommonGame` would compute for ada. */
-  const turnState = (holder: string, game: Partial<CommonGameRow> = {}) => {
-    const isTerminal = (game.gameEnding ?? null) !== null
-    return withTurns(
-      commonGameState({ players: [ADA, BEA], game: { current_turn_user_id: holder, ...game } }),
-      { isTurnBased: true, turnHolderId: holder },
-      !isTerminal && holder === 'ada',
-    )
-  }
-
-  /** Hand the page a new common row, as a realtime refetch would. */
-  function moveTo(view: Awaited<ReturnType<typeof mount>>['view'], next: CommonGameState) {
-    mockUseCommonGame.mockReturnValue(next)
-    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} auth={authSession} />)
-  }
-
-  it('rings once when the turn passes to me', async () => {
-    const { view } = await mount(turnState('bea'))
-    expect(play).not.toHaveBeenCalled()
-
-    moveTo(view, turnState('ada'))
-    expect(play).toHaveBeenCalledTimes(1)
-
-    moveTo(view, turnState('ada')) // a refetch that keeps it mine
-    expect(play).toHaveBeenCalledTimes(1)
-  })
-
-  it('does not ring when I open a game that is already my turn', async () => {
-    await mount(turnState('ada'))
-    expect(play).not.toHaveBeenCalled()
-  })
-
-  it('does not ring for a turn arriving in a finished game', async () => {
-    const { view } = await mount(turnState('bea'))
-    moveTo(view, turnState('ada', { ended_at: '2026-09-10T01:00:00Z', gameEnding: STOPPED }))
-    expect(play).not.toHaveBeenCalled()
-  })
-
-  it('does not ring when a game with no turn order is restarted', async () => {
-    // Every move is mine in a free-for-all game, so restarting a finished one
-    // makes `isMyTurn` rise — but no turn arrived.
-    const ended = { ended_at: '2026-09-10T01:00:00Z', gameEnding: STOPPED }
-    const noTurns = { isTurnBased: false, turnHolderId: null }
-    const { view } = await mount(
-      withTurns(commonGameState({ players: [ADA, BEA], game: ended }), noTurns, false),
-    )
-    moveTo(view, withTurns(
-      commonGameState({ players: [ADA, BEA], game: { restart_count: 1 } }), noTurns, true,
-    ))
-    expect(play).not.toHaveBeenCalled()
-  })
-
-  it('does not ring when I have turned sounds off', async () => {
-    setMyProfile({ ...PROFILE, sounds_enabled: false })
-    const { view } = await mount(turnState('bea'))
-    moveTo(view, turnState('ada'))
-    expect(play).not.toHaveBeenCalled()
   })
 })

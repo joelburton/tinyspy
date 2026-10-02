@@ -681,6 +681,7 @@ export type Database = {
       games: {
         Row: {
           club_handle: string
+          clubpage: Json | null
           clubpage_info: Json
           created_by: string | null
           current_turn_user_id: string | null
@@ -694,8 +695,10 @@ export type Database = {
           id: string
           is_current_view: boolean
           mode: string
+          playarea: Json | null
           restart_count: number
           setup: Json
+          shell: Json | null
           started_at: string
           status_changed_at: string
           title: string
@@ -703,6 +706,7 @@ export type Database = {
         }
         Insert: {
           club_handle: string
+          clubpage?: Json | null
           clubpage_info?: Json
           created_by?: string | null
           current_turn_user_id?: string | null
@@ -716,8 +720,10 @@ export type Database = {
           id?: string
           is_current_view?: boolean
           mode: string
+          playarea?: Json | null
           restart_count?: number
           setup: Json
+          shell?: Json | null
           started_at?: string
           status_changed_at?: string
           title: string
@@ -725,6 +731,7 @@ export type Database = {
         }
         Update: {
           club_handle?: string
+          clubpage?: Json | null
           clubpage_info?: Json
           created_by?: string | null
           current_turn_user_id?: string | null
@@ -738,8 +745,10 @@ export type Database = {
           id?: string
           is_current_view?: boolean
           mode?: string
+          playarea?: Json | null
           restart_count?: number
           setup?: Json
+          shell?: Json | null
           started_at?: string
           status_changed_at?: string
           title?: string
@@ -785,19 +794,25 @@ export type Database = {
       }
       gametypes: {
         Row: {
+          brand: string
           default_enroll: boolean
           gametype: string
           min_players: number
+          one_board: boolean
         }
         Insert: {
+          brand: string
           default_enroll?: boolean
           gametype: string
           min_players?: number
+          one_board: boolean
         }
         Update: {
+          brand?: string
           default_enroll?: boolean
           gametype?: string
           min_players?: number
+          one_board?: boolean
         }
         Relationships: []
       }

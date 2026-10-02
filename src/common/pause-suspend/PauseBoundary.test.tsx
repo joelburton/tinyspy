@@ -53,6 +53,7 @@ function pauseOf(over: Partial<GamePause> = {}): GamePause {
   return {
     paused: true,
     presentUserIds: NONE_PRESENT,
+    stillPlayingHumanPlayers: [],
     manuallyPausedBy: null,
     sendManualPause: vi.fn(),
     sendManualUnpause: vi.fn(),

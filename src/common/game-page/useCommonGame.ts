@@ -1,60 +1,37 @@
 // cs-blessed-game-page
 
 /*
- * What this hook returns, as built today.
+ * What this hook returns.
  *
- * useCommonGame(gameId, auth, manifest):
- *   cg                                    # null while loading, after a failed read, or when the game is gone
+ * useCommonGame(gameId, auth):
+ *   cg                                    # the shell, plus me; null while loading, after a failed read, or when the game is gone
+ *   playarea                              # the game's playarea blob, opaque here; null until the game's builder has written it
+ *   pause: {paused, presentUserIds, stillPlayingHumanPlayers, manuallyPausedBy, sendManualPause, sendManualUnpause}
+ *   timer:
+ *     mode: {kind, seconds}               # seconds only for a countdown
+ *     displaySeconds
+ *     expired
+ *   sendSuspend
  *   resubscribeCount
  *   loading
  *   failure                               # null unless a read failed
  *
  * cg:
  *   id
- *   club_handle
  *   gametype
- *   mode
+ *   club: {handle}
  *   title
- *   setup
- *   is_current_view
- *   gameEnding: {reason, reasonDetail, outcome, endedByUserId}   # null while playing
- *   isGameEnded
- *   restart_count
- *   game_status
- *   updated_at
- *   started_at
- *   ended_at
- *   current_turn_user_id
- *   players: [player, …]
+ *   restartCount
+ *   ended
+ *   players: [player, …]                  # seat order
  *   me                                    # same object as my entry in players
- *   stillPlayingHumanPlayers              # who the pause waits for
- *   pause: {paused, presentUserIds, manuallyPausedBy, sendManualPause, sendManualUnpause}
- *   sendSuspend
- *   timer:
- *     mode: {kind, seconds}               # seconds only for a countdown
- *     displaySeconds
- *     expired
- *   turns: {isTurnBased, turnHolderId}
  *
  * player:
  *   id
  *   username
  *   color
- *   player_ended_at
- *   player_ended_reason
- *   player_ended_reason_detail
- *   final_ranking
- *   outcome
- *   solved_at
- *   player_status
- *   ai_member
- *   isConceded
- *   isLocallyTerminal
- *   isStillPlaying
- *   isOnTurn
- *   isWaitingForTurn
- *   isBoardInteractive
- *   hasSolved
+ *   ai
+ *   stillPlaying
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -71,92 +48,28 @@ import { rtLog } from '../realtime/realtimeDiag'
 import { computeGamePause, type GamePause } from '../pause-suspend/pause'
 import { useManualPause, type ManualPauseEvent } from '../pause-suspend/useManualPause'
 import type { SuspendEvent } from '../pause-suspend/sendSuspendBeforeDelete'
-import type { GameManifest, TimerMode } from '../manifest/gameManifest'
-import type { GamePlayer, GamePlayerRow } from '../members/member'
+import type { TimerMode } from '../manifest/gameManifest'
 import { useGameTimer } from '../timer/useGameTimer'
 import { reportUnhandled } from '../supabase/dbEnvelope'
-import { computePlayerStanding } from './playerStanding'
-import type { GameEnding } from '../terminal/gameEnding'
-import { readGameEnding } from '../terminal/readGameEnding'
-
-/** The game's `common.games` row, as the page reads it: its columns, with the
- *  ending assembled from its own. */
-export type CommonGameRow = {
-  id: string
-  club_handle: string
-  gametype: string
-  mode: 'coop' | 'compete'
-  title: string
-  // The setup form's record, frozen at create.
-  setup: Record<string, unknown>
-  // This game is the club's current view (docs/states.md).
-  is_current_view: boolean
-  // How the game ended; null while it is played.
-  gameEnding: GameEnding | null
-  // How many times the game has been restarted.
-  restart_count: number
-  // The game's copy of what the info column shows.
-  game_status: Record<string, unknown>
-  updated_at: string
-  started_at: string
-  ended_at: string | null
-  // Whose turn it is; null when nobody's.
-  current_turn_user_id: string | null
-}
-
-
-/** Whether the game takes turns, and whose turn it is. */
-export type GameTurns = {
-  // The players were seated in a turn order.
-  isTurnBased: boolean
-  // Whose turn it is, as stored; it outlives the end.
-  turnHolderId: string | null
-}
+import { noShellEnvelope, type CommonGame, type Shell } from './shell'
 
 /**
- * **`cg`, the common game** — everything the page knows about THIS game, and
- * what it can do to it, grouped by meaning: the `common.games` row's fields,
- * the roster with where each player stands, me, the turns, the pause and the
- * clock. Where each came from (the row, `common.game_players`, presence, the
- * timer) is `useCommonGame`'s business, never the reader's. Read-only: the
- * hook builds it and nothing else writes it.
- */
-export type CommonGame = CommonGameRow & {
-  // The game has ended: it has a `gameEnding`.
-  isGameEnded: boolean
-  // Everyone in the game, each with where they stand.
-  players: GamePlayer[]
-  // My player: the same object as my entry in `players`. Never null — you
-  // must be seated to open a game, and the gate has checked.
-  me: GamePlayer
-  // The human players who haven't ended: who the pause waits for.
-  stillPlayingHumanPlayers: GamePlayer[]
-  // Whether the game is paused, and the controls.
-  pause: GamePause
-  // Shelve the game and send every peer, this tab included, to the club page.
-  sendSuspend: () => void
-  // The game clock: its kind (and a countdown's length), the seconds to show,
-  // and whether a countdown has run out.
-  timer: { mode: TimerMode; displaySeconds: number; expired: boolean }
-  // Whether the game takes turns, and whose turn it is.
-  turns: GameTurns
-}
-
-/**
- * Everything a game page needs that isn't the game: the common.games row and
- * its roster, the shared room every peer meets on, presence, pause, suspend and
- * the clock. Call it once per page, at the top; a game's own `useGame` hook
- * handles the per-gametype rows on a channel of its own.
+ * Everything a game page needs that isn't the game: the shell (`cg`), the
+ * game's own page blob to hand down, the shared room every peer meets on,
+ * presence, pause, suspend and the clock. Call it once per page, at the top.
+ *
+ * The page is written, not assembled (plans/seat-view.md → The page is written,
+ * not assembled): one read of `common.games` brings the `shell` and `playarea`
+ * blobs each game's status builder wrote, and the hook reads no other column
+ * of that table. The shell is what the page shows; the playarea is the game's,
+ * handed down opaque. A game's `useGame` is a pure function of it.
  *
  * The room is a Realtime channel named `game:${gameId}` — stable, because
  * presence and broadcast only reach peers sharing a channel NAME, and because
  * the last peer to leave it is who clears the club's current-view pointer.
  * doc.md argues why that name can never take a per-tab suffix.
  *
- * It also says where every player stands — the standing terms
- * (docs/win-lose.md → Where a player stands), computed once here per seat so
- * no game recomputes them; `isBoardInteractive` reads the manifest's
- * `draftsOffTurn`. `auth` is the signed-in user, whose seat is `cg.me`.
+ * `auth` is the signed-in user, whose player is `cg.me`.
  *
  * Every field of the returned object is documented on the return type below.
  * Nothing here half-runs: the hook joins the channel and asserts
@@ -166,10 +79,20 @@ export type CommonGame = CommonGameRow & {
 export function useCommonGame(
   gameId: string,
   auth: Session,
-  manifest: GameManifest,
 ): {
-  // The game; null while loading, when a read failed, or when it is gone.
+  // The shell, plus me; null while loading, when a read failed, or when the
+  // game is gone.
   cg: CommonGame | null
+  // The game's playarea blob, as its builder wrote it. Opaque to the page;
+  // null until the game's builder has written one.
+  playarea: unknown
+  // Whether the game is paused, who it waits for, and the controls.
+  pause: GamePause
+  // The game clock: its kind (and a countdown's length), the seconds to show,
+  // and whether a countdown has run out.
+  timer: { mode: TimerMode; displaySeconds: number; expired: boolean }
+  // Shelve the game and send every peer, this tab included, to the club page.
+  sendSuspend: () => void
   // Counts the channel's joins and attach confirmations; see
   // `PlayAreaLoaderProps.resubscribeCount`.
   resubscribeCount: number
@@ -217,14 +140,13 @@ export function useCommonGame(
       if (!mounted || myGen !== generation) return
 
       if (read.kind === 'loaded') {
-        // What this load saw, timestamped — the moment a lost event shows up
-        // as "the last refetch saw a game still in progress".
+        // What this load saw — the moment a lost event shows up as "the last
+        // refetch saw a game still in progress".
         rtLog(
           `game:${gameId}`,
-          `load #${myGen}: ended_at=${read.row.ended_at}` +
-            ` updated_at=${read.row.updated_at} players=${read.players.length}`,
+          `load #${myGen}: ended=${read.shell.ended} players=${read.shell.players.length}`,
         )
-        clubHandleRef.current = read.row.club_handle
+        clubHandleRef.current = read.shell.club.handle
       }
       setLastRead(read)
     }
@@ -240,8 +162,9 @@ export function useCommonGame(
       if (canceled) return
       const ch = supabase.channel(room)
 
-      // Every move writes the row, so this is how the page — and, through
-      // `updated_at`, each game's own hook — hears of every move and the end.
+      // Every move rewrites the row's blobs, so this is how the page — and the
+      // game, through the playarea it is handed — hears of every move and the
+      // end.
       ch.on(
         'postgres_changes',
         {
@@ -249,18 +172,6 @@ export function useCommonGame(
           schema: 'common',
           table: 'games',
           filter: `id=eq.${gameId}`,
-        },
-        load,
-      )
-
-      // A write to the roster alone (a player's ending, ranking, status).
-      ch.on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'common',
-          table: 'game_players',
-          filter: `game_id=eq.${gameId}`,
         },
         load,
       )
@@ -355,63 +266,38 @@ export function useCommonGame(
 
   // The newest read, taken apart. A failed or gone read leaves the game null.
   const loaded = lastRead?.kind === 'loaded' ? lastRead : null
-  const row = loaded?.row ?? null
-  const isGameEnded = (row?.gameEnding ?? null) !== null
-  const isTurnBased = loaded?.isTurnBased ?? false
-  const turnHolderId = row?.current_turn_user_id ?? null
+  const shell = loaded?.shell ?? null
+  const ended = shell?.ended ?? false
 
-  // Each row with where that player stands: the same comparison for every
-  // seat, so no component asks it of the pointer itself.
-  const players: GamePlayer[] = (loaded?.players ?? []).map(function addStanding(p) {
-    return {
-      ...p,
-      ...computePlayerStanding(p, {
-        isGameEnded,
-        isTurnBased,
-        turnHolderId,
-        draftsOffTurn: manifest.draftsOffTurn,
-      }),
-    }
-  })
-
-  const { stillPlayingHumanPlayers, manuallyPausedBy, paused } = computeGamePause({
-    players,
+  const pauseState = computeGamePause({
+    players: shell?.players ?? [],
     presentUserIds,
     manuallyPausedById,
-    isGameEnded,
+    ended,
   })
 
   // Idle until the game loads, and stopped once it ends.
   const timer = useGameTimer({
     gameId,
-    paused,
+    paused: pauseState.paused,
     mode: loaded?.timerMode ?? { kind: 'none' },
-    running: row !== null && !isGameEnded,
+    running: shell !== null && !ended,
   })
 
-  const cg: CommonGame | null = loaded === null
+  const cg: CommonGame | null = shell === null
     ? null
     : {
-        ...loaded.row,
-        isGameEnded,
-        players,
+        ...shell,
         // The gate has checked that I am seated, so this cannot miss.
-        me: players.find((p) => p.id === auth.user.id)!,
-        stillPlayingHumanPlayers,
-        pause: {
-          paused,
-          presentUserIds,
-          manuallyPausedBy,
-          sendManualPause,
-          sendManualUnpause,
-        },
-        sendSuspend,
-        timer: { mode: loaded.timerMode, ...timer },
-        turns: { isTurnBased, turnHolderId },
+        me: shell.players.find((p) => p.id === auth.user.id)!,
       }
 
   return {
     cg,
+    playarea: loaded?.playarea ?? null,
+    pause: { ...pauseState, presentUserIds, sendManualPause, sendManualUnpause },
+    timer: { mode: loaded?.timerMode ?? { kind: 'none' }, ...timer },
+    sendSuspend,
     resubscribeCount,
     loading: lastRead === null,
     failure: lastRead?.kind === 'failed' ? lastRead.failure : null,
@@ -504,10 +390,9 @@ function releaseCurrentView(gameId: string): void {
 type CommonGameRead =
   | {
       kind: 'loaded'
-      row: CommonGameRow
+      shell: Shell
+      playarea: unknown
       timerMode: TimerMode
-      players: GamePlayerRow[]
-      isTurnBased: boolean
     }
   // Zero rows. Only a read that WORKED can say this, which is why
   // `GamePageLoader` may read it as the game being gone.
@@ -517,33 +402,14 @@ type CommonGameRead =
   | { kind: 'failed'; failure: NotOkEnvelope }
 
 /**
- * Read the game: its `common.games` row, its roster (`common.game_players`
- * merged with each player's profile) and its timer.
- *
- * The roster and its profiles are two reads rather than an embed, for explicit
- * column control. Nothing reads `clubs`: the row's `club_handle` IS the club's
- * handle.
+ * Read the game: its two page blobs off `common.games`, and its timer. A game
+ * whose builder has not written a shell yet fails the read, saying so.
  */
 async function readCommonGame(gameId: string): Promise<CommonGameRead> {
-  const [gameRes, playersRes, timerRes] = await Promise.all([
+  const [gameRes, timerRes] = await Promise.all([
     // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK, so
     // this is 0 or 1 of them.
-    readRows(
-      commonDb
-        .from('games')
-        .select(
-          'id, club_handle, gametype, mode, title, setup, is_current_view, restart_count, game_status, updated_at, started_at, ended_at, game_ended_reason, game_ended_reason_detail, game_ended_outcome, game_ended_by_user_id, current_turn_user_id',
-        )
-        .eq('id', gameId),
-    ),
-    readRows(
-      commonDb
-        .from('game_players')
-        .select(
-          'user_id, player_ended_at, player_ended_reason, player_ended_reason_detail, final_ranking, outcome, solved_at, player_status, turn_seat',
-        )
-        .eq('game_id', gameId),
-    ),
+    readRows(commonDb.from('games').select('shell, playarea').eq('id', gameId)),
     readRows(
       commonDb
         .from('timers')
@@ -554,64 +420,17 @@ async function readCommonGame(gameId: string): Promise<CommonGameRead> {
   // One check each rather than one combined test: WHICH read failed is the one
   // thing the player's sentence cannot say, and the envelope can.
   if (gameRes.type === 'not-ok') return { kind: 'failed', failure: gameRes }
-  if (playersRes.type === 'not-ok') return { kind: 'failed', failure: playersRes }
   if (timerRes.type === 'not-ok') return { kind: 'failed', failure: timerRes }
 
   const gameData = gameRes.data[0]
   if (!gameData) return { kind: 'gone' }
-  const playerRows = playersRes.data
-
-  let players: GamePlayerRow[] = []
-  const userIds = playerRows.map((r) => r.user_id)
-  if (userIds.length > 0) {
-    const profilesRes = await readRows(
-      commonDb
-        .from('profiles')
-        .select('user_id, username, color, ai_member')
-        .in('user_id', userIds),
-    )
-    if (profilesRes.type === 'not-ok') return { kind: 'failed', failure: profilesRes }
-    const rowById = new Map(playerRows.map((r) => [r.user_id, r]))
-    players = profilesRes.data.map(function mergeGamePlayerBits(prof) {
-      const gp = rowById.get(prof.user_id)
-      return {
-        id: prof.user_id,
-        username: prof.username,
-        color: prof.color,
-        player_ended_at: gp?.player_ended_at ?? null,
-        player_ended_reason:
-          (gp?.player_ended_reason as GamePlayer['player_ended_reason']) ?? null,
-        player_ended_reason_detail: gp?.player_ended_reason_detail ?? null,
-        final_ranking: gp?.final_ranking ?? null,
-        outcome: (gp?.outcome as GamePlayer['outcome']) ?? null,
-        solved_at: gp?.solved_at ?? null,
-        player_status: (gp?.player_status as GamePlayer['player_status']) ?? {},
-        ai_member: prof.ai_member,
-      }
-    })
-  }
+  if (gameData.shell === null) return { kind: 'failed', failure: noShellEnvelope(gameId) }
 
   return {
     kind: 'loaded',
-    row: {
-      id: gameData.id,
-      club_handle: gameData.club_handle,
-      gametype: gameData.gametype,
-      mode: gameData.mode as CommonGameRow['mode'],
-      title: gameData.title,
-      setup: gameData.setup as CommonGameRow['setup'],
-      is_current_view: gameData.is_current_view,
-      gameEnding: readGameEnding(gameData),
-      restart_count: gameData.restart_count,
-      game_status: gameData.game_status as CommonGameRow['game_status'],
-      updated_at: gameData.updated_at,
-      started_at: gameData.started_at,
-      ended_at: gameData.ended_at,
-      current_turn_user_id: gameData.current_turn_user_id,
-    },
+    shell: gameData.shell as Shell,
+    playarea: gameData.playarea,
     timerMode: timerModeOf(timerRes.data[0]),
-    players,
-    isTurnBased: playerRows.some((r) => r.turn_seat !== null),
   }
 }
 
