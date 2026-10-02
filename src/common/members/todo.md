@@ -34,12 +34,13 @@
   declaration's docstring needs the declaration in front of you. Recorded so
   the divergence reads as deliberate rather than as an oversight.
 
-- **Rename `GamePlayer` once every game has its own player type.** It is the
-  `common.game_players` row as the page reads it, and a converted game reads it
-  only in its `useGame`, where it builds its own (psychicnum's
-  `PsychicnumPlayer`). With no bare-`GamePlayer` reader left in a game, the
-  name should say it is common's: `CommonGamePlayer`, beside `CommonGame`, `CommonGameRow` and
-  `CommonGameListRow`.
+- **Rename `GamePlayer` to `Player` once every game has its own player type**
+  (Joel, 2026-10-02). It is the `common.game_players` row as the page reads it,
+  and a converted game reads it only in its `useGame`, where it builds its own
+  (`GPlayer`, in the game's `types.ts`). A game's types wear the `G`
+  (docs/code-conventions.md → A game's types), so a bare `Player` is known to
+  be common's by the absence of one; no `Common` prefix. The "Game" in the
+  current name wrongly suggests one game's.
 
 ## Maybe
 

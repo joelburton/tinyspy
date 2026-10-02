@@ -220,8 +220,8 @@ psychicnum's. What it settled beyond psychicnum:
   `useChangeCause`, `useSetupDialog`, `useSolutionReveal`, `useGameTimer`,
   `useCaptureKeys`, `useWordListFilter`, `useEventLogPlayerPicker`,
   `useShowEndingFeedback` and `useStandardGameActions`.
-- `GamePlayer` → `CommonGamePlayer` once every game converts
-  (`src/common/members/todo.md`).
+- `GamePlayer` → `Player` once every game converts: common's types are the
+  bare ones, a game's wear the `G` (`src/common/members/todo.md`).
 - A Stop drops a win that already stands (`src/common/terminal/todo.md`).
 - One `.d.ts` for CSS custom properties in `style` (`todo.md`).
 - Test-only attributes (`data-board`, `data-tile`) become `data-testid`, as
