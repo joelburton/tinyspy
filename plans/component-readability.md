@@ -43,7 +43,7 @@ the tile it draws). Each pass:
   on each player `board` (`tileResults`, `decidedBy`).
 - **Players:** `gd.players` (the list, seat order) and `gd.playersById` (the
   same objects), plus `gd.me`. The game's player type is `Member & { … }`
-  (psychicnum's `PsychicnumPlayer`), so it goes straight to shared pieces that
+  (psychicnum's `GPlayer`), so it goes straight to shared pieces that
   take `Member[]`. No `roster` beside `gd`; no alias like `Player = Member`.
 - **Don't destructure a group back into loose names.** `tiles.results` says
   what it is and where it came from; a bare `results` is generic. Read the
@@ -80,7 +80,7 @@ the tile it draws). Each pass:
 ## PlayArea
 
 Beyond playarea-readability's sections: the ending hooks above, `useHistoryView`
-(which returns `HistoryView`, including `isViewing`),
+(which returns `GHistoryView`, including `isViewing`),
 `useActionsAndMenu` (the game's actions and its menu),
 `useShowOppsFoundMessages`, and the common `useShowWaitingMessage`. Comments say
 what happens on each line and point at the hook; the hook's docstring holds how
@@ -159,7 +159,7 @@ Comments on each button go; the actions' own rules live with the actions.
 - A type's field comments say what the field MEANS, not what the UI does
   with it; the code that draws it says that.
 - A plain type alias for the one string a game passes everywhere
-  (psychicnum's `TileWord` in `lib/tileResults.ts`), so a map or a set says
+  (psychicnum's `GTileWord` in `types.ts`), so a map or a set says
   what it holds. Only where it earns it; not an alias for every string, and
   no branded types.
 - CSS rationale goes in the CSS; a comment never explains another file's code.

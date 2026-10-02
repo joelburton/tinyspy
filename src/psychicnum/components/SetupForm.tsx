@@ -9,11 +9,8 @@ import { SetupSection } from '@/common/setup-form/SetupSection'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import {
-  GUESS_OPTIONS,
-  WORD_COUNT_OPTIONS,
-  type PsychicnumValues,
-} from '../lib/setup'
+import { GUESS_OPTIONS, WORD_COUNT_OPTIONS } from '../lib/setup'
+import type { GSetupValues } from '../types'
 
 /**
  * psychicnum's per-game setup body, rendered inside the common
@@ -37,8 +34,8 @@ export function SetupForm({
   // The boundary between the manifest's game-agnostic `unknown` and
   // psychicnum's own shape — one cast for what the form holds, one for how it
   // is written, so a mistyped key is a compile error.
-  const s = values as PsychicnumValues
-  const set = setValue as SetupSetter<PsychicnumValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
   // The checked subset of the roster, in `members` order — a control that must
   // name the ACTUAL players (the turn-order "First player" picker) lists only
   // who'll play, not the whole club.

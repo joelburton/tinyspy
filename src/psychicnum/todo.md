@@ -4,8 +4,8 @@
 
 ## Soon
 
-- **`TileWord` and `WordTile` do not communicate their difference** (Joel,
-  2026-10-01). The type is the text written on a tile (`lib/tileResults.ts`);
+- **`GTileWord` and `WordTile` do not communicate their difference** (Joel,
+  2026-10-01). The type is the text written on a tile (`types.ts`);
   the component draws one tile (`components/WordTile.tsx`). Two names built
   from the same two words, in opposite orders, for two different things.
   Finesse better names, with Joel, before the next game makes its tile

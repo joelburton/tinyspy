@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { answerMessage } from '../lib/answer'
-import type { GameData } from './useGame'
+import type { GGameData } from '../types'
 
 /**
  * In compete, show "X guessed a secret word" in the header slot each time an
@@ -22,7 +22,7 @@ import type { GameData } from './useGame'
  * announced.
  */
 export function useShowOppsFoundMessages(
-  gd: GameData,
+  gd: GGameData,
   myId: string,
   globalFeedbackSlot: FeedbackSlot,
 ): void {

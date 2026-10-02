@@ -12,15 +12,13 @@ import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import historyViewerStyles from '@/common/event-log/historyViewer.module.css'
-import type { GameData } from '../hooks/useGame'
-import type { HistoryView } from '../hooks/useHistoryView'
 import { usePickedTile } from '../hooks/usePickedTile'
 import { useSubmitGuess } from '../hooks/useSubmitGuess'
 import { useBoardColActions } from '../hooks/useBoardColActions'
-import type { TileResults } from '../lib/tileResults'
 import { Board } from './Board'
 import { StateLine } from './StateLine'
 import styles from './BoardCol.module.css'
+import type { GGameData, GHistoryView, GTileResults } from '../types'
 
 /**
  * psychicnum's board column: the `Board`, and under it Clear and Submit, or
@@ -36,10 +34,10 @@ export function BoardCol({
   endingOutcome,
   myTurnJustStarted,
 }: {
-  gd: GameData
+  gd: GGameData
   // The board on screen: the live results, or a past turn's (PlayArea picks).
-  tileResults: TileResults
-  historyView: HistoryView
+  tileResults: GTileResults
+  historyView: GHistoryView
   localFeedbackSlot: FeedbackSlot
   // Passed through to `Board`'s marks.
   endingOutcome: EndOutcome | null

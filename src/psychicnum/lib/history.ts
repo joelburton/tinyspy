@@ -1,8 +1,10 @@
 // cs-blessed-psychicnum
 
+import type { GEvent, GReplayedTurn } from '../types'
+
 /**
  * psychicnum — the turn-history replay: the board as it stood after a given
- * turn, in the same `TileResults` the live board is drawn from.
+ * turn, in the same `GTileResults` the live board is drawn from.
  *
  * A past board is the guesses up to and including the viewed turn, folded into
  * one `word → correct` map; every mark is permanent and no word is guessed
@@ -14,21 +16,6 @@
  * number is the row's place in whatever the log is showing, which a filter
  * moves.
  */
-import type { PsychicnumEvent, PsychicnumPlayer } from '../hooks/useGame'
-import type { TileResults, TileWord } from './tileResults'
-
-/** A past turn, replayed. */
-export type ReplayedTurn = {
-  // The board as of the END of the viewed turn.
-  tileResults: TileResults
-  // The board word this turn's guess decided — ring it history-blue (it already
-  // wears its green/red outcome color). Null for a hint / spoiler turn (no tile).
-  litWord: TileWord | null
-  // A short, name-free turn label for the viewer banner (the log row shows *who*).
-  label: string
-  // Who made the turn — whose board this is; null for an id not in the log.
-  author: PsychicnumPlayer | null
-}
 
 /**
  * Replay the turn of the event with this `id`: fold every guess up to and
@@ -36,10 +23,10 @@ export type ReplayedTurn = {
  * and light that event's own guessed word.
  */
 export function replayTurn(
-  events: ReadonlyArray<PsychicnumEvent>,
+  events: ReadonlyArray<GEvent>,
   id: number,
   isCompete: boolean,
-): ReplayedTurn {
+): GReplayedTurn {
   const viewedEvent = events.find((event) => event.id === id)
   const boardEvents =
     isCompete && viewedEvent
@@ -63,7 +50,7 @@ export function replayTurn(
  *  uses for the same row (`lib/answer.ts`): a guess reads as its verdict, a
  *  spoiler names the word handed over, a hint carries its clue text in `word`
  *  (never the secret — no leak). */
-function describe(turn: PsychicnumEvent | undefined): string {
+function describe(turn: GEvent | undefined): string {
   if (!turn) return 'This turn'
   const word = turn.word.toUpperCase()
   if (turn.kind === 'hint') return `Hint: ${turn.word}`

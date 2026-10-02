@@ -216,6 +216,34 @@ exception is about size and dependence, never subject:** `HistoryBanner` belongs
 to the viewer, not the log, so it is its own file beside `useHistoryViewer.ts`.
 When a folder holds two concerns, the filenames say which one you are in.
 
+### A game's types
+
+**Every type a game exports lives in `<game>/types.ts` and starts with `G`.**
+The `G` says "game-specific": this is the game's own `GPlayer`, `GGameData`,
+`GEvent`, `GSetup`, as against the shell's `Member` or `CommonPlayarea`. A
+reader of a game file can tell at a glance which side a name is on, and
+`GEvent` across sixteen folders is every game's version of one thing. It goes
+on every exported type, including the ones with no twin anywhere: without it a
+reader cannot tell `GTileResults` from a shared type without checking the
+import. Components keep their bare names (`PlayArea`, `BoardCol`): no shared
+component shares a name with them, so there is nothing to tell apart.
+
+`types.ts` is the one place to read the data a game slings around, side by
+side, which is where a duplicate or a wrong name shows. What stays out of it is
+what nobody reads for that: a component's props stay with the component
+(`BoardTiles`, `BoardMarks` beside `Board`); a type one file uses stays in that
+file and needs no `G`; the printer's model stays in `pdf/`, bare, since it is
+exported only to the printer beside it and says nothing about the game; the
+test fixtures' facts stay in the fixture file. A `lib/` module keeps its
+functions and loses its types.
+
+The shape a game is handed and the shape it reads are two types: `GGameDataRaw`
+is the playarea blob as the builder wrote it (ids, records), and `GGameData` is
+what `useGame` makes of it (players, maps, the seat rule applied). `Raw` marks
+the written shape wherever the pair exists (`GPlayerRaw` / `GPlayer`,
+`GEventRaw` / `GEvent`). psychicnum is the model (`src/psychicnum/types.ts`);
+each game takes the shape as it converts.
+
 ### Grid coordinates
 
 The games with a coordinate grid and a keyboard cursor (bananagrams, scrabble)

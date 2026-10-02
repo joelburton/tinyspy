@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import { useBindAction, type Action } from '@/common/actions/useBindAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
@@ -13,10 +13,9 @@ import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
-import { buildPsychicnumPrintModel } from '../pdf/model'
-import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
-import type { TileWord } from '../lib/tileResults'
-import type { GameData } from './useGame'
+import { buildPrintModel } from '../pdf/model'
+import { printPdf } from '../pdf/printPdf'
+import type { GActions, GGameData, GTileWord } from '../types'
 
 /**
  * What `request_hint` answers. TWO `ok`s: `hint` carries the row's text whether
@@ -31,46 +30,7 @@ type HintAnswer = {
 /** What `request_spoiler` answers: one `ok`, carrying the secret handed over. */
 type SpoilerAnswer = {
   result: 'spoiler'
-  word: TileWord
-}
-
-/**
- * Every command psychicnum offers, bound. The info column's action row places
- * them; the menu lists them; each one's key, glyph and availability come from
- * the action, so the surfaces cannot drift.
- */
-export type PsychicnumActions = {
-  // Each key is spelled as its action's id (`act-hint` → `actHint`), so a grep
-  // for either finds every trace of the action (src/guards/actionIds.test.ts).
-  //
-  // Ask for a clue. Grayed rather than gone when you can't ask — the glyph is
-  // worth teaching either way.
-  actHint: Action
-  // Mid-game cheat: hand over one unfound secret word (the amber bare-eye
-  // glyph). Logs to the event log like a hint does.
-  actSpoiler: Action
-  // Show the three secrets at game-over (their tiles go green) — or hide them
-  // again. A local display toggle shared with the menu twin; nothing is
-  // written, no peer affected. It carries its own two faces, so a surface
-  // places one button either way.
-  actReveal: Action
-  // Hunt the SAME board + secrets again from scratch.
-  actRestart: Action
-  // Start a fresh follow-up game — same setup + players, a new board + secrets.
-  // Disables itself while the create is in flight, so a slow network reads as
-  // "working" rather than "nothing happened".
-  actNewGame: Action
-  // Drop out of a race; the others keep going. Hidden outside one.
-  actConcede: Action
-  // The whole table stops, with no result. Hidden in a race that doesn't
-  // offer it — so the pair above can be placed unconditionally.
-  actStopGame: Action
-  // Print the board and the log; the menu's alone, with no twin in the row.
-  actPrintBoard: Action
-  // Leave for the club page — the shell's own, off `PlayAreaLoaderProps.menu`,
-  // carried here so a surface that places the row has every action in one
-  // object.
-  actBackToClub: Action
+  word: GTileWord
 }
 
 /**
@@ -97,12 +57,12 @@ export function useActionsAndMenu({
   goToFollowUpGame,
   menu,
 }: {
-  gd: GameData
+  gd: GGameData
   myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
 } & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): {
-  actions: PsychicnumActions
+  actions: GActions
   secretsShown: boolean
 } {
   // The shared trio — Stop / Concede / Restart. psychicnum's own bit is which
@@ -265,8 +225,8 @@ export function useActionsAndMenu({
       // The board/turn/score judgment (whose marks belong on whose board — one
       // merged track in coop, one PER PLAYER at a compete game's end) lives in
       // the pure builder; see pdf/model.ts.
-      printPsychicnumPdf(
-        buildPsychicnumPrintModel({
+      printPdf(
+        buildPrintModel({
           brand: gd.brand,
           gameTitle: gd.title,
           date: new Date().toLocaleDateString(),

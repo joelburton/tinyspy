@@ -8,14 +8,15 @@
 import { describe, expect, it } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import { guess, makePlayarea } from '../lib/playarea.fixture'
-import { makeGameData, type GameData } from './useGame'
+import { makeGameData } from './useGame'
 import { useHistoryView } from './useHistoryView'
+import type { GGameData } from '../types'
 
 const EVENTS = [guess(1, 'u1', 'apple', true), guess(2, 'u2', 'berry', false)]
 
 /** Me and moth, each with a guess in the log. A finished game, so a rival's
  *  rows are in the log in compete too. */
-function gdWith(mode: 'coop' | 'compete'): GameData {
+function gdWith(mode: 'coop' | 'compete'): GGameData {
   return makeGameData(
     makePlayarea({
       mode,

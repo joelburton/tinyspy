@@ -9,17 +9,17 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
-import type { TileResults } from '../lib/tileResults'
 import { useDecidedTileMarks } from './useDecidedTileMarks'
+import type { GTileResults } from '../types'
 
-type Props = { results: TileResults; moveCount: number; isViewingHistory: boolean }
+type Props = { results: GTileResults; moveCount: number; isViewingHistory: boolean }
 
 function setup(initial: Props) {
   return renderHook((props: Props) => useDecidedTileMarks(props), { initialProps: initial })
 }
 
 /** One guess already on the board: apple, a hit. */
-const ONE_GUESS: TileResults = new Map([['apple', true]])
+const ONE_GUESS: GTileResults = new Map([['apple', true]])
 
 describe('useDecidedTileMarks', () => {
   beforeEach(() => vi.useFakeTimers())

@@ -14,7 +14,7 @@ import { drawInTracks, type Track } from '@/common/pdf/columns'
 import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
 import { drawCheck, drawCross } from '@/common/pdf/marks'
 import { cellAt } from '@/common/board-cursor/boardPosition'
-import type { PrintTile, PrintTrack, PsychicnumPrintModel } from './model'
+import type { PrintModel, PrintTile, PrintTrack } from './model'
 
 /**
  * psychicnum's print-to-PDF, composed from the shared `common/pdf` helpers
@@ -46,7 +46,7 @@ const MARK_CORRECT: [number, number, number] = [46, 106, 42]
 const MARK_MISS: [number, number, number] = [150, 45, 45]
 
 /** Generate the PDF and hand it to the browser as a download. */
-export function printPsychicnumPdf(m: PsychicnumPrintModel): void {
+export function printPdf(m: PrintModel): void {
   const pd = newPrintDoc()
   const { doc } = pd
 

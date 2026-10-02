@@ -6,12 +6,10 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import type { GameData, PsychicnumPlayer } from '../hooks/useGame'
-import type { HistoryView } from '../hooks/useHistoryView'
-import type { PsychicnumActions } from '../hooks/useActionsAndMenu'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
+import type { GGameData, GPlayer, GHistoryView, GActions } from '../types'
 
 /**
  * psychicnum's info column: the shared readouts in the fixed order
@@ -27,20 +25,20 @@ export function InfoCol({
   actions,
   historyView,
 }: {
-  gd: GameData
+  gd: GGameData
   myId: string
   // The ending that applies to me — the game's once it has ended, else mine —
   // or null while I can still play.
   endingMessage: TerminalMessage | null
-  actions: PsychicnumActions
-  historyView: HistoryView
+  actions: GActions
+  historyView: GHistoryView
 }) {
   const actionRowMessage: InfoActionsMessage | undefined = endingMessage
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
   // A player who has ended reads "out"; everyone else shows their progress.
-  function getScoreOrOut(player: PsychicnumPlayer) {
+  function getScoreOrOut(player: GPlayer) {
     return player.ending ? 'out' : player.foundSecretsCount
   }
 

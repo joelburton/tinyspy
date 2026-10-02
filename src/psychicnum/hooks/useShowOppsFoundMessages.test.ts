@@ -4,11 +4,12 @@ import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { makePlayarea } from '../lib/playarea.fixture'
-import { makeGameData, type GameData } from './useGame'
+import { makeGameData } from './useGame'
 import { useShowOppsFoundMessages } from './useShowOppsFoundMessages'
+import type { GGameData } from '../types'
 
 /** Me and moth, with the secrets each has found. */
-function gdWith(mode: 'coop' | 'compete', mine: number, moths: number): GameData {
+function gdWith(mode: 'coop' | 'compete', mine: number, moths: number): GGameData {
   return makeGameData(
     makePlayarea({
       mode,
@@ -22,11 +23,11 @@ function gdWith(mode: 'coop' | 'compete', mine: number, moths: number): GameData
 }
 
 /** Mount the hook for me (u1) with a spy on the header slot. */
-function setup(initial: GameData) {
+function setup(initial: GGameData) {
   const slot = createFeedbackSlot('global')
   const shown = vi.spyOn(slot, 'show')
   const { rerender } = renderHook(
-    (gd: GameData) => useShowOppsFoundMessages(gd, 'u1', slot),
+    (gd: GGameData) => useShowOppsFoundMessages(gd, 'u1', slot),
     { initialProps: initial },
   )
   return { shown, rerender }

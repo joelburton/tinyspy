@@ -2,7 +2,7 @@
 
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
-import type { PsychicnumEvent } from '../hooks/useGame'
+import type { GEvent } from '../types'
 
 /**
  * Build the psychicnum print model — the pure half, away from jsPDF so the
@@ -26,17 +26,17 @@ export type PrintTrack = {
   result: string
 }
 
-export type PsychicnumPrintModel = PrintHeader & {
+export type PrintModel = PrintHeader & {
   // Grid columns (rows derive from `board.length`).
   cols: number
   // Coop is a single shared track; compete is one per player once the game has
-  // ended, or just yours during play (RLS hides rivals' guesses until then).
+  // ended, or just yours during play (a rival's rows are withheld until then).
   tracks: PrintTrack[]
 }
 
 /** Fold one set of events into the shared words' per-tile states; only the
  *  guesses mark a tile. */
-function boardOf(words: readonly string[], events: readonly PsychicnumEvent[]): PrintTile[] {
+function boardOf(words: readonly string[], events: readonly GEvent[]): PrintTile[] {
   const results = new Map<string, boolean>()
   for (const event of events) if (event.kind === 'guess') results.set(event.word, event.correct)
   return words.map((w) => ({
@@ -46,7 +46,7 @@ function boardOf(words: readonly string[], events: readonly PsychicnumEvent[]): 
 }
 
 /** The on-screen event-log wording, one row per guess/hint/spoiler. */
-function turnsOf(events: readonly PsychicnumEvent[], whoOf: (event: PsychicnumEvent) => string): TurnRow[] {
+function turnsOf(events: readonly GEvent[], whoOf: (event: GEvent) => string): TurnRow[] {
   return events.map((event, i) => ({
     seq: i + 1,
     who: whoOf(event),
@@ -59,7 +59,7 @@ function turnsOf(events: readonly PsychicnumEvent[], whoOf: (event: PsychicnumEv
   }))
 }
 
-export function buildPsychicnumPrintModel(o: {
+export function buildPrintModel(o: {
   brand: string
   gameTitle: string
   date: string
@@ -69,14 +69,14 @@ export function buildPsychicnumPrintModel(o: {
   words: readonly string[]
   // Every event the viewer can see — guesses, hints, spoilers. Compete
   // mid-game: only their own.
-  events: PsychicnumEvent[]
+  events: GEvent[]
   // How many secrets the board hides.
   requiredSecretsCount: number
   players: { id: string; username: string }[]
   myId: string
   setupRows: SetupRow[]
-}): PsychicnumPrintModel {
-  const track = (who: string, events: PsychicnumEvent[], whoOf: (event: PsychicnumEvent) => string): PrintTrack => {
+}): PrintModel {
+  const track = (who: string, events: GEvent[], whoOf: (event: GEvent) => string): PrintTrack => {
     const board = boardOf(o.words, events)
     const found = board.filter((t) => t.state === 'correct').length
     const used = events.filter((event) => event.kind === 'guess').length

@@ -7,8 +7,7 @@ import {
   type PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import type { CommonPlayarea, CommonPlayareaPlayer } from '@/common/game-page/playarea'
-import type { PsychicnumPlayarea, PsychicnumPlayareaEvent, PsychicnumPlayareaPlayer } from './playarea'
-import type { PsychicnumSetup } from './setup'
+import type { GGameDataRaw, GEventRaw, GPlayerRaw, GSetup } from '../types'
 
 /**
  * The facts a test sets up about one player. Where they stand is DERIVED the
@@ -39,12 +38,12 @@ export type PlayareaFacts = {
   mode?: 'coop' | 'compete'
   title?: string
   clubHandle?: string
-  setup?: PsychicnumSetup
+  setup?: GSetup
   words?: string[]
   // Null while the game is played, as the builder withholds them.
   secrets?: string[] | null
   // The whole log — every player's rows, as the blob carries it.
-  events?: PsychicnumPlayareaEvent[]
+  events?: GEventRaw[]
   players?: PlayerFacts[]
   // Who holds the turn in a turn-order game; `undefined` is a free-for-all.
   turnHolderId?: string | null
@@ -71,8 +70,8 @@ export function guess(
   userId: string,
   word: string,
   correct: boolean,
-  over: Partial<PsychicnumPlayareaEvent> = {},
-): PsychicnumPlayareaEvent {
+  over: Partial<GEventRaw> = {},
+): GEventRaw {
   return { id, userId, word, correct, kind: 'guess', at: `2026-01-01T00:00:${String(id).padStart(2, '0')}Z`, ...over }
 }
 
@@ -81,7 +80,7 @@ export function guess(
  * facts: the counts summed for coop, each seat's board folded from the log in
  * the mode's scope, and where every player stands derived.
  */
-export function makePlayarea(facts: PlayareaFacts = {}): PsychicnumPlayarea {
+export function makePlayarea(facts: PlayareaFacts = {}): GGameDataRaw {
   const {
     id = 'g1',
     mode = 'coop',
@@ -105,7 +104,7 @@ export function makePlayarea(facts: PlayareaFacts = {}): PsychicnumPlayarea {
   const teamFound = playerFacts.reduce((sum, p) => sum + foundOf(p), 0)
   const teamUsed = playerFacts.reduce((sum, p) => sum + usedOf(p), 0)
 
-  const players = playerFacts.map(function makePlayer(p, i): PsychicnumPlayareaPlayer {
+  const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     const onTurn = stillPlaying && (!turnBased || turnHolderId === p.id)
     const own = events.filter((e) => e.kind === 'guess' && (coop || e.userId === p.id))

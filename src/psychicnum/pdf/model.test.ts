@@ -12,7 +12,7 @@
  * guessed".
  */
 import { describe, expect, it } from 'vitest'
-import { buildPsychicnumPrintModel } from './model'
+import { buildPrintModel } from './model'
 import { guess, makePlayarea } from '../lib/playarea.fixture'
 import { makeGameData } from '../hooks/useGame'
 
@@ -49,7 +49,7 @@ const base = {
   setupRows: [{ key: 'max_guesses', label: 'Guesses', value: '7' }],
 }
 
-describe('buildPsychicnumPrintModel — compete splits per player', () => {
+describe('buildPrintModel — compete splits per player', () => {
   const events = eventsOf('compete', [
     guess(1, 'u1', 'apple', true),
     guess(2, 'u2', 'bread', false),
@@ -57,7 +57,7 @@ describe('buildPsychicnumPrintModel — compete splits per player', () => {
   ])
 
   it('once the game has ended: one track per player, each with only their own marks', () => {
-    const m = buildPsychicnumPrintModel({ ...base, isGameEnded: true, events })
+    const m = buildPrintModel({ ...base, isGameEnded: true, events })
     expect(m.tracks.map((t) => t.who)).toEqual(['me (you)', 'moth'])
 
     const [mine, theirs] = m.tracks
@@ -73,13 +73,13 @@ describe('buildPsychicnumPrintModel — compete splits per player', () => {
   })
 
   it('mid-game: only the viewer\'s track (a rival\'s rows are withheld)', () => {
-    const m = buildPsychicnumPrintModel({ ...base, events: events.filter((event) => event.by.id === 'u1') })
+    const m = buildPrintModel({ ...base, events: events.filter((event) => event.by.id === 'u1') })
     expect(m.tracks.map((t) => t.who)).toEqual(['You'])
     expect(m.tracks[0]!.board.map((t) => t.state)).toEqual(['correct', 'undecided', 'undecided', 'undecided'])
   })
 
   it('routes a hint row to its requester\'s track with the log wording', () => {
-    const m = buildPsychicnumPrintModel({
+    const m = buildPrintModel({
       ...base,
       isGameEnded: true,
       events: eventsOf('compete', [
@@ -95,9 +95,9 @@ describe('buildPsychicnumPrintModel — compete splits per player', () => {
   })
 })
 
-describe('buildPsychicnumPrintModel — coop stays one shared track', () => {
+describe('buildPrintModel — coop stays one shared track', () => {
   it('merges everyone onto one board and names each guesser in the log', () => {
-    const m = buildPsychicnumPrintModel({
+    const m = buildPrintModel({
       ...base,
       mode: 'coop',
       events: eventsOf('coop', [guess(1, 'u1', 'apple', true), guess(2, 'u2', 'bread', false)]),

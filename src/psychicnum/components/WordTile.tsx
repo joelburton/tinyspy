@@ -5,8 +5,8 @@ import type { Actor } from '@/common/members/member'
 import { Dot } from '@/common/members/Dot'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import shared from '@/common/game-page/playArea.module.css'
-import type { TileWord } from '../lib/tileResults'
 import styles from './WordTile.module.css'
+import type { GTileWord } from '../types'
 
 /** What a tile wears on or around it. */
 export type WordTileMarks = {
@@ -32,7 +32,7 @@ export function WordTile({
   isDisabled,
   onClick,
 }: {
-  word: TileWord
+  word: GTileWord
   decidedOutcome: Outcome | null
   // Who guessed it; undefined when nobody did (unguessed, or a revealed
   // secret) or the board names no guessers.

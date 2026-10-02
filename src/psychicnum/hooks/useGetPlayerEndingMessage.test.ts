@@ -8,14 +8,15 @@ import { describe, expect, it } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import type { PlayerEndedReason } from '@/common/terminal/gameEnding'
 import { makePlayarea } from '../lib/playarea.fixture'
-import { makeGameData, type GameData } from './useGame'
+import { makeGameData } from './useGame'
 import { useGetPlayerEndingMessage } from './useGetPlayerEndingMessage'
+import type { GGameData } from '../types'
 
 /** A compete game with my ending overridable. */
 function gdWith(over: {
   ended?: boolean
   reason?: PlayerEndedReason
-}): GameData {
+}): GGameData {
   return makeGameData(
     makePlayarea({
       mode: 'compete',
@@ -35,7 +36,7 @@ function gdWith(over: {
   )
 }
 
-function messageFor(gd: GameData) {
+function messageFor(gd: GGameData) {
   return renderHook(() => useGetPlayerEndingMessage(gd)).result.current
 }
 

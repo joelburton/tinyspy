@@ -9,9 +9,9 @@ import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import type { GameEndedReason } from '@/common/terminal/gameEnding'
-import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
-import type { PsychicnumClubpageInfo } from './lib/statuses'
+import { DEFAULT_PSYCHICNUM_SETUP } from './lib/setup'
 import logoUrl from './logo.svg?url'
+import type { GSetup, GClubpageInfo } from './types'
 
 /**
  * psychicnum's registration with the shell — **two manifests,
@@ -73,7 +73,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     runRpc<CreatedGame>(
       db.rpc('create_game', {
         p_club_handle: clubHandle,
-        p_setup: setup as PsychicnumSetup,
+        p_setup: setup as GSetup,
         p_player_user_ids: playerUserIds,
         p_mode: mode,
       }),
@@ -81,7 +81,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 }
 
 // The club-list line reads the list row's `gameEnding` and its `clubpage_info`
-// (`PsychicnumClubpageInfo`: the team's found and used counts in coop, null in
+// (`GClubpageInfo`: the team's found and used counts in coop, null in
 // compete, and compete's winner). Each mode's labelFor handles its own
 // endings; the helper below covers the mid-game line.
 
@@ -91,7 +91,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
  * would tell you exactly how close your opponent is. This line is club-wide
  * readable, so compete says nothing — and its `clubpage_info` counts are null.
  */
-function labelMidGame(clubpageInfo: PsychicnumClubpageInfo) {
+function labelMidGame(clubpageInfo: GClubpageInfo) {
   return statusLine(
     verdict('Playing'),
     tally(clubpageInfo.found_secrets_count, clubpageInfo.required_secrets_count, 'found'),
@@ -149,7 +149,7 @@ export const psychicnumCoopGame: GameManifest = {
   startGameInClub: startGameInClubFactory('coop'),
 
   labelFor: (row, members) => {
-    const clubpageInfo = row.clubpageInfo as PsychicnumClubpageInfo
+    const clubpageInfo = row.clubpageInfo as GClubpageInfo
     if (row.gameEnding === null) return labelMidGame(clubpageInfo)
     const found = tally(clubpageInfo.found_secrets_count, clubpageInfo.required_secrets_count, 'found')
     switch (row.gameEnding.outcome) {
@@ -202,7 +202,7 @@ export const psychicnumCompeteGame: GameManifest = {
   startGameInClub: startGameInClubFactory('compete'),
 
   labelFor: (row, members) => {
-    const clubpageInfo = row.clubpageInfo as PsychicnumClubpageInfo
+    const clubpageInfo = row.clubpageInfo as GClubpageInfo
     // No progress: every player's budget and finds are their own (see
     // labelMidGame), and this line is readable by the whole club.
     if (row.gameEnding === null) return verdict('Playing')

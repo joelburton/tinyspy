@@ -12,22 +12,21 @@ import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import { eventToOutcome } from '../lib/answer'
 import type { Member } from '@/common/members/member'
-import type { PsychicnumEvent } from '../hooks/useGame'
-import type { HistoryView } from '../hooks/useHistoryView'
 import styles from './GameEventLog.module.css'
+import type { GEvent, GHistoryView } from '../types'
 
 type Props = {
   // Every turn the viewer can see (`gd.events`). Coop: the whole shared game.
   // Compete: the viewer's own during play, and everyone's once the game has
   // ended.
-  events: PsychicnumEvent[]
+  events: GEvent[]
   players: Member[]
   myId: string
   mode: 'coop' | 'compete'
   isGameEnded: boolean
   // The turn open on the board: its `#N` wears the history-blue ring, and a
   // `#N` click opens another.
-  historyView: HistoryView
+  historyView: GHistoryView
 }
 
 /**
@@ -49,7 +48,7 @@ export function GameEventLog({
   isGameEnded,
   historyView,
 }: Props) {
-  const eventLogPicker = useEventLogPlayerPicker<PsychicnumEvent>({
+  const eventLogPicker = useEventLogPlayerPicker<GEvent>({
     players,
     myId: myId,
     mode,
@@ -61,7 +60,7 @@ export function GameEventLog({
 
   // The NUMBER counts 1, 2, 3 under whatever filter is on; the handle is the
   // row's own id, so the board opens the event the number is beside.
-  function drawTurnNumber(event: PsychicnumEvent, index: number) {
+  function drawTurnNumber(event: GEvent, index: number) {
     return (
       <EventLogNumber
         n={index + 1}
@@ -72,7 +71,7 @@ export function GameEventLog({
   }
 
   // The verdict word is the log's own; its color is `lib/answer.ts`'s.
-  function makeResultText(event: PsychicnumEvent): string {
+  function makeResultText(event: GEvent): string {
     if (event.kind === 'spoiler') return 'Spoiler'
     else if (event.correct) return 'Correct'
     else return 'Wrong'

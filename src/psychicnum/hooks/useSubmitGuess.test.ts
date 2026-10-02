@@ -8,8 +8,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import type { TileResults } from '../lib/tileResults'
 import { useSubmitGuess } from './useSubmitGuess'
+import type { GTileResults } from '../types'
 
 const rpc = vi.hoisted(() => vi.fn())
 vi.mock('../db', () => ({ db: { rpc } }))
@@ -18,7 +18,7 @@ function okEnvelope(data: unknown) {
   return { data: { type: 'ok', data, outcome: null, severity: null, message: null }, error: null }
 }
 
-type Props = { tileResults: TileResults; isViewingHistory: boolean }
+type Props = { tileResults: GTileResults; isViewingHistory: boolean }
 
 function setup(initial: Props) {
   const slot = createFeedbackSlot('local')

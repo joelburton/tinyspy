@@ -5,8 +5,9 @@ import { renderHook } from '@testing-library/react'
 import type { CommonPlayarea } from '@/common/game-page/playarea'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { makePlayarea } from '../lib/playarea.fixture'
-import { makeGameData, type GameData } from './useGame'
+import { makeGameData } from './useGame'
 import { useGetGameEndingMessage } from './useGetGameEndingMessage'
+import type { GGameData } from '../types'
 
 const ME = { id: 'u1', username: 'me', color: 'red' }
 const MOTH = { id: 'u2', username: 'moth', color: 'blue' }
@@ -17,7 +18,7 @@ function gdWith(o: {
   ending: CommonPlayarea['ending']
   outcome?: EndOutcome | null
   myOutcome?: EndOutcome | null
-}): GameData {
+}): GGameData {
   return makeGameData(
     makePlayarea({
       mode: o.mode ?? 'coop',
@@ -54,7 +55,7 @@ describe('useGetGameEndingMessage', () => {
   it('keeps its identity across a reload that rebuilds the ending object', () => {
     // The blob is rebuilt on every reload; the message must not be, or the
     // effect that shows it would retract and re-show the pill.
-    const { result, rerender } = renderHook((gd: GameData) => useGetGameEndingMessage(gd), {
+    const { result, rerender } = renderHook((gd: GGameData) => useGetGameEndingMessage(gd), {
       initialProps: gdWith({ ending: WON, myOutcome: 'won' }),
     })
     const first = result.current
@@ -63,7 +64,7 @@ describe('useGetGameEndingMessage', () => {
   })
 
   it('is a new message when the ending changes', () => {
-    const { result, rerender } = renderHook((gd: GameData) => useGetGameEndingMessage(gd), {
+    const { result, rerender } = renderHook((gd: GGameData) => useGetGameEndingMessage(gd), {
       initialProps: gdWith({ ending: WON, myOutcome: 'won' }),
     })
     const first = result.current

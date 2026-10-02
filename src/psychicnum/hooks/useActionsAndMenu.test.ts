@@ -12,8 +12,9 @@ import { actionFixture } from '@/common/actions/action.fixture'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
 import { CONCEDED, makePlayarea } from '../lib/playarea.fixture'
-import { makeGameData, type GameData } from './useGame'
+import { makeGameData } from './useGame'
 import { useActionsAndMenu } from './useActionsAndMenu'
+import type { GGameData } from '../types'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
@@ -22,7 +23,7 @@ const MOTH = { id: 'u2', username: 'moth', color: 'blue' }
 const STOPPED = { reason: 'stopped' as const, detail: 'stopped', by: 'u1', winner: null }
 
 /** A game in play, with the facts the actions read overridable. */
-function gdWith(over: { ended?: boolean; outOfTheRace?: boolean } = {}): GameData {
+function gdWith(over: { ended?: boolean; outOfTheRace?: boolean } = {}): GGameData {
   return makeGameData(
     makePlayarea({
       mode: over.outOfTheRace ? 'compete' : 'coop',
@@ -35,7 +36,7 @@ function gdWith(over: { ended?: boolean; outOfTheRace?: boolean } = {}): GameDat
 }
 
 /** Mount the hook with a fake menu, and hand back what it published. */
-function setup(gd: GameData) {
+function setup(gd: GGameData) {
   const setGameSections = vi.fn()
   const menu = {
     setGameSections,

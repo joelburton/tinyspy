@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { buildPlayerEndingMessage } from '../lib/playerEndingMessage'
-import type { GameData } from './useGame'
+import type { GGameData } from '../types'
 
 /**
  * My ending's message — the below-board pill and the info column's line —
@@ -16,7 +16,7 @@ import type { GameData } from './useGame'
  * lets the effect that shows it show it once. The memo keys on the reason and
  * outcome strings, not on `gd.me`, which is rebuilt on every reload.
  */
-export function useGetPlayerEndingMessage(gd: GameData): TerminalMessage | null {
+export function useGetPlayerEndingMessage(gd: GGameData): TerminalMessage | null {
   const reason = gd.ended ? null : (gd.me.ending?.reason ?? null)
   // Written in the same update as the reason (`common._set_player_ended`,
   // `common._concede`).

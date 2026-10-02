@@ -10,32 +10,31 @@ import historyViewerStyles from '@/common/event-log/historyViewer.module.css'
 import { positionAt } from '@/common/board-cursor/boardPosition'
 import { getGuessOutcome } from '../lib/answer'
 import { makeBoardShape } from '../lib/boardShape'
-import type { TileResults, TileWord } from '../lib/tileResults'
-import type { HistoryView } from '../hooks/useHistoryView'
 import { useTileShuffle } from '../hooks/useTileShuffle'
 import { useTileCursor } from '../hooks/useTileCursor'
 import { useDecidedTileMarks } from '../hooks/useDecidedTileMarks'
 import { WordTile } from './WordTile'
 import styles from './Board.module.css'
+import type { GTileResults, GTileWord, GHistoryView } from '../types'
 
 /** What is on the tiles. */
 export type BoardTiles = {
   // The board's words, in the game's order. Three of them are the secrets.
-  words: readonly TileWord[]
+  words: readonly GTileWord[]
   // Each guessed word → whether it was a secret: the live board's (in compete,
   // my guesses only), or a past turn's.
-  results: TileResults
+  results: GTileResults
   // Each guessed word → who guessed it. A revealed secret is not in it: nobody
   // guessed it.
-  decidedBy: ReadonlyMap<TileWord, Actor>
+  decidedBy: ReadonlyMap<GTileWord, Actor>
   // How many guesses the server has recorded.
   moveCount: number
 }
 
 /** What the board wears on and around its tiles. */
 export type BoardMarks = {
-  pickedTile: TileWord | null
-  inFlightGuess: TileWord | null
+  pickedTile: GTileWord | null
+  inFlightGuess: GTileWord | null
   endingOutcome: EndOutcome | null
   // A teammate holds the move.
   isWaitingForTurn: boolean
@@ -47,7 +46,7 @@ type Props = {
   tiles: BoardTiles
   marks: BoardMarks
   // The past turn open on the board, if any.
-  historyView: HistoryView
+  historyView: GHistoryView
   // The tiles take a click or a key right now. When they may is `BoardCol`'s
   // to say.
   canPick: boolean
@@ -55,7 +54,7 @@ type Props = {
   // one of them at it.
   isSharedBoard: boolean
   // Picks a word, or un-picks with null.
-  onPick: (word: TileWord | null) => void
+  onPick: (word: GTileWord | null) => void
 }
 
 /**

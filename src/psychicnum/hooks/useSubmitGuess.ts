@@ -6,8 +6,8 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
-import { answerMessage, type Answer } from '../lib/answer'
-import type { TileResults, TileWord } from '../lib/tileResults'
+import { answerMessage } from '../lib/answer'
+import type { GAnswer, GTileResults, GTileWord } from '../types'
 
 /** What `psychicnum.submit_guess` puts in `data` — the caller's own result,
  *  plus whether that guess completed the set. Every `ok` this RPC answers
@@ -51,26 +51,26 @@ export function useSubmitGuess({
   isViewingHistory,
 }: {
   gameId: string
-  tileResults: TileResults
+  tileResults: GTileResults
   localFeedbackSlot: FeedbackSlot
   isViewingHistory: boolean
 }): {
-  send: (word: TileWord) => Promise<void>
-  inFlight: TileWord | null
+  send: (word: GTileWord) => Promise<void>
+  inFlight: GTileWord | null
 } {
   // The word I last sent, or null. Nothing clears it when the result lands;
   // what is still in flight is derived below.
-  const [submittedWord, setSubmittedWord] = useState<TileWord | null>(null)
+  const [submittedWord, setSubmittedWord] = useState<GTileWord | null>(null)
   const isSubmittedWordDecided = submittedWord !== null && tileResults.has(submittedWord)
 
-  // Every answer reaches the player the same way: one `Answer` in, its words
+  // Every answer reaches the player the same way: one `GAnswer` in, its words
   // and its color out of `lib/answer.ts`.
-  function showAnswer(answer: Answer) {
+  function showAnswer(answer: GAnswer) {
     const { outcome, text } = answerMessage(answer)
     localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
   }
 
-  async function send(word: TileWord) {
+  async function send(word: GTileWord) {
     if (tileResults.has(word)) {
       showAnswer({ answerType: 'already_guessed' })
       return

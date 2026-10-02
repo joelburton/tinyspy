@@ -1,6 +1,7 @@
 // cs-blessed-psychicnum
 
-import type { PsychicnumPlayer } from '../hooks/useGame'
+import type { GPlayer } from '../types'
+
 
 /**
  * psychicnum's core live-state readout — "1/3 found · 4/7 guesses used" — for
@@ -16,7 +17,7 @@ import type { PsychicnumPlayer } from '../hooks/useGame'
  * The counters are bold and the labels aren't: the numbers are what's read at
  * a glance.
  */
-export function StateLine({ player }: { player: PsychicnumPlayer }) {
+export function StateLine({ player }: { player: GPlayer }) {
   return (
     <>
       <strong>

@@ -330,7 +330,7 @@ answer does not.
 pause, chat — and unmounts this whole surface on pause.
 
 **`gd`, the game data.** `useGame` hands the surface one object, `gd`: the
-playarea blob the page was handed (`lib/playarea.ts` is its type), with its
+playarea blob the page was handed (`GGameDataRaw`), with its
 links turned into players (`turns.holder`, `ending.by`, `ending.winner`, each
 board's `decidedBy`), the setup rows built, and the seat rule applied — in
 compete, mid-race, a rival's rows leave the log and their `board` is null. It
@@ -338,11 +338,19 @@ is a pure function of the blob and who I am; no reads, no subscription. Every
 fact about a seat is on the player (`gd.me.onTurn`, `p.foundSecretsCount`,
 `gd.me.board`), and a component asks a player, never the table. The two
 columns, `BoardCol` and `InfoCol`, take `gd` whole; everything below them takes
-its own props. A player in `gd` (`PsychicnumPlayer`) is a `Member` plus
+its own props. A player in `gd` (`GPlayer`) is a `Member` plus
 psychicnum's facts, so `gd.players` goes straight to the shared pieces that take
 `Member[]`, and `gd.playersById` holds the same players by id. `Board` takes
 its props in groups — `tiles` (what is on them) and `marks` (what the board
 wears on and around them) — and `historyView` whole.
+
+**Every type this game exports is in `types.ts`**, wearing the `G` that says
+it is the game's and not the shell's (docs/code-conventions.md → A game's
+types): the two shapes of the game (`GGameDataRaw` as written, `GGameData` as
+read), the players and log rows at both levels, the setup, the actions, the
+history view, the tiles' types and the answers. A component's props stay
+with the component; a type one file uses stays there; the printer's model stays
+in `pdf/`.
 
 `BoardCol` builds and sends the guess: the picked word and `submit_guess`.
 `Board` owns the board itself: its display order and Shuffle, and the keyboard

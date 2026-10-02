@@ -1,13 +1,8 @@
 // cs-blessed-psychicnum
 
 import { describe, it, expect } from 'vitest'
-import {
-  answerMessage,
-  eventToOutcome,
-  getGuessOutcome,
-  peerAnswerMessage,
-  type Answer,
-} from './answer'
+import { answerMessage, eventToOutcome, getGuessOutcome, peerAnswerMessage } from './answer'
+import type { GAnswer } from '../types'
 
 /**
  * psychicnum's one presentation decision, both halves.
@@ -62,7 +57,7 @@ describe('answerMessage', () => {
   // cannot drift; `hint` and `spoiler` do not, and theirs is the agreement
   // worth asserting.
   it('gives every pair, and the compete find, one color', () => {
-    const same = (a: Answer, b: Answer) =>
+    const same = (a: GAnswer, b: GAnswer) =>
       expect(answerMessage(a).outcome).toBe(answerMessage(b).outcome)
     same({ answerType: 'hit', word: 'apple' }, { answerType: 'hit_peer', word: 'apple' })
     same({ answerType: 'miss', word: 'berry' }, { answerType: 'miss_peer', word: 'berry' })
@@ -73,7 +68,7 @@ describe('answerMessage', () => {
 
   // Every member, with its color and its words — one table to read them from,
   // which is what the three surfaces now agree about.
-  const CASES: [Answer, string, string][] = [
+  const CASES: [GAnswer, string, string][] = [
     [{ answerType: 'hit', word: 'apple' }, 'won', 'Correct: APPLE'],
     [{ answerType: 'hit_peer', word: 'apple' }, 'won', 'Correct: APPLE'],
     [{ answerType: 'miss', word: 'berry' }, 'lost', 'Wrong: BERRY'],

@@ -8,7 +8,7 @@ import {
   makeTimerRow,
   type SetupRow,
 } from '@/common/setup-form/setupRows'
-import type { PsychicnumSetup } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * psychicnum's setup rows — ONE array, rendered by the info column and the PDF
@@ -19,7 +19,7 @@ import type { PsychicnumSetup } from './setup'
  * dictionary, timer.
  */
 export function makeSetupRows(
-  setup: PsychicnumSetup,
+  setup: GSetup,
   mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {

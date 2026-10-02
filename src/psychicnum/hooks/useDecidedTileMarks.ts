@@ -4,11 +4,11 @@ import { useEffect } from 'react'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
-import type { TileResults, TileWord } from '../lib/tileResults'
+import type { GTileResults, GTileWord } from '../types'
 
 /** Empty word set — the resting value of the head-shake, so a board with
  *  nothing shaking hands the same object down every render. */
-const NO_WORDS: ReadonlySet<TileWord> = new Set()
+const NO_WORDS: ReadonlySet<GTileWord> = new Set()
 
 /**
  * The marks on the tiles that just got decided: the attention flash on each,
@@ -36,12 +36,12 @@ export function useDecidedTileMarks({
   moveCount,
   isViewingHistory,
 }: {
-  results: TileResults
+  results: GTileResults
   moveCount: number
   isViewingHistory: boolean
 }): {
-  flashing: ReadonlySet<TileWord>
-  shaking: ReadonlySet<TileWord>
+  flashing: ReadonlySet<GTileWord>
+  shaking: ReadonlySet<GTileWord>
 } {
   const flashingTiles = useMoveAttention({
     content: results,
@@ -53,7 +53,7 @@ export function useDecidedTileMarks({
   })
 
   const [shakeMark, shakeWrongWords] =
-    useMark<{ words: ReadonlySet<TileWord> }>(VERDICT_SHAKE_MS)
+    useMark<{ words: ReadonlySet<GTileWord> }>(VERDICT_SHAKE_MS)
   const wrongWordsKey = [...flashingTiles]
     .filter((w) => results.get(w) === false)
     .sort()

@@ -14,7 +14,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { useGame, type GameData } from '../hooks/useGame'
+import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { addRevealedSecrets } from '../lib/tileResults'
@@ -26,6 +26,7 @@ import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
+import type { GGameData } from '../types'
 
 /**
  * The manifest's component: builds `gd` from the blob the page was handed and
@@ -48,7 +49,7 @@ type PlayAreaProps = Pick<
   PlayAreaLoaderProps,
   'auth' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
 > & {
-  gd: GameData
+  gd: GGameData
 }
 
 /**

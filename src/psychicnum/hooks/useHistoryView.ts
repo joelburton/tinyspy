@@ -1,38 +1,8 @@
 // cs-unmet
 
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
-import type { Actor } from '@/common/members/member'
 import { replayTurn } from '../lib/history'
-import type { TileResults, TileWord } from '../lib/tileResults'
-import type { GameData } from './useGame'
-
-/**
- * The turn-history view: which past turn, if any, is open on the board, and
- * that turn replayed. Every field but the two callbacks is null (or undefined)
- * while the live board is on screen.
- */
-export type HistoryView = {
-  // A past turn is open on the board (`viewedEventId` is set). Everything that
-  // would write to the board answers to it: the tiles, keys and Clear/Submit
-  // go inert, and the pick and the in-flight dim are not drawn.
-  isViewing: boolean
-  // The log row open on the board (`events.id`), or null when live.
-  viewedEventId: number | null
-  // Open a turn — the log's `#N` click, with the number it printed beside it.
-  show: (id: number, n: number | null) => void
-  // Back to the live board — the banner's ✕, or any click or key.
-  exit: () => void
-  // The viewed turn's board, or null when live.
-  tileResults: TileResults | null
-  // The tile the viewed turn decided — ring it; null for a hint or a spoiler.
-  litWord: TileWord | null
-  // The banner's text, or null when live.
-  label: string | null
-  // Whose board is on screen, when it is not mine — which only compete can
-  // be: coop is one shared board, so a teammate's row replays the board I am
-  // already looking at, and there is no "whose" to answer.
-  actor: Actor | undefined
-}
+import type { GGameData, GHistoryView } from '../types'
 
 /**
  * Click an event-log `#N` to replay that turn's board (the tiles decided up to
@@ -41,7 +11,7 @@ export type HistoryView = {
  * another `#N`, and any key, which the viewer consumes so it does not also play
  * on the board. The replay is `lib/history.ts`'s.
  */
-export function useHistoryView(gd: GameData): HistoryView {
+export function useHistoryView(gd: GGameData): GHistoryView {
   const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
   const replayed = historyId === null ? null : replayTurn(gd.events, historyId, gd.compete)
   const author = replayed?.author ?? null

@@ -1,59 +1,13 @@
 // cs-blessed-psychicnum
 
-import type { TimerMode } from '@/common/manifest/gameManifest'
-import type { SetupOf } from '@/common/setup-form/setupForm'
-import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
-
-/**
- * psychicnum's per-game setup — the choices collected by the
- * start-game dialog, persisted to `psychicnum.games.setup`, and
- * validated server-side in `psychicnum.create_game` (the
- * canonical authority for what shapes are accepted).
- *
- * Which values the form offers is this file's choice (`GUESS_OPTIONS`);
- * the server only holds each field to a sane range — see `create_game`
- * in `supabase/sql/psychicnum.sql`.
- *
- * Lives in `lib/` rather than inline in `manifest.ts` so the
- * Setup body component can import the same type without dragging
- * the manifest in (which would defeat the lazy-load — the form
- * would not split into its own chunk).
- */
-export type PsychicnumValues = CoopTurnSetup & {
-  // Starting guess budget — shared by the team in coop, each player's own in
-  // compete. The dialog offers `GUESS_OPTIONS`; the server accepts 1..9.
-  max_guesses: number
-  // How many words sit on the board (5..20). Three of them are the
-  // hidden secrets; a bigger board means more haystack around the
-  // three needles. Validated server-side by `psychicnum.create_game`.
-  word_count: number
-  // Dictionary difficulty band (1..6 = Universal..Expert), a
-  // `common.words.difficulty` value. The board words are sampled from
-  // the dictionary at `difficulty ≤ this` (plus a clean + american +
-  // non-slang filter). Validated server-side.
-  band: number
-  // Browser-side timer mode. `none` and `countup` are
-  // informational; `countdown` ends the game as a loss when the
-  // clock hits 0 (via psychicnum.submit_timeout). Validated
-  // server-side by `common._require_valid_timer`.
-  timer: TimerMode
-  // WHO IS PLAYING — a field like any other, and the only one that is not
-  // part of the setup blob: `create_game` takes it as its own argument and
-  // writes `common.game_players` rows from it.
-  player_user_ids: Set<string>
-}
-
-/** What is SENT and STORED — every value the form collects except the players
- *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupRows.ts` and `PlayArea` read back. */
-export type PsychicnumSetup = SetupOf<PsychicnumValues>
+import type { GSetup } from '../types'
 
 /**
  * Initial setup the manifest hands the SetupGameModal wrapper
  * as `defaults`. A 10-word board at the Familiar band (3) is a
  * gentle baseline, with no clock.
  */
-export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
+export const DEFAULT_PSYCHICNUM_SETUP: GSetup = {
   max_guesses: 7,
   word_count: 10,
   band: 3,

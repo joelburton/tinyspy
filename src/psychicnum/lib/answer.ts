@@ -2,50 +2,14 @@
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
-import type { TileWord } from './tileResults'
-
-/**
- * Everything that can be SAID about a move in this game, as a closed set — and
- * **read as a list, it is the whole roster of what this game tells anybody.**
- *
- * "_peer" versions are answers that come from subscriptions and are for peer
- * feedback.
- */
-export type Answer =
-  // My correct guess.
-  | { answerType: 'hit'; word: TileWord }
-  // A coop teammate's, on the board we share.
-  | { answerType: 'hit_peer'; word: TileWord }
-
-  // My wrong guess.
-  | { answerType: 'miss'; word: TileWord }
-  // A coop teammate's.
-  | { answerType: 'miss_peer'; word: TileWord }
-
-  // I asked for a clue.
-  | { answerType: 'hint' }
-  // A coop teammate asked for one.
-  | { answerType: 'hint_peer' }
-
-  // I asked for a secret word.
-  | { answerType: 'spoiler' }
-  // A coop teammate had one handed to them.
-  | { answerType: 'spoiler_peer' }
-
-  // A compete opponent's secrets-found count ticked up. It has no twin of
-  // mine: this is not a row (RLS shows one player nothing of another's) but a
-  // public count.
-  | { answerType: 'found_peer' }
-
-  // Refused here: this board has already decided that word.
-  | { answerType: 'already_guessed' }
+import type { GAnswer, GTileWord } from '../types'
 
 /**
  * How an answer reads — **the one place this game decides that.** An empty
  * `text` means nothing is shown: the answer's only job is its outcome, which
  * the event log draws as the row's bar.
  */
-export function answerMessage(answer: Answer): AnswerMessage {
+export function answerMessage(answer: GAnswer): AnswerMessage {
   switch (answer.answerType) {
     case 'hit':
     case 'hit_peer':
@@ -74,7 +38,7 @@ export function answerMessage(answer: Answer): AnswerMessage {
 }
 
 /** The columns of a `psychicnum.events` row that say what it WAS. Narrower
- *  than `PsychicnumEvent` on purpose: nothing here may reach for an author, an id or a
+ *  than `GEvent` on purpose: nothing here may reach for an author, an id or a
  *  timestamp, which belong to the surface drawing the row. */
 type LoggedEvent = {
   kind: 'guess' | 'hint' | 'spoiler'
@@ -100,7 +64,7 @@ export function eventToOutcome(row: LoggedEvent): Outcome {
 
 /** What COLOR a guessed word is — the board's decided tile, and the log's
  *  guess row, from the same answer. */
-export function getGuessOutcome(word: TileWord, isCorrect: boolean): Outcome {
+export function getGuessOutcome(word: GTileWord, isCorrect: boolean): Outcome {
   return answerMessage({ answerType: isCorrect ? 'hit' : 'miss', word }).outcome
 }
 
