@@ -6,13 +6,12 @@ import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { GuessKeyboard } from '@/shared/onscreen-keyboard/GuessKeyboard'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
-import type { GameData } from '../hooks/useGame'
-import type { HistoryView } from '../hooks/useHistoryView'
 import { useSubmitGuess } from '../hooks/useSubmitGuess'
 import { useTypedGuess } from '../hooks/useTypedGuess'
 import { makeKeyColors } from '../lib/colors'
 import { Board } from './Board'
 import styles from './BoardCol.module.css'
+import type { GGameData, GHistoryView } from '../types'
 
 /**
  * wordle's board column — the `<Board>` plus the region under it: the
@@ -24,15 +23,12 @@ import styles from './BoardCol.module.css'
 export function BoardCol({
   gd,
   historyView,
-  brand,
   localFeedbackSlot,
   endingOutcome,
   myTurnJustStarted,
 }: {
-  gd: GameData
-  historyView: HistoryView
-  // Brand name (manifest) for the grid's `aria-label`, a test handle.
-  brand: string
+  gd: GGameData
+  historyView: GHistoryView
   localFeedbackSlot: FeedbackSlot
   // The ending that applies to me — bands the board in its outcome, and the
   // keyboard goes with it. Null while I play.
@@ -40,16 +36,15 @@ export function BoardCol({
   // True for a beat as the turn becomes mine — the frame flashes yellow.
   myTurnJustStarted: boolean
 }) {
-  // A past turn on screen blocks every write to the board.
-
   const submission = useSubmitGuess({
-    gameId: gd.gameId,
-    liveRows: gd.boardRows,
+    gameId: gd.id,
+    liveRows: gd.me.board.rows,
     localFeedbackSlot,
   })
-  // The game lets me guess, and no guess of mine is still out.
-  const canGuess = gd.standing.isBoardInteractive && submission.inFlight === null
-  // …and the live board is the one on screen.
+  // The move is mine, and no guess of mine is still out.
+  const canGuess = gd.me.onTurn && submission.inFlight === null
+  // …and the live board is the one on screen: a key then is the viewer's exit,
+  // and must not also type.
   const canType = canGuess && !historyView.isViewing
   const entry = useTypedGuess({
     localFeedbackSlot,
@@ -65,18 +60,18 @@ export function BoardCol({
   return (
     <div className={shared.boardCol}>
       <Board
-        grid={{ liveRows: gd.boardRows, maxGuesses: gd.readout.maxGuesses }}
+        grid={{ liveRows: gd.me.board.rows, maxGuesses: gd.me.maxGuesses }}
         marks={{
           typedWord: entry.word,
           inFlightGuess: shownInFlightGuess,
           refusedGuessMark: submission.refusedMark,
           endingOutcome,
-          isWaitingForTurn: gd.standing.isWaitingForTurn,
+          isWaitingForTurn: gd.me.waitingForTurn,
           myTurnJustStarted,
         }}
         historyView={historyView}
         canType={canType}
-        brand={brand}
+        brand={gd.brand}
       />
       {/* The below-board region. The feedback slot sits BETWEEN the board and
           the keyboard, both of which are always present, and `.localFeedback`
@@ -99,7 +94,7 @@ export function BoardCol({
           {/* Stays once the game has ended, disabled. Its caps hold the color
               every letter earned, the record of the game just played. */}
           <GuessKeyboard
-            keyColors={makeKeyColors(gd.boardRows)}
+            keyColors={makeKeyColors(gd.me.board.rows)}
             onKey={entry.typeLetter}
             actSubmit={entry.actions.actSubmit}
             actDelete={entry.actions.actDeleteLast}

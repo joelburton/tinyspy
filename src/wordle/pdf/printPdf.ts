@@ -13,7 +13,7 @@ import {
 import { drawInTracks, type Track } from '@/common/pdf/columns'
 import { drawTile, drawTileLegend } from '@/shared/wordle-style/pdfTiles'
 import type { TileColor } from '@/shared/wordle-style/tileColor'
-import type { PrintTrack, WordlePrintModel } from './model'
+import type { PrintTrack, PrintModel } from './model'
 import { WORD_LENGTH } from '../lib/setup'
 
 /**
@@ -37,7 +37,7 @@ import { WORD_LENGTH } from '../lib/setup'
 const KEY_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'] as const
 
 /** Generate the PDF and hand it to the browser as a download. */
-export function printWordlePdf(m: WordlePrintModel): void {
+export function printPdf(m: PrintModel): void {
   const pd = newPrintDoc()
   const { doc } = pd
 
@@ -55,7 +55,7 @@ export function printWordlePdf(m: WordlePrintModel): void {
 }
 
 /** One player's column: name, board, keyboard, guesses. */
-function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WordlePrintModel): number {
+function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: PrintModel): number {
   const cols = t.rows[0]?.states.length ?? WORD_LENGTH
   const gap = 2
   const tile = (track.width - gap * (cols - 1)) / cols

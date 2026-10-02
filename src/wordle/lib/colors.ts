@@ -9,7 +9,7 @@
 export { getTileColor, type TileColor } from '@/shared/wordle-style/tileColor'
 import { getTileColor, type TileColor } from '@/shared/wordle-style/tileColor'
 import type { KeyColor } from '@/shared/onscreen-keyboard/GuessKeyboard'
-import type { BoardRow } from './board'
+import type { GBoardRow } from '../types'
 import { WORD_LENGTH } from './setup'
 
 /** Strength order so the on-screen keyboard can keep the BEST color
@@ -33,11 +33,11 @@ export function colorRank(c: TileColor): number {
  * board's rows (green beats yellow beats gray). A letter never guessed has no
  * entry, and its key stays neutral.
  */
-export function makeKeyColors(rows: readonly BoardRow[]): ReadonlyMap<string, KeyColor> {
+export function makeKeyColors(rows: readonly GBoardRow[]): ReadonlyMap<string, KeyColor> {
   const keyColors = new Map<string, KeyColor>()
   for (const row of rows) {
     for (let i = 0; i < WORD_LENGTH; i++) {
-      const letter = row.guess[i]!
+      const letter = row.word[i]!
       const color = getTileColor(row.colors[i])
       if (color === 'blank') continue
       const earned = keyColors.get(letter)

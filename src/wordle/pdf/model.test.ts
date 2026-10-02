@@ -11,48 +11,74 @@
  * else's deductions.
  */
 import { describe, expect, it } from 'vitest'
-import { buildWordlePrintModel } from './model'
-import type { EventRow } from '../hooks/useGame'
+import { makeGameData } from '../hooks/useGame'
+import { guess, makeGameDataRaw } from '../lib/gameData.fixture'
+import type { GEventRaw, GPlayer } from '../types'
+import { buildPrintModel } from './model'
 
-const g = (over: Partial<EventRow> & Pick<EventRow, 'word' | 'colors'>): EventRow => ({
-  user_id: 'u1', id: 1, is_correct: false, ...over,
+const ME: GPlayer = makeGameData(makeGameDataRaw(), 'u1').me
+
+const TWO = [
+  { id: 'u1', username: 'me', color: 'red' },
+  { id: 'u2', username: 'moth', color: 'blue' },
+]
+
+/** A guess row by me unless said otherwise; ids count up. */
+let nextId = 1
+const g = (over: Partial<GEventRaw> & Pick<GEventRaw, 'word' | 'colors'>): GEventRaw => ({
+  ...guess(nextId++, 'u1', over.word, over.colors),
+  ...over,
 })
+
+/** The log as `gd` holds it, by player. Built from an ENDED compete game so
+ *  every player's rows are in it, whatever the model is then told about the
+ *  game. */
+const eventsOf = (events: GEventRaw[]) =>
+  makeGameData(
+    makeGameDataRaw({
+      mode: 'compete',
+      players: TWO,
+      events,
+      ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+      outcome: 'neutral',
+    }),
+    'u1',
+  ).events
 
 const base = {
   brand: 'Wordle', gameTitle: 'Board 1', date: '1 Jan 2026',
   mode: 'compete' as const, isGameEnded: false,
   maxGuesses: 6, wordLength: 5,
-  guesses: [] as EventRow[],
-  players: [{ id: 'u1', username: 'me' }, { id: 'u2', username: 'moth' }],
+  events: eventsOf([]),
+  players: [{ id: 'u1', username: 'me', solved: false }, { id: 'u2', username: 'moth', solved: false }],
   myId: 'u1',
   target: 'crane',
   answerShown: false,
-  solvedBy: new Set<string>(),
   setupRows: [{ key: 'guesses', label: 'Guesses', value: '6' }],
 }
 
-describe('buildWordlePrintModel — the target is a secret', () => {
+describe('buildPrintModel — the target is a secret', () => {
   it('withholds it mid-game, even when handed it', () => {
-    expect(buildWordlePrintModel({ ...base }).target).toBeNull()
+    expect(buildPrintModel({ ...base }).target).toBeNull()
   })
 
   it('withholds it on a LOST game — the game having ended is not enough', () => {
     // wordle hides the answer on a loss so Restart is a real second try; a
     // printout spelling it out would undo that from the outside. (This is the
     // bug that shipped: the gate was whether the game had ended.)
-    expect(buildWordlePrintModel({ ...base, isGameEnded: true }).target).toBeNull()
+    expect(buildPrintModel({ ...base, isGameEnded: true }).target).toBeNull()
   })
 
   it('prints it once the answer is legitimately shown (won or revealed)', () => {
     expect(
-      buildWordlePrintModel({ ...base, isGameEnded: true, answerShown: true }).target,
+      buildPrintModel({ ...base, isGameEnded: true, answerShown: true }).target,
     ).toBe('CRANE')
   })
 })
 
-describe('buildWordlePrintModel — the board', () => {
+describe('buildPrintModel — the board', () => {
   it('maps the server color codes to tile states', () => {
-    const m = buildWordlePrintModel({ ...base, guesses: [g({ word: 'slate', colors: 'xgyxg' })] })
+    const m = buildPrintModel({ ...base, events: eventsOf([g({ word: 'slate', colors: 'xgyxg' })]) })
     expect(m.tracks[0].rows[0].states).toEqual(
       ['wordleGray', 'wordleGreen', 'wordleYellow', 'wordleGray', 'wordleGreen'],
     )
@@ -60,31 +86,31 @@ describe('buildWordlePrintModel — the board', () => {
   })
 
   it('pads to the full board height so tracks compare at a glance', () => {
-    const m = buildWordlePrintModel({ ...base, guesses: [g({ word: 'slate', colors: 'xxxxx' })] })
+    const m = buildPrintModel({ ...base, events: eventsOf([g({ word: 'slate', colors: 'xxxxx' })]) })
     expect(m.tracks[0].rows).toHaveLength(6)
     // The unplayed rows are blank — a state that draws no box at all.
     expect(m.tracks[0].rows[5].states).toEqual(Array(5).fill('blank'))
   })
 })
 
-describe('buildWordlePrintModel — the keyboard', () => {
+describe('buildPrintModel — the keyboard', () => {
   it('keeps the BEST state seen for a letter, like the on-screen one', () => {
-    const m = buildWordlePrintModel({
+    const m = buildPrintModel({
       ...base,
-      guesses: [g({ word: 'aaaaa', colors: 'xxxxx' }), g({ word: 'aaaaa', colors: 'gxxxx' })],
+      events: eventsOf([g({ word: 'aaaaa', colors: 'xxxxx' }), g({ word: 'aaaaa', colors: 'gxxxx' })]),
     })
     // Gray then green → green wins (colorRank), not "last one seen".
     expect(m.tracks[0].keys.get('A')).toBe('wordleGreen')
   })
 
   it('never pools one player’s letters into another’s keyboard', () => {
-    const m = buildWordlePrintModel({
+    const m = buildPrintModel({
       ...base,
       isGameEnded: true,
-      guesses: [
-        g({ user_id: 'u1', word: 'slate', colors: 'ggggg' }),
-        g({ user_id: 'u2', word: 'crane', colors: 'xxxxx' }),
-      ],
+      events: eventsOf([
+        g({ userId: 'u1', word: 'slate', colors: 'ggggg' }),
+        g({ userId: 'u2', word: 'crane', colors: 'xxxxx' }),
+      ]),
     })
     const [mine, theirs] = m.tracks
     expect(mine.keys.get('S')).toBe('wordleGreen')
@@ -93,12 +119,12 @@ describe('buildWordlePrintModel — the keyboard', () => {
   })
 })
 
-describe('buildWordlePrintModel — tracks', () => {
+describe('buildPrintModel — tracks', () => {
   it('coop is ONE shared track whose log names each guesser', () => {
-    const m = buildWordlePrintModel({
+    const m = buildPrintModel({
       ...base,
       mode: 'coop',
-      guesses: [g({ user_id: 'u2', word: 'slate', colors: 'xxxxx' })],
+      events: eventsOf([g({ userId: 'u2', word: 'slate', colors: 'xxxxx' })]),
     })
     expect(m.tracks).toHaveLength(1)
     expect(m.tracks[0].who).toBe('Team')
@@ -106,26 +132,34 @@ describe('buildWordlePrintModel — tracks', () => {
   })
 
   it('compete mid-game prints ONLY my board', () => {
-    const m = buildWordlePrintModel({ ...base, guesses: [g({ word: 'slate', colors: 'xxxxx' })] })
+    const m = buildPrintModel({ ...base, events: eventsOf([g({ word: 'slate', colors: 'xxxxx' })]) })
     expect(m.tracks.map((t) => t.who)).toEqual(['You'])
   })
 
   it('compete, once the game has ended, prints one track per player', () => {
-    const m = buildWordlePrintModel({ ...base, isGameEnded: true })
+    const m = buildPrintModel({ ...base, isGameEnded: true })
     expect(m.tracks.map((t) => t.who)).toEqual(['me (you)', 'moth'])
   })
 
   it('reports each track’s own outcome', () => {
-    const m = buildWordlePrintModel({
-      ...base, isGameEnded: true, solvedBy: new Set(['u1']),
-      guesses: [g({ word: 'crane', colors: 'ggggg' })],
+    const m = buildPrintModel({
+      ...base, isGameEnded: true,
+      players: [{ id: 'u1', username: 'me', solved: true }, { id: 'u2', username: 'moth', solved: false }],
+      events: eventsOf([g({ word: 'crane', colors: 'ggggg' })]),
     })
     expect(m.tracks[0].result).toBe('Solved in 1')
     expect(m.tracks[1].result).toBe('Did not solve')
   })
 
   it('prints guesses as PLAIN words — the grid already carries the colors', () => {
-    const m = buildWordlePrintModel({ ...base, guesses: [g({ word: 'slate', colors: 'xgyxg' })] })
+    const m = buildPrintModel({ ...base, events: eventsOf([g({ word: 'slate', colors: 'xgyxg' })]) })
     expect(m.tracks[0].turns[0].text).toBe('SLATE')
+  })
+
+  it('takes a player as the surface holds one', () => {
+    // `gd.players` goes straight in: the model asks a player only for their id,
+    // name and whether they solved.
+    const m = buildPrintModel({ ...base, players: [ME] })
+    expect(m.tracks[0].result).toBe('0/6 guesses')
   })
 })

@@ -18,16 +18,16 @@ describe('colorRank', () => {
 describe('makeKeyColors', () => {
   it('gives each letter the strongest color it has earned across the rows', () => {
     const keyColors = makeKeyColors([
-      { guess: 'slate', colors: 'xyxxx' }, // l yellow
-      { guess: 'blink', colors: 'xgxxx' }, // l green: beats the yellow
-      { guess: 'lucky', colors: 'xxxxx' }, // l gray: does not undo the green
+      { word: 'slate', colors: 'xyxxx' }, // l yellow
+      { word: 'blink', colors: 'xgxxx' }, // l green: beats the yellow
+      { word: 'lucky', colors: 'xxxxx' }, // l gray: does not undo the green
     ])
     expect(keyColors.get('l')).toBe('wordleGreen')
     expect(keyColors.get('s')).toBe('wordleGray')
   })
 
   it('leaves a letter never guessed out, so its key stays neutral', () => {
-    expect(makeKeyColors([{ guess: 'slate', colors: 'xxxxx' }]).has('q')).toBe(false)
+    expect(makeKeyColors([{ word: 'slate', colors: 'xxxxx' }]).has('q')).toBe(false)
     expect(makeKeyColors([]).size).toBe(0)
   })
 })

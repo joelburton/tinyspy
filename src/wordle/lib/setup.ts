@@ -1,49 +1,12 @@
 // cs-blessed-wordle
 
-import type { TimerMode } from '@/common/manifest/gameManifest'
-import type { SetupOf } from '@/common/setup-form/setupForm'
 import type { FormErrors } from '@/common/forms/formState'
-import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
+import type { GSetup } from '../types'
 
-/**
- * wordle's per-game setup — collected by the start-game dialog,
- * persisted to `common.games.setup`, and validated server-side by
- * `wordle.create_game` (the authority for what's accepted).
- *
- * Lives in `lib/` rather than `manifest.ts` so the SetupForm body can
- * import the type without dragging the manifest into its lazy chunk.
- */
-export type WordleValues = CoopTurnSetup & {
-  // Guess budget — how many guesses the player (coop: the team) gets. Classic
-  // Wordle is 6; we offer 5–8. The server bounds it.
-  max_guesses: number
-  // Where the hidden target is drawn from. `0` = the curated NYT-Wordle answer
-  // list (`wordle=true`, the classic feel — default). `1..6` = any 5-letter
-  // word of that difficulty band or easier (a higher band can yield an obscure
-  // answer). 0 is not a real band; see `answerMaxBand`.
-  answer_band: number
-  // What counts as a legal guess: any real 5-letter word of difficulty ≤ this
-  // (1..6). Must reach the answer's hardest band so every possible answer is
-  // itself a legal guess — see `legalError` / `answerMaxBand`.
-  legal_band: number
-  // Timer mode. `none` / `countup` are purely informational; a `countdown`
-  // ends the game when it expires, via the shared `wordle.submit_timeout` RPC.
-  timer: TimerMode
-  // WHO IS PLAYING — a field like any other, and not part of the setup blob:
-  // `create_game` takes it as its own argument and writes
-  // `common.game_players` rows from it.
-  player_user_ids: Set<string>
-}
-
-
-/** What is SENT and STORED — every value the form collects except the players
- *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `useGame` reads back for `gd.setup` and the setup rows. */
-export type WordleSetup = SetupOf<WordleValues>
 /** Initial setup the manifest hands the dialog as `defaults`. Defaults to the
  *  classic game: the NYT answer list (answer band 0), guesses accepted up to
  *  band 4. */
-export const DEFAULT_WORDLE_SETUP: WordleSetup = {
+export const DEFAULT_WORDLE_SETUP: GSetup = {
   max_guesses: 6,
   answer_band: 0,
   legal_band: 4,
@@ -74,7 +37,7 @@ export const WORD_LENGTH = 5
  * band 2 or easier, so it tops out at 2. (Kept in sync with the same rule in
  * `wordle.create_game`.)
  */
-export function answerMaxBand(setup: WordleSetup): number {
+export function answerMaxBand(setup: GSetup): number {
   return setup.answer_band === 0 ? 2 : setup.answer_band
 }
 
@@ -84,7 +47,7 @@ export function answerMaxBand(setup: WordleSetup): number {
  * answer's hardest band. The dialog gates Start on this (via the manifest's
  * `validate`); `create_game` re-checks server-side.
  */
-export function legalError(setup: WordleSetup): FormErrors {
+export function legalError(setup: GSetup): FormErrors {
   const min = answerMaxBand(setup)
   if (setup.legal_band < min) {
     // Under `legal_band`, not `answer_band`, though moving EITHER can cause

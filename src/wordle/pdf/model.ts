@@ -4,17 +4,16 @@ import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import { getTileColor, type TileColor } from '@/shared/wordle-style/tileColor'
 import { makeKeyColors } from '../lib/colors'
-import { memberById } from '@/common/members/memberList'
-import type { EventRow } from '../hooks/useGame'
+import type { GEvent } from '../types'
 
 /**
  * Build the wordle print model — the pure half, away from jsPDF so the judgment
  * is testable without a renderer.
  *
- * Two judgments live here. **The target is a secret**: it's on the game row and
- * the FE holds it, but it must not print before the game ends any more than it
- * shows on screen. And **the keyboard is derived, not stored** — the best state
- * seen for each letter across that player's guesses — so it has to be
+ * Two judgments live here. **The target is a secret**: it's on the blob once
+ * the game has ended and the FE holds it, but it must not print before it
+ * shows on screen. And **the keyboard is derived, not stored** — the best
+ * state seen for each letter across that player's guesses — so it has to be
  * recomputed per player rather than shared, which is easy to get wrong once
  * compete prints everyone's board.
  */
@@ -33,7 +32,7 @@ export type PrintTrack = {
   result: string
 }
 
-export type WordlePrintModel = PrintHeader & {
+export type PrintModel = PrintHeader & {
   // One track per board. Coop is a single shared track; compete is one per
   // player once the game has ended, or just yours during play.
   tracks: PrintTrack[]
@@ -48,7 +47,7 @@ const BLANK_ROW = (len: number): PrintRow => ({
 
 /** A guess row → its tiles. `colors` is the server's per-letter g/y/x
  *  string. */
-function rowOf(g: EventRow): PrintRow {
+function rowOf(g: GEvent): PrintRow {
   return {
     letters: [...g.word.toUpperCase()],
     states: [...g.word].map((_, i) => getTileColor(g.colors[i])),
@@ -61,12 +60,12 @@ function rowOf(g: EventRow): PrintRow {
  * page prints letters upper-case. Letters never tried are simply absent, which
  * the renderer draws as the blank (borderless) state.
  */
-function keysOf(guesses: readonly EventRow[]): Map<string, TileColor> {
-  const keyColors = makeKeyColors(guesses.map((g) => ({ guess: g.word, colors: g.colors })))
+function keysOf(guesses: readonly GEvent[]): Map<string, TileColor> {
+  const keyColors = makeKeyColors(guesses.map((g) => ({ word: g.word, colors: g.colors })))
   return new Map([...keyColors].map(([letter, color]) => [letter.toUpperCase(), color]))
 }
 
-export function buildWordlePrintModel(o: {
+export function buildPrintModel(o: {
   brand: string
   gameTitle: string
   date: string
@@ -75,23 +74,20 @@ export function buildWordlePrintModel(o: {
   maxGuesses: number
   wordLength: number
   // Every guess the viewer can see. Compete mid-game: only their own.
-  guesses: EventRow[]
-  players: { id: string; username: string }[]
+  events: GEvent[]
+  // Each player, and whether they solved it, for the outcome line.
+  players: { id: string; username: string; solved: boolean }[]
   myId: string
-  // From the game row — the FE only holds it post-game.
+  // From the blob — the FE only holds it post-game.
   target: string | null
   // Is the answer legitimately on screen? A WIN or an explicit reveal — NOT
   // merely an ended game. wordle hides the answer on a loss so a Restart is a
   // real second try (docs/ui.md → Terminal results), and a printout that
   // spelled it out would undo that from the outside.
   answerShown: boolean
-  // Per-player solved flags, for the outcome line.
-  solvedBy: ReadonlySet<string>
   setupRows: SetupRow[]
-}): WordlePrintModel {
-  const nameOf = (id: string) => memberById(o.players, id)?.username ?? 'someone'
-
-  const track = (who: string, guesses: EventRow[], solved: boolean): PrintTrack => {
+}): PrintModel {
+  const track = (who: string, guesses: GEvent[], solved: boolean): PrintTrack => {
     const played = guesses.map(rowOf)
     return {
       who,
@@ -122,14 +118,14 @@ export function buildWordlePrintModel(o: {
 
   // Coop is ONE shared board however many players are round it, so it's one
   // track and the log names whoever made each guess. Compete is one track per
-  // player — but only once the game has ended, since mid-game RLS means the
-  // viewer holds nobody's guesses but their own and empty tracks would mislead.
+  // player — but only once the game has ended, since mid-game the viewer holds
+  // nobody's guesses but their own and empty tracks would mislead.
   let tracks: PrintTrack[]
   if (o.mode === 'coop') {
-    const t = track('Team', o.guesses, o.solvedBy.size > 0)
-    t.turns = o.guesses.map((g, i) => ({
+    const t = track('Team', o.events, o.players.some((p) => p.solved))
+    t.turns = o.events.map((g, i) => ({
       seq: i + 1,
-      who: nameOf(g.user_id),
+      who: g.by.username,
       text: g.word.toUpperCase(),
     }))
     tracks = [t]
@@ -137,13 +133,14 @@ export function buildWordlePrintModel(o: {
     tracks = o.players.map((p) =>
       track(
         p.id === o.myId ? `${p.username} (you)` : p.username,
-        o.guesses.filter((g) => g.user_id === p.id),
-        o.solvedBy.has(p.id),
+        o.events.filter((g) => g.by.id === p.id),
+        p.solved,
       ),
     )
   } else {
+    const me = o.players.find((p) => p.id === o.myId)!
     tracks = [
-      track('You', o.guesses.filter((g) => g.user_id === o.myId), o.solvedBy.has(o.myId)),
+      track('You', o.events.filter((g) => g.by.id === o.myId), me.solved),
     ]
   }
 
@@ -153,7 +150,7 @@ export function buildWordlePrintModel(o: {
     date: o.date,
     summary:
       o.mode === 'coop'
-        ? `Co-op · ${o.guesses.length}/${o.maxGuesses} guesses`
+        ? `Co-op · ${o.events.length}/${o.maxGuesses} guesses`
         : `Compete · ${o.players.length} players`,
     setupRows: o.setupRows,
     mode: o.mode,

@@ -144,7 +144,7 @@ select is(
   2::bigint,
   'both players ranked 1, won, and solved');
 select is(
-  (select target from wordle.games_state where game_id = (select id from g))::text,
+  (select game_data->'puzzle'->>'target' from common.games where id = (select id from g)),
   (select w from tgt),
   'target revealed once the game has ended');
 -- The solving guess is the most recent one, so the title now reads the answer

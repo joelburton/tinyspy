@@ -1,34 +1,36 @@
 // cs-blessed-wordle
 
 import { describe, it, expect } from 'vitest'
+import { makeGameData } from '../hooks/useGame'
+import { guess, makeGameDataRaw, type GameDataFacts } from './gameData.fixture'
 import { replayTurn } from './history'
-import type { EventRow } from '../hooks/useGame'
 
-/** A guess row, defaulting the fields the replay ignores. */
-const g = (word: string, colors: string, is_correct = false): EventRow => ({
-  user_id: 'u1',
-  id: 1,
-  word,
-  colors,
-  is_correct,
-})
+const TWO = [
+  { id: 'u1', username: 'me', color: 'red' },
+  { id: 'u2', username: 'moth', color: 'blue' },
+]
+
+/** The log as `gd` holds it, by player, for these facts. */
+const eventsOf = (facts: GameDataFacts) => makeGameData(makeGameDataRaw(facts), 'u1').events
 
 describe('wordle replayTurn', () => {
   // Ids deliberately not 0,1,2: a builder that still indexed would pass these
   // by accident.
-  const guesses = [
-    { ...g('slate', 'xxgyx'), id: 11 },
-    { ...g('crane', 'yxxxg'), id: 12 },
-    { ...g('point', 'ggggg', true), id: 13 },
-  ]
+  const guesses = eventsOf({
+    events: [
+      guess(11, 'u1', 'slate', 'xxgyx'),
+      guess(12, 'u1', 'crane', 'yxxxg'),
+      guess(13, 'u1', 'point', 'ggggg'),
+    ],
+  })
 
   it('includes the guess rows up to and including the viewed turn (inclusive)', () => {
     // The first row → just it.
-    expect(replayTurn(guesses, 11, 1, false).rows).toEqual([{ guess: 'slate', colors: 'xxgyx' }])
+    expect(replayTurn(guesses, 11, 1, false).rows).toEqual([{ word: 'slate', colors: 'xxgyx' }])
     // The second → the first two rows.
     expect(replayTurn(guesses, 12, 2, false).rows).toEqual([
-      { guess: 'slate', colors: 'xxgyx' },
-      { guess: 'crane', colors: 'yxxxg' },
+      { word: 'slate', colors: 'xxgyx' },
+      { word: 'crane', colors: 'yxxxg' },
     ])
   })
 
@@ -52,26 +54,33 @@ describe('wordle replayTurn', () => {
     expect(replayed.rows).toHaveLength(0)
     expect(replayed.litBoardRow).toBe(-1)
     expect(replayed.label).toBe('This guess')
-    expect(replayed.authorId).toBeNull()
+    expect(replayed.author).toBeNull()
   })
 
   // Once a compete game has ended every player's rows arrive, interleaved.
-  const table = [
-    { ...g('slate', 'xxgyx'), id: 21, user_id: 'u1' },
-    { ...g('crane', 'yxxxg'), id: 22, user_id: 'u2' },
-    { ...g('point', 'ggggg', true), id: 23, user_id: 'u1' },
-  ]
+  const raceEnded: GameDataFacts = {
+    players: TWO,
+    events: [
+      guess(21, 'u1', 'slate', 'xxgyx'),
+      guess(22, 'u2', 'crane', 'yxxxg'),
+      guess(23, 'u1', 'point', 'ggggg'),
+    ],
+    ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+    outcome: 'won',
+  }
 
   it('in compete, replays only the author\'s own rows, and says whose they are', () => {
+    const table = eventsOf({ ...raceEnded, mode: 'compete' })
     const replayed = replayTurn(table, 23, 2, true)
-    expect(replayed.rows.map((r) => r.guess)).toEqual(['slate', 'point'])
+    expect(replayed.rows.map((r) => r.word)).toEqual(['slate', 'point'])
     expect(replayed.litBoardRow).toBe(1)
-    expect(replayed.authorId).toBe('u1')
-    expect(replayTurn(table, 22, 1, true).rows.map((r) => r.guess)).toEqual(['crane'])
+    expect(replayed.author?.id).toBe('u1')
+    expect(replayTurn(table, 22, 1, true).rows.map((r) => r.word)).toEqual(['crane'])
   })
 
   it('in coop, replays the one shared board, every author\'s rows', () => {
-    expect(replayTurn(table, 23, 3, false).rows.map((r) => r.guess))
+    const table = eventsOf(raceEnded)
+    expect(replayTurn(table, 23, 3, false).rows.map((r) => r.word))
       .toEqual(['slate', 'crane', 'point'])
   })
 })

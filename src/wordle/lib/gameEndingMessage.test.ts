@@ -16,17 +16,16 @@ import { describe, expect, it } from 'vitest'
 import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
 import { buildGameEndingMessage } from './gameEndingMessage'
 
-/** The message for one ending, with the winner Bea and the compete flags off
- *  unless a case sets them. */
+/** The message for one ending, with the compete flags off unless a case sets
+ *  them. */
 function build(
   mode: 'coop' | 'compete',
   outcome: EndOutcome,
   reason: GameEndedReason,
-  playerOutcome: EndOutcome | null,
+  playerOutcome: EndOutcome,
   flags: { iSolved?: boolean; isMyTieBrokenByClock?: boolean } = {},
 ) {
   return buildGameEndingMessage({
-    winnerName: 'Bea',
     iSolved: false,
     isMyTieBrokenByClock: false,
     ...flags,
@@ -113,12 +112,6 @@ describe('compete', () => {
     const msg = build('compete', 'neutral', 'stopped', 'neutral')
     expect(msg.outcome).toBe('neutral')
     expect(msg.pillText).toBe('Game ended — no winner')
-  })
-
-  // SPECTATING: a guess until the design settles what a watcher sees.
-  it('a watcher is told who won, in the game\'s outcome', () => {
-    expect(build('compete', 'won', 'reached_goal', null))
-      .toEqual(message('Bea won', 'Bea won', 'won'))
   })
 
   // The two flags are compete questions. Coop reads neither: the team won or

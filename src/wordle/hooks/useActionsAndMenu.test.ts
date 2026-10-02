@@ -12,40 +12,36 @@ import { actionFixture } from '@/common/actions/action.fixture'
 import { getActions } from '@/common/actions/actionsStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
-import type { GameData } from './useGame'
+import { makeGameDataRaw, type GameDataFacts } from '../lib/gameData.fixture'
+import { makeGameData } from './useGame'
 import { useActionsAndMenu } from './useActionsAndMenu'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
-/** A game in play, with where I stand overridable; only what the actions
- *  read. */
-function gdWith(
-  over: { isGameEnded?: boolean; isStillPlaying?: boolean; hasSolved?: boolean } = {},
-): GameData {
-  const isGameEnded = over.isGameEnded ?? false
-  return {
-    gameId: 'g1',
-    mode: 'coop',
-    isCompete: false,
-    title: 'A game',
-    setup: {},
-    isGameEnded,
-    target: isGameEnded ? 'crane' : null,
-    events: [],
-    players: [],
-    playersById: {},
-    readout: { maxGuesses: 6 },
-    setupRows: [],
-    standing: {
-      isPlayerEnded: false,
-      isStillPlaying: over.isStillPlaying ?? !isGameEnded,
-      hasSolved: over.hasSolved ?? false,
-    },
-  } as unknown as GameData
+/** A solo coop game in play, or ended as the facts say, viewed by its one
+ *  player. */
+function gdWith(facts: GameDataFacts = {}) {
+  return makeGameData(makeGameDataRaw(facts), 'u1')
+}
+
+/** The coop game lost on its last guess, with me — its one player — lost. */
+const LOST: GameDataFacts = {
+  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1', winner: null },
+  outcome: 'lost',
+  target: 'crane',
+  players: [{ id: 'u1', username: 'me', outcome: 'lost' }],
+}
+
+/** The coop game won, by me typing the word. */
+const WON: GameDataFacts = {
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+  outcome: 'won',
+  target: 'crane',
+  players: [{ id: 'u1', username: 'me', outcome: 'won', finalRanking: 1, solvedAt: '2026-09-03T00:00:00Z' }],
 }
 
 /** Mount the hook with a fake menu, and hand back what it published. */
-function setup(gd: GameData) {
+function setup(gd: ReturnType<typeof gdWith>) {
   const setGameSections = vi.fn()
   const menu = {
     setGameSections,
@@ -58,10 +54,8 @@ function setup(gd: GameData) {
       gd,
       myId: 'u1',
       localFeedbackSlot: createFeedbackSlot('local'),
-      clubHandle: 'club',
       goToFollowUpGame: vi.fn(),
       menu,
-      brand: 'WordNerd',
     }),
   )
   const sections = (setGameSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
@@ -102,13 +96,13 @@ describe('useActionsAndMenu — the reveal', () => {
   })
 
   it('is a live button once the game has ended, with the word still hidden', () => {
-    const { result } = setup(gdWith({ isGameEnded: true }))
+    const { result } = setup(gdWith(LOST))
     expect(revealState('button')).toBe('active')
     expect(result.current.answerShown).toBe(false)
   })
 
   it('shows the word unasked to a solver, who typed it', () => {
-    const { result } = setup(gdWith({ isGameEnded: true, hasSolved: true }))
+    const { result } = setup(gdWith(WON))
     expect(result.current.answerShown).toBe(true)
   })
 })

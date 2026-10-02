@@ -7,8 +7,8 @@
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import type { BoardRow } from '../lib/board'
 import { db } from '../db'
+import type { GBoardRow } from '../types'
 import { useSubmitGuess } from './useSubmitGuess'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
@@ -25,7 +25,7 @@ function answer(data: unknown) {
   }
 }
 
-function setup(liveRows: BoardRow[] = []) {
+function setup(liveRows: GBoardRow[] = []) {
   const localFeedbackSlot = createFeedbackSlot('local')
   const shown = vi.spyOn(localFeedbackSlot, 'show')
   const hook = renderHook(
@@ -65,7 +65,7 @@ describe('useSubmitGuess', () => {
     // The reply is in, but the row is not: the word stays.
     expect(result.current.inFlight).toBe('slate')
 
-    rerender({ rows: [{ guess: 'slate', colors: 'xxgyx' }] })
+    rerender({ rows: [{ word: 'slate', colors: 'xxgyx' }] })
     expect(result.current.inFlight).toBeNull()
   })
 

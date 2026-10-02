@@ -368,16 +368,36 @@ the first instance; the next game's blob starts from it.
      plans/areas/psychicnum.md → The convenience RLS). The statuses are not
      written any more; the club page reads `summary_data`. The log's rows are
      camelCase in the blob (`userId`, `correct`, `at`), as every other key is.
+  5. **wordle's game_data** (done 2026-10-02, the psychicnum way). Its
+     `_rebuild_data_cols` writes `game_data` (`puzzle: {target}`, `events`,
+     and on each player `maxGuesses`, `guessesUsed`, `tieBrokenByClock`,
+     `board: {rows}`) and `summary_data` (`guessesUsed`, `maxGuesses`,
+     `answerBand`, `winnerGuessesCount`) in named pieces, pinned in
+     `tests/wordle/game_data_test.sql`. Its `useGame` is a pure function of
+     the blob and `auth.user.id`; the seat rule withholds a rival's rows and
+     board mid-race. The `games_state` view, `_target_for`, the mode arm of
+     `events_select` and `_write_statuses` went (the inventory is
+     plans/areas/wordle.md → The convenience RLS); the statuses are not
+     written any more. `readout` and `standing` dissolved onto the player;
+     every `SPECTATING:` branch in the folder went, and with it the
+     watcher's "X won" message and the `winnerName` it read.
   docs/win-lose.md's formulas and code-conventions' naming section carry the
   path names once this ships.
-- **Each converted game after it** (wordle, connections): the same, starting
-  from psychicnum's blob shape; PlayArea, BoardCol, InfoCol, Board and the
-  hooks read `gd.me.…` and `p.…`; `readout`, `standing`, `boardEvents` /
-  `boardRows` / `matchedCategories` / `remainingTiles` / `picks` move under
-  `board` and `picks` on the player; every `SPECTATING:` branch and tag goes
-  (sixteen files today); tests follow.
+- **Each converted game after it** (connections): the same, starting from
+  psychicnum's blob shape; PlayArea, BoardCol, InfoCol, Board and the hooks
+  read `gd.me.…` and `p.…`; `readout`, `standing`, `boardEvents` /
+  `matchedCategories` / `remainingTiles` / `picks` move under `board` and
+  `picks` on the player; every `SPECTATING:` branch and tag goes; tests
+  follow.
 - **Then** connections' InfoCol and Board passes resume on the new shape, and
   the next game converts straight onto it.
+
+## The convenience RLS, per game
+
+Before a game converts, its policies and views that mention `auth.uid()` or
+`ended_at` are listed in its area file, and each one is taken over or dropped
+by name: plans/areas/psychicnum.md and plans/areas/wordle.md → The convenience
+RLS.
 
 ## Owed when the problem children open
 

@@ -54,9 +54,10 @@ select throws_ok(
   format($$ select target from wordle.games where game_id = %L::uuid $$, (select id from g)),
   '42501', null,
   'direct SELECT of wordle.games.target is denied (column-level grant)');
-select ok(
-  (select target from wordle.games_state where game_id = (select id from g)) is null,
-  'games_state.target is NULL while the game is in progress');
+select is(
+  (select game_data->'puzzle'->'target' from common.games where id = (select id from g)),
+  'null'::jsonb,
+  'game_data''s target is null while the game is in progress');
 
 -- ── Setup validation ────────────────────────────────────────
 select pg_temp.envelope_is(

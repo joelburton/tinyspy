@@ -7,29 +7,35 @@
  */
 import { describe, expect, it } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import type { EventRow, GameData } from './useGame'
+import { guess, makeGameDataRaw } from '../lib/gameData.fixture'
+import { makeGameData } from './useGame'
 import { useHistoryView } from './useHistoryView'
 
-const EVENTS: EventRow[] = [
-  { id: 1, user_id: 'u1', word: 'slate', colors: 'xxgyx', is_correct: false },
-  { id: 2, user_id: 'u2', word: 'crane', colors: 'ggggg', is_correct: true },
+const TWO = [
+  { id: 'u1', username: 'me', color: 'red' },
+  { id: 'u2', username: 'moth', color: 'blue' },
 ]
+const EVENTS = [guess(1, 'u1', 'slate', 'xxgyx'), guess(2, 'u2', 'crane', 'ggggg')]
 
-/** Just what the hook reads: the log, the mode, and the players by id. */
-function gdWith(isCompete: boolean): GameData {
-  return {
-    isCompete,
-    events: EVENTS,
-    playersById: {
-      u1: { user_id: 'u1', username: 'me', color: 'red' },
-      u2: { user_id: 'u2', username: 'moth', color: 'blue' },
-    },
-  } as unknown as GameData
+/** A game with both players' rows in the log: coop, or a race that has ended
+ *  (mid-race the seat rule would withhold moth's). */
+function gdWith(isCompete: boolean) {
+  return makeGameData(
+    makeGameDataRaw({
+      mode: isCompete ? 'compete' : 'coop',
+      players: TWO,
+      events: EVENTS,
+      ...(isCompete
+        ? { ending: { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u2' }, outcome: 'won' }
+        : {}),
+    }),
+    'u1',
+  )
 }
 
 describe('useHistoryView', () => {
   it('is live until a turn is opened', () => {
-    const { result } = renderHook(() => useHistoryView(gdWith(false), 'u1'))
+    const { result } = renderHook(() => useHistoryView(gdWith(false)))
     expect(result.current.isViewing).toBe(false)
     expect(result.current.viewedEventId).toBeNull()
     expect(result.current.rows).toBeNull()
@@ -38,11 +44,11 @@ describe('useHistoryView', () => {
   })
 
   it('replays the turn it opens, and goes back to live on exit', () => {
-    const { result } = renderHook(() => useHistoryView(gdWith(false), 'u1'))
+    const { result } = renderHook(() => useHistoryView(gdWith(false)))
     act(() => result.current.show(2, 2))
     expect(result.current.isViewing).toBe(true)
     expect(result.current.viewedEventId).toBe(2)
-    expect(result.current.rows?.map((r) => r.guess)).toEqual(['slate', 'crane'])
+    expect(result.current.rows?.map((r) => r.word)).toEqual(['slate', 'crane'])
     expect(result.current.litBoardRow).toBe(1)
     expect(result.current.label).toBe('Guess 2: CRANE')
     act(() => result.current.exit())
@@ -51,18 +57,18 @@ describe('useHistoryView', () => {
   })
 
   it('names the actor for an opponent\'s board in compete', () => {
-    const { result } = renderHook(() => useHistoryView(gdWith(true), 'u1'))
+    const { result } = renderHook(() => useHistoryView(gdWith(true)))
     act(() => result.current.show(2, 1))
     expect(result.current.actor?.username).toBe('moth')
-    expect(result.current.rows?.map((r) => r.guess)).toEqual(['crane'])
+    expect(result.current.rows?.map((r) => r.word)).toEqual(['crane'])
   })
 
   it('names nobody for my own board, or for any turn in coop', () => {
-    const compete = renderHook(() => useHistoryView(gdWith(true), 'u1'))
+    const compete = renderHook(() => useHistoryView(gdWith(true)))
     act(() => compete.result.current.show(1, 1))
     expect(compete.result.current.actor).toBeUndefined()
 
-    const coop = renderHook(() => useHistoryView(gdWith(false), 'u1'))
+    const coop = renderHook(() => useHistoryView(gdWith(false)))
     act(() => coop.result.current.show(2, 2))
     expect(coop.result.current.actor).toBeUndefined()
   })

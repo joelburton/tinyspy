@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import { useBindAction, type Action } from '@/common/actions/useBindAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
@@ -14,41 +14,9 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import { WORD_LENGTH } from '../lib/setup'
-import { buildWordlePrintModel } from '../pdf/model'
-import { printWordlePdf } from '../pdf/printWordlePdf'
-import type { GameData } from './useGame'
-
-/**
- * Every command wordle offers, bound once: the info column's action row places
- * them, the menu lists them, and their keys fire them — all reading the same
- * action, so the surfaces cannot drift.
- */
-export type WordleActions = {
-  // Each key is spelled as its action's id (`act-reveal` → `actReveal`), so a
-  // grep for either finds every trace of the action
-  // (src/guards/actionIds.test.ts).
-  //
-  // Show the word — or put it away again. A local display toggle, no RPC; it
-  // carries its own faces, the inert "solution already shown" included.
-  actReveal: Action
-  // Restart THIS game — same word — from scratch.
-  actRestart: Action
-  // Start a fresh follow-up game — same setup, new target + id. Disables itself
-  // while the create is in flight.
-  actNewGame: Action
-  // Drop out of a compete game while the others play on — hidden in coop, and
-  // once you are out (solved, out of guesses, conceded), when Stop takes its
-  // place.
-  actConcede: Action
-  // Stop the game for the whole table — coop's exit; it hides itself in
-  // compete until you are out.
-  actStopGame: Action
-  // Print the board and the log; the menu's alone, with no twin in the row.
-  actPrintBoard: Action
-  // Leave for the club page — the shell's own, off `PlayAreaLoaderProps.menu`, carried
-  // here so a surface that places the row has every action in one object.
-  actBackToClub: Action
-}
+import { buildPrintModel } from '../pdf/model'
+import { printPdf } from '../pdf/printPdf'
+import type { GActions, GGameData } from '../types'
 
 /**
  * Bind every wordle command and publish the game's menu from them. Hands back
@@ -69,35 +37,33 @@ export function useActionsAndMenu({
   gd,
   myId,
   localFeedbackSlot,
-  clubHandle,
   goToFollowUpGame,
   menu,
-  brand,
 }: {
-  gd: GameData
+  gd: GGameData
   myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
-  clubHandle: string
-  brand: string
 } & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): {
-  actions: WordleActions
+  actions: GActions
   answerShown: boolean
 } {
   // The shared trio — Stop / Concede / Restart. wordle's own bit is which `db`
   // they call.
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
-    gameId: gd.gameId,
-    isTerminal: gd.isGameEnded,
+    gameId: gd.id,
+    isTerminal: gd.ended,
     mode: gd.mode,
-    isLocallyTerminal: gd.standing.isPlayerEnded,
+    // Out of the race while the game goes on: a solver, a player whose budget
+    // is spent, a conceder.
+    isLocallyTerminal: !gd.me.stillPlaying && !gd.ended,
     localFeedbackSlot,
   })
 
   // The word shows only when I ask for it, and the ask is local and reversible
   // (`useSolutionReveal`). The target is on every client once the game has
-  // ended (`wordle._target_for`), so this is purely what gets drawn.
+  // ended (`gd.puzzle.target`), so this is purely what gets drawn.
   //
   // `impliedBy` is the exception: a wordle can only be SOLVED by typing the
   // answer, so a solver is already looking at it.
@@ -105,7 +71,7 @@ export function useActionsAndMenu({
     revealed: answerShown,
     toggle: toggleAnswer,
     impliedBySolve,
-  } = useSolutionReveal({ impliedBy: gd.standing.hasSolved })
+  } = useSolutionReveal({ impliedBy: gd.me.solved })
 
   // Reveal the answer — nothing is written and no peer is affected. Both faces
   // come from `describeReveal`, where the rule for every game's reveal lives.
@@ -114,9 +80,9 @@ export function useActionsAndMenu({
       // The one narrowing this game adds: no BUTTON while you can still play.
       // The menu row keeps it all game, grayed, because it NAMES the glyph
       // (docs/ui.md → the menu is the legend).
-      if (gd.standing.isStillPlaying && asker === 'button') return 'hidden'
+      if (gd.me.stillPlaying && asker === 'button') return 'hidden'
       return describeReveal({
-        noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal: gd.isGameEnded,
+        noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal: gd.ended,
       })
     },
     run: toggleAnswer,
@@ -131,7 +97,7 @@ export function useActionsAndMenu({
   async function createNewGame() {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
-        p_club_handle: clubHandle,
+        p_club_handle: gd.club.handle,
         p_setup: gd.setup,
         p_player_user_ids: gd.players.map((p) => p.id),
         p_mode: gd.mode,
@@ -156,37 +122,34 @@ export function useActionsAndMenu({
   // the game has ended; the shared run's single flight stops a second press
   // dealing a second word.
   const actNewGame = useBindAction('act-new-game', {
-    terminal: gd.isGameEnded,
+    terminal: gd.ended,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
     describe:
-        (asker) => (asker === 'button' && !gd.isGameEnded ? 'hidden' : 'active'),
+        (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
   // Print builds its model from the live state at CLICK time
-  // (common/pdf/doc.md). RLS already scopes the log to what I may see, and the
-  // model refuses to print the target before the end, so neither the boards nor
-  // the answer can leak onto paper early.
+  // (common/pdf/doc.md). `gd.events` is already what I may see, and the model
+  // refuses to print the target before the end, so neither the boards nor the
+  // answer can leak onto paper early.
   const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
-      printWordlePdf(
-        buildWordlePrintModel({
-          brand,
+      printPdf(
+        buildPrintModel({
+          brand: gd.brand,
           gameTitle: gd.title,
           date: new Date().toLocaleDateString(),
           mode: gd.mode,
-          isGameEnded: gd.isGameEnded,
-          maxGuesses: gd.readout.maxGuesses,
+          isGameEnded: gd.ended,
+          maxGuesses: gd.me.maxGuesses,
           wordLength: WORD_LENGTH,
-          guesses: gd.events,
+          events: gd.events,
           players: gd.players,
           myId,
-          target: gd.target,
+          target: gd.puzzle.target,
           answerShown,
-          solvedBy:
-              new Set(gd.players.filter(
-                  (p) => p.solvedAt !== null).map((p) => p.id)),
           setupRows: gd.setupRows,
         }),
       )

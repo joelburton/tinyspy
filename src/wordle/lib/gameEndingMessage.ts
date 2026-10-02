@@ -31,7 +31,6 @@ export function buildGameEndingMessage({
   mode,
   gameEnding,
   playerOutcome,
-  winnerName,
   iSolved,
   isMyTieBrokenByClock,
 }: {
@@ -41,15 +40,13 @@ export function buildGameEndingMessage({
   // (`resource_exhausted`), a solve (`reached_goal`) — and the club-list label
   // reads the same one, so the two surfaces name one reason.
   gameEnding: Pick<GameEnding, 'outcome' | 'reason'>
-  // How I came out; null for a club member watching without a seat.
-  playerOutcome: EndOutcome | null
-  // Compete: the winner's username (for a watcher's "X won").
-  winnerName: string
+  // How I came out, written with the game's ending.
+  playerOutcome: EndOutcome
   // Compete: I typed the target. Tells a player the clock stopped from one it
   // merely outranked.
   iSolved: boolean
   // Compete: the earlier solve, not the guess count, placed me against the
-  // winner (`player_status.tie_broken_by_clock`) — I won on it, or lost on it.
+  // winner (`gd.me.tieBrokenByClock`) — I won on it, or lost on it.
   isMyTieBrokenByClock: boolean
 }): TerminalMessage {
   /** The two texts, for the game's ending and whether it went my way. */
@@ -85,9 +82,6 @@ export function buildGameEndingMessage({
           } else {
             return { pillText: 'Lost: beaten on guesses', infoColText: 'Opponent won' }
           }
-        } else if (playerOutcome === null) {
-          // SPECTATING: a watcher is told who won, not that they were beaten.
-          return { pillText: `${winnerName} won`, infoColText: `${winnerName} won` }
         }
       // Otherwise nobody won. No `Lost:` prefix on any of these — nobody was
       // beaten, the game just ran out.
@@ -106,8 +100,5 @@ export function buildGameEndingMessage({
     )
   }
 
-  // SPECTATING: a watcher has no outcome of their own, so the message reads
-  // the game's.
-  const outcome = playerOutcome ?? gameEnding.outcome
-  return { ...makeGameEndingWords(), outcome }
+  return { ...makeGameEndingWords(), outcome: playerOutcome }
 }

@@ -8,13 +8,13 @@ board of their own and the fewest guesses wins.
 ## Intro to area
 
 The frontend never learns the word while the game runs. The target is a column
-no client can read — the grant on `wordle.games` leaves it out — and the view
-the frontend does read hands it over only once the game is over. So the server
-is what colors a guess: `submit_guess` compares the word to the target, writes
-the row with its five colors, and the frontend paints what it is given and
-never works a color out for itself. That is the same shape psychicnum has, and
-the opposite of connections, whose board is public and whose frontend grades
-its own guesses.
+no client can read — the grant on `wordle.games` leaves it out — and the
+`game_data` blob the frontend does read carries it only once the game is over.
+So the server is what colors a guess: `submit_guess` compares the word to the
+target, writes the row with its five colors, and the frontend paints what it is
+given and never works a color out for itself. That is the same shape psychicnum
+has, and the opposite of connections, whose board is public and whose frontend
+grades its own guesses.
 
 A guess can also come back without costing anything. A word that is not in
 the legal slice of the dictionary, or one already on the board, is refused by
@@ -23,16 +23,18 @@ is written, and the typed row stays put for another try; the words the player
 reads are the frontend's.
 An accepted guess is the other kind of answer. It writes one row and spends one
 guess, and that row — not the reply — is what every player's board is built
-from, which is why the typed word waits on the board uncolored until its row
-arrives and flips in place.
+from: the move's builder writes it into `game_data` on `common.games`, every
+client reads the blob again when the page's subscription hears the row change,
+and the typed word waits on the board uncolored until its row arrives and flips
+in place.
 
 What separates the two modes is what each player can see. Coop is one board,
 and every accepted guess lands on it for everyone. Compete is the same word on
-private boards: the row-level policy on `wordle.events` hides an opponent's
-guesses until the race is over, so all a racer learns about a rival mid-game
-is how many guesses they have spent and whether they have finished. The race
-ends when nobody is still guessing, and a racer can be done — solved, out of
-guesses, or conceded — while the game goes on for the rest.
+private boards: the blob carries every racer's rows, and `useGame`'s seat rule
+withholds a rival's until the race is over, so all a racer learns about a rival
+mid-game is how many guesses they have spent and whether they have finished.
+The race ends when nobody is still guessing, and a racer can be done — solved,
+out of guesses, or conceded — while the game goes on for the rest.
 
 The end of a game is on the board. No modal carries the verdict: the
 below-board pill says it, the finished board keeps its colors, and the keyboard
@@ -79,7 +81,7 @@ every word on the list is at band 2 or easier, so its floor is 2
 
 | term | what it means |
 |---|---|
-| **target** | the hidden answer. A column on `wordle.games` no client can read; `games_state` shows it once the game has ended |
+| **target** | the hidden answer. A column on `wordle.games` no client can read; `game_data` carries it once the game has ended |
 | **guess** | a submitted word. An accepted one is a row in `wordle.events` with its `colors`; a soft reject is not |
 | **colors** | five characters, one per letter — `g`, `y`, `x` — computed by the server when the row is written. The frontend paints them and never recomputes them |
 | **soft reject** | `duplicate` or `notAWord`: the rules applied, nothing spent, nothing written. Answered as an `ok` naming the case |
@@ -102,9 +104,9 @@ advances nothing, and neither does the guess that wins or loses.
 The same word, raced on private boards. Each racer has their own budget and
 their own rows, and what a racer learns about a rival is the count on the
 Guesses strip, whether they have solved it, and whether they have dropped out
-— never a letter, which RLS withholds until the game ends. At the end every
-row opens, which is what lets the event log's player picker read a finished
-race back, board by board.
+— never a letter, which `useGame`'s seat rule withholds until the game ends.
+At the end every row opens, which is what lets the event log's player picker
+read a finished race back, board by board.
 
 A racer is **done** when they solve it, spend their budget, or concede, and the
 game marks them so on the common roster, which is what stops the presence-pause
@@ -115,9 +117,8 @@ the rest are `near`. A racer who didn't solve it is unranked, a conceder
 forfeits any win, and a race nobody solved is a loss for everyone. A
 countdown running out ranks the race the same way among those who had solved
 it. Where the earlier solve decided between the winner and a solver on the
-same count, `_write_statuses` marks both players' `tie_broken_by_clock`, and
-the ending's words say so ("same guesses, but faster", "beaten on the
-clock").
+same count, the builder marks both players' `tieBrokenByClock`, and the
+ending's words say so ("same guesses, but faster", "beaten on the clock").
 
 Compete needs an opposing **player**, which is why its manifest takes 2–6
 where coop takes 1–6. `create_game` checks both ends of that: a race with
@@ -146,41 +147,53 @@ name the ending differently.
 
 ## Schema
 
-Three tables and a view: shape in `supabase/migrations/`, behavior in
-`supabase/sql/wordle.sql`.
+Three tables: shape in `supabase/migrations/`, behavior in
+`supabase/sql/wordle.sql`. The frontend reads none of them: it reads the page
+blobs the builder writes onto `common.games`.
 
 | | |
 |---|---|
 | `wordle.games` | one row per game, keyed `game_id` to `common.games`: the `target`, the budget as `max_guesses`, and `legal_band` — stored so `submit_guess` reads the band off the row it locks. `answer_band` is not kept; it is spent picking the target |
-| `wordle.players` | one row per player: `guesses_used`. **Club-wide readable in both modes** — compete's Guesses strip is built on it. Coop keeps every row identical. A solve is `common.game_players.solved_at` |
+| `wordle.players` | one row per player: `guesses_used`. Coop keeps every row identical. A solve is `common.game_players.solved_at` |
 | `wordle.events` | the guess log, append-only: `word`, `colors`, `is_correct`; `kind` is `guess` and `took_turn` is true, since the table holds accepted guesses only and an accepted guess spends a go. Read `order by id` — that is the order of play |
-| `wordle.games_state` | the view the frontend reads: every readable column of `games`, plus `target` through `_target_for()`, which is null until the game has ended |
+
+**The page blobs** are written by `wordle._rebuild_data_cols` at create, at
+Restart and at the end of every move, each assigned whole
+([plans/seat-view.md](../../plans/seat-view.md) → The page is written, not
+assembled): `shell_data` through `common._make_json_shell_data`, and on top of
+the common part of every `game_data` (`common._make_json_game_data`) wordle's
+own:
+
+| blob | wordle's part |
+|---|---|
+| `game_data` | `puzzle: {target}` (null until the game ends); `events`, every player's rows; on each player `maxGuesses`, `guessesUsed`, `tieBrokenByClock` and `board: {rows}`, this seat's guess rows |
+| `summary_data` | `guessesUsed`, `maxGuesses`, `answerBand`, `winnerGuessesCount` |
+
+Each player's count is their own on `wordle.players`; coop keeps every row at
+the team's count, so the blob carries the team's on every player there and
+each racer's own in compete. Compete's summary carries no `guessesUsed`, where
+a live count would leak how close a racer is; the winner's count is compete's,
+written once the race is won, and the winner is the common `ending.winner`.
+`wordle._rebuild_data_cols_for_all()` rewrites every wordle game's blobs
+without re-dating them, for a shape change.
+
+The statuses (`game_status`, `player_status`, `clubpage_info`) are not written:
+nothing reads wordle's any more. The columns stay until a migration retires
+them for every game.
 
 **The target is hidden by a column GRANT, not by a policy.** A client asking
 `wordle.games` for `target` gets SQLSTATE 42501 whatever any policy says, and
-the view hands it over only once `ended_at` is set. So the frontend never
-holds the answer during play — not in a prop, not in a store, not there at all
-— and a Restart, which clears `ended_at`, hides it again without anybody
-asking. `_target_for` is where the mechanism is commented.
+`game_data` carries it only once `ended_at` is set (`_make_json_puzzle`). So
+the frontend never holds the answer during play — not in a prop, not in a
+store, not there at all — and a Restart, which clears `ended_at`, hides it
+again without anybody asking.
 
-**`events` carries the mode-aware policy**, and its third arm carries three
-rules at once: coop shows everyone every row, compete shows a racer only their
-own, and the game's end opens everybody's. `players` needs none — a count is
-exactly what a rival is allowed to see.
-
-**The statuses** are written by `wordle._write_statuses` at create, at
-Restart and at the end of every move, each assigned whole with every key
-present:
-
-| status | keys |
-|---|---|
-| `game_status` | `max_guesses` |
-| each `player_status` | `guesses_used`, `player_ended_reason` |
-| `clubpage_info` | `guesses_used`, `max_guesses`, `answer_band`, `winner_user_id`, `winner_guesses_count` |
-
-The summary's `guesses_used` is coop's shared count and null in compete,
-where a live count would leak how close a racer is; the winner and their
-count are compete's, written once the race is won.
+**What a racer may see of a rival is the hook's rule, not a policy's.** The
+blob carries every player's rows and every seat's board, and `useGame`
+withholds a rival's mid-race — their guesses are their strategy — and opens
+them at the game's end, which is what lets the event log's player picker read
+a finished race back. The policies on this game's tables are club-member reads
+in both modes; nothing on the client reads them.
 
 **The club-list title is a readout of the latest guess**, recomputed by
 `_sync_title` after every write: coop's all game, compete's only once the race
@@ -189,9 +202,9 @@ only when the last guess was the winning one, never of its own accord, so a
 lost game that the players may still replay blind is titled with its last
 guess.
 
-**Every RPC that changes the game ends by running the builder**, whose write
-to `common.games` is what every page learns of the change from — the ending
-included, and with it the now-revealed target.
+**Every RPC that changes the game ends by running the builder**, after
+`_sync_title`, so its write to `common.games` is what every page learns of
+the change from — the ending included, and with it the now-revealed target.
 
 ## RPCs
 
@@ -210,7 +223,7 @@ dictionary word of that difficulty band or easier. Either way the word is
 clean, and the frontend is never told it. It writes the `common.games` row
 titled `New game` (coop) or `New compete`, a `wordle.games` row holding the
 target and the legal band, one `wordle.players` row per player, and writes the
-statuses. A coop game with `coop_style: 'turns'` also seats the turn
+page blobs. A coop game with `coop_style: 'turns'` also seats the turn
 order, starting at `first_turn_user_id`. Either mode takes up to six players
 and a race needs two; the server checks both.
 
@@ -295,8 +308,8 @@ every game has, doing here what they do everywhere. What is this game's:
 drop-out can be the last racer, and a conceder forfeits any win;
 `submit_timeout` ranks a race by the same fewest-guesses rule among those who
 had solved it; and `replay_board` zeroes every player and clears the guess log,
-and the word re-hides on its own, because the view that reveals it reads the
-game's `ended_at` and the reset clears that. Every one of them, and
+and the word re-hides on its own, because the builder carries it only while
+the game's `ended_at` is set and the reset clears that. Every one of them, and
 `submit_guess` too, ends by recomputing the club-list title, which is a readout
 of the most recent guess: coop's all game, compete's only once the race is over,
 since a
@@ -320,10 +333,10 @@ it could see, the board being in front of it — is left to the server too.
 **The colors are the server's, and so is the moment they show.**
 `useSubmitGuess` sends the word and keeps it on the board uncolored while the
 call is out; the reply's `colors`, `solved` and `game_ended` are not read
-there. The colored row arrives with the page's next read, as it does for
-everyone, and the pending word flips in place when its row lands. A solve
-shows nothing extra at the call site either — the ending arrives the same
-way.
+there. The colored row arrives with the page's next read of the blob, as it
+does for everyone, and the pending word flips in place when its row lands. A
+solve shows nothing extra at the call site either — the ending arrives the
+same way.
 
 **Every answer this game gives is named, and `lib/answer.ts` says what it
 reads as.** A call site never picks a color or writes a sentence; the log
@@ -361,11 +374,11 @@ is nothing to interrupt.
 ## Frontend
 
 The play surface is the shape [`docs/playarea.md`](../../docs/playarea.md)
-describes — a loader that gates on the three ways a game can fail to load,
-then `PlayArea` in the eight sections.
+describes — a loader that builds `gd` from the blob, then `PlayArea` in the
+eight sections.
 
 ```
-<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame (gd), and the three gates
+<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame: the blob becomes gd
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the typed word and submit_guess
         │     ├── Board                  max_guesses rows
@@ -392,6 +405,26 @@ the ending, pause, chat — and unmounts this whole surface on pause. The state
 line at the top of the info column ("3/6 guesses") is a paragraph of `InfoCol`'s
 own. `Help` and `SetupForm` are the shell's to mount, from the menu and the
 start-game dialog.
+
+**`gd`, the game data.** `useGame` hands the surface one object, `gd`: the
+`game_data` blob the page was handed (`GGameDataRaw`), with its links turned
+into players (`turns.holder`, `ending.by`, `ending.winner`, each log row's
+`by`), the setup rows built, and the seat rule applied — in compete, mid-race,
+a rival's rows leave the log and their `board` is null. It is a pure function
+of the blob and who I am; no reads, no subscription. Every fact about a seat
+is on the player (`gd.me.onTurn`, `p.guessesUsed`, `gd.me.board.rows`), and a
+component asks a player, never the table. The two columns, `BoardCol` and
+`InfoCol`, take `gd` whole; everything below them takes its own props. A
+player in `gd` (`GPlayer`) is a `Member` plus wordle's facts, so `gd.players`
+goes straight to the shared pieces that take `Member[]`.
+
+**Every type this game exports is in `types.ts`**, wearing the `G` that says
+it is the game's and not the shell's (docs/code-conventions.md → A game's
+types): the two shapes of the game (`GGameDataRaw` as written, `GGameData` as
+read), the players and log rows at both levels, the board row, the setup, the
+actions, the history view and the answers. A component's props stay with the
+component; a type one file uses stays there; the printer's model stays in
+`pdf/`.
 
 `PlayArea` reads `gd` and hands the two columns `gd` whole; what it does itself
 is in named hooks — `useActionsAndMenu` (every command and the menu),
@@ -430,8 +463,9 @@ What is wordle's own:
   `lib/answer.ts`.
 - **The event log** is one row per guess — the guess as five colored squares,
   definable as a word, since every accepted guess is in the dictionary — and
-  its picker's compete options mean something only because RLS opens once the
-  game ends; an opponent's log during play says *Hidden until game ends*. A
+  its picker's compete options mean something only because the seat rule opens
+  once the game ends; an opponent's log during play says *Hidden until game
+  ends*. A
   `#N` replays that turn on the board (`lib/history.ts`): the rows up to and
   including it, that row ringed, addressed by the row's id so a filter cannot
   move it, and folding the rows of whoever wrote it — so an opponent's `#N`,
@@ -463,10 +497,11 @@ winning guess or five that miss:
 
 | file | pins |
 |---|---|
-| `create_game_test` | both modes; every setup fault by the field it names; the target picked from the list or the band; `target` denied by the grant and null in the view mid-game; an empty word pool is a fault |
+| `create_game_test` | both modes; every setup fault by the field it names; the target picked from the list or the band; `target` denied by the grant and null in `game_data` mid-game; an empty word pool is a fault |
 | `gameplay_test` | `submit_guess` in coop: a short word is a fault; the two soft rejects spend nothing and write nothing; every accepted row carries colors and spent a go; every `ok` carries no outcome; the title reads the latest guess, then the answer on a win; a guess into a deleted game is the shared race, asked before membership |
-| `compete_test` | independent rows; an opponent's guesses hidden mid-race and open once it ends; the title and the summary leak nothing mid-race; every solver ranked once everyone is done, by fewest guesses, the earlier solve breaking a tie, and the last racer recorded as who ended it |
-| `statuses_test` | the exact key set of every status at the start, mid-game and at the end in both modes; the summary's winner and count; `tie_broken_by_clock` for a tie, for two solvers on different counts, and for a conceder on the winner's count; a rebuild drops a stale key and leaves `status_changed_at` alone; a Restart writes the statuses fresh |
+| `compete_test` | independent rows; every club member reads every row — the seat rule is the hook's; the title and the summary leak nothing mid-race; every solver ranked once everyone is done, by fewest guesses, the earlier solve breaking a tie, and the last racer recorded as who ended it |
+| `game_data_test` | the whole `game_data` of a fresh game; the log, each seat's board and count mid-game in both modes; the target, the winner, the summary's count and `shell_data` at the end; `tieBrokenByClock` for a tie, for two solvers on different counts, and for a conceder on the winner's count; a Restart empties it all; `_rebuild_data_cols_for_all` rewrites every game without re-dating it |
+| `rebuild_data_cols_test` | only a call that says so moves `status_changed_at`; a rebuild assigns the whole column and drops a stale key; the statuses keep their column defaults |
 | `loss_test` | coop's last wrong guess is the loss and reveals the target; a racer spending their own budget ends nothing, and their next guess is a fault |
 | `concede_test` | a conceder counts as done and forfeits, unranked; the last one out ends the race, and its reason is their act — everyone conceding is `conceded`, a concession then the other racer running out is `exhausted`; the builder runs after an ending concession; coop is refused |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, an accepted guess advances, a soft reject does not, free-for-all leaves the pointer null |
@@ -483,12 +518,12 @@ Vitest, beside the code:
 |---|---|
 | `lib/answer.test` · `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every `answerType`'s words and outcome; every ending's words per mode, reason and player outcome |
 | `lib/history.test` · `lib/colors.test` | the inclusive boundary and the ringed row, by id, and only the author's rows in compete; the keyboard's strength order and each letter's strongest color |
-| `hooks/useGame.test` | `gd` from the two reads and the page — the budget, each player's count, ending and tie flag, the board's rows per mode, a watcher's count; no game vs a failed read, and an outage that ends |
+| `hooks/useGame.test` | `gd` from the blob — the links turned into players, the setup rows, the target, each player's count and tie flag; the seat rule: a rival's rows and board withheld mid-race, opened at the end, nothing withheld in coop; a null blob throws |
 | `hooks/useActionsAndMenu.test` · `hooks/useHistoryView.test` | the menu's rows and order, and Reveal before and after the end; a past turn opened and closed, and whose board it is |
 | `hooks/useSubmitGuess.test` · `hooks/useFlipBaseline.test` | a short word makes no call, an accepted word stays until its row lands, a refusal rings in its own outcome; which rows flip, before and after a past turn |
 | `lib/setup.test` · `components/SetupForm.test` | the Start gate names `legal_band`, and the floor the answer source sets; the form's three controls and where a refusal lands |
 | `pdf/model.test` | the target never prints before it shows on screen; the keyboard is derived per player, never pooled |
-| `components/PlayArea.test` | the surface mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration — the team's win, my race win, never a race I lost or a game opened already won; peer narration in both modes; the picker's labels; Concede vs Stop per mode; the board-scope marks; a landed row flips and a mounted one does not, nor one already flipped on the way back from a past turn; the physical keys and the two caps |
+| `components/PlayArea.test` | the surface, built from the blob a test's facts would produce (`lib/gameData.fixture.ts`), mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration — the team's win, my race win, never a race I lost or a game opened already won; peer narration in both modes; the picker's labels; Concede vs Stop per mode; the board-scope marks; a landed row flips and a mounted one does not, nor one already flipped on the way back from a past turn; the physical keys and the two caps |
 
 Playwright, in `e2e/`: `wordle-history` (the viewer's overlay and the exits),
 `wordle-colors` (the caps' computed colors, resting and hovered, and a landed

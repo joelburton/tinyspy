@@ -792,9 +792,10 @@ export async function seedWordleGuesses(
 ): Promise<string[]> {
   if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
   // The wordle schema isn't exposed to PostgREST (its tables are reached only via
-  // SECURITY DEFINER RPCs + the games_state view), and the hidden `target` is
-  // gated until terminal — so read the target + n legal words as the local
-  // superuser via psql, the same test-only pattern as drainBananagramsPool.
+  // SECURITY DEFINER RPCs, and the page reads the blobs on common.games), and
+  // the hidden `target` is gated until terminal — so read the target + n legal
+  // words as the local superuser via psql, the same test-only pattern as
+  // drainBananagramsPool.
   const q = (sql: string): string[] =>
     execFileSync(
       'psql',

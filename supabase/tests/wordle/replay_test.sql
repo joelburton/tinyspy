@@ -71,11 +71,11 @@ update common.timers set ticks = 99 where game_id = (select id from g1);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select wordle.replay_board((select id from g1));
 
--- The replayer sees a clean slate (still as ada — games_state is the
--- caller's view, which is exactly where the re-shield must hold).
+-- The replayer sees a clean slate (still as ada — game_data is what the page
+-- reads, which is exactly where the re-shield must hold).
 select is(
-  (select target from wordle.games_state where game_id = (select id from g1)),
-  null, 'coop: replay → the target is SHIELDED again (ended_at cleared)');
+  (select game_data->'puzzle'->'target' from common.games where id = (select id from g1)),
+  'null'::jsonb, 'coop: replay → the target is SHIELDED again (ended_at cleared)');
 
 reset role;
 select is(
@@ -90,8 +90,8 @@ select is(
   (select restart_count from common.games where id = (select id from g1)),
   1, 'coop: replay → restart_count up by one');
 select is(
-  (select (clubpage_info->>'guesses_used')::int from common.games where id = (select id from g1)),
-  0, 'coop: replay → the club line''s guesses_used reset to 0');
+  (select (summary_data->>'guessesUsed')::int from common.games where id = (select id from g1)),
+  0, 'coop: replay → the summary''s guessesUsed reset to 0');
 select is(
   (select count(*) from wordle.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the guess log is cleared');

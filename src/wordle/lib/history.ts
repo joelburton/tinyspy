@@ -11,10 +11,10 @@
  * the rows ARE the state.
  *
  * **Whose board a turn replays is its own author's.** Mid-game compete that is
- * always me (RLS shows me nothing else), but once the game has ended every
- * player's rows arrive, and a `#N` on one of theirs replays THEIR board —
- * replaying the whole table would draw a board nobody ever played. Coop is one
- * shared board, so it replays every row.
+ * always me (`useGame`'s seat rule shows me nothing else), but once the game
+ * has ended every player's rows arrive, and a `#N` on one of theirs replays
+ * THEIR board — replaying the whole table would draw a board nobody ever
+ * played. Coop is one shared board, so it replays every row.
  *
  * **The boundary is INCLUSIVE**: viewing a turn shows the board AFTER that
  * guess landed, with that guess's row ringed in the history blue — "this is the
@@ -22,24 +22,7 @@
  *
  * Pure (no React / supabase) + unit-tested.
  */
-import type { EventRow } from '../hooks/useGame'
-import type { BoardRow } from './board'
-
-/** A past turn, replayed. */
-export type ReplayedTurn = {
-  // The guess rows as of the END of the viewed turn — feed straight to
-  // `<Board rows>`.
-  rows: BoardRow[]
-  // The board row this turn added — ring it in the history blue (it already
-  // wears its g/y/x tile colors). The last row in `rows`; -1 when nothing was
-  // replayed.
-  litBoardRow: number
-  // A short, name-free turn label for the viewer banner (the log row shows
-  // *who*).
-  label: string
-  // Who made the turn — whose board this is; null for an id not in the log.
-  authorId: string | null
-}
+import type { GEvent, GReplayedTurn } from '../types'
 
 /**
  * Replay the turn of the guess with this `id`: its author's guesses (every
@@ -54,22 +37,22 @@ export type ReplayedTurn = {
  * drops the number from the label.
  */
 export function replayTurn(
-  events: ReadonlyArray<EventRow>,
+  events: ReadonlyArray<GEvent>,
   id: number,
   n: number | null,
   isCompete: boolean,
-): ReplayedTurn {
+): GReplayedTurn {
   const viewedEvent = events.find((g) => g.id === id)
   const boardEvents =
     isCompete && viewedEvent
-      ? events.filter((g) => g.user_id === viewedEvent.user_id)
+      ? events.filter((g) => g.by === viewedEvent.by)
       : events
   // -1 when the id names no row in the log: an empty board and no ring is the
   // honest answer.
   const index = boardEvents.findIndex((g) => g.id === id)
   const rows = boardEvents
     .slice(0, index + 1)
-    .map((g) => ({ guess: g.word, colors: g.colors }))
+    .map((g) => ({ word: g.word, colors: g.colors }))
   return {
     rows,
     litBoardRow: index,
@@ -78,6 +61,6 @@ export function replayTurn(
       : n === null
         ? viewedEvent.word.toUpperCase()
         : `Guess ${n}: ${viewedEvent.word.toUpperCase()}`,
-    authorId: viewedEvent?.user_id ?? null,
+    author: viewedEvent?.by ?? null,
   }
 }

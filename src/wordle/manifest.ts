@@ -9,9 +9,9 @@ import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import type { GameEndedReason } from '@/common/terminal/gameEnding'
-import { DEFAULT_WORDLE_SETUP, legalError, type WordleSetup } from './lib/setup'
-import type { WordleSummaryData } from './lib/statuses'
+import { DEFAULT_WORDLE_SETUP, legalError } from './lib/setup'
 import logoUrl from './logo.svg?url'
+import type { GSetup, GSummaryData } from './types'
 
 /**
  * wordle's registration with the shell. Codename `wordle` everywhere
@@ -46,7 +46,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     runRpc<CreatedGame>(
       db.rpc('create_game', {
         p_club_handle: clubHandle,
-        p_setup: setup as WordleSetup,
+        p_setup: setup as GSetup,
         p_player_user_ids: playerUserIds,
         p_mode: mode,
       }),
@@ -58,12 +58,12 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-// The summary reads the game's `summary_data` (`WordleSummaryData`: the common
-// part with its ending; coop's shared guess count, null in compete; compete's
-// winner's count; and the answer band). The answer band rides on
-// every line — a game drawn from the curated Wordle answer list plays very
-// differently from one drawn from the "Expert" end of the dictionary. Each
-// mode's summaryFor handles its own endings.
+// The summary reads the game's `summary_data` (`GSummaryData`: the common part
+// with its ending; coop's shared guess count, null in compete; compete's
+// winner's count; and the answer band). The answer band rides on every line —
+// a game drawn from the curated Wordle answer list plays very differently from
+// one drawn from the "Expert" end of the dictionary. Each mode's summaryFor
+// handles its own endings.
 
 /** Why a game ended with nobody winning (wordle's losses). */
 const LOSS: Partial<Record<GameEndedReason, string>> = {
@@ -118,13 +118,13 @@ export const wordleCoopGame: GameManifest = {
     defaults: DEFAULT_WORDLE_SETUP,
     // Gate Start until legal guesses reach the answer's hardest band (so every
     // possible answer is itself guessable). create_game re-checks.
-    validate: (setup) => legalError(setup as WordleSetup),
+    validate: (setup) => legalError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('coop'),
 
   summaryFor: (data) => {
-    const summary = data as WordleSummaryData
+    const summary = data as GSummaryData
     const dict = answerDictLabel(summary.answerBand)
     const used = tally(summary.guessesUsed, summary.maxGuesses, 'guesses')
     if (summary.ending === null) return statusLine(verdict('Playing'), used, dict)
@@ -177,13 +177,13 @@ export const wordleCompeteGame: GameManifest = {
     defaults: DEFAULT_WORDLE_SETUP,
     // Gate Start until legal guesses reach the answer's hardest band (so every
     // possible answer is itself guessable). create_game re-checks.
-    validate: (setup) => legalError(setup as WordleSetup),
+    validate: (setup) => legalError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('compete'),
 
   summaryFor: (data, members) => {
-    const summary = data as WordleSummaryData
+    const summary = data as GSummaryData
     const dict = answerDictLabel(summary.answerBand)
     // No progress: guesses are private until the game ends, and this line is
     // readable by the whole club.

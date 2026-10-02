@@ -7,18 +7,17 @@ import type { Mark } from '@/common/board-marks/useMark'
 import shared from '@/common/game-page/playArea.module.css'
 import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
-import type { HistoryView } from '../hooks/useHistoryView'
 import { useFlipBaseline } from '../hooks/useFlipBaseline'
 import { WORD_LENGTH } from '../lib/setup'
-import type { BoardRow } from '../lib/board'
 import { LetterRow } from './LetterRow'
 import styles from './Board.module.css'
+import type { GBoardRow, GHistoryView } from '../types'
 
 /** What is on the board. */
 export type BoardGrid = {
   // The guesses the server has drawn, in order: every guess on coop's shared
   // board, my own in compete.
-  liveRows: BoardRow[]
+  liveRows: GBoardRow[]
   // The guess budget, and so the rows the board has.
   maxGuesses: number
 }
@@ -60,7 +59,7 @@ export function Board({
 }: {
   grid: BoardGrid
   marks: BoardMarks
-  historyView: HistoryView
+  historyView: GHistoryView
   // The typing row shows: the game lets me guess, and the live board is on
   // screen.
   canType: boolean
@@ -101,7 +100,7 @@ export function Board({
           // What the row's tiles spell: its guess, the word out with the
           // server, or what is being typed.
           function getRowWord(): string {
-            if (guessRow) return guessRow.guess
+            if (guessRow) return guessRow.word
             if (isInFlightRow) return marks.inFlightGuess!
             if (isTypingRow) return marks.typedWord
             return ''

@@ -3938,24 +3938,7 @@ export type Database = {
       }
     }
     Views: {
-      games_state: {
-        Row: {
-          game_id: string | null
-          max_guesses: number | null
-          target: string | null
-        }
-        Insert: {
-          game_id?: string | null
-          max_guesses?: number | null
-          target?: never
-        }
-        Update: {
-          game_id?: string | null
-          max_guesses?: number | null
-          target?: never
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       _finish_compete: {

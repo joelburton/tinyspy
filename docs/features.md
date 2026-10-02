@@ -178,8 +178,9 @@ takes click-a-cell-and-type; WN + WW share the on-screen `GuessKeyboard`.)
 ## Hidden-solution machinery (the schema pattern behind the row above)
 
 - **A column-level grant blocks the solution column on the base table; a
-  `games_state` view / helper reveals it:** PN (`secrets`) SD SS
-  (`_solution_for`, terminal-gated in compete only) WN (`_target_for`) CP PP
+  `games_state` view / helper, or the game's `game_data` once it has ended,
+  reveals it:** PN (`secrets`) SD SS
+  (`_solution_for`, terminal-gated in compete only) WN (`target`) CP PP
   (`_solution_for`)
 - **Everything readable; the FE just doesn't render it mid-game:** TS (both
   key cards) WK (`board.categories`) WW (scores + the best word) SB (the seeded

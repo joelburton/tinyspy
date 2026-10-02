@@ -8,7 +8,7 @@ import {
   makeTimerRow,
   type SetupRow,
 } from '@/common/setup-form/setupRows'
-import type { WordleSetup } from './setup'
+import type { GSetup } from '../types'
 
 /** The setup row's value for the answer band. `0` = the curated NYT-Wordle
  *  answer list; `1..6` = a clean word of that difficulty band or easier. */
@@ -22,7 +22,7 @@ function answerBandValue(n: number): string {
  * `components/SetupForm.tsx`.
  */
 export function makeSetupRows(
-  setup: WordleSetup,
+  setup: GSetup,
   mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {

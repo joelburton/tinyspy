@@ -13,11 +13,14 @@
 --   submit_timeout  ends the game when the countdown runs out
 --   replay_board    restarts the same word from scratch
 --
--- and the view `games_state`, the game row with the answer once it has ended.
+-- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
+-- writes the page blobs onto `common.games` after every move (plans/seat-view.md
+-- → The page is written, not assembled) — `game_data`, `summary_data`, and
+-- `shell_data` through common — and the page reads those.
 --
 -- What is particular to wordle (src/wordle/doc.md has the rest):
 --   - The answer is hidden by a column grant: no client can select `target`,
---     and `games_state` hands it over only once the game has ended.
+--     and `game_data` carries it only once the game has ended.
 --   - A guess that isn't a word, or repeats one, costs nothing: it is an `ok`
 --     that names the refusal, and no row is written.
 --   - Coop shares one board and one budget. A compete race plays out: each
@@ -26,8 +29,9 @@
 --     whoever had solved.
 --   - The title is a readout (`_sync_title`): coop's latest guess; compete
 --     keeps a placeholder until the race ends, since guesses are private.
---   - Guesses are the one mode-aware read: coop sees everyone's, compete only
---     your own until the game ends.
+--   - What a racer may see of a rival mid-race — not their guesses, not their
+--     board — is the hook's rule (src/wordle/hooks/useGame.ts), not a
+--     policy's: the blob carries everything, the hook withholds.
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -38,8 +42,9 @@ grant usage on schema wordle to authenticated;
 -- Column-level grant: everything EXCEPT `target`, the secret, and
 -- `legal_band`, which only submit_guess reads. The presence of any column
 -- grant flips the table from "all columns visible" to "only granted columns,"
--- so we enumerate the safe ones. games_state exposes the target conditionally
--- via a SECURITY DEFINER helper.
+-- so we enumerate the safe ones. `game_data` (`_make_json_puzzle`) is the only
+-- path a client has to the target, and it carries it only once the game has
+-- ended.
 grant select
   (game_id, max_guesses)
   on wordle.games to authenticated;
@@ -57,9 +62,7 @@ create policy games_select on wordle.games
   );
 
 grant select on wordle.players to authenticated;
--- Club-member-wide read: an opponent's guesses_used is visible (the compete
--- progress strip), but their actual guesses are gated on the wordle.events
--- table below.
+-- Club-member-wide read in both modes; nothing on the client reads it.
 drop policy if exists players_select on wordle.players;
 create policy players_select on wordle.players
   for select to authenticated
@@ -72,10 +75,9 @@ create policy players_select on wordle.players
   );
 
 grant select on wordle.events to authenticated;
--- Visibility (mirrors spellingbee.found_words): club membership is the
--- outer gate; inside, coop shows everyone's guesses, you always see
--- your own, and once the game ends everyone sees everyone's (the
--- compete reveal).
+-- Guesses: any club member sees every row. Who may see a rival's guesses
+-- mid-race is the hook's rule (src/wordle/hooks/useGame.ts), applied to
+-- `game_data`; nothing reads this table from the client.
 drop policy if exists events_select on wordle.events;
 create policy events_select on wordle.events
   for select to authenticated
@@ -84,39 +86,14 @@ create policy events_select on wordle.events
       select 1 from common.games cg
        where cg.id = events.game_id
          and common._is_club_member(cg.club_handle)
-         and (
-               cg.mode = 'coop'
-            or events.user_id = (select auth.uid())
-            or cg.ended_at is not null
-             )
     )
   );
 
+-- The view the frontend read before the page blobs, and the definer it read
+-- the target through. supabase/sql is re-applied, not diffed, so the drops
+-- stay.
 drop view if exists wordle.games_state;
 drop function if exists wordle._target_for(uuid);
-
--- ============================================================
--- wordle._target_for
--- ============================================================
--- The answer once the game has ended (the end-of-game reveal), null while it
--- is played. Runs as definer so it can read the grant-hidden `target`
--- column; the security_invoker view calls it as the caller (so auth.uid() is
--- real) and base-table RLS gates rows.
-create or replace function wordle._target_for(p_game_id uuid)
-returns text
-language sql
-stable
-security definer
-set search_path = wordle, common, public, extensions
-as $$
-  select case when cg.ended_at is not null then wg.target::text else null end
-    from wordle.games wg
-    join common.games cg on cg.id = wg.game_id
-   where wg.game_id = p_game_id;
-$$;
-
-revoke execute on function wordle._target_for(uuid) from public;
-grant execute on function wordle._target_for(uuid) to authenticated;
 
 drop function if exists wordle._sync_title(uuid);
 
@@ -131,9 +108,9 @@ drop function if exists wordle._sync_title(uuid);
 --   compete, mid-race → "New compete"
 --
 -- Compete gets no mid-game readout on purpose: guesses are private until the
--- end-of-game reveal (see the events RLS policy above), and the title is
--- club-wide readable, so publishing the latest guess would hand a racing
--- opponent your letters. Compete holds its placeholder for the whole race —
+-- end-of-game reveal (the hook's seat rule), and the title is club-wide
+-- readable, so publishing the latest guess would hand a racing opponent your
+-- letters. Compete holds its placeholder for the whole race —
 -- and since that's the label a club list actually sits on, it says which kind
 -- of game is sitting there (the same choice waffle compete makes).
 --
@@ -184,42 +161,232 @@ $$;
 revoke execute on function wordle._sync_title(uuid) from public;
 
 -- ============================================================
--- wordle.games_state — the game row the frontend reads
+-- The page blobs — what the page shows, written by this game's builder
 -- ============================================================
--- The readable columns of wordle.games, plus the answer through
--- `_target_for`, so it arrives the moment the game ends.
-create view wordle.games_state with (security_invoker = true) as
-  select wg.game_id,
-         wg.max_guesses,
-         wordle._target_for(wg.game_id) as target   -- NULL until the game ends
-    from wordle.games wg;
-
-grant select on wordle.games_state to authenticated;
-
--- ============================================================
--- wordle._write_statuses — the page's copies of the game
--- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from wordle's own tables, assigning each
--- whole (plans/common-tables.md → The statuses). Every key is always
--- present, null when it has no value:
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- wordle's own, each builder bearing its column's name (the three verbs are
+-- supabase/sql/common.sql → The page blobs' common parts). `game_data` is the
+-- common part (supabase/sql/common.sql → The page blobs' common parts) with
+-- wordle's facts on top; the pieces below build each part, so `select
+-- game_data from common.games` shows the page what it gets.
 --
---   game_status    { max_guesses }
---   player_status  { guesses_used, player_ended_reason, tie_broken_by_clock }
---                  — in coop `guesses_used` is the team's, the same on every
---                  row; `tie_broken_by_clock` is compete's, null until the
---                  end (below), and picks the ending's words
---   clubpage_info  { guesses_used, max_guesses, answer_band,
---                    winner_user_id, winner_guesses_count }
---                  — `guesses_used` is coop's shared count and null in
---                  compete, whose summary shows no progress; the winner
---                  and their count are compete's, null until the end;
---                  `answer_band` is the setup's, which the line names
+--   game_data, wordle's part:
+--     puzzle: {target}                     null until the game ends
+--     events: [{id, userId, word, colors, correct, at}, …]
+--                                          every player's; what a racer may see
+--                                          of a rival mid-race is the hook's rule
+--     players: [player, …]                 the common player, plus:
+--       maxGuesses                         the same on every player
+--       guessesUsed                        the team's, on every player, in coop; own in compete
+--       tieBrokenByClock                   compete, once ranked: the earlier solve, not the
+--                                          count, placed this solver against the winner (the
+--                                          winner's too, when another solver matched their
+--                                          count); null in coop and until the end
+--       board: {rows: [{word, colors}, …]} what this seat's tiles show: one board in
+--                                          coop, each racer's own in compete
+--
+--   summary_data, wordle's part (the common part names and dates the game and
+--   carries its ending; the winner is `ending.winner`):
+--     guessesUsed                          coop's shared count; null in compete, whose
+--                                          summary shows no progress
+--     maxGuesses
+--     answerBand                           the setup's
+--     winnerGuessesCount                   compete's, once the race is won; null in coop
+--
+-- The statuses (`game_status`, `player_status`, `clubpage_info`) are not
+-- written: nothing reads wordle's any more. The columns stay until a
+-- migration retires them for every game.
+
+-- The answer, once the game has ended.
+create or replace function wordle._make_json_puzzle(wg wordle.games, p_ended boolean)
+returns jsonb
+language sql
+immutable
+set search_path = wordle, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'target', case when p_ended then wg.target::text end);
+$$;
+
+revoke execute on function wordle._make_json_puzzle(wordle.games, boolean) from public;
+
+-- The log: every accepted guess, in the order of play.
+create or replace function wordle._make_json_events(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = wordle, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',      e.id,
+           'userId',  e.user_id,
+           'word',    e.word::text,
+           'colors',  e.colors::text,
+           'correct', e.is_correct,
+           'at',      e.created_at) order by e.id), '[]'::jsonb)
+    from wordle.events e
+   where e.game_id = p_game_id;
+$$;
+
+revoke execute on function wordle._make_json_events(uuid) from public;
+
+-- What one seat's tiles show: its guess rows, each word with its colors, in
+-- the order of play. In coop every seat shows the team's guesses; in compete,
+-- the seat's own.
+create or replace function wordle._make_json_board(p_game_id uuid, p_user_id uuid, p_mode text)
+returns jsonb
+language sql
+stable
+set search_path = wordle, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'rows', coalesce(jsonb_agg(jsonb_build_object(
+              'word',   e.word::text,
+              'colors', e.colors::text) order by e.id), '[]'::jsonb))
+    from wordle.events e
+   where e.game_id = p_game_id
+     and (p_mode = 'coop' or e.user_id = p_user_id);
+$$;
+
+revoke execute on function wordle._make_json_board(uuid, uuid, text) from public;
+
+-- Every player as wordle's game_data shows them: the common player, with the
+-- budget, their count, the clock's tie-break and this seat's board.
+create or replace function wordle._make_json_players(p_game_id uuid)
+returns jsonb
+language plpgsql
+stable
+set search_path = wordle, common, public, extensions
+as $$
+declare
+  v_mode text;
+  v_max_guesses int;
+  -- Compete's winner, once ranked, and their count: `_finish_compete` ranks
+  -- solvers by guesses, then the earlier solve, so a solver on the winner's
+  -- count was placed against the winner by the clock.
+  v_winner_id uuid;
+  v_winner_used int;
+begin
+  select cg.mode, wg.max_guesses
+    into v_mode, v_max_guesses
+    from wordle.games wg
+    join common.games cg on cg.id = wg.game_id
+   where wg.game_id = p_game_id;
+
+  if v_mode = 'compete' then
+    select gp.user_id, wp.guesses_used
+      into v_winner_id, v_winner_used
+      from common.game_players gp
+      join wordle.players wp on wp.game_id = gp.game_id and wp.user_id = gp.user_id
+     where gp.game_id = p_game_id and gp.final_ranking = 1
+     order by gp.solved_at
+     limit 1;
+  end if;
+
+  return (
+    select jsonb_agg(
+             cp.player || jsonb_build_object(
+               'maxGuesses',       v_max_guesses,
+               -- Coop keeps every row at the team's count, so the row is
+               -- right in both modes.
+               'guessesUsed',      wp.guesses_used,
+               'tieBrokenByClock',
+                 case when v_winner_id is null then null
+                      else gp.solved_at is not null
+                           and wp.guesses_used = v_winner_used
+                           and exists (
+                             select 1
+                               from common.game_players other
+                               join wordle.players other_wp
+                                 on other_wp.game_id = other.game_id
+                                and other_wp.user_id = other.user_id
+                              where other.game_id = p_game_id
+                                and other.user_id <> gp.user_id
+                                and other.solved_at is not null
+                                and other_wp.guesses_used = v_winner_used)
+                 end,
+               'board',            wordle._make_json_board(p_game_id, cp.id, v_mode))
+             order by cp.ord)
+      from common._make_json_players(p_game_id) cp
+      join wordle.players wp on wp.game_id = p_game_id and wp.user_id = cp.id
+      join common.game_players gp on gp.game_id = p_game_id and gp.user_id = cp.id
+  );
+end;
+$$;
+
+revoke execute on function wordle._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with wordle's puzzle, log and
+-- players on top.
+create or replace function wordle._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = wordle, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'puzzle',  wordle._make_json_puzzle(wg, cg.ended_at is not null),
+           'events',  wordle._make_json_events(p_game_id),
+           'players', wordle._make_json_players(p_game_id))
+    from wordle.games wg
+    join common.games cg on cg.id = wg.game_id
+   where wg.game_id = p_game_id;
+$$;
+
+revoke execute on function wordle._make_json_game_data(uuid) from public;
+
+-- The game summed up: the numbers a list of games shows for this one.
+create or replace function wordle._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = wordle, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+    'guessesUsed',        case when cg.mode = 'coop' then team.used end,
+    'maxGuesses',         wg.max_guesses,
+    'answerBand',         coalesce((cg.setup->>'answer_band')::int, 0),
+    'winnerGuessesCount', case when cg.mode = 'compete' then
+                            (select wp.guesses_used
+                               from common.game_players gp
+                               join wordle.players wp
+                                 on wp.game_id = gp.game_id and wp.user_id = gp.user_id
+                              where gp.game_id = p_game_id and gp.final_ranking = 1
+                              order by gp.solved_at
+                              limit 1)
+                          end)
+    from wordle.games wg
+    join common.games cg on cg.id = wg.game_id
+   cross join (select max(guesses_used) as used
+                 from wordle.players where game_id = p_game_id) team
+   where wg.game_id = p_game_id;
+$$;
+
+revoke execute on function wordle._make_json_summary_data(uuid, timestamptz) from public;
+
+-- The name this had while it wrote the statuses; supabase/sql is re-applied,
+-- not diffed.
+drop function if exists wordle._write_statuses(uuid, boolean);
+
+-- ============================================================
+-- wordle._rebuild_data_cols — one game's data columns, rebuilt
+-- ============================================================
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from wordle's own tables, assigning
+-- each whole. Every RPC calls it after a move, after `_sync_title`, so the
+-- blobs carry the title the move left; it is also the repair for one game by
+-- hand. Every key is always present, null when it has no value; the shapes
+-- are drawn above.
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,
 -- false from a rebuild (the pass over every game, a repair by hand), so a
 -- rebuild never re-dates a game.
-create or replace function wordle._write_statuses(
+create or replace function wordle._rebuild_data_cols(
   p_game_id uuid,
   p_update_status_changed_at boolean
 )
@@ -229,77 +396,52 @@ security definer
 set search_path = wordle, common, public, extensions
 as $$
 declare
-  v_mode text;
-  v_max_guesses int;
-  v_answer_band int;
-  v_team_used int;
-  v_winner_id uuid;
-  v_winner_used int;
+  v_status_changed_at timestamptz;
 begin
-  select cg.mode, wg.max_guesses, coalesce((cg.setup->>'answer_band')::int, 0)
-    into v_mode, v_max_guesses, v_answer_band
-    from wordle.games wg
-    join common.games cg on cg.id = wg.game_id
-   where wg.game_id = p_game_id;
-
-  if v_mode = 'coop' then
-    select max(guesses_used) into v_team_used
-      from wordle.players where game_id = p_game_id;
-  else
-    select user_id into v_winner_id
-      from common.game_players
-     where game_id = p_game_id and final_ranking = 1
-     order by solved_at
-     limit 1;
-    select guesses_used into v_winner_used
-      from wordle.players
-     where game_id = p_game_id and user_id = v_winner_id;
-  end if;
-
-  -- `tie_broken_by_clock`: `_finish_compete` ranks solvers by guesses, then
-  -- the earlier solve, so a solver on the winner's count was placed against
-  -- the winner by the clock. True on each such solver's row, and on the
-  -- winner's when there is at least one; null with no winner (coop, or
-  -- before the end).
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'guesses_used', wp.guesses_used,
-           'player_ended_reason', gp.player_ended_reason,
-           'tie_broken_by_clock',
-             case when v_winner_id is null then null
-                  else gp.solved_at is not null
-                       and wp.guesses_used = v_winner_used
-                       and exists (
-                         select 1
-                           from common.game_players other
-                           join wordle.players other_wp
-                             on other_wp.game_id = other.game_id
-                            and other_wp.user_id = other.user_id
-                          where other.game_id = p_game_id
-                            and other.user_id <> gp.user_id
-                            and other.solved_at is not null
-                            and other_wp.guesses_used = v_winner_used)
-             end)
-    from wordle.players wp
-   where gp.game_id = p_game_id
-     and wp.game_id = gp.game_id
-     and wp.user_id = gp.user_id;
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
 
   update common.games
-     set game_status = jsonb_build_object('max_guesses', v_max_guesses),
-         clubpage_info = jsonb_build_object(
-           'guesses_used', v_team_used,
-           'max_guesses', v_max_guesses,
-           'answer_band', v_answer_band,
-           'winner_user_id', v_winner_id,
-           'winner_guesses_count', v_winner_used),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
+     set game_data = wordle._make_json_game_data(p_game_id),
+         summary_data = wordle._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
    where id = p_game_id;
 end;
 $$;
 
-revoke execute on function wordle._write_statuses(uuid, boolean) from public;
+revoke execute on function wordle._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- wordle._rebuild_data_cols_for_all — every wordle game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every wordle game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function wordle._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = wordle, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('wordle_coop', 'wordle_compete')
+  loop
+    perform wordle._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function wordle._rebuild_data_cols_for_all() from public;
 
 drop function if exists wordle.create_game(text, jsonb, uuid[], text);
 
@@ -470,7 +612,7 @@ begin
   insert into wordle.players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) uid;
 
-  perform wordle._write_statuses(new_id, p_update_status_changed_at => true);
+  perform wordle._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The name is here even
   -- though this is the only `ok` — a call site cannot assert a case the payload
@@ -831,7 +973,7 @@ begin
   -- ended opens its readout. Runs after the endings so it sees the settled
   -- `ended_at`.
   perform wordle._sync_title(p_game_id);
-  perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform wordle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- The fact alone. What an accepted guess shows is composed from the colors
   -- and the board, and what it is worth is lib/answer.ts's for the row this
@@ -899,7 +1041,7 @@ begin
   -- placeholder only while the race runs).
   perform wordle._sync_title(p_game_id);
 
-  perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform wordle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -966,7 +1108,7 @@ begin
   -- compete publishes only now.
   perform wordle._sync_title(p_game_id);
 
-  perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform wordle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1014,7 +1156,7 @@ begin
   -- title never spells an answer nobody guessed).
   perform wordle._sync_title(p_game_id);
 
-  perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform wordle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1045,8 +1187,8 @@ drop function if exists wordle.replay_board(uuid);
 -- Resets the wordle-specific working state (players zeroed, the guess log
 -- cleared), then hands the common-layer reset to common._reset_game (the
 -- ending, each player's ending, solve and result). The target re-hides on
--- its own: _target_for gates on common.games.ended_at, which reset_game
--- clears.
+-- its own: `game_data` carries it only while common.games.ended_at is set,
+-- which reset_game clears before the rebuild.
 create or replace function wordle.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1085,7 +1227,7 @@ begin
   -- of a replay is that the word is a secret again).
   perform wordle._sync_title(p_game_id);
 
-  perform wordle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform wordle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

@@ -38,10 +38,10 @@ select (wordle.create_game(
 -- ── A manual end: over for everyone, but the answer stays covered ──
 select wordle.stop_game((select id from g1));
 
--- Still as ada: the target is now readable through games_state — the shield
--- lifts at the ending regardless of outcome.
+-- Still as ada: the target is now in game_data — the shield lifts at the
+-- ending regardless of outcome.
 select isnt(
-  (select target from wordle.games_state where game_id = (select id from g1)),
+  (select game_data->'puzzle'->>'target' from common.games where id = (select id from g1)),
   null, 'ended → the target unshields (ended_at gate)');
 
 reset role;

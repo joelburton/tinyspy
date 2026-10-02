@@ -1715,6 +1715,19 @@ file, its twin left).
 - **The three pgTAP fixtures read the target as the superuser and grant the
   temp table back** — every file that crafts a guess does it the same way.
 
+## The convenience RLS
+
+The policies and views the frontend leaned on before the page blobs, listed
+before the game converted onto them (plans/seat-view.md → The page is written,
+not assembled: "each one is taken over or dropped by name"), and what became of
+each on 2026-10-02:
+
+| what | mentioned | taken over or dropped |
+|---|---|---|
+| `events_select`'s mode arm — compete shows a player only their own rows during play, everyone's once `ended_at` is set | `auth.uid()`, `ended_at` | **taken over** by `useGame`'s seat rule (`makeGameData`: mid-race in compete a rival's rows leave `gd.events` and their `board` is null), pinned in `hooks/useGame.test.ts`. The policy is now the club-member read every wordle table has; `compete_test.sql` pins that |
+| `games_state` view, with `_target_for` — the game row, the target null until `ended_at` | `ended_at` | **dropped**. The builder's `_make_json_puzzle` writes `puzzle.target` null until the game ends; the column grant on `target` stays the real guard |
+| `games_select`, `players_select` — club-member reads | neither | kept as they are: a member reading rows for a page they cannot open does no harm |
+
 ## Predicted test breaks
 
 *(the spec names, written when the area starts changing things)*

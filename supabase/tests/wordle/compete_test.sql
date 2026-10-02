@@ -4,10 +4,11 @@
 -- Test: wordle compete — independent boards, opponent hidden,
 --        fewest-guesses winner
 -- ============================================================
--- Compete: same hidden target, independent guess sequences. Players
--- don't see each other's guesses until the game ends. The game ends
--- once every player is done; every solver is ranked by fewest guesses, then
--- the earlier solve — `now()` is constant inside a test transaction, so the
+-- Compete: same hidden target, independent guess sequences. What a racer may
+-- see of a rival mid-race is the hook's rule (src/wordle/hooks/useGame.ts),
+-- not a policy's: every club member reads every row. The game ends once
+-- every player is done; every solver is ranked by fewest guesses, then the
+-- earlier solve — `now()` is constant inside a test transaction, so the
 -- tie-break case sets one `solved_at` by hand.
 
 begin;
@@ -95,13 +96,17 @@ select is(
   0, 'bea board untouched (independent boards in compete)');
 
 -- ── Opponent visibility mid-game (as bea) ───────────────────
+-- An opponent's guesses are their strategy, and a racer must not see them
+-- mid-race — but the client never reads this table. The game_data blob carries
+-- every row, and the hook withholds a rival's; that rule is pinned in
+-- src/wordle/hooks/useGame.test.ts.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select count(*) from wordle.events
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  0::bigint,
-  'mid-game: bea cannot see ada''s guesses (RLS hides them)');
+  1::bigint,
+  'mid-game: bea reads ada''s row — the policy is the club''s, the seat rule is the hook''s');
 -- …and the club-list title must not do the leaking for her: common.games.title
 -- is readable club-wide (bea reads it here as herself, which is the point),
 -- so compete keeps the placeholder for the whole race rather than publishing
@@ -110,14 +115,14 @@ select is(
   (select title from common.games where id = (select id from g)),
   'New compete',
   'compete: a mid-race guess never lands in the club-wide title');
--- …and the club line carries no guess counter either. The count is coop's
+-- …and the summary carries no guess counter either. The count is coop's
 -- alone for the same leak reason, so in compete the key is always present and
 -- always null — a counter here would name somebody's progress on the club card.
 reset role;
 select is(
-  (select clubpage_info->'guesses_used' from common.games where id = (select id from g)),
+  (select summary_data->'guessesUsed' from common.games where id = (select id from g)),
   'null'::jsonb,
-  'compete: guesses_used on the club line is null, not a count');
+  'compete: guessesUsed on the summary is null, not a count');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
 -- ── bea solves in 3 guesses (so ada wins on fewest) ─────────
@@ -164,14 +169,14 @@ select is(
   (select upper(w) from tgt),
   'compete: the finished race titles the game with its latest guess, the solve');
 select is(
-  (select target from wordle.games_state where game_id = (select id from g))::text,
+  (select game_data->'puzzle'->>'target' from common.games where id = (select id from g)),
   (select w from tgt),
   'after the end: the target is revealed');
 -- The WINNER's own count, named at the end — the number the club-list label
 -- prints ("Won by ada · 1 guess"). ada solved on her first guess.
 select is(
-  (select (clubpage_info->>'winner_guesses_count')::int from common.games where id = (select id from g)),
-  1, 'the club line names the winner''s guess count');
+  (select (summary_data->>'winnerGuessesCount')::int from common.games where id = (select id from g)),
+  1, 'the summary names the winner''s guess count');
 
 -- ── The tie-break: same count, the earlier solve wins ───────
 -- Both solve on the first guess. ada's `solved_at` is pushed a minute into the
@@ -202,7 +207,7 @@ select is(
      from common.game_players where game_id = (select id from g2)),
   array['2/near', '1/won'], 'tie on guesses: the race still ranks one player first');
 select is(
-  (select (clubpage_info->>'winner_user_id')::uuid from common.games where id = (select id from g2)),
+  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g2)),
   'bea22222-2222-2222-2222-222222222222'::uuid,
   'tie on guesses: the earlier solved_at wins, not the first to call');
 

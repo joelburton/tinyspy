@@ -100,14 +100,15 @@ select is(
   (select game_ended_outcome from common.games where id = (select id from g2)),
   'lost', 'everyone conceding → no winner, a collective loss');
 -- common._concede ends the game; the builder must still run after it, so the
--- page's copies catch up with the ending.
+-- page blobs catch up with the ending.
 select is(
-  (select player_status->>'player_ended_reason' from common.game_players
-    where game_id = (select id from g2) and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  'conceded', 'the ending concede runs the builder: the last conceder''s player_status says conceded');
+  (select p->'ending'->>'reason'
+     from common.games, jsonb_array_elements(game_data->'players') p
+    where id = (select id from g2) and p->>'id' = 'bea22222-2222-2222-2222-222222222222'),
+  'conceded', 'the ending concede runs the builder: the last conceder''s game_data player says conceded');
 select is(
-  (select clubpage_info->>'winner_user_id' from common.games where id = (select id from g2)),
-  null, 'no winner recorded when all conceded');
+  (select summary_data->'ending'->'winner' from common.games where id = (select id from g2)),
+  'null'::jsonb, 'no winner recorded when all conceded');
 -- The two ways a race ends with nobody winning are both `lost`; the reason is
 -- what lets the club list tell "everyone burned their guesses" from "everyone
 -- walked away".
@@ -150,8 +151,8 @@ select is(
   (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g3)),
   'resource_exhausted/exhausted', 'mixed table: one quit and one ran out reads exhausted, not conceded');
 select is(
-  (select clubpage_info->>'winner_user_id' from common.games where id = (select id from g3)),
-  null, 'mixed table: nobody won');
+  (select summary_data->'ending'->'winner' from common.games where id = (select id from g3)),
+  'null'::jsonb, 'mixed table: nobody won');
 
 -- ─── (4) concede is rejected in coop ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

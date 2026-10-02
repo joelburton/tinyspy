@@ -10,8 +10,8 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { notOkOutcome, runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import { answerMessage } from '../lib/answer'
-import type { BoardRow } from '../lib/board'
 import { WORD_LENGTH } from '../lib/setup'
+import type { GBoardRow } from '../types'
 
 /**
  * What `wordle.submit_guess` puts in `data` — the fact, and nothing about how
@@ -71,7 +71,7 @@ export function useSubmitGuess({
 }: {
   gameId: string
   // The board's rows as the server last drew them.
-  liveRows: readonly BoardRow[]
+  liveRows: readonly GBoardRow[]
   localFeedbackSlot: FeedbackSlot
 }): {
   send: (word: string) => Promise<boolean>
@@ -83,7 +83,7 @@ export function useSubmitGuess({
   const [submittedWord, setSubmittedWord] = useState<string | null>(null)
   // `liveRows` only grows within a run, so once the row has landed it stays.
   const hasSubmittedWordLanded =
-    submittedWord !== null && liveRows.some((row) => row.guess === submittedWord)
+    submittedWord !== null && liveRows.some((row) => row.word === submittedWord)
   const inFlight = hasSubmittedWordLanded ? null : submittedWord
 
   // `WORD_ANSWER_MS` is the beat for a word wearing its answer, and the row

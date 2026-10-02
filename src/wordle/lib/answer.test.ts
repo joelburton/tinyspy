@@ -1,7 +1,8 @@
 // cs-blessed-wordle
 
 import { describe, it, expect } from 'vitest'
-import { answerMessage, eventToOutcome, peerAnswerMessage, type Answer } from './answer'
+import type { GAnswer } from '../types'
+import { answerMessage, eventToOutcome, peerAnswerMessage } from './answer'
 
 /**
  * wordle's one presentation decision, both halves.
@@ -23,7 +24,7 @@ describe('answerMessage', () => {
   // Every member, with its color and its words — one table to read them from.
   // My own accepted guess has no words: the colored row that lands is the
   // feedback, and the answer's job is its outcome, for the log's bar.
-  const CASES: [Answer, string, string][] = [
+  const CASES: [GAnswer, string, string][] = [
     [{ answerType: 'correct' }, 'won', ''],
     [{ answerType: 'correct_peer', guess: 'crane' }, 'won', 'guessed CRANE'],
     [{ answerType: 'incorrect' }, 'neutral', ''],
@@ -44,7 +45,7 @@ describe('answerMessage', () => {
     // table: adding a member without a row here fails, and `answerMessage`'s
     // exhaustive switch fails to compile the other way round.
     const listed = new Set(CASES.map(([a]) => a.answerType))
-    const all: Answer['answerType'][] = [
+    const all: GAnswer['answerType'][] = [
       'correct', 'correct_peer', 'incorrect', 'incorrect_peer', 'solved_peer',
       'duplicate', 'not_a_word', 'too_short',
     ]
@@ -52,18 +53,18 @@ describe('answerMessage', () => {
   })
 })
 
-// The two ways a logged row asks: `is_correct` read as my own answer for the
+// The two ways a logged row asks: `correct` read as my own answer for the
 // color, and as the peer twin for the header line.
 describe('eventToOutcome and peerAnswerMessage', () => {
   it('reads a row as its outcome', () => {
-    expect(eventToOutcome({ is_correct: true, word: 'crane' })).toBe('won')
-    expect(eventToOutcome({ is_correct: false, word: 'crane' })).toBe('neutral')
+    expect(eventToOutcome({ correct: true, word: 'crane' })).toBe('won')
+    expect(eventToOutcome({ correct: false, word: 'crane' })).toBe('neutral')
   })
 
   it('gives a peer row the twin words and the same color', () => {
-    expect(peerAnswerMessage({ is_correct: true, word: 'crane' }))
+    expect(peerAnswerMessage({ correct: true, word: 'crane' }))
       .toEqual({ outcome: 'won', text: 'guessed CRANE' })
-    expect(peerAnswerMessage({ is_correct: false, word: 'slate' }))
+    expect(peerAnswerMessage({ correct: false, word: 'slate' }))
       .toEqual({ outcome: 'neutral', text: 'guessed SLATE' })
   })
 })

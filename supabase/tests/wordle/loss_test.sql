@@ -92,7 +92,7 @@ select is(
   5,
   'coop: exactly max_guesses (5) were used');
 select is(
-  (select target from wordle.games_state where game_id = (select id from g_coop))::text,
+  (select game_data->'puzzle'->>'target' from common.games where id = (select id from g_coop)),
   (select coop_w from tgts),
   'coop loss: the target is revealed once the game has ended');
 

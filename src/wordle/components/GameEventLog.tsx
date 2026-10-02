@@ -1,7 +1,6 @@
 // cs-blessed-wordle
 
 import { cls } from '@/common/utils/cls'
-import { memberById } from '@/common/members/memberList'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import {
@@ -14,22 +13,21 @@ import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { eventToOutcome } from '../lib/answer'
 import { getTileColor } from '../lib/colors'
 import type { Member } from '@/common/members/member'
-import type { EventRow } from '../hooks/useGame'
-import type { HistoryView } from '../hooks/useHistoryView'
 import styles from './GameEventLog.module.css'
+import type { GEvent, GHistoryView } from '../types'
 
 type Props = {
-  // Every guess the viewer can see. Coop: the whole shared board. Compete: the
-  // viewer's own during play, and (once the game has ended, when RLS opens)
-  // everyone's.
-  guesses: EventRow[]
+  // Every guess the viewer can see (`gd.events`). Coop: the whole shared
+  // board. Compete: the viewer's own during play, and everyone's once the game
+  // has ended.
+  events: GEvent[]
   players: Member[]
   myId: string
   mode: 'coop' | 'compete'
   isGameEnded: boolean
   // The turn open on the board: its `#N` wears the history-blue ring, and a
   // `#N` click opens another.
-  historyView: HistoryView
+  historyView: GHistoryView
 }
 
 /**
@@ -38,18 +36,18 @@ type Props = {
  * the number, the guess as five colored squares, and who guessed it.
  *
  * Whose guesses show is the shared `useEventLogPlayerPicker`'s: "Team" or each
- * player. In compete an opponent's rows are hidden by RLS until the game ends,
- * which is what the picker's empty text says.
+ * player. In compete an opponent's rows are withheld until the game ends
+ * (`useGame`'s seat rule), which is what the picker's empty text says.
  */
 export function GameEventLog({
-  guesses,
+  events,
   players,
   myId,
   mode,
   isGameEnded,
   historyView,
 }: Props) {
-  const eventLogPicker = useEventLogPlayerPicker<EventRow>({
+  const eventLogPicker = useEventLogPlayerPicker<GEvent>({
     players,
     myId: myId,
     mode,
@@ -57,11 +55,11 @@ export function GameEventLog({
     label: 'Whose guesses to show',
     emptyLabel: 'No guesses yet.',
   })
-  const shownGuesses = eventLogPicker.filter(guesses)
+  const shownGuesses = eventLogPicker.filter(events)
 
   // The NUMBER counts 1, 2, 3 under whatever filter is on; the handle is the
   // row's own id, so the board opens the guess the number is beside.
-  function drawTurnNumber(guess: EventRow, index: number) {
+  function drawTurnNumber(guess: GEvent, index: number) {
     return (
       <EventLogNumber
         n={index + 1}
@@ -73,7 +71,7 @@ export function GameEventLog({
 
   // The whole guess is one definable word — every wordle guess is a legal
   // dictionary word — so one click on the five squares looks it up.
-  function drawGuessSquares(guess: EventRow) {
+  function drawGuessSquares(guess: GEvent) {
     return (
       <DefinableWord word={guess.word} className={cls(styles.squares, styles.definable)}>
         {[...guess.word].map((letter, letterIndex) => (
@@ -95,7 +93,7 @@ export function GameEventLog({
           <EventLogOutcomeBar outcome={eventToOutcome(guess)} />
           {drawTurnNumber(guess, index)}
           <td className={gameEventLog.main}>{drawGuessSquares(guess)}</td>
-          <EventLogActor actor={memberById(players, guess.user_id)} />
+          <EventLogActor actor={guess.by} />
         </tr>
       ))}
     </EventLog>

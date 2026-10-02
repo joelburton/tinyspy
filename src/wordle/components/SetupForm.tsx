@@ -8,7 +8,8 @@ import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import { answerMaxBand, GUESS_OPTIONS, WORD_LENGTH, type WordleValues } from '../lib/setup'
+import { answerMaxBand, GUESS_OPTIONS, WORD_LENGTH } from '../lib/setup'
+import type { GSetupValues } from '../types'
 
 /**
  * wordle's setup form, rendered inside the common SetupGameModal.
@@ -28,8 +29,8 @@ import { answerMaxBand, GUESS_OPTIONS, WORD_LENGTH, type WordleValues } from '..
 export function SetupForm({
   mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as WordleValues
-  const set = setValue as SetupSetter<WordleValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
   const players = members.filter((m) => s.player_user_ids.has(m.id))

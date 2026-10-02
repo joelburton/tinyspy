@@ -76,8 +76,8 @@ select is(
     where game_id = (select id from g3) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   '1/won', 'compete timeout: the solver is ranked 1, the winner');
 select is(
-  (select (clubpage_info->>'winner_guesses_count')::int from common.games where id = (select id from g3)),
-  1, 'compete timeout: the club line names the winner''s guess count, as when every player is done');
+  (select (summary_data->>'winnerGuessesCount')::int from common.games where id = (select id from g3)),
+  1, 'compete timeout: the summary names the winner''s guess count, as when every player is done');
 select is(
   (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
     where game_id = (select id from g3) and user_id = 'bea22222-2222-2222-2222-222222222222'),
@@ -97,7 +97,7 @@ select is(
   (select game_ended_outcome from common.games where id = (select id from g4)),
   'lost', 'compete timeout with nobody solved → lost');
 select is(
-  (select game_ended_reason || ':' || coalesce(clubpage_info->>'winner_user_id', 'none')
+  (select game_ended_reason || ':' || coalesce(summary_data->'ending'->>'winner', 'none')
      from common.games where id = (select id from g4)),
   'timeout:none', 'compete timeout: reason timeout, no winner recorded');
 
@@ -126,7 +126,7 @@ select is(
 -- The target reveals after a manual end too.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select ok(
-  (select target from wordle.games_state where game_id = (select id from g2)) is not null,
+  (select game_data->'puzzle'->>'target' from common.games where id = (select id from g2)) is not null,
   'target revealed once the game has ended (manual end)');
 
 -- A non-player cannot end the game (dee isn't in the club).

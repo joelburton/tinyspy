@@ -2,35 +2,7 @@
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
-
-/**
- * Everything that can be SAID about a move in this game, as a closed set — and
- * **read as a list, it is the whole roster of what this game tells anybody.**
- *
- * The "_peer" versions are about someone else's move, for the header line.
- */
-export type Answer =
-  // My guess was the word.
-  | { answerType: 'correct' }
-  // A coop teammate's was, on the board we share.
-  | { answerType: 'correct_peer'; guess: string }
-
-  // My guess was not the word: it colored, and spent a go.
-  | { answerType: 'incorrect' }
-  // A coop teammate's did.
-  | { answerType: 'incorrect_peer'; guess: string }
-
-  // A compete opponent solved it. It has no twin of mine: this is not a row
-  // (RLS shows one racer nothing of another's) but their `solved_at` being
-  // set.
-  | { answerType: 'solved_peer' }
-
-  // Refused by the server: this word is already on the board.
-  | { answerType: 'duplicate' }
-  // Refused by the server: not in the legal slice of the dictionary.
-  | { answerType: 'not_a_word' }
-  // Refused here: fewer than five letters.
-  | { answerType: 'too_short' }
+import type { GAnswer } from '../types'
 
 /**
  * How an answer reads — **the one place this game decides that.** An empty
@@ -44,7 +16,7 @@ export type Answer =
  * that rules out four letters has done its job. So it is `neutral`: a turn that
  * counted and that nothing adjudicates.
  */
-export function answerMessage(answer: Answer): AnswerMessage {
+export function answerMessage(answer: GAnswer): AnswerMessage {
   switch (answer.answerType) {
     case 'correct':
       return { outcome: 'won', text: '' }
@@ -72,17 +44,17 @@ export function answerMessage(answer: Answer): AnswerMessage {
   }
 }
 
-/** The columns of a `wordle.events` row that say what it WAS. Narrower than
- *  `EventRow` on purpose: nothing here may reach for an author, an id or the
- *  colors, which belong to the surface drawing the row. */
-type LoggedGuess = { is_correct: boolean; word: string }
+/** The fields of a logged row that say what it WAS. Narrower than `GEvent` on
+ *  purpose: nothing here may reach for an author, an id or the colors, which
+ *  belong to the surface drawing the row. */
+type LoggedGuess = { correct: boolean; word: string }
 
 /**
  * What COLOR a logged row is — for the event log, which writes its own words
  * (the guess is five colored squares there, not a sentence).
  */
 export function eventToOutcome(row: LoggedGuess): Outcome {
-  return answerMessage({ answerType: row.is_correct ? 'correct' : 'incorrect' }).outcome
+  return answerMessage({ answerType: row.correct ? 'correct' : 'incorrect' }).outcome
 }
 
 /**
@@ -94,7 +66,7 @@ export function eventToOutcome(row: LoggedGuess): Outcome {
  */
 export function peerAnswerMessage(row: LoggedGuess): AnswerMessage {
   return answerMessage({
-    answerType: row.is_correct ? 'correct_peer' : 'incorrect_peer',
+    answerType: row.correct ? 'correct_peer' : 'incorrect_peer',
     guess: row.word,
   })
 }
