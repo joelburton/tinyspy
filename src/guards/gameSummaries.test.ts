@@ -7,11 +7,11 @@ import type { Member } from '@/common/members/member'
 import type { GameEnding } from '@/common/terminal/gameEnding'
 
 /**
- * The club-page **status line** every game renders, per play state, checked by
- * RUNNING each manifest's `labelFor` over the states it can reach
- * (docs/game-status-labels.md).
+ * The **summary** every game renders, per play state, checked by
+ * RUNNING each manifest's `summaryFor` over the states it can reach
+ * (docs/game-summary.md).
  *
- * `npm run report:labels` prints every line as a table, for a reader who wants to
+ * `npm run report:summaries` prints every line as a table, for a reader who wants to
  * see what the games actually say. It is a vitest file rather than a script run
  * through tsx because it imports the manifests, which pull in lazy React components
  * and CSS modules, and vitest already resolves both.
@@ -421,7 +421,7 @@ const row = (
   id: 'g', gametype, play_state: state, is_terminal: state !== 'playing', status, setup,
 })
 
-/** Every status line as a markdown table, one `| game | state | message |` row per case. */
+/** Every summary as a markdown table, one `| game | state | message |` row per case. */
 function buildTable(): string {
   const lines = ['| game | state | status message |', '|---|---|---|']
   for (const m of gametypes) {
@@ -429,7 +429,7 @@ function buildTable(): string {
     if (!fam) continue
     if (isGameEndingFamily(fam)) {
       const labelOf = (gameEnding: GameEndingCase[0] | null, clubpageInfo: Record<string, unknown>) =>
-        m.labelFor(makeListRow(m.gametype, gameEnding, clubpageInfo), MEMBERS)
+        m.summaryFor(makeListRow(m.gametype, gameEnding, clubpageInfo), MEMBERS)
       lines.push(`| **${m.gametype}** | playing | \`${labelOf(null, fam.live)}\` |`)
       for (const [gameEnding, clubpageInfo, note] of casesFor(m.mode, fam)) {
         lines.push(
@@ -439,7 +439,7 @@ function buildTable(): string {
       continue
     }
     const label = (state: string, status: Record<string, unknown>) =>
-      m.labelFor(row(m.gametype, state, status, fam.setup ?? {}))
+      m.summaryFor(row(m.gametype, state, status, fam.setup ?? {}))
     lines.push(`| **${m.gametype}** | playing | \`${label('playing', fam.playing)}\` |`)
     for (const [state, status, note] of casesFor(m.mode, fam)) {
       lines.push(`| | ${state} — ${note} | \`${label(state, status)}\` |`)
@@ -454,7 +454,7 @@ describe('game status labels', () => {
     expect(missing, 'No CASES entry — add one (see the docstring):').toEqual([])
   })
 
-  it.runIf(process.env.REPORT === '1')('prints every status line (npm run report:labels)', () => {
+  it.runIf(process.env.REPORT === '1')('prints every summary (npm run report:summaries)', () => {
     // Straight to stdout: the reporter does not show a passing test's console.log.
     process.stdout.write(`\n${buildTable()}\n\n`)
   })
@@ -495,13 +495,13 @@ describe('game status labels', () => {
           outcome: 'an_outcome_from_the_future',
           reason: 'a_reason_from_the_future',
         } as unknown as GameEndingCase[0]
-        const playing = m.labelFor(makeListRow(m.gametype, null, fam.live), MEMBERS)
-        unknown = m.labelFor(makeListRow(m.gametype, futureGameEnding, fam.live), MEMBERS)
+        const playing = m.summaryFor(makeListRow(m.gametype, null, fam.live), MEMBERS)
+        unknown = m.summaryFor(makeListRow(m.gametype, futureGameEnding, fam.live), MEMBERS)
         readsAsLive = unknown === playing
       } else {
         const setup = fam.setup ?? {}
-        const playing = m.labelFor(row(m.gametype, 'playing', fam.playing, setup))
-        unknown = m.labelFor(row(m.gametype, 'a_state_from_the_future', fam.playing, setup))
+        const playing = m.summaryFor(row(m.gametype, 'playing', fam.playing, setup))
+        unknown = m.summaryFor(row(m.gametype, 'a_state_from_the_future', fam.playing, setup))
         readsAsLive = unknown === playing
       }
       if (readsAsLive && !UNKNOWN_READS_AS_LIVE.has(m.gametype)) {

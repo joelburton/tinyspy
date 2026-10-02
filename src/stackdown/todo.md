@@ -172,7 +172,7 @@
   `stackdown.events`.
 - **A board of other than six words.** Every board is six words, and the
   front end writes the 6 in: the info column's "/ 6 words cleared", the print
-  model's target (`SOLUTION_WORDS` in `PlayArea.tsx`), and the club line's
+  model's target (`SOLUTION_WORDS` in `PlayArea.tsx`), and the summary's
   "3/6 words". The server already reads the length of `solution`. A board
   with a different count would need the front end to get it from the game's
   own reads — `games_state` could expose `array_length(solution, 1)` without

@@ -108,9 +108,9 @@
 
 ## Maybe
 
-- **Update the club line now and then during play?** A cell change writes
+- **Update the summary now and then during play?** A cell change writes
   only `crosswords.cells`, so `common.games` changes only when someone opens
-  or leaves the game, and at the end. Two things follow: the club line can't
+  or leaves the game, and at the end. Two things follow: the summary can't
   show progress ("50% filled"), and a game played for two hours without
   ending reads as last active when it was opened. Both would take an
   occasional write to `clubpage_info` (plans/common-tables.md), which also

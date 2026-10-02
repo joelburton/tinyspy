@@ -5,7 +5,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { count, verdict, statusLine, tally } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, tally } from '@/common/manifest/summary'
 import { DEFAULT_CODENAMESDUET_SETUP, type CodenamesduetSetup } from './lib/setup'
 import { TOTAL_AGENTS } from './lib/agents'
 import logoUrl from './logo.svg?url'
@@ -104,7 +104,7 @@ export const codenamesduetGame: GameManifest = {
   // the play state's own (STATUS_LABEL, below), and a loss's cause is the
   // reason's (LOSS_CAUSE); the status adds the agent tally and, mid-game, the
   // turns left. A play state missing from the map renders as its raw name.
-  labelFor: (row) => {
+  summaryFor: (row) => {
     const st = (row.status ?? {}) as { found_agents_count?: number; turns_remaining?: number; reason?: string }
     // The agent tally is the useful "should I come back to this?" fact, so it
     // rides on every line. Mid-game the turn budget rides too.
@@ -133,7 +133,7 @@ export const codenamesduetGame: GameManifest = {
 // ClubPage renders these verbatim. Other games define their own.
 const STATUS_LABEL: Record<string, string> = {
   playing: verdict('Playing'),
-  // The one lead outside statusLabel.ts's four words, by decision: sudden death
+  // The one lead outside summary.ts's four words, by decision: sudden death
   // is the thing to scan a club list for.
   sudden_death: 'Sudden death',
   won: verdict('Won'),

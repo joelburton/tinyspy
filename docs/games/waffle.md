@@ -163,7 +163,7 @@ every move, each assigned whole with every key present:
 | each `player_status` | `swaps_used`, `player_ended_reason` |
 | `clubpage_info` | `swaps_used`, `max_swaps`, `band` (the dictionary band, `setup.difficulty`), `winner_user_id`, `winner_swaps_count` |
 
-The club line's `swaps_used` is coop's shared count and null in compete, where
+The summary's `swaps_used` is coop's shared count and null in compete, where
 a live count would leak how far along a racer is; the winner and their count
 are compete's, written once the race is won.
 
@@ -636,7 +636,7 @@ The **six answer words are terminal-only**, twice over: the server gates
   rejected), `replay_test` (replay_board resets both modes to the dealt board
   on the same game row, any state, non-player rejected), `statuses_test` (the
   exact key set of every status at the start, mid-game and at the end in both
-  modes; the club line's winner and count; a rebuild drops a stale key and
+  modes; the summary's winner and count; a rebuild drops a stale key and
   leaves `status_changed_at` alone),
   `boards_untouched_test` (ending a game never rewrites `waffle.players.board`
   — the invariant the old give-up broke, and what makes Hide able to bring the

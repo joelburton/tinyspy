@@ -1,9 +1,9 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: the common part of a playarea blob — common._make_json_playarea
+-- Test: the common part of game_data — common._make_json_game_data
 -- ============================================================
--- Every game's playarea blob starts from common._make_json_playarea: the game
+-- Every game's game_data starts from common._make_json_game_data: the game
 -- facts every game shares, and each player with the standing terms of
 -- docs/win-lose.md → Where a player stands (supabase/sql/common.sql → The page
 -- blobs' common parts). A game's builder adds its own fields on top; this
@@ -61,16 +61,16 @@ select set_config('test.turns', (common._create_game(
 reset role;
 select set_config('request.jwt.claims', '', true);
 
--- Shorthands: the two games' ids, a game's common playarea, and one player
+-- Shorthands: the two games' ids, a game's common game_data, and one player
 -- inside it.
 create function pg_temp.race() returns uuid language sql as
   $$ select current_setting('test.race')::uuid $$;
 create function pg_temp.turns() returns uuid language sql as
   $$ select current_setting('test.turns')::uuid $$;
-create function pg_temp.playarea(game uuid) returns jsonb language sql as
-  $$ select common._make_json_playarea(game) $$;
+create function pg_temp.game_data(game uuid) returns jsonb language sql as
+  $$ select common._make_json_game_data(game) $$;
 create function pg_temp.player(game uuid, uid uuid) returns jsonb language sql as
-  $$ select p from jsonb_array_elements(common._make_json_playarea(game) -> 'players') p
+  $$ select p from jsonb_array_elements(common._make_json_game_data(game) -> 'players') p
       where p ->> 'id' = uid::text $$;
 
 -- A player who has not moved: what every seat of a fresh game shows.
@@ -94,7 +94,7 @@ $$;
 
 -- ─── (1) A fresh free-for-all game, as a whole ───
 select is(
-  pg_temp.playarea(pg_temp.race()),
+  pg_temp.game_data(pg_temp.race()),
   jsonb_build_object(
     'id',       pg_temp.race(),
     'gametype', 'spellingbee_compete',
@@ -120,12 +120,12 @@ select is(
 select common._assign_turn_order(pg_temp.turns(), 'bea22222-2222-2222-2222-222222222222');
 
 select is(
-  pg_temp.playarea(pg_temp.turns()) -> 'turns',
+  pg_temp.game_data(pg_temp.turns()) -> 'turns',
   jsonb_build_object('holder', 'bea22222-2222-2222-2222-222222222222'),
   'a seated game has turns, and the holder is the first player'
 );
 select is(
-  (select jsonb_agg(p ->> 'username') from jsonb_array_elements(pg_temp.playarea(pg_temp.turns()) -> 'players') p),
+  (select jsonb_agg(p ->> 'username') from jsonb_array_elements(pg_temp.game_data(pg_temp.turns()) -> 'players') p),
   '["bea", "ada"]'::jsonb,
   'players come in seat order'
 );
@@ -141,9 +141,9 @@ select is(
   'the other player: seat 1, still playing, waiting for the turn'
 );
 select is(
-  (pg_temp.playarea(pg_temp.turns()) ->> 'coop')::boolean
-    and (pg_temp.playarea(pg_temp.turns()) ->> 'oneBoard')::boolean
-    and pg_temp.playarea(pg_temp.turns()) ->> 'brand' = 'PsychicNum',
+  (pg_temp.game_data(pg_temp.turns()) ->> 'coop')::boolean
+    and (pg_temp.game_data(pg_temp.turns()) ->> 'oneBoard')::boolean
+    and pg_temp.game_data(pg_temp.turns()) ->> 'brand' = 'PsychicNum',
   true,
   'coop, one board and the brand come off the gametype'
 );
@@ -151,7 +151,7 @@ select is(
 select common._advance_turn(pg_temp.turns());
 
 select is(
-  pg_temp.playarea(pg_temp.turns()) -> 'turns' ->> 'holder',
+  pg_temp.game_data(pg_temp.turns()) -> 'turns' ->> 'holder',
   'ada11111-1111-1111-1111-111111111111',
   'advancing the turn moves the holder'
 );
@@ -215,7 +215,7 @@ select common._end_game(
   p_final_rankings => '{"ada11111-1111-1111-1111-111111111111": 1}'::jsonb);
 
 select is(
-  pg_temp.playarea(pg_temp.race()) -> 'ending',
+  pg_temp.game_data(pg_temp.race()) -> 'ending',
   jsonb_build_object(
     'reason', 'reached_goal',
     'detail', 'solved',
@@ -224,7 +224,7 @@ select is(
   'the ending: reason pair, who ended it, the player ranked first'
 );
 select is(
-  pg_temp.playarea(pg_temp.race()) ->> 'outcome',
+  pg_temp.game_data(pg_temp.race()) ->> 'outcome',
   'won',
   'the game''s outcome'
 );
@@ -253,19 +253,19 @@ select is(
 select common._reset_game(pg_temp.race());
 
 select is(
-  pg_temp.playarea(pg_temp.race()) -> 'players',
+  pg_temp.game_data(pg_temp.race()) -> 'players',
   jsonb_build_array(
     pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada', null),
     pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea', null)),
   'after a Restart every player is fresh again'
 );
 select is(
-  pg_temp.playarea(pg_temp.race()) -> 'ending',
+  pg_temp.game_data(pg_temp.race()) -> 'ending',
   'null'::jsonb,
   '… the ending is gone'
 );
 select is(
-  pg_temp.playarea(pg_temp.race()) -> 'outcome',
+  pg_temp.game_data(pg_temp.race()) -> 'outcome',
   'null'::jsonb,
   '… with no outcome yet'
 );
@@ -273,7 +273,7 @@ select is(
 select common._reset_game(pg_temp.turns());
 
 select is(
-  pg_temp.playarea(pg_temp.turns()) -> 'turns' ->> 'holder',
+  pg_temp.game_data(pg_temp.turns()) -> 'turns' ->> 'holder',
   'bea22222-2222-2222-2222-222222222222',
   'a Restart hands the turn back to seat 0'
 );

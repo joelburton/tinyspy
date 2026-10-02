@@ -2,9 +2,9 @@
 
 import { describe, expect, it } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import type { CommonPlayarea } from '@/common/game-page/playarea'
+import type { GameDataRaw } from '@/common/game-page/gameData'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
-import { makePlayarea } from '../lib/playarea.fixture'
+import { makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useGetGameEndingMessage } from './useGetGameEndingMessage'
 import type { GGameData } from '../types'
@@ -15,12 +15,12 @@ const MOTH = { id: 'u2', username: 'moth', color: 'blue' }
 /** A game with the ending the hook reads: who won it, and how I came out. */
 function gdWith(o: {
   mode?: 'coop' | 'compete'
-  ending: CommonPlayarea['ending']
+  ending: GameDataRaw['ending']
   outcome?: EndOutcome | null
   myOutcome?: EndOutcome | null
 }): GGameData {
   return makeGameData(
-    makePlayarea({
+    makeGameDataRaw({
       mode: o.mode ?? 'coop',
       players: [{ ...ME, outcome: o.myOutcome ?? null }, MOTH],
       ending: o.ending,

@@ -3,7 +3,7 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
@@ -22,7 +22,7 @@ import logoUrl from './logo.svg?url'
  *
  * Differences between the two: `gametype`, `mode`, `numberOfPlayers`
  * (coop allows solo `[1,8]`; compete needs an opponent `[2,8]`), the
- * `setupForm.defaults`, and the `labelFor` vocabulary.
+ * `setupForm.defaults`, and the `summaryFor` vocabulary.
  */
 
 const helpLoader = lazy(() =>
@@ -147,7 +147,7 @@ export const boggleCoopGame: GameManifest = {
     validate: (setup) => boggleSetupError(setup as BoggleSetup),
   },
   startGameInClub: startGameInClubFactory('coop'),
-  labelFor: (row) => coopLabel(row),
+  summaryFor: (row) => coopLabel(row),
   submitTimeout,
   stopGame,
 }
@@ -174,7 +174,7 @@ export const boggleCompeteGame: GameManifest = {
     validate: (setup) => boggleSetupError(setup as BoggleSetup),
   },
   startGameInClub: startGameInClubFactory('compete'),
-  labelFor: (row) => competeLabel(row),
+  summaryFor: (row) => competeLabel(row),
   submitTimeout,
   stopGame,
 }

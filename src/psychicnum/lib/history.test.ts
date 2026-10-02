@@ -11,7 +11,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { replayTurn } from './history'
-import { guess, makePlayarea } from './playarea.fixture'
+import { guess, makeGameDataRaw } from './gameData.fixture'
 import { makeGameData } from '../hooks/useGame'
 
 const ME = { id: 'u', username: 'me', color: 'red' }
@@ -23,7 +23,7 @@ const WORDS = ['apple', 'berry', 'cedar']
 // a builder that still indexed would pass these tests by accident. The rows
 // come through `makeGameData`, which is what gives each its player.
 const EVENTS = makeGameData(
-  makePlayarea({
+  makeGameDataRaw({
     words: WORDS,
     players: [ME],
     events: [
@@ -71,7 +71,7 @@ describe('replayTurn', () => {
   it('in compete, replays the author\'s own guesses alone', () => {
     // A finished race, so both racers' rows are in the log.
     const gd = makeGameData(
-      makePlayarea({
+      makeGameDataRaw({
         mode: 'compete',
         words: WORDS,
         players: [ME, MOTH],

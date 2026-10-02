@@ -4,16 +4,18 @@ import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '../terminal
 import type { Member } from '../members/member'
 
 /**
- * The common part of every game's playarea blob, as `common._make_json_playarea`
+ * The common part of every game's `game_data`, as `common._make_json_game_data`
  * writes it (supabase/sql/common.sql → The page blobs' common parts): the game
  * facts every game shares, and each player with where they stand. A game's own
- * playarea type extends it with the game's fields and its own player; a game's
- * builder writes the two together, so a game reads one blob.
+ * `GGameDataRaw` extends it with the game's fields and its own player; a game's
+ * builder writes the two together, so a game reads one blob. Bare names, since
+ * these are common's; a game's wear the `G` (docs/code-conventions.md → A
+ * game's types).
  *
  * Links are ids here (`turns.holder`, `ending.by`, `ending.winner`); a game's
  * `useGame` turns them into its players.
  */
-export type CommonPlayarea = {
+export type GameDataRaw = {
   id: string
   gametype: string
   // The gametype's user-facing name.
@@ -45,16 +47,16 @@ export type CommonPlayarea = {
   // Null until the game ends.
   outcome: EndOutcome | null
   // Everyone in the game, in seat order.
-  players: CommonPlayareaPlayer[]
+  players: PlayerRaw[]
 }
 
 /**
- * A player as every playarea shows them: who they are, their seat, how and
+ * A player as every game_data shows them: who they are, their seat, how and
  * whether they ended, and where they stand (docs/win-lose.md → Where a player
  * stands). Inside a group a predicate about its subject is bare: `conceded`,
  * `solved`, `onTurn`.
  */
-export type CommonPlayareaPlayer = Member & {
+export type PlayerRaw = Member & {
   // This seat is an AI opponent.
   ai: boolean
   // Null in a free-for-all game.

@@ -230,7 +230,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
   /**
    * The compete collective losses both land on play_state `lost_compete` and
    * are told apart only by `status.reason` — the two-places trap's third
-   * surface (labelFor asserts the club card; nothing else asserts the in-game
+   * surface (summaryFor asserts the club card; nothing else asserts the in-game
    * verdict). These pin buildOver to the terminals the server actually writes:
    * common.concede → 'lost_compete' + reason 'conceded',
    * crosswords.submit_timeout → 'lost_compete' + 'timeout' (compete) /

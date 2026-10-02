@@ -331,7 +331,7 @@ every move, each assigned whole with every key present:
 | `clubpage_info` | `found_words_count`, `found_words_score`, `target_win_percent`, `top_score`, `winner_user_id` |
 
 A player's status holds their own finds in both modes; the Stats grid sums them
-for a coop team. The club line's found counts are coop's team totals and null in
+for a coop team. The summary's found counts are coop's team totals and null in
 compete, where a live count would leak how far along a racer is; `top_score` (a
 conceder's banked score never counts) and a sole `winner_user_id` are compete's,
 written once the race ends — a tie for first names no winner.
@@ -601,7 +601,7 @@ constraints** min/max grid (words / score / longest) · timer. Mode-aware copy
 rules, then the custom-board parse.
 
 Other files: `manifest.ts` (the two sibling manifests, `BRAND='MothCubes'`,
-`startGameInClub` → invoke `boggle-build-board`, `submitTimeout`, `labelFor`),
+`startGameInClub` → invoke `boggle-build-board`, `submitTimeout`, `summaryFor`),
 `db.ts`, `theme.css`, `logo.svg`, `hooks/useGame.ts` (realtime refetch on
 `boggle.{games, found_words}`), `lib/{setup, customBoard, boardTrace}`.
 Registered in `src/gametypes.ts`; `boggle` is in `supabase/config.toml` schemas

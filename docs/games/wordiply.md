@@ -330,9 +330,9 @@ and every ending. The two scores stay null until the game has ended.
 - `clubpage_info` — `guesses_used`, `length_score`, `letter_count` (coop's;
   null in compete), `winner_user_id`, `winner_length_score` (compete's).
 
-`labelFor` (manifest) reads this for the club-page row, in the shared
+`summaryFor` (manifest) reads this for the club-page row, in the shared
 status-label vocabulary
-([docs/game-status-labels.md](../game-status-labels.md)). Mid-game, coop shows
+([docs/game-summary.md](../game-summary.md)). Mid-game, coop shows
 the shared budget — `Playing · 3/5 guesses` — while compete shows a bare
 `Playing`. (Each player's guess count is in `status.leaderboard` and on every
 player's opponent strip; the label just doesn't name one.)
@@ -500,7 +500,7 @@ follows it line-for-line).
 - **`manifest.ts`** — `wordiplyCoopGame` / `wordiplyCompeteGame`, a single
   `BRAND` const, shared lazy loaders (Help / PlayArea / SetupForm),
   `startGameInClub` → `runEdgeFn('wordiply-build-board', …)`, `submitTimeout` /
-  `stopGame` via `makeRpcDispatcher`, per-mode `labelFor`. Register both in the
+  `stopGame` via `makeRpcDispatcher`, per-mode `summaryFor`. Register both in the
   games registry + add to the CLAUDE.md doc map.
 - **`db.ts`** — typed client on schema `wordiply`.
 - **`lib/setup.ts`** — `WordiplySetup = CoopTurnSetup & { timer, difficulty,

@@ -6,7 +6,7 @@ import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/mani
 import { deckSize } from './lib/cards'
 import { CLAIM_SIZE } from './lib/picks'
 import { db } from './db'
-import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import {
@@ -178,7 +178,7 @@ export const setgameCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  labelFor: (row) => coopLabel(row),
+  summaryFor: (row) => coopLabel(row),
 
   submitTimeout,
   stopGame,
@@ -213,7 +213,7 @@ export const setgameCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  labelFor: (row) => competeLabel(row),
+  summaryFor: (row) => competeLabel(row),
 
   submitTimeout,
   stopGame,

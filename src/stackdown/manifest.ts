@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { dictLabel, verdict, setupNum, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { dictLabel, verdict, setupNum, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_STACKDOWN_SETUP, type StackdownSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -58,7 +58,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
  *  The coop/compete mode is shown by the card's <ModeBadge>, so it's no
  *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
 /**
- * stackdown's club-page status line. The dict band rides on every row — the
+ * stackdown's summary. The dict band rides on every row — the
  * words a stack is built from change the game's difficulty completely.
  *
  * Coop shows the word count (one shared board, so it's everyone's); compete
@@ -68,7 +68,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
  * Only ONE loss exists in either mode: the clock. There's no move budget, and
  * the board invariant guarantees every stack is clearable.
  */
-function labelFor(mode: 'coop' | 'compete') {
+function summaryFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
     const s = (row.status ?? {}) as {
       winner_username?: string; reason?: string
@@ -132,7 +132,7 @@ export const stackdownCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  labelFor: labelFor('coop'),
+  summaryFor: summaryFor('coop'),
 
   submitTimeout,
   stopGame,
@@ -166,7 +166,7 @@ export const stackdownCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  labelFor: labelFor('compete'),
+  summaryFor: summaryFor('compete'),
 
   submitTimeout,
   stopGame,

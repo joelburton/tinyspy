@@ -29,20 +29,20 @@ same closure over a different schema.
 
 The one thing this folder produces rather than describes is the **status
 line**: the second line of a game's row on the club page, written by the
-game's own `labelFor` out of a `common.games` row. `statusLabel.ts` holds the
+game's own `summaryFor` out of a `common.games` row. `summary.ts` holds the
 vocabulary those all speak, so no game invents its own word for "in progress",
-and `npm run report:labels` prints what every game actually says.
+and `npm run report:summaries` prints what every game actually says.
 
 ## Details
 
-- **`labelFor` is pure and synchronous, and that is a constraint on the
+- **`summaryFor` is pure and synchronous, and that is a constraint on the
   SERVER.** The club page draws a whole club's games from one query, so
   everything a label needs has to be on the row already — which is why every
   state-changing RPC rewrites the row's `status` blob for it to read rather
   than leaving the frontend to go ask. A label that needed a second query would turn one query
   into one per row.
 
-- **A status line may only say what every player already sees.**
+- **A summary may only say what every player already sees.**
   `common.games.clubpage_info` is club-readable, so a compete game's private
   progress must never be written there. Several compete labels are a bare
   `Playing` for exactly that reason, and it is a rule about the status builder,

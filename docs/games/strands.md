@@ -173,7 +173,7 @@ and at the end of every move and ending, a hint included:
 | `clubpage_info` | `found_words_count`, `winner_user_id`, `winner_hints_count` |
 
 A player's `found_words_count` is the team's in coop, where the board is
-shared, and their own in compete. The club line's count is coop's and null in
+shared, and their own in compete. The summary's count is coop's and null in
 compete; a sole compete winner and the hints they solved on are written once
 the race ends.
 
@@ -714,9 +714,9 @@ The manual **Stop** stays neutral in both modes. A race called off early didn't
 finish, and handing the trophy to whoever was ahead would reward stopping at the
 right moment.
 
-### The club line
+### The summary
 
-The club line reads `clubpage_info`: it publishes **nothing** of the race
+The summary reads `clubpage_info`: it publishes **nothing** of the race
 mid-way, and at the end names the winner and the MARGIN (`Won · 0 hints`)
 rather than the finish order.
 

@@ -7,8 +7,9 @@
  * releases at the end — wordle's answer (Reveal had nothing to show), a race's
  * rivals' guesses — arrives only if the board re-reads, and the page is right
  * after a reload and wrong until then. An ending wakes it by calling the
- * game's status builder, `<game>._write_statuses`, whose write to
- * `common.games` the page reloads off (plans/common-tables.md → The model).
+ * game's status builder — `<game>._rebuild_data_cols` once the game is on the
+ * page blobs, `<game>._write_statuses` before — whose write to `common.games`
+ * the page reloads off (plans/common-tables.md → The model).
  *
  * **This exists because the rule was a step in a doc.** Stop followed it
  * everywhere; three concede and timeout paths did not (found 2026-09-24).
@@ -19,8 +20,7 @@
  * **The rule, as checked:** every function in a game's `supabase/sql/<game>.sql`
  * that ends the game — calls `common._end_game`, `common._concede` or
  * `common._stop`, or calls a function of its own game that does — must call
- * `<game>._write_statuses`, itself or through a function of its own game that
- * it calls. The same transaction is
+ * its builder, itself or through a function of its own game that it calls. The same transaction is
  * enough: the write's event goes out at commit, when the game is already over.
  *
  * **What it cannot tell:** whether the write is on the branch that ends the game
@@ -85,7 +85,8 @@ describe('an ending wakes the board', () => {
   it('every entry point that can end a game wakes the board', () => {
     const offenders: string[] = []
     for (const { game, fns } of games) {
-      const writes = (b: string) => new RegExp(`\\b${game}\\._write_statuses\\s*\\(`).test(b)
+      const writes = (b: string) =>
+        new RegExp(`\\b${game}\\.(_rebuild_data_cols|_write_statuses)\\s*\\(`).test(b)
       // The transaction is the unit: a helper need not write if its caller
       // does. So only the entry points — functions nothing of this game calls —
       // are asked, each following its calls.

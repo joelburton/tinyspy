@@ -1053,7 +1053,7 @@ verb too — `makeRosterRow`, `makeCoopRows`, `makeCenterLettersRow`,
   is gone) and connections.sql (says a fresh game's status is NULL;
   `create_game` seeds it). connections' `replay_board` also resets status to
   `{}` where `create_game` seeds `{matched_count: 0, mistake_count: 0}`;
-  harmless on screen, since `labelFor` falls back to 0, but the two should
+  harmless on screen, since `summaryFor` falls back to 0, but the two should
   agree.
 - codenamesduet.sql's `end_game` comment ("flip into review mode", which is
   `useCommonGame`'s job); connections.sql's claim that `submit_timeout` writes
@@ -1115,7 +1115,7 @@ verb too — `makeRosterRow`, `makeCoopRows`, `makeCenterLettersRow`,
 | part | variants in use |
 |---|---|
 | the per-player strip (`OpponentStrip`) | Found strip, Guesses strip, Rank strip, budget strip, opponent strip |
-| the club-page line | club-list label, club label, club-list readout; docs/game-status-labels.md says "status line" |
+| the club-page line | summary, club label, club-list readout; docs/game-summary.md says "status line" |
 | the events readout | turn log, guess log, the log, event log |
 | the setup dialog | start-game dialog, setup dialog, setup form; the owner says start-a-game dialog |
 | the below-board slot | below-board pill, the pill under the board, the local slot |
@@ -1135,8 +1135,8 @@ not.
 
 ## 6. To investigate
 
-- **How a game words a loss on its club line** (Joel, 2026-09-27). Each
-  manifest's `labelFor` turns a stored reason into words ("out of time", "out
+- **How a game words a loss on its summary** (Joel, 2026-09-27). Each
+  manifest's `summaryFor` turns a stored reason into words ("out of time", "out
   of guesses") for a game nobody won, and the games do it in different ways:
   psychicnum reads one `LOSS` table in both modes; wordle, waffle and
   connections keep a `COMPETE_LOSS` table for compete, and wordle words its

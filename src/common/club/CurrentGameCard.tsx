@@ -17,8 +17,8 @@ type Props = {
   // The algorithmic per-game title, from `common.games.title` — `not null`
   // there.
   title: string
-  // Gametype-rendered status string, produced by the manifest's `labelFor`.
-  statusLabel: string
+  // Gametype-rendered status string, produced by the manifest's `summaryFor`.
+  summary: string
   // `common.games.status_changed_at`, ISO. Rendered via friendlyDate.
   statusChangedAt: string
   // Called when the user confirms the delete affordance. ClubPage owns the
@@ -42,7 +42,7 @@ export function CurrentGameCard({
   gameId,
   manifest,
   title,
-  statusLabel,
+  summary,
   statusChangedAt,
   onDelete,
   soloClub,
@@ -57,7 +57,7 @@ export function CurrentGameCard({
           title={title}
           isCurrentGameCard
           state="current"
-          meta={statusLabel}
+          meta={summary}
           date={dateLabel}
           soloClub={soloClub}
         />

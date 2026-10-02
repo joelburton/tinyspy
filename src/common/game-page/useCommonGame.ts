@@ -5,7 +5,7 @@
  *
  * useCommonGame(gameId, auth):
  *   cg                                    # the shell, plus me; null while loading, after a failed read, or when the game is gone
- *   playarea                              # the game's playarea blob, opaque here; null until the game's builder has written it
+ *   gameData                              # the game's game_data blob, opaque here; null until the game's builder has written it
  *   pause: {paused, presentUserIds, stillPlayingHumanPlayers, manuallyPausedBy, sendManualPause, sendManualUnpause}
  *   timer:
  *     mode: {kind, seconds}               # seconds only for a countdown
@@ -59,10 +59,11 @@ import { noShellEnvelope, type CommonGame, type Shell } from './shell'
  * presence, pause, suspend and the clock. Call it once per page, at the top.
  *
  * The page is written, not assembled (plans/seat-view.md → The page is written,
- * not assembled): one read of `common.games` brings the `shell` and `playarea`
- * blobs each game's status builder wrote, and the hook reads no other column
- * of that table. The shell is what the page shows; the playarea is the game's,
- * handed down opaque. A game's `useGame` is a pure function of it.
+ * not assembled): one read of `common.games` brings the `shell_data` and
+ * `game_data` blobs each game's status builder wrote, and the hook reads no
+ * other column of that table. `shell_data` is what the page shows; `game_data`
+ * is the game's, handed down opaque. A game's `useGame` is a pure function of
+ * it.
  *
  * The room is a Realtime channel named `game:${gameId}` — stable, because
  * presence and broadcast only reach peers sharing a channel NAME, and because
@@ -83,9 +84,9 @@ export function useCommonGame(
   // The shell, plus me; null while loading, when a read failed, or when the
   // game is gone.
   cg: CommonGame | null
-  // The game's playarea blob, as its builder wrote it. Opaque to the page;
+  // The game's `game_data` blob, as its builder wrote it. Opaque to the page;
   // null until the game's builder has written one.
-  playarea: unknown
+  gameData: unknown
   // Whether the game is paused, who it waits for, and the controls.
   pause: GamePause
   // The game clock: its kind (and a countdown's length), the seconds to show,
@@ -163,7 +164,7 @@ export function useCommonGame(
       const ch = supabase.channel(room)
 
       // Every move rewrites the row's blobs, so this is how the page — and the
-      // game, through the playarea it is handed — hears of every move and the
+      // game, through the game_data it is handed — hears of every move and the
       // end.
       ch.on(
         'postgres_changes',
@@ -294,7 +295,7 @@ export function useCommonGame(
 
   return {
     cg,
-    playarea: loaded?.playarea ?? null,
+    gameData: loaded?.gameData ?? null,
     pause: { ...pauseState, presentUserIds, sendManualPause, sendManualUnpause },
     timer: { mode: loaded?.timerMode ?? { kind: 'none' }, ...timer },
     sendSuspend,
@@ -391,7 +392,7 @@ type CommonGameRead =
   | {
       kind: 'loaded'
       shell: Shell
-      playarea: unknown
+      gameData: unknown
       timerMode: TimerMode
     }
   // Zero rows. Only a read that WORKED can say this, which is why
@@ -403,13 +404,13 @@ type CommonGameRead =
 
 /**
  * Read the game: its two page blobs off `common.games`, and its timer. A game
- * whose builder has not written a shell yet fails the read, saying so.
+ * whose builder has not written its shell_data yet fails the read, saying so.
  */
 async function readCommonGame(gameId: string): Promise<CommonGameRead> {
   const [gameRes, timerRes] = await Promise.all([
     // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK, so
     // this is 0 or 1 of them.
-    readRows(commonDb.from('games').select('shell, playarea').eq('id', gameId)),
+    readRows(commonDb.from('games').select('shell_data, game_data').eq('id', gameId)),
     readRows(
       commonDb
         .from('timers')
@@ -422,14 +423,14 @@ async function readCommonGame(gameId: string): Promise<CommonGameRead> {
   if (gameRes.type === 'not-ok') return { kind: 'failed', failure: gameRes }
   if (timerRes.type === 'not-ok') return { kind: 'failed', failure: timerRes }
 
-  const gameData = gameRes.data[0]
-  if (!gameData) return { kind: 'gone' }
-  if (gameData.shell === null) return { kind: 'failed', failure: noShellEnvelope(gameId) }
+  const row = gameRes.data[0]
+  if (!row) return { kind: 'gone' }
+  if (row.shell_data === null) return { kind: 'failed', failure: noShellEnvelope(gameId) }
 
   return {
     kind: 'loaded',
-    shell: gameData.shell as Shell,
-    playarea: gameData.playarea,
+    shell: row.shell_data as Shell,
+    gameData: row.game_data,
     timerMode: timerModeOf(timerRes.data[0]),
   }
 }

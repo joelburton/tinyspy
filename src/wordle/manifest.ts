@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, dictLabel, verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { count, dictLabel, verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
@@ -63,7 +63,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
 // winner and their count, and the answer band). The answer band rides on
 // every line — a game drawn from the curated Wordle answer list plays very
 // differently from one drawn from the "Expert" end of the dictionary. Each
-// mode's labelFor handles its own endings.
+// mode's summaryFor handles its own endings.
 
 /** Why a game ended with nobody winning (wordle's losses). */
 const LOSS: Partial<Record<GameEndedReason, string>> = {
@@ -123,7 +123,7 @@ export const wordleCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  labelFor: (row) => {
+  summaryFor: (row) => {
     const clubpageInfo = row.clubpageInfo as WordleClubpageInfo
     const dict = answerDictLabel(clubpageInfo.answer_band)
     const used = tally(clubpageInfo.guesses_used, clubpageInfo.max_guesses, 'guesses')
@@ -180,7 +180,7 @@ export const wordleCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  labelFor: (row, members) => {
+  summaryFor: (row, members) => {
     const clubpageInfo = row.clubpageInfo as WordleClubpageInfo
     const dict = answerDictLabel(clubpageInfo.answer_band)
     // No progress: guesses are private until the game ends, and this line is

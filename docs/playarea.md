@@ -253,7 +253,7 @@ function PlayArea({ gd, … }: PlayAreaProps) { … }
 
 A game on the page blobs (plans/seat-view.md → The page is written, not
 assembled) has nothing to wait for: its `useGame` is a pure function of
-`ctx.playarea`, so its loader is the one line `const { gd } = useGame(ctx)` and
+`ctx.gameData`, so its loader is the one line `const { gd } = useGame(ctx)` and
 the three gates go. psychicnum is on them; the snippet above is the shape of a
 game that still reads its own tables.
 

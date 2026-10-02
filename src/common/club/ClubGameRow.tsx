@@ -13,8 +13,8 @@ type Props = {
   // there.
   title: string
   // Gametype-rendered status string, e.g. "13/16 agents" or "lost (assassin)".
-  // Produced by the manifest's `labelFor`.
-  statusLabel: string
+  // Produced by the manifest's `summaryFor`.
+  summary: string
   // `common.games.status_changed_at`, ISO — when the status last changed (a
   // move, a Restart, the end), a "last played" proxy. Rendered via friendlyDate.
   statusChangedAt: string
@@ -47,7 +47,7 @@ type Props = {
 export function ClubGameRow({
   manifest,
   title,
-  statusLabel,
+  summary,
   statusChangedAt,
   state,
   soloClub,
@@ -62,7 +62,7 @@ export function ClubGameRow({
       <GameEntry
         manifest={manifest}
         title={title}
-        meta={statusLabel}
+        meta={summary}
         date={dateLabel}
         soloClub={soloClub}
         state={state}

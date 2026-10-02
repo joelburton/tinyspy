@@ -471,7 +471,7 @@ grant select on waffle.players_state to authenticated;
 --   clubpage_info  { swaps_used, max_swaps, band,
 --                    winner_user_id, winner_swaps_count }
 --                  — `swaps_used` is coop's shared count and null in
---                  compete, whose club line shows no progress; the winner
+--                  compete, whose summary shows no progress; the winner
 --                  and their count are compete's, null until the end;
 --                  `band` is the dictionary band the words come from
 --                  (`setup.difficulty`), which the line names

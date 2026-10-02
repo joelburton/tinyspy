@@ -33,7 +33,7 @@ games shares, which `common/` may not import either
 The shell iterates a registry. Each game declares a **manifest**
 ([`common/manifest`](../src/common/manifest/doc.md)) — its identity, how it
 presents, how many players it takes, its setup form, the RPCs the shell calls
-for it, and `labelFor`, the club-list status line — and everything the shell
+for it, and `summaryFor`, the summary — and everything the shell
 does for a game it does by reading that. Each game ships as its own lazily
 loaded chunk, so a player downloads only the games they open.
 
@@ -86,7 +86,7 @@ Each step is one or two sentences here; the folder named has the rest.
   [playarea.md](playarea.md) for the play surface's shape).
 - **Playing.** Every move is an RPC the server judges
   ([envelopes.md](envelopes.md) for how it answers), which writes the game's
-  own rows and its event log, and updates the shared row's status line.
+  own rows and its event log, and updates the shared row's summary.
   Realtime brings the change to everyone
   ([`common/realtime`](../src/common/realtime/doc.md),
   [supabase.md](supabase.md)). The clock ticks while someone is playing; the

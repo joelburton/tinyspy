@@ -161,7 +161,7 @@ present:
 | `clubpage_info` | `found_categories_count`, `mistake_count`, `winner_user_id` |
 
 In coop a player's `mistake_count` is the team's, the same on every row, and
-the club line's counts are the team's (the matches summed). Compete's club
+the summary's counts are the team's (the matches summed). Compete's club
 line carries no progress, so its two counts are null, and `winner_user_id`
 names the finder once the race is won.
 
@@ -447,7 +447,7 @@ fixture puzzle whose date and source id are alien to the real archive:
 | `concede_test` | a conceder counts as out; the last one out ends the race, everyone conceding as `conceded`; the builder runs after an ending concession |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, a fresh guess advances, a race does not |
 | `stop_game_test` · `replay_test` · `rls_test` | the neutral Stop, the stopper recorded as who ended it; Restart un-matches by deleting the log; an outsider sees nothing and can change nothing |
-| `statuses_test` | the exact key set of every status at the start, mid-game and at the end in both modes; the team's numbers on the club line; a rebuild drops a stale key and leaves `status_changed_at` alone |
+| `statuses_test` | the exact key set of every status at the start, mid-game and at the end in both modes; the team's numbers on the summary; a rebuild drops a stale key and leaves `status_changed_at` alone |
 | `next_puzzle_test` | the queue is per player and across clubs; a spent archive and an empty date are not-oks naming `puzzle_id`; the override filters nothing |
 
 Vitest, beside the code:

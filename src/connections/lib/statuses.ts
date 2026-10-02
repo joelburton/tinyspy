@@ -6,7 +6,7 @@ import type { PlayerEndedReason } from '@/common/terminal/gameEnding'
  * connections' three copies, as `connections._write_statuses` writes them
  * (supabase/sql/connections.sql). Every key is always present, null when it
  * has no value, so no key here is optional. `useGame` copies the first two
- * into `gd`; the club line reads the third.
+ * into `gd`; the summary reads the third.
  */
 
 /** `common.games.game_status`: the table-facts, fixed at create. */
@@ -28,7 +28,7 @@ export type ConnectionsPlayerStatus = {
 
 /**
  * `common.games.clubpage_info`. The two counts are coop's team numbers and
- * null in compete, whose club line shows no progress; the winner is compete's,
+ * null in compete, whose summary shows no progress; the winner is compete's,
  * null until the end and always null in coop.
  */
 export type ConnectionsClubpageInfo = {

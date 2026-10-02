@@ -681,7 +681,7 @@ export type Database = {
       games: {
         Row: {
           club_handle: string
-          clubpage: Json | null
+          summary_data: Json | null
           clubpage_info: Json
           created_by: string | null
           current_turn_user_id: string | null
@@ -695,10 +695,10 @@ export type Database = {
           id: string
           is_current_view: boolean
           mode: string
-          playarea: Json | null
+          game_data: Json | null
           restart_count: number
           setup: Json
-          shell: Json | null
+          shell_data: Json | null
           started_at: string
           status_changed_at: string
           title: string
@@ -706,7 +706,7 @@ export type Database = {
         }
         Insert: {
           club_handle: string
-          clubpage?: Json | null
+          summary_data?: Json | null
           clubpage_info?: Json
           created_by?: string | null
           current_turn_user_id?: string | null
@@ -720,10 +720,10 @@ export type Database = {
           id?: string
           is_current_view?: boolean
           mode: string
-          playarea?: Json | null
+          game_data?: Json | null
           restart_count?: number
           setup: Json
-          shell?: Json | null
+          shell_data?: Json | null
           started_at?: string
           status_changed_at?: string
           title: string
@@ -731,7 +731,7 @@ export type Database = {
         }
         Update: {
           club_handle?: string
-          clubpage?: Json | null
+          summary_data?: Json | null
           clubpage_info?: Json
           created_by?: string | null
           current_turn_user_id?: string | null
@@ -745,10 +745,10 @@ export type Database = {
           id?: string
           is_current_view?: boolean
           mode?: string
-          playarea?: Json | null
+          game_data?: Json | null
           restart_count?: number
           setup?: Json
-          shell?: Json | null
+          shell_data?: Json | null
           started_at?: string
           status_changed_at?: string
           title?: string

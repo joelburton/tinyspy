@@ -30,14 +30,14 @@ const { mockReadRows, mockReportUnknown, realtime, REGISTRY, SYRUP } = vi.hoiste
     gametype,
     name,
     mode: 'coop' as const,
-    labelFor: (row: { gameEnding: { outcome: string } | null }) => `label:${row.gameEnding?.outcome ?? 'playing'}`,
+    summaryFor: (row: { gameEnding: { outcome: string } | null }) => `label:${row.gameEnding?.outcome ?? 'playing'}`,
   })
   const WORDLE = manifest('wordle_coop', 'WordNerd')
   const SYRUP = manifest('syrup_coop', 'SyrupSwap')
   // A label that names who ended the game, the way a real one names a winner.
   const NAMER = {
     ...manifest('namer_coop', 'Namer'),
-    labelFor: (
+    summaryFor: (
       row: { gameEnding: { endedByUserId: string | null } | null },
       members: readonly { id: string; username: string }[],
     ) => `ended by ${members.find((m) => m.id === row.gameEnding?.endedByUserId)?.username ?? 'nobody'}`,
@@ -179,7 +179,7 @@ describe('useClubGames — what an answer becomes', () => {
     await waitFor(() => expect(result.current.games).toHaveLength(1))
     expect(result.current.games[0]!.manifest).toBe(SYRUP)
     // The label is the manifest's, computed once here rather than at render.
-    expect(result.current.games[0]!.statusLabel).toBe('label:won')
+    expect(result.current.games[0]!.summary).toBe('label:won')
   })
 
   it('hands each label the club members, to name a user id with', async () => {
@@ -191,7 +191,7 @@ describe('useClubGames — what an answer becomes', () => {
       })]),
     )
     await waitFor(() => expect(result.current.games).toHaveLength(1))
-    expect(result.current.games[0]!.statusLabel).toBe('ended by moth')
+    expect(result.current.games[0]!.summary).toBe('ended by moth')
   })
 
   it('picks the current game out by is_current_view', async () => {

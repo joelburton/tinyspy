@@ -3,7 +3,7 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, dictLabel, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, dictLabel, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { DEFAULT_WAFFLE_SETUP, type WaffleSetup } from './lib/setup'
@@ -66,14 +66,14 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
  *  The coop/compete mode is shown by the card's <ModeBadge>, so it's no
  *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
 /**
- * waffle's club-page status line. The DICT band rides on every row: a waffle at
+ * waffle's summary. The DICT band rides on every row: a waffle at
  * "Universal" and one at "Expert" are barely the same game, so the band is the
  * single most useful thing about a game you're deciding whether to return to.
  *
  * Coop shows the swap budget; compete doesn't — each racer has their own board
  * and their own count, and this line is club-wide readable.
  */
-function labelFor(mode: 'coop' | 'compete') {
+function summaryFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
     const s = (row.status ?? {}) as {
       winner_username?: string; reason?: string
@@ -153,7 +153,7 @@ export const waffleCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  labelFor: labelFor('coop'),
+  summaryFor: summaryFor('coop'),
 
   submitTimeout,
   stopGame,
@@ -187,7 +187,7 @@ export const waffleCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  labelFor: labelFor('compete'),
+  summaryFor: summaryFor('compete'),
 
   submitTimeout,
   stopGame,

@@ -31,7 +31,7 @@ the tile it draws). Each pass:
 
 ## `gd` — what `useGame` returns
 
-- **One object, `gd`: the playarea blob, read.** The game's builder writes the
+- **One object, `gd`: the `game_data` blob, read.** The game's builder writes the
   blob in the page's names (plans/seat-view.md → The page is written, not
   assembled); `makeGameData` turns its links into players, builds the setup
   rows, and applies the seat rule. Nothing is read from a table; a fact goes

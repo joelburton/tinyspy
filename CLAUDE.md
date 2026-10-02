@@ -110,7 +110,7 @@ rules this implies.
 | [docs/outcomes.md](docs/outcomes.md) | The outcome vocabulary: won · lost · near · warning · neutral · noted |
 | [docs/states.md](docs/states.md) | View state and play state; suspend, current, pause |
 | [docs/win-lose.md](docs/win-lose.md) | The ideas every game's winning and losing is built from |
-| [docs/game-status-labels.md](docs/game-status-labels.md) | A game's title and club-page status line |
+| [docs/game-summary.md](docs/game-summary.md) | A game's title and summary |
 | [docs/playarea.md](docs/playarea.md) | The play surface: the two columns, board sizing, the shape of `PlayArea.tsx` |
 | [docs/tokens.md](docs/tokens.md) | How CSS values are named and picked: themes, colors, the vocabularies |
 | [docs/buttons.html](docs/buttons.html) | The button tone grid, rendered (open off disk) |

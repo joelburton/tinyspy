@@ -118,7 +118,7 @@ names, and a game's builder only adds what its own tables know.
 - **The common part of every `gd`** is the game facts every game shares —
   `brand`, `mode`, `coop`, `compete`, `oneBoard`, `title`, `setup`, `turns`,
   `ending`, `outcome` — and the player with the standing terms. One common SQL
-  helper writes it (`common._make_json_playarea`), each game's builder adds
+  helper writes it (`common._make_json_game_data`), each game's builder adds
   its own fields on top, and that is what keeps the shared fields from
   drifting between games. `brand` and `oneBoard` come off
   `common.gametypes`, so a game needs its manifest for nothing and `manifest`
@@ -224,15 +224,16 @@ read by SQL only, except the two the subscriptions filter on, `id` and
 **Three jsonb columns, one per reader**, each complete for its reader, so no
 page merges two sources:
 
-- **`clubpage`** — what the club page's list shows: today's `clubpage_info`,
-  whole.
-- **`shell`** — what `GamePage` shows: **the same shape for every game**,
+- **`summary_data`** — the game summed up in a line: what a list of games shows
+  for it. The club page's list is its one reader today; a page of my games
+  across clubs would read the same column. Today's `clubpage_info`, whole.
+- **`shell_data`** — what `GamePage` shows: **the same shape for every game**,
   written by one common function. From the shell's reads today: `id`,
   `gametype`, `club: {handle}` (a group, so a count or a description has a
   home later), `title`, `restart_count`, `ended`, the roster (`id`,
   `username`, `color`, `ai`, `stillPlaying`), and `setup` if the shell ever
   wants it. `cg` is this blob read through one static type, plus `me`.
-- **`playarea`** — what the play surface shows, in decision 7's shape: the
+- **`game_data`** — what the play surface shows, in decision 7's shape: the
   game's own, written by the game's builder on top of the common player
   fields, which a common helper writes so they cannot drift between games.
   `gd` is this blob plus `me` and the id-to-player links (`turns.holder`,
@@ -245,15 +246,15 @@ stored on its own never leaves you wondering which game it was. `setup` goes
 into whichever blobs want it; it is frozen at create, so the copy is never
 stale.
 
-**Two pass-through views, no logic.** `club_games_view` returns `clubpage`;
-`game_view` returns `shell` and `playarea`. The table grants the client its
+**Two pass-through views, no logic.** `club_games_view` returns `summary_data`;
+`game_view` returns `shell_data` and `game_data`. The table grants the client its
 filter columns and the signal, so a Postgres Changes message is a nudge and
 each page answers it by re-reading its view. A view shapes nothing per caller:
 that was tried on paper and became a second builder in a worse language.
 
 **Reads collapse.** The club page reads one view. `useCommonGame` reads
 `game_view` and `common.timers` (the tick must not re-send the game row), joins
-the room, and hands the playarea blob down beside `cg`, opaque to common. A
+the room, and hands `game_data` down beside `cg`, opaque to common. A
 game's `useGame` makes no read at all; it is a pure function of the blob and
 `auth.user.id`. The gate reads the seat off the shell's roster. Only a game
 with writes outside the builder (crosswords' cells) keeps a read of its own.
@@ -268,7 +269,7 @@ today moves to the hook on purpose**: before a game converts, its policies and
 views that mention `auth.uid()` or `ended_at` are listed in its area file, and
 each one is taken over or dropped by name.
 
-**The shape rule across games.** The playarea blob cannot be identical between
+**The shape rule across games.** `game_data` cannot be identical between
 gametypes, but it is as alike as the games allow: the same concept wears the
 same name everywhere (`winners`, never a game's "champions"; `mistakes`, never
 "budgeted errors"), per docs/win-lose.md's vocabulary. psychicnum's sketch is
@@ -278,7 +279,7 @@ the first instance; the next game's blob starts from it.
 
 - `is_current_view` is written outside the builder (`set_current_view`), so it
   stays a readable real column for the club page, or that RPC rewrites the
-  clubpage blob. The first is simpler and honest: it is a pointer, not a page
+  `summary_data`. The first is simpler and honest: it is a pointer, not a page
   fact.
 - Whether a subscription's filter column must be granted for the subscription
   to deliver: one test on the local stack before the first view.
@@ -321,46 +322,46 @@ the first instance; the next game's blob starts from it.
 - **The builders, per decision 8, psychicnum first — boldly.** Every
   unconverted game is broken until its turn anyway, so the slice goes
   straight through and each game's tests catch it up. In order:
-  1. **Migration (shape).** `clubpage`, `shell` and `playarea` on
+  1. **Migration (shape).** `summary_data`, `shell_data` and `game_data` on
      `common.games`, nullable so an unconverted game's row is empty rather
      than failing; `game_status` and `player_status` stay until a later
      migration retires them (Joel's call). `brand` and `oneBoard` on
      `common.gametypes`, seeded for every gametype in the same file; the
      manifest keeps its copy, kept in sync by hand for now, and what to evict
      from it is decided later.
-  2. **`common._write_shell(game_id)`** and **`common._make_json_playarea`**,
-     the common part of every playarea (`seat` from `turn_seat`, the players
+  2. **`common._make_json_shell_data`** and **`common._make_json_game_data`**,
+     the common part of every game_data (`seat` from `turn_seat`, the players
      in seat order, the standing terms per seat — `computePlayerStanding`
      moves here), the first called from `_create_game` and both from each
-     game's `_write_statuses`. Written as named pieces a reader can follow —
+     game's `_rebuild_data_cols`. Written as named pieces a reader can follow —
      plpgsql has no block scoping to lean on — each pinned in pgTAP, so
      `select shell from common.games` shows the page what it gets. (Done
      2026-10-02.)
-  3. **`useCommonGame` on the shell** (done 2026-10-02). It reads `shell` and
-     `playarea` off `common.games` and nothing else from that table;
+  3. **`useCommonGame` on shell_data** (done 2026-10-02). It reads `shell_data` and
+     `game_data` off `common.games` and nothing else from that table;
      subscribes to the row alone; reads and ticks the timer exactly as before
-     (`common.timers` is untouched); returns `cg` (the shell blob plus `me`),
-     `playarea` (opaque, beside `cg` rather than inside it, since the shell is
+     (`common.timers` is untouched); returns `cg` (`shell_data` plus `me`),
+     `gameData` (opaque, beside `cg` rather than inside it, since the shell is
      what the page reads and nothing more), and pause, timer and `sendSuspend`
-     beside them. The gate reads the seat off the shell in one read. A null
-     shell is a named failure (PN511), not a missing game. `manifest` leaves
+     beside them. The gate reads the seat off shell_data in one read. A null
+     shell_data is a named failure (PN511), not a missing game. `manifest` leaves
      `PlayAreaLoaderProps`. The turn bell moved into `useTurnStartFlash`, so
      the page reads nothing about the turn. The two pass-through views wait
      until the change message's size matters; reading the columns directly
      changes nothing above them. psychicnum's page mounts on this and fails at
      its hook, which is the signal to go on.
-  4. **psychicnum's playarea** (done 2026-10-02). Its `_write_statuses` writes
-     `playarea` and `clubpage` on top of `common._make_json_playarea`, in named
+  4. **psychicnum's game_data** (done 2026-10-02). Its `_rebuild_data_cols` writes
+     `game_data` and `summary_data` on top of `common._make_json_game_data`, in named
      pieces (`_make_json_puzzle`, `_make_json_events`, `_make_json_board`,
-     `_make_json_players`, `_make_json_clubpage`), each pinned in pgTAP
-     (`tests/psychicnum/playarea_test.sql`), and calls `common._write_shell`;
-     `psychicnum._rebuild_pages()` beside it. Its `useGame` is a pure function
+     `_make_json_players`, `_make_json_summary_data`), each pinned in pgTAP
+     (`tests/psychicnum/game_data_test.sql`), and writes `common._make_json_shell_data`;
+     `psychicnum._rebuild_data_cols_for_all()` beside it. Its `useGame` is a pure function
      of the blob and `auth.user.id`: the links become players, and the seat
      rule withholds a rival's rows and board mid-race. Its reads,
      `useRefetchOnGameUpdate`, the `games_state` view, `_secrets_for` and the
      mode arm of `events_select` went (the inventory is
      plans/areas/psychicnum.md → The convenience RLS). The statuses are still
-     written beside the blobs until the club page reads `clubpage`. The log's
+     written beside the blobs until the club page reads `summary_data`. The log's
      rows are camelCase in the blob (`userId`, `correct`, `at`), as every
      other key is.
   docs/win-lose.md's formulas and code-conventions' naming section carry the

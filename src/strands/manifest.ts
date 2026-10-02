@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, verdict, statusLine } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import {
   DEFAULT_STRANDS_SETUP_COMPETE,
@@ -70,7 +70,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
 type StatusBlob = Record<string, unknown>
 
 /**
- * The club-page status line.
+ * The summary.
  *
  * The usual privacy rule here is about PEERS — "only say what every player
  * already sees" — and coop shares everything, so it doesn't bite. strands has a
@@ -143,7 +143,7 @@ export const strandsCoopGame: GameManifest = {
 
   startGameInClub: startGameInClub('coop'),
 
-  labelFor: coopLabel,
+  summaryFor: coopLabel,
 
   submitTimeout,
   stopGame,
@@ -179,7 +179,7 @@ export const strandsCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClub('compete'),
 
-  labelFor: competeLabel,
+  summaryFor: competeLabel,
 
   submitTimeout,
   stopGame,

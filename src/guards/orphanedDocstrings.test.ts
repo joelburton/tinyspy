@@ -65,19 +65,19 @@ const KNOWN: string[] = [
   'src/letterboxed/components/PlayArea.tsx › WordAnswer',
   // → scrabble
   'src/scrabble/components/BoardCol.tsx › PlayAnswer',
-  'src/scrabble/manifest.ts › labelFor',
+  'src/scrabble/manifest.ts › summaryFor',
   // → src/guards
   'src/guards/callSiteShape.test.ts › it',
   'src/guards/cssTokens.test.ts › describe',
   'src/guards/dbCallShape.test.ts › BUILDER',
   // → stackdown
   'src/stackdown/components/PlayArea.tsx › SOLUTION_WORDS',
-  'src/stackdown/manifest.ts › labelFor',
+  'src/stackdown/manifest.ts › summaryFor',
   // → strands
   'src/strands/components/PlayArea.tsx › HintAnswer',
   'src/strands/pdf/model.ts › FoundEvent',
   // → waffle
-  'src/waffle/manifest.ts › labelFor',
+  'src/waffle/manifest.ts › summaryFor',
   // → wordiply
   'src/wordiply/components/PlayArea.tsx › GuessResult',
 ]

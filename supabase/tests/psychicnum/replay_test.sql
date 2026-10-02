@@ -120,9 +120,11 @@ reset role;
 select is((select ended_at from common.games where id = (select id from g2)),
   null, 'compete: replay → being played again');
 select is(
-  (select count(*) from common.game_players
-    where game_id = (select id from g2) and player_ended_at is null
-      and (player_status->>'guesses_used')::int = 0),
+  (select count(*) from common.game_players gp
+    join jsonb_array_elements((select game_data -> 'players' from common.games where id = (select id from g2))) p
+      on p ->> 'id' = gp.user_id::text
+    where gp.game_id = (select id from g2) and gp.player_ended_at is null
+      and (p ->> 'guessesUsed')::int = 0),
   2::bigint, 'compete: replay → both players back in, no guesses used');
 
 -- ── Turn-order coop rewinds to the first-seated player ──────

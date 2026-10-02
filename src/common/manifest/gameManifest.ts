@@ -14,7 +14,7 @@ import type { Member } from '../members/member'
  *
  * `GameManifest` is the whole subject; everything else here exists because one
  * of its members needs a type. `CommonGameListRow` is the narrow row slice
- * `labelFor` may read; `CreatedGame` and `GameStopResult` are what its three
+ * `summaryFor` may read; `CreatedGame` and `GameStopResult` are what its three
  * RPC members answer with; the `playerCount*` helpers format `numberOfPlayers`
  * for the club page. `TimerMode` is the one exception to "a member needs it":
  * it is the shape of a game's `setup.timer`, kept here because every setup
@@ -217,20 +217,20 @@ export type GameManifest = {
 
   // Render a one-line label for a single `common.games` row,
   // for the ClubPage games list. **Pure and synchronous** — no
-  // I/O, no follow-up queries — everything labelFor needs comes
+  // I/O, no follow-up queries — everything summaryFor needs comes
   // off the row, plus the club's members to name a user id with.
   //
   // That contract is what keeps the listing one-query: ClubPage
   // fetches `common.games` for the club, then dispatches each
-  // row to the matching manifest's labelFor. The game's status
-  // builder writes whatever the gametype's labelFor needs into
+  // row to the matching manifest's summaryFor. The game's status
+  // builder writes whatever the gametype's summaryFor needs into
   // `common.games.clubpage_info`; see docs/common-schema.md → Title,
   // statuses and the two dates.
   //
   // `members` is the club's roster, which the club page already has; an id
   // on the row (`clubpage_info.winner_user_id`, `gameEnding.endedByUserId`) is
   // named with `memberById(members, id)`.
-  labelFor: (row: CommonGameListRow, members: readonly Member[]) => string
+  summaryFor: (row: CommonGameListRow, members: readonly Member[]) => string
 
   // Fire this gametype's timeout RPC. Called by GamePage when
   // `useGameTimer.expired` flips true in countdown mode.
@@ -271,12 +271,12 @@ export type GameManifest = {
 }
 
 /**
- * The slice of a `common.games` row that a gametype's `labelFor` may read —
+ * The slice of a `common.games` row that a gametype's `summaryFor` may read —
  * the inputs to one game's line in the club list.
  *
  * Stays narrow on purpose, and the narrowness IS the contract: everything a
  * label needs must already be on `common.games`, so ClubPage fetches the club's
- * games once and hands each row to the matching `labelFor` with no follow-up
+ * games once and hands each row to the matching `summaryFor` with no follow-up
  * query and nothing to await.
  */
 export type CommonGameListRow = {
@@ -285,7 +285,7 @@ export type CommonGameListRow = {
   // How the game ended, or null while it is played. Most labels switch on it:
   // a live line, or the verdict and the reason.
   gameEnding: GameEnding | null
-  // `common.games.clubpage_info` — the numbers the club line shows beyond the
+  // `common.games.clubpage_info` — the numbers the summary shows beyond the
   // row's columns, a copy the game's status builder writes whole at create,
   // Restart and every move (docs/common-schema.md → Title, statuses and the two
   // dates). Per-gametype shape with every key always present, so a label casts

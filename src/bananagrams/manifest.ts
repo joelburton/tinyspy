@@ -5,7 +5,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import {
   bunchSizeError,
   DEFAULT_BANANAGRAMS_SETUP,
@@ -91,7 +91,7 @@ export const bananagramsGame: GameManifest = {
   // a dedicated RPC. play_state 'lost' covers the two no-winner
   // terminals — a countdown timeout and an all-conceded race — told
   // apart by status.reason.
-  labelFor: (row) => {
+  summaryFor: (row) => {
     const s = (row.status ?? {}) as { winner_username?: string; reason?: string; bunch_remaining?: number }
     switch (row.play_state) {
       case 'playing':

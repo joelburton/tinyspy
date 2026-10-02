@@ -179,10 +179,10 @@ function useCanOpenGame(gameId: string, myId: string): CanOpenAnswer {
     let mounted = true
 
     async function readAndAnswer() {
-      // The seat is read off the shell's roster, which the game's builder
+      // The seat is read off shell_data's roster, which the game's builder
       // writes (supabase/sql/common.sql → The page blobs' common parts).
       const gameRes = await readRows(
-        commonDb.from('games').select('id, club_handle, shell').eq('id', gameId),
+        commonDb.from('games').select('id, club_handle, shell_data').eq('id', gameId),
       )
       if (!mounted) return
       setAnswer({ id: gameId, canOpen: answerFrom(gameId, myId, gameRes) })
@@ -200,18 +200,18 @@ function useCanOpenGame(gameId: string, myId: string): CanOpenAnswer {
 /** The answer the read adds up to. Five-way on purpose: collapsing a FAILED
  *  read into "no such game" would tell a player their game is gone because the
  *  network blinked — the confident wrong answer this whole area exists to stop.
- *  A game with no shell yet is a failure too, named as such, rather than a
- *  seat nobody holds. */
+ *  A game with no shell_data yet is a failure too, named as such, rather than
+ *  a seat nobody holds. */
 function answerFrom(
   gameId: string,
   myId: string,
-  gameRes: Envelope<{ id: string; club_handle: string; shell: unknown }[]>,
+  gameRes: Envelope<{ id: string; club_handle: string; shell_data: unknown }[]>,
 ): CanOpenAnswer {
   if (gameRes.type === 'not-ok') return { kind: 'failed', failure: gameRes }
   const game = gameRes.data[0]
   if (!game) return { kind: 'no-such-game' }
-  if (game.shell === null) return { kind: 'failed', failure: noShellEnvelope(gameId) }
-  const seated = (game.shell as Shell).players.some((p) => p.id === myId)
+  if (game.shell_data === null) return { kind: 'failed', failure: noShellEnvelope(gameId) }
+  const seated = (game.shell_data as Shell).players.some((p) => p.id === myId)
   if (!seated) return { kind: 'not-seated', clubHandle: game.club_handle }
   return { kind: 'seated' }
 }

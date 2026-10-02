@@ -65,7 +65,7 @@ export function NewGameCol({
             gameId={currentGame.gameId}
             manifest={currentGame.manifest}
             title={currentGame.title}
-            statusLabel={currentGame.statusLabel}
+            summary={currentGame.summary}
             statusChangedAt={currentGame.statusChangedAt}
             soloClub={soloClub}
             onDelete={() => onDelete(currentGame)}

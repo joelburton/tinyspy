@@ -93,7 +93,7 @@ spent, which also sets `codenamesduet.games.turns_remaining = 0`.
 
 `src/common/club/useClubGames.ts` reads only `common.games`, up to 200 rows:
 `id, gametype, title, play_state, is_terminal, status, setup, last_active_at,
-is_current_view`. Each manifest's `labelFor` gets `play_state`,
+is_current_view`. Each manifest's `summaryFor` gets `play_state`,
 `is_terminal`, `status` and `setup`. Every game reads `play_state`; none
 reads `is_terminal`; six read `setup`: boggle (`win_percent`), psychicnum
 (`max_guesses`), setgame (`deck`), stackdown (`band`), waffle
@@ -402,9 +402,9 @@ bananagrams (`peel_count`, `word_check`, `dict_2`, `dict_3plus`,
   writes only `common.games`. Every game but codenamesduet, which pokes
   `turn_number`.
 
-## What each club line reads (2026-09-27)
+## What each summary reads (2026-09-27)
 
-Each manifest's `labelFor` gets `{id, gametype, play_state, is_terminal,
+Each manifest's `summaryFor` gets `{id, gametype, play_state, is_terminal,
 status, setup}`; every one reads `play_state`, and none reads `is_terminal`.
 The shared club code reads `title`, `last_active_at`, `is_current_view` and
 `is_terminal` (the row's corner flag), and `gametype` for the manifest.

@@ -297,7 +297,7 @@ grant select on setgame.games_state to authenticated;
 --                  — the table's sets found (the sum of every player's),
 --                  what is left in the deck and which deck it is; compete's
 --                  winners once there are any, one or more (a tie is an
---                  ordinary result here, and the club line names each), and
+--                  ordinary result here, and the summary names each), and
 --                  the count they share
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,

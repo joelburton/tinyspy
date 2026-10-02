@@ -607,7 +607,7 @@ before trusting a green run. The full set:
 | `noRawServerMessage` | every call site in `src/` — no server `error.message` into a UI sink |
 | `logos` | every `src/<game>/logo.svg` parses as standalone XML |
 | `setupRows` | every game's `lib/setupRows.ts` (via `import.meta.glob`) |
-| `gameStatusLabels` | every manifest's `labelFor` over its reachable states: an unknown state never reads as live, no reason doubles as a play state; `npm run report:labels` prints every line ([game-status-labels.md](game-status-labels.md)) |
+| `gameSummaries` | every manifest's `summaryFor` over its reachable states: an unknown state never reads as live, no reason doubles as a play state; `npm run report:summaries` prints every line ([game-summary.md](game-summary.md)) |
 | `deployLists` | `supabase/config.toml`, `supabase/deploy/env.sh`, `Makefile` vs the registry |
 | `edgeFnErrorKeys` | every `json({ error: … })` in `supabase/functions/` carries an error key (none remain: functions answer envelopes) |
 | `edgeFunctionImports` | every module an edge function reaches resolves under Deno — no `@/` alias, no extensionless import |
@@ -617,7 +617,7 @@ before trusting a green run. The full set:
 | `callSiteShape` | every call site asks `=== 'not-ok'`, never the negated form |
 | `gameDeletedFirst` | a deleted game is checked BEFORE membership, at every player-callable site |
 | `concedeLock` | a game's concede locks its own row before recording the concession (`common._concede`) |
-| `endingTouchesGame` | every RPC that can end a game wakes the board: it runs the game's `_write_statuses`, or (a game step 4 has not rewritten) writes one of its own rows |
+| `endingTouchesGame` | every RPC that can end a game wakes the board: it runs the game's `_rebuild_data_cols` (or `_write_statuses`, before the page blobs), or (a game step 4 has not rewritten) writes one of its own rows |
 | `underscoreMeansInternal` | every function in `supabase/sql/` without a leading `_` is granted to a caller outside SQL |
 | `endLock` | every `stop_game` and `submit_timeout` locks its own games row before ending the game |
 | `schemaExposure.e2e` | the running PostgREST stack, per registered schema |

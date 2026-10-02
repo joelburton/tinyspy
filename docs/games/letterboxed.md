@@ -201,7 +201,7 @@ each status whole with every key present:
 | `clubpage_info` | `words_used`, `letters_covered_count`, `max_words`, `best_letters_covered_count`, `winner_user_id`, `winner_words_count` |
 
 A player's status is their own chain's two public numbers (the shared chain,
-in coop). The club line's chain numbers are coop's and null in compete, where
+in coop). The summary's chain numbers are coop's and null in compete, where
 it shows the best coverage so far instead; a sole winner and the length of
 their chain are compete's, once there is one.
 

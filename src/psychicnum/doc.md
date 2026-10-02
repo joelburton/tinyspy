@@ -16,7 +16,7 @@ turn, or end the game. It is told all of it.
 **And it is told twice, on two channels that arrive at different moments.** The
 `submit_guess` reply carries the caller's own result, and the below-board pill
 reads it immediately. The board's permanent green or red does not come from
-that reply at all: it comes from the playarea blob the move's builder writes
+that reply at all: it comes from `game_data` the move's builder writes
 onto `common.games`, which every client reads again when the page's
 subscription hears the row change — what every player sees and what a reload
 rebuilds from. Everything else a move sets off — the ending, a teammate's
@@ -119,32 +119,34 @@ it reads the page blobs the builder writes onto `common.games`.
 | `psychicnum.players` | one row per player: `guesses_used` (counting up against `max_guesses`) and `found_secrets_count` |
 | `psychicnum.events` | the turn log, append-only. `kind` is `guess`, `hint` or `spoiler`; `word` holds the guessed word, the clue, or the spoiled word depending on which |
 
-**The page blobs** are written by `psychicnum._write_statuses` at create, at
+**The page blobs** are written by `psychicnum._rebuild_data_cols` at create, at
 Restart and at the end of every move, each assigned whole
 ([plans/seat-view.md](../../plans/seat-view.md) → The page is written, not
-assembled): the shell through `common._write_shell`, and on top of the common
-part of every playarea (`common._make_json_playarea`) psychicnum's own:
+assembled): `shell_data` through `common._make_json_shell_data`, and on top of the common
+part of every `game_data` (`common._make_json_game_data`) psychicnum's own:
 
 | blob | psychicnum's part |
 |---|---|
-| `playarea` | `puzzle: {words, secrets}` (the secrets null until the game ends); `events`, every player's rows; on each player `requiredSecretsCount`, `maxGuesses`, `foundSecretsCount`, `guessesUsed` and `board: {tileResults, decidedBy}`, this seat's tiles |
-| `clubpage` | `foundSecretsCount`, `requiredSecretsCount`, `guessesUsed`, `maxGuesses`, `winner` |
+| `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `events`, every player's rows; on each player `requiredSecretsCount`, `maxGuesses`, `foundSecretsCount`, `guessesUsed` and `board: {tileResults, decidedBy}`, this seat's tiles |
+| `summary_data` | `foundSecretsCount`, `requiredSecretsCount`, `guessesUsed`, `maxGuesses`, `winner` |
 
 Every player's counts are their own on `psychicnum.players`; the blob carries
 the team's on every player in coop, and each racer's own in compete. Compete's
-club line carries no progress, so its two counts are null, and `winner` names
-the finder once the race is won. `psychicnum._rebuild_pages()` rewrites every
-psychicnum game's blobs without re-dating them, for a shape change.
+summary carries no progress, so its two counts are null, and `winner` names
+the finder once the race is won. `psychicnum._rebuild_data_cols_for_all()`
+rewrites every psychicnum game's blobs without re-dating them, for a shape
+change.
 
-The statuses (`game_status`, `player_status`, `clubpage_info`) are written
-beside the blobs, in the same keys as before, until the club page reads
-`clubpage`.
+`clubpage_info` is written beside the blobs, in the same keys as before, until
+the club page reads `summary_data`. `game_status` and `player_status` are not:
+nothing reads psychicnum's any more. The columns stay until a migration retires
+them for every game.
 
 ### Two things worth knowing before reading the SQL
 
 **The secrets are hidden by a column GRANT, not by a policy** — a client
 asking `psychicnum.games` for `secrets` gets SQLSTATE 42501 whatever any policy
-says, and the playarea blob carries them only once the game has ended
+says, and `game_data` carries them only once the game has ended
 (`_make_json_puzzle`). So the frontend never holds the answer key during play:
 not in a prop, not in a store, not there at all. `docs/code-conventions.md`
 points here as the repo's worked example.
@@ -330,7 +332,7 @@ answer does not.
 pause, chat — and unmounts this whole surface on pause.
 
 **`gd`, the game data.** `useGame` hands the surface one object, `gd`: the
-playarea blob the page was handed (`GGameDataRaw`), with its
+`game_data` blob the page was handed (`GGameDataRaw`), with its
 links turned into players (`turns.holder`, `ending.by`, `ending.winner`, each
 board's `decidedBy`), the setup rows built, and the seat rule applied — in
 compete, mid-race, a rival's rows leave the log and their `board` is null. It

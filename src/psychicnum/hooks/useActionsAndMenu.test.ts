@@ -11,7 +11,7 @@ import { renderHook } from '@testing-library/react'
 import { actionFixture } from '@/common/actions/action.fixture'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
-import { CONCEDED, makePlayarea } from '../lib/playarea.fixture'
+import { CONCEDED, makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useActionsAndMenu } from './useActionsAndMenu'
 import type { GGameData } from '../types'
@@ -25,7 +25,7 @@ const STOPPED = { reason: 'stopped' as const, detail: 'stopped', by: 'u1', winne
 /** A game in play, with the facts the actions read overridable. */
 function gdWith(over: { ended?: boolean; outOfTheRace?: boolean } = {}): GGameData {
   return makeGameData(
-    makePlayarea({
+    makeGameDataRaw({
       mode: over.outOfTheRace ? 'compete' : 'coop',
       players: over.outOfTheRace ? [{ ...ME, ...CONCEDED }, MOTH] : [ME],
       ending: over.ended ? STOPPED : null,

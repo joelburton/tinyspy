@@ -250,7 +250,7 @@ export const OUR_BUG_TO_CODE_AND_TEXT = {
     code: 'PN491',
     text: 'BUG: signed in with no profile row',
   },
-  // A game whose `common.games.shell` is null: its status builder has not
+  // A game whose `common.games.shell_data` is null: its status builder has not
   // written the page (plans/seat-view.md → The page is written, not
   // assembled). A game created before its builder learned the blobs and not
   // rebuilt since, or a gametype not yet converted. The page cannot be drawn

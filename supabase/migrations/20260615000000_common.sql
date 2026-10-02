@@ -311,7 +311,7 @@ create table common.gametypes (
 --
 -- This split powers the "list all games in a club" surface — one
 -- query against common.games is all ClubPage needs; each
--- manifest's `labelFor(row)` renders the per-row status label
+-- manifest's `summaryFor(row)` renders the per-row status label
 -- from this row's `status` jsonb. Per-gametype detail stays
 -- lazy-loaded (matches the FE's chunk-per-game pattern).
 --
@@ -353,7 +353,7 @@ create table common.gametypes (
 --     title (bananagrams' static id) needs nothing at all.
 --
 -- The rules every formula follows are in
--- docs/game-status-labels.md, next to the status line the title
+-- docs/game-summary.md, next to the status line the title
 -- is read with.
 
 -- `setup jsonb` is the frozen-at-create-time player choices for
@@ -397,7 +397,7 @@ create table common.gametypes (
 --                      terminal-sets.
 --     - status      — jsonb; gametype-specific data for the
 --                      club-page listing label (rendered by
---                      `manifest.labelFor`). Kept current on
+--                      `manifest.summaryFor`). Kept current on
 --                      every state-transition RPC via the
 --                      duplicate-write discipline: each gametype
 --                      RPC writes its foo.games row AND the

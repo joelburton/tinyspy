@@ -38,7 +38,7 @@ Every fact has one home. A copy is allowed only where this section names it.
   `common.games`' columns: a small subset of the statuses' numbers, since the
   club page reads nothing else.
   - It is a copy, written by the same builder, and never read by the game.
-  - It holds data, not text: each manifest's `labelFor` still words the club
+  - It holds data, not text: each manifest's `summaryFor` still words the club
     line.
   - A stale copy shows at once on the club page.
 - **`common.game_players`** holds the per-player facts every game has, as
@@ -70,7 +70,7 @@ Four were weighed (Joel, 2026-09-27):
   table with one shape. Split across sixteen tables, that code is copied per
   game or names its table at run time.
 - **The club page also reads `common.game_players`.** A second subscription
-  for every club page, and the club line worked out far from the RPC that
+  for every club page, and the summary worked out far from the RPC that
   changed it.
 - **This model**: a fact every game has is common, and the club page's needs
   are one labeled copy.
@@ -124,7 +124,7 @@ Agreed 2026-09-26:
   `max_guesses`, `base`, `max_word_length`, `required_secrets_count`) are
   typed columns on `<game>.games`. Live progress (`found_words_count`,
   `rank_idx`, `swaps_used`, `bag_count`, `deck_left`, `turn_number`) lives in
-  the game's own tables, with a copy in `clubpage_info` where the club line
+  the game's own tables, with a copy in `clubpage_info` where the summary
   shows it. The end-of-game summary (`top_score`, `winner_swaps`, `longest`,
   `turns_used`, …) is the same. Every gametype key in `result` (`score`,
   `sets_found`, `found`, `swaps`, `guesses`, `length_score`,
@@ -141,7 +141,7 @@ Decided 2026-09-27:
   own fact (wordle's `max_guesses` and `legal_band` today; codenamesduet's
   `turns`, psychicnum's `max_guesses`, the bee pair's `target_rank`,
   boggle's ladder and dice set, setgame's palette to come), on
-  `common.timers` for the shared one (below). The six club lines that read
+  `common.timers` for the shared one (below). The six summaries that read
   `setup` today get the value through `clubpage_info`. Restated 2026-09-27
   from the two bullets this replaces, which said the same for SQL alone.
 - **`common.timers` gains `kind` and `seconds`** (`seconds` null unless a
@@ -258,7 +258,7 @@ was the compete players' numbers and is now a subset of their
   The migration leaves `game_status`, `player_status` and `clubpage_info`
   `{}`; once `supabase/sql/` has landed, every game's builder runs over every
   game, building the old games from their own tables exactly as the new
-  ones (a migration cannot call a `supabase/sql/` function). The club lines
+  ones (a migration cannot call a `supabase/sql/` function). The summaries
   are empty only between the two, inside the maintenance window. Every
   `status` and `result` key is a copy of a game's own tables or worked out
   from them (common-tables-survey.md), except the three the migration
@@ -289,7 +289,7 @@ was the compete players' numbers and is now a subset of their
   rule "your own row, or anyone's once the game has ended"; a column grant
   can't do it (it is per role, not per row).
 - **The names are `game_status` and `player_status`.** When this lands,
-  docs/game-status-labels.md stops calling the club card's second line the
+  docs/game-summary.md stops calling the club card's second line the
   game's status.
 
 ### Step 3 (2026-09-28)
@@ -342,7 +342,7 @@ Joel, while writing common SQL.
 
 Joel, as psychicnum's front end converted first.
 
-- **`labelFor(row, members)`**: the club page hands each label the club's
+- **`summaryFor(row, members)`**: the club page hands each label the club's
   members, and a label names a user id (`clubpage_info.winner_user_id`,
   `gameEnding.endedByUserId`) with `memberById`.
 - **The game's ending is `gameEnding`** on the page's `CommonGame` (`cg`) and
@@ -411,7 +411,7 @@ now ordered by layer, and the stages below are its content, not its order:
    `concedeLock` and `endingTouchesGame` guards accept only the new shape;
    docs/states.md, docs/win-lose.md and the other reference docs that named
    the dropped columns. Left for step 5, because it describes front-end
-   code: docs/game-status-labels.md's guard.
+   code: docs/game-summary.md's guard.
 5. **The front end:** types, the common pieces (the reload off
    `common.games`), then each game — its status types, its info column and
    strip reading the statuses, and its hook dropping its own subscriptions.
@@ -493,13 +493,13 @@ it once the front end lands. Before it:
       "terminal". Also in this stage (found 2026-09-27): the thirteen
       child-table SELECT policies that join `common.games` for
       `is_terminal` read `ended_at is not null`; `strands.club_game_status`
-      (unread) is dropped; `src/guards/gameStatusLabels.test.ts`, which
+      (unread) is dropped; `src/guards/gameSummaries.test.ts`, which
       sweeps `status.reason` against the reachable `play_state`s, is
       rewritten for the reason pair and `game_ended_outcome`; docs/states.md's
       play-state half is rewritten (it describes `play_state`, `is_terminal`,
       `paused` and `status`).
    3. **`status` → the statuses and `clubpage_info`**, one game per commit.
-      The club line reads `clubpage_info`, the info column and the strip
+      The summary reads `clubpage_info`, the info column and the strip
       read `game_status` and `player_status` (`readLeaderboard.ts` goes), and
       the verdict reads the first two stages' columns. After stages 1 and 2, because
       the verdict needs their columns.
@@ -537,7 +537,7 @@ read them (`concede`, `terminal-reveal`, `realtime-deaf-window`,
 gallery's `verdict` / `index` / `types` / `run` and three game files); and
 the reference docs that describe the columns — docs/states.md,
 docs/common-schema.md (The game row, Ending a game, Concede, Not playing
-any more), docs/game-status-labels.md, docs/naming.md, docs/testing.md,
+any more), docs/game-summary.md, docs/naming.md, docs/testing.md,
 docs/cheatsheet.md, `src/common/pause-suspend/doc.md`, each game's doc where
 it lists its play states and status keys. Stage 3 is one game per commit,
 so its first commit adds `clubpage_info` and widens `CommonGameListRow` to

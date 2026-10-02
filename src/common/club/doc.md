@@ -124,8 +124,8 @@ is the one component here this page does not render — `HomePage` does.
   "Co-op" where the data says `coop` — `MODE_LABEL` in `gameManifest.ts` is the
   one place the two spellings differ. The club editor always shows the badge,
   solo club or not, because it lists both siblings and the badge is the only
-  thing telling two identically named rows apart. A game's status line never
-  repeats the mode (`labelFor`), since the badge beside it already says it.
+  thing telling two identically named rows apart. A game's summary never
+  repeats the mode (`summaryFor`), since the badge beside it already says it.
 - **`useClubRoster` lives here and this page does not use it.** The game page
   does, for chat: a game knows its players, but chat is club-wide, and a sender
   who is not in the game still needs a name. It sits in this folder because

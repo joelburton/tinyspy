@@ -48,7 +48,7 @@
   'turns'` in the coop games that offer it, and always for codenamesduet and
   scrabble compete — but records it only as a side effect, the players'
   `turn_seat`. `common._is_turn_based` works it out from that ("anyone has a
-  seat") for the playarea blob's `turns`, since the pointer can't say it:
+  seat") for `game_data`'s `turns`, since the pointer can't say it:
   codenamesduet nulls `current_turn_user_id` mid-game. A new migration adds
   `is_turn_based boolean not null default false` and backfills it from the
   seats. One writer keeps the column and the seats agreeing:

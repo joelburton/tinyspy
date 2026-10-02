@@ -170,7 +170,7 @@ key present:
 
 A player's status is their own finds, bonus included; a coop page sums them
 for the team, and the page's own rank ladder (`src/shared/rank-ladder`) turns a
-score into a rank. The club line's finds are coop's team totals and null in
+score into a rank. The summary's finds are coop's team totals and null in
 compete, where a live count would say how a racer is doing; a compete winner is
 written once there is one.
 

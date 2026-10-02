@@ -3,7 +3,7 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
@@ -29,7 +29,7 @@ import logoUrl from './logo.svg?url'
  * What differs between the two: the `gametype` string (the URL segment and
  * registry key), `mode`, `numberOfPlayers` (compete needs an opponent), the
  * setup defaults (compete seeds a target rank), the dialog's intro, and
- * `labelFor`'s vocabulary.
+ * `summaryFor`'s vocabulary.
  */
 
 // Help loader is shared — both modes link to the same rules modal.
@@ -114,7 +114,7 @@ export const spellingbeeCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  labelFor: (row) => {
+  summaryFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
     const pts = `${(s.found_words_score as number | undefined) ?? 0}/${(s.required_words_score as number | undefined) ?? 0} pts`
     const words = tally(
@@ -177,7 +177,7 @@ export const spellingbeeCompeteGame: GameManifest = {
 
   // Compete's label reads the status's target rank mid-game and its
   // winner_username at the end; no player's score reaches the listing row.
-  labelFor: (row) => {
+  summaryFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
     const rank = RANKS[(s.target_rank as number | undefined) ?? 0] ?? '?'
 

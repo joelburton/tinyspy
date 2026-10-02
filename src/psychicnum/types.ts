@@ -6,16 +6,16 @@
  * type is this game's and not the shell's (docs/code-conventions.md → A game's
  * types). A component's props stay with the component; a type one file uses
  * stays in that file; the printer's model stays in `pdf/`; the test fixtures'
- * facts stay in `lib/playarea.fixture.ts`.
+ * facts stay in `lib/gameData.fixture.ts`.
  *
- * Two shapes carry the game: `GGameDataRaw` is the playarea blob as the builder
+ * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder
  * wrote it (ids, records), and `GGameData` is what `useGame` makes of it for the
  * surface (players, maps, the seat rule applied). `GPlayer` / `GPlayerRaw` and
  * `GEvent` / `GEventRaw` are the same pair, one level down.
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { CommonPlayarea, CommonPlayareaPlayer } from '@/common/game-page/playarea'
+import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { TimerMode } from '@/common/manifest/gameManifest'
 import type { Actor } from '@/common/members/member'
 import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
@@ -23,16 +23,16 @@ import type { SetupOf } from '@/common/setup-form/setupForm'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 
 /**
- * psychicnum's playarea blob, as `psychicnum._write_statuses` writes it
+ * psychicnum's `game_data`, as `psychicnum._rebuild_data_cols` writes it
  * (supabase/sql/psychicnum.sql → The page blobs): the common part, with the
  * puzzle, the log and psychicnum's facts about each player on top. What the
- * page is handed in `PlayAreaLoaderProps.playarea`; `useGame` turns it into
+ * page is handed in `PlayAreaLoaderProps.gameData`; `useGame` turns it into
  * `gd`.
  *
  * It carries everything: every player's rows in the log, and every seat's
  * board. What a racer may see of a rival mid-race is `useGame`'s rule.
  */
-export type GGameDataRaw = Omit<CommonPlayarea, 'setup' | 'players'> & {
+export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: GSetup
   puzzle: {
     // The words shown as tiles; three of them are the secrets.
@@ -63,9 +63,9 @@ export type GEventRaw = {
   at: string
 }
 
-/** A player as psychicnum's playarea shows them: the common player, with the
+/** A player as psychicnum's game_data shows them: the common player, with the
  *  budget, the counts and this seat's board. */
-export type GPlayerRaw = CommonPlayareaPlayer & {
+export type GPlayerRaw = PlayerRaw & {
   // How many secrets the board hides. The same on every player.
   requiredSecretsCount: number
   // The guess budget: the team's in coop, each player's own in compete. The
@@ -83,7 +83,7 @@ export type GPlayerRaw = CommonPlayareaPlayer & {
 }
 
 /*
- * The shape of `gd` (`GGameData`): the playarea blob with its links turned into
+ * The shape of `gd` (`GGameData`): the game_data blob with its links turned into
  * players and the seat rule applied (plans/seat-view.md).
  *
  * gd:
@@ -132,7 +132,7 @@ export type GPlayerRaw = CommonPlayareaPlayer & {
 
 /**
  * **`gd`, the game data** — everything the play surface knows about THIS
- * game, in one object. It is the playarea blob the game's builder wrote
+ * game, in one object. It is the `game_data` blob the game's builder wrote
  * (`GGameDataRaw`), with its links turned into players, the setup rows
  * built, and the seat rule applied: what I may not see yet is not here.
  * Read-only: `useGame` builds it and nothing else writes it.
@@ -355,14 +355,14 @@ export type GAnswer =
   | { answerType: 'already_guessed' }
 
 /**
- * `common.games.clubpage_info`, as `psychicnum._write_statuses` writes it
+ * `common.games.clubpage_info`, as `psychicnum._rebuild_data_cols` writes it
  * (supabase/sql/psychicnum.sql). Every key is always present, null when it has
- * no value, so no key here is optional. The club line (`manifest.ts`'s
- * `labelFor`) reads it; the play surface reads the playarea blob instead
+ * no value, so no key here is optional. The summary (`manifest.ts`'s
+ * `summaryFor`) reads it; the play surface reads `game_data` instead
  * (`GGameDataRaw`).
  *
  * The found and used counts are the team's in coop and null in compete, whose
- * club line shows no progress; the winner is compete's, null until the end and
+ * summary shows no progress; the winner is compete's, null until the end and
  * always null in coop.
  */
 export type GClubpageInfo = {

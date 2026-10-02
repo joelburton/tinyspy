@@ -26,7 +26,7 @@ Joel, 2026-09-27 and -28. The numbers are what the tables below refer to.
    the card's hint is `hint-free`.
 6. **crosswords' `perfect-play` stays unrecorded** — checks are `hint-free`.
 7. **psychicnum's `required_secrets_count` gets no column** (rule 3): it is
-   the length of `secrets`; the club line gets it through `clubpage_info`.
+   the length of `secrets`; the summary gets it through `clubpage_info`.
 8. **scrabble drops `seat`** from `players` and `events`. Every player, bot
    or human, is a user id; the one turn-order number is
    `common.game_players.turn_seat`, set only in a game played in turns.
@@ -103,7 +103,7 @@ Joel, 2026-09-27 and -28. The numbers are what the tables below refer to.
 | `game_ended_outcome`       | text        | new     | `won`, `lost`, `near` or `neutral`; null exactly when `ended_at` is                                                                                                                                                                                                                                                                                                                                                                                  |
 | `game_ended_by_user_id`    | uuid        | new     | the player whose act ended the game: the Stop-presser, the last to concede, the last passer, the player whose move ended it (a solve, a fatal move, using up a resource, their own or a shared one), or — for a `timeout` in a game played in turns — whoever held the turn. Null only for a `timeout` nobody's turn covers (a game without turns; codenamesduet's sudden death with both players holding words), and while the game is being played |
 | `game_status`              | jsonb       | new     | what the game page shows about the whole board, as data (the front end words it): cards left in the deck, tiles in the bag, a coop number the game keeps on the game. A copy, written by the game's status builder (decision 21)                                                                                                                                                                                                                  |
-| `clubpage_info`            | jsonb       | new     | what the club page shows beyond these columns, as data (the manifest's `labelFor` words it); a copy, written by the same builder                                                                                                                                                                                                                                                                                                                    |
+| `clubpage_info`            | jsonb       | new     | what the club page shows beyond these columns, as data (the manifest's `summaryFor` words it); a copy, written by the same builder                                                                                                                                                                                                                                                                                                                    |
 | `current_turn_user_id`     | uuid        | kept    | whose turn it is, in a game played in turns; null otherwise                                                                                                                                                                                                                                                                                                                                                                                          |
 | `status_changed_at`        | timestamptz | changed | when the game's status last changed: written only by the game's status builder, when its caller passes `p_update_status_changed_at` true (create, Restart, every move); the club list sorts and dates by it (renamed from `last_active_at`, which a trigger bumped on every update of the row; common-tables → Decided → Step 3) |
 | `updated_at`               | timestamptz | new     | when the row was last written, by anything: stamped by a trigger, never written directly; backfilled from `last_active_at` |
@@ -266,7 +266,7 @@ moment, now `common.game_players.solved_at`); kept `game_id`, `user_id`,
 | `min_word_length`      | integer     | kept    | the shortest legal word                                                                                                                                                                                 |
 | `required_band`        | integer     | new     | the required words' difficulty band; copied from `setup.band` at create. The front end compares it to `legal_band` to know whether the board has bonus words (`src/boggle/components/PlayArea.tsx:140`) |
 | `legal_band`           | integer     | kept    | the legal words' difficulty band                                                                                                                                                                        |
-| `target_win_percent`   | integer     | changed | the target, a share of the required points; null for none (renamed from `win_percent`). The club line reads it through `clubpage_info`                                                                                               |
+| `target_win_percent`   | integer     | changed | the target, a share of the required points; null for none (renamed from `win_percent`). The summary reads it through `clubpage_info`                                                                                               |
 | `required_words`       | jsonb       | kept    | the required words with their points                                                                                                                                                                    |
 | `bonus_words`          | jsonb       | kept    | the other legal words with their points                                                                                                                                                                 |
 | `required_words_count` | integer     | kept    | how many required words                                                                                                                                                                                 |
@@ -382,7 +382,7 @@ unchanged: `letterboxed.seeds` (`letters`, `mask`, `word_a`, `word_b`, `difficul
 | `game_id`     | uuid           | changed | the game: `common.games.id`, one to one (renamed from `id`, decision 18)                                                                                               |
 | `words`       | text[] (5..20) | kept    | the board                                                                                                                                                              |
 | `secrets`     | text[] (3)     | kept    | the three secrets; the check keeps it at three, which is what `status.required_secrets_count` held (decision 7)                                                        |
-| `max_guesses` | integer (1..9) | new     | each budget's size; copied from `setup.max_guesses` at create (read by `submit_guess` and the ending check in SQL, `PlayArea` and the coop club line in the front end) |
+| `max_guesses` | integer (1..9) | new     | each budget's size; copied from `setup.max_guesses` at create (read by `submit_guess` and the ending check in SQL, `PlayArea` and the coop summary in the front end) |
 | `created_at`  | timestamptz    | dropped | `common.games.started_at`                                                                                                                                              |
 | `mode`        | text           | dropped | now `common.games.mode`                                                                                                                                                |
 | `club_handle` | text           | dropped | the rules join `common.games`                                                                                                                                          |
@@ -431,7 +431,7 @@ Kept: `id`, `game_id`, `user_id`, `kind`, `placements`, `words`, `score`,
 | column        | type                                |         | holds                                                                                                                                   |
 |---------------|-------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------|
 | `game_id`     | uuid                                | changed | the game: `common.games.id`, one to one (renamed from `id`, decision 18)                                                                |
-| `deck_kind`   | text (`full` / `junior`)            | kept    | which deck; copied from `setup.deck` (the coop club line gets it through `clubpage_info`)                                               |
+| `deck_kind`   | text (`full` / `junior`)            | kept    | which deck; copied from `setup.deck` (the coop summary gets it through `clubpage_info`)                                               |
 | `palette`     | text (`traditional` / `colorblind`) | new     | the card colors; copied from `setup.palette` at create, `traditional` when absent (as `paletteOf` does); read by `PlayArea` and the PDF |
 | `deck`        | smallint[]                          | kept    | the shuffled deck                                                                                                                       |
 | `deck_pos`    | integer                             | kept    | cards dealt so far; `status.deck_left` is the deck's size less this                                                                     |
@@ -458,7 +458,7 @@ unchanged: `setgame.events` (`id`, `game_id`, `user_id`, `kind`, `cards`, `board
 | `bonus_words`          | jsonb                        | kept    | the other legal words                                                                                                                                                                                                                  |
 | `required_words_count` | integer                      | kept    | the required list's size; already the column `status.required_words_count` copies                                                                                                                                                      |
 | `required_words_score` | integer                      | kept    | the required list's points; already the column `status.required_words_score` copies                                                                                                                                                    |
-| `target_rank`          | integer (0..6), null         | new     | the rank that wins, null for none; copied from `setup.target_rank` at create (read in six SQL functions, `PlayArea`, and both club lines through `clubpage_info`); nullable in compete too, for compete with a countdown and no target |
+| `target_rank`          | integer (0..6), null         | new     | the rank that wins, null for none; copied from `setup.target_rank` at create (read in six SQL functions, `PlayArea`, and both summaries through `clubpage_info`); nullable in compete too, for compete with a countdown and no target |
 | `required_band`        | integer (1..6)               | new     | the band the required words come from; copied from `setup.required_band` at create, 3 when absent (as create_game defaults); read by `PlayArea` (`hasBonus`)                                                                           |
 | `legal_band`           | integer (`required_band`..6) | new     | the band a bonus word may come from; copied from `setup.legal_band` at create, 5 when absent (as create_game defaults); read by `PlayArea` (`hasBonus`)                                                                                |
 | `created_at`           | timestamptz                  | dropped | `common.games.started_at`                                                                                                                                                                                                              |
@@ -485,7 +485,7 @@ unchanged: `spellingbee.pangrams` (`mask`, `required_words_count`, `has_rare_let
 | `mode`        | text        | dropped | now `common.games.mode`                                                  |
 | `club_handle` | text        | dropped | security rules join `common.games`                                       |
 
-Not columns: `setup.band` on the club line comes through `clubpage_info`; `status.found_words_count` (coop) is the count of valid `stackdown.events`; `status.solved` and the winner keys are end-of-game summary.
+Not columns: `setup.band` on the summary comes through `clubpage_info`; `status.found_words_count` (coop) is the count of valid `stackdown.events`; `status.solved` and the winner keys are end-of-game summary.
 
 `stackdown.players` — changed: `solved` and `solved_at` dropped (now `common.game_players.solved_at`); kept `game_id`, `user_id`, `found_count`. Unchanged: `stackdown.events` (`game_id`, `user_id`, `kind`, `word`, `tile_ids`, `valid`, `for_word_index`, `created_at`, `id`, `took_turn`), `stackdown.boards` (`id`, `tiles`, `words`, `band`, `created_at`).
 
@@ -527,7 +527,7 @@ Not columns: no `status` key is fixed at create (besides `mode`); `status.words_
 | `mode`        | text        | dropped | now `common.games.mode`                                                  |
 | `club_handle` | text        | dropped | security rules join `common.games`                                       |
 
-Not columns: `setup.difficulty` is read only by the club line (through `clubpage_info`) and the setup rows; `status.max_swaps` is already `max_swaps`; `status.swaps_used` (coop) is `waffle.players.swaps_used` (coop rows kept in step); `status.solved` and `winner_swaps` are end-of-game summary.
+Not columns: `setup.difficulty` is read only by the summary (through `clubpage_info`) and the setup rows; `status.max_swaps` is already `max_swaps`; `status.swaps_used` (coop) is `waffle.players.swaps_used` (coop rows kept in step); `status.solved` and `winner_swaps` are end-of-game summary.
 
 `waffle.players` — changed: `solved` and `solved_at` dropped (now `common.game_players.solved_at`); kept `game_id`, `user_id`, `board`, `swaps_used`. Unchanged: `waffle.events` (`game_id`, `user_id`, `pos_a`, `pos_b`, `letter_a`, `letter_b`, `created_at`, `kind`, `id`, `took_turn`, `colors`).
 
@@ -565,7 +565,7 @@ unchanged: `wordiply.events` (`id`, `game_id`, `user_id`, `word`, `length`, `val
 | `mode`        | text        | dropped | now `common.games.mode`                                                  |
 | `club_handle` | text        | dropped | security rules join `common.games`                                       |
 
-Not columns: `setup.answer_band` is read only by the club line (through `clubpage_info`) and the setup rows; `status.max_guesses` is already `max_guesses`; `status.guesses_used` (coop) is `wordle.players.guesses_used`; `status.solved` and `winner_guesses` are end-of-game summary.
+Not columns: `setup.answer_band` is read only by the summary (through `clubpage_info`) and the setup rows; `status.max_guesses` is already `max_guesses`; `status.guesses_used` (coop) is `wordle.players.guesses_used`; `status.solved` and `winner_guesses` are end-of-game summary.
 
 `wordle.players` — changed: `solved` and `solved_at` dropped (now `common.game_players.solved_at`); kept `game_id`, `user_id`, `guesses_used`. Unchanged: `wordle.events` (`game_id`, `user_id`, `word`, `colors`, `is_correct`, `created_at`, `kind`, `id`, `took_turn`).
 

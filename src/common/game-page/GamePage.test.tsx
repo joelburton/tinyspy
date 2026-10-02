@@ -37,7 +37,7 @@ const { mockUseCommonGame, mockNavigate, askConfirmation, mockManifestFor, mockS
     mockShowToast: vi.fn(),
     // What the roster fetch answers; a test sets `failure` to fail it.
     roster: { members: [] as unknown[], failure: null as unknown },
-    // Whether the shell the gate reads seats the signed-in user.
+    // Whether the shell_data the gate reads seats the signed-in user.
     seat: { seated: true },
   }))
 
@@ -55,7 +55,7 @@ vi.mock('../routing/router', async (importOriginal) => ({
 vi.mock('../floating-panels/confirmationService', () => ({
   askConfirmation: (...args: unknown[]) => askConfirmation(...(args as [])),
 }))
-// The gate's one pre-flight read: the game's row with its shell, whose roster
+// The gate's one pre-flight read: the game's row with its shell_data, whose roster
 // seats the signed-in user unless a test clears `seat.seated`. The builder is
 // a thenable that takes any number of `.eq`s, as the real one does.
 vi.mock('../supabase/db', () => ({
@@ -63,7 +63,7 @@ vi.mock('../supabase/db', () => ({
     from: () => ({
       select: () => {
         const players = seat.seated ? [{ id: 'ada' }] : []
-        const rows = [{ id: 'the-game', club_handle: 'moths', shell: { players } }]
+        const rows = [{ id: 'the-game', club_handle: 'moths', shell_data: { players } }]
         const query = {
           eq: () => query,
           then: (resolve: (settled: unknown) => void) =>
@@ -116,7 +116,7 @@ function makeManifest(over: Partial<GameManifest> = {}): GameManifest {
     PlayArea: () => <div>play</div>,
     setupForm: { Component: () => null, defaults: {} },
     startGameInClub: vi.fn(),
-    labelFor: () => '',
+    summaryFor: () => '',
     submitTimeout: vi.fn(),
     stopGame: vi.fn(async () => ENDED_OK),
     ...over,
@@ -151,7 +151,7 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
   return {
     // Ada's seat is her entry, as the hook finds it.
     cg: shell === null ? null : { ...shell, me: shell.players[0]! },
-    playarea: null,
+    gameData: null,
     pause: {
       paused,
       presentUserIds: new Set(players.map((p) => p.id)),
@@ -163,7 +163,7 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
     timer: { mode: { kind: 'none' }, displaySeconds: 0, expired: false },
     sendSuspend: vi.fn(),
     resubscribeCount: 0,
-    // `loading` false with a null shell is the shape `GamePageLoader` shows "no
+    // `loading` false with a null shell_data is the shape `GamePageLoader` shows "no
     // such game" for. The page below it never sees that combination.
     loading: false,
     failure: null,
@@ -243,7 +243,7 @@ describe('GamePage — mounting', () => {
 
   it('sends a member with no seat in the game back to the club, and says why', async () => {
     // There is no spectating: a club member can read the game's rows, but only
-    // a player opens its page. The seat is read off the shell's roster. Nothing
+    // a player opens its page. The seat is read off shell_data's roster. Nothing
     // of the game mounts first — the loader joins the room and asserts the
     // current view, and a watcher must do neither — and the navigation
     // REPLACES, so Back does not bounce them in again.
@@ -300,7 +300,7 @@ describe('act-stop-game, bound for the pause overlay', () => {
     const { view } = await mount(commonGameState(), makeManifest({ PlayArea: Counting }))
     expect(mounts).toBe(1)
 
-    // A shell arriving with the same run does NOT remount it — only the run
+    // A shell_data arriving with the same run does NOT remount it — only the run
     // changing does, or every refetch would throw the board away.
     mockUseCommonGame.mockReturnValue(commonGameState({ game: { title: 'Secrets II' } }))
     view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} auth={authSession} />)
@@ -337,7 +337,7 @@ describe('act-stop-game, bound for the pause overlay', () => {
 
 describe('act-new-game-from-setup', () => {
   // Active from the first render: `GamePageLoader` does not render the page
-  // without a shell, and a shell always carries its club, so there is no beat
+  // without shell_data, and shell_data always carries its club, so there is no beat
   // where the handle is still unknown.
   it('is active on a loaded game', async () => {
     await mount()

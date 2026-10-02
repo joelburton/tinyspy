@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_SCRABBLE_SETUP, validateScrabbleSetup, type ScrabbleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -56,7 +56,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
  *  team score in coop. (All values come off `row.status`, written by the RPCs;
  *  the title separately carries the first words played.) */
 /**
- * scrabble's club-page status line.
+ * scrabble's summary.
  *
  * Coop has NO win state (see scrabble._finish): one shared rack, no opponent,
  * so playing the bag out and stopping early are both just `ended` — the score
@@ -65,7 +65,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
  * played out) and 'manual' are both the ordinary way a coop table finishes,
  * and 'blocked' is compete-only (it counts passes; coop has no turns to pass).
  */
-function labelFor(mode: 'coop' | 'compete') {
+function summaryFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
     const s = (row.status ?? {}) as {
       team_score?: number; bag_count?: number
@@ -123,7 +123,7 @@ export const scrabbleCoopGame: GameManifest = {
       'Build words on the board from your rack of tiles. A word is accepted if it\'s in the dictionary at the difficulty you pick for its length.',
   },
   startGameInClub: startGameInClubFactory('coop'),
-  labelFor: labelFor('coop'),
+  summaryFor: summaryFor('coop'),
   submitTimeout,
   stopGame,
 }
@@ -158,7 +158,7 @@ export const scrabbleCompeteGame: GameManifest = {
       'Build words on the board from your rack of tiles. A word is accepted if it\'s in the dictionary at the difficulty you pick for its length.',
   },
   startGameInClub: startGameInClubFactory('compete'),
-  labelFor: labelFor('compete'),
+  summaryFor: summaryFor('compete'),
   submitTimeout,
   stopGame,
 }

@@ -141,7 +141,7 @@ rankings ([common-schema.md → `common._end_game`](../../docs/common-schema.md#
 
 The game is `won` when anyone is ranked 1, so a race someone solved is won
 whichever act ended it; a Stop is neutral in every mode. The below-board
-verdict and the club line read the same columns, so the two surfaces cannot
+verdict and the summary read the same columns, so the two surfaces cannot
 name the ending differently.
 
 ## Schema
@@ -178,7 +178,7 @@ present:
 | each `player_status` | `guesses_used`, `player_ended_reason` |
 | `clubpage_info` | `guesses_used`, `max_guesses`, `answer_band`, `winner_user_id`, `winner_guesses_count` |
 
-The club line's `guesses_used` is coop's shared count and null in compete,
+The summary's `guesses_used` is coop's shared count and null in compete,
 where a live count would leak how close a racer is; the winner and their
 count are compete's, written once the race is won.
 
@@ -465,8 +465,8 @@ winning guess or five that miss:
 |---|---|
 | `create_game_test` | both modes; every setup fault by the field it names; the target picked from the list or the band; `target` denied by the grant and null in the view mid-game; an empty word pool is a fault |
 | `gameplay_test` | `submit_guess` in coop: a short word is a fault; the two soft rejects spend nothing and write nothing; every accepted row carries colors and spent a go; every `ok` carries no outcome; the title reads the latest guess, then the answer on a win; a guess into a deleted game is the shared race, asked before membership |
-| `compete_test` | independent rows; an opponent's guesses hidden mid-race and open once it ends; the title and the club line leak nothing mid-race; every solver ranked once everyone is done, by fewest guesses, the earlier solve breaking a tie, and the last racer recorded as who ended it |
-| `statuses_test` | the exact key set of every status at the start, mid-game and at the end in both modes; the club line's winner and count; `tie_broken_by_clock` for a tie, for two solvers on different counts, and for a conceder on the winner's count; a rebuild drops a stale key and leaves `status_changed_at` alone; a Restart writes the statuses fresh |
+| `compete_test` | independent rows; an opponent's guesses hidden mid-race and open once it ends; the title and the summary leak nothing mid-race; every solver ranked once everyone is done, by fewest guesses, the earlier solve breaking a tie, and the last racer recorded as who ended it |
+| `statuses_test` | the exact key set of every status at the start, mid-game and at the end in both modes; the summary's winner and count; `tie_broken_by_clock` for a tie, for two solvers on different counts, and for a conceder on the winner's count; a rebuild drops a stale key and leaves `status_changed_at` alone; a Restart writes the statuses fresh |
 | `loss_test` | coop's last wrong guess is the loss and reveals the target; a racer spending their own budget ends nothing, and their next guess is a fault |
 | `concede_test` | a conceder counts as done and forfeits, unranked; the last one out ends the race, and its reason is their act — everyone conceding is `conceded`, a concession then the other racer running out is `exhausted`; the builder runs after an ending concession; coop is refused |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, an accepted guess advances, a soft reject does not, free-for-all leaves the pointer null |

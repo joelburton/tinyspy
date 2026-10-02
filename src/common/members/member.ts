@@ -57,7 +57,7 @@ export type Actor = Pick<Member, 'username' | 'color'>
  * A game player's row: a [Member] plus the per-player bits that live on
  * `common.game_players` (as opposed to the profile). Distinct from
  * Member because a chat sender is a Member but never a game player.
- * The shape the games not yet on the playarea blob still read; a game's
+ * The shape the games not yet on game_data still read; a game's
  * player comes off that blob as each converts (plans/seat-view.md).
  *
  *   - `player_ended_at` and its reason pair

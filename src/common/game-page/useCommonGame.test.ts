@@ -10,8 +10,8 @@
  * reads.
  *
  * **What's covered here:**
- *   - Initial load populates `cg` from the shell, `me` as my entry in it,
- *     hands the playarea blob through opaque, and clears `loading`.
+ *   - Initial load populates `cg` from shell_data, `me` as my entry in it,
+ *     hands game_data through opaque, and clears `loading`.
  *   - A game whose builder has not written a shell is a failure, named.
  *   - `paused` correctly unifies presence-pause + manual-pause (via the
  *     broadcast handler) and short-circuits to false once the shell says the
@@ -150,7 +150,7 @@ const PLAYERS: Shell['players'] = [
   { id: 'zed-bot', username: 'zed-bot', color: 'brown', ai: true, stillPlaying: true },
 ]
 
-/** The shell `common._write_shell` writes for a game in play. */
+/** The shell_data `common._make_json_shell_data` builds for a game in play. */
 const SHELL: Shell = {
   id: 'g1',
   gametype: 'codenamesduet',
@@ -168,9 +168,9 @@ const ENDED_SHELL: Shell = {
   players: PLAYERS.map((p) => ({ ...p, stillPlaying: false })),
 }
 
-const PLAYAREA = { gametype: 'codenamesduet', puzzle: { words: ['a'] } }
+const GAME_DATA = { gametype: 'codenamesduet', puzzle: { words: ['a'] } }
 
-const GAME_ROW = { shell: SHELL, playarea: PLAYAREA }
+const GAME_ROW = { shell_data: SHELL, game_data: GAME_DATA }
 
 const TIMER_ROWS = [{ kind: 'none', countdown_seconds_at_setup: null }]
 
@@ -226,7 +226,7 @@ async function load() {
 }
 
 describe('useCommonGame — initial load', () => {
-  it('cg is the shell, with me as my own entry in players — the same object', async () => {
+  it('cg is shell_data, with me as my own entry in players — the same object', async () => {
     const result = await load()
     expect(result.current.cg).toMatchObject({
       id: 'g1',
@@ -242,16 +242,16 @@ describe('useCommonGame — initial load', () => {
     expect(players).toContain(me)
   })
 
-  it('hands the playarea blob through untouched', async () => {
+  it('hands game_data through untouched', async () => {
     const result = await load()
-    expect(result.current.playarea).toEqual(PLAYAREA)
+    expect(result.current.gameData).toEqual(GAME_DATA)
   })
 
-  it('a null playarea passes through as null — the game\'s builder has not written one', async () => {
-    serve([{ shell: SHELL, playarea: null }])
+  it('a null game_data passes through as null — the game\'s builder has not written one', async () => {
+    serve([{ shell_data: SHELL, game_data: null }])
     const result = await load()
     expect(result.current.cg).not.toBeNull()
-    expect(result.current.playarea).toBeNull()
+    expect(result.current.gameData).toBeNull()
   })
 
   it('reads the timer off common.timers', async () => {
@@ -300,11 +300,11 @@ describe('useCommonGame — a dead read is not an absent game', () => {
     expect(result.current.cg).toBeNull()
   })
 
-  it('a game with no shell yet is a failure that says so, not a game that is gone', async () => {
+  it('a game with no shell_data yet is a failure that says so, not a game that is gone', async () => {
     // An unconverted game's row, or one not yet rebuilt: the builder has not
     // written the page. Saying "no such game" would be the confident wrong
     // answer; the error page names the real one.
-    serve([{ shell: null, playarea: null }])
+    serve([{ shell_data: null, game_data: null }])
     const result = await load()
     expect(result.current.failure).toMatchObject({ type: 'not-ok', severity: 'fault' })
     expect(result.current.failure!.detail).toContain('g1')
@@ -417,14 +417,14 @@ describe('useCommonGame — paused unification', () => {
 
   it('paused short-circuits to false once the game ends', async () => {
     // First load returns a game in play; then a postgres-changes event fires
-    // and the shell comes back ended.
+    // and shell_data comes back ended.
     let firstCall = true
     mockSchemaFrom.mockImplementation((table: string) => {
       if (table === 'games') {
         return {
           select: () => ({
             eq: async () => {
-              const row = firstCall ? GAME_ROW : { ...GAME_ROW, shell: ENDED_SHELL }
+              const row = firstCall ? GAME_ROW : { ...GAME_ROW, shell_data: ENDED_SHELL }
               firstCall = false
               return { data: [row], error: null, status: 200 }
             },
@@ -443,7 +443,7 @@ describe('useCommonGame — paused unification', () => {
     expect(result.current.pause.paused).toBe(true)
 
     // The game ends server-side; postgres-changes refetches and loads the
-    // ended shell. Paused should now be false even though manuallyPausedBy is
+    // ended shell_data. Paused should now be false even though manuallyPausedBy is
     // still set — the ended short-circuit takes priority so PauseBoundary
     // remounts PlayArea to render the ending.
     await act(async () => {

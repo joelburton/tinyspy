@@ -212,7 +212,7 @@ grant select on wordle.games_state to authenticated;
 --   clubpage_info  { guesses_used, max_guesses, answer_band,
 --                    winner_user_id, winner_guesses_count }
 --                  — `guesses_used` is coop's shared count and null in
---                  compete, whose club line shows no progress; the winner
+--                  compete, whose summary shows no progress; the winner
 --                  and their count are compete's, null until the end;
 --                  `answer_band` is the setup's, which the line names
 --

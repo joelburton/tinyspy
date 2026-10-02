@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
@@ -24,7 +24,7 @@ import logoUrl from './logo.svg?url'
  * [`docs/common.md`](../../docs/common.md#the-sibling-manifest-pattern). The
  * two share the schema, every loader below and `baseGametype: 'connections'`;
  * they differ on `gametype`, `mode`, `numberOfPlayers` (coop plays solo,
- * compete needs an opponent) and `labelFor`. The one `startGameInClub`
+ * compete needs an opponent) and `summaryFor`. The one `startGameInClub`
  * factory injects the mode, and `connections.create_game` routes on it. The
  * rules and the design are `doc.md`'s.
  */
@@ -76,7 +76,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 // The club-list line reads the list row's `gameEnding` and its `clubpage_info`
 // (`ConnectionsClubpageInfo`: coop's team counts, null in compete, and
-// compete's winner). Each mode's labelFor handles its own endings.
+// compete's winner). Each mode's summaryFor handles its own endings.
 
 /** Why a game ended with nobody winning (connections' losses). */
 const LOSS: Partial<Record<GameEndedReason, string>> = {
@@ -125,7 +125,7 @@ export const connectionsCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  labelFor: (row) => {
+  summaryFor: (row) => {
     const clubpageInfo = row.clubpageInfo as ConnectionsClubpageInfo
     // "categories", the game's own noun (doc.md → Vocabulary), throughout.
     const categories = tally(clubpageInfo.found_categories_count, CATEGORY_COUNT, 'categories')
@@ -188,7 +188,7 @@ export const connectionsCompeteGame: GameManifest = {
   // compete for the same reason). The ended line names the winner
   // (`clubpage_info.winner_user_id`), so review reads "Won by ada." Mode
   // itself is the card's <ModeBadge>.
-  labelFor: (row, members) => {
+  summaryFor: (row, members) => {
     const clubpageInfo = row.clubpageInfo as ConnectionsClubpageInfo
     if (row.gameEnding === null) return verdict('Playing')
     switch (row.gameEnding.outcome) {

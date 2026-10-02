@@ -1,23 +1,23 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: psychicnum's page blobs — playarea, clubpage, and the shell beside them
+-- Test: psychicnum's page blobs — game_data, summary_data, and shell_data beside them
 -- ============================================================
--- `psychicnum._write_statuses` writes everything a page shows onto
+-- `psychicnum._rebuild_data_cols` writes everything a page shows onto
 -- `common.games` after every move (supabase/sql/psychicnum.sql → The page
 -- blobs). This file pins what the page gets:
 --
---   1. A fresh coop game's playarea, as a whole: the common part, the puzzle
+--   1. A fresh coop game's game_data, as a whole: the common part, the puzzle
 --      with its secrets withheld, no log, and every player fresh with an
 --      empty board
 --   2. Mid-game coop: the log, the team's counts on every player, one board
 --      on every seat
 --   3. Mid-game compete: each racer's own counts and own board; the log
 --      carries both players' rows (the hook withholds, not the builder)
---   4. The endings: the secrets arrive, the winner is named, the clubpage
---      line, and the shell is rewritten beside them
+--   4. The endings: the secrets arrive, the winner is named, the summary_data
+--      line, and shell_data is rewritten beside them
 --   5. A Restart empties it all again
---   6. `_rebuild_pages` rewrites every psychicnum game without re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every psychicnum game without re-dating it
 --
 -- The board words and the secrets are pinned with a postgres-role UPDATE
 -- after create_game, as gameplay_test.sql does.
@@ -50,21 +50,21 @@ update psychicnum.games
  where game_id in (select id from g);
 -- The blobs were written at create, from the sampled board; rewrite them from
 -- the pinned one.
-select psychicnum._write_statuses(id, p_update_status_changed_at => false) from g;
+select psychicnum._rebuild_data_cols(id, p_update_status_changed_at => false) from g;
 
--- Shorthands: each game's id and blobs, and one player inside the playarea.
+-- Shorthands: each game's id and blobs, and one player inside the game_data.
 create function pg_temp.coop() returns uuid language sql as
   $$ select id from g where mode = 'coop' $$;
 create function pg_temp.compete() returns uuid language sql as
   $$ select id from g where mode = 'compete' $$;
-create function pg_temp.playarea(game uuid) returns jsonb language sql as
-  $$ select playarea from common.games where id = game $$;
-create function pg_temp.clubpage(game uuid) returns jsonb language sql as
-  $$ select clubpage from common.games where id = game $$;
-create function pg_temp.shell(game uuid) returns jsonb language sql as
-  $$ select shell from common.games where id = game $$;
+create function pg_temp.game_data(game uuid) returns jsonb language sql as
+  $$ select game_data from common.games where id = game $$;
+create function pg_temp.summary_data(game uuid) returns jsonb language sql as
+  $$ select summary_data from common.games where id = game $$;
+create function pg_temp.shell_data(game uuid) returns jsonb language sql as
+  $$ select shell_data from common.games where id = game $$;
 create function pg_temp.player(game uuid, uid uuid) returns jsonb language sql as
-  $$ select p from jsonb_array_elements((select playarea -> 'players' from common.games where id = game)) p
+  $$ select p from jsonb_array_elements((select game_data -> 'players' from common.games where id = game)) p
       where p ->> 'id' = uid::text $$;
 
 -- A player who has not moved, in a free-for-all game with a budget of 5 and
@@ -94,7 +94,7 @@ $$;
 
 -- ─── (1) A fresh coop game, as a whole ───
 select is(
-  pg_temp.playarea(pg_temp.coop()),
+  pg_temp.game_data(pg_temp.coop()),
   jsonb_build_object(
     'id',       pg_temp.coop(),
     'gametype', 'psychicnum_coop',
@@ -117,15 +117,15 @@ select is(
     'players',  jsonb_build_array(
       pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada'),
       pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea'))),
-  'the whole playarea of a fresh coop game: the common part, the puzzle with its secrets withheld, no log, fresh players with empty boards'
+  'the whole game_data of a fresh coop game: the common part, the puzzle with its secrets withheld, no log, fresh players with empty boards'
 );
 select is(
-  pg_temp.clubpage(pg_temp.coop()),
+  pg_temp.summary_data(pg_temp.coop()),
   '{"foundSecretsCount": 0, "requiredSecretsCount": 3, "guessesUsed": 0, "maxGuesses": 5, "winner": null}'::jsonb,
   'the fresh coop game''s club line: nothing found, nothing used, no winner'
 );
 select is(
-  pg_temp.clubpage(pg_temp.compete()),
+  pg_temp.summary_data(pg_temp.compete()),
   '{"foundSecretsCount": null, "requiredSecretsCount": 3, "guessesUsed": null, "maxGuesses": 5, "winner": null}'::jsonb,
   'the fresh compete game''s club line carries no progress'
 );
@@ -139,20 +139,20 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select jsonb_agg(e - 'id' - 'at') from jsonb_array_elements(pg_temp.playarea(pg_temp.coop()) -> 'events') e),
+  (select jsonb_agg(e - 'id' - 'at') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'events') e),
   '[{"userId": "ada11111-1111-1111-1111-111111111111", "word": "zalpha", "correct": true, "kind": "guess"},
     {"userId": "bea22222-2222-2222-2222-222222222222", "word": "zdelta", "correct": false, "kind": "guess"}]'::jsonb,
   'the log carries each row''s player, word, verdict and kind, in the order of play'
 );
 select is(
   (select jsonb_typeof(e -> 'id') || '/' || jsonb_typeof(e -> 'at')
-     from jsonb_array_elements(pg_temp.playarea(pg_temp.coop()) -> 'events') e limit 1),
+     from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'events') e limit 1),
   'number/string',
   '… each with its row id and its time'
 );
 select is(
   (select jsonb_agg(jsonb_build_array(p -> 'foundSecretsCount', p -> 'guessesUsed'))
-     from jsonb_array_elements(pg_temp.playarea(pg_temp.coop()) -> 'players') p),
+     from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
   '[[1, 2], [1, 2]]'::jsonb,
   'coop: the team''s finds and the team''s used count, on every player'
 );
@@ -171,12 +171,12 @@ select is(
   '… the same board on both seats'
 );
 select is(
-  pg_temp.playarea(pg_temp.coop()) -> 'puzzle' -> 'secrets',
+  pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'secrets',
   'null'::jsonb,
   'the secrets are still withheld mid-game'
 );
 select is(
-  pg_temp.clubpage(pg_temp.coop()),
+  pg_temp.summary_data(pg_temp.coop()),
   '{"foundSecretsCount": 1, "requiredSecretsCount": 3, "guessesUsed": 2, "maxGuesses": 5, "winner": null}'::jsonb,
   'coop: the club line has the team''s finds and the team''s used count'
 );
@@ -209,12 +209,12 @@ select is(
   '… and the rival''s shows the rival''s'
 );
 select is(
-  jsonb_array_length(pg_temp.playarea(pg_temp.compete()) -> 'events'),
+  jsonb_array_length(pg_temp.game_data(pg_temp.compete()) -> 'events'),
   2,
   'compete: the log carries both racers'' rows — what a racer may see is the hook''s rule'
 );
 select is(
-  pg_temp.clubpage(pg_temp.compete()),
+  pg_temp.summary_data(pg_temp.compete()),
   '{"foundSecretsCount": null, "requiredSecretsCount": 3, "guessesUsed": null, "maxGuesses": 5, "winner": null}'::jsonb,
   'compete: the club line still carries no progress, and no winner yet'
 );
@@ -231,19 +231,19 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  pg_temp.playarea(pg_temp.coop()) -> 'puzzle' -> 'secrets',
+  pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'secrets',
   '["zalpha", "zbravo", "zcharlie"]'::jsonb,
   'the secrets arrive once the game has ended'
 );
 select is(
-  (pg_temp.playarea(pg_temp.coop()) ->> 'ended')::boolean
-    and pg_temp.playarea(pg_temp.coop()) -> 'ending' ->> 'reason' = 'stopped'
-    and pg_temp.playarea(pg_temp.coop()) ->> 'outcome' = 'neutral',
+  (pg_temp.game_data(pg_temp.coop()) ->> 'ended')::boolean
+    and pg_temp.game_data(pg_temp.coop()) -> 'ending' ->> 'reason' = 'stopped'
+    and pg_temp.game_data(pg_temp.coop()) ->> 'outcome' = 'neutral',
   true,
-  'the stopped coop game: ended, its ending and outcome on the playarea'
+  'the stopped coop game: ended, its ending and outcome on the game_data'
 );
 select is(
-  pg_temp.playarea(pg_temp.compete()) -> 'ending',
+  pg_temp.game_data(pg_temp.compete()) -> 'ending',
   jsonb_build_object(
     'reason', 'reached_goal',
     'detail', 'solved',
@@ -269,24 +269,24 @@ select is(
   'the conceder conceded and lost'
 );
 select is(
-  pg_temp.clubpage(pg_temp.compete()) ->> 'winner',
+  pg_temp.summary_data(pg_temp.compete()) ->> 'winner',
   'bea22222-2222-2222-2222-222222222222',
   'compete: the club line names the winner at the end'
 );
 select is(
-  pg_temp.clubpage(pg_temp.coop()) -> 'winner',
+  pg_temp.summary_data(pg_temp.coop()) -> 'winner',
   'null'::jsonb,
   'coop: the club line names no winner'
 );
 select is(
-  (pg_temp.shell(pg_temp.coop()) ->> 'ended')::boolean,
+  (pg_temp.shell_data(pg_temp.coop()) ->> 'ended')::boolean,
   true,
-  'the builder rewrites the shell beside the playarea: the stopped game''s shell says ended'
+  'the builder rewrites shell_data beside the game_data: the stopped game''s shell_data says ended'
 );
 select is(
-  (select jsonb_agg(p -> 'stillPlaying') from jsonb_array_elements(pg_temp.shell(pg_temp.compete()) -> 'players') p),
+  (select jsonb_agg(p -> 'stillPlaying') from jsonb_array_elements(pg_temp.shell_data(pg_temp.compete()) -> 'players') p),
   '[false, false]'::jsonb,
-  '… and the won race''s shell has nobody still playing'
+  '… and the won race''s shell_data has nobody still playing'
 );
 
 -- ─── (5) A Restart empties it all again ───
@@ -296,35 +296,35 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  pg_temp.playarea(pg_temp.coop()) -> 'players',
+  pg_temp.game_data(pg_temp.coop()) -> 'players',
   jsonb_build_array(
     pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada'),
     pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea')),
   'after a Restart every player is fresh again, empty board and all'
 );
 select is(
-  pg_temp.playarea(pg_temp.coop()) -> 'events',
+  pg_temp.game_data(pg_temp.coop()) -> 'events',
   '[]'::jsonb,
   '… the log is empty'
 );
 select is(
-  pg_temp.playarea(pg_temp.coop()) -> 'puzzle' -> 'secrets',
+  pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'secrets',
   'null'::jsonb,
   '… and the secrets are withheld again'
 );
 select is(
-  (pg_temp.shell(pg_temp.coop()) ->> 'restartCount')::int,
+  (pg_temp.shell_data(pg_temp.coop()) ->> 'restartCount')::int,
   1,
-  '… with the restart counted on the shell'
+  '… with the restart counted on shell_data'
 );
 
--- ─── (6) _rebuild_pages ───
-update common.games set playarea = null, clubpage = null, shell = null, status_changed_at = '2026-01-01'
+-- ─── (6) _rebuild_data_cols_for_all ───
+update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
  where id in (select id from g);
-select is(psychicnum._rebuild_pages() >= 2, true, '_rebuild_pages rewrites every psychicnum game');
+select is(psychicnum._rebuild_data_cols_for_all() >= 2, true, '_rebuild_data_cols_for_all rewrites every psychicnum game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and playarea is not null and clubpage is not null and shell is not null),
+    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null),
   2,
   '… every blob is back'
 );
@@ -335,7 +335,7 @@ select is(
   '… and no game is re-dated'
 );
 select is(
-  pg_temp.playarea(pg_temp.compete()) -> 'ending' ->> 'winner',
+  pg_temp.game_data(pg_temp.compete()) -> 'ending' ->> 'winner',
   'bea22222-2222-2222-2222-222222222222',
   '… the rebuilt race still names its winner'
 );

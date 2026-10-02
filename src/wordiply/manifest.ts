@@ -3,7 +3,7 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
@@ -35,7 +35,7 @@ import logoUrl from './logo.svg?url'
  *
  * Differences between the two manifests: the `gametype` string, the `mode`
  * declaration, `numberOfPlayers` (coop solo-friendly `[1,6]` vs compete
- * `[2,6]`), and the per-mode `labelFor` vocabulary. Neither carries a
+ * `[2,6]`), and the per-mode `summaryFor` vocabulary. Neither carries a
  * `target_rank` — wordiply is not a race-to-rank.
  */
 
@@ -89,7 +89,7 @@ const BRAND = 'WordWire'
 /**
  * MID-GAME the club-page label shows only guesses used (scores are
  * terminal-only, per the "length only during play" rule); TERMINAL it
- * shows the length score. Shared by both manifests' labelFor via closures.
+ * shows the length score. Shared by both manifests' summaryFor via closures.
  */
 function coopLabel(row: { play_state: string; status?: unknown }): string {
   const s = (row.status ?? {}) as StatusBlob
@@ -171,7 +171,7 @@ export const wordiplyCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  labelFor: (row) => coopLabel(row),
+  summaryFor: (row) => coopLabel(row),
 
   submitTimeout,
   stopGame,
@@ -206,7 +206,7 @@ export const wordiplyCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  labelFor: (row) => competeLabel(row),
+  summaryFor: (row) => competeLabel(row),
 
   submitTimeout,
   stopGame,

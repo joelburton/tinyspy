@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { makePlayarea } from '../lib/playarea.fixture'
+import { makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useShowOppsFoundMessages } from './useShowOppsFoundMessages'
 import type { GGameData } from '../types'
@@ -11,7 +11,7 @@ import type { GGameData } from '../types'
 /** Me and moth, with the secrets each has found. */
 function gdWith(mode: 'coop' | 'compete', mine: number, moths: number): GGameData {
   return makeGameData(
-    makePlayarea({
+    makeGameDataRaw({
       mode,
       players: [
         { id: 'u1', username: 'me', color: 'red', found: mine },

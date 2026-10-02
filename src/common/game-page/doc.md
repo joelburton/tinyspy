@@ -22,11 +22,11 @@ button, the clock, and on a phone the switch between the board page and the
 info page. The shared state is `useCommonGame`: the two page blobs each game's
 status builder writes onto `common.games` (plans/seat-view.md → The page is
 written, not assembled), presence, the two kinds of pause, suspend, and the
-timer. The `shell` blob is everything this page shows, the same shape for every
-game, and `cg` is that blob plus `me`, my entry in its roster; the `playarea`
-blob is the game's, handed down opaque. What a game gets is
+timer. `shell_data` is everything this page shows, the same shape for every
+game, and `cg` is that blob plus `me`, my entry in its roster; `game_data` is
+the game's, handed down opaque. What a game gets is
 `PlayAreaLoaderProps`, one object of props the shell hands its `PlayArea`:
-`cg`, `playarea`, the session, the global feedback slot, the menu API and the
+`cg`, `gameData`, the session, the global feedback slot, the menu API and the
 one navigation a game does for itself (into a follow-up game; going back to the
 club is an action on the menu API). A game reads that object and renders a
 board.

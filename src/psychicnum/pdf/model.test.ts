@@ -13,7 +13,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { buildPrintModel } from './model'
-import { guess, makePlayarea } from '../lib/playarea.fixture'
+import { guess, makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from '../hooks/useGame'
 
 const ME = { id: 'u1', username: 'me', color: 'red' }
@@ -23,7 +23,7 @@ const WORDS = ['apple', 'bread', 'crown', 'delta']
 /** The rows of a finished game, each with its player, as `gd` holds them. */
 function eventsOf(mode: 'coop' | 'compete', rows: ReturnType<typeof guess>[]) {
   return makeGameData(
-    makePlayarea({
+    makeGameDataRaw({
       mode,
       words: WORDS,
       players: [ME, MOTH],

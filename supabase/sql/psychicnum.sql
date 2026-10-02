@@ -16,14 +16,15 @@
 --   submit_timeout   ends the game when the countdown runs out
 --   replay_board     restarts the same board from scratch
 --
--- What the frontend reads is none of this schema's tables: `_write_statuses`
+-- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
--- → The page is written, not assembled), and the page reads those.
+-- → The page is written, not assembled) — `game_data`, `summary_data`, and
+-- `shell_data` through common — and the page reads those.
 --
 -- What is particular to psychicnum (src/psychicnum/doc.md has the rest):
 --   - The secrets are hidden by a column grant, not a policy: no client can
---     select `secrets`, and the playarea blob carries them only once the game
---     has ended.
+--     select `secrets`, and `game_data` carries them only once the game has
+--     ended.
 --   - The guess budget is shared in coop and each player's own in compete. A
 --     guess counts up only the guesser's row, in both modes, so coop's spent
 --     budget is the sum of the rows.
@@ -69,7 +70,7 @@ create policy players_select on psychicnum.players
 
 -- Guesses: any club member sees every row. Who may see a rival's guesses
 -- mid-race is the hook's rule (src/psychicnum/hooks/useGame.ts), applied to
--- the playarea blob; nothing reads this table from the client.
+-- `game_data`; nothing reads this table from the client.
 drop policy if exists events_select on psychicnum.events;
 create policy events_select on psychicnum.events
   for select to authenticated
@@ -81,7 +82,7 @@ create policy events_select on psychicnum.events
     )
   );
 
--- Grants: every column on psychicnum.games EXCEPT `secrets`. The playarea blob
+-- Grants: every column on psychicnum.games EXCEPT `secrets`. `game_data`
 -- (`_make_json_puzzle`) is the only path a client has to them, and it carries
 -- them only once the game has ended.
 grant select
@@ -100,14 +101,16 @@ drop function if exists psychicnum._secrets_for(uuid);
 -- ============================================================
 -- The page blobs — what the page shows, written by this game's builder
 -- ============================================================
--- `_write_statuses` writes everything a page shows onto `common.games` after
--- every move (plans/seat-view.md → The page is written, not assembled): the
--- shell through `common._write_shell`, and these two of psychicnum's own. The
--- playarea is the common part (supabase/sql/common.sql → The page blobs'
--- common parts) with psychicnum's facts on top; the pieces below build each
--- part, so `select playarea from common.games` shows the page what it gets.
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- psychicnum's own, each builder bearing its column's name (the three verbs
+-- are supabase/sql/common.sql → The page blobs' common parts). `game_data` is the
+-- common part (supabase/sql/common.sql → The page blobs' common parts) with
+-- psychicnum's facts on top; the pieces below build each part, so `select
+-- game_data from common.games` shows the page what it gets.
 --
---   playarea, psychicnum's part:
+--   game_data, psychicnum's part:
 --     puzzle: {words, secrets}             secrets null until the game ends
 --     events: [{id, userId, word, correct, kind, at}, …]
 --                                          every player's; what a racer may see
@@ -119,18 +122,18 @@ drop function if exists psychicnum._secrets_for(uuid);
 --                                          secret, word → who guessed it; one board in
 --                                          coop, each racer's own in compete
 --
---   clubpage:
+--   summary_data — the game summed up in a line, for the club page's list and
+--   any page that lists games:
 --     foundSecretsCount, guessesUsed       the team's in coop; null in compete, whose
---                                          club line shows no progress
+--                                          summary shows no progress
 --     requiredSecretsCount, maxGuesses
 --     winner                               compete's, the player ranked first; null
 --                                          until the end, and always null in coop
 --
--- The statuses (`game_status`, `player_status`, `clubpage_info`) are written
--- beside them until the club page reads `clubpage`:
+-- `clubpage_info` is written beside them until the club page reads
+-- `summary_data`; `game_status` and `player_status` are not, since nothing
+-- reads psychicnum's any more (the columns stay until a migration retires them):
 --
---   game_status    { required_secrets_count, max_guesses }
---   player_status  { found_secrets_count, guesses_used, player_ended_reason }
 --   clubpage_info  { found_secrets_count, required_secrets_count,
 --                    guesses_used, max_guesses, winner_user_id }
 
@@ -188,8 +191,8 @@ $$;
 
 revoke execute on function psychicnum._make_json_board(uuid, uuid, text) from public;
 
--- Every player as psychicnum's playarea shows them: the common player, with the
--- budget, the counts and this seat's board.
+-- Every player as psychicnum's game_data shows them: the common player, with
+-- the budget, the counts and this seat's board.
 create or replace function psychicnum._make_json_players(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -234,15 +237,20 @@ $$;
 
 revoke execute on function psychicnum._make_json_players(uuid) from public;
 
--- The whole playarea blob: the common part, with psychicnum's puzzle, log and
+-- The names these had before the columns were named for what they hold;
+-- supabase/sql is re-applied, not diffed.
+drop function if exists psychicnum._make_json_playarea(uuid);
+drop function if exists psychicnum._make_json_clubpage(uuid);
+
+-- The whole game_data blob: the common part, with psychicnum's puzzle, log and
 -- players on top.
-create or replace function psychicnum._make_json_playarea(p_game_id uuid)
+create or replace function psychicnum._make_json_game_data(p_game_id uuid)
 returns jsonb
 language sql
 stable
 set search_path = psychicnum, common, public, extensions
 as $$
-  select common._make_json_playarea(p_game_id) || jsonb_build_object(
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
            'puzzle',  psychicnum._make_json_puzzle(pg, cg.ended_at is not null),
            'events',  psychicnum._make_json_events(p_game_id),
            'players', psychicnum._make_json_players(p_game_id))
@@ -251,10 +259,10 @@ as $$
    where pg.game_id = p_game_id;
 $$;
 
-revoke execute on function psychicnum._make_json_playarea(uuid) from public;
+revoke execute on function psychicnum._make_json_game_data(uuid) from public;
 
--- The club line's numbers.
-create or replace function psychicnum._make_json_clubpage(p_game_id uuid)
+-- The game summed up: the numbers a list of games shows for this one.
+create or replace function psychicnum._make_json_summary_data(p_game_id uuid)
 returns jsonb
 language sql
 stable
@@ -276,21 +284,25 @@ as $$
    where pg.game_id = p_game_id;
 $$;
 
-revoke execute on function psychicnum._make_json_clubpage(uuid) from public;
+revoke execute on function psychicnum._make_json_summary_data(uuid) from public;
+
+-- The names this had while it wrote the statuses; supabase/sql is re-applied,
+-- not diffed.
+drop function if exists psychicnum._write_statuses(uuid, boolean);
 
 -- ============================================================
--- psychicnum._write_statuses — the page's copies of the game
+-- psychicnum._rebuild_data_cols — one game's data columns, rebuilt
 -- ============================================================
--- Writes the page blobs (`playarea`, `clubpage`, and the shell through
--- `common._write_shell`) and the statuses (`game_status`, every
--- `player_status`, `clubpage_info`) from psychicnum's own tables, assigning
--- each whole. Every key is always present, null when it has no value; the
--- shapes are drawn above.
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) and `clubpage_info` from psychicnum's
+-- own tables, assigning each whole. Every RPC calls it after a move; it is
+-- also the repair for one game by hand. Every key is always present, null when
+-- it has no value; the shapes are drawn above.
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,
 -- false from a rebuild (the pass over every game, a repair by hand), so a
 -- rebuild never re-dates a game.
-create or replace function psychicnum._write_statuses(
+create or replace function psychicnum._rebuild_data_cols(
   p_game_id uuid,
   p_update_status_changed_at boolean
 )
@@ -312,16 +324,6 @@ begin
     join common.games cg on cg.id = pg.game_id
    where pg.game_id = p_game_id;
 
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'found_secrets_count', pp.found_secrets_count,
-           'guesses_used', pp.guesses_used,
-           'player_ended_reason', gp.player_ended_reason)
-    from psychicnum.players pp
-   where gp.game_id = p_game_id
-     and pp.game_id = gp.game_id
-     and pp.user_id = gp.user_id;
-
   -- Coop's team numbers: each player's row holds their own share (each correct
   -- guess is one player's, and no secret can be found twice), so the team's
   -- finds and the team's spent budget are both sums.
@@ -333,10 +335,7 @@ begin
   end if;
 
   update common.games
-     set game_status = jsonb_build_object(
-           'required_secrets_count', v_required_secrets_count,
-           'max_guesses', v_max_guesses),
-         clubpage_info = jsonb_build_object(
+     set clubpage_info = jsonb_build_object(
            'found_secrets_count', v_team_found,
            'required_secrets_count', v_required_secrets_count,
            'guesses_used', v_team_used,
@@ -345,29 +344,29 @@ begin
              select user_id from common.game_players
               where game_id = p_game_id and final_ranking = 1
               limit 1) end),
-         playarea = psychicnum._make_json_playarea(p_game_id),
-         clubpage = psychicnum._make_json_clubpage(p_game_id),
+         game_data = psychicnum._make_json_game_data(p_game_id),
+         summary_data = psychicnum._make_json_summary_data(p_game_id),
+         shell_data = common._make_json_shell_data(p_game_id),
          status_changed_at = case when p_update_status_changed_at
                                   then now() else status_changed_at end
    where id = p_game_id;
-
-  perform common._write_shell(p_game_id);
 end;
 $$;
 
-revoke execute on function psychicnum._write_statuses(uuid, boolean) from public;
+revoke execute on function psychicnum._rebuild_data_cols(uuid, boolean) from public;
 
--- The name this had for a day; supabase/sql is re-applied, not diffed.
+-- The names this had before; supabase/sql is re-applied, not diffed.
 drop function if exists psychicnum.rebuild_pages();
+drop function if exists psychicnum._rebuild_pages();
 
 -- ============================================================
--- psychicnum._rebuild_pages — every psychicnum game's blobs, rewritten
+-- psychicnum._rebuild_data_cols_for_all — every psychicnum game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- runs the builder over every psychicnum game without re-dating any, and
+-- `_rebuild_data_cols` over every psychicnum game without re-dating any, and
 -- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
 -- client calls it, so it has no grant and wears the `_`.
-create or replace function psychicnum._rebuild_pages()
+create or replace function psychicnum._rebuild_data_cols_for_all()
 returns int
 language plpgsql
 security definer
@@ -380,14 +379,14 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('psychicnum_coop', 'psychicnum_compete')
   loop
-    perform psychicnum._write_statuses(v_game_id, p_update_status_changed_at => false);
+    perform psychicnum._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
   return v_count;
 end;
 $$;
 
-revoke execute on function psychicnum._rebuild_pages() from public;
+revoke execute on function psychicnum._rebuild_data_cols_for_all() from public;
 
 drop function if exists psychicnum.create_game(text, jsonb, uuid[], text);
 
@@ -599,7 +598,7 @@ begin
   select new_id, uid
     from unnest(p_player_user_ids) as uid;
 
-  perform psychicnum._write_statuses(new_id, p_update_status_changed_at => true);
+  perform psychicnum._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on — without it the branch would match by
@@ -890,7 +889,7 @@ begin
     perform common._advance_turn(p_game_id);
   end if;
 
-  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform psychicnum._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(v_answer);
 
 exception when others then
@@ -992,7 +991,7 @@ begin
   caller_id := common._concede(p_game_id);
   perform psychicnum._maybe_finish_compete(p_game_id, caller_id);
 
-  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform psychicnum._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -1100,7 +1099,7 @@ begin
   insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
   values (p_game_id, caller_id, secret_word, true, 'spoiler', false);
 
-  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform psychicnum._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(
     jsonb_build_object('result', 'spoiler', 'word', secret_word));
 
@@ -1188,7 +1187,7 @@ begin
   insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
   values (p_game_id, caller_id, clue_text, true, 'hint', false);
 
-  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform psychicnum._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(
     jsonb_build_object(
       'result', case when dict_hint is null then 'no-hint' else 'hint' end,
@@ -1255,7 +1254,7 @@ begin
     p_final_rankings => '{}'::jsonb
   );
 
-  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform psychicnum._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1298,7 +1297,7 @@ begin
 
   perform common._stop(p_game_id);
 
-  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform psychicnum._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1330,7 +1329,7 @@ drop function if exists psychicnum.replay_board(uuid);
 -- Turn-order coop goes back to the player seated first; common._reset_game
 -- rewinds the pointer.
 --
--- The secrets re-hide on their own: the playarea blob carries them only while
+-- The secrets re-hide on their own: `game_data` carries them only while
 -- common.games.ended_at is set, which reset_game clears before the rebuild.
 create or replace function psychicnum.replay_board(p_game_id uuid)
 returns jsonb
@@ -1366,7 +1365,7 @@ begin
 
   perform common._reset_game(p_game_id);
 
-  perform psychicnum._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform psychicnum._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

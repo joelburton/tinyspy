@@ -12,7 +12,7 @@
  * psychicnum.concede; coop offers Stop → psychicnum.stop_game; a conceded opponent
  * reads "out" mid-game; and after I concede I get the player-ended look.
  *
- * The surface is a pure function of the playarea blob the page hands it, so a
+ * The surface is a pure function of the `game_data` blob the page hands it, so a
  * test builds that blob from the game's facts (`makePsychicnumCtx`) and
  * nothing is mocked but `db`; everything — the board, Clear/Submit, strip,
  * action row — renders for real. Mirrors wordle's concede tests (the
@@ -22,7 +22,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import type { CommonPlayarea } from '@/common/game-page/playarea'
+import type { GameDataRaw } from '@/common/game-page/gameData'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
@@ -34,9 +34,9 @@ import {
   SPENT,
   guess,
   makePsychicnumCtx,
-  type PlayareaFacts,
+  type GameDataFacts,
   type PlayerFacts,
-} from '../lib/playarea.fixture'
+} from '../lib/gameData.fixture'
 import { db } from '../db'
 import { PlayAreaLoader } from './PlayArea'
 
@@ -62,23 +62,23 @@ const lost = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'lost' })
 
 /** The two game endings the tests reach for: the set completed, and every
  *  budget spent — each with the game's outcome beside it. */
-const GAME_WON: Pick<PlayareaFacts, 'ending' | 'outcome'> = {
+const GAME_WON: Pick<GameDataFacts, 'ending' | 'outcome'> = {
   ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
   outcome: 'won',
 }
-const GAME_LOST: Pick<PlayareaFacts, 'ending' | 'outcome'> = {
+const GAME_LOST: Pick<GameDataFacts, 'ending' | 'outcome'> = {
   ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1', winner: null },
   outcome: 'lost',
 }
 /** The same game, won by moth. */
-const MOTH_WON: Pick<PlayareaFacts, 'ending' | 'outcome'> = {
-  ending: { ...(GAME_WON.ending as NonNullable<CommonPlayarea['ending']>), by: 'u2', winner: 'u2' },
+const MOTH_WON: Pick<GameDataFacts, 'ending' | 'outcome'> = {
+  ending: { ...(GAME_WON.ending as NonNullable<GameDataRaw['ending']>), by: 'u2', winner: 'u2' },
   outcome: 'won',
 }
 
 /** A play surface's context: a psychicnum game, solo coop by default, built
  *  from the facts the way the builder would build it. */
-function makeCtx(facts: PlayareaFacts = {}): PlayAreaLoaderProps {
+function makeCtx(facts: GameDataFacts = {}): PlayAreaLoaderProps {
   return makePsychicnumCtx({ words: WORDS, ...facts })
 }
 

@@ -20,8 +20,8 @@ import type { Member } from '../members/member'
  * belongs to.
  *
  * Anything about the GAMETYPE is reached through `manifest` rather than copied
- * flat — the filter's family and brand, the row's mode and logo. `statusLabel`
- * is the exception because it isn't a field at all: it's `labelFor(row,
+ * flat — the filter's family and brand, the row's mode and logo. `summary`
+ * is the exception because it isn't a field at all: it's `summaryFor(row,
  * members)`, a call that needs the game as well as the gametype.
  */
 export type ListedGame = {
@@ -39,7 +39,7 @@ export type ListedGame = {
   isTerminal: boolean
   // The club's current game: its `common.games.is_current_view`.
   isCurrent: boolean
-  statusLabel: string
+  summary: string
 }
 
 /** One `common.games` row as the listing selects it — the select string in
@@ -74,7 +74,7 @@ function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame
     statusChangedAt: r.status_changed_at,
     isTerminal: r.ended_at !== null,
     isCurrent: r.is_current_view,
-    statusLabel: manifest.labelFor(listRow, members),
+    summary: manifest.summaryFor(listRow, members),
   }
 }
 
@@ -93,7 +93,7 @@ function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame
  * changes, and the commonest failure is the refetch after your OWN delete —
  * where that DELETE was the event, so no second one is coming.
  *
- * Takes the club's handle, its members — which each row's `labelFor` names a
+ * Takes the club's handle, its members — which each row's `summaryFor` names a
  * user id from — and the page's global feedback slot; all three are stable, so
  * nothing here resubscribes on a render.
  */
@@ -127,7 +127,7 @@ export function useClubGames(
       const myGen = ++generation
       // One read into common.games: everything a label needs is on the
       // row, so each row's label is the matching manifest's pure
-      // `labelFor`. A gametype this bundle's registry doesn't have is skipped
+      // `summaryFor`. A gametype this bundle's registry doesn't have is skipped
       // and then REPORTED — see `reportUnknownGametypes`; it means this tab
       // predates a deploy, and the list it draws is quietly short until the
       // player reloads.

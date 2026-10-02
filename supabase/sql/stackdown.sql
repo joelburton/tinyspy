@@ -203,7 +203,7 @@ grant select on stackdown.games_state to authenticated;
 --                  team
 --   clubpage_info  { found_words_count, band, winner_user_id }
 --                  — `found_words_count` is coop's team count and null in
---                  compete, whose club line shows no progress; the winner is
+--                  compete, whose summary shows no progress; the winner is
 --                  compete's, null until the end; `band` is the setup's
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,

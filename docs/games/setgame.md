@@ -172,7 +172,7 @@ present:
 | each `player_status` | `found_sets_count`, `hints_count`, `player_ended_reason` |
 | `clubpage_info` | `found_sets_count`, `deck_remaining_count`, `deck_kind`, `winner_user_ids`, `winner_found_sets_count` |
 
-A player's status is their own claims and hints; the club line's
+A player's status is their own claims and hints; the summary's
 `found_sets_count` is the table's (the sum). Once compete has winners,
 `winner_user_ids` lists every one — a single item for a sole winner — and
 `winner_found_sets_count` is the count they share. setgame is the first game
@@ -267,7 +267,7 @@ The roster's usual `quality asc, solved_at asc` exists to separate players who
 crossed the *same* finish line. Here the count is the whole result, and breaking
 a 9–9 on who grabbed their last set first would crown reflexes the score
 deliberately doesn't measure. So the ranking uses `rank()`: every tied player is
-ranked 1 and won, the club line's `winner_user_ids` lists every one of them,
+ranked 1 and won, the summary's `winner_user_ids` lists every one of them,
 and each player reads their own outcome.
 
 **On timeout, compete RANKS BY SETS FOUND** — the leader at the whistle wins.
@@ -588,7 +588,7 @@ reason (it has nothing shareable to name).
 
 setgame *could* have named itself after its content: the sets found are public
 in both modes, so "25 sets found" was legal and true. It is the wrong thing to
-want. A counting title duplicates the status line and changes every few seconds,
+want. A counting title duplicates the summary and changes every few seconds,
 so it can't be used to REFER to a game. A handle that never moves can — "look at
 #A3F19C" is something one player says to another, and something to search a club
 list for.

@@ -507,9 +507,9 @@ collide at ~1-in-16M, which a club of friends will never reach.
   via `useCelebration(isTerminal && selfWon)`: `selfWon` reads only ctx (the
   games row + roster GamePage already awaited), so it's right on the first
   render and opening an already-won game reviews quietly ([ui.md → Terminal
-  results](../ui.md#terminal-results--the-moment-vs-the-record)). The `labelFor`
-  (manifest) maps `play_state` → the club-list status line, in the app-wide
-  grammar (see [game-status-labels.md](../game-status-labels.md)): `Playing · 12
+  results](../ui.md#terminal-results--the-moment-vs-the-record)). The `summaryFor`
+  (manifest) maps `play_state` → the summary, in the app-wide
+  grammar (see [game-summary.md](../game-summary.md)): `Playing · 12
   tiles in the bunch`, `Won by alice`, `Lost (out of time) · nobody finished`,
   `Lost (all conceded)`, `Ended`.
 - **`PeersStrip`**: opponents' tiles-left counts sorted by closest-to-done (a

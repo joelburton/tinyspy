@@ -354,7 +354,7 @@ describe('wordiply PlayArea — terminal reveal', () => {
 /**
  * The compete collective losses all land on play_state `lost_compete` and are
  * told apart only by `status.reason` — the two-places trap's third surface
- * (labelFor and the report fixtures assert the club card; nothing else asserts
+ * (summaryFor and the report fixtures assert the club card; nothing else asserts
  * the in-game verdict). These pin buildOver to the terminals the server
  * actually writes: common.concede → 'lost_compete' + reason 'conceded',
  * wordiply._finish_compete's best_score=0 path → 'lost_compete' + 'timeout'

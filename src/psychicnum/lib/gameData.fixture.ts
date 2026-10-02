@@ -6,7 +6,7 @@ import {
   makePlayAreaLoaderProps,
   type PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
-import type { CommonPlayarea, CommonPlayareaPlayer } from '@/common/game-page/playarea'
+import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { GGameDataRaw, GEventRaw, GPlayerRaw, GSetup } from '../types'
 
 /**
@@ -21,8 +21,8 @@ export type PlayerFacts = {
   color?: string
   ai?: boolean
   seat?: number | null
-  ending?: CommonPlayareaPlayer['ending']
-  outcome?: CommonPlayareaPlayer['outcome']
+  ending?: PlayerRaw['ending']
+  outcome?: PlayerRaw['outcome']
   finalRanking?: number | null
   solvedAt?: string | null
   // Their own counts, as `psychicnum.players` holds them. Left out, they are
@@ -33,7 +33,7 @@ export type PlayerFacts = {
 
 /** The facts a test sets up about a game. Everything else is a solo coop game
  *  in play, viewed by its one player, `u1`. */
-export type PlayareaFacts = {
+export type GameDataFacts = {
   id?: string
   mode?: 'coop' | 'compete'
   title?: string
@@ -47,8 +47,8 @@ export type PlayareaFacts = {
   players?: PlayerFacts[]
   // Who holds the turn in a turn-order game; `undefined` is a free-for-all.
   turnHolderId?: string | null
-  ending?: CommonPlayarea['ending']
-  outcome?: CommonPlayarea['outcome']
+  ending?: GameDataRaw['ending']
+  outcome?: GameDataRaw['outcome']
 }
 
 /** A player's ending columns, as `common._concede` writes them. */
@@ -76,11 +76,11 @@ export function guess(
 }
 
 /**
- * Build the playarea blob `psychicnum._write_statuses` would write from these
+ * Build the `game_data` blob `psychicnum._rebuild_data_cols` would write from these
  * facts: the counts summed for coop, each seat's board folded from the log in
  * the mode's scope, and where every player stands derived.
  */
-export function makePlayarea(facts: PlayareaFacts = {}): GGameDataRaw {
+export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
   const {
     id = 'g1',
     mode = 'coop',
@@ -157,24 +157,24 @@ export function makePlayarea(facts: PlayareaFacts = {}): GGameDataRaw {
 
 /**
  * The props `<GamePage>` hands psychicnum's `PlayArea`, from the game's facts:
- * the playarea blob, and the shell's roster read off it, viewed by `auth`
+ * the `game_data` blob, and shell_data's roster read off it, viewed by `auth`
  * (`u1` unless said otherwise).
  */
 export function makePsychicnumCtx(
-  facts: PlayareaFacts = {},
-  over: Omit<PlayAreaFacts, 'players' | 'playarea'> = {},
+  facts: GameDataFacts = {},
+  over: Omit<PlayAreaFacts, 'players' | 'gameData'> = {},
 ): PlayAreaLoaderProps {
-  const playarea = makePlayarea(facts)
+  const raw = makeGameDataRaw(facts)
   return makePlayAreaLoaderProps({
-    gameId: playarea.id,
-    gametype: playarea.gametype,
-    title: playarea.title,
-    clubHandle: playarea.club.handle,
-    ended: playarea.ended,
-    players: playarea.players.map((p) => ({
+    gameId: raw.id,
+    gametype: raw.gametype,
+    title: raw.title,
+    clubHandle: raw.club.handle,
+    ended: raw.ended,
+    players: raw.players.map((p) => ({
       id: p.id, username: p.username, color: p.color, ai: p.ai, stillPlaying: p.stillPlaying,
     })),
-    playarea,
+    gameData: raw,
     auth: { user: { id: 'u1' } } as unknown as Session,
     ...over,
   })

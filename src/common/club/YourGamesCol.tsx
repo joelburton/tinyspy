@@ -75,7 +75,7 @@ export function YourGamesCol({
           <ClubGameRow
             manifest={g.manifest}
             title={g.title}
-            statusLabel={g.statusLabel}
+            summary={g.summary}
             statusChangedAt={g.statusChangedAt}
             state={getGameState(g)}
             soloClub={soloClub}

@@ -311,7 +311,7 @@ revoke execute on function wordiply._track_totals(uuid) from public;
 --   clubpage_info  { guesses_used, length_score, letter_count,
 --                    winner_user_id, winner_length_score }
 --                  — coop's shared words used, and its two scores once it
---                  has ended (null in compete, whose club line shows no
+--                  has ended (null in compete, whose summary shows no
 --                  progress); compete's sole winner and their length score,
 --                  once there is one
 --

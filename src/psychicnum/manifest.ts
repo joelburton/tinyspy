@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
@@ -37,7 +37,7 @@ import type { GSetup, GClubpageInfo } from './types'
  *     the game page reads the row's own, `cg.mode`.
  *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
  *     requires an opposing player (`[2, 6]`).
- *   - `labelFor`: the ended game's label reads differently per mode.
+ *   - `summaryFor`: the ended game's label reads differently per mode.
  *
  * Both share `baseGametype: 'psychicnum'` — the family key any
  * code wanting "treat these as siblings" reads.
@@ -82,7 +82,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 
 // The club-list line reads the list row's `gameEnding` and its `clubpage_info`
 // (`GClubpageInfo`: the team's found and used counts in coop, null in
-// compete, and compete's winner). Each mode's labelFor handles its own
+// compete, and compete's winner). Each mode's summaryFor handles its own
 // endings; the helper below covers the mid-game line.
 
 /**
@@ -148,7 +148,7 @@ export const psychicnumCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  labelFor: (row, members) => {
+  summaryFor: (row, members) => {
     const clubpageInfo = row.clubpageInfo as GClubpageInfo
     if (row.gameEnding === null) return labelMidGame(clubpageInfo)
     const found = tally(clubpageInfo.found_secrets_count, clubpageInfo.required_secrets_count, 'found')
@@ -201,7 +201,7 @@ export const psychicnumCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  labelFor: (row, members) => {
+  summaryFor: (row, members) => {
     const clubpageInfo = row.clubpageInfo as GClubpageInfo
     // No progress: every player's budget and finds are their own (see
     // labelMidGame), and this line is readable by the whole club.

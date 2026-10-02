@@ -43,7 +43,7 @@ const { mockRunRpc, mockToast, clubGames, WORDLE, DUEL, SYRUP } = vi.hoisted(() 
     shortDescription: `${name} description`,
     logoUrl: '',
     numberOfPlayers: [1, 4] as [number, number],
-    labelFor: (row: { gameEnding: { outcome: string } | null }) => `label:${row.gameEnding?.outcome ?? 'playing'}`,
+    summaryFor: (row: { gameEnding: { outcome: string } | null }) => `label:${row.gameEnding?.outcome ?? 'playing'}`,
   })
   return {
     mockRunRpc: vi.fn(),
@@ -117,7 +117,7 @@ function listed(over: Partial<ListedGame> & { gameId: string; manifest: GameMani
     statusChangedAt: '2026-09-01T00:00:00Z',
     isTerminal: false,
     isCurrent: false,
-    statusLabel: 'playing',
+    summary: 'playing',
     ...over,
   }
 }

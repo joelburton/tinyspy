@@ -23,8 +23,8 @@ export type PlayAreaFacts = {
   // The roster, as the shell shows it. The viewer (`auth.user.id`) must be
   // among them: there is no spectating.
   players?: ShellPlayer[]
-  // The game's playarea blob, as its builder would write it.
-  playarea?: unknown
+  // The game's `game_data` blob, as its builder would write it.
+  gameData?: unknown
   resubscribeCount?: number
   globalFeedbackSlot?: FeedbackSlot
   menu?: MenuApi
@@ -58,7 +58,7 @@ export function makePlayAreaLoaderProps(facts: PlayAreaFacts = {}): PlayAreaLoad
     restartCount = 0,
     ended = false,
     players = [shellPlayer('u1', 'me', 'red')],
-    playarea = null,
+    gameData = null,
     resubscribeCount = 0,
     globalFeedbackSlot = createFeedbackSlot('global'),
     menu = {
@@ -90,7 +90,7 @@ export function makePlayAreaLoaderProps(facts: PlayAreaFacts = {}): PlayAreaLoad
       players,
       me,
     },
-    playarea,
+    gameData,
     auth,
     resubscribeCount,
     globalFeedbackSlot,

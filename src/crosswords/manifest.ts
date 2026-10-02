@@ -6,7 +6,7 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { db } from './db'
-import { verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { CROSSWORDS_DEFAULTS, type CrosswordsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -185,7 +185,7 @@ export const crosswordsCoopGame: GameManifest = {
     validate,
   },
   startGameInClub: startGameInClubFactory('coop'),
-  labelFor: coopLabel,
+  summaryFor: coopLabel,
   submitTimeout,
   // Coop has a whole-table "stop now" (a neutral mutual give-up).
   stopGame,
@@ -213,7 +213,7 @@ export const crosswordsCompeteGame: GameManifest = {
     validate,
   },
   startGameInClub: startGameInClubFactory('compete'),
-  labelFor: competeLabel,
+  summaryFor: competeLabel,
   submitTimeout,
   // Compete has BOTH, as every race does: `concede` is one racer dropping out
   // (a loss on their record), Stop is the whole table agreeing to stop with no

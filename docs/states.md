@@ -124,7 +124,7 @@ referred to as `foo.games` below for brevity.)
 - the ending: `ended_at`, the reason pair, `game_ended_by_user_id`,
   `game_ended_outcome`
 - the statuses: `game_status` for the play page and `clubpage_info` for the
-  club line, beside each player's `common.game_players.player_status` —
+  summary, beside each player's `common.game_players.player_status` —
   copies of the game's own tables, written whole by the game's status builder
   ([common-schema.md → Title, statuses and the two
   dates](common-schema.md#title-statuses-and-the-two-dates))

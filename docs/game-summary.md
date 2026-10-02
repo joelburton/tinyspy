@@ -1,17 +1,17 @@
-# Game titles + club-page status lines
+# Game titles + summaries
 
 A game's row in ClubPage's games list is two strings: its **title** and its
-**status line**.
+**summary**.
 
 ```
 ┌─────────────────────────────────────────┐
 │  Sun 2026-07-04            ← title      │
-│  Sun 2026-07-04 · solved   ← status     │
+│  Sun 2026-07-04 · solved   ← summary    │
 └─────────────────────────────────────────┘
 ```
 
 They come from opposite ends of the stack. The title is written by the server
-and stored; the status line is computed by the frontend each time the list is
+and stored; the summary is computed by the frontend each time the list is
 drawn.
 
 ## The title
@@ -46,9 +46,9 @@ every formula:
 
 Multi-word titles join with a dash: `APPLE-BERRY-CHERRY`.
 
-## The status line
+## The summary
 
-`manifest.labelFor(row)`: a **pure, synchronous** function of one `common.games`
+`manifest.summaryFor(row)`: a **pure, synchronous** function of one `common.games`
 row (see [`common/manifest`](../src/common/manifest/doc.md)), which ClubPage
 calls through each row's gametype. Everything a label needs must therefore
 already be on the row, which is why the RPCs write a `status` jsonb blob for it
@@ -62,21 +62,21 @@ OUTCOME (why) · other · facts
 ```
 
 **The rules are in the code** —
-[`statusLabel.ts`](../src/common/manifest/statusLabel.ts)'s header holds them:
+[`summary.ts`](../src/common/manifest/summary.ts)'s header holds them:
 the four leading words, the two devices and no third, where a reason may and may
-not go, and that every `labelFor` is an exhaustive `switch`. That file is what a
-`labelFor` author has open. Each helper's own docstring carries the rest —
+not go, and that every `summaryFor` is an exhaustive `switch`. That file is what a
+`summaryFor` author has open. Each helper's own docstring carries the rest —
 `dictLabel` why the band comes off `setup` rather than `status`, `wonBy` why a
 winner takes no parentheses.
 
 ## The guard
 
-[`gameStatusLabels.test.ts`](../src/guards/gameStatusLabels.test.ts) runs every
-registered manifest's `labelFor` over a hand-written matrix of the states each
+[`gameSummaries.test.ts`](../src/guards/gameSummaries.test.ts) runs every
+registered manifest's `summaryFor` over a hand-written matrix of the states each
 game can reach, with the `status` keys its RPCs really write. It checks that
 every gametype has a matrix, that an unknown play state never renders as the
 in-progress line (a finished game must not look live in the club list), and
 that no `status.reason` value doubles as a `play_state`.
 
-To see every game's actual lines, run `npm run report:labels`: it prints them
-as a table, generated from the real `labelFor`s.
+To see every game's actual lines, run `npm run report:summaries`: it prints them
+as a table, generated from the real `summaryFor`s.

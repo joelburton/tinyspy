@@ -456,19 +456,18 @@ select is(
   (select clubpage_info from common.games where id = (select id from seeded_coop)),
   '{"found_secrets_count": 0, "required_secrets_count": 3, "guesses_used": 0,
     "max_guesses": 7, "winner_user_id": null}'::jsonb,
-  'coop writes the team''s 0/3 found and 0/7 used for the club line at create');
+  'coop writes the team''s 0/3 found and 0/7 used for the summary at create');
 select is(
   (select clubpage_info from common.games where id = (select id from seeded_cmp)),
   '{"found_secrets_count": null, "required_secrets_count": 3, "guesses_used": null,
     "max_guesses": 7, "winner_user_id": null}'::jsonb,
-  'compete writes no progress for the club line');
+  'compete writes no progress for the summary');
 select is(
-  (select count(*)::int from common.game_players
-    where game_id = (select id from seeded_cmp)
-      and player_status = '{"found_secrets_count": 0, "guesses_used": 0,
-                            "player_ended_reason": null}'::jsonb),
+  (select count(*)::int
+     from jsonb_array_elements((select game_data -> 'players' from common.games where id = (select id from seeded_cmp))) p
+    where (p ->> 'foundSecretsCount')::int = 0 and (p ->> 'guessesUsed')::int = 0),
   2,
-  'every player''s status is written at create');
+  'every player''s counts are written into game_data at create');
 
 -- ── PN049: an unseeded dictionary ──
 -- Emptying the pool is the only way to reach this raise, so it goes LAST —

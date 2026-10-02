@@ -11,7 +11,7 @@
 
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { CONCEDED, guess, makePlayarea, makePsychicnumCtx } from '../lib/playarea.fixture'
+import { CONCEDED, guess, makeGameDataRaw, makePsychicnumCtx } from '../lib/gameData.fixture'
 import { makeGameData, useGame } from './useGame'
 
 /** Me (u1) and moth (u2); each has guessed once. */
@@ -23,24 +23,24 @@ const EVENTS = [guess(1, 'u1', 'alpha', true), guess(2, 'u2', 'bravo', false)]
 
 describe('psychicnum makeGameData — the links become players', () => {
   it('me is my own entry in players — the same object', () => {
-    const gd = makeGameData(makePlayarea({ players: TWO }), 'u1')
+    const gd = makeGameData(makeGameDataRaw({ players: TWO }), 'u1')
     expect(gd.me.username).toBe('me')
     expect(gd.players).toContain(gd.me)
     expect(gd.playersById.u1).toBe(gd.me)
   })
 
   it('names the turn holder as a player', () => {
-    const gd = makeGameData(makePlayarea({ players: TWO, turnHolderId: 'u2' }), 'u1')
+    const gd = makeGameData(makeGameDataRaw({ players: TWO, turnHolderId: 'u2' }), 'u1')
     expect(gd.turns?.holder).toBe(gd.playersById.u2)
   })
 
   it('a free-for-all game has no turns', () => {
-    expect(makeGameData(makePlayarea({ players: TWO }), 'u1').turns).toBeNull()
+    expect(makeGameData(makeGameDataRaw({ players: TWO }), 'u1').turns).toBeNull()
   })
 
   it('names who ended the game and the winner as players', () => {
     const gd = makeGameData(
-      makePlayarea({
+      makeGameDataRaw({
         mode: 'compete',
         players: TWO,
         ending: { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u2' },
@@ -55,7 +55,7 @@ describe('psychicnum makeGameData — the links become players', () => {
 
   it('a timeout nobody\'s turn covers ended by nobody', () => {
     const gd = makeGameData(
-      makePlayarea({
+      makeGameDataRaw({
         players: TWO,
         ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
         outcome: 'lost',
@@ -66,25 +66,25 @@ describe('psychicnum makeGameData — the links become players', () => {
   })
 
   it('gives each log row its player', () => {
-    const gd = makeGameData(makePlayarea({ players: TWO, events: EVENTS }), 'u1')
+    const gd = makeGameData(makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.events[0]!.by).toBe(gd.me)
     expect(gd.events[1]!.by).toBe(gd.playersById.u2)
     expect(gd.events[0]).not.toHaveProperty('userId')
   })
 
   it('turns a board into maps, with the deciders as players', () => {
-    const gd = makeGameData(makePlayarea({ players: TWO, events: EVENTS }), 'u1')
+    const gd = makeGameData(makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect([...gd.me.board.tileResults]).toEqual([['alpha', true], ['bravo', false]])
     expect(gd.me.board.decidedBy.get('bravo')).toBe(gd.playersById.u2)
   })
 
   it('builds the setup rows once, for the info column and the printout', () => {
-    const gd = makeGameData(makePlayarea({ players: TWO }), 'u1')
+    const gd = makeGameData(makeGameDataRaw({ players: TWO }), 'u1')
     expect(gd.setupRows.map((r) => r.key)).toContain('max_guesses')
   })
 
   it('carries the puzzle, the counts and the rest through from the blob', () => {
-    const gd = makeGameData(makePlayarea({ players: TWO, events: EVENTS, secrets: null }), 'u1')
+    const gd = makeGameData(makeGameDataRaw({ players: TWO, events: EVENTS, secrets: null }), 'u1')
     expect(gd.puzzle.words).toEqual(['alpha', 'bravo', 'charlie', 'delta', 'echo'])
     expect(gd.puzzle.secrets).toBeNull()
     expect([gd.me.foundSecretsCount, gd.me.guessesUsed]).toEqual([1, 2])
@@ -93,7 +93,7 @@ describe('psychicnum makeGameData — the links become players', () => {
 })
 
 describe('psychicnum makeGameData — the seat rule', () => {
-  const race = (over = {}) => makePlayarea({ mode: 'compete', players: TWO, events: EVENTS, ...over })
+  const race = (over = {}) => makeGameDataRaw({ mode: 'compete', players: TWO, events: EVENTS, ...over })
 
   it('mid-race, a rival\'s rows leave the log and their board is withheld', () => {
     const gd = makeGameData(race(), 'u1')
@@ -113,7 +113,7 @@ describe('psychicnum makeGameData — the seat rule', () => {
   })
 
   it('coop withholds nothing: one board, one team', () => {
-    const gd = makeGameData(makePlayarea({ players: TWO, events: EVENTS }), 'u1')
+    const gd = makeGameData(makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.events).toHaveLength(2)
     expect(gd.playersById.u2!.board).toEqual(gd.me.board)
   })
@@ -150,8 +150,8 @@ describe('psychicnum useGame', () => {
     expect(result.current.gd.events).toHaveLength(2)
   })
 
-  it('throws for a game whose builder has not written a blob', () => {
-    const ctx = { ...makePsychicnumCtx(), playarea: null }
-    expect(() => renderHook(() => useGame(ctx))).toThrow(/no playarea blob/)
+  it('throws for a game whose builder has not written its game_data', () => {
+    const ctx = { ...makePsychicnumCtx(), gameData: null }
+    expect(() => renderHook(() => useGame(ctx))).toThrow(/no game_data/)
   })
 })

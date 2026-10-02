@@ -19,6 +19,9 @@
 -- the slice's order, psychicnum first (plans/seat-view.md → What this touches).
 -- The builders themselves are behavior and live in `supabase/sql/`.
 --
+-- 20261002000000 renames the three for what they hold: `summary_data`,
+-- `game_data`, `shell_data`.
+--
 -- `game_status` and `clubpage_info` stay until a later migration retires them.
 
 alter table common.games

@@ -59,7 +59,7 @@ export function GamePage({
   auth,
   manifest,
   cg,
-  playarea,
+  gameData,
   pause,
   timer,
   sendSuspend,
@@ -148,7 +148,7 @@ export function GamePage({
               <manifest.PlayArea
                 key={cg.restartCount}
                 cg={cg}
-                playarea={playarea}
+                gameData={gameData}
                 auth={auth}
                 resubscribeCount={resubscribeCount}
                 globalFeedbackSlot={globalFeedbackSlot}

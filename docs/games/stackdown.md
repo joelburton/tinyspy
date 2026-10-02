@@ -355,9 +355,9 @@ every move, each assigned whole with every key present:
 | `clubpage_info` | `found_words_count`, `band`, `winner_user_id` |
 
 A player's counts are their own; in coop the page sums them for the team. The
-club line's `found_words_count` is coop's team count and null in compete,
+summary's `found_words_count` is coop's team count and null in compete,
 where a live tally would leak the leader's progress; `winner_user_id` names
-the clearer once a race is won. The consumer is the manifest's `labelFor`
+the clearer once a race is won. The consumer is the manifest's `summaryFor`
 (`src/stackdown/manifest.ts`), which reads the ending off `common.games`'
 reason pair.
 

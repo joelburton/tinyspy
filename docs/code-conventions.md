@@ -84,7 +84,7 @@ a shared thing's docstring already says.
 - **Prefer one clear path over a clever one**, and **extract a small helper over
   a nested ternary**: one `a ? b : c` is fine, two deep reads better as a
   function with `if` branches
-  ([`psychicnum/manifest.ts → labelFor`](../src/psychicnum/manifest.ts)).
+  ([`psychicnum/manifest.ts → summaryFor`](../src/psychicnum/manifest.ts)).
 - **Names describe role, not implementation** (`isClueGiver`, not `playerA`),
   and there are no single-letter helpers, even for a formatter used twice.
 - **Name and comment non-trivial hook callbacks** — see [Hook
@@ -220,7 +220,7 @@ When a folder holds two concerns, the filenames say which one you are in.
 
 **Every type a game exports lives in `<game>/types.ts` and starts with `G`.**
 The `G` says "game-specific": this is the game's own `GPlayer`, `GGameData`,
-`GEvent`, `GSetup`, as against the shell's `Member` or `CommonPlayarea`. A
+`GEvent`, `GSetup`, as against the shell's `Member` or `GameDataRaw`. A
 reader of a game file can tell at a glance which side a name is on, and
 `GEvent` across sixteen folders is every game's version of one thing. It goes
 on every exported type, including the ones with no twin anywhere: without it a
@@ -238,7 +238,7 @@ test fixtures' facts stay in the fixture file. A `lib/` module keeps its
 functions and loses its types.
 
 The shape a game is handed and the shape it reads are two types: `GGameDataRaw`
-is the playarea blob as the builder wrote it (ids, records), and `GGameData` is
+is `game_data` as the builder wrote it (ids, records), and `GGameData` is
 what `useGame` makes of it (players, maps, the seat rule applied). `Raw` marks
 the written shape wherever the pair exists (`GPlayerRaw` / `GPlayer`,
 `GEventRaw` / `GEvent`). psychicnum is the model (`src/psychicnum/types.ts`);

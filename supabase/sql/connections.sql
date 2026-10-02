@@ -331,7 +331,7 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 --                  matched
 --   clubpage_info  { found_categories_count, mistake_count, winner_user_id }
 --                  — the counts are the team's in coop and null in compete,
---                  whose club line shows no progress; the winner is
+--                  whose summary shows no progress; the winner is
 --                  compete's, null until the end
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,

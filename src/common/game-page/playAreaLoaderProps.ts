@@ -23,12 +23,13 @@ import type { CommonGame } from './shell'
  * game and playing one are different moments with different audiences.
  */
 export type PlayAreaLoaderProps = {
-  // The game, as the page has it: the shell, plus me.
+  // The game, as the page has it: its shell_data, plus me.
   cg: CommonGame
-  // The game's playarea blob, as its status builder wrote it
+  // The game's `game_data` blob, as its status builder wrote it
   // (plans/seat-view.md → The page is written, not assembled). The game's
-  // `useGame` reads it as its own type; null until the builder has written one.
-  playarea: unknown
+  // `useGame` reads it as its own `GGameDataRaw`; null until the builder has
+  // written one.
+  gameData: unknown
   // The signed-in user: `auth.user.id`. Their player is `cg.me`.
   auth: Session
   // How many times the page's channel has joined (reconnects included) or

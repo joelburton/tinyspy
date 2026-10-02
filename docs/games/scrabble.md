@@ -22,7 +22,7 @@ every other multiplayer gametype.
 > and shipping. The design forks — difficulty bands by word length
 > ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)), endgame rules
 > ([§2.7](#27-ending-the-game)), the coop "tiles unplayed" forfeit, and the
-> title/label shapes ([§8](#8-title-formula), [§9](#9-the-club-line)) — are
+> title/label shapes ([§8](#8-title-formula), [§9](#9-the-summary)) — are
 > documented in place across §§2–9.
 
 > **Keyboard-required, NOT desktop-only.** Placing a word on the 15×15 board is a
@@ -363,7 +363,7 @@ every move and ending, each assigned whole with every key present:
 
 A player's `score` and `rack_tiles_count` are their own in compete and the
 team's (`coop_score`, `coop_rack`) in coop, where they are a team-fact copied
-onto every row. The club line's `coop_score` is null in compete; a sole compete
+onto every row. The summary's `coop_score` is null in compete; a sole compete
 winner and their score are written once there is one.
 
 ---
@@ -854,15 +854,15 @@ visible. A fresh game stays `"New game"` until the first word lands.
 
 ---
 
-## 9. The club line
+## 9. The summary
 
-The club line reads `clubpage_info` ([§4.4](#44-the-statuses)) and the ending
+The summary reads `clubpage_info` ([§4.4](#44-the-statuses)) and the ending
 on `common.games`. **Mid-game:** the tiles left in the bag, coop prepending the
 coop score — `Playing · 152 pts · 7 tiles left` (coop) / `Playing · 7 tiles
 left` (compete). **At the end:** compete's sole winner and the winning score;
 on a tie there is no sole winner, and the line names none; coop's score, and
 its verdict — a win for playing the bag out, a loss on the clock, neutral on a
-Stop. The FE's `labelFor` moves onto these in step 5 of
+Stop. The FE's `summaryFor` moves onto these in step 5 of
 plans/common-tables.md.
 
 ---
@@ -897,7 +897,7 @@ commit), not the TS-owned geometry/scoring:
 - `auto_finish` — the game-ends-**itself** paths (`_finish`): going-out + the
   all-passed blocked trigger, final scoring (leftover subtraction + the
   going-out bonus, compete; the coop win on playing the bag out), the ranking
-  by score and ties sharing it, and the club line's winner (named on a sole
+  by score and ties sharing it, and the summary's winner (named on a sole
   win, null on a tie).
 - `stop_game` — the **player-initiated** ends, split from `auto_finish` so the
   two aren't one keystroke apart: `stop_game`'s **coop manual-end forfeit** of

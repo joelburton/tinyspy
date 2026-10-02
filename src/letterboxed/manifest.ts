@@ -3,7 +3,7 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
@@ -32,7 +32,7 @@ import logoUrl from './logo.svg?url'
  *
  * Differences between the two: the `gametype` string, the `mode` declaration,
  * `numberOfPlayers` (coop solo-friendly `[1,6]` vs compete `[2,6]`), and the
- * per-mode `labelFor` vocabulary.
+ * per-mode `summaryFor` vocabulary.
  */
 
 const helpLoader = lazy(() =>
@@ -178,7 +178,7 @@ export const letterboxedCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  labelFor: (row) => coopLabel(row),
+  summaryFor: (row) => coopLabel(row),
 
   submitTimeout,
   stopGame,
@@ -213,7 +213,7 @@ export const letterboxedCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  labelFor: (row) => competeLabel(row),
+  summaryFor: (row) => competeLabel(row),
 
   submitTimeout,
   stopGame,
