@@ -144,15 +144,17 @@ Identified by a UUID.
 
 ### board
 
-The *static starting state* of a game — the inert configuration that could be
-saved and replayed. For boggle, that's the dice arrangement. For crosswords, the
-puzzle grid. For games where the starting state is trivial (psychicnum's "a
-number from 1–10," codenamesduet's "25 random words + a key card"), the board
-co-locates onto the game row instead of warranting its own table.
+The *thing on screen that is played on*: the grid of tiles, rows or cells a
+seat looks at, and what it shows. What is fixed before play is the
+[puzzle](#puzzle); the board is the puzzle as one seat sees it with the moves
+so far laid on it — psychicnum's word tiles with their green and red,
+wordle's colored rows.
 
-The distinguishing test: would two different games on the same setup be a
-meaningful concept for this gametype? If yes, that setup is a board. If no, the
-concept is too thin to bother extracting.
+Each seat has a board. In a game with `oneBoard` (`common.gametypes.one_board`)
+every player's moves land on the same one, so every seat's board is the same
+and the dots say whose move each was; otherwise each player plays their own
+copy, and a rival's board is withheld until the game ends. On the page it is
+`p.board`, and `gd.me.board` is mine.
 
 ### puzzle
 
@@ -161,7 +163,10 @@ wordle's hidden word, psychicnum's board words with the three secrets among
 them, a crossword's grid. On the page it is `gd.puzzle`, with whatever is
 secret in it null until the game ends. It is not the players' doing (`events`,
 the players) and not the knobs they chose (`setup`); it is what the knobs
-produced.
+produced. It stretches to a game that is no puzzle in the everyday sense:
+scrabble's shuffled bag, setgame's shuffled deck, bananagrams' deal are its
+puzzle, the inputs the game was started from — and nobody would call the cards
+still in the deck the board.
 
 A **pregenerated puzzle** exists before any game: a row in `<game>.puzzles`,
 authored or built ahead by a generator and imported — connections, crosswords,
