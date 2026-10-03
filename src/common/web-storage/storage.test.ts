@@ -2,7 +2,7 @@
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readStored, removeStored, writeStored } from './storage'
-import { installFakeStorage, type InstalledStorage } from './storage.fake'
+import { ZTest_installFakeStorage, type ZTest_InstalledStorage } from './storage.fake'
 
 /**
  * The wrapper's whole job is the failing case, so that is most of what is here:
@@ -23,10 +23,10 @@ import { installFakeStorage, type InstalledStorage } from './storage.fake'
 
 const KEY = 'test:storage'
 
-let storage: InstalledStorage
+let storage: ZTest_InstalledStorage
 
 beforeAll(() => {
-  storage = installFakeStorage()
+  storage = ZTest_installFakeStorage()
 })
 
 beforeEach(() => storage.clear())

@@ -13,7 +13,7 @@
  * reads "out" mid-game; and after I concede I get the player-ended look.
  *
  * The surface is a pure function of the `game_data` blob the page hands it, so a
- * test builds that blob from the game's facts (`makePsychicnumCtx`) and
+ * test builds that blob from the game's facts (`ZTest_makePsychicnumCtx`) and
  * nothing is mocked but `db`; everything — the board, Clear/Submit, strip,
  * action row — renders for real. Mirrors wordle's concede tests (the
  * elimination template, commit c1b5df8).
@@ -30,12 +30,12 @@ import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import {
-  CONCEDED,
-  SPENT,
-  guess,
-  makePsychicnumCtx,
-  type GameDataFacts,
-  type PlayerFacts,
+  ZTest_CONCEDED,
+  ZTest_SPENT,
+  ZTest_guess,
+  ZTest_makePsychicnumCtx,
+  type ZTest_GameDataFacts,
+  type ZTest_PlayerFacts,
 } from '../lib/gameData.fixture'
 import { db } from '../db'
 import { PlayAreaLoader } from './PlayArea'
@@ -50,36 +50,36 @@ const WORDS = ['alpha', 'bravo', 'charlie', 'delta', 'echo']
 /** The three secrets, where a test needs the game to have ended with them. */
 const SECRETS = ['alpha', 'charlie', 'echo']
 
-const ME: PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
-const MOTH: PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
+const ME: ZTest_PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
+const MOTH: ZTest_PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
 
 /** A player with the counts their own rows carry. */
-const counted = (p: PlayerFacts, found: number, used = 0): PlayerFacts => ({ ...p, found, used })
+const counted = (p: ZTest_PlayerFacts, found: number, used = 0): ZTest_PlayerFacts => ({ ...p, found, used })
 /** The same player, ranked first — `won`, as `_end_game` writes it. */
-const won = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'won', finalRanking: 1 })
+const won = (p: ZTest_PlayerFacts): ZTest_PlayerFacts => ({ ...p, outcome: 'won', finalRanking: 1 })
 /** The same player, beaten — `lost`, as `_end_game` writes it. */
-const lost = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'lost' })
+const lost = (p: ZTest_PlayerFacts): ZTest_PlayerFacts => ({ ...p, outcome: 'lost' })
 
 /** The two game endings the tests reach for: the set completed, and every
  *  budget spent — each with the game's outcome beside it. */
-const GAME_WON: Pick<GameDataFacts, 'ending' | 'outcome'> = {
+const GAME_WON: Pick<ZTest_GameDataFacts, 'ending' | 'outcome'> = {
   ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
   outcome: 'won',
 }
-const GAME_LOST: Pick<GameDataFacts, 'ending' | 'outcome'> = {
+const GAME_LOST: Pick<ZTest_GameDataFacts, 'ending' | 'outcome'> = {
   ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1', winner: null },
   outcome: 'lost',
 }
 /** The same game, won by moth. */
-const MOTH_WON: Pick<GameDataFacts, 'ending' | 'outcome'> = {
+const MOTH_WON: Pick<ZTest_GameDataFacts, 'ending' | 'outcome'> = {
   ending: { ...(GAME_WON.ending as NonNullable<GameDataRaw['ending']>), by: 'u2', winner: 'u2' },
   outcome: 'won',
 }
 
 /** A play surface's context: a psychicnum game, solo coop by default, built
  *  from the facts the way the builder would build it. */
-function makeCtx(facts: GameDataFacts = {}): PlayAreaLoaderProps {
-  return makePsychicnumCtx({ words: WORDS, ...facts })
+function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
+  return ZTest_makePsychicnumCtx({ words: WORDS, ...facts })
 }
 
 /** An `ok` envelope, in the shape `runRpc` unwraps. `data.result` is what the
@@ -176,17 +176,17 @@ describe('psychicnum PlayArea — concede', () => {
   })
 
   it('marks a conceded opponent "out" in the strip', () => {
-    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...CONCEDED }] })} />)
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />)
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
   it('marks an opponent out of guesses "out" too', () => {
-    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...SPENT }] })} />)
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_SPENT }] })} />)
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
   it('shows the "You conceded" player-ended look after I concede', () => {
-    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...CONCEDED }, MOTH] })} />)
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />)
     // The info-column action row swaps to the player-ended LOOK ("You conceded"),
     // and the below-board slot narrates the drop-out ("Conceded — race
     // continues", `buildPlayerEndingMessage`'s pill).
@@ -293,7 +293,7 @@ describe('psychicnum PlayArea — a wrong guess is pointed at, then shaken', () 
       const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
 
       // The guess lands — a move, so the board points at where it went.
-      act(() => rerender(<PlayAreaLoader {...makeCtx({ events: [guess(1, 'u1', 'bravo', false)] })} />))
+      act(() => rerender(<PlayAreaLoader {...makeCtx({ events: [ZTest_guess(1, 'u1', 'bravo', false)] })} />))
       expect(tileFor('bravo').className).toMatch(/attentionFlash/)
       expect(tileFor('bravo').className).not.toMatch(/verdictShake/)
 
@@ -310,7 +310,7 @@ describe('psychicnum PlayArea — a wrong guess is pointed at, then shaken', () 
     vi.useFakeTimers()
     try {
       const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
-      act(() => rerender(<PlayAreaLoader {...makeCtx({ events: [guess(1, 'u1', 'bravo', true)] })} />))
+      act(() => rerender(<PlayAreaLoader {...makeCtx({ events: [ZTest_guess(1, 'u1', 'bravo', true)] })} />))
 
       act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS))
       expect(tileFor('bravo').className).not.toMatch(/verdictShake/)
@@ -365,8 +365,8 @@ describe('psychicnum PlayArea — click-to-define (event log)', () => {
       <PlayAreaLoader
         {...makeCtx({
           events: [
-            guess(1, 'u1', 'bravo', false),
-            guess(2, 'u1', 'a paid assassin', false, { kind: 'hint' }),
+            ZTest_guess(1, 'u1', 'bravo', false),
+            ZTest_guess(2, 'u1', 'a paid assassin', false, { kind: 'hint' }),
           ],
         })}
       />,
@@ -417,7 +417,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
     // Out of budget in a race that goes on — the server marks me as a player
     // who has ended: disabled, but STILL THERE — a grayed row still teaches its
     // glyph, which is why the pair is never dropped.
-    const spent = makeCtx({ mode: 'compete', players: [{ ...counted(ME, 0, 7), ...SPENT }, MOTH] })
+    const spent = makeCtx({ mode: 'compete', players: [{ ...counted(ME, 0, 7), ...ZTest_SPENT }, MOTH] })
     render(<PlayAreaLoader {...spent} />)
     const items = menuItems(spent)
     expect(items.get('act-hint')?.disabled).toBe(true)
@@ -565,7 +565,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
 
   it('frames my board in my own outcome once I have ended, while the race runs on', () => {
     const { container } = render(
-      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...CONCEDED }, MOTH] })} />,
+      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />,
     )
     expect(gridIn(container).className).toMatch(/endingFrame_lost/)
   })
@@ -619,7 +619,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     await user.click(tile())
     expect(tile().className).toMatch(/picked/)
 
-    rerender(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...CONCEDED }, MOTH] })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />)
     expect(tile().className).not.toMatch(/picked/)
   })
 
@@ -928,7 +928,7 @@ describe('psychicnum PlayArea — the selection cursor', () => {
   })
 
   it('Space passes over a decided tile', async () => {
-    render(<WithKeys {...makeCtx({ events: [guess(1, 'u1', 'alpha', false)] })} />)
+    render(<WithKeys {...makeCtx({ events: [ZTest_guess(1, 'u1', 'alpha', false)] })} />)
     await key('ArrowRight')
     expect(ringed()).toEqual(['alpha'])
     await key(' ')

@@ -3,8 +3,8 @@
 import type { Session } from '@supabase/supabase-js'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import {
-  makePlayAreaLoaderProps,
-  type PlayAreaFacts,
+  ZTest_makePlayAreaLoaderProps,
+  type ZTest_PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type {
@@ -26,7 +26,7 @@ import type {
  * the builder could not give. Their two counts are counted off their own
  * rows in the log, as `submit_guess` keeps them.
  */
-export type PlayerFacts = {
+export type ZTest_PlayerFacts = {
   id: string
   username: string
   color?: string
@@ -40,7 +40,7 @@ export type PlayerFacts = {
 
 /** The facts a test sets up about a game. Everything else is a solo coop game
  *  in play, viewed by its one player, `u1`, on the four-letter puzzle. */
-export type GameDataFacts = {
+export type ZTest_GameDataFacts = {
   id?: string
   mode?: 'coop' | 'compete'
   title?: string
@@ -49,7 +49,7 @@ export type GameDataFacts = {
   puzzle?: GPuzzle
   // The whole log — every player's rows, as the blob carries it.
   events?: GEventRaw[]
-  players?: PlayerFacts[]
+  players?: ZTest_PlayerFacts[]
   // Who holds the turn in a turn-order game; `undefined` is a free-for-all.
   turnHolderId?: string
   ending?: GameDataRaw['ending']
@@ -57,7 +57,7 @@ export type GameDataFacts = {
 }
 
 /** A 4-category / 16-tile puzzle, its tiles in rank order. */
-export const PUZZLE: GPuzzle = {
+export const ZTest_PUZZLE: GPuzzle = {
   date: '2026-06-15',
   cats: [
     { rank: 0, name: 'RED', tiles: ['a', 'b', 'c', 'd'] },
@@ -69,14 +69,14 @@ export const PUZZLE: GPuzzle = {
 }
 
 /** A player's ending columns, as `common._concede` writes them. */
-export const CONCEDED: Pick<PlayerFacts, 'ending' | 'outcome'> = {
+export const ZTest_CONCEDED: Pick<ZTest_PlayerFacts, 'ending' | 'outcome'> = {
   ending: { at: '2026-06-15T00:02:00Z', reason: 'conceded', detail: 'conceded' },
   outcome: 'lost',
 }
 
 /** A racer out on their fourth mistake — `lost` at once, as `submit_guess`
  *  writes it. */
-export const ELIMINATED: Pick<PlayerFacts, 'ending' | 'outcome'> = {
+export const ZTest_ELIMINATED: Pick<ZTest_PlayerFacts, 'ending' | 'outcome'> = {
   ending: { at: '2026-06-15T00:02:00Z', reason: 'resource_exhausted', detail: 'mistakes' },
   outcome: 'lost',
 }
@@ -84,7 +84,7 @@ export const ELIMINATED: Pick<PlayerFacts, 'ending' | 'outcome'> = {
 let nextEventId = 1
 /** A guess row for the log. A correct one names its category's rank; the
  *  ids count up across a test file, so a filter cannot confuse two rows. */
-export function guess(
+export function ZTest_guess(
   userId: string,
   tiles: string[],
   result: GGuessResult,
@@ -102,8 +102,8 @@ export function guess(
 }
 
 /** A correct guess of this category, by `userId`. */
-export function matchOf(cat: GCategory, userId = 'u1'): GEventRaw {
-  return guess(userId, cat.tiles, 'correct', cat.rank)
+export function ZTest_matchOf(cat: GCategory, userId = 'u1'): GEventRaw {
+  return ZTest_guess(userId, cat.tiles, 'correct', cat.rank)
 }
 
 /**
@@ -112,14 +112,14 @@ export function matchOf(cat: GCategory, userId = 'u1'): GEventRaw {
  * from them in coop, each seat's board folded from the log in the mode's
  * scope, and where every player stands derived.
  */
-export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
+export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
     id = 'g1',
     mode = 'coop',
     title = '2026-06-15: a-b',
     clubHandle = 'testclub',
     setup = { puzzle_id: 'p1', timer: { kind: 'none' }, coop_style: 'free-for-all' },
-    puzzle = PUZZLE,
+    puzzle = ZTest_PUZZLE,
     events = [],
     players: playerFacts = [{ id: 'u1', username: 'me', color: 'red' }],
     turnHolderId,
@@ -131,9 +131,9 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
   const turnBased = turnHolderId !== undefined
   const catByRank = new Map(puzzle.cats.map((c) => [c.rank, c]))
 
-  const ownRows = (p: PlayerFacts) => events.filter((e) => e.userId === p.id)
-  const nMatchedOf = (p: PlayerFacts) => ownRows(p).filter((e) => e.result === 'correct').length
-  const nMistakesOf = (p: PlayerFacts) => ownRows(p).filter((e) => e.result !== 'correct').length
+  const ownRows = (p: ZTest_PlayerFacts) => events.filter((e) => e.userId === p.id)
+  const nMatchedOf = (p: ZTest_PlayerFacts) => ownRows(p).filter((e) => e.result === 'correct').length
+  const nMistakesOf = (p: ZTest_PlayerFacts) => ownRows(p).filter((e) => e.result !== 'correct').length
   const team = coop
     ? {
         nMatchedCats: playerFacts.reduce((sum, p) => sum + nMatchedOf(p), 0),
@@ -143,7 +143,7 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
 
   // The board a seat shows: the bands of the rows in the mode's scope, in
   // the order they were matched, and the tiles left in the puzzle's order.
-  function boardOf(p: PlayerFacts) {
+  function boardOf(p: ZTest_PlayerFacts) {
     const shown = events.filter((e) => coop || e.userId === p.id)
     const matchedCats: GMatchedCat[] = shown
       .filter((e) => e.result === 'correct')
@@ -204,12 +204,12 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
  * the `game_data` blob, and shell_data's roster read off it, viewed by `auth`
  * (`u1` unless said otherwise).
  */
-export function makeConnectionsCtx(
-  facts: GameDataFacts = {},
-  over: Omit<PlayAreaFacts, 'players' | 'gameData'> = {},
+export function ZTest_makeConnectionsCtx(
+  facts: ZTest_GameDataFacts = {},
+  over: Omit<ZTest_PlayAreaFacts, 'players' | 'gameData'> = {},
 ): PlayAreaLoaderProps {
-  const raw = makeGameDataRaw(facts)
-  return makePlayAreaLoaderProps({
+  const raw = ZTest_makeGameDataRaw(facts)
+  return ZTest_makePlayAreaLoaderProps({
     gameId: raw.id,
     gametype: raw.gametype,
     title: raw.title,

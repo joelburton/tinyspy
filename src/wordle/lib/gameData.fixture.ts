@@ -3,8 +3,8 @@
 import type { Session } from '@supabase/supabase-js'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import {
-  makePlayAreaLoaderProps,
-  type PlayAreaFacts,
+  ZTest_makePlayAreaLoaderProps,
+  type ZTest_PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { GGameDataRaw, GEventRaw, GPlayerRaw, GSetup } from '../types'
@@ -15,7 +15,7 @@ import type { GGameDataRaw, GEventRaw, GPlayerRaw, GSetup } from '../types'
  * end and the turn — so a test sets the facts and never hand-writes an answer
  * the builder could not give.
  */
-export type PlayerFacts = {
+export type ZTest_PlayerFacts = {
   id: string
   username: string
   color?: string
@@ -34,7 +34,7 @@ export type PlayerFacts = {
 
 /** The facts a test sets up about a game. Everything else is a solo coop game
  *  in play, viewed by its one player, `u1`. */
-export type GameDataFacts = {
+export type ZTest_GameDataFacts = {
   id?: string
   mode?: 'coop' | 'compete'
   title?: string
@@ -44,7 +44,7 @@ export type GameDataFacts = {
   target?: string | null
   // The whole log — every player's rows, as the blob carries it.
   events?: GEventRaw[]
-  players?: PlayerFacts[]
+  players?: ZTest_PlayerFacts[]
   // Who holds the turn in a turn-order game; `undefined` is a free-for-all.
   turnHolderId?: string
   ending?: GameDataRaw['ending']
@@ -52,28 +52,28 @@ export type GameDataFacts = {
 }
 
 /** A player's ending columns, as `common._concede` writes them. */
-export const CONCEDED: Pick<PlayerFacts, 'ending' | 'outcome'> = {
+export const ZTest_CONCEDED: Pick<ZTest_PlayerFacts, 'ending' | 'outcome'> = {
   ending: { at: '2026-09-03T00:00:00Z', reason: 'conceded', detail: 'conceded' },
   outcome: 'lost',
 }
 
 /** A compete player whose budget ran out — eliminated, so `lost` at once, as
  *  `submit_guess` writes it. */
-export const SPENT: Pick<PlayerFacts, 'ending' | 'outcome'> = {
+export const ZTest_SPENT: Pick<ZTest_PlayerFacts, 'ending' | 'outcome'> = {
   ending: { at: '2026-09-03T00:00:00Z', reason: 'resource_exhausted', detail: 'exhausted' },
   outcome: 'lost',
 }
 
 /** A compete player who solved and waits on the rest — `neutral`, since fewer
  *  guesses may yet beat it, as `submit_guess` writes it. */
-export const SOLVED_WAITING: Pick<PlayerFacts, 'ending' | 'outcome' | 'solvedAt'> = {
+export const ZTest_SOLVED_WAITING: Pick<ZTest_PlayerFacts, 'ending' | 'outcome' | 'solvedAt'> = {
   ending: { at: '2026-09-03T00:00:00Z', reason: 'reached_goal', detail: 'solved' },
   outcome: 'neutral',
   solvedAt: '2026-09-03T00:00:00Z',
 }
 
 /** A guess row, for the log and the boards. */
-export function guess(
+export function ZTest_guess(
   id: number,
   userId: string,
   word: string,
@@ -89,7 +89,7 @@ export function guess(
  * seat's board folded from the log in the mode's scope, and where every player
  * stands derived.
  */
-export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
+export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
     id = 'g1',
     mode = 'coop',
@@ -106,7 +106,7 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
   const ended = ending !== null
   const coop = mode === 'coop'
   const turnBased = turnHolderId !== undefined
-  const usedOf = (p: PlayerFacts) => p.used ?? events.filter((e) => e.userId === p.id).length
+  const usedOf = (p: ZTest_PlayerFacts) => p.used ?? events.filter((e) => e.userId === p.id).length
   const team = coop
     ? { guessesUsed: playerFacts.reduce((sum, p) => sum + usedOf(p), 0) }
     : null
@@ -165,12 +165,12 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
  * `game_data` blob, and shell_data's roster read off it, viewed by `auth`
  * (`u1` unless said otherwise).
  */
-export function makeWordleCtx(
-  facts: GameDataFacts = {},
-  over: Omit<PlayAreaFacts, 'players' | 'gameData'> = {},
+export function ZTest_makeWordleCtx(
+  facts: ZTest_GameDataFacts = {},
+  over: Omit<ZTest_PlayAreaFacts, 'players' | 'gameData'> = {},
 ): PlayAreaLoaderProps {
-  const raw = makeGameDataRaw(facts)
-  return makePlayAreaLoaderProps({
+  const raw = ZTest_makeGameDataRaw(facts)
+  return ZTest_makePlayAreaLoaderProps({
     gameId: raw.id,
     gametype: raw.gametype,
     title: raw.title,

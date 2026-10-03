@@ -19,8 +19,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { gp } from '@/common/members/gamePlayer.fixture'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
@@ -87,7 +87,7 @@ function loaded(game: WordwheelGame, foundWords: FoundWordRow[] = []): GameHook 
   return { game, foundWords, loading: false, rowsLoaded: true, failure: null }
 }
 
-const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
 
 /** A play surface's context. Where I stand is DERIVED from the fixture — the
  *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
@@ -96,7 +96,7 @@ const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
     authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [gp('u1', 'me', 'red')],
+    players: [ZTest_gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased: false,
     turnHolderId: null,
@@ -115,9 +115,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
+      actHelp: ZTest_actionFixture('act-help'),
+      actChat: ZTest_actionFixture('act-open-chat'),
+      actBackToClub: ZTest_actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -688,7 +688,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
 describe('wordwheel PlayArea — the board goes inert when I can add nothing', () => {
   const conceded = () =>
     makeCtx({
-      players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')],
+      players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')],
       setup: { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } },
     })
   /** The tiles the typed word is spending — `data-spent`, see Tile.tsx. */
@@ -883,7 +883,7 @@ describe('wordwheel PlayArea — concede', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })],
+          players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue', { conceded: true })],
           setup: competeSetup,
         })}
       />,
@@ -896,7 +896,7 @@ describe('wordwheel PlayArea — concede', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
-          players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')],
+          players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')],
           setup: competeSetup,
         })}
       />,
@@ -920,9 +920,9 @@ describe('wordwheel PlayArea — concede', () => {
           isTerminal: true,
           playState: 'ended',
           players: [
-            gp('u1', 'me', 'red', { result: { won: false } }), // self → Lost
-            gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }), // → Conceded
-            gp('u3', 'cade', 'green', { result: { won: true } }), // → Won
+            ZTest_gp('u1', 'me', 'red', { result: { won: false } }), // self → Lost
+            ZTest_gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }), // → Conceded
+            ZTest_gp('u3', 'cade', 'green', { result: { won: true } }), // → Won
           ],
           setup: competeSetup,
           status: {

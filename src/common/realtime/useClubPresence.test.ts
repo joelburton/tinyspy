@@ -28,13 +28,13 @@ vi.mock('../supabase/supabase', () => ({
 }))
 
 import { useClubPresence } from './useClubPresence'
-import { __resetChannelTeardowns } from './channelTeardown'
-import { fakeChannel, lastFakeChannel } from './channel.fake'
+import { ZTest_resetChannelTeardowns } from './channelTeardown'
+import { ZTest_fakeChannel, ZTest_lastFakeChannel } from './channel.fake'
 
 beforeEach(() => {
-  __resetChannelTeardowns()
+  ZTest_resetChannelTeardowns()
   channel.mockReset()
-  channel.mockImplementation((name: string) => fakeChannel(name))
+  channel.mockImplementation((name: string) => ZTest_fakeChannel(name))
   removeChannel.mockReset()
   removeChannel.mockResolvedValue('ok')
 })
@@ -115,7 +115,7 @@ describe('useClubPresence — self is in the roster', () => {
 
   it('alongside a peer, when the sync has not reported us yet', () => {
     const { result } = renderHook(() => useClubPresence('cl1', null, 'u1'))
-    act(() => lastFakeChannel(channel).sync({ u2: [{ user_id: 'u2', game_id: 'g9' }] }))
+    act(() => ZTest_lastFakeChannel(channel).sync({ u2: [{ user_id: 'u2', game_id: 'g9' }] }))
     expect(result.current).toEqual([
       { userId: 'u1', gameId: null },
       { userId: 'u2', gameId: 'g9' },
@@ -125,7 +125,7 @@ describe('useClubPresence — self is in the roster', () => {
   it('exactly once, when the sync does report us', () => {
     const { result } = renderHook(() => useClubPresence('cl1', null, 'u1'))
     act(() =>
-      lastFakeChannel(channel).sync({
+      ZTest_lastFakeChannel(channel).sync({
         u1: [{ user_id: 'u1', game_id: null }],
         u2: [{ user_id: 'u2', game_id: 'g9' }],
       }),

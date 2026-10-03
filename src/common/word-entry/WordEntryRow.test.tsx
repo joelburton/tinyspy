@@ -11,7 +11,7 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { WordEntryRow } from './WordEntryRow'
-import { actionFixture } from '../actions/action.fixture'
+import { ZTest_actionFixture } from '../actions/action.fixture'
 
 /** Which lucide glyph an element drew, e.g. 'delete'. */
 const glyphIn = (el: Element | null) =>
@@ -20,7 +20,7 @@ const glyphIn = (el: Element | null) =>
 describe('WordEntryRow', () => {
   it('draws each action its own glyph, never the generic square', () => {
     const { container } = render(
-      <WordEntryRow actDelete={actionFixture('act-delete-last')} actSubmit={actionFixture('act-submit')}>
+      <WordEntryRow actDelete={ZTest_actionFixture('act-delete-last')} actSubmit={ZTest_actionFixture('act-submit')}>
         <span>cat</span>
       </WordEntryRow>,
     )
@@ -33,7 +33,7 @@ describe('WordEntryRow', () => {
 
   it('puts the entry between them, take-back first', () => {
     const { container } = render(
-      <WordEntryRow actDelete={actionFixture('act-delete-last')} actSubmit={actionFixture('act-submit')}>
+      <WordEntryRow actDelete={ZTest_actionFixture('act-delete-last')} actSubmit={ZTest_actionFixture('act-submit')}>
         <span>cat</span>
       </WordEntryRow>,
     )

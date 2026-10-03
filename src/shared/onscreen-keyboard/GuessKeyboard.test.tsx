@@ -17,7 +17,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { GuessKeyboard, type KeyColor } from './GuessKeyboard'
 import styles from './GuessKeyboard.module.css'
 
@@ -26,8 +26,8 @@ function draw(over: Partial<Parameters<typeof GuessKeyboard>[0]> = {}) {
   render(
     <GuessKeyboard
       onKey={onKey}
-      actSubmit={actionFixture('act-submit')}
-      actDelete={actionFixture('act-delete-last')}
+      actSubmit={ZTest_actionFixture('act-submit')}
+      actDelete={ZTest_actionFixture('act-delete-last')}
       {...over}
     />,
   )
@@ -81,7 +81,7 @@ describe('GuessKeyboard — what can be pressed', () => {
     // The docstring's central claim: a cap and its physical key are one action
     // drawn twice, so Enter goes gray over an empty guess while every letter
     // beside it stays pressable. Nothing asserted it.
-    draw({ actSubmit: actionFixture('act-submit', () => ({ state: 'disabled' })) })
+    draw({ actSubmit: ZTest_actionFixture('act-submit', () => ({ state: 'disabled' })) })
     expect(cap('Enter')).toBeDisabled()
     expect(cap('Backspace')).toBeEnabled()
     expect(cap('q')).toBeEnabled()

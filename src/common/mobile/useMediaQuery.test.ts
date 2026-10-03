@@ -2,7 +2,7 @@
 
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { installFakeMatchMedia, type InstalledMatchMedia } from './matchMedia.fake'
+import { ZTest_installFakeMatchMedia, type ZTest_InstalledMatchMedia } from './matchMedia.fake'
 import { useMediaQuery } from './useMediaQuery'
 
 /**
@@ -18,10 +18,10 @@ import { useMediaQuery } from './useMediaQuery'
 
 const QUERY = '(max-width: 40rem)'
 
-let mm: InstalledMatchMedia
+let mm: ZTest_InstalledMatchMedia
 
 beforeEach(() => {
-  mm = installFakeMatchMedia()
+  mm = ZTest_installFakeMatchMedia()
 })
 afterEach(() => mm.uninstall())
 

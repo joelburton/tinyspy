@@ -1,7 +1,7 @@
 // cs-blessed-boot
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
+import { ZTest_installFakeStorage, type ZTest_InstalledStorage } from '../web-storage/storage.fake'
 import { loadTheme } from './loadTheme'
 
 /**
@@ -26,10 +26,10 @@ import { loadTheme } from './loadTheme'
  */
 describe('loadTheme', () => {
   const KEY = 'puzpuzpuz::theme'
-  let storage: InstalledStorage
+  let storage: ZTest_InstalledStorage
 
   beforeAll(() => {
-    storage = installFakeStorage()
+    storage = ZTest_installFakeStorage()
   })
 
   beforeEach(() => {

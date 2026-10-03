@@ -20,13 +20,13 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import {
-  CONCEDED,
-  ELIMINATED,
-  PUZZLE,
-  guess,
-  makeConnectionsCtx,
-  makeGameDataRaw,
-  matchOf,
+  ZTest_CONCEDED,
+  ZTest_ELIMINATED,
+  ZTest_PUZZLE,
+  ZTest_guess,
+  ZTest_makeConnectionsCtx,
+  ZTest_makeGameDataRaw,
+  ZTest_matchOf,
 } from '../lib/gameData.fixture'
 
 const { mockChannel, mockRemoveChannel } = vi.hoisted(() => ({
@@ -45,35 +45,35 @@ const TWO = [
   { id: 'u1', username: 'me', color: 'red' },
   { id: 'u2', username: 'moth', color: 'blue' },
 ]
-const [RED, GREEN] = PUZZLE.cats as [typeof PUZZLE.cats[0], typeof PUZZLE.cats[1]]
+const [RED, GREEN] = ZTest_PUZZLE.cats as [typeof ZTest_PUZZLE.cats[0], typeof ZTest_PUZZLE.cats[1]]
 
 /** me matched RED, then missed by one; moth matched GREEN. */
 const EVENTS = [
-  matchOf(RED, 'u1'),
-  guess('u1', ['e', 'f', 'g', 'm'], 'oneAway'),
-  matchOf(GREEN, 'u2'),
+  ZTest_matchOf(RED, 'u1'),
+  ZTest_guess('u1', ['e', 'f', 'g', 'm'], 'oneAway'),
+  ZTest_matchOf(GREEN, 'u2'),
 ]
 
 describe('connections makeGameData — the links become players', () => {
   it('me is my own entry in players — the same object', () => {
-    const gd = makeGameData(makeGameDataRaw({ players: TWO }), 'u1')
+    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO }), 'u1')
     expect(gd.me.username).toBe('me')
     expect(gd.players).toContain(gd.me)
     expect(gd.playersById.u1).toBe(gd.me)
   })
 
   it('names the turn holder as a player', () => {
-    const gd = makeGameData(makeGameDataRaw({ players: TWO, turnHolderId: 'u2' }), 'u1')
+    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, turnHolderId: 'u2' }), 'u1')
     expect(gd.turns?.holder).toBe(gd.playersById.u2)
   })
 
   it('a free-for-all game has no turns', () => {
-    expect(makeGameData(makeGameDataRaw({ players: TWO }), 'u1').turns).toBeNull()
+    expect(makeGameData(ZTest_makeGameDataRaw({ players: TWO }), 'u1').turns).toBeNull()
   })
 
   it('names who ended the game and the winner as players', () => {
     const gd = makeGameData(
-      makeGameDataRaw({
+      ZTest_makeGameDataRaw({
         mode: 'compete',
         players: TWO,
         ending: { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u2' },
@@ -88,7 +88,7 @@ describe('connections makeGameData — the links become players', () => {
 
   it('a timeout nobody\'s turn covers ended by nobody', () => {
     const gd = makeGameData(
-      makeGameDataRaw({
+      ZTest_makeGameDataRaw({
         players: TWO,
         ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
         outcome: 'lost',
@@ -99,7 +99,7 @@ describe('connections makeGameData — the links become players', () => {
   })
 
   it('gives each log row its player, and reads it once: its outcome, and whether it matched', () => {
-    const gd = makeGameData(makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
+    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     const [match, miss, theirs] = gd.events
     expect(match!.by).toBe(gd.me)
     expect(theirs!.by).toBe(gd.playersById.u2)
@@ -109,13 +109,13 @@ describe('connections makeGameData — the links become players', () => {
   })
 
   it('builds the setup rows once, with the puzzle\'s date', () => {
-    const gd = makeGameData(makeGameDataRaw({ players: TWO }), 'u1')
+    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO }), 'u1')
     expect(gd.setupRows.find((r) => r.key === 'puzzle_id')?.value).toBe('June 15, 2026')
   })
 
   it('carries the puzzle, the counts and the board through from the blob', () => {
-    const gd = makeGameData(makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
-    expect(gd.puzzle).toBe(PUZZLE.cats === gd.puzzle.cats ? gd.puzzle : gd.puzzle)
+    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
+    expect(gd.puzzle).toBe(ZTest_PUZZLE.cats === gd.puzzle.cats ? gd.puzzle : gd.puzzle)
     expect(gd.puzzle.cats).toHaveLength(4)
     // My own counts; the team's summed.
     expect([gd.me.nMatchedCats, gd.me.nMistakes, gd.me.maxMistakes]).toEqual([1, 1, 4])
@@ -128,13 +128,13 @@ describe('connections makeGameData — the links become players', () => {
   })
 
   it('the state line shows the team\'s counts in coop', () => {
-    const gd = makeGameData(makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
+    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.stateLineData).toEqual({ nMatchedCats: 2, nMistakes: 1, maxMistakes: 4 })
   })
 })
 
 describe('connections makeGameData — the seat rule', () => {
-  const race = (over = {}) => makeGameDataRaw({ mode: 'compete', players: TWO, events: EVENTS, ...over })
+  const race = (over = {}) => ZTest_makeGameDataRaw({ mode: 'compete', players: TWO, events: EVENTS, ...over })
 
   it('mid-race, a rival\'s rows leave the log and their board is withheld', () => {
     const gd = makeGameData(race(), 'u1')
@@ -156,7 +156,7 @@ describe('connections makeGameData — the seat rule', () => {
   })
 
   it('coop withholds nothing: one board, one team', () => {
-    const gd = makeGameData(makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
+    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.events).toHaveLength(3)
     expect(gd.playersById.u2!.board).toEqual(gd.me.board)
   })
@@ -174,7 +174,7 @@ describe('connections makeGameData — the seat rule', () => {
 
   it('a conceder and a racer out on mistakes are still players, with their endings', () => {
     const gd = makeGameData(
-      race({ players: [{ ...TWO[0]!, ...ELIMINATED }, { ...TWO[1]!, ...CONCEDED }] }),
+      race({ players: [{ ...TWO[0]!, ...ZTest_ELIMINATED }, { ...TWO[1]!, ...ZTest_CONCEDED }] }),
       'u1',
     )
     expect(gd.me.ending?.reason).toBe('resource_exhausted')
@@ -206,32 +206,32 @@ beforeEach(() => {
 
 describe('connections useGame', () => {
   it('hands back gd built from the blob the page was handed, for me', () => {
-    const ctx = makeConnectionsCtx({ players: TWO })
+    const ctx = ZTest_makeConnectionsCtx({ players: TWO })
     const { result } = renderHook(() => useGame(ctx))
     expect(result.current.gd.me.id).toBe('u1')
     expect(result.current.gd.id).toBe('g1')
   })
 
   it('keeps gd while the blob is the same, and rebuilds it for a new one', () => {
-    const ctx = makeConnectionsCtx({ players: TWO })
+    const ctx = ZTest_makeConnectionsCtx({ players: TWO })
     const { result, rerender } = renderHook((c) => useGame(c), { initialProps: ctx })
     const first = result.current.gd
     rerender({ ...ctx })
     expect(result.current.gd).toBe(first)
-    rerender(makeConnectionsCtx({ players: TWO, events: EVENTS }))
+    rerender(ZTest_makeConnectionsCtx({ players: TWO, events: EVENTS }))
     expect(result.current.gd).not.toBe(first)
     expect(result.current.gd.events).toHaveLength(3)
   })
 
   it('throws for a game whose builder has not written its game_data', () => {
-    const ctx = { ...makeConnectionsCtx(), gameData: null }
+    const ctx = { ...ZTest_makeConnectionsCtx(), gameData: null }
     expect(() => renderHook(() => useGame(ctx))).toThrow(/no game_data/)
   })
 })
 
 describe('connections useGame — the picks room', () => {
   it('coop joins the game\'s room once, and a token refresh does not rebuild it', () => {
-    const coop = makeConnectionsCtx({ players: TWO })
+    const coop = ZTest_makeConnectionsCtx({ players: TWO })
     const { rerender } = renderHook((ctx: PlayAreaLoaderProps) => useGame(ctx), { initialProps: coop })
     expect(mockChannel).toHaveBeenCalledTimes(1)
     expect(mockChannel).toHaveBeenCalledWith('connections:g1')
@@ -244,16 +244,16 @@ describe('connections useGame — the picks room', () => {
   })
 
   it('rebuilds the room when the game changes', () => {
-    const coop = makeConnectionsCtx({ players: TWO })
+    const coop = ZTest_makeConnectionsCtx({ players: TWO })
     const { rerender } = renderHook((ctx: PlayAreaLoaderProps) => useGame(ctx), { initialProps: coop })
-    rerender(makeConnectionsCtx({ id: 'g2', players: TWO }))
+    rerender(ZTest_makeConnectionsCtx({ id: 'g2', players: TWO }))
     expect(mockRemoveChannel).toHaveBeenCalledTimes(1)
     expect(mockChannel).toHaveBeenCalledTimes(2)
     expect(mockChannel).toHaveBeenLastCalledWith('connections:g2')
   })
 
   it('coop applies a click locally and puts it on the wire', () => {
-    const { result } = renderHook(() => useGame(makeConnectionsCtx({ players: TWO })))
+    const { result } = renderHook(() => useGame(ZTest_makeConnectionsCtx({ players: TWO })))
     act(() => result.current.picks.toggleTile('a'))
     expect(result.current.picks.union).toEqual(['a'])
     expect(result.current.picks.ownerByTile.get('a')).toBe('u1')
@@ -263,7 +263,7 @@ describe('connections useGame — the picks room', () => {
   })
 
   it('compete joins no room, and a click stays on this client', () => {
-    const { result } = renderHook(() => useGame(makeConnectionsCtx({ mode: 'compete', players: TWO })))
+    const { result } = renderHook(() => useGame(ZTest_makeConnectionsCtx({ mode: 'compete', players: TWO })))
     expect(mockChannel).not.toHaveBeenCalled()
     act(() => result.current.picks.toggleTile('a'))
     expect(result.current.picks.union).toEqual(['a'])
@@ -271,7 +271,7 @@ describe('connections useGame — the picks room', () => {
   })
 
   it('a clear empties the picks', () => {
-    const { result } = renderHook(() => useGame(makeConnectionsCtx({ mode: 'compete', players: TWO })))
+    const { result } = renderHook(() => useGame(ZTest_makeConnectionsCtx({ mode: 'compete', players: TWO })))
     act(() => result.current.picks.toggleTile('a'))
     act(() => result.current.picks.sendClear())
     expect(result.current.picks.union).toEqual([])

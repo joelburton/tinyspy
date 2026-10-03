@@ -12,11 +12,11 @@
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { actionFixture } from '../actions/action.fixture'
+import { ZTest_actionFixture } from '../actions/action.fixture'
 import type { ActionId } from '../actions/registry'
 import type { Action } from '../actions/useBindAction'
 import { IconRestart, type AppIcon } from '../icons/icons'
-import { installFakeMatchMedia } from '../mobile/matchMedia.fake'
+import { ZTest_installFakeMatchMedia } from '../mobile/matchMedia.fake'
 import { MOBILE_QUERY } from '../mobile/useIsMobile'
 import { createRef } from 'react'
 import { Menu, type MenuHandle } from './Menu'
@@ -60,7 +60,7 @@ type TestRow = {
 }
 
 function row({ id, label, disabled, onClick, icon }: TestRow): Action {
-  const action = actionFixture(id, () => ({
+  const action = ZTest_actionFixture(id, () => ({
     state: disabled ? 'disabled' : 'active',
     label,
     icon,
@@ -566,7 +566,7 @@ function withSubmenu(onProfile = () => {}): MenuSection[] {
 
 /** Put the menu on the mobile side of the breakpoint (or off it). */
 function stubMatchMedia(matches: boolean): void {
-  installFakeMatchMedia().set(MOBILE_QUERY, matches)
+  ZTest_installFakeMatchMedia().set(MOBILE_QUERY, matches)
 }
 
 describe('Menu — submenus (desktop flyout)', () => {

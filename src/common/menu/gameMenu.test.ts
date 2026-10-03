@@ -3,7 +3,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { buildGameMenu } from './gameMenu'
 import { menuRow, type MenuItem, type MenuRow } from './menuModel'
-import { actionFixture } from '../actions/action.fixture'
+import { ZTest_actionFixture } from '../actions/action.fixture'
 import type { Action } from '../actions/useBindAction'
 import type { ActionId } from '../actions/registry'
 
@@ -91,7 +91,7 @@ describe('buildGameMenu', () => {
     const sections = buildGameMenu({
       menu,
       exits: [actStopGame],
-      extra: [{ items: [actionFixture('act-print-board')] }],
+      extra: [{ items: [ZTest_actionFixture('act-print-board')] }],
     })
     expect(idsOf(sections)).toEqual([
       'act-help', 'act-open-chat', 'act-print-board', 'act-stop-game', 'act-back-to-club',

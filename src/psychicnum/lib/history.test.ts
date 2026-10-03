@@ -11,7 +11,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { replayTurn } from './history'
-import { guess, makeGameDataRaw } from './gameData.fixture'
+import { ZTest_guess, ZTest_makeGameDataRaw } from './gameData.fixture'
 import { makeGameData } from '../hooks/useGame'
 
 const ME = { id: 'u', username: 'me', color: 'red' }
@@ -23,13 +23,13 @@ const WORDS = ['apple', 'berry', 'cedar']
 // a builder that still indexed would pass these tests by accident. The rows
 // come through `makeGameData`, which is what gives each its player.
 const EVENTS = makeGameData(
-  makeGameDataRaw({
+  ZTest_makeGameDataRaw({
     words: WORDS,
     players: [ME],
     events: [
-      guess(11, 'u', 'apple', true),
-      guess(12, 'u', 'a fruit', false, { kind: 'hint' }),
-      guess(13, 'u', 'berry', false),
+      ZTest_guess(11, 'u', 'apple', true),
+      ZTest_guess(12, 'u', 'a fruit', false, { kind: 'hint' }),
+      ZTest_guess(13, 'u', 'berry', false),
     ],
   }),
   'u',
@@ -71,11 +71,11 @@ describe('replayTurn', () => {
   it('in compete, replays the author\'s own guesses alone', () => {
     // A finished race, so both racers' rows are in the log.
     const gd = makeGameData(
-      makeGameDataRaw({
+      ZTest_makeGameDataRaw({
         mode: 'compete',
         words: WORDS,
         players: [ME, MOTH],
-        events: [guess(1, 'u', 'apple', true), guess(2, 'v', 'berry', false), guess(3, 'u', 'cedar', false)],
+        events: [ZTest_guess(1, 'u', 'apple', true), ZTest_guess(2, 'v', 'berry', false), ZTest_guess(3, 'u', 'cedar', false)],
         ending: { reason: 'stopped', detail: 'stopped', by: 'u', winner: null },
         outcome: 'neutral',
       }),

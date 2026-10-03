@@ -14,7 +14,7 @@
  * reads as in `lib/answer.test.ts`.
  *
  * The surface is a pure function of the `game_data` blob the page hands it, so
- * a test builds that blob from the game's facts (`makeWordleCtx`) and nothing
+ * a test builds that blob from the game's facts (`ZTest_makeWordleCtx`) and nothing
  * is mocked but `db`; everything — the grid, keyboard, lists, dialogs — renders
  * for real.
  */
@@ -29,13 +29,13 @@ import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import {
-  CONCEDED,
-  SOLVED_WAITING,
-  SPENT,
-  guess,
-  makeWordleCtx,
-  type GameDataFacts,
-  type PlayerFacts,
+  ZTest_CONCEDED,
+  ZTest_SOLVED_WAITING,
+  ZTest_SPENT,
+  ZTest_guess,
+  ZTest_makeWordleCtx,
+  type ZTest_GameDataFacts,
+  type ZTest_PlayerFacts,
 } from '../lib/gameData.fixture'
 import type { GSetup } from '../types'
 import { db } from '../db'
@@ -52,9 +52,9 @@ vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
 
-const ME: PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
-const MOTH: PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
-const CADE: PlayerFacts = { id: 'u3', username: 'cade', color: 'green' }
+const ME: ZTest_PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
+const MOTH: ZTest_PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
+const CADE: ZTest_PlayerFacts = { id: 'u3', username: 'cade', color: 'green' }
 
 /** Two club members, both playing. */
 const twoMembers = [ME, MOTH]
@@ -63,20 +63,20 @@ const T = '2026-09-03T00:00:00Z'
 
 /** The same player, ranked first — `won`, as `_end_game` writes it, having
  *  typed the word. */
-const won = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'won', finalRanking: 1, solvedAt: T })
+const won = (p: ZTest_PlayerFacts): ZTest_PlayerFacts => ({ ...p, outcome: 'won', finalRanking: 1, solvedAt: T })
 /** The same player, beaten — `lost`, as `_end_game` writes it. */
-const lost = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'lost' })
+const lost = (p: ZTest_PlayerFacts): ZTest_PlayerFacts => ({ ...p, outcome: 'lost' })
 
 /** Me, out of a compete game — solved and waiting on the rest. */
-const meOut: PlayerFacts = { ...ME, ...SOLVED_WAITING }
+const meOut: ZTest_PlayerFacts = { ...ME, ...ZTest_SOLVED_WAITING }
 
 /** A compete player at the end: their outcome, whether they solved, their
  *  count, and whether the clock broke their tie with the winner. */
 function finished(
-  p: PlayerFacts,
+  p: ZTest_PlayerFacts,
   outcome: 'won' | 'near' | 'lost',
   { solved = outcome !== 'lost', guesses = 3, tie = false } = {},
-): PlayerFacts {
+): ZTest_PlayerFacts {
   return {
     ...p,
     outcome,
@@ -88,7 +88,7 @@ function finished(
 }
 
 /** The endings the tests reach for, each with the game's outcome beside it. */
-type Ending = Pick<GameDataFacts, 'ending' | 'outcome'>
+type Ending = Pick<ZTest_GameDataFacts, 'ending' | 'outcome'>
 const COOP_WON: Ending = {
   ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
   outcome: 'won',
@@ -105,8 +105,8 @@ const raceWonBy = (winner: string, reason: 'reached_goal' | 'timeout' = 'reached
 
 /** The solo coop game's two endings, with its one player as the server wrote
  *  them: a solver ranked first, a loser lost. */
-const SOLO_WON: GameDataFacts = { ...COOP_WON, target: 'crane', players: [won(ME)] }
-const SOLO_LOST: GameDataFacts = { ...COOP_LOST, target: 'crane', players: [lost(ME)] }
+const SOLO_WON: ZTest_GameDataFacts = { ...COOP_WON, target: 'crane', players: [won(ME)] }
+const SOLO_LOST: ZTest_GameDataFacts = { ...COOP_LOST, target: 'crane', players: [lost(ME)] }
 
 /** A realistic setup blob — the info-column disclosure reads it (a `{}` here
  *  would crash timerLabel, exactly the kind of render bug these tests guard). */
@@ -114,8 +114,8 @@ const SETUP: GSetup = { max_guesses: 6, answer_band: 0, legal_band: 4, timer: { 
 
 /** A play surface's context: a wordle game, solo coop by default, built from
  *  the facts the way the builder would build it. */
-function makeCtx(facts: GameDataFacts = {}): PlayAreaLoaderProps {
-  return makeWordleCtx({ setup: SETUP, ...facts })
+function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
+  return ZTest_makeWordleCtx({ setup: SETUP, ...facts })
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
@@ -153,7 +153,7 @@ const control = (id: string) =>
 
 /** A guess row by me: SLATE against xxgyx is s·l gray, a GREEN, t YELLOW, e
  *  gray. */
-const SLATE = guess(1, 'u1', 'slate', 'xxgyx')
+const SLATE = ZTest_guess(1, 'u1', 'slate', 'xxgyx')
 
 beforeEach(() => {
   rpc.mockReset()
@@ -557,7 +557,7 @@ describe('wordle PlayArea — the ending', () => {
           ending: { reason: 'conceded', detail: 'conceded', by: 'u2', winner: null },
           outcome: 'lost',
           target: 'crane',
-          players: [{ ...ME, ...CONCEDED }, { ...MOTH, ...CONCEDED }],
+          players: [{ ...ME, ...ZTest_CONCEDED }, { ...MOTH, ...ZTest_CONCEDED }],
         })}
       />,
     )
@@ -591,22 +591,22 @@ describe('wordle PlayArea — input gating', () => {
 
 describe('wordle PlayArea — peer narration (global header)', () => {
   /** A real global slot with a spy on its one door, handed to the ctx. */
-  function narrationCtx(facts: GameDataFacts = {}) {
+  function narrationCtx(facts: ZTest_GameDataFacts = {}) {
     const globalFeedbackSlot = createFeedbackSlot('global')
     const shown = vi.spyOn(globalFeedbackSlot, 'show')
-    const ctx = (more: GameDataFacts = {}) =>
-      makeWordleCtx({ setup: SETUP, players: twoMembers, ...facts, ...more }, { globalFeedbackSlot })
+    const ctx = (more: ZTest_GameDataFacts = {}) =>
+      ZTest_makeWordleCtx({ setup: SETUP, players: twoMembers, ...facts, ...more }, { globalFeedbackSlot })
     return { ctx, shown }
   }
 
   it("announces a teammate's accepted guess in coop", () => {
     const { ctx, shown } = narrationCtx()
     // First render seeds the seen-set with my own guess (no announcement).
-    const mine = guess(1, 'u1', 'slate', 'xxxxx')
+    const mine = ZTest_guess(1, 'u1', 'slate', 'xxxxx')
     const { rerender } = render(<PlayAreaLoader {...ctx({ events: [mine] })} />)
     shown.mockClear()
     // A teammate's guess lands → narrated in the header, the actor leading.
-    rerender(<PlayAreaLoader {...ctx({ events: [mine, guess(2, 'u2', 'crane', 'ggggg')] })} />)
+    rerender(<PlayAreaLoader {...ctx({ events: [mine, ZTest_guess(2, 'u2', 'crane', 'ggggg')] })} />)
     expect(shown).toHaveBeenCalledTimes(1)
     const feedbackMsg = shown.mock.calls[0]![0]
     expect(feedbackMsg.kind).toBe('peer')
@@ -618,7 +618,7 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     const { ctx, shown } = narrationCtx()
     const { rerender } = render(<PlayAreaLoader {...ctx()} />)
     shown.mockClear()
-    rerender(<PlayAreaLoader {...ctx({ events: [guess(1, 'u1', 'slate', 'xxxxx')] })} />)
+    rerender(<PlayAreaLoader {...ctx({ events: [ZTest_guess(1, 'u1', 'slate', 'xxxxx')] })} />)
     expect(shown).not.toHaveBeenCalled()
   })
 
@@ -628,7 +628,7 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     const { rerender } = render(<PlayAreaLoader {...ctx()} />)
     shown.mockClear()
     // moth solves → narrated (the only peer event compete can surface).
-    rerender(<PlayAreaLoader {...ctx({ players: [ME, { ...MOTH, ...SOLVED_WAITING }] })} />)
+    rerender(<PlayAreaLoader {...ctx({ players: [ME, { ...MOTH, ...ZTest_SOLVED_WAITING }] })} />)
     expect(shown).toHaveBeenCalledTimes(1)
     const feedbackMsg = shown.mock.calls[0]![0]
     expect(feedbackMsg.actor?.username).toBe('moth')
@@ -711,14 +711,14 @@ describe('wordle PlayArea — concede', () => {
 
   it('marks a conceded opponent "out" in the strip', () => {
     render(
-      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...CONCEDED }] })} />,
+      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />,
     )
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
   it('marks an opponent out of guesses "out", and shows a waiting solver\'s count', () => {
-    const outOfGuesses: PlayerFacts = { ...MOTH, ...SPENT, used: 6 }
-    const solvedWaiting: PlayerFacts = { ...CADE, ...SOLVED_WAITING, used: 3 }
+    const outOfGuesses: ZTest_PlayerFacts = { ...MOTH, ...ZTest_SPENT, used: 6 }
+    const solvedWaiting: ZTest_PlayerFacts = { ...CADE, ...ZTest_SOLVED_WAITING, used: 3 }
     render(
       <PlayAreaLoader
         {...makeCtx({ mode: 'compete', players: [ME, outOfGuesses, solvedWaiting] })}
@@ -731,7 +731,7 @@ describe('wordle PlayArea — concede', () => {
 
   it('shows the "You conceded" line after I concede', () => {
     render(
-      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...CONCEDED }, MOTH] })} />,
+      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
   })
@@ -787,7 +787,7 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
 
 describe('wordle PlayArea — click-to-define (event log)', () => {
   it('makes each logged guess a define affordance on the WORD (not the cell)', () => {
-    render(<PlayAreaLoader {...makeCtx({ events: [guess(1, 'u1', 'slate', 'xxxxx')] })} />)
+    render(<PlayAreaLoader {...makeCtx({ events: [ZTest_guess(1, 'u1', 'slate', 'xxxxx')] })} />)
     // The event-log guess carries the click-to-define affordance, and it rides
     // the whole five-letter word (one define per guess), not an individual
     // cell.
@@ -810,7 +810,7 @@ describe('wordle PlayArea — the board-scope marks', () => {
   // that stops being applied looks exactly like a mark that was never asked
   // for.
   it('bands the finished board in its outcome and disables the keyboard', () => {
-    render(<PlayAreaLoader {...makeCtx({ ...SOLO_WON, events: [guess(1, 'u1', 'crane', 'ggggg')] })} />)
+    render(<PlayAreaLoader {...makeCtx({ ...SOLO_WON, events: [ZTest_guess(1, 'u1', 'crane', 'ggggg')] })} />)
 
     expect(board().className).toMatch(/endingFrame/)
     expect(board().className).toMatch(/endingFrame_won/)
@@ -874,8 +874,8 @@ describe('wordle PlayArea — the board-scope marks', () => {
 describe('wordle Board — the reveal flip', () => {
   const tiles = () => screen.getAllByRole('gridcell')
   const slate = SLATE
-  const moths = guess(2, 'u1', 'moths', 'xxyxg')
-  const crane = guess(3, 'u1', 'crane', 'xxxxg')
+  const moths = ZTest_guess(2, 'u1', 'moths', 'xxyxg')
+  const crane = ZTest_guess(3, 'u1', 'crane', 'xxxxg')
 
   // A row already on the board when it mounted arrived before anyone was
   // watching, so it draws settled; a row that lands during the session flips.

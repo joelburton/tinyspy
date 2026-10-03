@@ -301,7 +301,7 @@ hand-rolling a mock of the same thing.
 - **Three rules for a test that touches an action**
   ([`common/actions`](../src/common/actions/doc.md)). A surface that takes an
   action it does not bind gets
-  [`actionFixture(id)`](../src/common/actions/action.fixture.ts) — the
+  [`ZTest_actionFixture(id)`](../src/common/actions/action.fixture.ts) — the
   registry's real definition with a `vi.fn()` run — so the test asserts which
   action fired without a React tree and the dispatcher. A test that fires a
   confirming action for real mounts `<ConfirmationHost />`, because the host

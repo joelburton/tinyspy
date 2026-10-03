@@ -1,8 +1,8 @@
 // cs-blessed-boot
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
-import { installFakeReload, type FakeReload } from './reload.fake'
+import { ZTest_installFakeStorage, type ZTest_InstalledStorage } from '../web-storage/storage.fake'
+import { ZTest_installFakeReload, type ZTest_FakeReload } from './reload.fake'
 import { reloadOnStaleChunk } from './reloadOnStaleChunk'
 
 /**
@@ -16,16 +16,16 @@ import { reloadOnStaleChunk } from './reloadOnStaleChunk'
  * `reload.fake.ts`.
  */
 describe('reloadOnStaleChunk', () => {
-  let location: FakeReload
+  let location: ZTest_FakeReload
   let dispose: AbortController
-  let storage: InstalledStorage
+  let storage: ZTest_InstalledStorage
 
   beforeAll(() => {
-    storage = installFakeStorage()
+    storage = ZTest_installFakeStorage()
   })
 
   beforeEach(() => {
-    location = installFakeReload()
+    location = ZTest_installFakeReload()
     storage.clear()
     // Isolate each test's listener — reloadOnStaleChunk registers on window
     // for the page's lifetime, which in vitest is the whole file's lifetime.

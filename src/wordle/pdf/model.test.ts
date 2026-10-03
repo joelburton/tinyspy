@@ -12,11 +12,11 @@
  */
 import { describe, expect, it } from 'vitest'
 import { makeGameData } from '../hooks/useGame'
-import { guess, makeGameDataRaw } from '../lib/gameData.fixture'
+import { ZTest_guess, ZTest_makeGameDataRaw } from '../lib/gameData.fixture'
 import type { GEventRaw, GPlayer } from '../types'
 import { buildPrintModel } from './model'
 
-const ME: GPlayer = makeGameData(makeGameDataRaw(), 'u1').me
+const ME: GPlayer = makeGameData(ZTest_makeGameDataRaw(), 'u1').me
 
 const TWO = [
   { id: 'u1', username: 'me', color: 'red' },
@@ -26,7 +26,7 @@ const TWO = [
 /** A guess row by me unless said otherwise; ids count up. */
 let nextId = 1
 const g = (over: Partial<GEventRaw> & Pick<GEventRaw, 'word' | 'colors'>): GEventRaw => ({
-  ...guess(nextId++, 'u1', over.word, over.colors),
+  ...ZTest_guess(nextId++, 'u1', over.word, over.colors),
   ...over,
 })
 
@@ -35,7 +35,7 @@ const g = (over: Partial<GEventRaw> & Pick<GEventRaw, 'word' | 'colors'>): GEven
  *  game. */
 const eventsOf = (events: GEventRaw[]) =>
   makeGameData(
-    makeGameDataRaw({
+    ZTest_makeGameDataRaw({
       mode: 'compete',
       players: TWO,
       events,

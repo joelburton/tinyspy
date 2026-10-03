@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import type { PlayerEndedReason } from '@/common/terminal/gameEnding'
-import { makeGameDataRaw } from '../lib/gameData.fixture'
+import { ZTest_makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useGetPlayerEndingMessage } from './useGetPlayerEndingMessage'
 import type { GGameData } from '../types'
@@ -18,7 +18,7 @@ function gdWith(over: {
   reason?: PlayerEndedReason
 }): GGameData {
   return makeGameData(
-    makeGameDataRaw({
+    ZTest_makeGameDataRaw({
       mode: 'compete',
       players: [
         {

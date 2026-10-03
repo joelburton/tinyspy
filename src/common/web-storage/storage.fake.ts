@@ -14,8 +14,8 @@
  * a fake.
  *
  * The reason it is worth sharing rather than hand-rolling one per suite is the
- * two switches, {@link InstalledStorage.blockAccess} and
- * {@link InstalledStorage.failCalls}: making storage FAIL is the interesting
+ * two switches, {@link ZTest_InstalledStorage.blockAccess} and
+ * {@link ZTest_InstalledStorage.failCalls}: making storage FAIL is the interesting
  * case — it is the entire reason `common/web-storage/storage.ts` exists — and it
  * is the fiddly part. A browser blocking site data throws on the property
  * ACCESS (`window.localStorage` itself), which a fake can only model if it is
@@ -51,7 +51,7 @@ class FakeStorage {
   }
 }
 
-export type InstalledStorage = {
+export type ZTest_InstalledStorage = {
   /** What `readStored('local', …)` and friends will see. Assert against this
    *  rather than `window.localStorage`, so a test needs no exemption from
    *  `src/guards/rawStorage.test.ts`. */
@@ -72,7 +72,7 @@ export type InstalledStorage = {
   /**
    * Leave the storages reachable but make every method throw, the way a full
    * quota does on a write (and a storage that died mid-session does on any
-   * call). Same restore rule as {@link InstalledStorage.blockAccess}.
+   * call). Same restore rule as {@link ZTest_InstalledStorage.blockAccess}.
    */
   failCalls: () => void
 }
@@ -81,7 +81,7 @@ export type InstalledStorage = {
  * Put a fake `localStorage` and `sessionStorage` on `window` and hand back the
  * handles. Call it once in `beforeAll`.
  */
-export function installFakeStorage(): InstalledStorage {
+export function ZTest_installFakeStorage(): ZTest_InstalledStorage {
   const local = new FakeStorage()
   const session = new FakeStorage()
   for (const [name, value] of [

@@ -9,7 +9,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { guess, makeGameDataRaw, type GameDataFacts } from '../lib/gameData.fixture'
+import { ZTest_guess, ZTest_makeGameDataRaw, type ZTest_GameDataFacts } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import type { GPicks } from '../types'
 import { useSubmitGuess } from './useSubmitGuess'
@@ -40,8 +40,8 @@ const RACE = {
 }
 
 /** Mount over the picks `union`, on a game with these rows in its log. */
-function setup(union: string[], events: GameDataFacts['events'] = []) {
-  const gd = makeGameData(makeGameDataRaw({ events }), 'u1')
+function setup(union: string[], events: ZTest_GameDataFacts['events'] = []) {
+  const gd = makeGameData(ZTest_makeGameDataRaw({ events }), 'u1')
   const sendClear = vi.fn()
   const picks = { union, sendClear } as unknown as GPicks
   const slot = createFeedbackSlot('local')
@@ -66,7 +66,7 @@ describe('useSubmitGuess', () => {
   it('refuses a set already tried locally, marks it, and clears the picks', async () => {
     const { result, sendClear, markTiles } = setup(
       ['a', 'b', 'e', 'i'],
-      [guess('u1', ['i', 'e', 'b', 'a'], 'wrong')],
+      [ZTest_guess('u1', ['i', 'e', 'b', 'a'], 'wrong')],
     )
     await act(() => result.current.send())
     expect(rpc).not.toHaveBeenCalled()

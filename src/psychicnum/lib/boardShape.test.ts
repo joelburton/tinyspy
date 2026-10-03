@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { cellsOf, unreachableFrom } from '@/common/board-cursor/reachability.fixture'
+import { ZTest_cellsOf, ZTest_unreachableFrom } from '@/common/board-cursor/reachability.fixture'
 import { makeBoardShape } from './boardShape'
 
 // Every board size setup allows: 5..20 words.
@@ -9,7 +9,7 @@ const SIZES = Array.from({ length: 16 }, (_, i) => i + 5)
 
 describe('makeBoardShape', () => {
   it('has a cell for every word and none beyond', () => {
-    for (const n of SIZES) expect(cellsOf(makeBoardShape(n))).toHaveLength(n)
+    for (const n of SIZES) expect(ZTest_cellsOf(makeBoardShape(n))).toHaveLength(n)
   })
 
   it('lays 7 words out 3 across, with one on the last row', () => {
@@ -24,8 +24,8 @@ describe('makeBoardShape', () => {
   it('every tile can reach every other by arrows, at every size', () => {
     for (const n of SIZES) {
       const boardShape = makeBoardShape(n)
-      for (const start of cellsOf(boardShape)) {
-        expect(unreachableFrom(boardShape, start), `${n} words, from ${start.x},${start.y}`).toEqual([])
+      for (const start of ZTest_cellsOf(boardShape)) {
+        expect(ZTest_unreachableFrom(boardShape, start), `${n} words, from ${start.x},${start.y}`).toEqual([])
       }
     }
   })

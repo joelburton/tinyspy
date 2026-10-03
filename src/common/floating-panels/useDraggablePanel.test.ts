@@ -2,7 +2,7 @@
 
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
+import { ZTest_installFakeStorage, type ZTest_InstalledStorage } from '../web-storage/storage.fake'
 import { clampToViewport, useDraggablePanel, type PanelRect } from './useDraggablePanel'
 
 /**
@@ -267,12 +267,12 @@ describe('useDraggablePanel', () => {
     minHeight: 0,
     recenterOnResize: false,
   })
-  let storage: InstalledStorage
+  let storage: ZTest_InstalledStorage
   const save = (rect: PanelRect) => storage.local.setItem(KEY, JSON.stringify(rect))
   const stored = () => JSON.parse(storage.local.getItem(KEY) ?? 'null') as PanelRect | null
 
   beforeAll(() => {
-    storage = installFakeStorage()
+    storage = ZTest_installFakeStorage()
   })
 
   afterEach(() => {

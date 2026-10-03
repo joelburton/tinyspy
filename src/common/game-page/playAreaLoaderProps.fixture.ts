@@ -5,13 +5,13 @@ import type { Session } from '@supabase/supabase-js'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import type { MenuApi } from '../menu/menuModel'
 import { createFeedbackSlot } from '../feedback/feedbackSlotStore'
-import { actionFixture } from '../actions/action.fixture'
+import { ZTest_actionFixture } from '../actions/action.fixture'
 import type { PlayAreaLoaderProps } from './playAreaLoaderProps'
 import type { ShellPlayer } from './shell'
 
 /** The facts a test sets up. Everything else the page would hand a game is
  *  defaulted to a solo game in play, viewed by its one player, `u1`. */
-export type PlayAreaFacts = {
+export type ZTest_PlayAreaFacts = {
   gameId?: string
   auth?: Session
   gametype?: string
@@ -33,7 +33,7 @@ export type PlayAreaFacts = {
 
 /** A player as the shell shows them, still playing unless `over` says
  *  otherwise. */
-export function shellPlayer(
+export function ZTest_shellPlayer(
   id: string,
   username: string,
   color: string,
@@ -45,10 +45,10 @@ export function shellPlayer(
 /**
  * Build the props `<GamePage>` hands a game's `PlayArea`, for a component or
  * hook test, from the facts alone. `cg.me` is the viewer's entry, as on the
- * page. `menu`'s three actions are `actionFixture`s, so a test can assert on
+ * page. `menu`'s three actions are `ZTest_actionFixture`s, so a test can assert on
  * `actBackToClub.run`.
  */
-export function makePlayAreaLoaderProps(facts: PlayAreaFacts = {}): PlayAreaLoaderProps {
+export function ZTest_makePlayAreaLoaderProps(facts: ZTest_PlayAreaFacts = {}): PlayAreaLoaderProps {
   const {
     gameId = 'g1',
     auth = { user: { id: 'u1' } } as unknown as Session,
@@ -57,15 +57,15 @@ export function makePlayAreaLoaderProps(facts: PlayAreaFacts = {}): PlayAreaLoad
     clubHandle = 'testclub',
     restartCount = 0,
     ended = false,
-    players = [shellPlayer('u1', 'me', 'red')],
+    players = [ZTest_shellPlayer('u1', 'me', 'red')],
     gameData = null,
     resubscribeCount = 0,
     globalFeedbackSlot = createFeedbackSlot('global'),
     menu = {
       setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
+      actHelp: ZTest_actionFixture('act-help'),
+      actChat: ZTest_actionFixture('act-open-chat'),
+      actBackToClub: ZTest_actionFixture('act-back-to-club'),
     } as unknown as MenuApi,
     goToFollowUpGame = vi.fn(),
   } = facts
@@ -75,7 +75,7 @@ export function makePlayAreaLoaderProps(facts: PlayAreaFacts = {}): PlayAreaLoad
   // with no seat back to the club before anything mounts.
   if (!me) {
     throw new Error(
-      `makePlayAreaLoaderProps: auth.user.id ${auth.user.id} is not among the players`,
+      `ZTest_makePlayAreaLoaderProps: auth.user.id ${auth.user.id} is not among the players`,
     )
   }
 

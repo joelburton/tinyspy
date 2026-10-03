@@ -25,13 +25,13 @@ import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import {
-  CONCEDED,
-  ELIMINATED,
-  PUZZLE,
-  guess,
-  makeConnectionsCtx,
-  type GameDataFacts,
-  type PlayerFacts,
+  ZTest_CONCEDED,
+  ZTest_ELIMINATED,
+  ZTest_PUZZLE,
+  ZTest_guess,
+  ZTest_makeConnectionsCtx,
+  type ZTest_GameDataFacts,
+  type ZTest_PlayerFacts,
 } from '../lib/gameData.fixture'
 import { unionTiles } from '../lib/picks'
 import type { GEventRaw, GGameDataRaw, GPickMap } from '../types'
@@ -90,7 +90,7 @@ const okEnvelope = {
 }
 
 /** The fixture puzzle's RED category, rank 0. */
-const RED = PUZZLE.cats[0]!
+const RED = ZTest_PUZZLE.cats[0]!
 
 /** The log of the game the next `makeCtx` builds; empty unless a test hands it
  *  rows. Resets the picks too, so each test starts from a live, empty board. */
@@ -100,23 +100,23 @@ function loaded(events: GEventRaw[] = [], picks: GPickMap = new Map()): void {
 }
 
 /** The RED band, matched by `userId`. */
-const matchRed = (userId = 'u1') => guess(userId, RED.tiles, 'correct', 0)
+const matchRed = (userId = 'u1') => ZTest_guess(userId, RED.tiles, 'correct', 0)
 /** A plain wrong guess (2 from RED + 1 GREEN + 1 BLUE) by `userId`. */
-const wrongGuess = (userId = 'u1') => guess(userId, ['a', 'b', 'e', 'i'], 'wrong')
+const wrongGuess = (userId = 'u1') => ZTest_guess(userId, ['a', 'b', 'e', 'i'], 'wrong')
 /** Every band, matched by `userId`. */
 const allFour = (userId = 'u1') =>
-  PUZZLE.cats.map((c) => guess(userId, c.tiles, 'correct', c.rank))
+  ZTest_PUZZLE.cats.map((c) => ZTest_guess(userId, c.tiles, 'correct', c.rank))
 /** Four picks on the board, one short of nothing: a full guess built and unsent. */
 const FOUR_PICKED: GPickMap = new Map([['u1', ['a', 'b', 'e', 'i']]])
 
 /** A player, playing. */
-const player = (id: string, username: string, color: string): PlayerFacts => ({ id, username, color })
+const player = (id: string, username: string, color: string): ZTest_PlayerFacts => ({ id, username, color })
 /** A conceder. */
-const conceded = (id: string, name: string, color: string): PlayerFacts =>
-  ({ ...player(id, name, color), ...CONCEDED })
+const conceded = (id: string, name: string, color: string): ZTest_PlayerFacts =>
+  ({ ...player(id, name, color), ...ZTest_CONCEDED })
 
 /** The endings the tests reach for, each with the game's outcome beside it. */
-type Ending = Pick<GameDataFacts, 'ending' | 'outcome'>
+type Ending = Pick<ZTest_GameDataFacts, 'ending' | 'outcome'>
 const COOP_LOST: Ending = {
   ending: { reason: 'resource_exhausted', detail: 'mistakes', by: 'u1', winner: null },
   outcome: 'lost',
@@ -131,13 +131,13 @@ const ALL_CONCEDED: Ending = {
 }
 
 /** The facts a test sets up: the game's, with its ending as one value. */
-type CtxFacts = Omit<GameDataFacts, 'events' | 'ending' | 'outcome'> & { gameEnding?: Ending }
+type CtxFacts = Omit<ZTest_GameDataFacts, 'events' | 'ending' | 'outcome'> & { gameEnding?: Ending }
 
 /** A play surface's context: a connections game, solo coop by default, on the
  *  log `loaded()` set, with where I stand derived from the facts. */
 function makeCtx(over: CtxFacts = {}): PlayAreaLoaderProps {
   const { gameEnding, ...facts } = over
-  return makeConnectionsCtx({
+  return ZTest_makeConnectionsCtx({
     events: h.events,
     ...gameEnding,
     ...facts,
@@ -145,12 +145,12 @@ function makeCtx(over: CtxFacts = {}): PlayAreaLoaderProps {
 }
 
 /** Me, out of the race on my fourth mistake while the others play on. */
-const meOut: PlayerFacts = { ...player('u1', 'me', 'red'), ...ELIMINATED }
+const meOut: ZTest_PlayerFacts = { ...player('u1', 'me', 'red'), ...ZTest_ELIMINATED }
 
 const twoMembers = [player('u1', 'me', 'red'), player('u2', 'moth', 'blue')]
 
 /** A coop team that lost on the mistakes: the game ended, every player lost. */
-const coopLost = (players: PlayerFacts[] = [player('u1', 'me', 'red')]) =>
+const coopLost = (players: ZTest_PlayerFacts[] = [player('u1', 'me', 'red')]) =>
   makeCtx({
     gameEnding: COOP_LOST,
     players: players.map((p) => ({ ...p, outcome: 'lost' })),
@@ -366,10 +366,10 @@ describe('connections PlayArea — the celebration', () => {
   // words alone match twice — the <h2> is the modal's alone.
   const confetti = () => screen.queryByRole('heading', { name: /You win!/ })
   /** The same player, ranked first — `won`, as `_end_game` writes it. */
-  const won = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'won', finalRanking: 1 })
+  const won = (p: ZTest_PlayerFacts): ZTest_PlayerFacts => ({ ...p, outcome: 'won', finalRanking: 1 })
   /** The same player, beaten — `lost`, as `_end_game` writes it. */
-  const lost = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'lost' })
-  const [me, moth] = twoMembers as [PlayerFacts, PlayerFacts]
+  const lost = (p: ZTest_PlayerFacts): ZTest_PlayerFacts => ({ ...p, outcome: 'lost' })
+  const [me, moth] = twoMembers as [ZTest_PlayerFacts, ZTest_PlayerFacts]
 
   it('pops for the racer the server ranked first', () => {
     loaded([matchRed()])
@@ -655,7 +655,7 @@ describe('connections PlayArea — picks, identity, and the guess in flight', ()
       // moth guesses wrongly on four DIFFERENT tiles. The board has moved on, so
       // my mark goes — and theirs takes its place, because "no" is news to the
       // whole table.
-      loaded([guess('u2', ['c', 'd', 'f', 'g'], 'wrong')], FOUR_PICKED)
+      loaded([ZTest_guess('u2', ['c', 'd', 'f', 'g'], 'wrong')], FOUR_PICKED)
       rerender(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
 
       expect(tile('a').className).not.toMatch(/verdictFill/)

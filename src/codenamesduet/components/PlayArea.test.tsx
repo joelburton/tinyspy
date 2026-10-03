@@ -14,7 +14,7 @@
  * clickable.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { ACTIONS } from '@/common/actions/registry'
 import { getActions } from '@/common/actions/actionsStore'
@@ -184,9 +184,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
+      actHelp: ZTest_actionFixture('act-help'),
+      actChat: ZTest_actionFixture('act-open-chat'),
+      actBackToClub: ZTest_actionFixture('act-back-to-club'),
     },
     ...facts,
     turnHolderId,

@@ -20,8 +20,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { gp } from '@/common/members/gamePlayer.fixture'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
@@ -31,7 +31,7 @@ import type { LetterboxedGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { PlayArea } from './PlayArea'
-import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '@/common/faults/faultStore'
+import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '@/common/faults/faultStore'
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -103,7 +103,7 @@ function loaded(game: LetterboxedGame): GameHook {
 function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
     authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [gp('u1', 'me', 'red')],
+    players: [ZTest_gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased: false,
     turnHolderId: null,
@@ -120,9 +120,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
+      actHelp: ZTest_actionFixture('act-help'),
+      actChat: ZTest_actionFixture('act-open-chat'),
+      actBackToClub: ZTest_actionFixture('act-back-to-club'),
     },
     brand: 'SnakeBox',
     title: 'New game',
@@ -173,10 +173,10 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.click(buttons[buttons.length - 1]!)
 }
 
-const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
 
 beforeEach(() => {
-  clearFaultMessages_ForTest()
+  ZTest_clearFaultMessages()
   h.result = loaded(loadedGame())
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null, data: null })
@@ -192,8 +192,8 @@ describe('letterboxed PlayArea — a conceder keeps the one flag', () => {
       <PlayArea
         {...makeCtx({
           players: [
-            gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }),
-            gp('u2', 'moth', 'blue'),
+            ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }),
+            ZTest_gp('u2', 'moth', 'blue'),
           ],
         })}
       />,
@@ -436,7 +436,7 @@ describe('letterboxed PlayArea — a refused undo, and who wrote the words', () 
   it('a race reads as a normal pill, not as something broken', async () => {
     await undoAnswering(refusal({}))
     expect(screen.getByText('Game over').closest('[class*="fault"]')).toBeNull()
-    expect(peekFaultMessages_ForTest()).toHaveLength(0)
+    expect(ZTest_peekFaultMessages()).toHaveLength(0)
   })
 
   it('a fault raises the modal AND leaves its sentence behind', async () => {
@@ -446,7 +446,7 @@ describe('letterboxed PlayArea — a refused undo, and who wrote the words', () 
       severity: 'fault', dbcode: 'PN253', message: 'You are not in this game',
     }))
     await waitFor(() =>
-      expect(peekFaultMessages_ForTest().map((f) => f.text)).toContain('You are not in this game'))
+      expect(ZTest_peekFaultMessages().map((f) => f.text)).toContain('You are not in this game'))
     expect(screen.getByText('You are not in this game')).toBeInTheDocument()
   })
 
@@ -459,7 +459,7 @@ describe('letterboxed PlayArea — a refused undo, and who wrote the words', () 
     })
     expect(screen.queryByText(/TypeError/)).toBeNull()
     await waitFor(() =>
-      expect(peekFaultMessages_ForTest().map((f) => f.text).join(' '))
+      expect(ZTest_peekFaultMessages().map((f) => f.text).join(' '))
         .toMatch(/refresh and try again/))
   })
 })

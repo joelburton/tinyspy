@@ -1,8 +1,8 @@
 // cs-blessed-boot
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
-import { installFakeReload, type FakeReload } from './reload.fake'
+import { ZTest_installFakeStorage, type ZTest_InstalledStorage } from '../web-storage/storage.fake'
+import { ZTest_installFakeReload, type ZTest_FakeReload } from './reload.fake'
 import { consumeReloadForUpdate } from './reloadNotice'
 import { BUILD_STAMP, reloadIfStaleBuild, watchForStaleBuild, type BuildStamp } from './reloadOnStaleBuild'
 
@@ -21,12 +21,12 @@ vi.unmock('./reloadOnStaleBuild')
  * stubbed throughout; see `reload.fake.ts`.
  */
 describe('reloadOnStaleBuild', () => {
-  let location: FakeReload
-  let storage: InstalledStorage
+  let location: ZTest_FakeReload
+  let storage: ZTest_InstalledStorage
   const OTHER: BuildStamp = { built: '2099-01-01T00:00:00.000Z', sha: 'abc1234' }
 
   beforeAll(() => {
-    storage = installFakeStorage()
+    storage = ZTest_installFakeStorage()
   })
 
   // Each case starts past the floor — the module's last-checked clock is per
@@ -34,7 +34,7 @@ describe('reloadOnStaleBuild', () => {
   let clock = Date.now()
 
   beforeEach(() => {
-    location = installFakeReload()
+    location = ZTest_installFakeReload()
     storage.clear()
     vi.useFakeTimers()
     clock += 10 * 60_000

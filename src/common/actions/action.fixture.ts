@@ -13,13 +13,13 @@ import type { Action, Described } from './useBindAction'
  * menu built from rows. Binding for real would drag a React tree and the key
  * dispatcher in with it, and neither is what those tests are about.
  *
- *     actBackToClub: actionFixture('act-back-to-club')
+ *     actBackToClub: ZTest_actionFixture('act-back-to-club')
  *     expect(ctx.menu.actBackToClub.run).toHaveBeenCalled()
  *
  * `run` is a `vi.fn()`, so a test can assert the surface fired the right one.
  * Override `describe` to place an action that is disabled or hidden.
  */
-export function actionFixture(
+export function ZTest_actionFixture(
   id: ActionId,
   describe: () => Described = () => ({ state: 'active' }),
 ): Action {

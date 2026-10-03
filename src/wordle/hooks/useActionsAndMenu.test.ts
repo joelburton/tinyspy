@@ -8,11 +8,11 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { getActions } from '@/common/actions/actionsStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
-import { makeGameDataRaw, type GameDataFacts } from '../lib/gameData.fixture'
+import { ZTest_makeGameDataRaw, type ZTest_GameDataFacts } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useActionsAndMenu } from './useActionsAndMenu'
 
@@ -20,12 +20,12 @@ vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
 /** A solo coop game in play, or ended as the facts say, viewed by its one
  *  player. */
-function gdWith(facts: GameDataFacts = {}) {
-  return makeGameData(makeGameDataRaw(facts), 'u1')
+function gdWith(facts: ZTest_GameDataFacts = {}) {
+  return makeGameData(ZTest_makeGameDataRaw(facts), 'u1')
 }
 
 /** The coop game lost on its last guess, with me — its one player — lost. */
-const LOST: GameDataFacts = {
+const LOST: ZTest_GameDataFacts = {
   ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1', winner: null },
   outcome: 'lost',
   target: 'crane',
@@ -33,7 +33,7 @@ const LOST: GameDataFacts = {
 }
 
 /** The coop game won, by me typing the word. */
-const WON: GameDataFacts = {
+const WON: ZTest_GameDataFacts = {
   ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
   outcome: 'won',
   target: 'crane',
@@ -45,9 +45,9 @@ function setup(gd: ReturnType<typeof gdWith>) {
   const setGameSections = vi.fn()
   const menu = {
     setGameSections,
-    actHelp: actionFixture('act-help'),
-    actChat: actionFixture('act-open-chat'),
-    actBackToClub: actionFixture('act-back-to-club'),
+    actHelp: ZTest_actionFixture('act-help'),
+    actChat: ZTest_actionFixture('act-open-chat'),
+    actBackToClub: ZTest_actionFixture('act-back-to-club'),
   } as unknown as MenuApi
   const { result } = renderHook(() =>
     useActionsAndMenu({

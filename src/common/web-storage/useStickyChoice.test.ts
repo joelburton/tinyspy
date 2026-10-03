@@ -2,7 +2,7 @@
 
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { installFakeStorage, type InstalledStorage } from './storage.fake'
+import { ZTest_installFakeStorage, type ZTest_InstalledStorage } from './storage.fake'
 import { useStickyChoice } from './useStickyChoice'
 
 /**
@@ -29,10 +29,10 @@ type Choice = (typeof OPTIONS)[number]
 
 const render = () => renderHook(() => useStickyChoice<Choice>(KEY, OPTIONS, 'all'))
 
-let storage: InstalledStorage
+let storage: ZTest_InstalledStorage
 
 beforeAll(() => {
-  storage = installFakeStorage()
+  storage = ZTest_installFakeStorage()
 })
 
 beforeEach(() => storage.clear())

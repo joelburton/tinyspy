@@ -14,7 +14,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { KeyList } from '@/common/actions/KeyList'
@@ -23,7 +23,7 @@ import { menuRow, type MenuRow, type MenuSection } from '@/common/menu/menuModel
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { gp } from '@/common/members/gamePlayer.fixture'
+import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import type { CrosswordsGame } from '../hooks/useGame'
 import type { CellsMap, CellState } from '../hooks/useCells'
@@ -100,7 +100,7 @@ function template(): PuzzleTemplate {
 function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
     authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
+    players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')],
     isTerminal: false,
     isTurnBased: false,
     turnHolderId: null,
@@ -119,9 +119,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
+      actHelp: ZTest_actionFixture('act-help'),
+      actChat: ZTest_actionFixture('act-open-chat'),
+      actBackToClub: ZTest_actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -622,7 +622,7 @@ describe('crosswords PlayArea — the page chords', () => {
     h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
     render(
       <WithKeys
-        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')] })}
+        {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')] })}
       />,
     )
     expect(stateOf('act-fill-cell')).toBe('disabled')
@@ -637,7 +637,7 @@ describe('crosswords PlayArea — the page chords', () => {
     h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
     render(
       <WithKeys
-        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')] })}
+        {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')] })}
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()

@@ -7,7 +7,7 @@ import {
 } from './dbEnvelope'
 import { diagnosticsLine, logDb, logSlow } from './dbLog'
 import { _isEnvelope, notOkOutcome, readRows, runEdgeFn, runRpc } from './dbResult'
-import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '../faults/faultStore'
+import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '../faults/faultStore'
 import { reloadIfStaleBuild } from '../boot/reloadOnStaleBuild'
 
 // `reportUnhandled` asks the stale-build check before it reports (a stale tab
@@ -50,7 +50,7 @@ const env = (partial: Record<string, unknown>) => ({
 })
 
 beforeEach(() => {
-  clearFaultMessages_ForTest()
+  ZTest_clearFaultMessages()
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 // Every test starts with fresh console spies: `vi.spyOn` on an already-spied
@@ -153,7 +153,7 @@ describe('a request nothing answered', () => {
     setOnline(false)
     mockInvoke.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
     await runEdgeFn('anything', {})
-    expect(peekFaultMessages_ForTest()).toHaveLength(1)
+    expect(ZTest_peekFaultMessages()).toHaveLength(1)
   })
 
   // And a caller that took the job gets nothing shown — but the line is still
@@ -162,7 +162,7 @@ describe('a request nothing answered', () => {
     setOnline(false)
     mockInvoke.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
     await runEdgeFn('anything', {}, { presentFaults: false })
-    expect(peekFaultMessages_ForTest()).toHaveLength(0)
+    expect(ZTest_peekFaultMessages()).toHaveLength(0)
   })
 })
 
@@ -301,7 +301,7 @@ describe('readRows', () => {
     // rejection to `{ status: 0 }` first — so only a hand-built rejection like
     // this one reaches it. That is exactly why the assertion belongs here: if
     // the branch ever does fire, it must not fire silently.
-    expect(peekFaultMessages_ForTest()).toHaveLength(1)
+    expect(ZTest_peekFaultMessages()).toHaveLength(1)
   })
 
   // **Which read it was.** A hook makes several, the player's sentence is
@@ -345,7 +345,7 @@ describe('readRows', () => {
     })
     expect(r.detail).toContain('an RPC envelope')
     // The modal is raised here, like every other fault the wrappers detect.
-    expect(peekFaultMessages_ForTest()).toHaveLength(1)
+    expect(ZTest_peekFaultMessages()).toHaveLength(1)
   })
 
   it('faults on a scalar too, and says what it got', async () => {
@@ -414,7 +414,7 @@ describe('runRpc — one shape, always', () => {
     // It arrives HTTP 200, so the seam never saw it — without this the modal
     // would never appear and `severity: 'fault'` would mean two different
     // things depending on how the fault arose.
-    const [fault] = peekFaultMessages_ForTest()
+    const [fault] = ZTest_peekFaultMessages()
     expect(fault.text).toBe('Broken')
     expect(fault.diagnostics).toContain('dbcode=PN500')
   })
@@ -442,14 +442,14 @@ describe('runRpc — one shape, always', () => {
         )) as never,
     })
     await runRpc(client.schema('common').rpc('create_club', { club_name: 'x' }))
-    const [fault] = peekFaultMessages_ForTest()
+    const [fault] = ZTest_peekFaultMessages()
     expect(fault.diagnostics).toContain('POST /rest/v1/rpc/create_club')
   })
 
   it('falls back to a bare label when the builder has no url', async () => {
     const envelope = { type: 'not-ok', severity: 'fault', message: 'Broken', dbcode: 'PN500' }
     await runRpc(Promise.resolve({ data: envelope, error: null }))
-    expect(peekFaultMessages_ForTest()[0].diagnostics).toContain('| rpc |')
+    expect(ZTest_peekFaultMessages()[0].diagnostics).toContain('| rpc |')
   })
 
   it('builds a fault envelope when the reply is not an envelope at all', async () => {
@@ -461,7 +461,7 @@ describe('runRpc — one shape, always', () => {
     // absence. The unreadable body survives in `detail`.
     expect((r as { dbcode: string | null }).dbcode).toBe('PN307')
     expect((r as { detail?: string }).detail).toBe('rawBody: "won"')
-    expect(peekFaultMessages_ForTest()).toHaveLength(1)
+    expect(ZTest_peekFaultMessages()).toHaveLength(1)
   })
 
   // Postgres's HINT is the most useful field in many raw faults, and the
@@ -548,7 +548,7 @@ describe('reportDbFault', () => {
       { call: 'GET /rest/v1/clubs', detail: 'online=false hidden' },
       faultEnvelope({ message: 'nope', code: '42501', details: 'why' }, 'fallback', undefined, 'PN900'),
     )
-    const [fault] = peekFaultMessages_ForTest()
+    const [fault] = ZTest_peekFaultMessages()
     expect(fault.diagnostics).toContain('online=false hidden')
     expect(fault.diagnostics).toContain('why')
   })
@@ -558,7 +558,7 @@ describe('reportDbFault', () => {
     // that two callers cannot ask the same global and disagree about the answer.
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
     reportDbFault({ call: 'GET /rest/v1/clubs' }, nothingReachedUs())
-    const [fault] = peekFaultMessages_ForTest()
+    const [fault] = ZTest_peekFaultMessages()
     expect(fault.text).toBe('You appear to be offline. Please refresh and try again.')
     // It must NOT claim the call did or didn't land — the link can die on the
     // way back, after the write committed.
@@ -568,7 +568,7 @@ describe('reportDbFault', () => {
   it('puts the call in the diagnostics rather than the sentence', () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
     reportDbFault({ call: 'POST /rest/v1/rpc/submit_guess' }, nothingReachedUs())
-    const [fault] = peekFaultMessages_ForTest()
+    const [fault] = ZTest_peekFaultMessages()
     expect(fault.diagnostics).toContain('POST /rest/v1/rpc/submit_guess')
     expect(fault.text).not.toContain('submit_guess')
   })
@@ -581,7 +581,7 @@ describe('reportDbFault', () => {
         'unused', undefined, 'PN900',
       ),
     )
-    const [fault] = peekFaultMessages_ForTest()
+    const [fault] = ZTest_peekFaultMessages()
     expect(fault.text).toContain('players_guesses_remaining_check')
     expect(fault.diagnostics).toContain('dbcode=23514')
   })
@@ -598,7 +598,7 @@ describe('reportDbFault', () => {
       dbcode: 'PN500',
       detail: 'guess absent from games.words',
     })
-    const [fault] = peekFaultMessages_ForTest()
+    const [fault] = ZTest_peekFaultMessages()
     expect(fault.text).toBe('BUG: guess that is not on the board')
     expect(fault.diagnostics).toContain('dbcode=PN500')
     expect(fault.diagnostics).toContain('guess absent from games.words')
@@ -615,7 +615,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
     mockInvoke.mockResolvedValue({ data: env({ type: 'ok', data: { id: 'g1' } }), error: null })
     const r = await runEdgeFn<{ id: string }>('boggle-build-board', {})
     expect(r).toEqual(env({ type: 'ok', data: { id: 'g1' } }))
-    expect(peekFaultMessages_ForTest()).toHaveLength(0)
+    expect(ZTest_peekFaultMessages()).toHaveLength(0)
   })
 
   it('leaves a validation alone — no modal, the form will say it', async () => {
@@ -628,7 +628,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
     const r = await runEdgeFn('boggle-build-board', {})
 
     expect(r).toEqual(envelope)
-    expect(peekFaultMessages_ForTest()).toHaveLength(0)
+    expect(ZTest_peekFaultMessages()).toHaveLength(0)
   })
 
   it('raises the modal for a declared fault, though the call succeeded', async () => {
@@ -643,7 +643,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
 
     await runEdgeFn('boggle-build-board', {})
 
-    const [fault] = peekFaultMessages_ForTest()
+    const [fault] = ZTest_peekFaultMessages()
     expect(fault.text).toBe('Broken')
     expect(fault.diagnostics).toContain('dbcode=PN501')
   })
@@ -668,7 +668,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
     const r = await runEdgeFn('codenamesduet-suggest-clue', {})
 
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault', dbcode: 'PN489' })
-    expect(peekFaultMessages_ForTest()[0].diagnostics).toContain('dbcode=PN489')
+    expect(ZTest_peekFaultMessages()[0].diagnostics).toContain('dbcode=PN489')
   })
 
   // **A reply that was not our function is an OUTAGE, not our bug** — the third
@@ -703,7 +703,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
       error: null,
     })
     await runEdgeFn('waffle-build-board', {})
-    expect(peekFaultMessages_ForTest()[0].diagnostics).toContain('/functions/v1/waffle-build-board')
+    expect(ZTest_peekFaultMessages()[0].diagnostics).toContain('/functions/v1/waffle-build-board')
   })
 
   it('treats a body that is not an envelope as a fault', async () => {
@@ -714,7 +714,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
     const r = await runEdgeFn('boggle-build-board', {})
 
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
-    expect(peekFaultMessages_ForTest()[0].text).toContain('no caller can read')
+    expect(ZTest_peekFaultMessages()[0].text).toContain('no caller can read')
   })
 
   // A fault, AND the modal. Nothing below this layer presents — `dbFetch`
@@ -726,7 +726,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
     const r = await runEdgeFn('boggle-build-board', {})
 
     expect(r).toMatchObject({ type: 'not-ok', severity: 'fault' })
-    expect(peekFaultMessages_ForTest()).toHaveLength(1)
+    expect(ZTest_peekFaultMessages()).toHaveLength(1)
   })
 })
 
@@ -781,7 +781,7 @@ describe('an ok that breaks its own contract', () => {
     // Its OWN sentence AND its own code, not the unreadable-body one: a player
     // who quotes this back has to be identifiable as this failure rather than
     // that one, and `dbcode` is what makes that true without reading prose.
-    const [fault] = peekFaultMessages_ForTest()
+    const [fault] = ZTest_peekFaultMessages()
     expect(fault.text).toBe('BUG: an ok carried a message with no outcome')
     expect(fault.diagnostics).toContain('a message with no outcome')
   })
@@ -864,7 +864,7 @@ describe('reportUnhandled', () => {
     // And NOT a blank status, which would claim nothing answered.
     expect(line).toContain('status=200')
 
-    const [fault] = peekFaultMessages_ForTest()
+    const [fault] = ZTest_peekFaultMessages()
     expect(fault.text).toBe('BUG: stop_game fell through to unhandled')
     // The half a call site cannot write itself: something under the sentence.
     expect(fault.diagnostics).toContain('dbcode=PN488')
@@ -891,7 +891,7 @@ describe('reportUnhandled', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     reportUnhandled('submit_guess', okAnswer)
     await reported()
-    expect(peekFaultMessages_ForTest()[0].text).toBe('BUG: submit_guess fell through to unhandled')
+    expect(ZTest_peekFaultMessages()[0].text).toBe('BUG: submit_guess fell through to unhandled')
   })
 
   // A build left open across a deploy meets new shapes exactly this way, and
@@ -902,6 +902,6 @@ describe('reportUnhandled', () => {
     reportUnhandled('stop_game', okAnswer)
     await reported()
     expect(spy).not.toHaveBeenCalled()
-    expect(peekFaultMessages_ForTest()).toHaveLength(0)
+    expect(ZTest_peekFaultMessages()).toHaveLength(0)
   })
 })

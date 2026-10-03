@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { PUZZLE, guess, makeGameDataRaw, matchOf } from '../lib/gameData.fixture'
+import { ZTest_PUZZLE, ZTest_guess, ZTest_makeGameDataRaw, ZTest_matchOf } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useHistoryView } from './useHistoryView'
 
@@ -16,20 +16,20 @@ const TWO = [
   { id: 'u1', username: 'me', color: 'red' },
   { id: 'u2', username: 'moth', color: 'blue' },
 ]
-const [RED, GREEN] = PUZZLE.cats as [typeof PUZZLE.cats[0], typeof PUZZLE.cats[1]]
+const [RED, GREEN] = ZTest_PUZZLE.cats as [typeof ZTest_PUZZLE.cats[0], typeof ZTest_PUZZLE.cats[1]]
 
 /** me matched RED, then missed; moth matched GREEN. */
 const EVENTS = [
-  matchOf(RED, 'u1'),
-  guess('u1', ['e', 'f', 'g', 'm'], 'oneAway'),
-  matchOf(GREEN, 'u2'),
+  ZTest_matchOf(RED, 'u1'),
+  ZTest_guess('u1', ['e', 'f', 'g', 'm'], 'oneAway'),
+  ZTest_matchOf(GREEN, 'u2'),
 ]
 const [MY_MATCH, MY_MISS, THEIR_MATCH] = EVENTS as [typeof EVENTS[0], typeof EVENTS[1], typeof EVENTS[2]]
 
 /** The game as I see it, both modes ended so every row is on the log. */
 function gdWith(mode: 'coop' | 'compete') {
   return makeGameData(
-    makeGameDataRaw({
+    ZTest_makeGameDataRaw({
       mode,
       players: TWO,
       events: EVENTS,

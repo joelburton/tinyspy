@@ -23,7 +23,7 @@ import type { GameManifest } from '../manifest/gameManifest'
 import type { Member } from '../members/member'
 import type { SetupBodyProps } from './setupForm'
 import { errorUnder, formError } from '../fields/errorUnder'
-import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '../faults/faultStore'
+import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '../faults/faultStore'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
 
 const MESSAGE = 'The server said this exact thing.'
@@ -291,15 +291,15 @@ describe('SetupGameModal — when Start is refused', () => {
     // written for. It must not navigate: there is no game to
     // navigate to. `busy` clears so the player can press Start again once
     // someone fixes it.
-    clearFaultMessages_ForTest()
+    ZTest_clearFaultMessages()
     startGameInClub.mockResolvedValue({ type: 'ok', data: { id: 'g1' } })
     const user = userEvent.setup()
     const onStarted = draw()
     await waitFor(() => expect(screen.getByRole('spinbutton')).toBeInTheDocument())
     await user.click(start())
 
-    await waitFor(() => expect(peekFaultMessages_ForTest()).toHaveLength(1))
-    expect(peekFaultMessages_ForTest()[0]!.text).toBe('BUG: create_game fell through to unhandled')
+    await waitFor(() => expect(ZTest_peekFaultMessages()).toHaveLength(1))
+    expect(ZTest_peekFaultMessages()[0]!.text).toBe('BUG: create_game fell through to unhandled')
     expect(onStarted).not.toHaveBeenCalled()
     expect(start()).toBeEnabled()
   })

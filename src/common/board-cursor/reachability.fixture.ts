@@ -8,7 +8,7 @@ const ARROWS: readonly ArrowKey[] = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Arro
 const name = (c: Cell) => `${c.x},${c.y}`
 
 /** Every cell the board has, row by row. */
-export function cellsOf(shape: BoardShape): Cell[] {
+export function ZTest_cellsOf(shape: BoardShape): Cell[] {
   const cells: Cell[] = []
   for (let y = 0; y < shape.numRows; y++) {
     for (let x = 0; x < shape.numCols; x++) {
@@ -24,9 +24,9 @@ export function cellsOf(shape: BoardShape): Cell[] {
  * when this is empty from every cell: every cell must be reachable from every
  * other (doc.md → Arrows move by shape).
  *
- *     for (const start of cellsOf(shape)) expect(unreachableFrom(shape, start)).toEqual([])
+ *     for (const start of ZTest_cellsOf(shape)) expect(ZTest_unreachableFrom(shape, start)).toEqual([])
  */
-export function unreachableFrom(shape: BoardShape, start: Cell): Cell[] {
+export function ZTest_unreachableFrom(shape: BoardShape, start: Cell): Cell[] {
   const seen = new Set([name(start)])
   const queue = [start]
   for (let cell = queue.shift(); cell !== undefined; cell = queue.shift()) {
@@ -38,5 +38,5 @@ export function unreachableFrom(shape: BoardShape, start: Cell): Cell[] {
       }
     }
   }
-  return cellsOf(shape).filter((c) => !seen.has(name(c)))
+  return ZTest_cellsOf(shape).filter((c) => !seen.has(name(c)))
 }

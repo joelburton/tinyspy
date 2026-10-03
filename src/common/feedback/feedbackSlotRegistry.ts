@@ -11,7 +11,7 @@ import type { FeedbackSlot, SlotEntry, SlotName } from './feedbackSlotStore'
  * and drops it on unmount; the app has at most one `local` and one `global`
  * mounted at a time, so a name is enough. Nothing in the app reads this to
  * SHOW feedback — a call site holds its slot — it exists for `puppill` and
- * `peekFeedbackSlotForTest`.
+ * `ZTest_peekFeedbackSlot`.
  */
 
 const mounted = new Map<SlotName, FeedbackSlot>()
@@ -27,7 +27,7 @@ export function registerFeedbackSlot(slot: FeedbackSlot): () => void {
 /** Test seam: the live entries of a mounted slot, lowest rank first — or
  *  `[]` when no such slot is mounted. For asserting "this went to the local
  *  slot at this rank" without reaching into the rendered pill. */
-export function peekFeedbackSlotForTest(name: SlotName): readonly SlotEntry[] {
+export function ZTest_peekFeedbackSlot(name: SlotName): readonly SlotEntry[] {
   return mounted.get(name)?.peek() ?? []
 }
 

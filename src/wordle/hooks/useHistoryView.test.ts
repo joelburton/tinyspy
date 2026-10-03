@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { guess, makeGameDataRaw } from '../lib/gameData.fixture'
+import { ZTest_guess, ZTest_makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useHistoryView } from './useHistoryView'
 
@@ -15,13 +15,13 @@ const TWO = [
   { id: 'u1', username: 'me', color: 'red' },
   { id: 'u2', username: 'moth', color: 'blue' },
 ]
-const EVENTS = [guess(1, 'u1', 'slate', 'xxgyx'), guess(2, 'u2', 'crane', 'ggggg')]
+const EVENTS = [ZTest_guess(1, 'u1', 'slate', 'xxgyx'), ZTest_guess(2, 'u2', 'crane', 'ggggg')]
 
 /** A game with both players' rows in the log: coop, or a race that has ended
  *  (mid-race the seat rule would withhold moth's). */
 function gdWith(isCompete: boolean) {
   return makeGameData(
-    makeGameDataRaw({
+    ZTest_makeGameDataRaw({
       mode: isCompete ? 'compete' : 'coop',
       players: TWO,
       events: EVENTS,

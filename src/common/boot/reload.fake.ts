@@ -23,7 +23,7 @@ import { vi, type Mock } from 'vitest'
  * Not a `.test.ts` file, so it ships no cases of its own, the way
  * `common/web-storage/storage.fake.ts` does not.
  */
-export type FakeReload = {
+export type ZTest_FakeReload = {
   /** Stands in for `location.reload` — assert calls on this. */
   reload: Mock
   /** Put the real `location` back; call it in `afterEach`. */
@@ -31,7 +31,7 @@ export type FakeReload = {
 }
 
 /** Swap `window.location` for a stub whose `reload` is a mock. */
-export function installFakeReload(): FakeReload {
+export function ZTest_installFakeReload(): ZTest_FakeReload {
   const real = window.location
   const reload = vi.fn()
   const define = (value: unknown) =>

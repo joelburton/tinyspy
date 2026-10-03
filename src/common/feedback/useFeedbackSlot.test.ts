@@ -5,7 +5,7 @@ import { useEffect } from 'react'
 import { act, renderHook } from '@testing-library/react'
 import { useFeedbackSlot, useWatchAndGetTopFeedbackMsg } from './useFeedbackSlot'
 import { FeedbackMessage } from './FeedbackMessage'
-import { peekFeedbackSlotForTest } from './feedbackSlotRegistry'
+import { ZTest_peekFeedbackSlot } from './feedbackSlotRegistry'
 
 /**
  * What the hook adds to the store: one slot per host with a STABLE identity
@@ -30,9 +30,9 @@ describe('useFeedbackSlot', () => {
   it('registers the slot under its name while mounted, and drops it on unmount', () => {
     const { result, unmount } = renderHook(() => useFeedbackSlot('local'))
     act(() => void result.current.show(FeedbackMessage.note('here')))
-    expect(peekFeedbackSlotForTest('local').map((e) => e.message.text)).toEqual(['here'])
+    expect(ZTest_peekFeedbackSlot('local').map((e) => e.message.text)).toEqual(['here'])
     unmount()
-    expect(peekFeedbackSlotForTest('local')).toEqual([])
+    expect(ZTest_peekFeedbackSlot('local')).toEqual([])
   })
 
   it('clears a pending timer on unmount', () => {

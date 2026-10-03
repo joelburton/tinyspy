@@ -14,17 +14,17 @@
 
 import { renderHook, act } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
+import { ZTest_installFakeStorage, type ZTest_InstalledStorage } from '../web-storage/storage.fake'
 import {
   getIsChatPanelOpen,
   setIsChatPanelOpen,
   useIsChatPanelOpen,
 } from './chatPanelOpenStore'
 
-let storage: InstalledStorage
+let storage: ZTest_InstalledStorage
 
 beforeAll(() => {
-  storage = installFakeStorage()
+  storage = ZTest_installFakeStorage()
 })
 
 beforeEach(() => {

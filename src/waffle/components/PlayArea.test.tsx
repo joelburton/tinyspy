@@ -23,8 +23,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { gp } from '@/common/members/gamePlayer.fixture'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
@@ -35,7 +35,7 @@ import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
 import { edgeFnTransport } from '@/common/supabase/edgeFnTransport'
 import { PlayArea } from './PlayArea'
-import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '@/common/faults/faultStore'
+import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '@/common/faults/faultStore'
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -119,7 +119,7 @@ function swapRow(posA: number, posB: number, id = 1, userId = 'u1'): EventRow {
 }
 
 /** Two club members, for the compete strip / concede tests. */
-const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
 
 /** A loaded game-hook result; override the game header + players per test. */
 function loaded(
@@ -144,7 +144,7 @@ const competeGame: WaffleGame = {
 function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
     authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [gp('u1', 'me', 'red')],
+    players: [ZTest_gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased: false,
     turnHolderId: null,
@@ -165,9 +165,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
+      actHelp: ZTest_actionFixture('act-help'),
+      actChat: ZTest_actionFixture('act-open-chat'),
+      actBackToClub: ZTest_actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -215,7 +215,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
 }
 
 beforeEach(() => {
-  clearFaultMessages_ForTest()
+  ZTest_clearFaultMessages()
   h.result = loaded(coopGame)
   rpc.mockReset()
   rpc.mockResolvedValue(okEnvelope)
@@ -303,7 +303,7 @@ describe('waffle PlayArea — concede', () => {
     h.result = loaded(competeGame, [me, moth])
     render(
       <PlayArea
-        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })] })}
+        {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })] })}
       />,
     )
     expect(screen.getByText('out')).toBeInTheDocument()
@@ -313,7 +313,7 @@ describe('waffle PlayArea — concede', () => {
     h.result = loaded(competeGame, [me, moth])
     render(
       <PlayArea
-        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')] })}
+        {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')] })}
       />,
     )
     // The bold action-row status (exact) — the below-board pill carries the
@@ -399,7 +399,7 @@ describe('waffle PlayArea — new game (menu)', () => {
     // the words are the SERVER's — the frontend no longer rebuilds a sentence
     // from a key.
     await waitFor(() =>
-      expect(peekFaultMessages_ForTest().map((f) => f.text)).toContain(
+      expect(ZTest_peekFaultMessages().map((f) => f.text)).toContain(
         'No board could be built at that difficulty.',
       ),
     )
@@ -985,7 +985,7 @@ describe('waffle PlayArea — the selection cursor', () => {
     render(
       <WithKeys
         {...makeCtx({
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
+          players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')],
           isTurnBased: true,
           turnHolderId: 'u2',
         })}

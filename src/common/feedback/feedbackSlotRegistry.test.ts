@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createFeedbackSlot } from './feedbackSlotStore'
-import { peekFeedbackSlotForTest, registerFeedbackSlot } from './feedbackSlotRegistry'
+import { ZTest_peekFeedbackSlot, registerFeedbackSlot } from './feedbackSlotRegistry'
 import { FeedbackMessage } from './FeedbackMessage'
 
 /**
@@ -19,11 +19,11 @@ afterEach(() => {
 
 describe('feedbackSlotRegistry', () => {
   it('peek reads the mounted slot, and [] when none is', () => {
-    expect(peekFeedbackSlotForTest('local')).toEqual([])
+    expect(ZTest_peekFeedbackSlot('local')).toEqual([])
     const slot = createFeedbackSlot('local')
     cleanups.push(registerFeedbackSlot(slot))
     slot.show(FeedbackMessage.note('here'))
-    expect(peekFeedbackSlotForTest('local').map((e) => e.message.text)).toEqual(['here'])
+    expect(ZTest_peekFeedbackSlot('local').map((e) => e.message.text)).toEqual(['here'])
   })
 
   it('an unregister for a superseded slot does not drop the newcomer', () => {
@@ -33,7 +33,7 @@ describe('feedbackSlotRegistry', () => {
     cleanups.push(registerFeedbackSlot(fresh))
     unregisterOld()
     fresh.show(FeedbackMessage.note('fresh'))
-    expect(peekFeedbackSlotForTest('local').map((e) => e.message.text)).toEqual(['fresh'])
+    expect(ZTest_peekFeedbackSlot('local').map((e) => e.message.text)).toEqual(['fresh'])
   })
 
   it('puppill shows into the named slot and returns the id', () => {

@@ -15,7 +15,7 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GRID, idx, setChar } from '../lib/board'
 import { usePlayerBoard, type UsePlayerBoardInput } from './usePlayerBoard'
@@ -37,7 +37,7 @@ vi.mock('@/shared/grid-and-drag/useDragGesture', () => ({
 vi.mock('@/common/board-cursor/useBoardCursorKeys', () => ({
   useBoardCursorKeys: (cfg: typeof keyCfg.current) => {
     keyCfg.current = cfg
-    return { actCommit: actionFixture('act-peel') }
+    return { actCommit: ZTest_actionFixture('act-peel') }
   },
 }))
 

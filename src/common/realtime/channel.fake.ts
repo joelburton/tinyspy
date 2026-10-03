@@ -23,10 +23,10 @@ import { vi, type Mock } from 'vitest'
  * channel answers on its own schedule, so the window between mount and the
  * first sync — the one a page paints its first render in — is impossible to
  * hold still against the real thing. Here it is simply the default state, and
- * {@link FakeChannel.subscribed} / {@link FakeChannel.sync} step out of it.
+ * {@link ZTest_FakeChannel.subscribed} / {@link ZTest_FakeChannel.sync} step out of it.
  *
  * The mock that hands these out belongs in each test file (`vi.mock` is
- * hoisted, so it cannot be shared), and `lastFakeChannel` reads the most
+ * hoisted, so it cannot be shared), and `ZTest_lastFakeChannel` reads the most
  * recent one back out of it.
  *
  * Not a `.test.ts` file, so it ships no cases of its own, the way
@@ -34,33 +34,33 @@ import { vi, type Mock } from 'vitest'
  */
 
 /** One client's presence payload, as its `track()` sent it. */
-export type FakePresence = { user_id?: string } & Record<string, unknown>
+export type ZTest_FakePresence = { user_id?: string } & Record<string, unknown>
 
 /** A presence roster, keyed the way `presenceState()` keys it. */
-export type FakePresenceState = Record<string, FakePresence[]>
+export type ZTest_FakePresenceState = Record<string, ZTest_FakePresence[]>
 
-export type FakeChannel = {
+export type ZTest_FakeChannel = {
   topic: string
   /** Records the callback. Our hooks register exactly one `presence`/`sync`
    *  handler per channel, so the event and filter are ignored. */
-  on: (event: string, filter: unknown, cb: () => void) => FakeChannel
-  subscribe: (cb?: (status: string) => void) => FakeChannel
+  on: (event: string, filter: unknown, cb: () => void) => ZTest_FakeChannel
+  subscribe: (cb?: (status: string) => void) => ZTest_FakeChannel
   track: Mock
   untrack: Mock
-  presenceState: () => FakePresenceState
+  presenceState: () => ZTest_FakePresenceState
   /** Play the join ack — `SUBSCRIBED` — to whoever is waiting on it. */
   subscribed: () => void
   /** Publish `state` as the channel's roster and fire the sync handler. */
-  sync: (state: FakePresenceState) => void
+  sync: (state: ZTest_FakePresenceState) => void
 }
 
 /** A fake channel joined under `name` (what `supabase.channel(name)` was given). */
-export function fakeChannel(name: string): FakeChannel {
+export function ZTest_fakeChannel(name: string): ZTest_FakeChannel {
   let onSync: (() => void) | undefined
   let onStatus: ((status: string) => void) | undefined
-  let presence: FakePresenceState = {}
+  let presence: ZTest_FakePresenceState = {}
 
-  const ch: FakeChannel = {
+  const ch: ZTest_FakeChannel = {
     topic: `realtime:${name}`,
     on: (_event, _filter, cb) => {
       onSync = cb
@@ -83,9 +83,9 @@ export function fakeChannel(name: string): FakeChannel {
 }
 
 /** The channel most recently handed out by a `supabase.channel` mock whose
- *  implementation is {@link fakeChannel}. */
-export function lastFakeChannel(channel: Mock): FakeChannel {
+ *  implementation is {@link ZTest_fakeChannel}. */
+export function ZTest_lastFakeChannel(channel: Mock): ZTest_FakeChannel {
   const { results } = channel.mock
   if (results.length === 0) throw new Error('no channel was joined')
-  return results[results.length - 1].value as FakeChannel
+  return results[results.length - 1].value as ZTest_FakeChannel
 }

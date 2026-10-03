@@ -1,7 +1,7 @@
 // cs-blessed-boot
 
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
+import { ZTest_installFakeStorage, type ZTest_InstalledStorage } from '../web-storage/storage.fake'
 import { consumeReloadForUpdate, rememberReloadForUpdate } from './reloadNotice'
 
 /**
@@ -9,10 +9,10 @@ import { consumeReloadForUpdate, rememberReloadForUpdate } from './reloadNotice'
  * and a second read — StrictMode's doubled effect — finds nothing.
  */
 describe('reloadNotice', () => {
-  let storage: InstalledStorage
+  let storage: ZTest_InstalledStorage
 
   beforeAll(() => {
-    storage = installFakeStorage()
+    storage = ZTest_installFakeStorage()
   })
 
   beforeEach(() => {

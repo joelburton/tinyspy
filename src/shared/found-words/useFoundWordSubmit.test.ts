@@ -13,7 +13,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '@/common/faults/faultStore'
+import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '@/common/faults/faultStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import {
   useFoundWordSubmit,
@@ -68,7 +68,7 @@ function setup(cfg: FoundWordSubmitConfig) {
   return { ...view, type, submit }
 }
 
-beforeEach(() => clearFaultMessages_ForTest())
+beforeEach(() => ZTest_clearFaultMessages())
 
 describe('useFoundWordSubmit', () => {
   it('accepts a legal word: fires commit once and reports it with its entry', async () => {
@@ -246,8 +246,8 @@ describe('useFoundWordSubmit', () => {
     type('apple')
     await submit()
 
-    expect(peekFaultMessages_ForTest()).toHaveLength(1)
-    expect(peekFaultMessages_ForTest()[0]?.text).toContain('BUG')
+    expect(ZTest_peekFaultMessages()).toHaveLength(1)
+    expect(ZTest_peekFaultMessages()[0]?.text).toContain('BUG')
   })
 
   // ── What the caller's two callbacks are told ───────────────────────────────

@@ -33,8 +33,8 @@ vi.mock('../supabase/supabase', () => ({
 }))
 
 import { useClubSetupPresence } from './useClubSetupPresence'
-import { __resetChannelTeardowns } from './channelTeardown'
-import { fakeChannel, lastFakeChannel } from './channel.fake'
+import { ZTest_resetChannelTeardowns } from './channelTeardown'
+import { ZTest_fakeChannel, ZTest_lastFakeChannel } from './channel.fake'
 import { dismissToast, showToast, useToasts, type ToastEntry } from '../toasts/toastStore'
 
 const SELF = 'u1'
@@ -63,12 +63,12 @@ function mount(mySetup: MySetup | null = null, clubHandle: string | null = 'cl1'
 }
 
 /** What the channel most recently joined is; the two server moves live on it. */
-const server = () => lastFakeChannel(channel)
+const server = () => ZTest_lastFakeChannel(channel)
 
 beforeEach(() => {
-  __resetChannelTeardowns()
+  ZTest_resetChannelTeardowns()
   channel.mockReset()
-  channel.mockImplementation((name: string) => fakeChannel(name))
+  channel.mockImplementation((name: string) => ZTest_fakeChannel(name))
   removeChannel.mockReset()
   removeChannel.mockResolvedValue('ok')
 })

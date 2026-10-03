@@ -7,8 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { gp } from '@/common/members/gamePlayer.fixture'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
@@ -110,7 +110,7 @@ function loaded(over: Partial<GameHook> = {}): GameHook {
 function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
     authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [gp('u1', 'me', 'red')],
+    players: [ZTest_gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased: false,
     turnHolderId: null,
@@ -129,9 +129,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
+      actHelp: ZTest_actionFixture('act-help'),
+      actChat: ZTest_actionFixture('act-open-chat'),
+      actBackToClub: ZTest_actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -231,7 +231,7 @@ describe('strands PlayArea — the three phases', () => {
     // solved on the fewest hints — so a solver goes LOCALLY terminal.
     const me = player({ solved: true })
     h.result = loaded({ game: loadedGame({ mode: 'compete' }), me, players: [me] })
-    const solver = gp('u1', 'me', 'red', { locally_terminal: true })
+    const solver = ZTest_gp('u1', 'me', 'red', { locally_terminal: true })
     render(<PlayArea {...makeCtx({ players: [solver], isTerminal: false, playState: 'playing' })} />)
     expect(screen.getByText('You solved it — waiting')).toBeInTheDocument()
     // …and cannot pull the answer while a rival is still tracing.
@@ -243,7 +243,7 @@ describe('strands PlayArea — the three phases', () => {
     // open to anyone in it, so the row's flag is Stop.
     const me = player({ solved: true })
     h.result = loaded({ game: loadedGame({ mode: 'compete' }), me, players: [me] })
-    const solver = gp('u1', 'me', 'red', { locally_terminal: true })
+    const solver = ZTest_gp('u1', 'me', 'red', { locally_terminal: true })
     render(<PlayArea {...makeCtx({ players: [solver], isTerminal: false, playState: 'playing' })} />)
     expect(control('act-concede')).toBeNull()
     expect(control('act-stop-game')).not.toBeNull()
@@ -477,7 +477,7 @@ describe('strands PlayArea — + and ⌥⌫ through the dispatcher', () => {
     h.result = loaded({ game: loadedGame({ mode: 'compete' }), me, players: [me, player({ user_id: 'u2' })] })
     render(
       <>
-        <WithKeys {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')] })} />
+        <WithKeys {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')] })} />
         <ConfirmationHost />
       </>,
     )
@@ -662,7 +662,7 @@ describe('strands PlayArea — the selection cursor', () => {
     render(
       <WithKeys
         {...makeCtx({
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
+          players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')],
           isTurnBased: true,
           turnHolderId: 'u2',
         })}

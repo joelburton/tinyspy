@@ -32,7 +32,7 @@ vi.mock('../session/myProfileStore', () => ({
   }),
 }))
 
-import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '../faults/faultStore'
+import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '../faults/faultStore'
 import { useAccountMenuSection } from './useAccountMenuSection'
 
 /** The bound Log out action, off the submenu row the hook returns. */
@@ -46,13 +46,13 @@ function renderLogOut() {
 
 /** The one fault on the queue, or a failure naming how many there really are. */
 function onlyFault() {
-  const faults = peekFaultMessages_ForTest()
+  const faults = ZTest_peekFaultMessages()
   expect(faults).toHaveLength(1)
   return faults[0]
 }
 
 beforeEach(() => {
-  clearFaultMessages_ForTest()
+  ZTest_clearFaultMessages()
   vi.clearAllMocks()
   // Every path writes a `[db]` line, and a test that let it through would print
   // a red line per run for a failure it asked for.
@@ -67,7 +67,7 @@ describe('log out', () => {
       logOut.run()
     })
     expect(signOutMock).toHaveBeenCalledTimes(1)
-    expect(peekFaultMessages_ForTest()).toHaveLength(0)
+    expect(ZTest_peekFaultMessages()).toHaveLength(0)
   })
 
   // THE WHOLE POINT. `GoTrueClient._signOut` returns before it clears the local

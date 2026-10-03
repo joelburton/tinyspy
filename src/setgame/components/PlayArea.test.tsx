@@ -22,8 +22,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { gp } from '@/common/members/gamePlayer.fixture'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
@@ -99,7 +99,7 @@ function loaded(over: Partial<GameHook> = {}): GameHook {
 function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
     authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [gp('u1', 'me', 'red')],
+    players: [ZTest_gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased: false,
     turnHolderId: null,
@@ -118,9 +118,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
+      actHelp: ZTest_actionFixture('act-help'),
+      actChat: ZTest_actionFixture('act-open-chat'),
+      actBackToClub: ZTest_actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -172,7 +172,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.click(buttons[buttons.length - 1]!)
 }
 
-const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
 
 beforeEach(() => {
   h.result = loaded()
@@ -246,7 +246,7 @@ describe('setgame PlayArea — the arrivals are lit when the hold ends', () => {
   it('holds the departing three, then lights the three that replace them', () => {
     vi.useFakeTimers()
     try {
-      const ctx = makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')] })
+      const ctx = makeCtx({ players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')] })
       h.result = loaded()
       const { rerender } = render(<PlayArea {...ctx} />)
       expect(arrivingCards()).toBe(0)
@@ -359,7 +359,7 @@ describe('setgame PlayArea — a conceder keeps the one flag', () => {
     render(
       <WithKeys
         {...makeCtx({
-          players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), twoMembers[1]],
+          players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), twoMembers[1]],
         })}
       />,
     )

@@ -14,7 +14,7 @@
 import { render, renderHook, screen } from '@testing-library/react'
 import { filterOptions, pickFilter } from '../lists/filterSelectHelpers'
 import { describe, expect, it } from 'vitest'
-import { gp } from '../members/gamePlayer.fixture'
+import { ZTest_gp } from '../members/gamePlayer.fixture'
 import { useEventLogPlayerPicker } from './useEventLogPlayerPicker'
 
 type Row = { by: { id: string }; word: string }
@@ -22,7 +22,7 @@ const rows: Row[] = [
   { by: { id: 'u1' }, word: 'mine' },
   { by: { id: 'u2' }, word: 'theirs' },
 ]
-const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+const two = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
 
 const setup = (over: Partial<Parameters<typeof useEventLogPlayerPicker>[0]> = {}) =>
   renderHook(() =>

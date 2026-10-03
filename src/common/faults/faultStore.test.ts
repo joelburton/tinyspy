@@ -11,14 +11,14 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  clearFaultMessages_ForTest,
+  ZTest_clearFaultMessages,
   dismissFaultModal,
   showFaultModal,
   useCurrentFaultMessage,
 } from './faultStore'
 
 afterEach(() => {
-  clearFaultMessages_ForTest()
+  ZTest_clearFaultMessages()
   vi.restoreAllMocks()
 })
 

@@ -11,7 +11,7 @@
  * test wants the other answer, and let the rest keep the default.
  *
  * The reason it is worth sharing rather than hand-rolling per suite is
- * {@link InstalledMatchMedia.set}: a stub whose `matches` is fixed at
+ * {@link ZTest_InstalledMatchMedia.set}: a stub whose `matches` is fixed at
  * construction can say "we are on a phone", but it cannot make a hook RE-RENDER,
  * which is the whole point of `useMediaQuery` being a subscription rather than a
  * one-shot read. Firing that transition needs the listeners a real
@@ -23,7 +23,7 @@
 
 type Listener = () => void
 
-export type InstalledMatchMedia = {
+export type ZTest_InstalledMatchMedia = {
   /**
    * Make `query` match (or stop matching) and notify everyone listening to it,
    * the way a resize or a rotation does. Wrap the call in `act()` when a hook is
@@ -41,7 +41,7 @@ export type InstalledMatchMedia = {
  * says otherwise. Call it in `beforeEach` and `uninstall` in `afterEach`, so a
  * suite that installs it doesn't change what the next file sees.
  */
-export function installFakeMatchMedia(): InstalledMatchMedia {
+export function ZTest_installFakeMatchMedia(): ZTest_InstalledMatchMedia {
   const matched = new Map<string, boolean>()
   const listeners = new Map<string, Set<Listener>>()
 

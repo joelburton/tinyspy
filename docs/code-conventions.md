@@ -272,6 +272,14 @@ the written shape wherever the pair exists (`GPlayerRaw` / `GPlayer`,
 `GEventRaw` / `GEvent`). psychicnum is the model (`src/psychicnum/types.ts`);
 each game takes the shape as it converts.
 
+**An export that exists only for tests starts with `ZTest_`**, wherever it
+lives and whatever it is: `ZTest_PlayerFacts` (a type), `ZTest_guess` (a
+function), `ZTest_PUZZLE` (a constant), `ZTest_peekFaultMessages` (a seam into
+app state). It stays in its fixture or its module and takes no `G`. The `Z`
+sorts it last and keeps it off the completion list until someone types `Z`,
+which nobody does by accident; the underscore keeps a type apart from a
+function of the same word.
+
 ### Grid coordinates
 
 The games with a coordinate grid and a keyboard cursor (bananagrams, scrabble)

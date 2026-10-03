@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { makeGameData } from '../hooks/useGame'
-import { guess, makeGameDataRaw, type GameDataFacts } from './gameData.fixture'
+import { ZTest_guess, ZTest_makeGameDataRaw, type ZTest_GameDataFacts } from './gameData.fixture'
 import { replayTurn } from './history'
 
 const TWO = [
@@ -11,16 +11,16 @@ const TWO = [
 ]
 
 /** The log as `gd` holds it, by player, for these facts. */
-const eventsOf = (facts: GameDataFacts) => makeGameData(makeGameDataRaw(facts), 'u1').events
+const eventsOf = (facts: ZTest_GameDataFacts) => makeGameData(ZTest_makeGameDataRaw(facts), 'u1').events
 
 describe('wordle replayTurn', () => {
   // Ids deliberately not 0,1,2: a builder that still indexed would pass these
   // by accident.
   const guesses = eventsOf({
     events: [
-      guess(11, 'u1', 'slate', 'xxgyx'),
-      guess(12, 'u1', 'crane', 'yxxxg'),
-      guess(13, 'u1', 'point', 'ggggg'),
+      ZTest_guess(11, 'u1', 'slate', 'xxgyx'),
+      ZTest_guess(12, 'u1', 'crane', 'yxxxg'),
+      ZTest_guess(13, 'u1', 'point', 'ggggg'),
     ],
   })
 
@@ -58,12 +58,12 @@ describe('wordle replayTurn', () => {
   })
 
   // Once a compete game has ended every player's rows arrive, interleaved.
-  const raceEnded: GameDataFacts = {
+  const raceEnded: ZTest_GameDataFacts = {
     players: TWO,
     events: [
-      guess(21, 'u1', 'slate', 'xxgyx'),
-      guess(22, 'u2', 'crane', 'yxxxg'),
-      guess(23, 'u1', 'point', 'ggggg'),
+      ZTest_guess(21, 'u1', 'slate', 'xxgyx'),
+      ZTest_guess(22, 'u2', 'crane', 'yxxxg'),
+      ZTest_guess(23, 'u1', 'point', 'ggggg'),
     ],
     ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
     outcome: 'won',

@@ -27,13 +27,6 @@ decision against, so a review doesn't propose it again
   `useMarkForeignGuesses` marks a teammate's miss off their row. One shape,
   decided across the three before the next game converts.
 
-- **Every test seam ends in `_ForTest`.** An export that only tests call
-  should say so where it is called, and the underscore makes it easy to spot.
-  `faultStore`'s two (`clearFaultMessages_ForTest`, `peekFaultMessages_ForTest`)
-  already do; `peekFeedbackSlotForTest` (`feedback/feedbackSlotRegistry.ts`)
-  and `__resetChannelTeardowns` (`realtime/channelTeardown.ts`) spell it other
-  ways, and a sweep should look for seams whose names don't say it at all.
-
 - **Two mobile behaviors need a check on a real phone; headless Playwright
   reproduces neither.** `viewport-fit=cover` stops the browser letterboxing, so
   every full-bleed surface has to clear the notch and the home indicator itself,

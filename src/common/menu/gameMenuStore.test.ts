@@ -13,11 +13,11 @@
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { setGameMenuSections, useGameMenuSections } from './gameMenuStore'
-import { actionFixture } from '../actions/action.fixture'
+import { ZTest_actionFixture } from '../actions/action.fixture'
 import type { MenuSection } from './menuModel'
 
-const section = (...ids: Parameters<typeof actionFixture>[0][]): MenuSection => ({
-  items: ids.map((id) => actionFixture(id)),
+const section = (...ids: Parameters<typeof ZTest_actionFixture>[0][]): MenuSection => ({
+  items: ids.map((id) => ZTest_actionFixture(id)),
 })
 
 // A module slot outlives a test, the way it outlives a render.

@@ -11,9 +11,9 @@ import type { GamePlayerLegacy, Member } from './member'
  *
  * Keeps test fixtures from having to spell those fields out on every player
  * literal, and gives the concede tests a one-liner conceded player:
- * `gp('u2', 'moth', 'blue', CONCEDED)`.
+ * `ZTest_gp('u2', 'moth', 'blue', ZTest_CONCEDED)`.
  */
-export function gp(
+export function ZTest_gp(
   id: string,
   username: string,
   color: string,
@@ -45,7 +45,7 @@ export function gp(
 /** The ending columns of a player who conceded, and the standing they imply,
  *  for `gp`'s `over` — `lost` from the moment they conceded, as
  *  `common._concede` writes it. */
-export const CONCEDED = {
+export const ZTest_CONCEDED = {
   player_ended_at: '2026-09-03T00:00:00Z',
   player_ended_reason: 'conceded',
   player_ended_reason_detail: 'conceded',

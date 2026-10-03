@@ -9,11 +9,11 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { getActions } from '@/common/actions/actionsStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
-import { ELIMINATED, makeGameDataRaw, type GameDataFacts } from '../lib/gameData.fixture'
+import { ZTest_ELIMINATED, ZTest_makeGameDataRaw, type ZTest_GameDataFacts } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import type { GGameData } from '../types'
 import { useActionsAndMenu } from './useActionsAndMenu'
@@ -21,12 +21,12 @@ import { useActionsAndMenu } from './useActionsAndMenu'
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
 /** A coop game in play unless the facts say otherwise. */
-function gdWith(facts: GameDataFacts = {}): GGameData {
-  return makeGameData(makeGameDataRaw(facts), 'u1')
+function gdWith(facts: ZTest_GameDataFacts = {}): GGameData {
+  return makeGameData(ZTest_makeGameDataRaw(facts), 'u1')
 }
 
 /** A game that has ended as a Stop. */
-const STOPPED: GameDataFacts = {
+const STOPPED: ZTest_GameDataFacts = {
   ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
   outcome: 'neutral',
 }
@@ -36,9 +36,9 @@ function setup(gd: GGameData) {
   const setGameSections = vi.fn()
   const menu = {
     setGameSections,
-    actHelp: actionFixture('act-help'),
-    actChat: actionFixture('act-open-chat'),
-    actBackToClub: actionFixture('act-back-to-club'),
+    actHelp: ZTest_actionFixture('act-help'),
+    actChat: ZTest_actionFixture('act-open-chat'),
+    actBackToClub: ZTest_actionFixture('act-back-to-club'),
   } as unknown as MenuApi
   const { result } = renderHook(() =>
     useActionsAndMenu({
@@ -117,7 +117,7 @@ describe('useActionsAndMenu — the hints', () => {
     setup(gdWith({
       mode: 'compete',
       players: [
-        { id: 'u1', username: 'me', color: 'red', ...ELIMINATED },
+        { id: 'u1', username: 'me', color: 'red', ...ZTest_ELIMINATED },
         { id: 'u2', username: 'moth', color: 'blue' },
       ],
     }))

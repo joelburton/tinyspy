@@ -15,13 +15,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const removeChannel = vi.fn()
 vi.mock('../supabase/supabase', () => ({ supabase: { removeChannel: (ch: unknown) => removeChannel(ch) } }))
 
-import { channelLeaving, releaseChannel, __resetChannelTeardowns } from './channelTeardown'
+import { channelLeaving, releaseChannel, ZTest_resetChannelTeardowns } from './channelTeardown'
 
 /** A stand-in channel — the registry only reads `.topic`. */
 const chan = (name: string) => ({ topic: `realtime:${name}` }) as never
 
 beforeEach(() => {
-  __resetChannelTeardowns()
+  ZTest_resetChannelTeardowns()
   removeChannel.mockReset()
 })
 afterEach(() => vi.restoreAllMocks())

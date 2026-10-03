@@ -8,10 +8,10 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
-import { CONCEDED, makeGameDataRaw } from '../lib/gameData.fixture'
+import { ZTest_CONCEDED, ZTest_makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useActionsAndMenu } from './useActionsAndMenu'
 import type { GGameData } from '../types'
@@ -25,9 +25,9 @@ const STOPPED = { reason: 'stopped' as const, detail: 'stopped', by: 'u1', winne
 /** A game in play, with the facts the actions read overridable. */
 function gdWith(over: { ended?: boolean; outOfTheRace?: boolean } = {}): GGameData {
   return makeGameData(
-    makeGameDataRaw({
+    ZTest_makeGameDataRaw({
       mode: over.outOfTheRace ? 'compete' : 'coop',
-      players: over.outOfTheRace ? [{ ...ME, ...CONCEDED }, MOTH] : [ME],
+      players: over.outOfTheRace ? [{ ...ME, ...ZTest_CONCEDED }, MOTH] : [ME],
       ending: over.ended ? STOPPED : null,
       outcome: over.ended ? 'neutral' : null,
     }),
@@ -40,9 +40,9 @@ function setup(gd: GGameData) {
   const setGameSections = vi.fn()
   const menu = {
     setGameSections,
-    actHelp: actionFixture('act-help'),
-    actChat: actionFixture('act-open-chat'),
-    actBackToClub: actionFixture('act-back-to-club'),
+    actHelp: ZTest_actionFixture('act-help'),
+    actChat: ZTest_actionFixture('act-open-chat'),
+    actBackToClub: ZTest_actionFixture('act-back-to-club'),
   } as unknown as MenuApi
   const { result } = renderHook(() =>
     useActionsAndMenu({

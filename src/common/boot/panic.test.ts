@@ -4,7 +4,7 @@ import { createElement } from 'react'
 import { flushSync } from 'react-dom'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { installFakeReload, type FakeReload } from './reload.fake'
+import { ZTest_installFakeReload, type ZTest_FakeReload } from './reload.fake'
 import { onUncaughtRender, showPanic } from './panic'
 
 /**
@@ -18,12 +18,12 @@ import { onUncaughtRender, showPanic } from './panic'
  * see `reload.fake.ts`.
  */
 describe('panic', () => {
-  let location: FakeReload
+  let location: ZTest_FakeReload
 
   beforeEach(() => {
     document.body.innerHTML = ''
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    location = installFakeReload()
+    location = ZTest_installFakeReload()
   })
 
   afterEach(() => {

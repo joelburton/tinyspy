@@ -21,8 +21,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { gp } from '@/common/members/gamePlayer.fixture'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
@@ -105,7 +105,7 @@ function wordPlay(over: Partial<EventRow> = {}): EventRow {
   }
 }
 
-const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
 
 /** A play surface's context. Where I stand is DERIVED from the fixture — the
  *  roster, `isTerminal` and the turn pointer — exactly as the page derives it
@@ -115,7 +115,7 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const isTurnBased = over.isTurnBased ?? h.result.game?.mode === 'compete'
   const facts = {
     authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [gp('u1', 'me', 'red')],
+    players: [ZTest_gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased,
     turnHolderId: isTurnBased ? 'u1' : null,
@@ -134,9 +134,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
+      actHelp: ZTest_actionFixture('act-help'),
+      actChat: ZTest_actionFixture('act-open-chat'),
+      actBackToClub: ZTest_actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -219,7 +219,7 @@ describe('scrabble PlayArea — the turn (compete)', () => {
       loadedGame({ mode: 'compete', sharedRack: null, teamScore: null }),
       [selfPlayer({ score: 0, rack: RACK }), { user_id: 'bot', seat: 1, score: 0, rack: null, rack_count: 7, ai_level: 'easy' }],
     )
-    const players = [gp('u1', 'me', 'red'), gp('bot', 'ada-bot', 'blue', { ai_member: true })]
+    const players = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('bot', 'ada-bot', 'blue', { ai_member: true })]
     const { unmount } = render(<PlayArea {...makeCtx({ players, turnHolderId: 'u1' })} />)
     expect(edgeFn).not.toHaveBeenCalled()
     unmount()
@@ -352,7 +352,7 @@ describe('scrabble PlayArea — concede', () => {
     h.result = loadedCompete()
     render(
       <PlayArea
-        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })] })}
+        {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })] })}
       />,
     )
     expect(screen.getByText('out')).toBeInTheDocument()
@@ -363,7 +363,7 @@ describe('scrabble PlayArea — concede', () => {
     render(
       <PlayArea
         {...makeCtx({
-          players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')],
+          players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')],
           turnHolderId: 'u2', // the turn already handed to u2
         })}
       />,
@@ -405,9 +405,9 @@ describe('scrabble PlayArea — concede', () => {
           playState: 'ended',
           status: { reason: 'compete' },
           players: [
-            gp('u1', 'me', 'red', { result: { won: false } }),
-            gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true, result: { won: false } }),
-            gp('u3', 'cade', 'green', { result: { won: true } }),
+            ZTest_gp('u1', 'me', 'red', { result: { won: false } }),
+            ZTest_gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true, result: { won: false } }),
+            ZTest_gp('u3', 'cade', 'green', { result: { won: true } }),
           ],
         })}
       />,

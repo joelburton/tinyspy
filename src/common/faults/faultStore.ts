@@ -87,13 +87,13 @@ export function useCurrentFaultMessage(): FaultMessage | null {
 }
 
 /** Test seam: reset the queue between unit tests. */
-export function clearFaultMessages_ForTest(): void {
+export function ZTest_clearFaultMessages(): void {
   queue = []
   emit()
 }
 
 /** Test seam: the queue as-is, for component tests asserting that a fault
  *  was routed to the modal rather than a slot. */
-export function peekFaultMessages_ForTest(): readonly FaultMessage[] {
+export function ZTest_peekFaultMessages(): readonly FaultMessage[] {
   return queue
 }

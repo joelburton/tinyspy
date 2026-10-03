@@ -21,8 +21,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { gp } from '@/common/members/gamePlayer.fixture'
-import { actionFixture } from '@/common/actions/action.fixture'
+import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
+import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
@@ -92,7 +92,7 @@ function playerRow(user_id: string, over: Partial<PlayerRow> = {}): PlayerRow {
 const handleIn = (cell: HTMLElement) =>
   within(cell.closest('tr')!).getByText(/^#\d+$/)
 
-const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
 const twoRows = [playerRow('u1'), playerRow('u2')]
 
 /** A play surface's context. Where I stand is DERIVED from the fixture — the
@@ -102,7 +102,7 @@ const twoRows = [playerRow('u1'), playerRow('u2')]
 function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
   const facts = {
     authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [gp('u1', 'me', 'red')],
+    players: [ZTest_gp('u1', 'me', 'red')],
     isTerminal: false,
     isTurnBased: false,
     turnHolderId: null,
@@ -120,9 +120,9 @@ function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
     goToFollowUpGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: actionFixture('act-help'),
-      actChat: actionFixture('act-open-chat'),
-      actBackToClub: actionFixture('act-back-to-club'),
+      actHelp: ZTest_actionFixture('act-help'),
+      actChat: ZTest_actionFixture('act-open-chat'),
+      actBackToClub: ZTest_actionFixture('act-back-to-club'),
     },
     ...facts,
     ...whereIStand({
@@ -224,7 +224,7 @@ describe('stackdown PlayArea — concede', () => {
     render(
       <PlayArea
         {...makeCtx({
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })],
+          players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })],
         })}
       />,
     )
@@ -236,7 +236,7 @@ describe('stackdown PlayArea — concede', () => {
     render(
       <PlayArea
         {...makeCtx({
-          players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')],
+          players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')],
         })}
       />,
     )

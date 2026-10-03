@@ -13,7 +13,7 @@
 import { render, renderHook, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { WordListRow } from './WordList'
-import { gp } from '../members/gamePlayer.fixture'
+import { ZTest_gp } from '../members/gamePlayer.fixture'
 import { filterOptions, closedSelects, pickFilter } from '../lists/filterSelectHelpers'
 import { useWordListFilter } from './useWordListFilter'
 
@@ -22,7 +22,7 @@ const found = (word: string, userId: string, extra: Partial<WordListRow> = {}): 
 const missed = (word: string, isBonus = false): WordListRow =>
   ({ kind: 'unfound', word, isBonus })
 
-const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+const two = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
 
 /** Mid-game rows: only finds, no reveal yet. */
 const playing: WordListRow[] = [

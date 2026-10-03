@@ -110,7 +110,7 @@ vi.mock('../realtime/useRealtimeRefetch', async () => {
 })
 
 import { HomePage } from './HomePage'
-import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '../faults/faultStore'
+import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '../faults/faultStore'
 
 // jsdom doesn't implement scrollIntoView, and SelectionList keeps its cursor
 // row inside the frame with it.
@@ -169,7 +169,7 @@ beforeEach(() => {
   mockReadRows.mockReset()
   refetch.config = null
   profile.current = { username: 'joel', color: 'red' }
-  clearFaultMessages_ForTest()
+  ZTest_clearFaultMessages()
   window.history.replaceState(null, '', '/')
 })
 
@@ -195,7 +195,7 @@ describe('HomePage — an empty list means three different things', () => {
     await screen.findByText("Your clubs couldn't be loaded.")
     // The page's whole job on this path is `setLoad('failed')`. If it ever
     // starts classifying or wording the failure, this is what notices.
-    expect(peekFaultMessages_ForTest()).toHaveLength(0)
+    expect(ZTest_peekFaultMessages()).toHaveLength(0)
   })
 
   it('says no clubs found when the answer really is empty', async () => {
@@ -211,8 +211,8 @@ describe('HomePage — zero rows is the page raising a fault, every time', () =>
     mockReadRows.mockResolvedValue(rowsCameBack([]))
     await draw()
 
-    await waitFor(() => expect(peekFaultMessages_ForTest()).toHaveLength(1))
-    const fault = peekFaultMessages_ForTest()[0]
+    await waitFor(() => expect(ZTest_peekFaultMessages()).toHaveLength(1))
+    const fault = ZTest_peekFaultMessages()[0]
     expect(fault.text).toMatch(/you should always have at least your own solo club/)
     // The page writes its own transport facts, because `readRows` answered ok
     // and has nothing to say about a site invariant.
@@ -222,12 +222,12 @@ describe('HomePage — zero rows is the page raising a fault, every time', () =>
   it('raises it again on the next load, not once per mount', async () => {
     mockReadRows.mockResolvedValue(rowsCameBack([]))
     await draw()
-    await waitFor(() => expect(peekFaultMessages_ForTest()).toHaveLength(1))
+    await waitFor(() => expect(ZTest_peekFaultMessages()).toHaveLength(1))
 
     // What a realtime membership event does: the same load, again.
     await refetch.config!.load({ isCurrent: () => true })
 
-    await waitFor(() => expect(peekFaultMessages_ForTest()).toHaveLength(2))
+    await waitFor(() => expect(ZTest_peekFaultMessages()).toHaveLength(2))
   })
 
   it('raises nothing when clubs come back', async () => {
@@ -235,7 +235,7 @@ describe('HomePage — zero rows is the page raising a fault, every time', () =>
     await draw()
 
     await screen.findByText('Book Club')
-    expect(peekFaultMessages_ForTest()).toHaveLength(0)
+    expect(ZTest_peekFaultMessages()).toHaveLength(0)
   })
 })
 

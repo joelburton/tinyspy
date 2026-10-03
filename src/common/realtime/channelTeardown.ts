@@ -123,6 +123,6 @@ export function channelLeaving(name: string): Promise<unknown> | null {
 }
 
 /** Test seam: drop all tracked teardowns. Not for app code. */
-export function __resetChannelTeardowns(): void {
+export function ZTest_resetChannelTeardowns(): void {
   leaving.clear()
 }

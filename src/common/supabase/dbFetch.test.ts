@@ -16,7 +16,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { dbFetch } from './dbFetch'
-import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '../faults/faultStore'
+import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '../faults/faultStore'
 
 const realFetch = globalThis.fetch
 
@@ -85,7 +85,7 @@ describe('dbFetch — a request that never reached the server', () => {
 describe('dbFetch — requests that DID reach the server', () => {
   // The fault queue is a module singleton, so it carries across tests in this
   // file — and the poll assertions below COUNT modals.
-  beforeEach(() => clearFaultMessages_ForTest())
+  beforeEach(() => ZTest_clearFaultMessages())
 
   it('passes a success straight through, silently', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -180,7 +180,7 @@ describe('dbFetch — requests that DID reach the server', () => {
  */
 describe('dbFetch — classifying faults', () => {
   beforeEach(() => {
-    clearFaultMessages_ForTest()
+    ZTest_clearFaultMessages()
     vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.spyOn(console, 'debug').mockImplementation(() => {})
@@ -263,6 +263,6 @@ describe('dbFetch — classifying faults', () => {
   it('presents nothing, whatever happened', async () => {
     stubFetch(() => Promise.resolve(new Response('<html>502</html>', { status: 502 })))
     await dbFetch('https://x.test/rest/v1/rpc/submit_guess', { method: 'POST' })
-    expect(peekFaultMessages_ForTest()).toHaveLength(0)
+    expect(ZTest_peekFaultMessages()).toHaveLength(0)
   })
 })

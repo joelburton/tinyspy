@@ -13,7 +13,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { buildPrintModel } from './model'
-import { guess, makeGameDataRaw } from '../lib/gameData.fixture'
+import { ZTest_guess, ZTest_makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from '../hooks/useGame'
 
 const ME = { id: 'u1', username: 'me', color: 'red' }
@@ -21,9 +21,9 @@ const MOTH = { id: 'u2', username: 'moth', color: 'blue' }
 const WORDS = ['apple', 'bread', 'crown', 'delta']
 
 /** The rows of a finished game, each with its player, as `gd` holds them. */
-function eventsOf(mode: 'coop' | 'compete', rows: ReturnType<typeof guess>[]) {
+function eventsOf(mode: 'coop' | 'compete', rows: ReturnType<typeof ZTest_guess>[]) {
   return makeGameData(
-    makeGameDataRaw({
+    ZTest_makeGameDataRaw({
       mode,
       words: WORDS,
       players: [ME, MOTH],
@@ -51,9 +51,9 @@ const base = {
 
 describe('buildPrintModel — compete splits per player', () => {
   const events = eventsOf('compete', [
-    guess(1, 'u1', 'apple', true),
-    guess(2, 'u2', 'bread', false),
-    guess(3, 'u2', 'crown', true),
+    ZTest_guess(1, 'u1', 'apple', true),
+    ZTest_guess(2, 'u2', 'bread', false),
+    ZTest_guess(3, 'u2', 'crown', true),
   ])
 
   it('once the game has ended: one track per player, each with only their own marks', () => {
@@ -83,10 +83,10 @@ describe('buildPrintModel — compete splits per player', () => {
       ...base,
       isGameEnded: true,
       events: eventsOf('compete', [
-        guess(1, 'u1', 'apple', true),
-        guess(2, 'u2', 'bread', false),
-        guess(3, 'u2', 'crown', true),
-        guess(4, 'u2', 'starts with d', false, { kind: 'hint' }),
+        ZTest_guess(1, 'u1', 'apple', true),
+        ZTest_guess(2, 'u2', 'bread', false),
+        ZTest_guess(3, 'u2', 'crown', true),
+        ZTest_guess(4, 'u2', 'starts with d', false, { kind: 'hint' }),
       ]),
     })
     expect(m.tracks[1]!.turns.at(-1)?.text).toBe('Hint: starts with d')
@@ -100,7 +100,7 @@ describe('buildPrintModel — coop stays one shared track', () => {
     const m = buildPrintModel({
       ...base,
       mode: 'coop',
-      events: eventsOf('coop', [guess(1, 'u1', 'apple', true), guess(2, 'u2', 'bread', false)]),
+      events: eventsOf('coop', [ZTest_guess(1, 'u1', 'apple', true), ZTest_guess(2, 'u2', 'bread', false)]),
     })
     expect(m.tracks).toHaveLength(1)
     const t = m.tracks[0]!

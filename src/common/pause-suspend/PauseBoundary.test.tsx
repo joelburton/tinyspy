@@ -30,7 +30,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { PauseBoundary } from './PauseBoundary'
 import type { PauseActions } from './PauseOverlay'
 import type { GamePause } from './pause'
-import { actionFixture } from '../actions/action.fixture'
+import { ZTest_actionFixture } from '../actions/action.fixture'
 import type { Member } from '../members/member'
 
 const ADA: Member = {
@@ -64,8 +64,8 @@ function pauseOf(over: Partial<GamePause> = {}): GamePause {
 /** The two ways out, as the page binds them. */
 function actionsOf(over: Partial<PauseActions> = {}): PauseActions {
   return {
-    actBackToClub: actionFixture('act-back-to-club'),
-    actStopGame: actionFixture('act-stop-game'),
+    actBackToClub: ZTest_actionFixture('act-back-to-club'),
+    actStopGame: ZTest_actionFixture('act-stop-game'),
     ...over,
   }
 }
@@ -174,7 +174,7 @@ describe('PauseBoundary', () => {
   // above this boundary, binds a second one and hides it unless paused.
   it('places Stop game on the overlay, and fires the action it was given', async () => {
     const user = userEvent.setup()
-    const actStopGame = actionFixture('act-stop-game')
+    const actStopGame = ZTest_actionFixture('act-stop-game')
     render(
       <PauseBoundary pause={pauseOf()} players={[BEA]} actions={actionsOf({ actStopGame })}>
         <div>play</div>
@@ -190,7 +190,7 @@ describe('PauseBoundary', () => {
         pause={pauseOf()}
         players={[BEA]}
         actions={actionsOf({
-          actStopGame: actionFixture('act-stop-game', () => ({ state: 'hidden' })),
+          actStopGame: ZTest_actionFixture('act-stop-game', () => ({ state: 'hidden' })),
         })}
       >
         <div>play</div>

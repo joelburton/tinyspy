@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { terminalOutcomeVerb } from './terminalOutcomeVerb'
 import type { GamePlayerLegacy } from '../members/member'
-import { CONCEDED, gp } from '../members/gamePlayer.fixture'
+import { ZTest_CONCEDED, ZTest_gp } from '../members/gamePlayer.fixture'
 
 /**
  * The whole truth table for the compete strip's terminal verb.
@@ -13,7 +13,7 @@ import { CONCEDED, gp } from '../members/gamePlayer.fixture'
  */
 
 /** A player row, defaulted to the ordinary "played and did not win" case. */
-const player = (over: Parameters<typeof gp>[3] = {}): GamePlayerLegacy => gp('u1', 'ada', 'red', over)
+const player = (over: Parameters<typeof ZTest_gp>[3] = {}): GamePlayerLegacy => ZTest_gp('u1', 'ada', 'red', over)
 
 describe('terminalOutcomeVerb', () => {
   it('says Won when the player came out won', () => {
@@ -21,7 +21,7 @@ describe('terminalOutcomeVerb', () => {
   })
 
   it('says Conceded for a conceder', () => {
-    expect(terminalOutcomeVerb(player({ ...CONCEDED, outcome: 'lost' }))).toBe('Conceded')
+    expect(terminalOutcomeVerb(player({ ...ZTest_CONCEDED, outcome: 'lost' }))).toBe('Conceded')
   })
 
   it('says Lost for anyone else who did not win', () => {
@@ -41,7 +41,7 @@ describe('terminalOutcomeVerb', () => {
     const cases: (GamePlayerLegacy | undefined)[] = [
       undefined,
       player(),
-      player(CONCEDED),
+      player(ZTest_CONCEDED),
       player({ outcome: 'won' }),
       player({ outcome: 'near' }),
       player({ outcome: 'neutral' }),

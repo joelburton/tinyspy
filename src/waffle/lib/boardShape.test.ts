@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { cellAt } from '@/common/board-cursor/boardPosition'
-import { cellsOf, unreachableFrom } from '@/common/board-cursor/reachability.fixture'
+import { ZTest_cellsOf, ZTest_unreachableFrom } from '@/common/board-cursor/reachability.fixture'
 import { stepCell } from '@/common/board-cursor/stepCell'
 import { BOARD_SHAPE } from './boardShape'
 import { GRID } from './waffle'
@@ -12,7 +12,7 @@ const cell = (position: number) => cellAt(position, GRID)
 describe('BOARD_SHAPE', () => {
   it('is five by five with the four holes missing — 21 tiles', () => {
     expect([BOARD_SHAPE.numCols, BOARD_SHAPE.numRows]).toEqual([5, 5])
-    expect(cellsOf(BOARD_SHAPE)).toHaveLength(21)
+    expect(ZTest_cellsOf(BOARD_SHAPE)).toHaveLength(21)
     for (const hole of [6, 8, 16, 18]) {
       const { x, y } = cell(hole)
       expect(BOARD_SHAPE.exists(x, y)).toBe(false)
@@ -29,8 +29,8 @@ describe('BOARD_SHAPE', () => {
   // The reachability invariant: the keyboard cursor can get from every tile to
   // every other, the holes notwithstanding.
   it('every tile can reach every other by arrows', () => {
-    for (const start of cellsOf(BOARD_SHAPE)) {
-      expect(unreachableFrom(BOARD_SHAPE, start), `from ${start.x},${start.y}`).toEqual([])
+    for (const start of ZTest_cellsOf(BOARD_SHAPE)) {
+      expect(ZTest_unreachableFrom(BOARD_SHAPE, start), `from ${start.x},${start.y}`).toEqual([])
     }
   })
 })

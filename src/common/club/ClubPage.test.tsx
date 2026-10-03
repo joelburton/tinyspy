@@ -91,7 +91,7 @@ vi.mock('@/gametypes', () => ({
 }))
 
 import { ClubPage } from './ClubPage'
-import { clearFaultMessages_ForTest, peekFaultMessages_ForTest } from '../faults/faultStore'
+import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '../faults/faultStore'
 
 // jsdom doesn't implement it, and SelectionList keeps its cursor row inside the
 // frame with it.
@@ -167,7 +167,7 @@ beforeEach(() => {
   mockRunRpc.mockReset()
   mockToast.mockReset()
   clubGames.current = { games: [], currentGameId: null, hasReadFailed: false }
-  clearFaultMessages_ForTest()
+  ZTest_clearFaultMessages()
   window.history.replaceState(null, '', '/c/trio')
 })
 
@@ -307,7 +307,7 @@ describe('ClubPage — what a delete answer puts on screen', () => {
     mockRunRpc.mockResolvedValue(ok({ result: 'something-new' }))
     await deleteTheGame()
 
-    expect(peekFaultMessages_ForTest()).toHaveLength(1)
+    expect(ZTest_peekFaultMessages()).toHaveLength(1)
     expect(mockToast).not.toHaveBeenCalled()
   })
 })

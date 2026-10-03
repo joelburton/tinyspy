@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import type { GameDataRaw } from '@/common/game-page/gameData'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
-import { makeGameDataRaw } from '../lib/gameData.fixture'
+import { ZTest_makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useGetGameEndingMessage } from './useGetGameEndingMessage'
 import type { GGameData } from '../types'
@@ -20,7 +20,7 @@ function gdWith(o: {
   myOutcome?: EndOutcome | null
 }): GGameData {
   return makeGameData(
-    makeGameDataRaw({
+    ZTest_makeGameDataRaw({
       mode: o.mode ?? 'coop',
       players: [{ ...ME, outcome: o.myOutcome ?? null }, MOTH],
       ending: o.ending,
