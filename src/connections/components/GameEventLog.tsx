@@ -6,15 +6,13 @@ import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/c
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import type { Member } from '@/common/members/member'
-import type { GCategory, GEvent } from '../types'
+import type { GCategory, GEvent, GHistoryView } from '../types'
 import styles from './GameEventLog.module.css'
 
 type Props = {
-  // Every guess the viewer can currently see. Coop: the whole shared game.
-  // Compete: the viewer's own during play, and (once the game has ended, when
-  // the seat rule opens) everyone's — which is what makes the picker below
-  // useful.
-  guesses: GEvent[]
+  // Every guess the viewer can see: coop's whole shared game; in compete my
+  // own during play, and everyone's once the game has ended.
+  events: GEvent[]
   // The puzzle's four categories, public in both modes — names a correct
   // guess's category, an opponent's too.
   cats: GCategory[]
@@ -23,12 +21,7 @@ type Props = {
   mode: 'coop' | 'compete'
   // Distinguishes an opponent's withheld log from a genuinely empty one.
   isGameEnded: boolean
-  // The turn currently open in the board viewer — the row's own id — or null
-  // when live. Its `#N` handle wears the shared history ring.
-  historyId: number | null
-  // Open a turn in the board viewer (click its `#N`) — the row's id, and the
-  // `#N` this log printed beside it, which is what the banner shows back.
-  onShowHistory: (id: number, n: number) => void
+  historyView: GHistoryView
 }
 
 /**
@@ -47,24 +40,23 @@ type Props = {
  * picker's empty text says.
  */
 export function GameEventLog({
-  guesses,
+  events,
   cats,
   players,
   myId,
   mode,
   isGameEnded,
-  historyId,
-  onShowHistory,
+  historyView,
 }: Props) {
   const eventLogPicker = useEventLogPlayerPicker<GEvent>({
     players,
-    myId: myId,
+    myId,
     mode,
     isTerminal: isGameEnded,
     label: 'Whose guesses to show',
     emptyLabel: 'No guesses yet.',
   })
-  const shown = eventLogPicker.filter(guesses)
+  const shown = eventLogPicker.filter(events)
 
   // rank → name, off the PUZZLE rather than off the viewer's own matches, so an
   // opponent's correct rows name their category too.
@@ -74,27 +66,21 @@ export function GameEventLog({
     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}>
       {shown.map((g, i) => (
         <Fragment key={g.id}>
-          {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle | verdict (`.main`,
-              absorbs the slack) | actor (`.who`, shrinks to the username).
-              `.divider` draws the line above this turn; `.entryHead`/
-              `.entryCont` hug the two rows together. The `#N` handle opens that turn
-              on the board viewer. */}
+          {/* Row 1: the bar spanning both rows, the `#N` handle that opens
+              this turn on the board, the verdict, the actor. */}
           <tr className={cls(gameEventLog.divider, gameEventLog.entryHead)}>
             <EventLogOutcomeBar outcome={g.outcome} rowSpan={2} />
-            {/* The `#N` handle replays that turn on the board. The number counts
-                the rows on show; the handle is the row's own id, and the history
-                view folds the rows of whoever wrote it — so an opponent's row
-                once a compete game has ended replays THEIR board. */}
+            {/* The number counts the rows on show; the handle is the row's own
+                id, and the history view folds the rows of whoever wrote it. */}
             <EventLogNumber
               n={i + 1}
-              isOpenInHistory={historyId === g.id}
-              onShowHistory={() => onShowHistory(g.id, i + 1)}
+              isOpenInHistory={historyView.viewedEventId === g.id}
+              onShowHistory={() => historyView.show(g.id, i + 1)}
             />
             <td className={gameEventLog.main}>{verdictLabel(g, nameByRank)}</td>
             <EventLogActor actor={g.by} />
           </tr>
-          {/* Row 2: the four guessed tiles, full width — spanning the #N + verdict +
-              who columns beneath the meta line. */}
+          {/* Row 2: the four guessed tiles, across the three columns. */}
           <tr className={gameEventLog.entryCont}>
             <td colSpan={3} className={styles.words}>{g.tiles.join(' · ')}</td>
           </tr>
@@ -105,27 +91,15 @@ export function GameEventLog({
 }
 
 /**
- * Short verdict line for one guess row. Correct guesses just name the category
- * (the green outcome bar already says "found", so no "Matched:" prefix); the
- * other two carry the NYT-canonical short text.
- *
- * `matchedCatRank` is non-null IFF the guess MATCHED (the SQL constraint
- * guarantees this); a defensive fallback to plain "Correct" if a future
- * correct row somehow arrived without a rank.
+ * Short verdict line for one guess row. A correct guess just names its
+ * category (the green outcome bar already says "found", so no "Matched:"
+ * prefix); the other two carry the NYT-canonical short text.
  */
-function verdictLabel(
-  g: GEvent,
-  nameByRank: Map<number, string>,
-): string {
+function verdictLabel(g: GEvent, nameByRank: Map<number, string>): string {
   // The MATCH flag, not the color: naming the category is a question about the
-  // rules, and `outcome === 'won'` would be a color answering it.
-  if (g.matched) {
-    const name =
-      g.matchedCatRank !== null
-        ? nameByRank.get(g.matchedCatRank)
-        : undefined
-    return name ?? 'Correct'
-  }
-  if (g.outcome === 'near') return 'One away!'
+  // rules. A correct row names a rank `submit_guess` checked against 0..3, and
+  // the puzzle carries all four, so neither lookup can miss.
+  if (g.matched) return nameByRank.get(g.matchedCatRank!)!
+  if (g.result === 'oneAway') return 'One away!'
   return 'Not a match'
 }

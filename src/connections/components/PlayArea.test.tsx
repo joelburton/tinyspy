@@ -251,6 +251,18 @@ describe('connections PlayArea — concede', () => {
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
+  it('marks an opponent out on mistakes "out" in the strip too', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          players: [player('u1', 'me', 'red'), { ...player('u2', 'moth', 'blue'), ...ZTest_ELIMINATED }],
+        })}
+      />,
+    )
+    expect(screen.getByText('out')).toBeInTheDocument()
+  })
+
   it('shows the "You conceded" look after I concede, while the race goes on', () => {
     render(
       <PlayAreaLoader

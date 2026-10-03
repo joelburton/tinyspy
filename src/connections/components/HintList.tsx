@@ -26,8 +26,9 @@ type Props = {
  */
 export function HintList({ cats, open }: Props) {
   const [revealed, setRevealed] = useState<ReadonlySet<GCatRank>>(() => new Set())
-  const reveal = (rank: GCatRank) =>
+  function reveal(rank: GCatRank) {
     setRevealed((prev) => (prev.has(rank) ? prev : new Set(prev).add(rank)))
+  }
 
   if (!open) return null
 

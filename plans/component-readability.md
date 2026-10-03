@@ -240,6 +240,12 @@ connections' BoardCol pass (2026-10-03) settled, beyond the two games above:
   module; `Board.module.css` keeps the wrapper and the grid. The cursor is
   `useTileCursor`, as psychicnum's; it hands back the cursor's `position` so
   the loop asks `position === i` and nothing else.
+- **The InfoCol pass took psychicnum's answers whole**: `getScoreOrOut` reads
+  "out" for any racer who has ended (an elimination included, where the
+  inline arrow had said conceded only), the help line shows on my move alone,
+  the event log takes `events` and `historyView`, and a verdict label asks
+  the rule (`result === 'oneAway'`) and not the color. A fold rule gets a
+  name before the return (`isHintListShown`).
 - **Live state nothing above the column reads is the column's.** The picks
   (the map, the Broadcast room, the two senders) were `useGame`'s and rode
   through PlayArea as a prop that only `BoardCol` read; they are `usePicks`,
