@@ -30,7 +30,7 @@
 --   - wrong guess counts up EVERYONE's budget, result 'miss'
 --   - finding a secret (not the last) is result 'hit', with
 --     `found_all` false — the game continues, and it bumps the caller's
---     players.found_secrets_count
+--     players.n_found_secrets
 --   - re-guessing a taken word (game-wide) is rejected
 --   - request_hint logs a kind='hint' row with the secret's CLUE (or the
 --     "No hint available" fallback); request_spoiler logs a kind='spoiler' row
@@ -112,7 +112,7 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select array_agg(guesses_used order by user_id) from psychicnum.players
+  (select array_agg(n_guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from coop_g)),
   array[1, 0],
   'coop: a guess counts up only the guesser''s row (ada 1, bea 0)'
@@ -134,13 +134,13 @@ select is(
   'coop: one secret found keeps the game going'
 );
 
--- (5) ada's found_secrets_count bumped to 1
+-- (5) ada's n_found_secrets bumped to 1
 select is(
-  (select found_secrets_count from psychicnum.players
+  (select n_found_secrets from psychicnum.players
     where game_id = (select id from coop_g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
-  'coop: a correct guess bumps the caller''s found_secrets_count'
+  'coop: a correct guess bumps the caller''s n_found_secrets'
 );
 
 -- (6) re-guessing a taken word (game-wide in coop) is rejected
@@ -214,7 +214,7 @@ select is(
 -- (11) neither the hint nor the spoiler spent any budget (still ada's 2
 -- guesses: one wrong + one find; bea has made none)
 select is(
-  (select array_agg(guesses_used order by user_id) from psychicnum.players
+  (select array_agg(n_guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from coop_g)),
   array[2, 0],
   'coop: request_hint / request_spoiler do not spend the budget'
@@ -348,7 +348,7 @@ select is(
 -- The summary's tally must INCLUDE this last find: the builder runs after
 -- the ending, from the players' rows, so the final readout says 1/3.
 select is(
-  (select summary_data->'team'->>'foundSecretsCount'
+  (select summary_data->'team'->>'nFoundSecrets'
      from common.games where id = (select id from coop_loss_hit)),
   '1',
   'coop: the exhausting correct guess is counted in the final tally'
@@ -379,7 +379,7 @@ select psychicnum.submit_guess((select id from comp_g), 'zdelta');
 
 reset role;
 select is(
-  (select array_agg(guesses_used order by user_id) from psychicnum.players
+  (select array_agg(n_guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from comp_g)),
   array[1, 0],
   'compete: wrong guess counts up ONLY caller (ada→1, bea stays at 0)'

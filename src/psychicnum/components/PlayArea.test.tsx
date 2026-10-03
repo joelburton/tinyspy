@@ -556,7 +556,11 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     container.querySelector('[data-board] > div') as HTMLElement
 
   it('bands the finished board in its outcome', () => {
-    const { container } = render(<PlayAreaLoader {...makeCtx({ secrets: SECRETS, ...GAME_WON })} />)
+    // The frame reads my own outcome, which `_end_game` writes on every
+    // player with the game's ending.
+    const { container } = render(
+      <PlayAreaLoader {...makeCtx({ players: [won(ME)], secrets: SECRETS, ...GAME_WON })} />,
+    )
 
     expect(gridIn(container).className).toMatch(/endingFrame/)
     expect(gridIn(container).className).toMatch(/endingFrame_won/)

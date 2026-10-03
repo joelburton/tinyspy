@@ -71,7 +71,7 @@ export function buildPrintModel(o: {
   // mid-game: only their own.
   events: GEvent[]
   // How many secrets the board hides.
-  requiredSecretsCount: number
+  nReqdSecrets: number
   players: { id: string; username: string }[]
   myId: string
   setupRows: SetupRow[]
@@ -84,7 +84,7 @@ export function buildPrintModel(o: {
       who,
       board,
       turns: turnsOf(events, whoOf),
-      result: `${found} of ${o.requiredSecretsCount} secrets found · ${used} guess${used === 1 ? '' : 'es'} used`,
+      result: `${found} of ${o.nReqdSecrets} secrets found · ${used} guess${used === 1 ? '' : 'es'} used`,
     }
   }
 

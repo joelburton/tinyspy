@@ -87,7 +87,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 
 /** The team's finds against the secrets. Coop always has a team. */
 function foundTally(summary: GSummaryData) {
-  return tally(summary.team!.foundSecretsCount, summary.requiredSecretsCount, 'found')
+  return tally(summary.team!.nFoundSecrets, summary.nReqdSecrets, 'found')
 }
 
 /**
@@ -100,7 +100,7 @@ function labelMidGame(summary: GSummaryData) {
   return statusLine(
     verdict('Playing'),
     foundTally(summary),
-    tally(summary.team!.guessesUsed, summary.maxGuesses, 'guesses'),
+    tally(summary.team!.nGuessesUsed, summary.maxGuesses, 'guesses'),
   )
 }
 

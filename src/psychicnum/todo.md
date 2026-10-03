@@ -11,20 +11,6 @@
   Finesse better names, with Joel, before the next game makes its tile
   component.
 
-- **Doc and comments that say what the code does not.**
-  - `doc.md`, under `psychicnum.request_spoiler(target_game)`: "in coop
-    teammates see that a spoiler was taken, never which word." The header
-    line leaves the word out, but the event log shows the spoiled word to
-    every teammate (coop's `events` rows are all readable, and
-    `GameEventLog` draws a spoiler row's word).
-  - `doc.md` → Schema: compete's status `guesses_used` is the SUM of every
-    player's count. `submit_guess` writes the sum mid-game, but the
-    `'exhausted'` ending writes the budget itself (`initial_guesses`) and
-    `submit_timeout` writes the average (`sum / count`). Nothing shows
-    compete's count, so nothing on screen is wrong.
-  - `psychicnum.sql`, `submit_guess`: "The FE gates on myConceded" — the
-    name is `isConceded`.
-
 - **The `reason` names the act that ended the game.** When some compete
   players have spent their budgets and the last one still in concedes,
   `_maybe_finish_compete` writes `'exhausted'`; it writes `'conceded'` only

@@ -295,7 +295,7 @@ select is(
 );
 
 select is(
-  (select array_agg(guesses_used order by user_id) from psychicnum.players
+  (select array_agg(n_guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from coop_game)),
   array[0, 0],
   'coop: every player_row starts with no guesses used'
@@ -373,7 +373,7 @@ select is(
 
 -- (15) Compete players start with no guesses used
 select is(
-  (select array_agg(guesses_used order by user_id) from psychicnum.players
+  (select array_agg(n_guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from compete_game)),
   array[0, 0],
   'compete: every player_row starts with no guesses used'
@@ -453,13 +453,13 @@ create temp table seeded_cmp on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select is(
-  (select summary_data @> '{"team": {"foundSecretsCount": 0, "guessesUsed": 0}, "requiredSecretsCount": 3,
+  (select summary_data @> '{"team": {"nFoundSecrets": 0, "nGuessesUsed": 0}, "nReqdSecrets": 3,
                            "maxGuesses": 7, "ending": null}'::jsonb
      from common.games where id = (select id from seeded_coop)),
   true,
   'coop writes the team''s 0/3 found and 0/7 used for the summary at create');
 select is(
-  (select summary_data @> '{"team": null, "requiredSecretsCount": 3,
+  (select summary_data @> '{"team": null, "nReqdSecrets": 3,
                            "maxGuesses": 7, "ending": null}'::jsonb
      from common.games where id = (select id from seeded_cmp)),
   true,
@@ -467,7 +467,7 @@ select is(
 select is(
   (select count(*)::int
      from jsonb_array_elements((select game_data -> 'players' from common.games where id = (select id from seeded_cmp))) p
-    where (p ->> 'foundSecretsCount')::int = 0 and (p ->> 'guessesUsed')::int = 0),
+    where (p ->> 'nFoundSecrets')::int = 0 and (p ->> 'nGuessesUsed')::int = 0),
   2,
   'every player''s counts are written into game_data at create');
 

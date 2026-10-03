@@ -20,11 +20,11 @@ export function StateLine({ data }: { data: GStateLineData }) {
   return (
     <>
       <strong>
-        {data.foundSecretsCount}/{data.requiredSecretsCount}
+        {data.nFoundSecrets}/{data.nReqdSecrets}
       </strong>{' '}
       found ·{' '}
       <strong>
-        {data.guessesUsed}/{data.maxGuesses}
+        {data.nGuessesUsed}/{data.maxGuesses}
       </strong>{' '}
       guesses used
     </>

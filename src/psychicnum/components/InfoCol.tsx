@@ -39,7 +39,7 @@ export function InfoCol({
 
   // A player who has ended reads "out"; everyone else shows their progress.
   function getScoreOrOut(player: GPlayer) {
-    return player.ending ? 'out' : player.foundSecretsCount
+    return player.ending ? 'out' : player.nFoundSecrets
   }
 
   return (

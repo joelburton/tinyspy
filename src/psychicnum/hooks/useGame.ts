@@ -70,9 +70,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     playersById,
     me,
     stateLineData: {
-      foundSecretsCount: teamOrMe.foundSecretsCount,
-      requiredSecretsCount: me.requiredSecretsCount,
-      guessesUsed: teamOrMe.guessesUsed,
+      nFoundSecrets: teamOrMe.nFoundSecrets,
+      nReqdSecrets: me.nReqdSecrets,
+      nGuessesUsed: teamOrMe.nGuessesUsed,
       maxGuesses: me.maxGuesses,
     },
   }

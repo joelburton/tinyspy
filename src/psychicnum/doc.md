@@ -116,7 +116,7 @@ it reads the page blobs the builder writes onto `common.games`.
 | | |
 |---|---|
 | `psychicnum.games` | one row per game, keyed `game_id` to `common.games` — the board `words`, the three `secrets`, and `max_guesses`, each budget's size, copied from setup |
-| `psychicnum.players` | one row per player: `guesses_used` (counting up against `max_guesses`) and `found_secrets_count` |
+| `psychicnum.players` | one row per player: `n_guesses_used` (counting up against `max_guesses`) and `n_found_secrets` |
 | `psychicnum.events` | the turn log, append-only. `kind` is `guess`, `hint` or `spoiler`; `word` holds the guessed word, the clue, or the spoiled word depending on which |
 
 **The page blobs** are written by `psychicnum._rebuild_data_cols` at create, at
@@ -127,8 +127,8 @@ part of every `game_data` (`common._make_json_game_data`) psychicnum's own:
 
 | blob | psychicnum's part |
 |---|---|
-| `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `team: {foundSecretsCount, guessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `requiredSecretsCount`, `maxGuesses`, their own `foundSecretsCount` and `guessesUsed`, and `board: {tileResults, decidedBy}`, this seat's tiles |
-| `summary_data` | `team`, the same group; `requiredSecretsCount`, `maxGuesses` |
+| `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `team: {nFoundSecrets, nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `nReqdSecrets`, `maxGuesses`, their own `nFoundSecrets` and `nGuessesUsed`, and `board: {tileResults, decidedBy}`, this seat's tiles |
+| `summary_data` | `team`, the same group; `nReqdSecrets`, `maxGuesses` |
 
 Every player's counts are their own, on `psychicnum.players` and on their
 player in the blob, in both modes; `team` is their sum, and is null in a race,
@@ -249,8 +249,8 @@ no call site has to recognize the fallback by its prose.
 
 The same pick, but it hands over the secret WORD itself. Costs no budget and
 does not find the secret — you still have to guess it, or not bother. Logs a
-`kind = 'spoiler'` row; in coop teammates see that a spoiler was taken, never
-which word.
+`kind = 'spoiler'` row. In coop the header line tells teammates only that a
+spoiler was taken; the event log, which draws every row, shows them the word.
 
 **Passed:** `{ "p_game_id": "3f2a…" }`
 
@@ -340,7 +340,7 @@ links turned into players (`turns.holder`, `ending.by`, `ending.winner`, each
 board's `decidedBy`), the setup rows built, and the seat rule applied — in
 compete, mid-race, a rival's rows leave the log and their `board` is null. It
 is a pure function of the blob and who I am; no reads, no subscription. Every
-fact about a seat is on the player (`gd.me.onTurn`, `p.foundSecretsCount`,
+fact about a seat is on the player (`gd.me.onTurn`, `p.nFoundSecrets`,
 `gd.me.board`), and a component asks a player, never the table. The two
 columns, `BoardCol` and `InfoCol`, take `gd` whole; everything below them takes
 its own props. A player in `gd` (`GPlayer`) is a `Member` plus

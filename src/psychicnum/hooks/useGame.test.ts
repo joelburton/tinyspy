@@ -88,22 +88,22 @@ describe('psychicnum makeGameData — the links become players', () => {
     expect(gd.puzzle.words).toEqual(['alpha', 'bravo', 'charlie', 'delta', 'echo'])
     expect(gd.puzzle.secrets).toBeNull()
     // My own hit and my one guess; the team's two guesses with the one find.
-    expect([gd.me.foundSecretsCount, gd.me.guessesUsed]).toEqual([1, 1])
-    expect(gd.team).toEqual({ foundSecretsCount: 1, guessesUsed: 2 })
+    expect([gd.me.nFoundSecrets, gd.me.nGuessesUsed]).toEqual([1, 1])
+    expect(gd.team).toEqual({ nFoundSecrets: 1, nGuessesUsed: 2 })
     expect(gd.brand).toBe('PsychicNum')
   })
 
   it('the state line shows the team\'s counts in coop, against the secrets and the budget', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.stateLineData).toEqual({
-      foundSecretsCount: 1, requiredSecretsCount: 3, guessesUsed: 2, maxGuesses: 7,
+      nFoundSecrets: 1, nReqdSecrets: 3, nGuessesUsed: 2, maxGuesses: 7,
     })
   })
 
   it('a race has no team, so the state line shows my own', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ mode: 'compete', players: TWO, events: EVENTS }), 'u1')
     expect(gd.team).toBeNull()
-    expect([gd.stateLineData.foundSecretsCount, gd.stateLineData.guessesUsed]).toEqual([1, 1])
+    expect([gd.stateLineData.nFoundSecrets, gd.stateLineData.nGuessesUsed]).toEqual([1, 1])
   })
 })
 
@@ -135,7 +135,7 @@ describe('psychicnum makeGameData — the seat rule', () => {
 
   it('a rival\'s counts stay visible mid-race — the strip shows them', () => {
     const gd = makeGameData(race(), 'u1')
-    expect([gd.playersById.u2!.foundSecretsCount, gd.playersById.u2!.guessesUsed]).toEqual([0, 1])
+    expect([gd.playersById.u2!.nFoundSecrets, gd.playersById.u2!.nGuessesUsed]).toEqual([0, 1])
   })
 
   it('a conceder is still a player, with their ending', () => {

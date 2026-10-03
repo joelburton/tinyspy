@@ -53,8 +53,8 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
  * `maxGuesses`, on every player.
  */
 export type GTeam = {
-  foundSecretsCount: number
-  guessesUsed: number
+  nFoundSecrets: number
+  nGuessesUsed: number
 }
 
 /**
@@ -64,9 +64,9 @@ export type GTeam = {
  * reader: this is what to SHOW there, not a fact other components read.
  */
 export type GStateLineData = {
-  foundSecretsCount: number
-  requiredSecretsCount: number
-  guessesUsed: number
+  nFoundSecrets: number
+  nReqdSecrets: number
+  nGuessesUsed: number
   maxGuesses: number
 }
 
@@ -92,13 +92,13 @@ export type GEventRaw = {
  *  budget, the counts and this seat's board. */
 export type GPlayerRaw = PlayerRaw & {
   // How many secrets the board hides. The same on every player.
-  requiredSecretsCount: number
+  nReqdSecrets: number
   // The guess budget: the team's in coop, each player's own in compete. The
   // same on every player.
   maxGuesses: number
   // This player's own, in every mode; the team's are `team`'s.
-  foundSecretsCount: number
-  guessesUsed: number
+  nFoundSecrets: number
+  nGuessesUsed: number
   // What this seat's tiles show: each guessed word → whether it was a secret,
   // and → who guessed it. One board in coop, each racer's own in compete.
   board: {
@@ -124,7 +124,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   setup
  *   setupRows
  *   puzzle: {words, secrets}              # secrets null until the game ends
- *   team: {foundSecretsCount, guessesUsed}  # what the team shares; null in compete
+ *   team: {nFoundSecrets, nGuessesUsed}  # what the team shares; null in compete
  *   turns: {holder}                       # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
  *   ended
@@ -133,7 +133,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                  # seat order
  *   playersById
  *   me                                    # same object as playersById[auth.user.id]
- *   stateLineData: {foundSecretsCount, requiredSecretsCount, guessesUsed, maxGuesses}
+ *   stateLineData: {nFoundSecrets, nReqdSecrets, nGuessesUsed, maxGuesses}
  *                                         # what the state line shows: the team's in coop, my own in compete
  *
  * player:
@@ -151,10 +151,10 @@ export type GPlayerRaw = PlayerRaw & {
  *   stillPlaying
  *   onTurn
  *   waitingForTurn
- *   requiredSecretsCount                  # the same on every player
+ *   nReqdSecrets                  # the same on every player
  *   maxGuesses                            # the same on every player
- *   foundSecretsCount                     # own, in every mode
- *   guessesUsed                           # own, in every mode
+ *   nFoundSecrets                     # own, in every mode
+ *   nGuessesUsed                           # own, in every mode
  *   board: {tileResults, decidedBy}       # what this seat's tiles show; null for a rival mid-race
  */
 
@@ -377,6 +377,6 @@ export type GAnswer =
  */
 export type GSummaryData = SummaryData & {
   team: GTeam | null
-  requiredSecretsCount: number
+  nReqdSecrets: number
   maxGuesses: number
 }

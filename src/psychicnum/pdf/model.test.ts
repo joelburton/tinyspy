@@ -43,7 +43,7 @@ const base = {
   isGameEnded: false,
   words: WORDS,
   events: [] as ReturnType<typeof eventsOf>,
-  requiredSecretsCount: 3,
+  nReqdSecrets: 3,
   players: [ME, MOTH],
   myId: 'u1',
   setupRows: [{ key: 'max_guesses', label: 'Guesses', value: '7' }],

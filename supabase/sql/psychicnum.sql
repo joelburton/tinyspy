@@ -112,7 +112,7 @@ drop function if exists psychicnum._secrets_for(uuid);
 --
 --   game_data, psychicnum's part:
 --     puzzle: {words, secrets}             secrets null until the game ends
---     team: {foundSecretsCount, guessesUsed}
+--     team: {nFoundSecrets, nGuessesUsed}
 --                                          what the team shares, summed over the rows;
 --                                          null in compete, where there is no team
 --                                          (plans/team-facts.md)
@@ -120,18 +120,18 @@ drop function if exists psychicnum._secrets_for(uuid);
 --                                          every player's; what a racer may see
 --                                          of a rival mid-race is the hook's rule
 --     players: [player, …]                 the common player, plus:
---       requiredSecretsCount, maxGuesses   the same on every player
---       foundSecretsCount, guessesUsed     this player's own, in every mode
+--       nReqdSecrets, maxGuesses   the same on every player
+--       nFoundSecrets, nGuessesUsed     this player's own, in every mode
 --       board: {tileResults, decidedBy}    what this seat's tiles show: word → was it a
 --                                          secret, word → who guessed it; one board in
 --                                          coop, each racer's own in compete
 --
 --   summary_data, psychicnum's part (the common part names and dates the game
 --   and carries its ending; the winner is `ending.winner`):
---     team: {foundSecretsCount, guessesUsed}
+--     team: {nFoundSecrets, nGuessesUsed}
 --                                          the same group; null in compete, whose
 --                                          summary shows no progress
---     requiredSecretsCount, maxGuesses
+--     nReqdSecrets, maxGuesses
 --
 -- The statuses (`game_status`, `player_status`, `clubpage_info`) are not
 -- written: nothing reads psychicnum's any more. The columns stay until a
@@ -202,8 +202,8 @@ stable
 set search_path = psychicnum, common, public, extensions
 as $$
   select case when cg.mode = 'coop' then jsonb_build_object(
-           'foundSecretsCount', (select sum(found_secrets_count) from psychicnum.players where game_id = p_game_id),
-           'guessesUsed',       (select sum(guesses_used) from psychicnum.players where game_id = p_game_id))
+           'nFoundSecrets', (select sum(n_found_secrets) from psychicnum.players where game_id = p_game_id),
+           'nGuessesUsed',       (select sum(n_guesses_used) from psychicnum.players where game_id = p_game_id))
          end
     from common.games cg
    where cg.id = p_game_id;
@@ -233,10 +233,10 @@ begin
   return (
     select jsonb_agg(
              cp.player || jsonb_build_object(
-               'requiredSecretsCount', v_required_secrets_count,
+               'nReqdSecrets', v_required_secrets_count,
                'maxGuesses',           v_max_guesses,
-               'foundSecretsCount',    pp.found_secrets_count,
-               'guessesUsed',          pp.guesses_used,
+               'nFoundSecrets',    pp.n_found_secrets,
+               'nGuessesUsed',          pp.n_guesses_used,
                'board',                psychicnum._make_json_board(p_game_id, cp.id, v_mode))
              order by cp.ord)
       from common._make_json_players(p_game_id) cp
@@ -288,7 +288,7 @@ set search_path = psychicnum, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
     'team',                 psychicnum._make_json_team(p_game_id),
-    'requiredSecretsCount', array_length(pg.secrets, 1),
+    'nReqdSecrets', array_length(pg.secrets, 1),
     'maxGuesses',           pg.max_guesses)
     from psychicnum.games pg
    where pg.game_id = p_game_id;
@@ -395,7 +395,7 @@ drop function if exists psychicnum.create_game(text, jsonb, uuid[], text);
 --
 -- max_guesses meaning, copied to `psychicnum.games.max_guesses`:
 --   - coop: the team's shared budget, spent by the SUM of every
---     player row's `guesses_used` (each row counts its own guesses).
+--     player row's `n_guesses_used` (each row counts its own guesses).
 --   - compete: per-player budget, spent by that player's own row.
 --   In both modes a guess counts up only the guesser's row.
 --
@@ -455,7 +455,7 @@ begin
   s_guesses := (p_setup->>'max_guesses')::int;
   -- A sane range, not the form's menu: which budgets are offered is the setup
   -- form's choice (GUESS_OPTIONS). 9 is the ceiling of the
-  -- `players.guesses_used` column check.
+  -- `players.n_guesses_used` column check.
   if s_guesses not between 1 and 9 then
     raise exception 'BUG: guess budget of %', s_guesses
       using errcode = 'PN044', hint = 'fault', column = '_',
@@ -724,7 +724,7 @@ begin
   end if;
 
   -- The caller's own count, from their row.
-  select guesses_used into caller_used
+  select n_guesses_used into caller_used
     from psychicnum.players
    where game_id = p_game_id and user_id = caller_id;
   if caller_used is null then
@@ -738,7 +738,7 @@ begin
   -- The guesses used so far against the budget: the team's in coop, the sum
   -- of every player's own count; the caller's own in compete.
   if v_mode = 'coop' then
-    select sum(guesses_used) into v_guesses_used
+    select sum(n_guesses_used) into v_guesses_used
       from psychicnum.players
      where game_id = p_game_id;
   else
@@ -779,7 +779,7 @@ begin
 
   -- ─── Count the guess on the guesser's own row, in both modes ──
   update psychicnum.players
-     set guesses_used = guesses_used + 1
+     set n_guesses_used = n_guesses_used + 1
    where game_id = p_game_id and user_id = caller_id;
 
   -- A compete player whose budget is gone has ended while the others play on, so the
@@ -795,7 +795,7 @@ begin
   -- it's genuinely new) — bump the caller's public found-count.
   if is_correct then
     update psychicnum.players
-       set found_secrets_count = found_secrets_count + 1
+       set n_found_secrets = n_found_secrets + 1
      where game_id = p_game_id and user_id = caller_id;
   end if;
 
@@ -803,7 +803,7 @@ begin
   -- compete) and with guesses left — the team's in coop, their own in
   -- compete. Drives the all-exhausted loss.
   if v_mode = 'coop' then
-    select case when sum(pp.guesses_used) < g.max_guesses
+    select case when sum(pp.n_guesses_used) < g.max_guesses
                 then count(*) filter (where gp.player_ended_at is null)
                 else 0 end
       into players_with_guesses_left
@@ -817,11 +817,11 @@ begin
       join common.game_players gp
         on gp.game_id = pp.game_id and gp.user_id = pp.user_id
      where pp.game_id = p_game_id and gp.player_ended_at is null
-       and pp.guesses_used < g.max_guesses;
+       and pp.n_guesses_used < g.max_guesses;
   end if;
 
   -- Distinct secrets found in scope (coop: the team; compete: the caller).
-  -- Counting real guesses keeps this independent of the found_secrets_count tally.
+  -- Counting real guesses keeps this independent of the n_found_secrets tally.
   -- `events.is_correct` is QUALIFIED on purpose: this function also holds a
   -- local `is_correct` for the caller's own result, and PL/pgSQL treats an
   -- unqualified match as an error rather than picking one.
@@ -923,7 +923,7 @@ begin
         on gp.game_id = pp.game_id and gp.user_id = pp.user_id
       join psychicnum.games pg on pg.game_id = pp.game_id
      where pp.game_id = p_game_id and gp.player_ended_at is null
-       and pp.guesses_used < pg.max_guesses
+       and pp.n_guesses_used < pg.max_guesses
   ) then
     return false;
   end if;
@@ -1342,8 +1342,8 @@ begin
   perform common._require_game_player(p_game_id);
 
   update psychicnum.players
-     set guesses_used = 0,
-         found_secrets_count = 0
+     set n_guesses_used = 0,
+         n_found_secrets = 0
    where game_id = p_game_id;
 
   delete from psychicnum.events where game_id = p_game_id;

@@ -170,7 +170,6 @@ function PlayArea({
         tileResults={historyView.tileResults ?? liveTileResults}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
-        endingOutcome={endingMessage?.outcome ?? null}
         myTurnJustStarted={turnFlash}
       />
 

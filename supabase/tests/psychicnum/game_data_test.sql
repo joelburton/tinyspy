@@ -88,10 +88,10 @@ create function pg_temp.fresh_player(uid uuid, name text) returns jsonb language
     'stillPlaying',         true,
     'onTurn',               true,
     'waitingForTurn',       false,
-    'requiredSecretsCount', 3,
+    'nReqdSecrets', 3,
     'maxGuesses',           5,
-    'foundSecretsCount',    0,
-    'guessesUsed',          0,
+    'nFoundSecrets',    0,
+    'nGuessesUsed',          0,
     'board',                jsonb_build_object('tileResults', '{}'::jsonb, 'decidedBy', '{}'::jsonb))
 $$;
 
@@ -116,7 +116,7 @@ select is(
     'puzzle',   jsonb_build_object(
       'words',   '["zalpha","zbravo","zcharlie","zdelta","zecho","zfoxtrot","zgolf","zhotel"]'::jsonb,
       'secrets', null),
-    'team',     '{"foundSecretsCount": 0, "guessesUsed": 0}'::jsonb,
+    'team',     '{"nFoundSecrets": 0, "nGuessesUsed": 0}'::jsonb,
     'events',   '[]'::jsonb,
     'players',  jsonb_build_array(
       pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada'),
@@ -126,13 +126,13 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"foundSecretsCount": 0, "guessesUsed": 0}, "requiredSecretsCount": 3, "maxGuesses": 5}'::jsonb,
+    || '{"team": {"nFoundSecrets": 0, "nGuessesUsed": 0}, "nReqdSecrets": 3, "maxGuesses": 5}'::jsonb,
   'the fresh coop game''s summary: the common part, then a team with nothing found and nothing used'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "requiredSecretsCount": 3, "maxGuesses": 5}'::jsonb,
+    || '{"team": null, "nReqdSecrets": 3, "maxGuesses": 5}'::jsonb,
   'the fresh compete game''s summary has no team, so no progress'
 );
 
@@ -157,14 +157,14 @@ select is(
   '… each with its row id and its time'
 );
 select is(
-  (select jsonb_agg(jsonb_build_array(p -> 'foundSecretsCount', p -> 'guessesUsed') order by p ->> 'id')
+  (select jsonb_agg(jsonb_build_array(p -> 'nFoundSecrets', p -> 'nGuessesUsed') order by p ->> 'id')
      from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
   '[[1, 1], [0, 1]]'::jsonb,
   'coop: each player''s own finds and own used count — ada''s hit, bea''s miss'
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',
-  '{"foundSecretsCount": 1, "guessesUsed": 2}'::jsonb,
+  '{"nFoundSecrets": 1, "nGuessesUsed": 2}'::jsonb,
   'coop: the team''s finds and used count, summed over the rows, in game_data.team'
 );
 select is(
@@ -189,7 +189,7 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"foundSecretsCount": 1, "guessesUsed": 2}, "requiredSecretsCount": 3, "maxGuesses": 5}'::jsonb,
+    || '{"team": {"nFoundSecrets": 1, "nGuessesUsed": 2}, "nReqdSecrets": 3, "maxGuesses": 5}'::jsonb,
   'coop: the summary has the team''s finds and the team''s used count'
 );
 
@@ -205,7 +205,7 @@ select is(
   pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111') - 'board'
     - 'id' - 'username' - 'color' - 'ai' - 'seat' - 'ending' - 'outcome' - 'finalRanking'
     - 'solvedAt' - 'conceded' - 'solved' - 'stillPlaying' - 'onTurn' - 'waitingForTurn',
-  '{"requiredSecretsCount": 3, "maxGuesses": 5, "foundSecretsCount": 0, "guessesUsed": 1}'::jsonb,
+  '{"nReqdSecrets": 3, "maxGuesses": 5, "nFoundSecrets": 0, "nGuessesUsed": 1}'::jsonb,
   'compete: a racer''s counts are their own'
 );
 select is(
@@ -233,7 +233,7 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "requiredSecretsCount": 3, "maxGuesses": 5}'::jsonb,
+    || '{"team": null, "nReqdSecrets": 3, "maxGuesses": 5}'::jsonb,
   'compete: the summary still carries no progress, and no ending yet'
 );
 

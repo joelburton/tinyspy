@@ -105,8 +105,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const usedOf = (p: ZTest_PlayerFacts) => p.used ?? ownGuesses(p).length
   const team = coop
     ? {
-      foundSecretsCount: playerFacts.reduce((sum, p) => sum + foundOf(p), 0),
-      guessesUsed: playerFacts.reduce((sum, p) => sum + usedOf(p), 0),
+      nFoundSecrets: playerFacts.reduce((sum, p) => sum + foundOf(p), 0),
+      nGuessesUsed: playerFacts.reduce((sum, p) => sum + usedOf(p), 0),
     }
     : null
 
@@ -129,10 +129,10 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       stillPlaying,
       onTurn,
       waitingForTurn: stillPlaying && !onTurn,
-      requiredSecretsCount: 3,
+      nReqdSecrets: 3,
       maxGuesses: setup.max_guesses,
-      foundSecretsCount: foundOf(p),
-      guessesUsed: usedOf(p),
+      nFoundSecrets: foundOf(p),
+      nGuessesUsed: usedOf(p),
       board: {
         tileResults: Object.fromEntries(own.map((e) => [e.word, e.correct])),
         decidedBy: Object.fromEntries(own.map((e) => [e.word, e.userId])),

@@ -26,21 +26,21 @@ export function useShowOppsFoundMessages(
   myId: string,
   globalFeedbackSlot: FeedbackSlot,
 ): void {
-  const foundSecretsCountSeenRef = useRef<Map<string, number>>(new Map())
+  const nFoundSecretsSeenRef = useRef<Map<string, number>>(new Map())
   const isSeededRef = useRef(false)
   useEffect(function showOppsFoundMessages() {
     if (!gd.compete) return
-    const seen = foundSecretsCountSeenRef.current
+    const seen = nFoundSecretsSeenRef.current
     if (!isSeededRef.current) {
       isSeededRef.current = true
-      for (const player of gd.players) seen.set(player.id, player.foundSecretsCount)
+      for (const player of gd.players) seen.set(player.id, player.nFoundSecrets)
       return
     }
     for (const player of gd.players) {
       const was = seen.get(player.id) ?? 0
-      seen.set(player.id, player.foundSecretsCount)
+      seen.set(player.id, player.nFoundSecrets)
       if (player.id === myId) continue
-      if (player.foundSecretsCount <= was) continue
+      if (player.nFoundSecrets <= was) continue
       // `found_peer`, not `hit_peer`: in compete a player may learn THAT an
       // opponent found a secret and never which, so the answer that names a
       // word is not reachable from here.

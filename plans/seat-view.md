@@ -174,7 +174,7 @@ gd:                                       # the common part is every line not ma
   setup
   setupRows                               # game
   puzzle: {words, secrets}                # game; what the game is solved against (docs/naming.md → puzzle); secrets null until the game ends
-  team: {foundSecretsCount, guessesUsed}  # game; what the team shares; null when the game has no team (team-facts.md)
+  team: {nFoundSecrets, nGuessesUsed}     # game; what the team shares; null when the game has no team (team-facts.md)
   turns: {holder}                         # null: no turn order; holder is a player
   ending: {reason, detail, by, winner}    # null while playing; by is a player
   outcome                                 # null until the game ends
@@ -197,10 +197,10 @@ player:
   stillPlaying
   onTurn
   waitingForTurn
-  requiredSecretsCount                    # game; the same on every player
+  nReqdSecrets                            # game; the same on every player
   maxGuesses                              # game; the same on every player
-  foundSecretsCount                       # game; own, in every mode
-  guessesUsed                             # game; own, in every mode
+  nFoundSecrets                           # game; own, in every mode
+  nGuessesUsed                            # game; own, in every mode
   board: {tileResults, decidedBy}         # game; what this seat's tiles show; null for an opponent mid-race
 ```
 

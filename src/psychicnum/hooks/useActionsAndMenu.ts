@@ -234,7 +234,7 @@ export function useActionsAndMenu({
           isGameEnded: gd.ended,
           words: gd.puzzle.words,
           events: gd.events,
-          requiredSecretsCount: gd.me.requiredSecretsCount,
+          nReqdSecrets: gd.me.nReqdSecrets,
           players: gd.players,
           myId,
           setupRows: gd.setupRows,

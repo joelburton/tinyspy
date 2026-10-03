@@ -1,7 +1,6 @@
 // cs-blessed-psychicnum
 
 import { cls } from '@/common/utils/cls'
-import type { EndOutcome } from '@/common/terminal/gameEnding'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useWatchAndGetTopFeedbackMsg } from '@/common/feedback/useFeedbackSlot'
@@ -31,7 +30,6 @@ export function BoardCol({
   tileResults,
   historyView,
   localFeedbackSlot,
-  endingOutcome,
   myTurnJustStarted,
 }: {
   gd: GGameData
@@ -39,8 +37,6 @@ export function BoardCol({
   tileResults: GTileResults
   historyView: GHistoryView
   localFeedbackSlot: FeedbackSlot
-  // Passed through to `Board`'s marks.
-  endingOutcome: EndOutcome | null
   myTurnJustStarted: boolean
 }) {
   // The board takes picks on my move alone, and never while a past turn is on
@@ -89,12 +85,14 @@ export function BoardCol({
           results: tileResults,
           decidedBy: gd.me.board.decidedBy,
           // The guesses on my board: the team's in coop, my own in compete.
-          moveCount: gd.stateLineData.guessesUsed,
+          moveCount: gd.stateLineData.nGuessesUsed,
         }}
         marks={{
           pickedTile: pick.shownTile,
           inFlightGuess: submission.inFlight,
-          endingOutcome,
+          // Bands the board once I have ended: the game's ending, or mine
+          // while the others play on.
+          endingOutcome: gd.me.outcome,
           isWaitingForTurn: gd.me.waitingForTurn,
           myTurnJustStarted,
         }}

@@ -47,7 +47,7 @@ update psychicnum.games
 
 -- One right, then two wrong → the shared budget (3) is spent → coop loss.
 -- (EVERY guess spends budget, correct or not.) That leaves guess rows,
--- found_secrets_count = 1, a zeroed budget and an ended game: the full state a
+-- n_found_secrets = 1, a zeroed budget and an ended game: the full state a
 -- replay must undo.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from g1), 'zalpha');
@@ -76,10 +76,10 @@ select is((select count(*) from psychicnum.events where game_id = (select id fro
   0::bigint, 'coop: replay → the guess log is cleared');
 select is(
   (select count(*) from psychicnum.players
-    where game_id = (select id from g1) and guesses_used = 0 and found_secrets_count = 0),
+    where game_id = (select id from g1) and n_guesses_used = 0 and n_found_secrets = 0),
   2::bigint, 'coop: replay → both players back to no guesses used, nothing found');
 select is(
-  (select (summary_data->'team'->>'guessesUsed')::int from common.games where id = (select id from g1)),
+  (select (summary_data->'team'->>'nGuessesUsed')::int from common.games where id = (select id from g1)),
   0, 'coop: replay → the summary shows no guesses used again');
 select is(
   (select count(*) from common.game_players
@@ -124,7 +124,7 @@ select is(
     join jsonb_array_elements((select game_data -> 'players' from common.games where id = (select id from g2))) p
       on p ->> 'id' = gp.user_id::text
     where gp.game_id = (select id from g2) and gp.player_ended_at is null
-      and (p ->> 'guessesUsed')::int = 0),
+      and (p ->> 'nGuessesUsed')::int = 0),
   2::bigint, 'compete: replay → both players back in, no guesses used');
 
 -- ── Turn-order coop rewinds to the first-seated player ──────

@@ -15,10 +15,10 @@ pins change inside the conversion diff.
 ## The problem
 
 In psychicnum coop, `psychicnum.players.found_secrets_count` is each player's
-own tally (I found 2, Moth found 1), but `game_data.players[i].foundSecretsCount`
+own tally (I found 2, Moth found 1), but `game_data.players[i].nFoundSecrets`
 is the team's sum, written onto every player (3, on both of us), and
-`summary_data.foundSecretsCount` is the same sum once more. One name, three
-meanings by layer and by mode. The reader of `me.foundSecretsCount` has to know
+`summary_data.nFoundSecrets` is the same sum once more. One name, three
+meanings by layer and by mode. The reader of `me.nFoundSecrets` has to know
 which mode it is in to know what the number means, and a component that wanted
 "mine" in coop would have to go around the blob.
 
@@ -30,13 +30,13 @@ Each game had answered the question its own way. This plan answers it once.
 ## The decisions
 
 1. **A player's keys are that player's own, in every mode.** The row and the
-   player object say the same thing: `me.foundSecretsCount` is what I found,
+   player object say the same thing: `me.nFoundSecrets` is what I found,
    whether or not the finds are pooled. The database keeps recording who did
    what, because "Found: Moth 1 · Joel 2 · team 3" is a readout we may want
    one day and the rows are where it comes from.
 2. **`team` is a top-level key on every game's `gd`**, the standard place to
    look for what the team shares. What it holds is the game's: psychicnum's
-   `foundSecretsCount` and `guessesUsed`, wordle's `guessesUsed`. The game's
+   `nFoundSecrets` and `nGuessesUsed`, wordle's `guessesUsed`. The game's
    builder writes it from the rows (a sum, a max,
    whatever the game's rule is), so the database owns "guesses are shared in
    coop for this game".
@@ -67,7 +67,7 @@ there and not a fact for other components to scrounge.
 ## The naming rule for a loose copy
 
 Inside its group a name is bare and the path supplies the context:
-`team.foundSecretsCount` and `me.foundSecretsCount` are both right, and the
+`team.nFoundSecrets` and `me.nFoundSecrets` are both right, and the
 reader knows which from the dot.
 
 A copy pulled out of its group — a local, a prop that carries just the one
@@ -76,7 +76,7 @@ mechanical: **a dot becomes an underscore.** `team_foundSecretsCount`,
 `me_foundSecretsCount`, `me_board_tileResults`.
 
 - It is lossless: the leaf is spelled exactly as the key, so a grep for
-  `foundSecretsCount` finds every loose copy. `teamFoundSecretsCount` would
+  `nFoundSecrets` finds every loose copy. `teamFoundSecretsCount` would
   hide from it.
 - It settles what camelCase leaves open: a copy of `me.…` is `me_…`, with no
   `my` versus `me` choice, and deeper paths compose the same way.
@@ -110,14 +110,14 @@ gd:
   me
 
 player:
-  foundSecretsCount                       # own, in every mode
-  guessesUsed                             # own, in every mode
+  nFoundSecrets                       # own, in every mode
+  nGuessesUsed                             # own, in every mode
 
 summary_data:
   team: {…}                               # the same key, the same null rule
 ```
 
-psychicnum's `team` is `{foundSecretsCount, guessesUsed}`; wordle's is
+psychicnum's `team` is `{nFoundSecrets, nGuessesUsed}`; wordle's is
 `{guessesUsed}`; connections' is `{nMatchedCats, nMistakes}`. The next game's
 starts from these.
 
