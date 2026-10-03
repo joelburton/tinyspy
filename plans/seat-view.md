@@ -305,16 +305,22 @@ the first instance; the next game's blob starts from it.
 Decided 2026-10-03. A game with tiles has two names, the same in every game:
 
 - **`GTile` is the tile as the server knows it**: its identity and its settled
-  facts, one object, in `types.ts`. What a tile IS is the game's: psychicnum's
-  is `{word, correct, decidedBy}` (`correct` and `decidedBy` null until the
+  facts, one object, in `types.ts`. Every game's has an `id`, a string, the
+  game's own key — psychicnum's is the word repeated, stackdown's its tile
+  number as text, wordle's a cell's place — so a set, a map, a `data-tile`
+  handle and a shared piece all key the same way, and a tile with repeated
+  letters is still one tile. The rest is the game's: psychicnum's is
+  `{id, word, correct, decidedBy}` (`correct` and `decidedBy` null until the
   word is guessed); wordle's is a cell in a row, the letter and the color the
-  server judged for it; connections' is a bare `string`, since a loose tile
-  has no settled fact — the moment it has one it is in a band, which is a
-  `GMatchedCat`. The builder writes the array in that shape, under the seat's
-  `board` where the facts are the seat's (`board.tiles`), and `useGame` turns
-  its ids into players under the same key, as `turns.holder` and `ending.by`
-  are turned. What the frontend never does is assemble the tile from parallel
-  lists: the JSON reads as `gd` does, which is decision 8's point.
+  server judged for it; connections' becomes `{id, word}` when its Board pass
+  extracts `Tile`, a loose tile having no settled fact — the moment it has one
+  it is in a band, which is a `GMatchedCat`. The builder writes the array in
+  that shape, `id` included, under the seat's `board` where the facts are the
+  seat's (`board.tiles`), with `tilesById` built beside it in `useGame` as
+  `playersById` is; `useGame` turns the tile's ids into players under the same
+  key, as `turns.holder` and `ending.by` are turned. What the frontend never
+  does is assemble the tile from parallel lists: the JSON reads as `gd` does,
+  which is the point of the page being written, not assembled.
 - **`Tile` is the component that draws one**, taking the `GTile` and
   `TileMarks`, the screen's own facts about it — picked and by whom, under
   the cursor, in flight, flashing, shaking, history-lit. Marks are per client
@@ -322,9 +328,15 @@ Decided 2026-10-03. A game with tiles has two names, the same in every game:
   wears and `Tile` decides HOW each is drawn. Named for the thing, not for
   what is printed on it: psychicnum's `WordTile` and wordle's `LetterTile`
   become `Tile`, and connections' inline `<button>` becomes one.
-- **The identity stays the key where a set is needed.** Picks, the guess in
-  flight, a viewed turn's lit tiles, the flashing set are sets of identities;
-  `GTile` being an object does not change what those hold.
+- **Tiles are passed; ids are held.** A component or hook hands a `GTile` on,
+  and the thing in hand answers its own questions (`tile.correct !== null`),
+  so no set of "decided words" is built to be looked up. What a hook keeps
+  across renders — the pick, the guess in flight, the flashing and shaking
+  sets, the display order — is the tile's `id`, named as one
+  (`pickedTileId`), because a blob rebuilds every tile object; the hook looks
+  the live tile up in `tilesById` on the way out and hands back a `GTile`. A
+  held object would be stale and never `===` the board's again. A collection
+  that crosses a boundary is a collection of tiles unless it must be held.
 - **The puzzle's lists stay.** `gd.puzzle.words` and `gd.puzzle.secrets` are
   the puzzle, frozen at create; `board.tiles` is a seat's view of it. The
   words appear in both, and the rule for that is: the builder writes every

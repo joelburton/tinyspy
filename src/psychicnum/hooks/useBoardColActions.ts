@@ -5,7 +5,7 @@ import type { GTile } from '../types'
 
 /**
  * The board column's two commands, on their buttons and their keys: Submit
- * (Enter) guesses the picked word, and Clear (⌫) un-picks it. Both act on the
+ * (Enter) guesses the picked tile, and Clear (⌫) un-picks it. Both act on the
  * pick whether or not the keyboard cursor shows, since the pick is always
  * drawn. The board's own Shuffle is bound with the board (`useTileShuffle`).
  *
@@ -20,12 +20,12 @@ export function useBoardColActions({
   clearPickedTile,
   submitGuess,
 }: {
-  pickedTile: GTile['word'] | null
+  pickedTile: GTile | null
   // The board takes picks right now; Submit adds the pick itself.
   canPick: boolean
-  choosePickedTile: (word: GTile['word'] | null) => void
+  choosePickedTile: (tile: GTile | null) => void
   clearPickedTile: () => void
-  submitGuess: (word: GTile['word']) => Promise<void>
+  submitGuess: (tile: GTile) => Promise<void>
 }): {
   actSubmit: Action
   actClearPicks: Action

@@ -30,8 +30,8 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
   for (const [i, p] of raw.players.entries()) {
     if (!seeRival && !isMine(p.id)) continue
-    players[i]!.board = {
-      tiles: p.board.tiles.map((t) => ({
+    const tiles = p.board.tiles.map((t) => ({
+        id: t.id,
         word: t.word,
         correct: t.correct,
         // THE INBOUND SEAM for a tile's color: read once here, through
@@ -40,8 +40,8 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
         // Every guess is a seated player's: a player's rows go with their
         // profile (`on delete cascade`), so the lookup cannot miss.
         decidedBy: t.decidedBy === null ? null : playersById[t.decidedBy]!,
-      })),
-    }
+      }))
+    players[i]!.board = { tiles, tilesById: new Map(tiles.map((t) => [t.id, t])) }
   }
 
   // Links that cannot miss get a bare lookup; an ending's `by` may be null for

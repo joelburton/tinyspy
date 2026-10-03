@@ -155,9 +155,10 @@ export type GPlayerRaw = PlayerRaw & {
  *   maxGuesses                            # the same on every player
  *   nFoundSecrets                     # own, in every mode
  *   nGuessesUsed                           # own, in every mode
- *   board: {tiles}                        # what this seat's tiles show; null for a rival mid-race
+ *   board: {tiles, tilesById}             # what this seat's tiles show; null for a rival mid-race
  *
  * tile:                                   # board.tiles[], in the puzzle's order
+ *   id                                    # the word, in this game
  *   word
  *   correct                               # null until guessed
  *   outcome                               # read from correct, once; null until guessed
@@ -207,6 +208,8 @@ export type GPlayer = Omit<GPlayerRaw, 'board'> & {
  *  builder writes). */
 export type GBoard = {
   tiles: GTile[]
+  // The same tiles by id, for a hook that holds an id and hands back the tile.
+  tilesById: ReadonlyMap<string, GTile>
 }
 
 /** One row of the log, as `gd` holds it: the blob's row, with its player. */
@@ -294,7 +297,7 @@ export type GHistoryView = {
   // The viewed turn's board, or null when live.
   tiles: GTile[] | null
   // The tile the viewed turn decided — ring it; null for a hint or a spoiler.
-  litWord: GTile['word'] | null
+  litTileId: string | null
   // The banner's text, or null when live.
   label: string | null
   // Whose board is on screen, when it is not mine — which only compete can
@@ -307,9 +310,9 @@ export type GHistoryView = {
 export type GReplayedTurn = {
   // The board as of the END of the viewed turn.
   tiles: GTile[]
-  // The board word this turn's guess decided — ring it history-blue (it already
+  // The tile this turn's guess decided — ring it history-blue (it already
   // wears its green/red outcome color). Null for a hint / spoiler turn (no tile).
-  litWord: GTile['word'] | null
+  litTileId: string | null
   // A short, name-free turn label for the viewer banner (the log row shows *who*).
   label: string
   // Who made the turn — whose board this is; null for an id not in the log.
@@ -319,12 +322,14 @@ export type GReplayedTurn = {
 /**
  * A tile as the builder writes it (plans/seat-view.md → A tile is an instance
  * the builder writes): one of the board's words (lowercase, as the game dealt
- * it) and what this seat knows of it. `word` is the tile's identity — the
- * pick, a guess, a secret are all one of these; a hint row's `word` is clue
- * text and not one. `correct` is whether the word was a secret, null until
+ * it) and what this seat knows of it. The pick, a guess, a secret are all one
+ * of these; a hint row's `word` is clue text and not one. `correct` is whether the word was a secret, null until
  * somebody guessed it; `decidedBy` is who, a user id, null until then.
  */
 export type GTileRaw = {
+  // The tile's identity, a string in every game; psychicnum's is the word
+  // itself. What is held across renders and what keys a set or map.
+  id: string
   word: string
   correct: boolean | null
   decidedBy: string | null

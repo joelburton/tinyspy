@@ -55,14 +55,14 @@ describe('replayTurn', () => {
     const hint = replayTurn(EVENTS, WORDS, 12, false)
     expect(decidedOf(hint).get('apple')).toBe(true)
     expect(decidedOf(hint).has('berry')).toBe(false)
-    expect(hint.litWord).toBeNull()
+    expect(hint.litTileId).toBeNull()
     expect(hint.label).toBe('Hint: a fruit')
   })
 
   it('lights exactly the word the viewed guess decided, and labels it', () => {
-    expect(replayTurn(EVENTS, WORDS, 11, false).litWord).toBe('apple')
+    expect(replayTurn(EVENTS, WORDS, 11, false).litTileId).toBe('apple')
     expect(replayTurn(EVENTS, WORDS, 11, false).label).toBe('APPLE — Correct')
-    expect(replayTurn(EVENTS, WORDS, 13, false).litWord).toBe('berry')
+    expect(replayTurn(EVENTS, WORDS, 13, false).litTileId).toBe('berry')
     expect(replayTurn(EVENTS, WORDS, 13, false).label).toBe('BERRY — Wrong')
   })
 

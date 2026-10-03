@@ -7,44 +7,42 @@ import type { GTile } from '../types'
 
 /**
  * The keyboard's way onto psychicnum's board: arrows move the selection cursor
- * over the tiles, Space picks the word under it or un-picks it, and a click on
+ * over the tiles, Space picks the tile under it or un-picks it, and a click on
  * a tile picks it and moves the cursor there, hidden. See
  * `useBoardSelectionCursor` for the rules every board's cursor keeps.
  *
- * The cursor sits on a CELL, so a shuffle moves the words under it; the pick,
- * being a word, moves with its tile.
+ * The cursor sits on a CELL, so a shuffle moves the tiles under it; the pick,
+ * being a tile, moves with it.
  */
 export function useTileCursor({
   displayedTiles,
   boardShape,
-  decidedWords,
   pickedTile,
   canPick,
   onPick,
 }: {
-  // The words in the order the board draws them.
-  displayedTiles: readonly GTile['word'][]
+  // The tiles in the order the board draws them.
+  displayedTiles: readonly GTile[]
   boardShape: BoardShape
-  // A decided tile cannot be picked, by key or by click.
-  decidedWords: ReadonlySet<GTile['word']>
-  pickedTile: GTile['word'] | null
+  pickedTile: GTile | null
   // Whether a pick is possible right now; the cursor is inert while not.
   canPick: boolean
-  // Pick a word, or un-pick with null.
-  onPick: (word: GTile['word'] | null) => void
+  // Pick a tile, or un-pick with null.
+  onPick: (tile: GTile | null) => void
 }): {
   cell: Cell | null
-  pickClicked: (word: GTile['word']) => void
+  pickClicked: (tile: GTile) => void
 } {
-  function wordAtCell(cell: Cell): GTile['word'] | undefined {
+  function tileAtCell(cell: Cell): GTile | undefined {
     return displayedTiles[positionAt(cell.x, cell.y, boardShape.numCols)]
   }
 
-  // Space toggles, so a second press un-picks.
+  // Space toggles, so a second press un-picks. A decided tile cannot be
+  // picked, by key or by click.
   function togglePickAtCell(cell: Cell) {
-    const word = wordAtCell(cell)
-    if (word === undefined || decidedWords.has(word)) return
-    onPick(pickedTile === word ? null : word)
+    const tile = tileAtCell(cell)
+    if (tile === undefined || tile.correct !== null) return
+    onPick(pickedTile?.id === tile.id ? null : tile)
   }
 
   const selectionCursor = useBoardSelectionCursor({
@@ -53,9 +51,9 @@ export function useTileCursor({
     onToggle: togglePickAtCell,
   })
 
-  function pickClicked(word: GTile['word']) {
-    selectionCursor.setTo(cellAt(displayedTiles.indexOf(word), boardShape.numCols))
-    onPick(word)
+  function pickClicked(tile: GTile) {
+    selectionCursor.setTo(cellAt(displayedTiles.findIndex((t) => t.id === tile.id), boardShape.numCols))
+    onPick(tile)
   }
 
   return { cell: selectionCursor.cell, pickClicked }

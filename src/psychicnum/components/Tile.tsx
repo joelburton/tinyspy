@@ -42,7 +42,7 @@ export function Tile({
       type="button"
       // A stable e2e hook: class names are hashed, and the floating Shuffle
       // lives inside the board root, so "a button in the board" would match it.
-      data-tile={tile.word}
+      data-tile={tile.id}
       className={cls(
         shared.tileFace,
         shared.tile,

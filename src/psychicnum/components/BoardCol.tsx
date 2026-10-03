@@ -46,13 +46,14 @@ export function BoardCol({
   const canPick = gd.me.onTurn && !historyView.isViewing
 
   const pick = usePickedTile({
+    tilesById: gd.me.board.tilesById,
     localFeedbackSlot,
     isStillPlaying: gd.me.stillPlaying,
     isViewingHistory: historyView.isViewing,
   })
   const submission = useSubmitGuess({
     gameId: gd.id,
-    tiles,
+    tilesById: gd.me.board.tilesById,
     localFeedbackSlot,
     isViewingHistory: historyView.isViewing,
   })
@@ -86,7 +87,7 @@ export function BoardCol({
         moveCount={gd.stateLineData.nGuessesUsed}
         marks={{
           pickedTile: pick.shownTile,
-          inFlightGuess: submission.inFlight,
+          inFlightTile: submission.inFlightTile,
           // Bands the board once I have ended: the game's ending, or mine
           // while the others play on.
           endingOutcome: gd.me.outcome,

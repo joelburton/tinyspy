@@ -80,6 +80,9 @@ describe('psychicnum makeGameData — the links become players', () => {
     expect(gd.me.board.tiles[0]!.decidedBy).toBe(gd.me)
     expect(gd.me.board.tiles[1]!.decidedBy).toBe(gd.playersById.u2)
     expect(gd.me.board.tiles[2]!.decidedBy).toBeNull()
+    // The same objects by id, for a hook that holds an id.
+    expect(gd.me.board.tiles[0]!.id).toBe('alpha')
+    expect(gd.me.board.tilesById.get('alpha')).toBe(gd.me.board.tiles[0])
   })
 
   it('builds the setup rows once, for the info column and the printout', () => {

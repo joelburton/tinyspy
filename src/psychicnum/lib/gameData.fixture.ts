@@ -139,8 +139,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
         tiles: words.map((word) => {
           const guess = own.find((e) => e.word === word)
           return guess === undefined
-            ? { word, correct: null, decidedBy: null }
-            : { word, correct: guess.correct, decidedBy: guess.userId }
+            ? { id: word, word, correct: null, decidedBy: null }
+            : { id: word, word, correct: guess.correct, decidedBy: guess.userId }
         }),
       },
     }

@@ -17,8 +17,8 @@ import type { GTile, GHistoryView } from '../types'
 
 /** What the board wears on and around its tiles. */
 type BoardMarks = {
-  pickedTile: GTile['word'] | null
-  inFlightGuess: GTile['word'] | null
+  pickedTile: GTile | null
+  inFlightTile: GTile | null
   endingOutcome: EndOutcome | null
   // A teammate holds the move.
   isWaitingForTurn: boolean
@@ -42,8 +42,8 @@ type Props = {
   // The players are working one board together: `gd.oneBoard` with more than
   // one of them at it.
   isSharedBoard: boolean
-  // Picks a word, or un-picks with null.
-  onPick: (word: GTile['word'] | null) => void
+  // Picks a tile, or un-picks with null.
+  onPick: (tile: GTile | null) => void
 }
 
 /**
@@ -66,16 +66,12 @@ export function Board({
   isSharedBoard,
   onPick,
 }: Props) {
-  // The display order is this client's permutation of the words; the tiles
-  // are looked up by word to draw in it.
-  const shuffle = useTileShuffle(tiles.map((t) => t.word))
-  const tileByWord = new Map(tiles.map((t) => [t.word, t]))
-  const decidedWords = new Set(tiles.filter((t) => t.correct !== null).map((t) => t.word))
+  // The display order is this client's permutation of the tiles.
+  const shuffle = useTileShuffle(tiles)
   const boardShape = makeBoardShape(shuffle.tiles.length)
   const tileCursor = useTileCursor({
     displayedTiles: shuffle.tiles,
     boardShape,
-    decidedWords,
     pickedTile: marks.pickedTile,
     canPick,
     onPick,
@@ -113,26 +109,24 @@ export function Board({
           gridTemplateRows: `repeat(${boardShape.numRows}, 1fr)`,
         }}
       >
-        {shuffle.tiles.map((word, index) => {
-          // Every displayed word is one of the board's tiles.
-          const tile = tileByWord.get(word)!
+        {shuffle.tiles.map((tile, index) => {
           return (
             <Tile
-              key={word}
+              key={tile.id}
               tile={tile}
               // Who guessed a tile is worth saying only where it can differ:
               // on a board the players share.
               showGuesser={isSharedBoard}
               marks={{
-                isPicked: marks.pickedTile === word,
+                isPicked: marks.pickedTile?.id === tile.id,
                 isUnderCursor: cursorPosition === index,
-                isInFlight: marks.inFlightGuess === word,
-                isFlashing: decidedMarks.flashing.has(word),
-                isShaking: decidedMarks.shaking.has(word),
-                isHistoryLit: historyView.litWord === word,
+                isInFlight: marks.inFlightTile?.id === tile.id,
+                isFlashing: decidedMarks.flashingTiles.has(tile),
+                isShaking: decidedMarks.shakingTiles.has(tile),
+                isHistoryLit: historyView.litTileId === tile.id,
               }}
               isDisabled={tile.correct !== null || !canPick}
-              onClick={() => tileCursor.pickClicked(word)}
+              onClick={() => tileCursor.pickClicked(tile)}
             />
           )
         })}

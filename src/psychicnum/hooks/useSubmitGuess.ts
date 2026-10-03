@@ -15,56 +15,55 @@ import type { GAnswer, GTile } from '../types'
 type GuessAnswer = { result: 'hit' | 'miss'; found_all: boolean }
 
 /**
- * Sending a guess, and the word still out with the server.
+ * Sending a guess, and the tile still out with the server.
  *
- * `send(word)` shows its answer in the local slot — Correct, Wrong, or
+ * `send(tile)` shows its answer in the local slot — Correct, Wrong, or
  * a refusal — in the slot's already-claimed space, never a new line that would
  * reflow the board.
  *
- * - **A refusal the board can make itself.** It is face-up and its results are
- *   already here, so a word a teammate has guessed since I picked it never
+ * - **A refusal the board can make itself.** It is face-up and the tile is
+ *   the live one, so a word a teammate has guessed since I picked it never
  *   reaches the server. The server keeps the check, and its answer is then a
  *   race rather than a verdict (docs/envelopes.md → "was anything local
- *   consulted first?"). `tiles` is scoped exactly as the server's check
- *   is — everyone's guesses in coop, mine in compete, since RLS never shows
- *   more.
+ *   consulted first?"). The live board is scoped exactly as the server's
+ *   check is — everyone's guesses in coop, mine in compete.
  * - **The result is mine and nothing else.** Whether the guess ended the game
  *   rides beside it in `found_all`, which this ignores: every ending reaches
  *   the page by realtime, and a hit that empties the budget is still a hit to
  *   the person who made it. So two branches cover three server returns (the
  *   win, the guess that spends the last of the budget, the ordinary one).
  *
- * `inFlight` is the word with the server, whose tile takes the in-flight
- * dim; null when nothing is out, and null while a past turn is open (that is
- * not the board the guess is on). It holds until the RESULT lands in
- * `tiles` rather than until the RPC resolves: the reply and the colored
- * tile are two events, and un-dimming at the first would flash an undecided
- * tile back to normal. Deriving it from the results, rather than clearing
- * state when they arrive, means no branch can leave a dim stuck on a tile. A
+ * `inFlightTile` is the tile with the server, which takes the in-flight dim;
+ * null when nothing is out, and null while a past turn is open (that is not
+ * the board the guess is on). The hook holds the sent tile's ID and reads the
+ * live tile back from `tilesById`, so the dim holds until the RESULT lands on
+ * the board rather than until the RPC resolves: the reply and the colored tile
+ * are two events, and un-dimming at the first would flash an undecided tile
+ * back to normal. Deriving it from the live tile, rather than clearing state
+ * when the result arrives, means no branch can leave a dim stuck on a tile. A
  * restart needs no gate: the page unmounts the surface when the run changes
  * (common/game-page/doc.md).
  */
 export function useSubmitGuess({
   gameId,
-  tiles,
+  tilesById,
   localFeedbackSlot,
   isViewingHistory,
 }: {
   gameId: string
-  // The board on screen: a word already decided is refused here, and the
-  // word I sent counts as in flight until its tile is decided.
-  tiles: readonly GTile[]
+  // The live board's tiles, by id (`gd.me.board.tilesById`).
+  tilesById: ReadonlyMap<string, GTile>
   localFeedbackSlot: FeedbackSlot
   isViewingHistory: boolean
 }): {
-  send: (word: GTile['word']) => Promise<void>
-  inFlight: GTile['word'] | null
+  send: (tile: GTile) => Promise<void>
+  inFlightTile: GTile | null
 } {
-  // The word I last sent, or null. Nothing clears it when the result lands;
-  // what is still in flight is derived below.
-  const [submittedWord, setSubmittedWord] = useState<GTile['word'] | null>(null)
-  const decided = new Set(tiles.filter((t) => t.correct !== null).map((t) => t.word))
-  const isSubmittedWordDecided = submittedWord !== null && decided.has(submittedWord)
+  // The id of the tile I last sent, or null. Nothing clears it when the
+  // result lands; what is still in flight is derived below.
+  const [inFlightTileId, setInFlightTileId] = useState<string | null>(null)
+  // A sent tile names a tile on the live board, so the lookup cannot miss.
+  const sentTile = inFlightTileId === null ? null : tilesById.get(inFlightTileId)!
 
   // Every answer reaches the player the same way: one `GAnswer` in, its words
   // and its color out of `lib/answer.ts`.
@@ -73,33 +72,33 @@ export function useSubmitGuess({
     localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
   }
 
-  async function send(word: GTile['word']) {
-    if (decided.has(word)) {
+  async function send(tile: GTile) {
+    if (tile.correct !== null) {
       showAnswer({ answerType: 'already_guessed' })
       return
     }
-    setSubmittedWord(word)
+    setInFlightTileId(tile.id)
     const guessResult = await runRpc<GuessAnswer>(
-      db.rpc('submit_guess', { p_game_id: gameId, p_guess: word }),
+      db.rpc('submit_guess', { p_game_id: gameId, p_guess: tile.word }),
     )
     if (guessResult.type === 'not-ok') {
-      setSubmittedWord(null)
+      setInFlightTileId(null)
       localFeedbackSlot.show(FeedbackMessage.notOk(guessResult))
     } else if (guessResult.type === 'ok' && guessResult.data.result === 'hit') {
-      showAnswer({ answerType: 'hit', word })
+      showAnswer({ answerType: 'hit', word: tile.word })
     } else if (guessResult.type === 'ok' && guessResult.data.result === 'miss') {
-      showAnswer({ answerType: 'miss', word })
+      showAnswer({ answerType: 'miss', word: tile.word })
     } else {
       // Nothing named this answer, so the tile must not keep claiming to be in
       // flight — no result is coming that would release it.
-      setSubmittedWord(null)
+      setInFlightTileId(null)
       reportUnhandled('submit_guess', guessResult)
     }
   }
 
-  const isInFlightShown = !isSubmittedWordDecided && !isViewingHistory
+  const isInFlightShown = sentTile !== null && sentTile.correct === null && !isViewingHistory
   return {
     send,
-    inFlight: isInFlightShown ? submittedWord : null,
+    inFlightTile: isInFlightShown ? sentTile : null,
   }
 }

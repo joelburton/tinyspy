@@ -25,7 +25,7 @@ export function useHistoryView(gd: GGameData): GHistoryView {
     show: showHistory,
     exit: exitHistory,
     tiles: replayed?.tiles ?? null,
-    litWord: replayed?.litWord ?? null,
+    litTileId: replayed?.litTileId ?? null,
     label: replayed?.label ?? null,
     actor: isSomeoneElsesBoard ? author : undefined,
   }

@@ -274,8 +274,10 @@ each game takes the shape as it converts.
 
 **A game with tiles has `GTile` and `Tile`.** `GTile` is the tile as the
 server knows it, identity and settled facts in one object, written by the
-builder as an array; what a tile is is the game's (a word with its verdict
-and decider, a letter with its color, a bare string). `Tile` is the component
+builder as an array; every game's has a string `id`, the game's own key, and
+the rest is the game's (a word with its verdict and decider, a letter with its
+color). Tiles are passed; a hook that must hold one across renders holds its
+`id` and hands back the live tile from the board's `tilesById`. `Tile` is the component
 that draws one, taking the `GTile` and `TileMarks`, the screen's own facts
 about it, which never enter the blob. Named for the thing, never for what is
 printed on it: no `WordTile`, no `LetterTile`

@@ -122,11 +122,11 @@ drop function if exists psychicnum._secrets_for(uuid);
 --     players: [player, …]                 the common player, plus:
 --       nReqdSecrets, maxGuesses   the same on every player
 --       nFoundSecrets, nGuessesUsed     this player's own, in every mode
---       board: {tiles: [{word, correct, decidedBy}, …]}
+--       board: {tiles: [{id, word, correct, decidedBy}, …]}
 --                                          what this seat's tiles show: every dealt word
---                                          in the puzzle's order, with whether it was a
---                                          secret and who guessed it, both null while
---                                          nobody has; one board in coop, each racer's
+--                                          in the puzzle's order — its id (the word, in
+--                                          this game), whether it was a secret and who
+--                                          guessed it, the last two null while nobody has; one board in coop, each racer's
 --                                          own in compete (plans/seat-view.md → A tile
 --                                          is an instance the builder writes)
 --
@@ -189,6 +189,7 @@ as $$
   -- seat's own in compete. A word nobody guessed carries nulls.
   select jsonb_build_object(
     'tiles', jsonb_agg(jsonb_build_object(
+               'id',        w.word,
                'word',      w.word,
                'correct',   e.is_correct,
                'decidedBy', e.user_id) order by w.ord))

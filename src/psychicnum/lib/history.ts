@@ -21,7 +21,7 @@ import type { GEvent, GReplayedTurn, GTile } from '../types'
 /**
  * Replay the turn of the event with this `id`: fold every guess up to and
  * including it (on its author's board alone, in compete) onto the puzzle's
- * words, and light that event's own guessed word.
+ * words, and light that event's own guessed tile.
  */
 export function replayTurn(
   events: ReadonlyArray<GEvent>,
@@ -43,12 +43,14 @@ export function replayTurn(
   const tiles: GTile[] = words.map((word) => {
     const guess = guessOf.get(word)
     return guess === undefined
-      ? { word, correct: null, outcome: null, decidedBy: null }
-      : { word, correct: guess.correct, outcome: getGuessOutcome(word, guess.correct), decidedBy: guess.by }
+      ? { id: word, word, correct: null, outcome: null, decidedBy: null }
+      : { id: word, word, correct: guess.correct, outcome: getGuessOutcome(word, guess.correct), decidedBy: guess.by }
   })
+  const litTile =
+    viewedEvent && viewedEvent.kind === 'guess' ? tiles.find((t) => t.word === viewedEvent.word) : undefined
   return {
     tiles,
-    litWord: viewedEvent && viewedEvent.kind === 'guess' ? viewedEvent.word : null,
+    litTileId: litTile?.id ?? null,
     label: describe(viewedEvent),
     author: viewedEvent?.by ?? null,
   }

@@ -70,9 +70,10 @@ create function pg_temp.player(game uuid, uid uuid) returns jsonb language sql a
   $$ select p from jsonb_array_elements((select game_data -> 'players' from common.games where id = game)) p
       where p ->> 'id' = uid::text $$;
 
--- One tile as the builder writes it; a word nobody guessed carries nulls.
+-- One tile as the builder writes it: its id is the word; a word nobody guessed
+-- carries nulls.
 create function pg_temp.tile(word text, correct boolean, decided_by uuid) returns jsonb language sql as
-  $$ select jsonb_build_object('word', word, 'correct', correct, 'decidedBy', decided_by) $$;
+  $$ select jsonb_build_object('id', word, 'word', word, 'correct', correct, 'decidedBy', decided_by) $$;
 -- The board before anyone has guessed: every dealt word, in the puzzle's order.
 create function pg_temp.fresh_board() returns jsonb language sql as
   $$ select jsonb_build_object('tiles', jsonb_build_array(

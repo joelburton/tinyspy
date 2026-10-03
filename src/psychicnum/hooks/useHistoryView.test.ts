@@ -44,7 +44,7 @@ describe('useHistoryView', () => {
     act(() => result.current.show(1, 1))
     expect(result.current.isViewing).toBe(true)
     expect(result.current.viewedEventId).toBe(1)
-    expect(result.current.litWord).toBe('apple')
+    expect(result.current.litTileId).toBe('apple')
     act(() => result.current.exit())
     expect(result.current.isViewing).toBe(false)
     expect(result.current.viewedEventId).toBeNull()

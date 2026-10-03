@@ -127,7 +127,7 @@ part of every `game_data` (`common._make_json_game_data`) psychicnum's own:
 
 | blob | psychicnum's part |
 |---|---|
-| `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `team: {nFoundSecrets, nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `nReqdSecrets`, `maxGuesses`, their own `nFoundSecrets` and `nGuessesUsed`, and `board: {tiles}`, this seat's tiles — every dealt word in the puzzle's order with `correct` and `decidedBy`, null until guessed |
+| `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `team: {nFoundSecrets, nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `nReqdSecrets`, `maxGuesses`, their own `nFoundSecrets` and `nGuessesUsed`, and `board: {tiles}`, this seat's tiles — every dealt word in the puzzle's order, each with its `id` (the word, in this game), `correct` and `decidedBy`, the last two null until guessed |
 | `summary_data` | `team`, the same group; `nReqdSecrets`, `maxGuesses` |
 
 Every player's counts are their own, on `psychicnum.players` and on their
