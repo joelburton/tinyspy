@@ -905,20 +905,26 @@ revoke execute on function psychicnum.submit_guess(uuid, text) from public;
 grant execute on function psychicnum.submit_guess(uuid, text) to authenticated;
 
 drop function if exists psychicnum._maybe_finish_compete(uuid);
+drop function if exists psychicnum._maybe_finish_compete(uuid, uuid);
 
 -- ============================================================
 -- psychicnum._maybe_finish_compete — nobody left racing?
 -- ============================================================
 -- The collective-loss check after a concession, named as the other five
 -- elimination games name theirs: when no player who hasn't ended has budget
--- left — some spent, some conceded — the game ends `resource_exhausted`,
--- nobody ranked. Everyone conceding is `common._concede`'s ending, so this
--- skips a game that has already ended.
+-- left — some spent, some conceded — the game ends, nobody ranked. The act
+-- passed is the last racer's, and becomes the game's reason
+-- (docs/win-lose.md → `resource-exhausted`: a game whose last player out
+-- conceded ended by concession, whatever the others spent). Everyone
+-- conceding is `common._concede`'s ending, so this skips a game that has
+-- already ended.
 --
 -- MUST be called with this game's psychicnum.games row already locked — see
 -- the caller. Returns whether it ended the game.
 create or replace function psychicnum._maybe_finish_compete(
   p_game_id uuid,
+  p_reason text,
+  p_reason_detail text,
   p_ended_by_user_id uuid
 )
 returns boolean
@@ -943,7 +949,7 @@ begin
   end if;
 
   perform common._end_game(
-    p_game_id, 'resource_exhausted', 'exhausted', p_ended_by_user_id,
+    p_game_id, p_reason, p_reason_detail, p_ended_by_user_id,
     p_is_no_result => false,
     p_final_rankings => '{}'::jsonb
   );
@@ -951,7 +957,7 @@ begin
 end;
 $$;
 
-revoke execute on function psychicnum._maybe_finish_compete(uuid, uuid) from public;
+revoke execute on function psychicnum._maybe_finish_compete(uuid, text, text, uuid) from public;
 
 drop function if exists psychicnum.concede(uuid);
 
@@ -963,7 +969,8 @@ drop function if exists psychicnum.concede(uuid);
 -- submit_guess) or when every player is out — budget spent or
 -- conceded. `common._concede` records the concession and ends the game
 -- if everyone has conceded; `_maybe_finish_compete` ends it if the rest
--- are spent. Compete only (coop is a team; it ends via the shared Stop).
+-- are spent — `conceded` either way, since the concession is the act that
+-- ended it. Compete only (coop is a team; it ends via the shared Stop).
 create or replace function psychicnum.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -988,7 +995,7 @@ begin
   perform common._require_compete((select mode from common.games where id = p_game_id));
 
   caller_id := common._concede(p_game_id);
-  perform psychicnum._maybe_finish_compete(p_game_id, caller_id);
+  perform psychicnum._maybe_finish_compete(p_game_id, 'conceded', 'conceded', caller_id);
 
   perform psychicnum._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));

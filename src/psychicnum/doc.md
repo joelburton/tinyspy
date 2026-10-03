@@ -95,9 +95,9 @@ so no reader works the ending out from the clock or the players:
 | the ending | reason / detail | ranked | outcome |
 |---|---|---|---|
 | all three found | `reached_goal` / `solved` | coop: every teammate 1; compete: the finder alone | `won` |
-| every budget spent | `resource_exhausted` / `exhausted` | nobody | `lost` |
+| the last budget spent | `resource_exhausted` / `exhausted` | nobody | `lost` |
 | the countdown | `timeout` / `timeout` | nobody | `lost` |
-| every player conceded | `conceded` / `conceded` | nobody | `lost` |
+| the last player out conceded | `conceded` / `conceded` | nobody | `lost` |
 | somebody stopped it | `stopped` / `stopped` | nobody | `neutral` |
 
 A compete race ends when decided, so only the finder reaches the goal; the
@@ -263,7 +263,8 @@ spoiler was taken; the event log, which draws every row, shows them the word.
 `concede`, `stop_game`, `submit_timeout` and `replay_board` — the common
 shape every game has, doing here what they do everywhere. `concede` checks,
 after `common._concede`, whether everyone left is out of guesses
-(`_maybe_finish_compete`).
+(`_maybe_finish_compete`), and a game that ends there ended `conceded`: the
+reason is the act of the last player out, not what the others ran out of.
 
 ## FE submissions
 

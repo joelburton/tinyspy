@@ -11,7 +11,8 @@
 -- game ends as a collective loss. Covers: a concede keeps the game going
 -- while an opponent still has budget; both conceding ends it (`conceded`,
 -- nobody ranked, everyone `lost`); a concession that leaves only spent
--- players ends it `resource_exhausted`; coop is rejected.
+-- players ends it `conceded` too, the concession being the act that ended
+-- it; coop is rejected.
 -- ============================================================
 
 begin;
@@ -61,7 +62,8 @@ select is(
   'bea22222-2222-2222-2222-222222222222'::uuid, 'the last conceder ended it');
 
 -- (3) ada spends her one guess; bea's concession leaves nobody with budget →
--- the game ends resource_exhausted, not conceded.
+-- the game ends conceded: the concession is the act that ended it, even
+-- though ada went out by spending her budget.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gm on commit drop as
 select (psychicnum.create_game(
@@ -89,8 +91,8 @@ select is(
 select is(
   (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
      from common.games where id = (select id from gm)),
-  'resource_exhausted/exhausted/lost',
-  'a concession that leaves only spent players ends the game exhausted');
+  'conceded/conceded/lost',
+  'a concession that leaves only spent players ends the game conceded');
 select is(
   (select array_agg(outcome order by user_id) from common.game_players where game_id = (select id from gm)),
   array['lost', 'lost'], 'nobody found the set, so everyone lost');
