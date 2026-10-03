@@ -61,7 +61,7 @@ function verdict(g: GEvent): string {
 }
 
 function toBand(c: GCategory): PrintBand {
-  return { rank: c.rank, letter: RANK_LETTER[c.rank], name: c.name, tiles: c.tiles }
+  return { rank: c.rank, letter: RANK_LETTER[c.rank], name: c.name, tiles: c.tiles.map((t) => t.word) }
 }
 
 export function buildConnectionsPrintModel(o: {
@@ -74,7 +74,7 @@ export function buildConnectionsPrintModel(o: {
   matchedCats: GMatchedCat[]
   // Revealed at game-end; `[]` during play.
   unmatchedCats: GCategory[]
-  // Tiles still on the viewer's board, in display order.
+  // The words of the tiles still on the viewer's board, in display order.
   tilesLeft: string[]
   guesses: GEvent[]
   players: { id: string; username: string }[]
@@ -89,7 +89,7 @@ export function buildConnectionsPrintModel(o: {
   const total = o.cats.length
 
   const turnsOf = (guesses: GEvent[], whoOf: (g: GEvent) => string): TurnRow[] =>
-    guesses.map((g, i) => ({ seq: i + 1, who: whoOf(g), text: `${verdict(g)}: ${g.tiles.join(' · ')}` }))
+    guesses.map((g, i) => ({ seq: i + 1, who: whoOf(g), text: `${verdict(g)}: ${g.tiles.map((t) => t.word).join(' · ')}` }))
 
   const resultOf = (found: number, mistakes: number) =>
     `${found}/${total} categories found · ${mistakes}/${o.maxMistakes} mistakes`
@@ -126,7 +126,7 @@ export function buildConnectionsPrintModel(o: {
     return {
       who: p.username,
       bands: o.cats.filter((c) => solved.has(c.rank)).map(toBand),
-      tilesLeft: o.cats.filter((c) => !solved.has(c.rank)).flatMap((c) => c.tiles),
+      tilesLeft: o.cats.filter((c) => !solved.has(c.rank)).flatMap((c) => c.tiles.map((t) => t.word)),
       turns: turnsOf(guesses, () => p.username),
       result: resultOf(solved.size, mistakes),
     }

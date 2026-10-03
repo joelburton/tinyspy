@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { eventToOutcome } from '../lib/answer'
 import { makeSetupRows } from '../lib/setupRows'
-import type { GEvent, GGameData, GGameDataRaw, GPlayer } from '../types'
+import type { GEvent, GGameData, GGameDataRaw, GPlayer, GPuzzle } from '../types'
 
 /**
  * The seat rule: what a racer may not see yet. Mid-race in compete, a rival's
@@ -35,16 +35,23 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // a timeout.
   const playerOf = (id: string | null) => (id === null ? null : playersById[id]!)
 
+  // The puzzle's tiles by id, beside the list, as `playersById` sits beside
+  // `players`: what a hook holds is an id, and what it hands back is the tile.
+  const tilesById = new Map(raw.puzzle.tiles.map((t) => [t.id, t]))
+  const puzzle: GPuzzle = { ...raw.puzzle, tilesById }
+
   // THE INBOUND SEAM: the wire word is read through `lib/answer.ts` here and
   // never travels further; `matched` is derived here too, so no downstream
   // rule has to ask a color whether a category was matched. Every guess is a
   // seated player's: a player's rows go with their profile (`on delete
-  // cascade`), so the lookup cannot miss.
+  // cascade`), so the lookup cannot miss; and a guessed tile is one of the
+  // puzzle's sixteen, which `submit_guess` checked, so neither can that one.
   const events: GEvent[] = raw.events
     .filter((e) => seeRival || isMine(e.userId))
-    .map(({ userId, ...row }) => ({
+    .map(({ userId, tiles, ...row }) => ({
       ...row,
       by: playersById[userId]!,
+      tiles: tiles.map((id) => tilesById.get(id)!),
       outcome: eventToOutcome(row),
       matched: row.result === 'correct',
     }))
@@ -58,6 +65,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const { turns, ending, ...rest } = raw
   return {
     ...rest,
+    puzzle,
     setupRows: makeSetupRows(raw.setup, raw.mode, players, raw.puzzle.date),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
     ending: ending === null
@@ -97,7 +105,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
   const raw = ctx.gameData as GGameDataRaw | null
   if (raw === null) {
-    throw new Error(`connections: game ${ctx.cg.id} has no game_data; run connections._rebuild_data_cols_for_all()`)
+    throw new Error(`no game_data; run connections._rebuild_data_cols_for_all()`)
   }
   const myId = ctx.auth.user.id
   // Rebuilt when the page hands down a new blob, and not on every render.

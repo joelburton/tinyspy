@@ -1,7 +1,7 @@
 // cs-blessed-connections
 
 import { cls } from '@/common/utils/cls'
-import type { GBoard, GCategory, GHistoryView } from '../types'
+import type { GBoard, GCategory, GHistoryView, GTile } from '../types'
 import type { GBoardVerdict } from '../types'
 import { useTileShuffle } from '../hooks/useTileShuffle'
 import { useTileCursor } from '../hooks/useTileCursor'
@@ -23,8 +23,8 @@ type BoardMarks = {
   // Each picked tile, with its picker's color where WHOSE pick is worth
   // saying, else null. A tile absent from it is not in the guess being built.
   tileToPickerColor: ReadonlyMap<string, string | null>
-  // The tiles of a guess that is OUT — sent, waiting on the server.
-  inFlightGuess: ReadonlySet<string>
+  // The ids of the tiles of a guess that is OUT — sent, waiting on the server.
+  inFlightTileIds: ReadonlySet<string>
   // The verdict on the last guess, filling its tiles in its pill's outcome
   // (`useVerdictMark`). Null while nothing is being judged. Its `nonce` is
   // what those tiles are keyed on, so submitting the same four twice shakes
@@ -62,7 +62,7 @@ type Props = {
   // bands in without one (`useMoveAttention`).
   moveCount: number
   // A tile was picked — by a click, or by Space on the cursor.
-  onPick: (tile: string) => void
+  onPick: (tile: GTile) => void
 }
 
 /**
@@ -173,27 +173,27 @@ export function Board({
         ))}
 
         {tiles.map((tile, i) => {
-          const pickerColor = marks.tileToPickerColor.get(tile)
-          const isVerdict = marks.verdict?.value.tiles.has(tile) ?? false
-          const isHistoryLit = historyView.litTiles?.has(tile) ?? false
+          const pickerColor = marks.tileToPickerColor.get(tile.id)
+          const isVerdict = marks.verdict?.value.tileIds.has(tile.id) ?? false
+          const isHistoryLit = historyView.litTileIds?.has(tile.id) ?? false
           return (
             <Tile
               // Keyed on the verdict's nonce while it is wearing one, so that
               // submitting the same four tiles again REMOUNTS them and the
               // verdict's shake replays — a CSS animation only restarts on a new
               // element. Just these four: the other twelve keep their identity.
-              key={isVerdict && marks.verdict ? `${tile}#${marks.verdict.nonce}` : tile}
+              key={isVerdict && marks.verdict ? `${tile.id}#${marks.verdict.nonce}` : tile.id}
               tile={tile}
               marks={{
                 isPicked: pickerColor !== undefined,
                 pickerColor: pickerColor ?? null,
                 isUnderCursor: tileCursor.position === i,
-                isInFlight: marks.inFlightGuess.has(tile),
+                isInFlight: marks.inFlightTileIds.has(tile.id),
                 verdict:
                   isVerdict && marks.verdict
                     ? { phase: marks.verdict.phase, outcome: marks.verdict.value.outcome }
                     : null,
-                // Set together with `litTiles`, which `isHistoryLit` read.
+                // Set together with `litTileIds`, which `isHistoryLit` read.
                 historyLit: isHistoryLit ? historyView.litOutcome! : null,
               }}
               isDisabled={!isInteractive}

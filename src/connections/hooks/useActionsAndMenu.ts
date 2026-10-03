@@ -188,7 +188,7 @@ export function useActionsAndMenu({
           unmatchedCats: solutionShown
             ? getUnmatchedCats(gd.puzzle.cats, gd.me.board.matchedCats)
             : [],
-          tilesLeft: gd.me.board.tilesLeft,
+          tilesLeft: gd.me.board.tilesLeft.map((t) => t.word),
           guesses: gd.events,
           players: gd.players,
           myId,

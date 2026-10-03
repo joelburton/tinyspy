@@ -19,7 +19,7 @@ import { StrikeMarks } from './StrikeMarks'
 import shared from '@/common/game-page/playArea.module.css'
 import historyStyles from '@/common/event-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
-import type { GBoard, GCategory, GGameData, GHistoryView } from '../types'
+import type { GBoard, GCategory, GGameData, GHistoryView, GTile } from '../types'
 
 /**
  * connections' board column: the `Board`, and under it Clear and Submit with
@@ -86,10 +86,10 @@ export function BoardCol({
 
   // A pick is the player's next move: it dismisses the last answer, pill and
   // fill together, then toggles the tile.
-  function pickTile(tile: string) {
+  function pickTile(tile: GTile) {
     localFeedbackSlot.dismiss()
     verdict.clear()
-    picks.toggleTile(tile)
+    picks.toggleTile(tile.id)
   }
 
   // ─── Render ────────────────────────────────────────────
@@ -123,7 +123,7 @@ export function BoardCol({
         revealedCats={revealedCats}
         marks={{
           tileToPickerColor,
-          inFlightGuess: submission.inFlight,
+          inFlightTileIds: submission.inFlightTileIds,
           verdict: verdict.mark,
           // Bands the board once I have ended: the game's ending, or mine
           // while the others play on.

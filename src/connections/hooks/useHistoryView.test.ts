@@ -46,7 +46,7 @@ describe('useHistoryView', () => {
     expect(result.current.isViewing).toBe(false)
     expect(result.current.viewedEventId).toBeNull()
     expect(result.current.board).toBeNull()
-    expect(result.current.litTiles).toBeNull()
+    expect(result.current.litTileIds).toBeNull()
     expect(result.current.label).toBeNull()
   })
 
@@ -58,8 +58,8 @@ describe('useHistoryView', () => {
     // RED was matched strictly before turn 2, so it is a band and its tiles are
     // gone; the turn's own four are lit in what it was.
     expect(result.current.board?.matchedCats.map((c) => c.name)).toEqual(['RED'])
-    expect(result.current.board?.tilesLeft).toEqual(['e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
-    expect([...result.current.litTiles!]).toEqual(['e', 'f', 'g', 'm'])
+    expect(result.current.board?.tilesLeft.map((t) => t.id)).toEqual(['e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
+    expect([...result.current.litTileIds!]).toEqual(['e', 'f', 'g', 'm'])
     expect(result.current.litOutcome).toBe('near')
     expect(result.current.label).toBe('One away!')
     act(() => result.current.exit())

@@ -2,7 +2,10 @@
 
 import type { BoardShape, Cell } from '@/common/board-cursor/stepCell'
 import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
-import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
+import {
+  useBoardSelectionCursor,
+} from '@/common/board-cursor/useBoardSelectionCursor'
+import type { GTile } from '../types'
 
 /**
  * The keyboard's way onto connections' board: arrows move the selection
@@ -21,30 +24,34 @@ export function useTileCursor({
   onPick,
 }: {
   // The loose tiles in the order the board draws them.
-  displayedTiles: readonly string[]
+  displayedTiles: readonly GTile[]
   boardShape: BoardShape
   // The board takes a pick right now; the cursor is inert while not.
   isInteractive: boolean
-  onPick: (tile: string) => void
+  onPick: (tile: GTile) => void
 }): {
   // The cell the cursor is on, or null while it is hidden.
   cell: Cell | null
   // Its place in `displayedTiles`, or null while hidden.
   position: number | null
-  pickClicked: (tile: string) => void
+  pickClicked: (tile: GTile) => void
 } {
 
   const selectionCursor = useBoardSelectionCursor({
     shape: boardShape,
     enabled: isInteractive,
     onToggle: (cell: Cell) => {
-      const tile = displayedTiles[positionAt(cell.x, cell.y, boardShape.numCols)]
+      const tile = displayedTiles[positionAt(cell.x,
+        cell.y,
+        boardShape.numCols)]
       if (tile !== undefined) onPick(tile)
     },
   })
 
-  function pickClicked(tile: string) {
-    selectionCursor.setTo(cellAt(displayedTiles.indexOf(tile), boardShape.numCols))
+  function pickClicked(tile: GTile) {
+    const cell = cellAt(
+      displayedTiles.findIndex((t) => t.id === tile.id), boardShape.numCols)
+    selectionCursor.setTo(cell)
     onPick(tile)
   }
 
@@ -52,7 +59,9 @@ export function useTileCursor({
 
   return {
     cell,
-    position: cell === null ? null : positionAt(cell.x, cell.y, boardShape.numCols),
+    position: cell === null ? null : positionAt(cell.x,
+      cell.y,
+      boardShape.numCols),
     pickClicked,
   }
 }

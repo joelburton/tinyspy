@@ -33,7 +33,7 @@ export function useHistoryView(gd: GGameData): GHistoryView {
     show: showHistory,
     exit: exitHistory,
     board: replayed?.board ?? null,
-    litTiles: replayed?.litTiles ?? null,
+    litTileIds: replayed?.litTileIds ?? null,
     litOutcome: replayed?.outcome ?? null,
     label: replayed?.label ?? null,
     actor: isSomeoneElsesBoard ? viewedRow.by : undefined,

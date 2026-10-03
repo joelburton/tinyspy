@@ -2,13 +2,14 @@
 
 import { describe, expect, it } from 'vitest'
 import { evaluateGuess, sameTileSet } from './evaluate'
+import { ZTest_tile } from './gameData.fixture'
 import type { GCategory } from '../types'
 
 const CATEGORIES: GCategory[] = [
-  { rank: 0, name: 'A-words', tiles: ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'] },
-  { rank: 1, name: 'B-words', tiles: ['BANANA', 'BIRCH', 'BREAD', 'BRICK'] },
-  { rank: 2, name: 'C-words', tiles: ['CASTLE', 'CIRCLE', 'CLOUD', 'CROWN'] },
-  { rank: 3, name: 'D-words', tiles: ['DAGGER', 'DELTA', 'DIAMOND', 'DRAGON'] },
+  { rank: 0, name: 'A-words', tiles: ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'].map(ZTest_tile) },
+  { rank: 1, name: 'B-words', tiles: ['BANANA', 'BIRCH', 'BREAD', 'BRICK'].map(ZTest_tile) },
+  { rank: 2, name: 'C-words', tiles: ['CASTLE', 'CIRCLE', 'CLOUD', 'CROWN'].map(ZTest_tile) },
+  { rank: 3, name: 'D-words', tiles: ['DAGGER', 'DELTA', 'DIAMOND', 'DRAGON'].map(ZTest_tile) },
 ]
 
 describe('evaluateGuess', () => {
@@ -21,7 +22,7 @@ describe('evaluateGuess', () => {
     if (result.result === 'correct') {
       expect(result.rank).toBe(0)
       expect(result.name).toBe('A-words')
-      expect(result.tiles).toEqual(['ALPHA', 'ANGEL', 'APPLE', 'ARROW'])
+      expect(result.tiles.map((t) => t.id)).toEqual(['ALPHA', 'ANGEL', 'APPLE', 'ARROW'])
     }
   })
 
@@ -76,8 +77,8 @@ describe('evaluateGuess', () => {
       CATEGORIES,
     )
     if (result.result === 'correct') {
-      result.tiles.push('NEW')
-      expect(CATEGORIES[0].tiles).toEqual(['ALPHA', 'ANGEL', 'APPLE', 'ARROW'])
+      result.tiles.push(ZTest_tile('NEW'))
+      expect(CATEGORIES[0].tiles.map((t) => t.id)).toEqual(['ALPHA', 'ANGEL', 'APPLE', 'ARROW'])
     }
   })
 })

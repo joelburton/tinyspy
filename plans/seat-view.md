@@ -312,7 +312,7 @@ Decided 2026-10-03. A game with tiles has two names, the same in every game:
   letters is still one tile. The rest is the game's: psychicnum's is
   `{id, word, correct, decidedBy}` (`correct` and `decidedBy` null until the
   word is guessed); wordle's is a cell in a row, the letter and the color the
-  server judged for it; connections' becomes `{id, word}` when its Board pass
+  server judged for it; connections' is `{id, word}`, the word its id, since its Board pass
   extracts `Tile`, a loose tile having no settled fact — the moment it has one
   it is in a band, which is a `GMatchedCat`. The builder writes the array in
   that shape, `id` included, under the seat's `board` where the facts are the

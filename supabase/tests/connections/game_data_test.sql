@@ -69,22 +69,33 @@ create function pg_temp.shell_data(game uuid) returns jsonb language sql as
 create function pg_temp.player(game uuid, uid uuid) returns jsonb language sql as
   $$ select p from jsonb_array_elements((select game_data -> 'players' from common.games where id = game)) p
       where p ->> 'id' = uid::text $$;
--- The puzzle as create_game froze it onto the game's row.
+-- Words as the page's tiles: `{id, word}`, the id the word, in the same order.
+create function pg_temp.tiles(words jsonb) returns jsonb language sql as
+  $$ select coalesce(jsonb_agg(jsonb_build_object('id', w, 'word', w) order by ord), '[]'::jsonb)
+       from jsonb_array_elements_text(words) with ordinality as x(w, ord) $$;
+-- The puzzle as create_game froze it onto the game's row, its words as tiles.
 create function pg_temp.puzzle_of(game uuid) returns jsonb language sql as
   $$ select jsonb_build_object(
-       'date', '1900-01-01', 'cats', board -> 'categories', 'tileOrder', board -> 'tileOrder')
+       'date',  '1900-01-01',
+       'cats',  (select jsonb_agg(c || jsonb_build_object('tiles', pg_temp.tiles(c -> 'tiles')) order by ord)
+                   from jsonb_array_elements(board -> 'categories') with ordinality as x(c, ord)),
+       'tiles', pg_temp.tiles(board -> 'tileOrder'))
        from connections.games where game_id = game $$;
--- The fixture's category of this rank, as the puzzle carries it.
-create function pg_temp.cat(game uuid, rank int) returns jsonb language sql as
+-- The fixture's category of this rank, as the row stores it (its tiles words).
+create function pg_temp.stored_cat(game uuid, rank int) returns jsonb language sql as
   $$ select c from jsonb_array_elements((select board -> 'categories' from connections.games where game_id = game)) c
       where (c ->> 'rank')::int = rank $$;
--- The game's tile order with one category's tiles taken out.
+-- The same category as the puzzle carries it, its tiles as tiles.
+create function pg_temp.cat(game uuid, rank int) returns jsonb language sql as
+  $$ select pg_temp.stored_cat(game, rank)
+         || jsonb_build_object('tiles', pg_temp.tiles(pg_temp.stored_cat(game, rank) -> 'tiles')) $$;
+-- The game's tiles, in order, with one category's taken out.
 create function pg_temp.tiles_without(game uuid, rank int) returns jsonb language sql as
-  $$ select coalesce(jsonb_agg(t.tile order by t.ord), '[]'::jsonb)
+  $$ select coalesce(jsonb_agg(jsonb_build_object('id', t.tile, 'word', t.tile) order by t.ord), '[]'::jsonb)
        from connections.games g,
             jsonb_array_elements_text(g.board -> 'tileOrder') with ordinality as t(tile, ord)
       where g.game_id = game
-        and not (pg_temp.cat(game, rank) -> 'tiles') ? t.tile $$;
+        and not (pg_temp.stored_cat(game, rank) -> 'tiles') ? t.tile $$;
 
 -- A player who has not moved, in a free-for-all game: the common fields, and
 -- connections' on top, with every tile still loose.
@@ -109,7 +120,7 @@ create function pg_temp.fresh_player(game uuid, uid uuid, name text) returns jso
     'maxMistakes',    4,
     'board',          jsonb_build_object(
                         'matchedCats', '[]'::jsonb,
-                        'tilesLeft',   (select board -> 'tileOrder' from connections.games where game_id = game)))
+                        'tilesLeft',   pg_temp.tiles((select board -> 'tileOrder' from connections.games where game_id = game))))
 $$;
 
 -- ─── (1) A fresh coop game, as a whole ───
@@ -139,7 +150,7 @@ select is(
   'the whole game_data of a fresh coop game: the common part, the frozen puzzle, a team with nothing counted, no log, fresh players with every tile loose'
 );
 select is(
-  jsonb_array_length(pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'tileOrder'),
+  jsonb_array_length(pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'tiles'),
   16,
   'the puzzle carries all sixteen tiles in this game''s shuffle'
 );
@@ -244,7 +255,7 @@ select is(
   pg_temp.player(pg_temp.compete(), 'bea22222-2222-2222-2222-222222222222') -> 'board',
   jsonb_build_object(
     'matchedCats', '[]'::jsonb,
-    'tilesLeft',   (select board -> 'tileOrder' from connections.games where game_id = pg_temp.compete())),
+    'tilesLeft',   pg_temp.tiles((select board -> 'tileOrder' from connections.games where game_id = pg_temp.compete()))),
   '… and the rival''s board still has every tile loose'
 );
 select is(

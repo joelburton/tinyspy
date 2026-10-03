@@ -42,7 +42,7 @@ export function useMarkForeignGuesses({
       const marksTheirTiles = !isViewingHistory && newestGuess.outcome !== 'won'
       if (marksTheirTiles) {
         verdict.markTiles({
-          tiles: newestGuess.tiles,
+          tileIds: newestGuess.tiles.map((t) => t.id),
           outcome: newestGuess.outcome,
           message: null,
         })

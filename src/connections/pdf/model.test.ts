@@ -14,13 +14,16 @@
 
 import { describe, expect, it } from 'vitest'
 import { buildConnectionsPrintModel, RANK_LETTER } from './model'
-import type { GCategory, GEvent, GMatchedCat, GPlayer } from '../types'
+import { ZTest_tile } from '../lib/gameData.fixture'
+import type { GCategory, GEvent, GMatchedCat, GPlayer, GTile } from '../types'
 
+const tiles = (words: string[]): GTile[] => words.map(ZTest_tile)
+const words = (list: readonly GTile[]) => list.map((t) => t.word)
 const CATS: GCategory[] = [
-  { rank: 0, name: 'Starts with A', tiles: ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'] },
-  { rank: 1, name: 'Starts with B', tiles: ['BANANA', 'BIRCH', 'BREAD', 'BRICK'] },
-  { rank: 2, name: 'Starts with C', tiles: ['CASTLE', 'CIRCLE', 'CLOUD', 'CROWN'] },
-  { rank: 3, name: 'Starts with D', tiles: ['DAGGER', 'DELTA', 'DIAMOND', 'DRAGON'] },
+  { rank: 0, name: 'Starts with A', tiles: tiles(['ALPHA', 'ANGEL', 'APPLE', 'ARROW']) },
+  { rank: 1, name: 'Starts with B', tiles: tiles(['BANANA', 'BIRCH', 'BREAD', 'BRICK']) },
+  { rank: 2, name: 'Starts with C', tiles: tiles(['CASTLE', 'CIRCLE', 'CLOUD', 'CROWN']) },
+  { rank: 3, name: 'Starts with D', tiles: tiles(['DAGGER', 'DELTA', 'DIAMOND', 'DRAGON']) },
 ]
 
 const ME = { id: 'u1', username: 'me', color: 'red' } as GPlayer
@@ -34,7 +37,7 @@ const matched = (rank: 0 | 1 | 2 | 3): GMatchedCat => ({
 const guess = (over: Partial<GEvent> = {}): GEvent => ({
   id: 1,
   by: ME,
-  tiles: ['ALPHA', 'ANGEL', 'APPLE', 'BANANA'],
+  tiles: tiles(['ALPHA', 'ANGEL', 'APPLE', 'BANANA']),
   outcome: 'lost', result: 'wrong', matched: false,
   matchedCatRank: null,
   at: '2026-01-01T00:00:00Z',
@@ -104,7 +107,7 @@ describe('buildConnectionsPrintModel — bands', () => {
       isGameEnded: true,
       matchedCats: [matched(0)],
       unmatchedCats: [CATS[1]!, CATS[2]!, CATS[3]!],
-      tilesLeft: [...CATS[1]!.tiles, ...CATS[2]!.tiles, ...CATS[3]!.tiles],
+      tilesLeft: words([...CATS[1]!.tiles, ...CATS[2]!.tiles, ...CATS[3]!.tiles]),
     })
     expect(t.tilesLeft).toEqual([])
   })
@@ -151,7 +154,7 @@ describe('buildConnectionsPrintModel — compete splits per player', () => {
       guesses: gs,
       matchedCats: [matched(0)],
       unmatchedCats: [CATS[1]!, CATS[2]!, CATS[3]!],
-      tilesLeft: [...CATS[1]!.tiles, ...CATS[2]!.tiles, ...CATS[3]!.tiles],
+      tilesLeft: words([...CATS[1]!.tiles, ...CATS[2]!.tiles, ...CATS[3]!.tiles]),
     })
     expect(m.tracks.map((t) => t.who)).toEqual(['me (you)', 'moth'])
 
@@ -162,7 +165,7 @@ describe('buildConnectionsPrintModel — compete splits per player', () => {
     expect(mine.bands.map((b) => b.letter)).toEqual(['A', 'B', 'C', 'D'])
     expect(mine.tilesLeft).toEqual([])
     expect(theirs.bands.map((b) => b.letter)).toEqual(['C'])
-    expect(theirs.tilesLeft).toEqual([...CATS[0]!.tiles, ...CATS[1]!.tiles, ...CATS[3]!.tiles])
+    expect(theirs.tilesLeft).toEqual(words([...CATS[0]!.tiles, ...CATS[1]!.tiles, ...CATS[3]!.tiles]))
     // Scores and logs are per player too.
     expect(mine.result).toBe('1/4 categories found · 1/4 mistakes')
     expect(theirs.result).toBe('1/4 categories found · 1/4 mistakes')
@@ -179,7 +182,7 @@ describe('buildConnectionsPrintModel — compete splits per player', () => {
       mode: 'compete',
       guesses: gs.filter((g) => g.by === ME),
       matchedCats: [matched(0)],
-      tilesLeft: [...CATS[1]!.tiles, ...CATS[2]!.tiles, ...CATS[3]!.tiles],
+      tilesLeft: words([...CATS[1]!.tiles, ...CATS[2]!.tiles, ...CATS[3]!.tiles]),
     })
     expect(m.tracks.map((t) => t.who)).toEqual(['You'])
     expect(m.tracks[0]!.bands.map((b) => b.letter)).toEqual(['A'])

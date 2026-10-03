@@ -14,8 +14,9 @@ import type {
   GGameDataRaw,
   GMatchedCat,
   GPlayerRaw,
-  GPuzzle,
+  GPuzzleRaw,
   GSetup,
+  GTile,
   GGuessResult,
 } from '../types'
 
@@ -46,7 +47,7 @@ export type ZTest_GameDataFacts = {
   title?: string
   clubHandle?: string
   setup?: GSetup
-  puzzle?: GPuzzle
+  puzzle?: GPuzzleRaw
   // The whole log — every player's rows, as the blob carries it.
   events?: GEventRaw[]
   players?: ZTest_PlayerFacts[]
@@ -56,16 +57,19 @@ export type ZTest_GameDataFacts = {
   outcome?: GameDataRaw['outcome']
 }
 
+/** A tile as the builder writes it: the word, which is its id too. */
+export const ZTest_tile = (word: string): GTile => ({ id: word, word })
+
 /** A 4-category / 16-tile puzzle, its tiles in rank order. */
-export const ZTest_PUZZLE: GPuzzle = {
+export const ZTest_PUZZLE: GPuzzleRaw = {
   date: '2026-06-15',
   cats: [
-    { rank: 0, name: 'RED', tiles: ['a', 'b', 'c', 'd'] },
-    { rank: 1, name: 'GREEN', tiles: ['e', 'f', 'g', 'h'] },
-    { rank: 2, name: 'BLUE', tiles: ['i', 'j', 'k', 'l'] },
-    { rank: 3, name: 'PURPLE', tiles: ['m', 'n', 'o', 'p'] },
+    { rank: 0, name: 'RED', tiles: ['a', 'b', 'c', 'd'].map(ZTest_tile) },
+    { rank: 1, name: 'GREEN', tiles: ['e', 'f', 'g', 'h'].map(ZTest_tile) },
+    { rank: 2, name: 'BLUE', tiles: ['i', 'j', 'k', 'l'].map(ZTest_tile) },
+    { rank: 3, name: 'PURPLE', tiles: ['m', 'n', 'o', 'p'].map(ZTest_tile) },
   ],
-  tileOrder: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'],
+  tiles: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'].map(ZTest_tile),
 }
 
 /** A player's ending columns, as `common._concede` writes them. */
@@ -103,7 +107,7 @@ export function ZTest_guess(
 
 /** A correct guess of this category, by `userId`. */
 export function ZTest_matchOf(cat: GCategory, userId = 'u1'): GEventRaw {
-  return ZTest_guess(userId, cat.tiles, 'correct', cat.rank)
+  return ZTest_guess(userId, cat.tiles.map((t) => t.id), 'correct', cat.rank)
 }
 
 /**
@@ -148,8 +152,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     const matchedCats: GMatchedCat[] = shown
       .filter((e) => e.result === 'correct')
       .map((e) => ({ ...catByRank.get(e.matchedCatRank!)!, matchedAt: e.at }))
-    const banded = new Set(matchedCats.flatMap((c) => c.tiles))
-    return { matchedCats, tilesLeft: puzzle.tileOrder.filter((t) => !banded.has(t)) }
+    const banded = new Set(matchedCats.flatMap((c) => c.tiles.map((t) => t.id)))
+    return { matchedCats, tilesLeft: puzzle.tiles.filter((t) => !banded.has(t.id)) }
   }
 
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {

@@ -36,6 +36,7 @@ export function replayTurn(
   const index = events.findIndex((e) => e.id === id)
   const catByRank = new Map<number, GCategory>(puzzle.cats.map((c) => [c.rank, c]))
   const matchedCats: GMatchedCat[] = []
+  // The ids of the tiles the bands took.
   const banded = new Set<string>()
   for (let i = 0; i < index && i < events.length; i++) {
     const e = events[i]!
@@ -44,15 +45,15 @@ export function replayTurn(
     // puzzle carries all four.
     const cat = catByRank.get(e.matchedCatRank)!
     matchedCats.push({ ...cat, matchedAt: e.at })
-    for (const t of cat.tiles) banded.add(t)
+    for (const t of cat.tiles) banded.add(t.id)
   }
   const turn = events[index]
   return {
     board: {
       matchedCats,
-      tilesLeft: puzzle.tileOrder.filter((t) => !banded.has(t)),
+      tilesLeft: puzzle.tiles.filter((t) => !banded.has(t.id)),
     },
-    litTiles: new Set(turn?.tiles ?? []),
+    litTileIds: new Set(turn?.tiles.map((t) => t.id) ?? []),
     outcome: turn?.outcome ?? 'lost',
     label: describe(turn, puzzle),
   }

@@ -13,10 +13,10 @@ import { useMarkForeignGuesses } from './useMarkForeignGuesses'
 const ME = { id: 'u1', username: 'me', color: 'red' } as GPlayer
 const MOTH = { id: 'u2', username: 'moth', color: 'blue' } as GPlayer
 
-function row(id: number, by: GPlayer, result: GGuessResult, tiles: string[]): GEvent {
+function row(id: number, by: GPlayer, result: GGuessResult, tileIds: string[]): GEvent {
   const matched = result === 'correct'
   return {
-    id, by, tiles, result, matched,
+    id, by, tiles: tileIds.map((id) => ({ id, word: id })), result, matched,
     outcome: matched ? 'won' : result === 'oneAway' ? 'near' : 'lost',
     matchedCatRank: matched ? 0 : null, at: 't',
   }
@@ -55,7 +55,7 @@ describe('useMarkForeignGuesses', () => {
     const { rerender, verdict } = setup()
     rerender({ guesses: [THEIR_WRONG] })
     expect(verdict.markTiles).toHaveBeenCalledWith({
-      tiles: ['c', 'd', 'f', 'g'], outcome: 'lost', message: null,
+      tileIds: ['c', 'd', 'f', 'g'], outcome: 'lost', message: null,
     })
   })
 

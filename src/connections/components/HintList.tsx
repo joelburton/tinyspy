@@ -49,7 +49,7 @@ export function HintList({ cats, open }: Props) {
                 aria-hidden
               />
               {isRevealed ? (
-                <span className={styles.revealedTile}>{c.tiles[0]}</span>
+                <span className={styles.revealedTile}>{c.tiles[0]!.word}</span>
               ) : (
                 <button
                   type="button"

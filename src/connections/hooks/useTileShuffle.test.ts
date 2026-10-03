@@ -7,9 +7,12 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
+import { ZTest_tile } from '../lib/gameData.fixture'
 import { useTileShuffle } from './useTileShuffle'
+import type { GTile } from '../types'
 
-const TILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+const TILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(ZTest_tile)
+const idsOf = (tiles: readonly GTile[]) => tiles.map((t) => t.id)
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -26,18 +29,21 @@ describe('useTileShuffle', () => {
     // Fisher–Yates on a pinned 0 rotates the list: a fixed, different permutation.
     vi.spyOn(Math, 'random').mockReturnValue(0)
     const { result, rerender } = renderHook(
-      ({ tilesLeft }: { tilesLeft: string[] }) =>
+      ({ tilesLeft }: { tilesLeft: GTile[] }) =>
         useTileShuffle({ tilesLeft, canShuffle: true }),
       { initialProps: { tilesLeft: TILES } },
     )
     act(() => result.current.actShuffle.run())
-    const shuffled = result.current.tiles
-    expect(shuffled).not.toEqual(TILES)
-    expect([...shuffled].sort()).toEqual([...TILES].sort())
+    const shuffled = idsOf(result.current.tiles)
+    expect(shuffled).not.toEqual(idsOf(TILES))
+    expect([...shuffled].sort()).toEqual(idsOf(TILES).sort())
 
-    // The first category matched: its four leave, the others stay where they were.
-    rerender({ tilesLeft: ['e', 'f', 'g', 'h'] })
-    expect(result.current.tiles).toEqual(shuffled.filter((t) => 'efgh'.includes(t)))
+    // The first category matched: its four leave, the others stay where they
+    // were — and the tiles handed back are the fresh array's, not the old.
+    const left = ['e', 'f', 'g', 'h'].map(ZTest_tile)
+    rerender({ tilesLeft: left })
+    expect(idsOf(result.current.tiles)).toEqual(shuffled.filter((id) => 'efgh'.includes(id)))
+    expect(result.current.tiles.every((t) => left.includes(t))).toBe(true)
   })
 
   it('hides the Shuffle where the board cannot be shuffled', () => {

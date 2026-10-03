@@ -71,7 +71,7 @@ describe('useSubmitGuess', () => {
     await act(() => result.current.send())
     expect(rpc).not.toHaveBeenCalled()
     expect(markTiles).toHaveBeenCalledWith({
-      tiles: ['a', 'b', 'e', 'i'],
+      tileIds: ['a', 'b', 'e', 'i'],
       outcome: 'warning',
       message: expect.objectContaining({ text: 'You already tried that' }),
     })
@@ -99,7 +99,7 @@ describe('useSubmitGuess', () => {
       p_game_id: 'g1', p_tiles: ['a', 'b', 'c', 'e'], p_result: 'oneAway',
     })
     expect(markTiles).toHaveBeenCalledWith({
-      tiles: ['a', 'b', 'c', 'e'],
+      tileIds: ['a', 'b', 'c', 'e'],
       outcome: 'near',
       message: expect.objectContaining({ outcome: 'near' }),
     })
@@ -112,12 +112,12 @@ describe('useSubmitGuess', () => {
     const { result } = setup(['a', 'b', 'e', 'i'])
     let done: Promise<void>
     act(() => { done = result.current.send() })
-    expect([...result.current.inFlight]).toEqual(['a', 'b', 'e', 'i'])
+    expect([...result.current.inFlightTileIds]).toEqual(['a', 'b', 'e', 'i'])
     await act(async () => {
       answer(okAnswer('wrong'))
       await done
     })
-    expect(result.current.inFlight.size).toBe(0)
+    expect(result.current.inFlightTileIds.size).toBe(0)
   })
 
   it('leaves the picks in place after a not-ok, shows its sentence, and marks nothing', async () => {

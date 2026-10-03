@@ -37,7 +37,7 @@ import type { SetupRow } from '@/common/setup-form/setupRows'
  */
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: GSetup
-  puzzle: GPuzzle
+  puzzle: GPuzzleRaw
   // What the team shares; null in compete, where there is no team.
   team: GTeam | null
   // The log: every recorded guess, in the order of play.
@@ -50,24 +50,43 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
  * both modes: the frontend judges each guess against `cats`
  * (`lib/evaluate.ts`).
  */
-export type GPuzzle = {
+export type GPuzzleRaw = {
   // Its NYT date (`YYYY-MM-DD`); null for a puzzle that is not one of theirs.
   date: string | null
   cats: GCategory[]
   // The sixteen tiles in this game's shuffle, the same for every player.
-  tileOrder: string[]
+  tiles: GTile[]
+}
+
+/** The puzzle as `gd` holds it: the blob's, with its tiles by id, for a hook
+ *  that holds an id and hands back the tile, and for the log's rows. */
+export type GPuzzle = GPuzzleRaw & {
+  tilesById: ReadonlyMap<string, GTile>
+}
+
+/**
+ * A tile as the builder writes it (plans/seat-view.md → A tile is an instance
+ * the builder writes): its identity and its word, which here are one string
+ * twice. A loose tile has no settled fact of its own — the moment it has one
+ * it is in a band — so this is all there is to it. What is held across
+ * renders (the picks, a guess in flight, the verdict's tiles, a viewed turn's
+ * lit tiles) is the `id`; what is passed and drawn is the tile.
+ */
+export type GTile = {
+  id: string
+  word: string
 }
 
 /** A category's difficulty index, 0..3 — NYT's yellow / green / blue /
  *  purple, the band colors in theme.css. */
 export type GCatRank = 0 | 1 | 2 | 3
 
-/** One of the four categories. `tiles` is the four-word answer; `name` is
+/** One of the four categories. `tiles` is the four-tile answer; `name` is
  *  what the band says once the category is matched. */
 export type GCategory = {
   rank: GCatRank
   name: string
-  tiles: string[]
+  tiles: GTile[]
 }
 
 /** A category on a board: the puzzle's, with when its band landed. */
@@ -104,7 +123,8 @@ export type GEventRaw = {
   // The row's own id, and the order of play.
   id: number
   userId: string
-  // The four tiles guessed, in the order they were picked.
+  // The ids of the four tiles guessed, in the order they were picked; `gd`
+  // turns them into the puzzle's tiles (`GEvent`).
   tiles: string[]
   // What this guess WAS — the three-value wire word the column stores.
   result: GGuessResult
@@ -139,7 +159,7 @@ export type GEvaluation =
       result: 'correct'
       rank: GCatRank
       name: string
-      tiles: string[]
+      tiles: GTile[]
     }
   | { result: 'oneAway' }
   | { result: 'wrong' }
@@ -176,13 +196,13 @@ export type GPlayerRaw = PlayerRaw & {
  *   title
  *   setup
  *   setupRows
- *   puzzle: {date, cats, tileOrder}       # frozen at create_game; public in both modes
+ *   puzzle: {date, cats, tiles, tilesById}  # frozen at create_game; public in both modes; a tile is {id, word}
  *   team: {nMatchedCats, nMistakes}       # what the team shares; null in compete
  *   turns: {holder}                       # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
  *   ended
  *   outcome                               # null until the game ends
- *   events: [{id, by, tiles, result, outcome, matched, matchedCatRank, at}, …]   # the log, by a player; my rows only, mid-race
+ *   events: [{id, by, tiles, result, outcome, matched, matchedCatRank, at}, …]   # the log, by a player, its tiles the puzzle's; my rows only, mid-race
  *   players: [player, …]                  # seat order
  *   playersById
  *   me                                    # same object as playersById[auth.user.id]
@@ -218,7 +238,8 @@ export type GPlayerRaw = PlayerRaw & {
  * it. The picks are not in it — they are live Broadcast state, which
  * `useGame` hands back beside it.
  */
-export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'events' | 'players'> & {
+  puzzle: GPuzzle
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -256,7 +277,7 @@ export type GPlayer = Omit<GPlayerRaw, 'board'> & {
  */
 export type GBoard = {
   matchedCats: GMatchedCat[]
-  tilesLeft: string[]
+  tilesLeft: GTile[]
 }
 
 /**
@@ -264,9 +285,11 @@ export type GBoard = {
  * the two readings of the wire word — derived once, where the blob is read,
  * so no consumer re-decides either.
  */
-export type GEvent = Omit<GEventRaw, 'userId'> & {
+export type GEvent = Omit<GEventRaw, 'userId' | 'tiles'> & {
   // Who guessed.
   by: GPlayer
+  // The four tiles guessed, in the order they were picked.
+  tiles: GTile[]
   // How this guess READS — the shared vocabulary, from `lib/answer.ts`, the
   // one place that decides it. A tile fill, a log row and a PDF cell all want
   // the same colors the rest of the app uses.
@@ -332,7 +355,7 @@ export type GPicks = {
   isComplete: boolean
   // Picked tile → the id of who picked it; a tile nobody holds is absent.
   tileToPickerId: ReadonlyMap<string, string>
-  toggleTile: (tile: string) => void
+  toggleTile: (tileId: string) => void
   sendClear: () => void
 }
 
@@ -406,8 +429,9 @@ export type GHistoryView = {
   exit: () => void
   // The board at the viewed turn, or null when live.
   board: GBoard | null
-  // The viewed turn's four tiles, lit in what the turn was; null when live.
-  litTiles: Set<string> | null
+  // The ids of the viewed turn's four tiles, lit in what the turn was; null
+  // when live.
+  litTileIds: ReadonlySet<string> | null
   litOutcome: Outcome | null
   // The banner's text, or null when live.
   label: string | null
@@ -419,7 +443,7 @@ export type GHistoryView = {
 
 /** The answer to the last guess, worn by the four tiles it covered. */
 export type GBoardVerdict = {
-  tiles: ReadonlySet<string>
+  tileIds: ReadonlySet<string>
   // ANY outcome, because the mark wears its PILL's outcome — the two are one
   // message — and the pill speaks the full vocabulary.
   outcome: Outcome
@@ -433,7 +457,7 @@ export type GVerdictMark = {
   // Color these tiles in this outcome and, with a message, show it in the
   // local slot as the same thing.
   markTiles: (o: {
-    tiles: readonly string[]
+    tileIds: readonly string[]
     outcome: Outcome
     message: FeedbackMessage | null
   }) => void
@@ -447,8 +471,8 @@ export type GReplayedTurn = {
   // STRICTLY BEFORE it, and every other tile still loose — this turn's four
   // included even when it was correct.
   board: GBoard
-  // The four tiles this turn guessed — light them by what it was.
-  litTiles: Set<string>
+  // The ids of the four tiles this turn guessed — light them by what it was.
+  litTileIds: ReadonlySet<string>
   // What this turn was WORTH (`lib/answer.ts`'s answer, off the row) — the tint
   // the lit tiles take, in the same shared verdict color a live answer wears.
   outcome: Outcome

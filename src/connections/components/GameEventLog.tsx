@@ -82,7 +82,7 @@ export function GameEventLog({
           </tr>
           {/* Row 2: the four guessed tiles, across the three columns. */}
           <tr className={gameEventLog.entryCont}>
-            <td colSpan={3} className={styles.words}>{g.tiles.join(' · ')}</td>
+            <td colSpan={3} className={styles.words}>{g.tiles.map((t) => t.word).join(' · ')}</td>
           </tr>
         </Fragment>
       ))}

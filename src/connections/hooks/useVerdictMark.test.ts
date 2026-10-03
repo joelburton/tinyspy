@@ -27,15 +27,15 @@ describe('useVerdictMark', () => {
 
   it('colors the tiles in the outcome and shows the message', () => {
     const { result, slot } = setup()
-    act(() => result.current.markTiles({ tiles: ['a', 'b', 'e', 'i'], outcome: 'lost', message: WRONG }))
-    expect([...result.current.mark!.value.tiles]).toEqual(['a', 'b', 'e', 'i'])
+    act(() => result.current.markTiles({ tileIds: ['a', 'b', 'e', 'i'], outcome: 'lost', message: WRONG }))
+    expect([...result.current.mark!.value.tileIds]).toEqual(['a', 'b', 'e', 'i'])
     expect(result.current.mark!.value.outcome).toBe('lost')
     expect(slot.peek().map((e) => e.message.text)).toEqual(['Wrong'])
   })
 
   it('a mark with a message leaves with its pill', () => {
     const { result, slot } = setup()
-    act(() => result.current.markTiles({ tiles: ['a'], outcome: 'lost', message: WRONG }))
+    act(() => result.current.markTiles({ tileIds: ['a'], outcome: 'lost', message: WRONG }))
     expect(result.current.mark).not.toBeNull()
     act(() => slot.dismiss())
     expect(result.current.mark).toBeNull()
@@ -43,7 +43,7 @@ describe('useVerdictMark', () => {
 
   it('a mark without a message shows nothing in the slot, and stays', () => {
     const { result, slot } = setup()
-    act(() => result.current.markTiles({ tiles: ['c', 'd', 'f', 'g'], outcome: 'near', message: null }))
+    act(() => result.current.markTiles({ tileIds: ['c', 'd', 'f', 'g'], outcome: 'near', message: null }))
     expect(slot.peek()).toEqual([])
     act(() => slot.dismiss())
     expect(result.current.mark!.value.outcome).toBe('near')
@@ -51,14 +51,14 @@ describe('useVerdictMark', () => {
 
   it('a new mark replaces the last', () => {
     const { result } = setup()
-    act(() => result.current.markTiles({ tiles: ['a'], outcome: 'lost', message: WRONG }))
-    act(() => result.current.markTiles({ tiles: ['b'], outcome: 'near', message: null }))
-    expect([...result.current.mark!.value.tiles]).toEqual(['b'])
+    act(() => result.current.markTiles({ tileIds: ['a'], outcome: 'lost', message: WRONG }))
+    act(() => result.current.markTiles({ tileIds: ['b'], outcome: 'near', message: null }))
+    expect([...result.current.mark!.value.tileIds]).toEqual(['b'])
   })
 
   it('clears on demand', () => {
     const { result } = setup()
-    act(() => result.current.markTiles({ tiles: ['a'], outcome: 'lost', message: WRONG }))
+    act(() => result.current.markTiles({ tileIds: ['a'], outcome: 'lost', message: WRONG }))
     act(() => result.current.clear())
     expect(result.current.mark).toBeNull()
   })

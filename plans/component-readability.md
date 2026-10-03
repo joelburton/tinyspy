@@ -246,6 +246,14 @@ connections' BoardCol pass (2026-10-03) settled, beyond the two games above:
   the event log takes `events` and `historyView`, and a verdict label asks
   the rule (`result === 'oneAway'`) and not the color. A fold rule gets a
   name before the return (`isHintListShown`).
+- **connections' tile is `{id, word}`, the word its id.** The builder writes
+  it in `puzzle.tiles` (the sixteen in this game's order), a category's four
+  and a seat's `tilesLeft`, through `_make_json_tile` / `_make_json_tiles` /
+  `_make_json_cat`; `gd` builds `puzzle.tilesById` beside the list and
+  resolves the log's rows' tiles through it. What is held is ids, named as
+  such: `inFlightTileIds`, the verdict's `tileIds`, `litTileIds`, the picks,
+  the shuffle's order; what is passed and drawn is the tile. The printer
+  takes words at its seam.
 - **Live state nothing above the column reads is the column's.** The picks
   (the map, the Broadcast room, the two senders) were `useGame`'s and rode
   through PlayArea as a prop that only `BoardCol` read; they are `usePicks`,

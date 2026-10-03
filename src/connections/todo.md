@@ -13,13 +13,6 @@
 
 ## Soon
 
-- **A phone sees no readout above the board.** The state line lives in
-  `InfoCol`, off-canvas in the sheet on a phone; psychicnum and most other
-  games mount `MobileStatusBar` with their `StateLine` in `BoardCol` so the
-  phone sees it. connections shows only "Mistakes ■■□□" under the board. Set
-  aside at the BoardCol pass (2026-10-03) as a UX change, not a readability
-  one.
-
 ## Someday
 
 ## Maybe
@@ -31,6 +24,12 @@
 
 ## Won't do
 
+- **A mobile status bar over the board** (ruled 2026-10-03 at the InfoCol
+  pass, Joel: *"it does not [need] a mobile status bar"*). The state line
+  lives in `InfoCol`, off-canvas on a phone, where psychicnum and most other
+  games mount `MobileStatusBar` with theirs in `BoardCol`; connections shows
+  "Mistakes ■■□□" under the board in both modes, and that is the readout a
+  phone needs.
 - **Per-tile rise-and-fade animations on a category match** (ruled 2026-09-19
   at the tile-feedback pass, Joel: *"close the todo"*). Four tiles collapsing
   into a band already carries the attention flash, which says where to look;

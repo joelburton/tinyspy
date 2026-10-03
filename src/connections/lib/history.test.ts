@@ -11,28 +11,36 @@
  */
 import { describe, expect, it } from 'vitest'
 import { replayTurn } from './history'
-import type { GEvent, GPlayer, GPuzzle } from '../types'
+import { ZTest_tile } from './gameData.fixture'
+import type { GEvent, GPlayer, GPuzzle, GTile } from '../types'
 
+const tiles = (words: string[]): GTile[] => words.map(ZTest_tile)
+const ORDER = tiles([
+  'apple', 'pear', 'plum', 'lime', 'iron', 'gold', 'lead', 'zinc',
+  'red', 'blue', 'teal', 'lime2', 'pug', 'boxer', 'corgi', 'lab',
+])
 const PUZZLE: GPuzzle = {
   date: '2026-06-12',
   cats: [
-    { rank: 0, name: 'FRUIT', tiles: ['apple', 'pear', 'plum', 'lime'] },
-    { rank: 1, name: 'METALS', tiles: ['iron', 'gold', 'lead', 'zinc'] },
-    { rank: 2, name: 'COLORS', tiles: ['red', 'blue', 'teal', 'lime2'] },
-    { rank: 3, name: 'DOGS', tiles: ['pug', 'boxer', 'corgi', 'lab'] },
+    { rank: 0, name: 'FRUIT', tiles: tiles(['apple', 'pear', 'plum', 'lime']) },
+    { rank: 1, name: 'METALS', tiles: tiles(['iron', 'gold', 'lead', 'zinc']) },
+    { rank: 2, name: 'COLORS', tiles: tiles(['red', 'blue', 'teal', 'lime2']) },
+    { rank: 3, name: 'DOGS', tiles: tiles(['pug', 'boxer', 'corgi', 'lab']) },
   ],
-  tileOrder: [
-    'apple', 'pear', 'plum', 'lime', 'iron', 'gold', 'lead', 'zinc',
-    'red', 'blue', 'teal', 'lime2', 'pug', 'boxer', 'corgi', 'lab',
-  ],
+  tiles: ORDER,
+  tilesById: new Map(ORDER.map((t) => [t.id, t])),
 }
 
 const ME = { id: 'u', username: 'me', color: 'red' } as GPlayer
 
-function g(o: Partial<GEvent>): GEvent {
+/** The ids of a board's loose tiles. */
+const idsOf = (list: readonly GTile[]) => list.map((t) => t.id)
+
+function g(o: Partial<GEvent> & { tileIds?: string[] }): GEvent {
+  const { tileIds = ['apple', 'pear', 'plum', 'lime'], ...rest } = o
   return {
-    id: 1, by: ME, tiles: ['apple', 'pear', 'plum', 'lime'],
-    outcome: 'lost', result: 'wrong', matched: false, matchedCatRank: null, at: '2026-06-12T18:00:00Z', ...o,
+    id: 1, by: ME, tiles: tiles(tileIds),
+    outcome: 'lost', result: 'wrong', matched: false, matchedCatRank: null, at: '2026-06-12T18:00:00Z', ...rest,
   }
 }
 
@@ -40,9 +48,9 @@ function g(o: Partial<GEvent>): GEvent {
 // (rank 1). The ids are what the viewer addresses, and are deliberately not
 // 0,1,2 — a builder that still indexed would pass by accident.
 const GUESSES: GEvent[] = [
-  g({ id: 11, tiles: ['apple', 'pear', 'plum', 'lime'], outcome: 'won', result: 'correct', matched: true, matchedCatRank: 0 }),
-  g({ id: 12, tiles: ['iron', 'gold', 'red', 'blue'], outcome: 'lost', result: 'wrong', matched: false }),
-  g({ id: 13, tiles: ['iron', 'gold', 'lead', 'zinc'], outcome: 'won', result: 'correct', matched: true, matchedCatRank: 1 }),
+  g({ id: 11, tileIds: ['apple', 'pear', 'plum', 'lime'], outcome: 'won', result: 'correct', matched: true, matchedCatRank: 0 }),
+  g({ id: 12, tileIds: ['iron', 'gold', 'red', 'blue'], outcome: 'lost', result: 'wrong', matched: false }),
+  g({ id: 13, tileIds: ['iron', 'gold', 'lead', 'zinc'], outcome: 'won', result: 'correct', matched: true, matchedCatRank: 1 }),
 ]
 
 describe('replayTurn', () => {
@@ -52,19 +60,19 @@ describe('replayTurn', () => {
     const s0 = replayTurn(GUESSES, PUZZLE, 11)
     expect(s0.board.matchedCats).toHaveLength(0)
     expect(s0.board.tilesLeft).toHaveLength(16)
-    expect(s0.board.tilesLeft).toContain('apple')
+    expect(idsOf(s0.board.tilesLeft)).toContain('apple')
 
     // Turn 2 (the second correct): FRUIT (turn 0) is banded, but METALS (this turn)
     // is NOT yet — its tiles are still on the grid.
     const s2 = replayTurn(GUESSES, PUZZLE, 13)
     expect(s2.board.matchedCats.map((m) => m.name)).toEqual(['FRUIT'])
     expect(s2.board.matchedCats[0]!.matchedAt).toBe(GUESSES[0]!.at)
-    expect(s2.board.tilesLeft).not.toContain('apple') // banded before this turn
-    expect(s2.board.tilesLeft).toContain('iron') // this turn's tile, still on the grid
+    expect(idsOf(s2.board.tilesLeft)).not.toContain('apple') // banded before this turn
+    expect(idsOf(s2.board.tilesLeft)).toContain('iron') // this turn's tile, still on the grid
   })
 
   it('highlights exactly the four tiles the viewed turn guessed', () => {
-    expect([...replayTurn(GUESSES, PUZZLE, 12).litTiles].sort()).toEqual(
+    expect([...replayTurn(GUESSES, PUZZLE, 12).litTileIds].sort()).toEqual(
       ['blue', 'gold', 'iron', 'red'],
     )
     expect(replayTurn(GUESSES, PUZZLE, 12).outcome).toBe('lost')
@@ -82,6 +90,6 @@ describe('replayTurn', () => {
     const snap = replayTurn(GUESSES, PUZZLE, 99)
     expect(snap.board.matchedCats).toHaveLength(0)
     expect(snap.board.tilesLeft).toHaveLength(16)
-    expect(snap.litTiles.size).toBe(0)
+    expect(snap.litTileIds.size).toBe(0)
   })
 })

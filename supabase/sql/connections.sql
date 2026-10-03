@@ -314,17 +314,20 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 -- `select game_data from common.games` shows the page what it gets.
 --
 --   game_data, connections' part:
---     puzzle: {date, cats, tileOrder}       frozen at create_game: the NYT date (null
+--     puzzle: {date, cats, tiles}           frozen at create_game: the NYT date (null
 --                                           for a puzzle that is not one of theirs),
 --                                           the four categories, the sixteen tiles
 --                                           in this game's shuffle; public in both
---                                           modes (the frontend judges each guess)
+--                                           modes (the frontend judges each guess).
+--                                           A tile is {id, word}, the id the word;
+--                                           a category's `tiles` are four of them
 --     team: {nMatchedCats, nMistakes}       what the team shares, summed over the
 --                                           rows; null in compete, where there is no
 --                                           team (plans/team-facts.md)
 --     events: [{id, userId, tiles, result, matchedCatRank, at}, …]
---                                           every player's; what a racer may see of a
---                                           rival mid-race is the hook's rule
+--                                           every player's, `tiles` their four ids;
+--                                           what a racer may see of a rival mid-race
+--                                           is the hook's rule
 --     players: [player, …]                  the common player, plus:
 --       nMatchedCats                        this player's own, in every mode
 --       nMistakes                           this player's own, in every mode
@@ -332,8 +335,9 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 --       board: {matchedCats, tilesLeft}     what this seat's grid shows: the bands,
 --                                           each a category with its `matchedAt`, in
 --                                           the order they were matched, and the
---                                           tiles still loose in `tileOrder`; one
---                                           board in coop, each racer's own in compete
+--                                           tiles still loose, in the puzzle's order;
+--                                           one board in coop, each racer's own in
+--                                           compete
 --
 --   summary_data, connections' part (the common part names and dates the
 --   game and carries its ending; the winner is `ending.winner`):
@@ -347,6 +351,51 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 
 -- The puzzle this game is played on, as `create_game` froze it onto
 -- `connections.games`: the date, and the two halves of the `board` column.
+-- ============================================================
+-- connections._make_json_tile / _make_json_tiles / _make_json_cat — a tile as
+-- the page draws it
+-- ============================================================
+-- A tile is `{id, word}` (plans/seat-view.md → A tile is an instance the
+-- builder writes), and connections' id is the word itself. A category's four
+-- and the tiles still loose are written in that shape; the log's rows and
+-- `submit_guess` carry ids, which the page resolves against the puzzle's tiles.
+create or replace function connections._make_json_tile(p_word text)
+returns jsonb
+language sql
+immutable
+set search_path = connections, common, public, extensions
+as $$
+  select jsonb_build_object('id', p_word, 'word', p_word);
+$$;
+
+revoke execute on function connections._make_json_tile(text) from public;
+
+-- A jsonb array of words, as tiles, in the same order.
+create or replace function connections._make_json_tiles(p_words jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = connections, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(connections._make_json_tile(w.word) order by w.ord), '[]'::jsonb)
+    from jsonb_array_elements_text(p_words) with ordinality as w(word, ord);
+$$;
+
+revoke execute on function connections._make_json_tiles(jsonb) from public;
+
+-- A stored category (`games.board.categories[]`, its tiles words) as the page
+-- draws it, its tiles as tiles.
+create or replace function connections._make_json_cat(p_cat jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = connections, common, public, extensions
+as $$
+  select p_cat || jsonb_build_object('tiles', connections._make_json_tiles(p_cat -> 'tiles'));
+$$;
+
+revoke execute on function connections._make_json_cat(jsonb) from public;
+
 create or replace function connections._make_json_puzzle(g connections.games)
 returns jsonb
 language sql
@@ -354,9 +403,10 @@ immutable
 set search_path = connections, common, public, extensions
 as $$
   select jsonb_build_object(
-    'date',      g.puzzle_date,
-    'cats',      g.board -> 'categories',
-    'tileOrder', g.board -> 'tileOrder');
+    'date',  g.puzzle_date,
+    'cats',  (select coalesce(jsonb_agg(connections._make_json_cat(c.cat) order by c.ord), '[]'::jsonb)
+                from jsonb_array_elements(g.board -> 'categories') with ordinality as c(cat, ord)),
+    'tiles', connections._make_json_tiles(g.board -> 'tileOrder'));
 $$;
 
 revoke execute on function connections._make_json_puzzle(connections.games) from public;
@@ -394,7 +444,9 @@ stable
 set search_path = connections, common, public, extensions
 as $$
   with matched as (
-    select cat || jsonb_build_object('matchedAt', e.created_at) as cat, e.id
+    select cat as stored_cat,
+           connections._make_json_cat(cat) || jsonb_build_object('matchedAt', e.created_at) as cat,
+           e.id
       from connections.events e
       join connections.games g on g.game_id = e.game_id
       join lateral jsonb_array_elements(g.board -> 'categories') cat
@@ -404,11 +456,11 @@ as $$
        and (p_mode = 'coop' or e.user_id = p_user_id)
   ),
   banded as (
-    select jsonb_array_elements_text(cat -> 'tiles') as tile from matched
+    select jsonb_array_elements_text(stored_cat -> 'tiles') as tile from matched
   )
   select jsonb_build_object(
     'matchedCats', (select coalesce(jsonb_agg(cat order by id), '[]'::jsonb) from matched),
-    'tilesLeft',   (select coalesce(jsonb_agg(t.tile order by t.ord), '[]'::jsonb)
+    'tilesLeft',   (select coalesce(jsonb_agg(connections._make_json_tile(t.tile) order by t.ord), '[]'::jsonb)
                       from connections.games g,
                            jsonb_array_elements_text(g.board -> 'tileOrder') with ordinality as t(tile, ord)
                      where g.game_id = p_game_id

@@ -95,12 +95,12 @@ function loaded(events: GEventRaw[] = [], picks: GPickMap = new Map()): void {
 }
 
 /** The RED band, matched by `userId`. */
-const matchRed = (userId = 'u1') => ZTest_guess(userId, RED.tiles, 'correct', 0)
+const matchRed = (userId = 'u1') => ZTest_guess(userId, RED.tiles.map((t) => t.id), 'correct', 0)
 /** A plain wrong guess (2 from RED + 1 GREEN + 1 BLUE) by `userId`. */
 const wrongGuess = (userId = 'u1') => ZTest_guess(userId, ['a', 'b', 'e', 'i'], 'wrong')
 /** Every band, matched by `userId`. */
 const allFour = (userId = 'u1') =>
-  ZTest_PUZZLE.cats.map((c) => ZTest_guess(userId, c.tiles, 'correct', c.rank))
+  ZTest_PUZZLE.cats.map((c) => ZTest_guess(userId, c.tiles.map((t) => t.id), 'correct', c.rank))
 /** Four picks on the board, one short of nothing: a full guess built and unsent. */
 const FOUR_PICKED: GPickMap = new Map([['u1', ['a', 'b', 'e', 'i']]])
 

@@ -90,8 +90,8 @@ export function usePicks({
   // What a click does is `eventForClick`'s (doc.md → Coop); `null` is the
   // refused click on a full guess, which sends nothing.
   const toggleTile = useCallback(
-    (tile: string) => {
-      const event = eventForClick(picks, tile, myId)
+    (tileId: string) => {
+      const event = eventForClick(picks, tileId, myId)
       if (event) broadcast(event)
     },
     [broadcast, picks, myId],

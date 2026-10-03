@@ -11,7 +11,7 @@ import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import type { GGameData, GPicks, GGuessResult } from '../types'
 import type { GVerdictMark } from '../types'
 
-/** Empty tile set — the resting value of the in-flight mark. */
+/** Empty id set — the resting value of the in-flight mark. */
 const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
@@ -44,10 +44,10 @@ type GuessAnswer = { result: GGuessResult }
  *   server's sentence shows in the local slot, and a fault's modal has
  *   already fired (`runRpc`).
  *
- * `inFlight` is the four tiles out with the server, wearing the in-flight dim
- * until the answer lands, rather than a verdict guessed locally. They are a
- * copy taken at SEND: the picks are cleared on the way out, and a teammate can
- * move them in coop.
+ * `inFlightTileIds` are the four tiles out with the server, wearing the
+ * in-flight dim until the answer lands, rather than a verdict guessed locally.
+ * They are a copy taken at SEND: the picks are cleared on the way out, and a
+ * teammate can move them in coop.
  *
  * One guess is out at a time: Submit's run waits for `send`, and an
  * action neither runs nor draws live while its run is out (`useBindAction`'s
@@ -67,9 +67,9 @@ export function useSubmitGuess({
   markTiles: GVerdictMark['markTiles']
 }): {
   send: () => Promise<void>
-  inFlight: ReadonlySet<string>
+  inFlightTileIds: ReadonlySet<string>
 } {
-  const [inFlight, setInFlightGuess] = useState<ReadonlySet<string>>(NO_TILES)
+  const [inFlightTileIds, setInFlightTileIds] = useState<ReadonlySet<string>>(NO_TILES)
 
   async function send() {
     if (!picks.isComplete) return
@@ -77,15 +77,15 @@ export function useSubmitGuess({
 
     // The log I can see is the board I play: coop's whole shared log, or my
     // own rows in a race still running.
-    if (gd.events.some((e) => sameTileSet(e.tiles, sent))) {
+    if (gd.events.some((e) => sameTileSet(e.tiles.map((t) => t.id), sent))) {
       const { outcome, text } = answerMessage({ answerType: 'already_tried' })
-      markTiles({ tiles: sent, outcome, message: FeedbackMessage.result(outcome, text) })
+      markTiles({ tileIds: sent, outcome, message: FeedbackMessage.result(outcome, text) })
       picks.sendClear()
       return
     }
 
     const evaluation = evaluateGuess(sent, gd.puzzle.cats)
-    setInFlightGuess(new Set(sent))
+    setInFlightTileIds(new Set(sent))
     // Only a match names a category. The argument is OPTIONAL rather than
     // nullable, so the other two verdicts leave it out rather than send null.
     const matchedCategory =
@@ -96,7 +96,7 @@ export function useSubmitGuess({
       p_result: evaluation.result,
       ...matchedCategory,
     }))
-    setInFlightGuess(NO_TILES)
+    setInFlightTileIds(NO_TILES)
 
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
@@ -112,12 +112,12 @@ export function useSubmitGuess({
       return
     } else if (res.type === 'ok' && res.data.result === 'oneAway') {
       const { outcome, text } = answerMessage({ answerType: 'one_away' })
-      markTiles({ tiles: sent, outcome, message: FeedbackMessage.result(outcome, text) })
+      markTiles({ tileIds: sent, outcome, message: FeedbackMessage.result(outcome, text) })
       picks.sendClear()
       return
     } else if (res.type === 'ok' && res.data.result === 'wrong') {
       const { outcome, text } = answerMessage({ answerType: 'wrong' })
-      markTiles({ tiles: sent, outcome, message: FeedbackMessage.result(outcome, text) })
+      markTiles({ tileIds: sent, outcome, message: FeedbackMessage.result(outcome, text) })
       picks.sendClear()
       return
     } else {
@@ -127,5 +127,5 @@ export function useSubmitGuess({
     }
   }
 
-  return { send, inFlight }
+  return { send, inFlightTileIds }
 }

@@ -21,7 +21,9 @@ import type { GBoardVerdict, GVerdictMark } from '../types'
  * takes it off now; `BoardCol` calls that on the player's next pick. And a
  * new `markTiles` replaces it.
  */
-export function useVerdictMark({ localFeedbackSlot }: { localFeedbackSlot: FeedbackSlot }): GVerdictMark {
+export function useVerdictMark({ localFeedbackSlot }: {
+  localFeedbackSlot: FeedbackSlot
+}): GVerdictMark {
   const [verdict, showVerdict, clearVerdict] =
     useMark<GBoardVerdict & { msgId: string | null }>(NO_TIMER)
 
@@ -30,13 +32,15 @@ export function useVerdictMark({ localFeedbackSlot }: { localFeedbackSlot: Feedb
    * slot too and remember its entry, so the color leaves when the pill does;
    * with null, the color stays until the next mark or `clear()`.
    */
-  function markTiles({ tiles, outcome, message }: {
-    tiles: readonly string[]
+  function markTiles({ tileIds, outcome, message }: {
+    tileIds: readonly string[]
     outcome: Outcome
     message: FeedbackMessage | null
   }) {
     const msgId = message === null ? null : localFeedbackSlot.show(message)
-    showVerdict({ tiles: new Set(tiles), outcome, msgId }, { attention: true })
+    showVerdict(
+      { tileIds: new Set(tileIds), outcome, msgId },
+      { attention: true })
   }
 
   // Re-renders when the slot changes, so the mark re-derives when its message
@@ -45,7 +49,8 @@ export function useVerdictMark({ localFeedbackSlot }: { localFeedbackSlot: Feedb
   const isMarkShown =
     verdict !== null &&
     (verdict.value.msgId === null ||
-      localFeedbackSlot.peek().some((entry) => entry.id === verdict.value.msgId))
+      localFeedbackSlot.peek().some((entry) => entry.id ===
+        verdict.value.msgId))
 
   return {
     mark: isMarkShown ? verdict : null,

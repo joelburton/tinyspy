@@ -160,7 +160,7 @@ connections' own:
 
 | blob | connections' part |
 |---|---|
-| `game_data` | `puzzle: {date, cats, tileOrder}`, as `create_game` froze it; `team: {nMatchedCats, nMistakes}`, what the team shares, null in compete; `events`, every player's rows; on each player their own `nMatchedCats` and `nMistakes`, `maxMistakes`, and `board: {matchedCats, tilesLeft}`, this seat's grid |
+| `game_data` | `puzzle: {date, cats, tiles}`, as `create_game` froze it, a tile being `{id, word}` with the word as its id, and a category's `tiles` four of them; `team: {nMatchedCats, nMistakes}`, what the team shares, null in compete; `events`, every player's rows; on each player their own `nMatchedCats` and `nMistakes`, `maxMistakes`, and `board: {matchedCats, tilesLeft}`, this seat's grid |
 | `summary_data` | `team`, the same group; `maxMistakes` |
 
 Each player's two counts are their own, on `connections.players` and on their
@@ -423,8 +423,8 @@ game's and not the shell's (docs/code-conventions.md → A game's types).
 What is connections' own:
 
 - **The board is one grid.** A solved category is a full-width row wearing
-  the shared tile face in its rank's color; the tiles are the rest, in this
-  game's `tileOrder`, or in the player's own local shuffle (`lib/localOrder.ts`,
+  the shared tile face in its rank's color; the tiles are the rest, in the
+  puzzle's order, or in the player's own local shuffle (`lib/localOrder.ts`,
   never broadcast). The picked border is the shared one; a peer's pick
   wears their color as an inset mark (`.peerPick`) on a shared board only; a
   verdict fills the four tiles in its pill's outcome, and a band that landed

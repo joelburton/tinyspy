@@ -107,7 +107,9 @@ describe('connections makeGameData — the links become players', () => {
     // Coop: the team's two bands, in the order they were matched, and eight
     // tiles left in the puzzle's order.
     expect(gd.me.board.matchedCats.map((c) => c.name)).toEqual(['RED', 'GREEN'])
-    expect(gd.me.board.tilesLeft).toEqual(['i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
+    expect(gd.me.board.tilesLeft.map((t) => t.id)).toEqual(['i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
+    // The log's rows carry the puzzle's tiles, the same objects `tilesById` holds.
+    expect(gd.events[0]!.tiles[0]).toBe(gd.puzzle.tilesById.get('a'))
     expect(gd.brand).toBe('WordKnit')
   })
 
@@ -127,7 +129,7 @@ describe('connections makeGameData — the seat rule', () => {
     // My own is always mine to see: RED is mine, so its four are gone; moth's
     // GREEN is still loose on my board.
     expect(gd.me.board.matchedCats.map((c) => c.name)).toEqual(['RED'])
-    expect(gd.me.board.tilesLeft).toEqual(['e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
+    expect(gd.me.board.tilesLeft.map((t) => t.id)).toEqual(['e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
   })
 
   it('the race\'s end opens everything', () => {

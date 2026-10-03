@@ -6,7 +6,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './Tile.module.css'
-import type { GBoardVerdict } from '../types'
+import type { GBoardVerdict, GTile } from '../types'
 
 /** What this screen adds to a tile: worn on or around it, never in the blob. */
 type TileMarks = {
@@ -35,7 +35,7 @@ export function Tile({
   isDisabled,
   onClick,
 }: {
-  tile: string
+  tile: GTile
   marks: TileMarks
   isDisabled: boolean
   onClick: () => void
@@ -45,7 +45,7 @@ export function Tile({
       type="button"
       // A stable e2e hook: class names are hashed, and the floating Shuffle
       // lives inside the board root, so "a button in the board" would match it.
-      data-tile={tile}
+      data-tile={tile.id}
       disabled={isDisabled}
       className={cls(
         shared.tileFace,
@@ -80,8 +80,8 @@ export function Tile({
       onMouseDown={(e) => e.preventDefault()}
     >
       {/* --len drives the shared .tileWord auto-fit. */}
-      <span className={shared.tileWord} style={{ ['--len' as string]: tile.length }}>
-        {tile}
+      <span className={shared.tileWord} style={{ ['--len' as string]: tile.word.length }}>
+        {tile.word}
       </span>
     </button>
   )
