@@ -17,7 +17,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
-import { addRevealedSecrets } from '../lib/tileResults'
+import { addRevealedSecrets } from '../lib/addRevealedSecrets'
 import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
 import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
 import { useShowOppsFoundMessages } from '../hooks/useShowOppsFoundMessages'
@@ -153,10 +153,10 @@ function PlayArea({
 
   // ─── Render ────────────────────────────────────────────
 
-  // The live board, with the secrets added while I have them revealed.
-  const liveTileResults = secretsShown
-    ? addRevealedSecrets(gd.me.board.tileResults, gd.puzzle.secrets ?? [])
-    : gd.me.board.tileResults
+  // The live board, with the secrets turned green while I have them revealed.
+  const liveTiles = secretsShown
+    ? addRevealedSecrets(gd.me.board.tiles, gd.puzzle.secrets ?? [])
+    : gd.me.board.tiles
 
   // The ending that applies to me: the game's once it has ended, else mine.
   const endingMessage = gameEndingMessage ?? playerEndingMessage
@@ -167,7 +167,7 @@ function PlayArea({
       <BoardCol
         gd={gd}
         // A past turn's board while one is open, else the live one.
-        tileResults={historyView.tileResults ?? liveTileResults}
+        tiles={historyView.tiles ?? liveTiles}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
         myTurnJustStarted={turnFlash}

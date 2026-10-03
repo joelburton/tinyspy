@@ -3,7 +3,7 @@
 import type { BoardShape, Cell } from '@/common/board-cursor/stepCell'
 import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
-import type { GTileResults, GTileWord } from '../types'
+import type { GTile } from '../types'
 
 /**
  * The keyboard's way onto psychicnum's board: arrows move the selection cursor
@@ -17,33 +17,33 @@ import type { GTileResults, GTileWord } from '../types'
 export function useTileCursor({
   displayedTiles,
   boardShape,
-  results,
+  decidedWords,
   pickedTile,
   canPick,
   onPick,
 }: {
   // The words in the order the board draws them.
-  displayedTiles: readonly GTileWord[]
+  displayedTiles: readonly GTile['word'][]
   boardShape: BoardShape
   // A decided tile cannot be picked, by key or by click.
-  results: GTileResults
-  pickedTile: GTileWord | null
+  decidedWords: ReadonlySet<GTile['word']>
+  pickedTile: GTile['word'] | null
   // Whether a pick is possible right now; the cursor is inert while not.
   canPick: boolean
   // Pick a word, or un-pick with null.
-  onPick: (word: GTileWord | null) => void
+  onPick: (word: GTile['word'] | null) => void
 }): {
   cell: Cell | null
-  pickClicked: (word: GTileWord) => void
+  pickClicked: (word: GTile['word']) => void
 } {
-  function wordAtCell(cell: Cell): GTileWord | undefined {
+  function wordAtCell(cell: Cell): GTile['word'] | undefined {
     return displayedTiles[positionAt(cell.x, cell.y, boardShape.numCols)]
   }
 
   // Space toggles, so a second press un-picks.
   function togglePickAtCell(cell: Cell) {
     const word = wordAtCell(cell)
-    if (word === undefined || results.has(word)) return
+    if (word === undefined || decidedWords.has(word)) return
     onPick(pickedTile === word ? null : word)
   }
 
@@ -53,7 +53,7 @@ export function useTileCursor({
     onToggle: togglePickAtCell,
   })
 
-  function pickClicked(word: GTileWord) {
+  function pickClicked(word: GTile['word']) {
     selectionCursor.setTo(cellAt(displayedTiles.indexOf(word), boardShape.numCols))
     onPick(word)
   }

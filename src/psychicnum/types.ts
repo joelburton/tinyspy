@@ -19,6 +19,7 @@ import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/gameManifest'
 import type { Actor } from '@/common/members/member'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
 import type { SetupOf } from '@/common/setup-form/setupForm'
 import type { SetupRow } from '@/common/setup-form/setupRows'
@@ -37,9 +38,9 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: GSetup
   puzzle: {
     // The words shown as tiles; three of them are the secrets.
-    words: GTileWord[]
-    // Null until the game ends, since they're a aecret
-    secrets: GTileWord[] | null
+    words: GTile['word'][]
+    // Null until the game ends, since they are secret.
+    secrets: GTile['word'][] | null
   }
   // What the team shares; null in compete, where there is no team.
   team: GTeam | null
@@ -76,10 +77,10 @@ export type GEventRaw = {
   // The row's own id, and the order of play.
   id: number
   userId: string
-  // The text this row carries. For 'guess' / 'spoiler' it's a `GTileWord`; for
-  // 'hint' it's the CLUE text (or "No hint available"), which is why this is
-  // a plain string.
-  word: GTileWord | string
+  // The text this row carries. For 'guess' / 'spoiler' it is a tile's word;
+  // for 'hint' it is the CLUE text (or "No hint available"), which is why
+  // this is a plain string.
+  word: string
   correct: boolean
   // 'guess' = a real guess (colors the board, counts toward the win);
   // 'spoiler' = a secret word handed over (the answer);
@@ -99,11 +100,10 @@ export type GPlayerRaw = PlayerRaw & {
   // This player's own, in every mode; the team's are `team`'s.
   nFoundSecrets: number
   nGuessesUsed: number
-  // What this seat's tiles show: each guessed word → whether it was a secret,
-  // and → who guessed it. One board in coop, each racer's own in compete.
+  // What this seat's tiles show. One board in coop, each racer's own in
+  // compete.
   board: {
-    tileResults: Record<GTileWord, boolean>
-    decidedBy: Record<GTileWord, string>
+    tiles: GTileRaw[]
   }
 }
 
@@ -155,7 +155,13 @@ export type GPlayerRaw = PlayerRaw & {
  *   maxGuesses                            # the same on every player
  *   nFoundSecrets                     # own, in every mode
  *   nGuessesUsed                           # own, in every mode
- *   board: {tileResults, decidedBy}       # what this seat's tiles show; null for a rival mid-race
+ *   board: {tiles}                        # what this seat's tiles show; null for a rival mid-race
+ *
+ * tile:                                   # board.tiles[], in the puzzle's order
+ *   word
+ *   correct                               # null until guessed
+ *   outcome                               # read from correct, once; null until guessed
+ *   decidedBy                             # the player who guessed it; null until guessed
  */
 
 /**
@@ -196,13 +202,11 @@ export type GPlayer = Omit<GPlayerRaw, 'board'> & {
   board: GBoard | null
 }
 
-/** What one seat's tiles show. */
+/** What one seat's tiles show: every dealt word, in the puzzle's order, with
+ *  what the seat knows of it (plans/seat-view.md → A tile is an instance the
+ *  builder writes). */
 export type GBoard = {
-  // Each guessed word → whether it was a secret: the board's permanent green
-  // and red. Hint and spoiler rows mark no tile.
-  tileResults: GTileResults
-  // Each guessed word → who guessed it.
-  decidedBy: ReadonlyMap<GTileWord, GPlayer>
+  tiles: GTile[]
 }
 
 /** One row of the log, as `gd` holds it: the blob's row, with its player. */
@@ -288,9 +292,9 @@ export type GHistoryView = {
   // Back to the live board — the banner's ✕, or any click or key.
   exit: () => void
   // The viewed turn's board, or null when live.
-  tileResults: GTileResults | null
+  tiles: GTile[] | null
   // The tile the viewed turn decided — ring it; null for a hint or a spoiler.
-  litWord: GTileWord | null
+  litWord: GTile['word'] | null
   // The banner's text, or null when live.
   label: string | null
   // Whose board is on screen, when it is not mine — which only compete can
@@ -302,10 +306,10 @@ export type GHistoryView = {
 /** A past turn, replayed. */
 export type GReplayedTurn = {
   // The board as of the END of the viewed turn.
-  tileResults: GTileResults
+  tiles: GTile[]
   // The board word this turn's guess decided — ring it history-blue (it already
   // wears its green/red outcome color). Null for a hint / spoiler turn (no tile).
-  litWord: GTileWord | null
+  litWord: GTile['word'] | null
   // A short, name-free turn label for the viewer banner (the log row shows *who*).
   label: string
   // Who made the turn — whose board this is; null for an id not in the log.
@@ -313,19 +317,29 @@ export type GReplayedTurn = {
 }
 
 /**
- * A word on one of the board's tiles (lowercase), as the game deals it: a
- * guess, a secret, the pick. Not every `word` in psychicnum is one — a hint
- * row's `word` is its clue text.
+ * A tile as the builder writes it (plans/seat-view.md → A tile is an instance
+ * the builder writes): one of the board's words (lowercase, as the game dealt
+ * it) and what this seat knows of it. `word` is the tile's identity — the
+ * pick, a guess, a secret are all one of these; a hint row's `word` is clue
+ * text and not one. `correct` is whether the word was a secret, null until
+ * somebody guessed it; `decidedBy` is who, a user id, null until then.
  */
-export type GTileWord = string
+export type GTileRaw = {
+  word: string
+  correct: boolean | null
+  decidedBy: string | null
+}
 
 /**
- * What each decided tile says: its board word → whether that word is one of
- * the secrets. A guessed word is in the map with its verdict (true a find,
- * false a miss); a secret the Reveal shows joins it as true; an undecided
- * tile is absent. The live board and a replayed past turn both draw from one.
+ * A tile as `gd` holds it: the blob's, with its decider turned into the
+ * player and its outcome read once from `correct` (`lib/answer.ts`), so the
+ * board draws it and decides nothing. The live board, the Reveal's board and
+ * a replayed past turn are all arrays of these.
  */
-export type GTileResults = ReadonlyMap<GTileWord, boolean>
+export type GTile = Omit<GTileRaw, 'decidedBy'> & {
+  outcome: Outcome | null
+  decidedBy: GPlayer | null
+}
 
 /**
  * Everything that can be SAID about a move in this game, as a closed set — and
@@ -336,14 +350,14 @@ export type GTileResults = ReadonlyMap<GTileWord, boolean>
  */
 export type GAnswer =
 // My correct guess.
-  | { answerType: 'hit'; word: GTileWord }
+  | { answerType: 'hit'; word: GTile['word'] }
   // A coop teammate's, on the board we share.
-  | { answerType: 'hit_peer'; word: GTileWord }
+  | { answerType: 'hit_peer'; word: GTile['word'] }
 
   // My wrong guess.
-  | { answerType: 'miss'; word: GTileWord }
+  | { answerType: 'miss'; word: GTile['word'] }
   // A coop teammate's.
-  | { answerType: 'miss_peer'; word: GTileWord }
+  | { answerType: 'miss_peer'; word: GTile['word'] }
 
   // I asked for a clue.
   | { answerType: 'hint' }

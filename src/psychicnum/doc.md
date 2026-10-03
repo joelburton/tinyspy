@@ -127,7 +127,7 @@ part of every `game_data` (`common._make_json_game_data`) psychicnum's own:
 
 | blob | psychicnum's part |
 |---|---|
-| `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `team: {nFoundSecrets, nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `nReqdSecrets`, `maxGuesses`, their own `nFoundSecrets` and `nGuessesUsed`, and `board: {tileResults, decidedBy}`, this seat's tiles |
+| `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `team: {nFoundSecrets, nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `nReqdSecrets`, `maxGuesses`, their own `nFoundSecrets` and `nGuessesUsed`, and `board: {tiles}`, this seat's tiles — every dealt word in the puzzle's order with `correct` and `decidedBy`, null until guessed |
 | `summary_data` | `team`, the same group; `nReqdSecrets`, `maxGuesses` |
 
 Every player's counts are their own, on `psychicnum.players` and on their
@@ -314,8 +314,9 @@ answer does not.
         ├── BoardCol                     the board column — and submit_guess
         │     ├── MobileStatusBar ←      phone only; holds the StateLine below
         │     │     └── StateLine        "1/3 found · 4/7 guesses used"
-        │     ├── Board                  the grid of word tiles
-        │     │     ├── Dot ←            who decided a tile (coop, >1 player)
+        │     ├── Board                  the grid of tiles: which marks each wears
+        │     │     ├── Tile             one tile, as the server knows it, plus its marks
+        │     │     │     └── Dot ←      who decided it (coop, >1 player)
         │     │     └── ShuffleButton ←  floats on the board, not in the action row
         │     └── Clear · Submit         the move row; the pill takes its place
         │           └── HistoryBanner ←  overlays it while a past turn is open
@@ -337,7 +338,8 @@ pause, chat — and unmounts this whole surface on pause.
 **`gd`, the game data.** `useGame` hands the surface one object, `gd`: the
 `game_data` blob the page was handed (`GGameDataRaw`), with its
 links turned into players (`turns.holder`, `ending.by`, `ending.winner`, each
-board's `decidedBy`), the setup rows built, and the seat rule applied — in
+tile's `decidedBy`), each tile's outcome read once, the setup rows built, and
+the seat rule applied — in
 compete, mid-race, a rival's rows leave the log and their `board` is null. It
 is a pure function of the blob and who I am; no reads, no subscription. Every
 fact about a seat is on the player (`gd.me.onTurn`, `p.nFoundSecrets`,

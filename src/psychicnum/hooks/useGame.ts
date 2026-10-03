@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import { getGuessOutcome } from '../lib/answer'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GEvent, GGameData, GGameDataRaw, GPlayer } from '../types'
 
@@ -23,18 +24,23 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const seeRival = maySeeRival(raw)
   const isMine = (id: string) => id === myId
 
-  // The players first, boards empty, so a board's `decidedBy` can point at
-  // them; then each board, from the blob's ids.
+  // The players first, boards empty, so a tile's `decidedBy` can point at
+  // them; then each board, from the blob's tiles.
   const players: GPlayer[] = raw.players.map((p) => ({ ...p, board: null }))
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
   for (const [i, p] of raw.players.entries()) {
     if (!seeRival && !isMine(p.id)) continue
     players[i]!.board = {
-      tileResults: new Map(Object.entries(p.board.tileResults)),
-      // Every guess is a seated player's: a player's rows go with their
-      // profile (`on delete cascade`), so the lookup cannot miss.
-      decidedBy: new Map(Object.entries(p.board.decidedBy).map(([word, id]) =>
-        [word, playersById[id]!])),
+      tiles: p.board.tiles.map((t) => ({
+        word: t.word,
+        correct: t.correct,
+        // THE INBOUND SEAM for a tile's color: read once here, through
+        // `lib/answer.ts`, so the board draws it and decides nothing.
+        outcome: t.correct === null ? null : getGuessOutcome(t.word, t.correct),
+        // Every guess is a seated player's: a player's rows go with their
+        // profile (`on delete cascade`), so the lookup cannot miss.
+        decidedBy: t.decidedBy === null ? null : playersById[t.decidedBy]!,
+      })),
     }
   }
 

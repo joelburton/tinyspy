@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-/* One word tile on psychicnum's board. The tile CHROME (fill, border, shadow,
+/* One tile on psychicnum's board. The tile CHROME (fill, border, shadow,
  * hover, selected, label auto-fit) is the shared `.tile` / `.tileWord` from
  * common/game-page/playArea.module.css; these are psychicnum's additions: the
  * decided fills, the identity dot and the history ring. */

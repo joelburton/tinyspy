@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useBindAction, type Action } from '@/common/actions/useBindAction'
-import type { GTileWord } from '../types'
+import type { GTile } from '../types'
 
 /**
  * The board column's two commands, on their buttons and their keys: Submit
@@ -20,17 +20,17 @@ export function useBoardColActions({
   clearPickedTile,
   submitGuess,
 }: {
-  pickedTile: GTileWord | null
+  pickedTile: GTile['word'] | null
   // The board takes picks right now; Submit adds the pick itself.
   canPick: boolean
-  choosePickedTile: (word: GTileWord | null) => void
-  // Un-pick without dismissing the slot's result (see `usePickedTile`).
+  choosePickedTile: (word: GTile['word'] | null) => void
   clearPickedTile: () => void
-  submitGuess: (word: GTileWord) => Promise<void>
+  submitGuess: (word: GTile['word']) => Promise<void>
 }): {
   actSubmit: Action
   actClearPicks: Action
 } {
+
   const actSubmit = useBindAction('act-submit', {
     describe: () => (canPick && pickedTile !== null ? 'active' : 'disabled'),
     run: async () => {

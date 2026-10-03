@@ -7,7 +7,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
 import { answerMessage } from '../lib/answer'
-import type { GAnswer, GTileResults, GTileWord } from '../types'
+import type { GAnswer, GTile } from '../types'
 
 /** What `psychicnum.submit_guess` puts in `data` — the caller's own result,
  *  plus whether that guess completed the set. Every `ok` this RPC answers
@@ -25,7 +25,7 @@ type GuessAnswer = { result: 'hit' | 'miss'; found_all: boolean }
  *   already here, so a word a teammate has guessed since I picked it never
  *   reaches the server. The server keeps the check, and its answer is then a
  *   race rather than a verdict (docs/envelopes.md → "was anything local
- *   consulted first?"). `tileResults` is scoped exactly as the server's check
+ *   consulted first?"). `tiles` is scoped exactly as the server's check
  *   is — everyone's guesses in coop, mine in compete, since RLS never shows
  *   more.
  * - **The result is mine and nothing else.** Whether the guess ended the game
@@ -37,7 +37,7 @@ type GuessAnswer = { result: 'hit' | 'miss'; found_all: boolean }
  * `inFlight` is the word with the server, whose tile takes the in-flight
  * dim; null when nothing is out, and null while a past turn is open (that is
  * not the board the guess is on). It holds until the RESULT lands in
- * `tileResults` rather than until the RPC resolves: the reply and the colored
+ * `tiles` rather than until the RPC resolves: the reply and the colored
  * tile are two events, and un-dimming at the first would flash an undecided
  * tile back to normal. Deriving it from the results, rather than clearing
  * state when they arrive, means no branch can leave a dim stuck on a tile. A
@@ -46,22 +46,25 @@ type GuessAnswer = { result: 'hit' | 'miss'; found_all: boolean }
  */
 export function useSubmitGuess({
   gameId,
-  tileResults,
+  tiles,
   localFeedbackSlot,
   isViewingHistory,
 }: {
   gameId: string
-  tileResults: GTileResults
+  // The board on screen: a word already decided is refused here, and the
+  // word I sent counts as in flight until its tile is decided.
+  tiles: readonly GTile[]
   localFeedbackSlot: FeedbackSlot
   isViewingHistory: boolean
 }): {
-  send: (word: GTileWord) => Promise<void>
-  inFlight: GTileWord | null
+  send: (word: GTile['word']) => Promise<void>
+  inFlight: GTile['word'] | null
 } {
   // The word I last sent, or null. Nothing clears it when the result lands;
   // what is still in flight is derived below.
-  const [submittedWord, setSubmittedWord] = useState<GTileWord | null>(null)
-  const isSubmittedWordDecided = submittedWord !== null && tileResults.has(submittedWord)
+  const [submittedWord, setSubmittedWord] = useState<GTile['word'] | null>(null)
+  const decided = new Set(tiles.filter((t) => t.correct !== null).map((t) => t.word))
+  const isSubmittedWordDecided = submittedWord !== null && decided.has(submittedWord)
 
   // Every answer reaches the player the same way: one `GAnswer` in, its words
   // and its color out of `lib/answer.ts`.
@@ -70,8 +73,8 @@ export function useSubmitGuess({
     localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
   }
 
-  async function send(word: GTileWord) {
-    if (tileResults.has(word)) {
+  async function send(word: GTile['word']) {
+    if (decided.has(word)) {
       showAnswer({ answerType: 'already_guessed' })
       return
     }

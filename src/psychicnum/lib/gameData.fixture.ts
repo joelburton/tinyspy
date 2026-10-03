@@ -134,8 +134,14 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       nFoundSecrets: foundOf(p),
       nGuessesUsed: usedOf(p),
       board: {
-        tileResults: Object.fromEntries(own.map((e) => [e.word, e.correct])),
-        decidedBy: Object.fromEntries(own.map((e) => [e.word, e.userId])),
+        // Every dealt word, in the puzzle's order, with the guess that decided
+        // it on this seat's board, if any.
+        tiles: words.map((word) => {
+          const guess = own.find((e) => e.word === word)
+          return guess === undefined
+            ? { word, correct: null, decidedBy: null }
+            : { word, correct: guess.correct, decidedBy: guess.userId }
+        }),
       },
     }
   })

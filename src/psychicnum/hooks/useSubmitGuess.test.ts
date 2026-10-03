@@ -9,7 +9,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { useSubmitGuess } from './useSubmitGuess'
-import type { GTileResults } from '../types'
+import type { GTile } from '../types'
 
 const rpc = vi.hoisted(() => vi.fn())
 vi.mock('../db', () => ({ db: { rpc } }))
@@ -18,7 +18,11 @@ function okEnvelope(data: unknown) {
   return { data: { type: 'ok', data, outcome: null, severity: null, message: null }, error: null }
 }
 
-type Props = { tileResults: GTileResults; isViewingHistory: boolean }
+type Props = { tiles: readonly GTile[]; isViewingHistory: boolean }
+
+/** A board of one word, guessed or not. */
+const board = (word: string, correct: boolean | null): GTile[] =>
+  [{ word, correct, outcome: correct === null ? null : correct ? 'won' : 'lost', decidedBy: null }]
 
 function setup(initial: Props) {
   const slot = createFeedbackSlot('local')
@@ -30,13 +34,13 @@ function setup(initial: Props) {
   return { result, rerender, shown }
 }
 
-const LIVE: Props = { tileResults: new Map(), isViewingHistory: false }
+const LIVE: Props = { tiles: board('apple', null), isViewingHistory: false }
 
 beforeEach(() => rpc.mockReset())
 
 describe('useSubmitGuess', () => {
   it('refuses a word already on the board without calling the server', async () => {
-    const { result, shown } = setup({ ...LIVE, tileResults: new Map([['apple', false]]) })
+    const { result, shown } = setup({ ...LIVE, tiles: board('apple', false) })
     await act(() => result.current.send('apple'))
     expect(rpc).not.toHaveBeenCalled()
     expect(shown.mock.calls[0][0].text).toBe('Already guessed')
@@ -56,7 +60,7 @@ describe('useSubmitGuess', () => {
     await act(() => result.current.send('apple'))
     // The reply is in; the colored tile is not yet.
     expect(result.current.inFlight).toBe('apple')
-    rerender({ ...LIVE, tileResults: new Map([['apple', false]]) })
+    rerender({ ...LIVE, tiles: board('apple', false) })
     expect(result.current.inFlight).toBeNull()
   })
 

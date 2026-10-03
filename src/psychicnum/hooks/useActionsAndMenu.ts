@@ -15,7 +15,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import { buildPrintModel } from '../pdf/model'
 import { printPdf } from '../pdf/printPdf'
-import type { GActions, GGameData, GTileWord } from '../types'
+import type { GActions, GGameData, GTile } from '../types'
 
 /**
  * What `request_hint` answers. TWO `ok`s: `hint` carries the row's text whether
@@ -30,7 +30,7 @@ type HintAnswer = {
 /** What `request_spoiler` answers: one `ok`, carrying the secret handed over. */
 type SpoilerAnswer = {
   result: 'spoiler'
-  word: GTileWord
+  word: GTile['word']
 }
 
 /**

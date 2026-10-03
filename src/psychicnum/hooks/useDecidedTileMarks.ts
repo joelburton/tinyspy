@@ -4,11 +4,11 @@ import { useEffect } from 'react'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
-import type { GTileResults, GTileWord } from '../types'
+import type { GTile } from '../types'
 
 /** Empty word set — the resting value of the head-shake, so a board with
  *  nothing shaking hands the same object down every render. */
-const NO_WORDS: ReadonlySet<GTileWord> = new Set()
+const NO_WORDS: ReadonlySet<GTile['word']> = new Set()
 
 /**
  * The marks on the tiles that just got decided: the attention flash on each,
@@ -28,34 +28,40 @@ const NO_WORDS: ReadonlySet<GTileWord> = new Set()
  * remark about the tile's own color, and that color is under the yellow until
  * the flash is done. The red is the half that survives reduced motion, and a
  * correct guess never shakes. The wait is keyed on the WORDS rather than on
- * the set that holds them: `results` is a fresh Map every render, so an effect
- * that depended on it would cancel its own timer whenever anything re-rendered.
+ * the array that holds them: `tiles` is a fresh array every render, so an
+ * effect that depended on it would cancel its own timer whenever anything
+ * re-rendered.
  */
 export function useDecidedTileMarks({
-  results,
+  tiles,
   moveCount,
   isViewingHistory,
 }: {
-  results: GTileResults
+  tiles: readonly GTile[]
   moveCount: number
   isViewingHistory: boolean
 }): {
-  flashing: ReadonlySet<GTileWord>
-  shaking: ReadonlySet<GTileWord>
+  flashing: ReadonlySet<GTile['word']>
+  shaking: ReadonlySet<GTile['word']>
 } {
+  const decided = tiles.filter((t) => t.correct !== null)
+  const decidedWords = decided.map((t) => t.word)
   const flashingTiles = useMoveAttention({
-    content: results,
-    contentKey: [...results.keys()].sort().join(','),
+    content: decided,
+    contentKey: [...decidedWords].sort().join(','),
     moveCount,
     quiet: isViewingHistory,
-    changed: (before, now) =>
-      new Set([...now.keys()].filter((w) => !before.has(w))),
+    changed: (before, now) => {
+      const had = new Set(before.map((t) => t.word))
+      return new Set(now.map((t) => t.word).filter((w) => !had.has(w)))
+    },
   })
 
   const [shakeMark, shakeWrongWords] =
-    useMark<{ words: ReadonlySet<GTileWord> }>(VERDICT_SHAKE_MS)
-  const wrongWordsKey = [...flashingTiles]
-    .filter((w) => results.get(w) === false)
+    useMark<{ words: ReadonlySet<GTile['word']> }>(VERDICT_SHAKE_MS)
+  const wrongWordsKey = decided
+    .filter((t) => flashingTiles.has(t.word) && t.correct === false)
+    .map((t) => t.word)
     .sort()
     .join(',')
   useEffect(function shakeAfterFlash() {

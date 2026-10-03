@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import type { GTileWord } from '../types'
+import type { GTile } from '../types'
 
 /**
  * The word the player has picked as their next guess. Returns:
@@ -33,18 +33,18 @@ export function usePickedTile({
   isViewingHistory: boolean
 }): {
   // The pick, or null.
-  tile: GTileWord | null
+  tile: GTile['word'] | null
   // The pick as the board draws it; null while it must not be drawn.
-  shownTile: GTileWord | null
+  shownTile: GTile['word'] | null
   // Pick a word, or un-pick with null; dismisses the slot's result too.
-  choose: (word: GTileWord | null) => void
+  choose: (word: GTile['word'] | null) => void
   // Un-pick without touching the slot.
   clear: () => void
 } {
-  const [pickedTile, setPickedTile] = useState<GTileWord | null>(null)
+  const [pickedTile, setPickedTile] = useState<GTile['word'] | null>(null)
 
   const choose = useCallback(
-    (word: GTileWord | null) => {
+    (word: GTile['word'] | null) => {
       localFeedbackSlot.dismiss()
       setPickedTile(word)
     },

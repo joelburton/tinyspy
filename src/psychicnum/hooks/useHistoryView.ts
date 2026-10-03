@@ -13,7 +13,10 @@ import type { GGameData, GHistoryView } from '../types'
  */
 export function useHistoryView(gd: GGameData): GHistoryView {
   const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
-  const replayed = historyId === null ? null : replayTurn(gd.events, historyId, gd.compete)
+  const replayed =
+    historyId === null
+      ? null
+      : replayTurn(gd.events, gd.puzzle.words, historyId, gd.compete)
   const author = replayed?.author ?? null
   const isSomeoneElsesBoard = gd.compete && author !== null && author !== gd.me
   return {
@@ -21,7 +24,7 @@ export function useHistoryView(gd: GGameData): GHistoryView {
     viewedEventId: historyId,
     show: showHistory,
     exit: exitHistory,
-    tileResults: replayed?.tileResults ?? null,
+    tiles: replayed?.tiles ?? null,
     litWord: replayed?.litWord ?? null,
     label: replayed?.label ?? null,
     actor: isSomeoneElsesBoard ? author : undefined,

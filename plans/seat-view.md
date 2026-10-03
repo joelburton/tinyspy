@@ -201,7 +201,7 @@ player:
   maxGuesses                              # game; the same on every player
   nFoundSecrets                           # game; own, in every mode
   nGuessesUsed                            # game; own, in every mode
-  board: {tileResults, decidedBy}         # game; what this seat's tiles show; null for an opponent mid-race
+  board: {tiles}                          # game; what this seat's tiles show (decision 9); null for an opponent mid-race
 ```
 
 `isBoardInteractive` is not on a game's player: only scrabble drafts off-turn,
@@ -339,9 +339,10 @@ Decided 2026-10-03. A game with tiles has two names, the same in every game:
   the array is built from.
 
 **The order of work:** psychicnum first, as its own commit right after its
-naming pass (`_make_json_board` writes `board.tiles`; `GTileResults`,
-`board.tileResults` and `board.decidedBy` go; `lib/tileResults.ts` and the
-history replay produce `GTile[]`; `WordTile` → `Tile`); wordle in its naming
+naming pass (done 2026-10-03: `_make_json_board` writes `board.tiles`;
+`GTileResults`, `board.tileResults` and `board.decidedBy` went;
+`lib/addRevealedSecrets.ts` and the history replay produce `GTile[]`;
+`WordTile` → `Tile`); wordle in its naming
 pass, where it is a check and the `LetterTile` → `Tile` rename; connections in
 its Board pass, where `Tile` is extracted and its tile stays a `string`;
 every later game writes `GTile` as part of its conversion, since none has a

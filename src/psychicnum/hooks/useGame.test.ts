@@ -72,10 +72,14 @@ describe('psychicnum makeGameData — the links become players', () => {
     expect(gd.events[0]).not.toHaveProperty('userId')
   })
 
-  it('turns a board into maps, with the deciders as players', () => {
+  it('gives each tile its outcome, read once, and its decider as a player', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
-    expect([...gd.me.board.tileResults]).toEqual([['alpha', true], ['bravo', false]])
-    expect(gd.me.board.decidedBy.get('bravo')).toBe(gd.playersById.u2)
+    expect(gd.me.board.tiles.map((t) => [t.word, t.correct, t.outcome])).toEqual([
+      ['alpha', true, 'won'], ['bravo', false, 'lost'], ['charlie', null, null], ['delta', null, null], ['echo', null, null],
+    ])
+    expect(gd.me.board.tiles[0]!.decidedBy).toBe(gd.me)
+    expect(gd.me.board.tiles[1]!.decidedBy).toBe(gd.playersById.u2)
+    expect(gd.me.board.tiles[2]!.decidedBy).toBeNull()
   })
 
   it('builds the setup rows once, for the info column and the printout', () => {
@@ -115,7 +119,7 @@ describe('psychicnum makeGameData — the seat rule', () => {
     expect(gd.events.map((e) => e.id)).toEqual([1])
     expect(gd.playersById.u2!.board).toBeNull()
     // My own is always mine to see.
-    expect([...gd.me.board.tileResults]).toEqual([['alpha', true]])
+    expect(gd.me.board.tiles.filter((t) => t.correct !== null).map((t) => t.word)).toEqual(['alpha'])
   })
 
   it('the race\'s end opens everything', () => {
@@ -124,7 +128,7 @@ describe('psychicnum makeGameData — the seat rule', () => {
       'u1',
     )
     expect(gd.events.map((e) => e.id)).toEqual([1, 2])
-    expect([...gd.playersById.u2!.board!.tileResults]).toEqual([['bravo', false]])
+    expect(gd.playersById.u2!.board!.tiles.filter((t) => t.correct !== null).map((t) => t.word)).toEqual(['bravo'])
   })
 
   it('coop withholds nothing: one board, one team', () => {

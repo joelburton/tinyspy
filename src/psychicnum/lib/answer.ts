@@ -2,7 +2,7 @@
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
-import type { GAnswer, GTileWord } from '../types'
+import type { GAnswer, GTile } from '../types'
 
 /**
  * How an answer reads — **the one place this game decides that.** An empty
@@ -64,7 +64,7 @@ export function eventToOutcome(row: LoggedEvent): Outcome {
 
 /** What COLOR a guessed word is — the board's decided tile, and the log's
  *  guess row, from the same answer. */
-export function getGuessOutcome(word: GTileWord, isCorrect: boolean): Outcome {
+export function getGuessOutcome(word: GTile['word'], isCorrect: boolean): Outcome {
   return answerMessage({ answerType: isCorrect ? 'hit' : 'miss', word }).outcome
 }
 

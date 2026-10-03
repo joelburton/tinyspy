@@ -26,7 +26,7 @@
 begin;
 set search_path = psychicnum, common, public, extensions;
 
-select plan(35);
+select plan(36);
 
 \ir ../_shared/setup.psql
 
@@ -70,6 +70,21 @@ create function pg_temp.player(game uuid, uid uuid) returns jsonb language sql a
   $$ select p from jsonb_array_elements((select game_data -> 'players' from common.games where id = game)) p
       where p ->> 'id' = uid::text $$;
 
+-- One tile as the builder writes it; a word nobody guessed carries nulls.
+create function pg_temp.tile(word text, correct boolean, decided_by uuid) returns jsonb language sql as
+  $$ select jsonb_build_object('word', word, 'correct', correct, 'decidedBy', decided_by) $$;
+-- The board before anyone has guessed: every dealt word, in the puzzle's order.
+create function pg_temp.fresh_board() returns jsonb language sql as
+  $$ select jsonb_build_object('tiles', jsonb_build_array(
+       pg_temp.tile('zalpha', null, null), pg_temp.tile('zbravo', null, null),
+       pg_temp.tile('zcharlie', null, null), pg_temp.tile('zdelta', null, null),
+       pg_temp.tile('zecho', null, null), pg_temp.tile('zfoxtrot', null, null),
+       pg_temp.tile('zgolf', null, null), pg_temp.tile('zhotel', null, null))) $$;
+-- The tiles of a board that somebody has decided, in the puzzle's order.
+create function pg_temp.decided(board jsonb) returns jsonb language sql as
+  $$ select coalesce(jsonb_agg(t), '[]'::jsonb)
+       from jsonb_array_elements(board -> 'tiles') t where t -> 'correct' <> 'null'::jsonb $$;
+
 -- A player who has not moved, in a free-for-all game with a budget of 5 and
 -- three secrets: the common fields, and psychicnum's on top.
 create function pg_temp.fresh_player(uid uuid, name text) returns jsonb language sql as $$
@@ -92,7 +107,7 @@ create function pg_temp.fresh_player(uid uuid, name text) returns jsonb language
     'maxGuesses',           5,
     'nFoundSecrets',    0,
     'nGuessesUsed',          0,
-    'board',                jsonb_build_object('tileResults', '{}'::jsonb, 'decidedBy', '{}'::jsonb))
+    'board',                pg_temp.fresh_board())
 $$;
 
 -- ─── (1) A fresh coop game, as a whole ───
@@ -168,13 +183,17 @@ select is(
   'coop: the team''s finds and used count, summed over the rows, in game_data.team'
 );
 select is(
-  pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board',
-  jsonb_build_object(
-    'tileResults', '{"zalpha": true, "zdelta": false}'::jsonb,
-    'decidedBy',   jsonb_build_object(
-      'zalpha', 'ada11111-1111-1111-1111-111111111111',
-      'zdelta', 'bea22222-2222-2222-2222-222222222222')),
+  pg_temp.decided(pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board'),
+  jsonb_build_array(
+    pg_temp.tile('zalpha', true, 'ada11111-1111-1111-1111-111111111111'),
+    pg_temp.tile('zdelta', false, 'bea22222-2222-2222-2222-222222222222')),
   'coop: every seat''s board shows the team''s guesses and who made each'
+);
+select is(
+  (select jsonb_agg(t ->> 'word') from jsonb_array_elements(
+     pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board' -> 'tiles') t),
+  '["zalpha", "zbravo", "zcharlie", "zdelta", "zecho", "zfoxtrot", "zgolf", "zhotel"]'::jsonb,
+  '… every dealt word is a tile, decided or not, in the puzzle''s order'
 );
 select is(
   pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111') -> 'board',
@@ -209,15 +228,13 @@ select is(
   'compete: a racer''s counts are their own'
 );
 select is(
-  pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111') -> 'board',
-  jsonb_build_object(
-    'tileResults', '{"zdelta": false}'::jsonb,
-    'decidedBy',   jsonb_build_object('zdelta', 'ada11111-1111-1111-1111-111111111111')),
+  pg_temp.decided(pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111') -> 'board'),
+  jsonb_build_array(pg_temp.tile('zdelta', false, 'ada11111-1111-1111-1111-111111111111')),
   'compete: a racer''s board shows their own guesses alone'
 );
 select is(
-  pg_temp.player(pg_temp.compete(), 'bea22222-2222-2222-2222-222222222222') -> 'board' -> 'tileResults',
-  '{"zalpha": true}'::jsonb,
+  pg_temp.decided(pg_temp.player(pg_temp.compete(), 'bea22222-2222-2222-2222-222222222222') -> 'board'),
+  jsonb_build_array(pg_temp.tile('zalpha', true, 'bea22222-2222-2222-2222-222222222222')),
   '… and the rival''s shows the rival''s'
 );
 select is(
@@ -270,8 +287,10 @@ select is(
   'the won race: the finder ended it and is the winner'
 );
 select is(
-  pg_temp.player(pg_temp.compete(), 'bea22222-2222-2222-2222-222222222222') -> 'board' -> 'tileResults',
-  '{"zalpha": true, "zbravo": true, "zcharlie": true}'::jsonb,
+  (select jsonb_agg(t ->> 'word') from jsonb_array_elements(
+     pg_temp.decided(pg_temp.player(pg_temp.compete(), 'bea22222-2222-2222-2222-222222222222') -> 'board')) t
+    where (t ->> 'correct')::boolean),
+  '["zalpha", "zbravo", "zcharlie"]'::jsonb,
   'the winner''s board shows all three'
 );
 select is(

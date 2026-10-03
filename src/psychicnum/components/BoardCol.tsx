@@ -17,7 +17,7 @@ import { useBoardColActions } from '../hooks/useBoardColActions'
 import { Board } from './Board'
 import { StateLine } from './StateLine'
 import styles from './BoardCol.module.css'
-import type { GGameData, GHistoryView, GTileResults } from '../types'
+import type { GGameData, GHistoryView, GTile } from '../types'
 
 /**
  * psychicnum's board column: the `Board`, and under it Clear and Submit, or
@@ -27,14 +27,15 @@ import type { GGameData, GHistoryView, GTileResults } from '../types'
  */
 export function BoardCol({
   gd,
-  tileResults,
+  tiles,
   historyView,
   localFeedbackSlot,
   myTurnJustStarted,
 }: {
   gd: GGameData
-  // The board on screen: the live results, or a past turn's (PlayArea picks).
-  tileResults: GTileResults
+  // The board on screen: the live tiles, the Reveal's, or a past turn's
+  // (PlayArea picks).
+  tiles: readonly GTile[]
   historyView: GHistoryView
   localFeedbackSlot: FeedbackSlot
   myTurnJustStarted: boolean
@@ -51,7 +52,7 @@ export function BoardCol({
   })
   const submission = useSubmitGuess({
     gameId: gd.id,
-    tileResults,
+    tiles,
     localFeedbackSlot,
     isViewingHistory: historyView.isViewing,
   })
@@ -80,13 +81,9 @@ export function BoardCol({
       </MobileStatusBar>
 
       <Board
-        tiles={{
-          words: gd.puzzle.words,
-          results: tileResults,
-          decidedBy: gd.me.board.decidedBy,
-          // The guesses on my board: the team's in coop, my own in compete.
-          moveCount: gd.stateLineData.nGuessesUsed,
-        }}
+        tiles={tiles}
+        // The guesses on my board: the team's in coop, my own in compete.
+        moveCount={gd.stateLineData.nGuessesUsed}
         marks={{
           pickedTile: pick.shownTile,
           inFlightGuess: submission.inFlight,

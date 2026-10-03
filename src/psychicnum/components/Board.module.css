@@ -1,7 +1,7 @@
 /* cs-blessed-psychicnum */
 
 /* psychicnum's board: a wrapper framing the word grid, and the grid's layout.
- * A tile's own styles are WordTile.module.css. */
+ * A tile's own styles are Tile.module.css. */
 
 /* ─── Tile size caps — TINKER HERE ───────────────────────────────────────────
  * The board grows to fill the space, but a tile never exceeds these. Relative

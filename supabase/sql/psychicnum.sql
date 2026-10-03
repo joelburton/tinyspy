@@ -122,9 +122,13 @@ drop function if exists psychicnum._secrets_for(uuid);
 --     players: [player, …]                 the common player, plus:
 --       nReqdSecrets, maxGuesses   the same on every player
 --       nFoundSecrets, nGuessesUsed     this player's own, in every mode
---       board: {tileResults, decidedBy}    what this seat's tiles show: word → was it a
---                                          secret, word → who guessed it; one board in
---                                          coop, each racer's own in compete
+--       board: {tiles: [{word, correct, decidedBy}, …]}
+--                                          what this seat's tiles show: every dealt word
+--                                          in the puzzle's order, with whether it was a
+--                                          secret and who guessed it, both null while
+--                                          nobody has; one board in coop, each racer's
+--                                          own in compete (plans/seat-view.md → A tile
+--                                          is an instance the builder writes)
 --
 --   summary_data, psychicnum's part (the common part names and dates the game
 --   and carries its ending; the winner is `ending.winner`):
@@ -180,13 +184,22 @@ language sql
 stable
 set search_path = psychicnum, common, public, extensions
 as $$
+  -- Every dealt word, in the puzzle's order, joined to the guess row that
+  -- decided it on this seat's board, if any: the team's rows in coop, the
+  -- seat's own in compete. A word nobody guessed carries nulls.
   select jsonb_build_object(
-    'tileResults', coalesce(jsonb_object_agg(e.word, e.is_correct), '{}'::jsonb),
-    'decidedBy',   coalesce(jsonb_object_agg(e.word, e.user_id), '{}'::jsonb))
-    from psychicnum.events e
-   where e.game_id = p_game_id
+    'tiles', jsonb_agg(jsonb_build_object(
+               'word',      w.word,
+               'correct',   e.is_correct,
+               'decidedBy', e.user_id) order by w.ord))
+    from psychicnum.games g
+    cross join lateral unnest(g.words) with ordinality as w(word, ord)
+    left join psychicnum.events e
+      on e.game_id = g.game_id
      and e.kind = 'guess'
-     and (p_mode = 'coop' or e.user_id = p_user_id);
+     and e.word = w.word
+     and (p_mode = 'coop' or e.user_id = p_user_id)
+   where g.game_id = p_game_id;
 $$;
 
 revoke execute on function psychicnum._make_json_board(uuid, uuid, text) from public;

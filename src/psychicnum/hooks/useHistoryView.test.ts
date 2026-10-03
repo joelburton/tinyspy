@@ -35,7 +35,7 @@ describe('useHistoryView', () => {
     const { result } = renderHook(() => useHistoryView(gdWith('coop')))
     expect(result.current.isViewing).toBe(false)
     expect(result.current.viewedEventId).toBeNull()
-    expect(result.current.tileResults).toBeNull()
+    expect(result.current.tiles).toBeNull()
     expect(result.current.label).toBeNull()
   })
 
