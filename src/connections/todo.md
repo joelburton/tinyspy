@@ -2,6 +2,15 @@
 
 ## Bugs
 
+- **`boardEvents` is worked out in `BoardCol`, from `gd` alone.** The rows
+  of the board I play — every row in coop, my own in compete — filtered from
+  `gd.events` in the component, for the foreign-guess mark and the attention
+  count. A value that reads only `gd` belongs in `gd`, decided once in
+  `makeGameData`. The candidate home is the player's board, as
+  `p.board.events`: the rows that built that seat's board, beside the two
+  things they produce. Left as is on purpose (2026-10-02), to decide once the
+  same split shows up in more games than this one.
+
 ## Soon
 
 ## Someday

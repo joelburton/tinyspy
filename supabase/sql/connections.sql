@@ -903,7 +903,7 @@ create or replace function connections.submit_guess(
   p_game_id uuid,
   p_tiles text[],
   p_result text,
-  p_matched_category_rank int default null
+  p_matched_cat_rank int default null
 )
 returns jsonb
 language plpgsql
@@ -980,8 +980,8 @@ begin
   end if;
 
   if p_result = 'correct' then
-    if p_matched_category_rank is null
-       or p_matched_category_rank not between 0 and 3 then
+    if p_matched_cat_rank is null
+       or p_matched_cat_rank not between 0 and 3 then
       raise exception 'BUG: correct guess with no category'
         using errcode = 'PN249', hint = 'fault', column = '_',
         detail = 'a correct guess must name a category rank 0..3';
@@ -1018,7 +1018,7 @@ begin
       select 1 from connections.events e
        where e.game_id = p_game_id
          and e.result = 'correct'
-         and e.matched_cat_rank = p_matched_category_rank
+         and e.matched_cat_rank = p_matched_cat_rank
          and (v_mode = 'coop' or e.user_id = caller_id)
     ) then
       -- PN300 — a RACE, and the textbook one. The rank was taken between this
@@ -1037,7 +1037,7 @@ begin
     insert into connections.events
       (game_id, user_id, kind, tiles, result, matched_cat_rank, took_turn)
     values
-      (p_game_id, caller_id, 'guess', p_tiles, p_result, p_matched_category_rank, true);
+      (p_game_id, caller_id, 'guess', p_tiles, p_result, p_matched_cat_rank, true);
 
     -- The caller's own count, on their row; the compete win check below
     -- reuses it.

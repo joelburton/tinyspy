@@ -247,7 +247,7 @@ with `coop_style: 'turns'`.
 { "result": "created", "id": "3f2a…" }
 ```
 
-### `connections.submit_guess(p_game_id, p_tiles, p_result, p_matched_category_rank)`
+### `connections.submit_guess(p_game_id, p_tiles, p_result, p_matched_cat_rank)`
 
 The only mid-game move, and the only one that writes a `kind = 'guess'` row.
 `tiles` is the four picked, `result` is the frontend's own verdict in the wire
@@ -274,7 +274,7 @@ turn on.
 
 ```json
 { "p_game_id": "3f2a…", "p_tiles": ["BASS", "FLOUNDER", "SOLE", "PIKE"],
-  "p_result": "correct", "p_matched_category_rank": 2 }
+  "p_result": "correct", "p_matched_cat_rank": 2 }
 ```
 
 **Returned — kind: `guess`.** Three shapes, one per verdict recorded; the

@@ -45,7 +45,7 @@ async function guess(
       p_game_id: gameId,
       p_tiles: tiles,
       p_result: result,
-      p_matched_category_rank: rank,
+      p_matched_cat_rank: rank,
     })
   if (res.error) throw new Error(`connections.submit_guess: ${res.error.message}`)
 }

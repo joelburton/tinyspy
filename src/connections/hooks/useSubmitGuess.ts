@@ -90,7 +90,7 @@ export function useSubmitGuess({
     // Only a match names a category. The argument is OPTIONAL rather than
     // nullable, so the other two verdicts leave it out rather than send null.
     const matchedCategory =
-      evaluation.result === 'correct' ? { p_matched_category_rank: evaluation.rank } : {}
+      evaluation.result === 'correct' ? { p_matched_cat_rank: evaluation.rank } : {}
     const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
       p_game_id: gd.id,
       p_tiles: sent,

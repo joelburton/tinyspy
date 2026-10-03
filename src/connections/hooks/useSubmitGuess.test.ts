@@ -83,7 +83,7 @@ describe('useSubmitGuess', () => {
     const { result, sendClear, slot, markTiles } = setup(['a', 'b', 'c', 'd'])
     await act(() => result.current.send())
     expect(rpc).toHaveBeenCalledWith('submit_guess', {
-      p_game_id: 'g1', p_tiles: ['a', 'b', 'c', 'd'], p_result: 'correct', p_matched_category_rank: 0,
+      p_game_id: 'g1', p_tiles: ['a', 'b', 'c', 'd'], p_result: 'correct', p_matched_cat_rank: 0,
     })
     // A match shows its answer and collapses into a band: no fill to mark.
     expect(slot.peek().map((e) => e.message.text)).toEqual(['Correct'])

@@ -1333,7 +1333,7 @@ export type Database = {
       submit_guess: {
         Args: {
           p_game_id: string
-          p_matched_category_rank?: number
+          p_matched_cat_rank?: number
           p_result: string
           p_tiles: string[]
         }

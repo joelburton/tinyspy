@@ -104,7 +104,7 @@ const CASES: Case[] = [
               p_game_id: game.id,
               p_tiles: ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'],
               p_result: 'correct',
-              p_matched_category_rank: 0,
+              p_matched_cat_rank: 0,
             })
           envelopeData(res, 'connections.submit_guess')
         },
