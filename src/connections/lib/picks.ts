@@ -7,7 +7,7 @@ import type { GPickEvent, GPickMap } from '../types'
  * The shared picks on a coop board — who is holding which tiles, and the
  * three rules that move them (doc.md → Coop).
  *
- * `useGame` owns the map as state and puts every change on the wire as a
+ * `usePicks` owns the map as state and puts every change on the wire as a
  * `GPickEvent`; what an event MEANS is here, so the rules can be read and
  * tested without a Realtime channel. Compete sends nothing, but runs the same
  * rules locally over a map holding only the player's own picks.

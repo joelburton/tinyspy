@@ -193,7 +193,7 @@ the game row, so two Submits at the same instant serialize.
 **Realtime is two rooms**, both stable-named because broadcasts merge only
 across matching names: `game:${gameId}` is `useCommonGame`'s (presence, the
 manual pause, the timer, the `common.games` row) and `connections:${gameId}`
-is `useGame`'s, joined in coop only, for the picks Broadcast (`pick` ·
+is `usePicks`'s, the board column's, joined in coop only, for the picks Broadcast (`pick` ·
 `unpick` · `clear`, on the `pick` event). The tables have no subscription of
 their own: every move rewrites the blobs on `common.games`, and the page
 hands the new blob down. The picks are pause-transient by construction: they
@@ -377,9 +377,9 @@ describes — a loader that builds `gd` from the blob, then `PlayArea` in the
 eight sections.
 
 ```
-<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame: the blob becomes gd, and the picks beside it
+<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame: the blob becomes gd
   └── PlayArea                           the coordinator: draws no board, no control
-        ├── BoardCol                     the board column — and submit_guess
+        ├── BoardCol                     the board column — the picks (usePicks) and submit_guess
         │     ├── Board                  one grid: the solved bands, then the tiles
         │     │     └── ShuffleButton ←  floats on the board, not in the action row
         │     └── the commit row         Clear · Submit, and the mistakes beside them
@@ -412,8 +412,9 @@ built, and the seat rule applied — in compete, mid-race, a rival's rows leave
 the log and their `board` is null. It is a pure function of the blob and who I
 am; no reads, no subscription. Every fact about a seat is on the player
 (`gd.me.onTurn`, `p.nMatchedCats`, `gd.me.board.tilesLeft`), and a component
-asks a player, never the table. Beside `gd` the hook hands back the `picks`,
-the one live state this game keeps (the Broadcast room above). **Every type
+asks a player, never the table. The `picks`, the one live state this game
+keeps (the Broadcast room above), are the board column's, from `usePicks`;
+nothing above it reads them. **Every type
 this game exports is in `types.ts`**, wearing the `G` that says it is the
 game's and not the shell's (docs/code-conventions.md → A game's types).
 
@@ -493,7 +494,8 @@ Vitest, beside the code:
 | `lib/history.test` · `lib/localOrder.test` | the strictly-before boundary and the lit tiles; a shuffle keeps every tile |
 | `lib/picks.test` | the click rule on the union of everyone's picks, and a reducer whose no-op returns the same map |
 | `lib/setup.test` · `lib/setupRows.test` | the two keys the default leaves out; the setup rows' order, and a puzzle date that names the same day in every timezone |
-| `hooks/useGame.test` | `gd` from the blob — the links turned into players, each row read once, the setup rows, the counts and the board; the seat rule: a rival's rows and board withheld mid-race, opened at the end, nothing withheld in coop; a null blob throws; coop's one stable picks room per game, rebuilt on `gameId` and never on a session refresh, and compete joining none |
+| `hooks/useGame.test` | `gd` from the blob — the links turned into players, each row read once, the setup rows, the counts and the board; the seat rule: a rival's rows and board withheld mid-race, opened at the end, nothing withheld in coop; a null blob throws |
+| `hooks/usePicks.test` | the picks room: coop joins the game's room once and rebuilds it for a new game, a click applies locally and goes on the wire, compete joins nothing; a clear; the guess complete at four and a fifth pick refused |
 | `hooks/useActionsAndMenu.test` | the menu's rows in the action row's order; the reveal's faces before and after the end, and a solver's shown unasked; the hint list's toggle, gone once I can no longer submit |
 | `hooks/useHistoryView.test` | live until a turn opens; the board rebuilt at that turn from its author's rows; the actor named only for an opponent's board |
 | `hooks/useSubmitGuess.test` | nothing short of four; a set already tried refused locally; the verdict worked out and sent up with its rank; the in-flight dim; a not-ok leaves the picks |

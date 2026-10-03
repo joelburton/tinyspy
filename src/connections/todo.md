@@ -13,6 +13,13 @@
 
 ## Soon
 
+- **A phone sees no readout above the board.** The state line lives in
+  `InfoCol`, off-canvas in the sheet on a phone; psychicnum and most other
+  games mount `MobileStatusBar` with their `StateLine` in `BoardCol` so the
+  phone sees it. connections shows only "Mistakes ■■□□" under the board. Set
+  aside at the BoardCol pass (2026-10-03) as a UX change, not a readability
+  one.
+
 ## Someday
 
 ## Maybe

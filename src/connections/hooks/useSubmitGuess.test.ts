@@ -43,7 +43,7 @@ const RACE = {
 function setup(union: string[], events: ZTest_GameDataFacts['events'] = []) {
   const gd = makeGameData(ZTest_makeGameDataRaw({ events }), 'u1')
   const sendClear = vi.fn()
-  const picks = { union, sendClear } as unknown as GPicks
+  const picks = { union, isComplete: union.length === 4, sendClear } as unknown as GPicks
   const slot = createFeedbackSlot('local')
   const markTiles = vi.fn()
   const { result } = renderHook(() =>

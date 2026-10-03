@@ -319,14 +319,17 @@ export type GPuzzleAnswer = {
 /**
  * The guess being assembled: who holds which tiles, and the two senders.
  * Coop shares them over the picks room; compete keeps them on this client
- * (`useGame`). Live Broadcast state with no row behind it, which is why it
- * rides beside `gd` rather than in it.
+ * (`usePicks`). Live Broadcast state with no row behind it, which is why it
+ * is the board column's rather than `gd`'s.
  */
 export type GPicks = {
   // One entry per player holding tiles, in pick order.
   byUser: GPickMap
   // Every held tile, flattened in pick order — what Submit sends.
   union: string[]
+  // Four tiles are held across the table: the guess is ready to send, and a
+  // fifth pick is refused.
+  isComplete: boolean
   // Picked tile → the id of who picked it; a tile nobody holds is absent.
   tileToPickerId: ReadonlyMap<string, string>
   toggleTile: (tile: string) => void

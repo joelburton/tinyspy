@@ -34,7 +34,7 @@ import {
   type ZTest_PlayerFacts,
 } from '../lib/gameData.fixture'
 import { unionTiles } from '../lib/picks'
-import type { GEventRaw, GGameDataRaw, GPickMap } from '../types'
+import type { GEventRaw, GPickMap } from '../types'
 import { db } from '../db'
 import { PlayAreaLoader } from './PlayArea'
 
@@ -49,26 +49,21 @@ const h = vi.hoisted(() => ({
   sendClear: vi.fn(),
 }))
 // `gd` is the real one, from the blob; only the picks are the test's.
-vi.mock('../hooks/useGame', async (importOriginal) => {
-  const real = await importOriginal<typeof import('../hooks/useGame')>()
-  return {
-    ...real,
-    useGame: (ctx: PlayAreaLoaderProps) => {
-      const tileToPickerId = new Map<string, string>()
-      for (const [userId, tiles] of h.picks) for (const tile of tiles) tileToPickerId.set(tile, userId)
-      return {
-        gd: real.makeGameData(ctx.gameData as GGameDataRaw, ctx.auth.user.id),
-        picks: {
-          byUser: h.picks,
-          union: unionTiles(h.picks),
-          tileToPickerId,
-          toggleTile: h.toggleTile,
-          sendClear: h.sendClear,
-        },
-      }
-    },
-  }
-})
+vi.mock('../hooks/usePicks', () => ({
+  usePicks: () => {
+    const tileToPickerId = new Map<string, string>()
+    for (const [userId, tiles] of h.picks) for (const tile of tiles) tileToPickerId.set(tile, userId)
+    const union = unionTiles(h.picks)
+    return {
+      byUser: h.picks,
+      union,
+      isComplete: union.length === 4,
+      tileToPickerId,
+      toggleTile: h.toggleTile,
+      sendClear: h.sendClear,
+    }
+  },
+}))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>

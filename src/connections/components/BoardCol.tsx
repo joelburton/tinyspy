@@ -4,60 +4,61 @@ import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useWatchAndGetTopFeedbackMsg } from '@/common/feedback/useFeedbackSlot'
+import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { colorByUserIdMap } from '@/common/members/memberColor'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import { usePicks } from '../hooks/usePicks'
 import { useVerdictMark } from '../hooks/useVerdictMark'
 import { useMarkForeignGuesses } from '../hooks/useMarkForeignGuesses'
 import { useSubmitGuess } from '../hooks/useSubmitGuess'
 import { useBoardColActions } from '../hooks/useBoardColActions'
-import { getUnmatchedCats } from '../lib/getUnmatchedCats'
 import { Board } from './Board'
 import { StrikeMarks } from './StrikeMarks'
 import shared from '@/common/game-page/playArea.module.css'
 import historyStyles from '@/common/event-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
-import type { GGameData, GHistoryView, GPicks } from '../types'
-
-/** No picks: an empty tile → picker map, for a board that draws none — a
- *  past turn on screen, or my play over. */
-const NO_PICKS: ReadonlyMap<string, string> = new Map()
+import type { GBoard, GCategory, GGameData, GHistoryView } from '../types'
 
 /**
  * connections' board column: the `Board`, and under it Clear and Submit with
  * the mistakes beside them, or the local slot's message in their place. It
  * sends the guess (`useSubmitGuess`) and owns the verdict mark on the tiles
  * it was about (`useVerdictMark`, fed by my answers and, through
- * `useMarkForeignGuesses`, by a teammate's rows); the board itself — its order, its cursor,
- * its Shuffle — is `Board`'s. The picks are `useGame`'s, shared over
- * Broadcast in coop, so this column renders and commits them. See
- * docs/playarea.md.
+ * `useMarkForeignGuesses`, by a teammate's rows) and the picks the guess is
+ * built from (`usePicks`, shared over Broadcast in coop); the board itself —
+ * its order, its cursor, its Shuffle — is `Board`'s. See docs/playarea.md.
  */
 export function BoardCol({
   gd,
-  picks,
+  board,
+  revealedCats,
   historyView,
   localFeedbackSlot,
   myTurnJustStarted,
-  solutionShown,
 }: {
   gd: GGameData
-  picks: GPicks
+  // The board on screen: the live one, the reveal's, or a past turn's
+  // (PlayArea picks).
+  board: GBoard
+  // The categories the reveal shows in place of the loose tiles; `[]` otherwise.
+  revealedCats: GCategory[]
   historyView: GHistoryView
   // PlayArea's below-board slot: a guess's answer shows into it, and while it
   // holds anything the pill takes the commit row's place.
   localFeedbackSlot: FeedbackSlot
   myTurnJustStarted: boolean
-  // Is the ANSWER on the board right now (the reveal)?
-  solutionShown: boolean
 }) {
-  // A past turn on screen blocks every write to the board.
-  const canPick = gd.me.onTurn && !historyView.isViewing
-  const canSubmit = canPick
+  // The board is mine to touch: my move, and the live board on screen — a
+  // click or key on a past turn is the viewer's exit, and must not also act.
+  // The board takes picks under this gate, and Clear and Submit show under it.
+  const isInteractive = gd.me.onTurn && !historyView.isViewing
+
+  const picks = usePicks({ gameId: gd.id, isCompete: gd.compete, myId: gd.me.id })
 
   // The rows on the board I play: every guess on coop's shared board, only my
-  // own in compete (doesn't change at end of game; still just "my board" events)
+  // own in compete.
   const boardEvents = gd.events.filter((e) => gd.oneBoard || e.by === gd.me)
 
   const verdict = useVerdictMark({ localFeedbackSlot })
@@ -76,17 +77,16 @@ export function BoardCol({
   })
 
   const actions = useBoardColActions({
-    canPick,
-    canSubmit,
-    unionTiles: picks.union,
+    isInteractive,
+    picks,
     submitGuess: submission.send,
-    sendClear: picks.sendClear,
   })
+
+  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // A pick is the player's next move: it dismisses the last answer, pill and
   // fill together, then toggles the tile.
   function pickTile(tile: string) {
-    if (!canPick) return
     localFeedbackSlot.dismiss()
     verdict.clear()
     picks.toggleTile(tile)
@@ -94,17 +94,23 @@ export function BoardCol({
 
   // ─── Render ────────────────────────────────────────────
 
-  // The categories nobody got — only while this viewer is asking for them.
-  const unmatchedCats = solutionShown ? getUnmatchedCats(gd.puzzle.cats, gd.me.board.matchedCats) : []
-
-  // No picks are drawn on a board that can't take a move — a past turn, or a
-  // player who is finished — though the broadcast state itself outlives both.
-  const shownTileToPickerId =
-    historyView.isViewing || !gd.me.stillPlaying ? NO_PICKS : picks.tileToPickerId
-
   // The players are working one board together: coop with more than one of
   // them. Solo, and in compete, each board is one player's own.
   const isSharedBoard = gd.oneBoard && gd.players.length > 1
+
+  // Each picked tile, with its picker's color where WHOSE pick is worth
+  // saying — on a shared board — and null where it is not. No picks are drawn
+  // on a board that can't take a move — a past turn, or a player who is
+  // finished — though the broadcast state itself outlives both.
+  const arePicksShown = !historyView.isViewing && gd.me.stillPlaying
+  const colorByUserId = colorByUserIdMap(gd.players)
+  const tileToPickerColor = new Map<string, string | null>()
+  if (arePicksShown) {
+    for (const [tile, pickerId] of picks.tileToPickerId) {
+      // A pick is a seated player's, and every seated player is in `gd.players`.
+      tileToPickerColor.set(tile, isSharedBoard ? colorByUserId.get(pickerId)! : null)
+    }
+  }
 
   const isPhone = useIsPhone()
   const buttonShow = isPhone ? 'icon' : 'both'
@@ -113,25 +119,24 @@ export function BoardCol({
   return (
     <div className={shared.boardCol}>
       <Board
-        matchedCats={gd.me.board.matchedCats}
-        unmatchedCats={unmatchedCats}
-        tilesLeft={gd.me.board.tilesLeft}
-        solutionShown={solutionShown}
+        board={board}
+        revealedCats={revealedCats}
+        marks={{
+          tileToPickerColor,
+          inFlightGuess: submission.inFlight,
+          verdict: verdict.mark,
+          // Bands the board once I have ended: the game's ending, or mine
+          // while the others play on.
+          endingOutcome: gd.me.outcome,
+          isWaitingForTurn: gd.me.waitingForTurn,
+          myTurnJustStarted,
+        }}
         historyView={historyView}
-        isBoardInteractive={gd.me.onTurn}
+        isInteractive={isInteractive}
         isStillPlaying={gd.me.stillPlaying}
-        tileToPickerId={shownTileToPickerId}
-        onPick={pickTile}
-        inFlightGuess={submission.inFlight}
-        verdict={verdict.mark}
-        colorByUserId={colorByUserIdMap(gd.players)}
-        isSharedBoard={isSharedBoard}
-        isWaitingForTurn={gd.me.waitingForTurn}
-        myTurnJustStarted={myTurnJustStarted}
-        // Bands the board once I have ended: the game's ending, or mine while
-        // the others play on.
-        endingOutcome={gd.me.outcome}
+        // The guesses on my board: the team's in coop, my own in compete.
         moveCount={boardEvents.length}
+        onPick={pickTile}
       />
 
       {/* The slot under the board: the commit row with the inline mistakes, or
@@ -145,7 +150,7 @@ export function BoardCol({
             historyView.isViewing && historyStyles.historyBannerHost,
           )}
         >
-          {historyView.label !== null && (
+          {historyView.isViewing && (
             <HistoryBanner
               label={historyView.label}
               actor={historyView.actor}

@@ -7,7 +7,6 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import { answerMessage } from '../lib/answer'
-import { TILES_PER_CATEGORY } from '../lib/board'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import type { GGameData, GPicks, GGuessResult } from '../types'
 import type { GVerdictMark } from '../types'
@@ -73,8 +72,8 @@ export function useSubmitGuess({
   const [inFlight, setInFlightGuess] = useState<ReadonlySet<string>>(NO_TILES)
 
   async function send() {
+    if (!picks.isComplete) return
     const sent = [...picks.union]
-    if (sent.length !== TILES_PER_CATEGORY) return
 
     // The log I can see is the board I play: coop's whole shared log, or my
     // own rows in a race still running.

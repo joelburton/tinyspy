@@ -211,6 +211,33 @@ psychicnum's. What it settled beyond psychicnum:
 - **Comments:** a prop whose name says what it is has no comment; a type's
   field comment says what the field means.
 
+## What connections added
+
+connections' BoardCol pass (2026-10-03) settled, beyond the two games above:
+
+- **`isInteractive`, not `canPick`.** The one gate — my move, on the live
+  board — says the surface responds to me and promises nothing about any one
+  gesture landing: a fifth pick is refused by the picks rule, a decided tile
+  by the tile, and `canPick` claimed otherwise. Computed once in `BoardCol`,
+  it feeds `Board`, the actions hook and the pick handler; inside the column
+  the short form is enough, and a component's prop is about itself, so it is
+  `isInteractive` on `Board` too. psychicnum's `canPick` takes the same name
+  when it next opens.
+- **A fact three readers count is decided once.** "Four tiles are held" was
+  worked out in the actions hook, in `send` and in the picks rule; it is
+  `picks.isComplete`, computed in `useGame` beside `union`.
+- **The board to show is picked in PlayArea.** Live, the reveal's (the same
+  board with no loose tiles, and the unmatched categories as `revealedCats`),
+  or a past turn's — `Board` consults nothing but the `board` it is handed.
+- **A leaf gets the answer.** `Board` took a tile → picker-id map, a
+  user → color map and `isSharedBoard`, and joined them per tile. `BoardCol`
+  hands one `tileToPickerColor` map: a picked tile is a key, its value the
+  picker's color where whose pick is worth saying and null where it is not.
+- **Live state nothing above the column reads is the column's.** The picks
+  (the map, the Broadcast room, the two senders) were `useGame`'s and rode
+  through PlayArea as a prop that only `BoardCol` read; they are `usePicks`,
+  a hook of `BoardCol`'s, and `useGame` hands back `gd` alone.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

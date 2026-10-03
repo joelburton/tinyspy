@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useBindAction, type Action } from '@/common/actions/useBindAction'
-import { TILES_PER_CATEGORY } from '../lib/board'
+import type { GPicks } from '../types'
 
 /**
  * The board column's two commands, on their buttons and their keys: Submit
@@ -17,38 +17,32 @@ import { TILES_PER_CATEGORY } from '../lib/board'
  * `pending`).
  */
 export function useBoardColActions({
-  canPick,
-  canSubmit,
-  unionTiles,
+  isInteractive,
+  picks,
   submitGuess,
-  sendClear,
 }: {
-  // A pick can be made or cleared right now.
-  canPick: boolean
-  // It is my move, and a guess can go.
-  canSubmit: boolean
-  // Every held tile — what Submit sends.
-  unionTiles: readonly string[]
+  // The board is mine to touch right now: my move, on the live board.
+  isInteractive: boolean
+  picks: GPicks
   submitGuess: () => Promise<void>
-  sendClear: () => void
 }): {
   actSubmit: Action
   actClearPicks: Action
 } {
   const actSubmit = useBindAction('act-submit', {
     describe: () => {
-      if (!canSubmit) return 'hidden'
-      return unionTiles.length === TILES_PER_CATEGORY ? 'active' : 'disabled'
+      if (!isInteractive) return 'hidden'
+      return picks.isComplete ? 'active' : 'disabled'
     },
     run: submitGuess,
   })
 
   const actClearPicks = useBindAction('act-clear-picks', {
     describe: () => {
-      if (!canPick) return 'hidden'
-      return unionTiles.length === 0 ? 'disabled' : 'active'
+      if (!isInteractive) return 'hidden'
+      return picks.union.length === 0 ? 'disabled' : 'active'
     },
-    run: sendClear,
+    run: picks.sendClear,
   })
 
   return { actSubmit, actClearPicks }

@@ -8,13 +8,13 @@ import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { peerAnswerMessage } from '../lib/answer'
+import { getUnmatchedCats } from '../lib/getUnmatchedCats'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
@@ -25,18 +25,17 @@ import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
-import type { GGameData, GPicks } from '../types'
+import type { GGameData } from '../types'
 
 /**
- * The manifest's component: builds `gd` from the blob the page was handed,
- * keeps the picks beside it, and draws the surface.
+ * The manifest's component: builds `gd` from the blob the page was handed
+ * and draws the surface.
  */
 export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
-  const { gd, picks } = useGame(ctx)
+  const { gd } = useGame(ctx)
   return (
     <PlayArea
       gd={gd}
-      picks={picks}
       auth={ctx.auth}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
       goToFollowUpGame={ctx.goToFollowUpGame}
@@ -50,7 +49,6 @@ type PlayAreaProps = Pick<
   'auth' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
 > & {
   gd: GGameData
-  picks: GPicks
 }
 
 /**
@@ -69,7 +67,6 @@ type PlayAreaProps = Pick<
  */
 function PlayArea({
   gd,
-  picks,
   auth,
   globalFeedbackSlot,
   goToFollowUpGame,
@@ -95,9 +92,8 @@ function PlayArea({
 
   // ─── The local slot, and what stands in it ─────────────
 
-  // The slot under the board is for messages about ME. Any key dismisses one.
+  // The slot under the board is for messages about ME.
   const localFeedbackSlot = useFeedbackSlot('local')
-  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // The endings' messages, for the pill and the info column: the game's once
   // it has ended, mine while I am out of the race and the others play on.
@@ -152,15 +148,23 @@ function PlayArea({
   // The ending that applies to me: the game's once it has ended, else mine.
   const endingMessage = gameEndingMessage ?? playerEndingMessage
 
+  // The board to show: a past turn's while one is open; else mine, with the
+  // reveal's categories in place of the loose tiles once it is asked for.
+  const isRevealShown = solutionShown && !historyView.isViewing
+  const shownBoard =
+    historyView.board ?? (isRevealShown ? { ...gd.me.board, tilesLeft: [] } : gd.me.board)
+  const revealedCats =
+    isRevealShown ? getUnmatchedCats(gd.puzzle.cats, gd.me.board.matchedCats) : []
+
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         gd={gd}
-        picks={picks}
+        board={shownBoard}
+        revealedCats={revealedCats}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
         myTurnJustStarted={turnFlash}
-        solutionShown={solutionShown}
       />
 
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}

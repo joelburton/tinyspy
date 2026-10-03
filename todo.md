@@ -16,6 +16,24 @@ decision against, so a review doesn't propose it again
 
 ## Soon
 
+- **An actor is a player, and an absent one is null.** The history views
+  (`GHistoryView.actor` in every game that has one) return `undefined` for
+  "no one to name", and `HistoryBanner`, `ActorMention`, `FeedbackMessage`'s
+  peer and chat builders and the terminal message each take an `Actor`
+  (`Pick<Member, 'username' | 'color'>`), so a view that holds the whole
+  player narrows it to a name and a color, and a reader cannot tell a missing
+  actor from an unset prop. Two changes, once every game is on the page blobs
+  and holds its players: `Actor` retires in favor of `Member` (`Player`, the
+  same thing), so a dot or a mention carries the id a hover or a profile link
+  would want; and "no one" is `null` everywhere, `undefined` meaning only
+  "not passed". Until then the rule for a converted game is that a hook or
+  `gd` hands over the player, and only a render site's prop may still say
+  `Actor`. What keeps `Actor` alive today: the unconverted games' PlayAreas
+  build one from a winner's or leader's name read out of a status
+  (wordiply, wordwheel, crosswords, stackdown, spellingbee, boggle,
+  codenamesduet) and the console's `puppill` helper; both go as the games
+  convert.
+
 - **Every jsonb key the app designs is camelCase, as the page blobs' are.**
   Today code-conventions makes `setup`, `status` and the rest snake_case,
   with the page blobs the one exception, so a key stored snake lands in `gd`

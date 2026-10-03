@@ -1,7 +1,7 @@
 // cs-blessed-connections
 
 import { cls } from '@/common/utils/cls'
-import type { GCategory, GHistoryView, GMatchedCat } from '../types'
+import type { GBoard, GCategory, GHistoryView, GMatchedCat } from '../types'
 import type { GBoardVerdict } from '../types'
 import { useTileShuffle } from '../hooks/useTileShuffle'
 import type { Mark } from '@/common/board-marks/useMark'
@@ -22,35 +22,11 @@ import styles from './Board.module.css'
 
 const COLS = 4
 
-
-type Props = {
-  // Categories resolved by a correct guess.
-  matchedCats: GMatchedCat[]
-  // Categories revealed at game-end (loss / elimination); `[]` during play.
-  unmatchedCats: GCategory[]
-  // The loose tiles, in the puzzle's order; the display order is this
-  // component's (`useTileShuffle`). They stay on a FROZEN board (that's the
-  // record of how far the players got) and step aside only for the reveal,
-  // whose bands take their grid rows.
-  tilesLeft: string[]
-  // Is the ANSWER on the board right now (the reveal)?
-  solutionShown: boolean
-  // A past turn's board while one is open: its bands and tiles replace the
-  // live ones, its four guessed tiles are lit, and the board is read-only
-  // under the shared viewer frame.
-  historyView: GHistoryView
-  // The board responds to me (the page's `isBoardInteractive`). False — or a
-  // past turn on screen — marks the tiles `disabled`: the shared `.tile`
-  // chrome then drops the pointer cursor and the hover lift, so a record
-  // doesn't advertise itself as an input.
-  isBoardInteractive: boolean
-  // Still in the game — the Shuffle shows, and the picks are drawn.
-  isStillPlaying: boolean
-  // Picked tile → the id of who picked it. A tile absent from it is not in
-  // the guess being built.
-  tileToPickerId: ReadonlyMap<string, string>
-  // A tile was picked — by a click, or by Space on the cursor.
-  onPick: (tile: string) => void
+/** What the board wears on and around its tiles. */
+type BoardMarks = {
+  // Each picked tile, with its picker's color where WHOSE pick is worth
+  // saying, else null. A tile absent from it is not in the guess being built.
+  tileToPickerColor: ReadonlyMap<string, string | null>
   // The tiles of a guess that is OUT — sent, waiting on the server. They wear
   // the shared in-flight dim until the answer lands.
   inFlightGuess: ReadonlySet<string>
@@ -61,22 +37,42 @@ type Props = {
   // is what those tiles are keyed on, so submitting the same four twice
   // shakes twice.
   verdict: Mark<GBoardVerdict> | null
-  // user_id → resolved color var, for the identity ring.
-  colorByUserId: ReadonlyMap<string, string>
-  // The players are working one board together (`gd.isSharedBoard`).
-  isSharedBoard: boolean
-  // A teammate holds the move (the page's `isWaitingForTurn`): the board-scope
-  // dim, unless the board is interactive.
-  isWaitingForTurn: boolean
-  // True for a beat as the turn becomes mine (useTurnStartFlash).
-  myTurnJustStarted: boolean
   // The ending that applies to me — the board wears the frame in its outcome.
   // Null while I play.
   endingOutcome: EndOutcome | null
+  // A teammate holds the move: the board-scope dim.
+  isWaitingForTurn: boolean
+  // True for a beat as the turn becomes mine (useTurnStartFlash).
+  myTurnJustStarted: boolean
+}
+
+type Props = {
+  // What the grid draws: the matched bands, and the loose tiles in the
+  // puzzle's order — the display order is this component's (`useTileShuffle`).
+  // The live board, the reveal's (no tiles left), or a past turn's: the
+  // caller picks. Loose tiles stay on a FROZEN board (that's the record of how
+  // far the players got) and step aside only for the reveal, whose bands take
+  // their grid rows.
+  board: GBoard
+  // The categories the reveal shows in place of the loose tiles; `[]` otherwise.
+  revealedCats: GCategory[]
+  marks: BoardMarks
+  // A past turn is open: the board is read-only under the shared viewer frame,
+  // and its four guessed tiles are lit.
+  historyView: GHistoryView
+  // The board is mine to touch right now: the tiles take a click or Space.
+  // False marks them `disabled`: the shared `.tile` chrome then drops the
+  // pointer cursor and the hover lift, so a record doesn't advertise itself
+  // as an input.
+  isInteractive: boolean
+  // Still in the game — the Shuffle shows.
+  isStillPlaying: boolean
   // ATTENTION's cause, the server's move marker: the guess log's length. A band
   // arriving is only news when a MOVE put it there — the reveal swaps four
   // bands in without one (`useMoveAttention`).
   moveCount: number
+  // A tile was picked — by a click, or by Space on the cursor.
+  onPick: (tile: string) => void
 }
 
 /**
@@ -104,58 +100,42 @@ type Props = {
  * which reports a pick up through `onPick` as a click does.
  */
 export function Board({
-  matchedCats,
-  unmatchedCats,
-  tilesLeft,
-  solutionShown,
+  board,
+  revealedCats,
+  marks,
   historyView,
-  isBoardInteractive,
+  isInteractive,
   isStillPlaying,
-  tileToPickerId,
-  onPick,
-  inFlightGuess,
-  verdict,
-  colorByUserId,
-  isSharedBoard,
-  isWaitingForTurn,
-  myTurnJustStarted,
-  endingOutcome,
   moveCount,
+  onPick,
 }: Props) {
-  // May I pick a tile right now? A past turn on screen blocks it: any click
-  // or key there leaves history.
-  const canPick = isBoardInteractive && !historyView.isViewing
-
   // ─── The display order, and the cursor over it ─────────
   const shuffle = useTileShuffle({
-    tilesLeft,
+    tilesLeft: board.tilesLeft,
     canShuffle: isStillPlaying && !historyView.isViewing,
   })
+  // A past turn's tiles draw in the puzzle's order, not this client's.
+  const tiles = historyView.isViewing ? board.tilesLeft : shuffle.tiles
   // The cursor sits on a CELL, so a shuffle moves the tiles under it, and a
   // solved band — a row fewer — pulls it onto the nearest tile left.
-  const boardShape = makeBoardShape(shuffle.tiles.length)
+  const boardShape = makeBoardShape(tiles.length)
   const selectionCursor = useBoardSelectionCursor({
     shape: boardShape,
-    enabled: canPick,
+    enabled: isInteractive,
     onToggle: (cell: Cell) => {
-      const tile = shuffle.tiles[positionAt(cell.x, cell.y, boardShape.numCols)]
+      const tile = tiles[positionAt(cell.x, cell.y, boardShape.numCols)]
       if (tile !== undefined) onPick(tile)
     },
   })
   // A tile click: the cursor moves there, hidden, and the click does its move.
   function pickClickedTile(tile: string) {
-    selectionCursor.setTo(cellAt(shuffle.tiles.indexOf(tile), boardShape.numCols))
+    selectionCursor.setTo(cellAt(tiles.indexOf(tile), boardShape.numCols))
     onPick(tile)
   }
 
   // ─── The rows ──────────────────────────────────────────
-  // What is on the grid: a past turn's bands and tiles while one is open;
-  // else the solved bands in rank order, the revealed ones, and the loose
-  // tiles.
-  const shownMatched = historyView.board?.matchedCats ?? matchedCats
-  const shownUnmatchedCats = historyView.isViewing ? [] : unmatchedCats
-  const tiles = historyView.board?.tilesLeft ?? (solutionShown ? [] : shuffle.tiles)
-  const sortedMatched = [...shownMatched].sort((a, b) => a.rank - b.rank)
+  // The solved bands in rank order, then the revealed ones, then the tiles.
+  const sortedMatched = [...board.matchedCats].sort((a, b) => a.rank - b.rank)
 
   // ─── Attention ─────────────────────────────────────────
   // ATTENTION — a category resolved while you were reading another corner: a
@@ -219,7 +199,10 @@ export function Board({
     // computed in CSS from the --max-tile-* caps — see Board.module.css). A
     // band takes the row its four tiles left, so the grid is always one row
     // per category.
-    <div className={cls(shared.boardSeal, styles.board)} style={{ ['--rows' as string]: CATEGORY_COUNT }} data-board>
+    <div
+      className={cls(shared.boardSeal, styles.board)} style={{ ['--rows' as string]: CATEGORY_COUNT }}
+      data-board
+    >
       {/* Four shared marks ride on the grid box, and all four are about the whole
           surface rather than any piece of it: the blue frame of "you're viewing a
           past turn" (which also makes the board click-through, so a click
@@ -231,24 +214,23 @@ export function Board({
           shared.hugRectWidth,
           styles.grid,
           historyView.isViewing && historyStyles.historyFrame,
-          isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
-          myTurnJustStarted && shared.yourTurnFlash,
-          makeEndingFrameClasses(endingOutcome, historyView.isViewing),
+          marks.isWaitingForTurn && shared.dimNotYourTurn,
+          marks.myTurnJustStarted && shared.yourTurnFlash,
+          makeEndingFrameClasses(marks.endingOutcome, historyView.isViewing),
         )}
       >
         {sortedMatched.map((mc) => band(mc, false))}
-        {shownUnmatchedCats.map((c) => band(c, true))}
+        {revealedCats.map((c) => band(c, true))}
         {tiles.map((tile, i) => {
-          const pickerId = tileToPickerId.get(tile)
-          // WHOSE pick this is, on a board where that is worth saying: everyone's
-          // on a shared one (mine included), nobody's otherwise. Undefined also
-          // gates the ring class, because the color arrives as an inline
-          // `--peer-color` and a ring drawn against an undefined token is an
-          // invalid declaration rather than a subtle bug.
-          const pickerColor =
-            isSharedBoard && pickerId !== undefined ? colorByUserId.get(pickerId) : undefined
-          const isInFlight = inFlightGuess.has(tile)
-          const isVerdict = verdict?.value.tiles.has(tile) ?? false
+          // Undefined: not picked. Null: picked, by someone not worth naming.
+          // A string gates the ring class as well as coloring it, because the
+          // color arrives as an inline `--peer-color` and a ring drawn against
+          // an undefined token is an invalid declaration rather than a subtle
+          // bug.
+          const pickerColor = marks.tileToPickerColor.get(tile)
+          const isPicked = pickerColor !== undefined
+          const isInFlight = marks.inFlightGuess.has(tile)
+          const isVerdict = marks.verdict?.value.tiles.has(tile) ?? false
           // One of the four tiles the viewed turn guessed — tinted the outcome
           // color and outlined in the history blue.
           const isHistoryLit = historyView.litTiles?.has(tile) ?? false
@@ -258,29 +240,29 @@ export function Board({
               // submitting the same four tiles again REMOUNTS them and the verdict's
               // shake replays — a CSS animation only restarts on a new element.
               // Just these four: the other twelve keep their identity.
-              key={isVerdict && verdict ? `${tile}#${verdict.nonce}` : tile}
+              key={isVerdict && marks.verdict ? `${tile}#${marks.verdict.nonce}` : tile}
               type="button"
               // A stable e2e hook (the class names are hashed, and the floating
               // Shuffle control lives inside the board root, so "a button in
               // the board" isn't specific enough to mean "a tile").
               data-tile={tile}
-              disabled={!isBoardInteractive || historyView.isViewing}
+              disabled={!isInteractive}
               className={cls(
                 shared.tileFace,
                 shared.tile,
                 // PICKED, whoever picked it: the border says "in the move",
                 // the ring below says whose.
-                pickerId !== undefined && shared.picked,
+                isPicked && shared.picked,
                 pickerColor && styles.peerPick,
                 // The answer landing here — the attention flash first, then the
                 // head-shake over the verdict color the flash hands back. One
                 // mark, two beats, so the phase is the whole of the ordering.
-                isVerdict && verdict?.phase === 'attention' && shared.attentionFlash,
-                isVerdict && verdict?.phase === 'answer' && shared.verdictShake,
+                isVerdict && marks.verdict?.phase === 'attention' && shared.attentionFlash,
+                isVerdict && marks.verdict?.phase === 'answer' && shared.verdictShake,
                 isInFlight && shared.dimInFlight,
                 // The answer fills the tile, in a PALE tier of its pill's outcome.
                 isVerdict && shared.verdictFill,
-                isVerdict && verdict && OUTCOME_TO_VERDICT_CLASS[verdict.value.outcome],
+                isVerdict && marks.verdict && OUTCOME_TO_VERDICT_CLASS[marks.verdict.value.outcome],
                 isHistoryLit && shared.verdictFill,
                 // Set together with `litTiles`, which `isHistoryLit` read.
                 isHistoryLit && OUTCOME_TO_VERDICT_CLASS[historyView.litOutcome!],
@@ -308,7 +290,11 @@ export function Board({
       {/* Shuffle floats over the board's top-right, inside the board root (the
           `position: relative` anchor) so it hugs the VISUAL board. Its action
           hides itself once the board cannot be shuffled. */}
-      <ShuffleButton action={shuffle.actShuffle} tooltip="Shuffle tiles" className={shared.floatingShuffle} />
+      <ShuffleButton
+        action={shuffle.actShuffle}
+        tooltip="Shuffle tiles"
+        className={shared.floatingShuffle}
+      />
     </div>
   )
 }

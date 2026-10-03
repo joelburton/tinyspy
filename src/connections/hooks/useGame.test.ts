@@ -1,24 +1,17 @@
 // cs-blessed-connections
 
 /**
- * WHAT THE GAME_DATA BLOB BECOMES, WHAT A RACER MAY NOT SEE, AND THE PICKS.
+ * WHAT THE GAME_DATA BLOB BECOMES, AND WHAT A RACER MAY NOT SEE.
  *
  * `makeGameData` is a pure function of the blob and who I am, so this tests it
  * directly: the links turned into players, each log row read once, the setup
  * rows built, each seat's facts carried through — and the seat rule, which is
  * the one thing the blob does not carry: a rival's rows and board are withheld
- * mid-race and nowhere else.
- *
- * The picks room is the one channel the hook keeps. Coop joins the stable
- * room `connections:<gameId>` — stable so every peer shares the Broadcast — and
- * a click applies locally and goes on the wire; compete joins nothing and
- * applies locally. The room is keyed on the game alone, so a new `Session`
- * object (a token refresh) must not rebuild it, and a new game must.
+ * mid-race and nowhere else. The picks room is `usePicks.test`'s.
  */
 
-import { act, renderHook } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import { renderHook } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import {
   ZTest_CONCEDED,
   ZTest_ELIMINATED,
@@ -28,15 +21,6 @@ import {
   ZTest_makeGameDataRaw,
   ZTest_matchOf,
 } from '../lib/gameData.fixture'
-
-const { mockChannel, mockRemoveChannel } = vi.hoisted(() => ({
-  mockChannel: vi.fn(),
-  mockRemoveChannel: vi.fn(),
-}))
-
-vi.mock('@/common/supabase/supabase', () => ({
-  supabase: { channel: mockChannel, removeChannel: mockRemoveChannel },
-}))
 
 import { makeGameData, useGame } from './useGame'
 
@@ -184,25 +168,6 @@ describe('connections makeGameData — the seat rule', () => {
   })
 })
 
-// The picks room, as realtime-js would hand it back: the hook chains
-// `.channel(name).on(…).subscribe()`, and `broadcast` calls `.send(…)`.
-// `topic` is what the teardown registry keys off.
-const channelChain = {
-  topic: 'realtime:connections:g1',
-  on: vi.fn(function () {
-    return channelChain
-  }),
-  subscribe: vi.fn(function () {
-    return channelChain
-  }),
-  send: vi.fn(() => Promise.resolve('ok')),
-}
-
-beforeEach(() => {
-  vi.clearAllMocks()
-  mockChannel.mockReturnValue(channelChain)
-  mockRemoveChannel.mockResolvedValue('ok')
-})
 
 describe('connections useGame', () => {
   it('hands back gd built from the blob the page was handed, for me', () => {
@@ -229,51 +194,3 @@ describe('connections useGame', () => {
   })
 })
 
-describe('connections useGame — the picks room', () => {
-  it('coop joins the game\'s room once, and a token refresh does not rebuild it', () => {
-    const coop = ZTest_makeConnectionsCtx({ players: TWO })
-    const { rerender } = renderHook((ctx: PlayAreaLoaderProps) => useGame(ctx), { initialProps: coop })
-    expect(mockChannel).toHaveBeenCalledTimes(1)
-    expect(mockChannel).toHaveBeenCalledWith('connections:g1')
-
-    // A new Session object, as a refresh hands React. The room is keyed on the
-    // game, so nothing may tear it down.
-    rerender({ ...coop, auth: { user: { id: 'u1' } } } as unknown as PlayAreaLoaderProps)
-    expect(mockChannel).toHaveBeenCalledTimes(1)
-    expect(mockRemoveChannel).not.toHaveBeenCalled()
-  })
-
-  it('rebuilds the room when the game changes', () => {
-    const coop = ZTest_makeConnectionsCtx({ players: TWO })
-    const { rerender } = renderHook((ctx: PlayAreaLoaderProps) => useGame(ctx), { initialProps: coop })
-    rerender(ZTest_makeConnectionsCtx({ id: 'g2', players: TWO }))
-    expect(mockRemoveChannel).toHaveBeenCalledTimes(1)
-    expect(mockChannel).toHaveBeenCalledTimes(2)
-    expect(mockChannel).toHaveBeenLastCalledWith('connections:g2')
-  })
-
-  it('coop applies a click locally and puts it on the wire', () => {
-    const { result } = renderHook(() => useGame(ZTest_makeConnectionsCtx({ players: TWO })))
-    act(() => result.current.picks.toggleTile('a'))
-    expect(result.current.picks.union).toEqual(['a'])
-    expect(result.current.picks.tileToPickerId.get('a')).toBe('u1')
-    expect(channelChain.send).toHaveBeenCalledWith({
-      type: 'broadcast', event: 'pick', payload: { type: 'pick', tile: 'a', userId: 'u1' },
-    })
-  })
-
-  it('compete joins no room, and a click stays on this client', () => {
-    const { result } = renderHook(() => useGame(ZTest_makeConnectionsCtx({ mode: 'compete', players: TWO })))
-    expect(mockChannel).not.toHaveBeenCalled()
-    act(() => result.current.picks.toggleTile('a'))
-    expect(result.current.picks.union).toEqual(['a'])
-    expect(channelChain.send).not.toHaveBeenCalled()
-  })
-
-  it('a clear empties the picks', () => {
-    const { result } = renderHook(() => useGame(ZTest_makeConnectionsCtx({ mode: 'compete', players: TWO })))
-    act(() => result.current.picks.toggleTile('a'))
-    act(() => result.current.picks.sendClear())
-    expect(result.current.picks.union).toEqual([])
-  })
-})
