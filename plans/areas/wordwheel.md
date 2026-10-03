@@ -1716,6 +1716,22 @@ bee-games and the guards, 47 files, 485 tests green; the moved test runs, 8.
 wordwheel specs — `wordwheel`, `wordwheel-coop-win` (2), `wordwheel-mobile`
 (2 viewports), `wordwheel-print` — 6 passed, 12.1s. None broke.
 
+## The convenience RLS
+
+The policies and views the frontend leans on before the page blobs, listed
+before the game converts onto them (plans/seat-view.md → How a game converts,
+step 1: "each one is taken over or dropped by name"); wordwheel converts in
+tandem with spellingbee, whose list this mirrors line for line. What becomes
+of each is filled in at the conversion.
+
+| what | mentioned | taken over or dropped |
+|---|---|---|
+| `found_words_select`'s three arms — coop shows every club member every row, a racer always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | — |
+| `games_state` view — every column of `games`, passed through under `security_invoker`; the header `makeBeeGame` reads once | neither | — |
+| `games_select`, `pangrams_select` — club-member and public reads | neither | — |
+| `_write_statuses` — `game_status` {required_words_count, required_words_score, target_rank}, `player_status` {found_words_count, found_words_score, player_ended_reason}, `clubpage_info` {the counts, the totals, target_rank, winner_user_id} | — | — |
+| the postgres-changes subscription on `found_words` and `games` (`useRealtimeRefetch` in `makeBeeGame`) | — | — |
+
 ## Closing
 
 - [x] the whole area re-read in one sitting after the last group (2026-09-24,

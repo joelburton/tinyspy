@@ -474,8 +474,94 @@ next open (todo.md → Someday).
   psychicnum's `GTile` (decision 9) as its own commit, then wordle's naming
   pass (`nGuessesUsed`, `nWinnerGuesses`, the column, and `LetterTile` →
   `Tile`; done 2026-10-03).
-- **Then** connections' InfoCol and Board passes resume on the new shape, and
-  the next game converts straight onto it.
+- **Then** connections' InfoCol and Board passes resume on the new shape
+  (done 2026-10-03: BoardCol, Board with `Tile` and `Band`, InfoCol, and the
+  tile as `{id, word}`), and the next game converts straight onto it.
+
+## How a game converts — the steps
+
+What the three conversions settled, as the list the next game walks. Each
+step names where its rules live; this list does not restate them.
+
+**A. Read, then design, no code.**
+
+1. **Inventory the game.** Its `doc.md`, `todo.md` and area file; what its
+   loader reads and subscribes to; every policy and view that mentions
+   `auth.uid()` or `ended_at`, listed in the area file as "The convenience
+   RLS", each to be taken over or dropped by name; the status keys its page
+   shows; whether its coop solve stamps every teammate.
+2. **Sketch `gd` and `summary_data`**, one key per line, and get the names
+   approved before any code. Every seat fact on the player, `board` among
+   them (→ One home); `team` holding what the team shares, null in compete
+   (plans/team-facts.md); `puzzle` frozen at create; links as ids in the
+   blob and players in `gd`; counts `nFoo` and the permitted abbreviations
+   (docs/code-conventions.md → A few words may be abbreviated); camelCase
+   keys; `stateLineData` decided once; `ended` / `ending` / `stillPlaying`;
+   and the tile question answered up front (→ A tile is an instance the
+   builder writes): a `GTile` with a string `id` where the player acts on a
+   single tile, none where the unit is the row.
+
+**B. SQL.**
+
+3. **The builders**, `language sql`, one `select` each, named pieces
+   (`_make_json_puzzle`, `_board`, `_team`, `_players`, `_events`,
+   `_game_data`, `_summary_data`, and `_make_json_tile(s)` where there is a
+   tile); `_rebuild_data_cols(id, p_update_status_changed_at)` in plpgsql,
+   called at create, Restart and the end of every move;
+   `_rebuild_data_cols_for_all()` beside it.
+4. **The shape and the endings.** Count columns take the blob's names by a
+   new migration; the statuses stop being written; the convenience RLS goes
+   by name; a coop solve stamps every teammate; `_maybe_finish_compete`
+   takes the reason pair from its caller (docs/win-lose.md →
+   `resource-exhausted`: the ending names the last player's act).
+5. **pgTAP.** A `game_data_test.sql` pinning each piece: a fresh game whole,
+   the blob after moves, the seat rule, the summary; the game's other files
+   follow the renames; `supabase migration up --local`, the SQL file
+   re-applied, every file of the game's run.
+
+**C. The frontend's data.**
+
+6. **`types.ts`** under the four rules (docs/code-conventions.md → A game's
+   types), test-only exports `ZTest_`: `GGameDataRaw` and `GGameData`,
+   `GPlayerRaw` and `GPlayer`, `GTeam`, `GStateLineData`, `GEventRaw` and
+   `GEvent`, `GTile` if any; the shape sketch in a comment.
+7. **`useGame`** is `makeGameData(blob, auth.user.id)`, pure and memoized on
+   the blob: `playersById` and `tilesById` beside their lists, links
+   resolved, the seat rule applied, every outcome read once through
+   `lib/answer.ts`; no reads, no subscription. Live state that only one
+   column reads is that column's hook (connections' `usePicks`).
+8. **The fixture** builds the raw blob from facts, as the builder would,
+   under `ZTest_` names.
+
+**D. The component passes** (plans/component-readability.md: one per pass —
+propose numbered with no code, Joel answers by number, build, close read):
+
+9. **PlayArea**: the coordinator; the two ending builders from
+   `gd.me.outcome`; it picks the board to show; every `SPECTATING:` branch
+   goes.
+10. **BoardCol**: owns the move; `isInteractive` computed once; hooks read
+    through their names; the action's own `pending` is the one in-flight
+    guard; the key-dismiss hook lives here; a leaf gets the answer; the
+    state line in `MobileStatusBar` where the game has one.
+11. **Board and its pieces**: a component per visual unit with its own CSS
+    module; Board decides which marks each piece wears, the piece draws
+    them; `useTileShuffle` and `useTileCursor`; held things are ids and say
+    so, passed things are tiles; `data-tile` is the id.
+12. **InfoCol and the components it renders**: `getScoreOrOut` reading
+    "out" for any player who has ended; help on my move alone; the event
+    log takes `events` and `historyView`; a label asks the rule, not the
+    color.
+13. **The naming pass**, if the conversion left any.
+
+**E. Close each slice.**
+
+14. **Prose**: the game's `doc.md` (blob table, component tree, tests
+    table), this plan's done line, the readability plan's "what this game
+    added", the game's `todo.md` (rulings under Won't do with the date and
+    the words).
+15. **Checks**: `tsc -b`, the game's vitests, lint, the guards after the
+    last edit, the game's pgTAP; a new test verified by planting its bug;
+    e2e only when Joel says. One commit per pass, on his word.
 
 ## The convenience RLS, per game
 

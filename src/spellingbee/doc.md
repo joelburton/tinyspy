@@ -158,7 +158,20 @@ in coop. Club membership is the outer gate; the mode and the ending are read
 off `common.games`, so the policy joins one table.
 `games` needs only the membership gate, since the header holds nothing private.
 
-**The statuses** are written by `spellingbee._write_statuses` at create, at
+**The page blobs** are written by `spellingbee._rebuild_data_cols` at create, at
+Restart and at the end of every move and ending, each assigned whole
+([plans/seat-view.md](../../plans/seat-view.md) → The page is written, not
+assembled): `shell_data` through `common._make_json_shell_data`, and on top of
+the common part of every `game_data` (`common._make_json_game_data`) this
+game's own, the same shape as the other bee game's
+([shared/bee-games](../shared/bee-games/doc.md)):
+
+| blob | spellingbee's part |
+|---|---|
+| `game_data` | `puzzle: {tiles, centerLetter, outerLetters, reqdWords, bonusWords, nReqdWords, reqdWordsScore, targetRankIdx, hasBonus}`, as `create_game` froze it, a tile being `{id, letter, isCenter}` with its place as its id and the center first; `team: {nFoundWords, foundWordsScore, rankIdx}`, what the team shares, null in compete; `events`, every found word in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx` |
+| `summary_data` | `team`, the same group; `nReqdWords`, `reqdWordsScore`, `targetRankIdx` |
+
+**The statuses** are still written beside the blobs, by `spellingbee._write_statuses` at create, at
 Restart and at the end of every move and ending, each assigned whole with every
 key present:
 
