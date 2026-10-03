@@ -56,7 +56,7 @@ const CANNED: Record<Kind, (text: string) => FeedbackMessage> = {
   acknowledgment: (text) => FeedbackMessage.acknowledgment('neutral', text),
   hint: (text) => FeedbackMessage.hint('noted', text),
   // Builds its own words from the member, so the console's text is ignored.
-  waiting: () => FeedbackMessage.waiting({ username: 'moth', color: 'green' }),
+  waiting: () => FeedbackMessage.waiting({ id: 'moth', username: 'moth', color: 'green' }),
   standingNote: (text) => FeedbackMessage.note(text),
   prompt: (text) => FeedbackMessage.prompt(text),
   peerMilestone: (text) => FeedbackMessage.peerMilestone({ username: 'moth', color: 'green' }, 'noted', text),

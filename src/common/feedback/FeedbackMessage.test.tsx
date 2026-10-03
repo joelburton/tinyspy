@@ -12,7 +12,7 @@ import type { NotOkEnvelope } from '../supabase/envelope'
  * lands on top of the row rather than beside it.
  */
 
-const moth = { username: 'moth', color: 'green' }
+const moth = { id: 'moth', username: 'moth', color: 'green' }
 
 const race: NotOkEnvelope = {
   type: 'not-ok',

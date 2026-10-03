@@ -38,9 +38,31 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     // The answer. Null until the game ends.
     target: string | null
   }
+  // What the team shares; null in compete, where there is no team.
+  team: GTeam | null
   // The log: every accepted guess, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
+}
+
+/**
+ * What the team shares in coop (plans/team-facts.md): the guesses summed over
+ * every player's own. The budget they count against is `maxGuesses`, on every
+ * player.
+ */
+export type GTeam = {
+  guessesUsed: number
+}
+
+/**
+ * What the info column's state line shows — "3/6 guesses": the team's count
+ * in coop, my own in compete, against the budget. Decided once, in
+ * `makeGameData`, so the line draws it and picks nothing. Named for its
+ * reader: this is what to SHOW there, not a fact other components read.
+ */
+export type GStateLineData = {
+  guessesUsed: number
+  maxGuesses: number
 }
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
@@ -64,8 +86,7 @@ export type GPlayerRaw = PlayerRaw & {
   // The guess budget: the team's in coop, each player's own in compete. The
   // same on every player.
   maxGuesses: number
-  // Guesses spent: the team's in coop, the same on every player; their own in
-  // compete.
+  // Guesses spent: this player's own, in every mode; the team's is `team`'s.
   guessesUsed: number
   // Compete, once ranked: the earlier solve, not the guess count, placed this
   // solver against the winner (the winner's too, when another solver matched
@@ -93,7 +114,8 @@ export type GPlayerRaw = PlayerRaw & {
  *   setup
  *   setupRows
  *   puzzle: {target}                      # null until the game ends
- *   turns: {holder}                       # null: no turn order; holder null: nobody's turn now
+ *   team: {guessesUsed}                   # what the team shares; null in compete
+ *   turns: {holder}                       # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
  *   ended
  *   outcome                               # null until the game ends
@@ -101,6 +123,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                  # seat order
  *   playersById
  *   me                                    # same object as playersById[auth.user.id]
+ *   stateLineData: {guessesUsed, maxGuesses}  # what the state line shows: the team's in coop, my own in compete
  *
  * player:
  *   id
@@ -118,7 +141,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   onTurn
  *   waitingForTurn
  *   maxGuesses                            # the same on every player
- *   guessesUsed                           # the team's, on every player, in coop; own in compete
+ *   guessesUsed                           # own, in every mode
  *   tieBrokenByClock                      # compete, once ranked; null in coop and until the end
  *   board: {rows}                         # what this seat's tiles show; null for a rival mid-race
  */
@@ -135,7 +158,7 @@ export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'play
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
   setupRows: SetupRow[]
-  turns: { holder: GPlayer | null } | null
+  turns: { holder: GPlayer } | null
   // The log, by player; mid-race in compete, my rows only.
   events: GEvent[]
   ending: {
@@ -150,6 +173,8 @@ export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'play
   // My entry in `playersById`: the same object. My own board is always mine
   // to see.
   me: GPlayer & { board: GBoard }
+  // What the state line shows: the team's count in coop, my own in compete.
+  stateLineData: GStateLineData
 }
 
 /** One player of this game, as `gd` holds them: the blob's player, with the
@@ -317,13 +342,13 @@ export type GAnswer =
  * there is no polished pair and no `Raw`; the play surface reads `game_data`
  * instead (`GGameDataRaw`).
  *
- * `guessesUsed` is coop's shared count and null in compete, whose summary
- * shows no progress; the winner's count is compete's, null until the end and
- * always null in coop (the winner is the common `ending.winner`).
- * `answerBand` is the setup's.
+ * `team` is the same group `game_data` carries: the team's count in coop, null
+ * in compete, whose summary shows no progress; the winner's count is compete's,
+ * null until the end and always null in coop (the winner is the common
+ * `ending.winner`). `answerBand` is the setup's.
  */
 export type GSummaryData = SummaryData & {
-  guessesUsed: number | null
+  team: GTeam | null
   maxGuesses: number
   answerBand: number
   winnerGuessesCount: number | null

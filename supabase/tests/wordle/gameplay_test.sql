@@ -16,7 +16,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(21);
+select plan(22);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -86,7 +86,10 @@ select is(
   (select guesses_used from wordle.players
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  1, 'coop: the guess is shared — bea''s budget moved too (lock-step)');
+  0, 'coop: each row is its own player''s — ada''s guess did not move bea''s');
+select is(
+  (select (game_data->'team'->>'guessesUsed')::int from common.games where id = (select id from g)),
+  1, 'coop: the guess is shared — the team''s count moved');
 select is(
   (select length(colors) from wordle.events
     where game_id = (select id from g) order by id limit 1),
@@ -116,7 +119,7 @@ select pg_temp.envelope_is(
   'a word already on the shared board → duplicate, the case alone');
 reset role;
 select is(
-  (select max(guesses_used) from wordle.players where game_id = (select id from g)),
+  (select sum(guesses_used)::int from wordle.players where game_id = (select id from g)),
   1, 'duplicate did not burn a guess');
 
 -- ── bea solves it (coop: either player can guess) ──────────

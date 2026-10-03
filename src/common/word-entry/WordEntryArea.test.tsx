@@ -52,7 +52,7 @@ describe('WordEntryArea — the pill swap', () => {
   it('an owner-cleared message stays too — the verdict, whose turn', () => {
     const slot = createFeedbackSlot('local')
     mount(slot, 'ap')
-    act(() => void slot.show(FeedbackMessage.waiting({ username: 'moth', color: 'green' })))
+    act(() => void slot.show(FeedbackMessage.waiting({ id: 'moth', username: 'moth', color: 'green' })))
     expect(screen.getByText(/Waiting for/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /submit/i })).toBeNull()
   })

@@ -125,7 +125,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   setupRows
  *   puzzle: {words, secrets}              # secrets null until the game ends
  *   team: {foundSecretsCount, guessesUsed}  # what the team shares; null in compete
- *   turns: {holder}                       # null: no turn order; holder null: nobody's turn now
+ *   turns: {holder}                       # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
  *   ended
  *   outcome                               # null until the game ends
@@ -171,7 +171,7 @@ export type GGameData =
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
   setupRows: SetupRow[]
-  turns: { holder: GPlayer | null } | null
+  turns: { holder: GPlayer } | null
   // The log, by player; mid-race in compete, my rows only.
   events: GEvent[]
   ending: {

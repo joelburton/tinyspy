@@ -25,8 +25,8 @@ export type PlayerFacts = {
   outcome?: PlayerRaw['outcome']
   finalRanking?: number | null
   solvedAt?: string | null
-  // Their count, as `wordle.players` holds it. Left out, it is counted off
-  // the log's rows: the team's in coop, their own in compete.
+  // Their own count, as `wordle.players` holds it. Left out, it is counted
+  // off their own rows in the log. The team's is the sum.
   used?: number
   // Null unless a test says the clock placed them (compete, once ranked).
   tieBrokenByClock?: boolean | null
@@ -46,7 +46,7 @@ export type GameDataFacts = {
   events?: GEventRaw[]
   players?: PlayerFacts[]
   // Who holds the turn in a turn-order game; `undefined` is a free-for-all.
-  turnHolderId?: string | null
+  turnHolderId?: string
   ending?: GameDataRaw['ending']
   outcome?: GameDataRaw['outcome']
 }
@@ -85,8 +85,9 @@ export function guess(
 
 /**
  * Build the `game_data` blob `wordle._rebuild_data_cols` would write from these
- * facts: each seat's board and count folded from the log in the mode's scope,
- * and where every player stands derived.
+ * facts: each player's own count, the team's summed from them in coop, each
+ * seat's board folded from the log in the mode's scope, and where every player
+ * stands derived.
  */
 export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
   const {
@@ -105,12 +106,16 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
   const ended = ending !== null
   const coop = mode === 'coop'
   const turnBased = turnHolderId !== undefined
+  const usedOf = (p: PlayerFacts) => p.used ?? events.filter((e) => e.userId === p.id).length
+  const team = coop
+    ? { guessesUsed: playerFacts.reduce((sum, p) => sum + usedOf(p), 0) }
+    : null
 
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     const onTurn = stillPlaying && (!turnBased || turnHolderId === p.id)
     // The rows on this seat's board: the team's in coop, their own in compete.
-    const own = events.filter((e) => coop || e.userId === p.id)
+    const shown = events.filter((e) => coop || e.userId === p.id)
     return {
       id: p.id,
       username: p.username,
@@ -127,9 +132,9 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
       onTurn,
       waitingForTurn: stillPlaying && !onTurn,
       maxGuesses: setup.max_guesses,
-      guessesUsed: p.used ?? own.length,
+      guessesUsed: usedOf(p),
       tieBrokenByClock: p.tieBrokenByClock ?? null,
-      board: { rows: own.map((e) => ({ word: e.word, colors: e.colors })) },
+      board: { rows: shown.map((e) => ({ word: e.word, colors: e.colors })) },
     }
   })
 
@@ -149,6 +154,7 @@ export function makeGameDataRaw(facts: GameDataFacts = {}): GGameDataRaw {
     ended,
     outcome,
     puzzle: { target },
+    team,
     events,
     players,
   }

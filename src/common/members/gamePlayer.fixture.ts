@@ -1,9 +1,9 @@
 // cs-blessed-members
 
-import type { GamePlayer, Member } from './member'
+import type { GamePlayerLegacy, Member } from './member'
 
 /**
- * Build a [GamePlayer] for component tests with the per-player state defaulted
+ * Build a [GamePlayerLegacy] for component tests with the per-player state defaulted
  * (still playing in a free-for-all, on turn, unranked, an empty status — the
  * normal mid-game state). Pass `over` to set the ending, the ranking, the
  * `player_status` or the standing for a drop-out, a finished player or an
@@ -17,8 +17,8 @@ export function gp(
   id: string,
   username: string,
   color: string,
-  over: Partial<Omit<GamePlayer, keyof Member>> = {},
-): GamePlayer {
+  over: Partial<Omit<GamePlayerLegacy, keyof Member>> = {},
+): GamePlayerLegacy {
   return {
     id,
     username,
@@ -56,4 +56,4 @@ export const CONCEDED = {
   isOnTurn: false,
   isWaitingForTurn: false,
   isBoardInteractive: false,
-} as const satisfies Partial<GamePlayer>
+} as const satisfies Partial<GamePlayerLegacy>

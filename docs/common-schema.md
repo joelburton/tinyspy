@@ -93,7 +93,10 @@ bookkeeping — they are seconds when nobody ticks. The frontend half is
   part — the mode, the turn, the ending, each player's standing ([win-lose.md →
   Where a player stands](win-lose.md#where-a-player-stands--the-terms-as-formulas))
   — comes from `common._make_json_game_data`, and the game's builder adds its
-  own fields on top. `summary_data` is a list of games' — the club page's today
+  own fields on top. One of those is `team`, on every converted game's blob:
+  what the team shares, summed from the rows, and null when the game has no
+  team; a player's own keys are that player's in every mode
+  ([plans/team-facts.md](../plans/team-facts.md)). `summary_data` is a list of games' — the club page's today
   — and is built the same way: the common part (the game named and dated, and
   its ending) from `common._make_json_summary_data`, the game's numbers beside
   it; the list reads the blob and `is_current_view`, nothing else of the row.

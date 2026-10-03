@@ -15,7 +15,7 @@ import { FeedbackMessage } from './FeedbackMessage'
  * never a tab stop.
  */
 
-const moth = { username: 'moth', color: 'green' }
+const moth = { id: 'moth', username: 'moth', color: 'green' }
 const over = { pillText: 'Won: covered in 4', infoColText: 'You won!', outcome: 'won' as const }
 
 function mount(slot: FeedbackSlot) {

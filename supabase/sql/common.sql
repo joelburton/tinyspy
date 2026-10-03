@@ -1878,7 +1878,7 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --     id, gametype, brand, club: {handle}
 --     mode, coop, compete, oneBoard
 --     title, setup
---     turns: {holder}                      null: no turn order; holder null: nobody's turn now
+--     turns: {holder}                      null: no turn order; in a turn game the holder is always a player
 --     ending: {reason, detail, by, winner} null while playing; winner: the player ranked 1
 --     ended, outcome                       outcome null until the game ends
 --     players: [player, …]                 seat order; by username in a free-for-all game

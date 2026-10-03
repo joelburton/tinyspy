@@ -85,6 +85,14 @@ each behaves at terminal, and the two allowed kinds of growth are
 rows are
 [setup-form/doc.md → Setup rows](../src/common/setup-form/doc.md#setup-rows).
 
+**The state readout is a component named `StateLine`, in the game's folder.**
+It draws `gd.stateLineData`, which `useGame` builds: what the line shows is
+the game's decision, made there, and `StateLine` prettifies it, full stop. It
+returns a fragment — the numbers and words, no element of its own — and the
+caller supplies the box: the info column's `.infoState` paragraph, and the
+`MobileStatusBar` in a game that shows the line above the board on a phone.
+One name across games, whether the line has one caller or two.
+
 ## Text entry — capture, not `<input>`
 
 A game that takes a single token (a word, a number) captures keystrokes off the

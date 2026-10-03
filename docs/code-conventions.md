@@ -118,6 +118,23 @@ onChange={({ coopStyle, firstTurnUserId }) =>
 }
 ```
 
+**The page blobs' keys are the one jsonb exception: camelCase.** `game_data`,
+`summary_data` and `shell_data` are written by SQL in the page's own names
+(`guessesUsed`, `statusChangedAt`), read through one static type, and never
+queried by key from the client.
+
+**A loose copy of a path is spelled `group_leaf`.** Inside its group a name is
+bare and the path supplies the context: `team.guessesUsed` and `me.guessesUsed`
+are both right. A copy pulled out of its group — a local, a prop carrying the
+one number — has lost that context and says which it is, with a dot become an
+underscore: `team_guessesUsed`, `me_board_rows`. Lossless (the leaf is spelled
+as the key, so a grep finds every copy), and odd-looking on purpose: such a
+copy is rare, since a value a parent hands a child for the child's own purpose
+takes the purpose's name (`canPick`, never `me_onTurn`), and a pick that reads
+only `gd` goes into `gd` ([plans/team-facts.md](../plans/team-facts.md) → The
+naming rule for a loose copy). A row field is all lowercase (`team_score`); a
+path copy has a camelCase leaf.
+
 **A DB-shaped type's name ends in `Row`** (`GameRow`, `PlayerRow`, and aliases
 of generated `Database[…]['Row']` types); a TS-native shape takes whatever names
 its role (`ClubListEntry`, `PlayAreaLoaderProps`, `GameManifest`). A snake_case type

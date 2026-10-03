@@ -1,10 +1,12 @@
 # Team facts — `gd.team` holds what the team shares; a player holds only their own
 
-**Status: DECIDED 2026-10-02, not started.** Joel and Claude settled this over
-psychicnum's coop counts while wordle's conversion to the page blobs was open
-in the working tree. It refines [seat-view](seat-view.md) decision 7's shape;
-when it ships, that shape, docs/common-schema.md and code-conventions' casing
-section carry it, and this file is deleted.
+**Status: DECIDED 2026-10-02; psychicnum and wordle carry it (2026-10-02).**
+Joel and Claude settled this over psychicnum's coop counts while wordle's
+conversion to the page blobs was open in the working tree. It refines
+[seat-view](seat-view.md) decision 7's shape, which now draws `team`;
+docs/common-schema.md and code-conventions' casing section carry it. What is
+left is each remaining game writing `team` as it converts, connections first;
+this file goes when the last does.
 
 **Order (Joel, 2026-10-02):** it starts once wordle's conversion is committed,
 as its own slice — psychicnum first, then wordle — so neither game's whole-blob
@@ -120,7 +122,7 @@ psychicnum's `team` is `{foundSecretsCount, guessesUsed}`; wordle's is
 
 ## What it touches
 
-### psychicnum, first (the canary)
+### psychicnum, first (the canary) — done 2026-10-02
 
 - **SQL.** A `_make_json_team(p_game_id)` piece, null in compete, summing the
   rows in coop; `_make_json_players` passes each row through in both modes;
@@ -135,7 +137,7 @@ psychicnum's `team` is `{foundSecretsCount, guessesUsed}`; wordle's is
   moves the board, so it is the team's count), `useShowOppsFoundMessages`,
   `manifest.ts`'s summary tallies, `useGame.test.ts`, `PlayArea.test.tsx`.
 
-### wordle, next (its conversion is open in the working tree)
+### wordle, next — done 2026-10-02
 
 - **SQL.** The guess RPC's coop branch writes the team's count onto every row;
   it writes the caller's row only, in both modes, and the team's count is the
@@ -148,7 +150,12 @@ psychicnum's `team` is `{foundSecretsCount, guessesUsed}`; wordle's is
   holds the team's count on every `wordle.players` row, so a builder that sums
   the rows would read N times the real count. One migration rewrites each
   row's `guesses_used` from that player's own `wordle.events` rows before the
-  new RPC and builder apply (CLAUDE.md → Production software).
+  new RPC and builder apply (CLAUDE.md → Production software):
+  `20261002000001_wordle_players_own_counts.sql`, which checks that every
+  coop game's rows sum to the count they all carried. After the deploy, run
+  `select wordle._rebuild_data_cols_for_all()` and psychicnum's by hand: a
+  migration cannot call what `supabase/sql/` defines, and both games' blobs
+  change shape.
 - **Types and readers.** `types.ts`'s shape comments, `InfoCol`'s guesses line
   and per-player readout, `useGame.test.ts`.
 

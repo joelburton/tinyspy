@@ -1,69 +1,27 @@
 // cs-blessed-info-sheet
 
-import type { Member } from '../members/member'
+import type { Player } from '../members/member'
 import { waitingForText } from './turnText'
 import shared from './infoCol.module.css'
 
 type Props = {
-  // The common turn pointer (commonGame.current_turn_user_id). In a
-  // turn game it's always set; the terminal branch is handled below.
-  turnHolderId: string | null
-  // The game's players, to resolve the current player's name + color.
-  players: Member[]
-  // The viewer's user id — decides "Your turn" vs "Waiting for …".
-  myId: string
-  // At terminal the line goes inert (no "waiting for …" nag) but KEEPS
-  // its height, so the play→terminal transition doesn't reflow the
-  // column below it (the repo's no-reflow rule).
-  isTerminal: boolean
+  turnHolder: Player
+  isMyTurn: boolean
+  isGameEnded: boolean
 }
 
 /**
  * The whose-turn line for turn-order coop games — "Your turn" when it's
- * yours, "Waiting for ● Name…" when it's a teammate's. One indicator,
- * identical in every game that has a turn to point at.
- *
- * An InfoCol renders it when `turnHolderId !== null`, which is the
- * whole game or none of it: whether a game is turn-ordered is fixed at
- * create-time, so this line's presence never changes mid-game and no
- * reflow comes from it appearing. Within a turn game it renders in EVERY
- * state (including terminal, as an inert height-holder), so the slot is
- * stable there too.
- *
- * It reuses the shared `.infoState` type register (same size/color as
- * each game's own state line) but is a SEPARATE line — it sits
- * alongside, never replacing, the per-game state text.
+ * yours, "Waiting for ● Name…" when it's someone else's
  */
 export function TurnStatusLine({
-  turnHolderId,
-  players,
-  myId,
-  isTerminal,
+  turnHolder,
+  isMyTurn,
+  isGameEnded,
 }: Props) {
-  // Terminal: hold the line's height rather than nagging about whose turn it
-  // "is" in a finished game.
-  //
-  // THE CHARACTER BELOW IS A LITERAL U+00A0, NOT A SPACE. It looks like one in
-  // every view of this file, and the difference is the whole mechanism: a plain
-  // space collapses, leaving the paragraph with no line box and no height, while
-  // this one gives it 17px — the same as "Your turn". Read it as a space and this
-  // line reads as a bug that isn't there. Written as the character because
-  // `&nbsp;` in JSX renders as those six letters.
-  if (isTerminal) {
-    return <p className={shared.infoState}>{' '}</p>
-  }
-
-  if (turnHolderId === myId) {
-    return (
-      <p className={shared.infoState}>
-        <strong>Your turn</strong>
-      </p>
-    )
-  }
-
-  // A teammate's turn. Leading color disc + the bare name (never the
-  // possessive "name's turn" — we don't apostrophize usernames), an
-  // ellipsis for the wait. Shares `waitingForText` with the below-board
-  // whose-turn message, so the two surfaces can't word it differently.
-  return <p className={shared.infoState}>{waitingForText(players.find((p) => p.id === turnHolderId))}</p>
+  return (
+    <div className={shared.turnStatus}>
+      {!isGameEnded && (isMyTurn ? 'Your turn' : waitingForText(turnHolder))}
+    </div>
+  )
 }

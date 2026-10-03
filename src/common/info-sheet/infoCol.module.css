@@ -120,7 +120,16 @@
 /* @@ */ .infoState {
   color: var(--page-text-color);
   font-size: var(--font-size-packed);
+  /* One line tall even when empty: a readout that goes quiet once the game
+     has ended keeps its place rather than reflowing the column. */
+  min-height: 1lh;
 }
+
+ .turnStatus {
+   color: var(--page-text-color);
+   font-size: var(--font-size-packed);
+   height: 1lh;
+ }
 
 /* @@ */ .infoHelp {
   color: var(--page-text-muted-color);

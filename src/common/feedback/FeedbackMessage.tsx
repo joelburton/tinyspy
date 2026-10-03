@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import type { Outcome } from '../outcomes/outcomes'
 import type { NotOkEnvelope } from '../supabase/envelope'
 import { notOkOutcome } from '../supabase/dbResult'
-import type { Actor } from '../members/member'
+import type { Actor, Player } from '../members/member'
 import { DotActor } from '../members/ActorMention'
 import type { TerminalMessage } from '../terminal/terminalMessage'
 import { waitingForText } from '../info-sheet/turnText'
@@ -228,8 +228,8 @@ export class FeedbackMessage {
   }
 
   /** "Waiting for ● moth…" — the mention is mid-sentence, so no actor. */
-  static waiting(member: Actor | undefined, overrides?: Overrides): FeedbackMessage {
-    return new FeedbackMessage('waiting', waitingForText(member), undefined, defaultsFor('waiting', null, overrides))
+  static waiting(player: Player, overrides?: Overrides): FeedbackMessage {
+    return new FeedbackMessage('waiting', waitingForText(player), undefined, defaultsFor('waiting', null, overrides))
   }
 
   /** A state you are stuck in, in the game's words: "Chain is full — remove a word". */

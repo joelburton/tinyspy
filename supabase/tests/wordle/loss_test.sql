@@ -88,9 +88,9 @@ select is(
   2::bigint,
   'coop loss: every player is unranked and lost');
 select is(
-  (select max(guesses_used) from wordle.players where game_id = (select id from g_coop)),
+  (select sum(guesses_used)::int from wordle.players where game_id = (select id from g_coop)),
   5,
-  'coop: exactly max_guesses (5) were used');
+  'coop: exactly max_guesses (5) were used, summed over the rows');
 select is(
   (select game_data->'puzzle'->>'target' from common.games where id = (select id from g_coop)),
   (select coop_w from tgts),

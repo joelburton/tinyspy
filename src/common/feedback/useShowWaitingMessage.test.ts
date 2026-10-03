@@ -2,11 +2,11 @@
 
 import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import type { Actor } from '../members/member'
+import type { Player } from '../members/member'
 import { createFeedbackSlot } from './feedbackSlotStore'
 import { useShowWaitingMessage } from './useShowWaitingMessage'
 
-type Props = { isWaiting: boolean; holder: Actor | null }
+type Props = { isWaiting: boolean; holder: Player | null }
 
 /** Mount the hook over a real local slot, with spies on what it shows and
  *  takes back. */
@@ -21,7 +21,7 @@ function setup(initial: Props) {
   return { shown, retracted, rerender, unmount }
 }
 
-const MOTH: Actor = { username: 'moth', color: 'blue' }
+const MOTH: Player = { id: 'moth', username: 'moth', color: 'blue' }
 
 describe('useShowWaitingMessage', () => {
   it('shows nothing while the move is mine', () => {
@@ -51,7 +51,7 @@ describe('useShowWaitingMessage', () => {
 
   it('shows it again for a new holder', () => {
     const { rerender, shown } = setup({ isWaiting: true, holder: MOTH })
-    rerender({ isWaiting: true, holder: { username: 'bea', color: 'green' } })
+    rerender({ isWaiting: true, holder: { id: 'bea', username: 'bea', color: 'green' } })
     expect(shown).toHaveBeenCalledTimes(2)
   })
 

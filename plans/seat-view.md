@@ -64,7 +64,7 @@ players, one comparison each):
 | the server's facts | `playerEnding`, `outcome`, `finalRanking`, `solvedAt`, the counts |
 | read off them | `isConceded`, `isPlayerEnded`, `isEliminated`, `hasSolved` (= `solvedAt !== null`; a coop solve stamps every teammate, so it is right in both modes) |
 | the turn | `isStillPlaying`, `isOnTurn` (was `isMyTurn`), `isWaitingForTurn`, `isBoardInteractive` — derived by the hook from `gd.turns`, so no component writes `turnHolder.user_id === me.user_id` itself |
-| the former `readout` | `maxMistakes` / `maxGuesses`, `requiredCategoriesCount` / `requiredSecretsCount` (the same for every player; the field comment says so), `mistakeCount` / `guessesUsed`, `foundCount` (own in compete; the team's on every player in coop, as the SQL already writes `mistake_count`) |
+| the former `readout` | `maxMistakes` / `maxGuesses`, `requiredCategoriesCount` / `requiredSecretsCount` (the same for every player; the field comment says so), `mistakeCount` / `guessesUsed`, `foundCount` (the player's own in every mode; what the team shares is `gd.team`'s — [team-facts](team-facts.md)) |
 | the board | `board`: the seat's view — connections' `matchedCategories` + `remainingTiles`, wordle's rows, psychicnum's `tileResults` + `decidedBy`. In coop the hook builds one and gives every player the same reference, which is what `isSharedBoard` means |
 | the picks (connections) | `picks`: mine held by the hook, a teammate's by Broadcast in coop, an opponent's null in compete |
 
@@ -146,7 +146,9 @@ predicate about the subject is bare: `me.conceded`, `me.solved`, `me.onTurn`,
 `turns.holder`, `ending.by`. The prefix stays where the bare word would name a
 thing (`isBoardInteractive`, never `boardInteractive`). A group that may not
 apply is null as a whole (`turns === null`: no turn order; `ending === null`:
-still playing), and a null inside it means "none right now" (`turns.holder`).
+still playing); inside a group that applies, a link names a player
+(`turns.holder` is never null in a turn game: the pointer is set at create and
+only ever advanced or rewound).
 A player, not an id, wherever the lookup cannot miss (`holder`, `by`).
 `outcome` sits top-level on the game and on the player, since a player's
 outcome arrives at the game's end whether or not they ended early.
@@ -172,7 +174,8 @@ gd:                                       # the common part is every line not ma
   setup
   setupRows                               # game
   puzzle: {words, secrets}                # game; what the game is solved against (docs/naming.md → puzzle); secrets null until the game ends
-  turns: {holder}                         # null: no turn order; holder null: nobody's turn now
+  team: {foundSecretsCount, guessesUsed}  # game; what the team shares; null when the game has no team (team-facts.md)
+  turns: {holder}                         # null: no turn order; holder is a player
   ending: {reason, detail, by, winner}    # null while playing; by is a player
   outcome                                 # null until the game ends
   events                                  # game; the log; my rows only, mid-race
@@ -196,8 +199,8 @@ player:
   waitingForTurn
   requiredSecretsCount                    # game; the same on every player
   maxGuesses                              # game; the same on every player
-  foundSecretsCount                       # game; own in compete; the team's, on every player, in coop
-  guessesUsed                             # game; own in compete; the team's, on every player, in coop
+  foundSecretsCount                       # game; own, in every mode
+  guessesUsed                             # game; own, in every mode
   board: {tileResults, decidedBy}         # game; what this seat's tiles show; null for an opponent mid-race
 ```
 

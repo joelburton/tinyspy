@@ -56,7 +56,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   return {
     ...rest,
     setupRows: makeSetupRows(raw.setup, raw.mode, players),
-    turns: turns === null ? null : { holder: playerOf(turns.holder) },
+    turns: turns === null ? null : { holder: playersById[turns.holder]! },
     ending: ending === null
       ? null
       : {

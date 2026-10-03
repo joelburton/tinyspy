@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '../terminal/gameEnding'
-import type { Member } from '../members/member'
+import type { Player } from '../members/member'
 
 /**
  * The common part of every game's `game_data`, as `common._make_json_game_data`
@@ -30,8 +30,9 @@ export type GameDataRaw = {
   title: string
   // The setup form's record, frozen at create. A game reads it as its own type.
   setup: Record<string, unknown>
-  // Null: no turn order. `holder` null: nobody's turn right now.
-  turns: { holder: string | null } | null
+  // Null: no turn order. In a turn game the pointer is set at create and only
+  // ever advanced or rewound, so it always names a player.
+  turns: { holder: string } | null
   // Null while the game is played.
   ending: GameEndingRaw | null
   // The game has ended.
@@ -61,7 +62,7 @@ export type GameEndingRaw = {
  * stands). Inside a group a predicate about its subject is bare: `conceded`,
  * `solved`, `onTurn`.
  */
-export type PlayerRaw = Member & {
+export type PlayerRaw = Player & {
   // This seat is an AI opponent.
   ai: boolean
   // Null in a free-for-all game.

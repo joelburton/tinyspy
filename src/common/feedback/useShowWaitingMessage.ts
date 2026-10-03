@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import type { Actor } from '../members/member'
+import type { Player } from '../members/member'
 import type { FeedbackSlot } from './feedbackSlotStore'
 import { FeedbackMessage } from './FeedbackMessage'
 
@@ -10,8 +10,9 @@ type ShowWaitingMessageOptions = {
   // The move is someone else's — the page's `isWaitingForTurn`, or a game's
   // narrowing of it.
   isWaiting: boolean
-  // The player the turn pointer names; nothing when it names nobody I know.
-  holder: Actor | null | undefined
+  // Who holds the turn (`gd.turns.holder`); null in a game with no turn order,
+  // which is never waiting.
+  holder: Player | null
 }
 
 /**
@@ -22,22 +23,21 @@ type ShowWaitingMessageOptions = {
  * On a phone the info column's whose-turn line is off-canvas, so this is the
  * whose-turn answer beside a board that has gone still.
  *
- * `holder` may be a fresh object on every render (a game rebuilds its players
- * on every reload); the effect keys on its name and color, so a reload with
- * the same holder leaves the message where it is.
+ * `holder` is a fresh object on every reload of the blob; the effect keys on
+ * its fields, so a reload with the same holder leaves the message where it is.
  */
 export function useShowWaitingMessage({
   slot,
   isWaiting,
   holder,
 }: ShowWaitingMessageOptions): void {
+  const id = holder?.id
   const username = holder?.username
   const color = holder?.color
   useEffect(function showWaiting() {
     if (!isWaiting) return
-    const id = slot.show(
-      FeedbackMessage.waiting(username === undefined ? undefined : { username, color: color ?? '' }),
-    )
-    return () => slot.retract(id)
-  }, [slot, isWaiting, username, color])
+    // Waiting is a turn game's state, and a turn game always has a holder.
+    const shown = slot.show(FeedbackMessage.waiting({ id: id!, username: username!, color: color! }))
+    return () => slot.retract(shown)
+  }, [slot, isWaiting, id, username, color])
 }

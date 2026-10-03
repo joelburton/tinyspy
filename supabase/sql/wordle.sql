@@ -174,12 +174,15 @@ revoke execute on function wordle._sync_title(uuid) from public;
 --
 --   game_data, wordle's part:
 --     puzzle: {target}                     null until the game ends
+--     team: {guessesUsed}                  what the team shares, summed over the rows;
+--                                          null in compete, where there is no team
+--                                          (plans/team-facts.md)
 --     events: [{id, userId, word, colors, correct, at}, …]
 --                                          every player's; what a racer may see
 --                                          of a rival mid-race is the hook's rule
 --     players: [player, …]                 the common player, plus:
 --       maxGuesses                         the same on every player
---       guessesUsed                        the team's, on every player, in coop; own in compete
+--       guessesUsed                        this player's own, in every mode
 --       tieBrokenByClock                   compete, once ranked: the earlier solve, not the
 --                                          count, placed this solver against the winner (the
 --                                          winner's too, when another solver matched their
@@ -189,7 +192,7 @@ revoke execute on function wordle._sync_title(uuid) from public;
 --
 --   summary_data, wordle's part (the common part names and dates the game and
 --   carries its ending; the winner is `ending.winner`):
---     guessesUsed                          coop's shared count; null in compete, whose
+--     team: {guessesUsed}                  the same group; null in compete, whose
 --                                          summary shows no progress
 --     maxGuesses
 --     answerBand                           the setup's
@@ -252,8 +255,26 @@ $$;
 
 revoke execute on function wordle._make_json_board(uuid, uuid, text) from public;
 
+-- What the team shares: the guesses summed over every row. Each row holds its
+-- player's own, so the sum counts every guess once. Null in compete, where
+-- there is no team (plans/team-facts.md).
+create or replace function wordle._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = wordle, common, public, extensions
+as $$
+  select case when cg.mode = 'coop' then jsonb_build_object(
+           'guessesUsed', (select sum(guesses_used) from wordle.players where game_id = p_game_id))
+         end
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function wordle._make_json_team(uuid) from public;
+
 -- Every player as wordle's game_data shows them: the common player, with the
--- budget, their count, the clock's tie-break and this seat's board.
+-- budget, their own count, the clock's tie-break and this seat's board.
 create or replace function wordle._make_json_players(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -289,8 +310,6 @@ begin
     select jsonb_agg(
              cp.player || jsonb_build_object(
                'maxGuesses',       v_max_guesses,
-               -- Coop keeps every row at the team's count, so the row is
-               -- right in both modes.
                'guessesUsed',      wp.guesses_used,
                'tieBrokenByClock',
                  case when v_winner_id is null then null
@@ -318,8 +337,8 @@ $$;
 
 revoke execute on function wordle._make_json_players(uuid) from public;
 
--- The whole game_data blob: the common part, with wordle's puzzle, log and
--- players on top.
+-- The whole game_data blob: the common part, with wordle's puzzle, team, log
+-- and players on top.
 create or replace function wordle._make_json_game_data(p_game_id uuid)
 returns jsonb
 language sql
@@ -328,6 +347,7 @@ set search_path = wordle, common, public, extensions
 as $$
   select common._make_json_game_data(p_game_id) || jsonb_build_object(
            'puzzle',  wordle._make_json_puzzle(wg, cg.ended_at is not null),
+           'team',    wordle._make_json_team(p_game_id),
            'events',  wordle._make_json_events(p_game_id),
            'players', wordle._make_json_players(p_game_id))
     from wordle.games wg
@@ -348,7 +368,7 @@ stable
 set search_path = wordle, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
-    'guessesUsed',        case when cg.mode = 'coop' then team.used end,
+    'team',               wordle._make_json_team(p_game_id),
     'maxGuesses',         wg.max_guesses,
     'answerBand',         coalesce((cg.setup->>'answer_band')::int, 0),
     'winnerGuessesCount', case when cg.mode = 'compete' then
@@ -362,8 +382,6 @@ as $$
                           end)
     from wordle.games wg
     join common.games cg on cg.id = wg.game_id
-   cross join (select max(guesses_used) as used
-                 from wordle.players where game_id = p_game_id) team
    where wg.game_id = p_game_id;
 $$;
 
@@ -753,7 +771,8 @@ drop function if exists wordle.submit_guess(uuid, text);
 -- The `for update` lock on the games row serializes concurrent coop
 -- guesses against the shared budget.
 --
--- The `ok` carries { result, colors, guesses_used, solved, game_ended },
+-- The `ok` carries { result, colors, guesses_used, solved, game_ended } —
+-- `guesses_used` being the count against the budget, the team's in coop —
 -- `result` ∈ correct | incorrect | notAWord | duplicate — the FACT, and
 -- nothing about how it reads. No outcome and no message on any of the
 -- four: what each is worth, and the words the two soft rejects show, is
@@ -775,6 +794,9 @@ declare
   v_ended_at         timestamptz;
   norm               text;
   caller_used        int;
+  -- The count against the budget before this guess: the team's in coop, the
+  -- caller's own in compete.
+  v_used             int;
   caller_solved      boolean;
   is_dup             boolean;
   v_colors           char(5);
@@ -828,11 +850,18 @@ begin
       detail = format('guess must match ^[a-z]{5}$; got %L', norm);
   end if;
 
-  -- The caller's working state (coop rows are identical; compete is the
-  -- caller's own).
+  -- Each row counts its own player's guesses, in both modes; the budget is
+  -- spent by their sum in coop and by the caller's own in compete.
   select guesses_used into caller_used
     from wordle.players
    where game_id = p_game_id and user_id = caller_id;
+  if v_mode = 'coop' then
+    select sum(guesses_used) into v_used
+      from wordle.players
+     where game_id = p_game_id;
+  else
+    v_used := caller_used;
+  end if;
   select solved_at is not null into caller_solved
     from common.game_players
    where game_id = p_game_id and user_id = caller_id;
@@ -846,7 +875,7 @@ begin
       using errcode = 'PN257', hint = 'fault', column = '_',
       detail = 'this player has already found the answer';
   end if;
-  if caller_used >= g_row.max_guesses then
+  if v_used >= g_row.max_guesses then
     -- COMPETE-ONLY in practice, and a fault. Spending the last COOP guess ends
     -- the game, so a coop player who guesses again meets the ended check
     -- above and reads "Game over"; only compete keeps playing with an exhausted
@@ -877,7 +906,7 @@ begin
     -- burned. `result` names the case; the frontend picks its branch by it and
     -- says the words.
     return common._ok_envelope(
-      jsonb_build_object('result', 'duplicate', 'guesses_used', caller_used,
+      jsonb_build_object('result', 'duplicate', 'guesses_used', v_used,
                          'solved', false, 'game_ended', false));
   end if;
 
@@ -898,14 +927,14 @@ begin
      where word = norm and len = 5 and difficulty <= g_row.legal_band
   ) then
     return common._ok_envelope(
-      jsonb_build_object('result', 'notAWord', 'guesses_used', caller_used,
+      jsonb_build_object('result', 'notAWord', 'guesses_used', v_used,
                          'solved', false, 'game_ended', false));
   end if;
 
   -- ─── Accept: color, log, count, resolve ──────────────────
   v_colors  := common._wordle_colors(norm, g_row.target);
   did_solve := (norm = lower(g_row.target));
-  new_used  := caller_used + 1;
+  new_used  := v_used + 1;
 
   -- `took_turn` is a literal, not a branch: only an ACCEPTED guess reaches
   -- here (both soft rejects returned above without writing), and an accepted
@@ -915,12 +944,13 @@ begin
   values
     (p_game_id, caller_id, norm, v_colors, did_solve, 'guess', true);
 
-  if v_mode = 'coop' then
-    -- Lock-step: every player's row mirrors the shared count.
-    update wordle.players
-       set guesses_used = new_used
-     where game_id = p_game_id;
+  -- The guess counts on the guesser's own row, in both modes; coop's shared
+  -- budget is the rows' sum (`new_used`).
+  update wordle.players
+     set guesses_used = guesses_used + 1
+   where game_id = p_game_id and user_id = caller_id;
 
+  if v_mode = 'coop' then
     if did_solve then
       -- The team solves, so every teammate solved at this guess.
       update common.game_players
@@ -947,11 +977,6 @@ begin
       perform common._advance_turn(p_game_id);
     end if;
   else
-    -- Compete: apply to the caller's own row only.
-    update wordle.players
-       set guesses_used = new_used
-     where game_id = p_game_id and user_id = caller_id;
-
     -- Solved, or out of guesses: either way this racer has ended while the
     -- others play their boards out, so the common roster has to hear about it
     -- — a player nothing is waiting for must not hold the presence-pause open.

@@ -29,7 +29,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(38);
+select plan(40);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -119,23 +119,24 @@ select is(
     'ended',    false,
     'outcome',  null,
     'puzzle',   jsonb_build_object('target', null),
+    'team',     '{"guessesUsed": 0}'::jsonb,
     'events',   '[]'::jsonb,
     'players',  jsonb_build_array(
       pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada'),
       pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea'))),
-  'the whole game_data of a fresh coop game: the common part, the target withheld, no log, fresh players with empty boards'
+  'the whole game_data of a fresh coop game: the common part, the target withheld, a team with nothing used, no log, fresh players with empty boards'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"guessesUsed": 0, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
-  'the fresh coop game''s summary: the common part, then nothing used, the setup''s answer band, no winner''s count'
+    || '{"team": {"guessesUsed": 0}, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
+  'the fresh coop game''s summary: the common part, then a team with nothing used, the setup''s answer band, no winner''s count'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"guessesUsed": null, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
-  'the fresh compete game''s summary carries no progress'
+    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
+  'the fresh compete game''s summary has no team, so no progress'
 );
 
 -- ─── (2) Mid-game coop: ada guesses wrong ───
@@ -159,9 +160,14 @@ select is(
   '… each with its row id, its time and its five colors'
 );
 select is(
-  (select jsonb_agg(p -> 'guessesUsed') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
-  '[1, 1]'::jsonb,
-  'coop: the team''s used count, on every player'
+  (select jsonb_agg(p -> 'guessesUsed' order by p ->> 'id') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
+  '[1, 0]'::jsonb,
+  'coop: each player''s own count — ada guessed, bea did not'
+);
+select is(
+  pg_temp.game_data(pg_temp.coop()) -> 'team',
+  '{"guessesUsed": 1}'::jsonb,
+  'coop: the team''s count, summed over the rows, in game_data.team'
 );
 select is(
   pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board' -> 'rows',
@@ -183,7 +189,7 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"guessesUsed": 1, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
+    || '{"team": {"guessesUsed": 1}, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
   'coop: the summary has the team''s used count'
 );
 
@@ -214,9 +220,14 @@ select is(
   'compete: the log carries every racer''s rows — what a racer may see is the hook''s rule'
 );
 select is(
+  pg_temp.game_data(pg_temp.compete()) -> 'team',
+  'null'::jsonb,
+  'compete: no team in game_data — every count is a player''s own'
+);
+select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"guessesUsed": null, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
+    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
   'compete: the summary still carries no progress, and no ending yet'
 );
 
@@ -277,7 +288,7 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"guessesUsed": null, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": 2}'::jsonb,
+    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": 2}'::jsonb,
   'compete: the summary names the winner''s count, and its ending names the winner'
 );
 select is(

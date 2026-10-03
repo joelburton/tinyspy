@@ -8,6 +8,7 @@ import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { GameEventLog } from './GameEventLog'
+import { StateLine } from './StateLine'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './InfoCol.module.css'
@@ -56,14 +57,13 @@ export function InfoCol({
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
         <p className={shared.infoState}>
-          <strong>{gd.me.guessesUsed}/{gd.me.maxGuesses}</strong> guesses
+          <StateLine data={gd.stateLineData} />
         </p>
         {gd.turns !== null && (
           <TurnStatusLine
-            turnHolderId={gd.turns.holder?.id ?? null}
-            players={gd.players}
-            myId={myId}
-            isTerminal={gd.ended}
+            turnHolder={gd.turns.holder}
+            isMyTurn={gd.me.onTurn}
+            isGameEnded={gd.ended}
           />
         )}
 

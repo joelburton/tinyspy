@@ -90,8 +90,8 @@ every word on the list is at band 2 or easier, so its floor is 2
 
 ### Coop
 
-One board, one budget: every player's `guesses_used` moves in lock-step, and
-every accepted guess is everyone's. The team wins on the guess that solves it
+One board, one budget: every accepted guess is everyone's, each counts on the
+guesser's own row, and the team's spent budget is the sum of the rows. The team wins on the guess that solves it
 and loses on the last guess that does not, or when a countdown expires. Stop
 ends the game neutrally — nobody won, nobody lost.
 
@@ -154,7 +154,7 @@ blobs the builder writes onto `common.games`.
 | | |
 |---|---|
 | `wordle.games` | one row per game, keyed `game_id` to `common.games`: the `target`, the budget as `max_guesses`, and `legal_band` — stored so `submit_guess` reads the band off the row it locks. `answer_band` is not kept; it is spent picking the target |
-| `wordle.players` | one row per player: `guesses_used`. Coop keeps every row identical. A solve is `common.game_players.solved_at` |
+| `wordle.players` | one row per player: `guesses_used`, their own in both modes. A solve is `common.game_players.solved_at` |
 | `wordle.events` | the guess log, append-only: `word`, `colors`, `is_correct`; `kind` is `guess` and `took_turn` is true, since the table holds accepted guesses only and an accepted guess spends a go. Read `order by id` — that is the order of play |
 
 **The page blobs** are written by `wordle._rebuild_data_cols` at create, at
@@ -166,14 +166,17 @@ own:
 
 | blob | wordle's part |
 |---|---|
-| `game_data` | `puzzle: {target}` (null until the game ends); `events`, every player's rows; on each player `maxGuesses`, `guessesUsed`, `tieBrokenByClock` and `board: {rows}`, this seat's guess rows |
-| `summary_data` | `guessesUsed`, `maxGuesses`, `answerBand`, `winnerGuessesCount` |
+| `game_data` | `puzzle: {target}` (null until the game ends); `team: {guessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `maxGuesses`, their own `guessesUsed`, `tieBrokenByClock` and `board: {rows}`, this seat's guess rows |
+| `summary_data` | `team`, the same group; `maxGuesses`, `answerBand`, `winnerGuessesCount` |
 
-Each player's count is their own on `wordle.players`; coop keeps every row at
-the team's count, so the blob carries the team's on every player there and
-each racer's own in compete. Compete's summary carries no `guessesUsed`, where
-a live count would leak how close a racer is; the winner's count is compete's,
-written once the race is won, and the winner is the common `ending.winner`.
+Each player's count is their own, on `wordle.players` and on their player in
+the blob, in both modes; `team` is their sum, and is null in a race, which has
+no team ([plans/team-facts.md](../../plans/team-facts.md)). `gd.stateLineData`
+is what the info column's state line shows — the team's count where there is
+one, else my own, against the budget — decided once in `useGame`. Compete's
+summary carries no team, where a live count would leak how close a racer is;
+the winner's count is compete's, written once the race is won, and the winner
+is the common `ending.winner`.
 `wordle._rebuild_data_cols_for_all()` rewrites every wordle game's blobs
 without re-dating them, for a shape change.
 
@@ -266,9 +269,9 @@ consulted, so the answer itself is always accepted whatever band it sits in
 today.
 
 An accepted guess is colored against the target, written as a row with its
-colors, and charged to the budget. In coop every player's row moves in
-lock-step, and the guess that solves it wins for the team while the last one
-that does not loses. In compete only the caller's row moves; a racer who has
+colors, and charged to the guesser's own row. In coop the budget is the rows'
+sum, and the guess that solves it wins for the team while the last one that
+does not loses. In compete the budget is the caller's own; a racer who has
 solved it or spent their budget is marked done for the shared roster, so the
 presence-pause stops waiting on them (docs/common-schema.md → Not playing any
 more), and the race ends when nobody is still racing — `_maybe_finish_compete`
@@ -290,7 +293,8 @@ worth — the words the two refusals show included — is the frontend's
 - not solved — `{ "result": "incorrect", "colors": "xgyxx", "guesses_used": 3, "solved": false, "game_ended": false }`
 
 `colors` is five characters, one per letter: `g` in the right place, `y` in
-the word but elsewhere, `x` not in the word. And two for a guess that wrote
+the word but elsewhere, `x` not in the word; `guesses_used` is the count
+against the budget, the team's in coop. And two for a guess that wrote
 nothing, which has no colors:
 
 - already on the board — `{ "result": "duplicate", "guesses_used": 2, "solved": false, "game_ended": false }`
@@ -389,6 +393,7 @@ eight sections.
         │           └── GuessKeyboard ⇐  the caps, each tinted with what its letter earned
         ├── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
         │     └── InfoCol                the readouts and the action row
+        │           ├── StateLine        "3/6 guesses"
         │           ├── TurnStatusLine ← turn-order coop only
         │           ├── OpponentStrip ←  compete only: each player's guess count, or "out"
         │           ├── InfoActionsRow ← one row, every action, in the menu's order
@@ -401,10 +406,10 @@ eight sections.
 ```
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
-the ending, pause, chat — and unmounts this whole surface on pause. The state
-line at the top of the info column ("3/6 guesses") is a paragraph of `InfoCol`'s
-own. `Help` and `SetupForm` are the shell's to mount, from the menu and the
-start-game dialog.
+the ending, pause, chat — and unmounts this whole surface on pause. `StateLine`
+draws "3/6 guesses" from `gd.stateLineData` inside the info column's state
+paragraph; it has no mobile twin, since the board is the count. `Help` and
+`SetupForm` are the shell's to mount, from the menu and the start-game dialog.
 
 **`gd`, the game data.** `useGame` hands the surface one object, `gd`: the
 `game_data` blob the page was handed (`GGameDataRaw`), with its links turned

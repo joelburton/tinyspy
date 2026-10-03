@@ -12,7 +12,7 @@ import { FeedbackMessage, KINDS } from './FeedbackMessage'
  * way, and `destroy` clears every timer.
  */
 
-const moth = { username: 'moth', color: 'green' }
+const moth = { id: 'moth', username: 'moth', color: 'green' }
 const over = { pillText: 'Won: all found', infoColText: 'You won!', outcome: 'won' as const }
 
 beforeEach(() => vi.useFakeTimers())

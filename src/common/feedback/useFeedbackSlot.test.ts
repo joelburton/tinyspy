@@ -14,7 +14,7 @@ import { peekFeedbackSlotForTest } from './feedbackSlotRegistry'
  * store's and are tested there.
  */
 
-const moth = { username: 'moth', color: 'green' }
+const moth = { id: 'moth', username: 'moth', color: 'green' }
 
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())

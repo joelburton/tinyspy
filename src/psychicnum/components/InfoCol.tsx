@@ -46,14 +46,13 @@ export function InfoCol({
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
         <p className={shared.infoState}>
-          <StateLine stateLineData={gd.stateLineData} />
+          <StateLine data={gd.stateLineData} />
         </p>
         {gd.turns !== null && (
           <TurnStatusLine
-            turnHolderId={gd.turns.holder?.id ?? null}
-            players={gd.players}
-            myId={myId}
-            isTerminal={gd.ended}
+            turnHolder={gd.turns.holder}
+            isMyTurn={gd.me.onTurn}
+            isGameEnded={gd.ended}
           />
         )}
         {gd.compete && (

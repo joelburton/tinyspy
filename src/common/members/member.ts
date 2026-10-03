@@ -8,8 +8,9 @@ import type { EndOutcome, PlayerEndedReason } from '../terminal/gameEnding'
  *
  * Reach for this whenever you render a person: a chat sender, a club roster
  * row, a player in an OpponentStrip, a name in an event log. `Member` is the
- * three fields you always need; `GamePlayer` adds the ones that only exist
- * once someone is seated in a game.
+ * three fields you always need; `Player` is the same three, named for a seat;
+ * `GamePlayerLegacy` adds the ones that only exist once someone is seated in a
+ * game, for the games not yet on `game_data`.
  *
  * **Types only, and that is load-bearing.** `Member` is imported by more of the
  * app than any other name here, so a module with no runtime half means all of
@@ -41,6 +42,15 @@ export type Member = {
   // the paired edge.
   color: string
 }
+
+/**
+ * A seated player: the same three fields as a `Member`, under the name that
+ * says what they are here. A sentence that waits for a player, a column that
+ * ranks players, is about seats, not club membership, and the type says so
+ * even though the data is the same. Every game's `GPlayer` extends it, through
+ * the blob's `PlayerRaw`.
+ */
+export type Player = Member
 
 /**
  * A person named at a render site that has no use for their id — the two
@@ -126,10 +136,10 @@ export type PlayerStanding = {
 }
 
 /**
- * A game player as the page hands them to a game: the row, and where they
- * stand. `GamePlayer` is a superset of `Member`, so anything typed `Member[]`
- * still accepts `GamePlayer[]` — a game's OpponentStrip / event-log can keep
- * their `Member` props while the PlayArea reads the ending off the same
- * roster.
+ * A game player as the page handed them to a game before the page blobs: the
+ * row, and where they stand. The games not yet on `game_data` still read it;
+ * a converted game's player is its `GPlayer`, off the blob. `Legacy` so a
+ * reader cannot take it for the live shape; it goes with the last unconverted
+ * game. A superset of `Member`, so anything typed `Member[]` still accepts it.
  */
-export type GamePlayer = GamePlayerRow & PlayerStanding
+export type GamePlayerLegacy = GamePlayerRow & PlayerStanding

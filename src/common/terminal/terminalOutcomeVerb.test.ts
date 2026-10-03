@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { terminalOutcomeVerb } from './terminalOutcomeVerb'
-import type { GamePlayer } from '../members/member'
+import type { GamePlayerLegacy } from '../members/member'
 import { CONCEDED, gp } from '../members/gamePlayer.fixture'
 
 /**
@@ -13,7 +13,7 @@ import { CONCEDED, gp } from '../members/gamePlayer.fixture'
  */
 
 /** A player row, defaulted to the ordinary "played and did not win" case. */
-const player = (over: Parameters<typeof gp>[3] = {}): GamePlayer => gp('u1', 'ada', 'red', over)
+const player = (over: Parameters<typeof gp>[3] = {}): GamePlayerLegacy => gp('u1', 'ada', 'red', over)
 
 describe('terminalOutcomeVerb', () => {
   it('says Won when the player came out won', () => {
@@ -38,7 +38,7 @@ describe('terminalOutcomeVerb', () => {
   })
 
   it('only ever answers with one of the three verbs', () => {
-    const cases: (GamePlayer | undefined)[] = [
+    const cases: (GamePlayerLegacy | undefined)[] = [
       undefined,
       player(),
       player(CONCEDED),

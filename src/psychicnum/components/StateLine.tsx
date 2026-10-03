@@ -16,15 +16,15 @@ import type { GStateLineData } from '../types'
  * The counters are bold and the labels aren't: the numbers are what's read at
  * a glance.
  */
-export function StateLine({ stateLineData }: { stateLineData: GStateLineData }) {
+export function StateLine({ data }: { data: GStateLineData }) {
   return (
     <>
       <strong>
-        {stateLineData.foundSecretsCount}/{stateLineData.requiredSecretsCount}
+        {data.foundSecretsCount}/{data.requiredSecretsCount}
       </strong>{' '}
       found ·{' '}
       <strong>
-        {stateLineData.guessesUsed}/{stateLineData.maxGuesses}
+        {data.guessesUsed}/{data.maxGuesses}
       </strong>{' '}
       guesses used
     </>

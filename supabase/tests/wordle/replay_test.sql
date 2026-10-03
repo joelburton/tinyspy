@@ -90,8 +90,8 @@ select is(
   (select restart_count from common.games where id = (select id from g1)),
   1, 'coop: replay → restart_count up by one');
 select is(
-  (select (summary_data->>'guessesUsed')::int from common.games where id = (select id from g1)),
-  0, 'coop: replay → the summary''s guessesUsed reset to 0');
+  (select (summary_data->'team'->>'guessesUsed')::int from common.games where id = (select id from g1)),
+  0, 'coop: replay → the summary''s team count reset to 0');
 select is(
   (select count(*) from wordle.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the guess log is cleared');

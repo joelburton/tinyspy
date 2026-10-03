@@ -47,7 +47,7 @@ export type GameDataFacts = {
   events?: GEventRaw[]
   players?: PlayerFacts[]
   // Who holds the turn in a turn-order game; `undefined` is a free-for-all.
-  turnHolderId?: string | null
+  turnHolderId?: string
   ending?: GameDataRaw['ending']
   outcome?: GameDataRaw['outcome']
 }

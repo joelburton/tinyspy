@@ -59,7 +59,7 @@ const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 // The summary reads the game's `summary_data` (`GSummaryData`: the common part
-// with its ending; coop's shared guess count, null in compete; compete's
+// with its ending; `team`, the team's guess count, null in compete; compete's
 // winner's count; and the answer band). The answer band rides on every line —
 // a game drawn from the curated Wordle answer list plays very differently from
 // one drawn from the "Expert" end of the dictionary. Each mode's summaryFor
@@ -126,7 +126,8 @@ export const wordleCoopGame: GameManifest = {
   summaryFor: (data) => {
     const summary = data as GSummaryData
     const dict = answerDictLabel(summary.answerBand)
-    const used = tally(summary.guessesUsed, summary.maxGuesses, 'guesses')
+    // Coop always has a team.
+    const used = tally(summary.team!.guessesUsed, summary.maxGuesses, 'guesses')
     if (summary.ending === null) return statusLine(verdict('Playing'), used, dict)
     // Written with the ending.
     const outcome = summary.outcome!
@@ -185,8 +186,8 @@ export const wordleCompeteGame: GameManifest = {
   summaryFor: (data, members) => {
     const summary = data as GSummaryData
     const dict = answerDictLabel(summary.answerBand)
-    // No progress: guesses are private until the game ends, and this line is
-    // readable by the whole club.
+    // No progress: a race has no team, guesses are private until the game
+    // ends, and this line is readable by the whole club.
     if (summary.ending === null) return statusLine(verdict('Playing'), dict)
     // Written with the ending.
     const outcome = summary.outcome!

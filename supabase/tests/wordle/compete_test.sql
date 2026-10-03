@@ -120,9 +120,9 @@ select is(
 -- always null — a counter here would name somebody's progress on the club card.
 reset role;
 select is(
-  (select summary_data->'guessesUsed' from common.games where id = (select id from g)),
+  (select summary_data->'team' from common.games where id = (select id from g)),
   'null'::jsonb,
-  'compete: guessesUsed on the summary is null, not a count');
+  'compete: the summary has no team, so no count');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
 -- ── bea solves in 3 guesses (so ada wins on fewest) ─────────

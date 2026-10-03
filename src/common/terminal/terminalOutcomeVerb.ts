@@ -1,6 +1,6 @@
 // cs-blessed-terminal
 
-import type { GamePlayer } from '../members/member'
+import type { GamePlayerLegacy } from '../members/member'
 
 /**
  * How one player's game ENDED, as the past-tense verb the compete strip's cell
@@ -21,7 +21,7 @@ import type { GamePlayer } from '../members/member'
  *
  * A missing member reads as 'Lost': a peer we cannot resolve did not win.
  */
-export function terminalOutcomeVerb(member: GamePlayer | undefined): 'Won' | 'Conceded' | 'Lost' {
+export function terminalOutcomeVerb(member: GamePlayerLegacy | undefined): 'Won' | 'Conceded' | 'Lost' {
   if (member?.outcome === 'won') return 'Won'
   if (member?.player_ended_reason === 'conceded') return 'Conceded'
   return 'Lost'

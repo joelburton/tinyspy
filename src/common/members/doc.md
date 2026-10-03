@@ -33,9 +33,11 @@ they start to differ.
 imported name in the app, so `member.ts` holds no runtime value at all: every
 one of those imports erases at compile time and none of them can drag the file
 into an import cycle. The one function that reads these types is deliberately
-somewhere else. `GamePlayer` is the same shape plus what only exists once
-someone is seated in a game — whether they quit the race, when, and how they
-finished.
+somewhere else. `Player` is the same three fields under the name that says
+"a seat, not a club member": a sentence that waits for a player takes one, and
+every game's `GPlayer` extends it through the blob's `PlayerRaw`.
+`GamePlayerLegacy` is the shape the games not yet on `game_data` still read —
+the row plus where they stand — and goes with the last of them.
 
 **The eight color names are written out in more places than this folder.** The
 CHECK on the profile column, the array that picks a starting color, and the two
@@ -80,5 +82,5 @@ alphabetically rather than by score means the list stays put while the game
 moves — a strip that reorders itself mid-play cannot be read at a glance.
 
 **One file here is not production code.** `gamePlayer.fixture.ts` builds
-`GamePlayer` literals for tests, and carries `.fixture` in its name so that is
-visible without opening it.
+`GamePlayerLegacy` literals for the unconverted games' tests, and carries
+`.fixture` in its name so that is visible without opening it.
