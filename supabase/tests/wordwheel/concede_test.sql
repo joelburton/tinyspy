@@ -67,11 +67,12 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select wordwheel.submit_word((select id from g), 'bead', 1, false, false);
 
 select wordwheel.concede((select id from g));
--- ada (no finds of her own) still sees nothing of bea's.
+-- ada (no finds of her own) sees bea's row: the table shows a member every
+-- row, and what a racer sees on the page is the hook's rule.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*)::int from wordwheel.found_words where game_id = (select id from g)),
-  0, 'a concede that leaves racers in the game keeps the finds private');
+  1, 'a concede that leaves racers in the game: the table still shows every row');
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select wordwheel.concede((select id from g));

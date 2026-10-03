@@ -1,38 +1,24 @@
 -- cs-blessed-wordwheel
 
 -- ============================================================
--- Test: wordwheel RLS — club gating + the compete-mode policy
+-- Test: wordwheel RLS — club gating
 -- ============================================================
 --
--- A fork of spellingbee's rls_test. Two layers of access control on
--- wordwheel.found_words:
+-- One layer of access control on wordwheel.found_words and wordwheel.games: a
+-- reader must be a member of the game's club (the same shape as every other
+-- gametype's SELECT RLS). The tables carry no mode arm: who may see a rival's
+-- finds mid-race is the page's rule, the hook's seat rule over `game_data`
+-- (src/wordwheel/doc.md → Schema).
 --
---   1. Outer gate: must be a club member of the game's club.
---      (Same shape as every other gametype's SELECT RLS.)
---
---   2. Inner gate, three OR branches (src/wordwheel/doc.md → Schema):
---         (a) common.games.mode = 'coop'   — everyone sees all
---         (b) user_id = auth.uid()         — see your own
---         (c) common.games.ended_at is set — post-game reveal
---
--- This file exercises every branch with direct-INSERT setup: the
--- test sets state by switching to postgres and writing rows
--- directly, so each branch is proved on its own, apart from the RPCs.
---
--- THE FORK: outer_letters is char(8), so the direct-insert boards use
--- 8-letter outer strings.
---
--- Personas: ada + bea + cade in the test club; dee is the
--- outsider. (Naming convention: see ../_shared/setup.psql.)
--- We pick a 3-member club so compete mode has enough actors
--- to make the "only my own" vs "everyone's" distinction
--- visible.
+-- This file sets state with direct INSERTs as postgres, so the gate is proved
+-- on its own, apart from the RPCs. Personas: ada + bea + cade in the test
+-- club; dee is the outsider. (Naming convention: see ../_shared/setup.psql.)
 
 begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(11);
+select plan(7);
 
 \ir ../_shared/setup.psql
 
@@ -76,8 +62,7 @@ values (
   '[]'::jsonb, '[]'::jsonb, 3, 5
 );
 
--- Three found_words rows, one per player. The RLS branch (a)
--- (coop) means each player should see ALL three. Words are isograms of
+-- Three found_words rows, one per player. Every member sees all three. Words are isograms of
 -- the wheel + center 'e'.
 insert into wordwheel.found_words (game_id, user_id, word, points, is_pangram, is_bonus) values
   ((select id from coop_game),
@@ -90,7 +75,7 @@ insert into wordwheel.found_words (game_id, user_id, word, points, is_pangram, i
 -- ============================================================
 -- Coop mode: everyone in the club sees everyone's finds
 -- ============================================================
--- Branch (a) of the policy.
+
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
@@ -111,8 +96,7 @@ select is(
 -- ============================================================
 -- Non-member sees nothing — through games OR found_words
 -- ============================================================
--- The outer gate (club membership) wins even before any inner
--- OR branch matters. dee is signed in but not in the club.
+-- The club gate. dee is signed in but not in the club.
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
@@ -127,12 +111,6 @@ select is(
     where game_id = (select id from coop_game)),
   0::bigint,
   'dee (outsider): zero rows from wordwheel.found_words'
-);
-
-select is(
-  (select count(*) from wordwheel.games_state where game_id = (select id from coop_game)),
-  0::bigint,
-  'dee (outsider): zero rows from wordwheel.games_state (RLS inherits via security_invoker)'
 );
 
 -- ============================================================
@@ -172,10 +150,10 @@ select throws_ok(
 );
 
 -- ============================================================
--- Compete mode: viewer sees ONLY their own finds while playing
+-- Compete mode: the table shows a member every row
 -- ============================================================
--- Branch (b) of the policy. We seed a second game in the same
--- club with mode=compete and put a row from each player.
+-- We seed a second game in the same club with mode=compete and put a row
+-- from each player.
 
 reset role;
 create temp table compete_game (id uuid) on commit drop;
@@ -212,51 +190,14 @@ insert into wordwheel.found_words (game_id, user_id, word, points, is_pangram, i
   ((select id from compete_game),
    'cade3333-3333-3333-3333-333333333333', 'dice', 1, false, false);
 
--- Ada sees only her one row (branch (b)).
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  (select count(*) from wordwheel.found_words
-    where game_id = (select id from compete_game)),
-  1::bigint,
-  'compete mid-game / ada: sees only her own found_word (branch b: user_id = auth.uid())'
-);
-
--- And it's her row specifically, not someone else's.
-select is(
-  (select user_id from wordwheel.found_words
-    where game_id = (select id from compete_game)),
-  'ada11111-1111-1111-1111-111111111111'::uuid,
-  'compete mid-game / ada: the row she sees IS her own'
-);
-
--- Bea symmetrically sees only her one row.
-select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  (select count(*) from wordwheel.found_words
-    where game_id = (select id from compete_game)),
-  1::bigint,
-  'compete mid-game / bea: sees only her own found_word'
-);
-
--- ============================================================
--- Compete mode, ended: branch (c) opens the reveal
--- ============================================================
--- The "what I missed" post-end view: once the game has ended,
--- every member sees every other member's finds, regardless of
--- mode. End the compete game and re-query.
-
-reset role;
-update common.games
-   set ended_at = now(), game_ended_reason = 'stopped',
-       game_ended_reason_detail = 'stopped', game_ended_outcome = 'neutral'
- where id = (select id from compete_game);
-
+-- Ada sees every racer's row: who may see a rival's finds mid-race is the
+-- page's rule (the hook's seat rule over game_data), not the table's.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from wordwheel.found_words
     where game_id = (select id from compete_game)),
   3::bigint,
-  'compete, ended / ada: sees all 3 finds (branch c: ended_at)'
+  'compete mid-game / ada (member): sees every racer''s row — the table carries no mode arm'
 );
 
 -- ============================================================

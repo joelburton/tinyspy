@@ -26,8 +26,8 @@
 --   - Reaching `target_rank` wins at once: the team in coop, the first racer
 --     in compete. A coop game without a target is an open hunt that only the
 --     clock or a Stop ends, with no result.
---   - Found words are the one mode-aware read: coop sees everyone's, compete
---     only your own until the game ends.
+--   - What a racer may see of a rival's finds mid-race is the page's rule
+--     (the hook), applied to game_data; the tables carry no mode arm.
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -77,17 +77,9 @@ create policy games_select on spellingbee.games
     )
   );
 
--- found_words RLS is the load-bearing piece for compete. Three OR branches
--- inside the EXISTS, in evaluation order:
---
---   (1) coop — everyone in the club sees everyone's finds.
---   (2) user_id = auth.uid() — you always see your own finds. In compete
---       mid-game, this is your private list.
---   (3) the game has ended — everyone sees everyone's finds (the "what I
---       missed" reveal in compete; harmless in coop since (1) covered it).
---
--- Club membership is the outer gate; the mode/visibility discrimination is
--- the inner condition. Mirrors the connections.events_select shape.
+-- Found words: any club member sees every row. Who may see a rival's finds
+-- mid-race is the hook's rule (src/spellingbee/hooks/useGame.ts), applied to
+-- `game_data`; nothing reads this table from the client.
 drop policy if exists found_words_select on spellingbee.found_words;
 create policy found_words_select on spellingbee.found_words
   for select to authenticated
@@ -96,45 +88,16 @@ create policy found_words_select on spellingbee.found_words
       select 1 from common.games cg
        where cg.id = found_words.game_id
          and common._is_club_member(cg.club_handle)
-         and (
-               cg.mode = 'coop'
-            or found_words.user_id = (select auth.uid())
-            or cg.ended_at is not null
-             )
     )
   );
 
 -- No INSERT/UPDATE/DELETE policies — writes go through the
 -- security-definer RPCs below.
 
--- ============================================================
--- games_state view
--- ============================================================
--- The FE's read path for a spellingbee game header. `security_invoker = true`
--- so RLS on the base table evaluates as the caller. Both word lists ship to
--- the FE from game start, so it can judge and score a word locally and
--- compute the missed-words reveal itself once the game ends.
---
--- So this is a PURE PASS-THROUGH, and deliberately kept as one: every game's
--- FE reads `<schema>.games_state`, so the uniform seam is worth a view that
--- adds nothing but `security_invoker`. If a column ever needs hiding, it goes
--- here and no FE changes.
+-- The view the frontend read before the page blobs. supabase/sql is
+-- re-applied, not diffed, so the drop stays.
 drop view if exists spellingbee.games_state;
-create view spellingbee.games_state with (security_invoker = true) as
-select
-  g.game_id,
-  g.outer_letters,
-  g.center_letter,
-  g.required_words,
-  g.bonus_words,
-  g.required_words_count,
-  g.required_words_score,
-  g.target_rank,
-  g.required_band,
-  g.legal_band
-  from spellingbee.games g;
 
-grant select on spellingbee.games_state to authenticated;
 
 drop function if exists spellingbee._rank_idx(int, int);
 drop function if exists spellingbee._leaderboard(uuid, int);
@@ -216,88 +179,9 @@ $$;
 revoke execute on function spellingbee.candidate_words(bigint, bigint, int, int) from public;
 grant execute on function spellingbee.candidate_words(bigint, bigint, int, int) to authenticated;
 
--- ============================================================
--- spellingbee._write_statuses — the page's copies of the game
--- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from spellingbee's own tables, assigning
--- each whole (plans/common-tables.md → The statuses). Every key is always
--- present, null when it has no value:
---
---   game_status    { required_words_count, required_words_score,
---                    target_rank }
---                  — the board's totals, which the rank ladder is measured
---                  against, and the rank that wins (null for none)
---   player_status  { found_words_count, found_words_score,
---                    player_ended_reason }
---                  — that player's own finds, bonus included; a coop page
---                  sums them for the team, and the page's own rank ladder
---                  (src/shared/rank-ladder) turns a score into a rank
---   clubpage_info  { found_words_count, found_words_score,
---                    required_words_count, required_words_score,
---                    target_rank, winner_user_id }
---                  — the team's finds (coop; null in compete, where a live
---                  count would say how a racer is doing), the totals and
---                  the target; a compete winner once there is one
---
--- `p_update_status_changed_at` is true from create, Restart and every move,
--- false from a rebuild (the pass over every game, a repair by hand), so a
--- rebuild never re-dates a game.
-create or replace function spellingbee._write_statuses(
-  p_game_id uuid,
-  p_update_status_changed_at boolean
-)
-returns void
-language plpgsql
-security definer
-set search_path = spellingbee, common, public, extensions
-as $$
-declare
-  g spellingbee.games%rowtype;
-  v_mode text;
-begin
-  select * into g from spellingbee.games where game_id = p_game_id;
-  select mode into v_mode from common.games where id = p_game_id;
-
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'found_words_count', coalesce(t.found_count, 0),
-           'found_words_score', coalesce(t.found_score, 0),
-           'player_ended_reason', gp.player_ended_reason)
-    from (
-      select p.user_id, count(fw.word) as found_count, sum(fw.points) as found_score
-        from common.game_players p
-        left join spellingbee.found_words fw
-          on fw.game_id = p.game_id and fw.user_id = p.user_id
-       where p.game_id = p_game_id
-       group by p.user_id
-    ) t
-   where gp.game_id = p_game_id and gp.user_id = t.user_id;
-
-  update common.games
-     set game_status = jsonb_build_object(
-           'required_words_count', g.required_words_count,
-           'required_words_score', g.required_words_score,
-           'target_rank', g.target_rank),
-         clubpage_info = jsonb_build_object(
-           'found_words_count', case when v_mode = 'coop' then (
-             select count(*) from spellingbee.found_words where game_id = p_game_id) end,
-           'found_words_score', case when v_mode = 'coop' then (
-             select coalesce(sum(points), 0) from spellingbee.found_words
-              where game_id = p_game_id) end,
-           'required_words_count', g.required_words_count,
-           'required_words_score', g.required_words_score,
-           'target_rank', g.target_rank,
-           'winner_user_id', case when v_mode = 'compete' then (
-             select user_id from common.game_players
-              where game_id = p_game_id and final_ranking = 1) end),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
-   where id = p_game_id;
-end;
-$$;
-
-revoke execute on function spellingbee._write_statuses(uuid, boolean) from public;
+-- The name this had while it wrote the statuses; supabase/sql is re-applied,
+-- not diffed.
+drop function if exists spellingbee._write_statuses(uuid, boolean);
 
 -- ============================================================
 -- The page blobs — what the page shows, written by this game's builder
@@ -336,9 +220,6 @@ revoke execute on function spellingbee._write_statuses(uuid, boolean) from publi
 --   game and carries its ending; the winner is `ending.winner`):
 --     team: {nFoundWords, foundWordsScore, rankIdx}   the same group; null in compete
 --     nReqdWords, reqdWordsScore, targetRankIdx
---
--- The statuses are still written beside the blobs (`_write_statuses`, called
--- from `_rebuild_data_cols`) until the page reads the blobs alone.
 
 -- A word as the page draws it: the stored `{word, points, is_pangram}`, camel.
 create or replace function spellingbee._make_json_word(p_word jsonb)
@@ -522,8 +403,7 @@ revoke execute on function spellingbee._make_json_summary_data(uuid, timestamptz
 -- ============================================================
 -- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
 -- through `common._make_json_shell_data`) from spellingbee's own tables,
--- assigning each whole, and the statuses beside them. Every RPC calls it
--- after a move, so the blobs carry what the move left; it is also the repair
+-- assigning each whole. Every RPC calls it after a move, so the blobs carry what the move left; it is also the repair
 -- for one game by hand. Every key is always present, null when it has no
 -- value; the shapes are drawn above.
 --
@@ -542,8 +422,6 @@ as $$
 declare
   v_status_changed_at timestamptz;
 begin
-  perform spellingbee._write_statuses(p_game_id, p_update_status_changed_at => false);
-
   -- One instant for the column and the blob's copy of it.
   select case when p_update_status_changed_at then now() else status_changed_at end
     into v_status_changed_at
@@ -979,9 +857,13 @@ begin
 
     if common._rank_idx(v_score, g.required_words_score) >= g.target_rank then
       if v_mode = 'coop' then
+        -- The team solves, so every teammate solved at this word.
+        update common.game_players set solved_at = now() where game_id = p_game_id;
         select jsonb_object_agg(user_id::text, 1) into v_rankings
           from common.game_players where game_id = p_game_id;
       else
+        update common.game_players set solved_at = now()
+         where game_id = p_game_id and user_id = caller_id;
         v_rankings := jsonb_build_object(caller_id::text, 1);
       end if;
 

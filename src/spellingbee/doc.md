@@ -135,7 +135,7 @@ nobody.
 
 ## Schema
 
-Three tables and a view, in `supabase/migrations/20260617000000_spellingbee.sql`
+Three tables, in `supabase/migrations/20260617000000_spellingbee.sql`
 (shape) and `supabase/sql/spellingbee.sql` (behavior).
 
 | | |
@@ -143,7 +143,6 @@ Three tables and a view, in `supabase/migrations/20260617000000_spellingbee.sql`
 | `spellingbee.pangrams` | the board-seed pool: one row per seven-letter set drawn from the universal band of `common.words`, with how many required words fit it at the band-one floor and whether it holds a rare letter. Public reference data, rebuilt by `gmake g-spellingbee-pangrams` after `gmake all-words` |
 | `spellingbee.games` | one row per game, keyed `game_id`: the seven letters, both word lists as jsonb arrays of `{ word, points, is_pangram }`, the required list's score and count, cached so a submit need not re-sum the list, and three setup values copied at create — `target_rank` (null for none), `required_band` and `legal_band`. The mode and the club are `common.games`' |
 | `spellingbee.found_words` | one row per `(game, player, word)`, with `points`, `is_pangram`, `is_bonus` and `found_at`. The game's only working state |
-| `spellingbee.games_state` | the view the frontend reads: every column of `games`, passed straight through under `security_invoker`. It hides nothing today and is kept as the uniform seam every game reads |
 
 **Nothing is hidden from a client.** Both word lists are in the column grant
 and the view exposes them from the first read; the frontend judges every word
@@ -151,12 +150,10 @@ against them and the missed-words reveal is computed on the client once the
 game has ended. The trust model does not withhold an answer key from friends
 (CLAUDE.md → Trust model).
 
-**`found_words` carries the mode-aware policy**, three arms in one `EXISTS`:
-coop shows every club member every row, a racer always sees their own, and an
-ended game opens everybody's — the post-game reveal in compete, and a no-op
-in coop. Club membership is the outer gate; the mode and the ending are read
-off `common.games`, so the policy joins one table.
-`games` needs only the membership gate, since the header holds nothing private.
+**Both tables need only the membership gate.** Who may see a rival's finds
+mid-race is the page's rule — the hook's seat rule over `game_data`, which
+withholds a rival's rows until the race ends — and nothing reads the tables
+from the client, so the policies carry no mode arm.
 
 **The page blobs** are written by `spellingbee._rebuild_data_cols` at create, at
 Restart and at the end of every move and ending, each assigned whole
@@ -171,22 +168,6 @@ game's own, the same shape as the other bee game's
 | `game_data` | `puzzle: {tiles, centerLetter, outerLetters, reqdWords, bonusWords, nReqdWords, reqdWordsScore, targetRankIdx, hasBonus}`, as `create_game` froze it, a tile being `{id, letter, isCenter}` with its place as its id and the center first; `team: {nFoundWords, foundWordsScore, rankIdx}`, what the team shares, null in compete; `events`, every found word in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx` |
 | `summary_data` | `team`, the same group; `nReqdWords`, `reqdWordsScore`, `targetRankIdx` |
 
-**The statuses** are still written beside the blobs, by `spellingbee._write_statuses` at create, at
-Restart and at the end of every move and ending, each assigned whole with every
-key present:
-
-| status | keys |
-|---|---|
-| `game_status` | `required_words_count`, `required_words_score`, `target_rank` |
-| each `player_status` | `found_words_count`, `found_words_score`, `player_ended_reason` |
-| `clubpage_info` | `found_words_count`, `found_words_score`, `required_words_count`, `required_words_score`, `target_rank`, `winner_user_id` |
-
-A player's status is their own finds, bonus included; a coop page sums them
-for the team, and the page's own rank ladder (`src/shared/rank-ladder`) turns a
-score into a rank. The summary's finds are coop's team totals and null in
-compete, where a live count would say how a racer is doing; a compete winner is
-written once there is one.
-
 **The club-list title is the board**, `<CENTER>·<OUTER-SORTED>` — `A·CHIORT` —
 written once at creation and never changed, so one board reads one way in the
 club's history whatever the local shuffle.
@@ -195,8 +176,7 @@ club's history whatever the local shuffle.
 change refetches the found list; the header loads once, since nothing in it
 changes during play. Both tables must be in the publication, since a
 subscription naming an unpublished table is rejected whole. Every move and ending
-writes the statuses, which writes `common.games`; the page's move to reloading
-off that row is step 5 of plans/common-tables.md.
+rewrites the page blobs on `common.games`.
 
 ## RPCs
 
@@ -272,7 +252,7 @@ both word lists present, and at least thirty required words, or at least one
 when the letters were the player's own. It titles the game after its letters,
 the center first — `A·CHIORT` — writes the `common.games` row and the
 `spellingbee.games` row holding the letters, both lists, the target and the
-two bands, and writes the statuses. The setup is saved as the club's next default with the
+two bands, and writes the page blobs. The setup is saved as the club's next default with the
 custom letters stripped, so the next game's dialog opens on a random board.
 Either mode takes up to six players and a race needs two; the server checks
 both.
@@ -314,7 +294,7 @@ so the two routes to it read alike.
 An accepted word is written to `found_words` with its points and flags. When
 the game has a target rank and this word carries the team's score (coop) or
 the caller's (compete) to it, the game ends `reached_goal` / `target`: the team
-ranked 1, or the caller alone. Either way the statuses are rewritten. **The answer is about the caller's word and never
+ranked 1, or the caller alone. Either way the page blobs are rewritten. **The answer is about the caller's word and never
 about anyone else's**: the terminal reaches every client over realtime, and
 the reply only names this word's kind.
 
@@ -496,9 +476,9 @@ checks shape, not spelling) and three bonus ones, and
 
 | file | pins |
 |---|---|
-| `schema_test` | both gametypes registered; the seed pool readable; both word lists readable by a client and exposed by the view during play and at terminal |
-| `statuses_test` | each status's exact key set at the start, mid-game and at the end in both modes; the values the page reads; a rebuild leaves `status_changed_at` alone and drops a stale key |
-| `rls_test` | coop shows every member every row; an outsider sees no row of any table; a direct insert is denied; compete narrows a racer to their own rows mid-game and opens every row at terminal |
+| `schema_test` | both gametypes registered; the seed pool readable; both word lists readable by a client and present on the row during play and at terminal |
+| `game_data_test` | the page blobs: a fresh game's puzzle, team, log and players; the coop and compete mid-game shapes; the won race and the stopped coop game; a Restart; a rebuild of every game without re-dating it |
+| `rls_test` | a member sees every row of both tables in both modes; an outsider sees no row of any table; a direct insert is denied |
 | `create_game_test` | both modes' rows, the gametype suffix and the mode; the title formula; the target and bands copied to their columns; an outsider, a bad mode, a short race, a missing or out-of-range target, a bad band, every board-shape fault, and seven players refused |
 | `custom_letters_test` | a hand-picked board is accepted under thirty words and refused at zero; the custom letters are stripped from the saved default; a random board still needs thirty |
 | `coop_target_test` | reaching the target ends the game `reached_goal` / `target` with everyone ranked 1, and it is really over; the clock with a target unreached is a loss; with no target it is no result; Stop with a target unreached is neutral |

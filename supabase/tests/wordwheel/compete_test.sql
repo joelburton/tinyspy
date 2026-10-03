@@ -31,7 +31,12 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(26);
+select plan(27);
+
+-- One player inside the game_data blob.
+create function pg_temp.player_of(game uuid, uid uuid) returns jsonb language sql as
+  $$ select p from jsonb_array_elements((select game_data -> 'players' from common.games where id = game)) p
+      where p ->> 'id' = uid::text $$;
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -93,15 +98,15 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select clubpage_info->'found_words_score' from common.games where id = (select id from g)),
+  (select summary_data->'team' from common.games where id = (select id from g)),
   'null'::jsonb,
-  'compete mid-game: the club line carries no team score'
+  'compete mid-game: the summary carries no team'
 );
 
 select is(
   (
-    select count(*)::int from common.game_players
-     where game_id = (select id from g) and player_status ? 'found_words_score'
+    select count(*)::int from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from g))) p
+     where p ? 'foundWordsScore'
   ),
   3,
   'compete mid-game: every player (ada, bea, cade) carries their own score'
@@ -111,9 +116,7 @@ select is(
 -- (bead = 1pt, rank 0 — 1/62 is well below the rank 1 threshold).
 select is(
   (
-    select (player_status->>'found_words_score')::int from common.game_players
-     where game_id = (select id from g)
-       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid
+    select (pg_temp.player_of((select id from g), 'ada11111-1111-1111-1111-111111111111')->>'foundWordsScore')::int
   ),
   1,
   'compete mid-game: ada''s score = 1 after one accepted word'
@@ -143,20 +146,24 @@ select is(
 );
 
 select is(
-  (select (clubpage_info->>'winner_user_id')::uuid from common.games where id = (select id from g)),
+  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g)),
   'cade3333-3333-3333-3333-333333333333'::uuid,
-  'compete: the club line names the caller (cade) as the winner'
+  'compete: the summary names the caller (cade) as the winner'
+);
+
+select is(
+  (pg_temp.player_of((select id from g), 'cade3333-3333-3333-3333-333333333333')->>'solved')
+    || '/' || (pg_temp.player_of((select id from g), 'ada11111-1111-1111-1111-111111111111')->>'solved'),
+  'true/false',
+  'compete: the winner solved at the winning word, as game_data says; a rival did not'
 );
 
 -- Each score is frozen as it stood at the winning word: the winner's
 -- includes it, and a rival's is what they had.
 select is(
   (
-    select (player_status->>'found_words_score') || '/'
-           || common._rank_idx((player_status->>'found_words_score')::int, 62)
-      from common.game_players
-     where game_id = (select id from g)
-       and user_id = 'cade3333-3333-3333-3333-333333333333'::uuid
+    select (pg_temp.player_of((select id from g), 'cade3333-3333-3333-3333-333333333333')->>'foundWordsScore') || '/'
+           || (pg_temp.player_of((select id from g), 'cade3333-3333-3333-3333-333333333333')->>'rankIdx')
   ),
   '24/3',
   'compete: the winner''s final score and rank are kept (24 pts, Nice)'
@@ -164,9 +171,7 @@ select is(
 
 select is(
   (
-    select (player_status->>'found_words_score')::int from common.game_players
-     where game_id = (select id from g)
-       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid
+    select (pg_temp.player_of((select id from g), 'ada11111-1111-1111-1111-111111111111')->>'foundWordsScore')::int
   ),
   1,
   'compete: a rival''s score is kept as it stood'
@@ -182,13 +187,13 @@ select is(
   'compete: the winner is ranked 1, won'
 );
 
--- A target is not a solve: reaching the rank wins without finishing the board.
+-- Reaching the target is this game's solve: the winner's solved_at is stamped.
 select is(
-  (select solved_at from common.game_players
+  (select solved_at is not null from common.game_players
     where game_id = (select id from g)
       and user_id = 'cade3333-3333-3333-3333-333333333333'::uuid),
-  null,
-  'compete: the winner has no solved_at — a target is not a solve'
+  true,
+  'compete: the winner''s solved_at is stamped at the target'
 );
 
 select is(
@@ -258,14 +263,14 @@ select is(
 -- label names the rank nobody reached, and the OpponentStrip reads each
 -- player's final rank.
 select is(
-  (select (clubpage_info->>'target_rank')::int from common.games where id = (select id from g_timeout)),
+  (select (summary_data->>'targetRankIdx')::int from common.games where id = (select id from g_timeout)),
   5,
-  'compete submit_timeout: the club line''s target_rank survives (= 5, not the ?? 0 fallback)'
+  'compete submit_timeout: the summary''s targetRankIdx survives (= 5, not the ?? 0 fallback)'
 );
 
 select is(
-  (select count(*)::int from common.game_players
-    where game_id = (select id from g_timeout) and player_status ? 'found_words_score'),
+  (select count(*)::int from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from g_timeout))) p
+    where p ? 'foundWordsScore'),
   2,
   'compete submit_timeout: each player''s score is still carried (2 players), not dropped'
 );
@@ -306,9 +311,9 @@ select is(
 );
 
 select is(
-  (select (clubpage_info->>'target_rank')::int from common.games where id = (select id from g_end)),
+  (select (summary_data->>'targetRankIdx')::int from common.games where id = (select id from g_end)),
   5,
-  'compete stop_game: the club line''s target_rank survives (= 5, not the ?? 0 fallback)'
+  'compete stop_game: the summary''s targetRankIdx survives (= 5, not the ?? 0 fallback)'
 );
 
 -- ============================================================
@@ -336,20 +341,20 @@ select wordwheel.submit_word((select id from g_rls), 'bead', 1, false, false);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select wordwheel.submit_word((select id from g_rls), 'face', 1, false, false);
 
--- Ada sees her own one row only.
+-- Ada sees every racer's row: the mode rule is the hook's, over game_data.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from wordwheel.found_words where game_id = (select id from g_rls)),
-  1::bigint,
-  'rls (compete mid-game): ada sees only her own found_word'
+  2::bigint,
+  'rls (compete mid-game): ada sees every racer''s row — the table carries no mode arm'
 );
 
--- Cade (no submissions) sees zero.
+-- Cade (no submissions) sees them too.
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
   (select count(*) from wordwheel.found_words where game_id = (select id from g_rls)),
-  0::bigint,
-  'rls (compete mid-game): cade (no finds) sees zero rows'
+  2::bigint,
+  'rls (compete mid-game): cade (no finds) sees the racers'' rows too'
 );
 
 -- End the game — cade now sees all 2 rows via branch (3).

@@ -13,7 +13,7 @@
 -- is a race not-ok.
 --
 -- Coverage, by section:
---   1. coop happy: required word → 'accepted', row inserted, statuses updated.
+--   1. coop happy: required word → 'accepted', row inserted, the blobs rewritten.
 --   2. coop pangram: trusted is_pangram → 'pangram', points as given.
 --   3. coop bonus: trusted is_bonus → 'bonus', scored as given;
 --      3b a bonus word with is_pangram=true → 'pangram'.
@@ -23,10 +23,10 @@
 --   7. compete target-rank hit → 'won', reached_goal / target, the winner named.
 --   8. a submit after the end is the game-over race.
 --   9. coop has NO automatic ending past required_words_count.
---  10. submit_timeout: ended, reason 'timeout', idempotent, the statuses
---      rewritten, and games_state still exposing the required list.
+--  10. submit_timeout: ended, reason 'timeout', idempotent, the blobs
+--      rewritten, and game_data still carrying the required list.
 --  11. stop_game: ended, reason 'stopped', the live tally, idempotent, the
---      statuses rewritten, and a non-player refused.
+--      blobs rewritten, and a non-player refused.
 --  12. a word into a game deleted under it is the shared race (PN485).
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
@@ -98,16 +98,16 @@ select is(
   'submit_word: row stores the trusted points'
 );
 
--- The club line reflects the accepted word.
+-- The summary reflects the accepted word.
 select is(
-  (select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from g)),
+  (select (summary_data->'team'->>'foundWordsScore')::int from common.games where id = (select id from g)),
   1,
-  'clubpage_info.found_words_score updated after first accepted word'
+  'summary_data team score updated after first accepted word'
 );
 select is(
-  (select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from g)),
+  (select (summary_data->'team'->>'nFoundWords')::int from common.games where id = (select id from g)),
   1,
-  'clubpage_info.found_words_count = 1 after first accepted'
+  'summary_data team count = 1 after first accepted'
 );
 
 -- ============================================================
@@ -153,14 +153,14 @@ select is(
 
 -- Score advances WITH the bonus points; count includes all rows.
 select is(
-  (select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from g)),
+  (select (summary_data->'team'->>'foundWordsScore')::int from common.games where id = (select id from g)),
   24,                                       -- 1 (bead) + 17 (pangram) + 6 (bonus)
-  'clubpage_info.found_words_score includes bonus-word points'
+  'summary_data team score includes bonus-word points'
 );
 select is(
-  (select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from g)),
+  (select (summary_data->'team'->>'nFoundWords')::int from common.games where id = (select id from g)),
   3,                                        -- bead + pangram + bonus (all counted)
-  'clubpage_info.found_words_count counts ALL submissions incl. bonus (overshoot OK)'
+  'summary_data team count counts ALL submissions incl. bonus (overshoot OK)'
 );
 
 -- ── (3b) Bonus pangram: is_bonus AND is_pangram both true ──
@@ -268,9 +268,9 @@ select is(
 );
 
 select is(
-  (select clubpage_info->>'winner_user_id' from common.games where id = (select id from compete_g)),
+  (select summary_data->'ending'->>'winner' from common.games where id = (select id from compete_g)),
   'ada11111-1111-1111-1111-111111111111',
-  'compete: clubpage_info.winner_user_id = caller who triggered the rank hit'
+  'compete: summary_data.ending.winner = caller who triggered the rank hit'
 );
 
 -- ============================================================
@@ -341,15 +341,14 @@ select is(
 
 reset role;
 select is(
-  (select (clubpage_info->>'found_words_score')::int > (clubpage_info->>'required_words_score')::int
+  (select (summary_data->'team'->>'foundWordsScore')::int > (summary_data->>'reqdWordsScore')::int
      from common.games where id = (select id from g)),
   true,
   'coop: the team score can exceed required_words_score once bonus words are found'
 );
 
 select is(
-  (select common._rank_idx((clubpage_info->>'found_words_score')::int,
-                           (clubpage_info->>'required_words_score')::int)
+  (select (summary_data->'team'->>'rankIdx')::int
      from common.games where id = (select id from g)),
   6,
   'coop: the team rank clamps at 6 (Genius) past required_words_score'
@@ -379,7 +378,7 @@ select is(
   'submit_word: face accepted in timeout-game setup'
 );
 
--- Backdate the statuses' date, to see the ending rewrite them.
+-- Backdate the blobs' date, to see the ending rewrite them.
 reset role;
 update common.games set status_changed_at = now() - interval '1 hour'
  where id = (select id from timeout_g);
@@ -391,7 +390,7 @@ reset role;
 select is(
   (select status_changed_at from common.games where id = (select id from timeout_g)),
   now(),
-  'submit_timeout: rewrites the statuses, so every client hears of the ending'
+  'submit_timeout: rewrites the blobs, so every client hears of the ending'
 );
 
 select is(
@@ -420,13 +419,13 @@ select pg_temp.envelope_is(
     "message":"Game over"}'::jsonb,
   'submit_timeout: a second call is the game-over race');
 
--- games_state exposes the full required-words list after the end as it did in
--- play: the FE ships it from game start.
+-- game_data carries the full required list after the end as it did in play:
+-- the page has it from game start.
 select is(
-  (select jsonb_array_length(required_words) from spellingbee.games_state
-    where game_id = (select id from timeout_g)),
+  (select jsonb_array_length(game_data->'puzzle'->'reqdWords') from common.games
+    where id = (select id from timeout_g)),
   30,
-  'games_state.required_words is exposed (30 required entries)'
+  'game_data.puzzle.reqdWords is present (30 required entries)'
 );
 
 -- ============================================================
@@ -463,7 +462,7 @@ reset role;
 select is(
   (select status_changed_at from common.games where id = (select id from end_g)),
   now(),
-  'stop_game: rewrites the statuses, so every client hears of the ending'
+  'stop_game: rewrites the blobs, so every client hears of the ending'
 );
 
 select is(
@@ -485,13 +484,13 @@ select is(
 );
 
 select is(
-  (select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from end_g)),
+  (select (summary_data->'team'->>'foundWordsScore')::int from common.games where id = (select id from end_g)),
   1,
-  'stop_game: the club line''s score is the team''s live tally at the moment of end'
+  'stop_game: the summary''s team score is the live tally at the moment of end'
 );
 
 select is(
-  (select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from end_g)),
+  (select (summary_data->'team'->>'nFoundWords')::int from common.games where id = (select id from end_g)),
   1,
   'stop_game: the club line''s found_words_count is the live count'
 );

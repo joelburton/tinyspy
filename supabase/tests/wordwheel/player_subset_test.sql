@@ -63,7 +63,7 @@ select is(
 -- The member-non-player can VIEW (read-RLS gates on club membership).
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
-  (select count(*) from wordwheel.games_state where game_id = (select id from g)),
+  (select count(*) from wordwheel.games where game_id = (select id from g)),
   1::bigint,
   'cade (member, not a player) CAN read the game — viewing is club-gated'
 );

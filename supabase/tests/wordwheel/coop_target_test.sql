@@ -25,7 +25,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(13);
+select plan(14);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -98,9 +98,9 @@ select is(
 );
 
 select is(
-  (select (clubpage_info->>'target_rank')::int from common.games where id = (select id from g)),
+  (select (summary_data->>'targetRankIdx')::int from common.games where id = (select id from g)),
   3,
-  'coop: the ended game''s club line carries target_rank'
+  'coop: the ended game''s summary carries targetRankIdx'
 );
 
 -- EVERY player wins, including ada who wasn't the one to submit: it's a team.
@@ -109,6 +109,13 @@ select is(
     where game_id = (select id from g) and final_ranking = 1 and outcome = 'won'),
   2,
   'coop: both players are ranked 1, won — nobody wins a coop game alone'
+);
+
+select is(
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g) and solved_at is not null),
+  2,
+  'coop: both players solved at the winning word — a team solve stamps every teammate'
 );
 
 -- ============================================================

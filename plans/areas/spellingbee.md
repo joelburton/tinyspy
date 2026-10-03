@@ -1622,16 +1622,16 @@ a dependency listed and left. Anything durable goes to `todo.md` or
 
 The policies and views the frontend leans on before the page blobs, listed
 before the game converts onto them (plans/seat-view.md → How a game converts,
-step 1: "each one is taken over or dropped by name"). What becomes of each is
-filled in at the conversion.
+step 1: "each one is taken over or dropped by name"). What became of each on
+2026-10-03:
 
 | what | mentioned | taken over or dropped |
 |---|---|---|
-| `found_words_select`'s three arms — coop shows every club member every row, a racer always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | — |
-| `games_state` view — every column of `games`, passed through under `security_invoker`; the header `makeBeeGame` reads once | neither | — |
-| `games_select`, `pangrams_select` — club-member and public reads | neither | — |
-| `_write_statuses` — `game_status` {required_words_count, required_words_score, target_rank}, `player_status` {found_words_count, found_words_score, player_ended_reason}, `clubpage_info` {the counts, the totals, target_rank, winner_user_id} | — | — |
-| the postgres-changes subscription on `found_words` and `games` (`useRealtimeRefetch` in `makeBeeGame`) | — | — |
+| `found_words_select`'s three arms — coop shows every club member every row, a racer always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | **taken over** by the hook's seat rule over `game_data` (2026-10-03); the policy is the member gate alone |
+| `games_state` view — every column of `games`, passed through under `security_invoker`; the header `makeBeeGame` reads once | neither | **dropped** (2026-10-03); the page reads `game_data` |
+| `games_select`, `pangrams_select` — club-member and public reads | neither | kept as they are: a member reading rows for a page they can open |
+| `_write_statuses` — `game_status` {required_words_count, required_words_score, target_rank}, `player_status` {found_words_count, found_words_score, player_ended_reason}, `clubpage_info` {the counts, the totals, target_rank, winner_user_id} | — | **dropped** (2026-10-03); `_rebuild_data_cols` writes the blobs |
+| the postgres-changes subscription on `found_words` and `games` (`useRealtimeRefetch` in `makeBeeGame`) | — | the frontend's, at its conversion |
 
 ## Closing
 

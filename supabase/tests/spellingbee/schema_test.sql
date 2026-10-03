@@ -16,7 +16,7 @@
 --   3. The word lists are NOT hidden: required_words + bonus_words
 --      are readable directly by `authenticated` (the FE validates
 --      guesses against them locally; the trust model doesn't withhold).
---   4. The games_state view exposes both word lists unconditionally
+--   4. The games row exposes both word lists unconditionally
 --      (during play and after the end) — the missed-words reveal is a
 --      client-side `required − found` at the end, not a server gate.
 --
@@ -160,29 +160,29 @@ select is(
 );
 
 -- ============================================================
--- games_state view: exposes both lists during play
+-- the games row: both lists exposed during play
 -- ============================================================
 -- No end-of-game gate — required_words is present from game start (the
 -- reveal is a client-side computation at the end).
 
 select is(
-  (select required_words from spellingbee.games_state where game_id = (select id from common_g)),
+  (select required_words from spellingbee.games where game_id = (select id from common_g)),
   '[{"word":"acedone","points":17,"is_pangram":true},
     {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
-  'games_state.required_words is present during play (un-gated)'
+  'games.required_words is present during play (un-gated)'
 );
 
 select is(
-  (select outer_letters from spellingbee.games_state where game_id = (select id from common_g)),
+  (select outer_letters from spellingbee.games where game_id = (select id from common_g)),
   'cabdno'::char(6),
-  'games_state surfaces the non-list columns too'
+  'games surfaces the non-list columns too'
 );
 
 -- ============================================================
--- games_state view: still exposed once ended
+-- the games row: still exposed once ended
 -- ============================================================
 -- End the game; required_words stays exposed — the ending changes
--- nothing about what the view returns.
+-- nothing about what the row returns.
 
 reset role;
 update common.games
@@ -193,10 +193,10 @@ update common.games
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select is(
-  (select required_words from spellingbee.games_state where game_id = (select id from common_g)),
+  (select required_words from spellingbee.games where game_id = (select id from common_g)),
   '[{"word":"acedone","points":17,"is_pangram":true},
     {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
-  'games_state.required_words remains exposed once the game has ended'
+  'games.required_words remains exposed once the game has ended'
 );
 
 -- Realtime publication membership for spellingbee.games + found_words is

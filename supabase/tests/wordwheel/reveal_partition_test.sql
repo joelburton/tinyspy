@@ -19,8 +19,9 @@
 --
 --   1. Their OWN found_words (cat A source).
 --   2. Their PEERS' found_words (cat B "found by others" source) —
---      which RLS hides mid-game and opens only once the game has ended.
---   3. games_state.required_words (cat B "nobody found" source) —
+--      which the hook's seat rule withholds mid-race and opens once the
+--      game has ended; the table shows a member every row.
+--   3. game_data.puzzle.reqdWords (cat B "nobody found" source) —
 --      the answer key, which ships from the start; the frontend
 --      shows the missed words only at the end.
 --
@@ -96,31 +97,31 @@ select wordwheel.submit_word((select id from g), 'ache', 1, false, false);
 -- ============================================================
 -- The FE flips the WordList to the cat-A/cat-B model at `isTerminal` (from
 -- common.games), NOT on required_words appearing — that ships from game start.
--- The load-bearing server behavior mid-game is the found_words RLS: bea sees only
--- her own rows (branch b), so cat B "found by others" is genuinely empty in play.
+-- The table shows bea every racer's row; what keeps cat B "found by others"
+-- empty in play is the hook's seat rule over game_data, not RLS.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
 select is(
   (select count(*) from wordwheel.found_words
     where game_id = (select id from g)),
-  2::bigint,
-  'compete mid-game / bea: sees exactly her own 2 finds (cat A)'
+  3::bigint,
+  'compete mid-game / bea: the table shows her every racer''s row (her 2 and cade''s 1) — the hook withholds, not RLS'
 );
 
 select is(
   (select count(*) from wordwheel.found_words
     where game_id = (select id from g)
       and user_id <> 'bea22222-2222-2222-2222-222222222222'),
-  0::bigint,
-  'compete mid-game / bea: zero peer rows visible — cat B is empty during play'
+  1::bigint,
+  'compete mid-game / bea: a peer row is in the table; the page''s cat B stays empty by the hook''s seat rule'
 );
 
 select is(
-  (select jsonb_array_length(required_words) from wordwheel.games_state
-    where game_id = (select id from g)),
+  (select jsonb_array_length(game_data->'puzzle'->'reqdWords') from common.games
+    where id = (select id from g)),
   19,
-  'compete mid-game / bea: games_state.required_words is present (un-gated; FE gates the reveal on isTerminal)'
+  'compete mid-game / bea: game_data.puzzle.reqdWords is present (the page gates the reveal on the ending)'
 );
 
 -- ============================================================
@@ -193,13 +194,13 @@ select ok(
 -- ============================================================
 -- The other half of cat B — the words nobody found — is computed
 -- FE-side from the shipped lists minus found_words. That needs the
--- full required list, which games_state exposes throughout.
+-- full required list, which game_data carries throughout.
 
 select is(
-  (select jsonb_array_length(required_words) from wordwheel.games_state
-    where game_id = (select id from g)),
+  (select jsonb_array_length(game_data->'puzzle'->'reqdWords') from common.games
+    where id = (select id from g)),
   19,
-  'compete, ended / bea: games_state.required_words is present (19 entries) — cat B "nobody found" source'
+  'compete, ended / bea: game_data.puzzle.reqdWords is present (19 entries) — cat B "nobody found" source'
 );
 
 -- ============================================================

@@ -71,11 +71,10 @@ select is(
   (select count(*) from wordwheel.found_words where game_id = (select id from g1)),
   0::bigint, 'replay → the found-words log is cleared');
 select is(
-  (select clubpage_info->>'found_words_score' from common.games where id = (select id from g1)),
-  '0', 'replay → clubpage_info.found_words_score reset to 0');
+  (select summary_data->'team'->>'foundWordsScore' from common.games where id = (select id from g1)),
+  '0', 'replay → the summary''s team score reset to 0');
 select is(
-  (select common._rank_idx((clubpage_info->>'found_words_score')::int,
-                           (clubpage_info->>'required_words_score')::int)
+  (select (summary_data->'team'->>'rankIdx')::int
      from common.games where id = (select id from g1)),
   0, 'replay → the team rank is back to 0');
 select is(
@@ -100,8 +99,8 @@ select wordwheel.submit_word((select id from g2), 'bead', 1, false, false);
 select wordwheel.replay_board((select id from g2));
 reset role;
 select is(
-  (select clubpage_info->>'target_rank' from common.games where id = (select id from g2)),
-  '3', 'compete replay → target_rank survives in the fresh club line');
+  (select summary_data->>'targetRankIdx' from common.games where id = (select id from g2)),
+  '3', 'compete replay → target_rank survives in the fresh summary');
 
 -- ── Coop: the rewritten statuses carry the frozen target_rank too ──
 -- It matters because the club-list label reads the target from the club line:
@@ -119,11 +118,11 @@ select (wordwheel.create_game(
 select wordwheel.replay_board((select id from g3));
 reset role;
 select is(
-  (select clubpage_info->>'target_rank' from common.games where id = (select id from g3)),
-  '4', 'coop replay → target_rank survives in the fresh club line');
+  (select summary_data->>'targetRankIdx' from common.games where id = (select id from g3)),
+  '4', 'coop replay → target_rank survives in the fresh summary');
 select is(
-  (select jsonb_typeof(clubpage_info->'found_words_score') from common.games where id = (select id from g3)),
-  'number', 'coop replay → the club line is the coop shape (a team score)');
+  (select jsonb_typeof(summary_data->'team'->'foundWordsScore') from common.games where id = (select id from g3)),
+  'number', 'coop replay → the summary is the coop shape (a team score)');
 
 -- ── Coop with NO target: the key is present and null, not missing ──
 -- `target_rank` absent and `target_rank: null` mean the same thing to the FE,
@@ -140,8 +139,8 @@ select (wordwheel.create_game(
 select wordwheel.replay_board((select id from g4));
 reset role;
 select is(
-  (select clubpage_info->'target_rank' from common.games where id = (select id from g4)),
-  'null'::jsonb, 'coop replay (no target) → target_rank stays present and null, not invented');
+  (select summary_data->'targetRankIdx' from common.games where id = (select id from g4)),
+  'null'::jsonb, 'coop replay (no target) → targetRankIdx stays present and null, not invented');
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

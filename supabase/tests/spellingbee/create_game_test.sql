@@ -114,27 +114,27 @@ select is(
 -- ============================================================
 
 select is(
-  (select jsonb_typeof(clubpage_info->'found_words_score') from common.games where id = (select id from g)),
+  (select jsonb_typeof(summary_data->'team'->'foundWordsScore') from common.games where id = (select id from g)),
   'number',
-  'coop clubpage_info carries a team score (the coop shape)'
+  'coop summary_data carries the team''s score (the coop shape)'
 );
 
 select is(
-  (select (game_status->>'required_words_score')::int from common.games where id = (select id from g)),
+  (select (game_data->'puzzle'->>'reqdWordsScore')::int from common.games where id = (select id from g)),
   50,
-  'coop game_status.required_words_score = board.required_words_score'
+  'coop game_data.puzzle.reqdWordsScore = board.required_words_score'
 );
 
 select is(
-  (select (game_status->>'required_words_count')::int from common.games where id = (select id from g)),
+  (select (game_data->'puzzle'->>'nReqdWords')::int from common.games where id = (select id from g)),
   30,
-  'coop game_status.required_words_count = board.required_words_count'
+  'coop game_data.puzzle.nReqdWords = board.required_words_count'
 );
 
 select is(
-  (select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from g)),
+  (select (summary_data->'team'->>'foundWordsScore')::int from common.games where id = (select id from g)),
   0,
-  'coop clubpage_info.found_words_score = 0 at create time'
+  'coop summary_data team score = 0 at create time'
 );
 
 -- ============================================================
@@ -172,24 +172,23 @@ select is(
 );
 
 select is(
-  (select clubpage_info->'found_words_score' from common.games where id = (select id from g_compete)),
+  (select summary_data->'team' from common.games where id = (select id from g_compete)),
   'null'::jsonb,
-  'compete clubpage_info carries no team score (the compete shape)'
+  'compete summary_data carries no team (the compete shape)'
 );
 
 select is(
-  (select (game_status->>'target_rank')::int from common.games where id = (select id from g_compete)),
+  (select (summary_data->>'targetRankIdx')::int from common.games where id = (select id from g_compete)),
   4,
-  'compete game_status.target_rank seeded from setup'
+  'compete summary_data.targetRankIdx seeded from setup'
 );
 
--- Every player's status is seeded at 0; the first submit_word moves it.
+-- Every player is seeded at 0; the first submit_word moves it.
 select is(
-  (select count(*)::int from common.game_players
-    where game_id = (select id from g_compete)
-      and (player_status->>'found_words_score')::int = 0),
+  (select count(*)::int from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from g_compete))) p
+    where (p->>'foundWordsScore')::int = 0),
   3,
-  'compete: every player''s status is seeded at a score of 0'
+  'compete: every player is seeded at a score of 0'
 );
 
 -- ============================================================
