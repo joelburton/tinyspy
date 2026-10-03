@@ -74,10 +74,10 @@ export function GameEventLog({
   function drawGuessSquares(guess: GEvent) {
     return (
       <DefinableWord word={guess.word} className={cls(styles.squares, styles.definable)}>
-        {[...guess.word].map((letter, letterIndex) => (
+        {[...guess.word].map((letter, letterIdx) => (
           <span
-            key={letterIndex}
-            className={cls(styles.sq, styles[getTileColor(guess.colors[letterIndex])])}
+            key={letterIdx}
+            className={cls(styles.sq, styles[getTileColor(guess.colors[letterIdx])])}
           >
             {letter.toUpperCase()}
           </span>

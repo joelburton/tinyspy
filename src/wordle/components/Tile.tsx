@@ -4,10 +4,10 @@ import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import tileColors from '@/shared/wordle-style/tileColors.module.css'
 import type { TileColor } from '../lib/colors'
-import styles from './LetterTile.module.css'
+import styles from './Tile.module.css'
 
 /** What a tile wears on or around it. */
-export type LetterTileMarks = {
+type TileMarks = {
   // Sent and waiting on the server: the letters stay, dimmed.
   isInFlight: boolean
   // Its row just landed: it turns over to its color.
@@ -25,7 +25,7 @@ export type LetterTileMarks = {
  * (typed, or sent and waiting) is `filled`; an empty one wears only the grid's
  * tokens, which are what an empty slot looks like.
  */
-export function LetterTile({
+export function Tile({
   letter,
   color,
   marks,
@@ -33,7 +33,7 @@ export function LetterTile({
   // Upper-cased here; empty for an empty slot.
   letter: string
   color: TileColor
-  marks: LetterTileMarks
+  marks: TileMarks
 }) {
   const isFilled = letter !== '' && color === 'blank'
   return (

@@ -26,7 +26,7 @@ type GuessAnswer =
   // stays.
   | {
       result: 'duplicate' | 'notAWord'
-      guesses_used: number
+      n_guesses_used: number
       solved: false
       game_ended: false
     }
@@ -35,7 +35,7 @@ type GuessAnswer =
   | {
       result: 'correct' | 'incorrect'
       colors: string
-      guesses_used: number
+      n_guesses_used: number
       solved: boolean
       game_ended: boolean
     }

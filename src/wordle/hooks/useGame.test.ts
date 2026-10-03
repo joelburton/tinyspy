@@ -89,9 +89,9 @@ describe('wordle makeGameData — the links become players', () => {
     )
     expect(gd.puzzle.target).toBeNull()
     // My own guess; the team's two.
-    expect([gd.me.guessesUsed, gd.me.maxGuesses]).toEqual([1, 6])
-    expect(gd.team).toEqual({ guessesUsed: 2 })
-    expect(gd.stateLineData).toEqual({ guessesUsed: 2, maxGuesses: 6 })
+    expect([gd.me.nGuessesUsed, gd.me.maxGuesses]).toEqual([1, 6])
+    expect(gd.team).toEqual({ nGuessesUsed: 2 })
+    expect(gd.stateLineData).toEqual({ nGuessesUsed: 2, maxGuesses: 6 })
     expect(gd.me.tieBrokenByClock).toBeNull()
     expect(gd.playersById.u2!.tieBrokenByClock).toBe(true)
     expect(gd.brand).toBe('WordNerd')
@@ -139,13 +139,13 @@ describe('wordle makeGameData — the seat rule', () => {
 
   it('a rival\'s count stays visible mid-race — the strip shows it', () => {
     const gd = makeGameData(race(), 'u1')
-    expect(gd.playersById.u2!.guessesUsed).toBe(1)
+    expect(gd.playersById.u2!.nGuessesUsed).toBe(1)
   })
 
   it('a race has no team, so the state line shows my own count', () => {
     const gd = makeGameData(race(), 'u1')
     expect(gd.team).toBeNull()
-    expect(gd.stateLineData).toEqual({ guessesUsed: 1, maxGuesses: 6 })
+    expect(gd.stateLineData).toEqual({ nGuessesUsed: 1, maxGuesses: 6 })
   })
 
   it('a conceder is still a player, with their ending', () => {

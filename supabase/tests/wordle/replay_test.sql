@@ -29,7 +29,7 @@ select (wordle.create_game(
 
 -- Five distinct valid guesses that miss the target (read back as the
 -- superuser — the target is a hidden column), burning the whole budget
--- → a real coop LOSS: guess rows, guesses_used=5, ended, target
+-- → a real coop LOSS: guess rows, n_guesses_used=5, ended, target
 -- revealed. The full state a replay must undo.
 reset role;
 create temp table tgt on commit drop as
@@ -90,14 +90,14 @@ select is(
   (select restart_count from common.games where id = (select id from g1)),
   1, 'coop: replay → restart_count up by one');
 select is(
-  (select (summary_data->'team'->>'guessesUsed')::int from common.games where id = (select id from g1)),
+  (select (summary_data->'team'->>'nGuessesUsed')::int from common.games where id = (select id from g1)),
   0, 'coop: replay → the summary''s team count reset to 0');
 select is(
   (select count(*) from wordle.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the guess log is cleared');
 select is(
   (select count(*) from wordle.players
-     where game_id = (select id from g1) and guesses_used = 0),
+     where game_id = (select id from g1) and n_guesses_used = 0),
   2::bigint, 'coop: replay → both players zeroed');
 select is(
   (select count(*) from common.game_players

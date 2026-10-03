@@ -337,6 +337,11 @@ Decided 2026-10-03. A game with tiles has two names, the same in every game:
   the live tile up in `tilesById` on the way out and hands back a `GTile`. A
   held object would be stale and never `===` the board's again. A collection
   that crosses a boundary is a collection of tiles unless it must be held.
+- **A game whose player never acts on a single tile has no `GTile`.** The
+  `id` exists for the thing that is picked, held or keyed; wordle has no such
+  thing — the row is typed, judged and marked whole — so its builder writes
+  `rows: [{word, colors}]`, its `Tile` draws one letter on one color, and no
+  key is written that nothing reads.
 - **The puzzle's lists stay.** `gd.puzzle.words` and `gd.puzzle.secrets` are
   the puzzle, frozen at create; `board.tiles` is a seat's view of it. The
   words appear in both, and the rule for that is: the builder writes every
@@ -439,9 +444,9 @@ next open (todo.md → Someday).
      camelCase in the blob (`userId`, `correct`, `at`), as every other key is.
   5. **wordle's game_data** (done 2026-10-02, the psychicnum way). Its
      `_rebuild_data_cols` writes `game_data` (`puzzle: {target}`, `events`,
-     and on each player `maxGuesses`, `guessesUsed`, `tieBrokenByClock`,
-     `board: {rows}`) and `summary_data` (`guessesUsed`, `maxGuesses`,
-     `answerBand`, `winnerGuessesCount`) in named pieces, pinned in
+     and on each player `maxGuesses`, `nGuessesUsed`, `tieBrokenByClock`,
+     `board: {rows}`) and `summary_data` (`team: {nGuessesUsed}`, `maxGuesses`,
+     `answerBand`, `nWinnerGuesses`) in named pieces, pinned in
      `tests/wordle/game_data_test.sql`. Its `useGame` is a pure function of
      the blob and `auth.user.id`; the seat rule withholds a rival's rows and
      board mid-race. The `games_state` view, `_target_for`, the mode arm of
@@ -468,7 +473,7 @@ next open (todo.md → Someday).
   `BoardCol` reading `gd.me.outcome` and the doc's stale lines), then
   psychicnum's `GTile` (decision 9) as its own commit, then wordle's naming
   pass (`nGuessesUsed`, `nWinnerGuesses`, the column, and `LetterTile` →
-  `Tile`).
+  `Tile`; done 2026-10-03).
 - **Then** connections' InfoCol and Board passes resume on the new shape, and
   the next game converts straight onto it.
 

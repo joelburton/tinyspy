@@ -53,7 +53,7 @@ describe('useSubmitGuess', () => {
 
   it('keeps an accepted word on the board until its colored row lands', async () => {
     rpc.mockResolvedValue(answer({
-      result: 'incorrect', colors: 'xxgyx', guesses_used: 1, solved: false, game_ended: false,
+      result: 'incorrect', colors: 'xxgyx', n_guesses_used: 1, solved: false, game_ended: false,
     }))
     const { result, rerender } = setup()
     let isAccepted = false
@@ -71,7 +71,7 @@ describe('useSubmitGuess', () => {
 
   it('takes a soft-rejected word back and rings the row in the answer\'s own outcome', async () => {
     rpc.mockResolvedValue(answer({
-      result: 'duplicate', guesses_used: 1, solved: false, game_ended: false,
+      result: 'duplicate', n_guesses_used: 1, solved: false, game_ended: false,
     }))
     const { result, shown } = setup()
     let isAccepted = true

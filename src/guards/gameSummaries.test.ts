@@ -233,19 +233,19 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   // (plans/team-facts.md); the winner's count is compete's alone; the answer band is the
   // setup's.
   wordle: {
-    live: { team: { guessesUsed: 3 }, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null },
+    live: { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal' }, { team: { guessesUsed: 4 }, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'solved'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: { guessesUsed: 6 }, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'out of guesses'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: { guessesUsed: 3 }, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: { guessesUsed: 3 }, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { team: { nGuessesUsed: 4 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'solved'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: { nGuessesUsed: 6 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: null, maxGuesses: 6, answerBand: 0, winnerGuessesCount: 4 }, 'someone won'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: null, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'everyone out of guesses'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'timeout'],
-      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'all conceded'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxGuesses: 6, answerBand: 0, winnerGuessesCount: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: 4 }, 'someone won'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'everyone out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'Stop'],
     ],
   },
   stackdown: {

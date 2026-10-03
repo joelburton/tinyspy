@@ -3906,17 +3906,17 @@ export type Database = {
       players: {
         Row: {
           game_id: string
-          guesses_used: number
+          n_guesses_used: number
           user_id: string
         }
         Insert: {
           game_id: string
-          guesses_used?: number
+          n_guesses_used?: number
           user_id: string
         }
         Update: {
           game_id?: string
-          guesses_used?: number
+          n_guesses_used?: number
           user_id?: string
         }
         Relationships: [

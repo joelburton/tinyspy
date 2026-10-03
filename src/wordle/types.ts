@@ -51,7 +51,7 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
  * player.
  */
 export type GTeam = {
-  guessesUsed: number
+  nGuessesUsed: number
 }
 
 /**
@@ -61,7 +61,7 @@ export type GTeam = {
  * reader: this is what to SHOW there, not a fact other components read.
  */
 export type GStateLineData = {
-  guessesUsed: number
+  nGuessesUsed: number
   maxGuesses: number
 }
 
@@ -87,7 +87,7 @@ export type GPlayerRaw = PlayerRaw & {
   // same on every player.
   maxGuesses: number
   // Guesses spent: this player's own, in every mode; the team's is `team`'s.
-  guessesUsed: number
+  nGuessesUsed: number
   // Compete, once ranked: the earlier solve, not the guess count, placed this
   // solver against the winner (the winner's too, when another solver matched
   // their count). Null in coop and until the game ends.
@@ -114,7 +114,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   setup
  *   setupRows
  *   puzzle: {target}                      # null until the game ends
- *   team: {guessesUsed}                   # what the team shares; null in compete
+ *   team: {nGuessesUsed}                   # what the team shares; null in compete
  *   turns: {holder}                       # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
  *   ended
@@ -123,7 +123,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                  # seat order
  *   playersById
  *   me                                    # same object as playersById[auth.user.id]
- *   stateLineData: {guessesUsed, maxGuesses}  # what the state line shows: the team's in coop, my own in compete
+ *   stateLineData: {nGuessesUsed, maxGuesses}  # what the state line shows: the team's in coop, my own in compete
  *
  * player:
  *   id
@@ -141,7 +141,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   onTurn
  *   waitingForTurn
  *   maxGuesses                            # the same on every player
- *   guessesUsed                           # own, in every mode
+ *   nGuessesUsed                           # own, in every mode
  *   tieBrokenByClock                      # compete, once ranked; null in coop and until the end
  *   board: {rows}                         # what this seat's tiles show; null for a rival mid-race
  */
@@ -281,7 +281,7 @@ export type GHistoryView = {
   // The viewed turn's board rows, or null when live.
   rows: GBoardRow[] | null
   // The row the viewed turn added — ring it; -1 when live.
-  litBoardRow: number
+  litRowIdx: number
   // The banner's text, or null when live.
   label: string | null
   // Whose board is on screen, when it is not mine — which only compete can
@@ -298,7 +298,7 @@ export type GReplayedTurn = {
   // The board row this turn added — ring it in the history blue (it already
   // wears its g/y/x tile colors). The last row in `rows`; -1 when nothing was
   // replayed.
-  litBoardRow: number
+  litRowIdx: number
   // A short, name-free turn label for the viewer banner (the log row shows
   // *who*).
   label: string
@@ -351,5 +351,5 @@ export type GSummaryData = SummaryData & {
   team: GTeam | null
   maxGuesses: number
   answerBand: number
-  winnerGuessesCount: number | null
+  nWinnerGuesses: number | null
 }

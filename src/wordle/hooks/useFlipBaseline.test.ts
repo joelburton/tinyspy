@@ -8,10 +8,10 @@ import { renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { useFlipBaseline } from './useFlipBaseline'
 
-function setup(liveRowCount: number) {
+function setup(nLiveRows: number) {
   return renderHook(
     ({ count, isViewing }) => useFlipBaseline(count, isViewing),
-    { initialProps: { count: liveRowCount, isViewing: false } },
+    { initialProps: { count: nLiveRows, isViewing: false } },
   )
 }
 

@@ -13,7 +13,7 @@ import type { GStateLineData } from '../types'
 export function StateLine({ data }: { data: GStateLineData }) {
   return (
     <>
-      <strong>{data.guessesUsed}/{data.maxGuesses}</strong> guesses
+      <strong>{data.nGuessesUsed}/{data.maxGuesses}</strong> guesses
     </>
   )
 }

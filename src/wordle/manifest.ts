@@ -127,7 +127,7 @@ export const wordleCoopGame: GameManifest = {
     const summary = data as GSummaryData
     const dict = answerDictLabel(summary.answerBand)
     // Coop always has a team.
-    const used = tally(summary.team!.guessesUsed, summary.maxGuesses, 'guesses')
+    const used = tally(summary.team!.nGuessesUsed, summary.maxGuesses, 'guesses')
     if (summary.ending === null) return statusLine(verdict('Playing'), used, dict)
     // Written with the ending.
     const outcome = summary.outcome!
@@ -195,7 +195,7 @@ export const wordleCompeteGame: GameManifest = {
       case 'won':
         return statusLine(
           wonBy(usernameOf(members, summary.ending.winner)),
-          count(summary.winnerGuessesCount, 'guess', 'guesses'),
+          count(summary.nWinnerGuesses, 'guess', 'guesses'),
           dict,
         )
       case 'lost':

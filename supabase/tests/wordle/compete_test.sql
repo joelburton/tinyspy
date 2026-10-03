@@ -87,11 +87,11 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select guesses_used from wordle.players
+  (select n_guesses_used from wordle.players
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1, 'ada used 1 guess');
 select is(
-  (select guesses_used from wordle.players
+  (select n_guesses_used from wordle.players
     where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
   0, 'bea board untouched (independent boards in compete)');
 
@@ -175,7 +175,7 @@ select is(
 -- The WINNER's own count, named at the end — the number the club-list label
 -- prints ("Won by ada · 1 guess"). ada solved on her first guess.
 select is(
-  (select (summary_data->>'winnerGuessesCount')::int from common.games where id = (select id from g)),
+  (select (summary_data->>'nWinnerGuesses')::int from common.games where id = (select id from g)),
   1, 'the summary names the winner''s guess count');
 
 -- ── The tie-break: same count, the earlier solve wins ───────

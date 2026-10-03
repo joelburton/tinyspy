@@ -108,7 +108,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const turnBased = turnHolderId !== undefined
   const usedOf = (p: ZTest_PlayerFacts) => p.used ?? events.filter((e) => e.userId === p.id).length
   const team = coop
-    ? { guessesUsed: playerFacts.reduce((sum, p) => sum + usedOf(p), 0) }
+    ? { nGuessesUsed: playerFacts.reduce((sum, p) => sum + usedOf(p), 0) }
     : null
 
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
@@ -132,7 +132,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       onTurn,
       waitingForTurn: stillPlaying && !onTurn,
       maxGuesses: setup.max_guesses,
-      guessesUsed: usedOf(p),
+      nGuessesUsed: usedOf(p),
       tieBrokenByClock: p.tieBrokenByClock ?? null,
       board: { rows: shown.map((e) => ({ word: e.word, colors: e.colors })) },
     }

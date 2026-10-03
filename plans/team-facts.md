@@ -118,7 +118,7 @@ summary_data:
 ```
 
 psychicnum's `team` is `{nFoundSecrets, nGuessesUsed}`; wordle's is
-`{guessesUsed}`; connections' is `{nMatchedCats, nMistakes}`. The next game's
+`{nGuessesUsed}`; connections' is `{nMatchedCats, nMistakes}`. The next game's
 starts from these.
 
 ## What it touches

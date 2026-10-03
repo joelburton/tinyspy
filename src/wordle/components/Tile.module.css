@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-/* The box comes from the SHARED `.tileFace` (composed in LetterTile.tsx); this
+/* The box comes from the SHARED `.tileFace` (composed in Tile.tsx); this
  * is what is left over. wordle's tiles are inert `<div>`s, so they take the
  * face and none of the interaction chrome, which lives on the shared `.tile`.
  */

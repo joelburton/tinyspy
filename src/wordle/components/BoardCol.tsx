@@ -50,7 +50,7 @@ export function BoardCol({
   // ─── Render ────────────────────────────────────────────
 
   // The word still out belongs to the live board only.
-  const shownInFlightGuess = historyView.isViewing ? null : submission.inFlight
+  const shownInFlightWord = historyView.isViewing ? null : submission.inFlight
 
   return (
     <div className={shared.boardCol}>
@@ -58,7 +58,7 @@ export function BoardCol({
         grid={{ liveRows: gd.me.board.rows, maxGuesses: gd.me.maxGuesses }}
         marks={{
           typedWord: entry.word,
-          inFlightGuess: shownInFlightGuess,
+          inFlightWord: shownInFlightWord,
           refusedGuessMark: submission.refusedMark,
           // Bands the board once I have ended: the game's ending, or mine
           // while the others play on.

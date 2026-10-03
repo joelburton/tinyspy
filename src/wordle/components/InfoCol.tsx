@@ -50,7 +50,7 @@ export function InfoCol({
   function getGuessesOrOut(player: GPlayer) {
     const endedReason = player.ending?.reason
     if (endedReason === 'conceded' || endedReason === 'resource_exhausted') return 'out'
-    return player.guessesUsed
+    return player.nGuessesUsed
   }
 
   return (

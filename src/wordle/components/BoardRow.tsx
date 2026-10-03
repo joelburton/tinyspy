@@ -7,14 +7,14 @@ import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictCla
 import shared from '@/common/game-page/playArea.module.css'
 import { getTileColor, type TileColor } from '../lib/colors'
 import { WORD_LENGTH } from '../lib/setup'
-import { LetterTile } from './LetterTile'
-import styles from './LetterRow.module.css'
+import { Tile } from './Tile'
+import styles from './BoardRow.module.css'
 
 /** Per-tile stagger so a row's letters flip left-to-right, not at once. */
 const REVEAL_STEP_SEC = 0.22
 
 /** What a row wears on or around it. */
-export type LetterRowMarks = {
+type BoardRowMarks = {
   // It just landed: its tiles turn over to their colors, one after another.
   isFlipping: boolean
   // Its word is out with the server.
@@ -30,7 +30,7 @@ export type LetterRowMarks = {
  * One row of wordle's board: five tiles spelling `word`, each on its color
  * once the row is judged.
  */
-export function LetterRow({
+export function BoardRow({
   word,
   colors,
   marks,
@@ -39,7 +39,7 @@ export function LetterRow({
   word: string
   // The guess's g/y/x codes; null while the row is unjudged.
   colors: string | null
-  marks: LetterRowMarks
+  marks: BoardRowMarks
 }) {
   return (
     <div
@@ -51,17 +51,17 @@ export function LetterRow({
       )}
       role="row"
     >
-      {Array.from({ length: WORD_LENGTH }, (_, letterIndex) => {
-        const color: TileColor = colors === null ? 'blank' : getTileColor(colors[letterIndex])
+      {Array.from({ length: WORD_LENGTH }, (_, letterIdx) => {
+        const color: TileColor = colors === null ? 'blank' : getTileColor(colors[letterIdx])
         return (
-          <LetterTile
-            key={letterIndex}
-            letter={word[letterIndex] ?? ''}
+          <Tile
+            key={letterIdx}
+            letter={word[letterIdx] ?? ''}
             color={color}
             marks={{
               isInFlight: marks.isInFlight,
               isFlipping: marks.isFlipping,
-              flipDelaySec: letterIndex * REVEAL_STEP_SEC,
+              flipDelaySec: letterIdx * REVEAL_STEP_SEC,
             }}
           />
         )

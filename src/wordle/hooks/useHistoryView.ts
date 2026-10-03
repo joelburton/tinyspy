@@ -17,13 +17,14 @@ export function useHistoryView(gd: GGameData): GHistoryView {
     historyId === null ? null : replayTurn(gd.events, historyId, historyN, gd.compete)
   const author = replayed?.author ?? null
   const isSomeoneElsesBoard = gd.compete && author !== null && author !== gd.me
+
   return {
     isViewing: historyId !== null,
     viewedEventId: historyId,
     show: showHistory,
     exit: exitHistory,
     rows: replayed?.rows ?? null,
-    litBoardRow: replayed?.litBoardRow ?? -1,
+    litRowIdx: replayed?.litRowIdx ?? -1,
     label: replayed?.label ?? null,
     actor: isSomeoneElsesBoard ? author : undefined,
   }

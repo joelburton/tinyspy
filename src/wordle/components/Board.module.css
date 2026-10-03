@@ -21,7 +21,7 @@
  * the info column). `aspect-ratio` then derives the HEIGHT so the tiles stay
  * SQUARE — wordle's iconic look (a keyboard shares this column below the board,
  * so the board hugs its height rather than filling the column). Each row is its
- * own --cols grid (LetterRow's `.row`). */
+ * own --cols grid (BoardRow's `.row`). */
 /* @@ */ .grid {
   /* The TILE TOKENS for this board. wordle's tiles are the shared `.tileFace`
    * (the box, radius and token plumbing — see common playArea.module.css), and
@@ -30,7 +30,7 @@
    *   - an empty tile is EMPTY — transparent with a light edge — where the
    *     shared resting fill is the warm cream a clickable tile wants;
    *   - the ink here is only ever worn by an EMPTY tile, which has no letter:
-   *     a typed-but-unscored tile flips it to the page's ink (LetterTile's
+   *     a typed-but-unscored tile flips it to the page's ink (Tile's
    *     `.filled`), and a judged one takes its own kind's (`.wordleGreen` and
    *     friends, whose ink is themed — see themes/daylight.css → WORDLE INK);
    *   - no shadow: these tiles are flat, and they are inert — a lift would
@@ -40,7 +40,7 @@
    * width is the selected channel and the resting/selected pair has to be tuned
    * together for every board at once.
    *
-   * Set on the GRID, not on LetterTile's `.tile`, so they cascade into the
+   * Set on the GRID, not on Tile's `.tile`, so they cascade into the
    * shared rule without two same-specificity declarations racing across
    * modules. */
 /* @@ */   --tile-slot-fill-color: transparent;

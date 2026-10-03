@@ -35,8 +35,8 @@ describe('wordle replayTurn', () => {
   })
 
   it('rings the viewed turn — the last included row', () => {
-    expect(replayTurn(guesses, 11, 1, false).litBoardRow).toBe(0)
-    expect(replayTurn(guesses, 13, 3, false).litBoardRow).toBe(2)
+    expect(replayTurn(guesses, 11, 1, false).litRowIdx).toBe(0)
+    expect(replayTurn(guesses, 13, 3, false).litRowIdx).toBe(2)
   })
 
   it('describes the turn by the number it was GIVEN + the upper-cased guess', () => {
@@ -52,7 +52,7 @@ describe('wordle replayTurn', () => {
   it('an id not in the log replays nothing', () => {
     const replayed = replayTurn(guesses, 99, 1, false)
     expect(replayed.rows).toHaveLength(0)
-    expect(replayed.litBoardRow).toBe(-1)
+    expect(replayed.litRowIdx).toBe(-1)
     expect(replayed.label).toBe('This guess')
     expect(replayed.author).toBeNull()
   })
@@ -73,7 +73,7 @@ describe('wordle replayTurn', () => {
     const table = eventsOf({ ...raceEnded, mode: 'compete' })
     const replayed = replayTurn(table, 23, 2, true)
     expect(replayed.rows.map((r) => r.word)).toEqual(['slate', 'point'])
-    expect(replayed.litBoardRow).toBe(1)
+    expect(replayed.litRowIdx).toBe(1)
     expect(replayed.author?.id).toBe('u1')
     expect(replayTurn(table, 22, 1, true).rows.map((r) => r.word)).toEqual(['crane'])
   })

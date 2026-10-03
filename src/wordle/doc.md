@@ -154,7 +154,7 @@ blobs the builder writes onto `common.games`.
 | | |
 |---|---|
 | `wordle.games` | one row per game, keyed `game_id` to `common.games`: the `target`, the budget as `max_guesses`, and `legal_band` — stored so `submit_guess` reads the band off the row it locks. `answer_band` is not kept; it is spent picking the target |
-| `wordle.players` | one row per player: `guesses_used`, their own in both modes. A solve is `common.game_players.solved_at` |
+| `wordle.players` | one row per player: `n_guesses_used`, their own in both modes. A solve is `common.game_players.solved_at` |
 | `wordle.events` | the guess log, append-only: `word`, `colors`, `is_correct`; `kind` is `guess` and `took_turn` is true, since the table holds accepted guesses only and an accepted guess spends a go. Read `order by id` — that is the order of play |
 
 **The page blobs** are written by `wordle._rebuild_data_cols` at create, at
@@ -166,8 +166,8 @@ own:
 
 | blob | wordle's part |
 |---|---|
-| `game_data` | `puzzle: {target}` (null until the game ends); `team: {guessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `maxGuesses`, their own `guessesUsed`, `tieBrokenByClock` and `board: {rows}`, this seat's guess rows |
-| `summary_data` | `team`, the same group; `maxGuesses`, `answerBand`, `winnerGuessesCount` |
+| `game_data` | `puzzle: {target}` (null until the game ends); `team: {nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `maxGuesses`, their own `nGuessesUsed`, `tieBrokenByClock` and `board: {rows}`, this seat's guess rows |
+| `summary_data` | `team`, the same group; `maxGuesses`, `answerBand`, `nWinnerGuesses` |
 
 Each player's count is their own, on `wordle.players` and on their player in
 the blob, in both modes; `team` is their sum, and is null in a race, which has
@@ -289,16 +289,16 @@ the turn on.
 worth — the words the two refusals show included — is the frontend's
 (`lib/answer.ts`). Two for an accepted guess:
 
-- solved — `{ "result": "correct", "colors": "ggggg", "guesses_used": 3, "solved": true, "game_ended": true }`
-- not solved — `{ "result": "incorrect", "colors": "xgyxx", "guesses_used": 3, "solved": false, "game_ended": false }`
+- solved — `{ "result": "correct", "colors": "ggggg", "n_guesses_used": 3, "solved": true, "game_ended": true }`
+- not solved — `{ "result": "incorrect", "colors": "xgyxx", "n_guesses_used": 3, "solved": false, "game_ended": false }`
 
 `colors` is five characters, one per letter: `g` in the right place, `y` in
-the word but elsewhere, `x` not in the word; `guesses_used` is the count
+the word but elsewhere, `x` not in the word; `n_guesses_used` is the count
 against the budget, the team's in coop. And two for a guess that wrote
 nothing, which has no colors:
 
-- already on the board — `{ "result": "duplicate", "guesses_used": 2, "solved": false, "game_ended": false }`
-- not in the word list — `{ "result": "notAWord", "guesses_used": 2, "solved": false, "game_ended": false }`
+- already on the board — `{ "result": "duplicate", "n_guesses_used": 2, "solved": false, "game_ended": false }`
+- not in the word list — `{ "result": "notAWord", "n_guesses_used": 2, "solved": false, "game_ended": false }`
 
 A guess that arrives after the game has ended, out of turn, or from a racer
 who has already solved it, spent their budget or conceded is not an `ok` at
@@ -386,7 +386,7 @@ eight sections.
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the typed word and submit_guess
         │     ├── Board                  max_guesses rows
-        │     │     └── LetterRow        one row: its rings, and five LetterTiles
+        │     │     └── BoardRow        one row: its rings, and five Tiles
         │     └── the below-board region
         │           ├── HistoryBanner ←   overlays the region while a past turn is open
         │           ├── FeedbackPill ←    the local slot, its height reserved
@@ -417,7 +417,7 @@ into players (`turns.holder`, `ending.by`, `ending.winner`, each log row's
 `by`), the setup rows built, and the seat rule applied — in compete, mid-race,
 a rival's rows leave the log and their `board` is null. It is a pure function
 of the blob and who I am; no reads, no subscription. Every fact about a seat
-is on the player (`gd.me.onTurn`, `p.guessesUsed`, `gd.me.board.rows`), and a
+is on the player (`gd.me.onTurn`, `p.nGuessesUsed`, `gd.me.board.rows`), and a
 component asks a player, never the table. The two columns, `BoardCol` and
 `InfoCol`, take `gd` whole; everything below them takes its own props. A
 player in `gd` (`GPlayer`) is a `Member` plus wordle's facts, so `gd.players`
@@ -447,7 +447,7 @@ What is wordle's own:
   a phone-height window (`Board.module.css`).
 - **A row that lands flips.** Each tile turns over in turn and paints its
   color at the midpoint — the keyframes land on the tile's own color class,
-  which it wears throughout (`LetterTile.module.css`). `useFlipBaseline` holds
+  which it wears throughout (`Tile.module.css`). `useFlipBaseline` holds
   the line between rows that flip and rows that don't: rows already on the
   board when it mounted — a
   mid-game refresh, an opponent's finished board — draw settled. A Restart

@@ -42,20 +42,23 @@ export function replayTurn(
   n: number | null,
   isCompete: boolean,
 ): GReplayedTurn {
+
   const viewedEvent = events.find((g) => g.id === id)
   const boardEvents =
     isCompete && viewedEvent
       ? events.filter((g) => g.by === viewedEvent.by)
       : events
+
   // -1 when the id names no row in the log: an empty board and no ring is the
   // honest answer.
   const index = boardEvents.findIndex((g) => g.id === id)
   const rows = boardEvents
     .slice(0, index + 1)
     .map((g) => ({ word: g.word, colors: g.colors }))
+
   return {
     rows,
-    litBoardRow: index,
+    litRowIdx: index,
     label: !viewedEvent
       ? 'This guess'
       : n === null

@@ -39,7 +39,7 @@ describe('useHistoryView', () => {
     expect(result.current.isViewing).toBe(false)
     expect(result.current.viewedEventId).toBeNull()
     expect(result.current.rows).toBeNull()
-    expect(result.current.litBoardRow).toBe(-1)
+    expect(result.current.litRowIdx).toBe(-1)
     expect(result.current.label).toBeNull()
   })
 
@@ -49,7 +49,7 @@ describe('useHistoryView', () => {
     expect(result.current.isViewing).toBe(true)
     expect(result.current.viewedEventId).toBe(2)
     expect(result.current.rows?.map((r) => r.word)).toEqual(['slate', 'crane'])
-    expect(result.current.litBoardRow).toBe(1)
+    expect(result.current.litRowIdx).toBe(1)
     expect(result.current.label).toBe('Guess 2: CRANE')
     act(() => result.current.exit())
     expect(result.current.isViewing).toBe(false)

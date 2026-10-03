@@ -120,11 +120,11 @@ onChange={({ coopStyle, firstTurnUserId }) =>
 
 **The page blobs' keys are the one jsonb exception: camelCase.** `game_data`,
 `summary_data` and `shell_data` are written by SQL in the page's own names
-(`guessesUsed`, `statusChangedAt`), read through one static type, and never
+(`nGuessesUsed`, `statusChangedAt`), read through one static type, and never
 queried by key from the client.
 
 **A loose copy of a path is spelled `group_leaf`.** Inside its group a name is
-bare and the path supplies the context: `team.guessesUsed` and `me.guessesUsed`
+bare and the path supplies the context: `team.nGuessesUsed` and `me.nGuessesUsed`
 are both right. A copy pulled out of its group — a local, a prop carrying the
 one number — has lost that context and says which it is, with a dot become an
 underscore: `team_guessesUsed`, `me_board_rows`. Lossless (the leaf is spelled
@@ -277,7 +277,10 @@ server knows it, identity and settled facts in one object, written by the
 builder as an array; every game's has a string `id`, the game's own key, and
 the rest is the game's (a word with its verdict and decider, a letter with its
 color). Tiles are passed; a hook that must hold one across renders holds its
-`id` and hands back the live tile from the board's `tilesById`. `Tile` is the component
+`id` and hands back the live tile from the board's `tilesById`. A game whose
+player never acts on a single tile has no `GTile`: wordle's unit is the row,
+typed, judged and marked whole, so its builder writes rows and its `Tile`
+draws one letter on one color. `Tile` is the component
 that draws one, taking the `GTile` and `TileMarks`, the screen's own facts
 about it, which never enter the blob. Named for the thing, never for what is
 printed on it: no `WordTile`, no `LetterTile`

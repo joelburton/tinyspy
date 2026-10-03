@@ -1048,7 +1048,7 @@ describe('wordle Board — the refusal mark', () => {
   /** A soft reject from `submit_guess` — the rules ran and burned no guess. */
   const softReject = (result: 'duplicate' | 'notAWord') =>
     rpc.mockResolvedValue({
-      data: { data: { guesses_used: 0, result, solved: false, game_ended: false }, type: 'ok' },
+      data: { data: { n_guesses_used: 0, result, solved: false, game_ended: false }, type: 'ok' },
       error: null,
     })
 

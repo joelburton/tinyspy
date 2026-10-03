@@ -5,8 +5,8 @@
  * and its rows) from common/info-sheet/infoCol.module.css (imported as `shared`
  * in PlayArea.tsx and InfoCol.tsx), composed via cls(); only the info-column
  * WIDTH is wordle-specific. The board grid, its rows and tiles, the keyboard
- * and the two columns' own chrome live in their own modules (Board, LetterRow,
- * LetterTile, BoardCol, InfoCol). See docs/playarea.md → PlayArea layout.
+ * and the two columns' own chrome live in their own modules (Board, BoardRow,
+ * Tile, BoardCol, InfoCol). See docs/playarea.md → PlayArea layout.
  *
  * Mobile is the shared recipe (docs/mobile.md): `shared.mobileFill` on
  * `.layout` (board fills the width) + `<InfoSheet>` around the InfoCol

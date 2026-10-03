@@ -64,7 +64,7 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select guesses_used from wordle.players
+  (select n_guesses_used from wordle.players
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   0, 'soft rejects did not burn a guess');
@@ -83,12 +83,12 @@ select is((select res->>'outcome' from missres), null::text,
 
 reset role;
 select is(
-  (select guesses_used from wordle.players
+  (select n_guesses_used from wordle.players
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   0, 'coop: each row is its own player''s — ada''s guess did not move bea''s');
 select is(
-  (select (game_data->'team'->>'guessesUsed')::int from common.games where id = (select id from g)),
+  (select (game_data->'team'->>'nGuessesUsed')::int from common.games where id = (select id from g)),
   1, 'coop: the guess is shared — the team''s count moved');
 select is(
   (select length(colors) from wordle.events
@@ -119,7 +119,7 @@ select pg_temp.envelope_is(
   'a word already on the shared board → duplicate, the case alone');
 reset role;
 select is(
-  (select sum(guesses_used)::int from wordle.players where game_id = (select id from g)),
+  (select sum(n_guesses_used)::int from wordle.players where game_id = (select id from g)),
   1, 'duplicate did not burn a guess');
 
 -- ── bea solves it (coop: either player can guess) ──────────

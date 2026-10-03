@@ -95,7 +95,7 @@ create function pg_temp.fresh_player(uid uuid, name text) returns jsonb language
     'onTurn',           true,
     'waitingForTurn',   false,
     'maxGuesses',       5,
-    'guessesUsed',      0,
+    'nGuessesUsed',      0,
     'tieBrokenByClock', null,
     'board',            jsonb_build_object('rows', '[]'::jsonb))
 $$;
@@ -119,7 +119,7 @@ select is(
     'ended',    false,
     'outcome',  null,
     'puzzle',   jsonb_build_object('target', null),
-    'team',     '{"guessesUsed": 0}'::jsonb,
+    'team',     '{"nGuessesUsed": 0}'::jsonb,
     'events',   '[]'::jsonb,
     'players',  jsonb_build_array(
       pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada'),
@@ -129,13 +129,13 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"guessesUsed": 0}, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
+    || '{"team": {"nGuessesUsed": 0}, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": null}'::jsonb,
   'the fresh coop game''s summary: the common part, then a team with nothing used, the setup''s answer band, no winner''s count'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
+    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": null}'::jsonb,
   'the fresh compete game''s summary has no team, so no progress'
 );
 
@@ -160,13 +160,13 @@ select is(
   '… each with its row id, its time and its five colors'
 );
 select is(
-  (select jsonb_agg(p -> 'guessesUsed' order by p ->> 'id') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
+  (select jsonb_agg(p -> 'nGuessesUsed' order by p ->> 'id') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
   '[1, 0]'::jsonb,
   'coop: each player''s own count — ada guessed, bea did not'
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',
-  '{"guessesUsed": 1}'::jsonb,
+  '{"nGuessesUsed": 1}'::jsonb,
   'coop: the team''s count, summed over the rows, in game_data.team'
 );
 select is(
@@ -189,7 +189,7 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"guessesUsed": 1}, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
+    || '{"team": {"nGuessesUsed": 1}, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": null}'::jsonb,
   'coop: the summary has the team''s used count'
 );
 
@@ -200,7 +200,7 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select jsonb_agg(p -> 'guessesUsed' order by p ->> 'id') from jsonb_array_elements(pg_temp.game_data(pg_temp.compete()) -> 'players') p),
+  (select jsonb_agg(p -> 'nGuessesUsed' order by p ->> 'id') from jsonb_array_elements(pg_temp.game_data(pg_temp.compete()) -> 'players') p),
   '[1, 0]'::jsonb,
   'compete: each racer''s count is their own'
 );
@@ -227,7 +227,7 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": null}'::jsonb,
+    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": null}'::jsonb,
   'compete: the summary still carries no progress, and no ending yet'
 );
 
@@ -265,7 +265,7 @@ select is(
 select is(
   (pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111') ->> 'solved')::boolean
     and pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111') ->> 'outcome' = 'won'
-    and (pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111') ->> 'guessesUsed')::int = 2,
+    and (pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111') ->> 'nGuessesUsed')::int = 2,
   true,
   'the winner solved and won, on two guesses'
 );
@@ -288,7 +288,7 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "winnerGuessesCount": 2}'::jsonb,
+    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": 2}'::jsonb,
   'compete: the summary names the winner''s count, and its ending names the winner'
 );
 select is(
@@ -411,7 +411,7 @@ select is(
   '… and the target is withheld again'
 );
 select is(
-  pg_temp.summary_data(pg_temp.compete()) -> 'winnerGuessesCount',
+  pg_temp.summary_data(pg_temp.compete()) -> 'nWinnerGuesses',
   'null'::jsonb,
   '… with no winner''s count on the summary'
 );

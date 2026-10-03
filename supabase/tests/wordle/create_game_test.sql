@@ -42,8 +42,8 @@ select is(
   (select count(*) from wordle.players where game_id = (select id from g)),
   2::bigint, 'one players row per player');
 select is(
-  (select max(guesses_used) from wordle.players where game_id = (select id from g)),
-  0, 'guesses_used starts at 0');
+  (select max(n_guesses_used) from wordle.players where game_id = (select id from g)),
+  0, 'n_guesses_used starts at 0');
 select is(
   (select ended_at from common.games where id = (select id from g)),
   null, 'the game is being played: it has not ended');

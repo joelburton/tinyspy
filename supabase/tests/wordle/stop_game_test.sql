@@ -76,7 +76,7 @@ select is(
     where game_id = (select id from g3) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   '1/won', 'compete timeout: the solver is ranked 1, the winner');
 select is(
-  (select (summary_data->>'winnerGuessesCount')::int from common.games where id = (select id from g3)),
+  (select (summary_data->>'nWinnerGuesses')::int from common.games where id = (select id from g3)),
   1, 'compete timeout: the summary names the winner''s guess count, as when every player is done');
 select is(
   (select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players

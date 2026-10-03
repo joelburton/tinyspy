@@ -9,12 +9,12 @@ import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasse
 import history from '@/common/event-log/historyViewer.module.css'
 import { useFlipBaseline } from '../hooks/useFlipBaseline'
 import { WORD_LENGTH } from '../lib/setup'
-import { LetterRow } from './LetterRow'
+import { BoardRow } from './BoardRow'
 import styles from './Board.module.css'
 import type { GBoardRow, GHistoryView } from '../types'
 
 /** What is on the board. */
-export type BoardGrid = {
+type BoardGrid = {
   // The guesses the server has drawn, in order: every guess on coop's shared
   // board, my own in compete.
   liveRows: GBoardRow[]
@@ -23,12 +23,12 @@ export type BoardGrid = {
 }
 
 /** What the board wears on and around its rows. */
-export type BoardMarks = {
+type BoardMarks = {
   // The letters being typed into the next row.
   typedWord: string
   // My guess out with the server, drawn uncolored in the next row until its
   // colored row lands; null when nothing is out.
-  inFlightGuess: string | null
+  inFlightWord: string | null
   // A refused guess: the typing row rings and shakes in its outcome.
   refusedGuessMark: Mark<Outcome> | null
   // The ending that applies to me; null while I play.
@@ -67,7 +67,7 @@ export function Board({
   brand: string
 }) {
   const shownRows = historyView.rows ?? grid.liveRows
-  const typingRowIndex = canType ? shownRows.length : -1
+  const typingRowIdx = canType ? shownRows.length : -1
   const flipBaseline = useFlipBaseline(grid.liveRows.length, historyView.isViewing)
 
   return (
@@ -89,35 +89,35 @@ export function Board({
         aria-label={`${brand} board`}
         data-board
       >
-        {Array.from({ length: grid.maxGuesses }, (_, rowIndex) => {
-          const guessRow = shownRows[rowIndex]
-          const isTypingRow = rowIndex === typingRowIndex
+        {Array.from({ length: grid.maxGuesses }, (_, rowIdx) => {
+          const guessRow = shownRows[rowIdx]
+          const isTypingRow = rowIdx === typingRowIdx
           // The in-flight word sits in the first empty row.
           const isInFlightRow =
-            !guessRow && marks.inFlightGuess !== null && rowIndex === shownRows.length
+            !guessRow && marks.inFlightWord !== null && rowIdx === shownRows.length
           const refusedGuessMark = isTypingRow ? marks.refusedGuessMark : null
 
           // What the row's tiles spell: its guess, the word out with the
           // server, or what is being typed.
           function getRowWord(): string {
             if (guessRow) return guessRow.word
-            if (isInFlightRow) return marks.inFlightGuess!
+            if (isInFlightRow) return marks.inFlightWord!
             if (isTypingRow) return marks.typedWord
             return ''
           }
 
           return (
-            <LetterRow
+            <BoardRow
               // The mark's nonce rides in the KEY: a CSS animation only
               // replays if its element is remounted.
-              key={refusedGuessMark ? `${rowIndex}-${refusedGuessMark.nonce}` : rowIndex}
+              key={refusedGuessMark ? `${rowIdx}-${refusedGuessMark.nonce}` : rowIdx}
               word={getRowWord()}
               colors={guessRow?.colors ?? null}
               marks={{
                 // A past turn's rows are final, so they never flip.
-                isFlipping: !historyView.isViewing && !!guessRow && rowIndex >= flipBaseline,
+                isFlipping: !historyView.isViewing && !!guessRow && rowIdx >= flipBaseline,
                 isInFlight: isInFlightRow,
-                isHistoryLit: rowIndex === historyView.litBoardRow,
+                isHistoryLit: rowIdx === historyView.litRowIdx,
                 refusedGuessMark,
               }}
             />

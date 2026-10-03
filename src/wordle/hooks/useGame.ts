@@ -62,7 +62,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players,
     playersById,
     me,
-    stateLineData: { guessesUsed: teamOrMe.guessesUsed, maxGuesses: me.maxGuesses },
+    stateLineData: { nGuessesUsed: teamOrMe.nGuessesUsed, maxGuesses: me.maxGuesses },
   }
 }
 
@@ -81,7 +81,8 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
   const raw = ctx.gameData as GGameDataRaw | null
   if (raw === null) {
-    throw new Error(`wordle: game ${ctx.cg.id} has no game_data; run wordle._rebuild_data_cols_for_all()`)
+    throw new Error(
+      `wordle: game ${ctx.cg.id} has no game_data; run wordle._rebuild_data_cols_for_all()`)
   }
   const myId = ctx.auth.user.id
   // Rebuilt when the page hands down a new blob, and not on every render.
