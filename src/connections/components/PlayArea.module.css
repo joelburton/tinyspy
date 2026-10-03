@@ -5,7 +5,8 @@
  * and its rows) from common/info-sheet/infoCol.module.css (imported as `shared`
  * in PlayArea.tsx and InfoCol.tsx), composed via cls(); only the info-column
  * WIDTH is connections-specific. The board and its marks live in
- * Board.module.css, the commit row below the board in BoardCol.module.css. See
+ * Board.module.css, the pieces on it in Tile.module.css and Band.module.css,
+ * the commit row below the board in BoardCol.module.css. See
  * docs/playarea.md → PlayArea layout.
  *
  * Mobile is the shared recipe (docs/mobile.md): `shared.mobileFill` on `.layout`

@@ -233,6 +233,13 @@ connections' BoardCol pass (2026-10-03) settled, beyond the two games above:
   user → color map and `isSharedBoard`, and joined them per tile. `BoardCol`
   hands one `tileToPickerColor` map: a picked tile is a key, its value the
   picker's color where whose pick is worth saying and null where it is not.
+- **A component per visual unit, again.** connections' board has two: `Tile`
+  (the loose tile and the marks this screen adds, with `pickerColor` and a
+  `verdict` of `{phase, outcome}` so the tile draws flash, shake and fill off
+  one value) and `Band` (a category across the row). Each has its own CSS
+  module; `Board.module.css` keeps the wrapper and the grid. The cursor is
+  `useTileCursor`, as psychicnum's; it hands back the cursor's `position` so
+  the loop asks `position === i` and nothing else.
 - **Live state nothing above the column reads is the column's.** The picks
   (the map, the Broadcast room, the two senders) were `useGame`'s and rode
   through PlayArea as a prop that only `BoardCol` read; they are `usePicks`,

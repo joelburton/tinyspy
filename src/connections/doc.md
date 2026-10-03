@@ -381,6 +381,8 @@ eight sections.
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the board column — the picks (usePicks) and submit_guess
         │     ├── Board                  one grid: the solved bands, then the tiles
+        │     │     ├── Band             a category across the row: its name over its four words
+        │     │     ├── Tile             one loose tile and the marks this screen adds
         │     │     └── ShuffleButton ←  floats on the board, not in the action row
         │     └── the commit row         Clear · Submit, and the mistakes beside them
         │           ├── StrikeMarks      "Mistakes (lose at 4)" ■■□□, in both modes

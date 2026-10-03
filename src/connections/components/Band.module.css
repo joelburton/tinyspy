@@ -1,0 +1,54 @@
+/* cs-unmet */
+
+/* A matched or revealed category, drawn as one long tile across the board's
+ * grid. The box, radius, padding, edge and drop shadow are the shared
+ * `.tileFace` (composed in Band.tsx), which also sets the face's `--tile-*`
+ * tokens inline to color it by rank — the same "a state class re-sets a token"
+ * move the tiles use. What's here is only what makes a band long rather than
+ * square: the full-width span and the two stacked lines. The name auto-fits
+ * the band width via a container query (the face is already an inline-size
+ * container). */
+/* @@ */ .band {
+  grid-column: 1 / -1;
+  min-height: 0;
+  /* Dark ink: the rank palette is four pastels, which is where dark ink belongs
+   * (the white-on-color half of the ramp is for saturated fills). */
+/* @@ */   --tile-slot-ink-color: var(--page-text-color);
+  flex-direction: column;
+}
+
+/* @@ */ .band strong {
+  display: block;
+  /* Auto-fit, the same shape as the shared `.tileWord` — `--len` is the name's
+   * char count (set inline by Band), 100cqi the band's inner width — and it
+   * CONDENSES FIRST for the same reason, which matters more here than anywhere
+   * on the board: a category name is a phrase ("things that can be broken"),
+   * the longest text this game shows, on the one tile that spans four columns.
+   *
+   * The formula is written out rather than inherited because this is not a
+   * `.tileWord`; the shared rule's own comment explains the two clamps and the
+   * measured 0.39 damping. The floor matches the tiles below it, so the band
+   * and the words it collected narrow alike. */
+/* @@ */   --tile-wdth: clamp(max(0.25, 0.6), calc(10 / var(--len)), 1);
+/* @@ */   --tile-wdth-gain: calc(1 - (1 - var(--tile-wdth)) * 0.39);
+/* @@ */   --tile-grad: calc((1 - var(--tile-wdth)) * 100);
+  font-stretch: calc(var(--tile-wdth) * 100%);
+  font-variation-settings: 'GRAD' var(--tile-grad);
+  font-size: clamp(1.15rem, calc(100cqi / (var(--len) * 0.72 * var(--tile-wdth-gain))), 1.7rem);
+  margin-bottom: 0.25rem;
+}
+
+/* @@ */ .bandMembers {
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+
+/* Both lines sit ABOVE the attention flash, the same lift the shared `.tileWord`
+ * takes: that flash is an absolutely-positioned overlay, and one of those paints
+ * over in-flow text by default — so without this the flash hides the band it is
+ * pointing at. */
+.band strong,
+/* @@ */ .bandMembers {
+  position: relative;
+  z-index: 1;
+}
