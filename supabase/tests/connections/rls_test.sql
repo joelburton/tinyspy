@@ -6,7 +6,8 @@
 --
 -- A non-member (dee) must not be able to see anything about an
 -- ada+bea club's connections game, and must not be able to call any
--- mutating RPC against it. Mirrors the structure of
+-- mutating RPC against it; a member reads every row in both modes (the
+-- seat rule is the hook's). Mirrors the structure of
 -- ../codenamesduet/rls_test.sql and ../psychicnum/rls_test.sql.
 --
 -- Includes a positive baseline (ada CAN see the game) so the
@@ -130,14 +131,13 @@ select throws_ok(
 );
 
 -- ============================================================
--- COMPETE: opponents' guesses are private DURING PLAY, and open
--- once the game ends
+-- COMPETE: every club member reads every row, mid-race and after
 -- ============================================================
--- The privacy is a GAME RULE, not etiquette: a peer's oneAway guess plus the
--- public board would hand you the answer while you can still use it. Once the
--- game is over there's nothing left to protect, and comparing lines afterwards
--- is most of the fun — which is what the event log's "whose guesses?" picker
--- shows. Same shape wordle already uses.
+-- A rival's guesses ARE private mid-race — a peer's oneAway guess plus the
+-- public board would hand you the answer while you can still use it — but
+-- the rule is the hook's (src/connections/hooks/useGame.ts), applied to
+-- `game_data`, not a policy's. The policy is the club-member read every
+-- connections table has, so the club boundary is what these pin.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cg on commit drop as
@@ -154,33 +154,31 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select connections.submit_guess(
   (select id from cg), array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'wrong', null);
 
--- Mid-game: ada sees only her own.
+-- Mid-game: ada reads both rows.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from connections.events where game_id = (select id from cg)),
-  1::bigint,
-  'compete mid-game: a player sees only their OWN guesses'
+  2::bigint,
+  'compete mid-game: a player reads every row — the seat rule is the hook''s'
 );
 
--- End it. (stop_game is the neutral mutual stop; the rule keys on ended_at,
--- not on how the game ended.)
+-- End it. (stop_game is the neutral mutual stop.)
 select connections.stop_game((select id from cg));
 
 select is(
   (select count(*) from connections.events where game_id = (select id from cg)),
   2::bigint,
-  'compete ONCE ENDED: everyone''s guesses open up'
+  'compete once ended: the same every row'
 );
 
--- …and the opponent's row is the one that appeared, not a duplicate of mine.
+-- …both players' rows, not two of mine.
 select is(
   (select count(distinct user_id) from connections.events where game_id = (select id from cg)),
   2::bigint,
   'compete once ended: both players'' rows are visible'
 );
 
--- The club boundary still holds — the ending opens the game to its PLAYERS'
--- club, not to the world.
+-- The club boundary holds — the game is its PLAYERS' club's, not the world's.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
   (select count(*) from connections.events where game_id = (select id from cg)),

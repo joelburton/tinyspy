@@ -6,10 +6,11 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
-import { answerMessage, type GuessResult } from '../lib/answer'
+import { answerMessage } from '../lib/answer'
 import { TILES_PER_CATEGORY } from '../lib/board'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
-import type { GameData } from './useGame'
+import type { GGameData, GPicks, GGuessResult } from '../types'
+import type { GVerdictMark } from '../types'
 
 /** Empty tile set — the resting value of the in-flight mark. */
 const NO_TILES: ReadonlySet<string> = new Set()
@@ -24,14 +25,14 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * its own answer. A guess that wrote NOTHING is not here at all: it comes back
  * as PN300 or PN301, both races.
  */
-type GuessAnswer = { result: GuessResult }
+type GuessAnswer = { result: GGuessResult }
 
 /**
  * Sending the picked four, and the tiles still out with the server.
  *
  * `send()` shows its answer in the local slot and on the four tiles it
- * is about (`showVerdictFor`), then clears the picks, so every verdict leaves
- * the board in the same state.
+ * is about (`markTiles`), then clears the picks, so every verdict leaves the
+ * board in the same state.
  *
  * - **A refusal the board can make itself.** A set already tried never reaches
  *   the server: the log is face-up, so the check is local. The server keeps
@@ -39,9 +40,10 @@ type GuessAnswer = { result: GuessResult }
  *   (docs/envelopes.md → "was anything local consulted first?").
  * - **The verdict is worked out here and sent up**, in the word the column
  *   stores (`evaluateGuess`); a correct guess names its category's rank.
- * - **A not-ok leaves the picks in place.** The move wasn't taken, so the
- *   four tiles are still sitting there un-played, filled in the pill's own
- *   outcome, whatever it is.
+ * - **A not-ok leaves the picks in place, and marks nothing.** The move
+ *   wasn't taken, so the four tiles are still sitting there un-played; the
+ *   server's sentence shows in the local slot, and a fault's modal has
+ *   already fired (`runRpc`).
  *
  * `inFlight` is the four tiles out with the server, wearing the in-flight dim
  * until the answer lands, rather than a verdict guessed locally. They are a
@@ -54,13 +56,16 @@ type GuessAnswer = { result: GuessResult }
  */
 export function useSubmitGuess({
   gd,
+  picks,
   localFeedbackSlot,
-  showVerdictFor,
+  markTiles,
 }: {
-  gd: GameData
+  gd: GGameData
+  picks: GPicks
   localFeedbackSlot: FeedbackSlot
-  // Show a message and fill the tiles it is about (`useVerdictMark`).
-  showVerdictFor: (tiles: readonly string[], message: FeedbackMessage) => void
+  // Color the four tiles an answer is about and show the answer beside them
+  // (`useVerdictMark`).
+  markTiles: GVerdictMark['markTiles']
 }): {
   send: () => Promise<void>
   inFlight: ReadonlySet<string>
@@ -68,24 +73,26 @@ export function useSubmitGuess({
   const [inFlight, setInFlightGuess] = useState<ReadonlySet<string>>(NO_TILES)
 
   async function send() {
-    const sent = [...gd.picks.union]
+    const sent = [...picks.union]
     if (sent.length !== TILES_PER_CATEGORY) return
 
-    if (gd.boardEvents.some((g) => sameTileSet(g.tiles, sent))) {
+    // The log I can see is the board I play: coop's whole shared log, or my
+    // own rows in a race still running.
+    if (gd.events.some((e) => sameTileSet(e.tiles, sent))) {
       const { outcome, text } = answerMessage({ answerType: 'already_tried' })
-      showVerdictFor(sent, FeedbackMessage.result(outcome, text))
-      gd.picks.sendClear()
+      markTiles({ tiles: sent, outcome, message: FeedbackMessage.result(outcome, text) })
+      picks.sendClear()
       return
     }
 
-    const evaluation = evaluateGuess(sent, gd.puzzle.board.categories)
+    const evaluation = evaluateGuess(sent, gd.puzzle.cats)
     setInFlightGuess(new Set(sent))
     // Only a match names a category. The argument is OPTIONAL rather than
     // nullable, so the other two verdicts leave it out rather than send null.
     const matchedCategory =
       evaluation.result === 'correct' ? { p_matched_category_rank: evaluation.rank } : {}
     const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
-      p_game_id: gd.gameId,
+      p_game_id: gd.id,
       p_tiles: sent,
       p_result: evaluation.result,
       ...matchedCategory,
@@ -93,7 +100,7 @@ export function useSubmitGuess({
     setInFlightGuess(NO_TILES)
 
     if (res.type === 'not-ok') {
-      showVerdictFor(sent, FeedbackMessage.notOk(res))
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     // One branch per recorded verdict, each asserting `data` and nothing else
     // (docs/envelopes.md → The shape of a call site) — never the value this
@@ -102,21 +109,21 @@ export function useSubmitGuess({
       // No mark: these four collapse into a band on this very render.
       const { outcome, text } = answerMessage({ answerType: 'correct' })
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
-      gd.picks.sendClear()
+      picks.sendClear()
       return
     } else if (res.type === 'ok' && res.data.result === 'oneAway') {
       const { outcome, text } = answerMessage({ answerType: 'one_away' })
-      showVerdictFor(sent, FeedbackMessage.result(outcome, text))
-      gd.picks.sendClear()
+      markTiles({ tiles: sent, outcome, message: FeedbackMessage.result(outcome, text) })
+      picks.sendClear()
       return
     } else if (res.type === 'ok' && res.data.result === 'wrong') {
       const { outcome, text } = answerMessage({ answerType: 'wrong' })
-      showVerdictFor(sent, FeedbackMessage.result(outcome, text))
-      gd.picks.sendClear()
+      markTiles({ tiles: sent, outcome, message: FeedbackMessage.result(outcome, text) })
+      picks.sendClear()
       return
     } else {
       reportUnhandled('submit_guess', res)
-      gd.picks.sendClear()
+      picks.sendClear()
       return
     }
   }

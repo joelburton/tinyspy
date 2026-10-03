@@ -9,9 +9,9 @@ import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import type { GameEndedReason } from '@/common/terminal/gameEnding'
-import { DEFAULT_CONNECTIONS_SETUP, type ConnectionsSetup } from './lib/setup'
+import { DEFAULT_CONNECTIONS_SETUP } from './lib/setup'
 import { CATEGORY_COUNT, MISTAKE_BUDGET } from './lib/board'
-import type { ConnectionsSummaryData } from './lib/statuses'
+import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -60,7 +60,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     return runRpc<CreatedGame>(
       db.rpc('create_game', {
         p_club_handle: clubHandle,
-        p_setup: setup as ConnectionsSetup,
+        p_setup: setup as GSetup,
         p_player_user_ids: playerUserIds,
         p_mode: mode,
       }),
@@ -74,8 +74,8 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-// The summary reads the game's `summary_data` (`ConnectionsSummaryData`: the
-// common part with its ending, and coop's team counts, null in compete). Each
+// The summary reads the game's `summary_data` (`GSummaryData`: the common
+// part with its ending, and `team`, coop's counts, null in compete). Each
 // mode's summaryFor handles its own endings.
 
 /** Why a game ended with nobody winning (connections' losses). */
@@ -126,14 +126,16 @@ export const connectionsCoopGame: GameManifest = {
   startGameInClub: startGameInClubFactory('coop'),
 
   summaryFor: (data) => {
-    const summary = data as ConnectionsSummaryData
+    const summary = data as GSummaryData
+    // A coop game always has a team.
+    const team = summary.team!
     // "categories", the game's own noun (doc.md → Vocabulary), throughout.
-    const categories = tally(summary.foundCategoriesCount, CATEGORY_COUNT, 'categories')
+    const categories = tally(team.nMatchedCats, CATEGORY_COUNT, 'categories')
     if (summary.ending === null) {
       return statusLine(
         verdict('Playing'),
         categories,
-        tally(summary.mistakeCount, MISTAKE_BUDGET, 'mistakes'),
+        tally(team.nMistakes, MISTAKE_BUDGET, 'mistakes'),
       )
     }
     // Written with the ending.
@@ -141,7 +143,7 @@ export const connectionsCoopGame: GameManifest = {
     switch (outcome) {
       case 'won':
         // Solving means every category, so the mistakes are the story.
-        return statusLine(verdict('Won'), count(summary.mistakeCount, 'mistake'))
+        return statusLine(verdict('Won'), count(team.nMistakes, 'mistake'))
       case 'lost':
         return statusLine(verdict('Lost', LOSS[summary.ending.reason] ?? null), categories)
       // A Stop (connections.stop_game) — neutral, no win/loss framing.
@@ -191,7 +193,7 @@ export const connectionsCompeteGame: GameManifest = {
   // (`ending.winner`), so review reads "Won by ada." Mode itself is the
   // card's <ModeBadge>.
   summaryFor: (data, members) => {
-    const summary = data as ConnectionsSummaryData
+    const summary = data as GSummaryData
     if (summary.ending === null) return verdict('Playing')
     // Written with the ending.
     const outcome = summary.outcome!

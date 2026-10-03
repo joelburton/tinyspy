@@ -16,6 +16,17 @@ decision against, so a review doesn't propose it again
 
 ## Soon
 
+- **Three ways to handle a guess's mark and its feedback.** My answer shows
+  in the local slot and lands on the board, and the two have to agree and
+  leave together; each converted game solved it its own way. wordle:
+  `useSubmitGuess` shows the slot and keeps the mark itself (`useMark`, on a
+  timer). psychicnum: the submit path shows the slot and
+  `useDecidedTileMarks` marks, separately, on its own timer. connections:
+  `useVerdictMark` owns the mark, `markTiles` colors the tiles and shows a
+  message beside them as one thing that leaves with the pill, and
+  `useMarkForeignGuesses` marks a teammate's miss off their row. One shape,
+  decided across the three before the next game converts.
+
 - **Every test seam ends in `_ForTest`.** An export that only tests call
   should say so where it is called, and the underscore makes it easy to spot.
   `faultStore`'s two (`clearFaultMessages_ForTest`, `peekFaultMessages_ForTest`)

@@ -1,9 +1,6 @@
 // cs-blessed-connections
 
 import { cls } from '@/common/utils/cls'
-import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { Loading } from '@/common/loading/Loading'
-import { NoSuchGamePage } from '@/common/game-page/NoSuchGamePage'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -18,7 +15,7 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { peerAnswerMessage } from '../lib/answer'
-import { useGame, type GameData } from '../hooks/useGame'
+import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
@@ -28,39 +25,22 @@ import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+import type { GGameData, GPicks } from '../types'
 
 /**
- * The three gates in front of connections' play surface: the read is out, the
- * read failed, or there is no such game. Everything below starts with the game
- * data in hand, which is why the surface never writes `gd?.`.
- *
- * The game's menu rows and its `+` arrive WITH the game, because the surface
- * that binds them mounts with it — a row for a game not yet read could only
- * gray itself or lie.
+ * The manifest's component: builds `gd` from the blob the page was handed,
+ * keeps the picks beside it, and draws the surface.
  */
 export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
-  const { gd, loading, failure } = useGame(ctx)
-
-  if (loading) return <Loading />
-  // A failed read is NOT a missing game. Both leave `gd` null, and saying
-  // "there's no game here" about a dead connection is a confident wrong answer
-  // — this is what remains once the fault modal is dismissed.
-  if (failure) return <EnvelopeErrorPage envelope={failure} />
-  // Reaching this means the COMMON row exists — `GamePageGate` and
-  // `GamePageLoader` each checked — and the connections one does not: a torn
-  // write, or a game deleted while somebody had the board open. `detail` goes
-  // to the console, never to the page.
-  if (!gd) return <NoSuchGamePage detail={`rows=0 table=connections.games game=${ctx.cg.id}`} />
-
+  const { gd, picks } = useGame(ctx)
   return (
     <PlayArea
       gd={gd}
+      picks={picks}
       auth={ctx.auth}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
-      clubHandle={ctx.cg.club_handle}
       goToFollowUpGame={ctx.goToFollowUpGame}
       menu={ctx.menu}
-      brand={ctx.manifest.name}
     />
   )
 }
@@ -69,10 +49,8 @@ type PlayAreaProps = Pick<
   PlayAreaLoaderProps,
   'auth' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
 > & {
-  // The game data. Non-null by construction — the loader holds the gates.
-  gd: GameData
-  clubHandle: string
-  brand: string
+  gd: GGameData
+  picks: GPicks
 }
 
 /**
@@ -83,7 +61,7 @@ type PlayAreaProps = Pick<
  *
  * Both manifests mount it, and the mode (`gd.mode`) is what differs: whose
  * picks the board shows (coop shares them, compete keeps them local), whose
- * progress a readout counts, and the ending's words.
+ * progress the state line counts, and the ending's words.
  *
  * Above it, `<GamePage>` owns members, the timer, the ending, pause and chat,
  * and unmounts this surface on pause — every piece of state below goes with it,
@@ -91,12 +69,11 @@ type PlayAreaProps = Pick<
  */
 function PlayArea({
   gd,
+  picks,
   auth,
   globalFeedbackSlot,
-  clubHandle,
   goToFollowUpGame,
   menu,
-  brand,
 }: PlayAreaProps) {
   const myId = auth.user.id
 
@@ -111,12 +88,10 @@ function PlayArea({
 
   // Confetti the moment the win is MINE, as the server ranked it. It is shown
   // only when it happens.
-  // SPECTATING: a club member watching has no outcome of their own, so gets
-  // none.
-  const celebration = useCelebration(gd.me?.outcome === 'won')
+  const celebration = useCelebration(gd.me.outcome === 'won')
 
   // The board frame flashes the moment the move becomes mine.
-  const turnFlash = useTurnStartFlash(gd.standing.isMyTurn)
+  const turnFlash = useTurnStartFlash(gd.me.onTurn)
 
   // ─── The local slot, and what stands in it ─────────────
 
@@ -136,8 +111,8 @@ function PlayArea({
   // A teammate holds the move (turn-order coop; never in a free-for-all).
   useShowWaitingMessage({
     slot: localFeedbackSlot,
-    isWaiting: gd.standing.isWaitingForTurn,
-    holder: gd.turns.turnHolder,
+    isWaiting: gd.me.waitingForTurn,
+    holder: gd.turns?.holder ?? null,
   })
 
   // ─── What a PEER did, in the header slot ───────────────
@@ -146,20 +121,20 @@ function PlayArea({
   // skipped; in compete the log holds only my own rows until the end, so there
   // is nothing to narrate.
   useShowPeerFeedback({
-    enabled: !gd.isCompete,
+    enabled: gd.coop,
     items: gd.events,
     keyOf: (g) => String(g.id),
     messageFor: (g) => {
-      if (g.user_id === myId) return null
+      if (g.by === gd.me) return null
       const { outcome, text } = peerAnswerMessage(g)
-      return FeedbackMessage.peer(gd.playersById[g.user_id], outcome, text)
+      return FeedbackMessage.peer(g.by, outcome, text)
     },
     globalFeedbackSlot,
   })
 
   // ─── The turn-history view ─────────────────────────────
   // Which past turn, if any, is open on the board, and that turn's board.
-  const historyView = useHistoryView(gd, myId)
+  const historyView = useHistoryView(gd)
 
   // ─── The commands, and the menu that lists them ────────
   // Every command this game offers: the info column's action row places them,
@@ -168,10 +143,8 @@ function PlayArea({
     gd,
     myId,
     localFeedbackSlot,
-    clubHandle,
     goToFollowUpGame,
     menu,
-    brand,
   })
 
   // ─── Render ────────────────────────────────────────────
@@ -183,9 +156,9 @@ function PlayArea({
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         gd={gd}
+        picks={picks}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
-        endingOutcome={endingMessage?.outcome ?? null}
         myTurnJustStarted={turnFlash}
         solutionShown={solutionShown}
       />
@@ -206,7 +179,7 @@ function PlayArea({
       {celebration.isOpen && (
         <CelebrationBlockingModal
           title="You win! 🎉"
-          body={gd.isCompete ? 'You found all four first.' : 'All four categories found.'}
+          body={gd.compete ? 'You found all four first.' : 'All four categories found.'}
           onClose={celebration.close}
         />
       )}

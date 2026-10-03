@@ -22,11 +22,11 @@ import { reconcileLocalOrder } from '../lib/localOrder'
  * board.
  */
 export function useTileShuffle({
-  remainingTiles,
+  tilesLeft,
   canShuffle,
 }: {
-  // The loose tiles, in the board's order.
-  remainingTiles: readonly string[]
+  // The loose tiles, in the puzzle's order.
+  tilesLeft: readonly string[]
   canShuffle: boolean
 }): {
   tiles: string[]
@@ -35,8 +35,8 @@ export function useTileShuffle({
   // Null until the first shuffle: the board's own order.
   const [localOrder, setLocalOrder] = useState<string[] | null>(null)
   const displayedTiles = localOrder
-    ? reconcileLocalOrder(localOrder, [...remainingTiles])
-    : [...remainingTiles]
+    ? reconcileLocalOrder(localOrder, [...tilesLeft])
+    : [...tilesLeft]
 
   const actShuffle = useBindAction('act-shuffle', {
     describe: () => {

@@ -17,7 +17,7 @@
 --     missing seconds, out-of-range seconds)
 --   - acceptance: timer.kind in {none, countup}
 --   - happy path: returns one row, the game not ended,
---     mistake_count=0, setup persists, board sourced from the
+--     n_mistakes=0, setup persists, board sourced from the
 --     puzzle (4 categories × 4 tiles), tile order is a shuffle
 --     of all 16 tiles, the common.games row is_current_view=true,
 --     connections.games.puzzle_id is set, title formula matches the
@@ -238,13 +238,11 @@ select is(
 );
 
 select is(
-  -- mistake_count lives on connections.players (one row per player,
-  -- lock-step in coop). Reading any row gives the canonical
-  -- shared value in coop; here we assert both rows are at 0.
-  (select coalesce(max(mistake_count), -1) from connections.players
+  -- One connections.players row per player, each their own; both start at 0.
+  (select coalesce(max(n_mistakes), -1) from connections.players
     where game_id = (select id from created)),
   0,
-  'create_game: every player''s mistake_count seeded to 0'
+  'create_game: every player''s n_mistakes seeded to 0'
 );
 
 -- connections.games.puzzle_id is set to the fixture puzzle.
@@ -395,13 +393,12 @@ select pg_temp.envelope_is(
   'create_game: rejects player_user_ids with > 6 entries (max 6)');
 
 -- ============================================================
--- The club line is SEEDED at create (not left NULL until the first guess)
+-- The summary is SEEDED at create (not left NULL until the first guess)
 -- ============================================================
--- Coop seeds the 0/4 tallies the club-list label prints. Compete seeds the
--- same keys as null deliberately — each racer's matched/mistake counts are
--- their own and this column is club-wide readable, so the compete builder
--- publishes no progress. The point is that `clubpage_info` is never NULL and
--- always carries every key.
+-- Coop seeds the 0/4 tallies the club-list label prints, as `team`. Compete
+-- has no team, so `team` is null — each racer's counts are their own and the
+-- summary is club-wide readable, so it publishes no progress. The point is
+-- that `summary_data` is never NULL and always carries every key.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table seeded_coop on commit drop as
   select (connections.create_game((select handle from club),
@@ -415,13 +412,13 @@ create temp table seeded_cmp on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 select is(
-  (select clubpage_info from common.games where id = (select id from seeded_coop)),
-  '{"found_categories_count": 0, "mistake_count": 0, "winner_user_id": null}'::jsonb,
-  'coop seeds the 0/4 tallies at create');
+  (select summary_data -> 'team' from common.games where id = (select id from seeded_coop)),
+  '{"nMatchedCats": 0, "nMistakes": 0}'::jsonb,
+  'coop seeds the 0/4 tallies at create, on the summary''s team');
 select is(
-  (select clubpage_info from common.games where id = (select id from seeded_cmp)),
-  '{"found_categories_count": null, "mistake_count": null, "winner_user_id": null}'::jsonb,
-  'compete seeds every key as null (but non-NULL clubpage_info) — no per-racer progress leaks');
+  (select summary_data -> 'team' from common.games where id = (select id from seeded_cmp)),
+  'null'::jsonb,
+  'compete seeds no team (but non-NULL summary_data) — no per-racer progress leaks');
 
 -- ============================================================
 select * from finish();

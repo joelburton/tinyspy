@@ -129,22 +129,22 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, requiredSecretsCount: 3, maxGuesses: 7 }, 'Stop'],
     ],
   },
-  // connections' summary_data, as its builder writes it at conversion: the two counts are
-  // coop's team numbers and null in compete; the winner is the common ending's.
+  // connections' summary_data, as its builder writes it: `team` is coop's two counts and
+  // null in compete; the winner is the common ending's.
   connections: {
-    live: { foundCategoriesCount: 2, mistakeCount: 1 },
+    live: { team: { nMatchedCats: 2, nMistakes: 1 }, maxMistakes: 4 },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal' }, { foundCategoriesCount: 4, mistakeCount: 1 }, 'solved'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { foundCategoriesCount: 2, mistakeCount: 4 }, 'four mistakes'],
-      [{ outcome: 'lost', reason: 'timeout' }, { foundCategoriesCount: 2, mistakeCount: 1 }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { foundCategoriesCount: 2, mistakeCount: 1 }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { team: { nMatchedCats: 4, nMistakes: 1 }, maxMistakes: 4 }, 'solved'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: { nMatchedCats: 2, nMistakes: 4 }, maxMistakes: 4 }, 'four mistakes'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nMatchedCats: 2, nMistakes: 1 }, maxMistakes: 4 }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nMatchedCats: 2, nMistakes: 1 }, maxMistakes: 4 }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { foundCategoriesCount: null, mistakeCount: null }, 'won the race'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { foundCategoriesCount: null, mistakeCount: null }, 'everyone hit four mistakes'],
-      [{ outcome: 'lost', reason: 'timeout' }, { foundCategoriesCount: null, mistakeCount: null }, 'timeout'],
-      [{ outcome: 'lost', reason: 'conceded' }, { foundCategoriesCount: null, mistakeCount: null }, 'all conceded'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { foundCategoriesCount: null, mistakeCount: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: null, maxMistakes: 4 }, 'won the race'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: null, maxMistakes: 4 }, 'everyone hit four mistakes'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxMistakes: 4 }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxMistakes: 4 }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxMistakes: 4 }, 'Stop'],
     ],
   },
   spellingbee: {

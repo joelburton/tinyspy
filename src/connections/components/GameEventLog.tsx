@@ -2,28 +2,27 @@
 
 import { Fragment } from 'react'
 import { cls } from '@/common/utils/cls'
-import { memberById } from '@/common/members/memberList'
 import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import type { Member } from '@/common/members/member'
-import type { Category } from '../lib/board'
-import type { EventRow } from '../hooks/useGame'
+import type { GCategory, GEvent } from '../types'
 import styles from './GameEventLog.module.css'
 
 type Props = {
   // Every guess the viewer can currently see. Coop: the whole shared game.
-  // Compete: the viewer's own during play, and (once terminal, when RLS opens)
-  // everyone's — which is what makes the picker below useful.
-  guesses: EventRow[]
-  // The board's four categories, public in both modes — names a correct
+  // Compete: the viewer's own during play, and (once the game has ended, when
+  // the seat rule opens) everyone's — which is what makes the picker below
+  // useful.
+  guesses: GEvent[]
+  // The puzzle's four categories, public in both modes — names a correct
   // guess's category, an opponent's too.
-  categories: Category[]
+  cats: GCategory[]
   players: Member[]
   myId: string
   mode: 'coop' | 'compete'
-  // Distinguishes an opponent's RLS-hidden log from a genuinely empty one.
-  isTerminal: boolean
+  // Distinguishes an opponent's withheld log from a genuinely empty one.
+  isGameEnded: boolean
   // The turn currently open in the board viewer — the row's own id — or null
   // when live. Its `#N` handle wears the shared history ring.
   historyId: number | null
@@ -43,33 +42,33 @@ type Props = {
  * the other two carry the NYT-canonical short text.
  *
  * Whose guesses are shown is the shared `useEventLogPlayerPicker` dropdown in
- * the header. In compete an opponent's rows are empty during play (RLS hides
- * them) and fill in once the game ends, which is what the picker's empty text
- * says.
+ * the header. In compete an opponent's rows are empty during play (the seat
+ * rule withholds them) and fill in once the game ends, which is what the
+ * picker's empty text says.
  */
 export function GameEventLog({
   guesses,
-  categories,
+  cats,
   players,
   myId,
   mode,
-  isTerminal,
+  isGameEnded,
   historyId,
   onShowHistory,
 }: Props) {
-  const eventLogPicker = useEventLogPlayerPicker<EventRow>({
+  const eventLogPicker = useEventLogPlayerPicker<GEvent>({
     players,
     myId: myId,
     mode,
-    isTerminal,
+    isTerminal: isGameEnded,
     label: 'Whose guesses to show',
     emptyLabel: 'No guesses yet.',
   })
   const shown = eventLogPicker.filter(guesses)
 
-  // rank → name, off the BOARD rather than off the viewer's own matches, so an
+  // rank → name, off the PUZZLE rather than off the viewer's own matches, so an
   // opponent's correct rows name their category too.
-  const nameByRank = new Map<number, string>(categories.map((c) => [c.rank, c.name]))
+  const nameByRank = new Map<number, string>(cats.map((c) => [c.rank, c.name]))
 
   return (
     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}>
@@ -83,16 +82,16 @@ export function GameEventLog({
           <tr className={cls(gameEventLog.divider, gameEventLog.entryHead)}>
             <EventLogOutcomeBar outcome={g.outcome} rowSpan={2} />
             {/* The `#N` handle replays that turn on the board. The number counts
-                the rows on show; the handle is the row's own id, and PlayArea
-                folds the rows of whoever wrote it — so an opponent's row at a
-                compete terminal replays THEIR board. */}
+                the rows on show; the handle is the row's own id, and the history
+                view folds the rows of whoever wrote it — so an opponent's row
+                once a compete game has ended replays THEIR board. */}
             <EventLogNumber
               n={i + 1}
               isOpenInHistory={historyId === g.id}
               onShowHistory={() => onShowHistory(g.id, i + 1)}
             />
             <td className={gameEventLog.main}>{verdictLabel(g, nameByRank)}</td>
-            <EventLogActor actor={memberById(players, g.user_id)} />
+            <EventLogActor actor={g.by} />
           </tr>
           {/* Row 2: the four guessed tiles, full width — spanning the #N + verdict +
               who columns beneath the meta line. */}
@@ -110,20 +109,20 @@ export function GameEventLog({
  * (the green outcome bar already says "found", so no "Matched:" prefix); the
  * other two carry the NYT-canonical short text.
  *
- * `matched_category_rank` is non-null IFF the guess MATCHED (the SQL
- * constraint guarantees this); a defensive fallback to plain "Correct" if a
- * future correct row somehow arrived without a rank.
+ * `matchedCatRank` is non-null IFF the guess MATCHED (the SQL constraint
+ * guarantees this); a defensive fallback to plain "Correct" if a future
+ * correct row somehow arrived without a rank.
  */
 function verdictLabel(
-  g: EventRow,
+  g: GEvent,
   nameByRank: Map<number, string>,
 ): string {
   // The MATCH flag, not the color: naming the category is a question about the
   // rules, and `outcome === 'won'` would be a color answering it.
   if (g.matched) {
     const name =
-      g.matched_category_rank != null
-        ? nameByRank.get(g.matched_category_rank)
+      g.matchedCatRank !== null
+        ? nameByRank.get(g.matchedCatRank)
         : undefined
     return name ?? 'Correct'
   }

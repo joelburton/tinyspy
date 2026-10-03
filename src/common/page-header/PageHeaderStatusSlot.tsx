@@ -2,7 +2,7 @@
 
 import type { Member } from '../members/member'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
-import { useTopFeedbackMessage } from '../feedback/useFeedbackSlot'
+import { useWatchAndGetTopFeedbackMsg } from '../feedback/useFeedbackSlot'
 import { FeedbackPill } from '../feedback/FeedbackPill'
 import { PageHeaderPlayersStrip } from './PageHeaderPlayersStrip'
 import styles from './PageHeaderStatusSlot.module.css'
@@ -34,7 +34,7 @@ type Props = {
  * owner's to retract.
  */
 export function PageHeaderStatusSlot({ players, globalFeedbackSlot, presentUserIds }: Props) {
-  const showing = useTopFeedbackMessage(globalFeedbackSlot) !== null
+  const showing = useWatchAndGetTopFeedbackMsg(globalFeedbackSlot) !== null
   return (
     <div className={styles.slot}>
       {showing ? (

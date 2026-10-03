@@ -2,7 +2,7 @@
 
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
-import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
+import { useWatchAndGetTopFeedbackMsg } from '@/common/feedback/useFeedbackSlot'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { Action } from '@/common/actions/useBindAction'
 import { SubmitWithScore } from '@/common/buttons/SubmitWithScore'
@@ -70,7 +70,7 @@ export function Controls({
    *  commit buttons + filling its width) while it holds anything. */
   localFeedbackSlot: FeedbackSlot
 }) {
-  const top = useTopFeedbackMessage(localFeedbackSlot)
+  const top = useWatchAndGetTopFeedbackMsg(localFeedbackSlot)
   return (
     <div className={styles.controls}>
       <ActionButton action={actRecallTiles} show="icon" />

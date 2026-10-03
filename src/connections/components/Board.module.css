@@ -38,7 +38,7 @@
   display: flex;
   flex-direction: column;
   /* Cap the board height so each 1fr row tops out at --max-tile-height; rows
-   * still shrink on short screens. --rows (bands + tile-rows) is set inline by
+   * still shrink on short screens. --rows (one per category) is set inline by
    * Board.tsx. Set --max-tile-height to 999rem and the calc goes huge → no
    * effective cap. */
   max-height: calc(

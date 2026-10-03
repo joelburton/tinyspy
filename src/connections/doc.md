@@ -65,13 +65,13 @@ chosen one, finished or not.
 | **category** | one of the four hidden groupings of four tiles — NYT's "group", renamed because "group" already means people here |
 | **rank** | a category's difficulty index 0..3, and its color. "Rank" rather than "level", which means too many other things; nothing to do with spellingbee's `rank` |
 | **tile** | one of the sixteen words. Not "member", which is a person in a club |
-| **matched** | what a category is once a correct guess names it; `matched_category_rank` on the row, `matchedCategories` in the hook |
-| **mistake_count** | the number of wrong and one-away guesses; a count, since the list of them is the log |
+| **matched** | what a category is once a correct guess names it; `matched_cat_rank` on the row, `board.matchedCats` on a player; `nMatchedCats` is how many |
+| **nMistakes** | the number of wrong and one-away guesses; a count, since the list of them is the log. Each player's own in both modes; the team's is `team.nMistakes` |
 
 ### Coop
 
-One board, one budget: every player's `mistake_count` moves in lock-step, and
-every guess is everyone's. The four tiles of a guess are picked together —
+One board, one budget: each player's misses are their own, and the budget is
+spent by their sum (`team.nMistakes`); every guess is everyone's. The four tiles of a guess are picked together —
 each pick is broadcast as it happens, and the board shows whose it was in
 their color. The click rule is on the **union** of everyone's picks
 (`lib/picks.ts`): a tile already in it comes out, whoever put it in; an
@@ -90,10 +90,10 @@ nothing.
 
 **The same puzzle, raced separately.** Each racer has their own board, their
 own mistakes and their own bands; picks stay local. What a racer learns about
-a rival is two counts — mistakes, and categories **found** (the Found strip)
-— and never a guess or which categories, which RLS withholds until the game
-ends. At the end every row opens, which is what lets the event log's player
-picker read a finished race back.
+a rival is two counts — mistakes, and categories matched (the Found strip)
+— and never a guess or which categories, which the hook's seat rule withholds
+until the game ends. At the end every row opens, which is what lets the event
+log's player picker read a finished race back.
 
 First to four bands wins, and the race ends for everyone at that moment: the
 winner is ranked 1 and the rest, short of the goal, are unranked. Four
@@ -125,14 +125,15 @@ loss.
 ## Schema
 
 Four tables: shape in `supabase/migrations/`, behavior in
-`supabase/sql/connections.sql`.
+`supabase/sql/connections.sql`. The frontend reads none of them: it reads the
+page blobs the builder writes onto `common.games`.
 
 | | |
 |---|---|
 | `connections.puzzles` | the archive: `source_id` (the NYT number), `puzzle_date`, `categories` jsonb. Imported daily by `.github/workflows/connections-import.yml`; public, and pristine — a game copies from it |
 | `connections.games` | one row per game, keyed `game_id` to `common.games`: the `board`, and the puzzle's date frozen as `puzzle_date`. `puzzle_id` is a soft, provenance-only FK (`on delete set null`): everything needed to play is on the row |
-| `connections.players` | one row per player: `mistake_count` and `found_categories_count`. **Club-wide readable in both modes** — compete's Found strip is built on it |
-| `connections.events` | the guess log, append-only: `kind` is `guess`, `took_turn` is true, `result` is the wire word (`correct` · `oneAway` · `wrong`), `matched_category_rank` is set iff correct |
+| `connections.players` | one row per player: `n_mistakes` and `n_matched_cats`, each their own in both modes |
+| `connections.events` | the guess log, append-only: `kind` is `guess`, `took_turn` is true, `result` is the wire word (`correct` · `oneAway` · `wrong`), `matched_cat_rank` is set iff correct |
 
 The `board`:
 
@@ -150,20 +151,39 @@ rule, under the game row's lock: coop allows one correct row per rank per
 game, compete one per rank per player. Deleting the log un-matches
 everything, which is how Restart works.
 
-**The statuses** are written by `connections._write_statuses` at create, at
-Restart and at the end of every move, each assigned whole with every key
-present:
+**The page blobs** are written by `connections._rebuild_data_cols` at create,
+at Restart and at the end of every move, each assigned whole
+([plans/seat-view.md](../../plans/seat-view.md) → The page is written, not
+assembled): `shell_data` through `common._make_json_shell_data`, and on top of
+the common part of every `game_data` (`common._make_json_game_data`)
+connections' own:
 
-| status | keys |
+| blob | connections' part |
 |---|---|
-| `game_status` | `required_categories_count`, `max_mistakes` |
-| each `player_status` | `found_categories_count`, `mistake_count`, `player_ended_reason` |
-| `clubpage_info` | `found_categories_count`, `mistake_count`, `winner_user_id` |
+| `game_data` | `puzzle: {date, cats, tileOrder}`, as `create_game` froze it; `team: {nMatchedCats, nMistakes}`, what the team shares, null in compete; `events`, every player's rows; on each player their own `nMatchedCats` and `nMistakes`, `maxMistakes`, and `board: {matchedCats, tilesLeft}`, this seat's grid |
+| `summary_data` | `team`, the same group; `maxMistakes` |
 
-In coop a player's `mistake_count` is the team's, the same on every row, and
-the summary's counts are the team's (the matches summed). Compete's club
-line carries no progress, so its two counts are null, and `winner_user_id`
-names the finder once the race is won.
+Each player's two counts are their own, on `connections.players` and on their
+player in the blob, in both modes; `team` is their sum, and is null in a race,
+which has no team ([plans/team-facts.md](../../plans/team-facts.md)).
+`gd.stateLineData` is what the info column's state line shows — the team's
+counts where there is one, else my own, against the budget — decided once in
+`useGame`. Compete's summary carries no team, where a live count would leak
+how close a racer is; the winner is the common `ending.winner`.
+`connections._rebuild_data_cols_for_all()` rewrites every connections game's
+blobs without re-dating them, for a shape change.
+
+The statuses (`game_status`, `player_status`, `clubpage_info`) are not written:
+nothing reads connections' any more. The columns stay until a migration
+retires them for every game.
+
+**What a racer may see of a rival is the hook's rule, not a policy's.** The
+blob carries every player's rows and every seat's board, and `useGame`
+withholds a rival's mid-race — a peer's one-away guess plus the public puzzle
+would hand you the answer — and opens them at the game's end, which is what
+lets the event log's player picker read a finished race back. The policies on
+this game's tables are club-member reads in both modes; nothing on the client
+reads them.
 
 **What stays server-authoritative** is what has to be atomic: the mistake
 count, the one-correct-per-rank rule (a second correct for a rank is a race,
@@ -175,11 +195,10 @@ across matching names: `game:${gameId}` is `useCommonGame`'s (presence, the
 manual pause, the timer, the `common.games` row) and `connections:${gameId}`
 is `useGame`'s, joined in coop only, for the picks Broadcast (`pick` ·
 `unpick` · `clear`, on the `pick` event). The tables have no subscription of
-their own: every move writes `common.games` through `_write_statuses`, and
-`useGame` reruns its two reads when the page's row moves
-(`useRefetchOnGameUpdate`). The picks are pause-transient by construction:
-they live in the hook's state, and `PauseBoundary` unmounts the play surface
-on a pause, so a reconnecting table sees a clean grid.
+their own: every move rewrites the blobs on `common.games`, and the page
+hands the new blob down. The picks are pause-transient by construction: they
+live in the hook's state, and `PauseBoundary` unmounts the play surface on a
+pause, so a reconnecting table sees a clean grid.
 
 ## RPCs
 
@@ -198,7 +217,7 @@ e2e fixtures pin a board). It copies the puzzle's categories onto the game,
 shuffles the sixteen tiles into this game's `tileOrder`, titles the game
 `<date>: <TILE1>-<TILE2>` from the first two tiles alphabetically, writes the
 `common.games` row and one `connections.players` row per player, and writes
-the statuses. A coop game with
+the page blobs. A coop game with
 `coop_style: 'turns'` also seats the turn order, starting at
 `first_turn_user_id`. Compete needs two or more players; either mode takes
 up to six.
@@ -312,7 +331,7 @@ about the answers that come back.
 
 **Two checks never reach the server.** Submit is offered only with exactly
 four tiles picked, and a set of four already tried — by anyone in coop, by me
-in compete, which is exactly what RLS lets each client see — is refused
+in compete, which is exactly the log the seat rule leaves each client — is refused
 locally with "You already tried that" (`warning`) and writes nothing. The
 server keeps the same check, which is what makes *its* answer to a repeat
 mean something sharper: a race that slipped past this one.
@@ -354,11 +373,11 @@ taking that puzzle in the gap costs nothing.
 ## Frontend
 
 The play surface is the shape [`docs/playarea.md`](../../docs/playarea.md)
-describes — a loader that gates on the three ways a game can fail to load,
-then `PlayArea` in the eight sections.
+describes — a loader that builds `gd` from the blob, then `PlayArea` in the
+eight sections.
 
 ```
-<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame (gd), and the three gates
+<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame: the blob becomes gd, and the picks beside it
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the board column — and submit_guess
         │     ├── Board                  one grid: the solved bands, then the tiles
@@ -369,6 +388,7 @@ then `PlayArea` in the eight sections.
         │           └── HistoryBanner ←  overlays it while a past turn is open
         └── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
               └── InfoCol                the readouts and the action row
+                    ├── StateLine        "2/4 categories found · 1/4 mistakes"
                     ├── TurnStatusLine ← turn-order coop only
                     ├── OpponentStrip ←  compete only: each rival's Found, or "out"
                     ├── InfoActionsRow ← one row, every action, in the menu's order
@@ -380,9 +400,22 @@ then `PlayArea` in the eight sections.
 ```
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
-the ending, pause, chat — and unmounts this whole surface on pause. The state
-line at the top of the info column ("2/4 categories found · 1/4 mistakes") is a
-paragraph of `InfoCol`'s own, not a component.
+the ending, pause, chat — and unmounts this whole surface on pause. `StateLine`
+draws "2/4 categories found · 1/4 mistakes" from `gd.stateLineData` inside the
+info column's state paragraph.
+
+**`gd`, the game data.** `useGame` hands the surface one object, `gd`: the
+`game_data` blob the page was handed (`GGameDataRaw`), with its links turned
+into players (`turns.holder`, `ending.by`, `ending.winner`, each log row's
+`by`), each row's wire word read once (`outcome`, `matched`), the setup rows
+built, and the seat rule applied — in compete, mid-race, a rival's rows leave
+the log and their `board` is null. It is a pure function of the blob and who I
+am; no reads, no subscription. Every fact about a seat is on the player
+(`gd.me.onTurn`, `p.nMatchedCats`, `gd.me.board.tilesLeft`), and a component
+asks a player, never the table. Beside `gd` the hook hands back the `picks`,
+the one live state this game keeps (the Broadcast room above). **Every type
+this game exports is in `types.ts`**, wearing the `G` that says it is the
+game's and not the shell's (docs/code-conventions.md → A game's types).
 
 What is connections' own:
 
@@ -413,8 +446,8 @@ What is connections' own:
 - **The event log** is two rows per guess (the verdict and who, then the four
   tiles), and a correct row names its category from the board, so an
   opponent's rows name theirs too. The picker's compete options mean
-  something only because RLS opens at terminal; an opponent's log during
-  play says *Hidden until game ends*. A `#N` replays that turn on the board
+  something only because the seat rule opens once the game ends; an
+  opponent's log during play says *Hidden until game ends*. A `#N` replays that turn on the board
   (`lib/history.ts`): the bands matched strictly before it, this turn's four
   tiles lit by what it was, addressed by the row's id so a filter cannot move
   it, and folding the rows of whoever wrote it.
@@ -441,13 +474,14 @@ fixture puzzle whose date and source id are alien to the real archive:
 
 | file | pins |
 |---|---|
-| `create_game_test` | both modes' gates (players, the timer, a bad or missing puzzle), the board shape, the title, the statuses written at create |
+| `create_game_test` | both modes' gates (players, the timer, a bad or missing puzzle), the board shape, the title, the summary's team seeded at create |
 | `gameplay_test` | `submit_guess` in coop: the payload faults, the two verdicts that cost a mistake, the band, the two races (a matched rank, a repeated set), the two endings, every `ok` carrying no outcome, and a guess into a deleted game answered as the shared race |
-| `compete_test` | the compete delta: per-player mistakes and bands, first to four ends it with the finder alone ranked, a racer out on mistakes and the collective loss with the last one out as who ended it, an out racer's guess is a race, timeout, and the RLS that scopes rows to the caller |
+| `compete_test` | the compete delta: per-player mistakes and bands, first to four ends it with the finder alone ranked, a racer out on mistakes and the collective loss with the last one out as who ended it, an out racer's guess is a race, timeout, and every club member reading every row — the seat rule is the hook's |
 | `concede_test` | a conceder counts as out; the last one out ends the race, everyone conceding as `conceded`; the builder runs after an ending concession |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, a fresh guess advances, a race does not |
 | `stop_game_test` · `replay_test` · `rls_test` | the neutral Stop, the stopper recorded as who ended it; Restart un-matches by deleting the log; an outsider sees nothing and can change nothing |
-| `statuses_test` | the exact key set of every status at the start, mid-game and at the end in both modes; the team's numbers on the summary; a rebuild drops a stale key and leaves `status_changed_at` alone |
+| `game_data_test` | the whole `game_data` of a fresh game; the log, each player's own counts, the team's summed, and each seat's board mid-game in both modes; the winner, the summary and `shell_data` at the end; a Restart empties it all; `_rebuild_data_cols_for_all` rewrites every game without re-dating it |
+| `rebuild_data_cols_test` | only a call that says so moves `status_changed_at`; a rebuild assigns the whole column and drops a stale key; the statuses keep their column defaults |
 | `next_puzzle_test` | the queue is per player and across clubs; a spent archive and an empty date are not-oks naming `puzzle_id`; the override filters nothing |
 
 Vitest, beside the code:
@@ -459,13 +493,13 @@ Vitest, beside the code:
 | `lib/history.test` · `lib/localOrder.test` | the strictly-before boundary and the lit tiles; a shuffle keeps every tile |
 | `lib/picks.test` | the click rule on the union of everyone's picks, and a reducer whose no-op returns the same map |
 | `lib/setup.test` · `lib/setupRows.test` | the two keys the default leaves out; the setup rows' order, and a puzzle date that names the same day in every timezone |
-| `hooks/useGame.test` | `gd` from the two reads and the page's values; a failed read kept apart from an absent game; coop's one stable picks room per game, rebuilt on `gameId` and never on a session refresh, and compete joining none |
+| `hooks/useGame.test` | `gd` from the blob — the links turned into players, each row read once, the setup rows, the counts and the board; the seat rule: a rival's rows and board withheld mid-race, opened at the end, nothing withheld in coop; a null blob throws; coop's one stable picks room per game, rebuilt on `gameId` and never on a session refresh, and compete joining none |
 | `hooks/useActionsAndMenu.test` | the menu's rows in the action row's order; the reveal's faces before and after the end, and a solver's shown unasked; the hint list's toggle, gone once I can no longer submit |
 | `hooks/useHistoryView.test` | live until a turn opens; the board rebuilt at that turn from its author's rows; the actor named only for an opponent's board |
 | `hooks/useSubmitGuess.test` | nothing short of four; a set already tried refused locally; the verdict worked out and sent up with its rank; the in-flight dim; a not-ok leaves the picks |
-| `hooks/useVerdictMark.test` | the fill my answer raises leaves with its pill; a teammate's wrong guess takes the mark, their correct one ends it; my own row ends nothing |
+| `hooks/useVerdictMark.test` · `hooks/useMarkForeignGuesses.test` | a mark with a message leaves with its pill, one without stays, a new one replaces the last; a teammate's wrong guess marks their four with no message, their correct one clears, my own row does nothing |
 | `hooks/useTileShuffle.test` | the board's order until the first shuffle; the same tiles rearranged, and kept in place when a band takes four away; hidden where the board cannot be shuffled |
-| `components/PlayArea.test` | a failed load is not a missing game; Concede vs Stop per mode; the ended board, and Reveal / Hide; the celebration, mine only; the board-scope marks; whose pick is ringed; the in-flight dim, the verdict fill and the three ways a mark ends; attention on a band; every key, and the action row per asker |
+| `components/PlayArea.test` | the surface, built from the blob a test's facts would produce (`lib/gameData.fixture.ts`): Concede vs Stop per mode; the ended board, and Reveal / Hide; the celebration, mine only; the board-scope marks; whose pick is ringed; the in-flight dim, the verdict fill and the three ways a mark ends; attention on a band; every key, and the action row per asker |
 | `components/SetupForm.test` · `manifest.test` | the puzzle line and the date override; the setup passes through with `puzzle_id` absent unless typed |
 | `pdf/model.test` | A–D, whose bands print on whose track, and the log line |
 

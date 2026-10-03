@@ -24,7 +24,8 @@ export type { FeedbackSlot, SlotName } from './feedbackSlotStore'
  *
  * On unmount every pending timer is cleared and the slot is unregistered
  * from the console's registry. To draw it, `<FeedbackPill slot={…} />`; to
- * read what it draws, `useTopFeedbackMessage(slot)`.
+ * read what it draws, `useWatchAndGetTopFeedbackMsg(slot)`; to re-render
+ * when it changes and nothing more, `useWatchFeedbackSlot(slot)`.
  */
 export function useFeedbackSlot(name: SlotName): FeedbackSlot {
   const [slot] = useState(() => createFeedbackSlot(name))
@@ -38,7 +39,22 @@ export function useFeedbackSlot(name: SlotName): FeedbackSlot {
   return slot
 }
 
-/** The message a slot draws right now, or null — re-rendering the caller when it changes. */
-export function useTopFeedbackMessage(slot: FeedbackSlot): FeedbackMessage | null {
+/**
+ * Watch a slot and read its top message: the message it draws right now, or
+ * null, and a re-render of the caller whenever that changes. The pill and
+ * the columns that swap a row for the pill read it; for the value alone,
+ * with no re-render, `slot.getTop()`.
+ */
+export function useWatchAndGetTopFeedbackMsg(slot: FeedbackSlot): FeedbackMessage | null {
   return useSyncExternalStore(slot.subscribe, slot.getTop)
+}
+
+/**
+ * Watch a slot without reading it: the caller re-renders whenever the slot's
+ * top message changes, and decides for itself what to look at
+ * (`slot.peek()`, usually). For a hook that keys something on a slot entry
+ * being present.
+ */
+export function useWatchFeedbackSlot(slot: FeedbackSlot): void {
+  useSyncExternalStore(slot.subscribe, slot.getTop)
 }

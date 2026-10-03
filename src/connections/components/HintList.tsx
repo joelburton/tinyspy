@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { Board, CategoryRank } from '../lib/board'
+import type { GCatRank, GCategory } from '../types'
 import { RANK_TOKEN } from '../lib/rankColors'
 import styles from './HintList.module.css'
 
 type Props = {
-  // The 4 categories from the active game's board.
-  categories: Board['categories']
+  // The puzzle's four categories.
+  cats: GCategory[]
   // Whether the list is showing — the Hints button toggles this in the info column.
   open: boolean
 }
@@ -22,18 +22,18 @@ type Props = {
  * hints are their own. The revealed set is this component's own and the list
  * stays mounted while closed, so a hint taken stays shown across toggles; a
  * Restart unmounts the whole play surface (common/game-page/doc.md), so the
- * same board hunted again starts with none spent.
+ * same puzzle hunted again starts with none spent.
  */
-export function HintList({ categories, open }: Props) {
-  const [revealed, setRevealed] = useState<ReadonlySet<CategoryRank>>(() => new Set())
-  const reveal = (rank: CategoryRank) =>
+export function HintList({ cats, open }: Props) {
+  const [revealed, setRevealed] = useState<ReadonlySet<GCatRank>>(() => new Set())
+  const reveal = (rank: GCatRank) =>
     setRevealed((prev) => (prev.has(rank) ? prev : new Set(prev).add(rank)))
 
   if (!open) return null
 
   // Sort the categories by rank so the rows appear in NYT's conventional
-  // yellow → purple order regardless of the board's storage order.
-  const rows = categories.slice().sort((a, b) => a.rank - b.rank)
+  // yellow → purple order regardless of the puzzle's storage order.
+  const rows = cats.slice().sort((a, b) => a.rank - b.rank)
 
   return (
     <div className={styles.panel}>

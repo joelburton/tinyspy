@@ -4,7 +4,7 @@ import { cls } from '@/common/utils/cls'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
-import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
+import { useWatchAndGetTopFeedbackMsg } from '@/common/feedback/useFeedbackSlot'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -73,7 +73,7 @@ export function BoardCol({
 
   const isPhone = useIsPhone()
   const buttonShow = isPhone ? 'icon' : 'both'
-  const isLocalFeedbackShown = useTopFeedbackMessage(localFeedbackSlot) !== null
+  const isLocalFeedbackShown = useWatchAndGetTopFeedbackMsg(localFeedbackSlot) !== null
 
   return (
     <div className={shared.boardCol}>

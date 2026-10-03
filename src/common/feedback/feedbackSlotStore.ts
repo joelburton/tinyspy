@@ -73,6 +73,8 @@ export function createFeedbackSlot(name: SlotName): FeedbackSlot {
   const timers = new Map<string, ReturnType<typeof setTimeout>>()
   const listeners = new Set<() => void>()
 
+  /** Recompute the top message and, only if it changed, tell every
+   *  subscriber. Every write ends with this. */
   function emit(): void {
     const next = byRankThenNewest(entries)[0]?.message ?? null
     // `useSyncExternalStore` needs a stable snapshot when nothing changed.
@@ -81,6 +83,8 @@ export function createFeedbackSlot(name: SlotName): FeedbackSlot {
     for (const l of listeners) l()
   }
 
+  /** Remove one entry and its timer, without telling anyone: the caller
+   *  emits. */
   function drop(id: string): void {
     const t = timers.get(id)
     if (t !== undefined) {
@@ -90,6 +94,8 @@ export function createFeedbackSlot(name: SlotName): FeedbackSlot {
     entries = entries.filter((entry) => entry.id !== id)
   }
 
+  /** Add a message and hand back its id, for a later `retract`. A message
+   *  that leaves by timer starts its clock here. */
   function show(message: FeedbackMessage): string {
     const id = `${name}-${++seq}`
     entries = [...entries, { id, message }]
@@ -100,12 +106,16 @@ export function createFeedbackSlot(name: SlotName): FeedbackSlot {
     return id
   }
 
+  /** Remove the message with this id, wherever it sits. No-op if it is
+   *  already gone, so a timer and a caller can both retract. */
   function retract(id: string): void {
     if (!entries.some((entry) => entry.id === id)) return
     drop(id)
     emit()
   }
 
+  /** Remove the top message, but only if it leaves this way: `dismiss` and
+   *  `close` differ only in the word they pass. */
   function removeTopIf(leavesBy: FeedbackMessage['leavesBy']): void {
     const first = byRankThenNewest(entries)[0]
     if (first === undefined || first.message.leavesBy !== leavesBy) return

@@ -5,13 +5,12 @@ import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/Inf
 import { ActionButton } from '@/common/actions/ActionButton'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import type { GameData } from '../hooks/useGame'
-import type { HistoryView } from '../hooks/useHistoryView'
-import type { ConnectionsActions } from '../hooks/useActionsAndMenu'
 import { GameEventLog } from './GameEventLog'
 import { HintList } from './HintList'
+import { StateLine } from './StateLine'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
+import type { GActions, GGameData, GHistoryView } from '../types'
 
 /**
  * connections' info column — near-zero state, an arrangement of the shared scaffold
@@ -32,13 +31,13 @@ export function InfoCol({
   historyView,
   hintsOpen,
 }: {
-  gd: GameData
+  gd: GGameData
   myId: string
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others play on — for the action row's line; null while I play.
   endingMessage: TerminalMessage | null
-  actions: ConnectionsActions
-  historyView: HistoryView
+  actions: GActions
+  historyView: GHistoryView
   // Is the inline hint list unfolded? The Hints action toggles this.
   hintsOpen: boolean
 }) {
@@ -55,38 +54,29 @@ export function InfoCol({
         {/* State — categories found + mistakes, as text; the marks are the
             board column's, on the commit row. */}
         <p className={shared.infoState}>
-          <strong>
-            {gd.readout.foundCount}/{gd.readout.requiredCategoriesCount}
-          </strong>{' '}
-          categories found ·{' '}
-          <strong>
-            {gd.readout.mistakeCount}/{gd.readout.maxMistakes}
-          </strong>{' '}
-          mistakes
+          <StateLine data={gd.stateLineData} />
         </p>
         {/* Whose-turn line — only for a turn-order game. A separate line below
             the state readout; never replaces it. */}
-        {gd.turns.isTurnBased && (
+        {gd.turns !== null && (
           <TurnStatusLine
-            turnHolderId={gd.turns.turnHolderId}
-            players={gd.players}
-            myId={myId}
-            isTerminal={gd.isGameEnded}
+            turnHolder={gd.turns.holder}
+            isMyTurn={gd.me.onTurn}
+            isGameEnded={gd.ended}
           />
         )}
 
         {/* Opponent strip (compete) — the race comparison: each player's categories
-            FOUND (public via players.found_categories_count). */}
-        {gd.isCompete && (
+            matched. */}
+        {gd.compete && (
           <OpponentStrip
             players={gd.players}
             myId={myId}
             metricLabel="Found"
-            // A racer who conceded reads 'out' (their found-count is frozen
-            // and no longer part of the race); everyone else shows their live
-            // categories-found.
+            // A racer who conceded reads 'out' (their count is frozen and no
+            // longer part of the race); everyone else shows their live count.
             metricFor={(p) =>
-              p.playerEnding?.reason === 'conceded' ? 'out' : p.foundCategoriesCount
+              p.ending?.reason === 'conceded' ? 'out' : p.nMatchedCats
             }
           />
         )}
@@ -97,42 +87,27 @@ export function InfoCol({
             disagree with what the menu shows. The game menu lists the same
             actions in this same order (docs/playarea.md). */}
         <InfoActionsRow message={actionRowMessage}>
-          {/* Hints toggles the inline HintList below; aria-pressed says whether
-              it is unfolded. */}
           <ActionButton action={actions.actHint} show="icon" aria-pressed={hintsOpen} />
-          {/* Everything right of here is about the END of the game rather than
-              about playing it. Both sides are pressable mid-game, so the bar is
-              what says where the meaning changes; it hides itself when nothing
-              is left on its left. */}
           <span className={shared.actionsDivider} />
           <ActionButton action={actions.actReveal} show="icon" />
-          {/* Both say `hidden` to a button until the game is over, while their
-              menu rows and keys stay live all game — the row's few slots belong
-              to playing, and moving on is a thing you go looking for. */}
           <ActionButton action={actions.actRestart} show="icon" />
           <ActionButton action={actions.actNewGame} show="icon" />
-          {/* Compete's Concede and coop's Stop are distinct acts, and each hides
-              itself in the mode that isn't its own. */}
           <ActionButton action={actions.actConcede} show="icon" />
           <ActionButton action={actions.actStopGame} show="icon" />
-          {/* Leaving, last. Filled once the game has ended, outline while it
-              runs: `weight` is the placement's to choose rather than the
-              action's, which is why it is a condition here (docs/ui.md → What
-              a `<button>` is). */}
           <ActionButton
             action={actions.actBackToClub}
             show="icon"
-            weight={gd.isGameEnded ? 'primary' : 'secondary'}
+            weight={gd.ended ? 'primary' : 'secondary'}
           />
         </InfoActionsRow>
         {/* The per-player hint reveals — unfolds right under the action row when
             Hints is on; stays mounted (so revealed tiles persist across toggles),
             and folds with the Hints button once you can no longer submit. */}
-        <HintList categories={gd.puzzle.board.categories} open={hintsOpen && gd.standing.isStillPlaying} />
+        <HintList cats={gd.puzzle.cats} open={hintsOpen && gd.me.stillPlaying} />
 
         {/* Help — shown only while you are in the game (never silently swaps);
             the eliminated state is carried loudly by the action row above. */}
-        {gd.standing.isStillPlaying && (
+        {gd.me.stillPlaying && (
           <p className={shared.infoHelp}>Pick 4 tiles that share a category, then Submit.</p>
         )}
 
@@ -142,15 +117,16 @@ export function InfoCol({
       </div>
 
       {/* Event log. Coop shows the whole shared game; compete gets the shared
-          "whose guesses?" picker — an opponent's rows are RLS-hidden during play
-          and open at the end, so the picker is how you compare lines afterwards. */}
+          "whose guesses?" picker — an opponent's rows are withheld during play
+          (`useGame`'s seat rule) and open at the end, so the picker is how you
+          compare lines afterwards. */}
       <GameEventLog
         guesses={gd.events}
-        categories={gd.puzzle.board.categories}
+        cats={gd.puzzle.cats}
         players={gd.players}
         myId={myId}
         mode={gd.mode}
-        isTerminal={gd.isGameEnded}
+        isGameEnded={gd.ended}
         historyId={historyView.viewedEventId}
         onShowHistory={historyView.show}
       />

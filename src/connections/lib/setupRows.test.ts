@@ -3,7 +3,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Member } from '@/common/members/member'
 import { makeSetupRows } from './setupRows'
-import type { ConnectionsSetup } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * Tests for connections' setup rows — the one array the info column and the
@@ -16,7 +16,7 @@ import type { ConnectionsSetup } from './setup'
  * in no test at all. That is what this file is for.
  */
 
-const SETUP: ConnectionsSetup = { timer: { kind: 'none' }, coop_style: 'free-for-all' }
+const SETUP: GSetup = { timer: { kind: 'none' }, coop_style: 'free-for-all' }
 
 const PLAYERS: Member[] = [
   { id: 'u1', username: 'ada', color: 'blue' },

@@ -13,7 +13,7 @@ import {
 import { drawInTracks, type Track } from '@/common/pdf/columns'
 import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
 import { cellAt } from '@/common/board-cursor/boardPosition'
-import type { CategoryRank } from '../lib/board'
+import type { GCatRank } from '../types'
 import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
 
 /**
@@ -41,7 +41,7 @@ import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
  * vanish — pale yellow especially. These are the same four hues taken darker
  * so the border actually reads as a line, in the same rank order.
  */
-const BORDER_RGB: Record<CategoryRank, [number, number, number]> = {
+const BORDER_RGB: Record<GCatRank, [number, number, number]> = {
   0: [181, 150, 20], // yellow
   1: [104, 133, 47], // green
   2: [82, 108, 173], // blue
@@ -117,7 +117,7 @@ function drawBoard(doc: jsPDF, t: PrintTrack, x: number, y: number, w: number): 
     drawBand(doc, b, x, y, w, s)
     y += s.bandH + BAND_GAP
   })
-  if (t.remainingTiles.length) y = drawTiles(doc, t.remainingTiles, x, y, w, s)
+  if (t.tilesLeft.length) y = drawTiles(doc, t.tilesLeft, x, y, w, s)
   return y
 }
 

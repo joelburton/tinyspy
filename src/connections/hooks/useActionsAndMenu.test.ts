@@ -13,41 +13,26 @@ import { actionFixture } from '@/common/actions/action.fixture'
 import { getActions } from '@/common/actions/actionsStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { menuRow, type MenuApi, type MenuSection } from '@/common/menu/menuModel'
-import type { GameData } from './useGame'
+import { ELIMINATED, makeGameDataRaw, type GameDataFacts } from '../lib/gameData.fixture'
+import { makeGameData } from './useGame'
+import type { GGameData } from '../types'
 import { useActionsAndMenu } from './useActionsAndMenu'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
-/** A game in play, with where I stand overridable; only what the actions
- *  read. */
-function gdWith(
-  over: { isGameEnded?: boolean; isStillPlaying?: boolean; hasSolved?: boolean } = {},
-): GameData {
-  const isGameEnded = over.isGameEnded ?? false
-  return {
-    gameId: 'g1',
-    mode: 'coop',
-    isCompete: false,
-    title: 'A game',
-    setup: { timer: { kind: 'none' } },
-    isGameEnded,
-    events: [],
-    players: [],
-    playersById: {},
-    puzzle: { board: { categories: [], tileOrder: [] }, remainingTiles: [] },
-    matchedCategories: [],
-    readout: { maxMistakes: 4, mistakeCount: 0 },
-    setupRows: [],
-    standing: {
-      isLocallyTerminal: false,
-      isStillPlaying: over.isStillPlaying ?? !isGameEnded,
-      hasSolved: over.hasSolved ?? false,
-    },
-  } as unknown as GameData
+/** A coop game in play unless the facts say otherwise. */
+function gdWith(facts: GameDataFacts = {}): GGameData {
+  return makeGameData(makeGameDataRaw(facts), 'u1')
+}
+
+/** A game that has ended as a Stop. */
+const STOPPED: GameDataFacts = {
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  outcome: 'neutral',
 }
 
 /** Mount the hook with a fake menu, and hand back what it published. */
-function setup(gd: GameData) {
+function setup(gd: GGameData) {
   const setGameSections = vi.fn()
   const menu = {
     setGameSections,
@@ -60,10 +45,8 @@ function setup(gd: GameData) {
       gd,
       myId: 'u1',
       localFeedbackSlot: createFeedbackSlot('local'),
-      clubHandle: 'club',
       goToFollowUpGame: vi.fn(),
       menu,
-      brand: 'WordKnit',
     }),
   )
   const sections = (setGameSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
@@ -105,13 +88,17 @@ describe('useActionsAndMenu — the reveal', () => {
   })
 
   it('is a live button once the game has ended, with the solution still hidden', () => {
-    const { result } = setup(gdWith({ isGameEnded: true }))
+    const { result } = setup(gdWith(STOPPED))
     expect(stateOf('act-reveal', 'button').state).toBe('active')
     expect(result.current.solutionShown).toBe(false)
   })
 
   it('shows the solution unasked to a solver, whose board already carries every band', () => {
-    const { result } = setup(gdWith({ isGameEnded: true, hasSolved: true }))
+    const { result } = setup(gdWith({
+      ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+      outcome: 'won',
+      players: [{ id: 'u1', username: 'me', color: 'red', solvedAt: '2026-06-15T00:05:00Z', outcome: 'won' }],
+    }))
     expect(result.current.solutionShown).toBe(true)
   })
 })
@@ -127,7 +114,13 @@ describe('useActionsAndMenu — the hints', () => {
   })
 
   it('is gone, row and button, once I can no longer submit', () => {
-    setup(gdWith({ isStillPlaying: false }))
+    setup(gdWith({
+      mode: 'compete',
+      players: [
+        { id: 'u1', username: 'me', color: 'red', ...ELIMINATED },
+        { id: 'u2', username: 'moth', color: 'blue' },
+      ],
+    }))
     expect(stateOf('act-hint', 'button').state).toBe('hidden')
     expect(stateOf('act-hint', 'menu').state).toBe('hidden')
   })

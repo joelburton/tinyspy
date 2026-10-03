@@ -3,7 +3,7 @@
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
+import { useWatchAndGetTopFeedbackMsg } from '@/common/feedback/useFeedbackSlot'
 import type { Coord } from '../lib/board'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import { WordEntryRow } from '@/common/word-entry/WordEntryRow'
@@ -95,7 +95,7 @@ export function BoardCol({
   actHint,
 }: Props) {
   const isViewingHistory = historyLabel !== null
-  const top = useTopFeedbackMessage(localFeedbackSlot)
+  const top = useWatchAndGetTopFeedbackMsg(localFeedbackSlot)
   return (
     <div className={shared.boardCol}>
       <Board

@@ -5,8 +5,8 @@ import {
   applyPickEvent,
   eventForClick,
   unionTiles,
-  type PickMap,
 } from './picks'
+import type { GPickMap } from '../types'
 
 /**
  * Tests for the shared-picks rules — the coop click rule (doc.md → Coop)
@@ -23,7 +23,7 @@ const ME = 'u-me'
 const PEER = 'u-peer'
 
 /** Shorthand for a map literal, since every case here starts from one. */
-function held(...entries: [string, string[]][]): PickMap {
+function held(...entries: [string, string[]][]): GPickMap {
   return new Map(entries)
 }
 

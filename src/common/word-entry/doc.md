@@ -49,7 +49,7 @@ another branch inside `<WordEntryArea>`.
 <WordEntryArea>                    a typing game's whole below-board control
 ├── useCaptureKeys            keyboard/ — A–Z, ⌫, ↵, and the any-key dismiss
 ├── useArrowHistory           ↑ recall · ↓ clear
-├── useTopFeedbackMessage     feedback/ — is anything on the slot?
+├── useWatchAndGetTopFeedbackMsg     feedback/ — is anything on the slot?
 └── either
     ├── <div .localFeedback>  game-page/playArea.module.css — a message is on top
     │     └── <FeedbackPill>  feedback/

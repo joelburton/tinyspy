@@ -1,10 +1,8 @@
 // cs-blessed-connections
 
 import { cls } from '@/common/utils/cls'
-import type { Category } from '../lib/board'
-import type { MatchedCategory } from '../hooks/useGame'
-import type { HistoryView } from '../hooks/useHistoryView'
-import type { BoardVerdict } from '../hooks/useVerdictMark'
+import type { GCategory, GHistoryView, GMatchedCat } from '../types'
+import type { GBoardVerdict } from '../types'
 import { useTileShuffle } from '../hooks/useTileShuffle'
 import type { Mark } from '@/common/board-marks/useMark'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
@@ -12,13 +10,14 @@ import type { Cell } from '@/common/board-cursor/stepCell'
 import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
+import { CATEGORY_COUNT } from '../lib/board'
 import { makeBoardShape } from '../lib/boardShape'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import shared from '@/common/game-page/playArea.module.css'
 import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
-import history from '@/common/event-log/historyViewer.module.css'
+import historyStyles from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
 const COLS = 4
@@ -26,20 +25,20 @@ const COLS = 4
 
 type Props = {
   // Categories resolved by a correct guess.
-  matched: MatchedCategory[]
+  matchedCats: GMatchedCat[]
   // Categories revealed at game-end (loss / elimination); `[]` during play.
-  unmatched: Category[]
-  // The loose tiles, in the board's order; the display order is this
+  unmatchedCats: GCategory[]
+  // The loose tiles, in the puzzle's order; the display order is this
   // component's (`useTileShuffle`). They stay on a FROZEN board (that's the
   // record of how far the players got) and step aside only for the reveal,
   // whose bands take their grid rows.
-  remainingTiles: string[]
+  tilesLeft: string[]
   // Is the ANSWER on the board right now (the reveal)?
   solutionShown: boolean
   // A past turn's board while one is open: its bands and tiles replace the
   // live ones, its four guessed tiles are lit, and the board is read-only
   // under the shared viewer frame.
-  historyView: HistoryView
+  historyView: GHistoryView
   // The board responds to me (the page's `isBoardInteractive`). False — or a
   // past turn on screen — marks the tiles `disabled`: the shared `.tile`
   // chrome then drops the pointer cursor and the hover lift, so a record
@@ -61,7 +60,7 @@ type Props = {
   // first, then the head-shake over the fill the flash hands back. Its `nonce`
   // is what those tiles are keyed on, so submitting the same four twice
   // shakes twice.
-  verdict: Mark<BoardVerdict> | null
+  verdict: Mark<GBoardVerdict> | null
   // user_id → resolved color var, for the identity ring.
   colorByUserId: ReadonlyMap<string, string>
   // The players are working one board together (`gd.isSharedBoard`).
@@ -105,9 +104,9 @@ type Props = {
  * which reports a pick up through `onPick` as a click does.
  */
 export function Board({
-  matched,
-  unmatched,
-  remainingTiles,
+  matchedCats,
+  unmatchedCats,
+  tilesLeft,
   solutionShown,
   historyView,
   isBoardInteractive,
@@ -129,7 +128,7 @@ export function Board({
 
   // ─── The display order, and the cursor over it ─────────
   const shuffle = useTileShuffle({
-    remainingTiles,
+    tilesLeft,
     canShuffle: isStillPlaying && !historyView.isViewing,
   })
   // The cursor sits on a CELL, so a shuffle moves the tiles under it, and a
@@ -152,15 +151,11 @@ export function Board({
   // ─── The rows ──────────────────────────────────────────
   // What is on the grid: a past turn's bands and tiles while one is open;
   // else the solved bands in rank order, the revealed ones, and the loose
-  // tiles — and how many rows that makes, which is what sizes it.
-  const shownMatched = historyView.matched ?? matched
-  const shownUnmatched = historyView.isViewing ? [] : unmatched
-  const tiles = historyView.tiles ?? (solutionShown ? [] : shuffle.tiles)
+  // tiles.
+  const shownMatched = historyView.board?.matchedCats ?? matchedCats
+  const shownUnmatchedCats = historyView.isViewing ? [] : unmatchedCats
+  const tiles = historyView.board?.tilesLeft ?? (solutionShown ? [] : shuffle.tiles)
   const sortedMatched = [...shownMatched].sort((a, b) => a.rank - b.rank)
-  // Total rows = one per band + the tile rows. Always 4 for a standard
-  // 16-tile / 4×4 board, but computed so the cap math stays correct if a
-  // category ever isn't exactly four tiles.
-  const rows = sortedMatched.length + shownUnmatched.length + Math.ceil(tiles.length / COLS)
 
   // ─── Attention ─────────────────────────────────────────
   // ATTENTION — a category resolved while you were reading another corner: a
@@ -169,8 +164,8 @@ export function Board({
   //
   // Gated on the CAUSE (the guess log) rather than on the board differing:
   // a restart re-deals with every band gone and the reveal swaps four bands
-  // in at once, and neither is a move. `matched` is projected from the log in
-  // useGame, so a band cannot arrive a render before its row. See
+  // in at once, and neither is a move. `matchedCats` is written from the log
+  // by the builder, so a band cannot arrive a render before its row. See
   // `useMoveAttention`.
   const rankKey = sortedMatched.map((m) => m.rank).join(',')
   const flashingRanks = useMoveAttention({
@@ -191,7 +186,7 @@ export function Board({
   // One long tile: a solved or revealed category drawn across the row.
   // A solved band and a revealed one look the same; `revealed` only namespaces
   // the React keys across the two lists.
-  const band = (c: Category | MatchedCategory, revealed: boolean) => (
+  const band = (c: GCategory | GMatchedCat, revealed: boolean) => (
     <div
       key={`${revealed ? 'u' : 'm'}-${c.rank}`}
       // A band IS a tile — one long one — so it wears the shared `.tileFace`
@@ -220,10 +215,11 @@ export function Board({
 
   // ─── Render ────────────────────────────────────────────
   return (
-    // --rows (bands + tile-rows) drives the grid's 1fr row tracks AND the
-    // board's max-height (both computed in CSS from the --max-tile-* caps — see
-    // Board.module.css). A band is one of these rows spanning all columns.
-    <div className={cls(shared.boardSeal, styles.board)} style={{ ['--rows' as string]: rows }} data-board>
+    // --rows drives the grid's 1fr row tracks AND the board's max-height (both
+    // computed in CSS from the --max-tile-* caps — see Board.module.css). A
+    // band takes the row its four tiles left, so the grid is always one row
+    // per category.
+    <div className={cls(shared.boardSeal, styles.board)} style={{ ['--rows' as string]: CATEGORY_COUNT }} data-board>
       {/* Four shared marks ride on the grid box, and all four are about the whole
           surface rather than any piece of it: the blue frame of "you're viewing a
           past turn" (which also makes the board click-through, so a click
@@ -234,14 +230,14 @@ export function Board({
         className={cls(
           shared.hugRectWidth,
           styles.grid,
-          historyView.isViewing && history.historyFrame,
+          historyView.isViewing && historyStyles.historyFrame,
           isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
           makeEndingFrameClasses(endingOutcome, historyView.isViewing),
         )}
       >
         {sortedMatched.map((mc) => band(mc, false))}
-        {shownUnmatched.map((c) => band(c, true))}
+        {shownUnmatchedCats.map((c) => band(c, true))}
         {tiles.map((tile, i) => {
           const ownerId = ownerByTile.get(tile)
           // WHOSE pick this is, on a board where that is worth saying: everyone's

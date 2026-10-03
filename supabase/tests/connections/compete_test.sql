@@ -24,6 +24,8 @@
 --     game ends resource_exhausted/'mistakes', lost
 --   - eliminated-player submit answered as a race
 --   - submit_timeout's compete ending (timeout, lost, nobody ranked)
+--   - every club member reads every row: what a racer may see of a rival
+--     mid-race is the hook's rule (src/connections/hooks/useGame.ts)
 --
 -- See create_game_test.sql for the pgTAP / auth-simulation primer.
 
@@ -139,19 +141,19 @@ select connections.submit_guess(
 
 reset role;
 select is(
-  (select mistake_count from connections.players
+  (select n_mistakes from connections.players
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
   1,
-  'submit_guess (compete): caller mistake_count increments to 1'
+  'submit_guess (compete): caller n_mistakes increments to 1'
 );
 
 select is(
-  (select mistake_count from connections.players
+  (select n_mistakes from connections.players
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
   0,
-  'submit_guess (compete): opponent mistake_count untouched'
+  'submit_guess (compete): opponent n_mistakes untouched'
 );
 
 -- ============================================================
@@ -180,7 +182,7 @@ reset role;
 select is(
   (select count(*) from connections.events
     where game_id = (select id from g)
-      and matched_category_rank = 1
+      and matched_cat_rank = 1
       and result = 'correct'),
   2::bigint,
   'submit_guess (compete): same rank can be matched once per player'
@@ -208,7 +210,7 @@ select is(
   (select count(*) from connections.events
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid
-      and matched_category_rank = 1
+      and matched_cat_rank = 1
       and result = 'correct'),
   1::bigint,
   'submit_guess (compete): still exactly one correct row per (player, rank)'
@@ -293,7 +295,7 @@ select connections.submit_guess((select id from g2),
 
 reset role;
 select is(
-  (select mistake_count from connections.players
+  (select n_mistakes from connections.players
     where game_id = (select id from g2)
       and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
   4,
@@ -426,10 +428,10 @@ select pg_temp.envelope_is(
 -- ============================================================
 -- (17)–(20) RLS sanity for compete
 -- ============================================================
--- A new fresh game so opponents have guesses to read or not.
--- Ada and bea each submit one guess; cade's compete RLS should
--- show cade nothing beyond cade's own guesses (cade has none, so
--- count = 0).
+-- A new fresh game with guesses in it. Every club member reads every row:
+-- what a racer may see of a rival mid-race is the hook's rule
+-- (src/connections/hooks/useGame.ts), applied to `game_data`, not a policy's.
+-- Ada and bea each submit one guess; cade, who has none, reads both.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g4 on commit drop as
@@ -448,29 +450,27 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select connections.submit_guess((select id from g4),
   array['ALPHA','BANANA','CASTLE','DELTA']::text[], 'wrong', null);
 
--- Ada sees her own guess only.
+-- Ada reads both rows, her rival's included: the seat rule is the hook's.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from connections.events where game_id = (select id from g4)),
-  1::bigint,
-  'rls (compete): ada sees only her own guess (1 row)'
+  2::bigint,
+  'rls (compete): a racer reads every row mid-race — the seat rule is the hook''s'
 );
 
--- Cade sees nothing (made no guesses).
+-- Cade, who made no guess, reads both too.
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
   (select count(*) from connections.events where game_id = (select id from g4)),
-  0::bigint,
-  'rls (compete): cade with no guesses sees zero rows'
+  2::bigint,
+  'rls (compete): a club member with no guesses reads every row'
 );
 
--- All three players see all three connections.players rows
--- (mistake-counts are public to the club — that's how the
--- compete strip works).
+-- All three players see all three connections.players rows.
 select is(
   (select count(*) from connections.players where game_id = (select id from g4)),
   3::bigint,
-  'rls (compete): every club member sees every player''s mistake row'
+  'rls (compete): every club member sees every player''s row'
 );
 
 -- Dee (non-member) sees zero of anything.

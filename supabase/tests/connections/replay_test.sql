@@ -40,7 +40,7 @@ select (connections.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- One correct category, then four wrong → out of mistakes → coop loss. That
--- leaves five guess rows, a matched category, mistake_count 4 and an ended
+-- leaves five guess rows, a matched category, four mistakes and an ended
 -- game: the full state a replay must undo.
 select connections.submit_guess((select id from g1),
   array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'correct', 0);
@@ -79,7 +79,7 @@ select is((select count(*) from connections.events where game_id = (select id fr
   0::bigint, 'coop: replay → the guess log is cleared (so no category is matched)');
 select is(
   (select count(*) from connections.players
-    where game_id = (select id from g1) and mistake_count = 0 and found_categories_count = 0),
+    where game_id = (select id from g1) and n_mistakes = 0 and n_matched_cats = 0),
   2::bigint, 'coop: replay → both players back to zero mistakes + zero matches');
 select is(
   (select count(*) from common.game_players

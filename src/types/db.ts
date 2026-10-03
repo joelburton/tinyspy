@@ -1178,7 +1178,7 @@ export type Database = {
           game_id: string
           id: number
           kind: string
-          matched_category_rank: number | null
+          matched_cat_rank: number | null
           result: string
           tiles: string[]
           took_turn: boolean
@@ -1189,7 +1189,7 @@ export type Database = {
           game_id: string
           id?: never
           kind: string
-          matched_category_rank?: number | null
+          matched_cat_rank?: number | null
           result: string
           tiles: string[]
           took_turn?: boolean
@@ -1200,7 +1200,7 @@ export type Database = {
           game_id?: string
           id?: never
           kind?: string
-          matched_category_rank?: number | null
+          matched_cat_rank?: number | null
           result?: string
           tiles?: string[]
           took_turn?: boolean
@@ -1247,21 +1247,21 @@ export type Database = {
       }
       players: {
         Row: {
-          found_categories_count: number
+          n_matched_cats: number
           game_id: string
-          mistake_count: number
+          n_mistakes: number
           user_id: string
         }
         Insert: {
-          found_categories_count?: number
+          n_matched_cats?: number
           game_id: string
-          mistake_count?: number
+          n_mistakes?: number
           user_id: string
         }
         Update: {
-          found_categories_count?: number
+          n_matched_cats?: number
           game_id?: string
-          mistake_count?: number
+          n_mistakes?: number
           user_id?: string
         }
         Relationships: [

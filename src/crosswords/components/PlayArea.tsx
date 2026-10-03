@@ -10,7 +10,7 @@ import { useBindAction, type ActionState } from '@/common/actions/useBindAction'
 import { useAction } from '@/common/actions/actionsStore'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
-import { useFeedbackSlot, useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
+import { useFeedbackSlot, useWatchAndGetTopFeedbackMsg } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
@@ -112,7 +112,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // below-board slot here: a keystroke's or a cheat's not-ok, the pencil
   // acknowledgment, and the two standing conditions further down.
   const localFeedbackSlot = useFeedbackSlot('local')
-  const topFeedbackMsg = useTopFeedbackMessage(localFeedbackSlot)
+  const topFeedbackMsg = useWatchAndGetTopFeedbackMsg(localFeedbackSlot)
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team completes the grid — the last correct cell

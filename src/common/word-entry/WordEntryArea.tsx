@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
-import { useTopFeedbackMessage } from '../feedback/useFeedbackSlot'
+import { useWatchAndGetTopFeedbackMsg } from '../feedback/useFeedbackSlot'
 import { FeedbackPill } from '../feedback/FeedbackPill'
 import { useCaptureKeys } from '../keyboard/useCaptureKeys'
 import { useArrowHistory } from './useArrowHistory'
@@ -116,7 +116,7 @@ export function WordEntryArea({
     pendingText: value, onChange, onSubmit, disabled, busy, submitDisabled, onAnyKey, charFor,
   })
   useArrowHistory({ recall, onChange, disabled, busy, hasHistory })
-  const top = useTopFeedbackMessage(localFeedbackSlot)
+  const top = useWatchAndGetTopFeedbackMsg(localFeedbackSlot)
 
   // Whatever is on top takes the controls' place. No second gate on the
   // value: a gesture-cleared result gives way to typing because the

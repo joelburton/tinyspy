@@ -2,104 +2,69 @@
 
 /**
  * connections' PlayArea, mounted for real — the board, the strip, the event
- * log and the action row — with `useGame`'s reads and `db` mocked, so no
- * client or network is needed. `gd` itself is built by the real
- * `makeGameData`, so a player's counts, ending and outcome are set on the
- * players in `makeCtx`, where the page puts them, and the matched bands come
- * from the guess log as they do in the app.
+ * log and the action row — with the picks and `db` mocked, so no client or
+ * network is needed. `gd` itself is built by the real `makeGameData` from the
+ * `game_data` blob a test's facts would produce (`lib/gameData.fixture.ts`),
+ * so a player's counts, ending and outcome are set as facts and the matched
+ * bands come from the guess log as they do in the app.
  *
- * What is pinned here is the surface's behavior: the loader's failed-read
- * gate, Concede vs Stop per mode, the ended board and the reveal, the
- * celebration, the board-scope marks, whose pick is ringed, the marks on a
- * guess and the three ways one ends, attention on a band, every key and
- * action-row face per asker, and the keyboard's selection cursor. Game logic
- * is pgTAP's (the RPCs) and `evaluate.test.ts`'s.
+ * What is pinned here is the surface's behavior: Concede vs Stop per mode,
+ * the ended board and the reveal, the celebration, the board-scope marks,
+ * whose pick is ringed, the marks on a guess and the three ways one ends,
+ * attention on a band, every key and action-row face per asker, and the
+ * keyboard's selection cursor. Game logic is pgTAP's (the RPCs) and
+ * `evaluate.test.ts`'s.
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import {
-  makePlayAreaLoaderProps,
-  type PlayAreaFacts,
-} from '@/common/game-page/playAreaLoaderProps.fixture'
-import { CONCEDED, gp } from '@/common/members/gamePlayer.fixture'
-import type { GamePlayer, GamePlayerRow } from '@/common/members/member'
-import type { GameEnding } from '@/common/terminal/gameEnding'
-import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
-import type { Board } from '../lib/board'
-import type { PickMap } from '../lib/picks'
-import type { ConnectionsPlayerStatus } from '../lib/statuses'
+import {
+  CONCEDED,
+  ELIMINATED,
+  PUZZLE,
+  guess,
+  makeConnectionsCtx,
+  type GameDataFacts,
+  type PlayerFacts,
+} from '../lib/gameData.fixture'
+import { unionTiles } from '../lib/picks'
+import type { GEventRaw, GGameDataRaw, GPickMap } from '../types'
 import { db } from '../db'
 import { PlayAreaLoader } from './PlayArea'
 
-/** One guess as the read hands it, before `useGame` derives its readings. */
-type EventRead = {
-  id: number
-  user_id: string
-  tiles: string[]
-  result: 'correct' | 'oneAway' | 'wrong'
-  matched_category_rank: number | null
-  created_at: string
-}
-
-/** What connections' own reads bring back, plus the picks the hook keeps. */
-type Loaded = {
-  board: Board
-  puzzleDate: string | null
-  events: EventRead[]
-}
-
-// A mutable holder the mocked useGame builds `gd` from each render — set per
-// test before render(). The rest of `gd` is the context's, built by the real
-// `makeGameData` from the real players and setup rows. `picks` stands in for
-// the hook's state, and the two senders are spies. `vi.hoisted` runs before
-// the (also-hoisted) `vi.mock` factory, so the factory can close over it
-// safely.
+// A mutable holder: the log a test's game carries, and the picks standing in
+// for the hook's Broadcast state, with the two senders as spies. Set per test
+// before render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock`
+// factory, so the factory can close over it safely.
 const h = vi.hoisted(() => ({
-  loaded: null as unknown as Loaded,
-  picks: new Map() as PickMap,
+  events: [] as GEventRaw[],
+  picks: new Map() as GPickMap,
   toggleTile: vi.fn(),
   sendClear: vi.fn(),
-  // The loader's two other gates: a read that failed, and a game that is gone.
-  failure: null as NotOkEnvelope | null,
-  absent: false,
 }))
+// `gd` is the real one, from the blob; only the picks are the test's.
 vi.mock('../hooks/useGame', async (importOriginal) => {
   const real = await importOriginal<typeof import('../hooks/useGame')>()
-  const { makeSetupRows } = await import('../lib/setupRows')
-  const { eventToOutcome } = await import('../lib/answer')
   return {
     ...real,
     useGame: (ctx: PlayAreaLoaderProps) => {
-      if (h.failure || h.absent) return { gd: null, loading: false, failure: h.failure }
-      const playersById = real.makePlayersById(ctx.cg.players)
-      const setupRows = makeSetupRows(
-        real.readSetup(ctx), ctx.cg.mode, ctx.cg.players, h.loaded.puzzleDate,
-      )
-      // The readings `useGame` derives at its inbound seam.
-      const events = h.loaded.events.map((e) => ({
-        ...e,
-        outcome: eventToOutcome({ result: e.result }),
-        matched: e.result === 'correct',
-      }))
+      const ownerByTile = new Map<string, string>()
+      for (const [userId, tiles] of h.picks) for (const tile of tiles) ownerByTile.set(tile, userId)
       return {
-        gd: real.makeGameData({
-          ctx,
-          rows: { ...h.loaded, events },
-          playersById,
-          setupRows,
-          picks: h.picks,
+        gd: real.makeGameData(ctx.gameData as GGameDataRaw, ctx.auth.user.id),
+        picks: {
+          byUser: h.picks,
+          union: unionTiles(h.picks),
+          ownerByTile,
           toggleTile: h.toggleTile,
           sendClear: h.sendClear,
-        }),
-        loading: false,
-        failure: null,
+        },
       }
     },
   }
@@ -124,116 +89,71 @@ const okEnvelope = {
   error: null,
 }
 
-/** A minimal 4-category / 16-tile board — enough for the FE to render the grid
- *  and the info-column setup disclosure without crashing. */
-const board: Board = {
-  categories: [
-    { rank: 0, name: 'RED', tiles: ['a', 'b', 'c', 'd'] },
-    { rank: 1, name: 'GREEN', tiles: ['e', 'f', 'g', 'h'] },
-    { rank: 2, name: 'BLUE', tiles: ['i', 'j', 'k', 'l'] },
-    { rank: 3, name: 'PURPLE', tiles: ['m', 'n', 'o', 'p'] },
-  ],
-  tileOrder: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'],
-}
+/** The fixture puzzle's RED category, rank 0. */
+const RED = PUZZLE.cats[0]!
 
-/** The reads for the fixture board; the log is empty unless a test hands it
- *  rows. Resets the picks and the loader's other gates too, so each test
- *  starts from a live, empty board. */
-function loaded(events: EventRead[] = [], picks: PickMap = new Map()): void {
-  h.loaded = { board, puzzleDate: '2026-06-15', events }
+/** The log of the game the next `makeCtx` builds; empty unless a test hands it
+ *  rows. Resets the picks too, so each test starts from a live, empty board. */
+function loaded(events: GEventRaw[] = [], picks: GPickMap = new Map()): void {
+  h.events = events
   h.picks = picks
-  h.failure = null
-  h.absent = false
 }
 
-let nextEventId = 1
-/** A guess row for the log. A correct one names its category's rank. */
-function guessRow(
-  userId: string,
-  tiles: string[],
-  result: EventRead['result'],
-  rank: number | null = null,
-): EventRead {
-  return {
-    id: nextEventId++, user_id: userId, tiles, result,
-    matched_category_rank: rank, created_at: '2026-06-15T00:01:00Z',
-  }
-}
 /** The RED band, matched by `userId`. */
-const matchRed = (userId = 'u1') => guessRow(userId, ['a', 'b', 'c', 'd'], 'correct', 0)
+const matchRed = (userId = 'u1') => guess(userId, RED.tiles, 'correct', 0)
 /** A plain wrong guess (2 from RED + 1 GREEN + 1 BLUE) by `userId`. */
-const wrongGuess = (userId = 'u1') => guessRow(userId, ['a', 'b', 'e', 'i'], 'wrong')
+const wrongGuess = (userId = 'u1') => guess(userId, ['a', 'b', 'e', 'i'], 'wrong')
 /** Every band, matched by `userId`. */
 const allFour = (userId = 'u1') =>
-  board.categories.map((c) => guessRow(userId, c.tiles, 'correct', c.rank))
+  PUZZLE.cats.map((c) => guess(userId, c.tiles, 'correct', c.rank))
 /** Four picks on the board, one short of nothing: a full guess built and unsent. */
-const FOUR_PICKED: PickMap = new Map([['u1', ['a', 'b', 'e', 'i']]])
+const FOUR_PICKED: GPickMap = new Map([['u1', ['a', 'b', 'e', 'i']]])
 
-/** A player's `player_status` as the builder writes it. */
-function playerStatus(
-  found: number,
-  mistakes: number,
-  ended: ConnectionsPlayerStatus['player_ended_reason'] = null,
-): ConnectionsPlayerStatus {
-  return { found_categories_count: found, mistake_count: mistakes, player_ended_reason: ended }
-}
+/** A player, playing. */
+const player = (id: string, username: string, color: string): PlayerFacts => ({ id, username, color })
+/** A conceder. */
+const conceded = (id: string, name: string, color: string): PlayerFacts =>
+  ({ ...player(id, name, color), ...CONCEDED })
 
-/** A player's `player_status`, kept in step with the player's own ending
- *  column. A fixture player with no status of its own gets this, so a test
- *  sets the ending once. */
-function withPlayerStatus<P extends GamePlayerRow>(p: P): P {
-  if (Object.keys(p.player_status).length > 0) return p
-  return { ...p, player_status: playerStatus(0, 0, p.player_ended_reason) }
-}
-
-/** The ending columns of a racer out on their fourth mistake, for `gp`'s
- *  `over` — `lost` at once, as `submit_guess` writes it. */
-const ELIMINATED = {
-  player_ended_at: '2026-06-15T00:02:00Z',
-  player_ended_reason: 'resource_exhausted',
-  player_ended_reason_detail: 'mistakes',
+/** The endings the tests reach for, each with the game's outcome beside it. */
+type Ending = Pick<GameDataFacts, 'ending' | 'outcome'>
+const COOP_LOST: Ending = {
+  ending: { reason: 'resource_exhausted', detail: 'mistakes', by: 'u1', winner: null },
   outcome: 'lost',
-  player_status: playerStatus(0, 4, 'resource_exhausted'),
-} as const satisfies Partial<GamePlayer>
-
-/** A conceder, with the status the builder writes beside the columns. */
-const conceded = (id: string, name: string, color: string) =>
-  gp(id, name, color, { ...CONCEDED, player_status: playerStatus(0, 0, 'conceded') })
-
-/** The endings the tests reach for. */
-const COOP_LOST: GameEnding = {
-  reason: 'resource_exhausted', reasonDetail: 'mistakes', outcome: 'lost', endedByUserId: 'u1',
 }
-const SOMEONE_WON: GameEnding = {
-  reason: 'reached_goal', reasonDetail: 'solved', outcome: 'won', endedByUserId: 'u1',
+const SOMEONE_WON: Ending = {
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+  outcome: 'won',
 }
-const ALL_CONCEDED: GameEnding = {
-  reason: 'conceded', reasonDetail: 'conceded', outcome: 'lost', endedByUserId: 'u2',
+const ALL_CONCEDED: Ending = {
+  ending: { reason: 'conceded', detail: 'conceded', by: 'u2', winner: null },
+  outcome: 'lost',
 }
 
-/** A play surface's context: a connections game, solo coop by default, with
- *  where I stand derived from the facts (`makePlayAreaLoaderProps`). */
-function makeCtx(over: PlayAreaFacts = {}): PlayAreaLoaderProps {
-  return makePlayAreaLoaderProps({
-    brand: 'WordKnit',
-    setup: { puzzle_id: 'p1', timer: { kind: 'none' } },
-    gameStatus: { required_categories_count: 4, max_mistakes: 4 },
-    ...over,
-    players: (over.players ?? [gp('u1', 'me', 'red')]).map(withPlayerStatus),
+/** The facts a test sets up: the game's, with its ending as one value. */
+type CtxFacts = Omit<GameDataFacts, 'events' | 'ending' | 'outcome'> & { gameEnding?: Ending }
+
+/** A play surface's context: a connections game, solo coop by default, on the
+ *  log `loaded()` set, with where I stand derived from the facts. */
+function makeCtx(over: CtxFacts = {}): PlayAreaLoaderProps {
+  const { gameEnding, ...facts } = over
+  return makeConnectionsCtx({
+    events: h.events,
+    ...gameEnding,
+    ...facts,
   })
 }
 
 /** Me, out of the race on my fourth mistake while the others play on. */
-const meOut = gp('u1', 'me', 'red', ELIMINATED)
+const meOut: PlayerFacts = { ...player('u1', 'me', 'red'), ...ELIMINATED }
 
-const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+const twoMembers = [player('u1', 'me', 'red'), player('u2', 'moth', 'blue')]
 
-/** A coop team that lost on the mistakes: the shared count spent, the game
- *  ended. */
-const coopLost = (players: GamePlayer[] = [gp('u1', 'me', 'red')]) =>
+/** A coop team that lost on the mistakes: the game ended, every player lost. */
+const coopLost = (players: PlayerFacts[] = [player('u1', 'me', 'red')]) =>
   makeCtx({
     gameEnding: COOP_LOST,
-    players: players.map((p) => ({ ...p, outcome: 'lost', player_status: playerStatus(0, 4) })),
+    players: players.map((p) => ({ ...p, outcome: 'lost' })),
   })
 
 /** `okEnvelope` carrying a different `data` — for the calls whose ok is not a
@@ -329,7 +249,7 @@ describe('connections PlayArea — concede', () => {
       <PlayAreaLoader
         {...makeCtx({
           mode: 'compete',
-          players: [gp('u1', 'me', 'red'), conceded('u2', 'moth', 'blue')],
+          players: [player('u1', 'me', 'red'), conceded('u2', 'moth', 'blue')],
         })}
       />,
     )
@@ -341,7 +261,7 @@ describe('connections PlayArea — concede', () => {
       <PlayAreaLoader
         {...makeCtx({
           mode: 'compete',
-          players: [conceded('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
+          players: [conceded('u1', 'me', 'red'), player('u2', 'moth', 'blue')],
         })}
       />,
     )
@@ -446,10 +366,10 @@ describe('connections PlayArea — the celebration', () => {
   // words alone match twice — the <h2> is the modal's alone.
   const confetti = () => screen.queryByRole('heading', { name: /You win!/ })
   /** The same player, ranked first — `won`, as `_end_game` writes it. */
-  const won = (p: GamePlayer): GamePlayer => ({ ...p, outcome: 'won', final_ranking: 1 })
+  const won = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'won', finalRanking: 1 })
   /** The same player, beaten — `lost`, as `_end_game` writes it. */
-  const lost = (p: GamePlayer): GamePlayer => ({ ...p, outcome: 'lost' })
-  const [me, moth] = twoMembers as [GamePlayer, GamePlayer]
+  const lost = (p: PlayerFacts): PlayerFacts => ({ ...p, outcome: 'lost' })
+  const [me, moth] = twoMembers as [PlayerFacts, PlayerFacts]
 
   it('pops for the racer the server ranked first', () => {
     loaded([matchRed()])
@@ -544,7 +464,7 @@ describe('connections PlayArea — the board-scope marks', () => {
 
   it('dims the board while a teammate holds the move, and flashes when it arrives', () => {
     const { container, rerender } = render(
-      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', players: twoMembers })} />,
     )
     expect(gridIn(container).className).toMatch(/dimNotYourTurn/)
     // An EVENT, so never on mount: opening a game on your own turn is not the
@@ -552,7 +472,7 @@ describe('connections PlayArea — the board-scope marks', () => {
     expect(gridIn(container).className).not.toMatch(/yourTurnFlash/)
 
     rerender(
-      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u1', players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u1', players: twoMembers })} />,
     )
 
     expect(gridIn(container).className).toMatch(/yourTurnFlash/)
@@ -562,7 +482,7 @@ describe('connections PlayArea — the board-scope marks', () => {
   it('a waiting player’s tiles are inert, not just unresponsive', async () => {
     const user = userEvent.setup()
     render(
-      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', players: twoMembers })} />,
     )
 
     const tile = document.querySelector('[data-tile="a"]') as HTMLButtonElement
@@ -599,7 +519,7 @@ describe('connections PlayArea — picks, identity, and the guess in flight', ()
     // picked border. Same in compete, where the picks never leave this
     // client however many are racing.
     const cases: Array<['coop' | 'compete', typeof twoMembers]> = [
-      ['coop', [gp('u1', 'me', 'red')]],
+      ['coop', [player('u1', 'me', 'red')]],
       ['compete', twoMembers],
     ]
     for (const [mode, players] of cases) {
@@ -720,7 +640,7 @@ describe('connections PlayArea — picks, identity, and the guess in flight', ()
       // action being answered — clearing on it would take the answer off before
       // it had been read.
       loaded([wrongGuess('u1')], FOUR_PICKED)
-      rerender(<PlayAreaLoader {...ctx} />)
+      rerender(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
 
       expect(tile('a').className).toMatch(/verdictFill/)
     })
@@ -735,8 +655,8 @@ describe('connections PlayArea — picks, identity, and the guess in flight', ()
       // moth guesses wrongly on four DIFFERENT tiles. The board has moved on, so
       // my mark goes — and theirs takes its place, because "no" is news to the
       // whole table.
-      loaded([guessRow('u2', ['c', 'd', 'f', 'g'], 'wrong')], FOUR_PICKED)
-      rerender(<PlayAreaLoader {...ctx} />)
+      loaded([guess('u2', ['c', 'd', 'f', 'g'], 'wrong')], FOUR_PICKED)
+      rerender(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
 
       expect(tile('a').className).not.toMatch(/verdictFill/)
       expect(tile('c').className).toMatch(/verdictFill/)
@@ -747,7 +667,7 @@ describe('connections PlayArea — picks, identity, and the guess in flight', ()
       const { rerender } = await guessWrongly(ctx)
 
       loaded([matchRed('u2')], FOUR_PICKED)
-      rerender(<PlayAreaLoader {...ctx} />)
+      rerender(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
 
       expect(tile('e').className).not.toMatch(/verdictFill/)
     })
@@ -762,40 +682,6 @@ describe('connections PlayArea — picks, identity, and the guess in flight', ()
 
     expect(tile('a').className).not.toMatch(/picked/)
     expect(tile('b').className).not.toMatch(/peerPick/)
-  })
-})
-
-describe('connections PlayArea — a failed load is not a missing game', () => {
-  it('shows the server\'s own sentence, not "Game not found."', () => {
-    // `failure` is separate from an absent game: an outage must not read as
-    // a missing game. The fault modal has already been dismissed by the time
-    // this renders — this IS what they are left looking at.
-    // The hook holds the ENVELOPE, exactly as `readRows` built it — no second
-    // shape in between. `detail` is where the failed call's name rides.
-    h.failure = {
-      type: 'not-ok', data: null, outcome: null, severity: 'fault',
-      message: 'The read failed.', field: null, meta: null, dbcode: '42501',
-      detail: 'GET /rest/v1/games',
-    }
-    render(<PlayAreaLoader {...makeCtx()} />)
-
-    expect(screen.getByText('The read failed.')).toBeInTheDocument()
-    expect(screen.queryByText('Game not found.')).not.toBeInTheDocument()
-    // The diagnostics line rides with it, because a player quoting the sentence
-    // back is not enough to find the call that failed.
-    expect(screen.getByText(/GET \/rest\/v1\/games/)).toBeInTheDocument()
-  })
-
-  it('shows the Not-Found card when the reads WORKED and there is no game', () => {
-    // The shared `<NoSuchGamePage>`: the card says nothing diagnostic, and the
-    // console line names the read that came back empty.
-    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
-    h.absent = true
-    render(<PlayAreaLoader {...makeCtx()} />)
-
-    expect(screen.getByText('Not Found')).toBeInTheDocument()
-    expect(screen.queryByText('Game not found.')).not.toBeInTheDocument()
-    expect(debug).toHaveBeenCalledWith('[ui] no-such-game | rows=0 table=connections.games game=g1')
   })
 })
 
@@ -815,7 +701,7 @@ describe('connections PlayArea — attention', () => {
     // moth's correct guess arrives: four tiles collapse into a band and
     // everything below reflows, in whatever corner they were working.
     loaded([matchRed('u2')])
-    rerender(<PlayAreaLoader {...ctx} />)
+    rerender(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
 
     expect(bandFor('RED').className).toMatch(/attentionFlash/)
   })
@@ -825,7 +711,7 @@ describe('connections PlayArea — attention', () => {
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
 
     loaded([matchRed('u1')])
-    rerender(<PlayAreaLoader {...ctx} />)
+    rerender(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
 
     // I chose the four tiles, but the band arrives at the TOP of the board while
     // I am reading the tiles — so the flash says "your four went here".
@@ -885,7 +771,7 @@ describe('connections PlayArea — the keys', () => {
 
   it("both leave on a teammate's turn — hidden, not merely inert", () => {
     loaded([], FOUR_PICKED)
-    render(<WithKeys {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />)
+    render(<WithKeys {...makeCtx({ turnHolderId: 'u2', players: twoMembers })} />)
     expect(getAction('act-submit').describe('button').state).toBe('hidden')
     expect(getAction('act-clear-picks').describe('button').state).toBe('hidden')
   })
@@ -1135,7 +1021,7 @@ describe('connections PlayArea — the selection cursor', () => {
     expect(ringed()).toEqual(['n'])
 
     loaded([matchRed()])
-    rerender(<WithKeys {...ctx} />)
+    rerender(<WithKeys {...makeCtx()} />)
     // e..p now fill three rows, and row 3 is gone: the ring is on row 2,
     // same column.
     expect(ringed()).toEqual(['n'])
@@ -1147,7 +1033,7 @@ describe('connections PlayArea — the selection cursor', () => {
 
   it('a board I cannot play takes no ring and no keys', async () => {
     // A teammate holds the move.
-    render(<WithKeys {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />)
+    render(<WithKeys {...makeCtx({ turnHolderId: 'u2', players: twoMembers })} />)
     await key('ArrowRight')
     await key(' ')
     expect(ringed()).toEqual([])

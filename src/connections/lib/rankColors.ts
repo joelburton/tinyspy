@@ -1,6 +1,6 @@
 // cs-blessed-connections
 
-import type { CategoryRank } from './board'
+import type { GCatRank } from '../types'
 
 /**
  * Per-rank fill tokens: NYT's yellow / green / blue / purple for rank 0..3
@@ -8,7 +8,7 @@ import type { CategoryRank } from './board'
  * `--connections-rank-N`; this map only spells the lookup, for a band's face
  * on the board and a hint row's swatch.
  */
-export const RANK_TOKEN: Record<CategoryRank, string> = {
+export const RANK_TOKEN: Record<GCatRank, string> = {
   0: 'var(--connections-rank-0)',
   1: 'var(--connections-rank-1)',
   2: 'var(--connections-rank-2)',

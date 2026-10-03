@@ -15,17 +15,16 @@ import { describe, expect, it } from 'vitest'
 import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
 import { buildGameEndingMessage } from './gameEndingMessage'
 
-/** The message for one ending, with the winner Bea and the elimination flag
- *  off unless a case sets it. */
+/** The message for one ending, with the elimination flag off unless a case
+ *  sets it. */
 function build(
   mode: 'coop' | 'compete',
   outcome: EndOutcome,
   reason: GameEndedReason,
-  playerOutcome: EndOutcome | null,
+  playerOutcome: EndOutcome,
   flags: { iWasEliminated?: boolean } = {},
 ) {
   return buildGameEndingMessage({
-    winnerName: 'Bea',
     iWasEliminated: false,
     ...flags,
     mode,
@@ -76,12 +75,6 @@ describe('compete', () => {
       .toEqual(message('Beaten to the punch', 'Opponent won', 'lost'))
   })
 
-  // SPECTATING: a guess until the design settles what a watcher sees.
-  it('a watcher is told who won, in the game\'s own outcome', () => {
-    expect(build('compete', 'won', 'reached_goal', null))
-      .toEqual(message('Bea won', 'Bea won', 'won'))
-  })
-
   // Three ways a race ends with nobody winning, and the server has told us
   // which: the mistakes, the clock, or a table that all walked away. A mixed
   // table is `resource_exhausted` — `connections.concede`'s own call, since
@@ -111,7 +104,7 @@ describe('every ending, in both modes, for every player outcome', () => {
   // The table is the point: one place to see that no cell pairs a winning
   // text with a losing outcome. The endings are the ones the RPCs write
   // (doc.md → How a game ends); a player outcome is the one `_end_game`
-  // writes for that ending, or null for a watcher.
+  // writes for that ending.
   const ENDINGS: Array<[EndOutcome, GameEndedReason]> = [
     ['won', 'reached_goal'],
     ['lost', 'resource_exhausted'],
@@ -127,10 +120,10 @@ describe('every ending, in both modes, for every player outcome', () => {
         if (mode === 'coop' && reason === 'conceded') continue
         // A coop win ranks the whole team first; a compete win has one winner
         // and the rest lost or ranked below.
-        const playerOutcomes: Array<EndOutcome | null> =
-          outcome !== 'won' ? [outcome, null]
-          : mode === 'coop' ? ['won', null]
-          : ['won', 'lost', 'near', null]
+        const playerOutcomes: EndOutcome[] =
+          outcome !== 'won' ? [outcome]
+          : mode === 'coop' ? ['won']
+          : ['won', 'lost', 'near']
         for (const playerOutcome of playerOutcomes) {
           const msg = build(mode, outcome, reason, playerOutcome)
           // A win text leads with the outcome word ("Won: the race", "You win!").
@@ -145,6 +138,6 @@ describe('every ending, in both modes, for every player outcome', () => {
 
   it('throws for an ending connections never writes', () => {
     expect(() => build('coop', 'lost', 'conceded', 'lost')).toThrow(/BUG/)
-    expect(() => build('coop', 'won', 'reached_goal', null)).not.toThrow()
+    expect(() => build('coop', 'won', 'reached_goal', 'won')).not.toThrow()
   })
 })

@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useEffect } from 'react'
 import { act, renderHook } from '@testing-library/react'
-import { useFeedbackSlot, useTopFeedbackMessage } from './useFeedbackSlot'
+import { useFeedbackSlot, useWatchAndGetTopFeedbackMsg } from './useFeedbackSlot'
 import { FeedbackMessage } from './FeedbackMessage'
 import { peekFeedbackSlotForTest } from './feedbackSlotRegistry'
 
@@ -45,11 +45,11 @@ describe('useFeedbackSlot', () => {
   })
 })
 
-describe('useTopFeedbackMessage', () => {
+describe('useWatchAndGetTopFeedbackMsg', () => {
   it('re-renders with the top message as it changes', () => {
     const { result } = renderHook(() => {
       const slot = useFeedbackSlot('local')
-      return { slot, top: useTopFeedbackMessage(slot) }
+      return { slot, top: useWatchAndGetTopFeedbackMsg(slot) }
     })
     expect(result.current.top).toBeNull()
     act(() => void result.current.slot.show(FeedbackMessage.result('lost', 'Not a word')))
@@ -62,7 +62,7 @@ describe('useTopFeedbackMessage', () => {
     const { result, rerender } = renderHook(
       ({ waiting }: { waiting: boolean }) => {
         const slot = useFeedbackSlot('local')
-        const top = useTopFeedbackMessage(slot)
+        const top = useWatchAndGetTopFeedbackMsg(slot)
         // The shape every converted game writes: an effect keyed on a
         // primitive, whose cleanup retracts.
         useEffect(

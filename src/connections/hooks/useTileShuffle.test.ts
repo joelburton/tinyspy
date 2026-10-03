@@ -17,7 +17,7 @@ afterEach(() => {
 
 describe('useTileShuffle', () => {
   it('shows the board\'s own order until the first shuffle', () => {
-    const { result } = renderHook(() => useTileShuffle({ remainingTiles: TILES, canShuffle: true }))
+    const { result } = renderHook(() => useTileShuffle({ tilesLeft: TILES, canShuffle: true }))
     expect(result.current.tiles).toEqual(TILES)
     expect(result.current.actShuffle.describe('button').state).toBe('active')
   })
@@ -26,9 +26,9 @@ describe('useTileShuffle', () => {
     // Fisher–Yates on a pinned 0 rotates the list: a fixed, different permutation.
     vi.spyOn(Math, 'random').mockReturnValue(0)
     const { result, rerender } = renderHook(
-      ({ remainingTiles }: { remainingTiles: string[] }) =>
-        useTileShuffle({ remainingTiles, canShuffle: true }),
-      { initialProps: { remainingTiles: TILES } },
+      ({ tilesLeft }: { tilesLeft: string[] }) =>
+        useTileShuffle({ tilesLeft, canShuffle: true }),
+      { initialProps: { tilesLeft: TILES } },
     )
     act(() => result.current.actShuffle.run())
     const shuffled = result.current.tiles
@@ -36,12 +36,12 @@ describe('useTileShuffle', () => {
     expect([...shuffled].sort()).toEqual([...TILES].sort())
 
     // The first category matched: its four leave, the others stay where they were.
-    rerender({ remainingTiles: ['e', 'f', 'g', 'h'] })
+    rerender({ tilesLeft: ['e', 'f', 'g', 'h'] })
     expect(result.current.tiles).toEqual(shuffled.filter((t) => 'efgh'.includes(t)))
   })
 
   it('hides the Shuffle where the board cannot be shuffled', () => {
-    const { result } = renderHook(() => useTileShuffle({ remainingTiles: TILES, canShuffle: false }))
+    const { result } = renderHook(() => useTileShuffle({ tilesLeft: TILES, canShuffle: false }))
     expect(result.current.actShuffle.describe('button').state).toBe('hidden')
     expect(result.current.actShuffle.describe('menu').state).toBe('hidden')
   })

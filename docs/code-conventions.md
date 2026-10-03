@@ -135,6 +135,17 @@ only `gd` goes into `gd` ([plans/team-facts.md](../plans/team-facts.md) → The
 naming rule for a loose copy). A row field is all lowercase (`team_score`); a
 path copy has a camelCase leaf.
 
+**A few words may be abbreviated, and a count may be `nFoo`.** `msg`, `err`,
+`cats`, `fn`, `btn`, `idx` read instantly to anyone, so new code may use them
+in a key, a local, a parameter, a file name or a name built on the idea
+(`GMatchedCat`, `matchedCatRank`, `getUnmatchedCats.ts`); the long form stays
+legal, and a file need not agree with itself (`FooMessage` beside `fooMsg` is
+one concept, not two). The type that IS the idea wears the full word
+(`GCategory`, as `Message` would). A count is `nFoo` — "the number of foos" —
+in place of `fooCount`, so `nMatchedCats` pairs with `maxMistakes` in half the
+width; its column is `n_foo`. Neither is a sweep: a game's keys flip when that
+game is next touched, never piecemeal within one game.
+
 **A DB-shaped type's name ends in `Row`** (`GameRow`, `PlayerRow`, and aliases
 of generated `Database[…]['Row']` types); a TS-native shape takes whatever names
 its role (`ClubListEntry`, `PlayAreaLoaderProps`, `GameManifest`). A snake_case type

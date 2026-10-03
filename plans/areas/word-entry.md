@@ -63,7 +63,7 @@ Four exports, and every word game's below-board row is made of them:
 <WordEntryArea>                    the typing games: psychicnum · spellingbee · boggle · wordwheel · letterboxed
 ├── useCaptureKeys            keyboard/ — A–Z, ⌫, ↵, the any-key dismiss (four bound actions)
 ├── useArrowHistory           ↑ recall · ↓ clear (two bound actions)
-├── useTopFeedbackMessage     feedback/ — is anything on the slot?
+├── useWatchAndGetTopFeedbackMsg     feedback/ — is anything on the slot?
 └── either
     ├── <div .localFeedback>  game-page/playArea.module.css — a message is on top
     │     └── <FeedbackPill>  feedback/

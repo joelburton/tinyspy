@@ -2,7 +2,7 @@
 
 import type { Member } from '@/common/members/member'
 import { makeCoopRows, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
-import type { ConnectionsSetup } from './setup'
+import type { GSetup } from '../types'
 
 /** Format a puzzle's NYT date (`YYYY-MM-DD`) for its setup row. Parsed as UTC so a
  *  calendar date never shifts by a local-tz offset. */
@@ -25,7 +25,7 @@ function formatPuzzleDate(d: string | null): string {
  * control for it.
  */
 export function makeSetupRows(
-  setup: ConnectionsSetup,
+  setup: GSetup,
   mode: 'coop' | 'compete',
   players: Member[],
   puzzleDate: string | null,

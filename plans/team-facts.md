@@ -118,7 +118,8 @@ summary_data:
 ```
 
 psychicnum's `team` is `{foundSecretsCount, guessesUsed}`; wordle's is
-`{guessesUsed}`. The next game's starts from these.
+`{guessesUsed}`; connections' is `{nMatchedCats, nMistakes}`. The next game's
+starts from these.
 
 ## What it touches
 
@@ -159,12 +160,15 @@ psychicnum's `team` is `{foundSecretsCount, guessesUsed}`; wordle's is
 - **Types and readers.** `types.ts`'s shape comments, `InfoCol`'s guesses line
   and per-player readout, `useGame.test.ts`.
 
-### connections, when its conversion opens
+### connections — done 2026-10-02, with its conversion
 
-It has wordle's shape today: a match is one player's and the team's matches
-are the sum, but the mistakes are shared and every row mirrors the count. Its
-conversion writes `team` from the start; whether a mistake becomes a
-per-player row fact (who made it) is decided when the area opens.
+A mistake is a per-player row fact: `submit_guess` writes the caller's row in
+both modes and coop's loss guard sums the rows, as wordle's does. The
+migration `20261002000002_connections_own_counts.sql` rewrote each coop row to
+the player's own misses off their events, with the same sum check, and
+renamed the three count columns to the blobs' names (`n_matched_cats`,
+`n_mistakes`, `matched_cat_rank`). `team` is `{nMatchedCats, nMistakes}` on
+both blobs; `gd.stateLineData` is `{nMatchedCats, nMistakes, maxMistakes}`.
 
 ### The rest
 

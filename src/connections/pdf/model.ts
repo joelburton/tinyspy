@@ -2,8 +2,7 @@
 
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
-import type { Category, CategoryRank } from '../lib/board'
-import type { EventRow, MatchedCategory } from '../hooks/useGame'
+import type { GCatRank, GCategory, GEvent, GMatchedCat } from '../types'
 import { memberById } from '@/common/members/memberList'
 
 /**
@@ -19,11 +18,11 @@ import { memberById } from '@/common/members/memberList'
  */
 
 /** rank → the printed letter. Rank 0..3 is NYT's difficulty order. */
-export const RANK_LETTER: Record<CategoryRank, string> = { 0: 'A', 1: 'B', 2: 'C', 3: 'D' }
+export const RANK_LETTER: Record<GCatRank, string> = { 0: 'A', 1: 'B', 2: 'C', 3: 'D' }
 
 /** One solved (or end-of-game revealed) category, as printed. */
 export type PrintBand = {
-  rank: CategoryRank
+  rank: GCatRank
   // A–D. The B&W-safe stand-in for the band color.
   letter: string
   name: string
@@ -36,15 +35,16 @@ export type PrintTrack = {
   // Bands to draw, in rank order.
   bands: PrintBand[]
   // Tiles not in any of THIS track's bands — `[]` once all four are shown.
-  remainingTiles: string[]
+  tilesLeft: string[]
   turns: TurnRow[]
   // Their own readout ("2/4 categories found · 3/4 mistakes").
   result: string
 }
 
 export type ConnectionsPrintModel = PrintHeader & {
-  // Coop is a single shared track; compete is one per player at terminal,
-  // or just yours during play (RLS hides rivals' guesses until then).
+  // Coop is a single shared track; compete is one per player once the game
+  // has ended, or just yours during play (a rival's guesses are withheld
+  // until then).
   tracks: PrintTrack[]
 }
 
@@ -53,16 +53,14 @@ export type ConnectionsPrintModel = PrintHeader & {
  * it, and a long category can still ellipsize its last tile — so the verdict
  * leads, where it always survives. A correct guess shows its band's letter.
  */
-function verdict(g: EventRow): string {
+function verdict(g: GEvent): string {
   if (g.matched) {
-    return g.matched_category_rank != null
-      ? RANK_LETTER[g.matched_category_rank as CategoryRank]
-      : 'match'
+    return g.matchedCatRank !== null ? RANK_LETTER[g.matchedCatRank] : 'match'
   }
   return g.outcome === 'near' ? '1 away' : 'miss'
 }
 
-function toBand(c: Category): PrintBand {
+function toBand(c: GCategory): PrintBand {
   return { rank: c.rank, letter: RANK_LETTER[c.rank], name: c.name, tiles: c.tiles }
 }
 
@@ -71,63 +69,64 @@ export function buildConnectionsPrintModel(o: {
   gameTitle: string
   date: string
   // All four categories (public in both modes).
-  categories: Category[]
+  cats: GCategory[]
   // The viewer's solved categories.
-  matched: MatchedCategory[]
+  matchedCats: GMatchedCat[]
   // Revealed at game-end; `[]` during play.
-  unmatched: Category[]
+  unmatchedCats: GCategory[]
   // Tiles still on the viewer's board, in display order.
-  remainingTiles: string[]
-  guesses: EventRow[]
+  tilesLeft: string[]
+  guesses: GEvent[]
   players: { id: string; username: string }[]
   myId: string
   mode: 'coop' | 'compete'
-  isTerminal: boolean
-  mistakeCount: number
-  mistakeBudget: number
+  isGameEnded: boolean
+  nMistakes: number
+  maxMistakes: number
   setupRows: SetupRow[]
 }): ConnectionsPrintModel {
   const nameOf = (userId: string) => memberById(o.players, userId)?.username ?? 'someone'
-  const total = o.categories.length
+  const total = o.cats.length
 
-  const turnsOf = (guesses: EventRow[], whoOf: (g: EventRow) => string): TurnRow[] =>
+  const turnsOf = (guesses: GEvent[], whoOf: (g: GEvent) => string): TurnRow[] =>
     guesses.map((g, i) => ({ seq: i + 1, who: whoOf(g), text: `${verdict(g)}: ${g.tiles.join(' · ')}` }))
 
   const resultOf = (found: number, mistakes: number) =>
-    `${found}/${total} categories found · ${mistakes}/${o.mistakeBudget} mistakes`
+    `${found}/${total} categories found · ${mistakes}/${o.maxMistakes} mistakes`
 
   // The viewer's own track. Solved and end-of-game-revealed bands print
   // IDENTICALLY — a category you worked out and one the game handed you look
   // the same, matching the screen. The leftover grid excludes banded tiles, so
   // a revealed category's words print once.
-  const viewerTrack = (who: string, guesses: EventRow[], whoOf: (g: EventRow) => string): PrintTrack => {
-    const bands = [...o.matched, ...o.unmatched].map(toBand).sort((a, b) => a.rank - b.rank)
+  const viewerTrack = (who: string, guesses: GEvent[], whoOf: (g: GEvent) => string): PrintTrack => {
+    const bands = [...o.matchedCats, ...o.unmatchedCats].map(toBand).sort((a, b) => a.rank - b.rank)
     const banded = new Set(bands.flatMap((b) => b.tiles))
     return {
       who,
       bands,
-      remainingTiles: o.remainingTiles.filter((t) => !banded.has(t)),
+      tilesLeft: o.tilesLeft.filter((t) => !banded.has(t)),
       turns: turnsOf(guesses, whoOf),
-      result: resultOf(o.matched.length, o.mistakeCount),
+      result: resultOf(o.matchedCats.length, o.nMistakes),
     }
   }
 
-  // A rival's track, reconstructed from their guesses (open at terminal):
-  // only the bands THEY earned; everything else stays the plain tile grid
-  // (in category order — their board's own shuffle isn't what the printout
-  // is about). The full answer already prints once, on the viewer's track.
+  // A rival's track, reconstructed from their guesses (open once the game has
+  // ended): only the bands THEY earned; everything else stays the plain tile
+  // grid (in category order — their board's own shuffle isn't what the
+  // printout is about). The full answer already prints once, on the viewer's
+  // track.
   const rivalTrack = (p: { id: string; username: string }): PrintTrack => {
-    const guesses = o.guesses.filter((g) => g.user_id === p.id)
+    const guesses = o.guesses.filter((g) => g.by.id === p.id)
     const solved = new Set(
       guesses
-        .filter((g) => g.matched && g.matched_category_rank != null)
-        .map((g) => g.matched_category_rank as CategoryRank),
+        .filter((g) => g.matched && g.matchedCatRank !== null)
+        .map((g) => g.matchedCatRank!),
     )
     const mistakes = guesses.filter((g) => !g.matched).length
     return {
       who: p.username,
-      bands: o.categories.filter((c) => solved.has(c.rank)).map(toBand),
-      remainingTiles: o.categories.filter((c) => !solved.has(c.rank)).flatMap((c) => c.tiles),
+      bands: o.cats.filter((c) => solved.has(c.rank)).map(toBand),
+      tilesLeft: o.cats.filter((c) => !solved.has(c.rank)).flatMap((c) => c.tiles),
       turns: turnsOf(guesses, () => p.username),
       result: resultOf(solved.size, mistakes),
     }
@@ -137,21 +136,21 @@ export function buildConnectionsPrintModel(o: {
   if (o.mode === 'coop') {
     // One shared board however many players are round it; the log names
     // whoever made each guess, in play order.
-    tracks = [viewerTrack('Team', o.guesses, (g) => nameOf(g.user_id))]
-  } else if (o.isTerminal) {
+    tracks = [viewerTrack('Team', o.guesses, (g) => nameOf(g.by.id))]
+  } else if (o.isGameEnded) {
     tracks = o.players.map((p) =>
       p.id === o.myId
         ? viewerTrack(
             `${p.username} (you)`,
-            o.guesses.filter((g) => g.user_id === o.myId),
+            o.guesses.filter((g) => g.by.id === o.myId),
             () => p.username,
           )
         : rivalTrack(p),
     )
   } else {
-    // Mid-game compete: RLS means the viewer holds nobody's guesses but their
-    // own, and empty rival tracks would read as "they haven't guessed".
-    tracks = [viewerTrack('You', o.guesses.filter((g) => g.user_id === o.myId), () => 'you')]
+    // Mid-game compete: the viewer holds nobody's guesses but their own, and
+    // empty rival tracks would read as "they haven't guessed".
+    tracks = [viewerTrack('You', o.guesses.filter((g) => g.by.id === o.myId), () => 'you')]
   }
 
   return {

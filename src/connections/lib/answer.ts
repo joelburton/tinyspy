@@ -12,7 +12,7 @@ import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
  * the verdict up (the FE-knows decision, doc.md → Intro). The column, the RPC's
  * `result` argument and this type are the same three facts.
  */
-export type GuessResult = 'correct' | 'oneAway' | 'wrong'
+export type GGuessResult = 'correct' | 'oneAway' | 'wrong'
 
 /**
  * Everything that can be SAID about a move in this game, as a closed set — and
@@ -66,7 +66,7 @@ export function answerMessage(answer: Answer): AnswerMessage {
 /** The column of a `connections.events` row that says what it WAS. Narrower
  *  than `EventRow` on purpose: nothing here may reach for an author, an id or
  *  the tiles, which belong to the surface drawing the row. */
-type LoggedGuess = { result: GuessResult }
+type LoggedGuess = { result: GGuessResult }
 
 /**
  * What COLOR a logged row is — for the event log, the history banner and the
@@ -88,6 +88,6 @@ export function peerAnswerMessage(row: LoggedGuess): AnswerMessage {
 }
 
 // The wire word as my own answer; the peer twin is the same name suffixed.
-function mine(result: GuessResult): 'correct' | 'one_away' | 'wrong' {
+function mine(result: GGuessResult): 'correct' | 'one_away' | 'wrong' {
   return result === 'oneAway' ? 'one_away' : result
 }

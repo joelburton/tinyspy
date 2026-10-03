@@ -6,9 +6,9 @@
 --
 -- Covers the FE-trusts-the-server-records contract:
 --   - payload rejections (wrong tile count, bad result enum,
---     bad matched_category_rank)
+--     bad matched rank)
 --   - phase rejections (unauth, non-member, finished game)
---   - wrong path: mistake_count++, the game goes on
+--   - wrong path: the caller's n_mistakes++, the game goes on
 --   - oneAway path: also counts as mistake
 --   - correct path: an events row with result='correct' lands
 --   - submit_guess's already-matched check makes a second
@@ -88,7 +88,7 @@ select pg_temp.envelope_is(
                            array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'correct', null),
   '{"type":"not-ok","severity":"fault","dbcode":"PN249",
     "message":"BUG: correct guess with no category"}'::jsonb,
-  'submit_guess: correct without matched_category_rank is rejected'
+  'submit_guess: correct without a matched rank is rejected'
 );
 
 -- ============================================================
@@ -122,12 +122,10 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  -- mistake_count moved to connections.players (per-player). Coop
-  -- updates every row in lock-step; reading max gives the
-  -- canonical shared value.
-  (select max(mistake_count) from connections.players where game_id = (select id from g)),
+  -- Each row is its player's own; coop's shared count is their sum.
+  (select sum(n_mistakes)::int from connections.players where game_id = (select id from g)),
   1,
-  'submit_guess: wrong guess increments mistake_count to 1'
+  'submit_guess: wrong guess takes the team''s mistakes to 1'
 );
 
 -- (7b) A repeat of the same wrong tile set (any order) is a race — nothing
@@ -156,7 +154,7 @@ select pg_temp.envelope_is(
 );
 reset role;
 select is(
-  (select max(mistake_count) from connections.players where game_id = (select id from g)),
+  (select sum(n_mistakes)::int from connections.players where game_id = (select id from g)),
   2,
   'submit_guess: the repeat cost nothing; only the one-away above added a mistake'
 );
@@ -191,7 +189,7 @@ select is(
   (select count(*) from connections.events
     where game_id = (select id from g)
       and result = 'correct'
-      and matched_category_rank = 0),
+      and matched_cat_rank = 0),
   1::bigint,
   'submit_guess: correct guess inserts one correct row at rank 0'
 );
@@ -227,7 +225,7 @@ select is(
   (select count(*) from connections.events
     where game_id = (select id from g)
       and result = 'correct'
-      and matched_category_rank = 0),
+      and matched_cat_rank = 0),
   1::bigint,
   'submit_guess: still exactly one correct row at rank 0 after the race'
 );
@@ -302,11 +300,11 @@ select connections.submit_guess(
 );
 
 reset role;
--- After 3 wrong, mistake_count = 3, and the game goes on.
+-- After 3 wrong, the team's mistakes are 3, and the game goes on.
 select is(
-  (select max(mistake_count) from connections.players where game_id = (select id from g2)),
+  (select sum(n_mistakes)::int from connections.players where game_id = (select id from g2)),
   3,
-  'submit_guess: 3 wrong guesses leaves mistake_count at 3'
+  'submit_guess: 3 wrong guesses leaves the team''s mistakes at 3'
 );
 select is(
   (select ended_at from common.games where id = (select id from g2)),
@@ -314,7 +312,7 @@ select is(
   'submit_guess: 3 wrong guesses leaves the game being played'
 );
 
--- The 4th wrong takes mistake_count to 4 and ends the game, lost.
+-- The 4th wrong takes the team's mistakes to 4 and ends the game, lost.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select connections.submit_guess(
   (select id from g2),

@@ -8,95 +8,85 @@
  */
 import { describe, expect, it } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import type { Board } from '../lib/board'
-import type { EventRow, GameData } from './useGame'
+import { PUZZLE, guess, makeGameDataRaw, matchOf } from '../lib/gameData.fixture'
+import { makeGameData } from './useGame'
 import { useHistoryView } from './useHistoryView'
 
-const BOARD: Board = {
-  categories: [
-    { rank: 0, name: 'RED', tiles: ['a', 'b', 'c', 'd'] },
-    { rank: 1, name: 'GREEN', tiles: ['e', 'f', 'g', 'h'] },
-    { rank: 2, name: 'BLUE', tiles: ['i', 'j', 'k', 'l'] },
-    { rank: 3, name: 'PURPLE', tiles: ['m', 'n', 'o', 'p'] },
-  ],
-  tileOrder: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'],
-}
+const TWO = [
+  { id: 'u1', username: 'me', color: 'red' },
+  { id: 'u2', username: 'moth', color: 'blue' },
+]
+const [RED, GREEN] = PUZZLE.cats as [typeof PUZZLE.cats[0], typeof PUZZLE.cats[1]]
 
 /** me matched RED, then missed; moth matched GREEN. */
-const EVENTS: EventRow[] = [
-  {
-    id: 1, user_id: 'u1', tiles: ['a', 'b', 'c', 'd'], result: 'correct', matched: true,
-    outcome: 'won', matched_category_rank: 0, created_at: 't1',
-  },
-  {
-    id: 2, user_id: 'u1', tiles: ['e', 'f', 'g', 'm'], result: 'oneAway', matched: false,
-    outcome: 'near', matched_category_rank: null, created_at: 't2',
-  },
-  {
-    id: 3, user_id: 'u2', tiles: ['e', 'f', 'g', 'h'], result: 'correct', matched: true,
-    outcome: 'won', matched_category_rank: 1, created_at: 't3',
-  },
+const EVENTS = [
+  matchOf(RED, 'u1'),
+  guess('u1', ['e', 'f', 'g', 'm'], 'oneAway'),
+  matchOf(GREEN, 'u2'),
 ]
+const [MY_MATCH, MY_MISS, THEIR_MATCH] = EVENTS as [typeof EVENTS[0], typeof EVENTS[1], typeof EVENTS[2]]
 
-/** Just what the hook reads: the log, the board, the mode, and the players by id. */
-function gdWith(isCompete: boolean): GameData {
-  return {
-    isCompete,
-    events: EVENTS,
-    puzzle: { board: BOARD },
-    playersById: {
-      u1: { user_id: 'u1', username: 'me', color: 'red' },
-      u2: { user_id: 'u2', username: 'moth', color: 'blue' },
-    },
-  } as unknown as GameData
+/** The game as I see it, both modes ended so every row is on the log. */
+function gdWith(mode: 'coop' | 'compete') {
+  return makeGameData(
+    makeGameDataRaw({
+      mode,
+      players: TWO,
+      events: EVENTS,
+      ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+      outcome: 'neutral',
+    }),
+    'u1',
+  )
 }
 
 describe('useHistoryView', () => {
   it('is live until a turn is opened', () => {
-    const { result } = renderHook(() => useHistoryView(gdWith(false), 'u1'))
+    const { result } = renderHook(() => useHistoryView(gdWith('coop')))
     expect(result.current.isViewing).toBe(false)
     expect(result.current.viewedEventId).toBeNull()
-    expect(result.current.matched).toBeNull()
-    expect(result.current.tiles).toBeNull()
+    expect(result.current.board).toBeNull()
     expect(result.current.litTiles).toBeNull()
     expect(result.current.label).toBeNull()
   })
 
   it('rebuilds the board at the turn it opens, and goes back to live on exit', () => {
-    const { result } = renderHook(() => useHistoryView(gdWith(false), 'u1'))
-    act(() => result.current.show(2, 2))
+    const { result } = renderHook(() => useHistoryView(gdWith('coop')))
+    act(() => result.current.show(MY_MISS.id, 2))
     expect(result.current.isViewing).toBe(true)
-    expect(result.current.viewedEventId).toBe(2)
+    expect(result.current.viewedEventId).toBe(MY_MISS.id)
     // RED was matched strictly before turn 2, so it is a band and its tiles are
     // gone; the turn's own four are lit in what it was.
-    expect(result.current.matched?.map((m) => m.name)).toEqual(['RED'])
-    expect(result.current.tiles).toEqual(['e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
+    expect(result.current.board?.matchedCats.map((c) => c.name)).toEqual(['RED'])
+    expect(result.current.board?.tilesLeft).toEqual(['e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'])
     expect([...result.current.litTiles!]).toEqual(['e', 'f', 'g', 'm'])
     expect(result.current.litOutcome).toBe('near')
     expect(result.current.label).toBe('One away!')
     act(() => result.current.exit())
     expect(result.current.isViewing).toBe(false)
-    expect(result.current.matched).toBeNull()
+    expect(result.current.board).toBeNull()
   })
 
   it('folds the author\'s rows alone in compete, and names them when they are not me', () => {
-    const { result } = renderHook(() => useHistoryView(gdWith(true), 'u1'))
-    act(() => result.current.show(3, 1))
+    const gd = gdWith('compete')
+    const { result } = renderHook(() => useHistoryView(gd))
+    act(() => result.current.show(THEIR_MATCH.id, 1))
     // moth's board: my RED never happened on it.
-    expect(result.current.matched).toEqual([])
-    expect(result.current.tiles).toHaveLength(16)
-    expect(result.current.actor?.username).toBe('moth')
+    expect(result.current.board?.matchedCats).toEqual([])
+    expect(result.current.board?.tilesLeft).toHaveLength(16)
+    expect(result.current.actor).toBe(gd.playersById.u2)
   })
 
   it('names nobody for my own board, or for any turn in coop', () => {
-    const compete = renderHook(() => useHistoryView(gdWith(true), 'u1'))
-    act(() => compete.result.current.show(2, 2))
+    const compete = renderHook(() => useHistoryView(gdWith('compete')))
+    act(() => compete.result.current.show(MY_MISS.id, 2))
     expect(compete.result.current.actor).toBeUndefined()
 
-    const coop = renderHook(() => useHistoryView(gdWith(false), 'u1'))
-    act(() => coop.result.current.show(3, 3))
+    const coop = renderHook(() => useHistoryView(gdWith('coop')))
+    act(() => coop.result.current.show(THEIR_MATCH.id, 3))
     expect(coop.result.current.actor).toBeUndefined()
     // Coop is one shared board: my RED is a band on moth's turn.
-    expect(coop.result.current.matched?.map((m) => m.name)).toEqual(['RED'])
+    expect(coop.result.current.board?.matchedCats.map((c) => c.name)).toEqual(['RED'])
+    expect(MY_MATCH.id).toBeLessThan(THEIR_MATCH.id)
   })
 })

@@ -386,12 +386,17 @@ the first instance; the next game's blob starts from it.
      watcher's "X won" message and the `winnerName` it read.
   docs/win-lose.md's formulas and code-conventions' naming section carry the
   path names once this ships.
-- **Each converted game after it** (connections): the same, starting from
-  psychicnum's blob shape; PlayArea, BoardCol, InfoCol, Board and the hooks
-  read `gd.me.…` and `p.…`; `readout`, `standing`, `boardEvents` /
-  `matchedCategories` / `remainingTiles` / `picks` move under `board` and
-  `picks` on the player; every `SPECTATING:` branch and tag goes; tests
-  follow.
+- **connections — done 2026-10-02**, the same way: `_make_json_puzzle` /
+  `_events` / `_board` / `_team` / `_players` / `_game_data` /
+  `_summary_data`, `_rebuild_data_cols(_for_all)`; `useGame` is
+  `makeGameData(blob, auth.user.id)` with the picks room kept beside `gd`;
+  `readout`, `standing`, `boardEvents` / `matchedCategories` /
+  `remainingTiles` dissolved onto the player (`board: {matchedCats,
+  tilesLeft}`); the mode arm of `events_select` and `_write_statuses` went
+  (plans/areas/connections.md → The convenience RLS); every `SPECTATING:`
+  branch went, with the watcher's "X won" message. The three count columns
+  took the blobs' names and coop's mistakes became each player's own
+  (`20261002000002_connections_own_counts.sql`).
 - **Then** connections' InfoCol and Board passes resume on the new shape, and
   the next game converts straight onto it.
 
@@ -399,8 +404,8 @@ the first instance; the next game's blob starts from it.
 
 Before a game converts, its policies and views that mention `auth.uid()` or
 `ended_at` are listed in its area file, and each one is taken over or dropped
-by name: plans/areas/psychicnum.md and plans/areas/wordle.md → The convenience
-RLS.
+by name: plans/areas/psychicnum.md, plans/areas/wordle.md and
+plans/areas/connections.md → The convenience RLS.
 
 ## Owed when the problem children open
 

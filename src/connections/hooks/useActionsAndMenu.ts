@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { useBindAction, type Action } from '@/common/actions/useBindAction'
+import { useBindAction } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
@@ -14,46 +14,10 @@ import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
-import type { PuzzleAnswer } from '../lib/setup'
-import { unmatchedCategories } from '../lib/unmatchedCategories'
+import { getUnmatchedCats } from '../lib/getUnmatchedCats'
 import { buildConnectionsPrintModel } from '../pdf/model'
 import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
-import type { GameData } from './useGame'
-
-/**
- * Every command connections offers, bound once: the info column's action row
- * places them, the menu lists them, and their keys fire them — all reading the
- * same action, so the surfaces cannot drift.
- */
-export type ConnectionsActions = {
-  // Each key is spelled as its action's id (`act-reveal` → `actReveal`), so a
-  // grep for either finds every trace of the action
-  // (src/guards/actionIds.test.ts).
-  //
-  // Unfold or fold the inline hint list; its words move with it. Gone, row
-  // and button, once you can no longer submit.
-  actHint: Action
-  // Show the categories nobody got — or put them away, bringing back the board
-  // as the game ended. A local display toggle, no RPC; it carries its own
-  // faces, the inert "solution already shown" included.
-  actReveal: Action
-  // Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle.
-  actRestart: Action
-  // Start the NEXT unplayed daily puzzle — connections' archive is dated, so
-  // this walks forward rather than re-rolling a board. Disables itself while
-  // the create is in flight.
-  actNewGame: Action
-  // Drop out of a race while the others play on — hidden outside compete.
-  actConcede: Action
-  // Stop the game for the whole table — coop's exit; it hides itself in a race.
-  actStopGame: Action
-  // Print the board and the log; the menu's alone, with no twin in the row.
-  actPrintBoard: Action
-  // Leave for the club page — the shell's own, off `PlayAreaLoaderProps.menu`,
-  // carried here so a surface that places the row has every action in one
-  // object.
-  actBackToClub: Action
-}
+import type { GActions, GGameData, GPuzzleAnswer } from '../types'
 
 /**
  * Bind every connections command and publish the game's menu from them. Hands
@@ -76,19 +40,15 @@ export function useActionsAndMenu({
   gd,
   myId,
   localFeedbackSlot,
-  clubHandle,
   goToFollowUpGame,
   menu,
-  brand,
 }: {
-  gd: GameData
+  gd: GGameData
   myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
-  clubHandle: string
-  brand: string
 } & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): {
-  actions: ConnectionsActions
+  actions: GActions
   solutionShown: boolean
   hintsOpen: boolean
   acknowledgeModal: ReactNode
@@ -97,10 +57,12 @@ export function useActionsAndMenu({
   // `db` they call.
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
-    gameId: gd.gameId,
-    isTerminal: gd.isGameEnded,
+    gameId: gd.id,
+    isTerminal: gd.ended,
     mode: gd.mode,
-    isLocallyTerminal: gd.standing.isLocallyTerminal,
+    // Out of the race while the game goes on: a racer out on mistakes, a
+    // conceder.
+    isLocallyTerminal: !gd.me.stillPlaying && !gd.ended,
     localFeedbackSlot,
   })
 
@@ -108,7 +70,7 @@ export function useActionsAndMenu({
   const [hintsOpen, setHintsOpen] = useState(false)
   const actHint = useBindAction('act-hint', {
     describe: () =>
-      gd.standing.isStillPlaying
+      gd.me.stillPlaying
         ? { state: 'active', label: hintsOpen ? 'Hide hints' : 'Hints' }
         : 'hidden',
     run: () => setHintsOpen((o) => !o),
@@ -121,7 +83,7 @@ export function useActionsAndMenu({
     revealed: solutionShown,
     toggle: toggleSolution,
     impliedBySolve,
-  } = useSolutionReveal({ impliedBy: gd.standing.hasSolved })
+  } = useSolutionReveal({ impliedBy: gd.me.solved })
 
   // Reveal — nothing is written and no peer is affected. Both faces come from
   // `describeReveal`, where the rule for every game's reveal lives.
@@ -130,9 +92,9 @@ export function useActionsAndMenu({
       // The one narrowing this game adds: no BUTTON while you can still play.
       // The menu row keeps it all game, grayed, because it NAMES the glyph
       // (docs/ui.md → the menu is the legend).
-      if (gd.standing.isStillPlaying && asker === 'button') return 'hidden'
+      if (gd.me.stillPlaying && asker === 'button') return 'hidden'
       return describeReveal({
-        noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal: gd.isGameEnded,
+        noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal: gd.ended,
       })
     },
     run: toggleSolution,
@@ -148,7 +110,7 @@ export function useActionsAndMenu({
     const playerUserIds = gd.players.map((p) => p.id)
     // Ask first, so a spent archive is a NOTICE rather than a failed create.
     // The answer is advisory — `create_game` derives it again.
-    const preview = await runRpc<PuzzleAnswer>(
+    const preview = await runRpc<GPuzzleAnswer>(
       db.rpc('next_puzzle_for_club', { p_seen_by: playerUserIds }),
     )
     if (preview.type === 'not-ok' && preview.dbcode === 'PN302') {
@@ -181,7 +143,7 @@ export function useActionsAndMenu({
     delete carried.puzzle_id
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
-        p_club_handle: clubHandle,
+        p_club_handle: gd.club.handle,
         p_setup: carried,
         p_player_user_ids: playerUserIds,
         p_mode: gd.mode,
@@ -204,36 +166,36 @@ export function useActionsAndMenu({
   // the game has ended; the shared run's single flight stops a second press
   // taking two puzzles out of the archive.
   const actNewGame = useBindAction('act-new-game', {
-    terminal: gd.isGameEnded,
+    terminal: gd.ended,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
-    describe: (asker) => (asker === 'button' && !gd.isGameEnded ? 'hidden' : 'active'),
+    describe: (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
   // Print builds its model from the live state at CLICK time
-  // (common/pdf/doc.md). RLS already scopes the log to what I may see, so the
-  // paper shows what the screen does.
+  // (common/pdf/doc.md). The seat rule already scopes the log to what I may
+  // see, so the paper shows what the screen does.
   const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
       printConnectionsPdf(
         buildConnectionsPrintModel({
-          brand,
+          brand: gd.brand,
           gameTitle: gd.title,
           date: new Date().toLocaleDateString(),
-          categories: gd.puzzle.board.categories,
-          matched: gd.matchedCategories,
-          unmatched: solutionShown
-            ? unmatchedCategories(gd.puzzle.board, gd.matchedCategories)
+          cats: gd.puzzle.cats,
+          matchedCats: gd.me.board.matchedCats,
+          unmatchedCats: solutionShown
+            ? getUnmatchedCats(gd.puzzle.cats, gd.me.board.matchedCats)
             : [],
-          remainingTiles: gd.puzzle.remainingTiles,
+          tilesLeft: gd.me.board.tilesLeft,
           guesses: gd.events,
           players: gd.players,
           myId,
           mode: gd.mode,
-          isTerminal: gd.isGameEnded,
-          mistakeCount: gd.readout.mistakeCount,
-          mistakeBudget: gd.readout.maxMistakes,
+          isGameEnded: gd.ended,
+          nMistakes: gd.stateLineData.nMistakes,
+          maxMistakes: gd.stateLineData.maxMistakes,
           setupRows: gd.setupRows,
         }),
       )

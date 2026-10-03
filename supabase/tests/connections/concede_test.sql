@@ -55,11 +55,12 @@ select is(
      from common.games where id = (select id from g)),
   'conceded/conceded/lost', 'both conceding ends the game as a collective loss');
 -- common._concede ends the game; the builder must still run after it, so the
--- page's copies catch up with the ending.
+-- page blobs catch up with the ending.
 select is(
-  (select player_status->>'player_ended_reason' from common.game_players
-    where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  'conceded', 'the ending concede runs the builder: the last conceder''s player_status says conceded');
+  (select (p ->> 'conceded')::boolean
+     from common.games cg, jsonb_array_elements(cg.game_data -> 'players') p
+    where cg.id = (select id from g) and p ->> 'id' = 'bea22222-2222-2222-2222-222222222222'),
+  true, 'the ending concede runs the builder: the last conceder''s player in game_data says conceded');
 
 -- (3) coop concede rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

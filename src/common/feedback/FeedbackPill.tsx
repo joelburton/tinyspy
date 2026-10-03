@@ -4,7 +4,7 @@ import { cls } from '../utils/cls'
 import { DotActor } from '../members/ActorMention'
 import { CloseButton } from '../buttons/CloseButton'
 import type { FeedbackSlot } from './feedbackSlotStore'
-import { useTopFeedbackMessage } from './useFeedbackSlot'
+import { useWatchAndGetTopFeedbackMsg } from './useFeedbackSlot'
 import styles from './FeedbackPill.module.css'
 
 type Props = {
@@ -33,7 +33,7 @@ type Props = {
  * tells a mouse user what the tap teaches by working.
  */
 export function FeedbackPill({ slot, className }: Props) {
-  const feedbackMsg = useTopFeedbackMessage(slot)
+  const feedbackMsg = useWatchAndGetTopFeedbackMsg(slot)
   if (feedbackMsg === null) return null
   const tappable = feedbackMsg.leavesBy === 'gesture'
   return (

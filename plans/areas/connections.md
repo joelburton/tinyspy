@@ -1393,6 +1393,19 @@ components diagram psychicnum's carries, under Frontend.
 (`src/connections` + `src/guards`); `gmake db-sql ENV=local` then
 `npm run test:db` — 179 files, 2523 tests, PASS.
 
+## The convenience RLS
+
+The policies and views the frontend leaned on before the page blobs, listed
+before the game converted onto them (plans/seat-view.md → The page is written,
+not assembled: "each one is taken over or dropped by name"), and what became of
+each on 2026-10-02:
+
+| what | mentioned | taken over or dropped |
+|---|---|---|
+| `events_select`'s mode arm — compete shows a player only their own rows during play, everyone's once `ended_at` is set | `auth.uid()`, `ended_at` | **taken over** by `useGame`'s seat rule (`makeGameData`: mid-race in compete a rival's rows leave `gd.events` and their `board` is null), pinned in `hooks/useGame.test.ts`. The policy is now the club-member read every connections table has; `compete_test.sql` and `rls_test.sql` pin that |
+| `club_game_status` view | — | already dropped before the conversion; the drop stays in the SQL file |
+| `games_select`, `players_select`, `puzzles_select` — club-member and public reads | neither | kept as they are: a member reading rows for a page they cannot open does no harm |
+
 ## Closing
 
 - [x] the tile-feedback pass done, and the game's tf level updated there

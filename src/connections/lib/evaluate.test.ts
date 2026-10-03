@@ -2,9 +2,9 @@
 
 import { describe, expect, it } from 'vitest'
 import { evaluateGuess, sameTileSet } from './evaluate'
-import type { Category } from './board'
+import type { GCategory } from '../types'
 
-const CATEGORIES: Category[] = [
+const CATEGORIES: GCategory[] = [
   { rank: 0, name: 'A-words', tiles: ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'] },
   { rank: 1, name: 'B-words', tiles: ['BANANA', 'BIRCH', 'BREAD', 'BRICK'] },
   { rank: 2, name: 'C-words', tiles: ['CASTLE', 'CIRCLE', 'CLOUD', 'CROWN'] },

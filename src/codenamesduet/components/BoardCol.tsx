@@ -6,7 +6,7 @@ import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
-import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
+import { useWatchAndGetTopFeedbackMsg } from '@/common/feedback/useFeedbackSlot'
 import { runRpc } from '@/common/supabase/dbResult'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
@@ -299,7 +299,7 @@ export function BoardCol({
 
   // Whatever the slot holds on top takes the clue strip's place; an empty
   // slot hands it back.
-  const top = useTopFeedbackMessage(localFeedbackSlot)
+  const top = useWatchAndGetTopFeedbackMsg(localFeedbackSlot)
 
   return (
     <div className={shared.boardCol}>

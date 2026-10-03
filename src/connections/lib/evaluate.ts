@@ -1,26 +1,7 @@
 // cs-blessed-connections
 
-import { TILES_PER_CATEGORY, type Category, type CategoryRank } from './board'
-
-/**
- * What a 4-tile guess turned out to be: `correct` (with the matched category's
- * rank, name and tiles), `oneAway` (exactly 3 of the 4 belong to one category),
- * or `wrong`.
- *
- * **In the WIRE word**, which is what `connections.events.result` stores and
- * what `submit_guess` takes — so a verdict travels from the evaluator to the
- * column with no translation step in between. What each is WORTH is
- * `lib/answer.ts`'s to say, and every surface asks it rather than this.
- */
-export type Evaluation =
-  | {
-      result: 'correct'
-      rank: CategoryRank
-      name: string
-      tiles: string[]
-    }
-  | { result: 'oneAway' }
-  | { result: 'wrong' }
+import { TILES_PER_CATEGORY } from './board'
+import type { GCategory, GEvaluation } from '../types'
 
 /**
  * The connections evaluator. It lives in TS because the board is public
@@ -31,8 +12,8 @@ export type Evaluation =
  */
 export function evaluateGuess(
   tiles: string[],
-  categories: Category[],
-): Evaluation {
+  categories: GCategory[],
+): GEvaluation {
   // Defensive: `BoardCol` offers Submit only at four tiles, but a short
   // input shouldn't false-positive as 'oneAway' just because all 3 happen
   // to be in the same category.
@@ -44,7 +25,7 @@ export function evaluateGuess(
   // signal that nudges the player toward swapping one tile).
   // Otherwise wrong.
   let best = 0
-  let bestCategory: Category | null = null
+  let bestCategory: GCategory | null = null
   for (const c of categories) {
     const overlap = tiles.filter((t) => c.tiles.includes(t)).length
     if (overlap > best) {
