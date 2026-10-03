@@ -272,6 +272,15 @@ the written shape wherever the pair exists (`GPlayerRaw` / `GPlayer`,
 `GEventRaw` / `GEvent`). psychicnum is the model (`src/psychicnum/types.ts`);
 each game takes the shape as it converts.
 
+**A game with tiles has `GTile` and `Tile`.** `GTile` is the tile as the
+server knows it, identity and settled facts in one object, written by the
+builder as an array; what a tile is is the game's (a word with its verdict
+and decider, a letter with its color, a bare string). `Tile` is the component
+that draws one, taking the `GTile` and `TileMarks`, the screen's own facts
+about it, which never enter the blob. Named for the thing, never for what is
+printed on it: no `WordTile`, no `LetterTile`
+([plans/seat-view.md](../plans/seat-view.md) → A tile is an instance the builder writes).
+
 **An export that exists only for tests starts with `ZTest_`**, wherever it
 lives and whatever it is: `ZTest_PlayerFacts` (a type), `ZTest_guess` (a
 function), `ZTest_PUZZLE` (a constant), `ZTest_peekFaultMessages` (a seam into

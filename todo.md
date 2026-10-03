@@ -16,6 +16,25 @@ decision against, so a review doesn't propose it again
 
 ## Soon
 
+- **Every jsonb key the app designs is camelCase, as the page blobs' are.**
+  Today code-conventions makes `setup`, `status` and the rest snake_case,
+  with the page blobs the one exception, so a key stored snake lands in `gd`
+  camel and a reader has two spellings of one thing to follow. The rule
+  becomes one spelling, and the stored keys move to it in one pass, all games
+  at once, since the setup is a cross-game contract: `common.games.setup` and
+  each club's `clubs_gametypes.default_setup` (`max_guesses`, `word_count`,
+  `coop_style`, `first_turn_user_id`, `puzzle_id`, the shared `timer`), with
+  `common._require_valid_timer`, `common._assign_turn_order`, every game's
+  setup form, `create_game` and `setupRows`; and spellingbee's and wordwheel's
+  `is_pangram` in their word arrays. One migration rewrites the two setup
+  stores; the game tables' object keys that are already camel
+  (`connections.games.board.tileOrder`, strands' `solution.themeWords`) or
+  single words (`rank`, `name`, `tiles`, `word`, `points`, `x`, `y`, `letter`)
+  need nothing. Not ours to rename: crosswords' `puzzle_content`, an ipuz
+  import, and `common.words_edits.old` / `new`, a journal's snapshots of a
+  row's columns. Do it after the games convert, when every game's `gd` reads
+  the keys.
+
 - **Three ways to handle a guess's mark and its feedback.** My answer shows
   in the local slot and lands on the board, and the two have to agree and
   leave together; each converted game solved it its own way. wordle:
@@ -61,6 +80,14 @@ decision against, so a review doesn't propose it again
   have converted, so their e2e can check it.
 
 ## Someday
+
+- **A thing's facts kept in parallel lists, joined by whoever draws it.** The
+  tile was the clearest case and is decided (plans/seat-view.md → A tile is an instance the builder writes:
+  the builder writes the instance with its settled facts, the screen adds its
+  marks beside it). The same shape is elsewhere: an event log's rows and
+  their authors, a printer's tracks rebuilt from the log, connections' picks
+  and marks per tile. Test each against that decision when its area is next
+  open; not a sweep.
 
 - **The guards' comment strippers can blank real code.** Several guards strip
   `/* … */` by regex, so a `/*` inside a string literal (a glob like

@@ -65,7 +65,7 @@ players, one comparison each):
 | read off them | `isConceded`, `isPlayerEnded`, `isEliminated`, `hasSolved` (= `solvedAt !== null`; a coop solve stamps every teammate, so it is right in both modes) |
 | the turn | `isStillPlaying`, `isOnTurn` (was `isMyTurn`), `isWaitingForTurn`, `isBoardInteractive` — derived by the hook from `gd.turns`, so no component writes `turnHolder.user_id === me.user_id` itself |
 | the former `readout` | `maxMistakes` / `maxGuesses`, `requiredCategoriesCount` / `requiredSecretsCount` (the same for every player; the field comment says so), `mistakeCount` / `guessesUsed`, `foundCount` (the player's own in every mode; what the team shares is `gd.team`'s — [team-facts](team-facts.md)) |
-| the board | `board`: the seat's view — connections' `matchedCategories` + `remainingTiles`, wordle's rows, psychicnum's `tileResults` + `decidedBy`. In coop the hook builds one and gives every player the same reference, which is what `isSharedBoard` means |
+| the board | `board`: the seat's view — connections' `matchedCats` + `tilesLeft`, wordle's rows, psychicnum's tiles (decision 9). In coop every seat's board is the same board, which is what `oneBoard` means |
 | the picks (connections) | `picks`: mine held by the hook, a teammate's by Broadcast in coop, an opponent's null in compete |
 
 **Move, don't copy.** When a fact goes onto the player there is no `gd.x`
@@ -300,6 +300,59 @@ the first instance; the next game's blob starts from it.
 - Secrets that should truly be hidden could move to a table the builder merges
   from; overkill now, written down so the door is known.
 
+### 9. A tile is an instance the builder writes: `GTile`, and the screen's `Tile`
+
+Decided 2026-10-03. A game with tiles has two names, the same in every game:
+
+- **`GTile` is the tile as the server knows it**: its identity and its settled
+  facts, one object, in `types.ts`. What a tile IS is the game's: psychicnum's
+  is `{word, correct, decidedBy}` (`correct` and `decidedBy` null until the
+  word is guessed); wordle's is a cell in a row, the letter and the color the
+  server judged for it; connections' is a bare `string`, since a loose tile
+  has no settled fact — the moment it has one it is in a band, which is a
+  `GMatchedCat`. The builder writes the array in that shape, under the seat's
+  `board` where the facts are the seat's (`board.tiles`), and `useGame` turns
+  its ids into players under the same key, as `turns.holder` and `ending.by`
+  are turned. What the frontend never does is assemble the tile from parallel
+  lists: the JSON reads as `gd` does, which is decision 8's point.
+- **`Tile` is the component that draws one**, taking the `GTile` and
+  `TileMarks`, the screen's own facts about it — picked and by whom, under
+  the cursor, in flight, flashing, shaking, history-lit. Marks are per client
+  and per render and never in the blob; the board decides WHICH marks a tile
+  wears and `Tile` decides HOW each is drawn. Named for the thing, not for
+  what is printed on it: psychicnum's `WordTile` and wordle's `LetterTile`
+  become `Tile`, and connections' inline `<button>` becomes one.
+- **The identity stays the key where a set is needed.** Picks, the guess in
+  flight, a viewed turn's lit tiles, the flashing set are sets of identities;
+  `GTile` being an object does not change what those hold.
+- **The puzzle's lists stay.** `gd.puzzle.words` and `gd.puzzle.secrets` are
+  the puzzle, frozen at create; `board.tiles` is a seat's view of it. The
+  words appear in both, and the rule for that is: the builder writes every
+  array the page draws, in the shape it draws it, and a list that is a
+  projection of another is kept when it names a different thing. The blobs
+  are tiny, and no game multiplies a large board by its racers; revisit only
+  if a blob ever measures in the hundreds of kilobytes.
+- **The builders stay `language sql`**, one `select` each; a
+  `jsonb_agg(jsonb_build_object(…))` over `unnest(words) with ordinality
+  left join events` is the house idiom (connections' `_make_json_board`
+  already joins this way), and the join can be run by hand to see the rows
+  the array is built from.
+
+**The order of work:** psychicnum first, as its own commit right after its
+naming pass (`_make_json_board` writes `board.tiles`; `GTileResults`,
+`board.tileResults` and `board.decidedBy` go; `lib/tileResults.ts` and the
+history replay produce `GTile[]`; `WordTile` → `Tile`); wordle in its naming
+pass, where it is a check and the `LetterTile` → `Tile` rename; connections in
+its Board pass, where `Tile` is extracted and its tile stays a `string`;
+every later game writes `GTile` as part of its conversion, since none has a
+`gd` of this kind yet.
+
+**The wider pattern, not answered here:** the facts about one thing kept in
+parallel lists keyed by its identity, with whoever draws it doing the join —
+a tile is the clearest case, and the event logs' authors and the printers'
+tracks are others. Each is tested against this decision when its area is
+next open (todo.md → Someday).
+
 ## What this touches
 
 - **Writing first (done 2026-10-01).** CLAUDE.md → Audience ("Spectators are
@@ -397,6 +450,12 @@ the first instance; the next game's blob starts from it.
   branch went, with the watcher's "X won" message. The three count columns
   took the blobs' names and coop's mistakes became each player's own
   (`20261002000002_connections_own_counts.sql`).
+- **Next, in this order (2026-10-03):** psychicnum's naming pass
+  (`nFoundSecrets`, `nReqdSecrets`, `nGuessesUsed`, with the two columns, plus
+  `BoardCol` reading `gd.me.outcome` and the doc's stale lines), then
+  psychicnum's `GTile` (decision 9) as its own commit, then wordle's naming
+  pass (`nGuessesUsed`, `nWinnerGuesses`, the column, and `LetterTile` →
+  `Tile`).
 - **Then** connections' InfoCol and Board passes resume on the new shape, and
   the next game converts straight onto it.
 
