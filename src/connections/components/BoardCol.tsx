@@ -20,9 +20,9 @@ import historyStyles from '@/common/event-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 import type { GGameData, GHistoryView, GPicks } from '../types'
 
-/** Empty owner map — the board draws no picks while viewing a past turn or
- *  once my play is over. */
-const NO_OWNERS: ReadonlyMap<string, string> = new Map()
+/** No picks: an empty tile → picker map, for a board that draws none — a
+ *  past turn on screen, or my play over. */
+const NO_PICKS: ReadonlyMap<string, string> = new Map()
 
 /**
  * connections' board column: the `Board`, and under it Clear and Submit with
@@ -99,8 +99,8 @@ export function BoardCol({
 
   // No picks are drawn on a board that can't take a move — a past turn, or a
   // player who is finished — though the broadcast state itself outlives both.
-  const shownOwnerByTile =
-    historyView.isViewing || !gd.me.stillPlaying ? NO_OWNERS : picks.ownerByTile
+  const shownTileToPickerId =
+    historyView.isViewing || !gd.me.stillPlaying ? NO_PICKS : picks.tileToPickerId
 
   // The players are working one board together: coop with more than one of
   // them. Solo, and in compete, each board is one player's own.
@@ -120,7 +120,7 @@ export function BoardCol({
         historyView={historyView}
         isBoardInteractive={gd.me.onTurn}
         isStillPlaying={gd.me.stillPlaying}
-        ownerByTile={shownOwnerByTile}
+        tileToPickerId={shownTileToPickerId}
         onPick={pickTile}
         inFlightGuess={submission.inFlight}
         verdict={verdict.mark}

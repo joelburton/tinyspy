@@ -256,7 +256,7 @@ describe('connections useGame — the picks room', () => {
     const { result } = renderHook(() => useGame(ZTest_makeConnectionsCtx({ players: TWO })))
     act(() => result.current.picks.toggleTile('a'))
     expect(result.current.picks.union).toEqual(['a'])
-    expect(result.current.picks.ownerByTile.get('a')).toBe('u1')
+    expect(result.current.picks.tileToPickerId.get('a')).toBe('u1')
     expect(channelChain.send).toHaveBeenCalledWith({
       type: 'broadcast', event: 'pick', payload: { type: 'pick', tile: 'a', userId: 'u1' },
     })

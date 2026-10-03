@@ -46,9 +46,9 @@ type Props = {
   isBoardInteractive: boolean
   // Still in the game — the Shuffle shows, and the picks are drawn.
   isStillPlaying: boolean
-  // tile → user_id (the inverted picks map). Says which tiles are in the
-  // guess being built, and whose pick each one was.
-  ownerByTile: ReadonlyMap<string, string>
+  // Picked tile → the id of who picked it. A tile absent from it is not in
+  // the guess being built.
+  tileToPickerId: ReadonlyMap<string, string>
   // A tile was picked — by a click, or by Space on the cursor.
   onPick: (tile: string) => void
   // The tiles of a guess that is OUT — sent, waiting on the server. They wear
@@ -111,7 +111,7 @@ export function Board({
   historyView,
   isBoardInteractive,
   isStillPlaying,
-  ownerByTile,
+  tileToPickerId,
   onPick,
   inFlightGuess,
   verdict,
@@ -239,14 +239,14 @@ export function Board({
         {sortedMatched.map((mc) => band(mc, false))}
         {shownUnmatchedCats.map((c) => band(c, true))}
         {tiles.map((tile, i) => {
-          const ownerId = ownerByTile.get(tile)
+          const pickerId = tileToPickerId.get(tile)
           // WHOSE pick this is, on a board where that is worth saying: everyone's
           // on a shared one (mine included), nobody's otherwise. Undefined also
           // gates the ring class, because the color arrives as an inline
           // `--peer-color` and a ring drawn against an undefined token is an
           // invalid declaration rather than a subtle bug.
-          const ownerColor =
-            isSharedBoard && ownerId !== undefined ? colorByUserId.get(ownerId) : undefined
+          const pickerColor =
+            isSharedBoard && pickerId !== undefined ? colorByUserId.get(pickerId) : undefined
           const isInFlight = inFlightGuess.has(tile)
           const isVerdict = verdict?.value.tiles.has(tile) ?? false
           // One of the four tiles the viewed turn guessed — tinted the outcome
@@ -270,8 +270,8 @@ export function Board({
                 shared.tile,
                 // PICKED, whoever picked it: the border says "in the move",
                 // the ring below says whose.
-                ownerId !== undefined && shared.picked,
-                ownerColor && styles.peerPick,
+                pickerId !== undefined && shared.picked,
+                pickerColor && styles.peerPick,
                 // The answer landing here — the attention flash first, then the
                 // head-shake over the verdict color the flash hands back. One
                 // mark, two beats, so the phase is the whole of the ordering.
@@ -289,7 +289,7 @@ export function Board({
                   && positionAt(selectionCursor.cell.x, selectionCursor.cell.y, COLS) === i
                   && shared.selectionCursor,
               )}
-              style={ownerColor ? { ['--peer-color' as string]: ownerColor } : undefined}
+              style={pickerColor ? { ['--peer-color' as string]: pickerColor } : undefined}
               onClick={() => pickClickedTile(tile)}
               // NOT a focus target: `preventDefault` on mousedown stops a CLICK
               // parking focus here, where the next keystroke would promote it

@@ -327,8 +327,8 @@ export type GPicks = {
   byUser: GPickMap
   // Every held tile, flattened in pick order — what Submit sends.
   union: string[]
-  // Who holds each held tile.
-  ownerByTile: ReadonlyMap<string, string>
+  // Picked tile → the id of who picked it; a tile nobody holds is absent.
+  tileToPickerId: ReadonlyMap<string, string>
   toggleTile: (tile: string) => void
   sendClear: () => void
 }

@@ -54,14 +54,14 @@ vi.mock('../hooks/useGame', async (importOriginal) => {
   return {
     ...real,
     useGame: (ctx: PlayAreaLoaderProps) => {
-      const ownerByTile = new Map<string, string>()
-      for (const [userId, tiles] of h.picks) for (const tile of tiles) ownerByTile.set(tile, userId)
+      const tileToPickerId = new Map<string, string>()
+      for (const [userId, tiles] of h.picks) for (const tile of tiles) tileToPickerId.set(tile, userId)
       return {
         gd: real.makeGameData(ctx.gameData as GGameDataRaw, ctx.auth.user.id),
         picks: {
           byUser: h.picks,
           union: unionTiles(h.picks),
-          ownerByTile,
+          tileToPickerId,
           toggleTile: h.toggleTile,
           sendClear: h.sendClear,
         },

@@ -187,13 +187,13 @@ export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData; picks: GPick
     broadcast({ type: 'clear' })
   }, [broadcast])
 
-  const ownerByTile = new Map<string, string>()
+  const tileToPickerId = new Map<string, string>()
   for (const [userId, tiles] of picks) {
-    for (const tile of tiles) ownerByTile.set(tile, userId)
+    for (const tile of tiles) tileToPickerId.set(tile, userId)
   }
 
   return {
     gd,
-    picks: { byUser: picks, union: unionTiles(picks), ownerByTile, toggleTile, sendClear },
+    picks: { byUser: picks, union: unionTiles(picks), tileToPickerId, toggleTile, sendClear },
   }
 }
