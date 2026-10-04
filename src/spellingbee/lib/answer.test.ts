@@ -1,7 +1,7 @@
 // cs-blessed-spellingbee
 
 import { describe, it, expect } from 'vitest'
-import type { LegalWord } from '@/shared/found-words/useFoundWordSubmit'
+import type { FoundWordsWord } from '@/shared/found-words/foundWords'
 import { answerMessage, answerOf, peerAnswerMessage } from './answer'
 
 /**
@@ -46,7 +46,7 @@ describe('answerMessage', () => {
 
 describe('answerOf', () => {
   const hive = { letters: new Set('achiort'), center: 'a' }
-  const AIRT: LegalWord = { word: 'airt', points: 1, isBonus: true }
+  const AIRT: FoundWordsWord = { word: 'airt', points: 1, pangram: false, bonus: true }
 
   it('splits a miss by why: a letter off the hive, then the center, then not a word', () => {
     expect(answerOf({ answer: 'not_legal', word: 'caxt' }, hive).answerType).toBe('bad_letters')
@@ -71,7 +71,7 @@ describe('answerOf', () => {
 
 describe('peerAnswerMessage', () => {
   it('reads a teammate\'s row as the accepted_peer answer', () => {
-    expect(peerAnswerMessage({ word: 'airt', points: 1, is_bonus: true }))
+    expect(peerAnswerMessage({ word: 'airt', points: 1, bonus: true, pangram: false }))
       .toEqual({ outcome: 'won', text: 'found AIRT • +1' })
   })
 })

@@ -88,11 +88,11 @@ export function answerOf(
         answerType: 'accepted',
         word,
         points: report.entry.points,
-        isBonus: report.entry.isBonus,
-        isPangram: report.entry.isPangram ?? false,
+        isBonus: report.entry.bonus,
+        isPangram: report.entry.pangram,
       }
     case 'already_found':
-      return { answerType: 'already_found', word, isBonus: report.entry?.isBonus ?? false }
+      return { answerType: 'already_found', word, isBonus: report.entry?.bonus ?? false }
     case 'too_short':
       return { answerType: 'too_short', word }
     case 'not_legal':
@@ -102,8 +102,8 @@ export function answerOf(
   }
 }
 
-/** The columns of a `spellingbee.found_words` row that say what it WAS. */
-type LoggedWord = { word: string; points: number; is_bonus: boolean; is_pangram?: boolean }
+/** What a find WAS: the word, its score and its flags, off `gd.foundWords`. */
+type LoggedWord = { word: string; points: number; bonus: boolean; pangram: boolean }
 
 /**
  * How a teammate's found word reads in the header. The caller has already
@@ -115,7 +115,7 @@ export function peerAnswerMessage(row: LoggedWord): AnswerMessage {
     answerType: 'accepted_peer',
     word: row.word,
     points: row.points,
-    isBonus: row.is_bonus,
-    isPangram: row.is_pangram ?? false,
+    isBonus: row.bonus,
+    isPangram: row.pangram,
   })
 }

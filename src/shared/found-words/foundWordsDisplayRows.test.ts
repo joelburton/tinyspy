@@ -9,8 +9,8 @@ import { buildDisplayRows } from './foundWordsDisplayRows'
  * anybody did.
  *
  * **Most of these cases are about compete after the game ends**, which is the
- * only time the input is interesting: RLS opens at terminal, so every player's
- * finds arrive at once and the same word turns up more than once. The rules
+ * only time the input is interesting: the seat rule opens every player's finds
+ * at the end, so the same word turns up more than once. The rules
  * that follow — one row per word, attributed to the earliest finder, with every
  * finder kept for the WHO filter, and a found word shadowing its reveal entry —
  * only ever bite there. In coop `submit_word` rejects a word anyone already
@@ -22,31 +22,18 @@ import { buildDisplayRows } from './foundWordsDisplayRows'
  * but were second to.
  */
 
-/** A reveal entry. `is_bonus` says which shipped list it came from. */
-const rw = (word: string, is_bonus = false, is_pangram = false) =>
-  ({ word, points: 1, is_pangram, is_bonus })
+/** A missed word; `bonus` says whether it was required. */
+const rw = (word: string, bonus = false, pangram = false) => ({ word, points: 1, pangram, bonus })
 
-function fw(
-  user_id: string,
-  word: string,
-  found_at = '2026-01-01T00:00:00Z',
-): FoundWordRow {
-  return {
-    game_id: 'g',
-    user_id,
-    word,
-    points: 1,
-    is_pangram: false,
-    is_bonus: false,
-    found_at,
-  }
+function fw(userId: string, word: string, at = '2026-01-01T00:00:00Z'): FoundWordRow {
+  return { word, by: { id: userId }, points: 1, pangram: false, bonus: false, at }
 }
 
 describe('buildDisplayRows', () => {
   it('dedups a word multiple players found to one row, the FIRST finder', () => {
-    // Post-terminal compete: RLS exposes everyone's found_words, so 'bead'
-    // arrives twice. It shows once, attributed to whoever found it first
-    // (earliest found_at) — that's whose color it renders in.
+    // Compete after the end: everyone's finds are open, so 'bead' arrives
+    // twice. It shows once, attributed to whoever found it first (earliest
+    // `at`) — that's whose color it renders in.
     const rows = buildDisplayRows(
       [
         fw('bea', 'bead', '2026-01-01T00:00:05Z'),
@@ -106,7 +93,7 @@ describe('buildDisplayRows', () => {
     expect(rows).toEqual([{ kind: 'unfound', word: 'zzzz', isPangram: true, isBonus: false, points: 1 }])
   })
 
-  it('carries is_bonus onto unfound rows — the reveal covers BOTH lists', () => {
+  it('carries bonus onto unfound rows — the reveal covers required and bonus', () => {
     // Missed bonus words are revealed too (that vocabulary is half the fun of the
     // post-game read), so the row has to say which list it came from or the KIND
     // filter can't tell them apart.

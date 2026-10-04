@@ -46,14 +46,13 @@ engine has no words of its own. The one thing it shows is the server's `not-ok`
 when a commit does not land: that sentence is the server's, and every game shows
 it the same way ([docs/outcomes.md → One event, one outcome](../../../docs/outcomes.md)).
 
-A word has two spellings in this folder, and the difference is not cosmetic.
-`FoundWordsWord` is a shipped word as the board data gives it — snake,
-`is_pangram`, straight off the JSON. `LegalWord` is what the engine hands back
-from a lookup — camel, and carrying `isBonus`, which the shipped entry has no
-room for because the two lists are kept separately and which list a word came
-from is only knowable once they are merged. Each game's `legalIndex` is where
-one becomes the other, and `WordListRow` is camel for the same reason: it is an
-FE shape, not a row.
+A word has one spelling in this folder: the blob's. `FoundWordsWord` is a
+legal word of the board as `gd.puzzle.words` holds it — camel, every word
+flagged `bonus` or not — and `FoundWordRow` is a find as `gd.foundWords` holds
+it, the same word with who found it (`by`) and when (`at`). The engine's
+lookup hands back the board's word itself, so nothing is translated between a
+list and a lookup; `WordListRow` is the one other shape, the row the shared
+word list draws.
 
 ## Details
 
@@ -74,9 +73,10 @@ spellingbee/PlayArea ┐  (twice each: once for the screen, once inside the prin
 the three PlayArea roots + BoardCols ─▶ foundWordsPlayArea.module.css
                                         (.layout · .belowBoard · .loading · .empty)
 the three TypedWord.tsx              ─▶ typedWord.module.css   (.illegal)
-boggle's useGame.ts                   ─▶ foundWords.ts
-                                        (FoundWordRow · FoundWordsWord; the bee
-                                         games read their blobs instead)
+the games' gd and lib/answer.ts        ─▶ foundWords.ts
+                                        (FoundWordRow · FoundWordsWord, the blob's
+                                         two shapes; boggle's rows catch up at its
+                                         conversion)
 ```
 
 **The screen and the printer are the same call, not two copies of one recipe.**
@@ -84,9 +84,10 @@ That is the point of `buildWordListRows` existing above the reveal and the
 merge: a printed board cannot quietly disagree with the one on screen about what
 was missed, because there is only one place that decides.
 
-**`hasBonus` stays each game's own comparison** (`legal !== required`, boggle's
-`legal_band !== band`), because it is the one input they compute differently.
-Passing false reveals the required half alone.
+**`sameBandsAndHaveNoBonus` is the builder's**, written into each game's puzzle
+from its two bands (boggle's `legal_band = band`, the bees' `legal_band =
+required_band`). True keeps the missed bonus words out of the reveal: they are
+only what the cleanliness filter removed, and the game never suggests one.
 
 ## The reveal's sizing, and the board with no real bonus list
 

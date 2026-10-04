@@ -4,7 +4,8 @@
  * Tests for the shared word validate/submit engine. The cases that matter are the
  * ones a hand-rolled submit path gets wrong or duplicates: an accepted word fires the
  * commit exactly once; the optimistic in-flight guard stops a same-word re-submit
- * from double-committing during the realtime-lag window; dedup is mode-aware; a
+ * from double-committing during the realtime-lag window; the dedup is over the finds
+ * I can see; a
  * non-legal word NEVER hits the RPC; and a failed commit shows the server's
  * sentence and releases the word so a retry works. The engine says nothing of its
  * own, so what it decided is read off `onAnswer`; the answers a caller can act on
@@ -18,21 +19,20 @@ import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import {
   useFoundWordSubmit,
   type FoundWordSubmitConfig,
-  type LegalWord,
   type WordSubmitReport,
 } from './useFoundWordSubmit'
 
-const APPLE: LegalWord = { word: 'apple', points: 5, isBonus: false }
-const ZESTY: LegalWord = { word: 'zesty', points: 9, isBonus: true }
+import type { FoundWordsWord } from './foundWords'
 
-/** A legal list of two words; everything else misses. */
-const lookup = (w: string): LegalWord | null =>
+const APPLE: FoundWordsWord = { word: 'apple', points: 5, pangram: false, bonus: false }
+const ZESTY: FoundWordsWord = { word: 'zesty', points: 9, pangram: false, bonus: true }
+
+/** A board of two words; everything else misses. */
+const lookup = (w: string): FoundWordsWord | null =>
   w === 'apple' ? APPLE : w === 'zesty' ? ZESTY : null
 
 function makeCfg(over: Partial<FoundWordSubmitConfig> = {}): FoundWordSubmitConfig {
   return {
-    mode: 'coop',
-    userId: 'u1',
     isMyTurn: true,
     minWordLength: 4,
     // A real slot: the one thing the hook shows (a commit's not-ok) is read
@@ -86,7 +86,7 @@ describe('useFoundWordSubmit', () => {
   })
 
   it('shows nothing of its own for any answer', async () => {
-    const cfg = makeCfg({ foundWords: [{ word: 'apple', user_id: 'u1' }] })
+    const cfg = makeCfg({ foundWords: [{ word: 'apple' }] })
     const { type, submit } = setup(cfg)
 
     for (const w of ['abc', 'zzzzz', 'apple', 'zesty']) {
@@ -157,23 +157,16 @@ describe('useFoundWordSubmit', () => {
     expect(cfg.commit).toHaveBeenCalledWith(APPLE)
   })
 
-  it('coop dedups across players; compete dedups per player', async () => {
-    // A teammate already found 'apple'.
-    const found = [{ word: 'apple', user_id: 'u2' }]
-
-    const coop = makeCfg({ mode: 'coop', foundWords: found })
-    const c1 = setup(coop)
-    c1.type('apple')
-    await c1.submit()
-    expect(coop.commit).not.toHaveBeenCalled()
-    expect(lastReport(coop)?.answer).toBe('already_found')
-
-    // In compete, a different player's find does NOT block me.
-    const compete = makeCfg({ mode: 'compete', userId: 'u1', foundWords: found })
-    const c2 = setup(compete)
-    c2.type('apple')
-    await c2.submit()
-    expect(compete.commit).toHaveBeenCalledTimes(1)
+  it('refuses a word anyone in the visible finds has — the seat rule decides whose those are', async () => {
+    // Whoever found 'apple', it is in the finds I can see: a teammate's in
+    // coop, only my own mid-race in compete, where a rival's rows never
+    // reach here and their words stay mine to find.
+    const cfg = makeCfg({ foundWords: [{ word: 'apple' }] })
+    const { type, submit } = setup(cfg)
+    type('apple')
+    await submit()
+    expect(cfg.commit).not.toHaveBeenCalled()
+    expect(lastReport(cfg)?.answer).toBe('already_found')
   })
 
   it('reports a too-short word, and does not commit', async () => {
@@ -257,7 +250,7 @@ describe('useFoundWordSubmit', () => {
 
   it('records a rejection for too-short and not-legal, and NOT for already-found', async () => {
     const recordReject = vi.fn()
-    const cfg = makeCfg({ recordReject, foundWords: [{ word: 'apple', user_id: 'u1' }] })
+    const cfg = makeCfg({ recordReject, foundWords: [{ word: 'apple' }] })
     const { type, submit } = setup(cfg)
 
     type('abc') // under minWordLength
@@ -274,7 +267,7 @@ describe('useFoundWordSubmit', () => {
   })
 
   it('tells onAnswer about every answer, already-found included', async () => {
-    const cfg = makeCfg({ foundWords: [{ word: 'apple', user_id: 'u1' }] })
+    const cfg = makeCfg({ foundWords: [{ word: 'apple' }] })
     const { type, submit } = setup(cfg)
 
     type('abc')

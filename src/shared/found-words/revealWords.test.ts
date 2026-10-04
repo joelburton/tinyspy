@@ -1,47 +1,35 @@
 // cs-blessed-found-words
 
 import { describe, expect, it } from 'vitest'
+import type { FoundWordsWord } from './foundWords'
 import { buildRevealWords } from './revealWords'
 
 /**
- * The missed set at game over: every required and bonus word nobody found,
- * each tagged with which shipped list it came from.
+ * The missed set at game over: every legal word nobody found, the bonus ones
+ * included only when the board's bonus words are worth revealing.
  *
- * Both lists are already on the client — the games ship them at start so the FE
+ * Every word is already on the client — the games ship them at start so the FE
  * can validate and score guesses locally — so this is a pure fold with nothing
  * crossing the wire, and it tests as one.
- *
- * The second case is the one worth having: passing `[]` for the bonus list is
- * how boggle reveals only the required half when its legal band equals its
- * required band, and that is a real caller rather than a degenerate input.
  */
+const w = (word: string, bonus = false): FoundWordsWord => ({ word, points: 1, pangram: false, bonus })
+
 describe('buildRevealWords', () => {
-  it('returns every unfound word from both lists, tagged by which list', () => {
-    const reveal = buildRevealWords(
-      [{ word: 'bead', points: 1, is_pangram: false }, { word: 'bald', points: 1, is_pangram: false }],
-      [{ word: 'blag', points: 1, is_pangram: false }],
-      [{ word: 'bead' }],
-    )
-    expect(reveal.map((w) => [w.word, w.is_bonus])).toEqual([['bald', false], ['blag', true]])
+  it('returns every unfound word, required and bonus, each carrying its flag', () => {
+    const reveal = buildRevealWords([w('bead'), w('bald'), w('blag', true)], [{ word: 'bead' }], true)
+    expect(reveal.map((x) => [x.word, x.bonus])).toEqual([['bald', false], ['blag', true]])
   })
 
-  it('excludes a found word from the BONUS list too, not just the required one', () => {
-    // The two filters are separate expressions, so "found" has to be applied
-    // twice. Without this the bonus half could ignore the found set entirely
-    // and every other case here would still pass — a player would be shown a
-    // word they had already found, listed as missed.
-    const reveal = buildRevealWords(
-      [{ word: 'bald', points: 1, is_pangram: false }],
-      [{ word: 'blag', points: 1, is_pangram: false }],
-      [{ word: 'blag' }],
-    )
-    expect(reveal.map((w) => w.word)).toEqual(['bald'])
+  it('excludes a found bonus word too, not just a found required one', () => {
+    const reveal = buildRevealWords([w('bald'), w('blag', true)], [{ word: 'blag' }], true)
+    expect(reveal.map((x) => x.word)).toEqual(['bald'])
   })
 
-  it('an empty bonus list reveals only the required half', () => {
-    // boggle passes [] when its legal band equals its required band, where
-    // "bonus" would mean only the words the clean filter removed.
-    const reveal = buildRevealWords([{ word: 'bald', points: 1, is_pangram: false }], [], [])
-    expect(reveal.map((w) => w.word)).toEqual(['bald'])
+  it('leaves the bonus words out when they are not to be revealed', () => {
+    // A board whose legal band equals its required band: its bonus words are
+    // only what the cleanliness filter removed, and the game never suggests
+    // one (`sameBandsAndHaveNoBonus`).
+    const reveal = buildRevealWords([w('bald'), w('damn', true)], [], false)
+    expect(reveal.map((x) => x.word)).toEqual(['bald'])
   })
 })

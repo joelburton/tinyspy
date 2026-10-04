@@ -5,6 +5,7 @@ import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { showFaultModal } from '@/common/faults/faultStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import type { FoundWordsWord } from './foundWords'
 
 /**
  * The shared **type-a-word-and-submit** engine, for a game that ships its legal
@@ -45,12 +46,6 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
  *  form (matches the DB rows + boggle's board string); `points` and the flags
  *  come straight off the shipped data, so the FE computes nothing. `isPangram`
  *  is optional: only some games in the family have the concept. */
-export type LegalWord = {
-  word: string
-  points: number
-  isBonus: boolean
-  isPangram?: boolean
-}
 
 /** What the engine decided about a submitted word. A game maps these into its
  *  own answers, which are usually more: spellingbee splits `not_legal` three
@@ -62,16 +57,14 @@ export type WordSubmitAnswer = 'accepted' | 'too_short' | 'not_legal' | 'already
  *  word normally has an entry — it was legal when it was found — so a game can
  *  still dot a bonus word. */
 export type WordSubmitReport =
-  | { answer: 'accepted'; word: string; entry: LegalWord }
-  | { answer: 'already_found'; word: string; entry: LegalWord | null }
+  | { answer: 'accepted'; word: string; entry: FoundWordsWord }
+  | { answer: 'already_found'; word: string; entry: FoundWordsWord | null }
   | { answer: 'too_short'; word: string }
   | { answer: 'not_legal'; word: string }
 
 /** Everything the engine cannot know: the game's board rules, its RPC, and what
  *  it says about each answer. */
 export type FoundWordSubmitConfig = {
-  mode: 'coop' | 'compete'
-  userId: string
   // The move is mine (the page's `isMyTurn`) — otherwise submit is a no-op:
   // the game is over, I am out of it, or it is a teammate's turn.
   isMyTurn: boolean
@@ -79,17 +72,18 @@ export type FoundWordSubmitConfig = {
   // The game's below-board slot, for the server's `not-ok` when a commit does
   // not land. Everything else the game shows there itself, from `onAnswer`.
   localFeedbackSlot: FeedbackSlot
-  // Committed rows (from `useGame`), the dedup source. Mode-aware: coop dedups
-  // across all players (one shared find list); compete dedups per-player.
-  foundWords: ReadonlyArray<{ word: string; user_id: string }>
-  // O(1) membership over the game's legal list, keyed by lowercase word. Returns
-  // the matched entry (points + flags) or `null` for a non-legal word.
-  lookup: (word: string) => LegalWord | null
+  // The finds I can see (`gd.foundWords`), the dedup source: everyone's in
+  // coop, my own mid-race in compete, which is the seat rule's work and so
+  // needs no mode here. A word a rival found is still mine to find.
+  foundWords: ReadonlyArray<{ word: string }>
+  // O(1) membership over the board's words, keyed by lowercase word. Returns
+  // the matched word (points + flags) or `null` for a non-legal word.
+  lookup: (word: string) => FoundWordsWord | null
   // The trusting-commit RPC, fired in the background. **`null` means the word
   // LANDED; a `NotOkEnvelope` means it did not** — the game reads its own
   // answers (`pangram` in one, `dealt` in another, which a shared hook could
   // not) and hands back only whether the optimistic pill is still true.
-  commit: (entry: LegalWord) => Promise<NotOkEnvelope | null>
+  commit: (entry: FoundWordsWord) => Promise<NotOkEnvelope | null>
   // Every answer, as it is decided — the game says what it means (its
   // `lib/answer.ts`) and shows it. Fires for EVERY answer, already-found
   // included, and before the commit for an accepted word.
@@ -187,9 +181,7 @@ export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitA
 
     const alreadyFound =
       pendingRef.current.has(w) ||
-      c.foundWords.some(
-        (f) => f.word === w && (c.mode === 'coop' || f.user_id === c.userId),
-      )
+      c.foundWords.some((f) => f.word === w)
     if (alreadyFound) {
       c.onAnswer({ answer: 'already_found', word: w, entry })
       return

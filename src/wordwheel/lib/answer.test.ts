@@ -49,7 +49,7 @@ describe('answerOf', () => {
   })
 
   it('carries the entry\'s points and flags', () => {
-    const entry = { word: 'abcdefghi', points: 24, isBonus: false, isPangram: true }
+    const entry = { word: 'abcdefghi', points: 24, pangram: true, bonus: false }
     expect(answerOf({ answer: 'accepted', word: 'abcdefghi', entry }, 'e'))
       .toEqual({ answerType: 'accepted', word: 'abcdefghi', points: 24, isBonus: false, isPangram: true })
     expect(answerOf({ answer: 'already_found', word: 'abcdefghi', entry: null }, 'e'))
@@ -61,7 +61,7 @@ describe('answerOf', () => {
 
 describe('peerAnswerMessage', () => {
   it('reads a teammate\'s row as the accepted_peer answer', () => {
-    expect(peerAnswerMessage({ word: 'bcdfge', points: 6, is_bonus: true }))
+    expect(peerAnswerMessage({ word: 'bcdfge', points: 6, bonus: true, pangram: false }))
       .toEqual({ outcome: 'won', text: 'found BCDFGE • +6' })
   })
 })

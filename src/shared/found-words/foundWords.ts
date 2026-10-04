@@ -1,35 +1,28 @@
 // cs-blessed-found-words
 
 /**
- * The found-words family's two data shapes: one accepted guess, and one entry
- * of a word list the board ships with.
+ * The found-words family's two data shapes, as a game's `gd` holds them: one
+ * legal word of the board, and one find.
  *
- * A game in the family keeps a `<schema>.found_words` table, and they agree
- * column for column but for the pangram flag. What differs between them is the
- * BOARD — a hive, a wheel, a square of dice — and that lives in each game's own
- * header type, never here.
- *
- * `is_pangram` is optional because not every board has the concept, and a table
- * for a board that doesn't has no such column. Absent reads as false at every
- * site that shows it, which is the shape `WordListRow` already settled on and
- * what `buildRevealWords` and `buildWordListRows` are generic over.
+ * A game in the family ships every legal word with its board and keeps a
+ * `<schema>.found_words` table of what was found; its builder writes both into
+ * the page blob, and its `gd` turns a find's `userId` into the player. These
+ * are those two rows, camel as every blob key is, with a predicate inside the
+ * row bare (`bonus`, `pangram`). What differs between the games is the BOARD —
+ * a hive, a wheel, a square of dice — and that lives in each game's own types,
+ * never here.
  */
 
-/** One entry of a shipped word list, required or bonus. Carries points + the
- *  pangram flag so the FE validates + scores a guess locally. The reveal is
- *  this wrapped — `RevealWord<FoundWordsWord>` adds the tag saying which of the
- *  two lists an entry came from. */
-export type FoundWordsWord = { word: string; points: number; is_pangram?: boolean }
+/** One legal word of the board, scored when the board was built. A bonus word
+ *  is legal but not required: it scores and is accepted, and is not the goal;
+ *  `pangram` is false on a board without the concept. */
+export type FoundWordsWord = { word: string; points: number; pangram: boolean; bonus: boolean }
 
-/** One accepted guess (a row of `<schema>.found_words`). */
-export type FoundWordRow = {
-  game_id: string
-  user_id: string
-  word: string
-  points: number
-  is_pangram?: boolean
-  is_bonus: boolean
-  found_at: string
+/** One find, as `gd` holds it: the word with its score and flags, who found
+ *  it, and when. */
+export type FoundWordRow = FoundWordsWord & {
+  by: { id: string }
+  at: string
 }
 
 /**
@@ -38,6 +31,6 @@ export type FoundWordRow = {
  * in several places — each game's own-move lines and its peers' finds — and
  * the bullet has to look the same in all of them.
  */
-export function wordWithBonusBullet(word: string, isBonus = false): string {
-  return `${word.toUpperCase()}${isBonus ? ' •' : ''}`
+export function wordWithBonusBullet(word: string, bonus = false): string {
+  return `${word.toUpperCase()}${bonus ? ' •' : ''}`
 }
