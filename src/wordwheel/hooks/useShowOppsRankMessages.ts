@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import { answerMessage } from '../lib/answer'
 import type { GGameData } from '../types'
 
@@ -36,7 +35,7 @@ export function useShowOppsRankMessages(
       if (p.rankIdx > (seen.get(p.id) ?? 0)) {
         const { outcome, text } = answerMessage({
           answerType: 'reached_peer',
-          rank: RANKS[p.rankIdx] ?? 'a new rank',
+          rank: p.rankName,
         })
         globalFeedbackSlot.show(FeedbackMessage.peerMilestone(p, outcome, text))
       }

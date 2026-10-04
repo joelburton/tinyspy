@@ -16,8 +16,7 @@ type Props = {
   // The board responds to me. When false no tile takes a click, a hover or a
   // press.
   isInteractive: boolean
-  // Called with the clicked tile; the caller appends its letter to the typed
-  // word.
+  // Called with the clicked tile.
   onTileClick: (tile: GTile) => void
   // The letters the word being typed is using — those tiles wear the selected
   // edge. Letters, not tiles: the board is a SET, a letter is on one tile and
@@ -61,7 +60,7 @@ export function Board({ tiles, isInteractive, onTileClick, usedLetters, refused 
               <Tile
                 key={mark ? `${tile.id}#${mark.nonce}` : tile.id}
                 tile={tile}
-                pos={HEX_POSITIONS[i] ?? HEX_POSITIONS[0]}
+                pos={HEX_POSITIONS[i]!}
                 used={usedLetters.has(tile.letter)}
                 answer={mark?.value.outcome}
                 // A tile with no handler is inert — no click, hover or press.

@@ -2,7 +2,6 @@
 
 import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '@/common/terminal/gameEnding'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
-import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { BeePlayer, BeeStateLineData } from './beeGameData'
 
 /**
@@ -54,12 +53,11 @@ export function buildBeeGameEndingMessage({
   // What the state line shows: the team's figures in coop, my own in compete.
   stateLineData: BeeStateLineData
 }): TerminalMessage {
-  const rankName = RANKS[stateLineData.rankIdx]
+  const rankName = stateLineData.rankName
   const points = `${stateLineData.foundWordsScore}/${stateLineData.reqdWordsScore} points`
   // The rank NAMED in a win is the one they set out for; the score can
-  // overshoot it. A coop game with no target cannot be won, so the fallback is
-  // for the type alone.
-  const targetRankName = RANKS[stateLineData.targetRankIdx ?? stateLineData.rankIdx]
+  // overshoot it. Only a game with a target can be won.
+  const targetRankName = stateLineData.targetRankName
 
   if (mode === 'compete') {
     if (gameEnding.outcome === 'won') {

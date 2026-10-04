@@ -10,7 +10,7 @@ import type { BeePlayer } from './beeGameData'
 import { buildBeeGameEndingMessage, buildBeePlayerEndingMessage } from './endingMessage'
 
 /** 47 of 50 points is rank 5 (Amazing); the target is rank 6 (Genius). */
-const stateLineData = { nFoundWords: 20, foundWordsScore: 47, rankIdx: 5, targetRankIdx: 6, nReqdWords: 30, reqdWordsScore: 50 }
+const stateLineData = { nFoundWords: 20, foundWordsScore: 47, rankIdx: 5, rankName: 'Amazing', targetRankIdx: 6, targetRankName: 'Genius', nReqdWords: 30, reqdWordsScore: 50 }
 const alice = { id: 'u2', username: 'alice', color: 'blue' } as BeePlayer
 
 describe('coop', () => {
@@ -30,7 +30,7 @@ describe('coop', () => {
     for (const reason of ['timeout', 'stopped'] as const) {
       expect(buildBeeGameEndingMessage({
         mode: 'coop', gameEnding: { outcome: 'neutral', reason }, playerOutcome: 'neutral', winner: null,
-        stateLineData: { ...stateLineData, targetRankIdx: null },
+        stateLineData: { ...stateLineData, targetRankIdx: null, targetRankName: null },
       })).toEqual({ pillText: 'Ended: Amazing 47/50 points', infoColText: 'Amazing', outcome: 'neutral' })
     }
   })

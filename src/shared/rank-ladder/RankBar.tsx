@@ -1,11 +1,14 @@
 // cs-blessed-rank-ladder
 
 import { cls } from '@/common/utils/cls'
-import { currentRankIndex, rankPoints, RANKS } from './rankLadder'
+import { rankPoints, RANKS } from './rankLadder'
 import styles from './RankBar.module.css'
 
 type Props = {
-  score: number
+  // The rank reached, and its name for the label above the track.
+  rankIdx: number
+  rankName: string
+  // The required points: each tier's tooltip names what it takes.
   total: number
   /** The rank this game is played TO, when one was set — `setup.target_rank`
    *  (always in compete, optional in coop). Its square gets the goal outline.
@@ -32,19 +35,14 @@ type Props = {
  * are the same wherever the bar appears — see the CSS module for why; only the
  * type color `--rank-text` is aliased per game in its `theme.css`.
  *
- * Pure derivation from `score` + `total` via `currentRankIndex`, which agrees
- * with the SQL `common._rank_idx` that decides a compete win — not because they
- * share code or constants but because the integer expression there is the
- * algebraic rearrangement of the float comparison here. `rankLadder.ts` carries
- * the derivation, and a pgTAP per caller pins the two at every rank boundary.
- * Rewriting either side means preserving that equivalence, which is a stronger
- * constraint than leaving the constants alone.
+ * The rank is the caller's, as the server computed it (`common._rank_idx`):
+ * the bar draws it and works none out. Only each tier's points come from
+ * `rankLadder.ts` (`rankPoints`).
  */
-export function RankBar({ score, total, targetIdx = null }: Props) {
-  const idx = currentRankIndex(score, total)
+export function RankBar({ rankIdx, rankName, total, targetIdx = null }: Props) {
   return (
     <div className={styles.rankBar}>
-      <span className={styles.label}>{RANKS[idx]}</span>
+      <span className={styles.label}>{rankName}</span>
       <ol className={styles.track}>
         {RANKS.map((name, i) => {
           const pts = rankPoints(i, total)
@@ -62,7 +60,11 @@ export function RankBar({ score, total, targetIdx = null }: Props) {
             // matters is in `RankBar.test.tsx`, which pins it.
             <li
               key={name}
-              className={cls(styles.tier, i <= idx && styles.achieved, isTarget && styles.target)}
+              className={cls(
+                styles.tier,
+                i <= rankIdx && styles.achieved,
+                isTarget && styles.target
+              )}
               data-tooltip={`${name} · ${pts} pts${isTarget ? ' · target' : ''}`}
               data-tooltip-on="readout"
             />

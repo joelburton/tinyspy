@@ -10,18 +10,22 @@ follows from that being a *fraction* rather than a list of scores: the tiers
 are the same wherever they appear, and what they mean depends entirely on the
 board you are playing.
 
-The ladder is computed twice, and what holds the two halves together is
-algebra rather than shared code. The frontend needs a fraction — which of seven
-squares to fill — so `currentRankIndex` walks float thresholds. The server
-needs an integer, because the same number decides who wins a compete race, and
-a rank boundary is exactly where floating point stops being reproducible; so
-`common._rank_idx` does one integer division, `least(6, (score * 60) / (total *
-7))`. That expression is the algebraic rearrangement of `score >=
-rankThreshold(i) * total`, which is why the two agree — and they do agree, over
-every score against every total from 1 to 2000, checked exhaustively rather
-than argued. The constraint on anyone rewriting either side is that
-equivalence, which is stronger than leaving the constants alone. `rankLadder.ts`
-carries the derivation; a `rank_idx_test.sql` per caller pins the SQL half.
+The rank is the server's. `common._rank_idx` does one integer division,
+`least(6, (score * 60) / (total * 7))`, because the same number decides who
+wins a compete race and a rank boundary is exactly where floating point stops
+being reproducible. The page draws the index the blob carries; `<RankBar>`
+works none out.
+
+The ladder is still written twice, and what holds the two halves together is
+algebra rather than shared code. `currentRankIndex` walks the float thresholds,
+for a test fixture that builds a blob the way the server would, and
+`rankPoints` names each tier's points in the bar's tooltips. The SQL expression
+is the algebraic rearrangement of `score >= rankThreshold(i) * total`, which is
+why the halves agree — and they do agree, over every score against every total
+from 1 to 2000, checked exhaustively rather than argued. The constraint on
+anyone rewriting either side is that equivalence, which is stronger than
+leaving the constants alone. `rankLadder.ts` carries the derivation; a
+`rank_idx_test.sql` per caller pins the SQL half.
 
 A tier is a readout rather than a control, and two things follow from that
 which would look arbitrary apart. Nothing in the bar is focusable — no

@@ -36,14 +36,15 @@ test('coop: crossing the target rank wins, celebrates once, and shows the verdic
   await expect(page.getByText('BEAD — +1')).toBeVisible()
   await expect(page.getByRole('dialog', { name: /you win/i })).toHaveCount(0)
 
-  // The word that crosses it: 1 + 17 = 18 ≥ 12 (Solid).
+  // The word that crosses it: 1 + 17 = 18 ≥ 12 (Solid), and on past it to
+  // Nice — the rank the celebration names.
   await page.keyboard.type('abcdefg')
   await page.keyboard.press('Enter')
 
   // The celebration pops at the moment of the win…
   const celebration = page.getByRole('dialog', { name: /you win/i })
   await expect(celebration).toBeVisible({ timeout: 8000 })
-  await expect(celebration).toContainText('Reached "Solid"')
+  await expect(celebration).toContainText('Reached "Nice"')
   await page.getByRole('button', { name: 'Nice!' }).click()
   await expect(celebration).toHaveCount(0)
 

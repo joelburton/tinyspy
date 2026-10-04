@@ -17,12 +17,13 @@ import type { GGameData, GTile } from '../types'
 
 /**
  * spellingbee's board column — the honeycomb `<Board>`, a floating Shuffle
- * over its top-right, and the below-board region: the shared `<WordEntryArea>`,
- * whose typed word is drawn through `<TypedWord>` so a letter off the board dims.
+ * over its top-right, and the below-board region: the shared
+ * `<WordEntryArea>`, whose typed word is drawn through `<TypedWord>` so a
+ * letter off the board dims.
  *
  * It owns the **move**: submitting the typed word (`useSubmitWord`), what the
- * board shows for the answer, and the tile click that appends its letter to the word.
- * See docs/playarea.md.
+ * board shows for the answer, and the tile click that appends its letter to
+ * the word. See docs/playarea.md.
  */
 export function BoardCol({
   gd,
@@ -40,8 +41,7 @@ export function BoardCol({
 
   const { centerLetter, outerLetters } = gd.puzzle
 
-  // The board's seven letters — the typed word's illegal-letter dim, and why
-  // a word missed.
+  // The board's seven letters.
   const allowedLetters = useMemo(
     () => new Set(outerLetters + centerLetter), [outerLetters, centerLetter])
 
@@ -79,9 +79,7 @@ export function BoardCol({
 
   return (
     <div className={cls(shared.boardCol, bee.boardCol)}>
-      {/* Mobile only (`<MobileStatusBar>` is CSS-hidden on desktop): the state
-          line, above the board. A fixed-height block, already
-          subtracted from the board's `--avail-h`. */}
+      {/* The state line above the board, on a phone only; see `<MobileStatusBar>`. */}
       <MobileStatusBar>
         <div className={bee.mobileStatus}>
           <StateLine data={gd.stateLineData} />

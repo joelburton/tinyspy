@@ -490,15 +490,14 @@ next open (todo.md → Someday).
   the setup pair and `Answer` into `types.ts` under `G` names, and made the
   geometry modules `lib/board.ts`. `wordsByWord` stays in `useSubmitWord` by
   ruling.
-- **Next, in this order (2026-10-03):** psychicnum's naming pass
-  (`nFoundSecrets`, `nReqdSecrets`, `nGuessesUsed`, with the two columns, plus
-  `BoardCol` reading `gd.me.outcome` and the doc's stale lines), then
-  psychicnum's `GTile` (decision 9) as its own commit, then wordle's naming
-  pass (`nGuessesUsed`, `nWinnerGuesses`, the column, and `LetterTile` →
-  `Tile`; done 2026-10-03).
-- **Then** connections' InfoCol and Board passes resume on the new shape
-  (done 2026-10-03: BoardCol, Board with `Tile` and `Band`, InfoCol, and the
-  tile as `{id, word}`), and the next game converts straight onto it.
+- **psychicnum's and wordle's naming passes — done 2026-10-03.** psychicnum
+  took `nFoundSecrets`, `nReqdSecrets` and `nGuessesUsed` with the two
+  columns, its `BoardCol` reads `gd.me.outcome`, and its `GTile` (decision 9)
+  landed as its own commit; wordle took `nGuessesUsed`, `nWinnerGuesses`, the
+  column, and `LetterTile` → `Tile`.
+- **connections' component passes — done 2026-10-03** on the new shape:
+  BoardCol, Board with `Tile` and `Band`, InfoCol, and the tile as
+  `{id, word}`.
 
 ## How a game converts — the steps
 

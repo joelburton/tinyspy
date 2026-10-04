@@ -11,7 +11,6 @@ import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import { peerAnswerMessage } from '../lib/answer'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
@@ -76,9 +75,7 @@ function PlayArea({
 
   // ─── Page hooks ────────────────────────────────────────
 
-  // The entry is typed at the window rather than into an input, so nothing here
-  // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
-  // out to the browser.
+  // Tab isn't used; an empty ring keeps it from reaching browser chrome.
   useTabRing([])
 
   // On a phone the hive fills the screen and the info column moves into an
@@ -91,8 +88,7 @@ function PlayArea({
 
   // ─── The local slot, and what stands in it ─────────────
 
-  // The slot under the board is for messages about ME: each word's answer, a
-  // submit's not-ok, and the two endings below.
+  // The slot under the board is for messages about ME.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // The endings' messages, for the pill and the info column: the game's once
@@ -140,14 +136,28 @@ function PlayArea({
 
   // The ending that applies to me: the game's once it has ended, else mine.
   const endingMessage = gameEndingMessage ?? playerEndingMessage
+  const sld = gd.stateLineData
 
   return (
-    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
+    <div
+      className={cls(
+        shared.layout,
+        shared.responsiveInfoCol,
+        shared.mobileFill,
+        surface.layout,
+        styles.layout,
+      )}
+    >
       <BoardCol gd={gd} localFeedbackSlot={localFeedbackSlot} />
 
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
-        <InfoCol gd={gd} myId={myId} endingMessage={endingMessage} actions={actions} />
+        <InfoCol
+          gd={gd}
+          myId={myId}
+          endingMessage={endingMessage}
+          actions={actions}
+        />
       </InfoSheet>
 
       {/* My win's confetti — once, when it happens. Only a game with a target
@@ -155,7 +165,11 @@ function PlayArea({
       {celebration.isOpen && (
         <CelebrationBlockingModal
           title="You win! 🎉"
-          body={`Reached "${RANKS[gd.me.targetRankIdx ?? gd.stateLineData.rankIdx]}"${gd.compete ? ' first' : ''} — ${gd.stateLineData.foundWordsScore}/${gd.stateLineData.reqdWordsScore} points.`}
+          body={
+            `Reached "${sld.rankName}"` +
+            `${gd.compete ? ' first' : ''} — ` +
+            `${sld.foundWordsScore}/${sld.reqdWordsScore} points.`
+          }
           onClose={celebration.close}
         />
       )}

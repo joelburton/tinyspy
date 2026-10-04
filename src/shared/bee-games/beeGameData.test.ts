@@ -10,6 +10,7 @@
  * withheld mid-race and nowhere else, while their counts stay.
  */
 import { describe, expect, it, vi } from 'vitest'
+import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import { makeBeeGameData } from './beeGameData'
 import { ZTest_find, ZTest_makeBeeGameDataRaw } from './beeGameData.fixture'
 
@@ -105,9 +106,29 @@ describe('makeBeeGameData — the links become players', () => {
       noRows,
     )
     expect(gd.stateLineData).toEqual({
-      nFoundWords: 2, foundWordsScore: 6, rankIdx: gd.team!.rankIdx, targetRankIdx: 3,
+      nFoundWords: 2, foundWordsScore: 6,
+      rankIdx: gd.team!.rankIdx, rankName: RANKS[gd.team!.rankIdx],
+      targetRankIdx: 3, targetRankName: 'Nice',
       nReqdWords: 2, reqdWordsScore: 6,
     })
+  })
+
+  it('every player and the team carry their ranks by name', () => {
+    const gd = makeBeeGameData(
+      ZTest_makeBeeGameDataRaw(GAME, { players: TWO, foundWords: FINDS, targetRankIdx: 3 }),
+      'u1',
+      noRows,
+    )
+    for (const t of [gd.team!, ...gd.players]) {
+      expect(t.rankName).toBe(RANKS[t.rankIdx])
+      expect(t.targetRankName).toBe('Nice')
+    }
+  })
+
+  it("an open hunt's target has no name", () => {
+    const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO }), 'u1', noRows)
+    expect(gd.stateLineData.targetRankName).toBeNull()
+    expect(gd.me.targetRankName).toBeNull()
   })
 })
 

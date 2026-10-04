@@ -26,7 +26,7 @@ import styles from './RankBar.module.css'
  */
 describe('RankBar — a readout, not a control', () => {
   it('puts nothing in the tab order', () => {
-    const { container } = render(<RankBar score={12} total={40} targetIdx={4} />)
+    const { container } = render(<RankBar rankIdx={2} rankName="Solid" total={40} targetIdx={4} />)
     expect(container.querySelectorAll('[tabindex]')).toHaveLength(0)
     // No implicitly-focusable element either — a tier is an <li>, never a
     // <button>. If a tooltip ever needs real keyboard reach, it gets a proper
@@ -42,27 +42,20 @@ describe('RankBar — a readout, not a control', () => {
     // Selected through the stylesheet's own export rather than a literal class
     // name — the build hashes these (`_achieved_f92464`), so a literal would
     // pass only by accident. What this pins is the WIRING, which tiers get
-    // marked at a given score; that the class paints anything is the
+    // marked at a given rank; that the class paints anything is the
     // stylesheet's business and no render test can see it.
-    const filled = (score: number, total: number) =>
-      render(<RankBar score={score} total={total} />).container.querySelectorAll(
-        `.${styles.achieved}`,
-      ).length
+    const filled = (rankIdx: number) =>
+      render(<RankBar rankIdx={rankIdx} rankName={RANKS[rankIdx]!} total={40} />)
+        .container.querySelectorAll(`.${styles.achieved}`).length
 
     // Start is index 0 and is reached by definition, so the bar is never empty.
-    expect(filled(0, 40)).toBe(1)
-    // Mid-ladder: 12/40 is 30% of the max, which is Solid — the same score the
-    // case below reads the label for.
-    expect(filled(12, 40)).toBe(3)
-    // A full clear fills the lot. NOT the clamp, though it reads like it:
-    // `i <= idx` caps at seven whatever `idx` is, because there are seven
-    // squares — planting an unclamped index still passes this. The clamp is
-    // `currentRankIndex`'s and `rankLadder.test.ts` pins it there.
-    expect(filled(40, 40)).toBe(RANKS.length)
+    expect(filled(0)).toBe(1)
+    expect(filled(2)).toBe(3)
+    expect(filled(RANKS.length - 1)).toBe(RANKS.length)
   })
 
   it('still says everything it needs to in text', () => {
-    const { container } = render(<RankBar score={12} total={40} targetIdx={6} />)
+    const { container } = render(<RankBar rankIdx={2} rankName="Solid" total={40} targetIdx={6} />)
     // The current rank as the label above the track…
     expect(screen.getByText('Solid')).toBeInTheDocument()
     // …and every tier naming itself for the shared tooltip host, which is what

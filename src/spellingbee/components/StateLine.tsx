@@ -19,7 +19,12 @@ import type { GStateLineData } from '../types'
 export function StateLine({ data }: { data: GStateLineData }) {
   return (
     <>
-      <RankBar score={data.foundWordsScore} total={data.reqdWordsScore} targetIdx={data.targetRankIdx} />
+      <RankBar
+        rankIdx={data.rankIdx}
+        rankName={data.rankName}
+        total={data.reqdWordsScore}
+        targetIdx={data.targetRankIdx}
+      />
       <Stats
         foundWordsScore={data.foundWordsScore}
         reqdWordsScore={data.reqdWordsScore}

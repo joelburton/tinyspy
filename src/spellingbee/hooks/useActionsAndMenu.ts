@@ -12,7 +12,6 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { buildWordSections } from '@/common/pdf/wordSections'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runEdgeFn } from '@/common/supabase/dbResult'
-import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import { db } from '../db'
 import { makeWordRows } from '../lib/wordRows'
 import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
@@ -113,7 +112,7 @@ export function useActionsAndMenu({
         // header states only the shared targets.
         summary: gd.compete
           ? `Target: ${sld.reqdWordsScore} pts · ${sld.nReqdWords} words`
-          : `${RANKS[sld.rankIdx]} · Score ${sld.foundWordsScore} / ${sld.reqdWordsScore} · Words ${sld.nFoundWords} / ${sld.nReqdWords}`,
+          : `${sld.rankName} · Score ${sld.foundWordsScore} / ${sld.reqdWordsScore} · Words ${sld.nFoundWords} / ${sld.nReqdWords}`,
         outerLetters: gd.puzzle.outerLetters.split(''),
         centerLetter: gd.puzzle.centerLetter,
         mode: gd.mode,

@@ -78,9 +78,8 @@ list at all.
 
 The **rank ladder** runs Start → Good → Solid → Nice → Great → Amazing →
 Genius, evenly spaced up to Genius at 70% of the required total; a score past
-that clamps at Genius. `currentRankIndex` draws it on the frontend and
-`common._rank_idx` decides it on the server, in integer math, and the
-rank-ladder tests pin the two to the same answer at every boundary.
+that clamps at Genius. `common._rank_idx` decides it on the server, in
+integer math, and the page draws the index the blob carries.
 
 ### Vocabulary
 

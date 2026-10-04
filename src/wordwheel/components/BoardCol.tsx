@@ -42,9 +42,8 @@ export function BoardCol({
 
   const { centerLetter, outerLetters } = gd.puzzle
 
-  // The wheel's tile counts — the typed word's dim and the submit
-  // gate. The wheel is a MULTISET — a letter may sit on two tiles — so a word
-  // may use a letter as many times as it has tiles: a COUNT, not membership.
+  // Each letter → how many of the wheel's tiles carry it. The wheel is a
+  // MULTISET: a letter may sit on two tiles.
   const letterToCounts = useMemo(() => {
     const m = new Map<string, number>()
     for (const ch of outerLetters + centerLetter) m.set(ch, (m.get(ch) ?? 0) + 1)
@@ -72,10 +71,9 @@ export function BoardCol({
     submission.addClickedTile(tile)
   }
 
-  // Per-letter counts of the typed word: each use SPENDS one tile
-  // of its letter, and `lib/spend.ts` says which. Empty once the board is
-  // inert, so a word left half-typed when the game ended, or when I conceded,
-  // drops its marks.
+  // Per-letter counts of the typed word. Empty once the board is inert, so a
+  // word left half-typed when the game ended, or when I conceded, drops its
+  // marks.
   const typedCounts = useMemo(() => {
     const m = new Map<string, number>()
     if (!isInteractive) return m
@@ -86,9 +84,7 @@ export function BoardCol({
   // ─── Render ────────────────────────────────────────────
   return (
     <div className={cls(shared.boardCol, bee.boardCol)}>
-      {/* Mobile only (`<MobileStatusBar>` is CSS-hidden on desktop): the state
-          line, above the board. A fixed-height block, already
-          subtracted from the board's `--avail-h`. */}
+      {/* The state line above the board, on a phone only; see `<MobileStatusBar>`. */}
       <MobileStatusBar>
         <div className={bee.mobileStatus}>
           <StateLine data={gd.stateLineData} />
@@ -115,10 +111,9 @@ export function BoardCol({
             onAnyKey={localFeedbackSlot.dismiss}
             charFor={asciiLetters()}
             recall={submission.lastWord}
-            // Submit and Enter are inert while the word cannot be spelled from
-            // the wheel's tiles — the same characters `<TypedWord>` dims. A word
-            // that fits but misses the center, or is not in the list, still
-            // submits and gets its answer.
+            // Inert while the word cannot be spelled from the wheel's tiles. A
+            // word that misses the center, or is not in the list, still submits
+            // and gets its answer.
             submitDisabled={!canSpellFromTiles(submission.word, letterToCounts)}
             localFeedbackSlot={localFeedbackSlot}
           >

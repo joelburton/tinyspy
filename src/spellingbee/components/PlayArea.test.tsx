@@ -315,7 +315,7 @@ describe('spellingbee PlayArea — the celebration', () => {
 
     rerender(<PlayAreaLoader {...makeCtx({ ...coopTeam, ...coopWon })} />)
     expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
-    expect(screen.getByText('Reached "Amazing" — 17/18 points.')).toBeInTheDocument()
+    expect(screen.getByText('Reached "Genius" — 17/18 points.')).toBeInTheDocument()
   })
 
   it('does not pop when mounted into a coop game already won', () => {
@@ -336,7 +336,7 @@ describe('spellingbee PlayArea — the celebration', () => {
       />,
     )
     expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
-    expect(screen.getByText('Reached "Amazing" first — 17/18 points.')).toBeInTheDocument()
+    expect(screen.getByText('Reached "Genius" first — 17/18 points.')).toBeInTheDocument()
   })
 
   it('does not pop for a race somebody else won', () => {

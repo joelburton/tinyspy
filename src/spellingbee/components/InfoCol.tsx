@@ -6,7 +6,6 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { WordList } from '@/common/word-list/WordList'
-import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import { makeWordRows } from '../lib/wordRows'
 import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -14,9 +13,9 @@ import type { GActions, GGameData, GPlayer } from '../types'
 
 /**
  * spellingbee's info column: the shared readouts in the fixed order
- * (docs/playarea.md → Info-column readouts) — the state line (the rank ladder and the
- * figures), the opponent strip, the action row, setup, then the word list. There is no
- * help line. Every command is an action PlayArea hands down; an action that
+ * (docs/playarea.md → Info-column readouts) — the state line (the rank ladder
+ * and the figures), the opponent strip, the action row, setup, then the word
+ * list. There is no help line. Every command is an action PlayArea hands down; an action that
  * does not apply draws nothing, which is how one row serves coop and compete.
  */
 export function InfoCol({
@@ -41,10 +40,9 @@ export function InfoCol({
   // two "no longer active" states read differently — "Conceded at Amazing" vs
   // "Lost at Amazing" vs "Won at Genius".
   function getRankOrOut(player: GPlayer) {
-    const rank = RANKS[player.rankIdx]
-    if (!gd.ended) return player.ending ? 'out' : rank
+    if (!gd.ended) return player.ending ? 'out' : player.rankName
     const verb = player.outcome === 'won' ? 'Won' : player.conceded ? 'Conceded' : 'Lost'
-    return `${verb} at ${rank}`
+    return `${verb} at ${player.rankName}`
   }
 
   const wordRows = makeWordRows(gd)
@@ -61,8 +59,7 @@ export function InfoCol({
             metricLabel="Rank"
             leading={
               <>
-                {/* A race always has a target. */}
-                target: <strong>{RANKS[gd.me.targetRankIdx!]}</strong>
+                target: <strong>{gd.me.targetRankName}</strong>
               </>
             }
             metricFor={getRankOrOut}
@@ -76,8 +73,6 @@ export function InfoCol({
           <ActionButton action={actions.actNewGame} show="icon" />
           <ActionButton action={actions.actConcede} show="icon" />
           <ActionButton action={actions.actStopGame} show="icon" />
-          {/* Filled once the game has ended: the weight is the placement's
-              choice, not the action's (docs/ui.md → What a `<button>` is). */}
           <ActionButton
             action={actions.actBackToClub}
             show="icon"
@@ -88,8 +83,6 @@ export function InfoCol({
         <SetupDisclosure rows={gd.setupRows} />
       </div>
 
-      {/* The words ship from game start, so the missed-words reveal is gated on
-          the ending: `wordRows` carries them only then. */}
       <WordList
         rows={wordRows}
         players={gd.players}

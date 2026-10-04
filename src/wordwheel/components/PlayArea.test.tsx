@@ -420,7 +420,7 @@ describe('wordwheel PlayArea — the celebration', () => {
 
     rerender(<PlayAreaLoader {...makeCtx({ ...coopTeam, ...coopWon })} />)
     expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
-    expect(screen.getByText('Reached "Amazing" — 24/25 points.')).toBeInTheDocument()
+    expect(screen.getByText('Reached "Genius" — 24/25 points.')).toBeInTheDocument()
   })
 
   it('does not pop when mounted into a coop game already won', () => {
@@ -441,7 +441,7 @@ describe('wordwheel PlayArea — the celebration', () => {
       />,
     )
     expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
-    expect(screen.getByText('Reached "Amazing" first — 24/25 points.')).toBeInTheDocument()
+    expect(screen.getByText('Reached "Genius" first — 24/25 points.')).toBeInTheDocument()
   })
 
   it('does not pop for a race somebody else won', () => {

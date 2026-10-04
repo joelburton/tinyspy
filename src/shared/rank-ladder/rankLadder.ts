@@ -49,8 +49,8 @@ export function rankThreshold(i: number): number {
  *  number (e.g. i=5, total=108 → 63.00000000000001) and make `Math.ceil`
  *  overshoot by one. The algebraically-identical `(i * 7 * total) / 60`
  *  keeps the numerator an exact integer, so the label matches the
- *  integer win-check in `common._rank_idx` and the bar fill in
- *  `currentRankIndex` (see the lockstep note atop this file). */
+ *  integer win-check in `common._rank_idx`, which also gives the bar its
+ *  fill (see the lockstep note atop this file). */
 export function rankPoints(i: number, total: number): number {
   return Math.ceil((i * 7 * total) / 60)
 }
