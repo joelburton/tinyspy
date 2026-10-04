@@ -468,6 +468,20 @@ next open (todo.md → Someday).
   branch went, with the watcher's "X won" message. The three count columns
   took the blobs' names and coop's mistakes became each player's own
   (`20261002000002_connections_own_counts.sql`).
+- **spellingbee and wordwheel — done 2026-10-04, in tandem**, the same way,
+  with the shared shape in `shared/bee-games/beeGameData.ts`: one
+  `puzzle.words` list with bare `bonus` / `pangram` flags, `foundWords` as the
+  one list of everyone's finds filtered by the seat rule in `makeBeeGameData`,
+  `targetRankIdx` on each player and on `team`, and each game's `useGame`
+  delegating to it. The PlayArea pass gave each game `useActionsAndMenu`,
+  `useGetGameEndingMessage`, `useGetPlayerEndingMessage`,
+  `useShowOppsRankMessages` (a rival's `rankIdx` climbing, in place of the
+  status leaderboard) and `lib/wordRows.ts`; `BoardCol` and `InfoCol` take
+  `gd`; the two ending builders are `shared/bee-games/endingMessage.ts`;
+  `terminal.ts` and `beeLeaderboard.ts` went. `games_state`,
+  `_write_statuses` and `found_words_select`'s mode arms went (each area file →
+  The convenience RLS). Still owed to both: the hive/wheel → board, hex/Letter
+  → Tile renames and the setup-type names (`SpellingbeeSetup` → `GSetup`).
 - **Next, in this order (2026-10-03):** psychicnum's naming pass
   (`nFoundSecrets`, `nReqdSecrets`, `nGuessesUsed`, with the two columns, plus
   `BoardCol` reading `gd.me.outcome` and the doc's stale lines), then

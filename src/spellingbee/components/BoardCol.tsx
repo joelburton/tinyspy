@@ -17,15 +17,15 @@ import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { useMark } from '@/common/board-marks/useMark'
 import { runRpc } from '@/common/supabase/dbResult'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
+import { useFoundWordSubmit } from '@/shared/found-words/useFoundWordSubmit'
 import { db } from '../db'
-import type { FoundWordRow, SpellingbeeGame } from '../hooks/useGame'
 import { answerMessage, answerOf } from '../lib/answer'
 import { Hive } from './Hive'
 import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
 import bee from '@/shared/bee-games/beeBoard.module.css'
+import type { GGameData } from '../types'
 
 /** What `spellingbee.submit_word` puts in `data`. All four mean the row landed:
  *  three classifications echoing the caller's own flags, plus `won` — the word
@@ -46,70 +46,24 @@ type SubmittedWord =
  * `submit_word` commit, what each answer shows, and the hive's answer to a
  * refused word (the shake and the hex marks). It also owns the local
  * outer-letter shuffle — a per-player, view-only rearrange — and the letter
- * click that appends to the word.
- *
- * Everything else comes down: the board's letters, where I stand
- * (`isBoardInteractive`, `isMyTurn`), the lists a
- * word is judged against, and the feedback slot, which is the PlayArea's —
- * its standing conditions and InfoCol's Stop / Concede show into it too. See
- * docs/playarea.md.
+ * click that appends to the word. See docs/playarea.md.
  */
 export function BoardCol({
-  // ── Mobile-only status block (above the board) ──
-  foundWordsScore,
-  requiredWordsScore,
-  targetRankIdx,
-  foundWordsCount,
-  requiredWordsCount,
-  // ── Board to render ──
-  outerLetters,
-  centerLetter,
-  // ── The move ──
-  gameId,
-  mode,
-  myId,
-  isBoardInteractive,
-  isMyTurn,
-  foundWords,
-  requiredWords,
-  bonusWords,
+  gd,
   localFeedbackSlot,
 }: {
-  // ── Mobile-only status block ──
-  // The four figures behind the RankBar + Stats unit the info column renders,
-  // mirrored above the board on a phone (`<MobileStatusBar>`).
-  foundWordsScore: number
-  requiredWordsScore: number
-  foundWordsCount: number
-  requiredWordsCount: number
-  // The goal rank, when the game has one — marked on the mobile RankBar.
-  targetRankIdx: number | null
-
-  // ── Board to render ──
-  // The board's outer letters as stored; the shuffle below rearranges a copy.
-  outerLetters: string
-  centerLetter: string
-
-  // ── The move ──
-  gameId: string
-  mode: 'coop' | 'compete'
-  myId: string
-  // The page's standing terms (docs/win-lose.md → Where a player stands). The
-  // hive and the entry take letters while the board is interactive; the engine
-  // commits a word while the move is mine. Both go false once the game is over
-  // or I conceded a race the others play on.
-  isBoardInteractive: boolean
-  isMyTurn: boolean
-  // The committed rows, the engine's dedup source (mode-aware: the team's in
-  // coop, mine in compete).
-  foundWords: FoundWordRow[]
-  // Both shipped lists: a word is judged and scored against them here.
-  requiredWords: SpellingbeeGame['requiredWords']
-  bonusWords: SpellingbeeGame['bonusWords']
+  gd: GGameData
   // PlayArea's below-board slot — every answer shows into it, and the entry
   // row draws it in place of the controls.
   localFeedbackSlot: FeedbackSlot
 }) {
+  // The board is mine to touch: the hive and the entry take letters, and the
+  // engine commits a word. False once the game is over, or I conceded a race
+  // the others play on.
+  const isInteractive = gd.me.onTurn
+
+  const { centerLetter, outerLetters } = gd.puzzle
+
   // ─── Committing a guess ────────────────────────────────
   // The shared engine owns the typed word, the dedup and the optimistic commit;
   // this game supplies the lookup, the RPC and what it shows for each answer.
@@ -123,18 +77,12 @@ export function BoardCol({
     return s
   }, [outerLetters, centerLetter])
 
-  // Both lists ship, so a word is judged and scored here: required ∪ bonus,
-  // by word.
-  const legalIndex = useMemo(() => {
-    const m = new Map<string, LegalWord>()
-    for (const r of requiredWords) {
-      m.set(r.word, { word: r.word, points: r.points, isBonus: false, isPangram: r.is_pangram })
-    }
-    for (const b of bonusWords) {
-      m.set(b.word, { word: b.word, points: b.points, isBonus: true, isPangram: b.is_pangram })
-    }
-    return m
-  }, [requiredWords, bonusWords])
+  // The board's words by word: a typed word is judged and scored against them
+  // here, required and bonus alike.
+  const wordsByWord = useMemo(
+    () => new Map(gd.puzzle.words.map((w) => [w.word, w])),
+    [gd.puzzle.words],
+  )
 
   // The letters the refused word used: they wear its answer and shake. Captured
   // here because the entry has already cleared by the time the answer shows.
@@ -143,24 +91,22 @@ export function BoardCol({
   const center = centerLetter.toLowerCase()
   const { word, setWord, lastWord, submit } =
     useFoundWordSubmit({
-      mode,
-      userId: myId,
-      isMyTurn,
+      isMyTurn: isInteractive,
       minWordLength: 4,
       localFeedbackSlot,
-      foundWords,
-      lookup: (w) => legalIndex.get(w) ?? null,
+      foundWords: gd.foundWords,
+      lookup: (w) => wordsByWord.get(w) ?? null,
       // `null` says the row landed (`commit` in `useFoundWordSubmit`). None of
       // the four ok answers changes what the optimistic pill already says, and
-      // the win arrives over realtime like every other terminal.
+      // the win arrives with the next blob like every other ending.
       commit: async (e) => {
         const res = await runRpc<SubmittedWord>(
           db.rpc('submit_word', {
-            target_game: gameId,
-            word: e.word,
-            points: e.points,
-            is_pangram: e.isPangram ?? false,
-            is_bonus: e.isBonus,
+            p_game_id: gd.id,
+            p_word: e.word,
+            p_points: e.points,
+            p_is_pangram: e.pangram,
+            p_is_bonus: e.bonus,
           }),
         )
         if (res.type === 'not-ok') {
@@ -198,8 +144,8 @@ export function BoardCol({
   // count. Empty once the board is inert, so a word left half-typed when the
   // game ended, or when I conceded, drops its marks.
   const usedLetters = useMemo(
-    () => new Set(isBoardInteractive ? word.toUpperCase() : ''),
-    [isBoardInteractive, word],
+    () => new Set(isInteractive ? word.toUpperCase() : ''),
+    [isInteractive, word],
   )
 
   // A click is my next action, so it dismisses a gesture-cleared result.
@@ -215,9 +161,9 @@ export function BoardCol({
   // The shuffle — purely visual, touches nothing else.
 
   // A counter drives a memo, rather than an order kept in state plus a sync
-  // effect. Keyed on the outer-letters STRING, not the game object: a realtime
-  // refetch returns a fresh object even when the letters did not change, which
-  // would re-shuffle on every submit.
+  // effect. Keyed on the outer-letters STRING, not the puzzle object: a new
+  // blob is a fresh object even when the letters did not change, which would
+  // re-shuffle on every submit.
   const [shuffleSeed, setShuffleSeed] = useState(0)
   const outerShuffled = useMemo(() => {
     void shuffleSeed
@@ -232,6 +178,7 @@ export function BoardCol({
   })
 
   // ─── Render ────────────────────────────────────────────
+  const readout = gd.stateLineData
   return (
     <div className={cls(shared.boardCol, bee.boardCol)}>
       {/* Mobile only (`<MobileStatusBar>` is CSS-hidden on desktop): the rank
@@ -239,12 +186,12 @@ export function BoardCol({
           subtracted from the hive's `--avail-h`. */}
       <MobileStatusBar>
         <div className={bee.mobileStatus}>
-          <RankBar score={foundWordsScore} total={requiredWordsScore} targetIdx={targetRankIdx} />
+          <RankBar score={readout.foundWordsScore} total={readout.reqdWordsScore} targetIdx={readout.targetRankIdx} />
           <Stats
-            foundWordsScore={foundWordsScore}
-            requiredWordsScore={requiredWordsScore}
-            foundWordsCount={foundWordsCount}
-            requiredWordsCount={requiredWordsCount}
+            foundWordsScore={readout.foundWordsScore}
+            requiredWordsScore={readout.reqdWordsScore}
+            foundWordsCount={readout.nFoundWords}
+            requiredWordsCount={readout.nReqdWords}
           />
         </div>
       </MobileStatusBar>
@@ -252,7 +199,7 @@ export function BoardCol({
         refused={refused}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
-        isBoardInteractive={isBoardInteractive}
+        isBoardInteractive={isInteractive}
         onLetterClick={handleLetterClick}
         usedLetters={usedLetters}
         // Passed into Hive so it anchors to the visual hive rather than
@@ -274,7 +221,7 @@ export function BoardCol({
             onChange={setWord}
             onSubmit={submit}
             placeholder="Type or click letters"
-            disabled={!isBoardInteractive}
+            disabled={!isInteractive}
             onAnyKey={localFeedbackSlot.dismiss}
             charFor={asciiLetters('upper')}
             recall={lastWord}

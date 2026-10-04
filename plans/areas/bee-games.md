@@ -44,13 +44,19 @@ shipped the same day, at the gate, fixing all sixteen games.
 
 `src/shared/bee-games/` — every code file `cs-met-bee-games`:
 
-- `makeBeeGame.ts` · `makeBeeGame.test.ts` — the `useGame` factory the two games
-  bind to a schema, the immutable `BeeGame` header it returns, and the two data
-  lifecycles (a once-only header read, a realtime-refetched found list)
+- `beeGameData.ts` · `beeGameData.test.ts` · `beeGameData.fixture.ts` — the
+  blob shape both builders write (`GBee*`), `makeBeeGameData` with the seat
+  rule, and the fixture that builds a blob from a test's facts (2026-10-03,
+  the seat-view conversion; they replaced `makeBeeGame.ts` and its test,
+  `cs-unmet` until this area re-reads them)
+- `endingMessage.ts` · `endingMessage.test.ts` — the two ending builders the
+  games' ending hooks feed from `gd` (2026-10-04; replaced `terminal.ts` and
+  its test, `cs-unmet` until this area re-reads them)
 - `beeBoard.module.css` — the coordinate-unit board geometry: `--u`,
   `--board-width`, and the mobile status block's content width
 - `beeLeaderboard.ts` — the compete leaderboard row on `common.games.status`.
-  No spec, and nothing to pin: it is a type declaration
+  **Deleted 2026-10-04**: the rank a rival climbs is their `rankIdx` on the
+  blob's player now
 - `doc.md` (a lede; the `## Intro to area` is OWED — `shared/bee-games` is one
   of the rows on `INTROS_OWED` in `src/guards/folderDocs.test.ts`) · `todo.md`
   (every heading, no items)

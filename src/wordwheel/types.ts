@@ -9,6 +9,7 @@
  * setup type.
  */
 
+import type { Action } from '@/common/actions/useBindAction'
 import type {
   GBeeFoundWord,
   GBeeFoundWordRaw,
@@ -42,3 +43,24 @@ export type GFoundWordRaw = GBeeFoundWordRaw
 export type GFoundWord = GBeeFoundWord
 export type GStateLineData = GBeeStateLineData
 export type GSummaryData = GBeeSummaryData
+
+/**
+ * Every command wordwheel offers, bound once: the info column's action row
+ * places them, the menu lists them, and their keys fire them — all reading the
+ * same action, so the surfaces cannot drift.
+ */
+export type GActions = {
+  // Restart THIS board — same letters, finds wiped. A button only at the end.
+  actRestart: Action
+  // Start a fresh follow-up game — same setup, new board and id. A button only
+  // at the end; disables itself while the create is in flight.
+  actNewGame: Action
+  // Drop out of a race while the others play on — hidden outside compete.
+  actConcede: Action
+  // Stop the game for the whole table — coop's exit; it hides itself in a race.
+  actStopGame: Action
+  // Print the board and the word list.
+  actPrintBoard: Action
+  // Leave for the club — the shell's own action, off `menu`.
+  actBackToClub: Action
+}

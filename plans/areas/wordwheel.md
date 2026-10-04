@@ -36,6 +36,14 @@ Agreed with Joel 2026-09-23 (*"i do; stamp the files"*), `cs-met-wordwheel` —
 | `supabase/tests/wordwheel/` | 13 | every pgTAP file but one, and `setup.psql` |
 | `supabase/functions/wordwheel-build-board/` | 3 | `index.ts`, `board.ts`, `board_test.ts` |
 
+**The seat-view conversion (2026-10-03/04) added, all `cs-unmet` until this
+area re-reads them:** `hooks/useGame.test.ts`, `lib/gameData.fixture.ts`,
+`lib/wordRows.ts`, `hooks/useActionsAndMenu.ts`,
+`hooks/useGetGameEndingMessage.ts`, `hooks/useGetPlayerEndingMessage.ts`,
+`hooks/useShowOppsRankMessages.ts`, `supabase/tests/wordwheel/game_data_test.sql`;
+and deleted `supabase/tests/wordwheel/statuses_test.sql`. `components/PlayArea.test.tsx`
+was rewritten over the fixture.
+
 `src/wordwheel/logo.svg` has nowhere to put a stamp, and `todo.md` is markdown
 and carries none; both are on the roster all the same, as is
 `docs/games/wordwheel.md`, deleted into `src/wordwheel/doc.md` in pass 2.

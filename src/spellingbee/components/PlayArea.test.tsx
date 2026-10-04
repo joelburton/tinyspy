@@ -1,56 +1,47 @@
-// cs-blessed-spellingbee
+// cs-unmet
 
 /**
- * Render + behavior tests for spellingbee's play surface: the tree mounts in
- * every mode and state, and the spellingbee-specific glue works — the local
- * lookup accepts a required, bonus or pangram word (the optimistic pill and the
+ * Render + behavior tests for spellingbee's play surface, built from the blob
+ * a test's facts would produce (`lib/gameData.fixture.ts`): the tree mounts in
+ * every mode and state, and the spellingbee-specific glue works — the lookup
+ * accepts a required, bonus or pangram word (the optimistic pill and the
  * `submit_word` call) and refuses a non-legal one with the right reason, on the
  * board as well as in the pill. The game logic itself is pgTAP's and the lib
- * suites' (the answer table, the terminal sentences); here we cover the
+ * suites' (the answer table, the ending sentences); here we cover the
  * composition.
  *
- * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; everything else — the honeycomb, RankBar, entry row, word list — renders
- * real.
+ * `db` and the start-game edge function are mocked so no client or network is
+ * needed; everything else — the honeycomb, RankBar, entry row, word list —
+ * renders real.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
-import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
-import type { SpellingbeeGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { pickFilter } from '@/common/lists/filterSelectHelpers'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
+import {
+  ZTest_find,
+  ZTest_makeSpellingbeeCtx,
+  ZTest_word,
+  type ZTest_GameDataFacts,
+  type ZTest_PlayerFacts,
+} from '../lib/gameData.fixture'
 import { PlayAreaLoader } from './PlayArea'
 
-/** A ctx whose global slot is real, with a spy on its one door. */
-function narrationCtx(over: Partial<PlayAreaLoaderProps> = {}) {
-  const globalFeedbackSlot = createFeedbackSlot('global')
-  const shown = vi.spyOn(globalFeedbackSlot, 'show')
-  return { ctx: makeCtx({ globalFeedbackSlot, ...over }), shown }
-}
-
-type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
-
-// A mutable holder the mocked useGame returns each render — set per test before
-// render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.
-const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
-vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 // PlayArea's "New game" calls the start-game edge function directly (the same
-// helper the manifest uses); mocked so no edge runtime is needed.
-// Only `runEdgeFn` is stubbed — the create-game path. `runRpc` stays REAL so
-// the submit path exercises the envelope it actually receives; the `db.rpc`
-// mock above is what feeds it.
+// helper the manifest uses); mocked so no edge runtime is needed. Only
+// `runEdgeFn` is stubbed — the create-game path. `runRpc` stays REAL so the
+// submit path exercises the envelope it actually receives; the `db.rpc` mock
+// above is what feeds it.
 vi.mock('@/common/supabase/dbResult', async (orig) => ({
   ...(await orig<typeof import('@/common/supabase/dbResult')>()),
   runEdgeFn: vi.fn(),
@@ -59,75 +50,42 @@ vi.mock('@/common/supabase/dbResult', async (orig) => ({
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 const startEdgeFn = runEdgeFn as unknown as ReturnType<typeof vi.fn>
 
-/** A loaded coop game: outer `cabdfg` + center `e`; required `bead` + the pangram
- *  `abcdefg`; one bonus word `bcdfge`. Override the mode per test. */
-function loadedGame(over: Partial<SpellingbeeGame> = {}): SpellingbeeGame {
-  return {
-    id: 'g1',
-    club_handle: 'c1',
-    mode: 'coop',
-    outer_letters: 'cabdfg',
-    center_letter: 'e',
-    required_words_score: 18,
-    required_words_count: 2,
-    created_at: '2026-01-01T00:00:00Z',
-    requiredWords: [
-      { word: 'bead', points: 1, is_pangram: false },
-      { word: 'abcdefg', points: 17, is_pangram: true },
-    ],
-    bonusWords: [{ word: 'bcdfge', points: 6, is_pangram: false }],
-    ...over,
-  }
+/** The fixture board (`abcdfg` around `e`) with three words: the required
+ *  `bead` and the pangram `abcdefg`, and the bonus `bcdfge`. 18 required points. */
+const WORDS = [ZTest_word('bead', 1), ZTest_word('abcdefg', 17, { pangram: true }), ZTest_word('bcdfge', 6, { bonus: true })]
+
+const me = (over: Partial<ZTest_PlayerFacts> = {}): ZTest_PlayerFacts => ({ id: 'u1', username: 'me', color: 'red', ...over })
+const moth = (over: Partial<ZTest_PlayerFacts> = {}): ZTest_PlayerFacts => ({ id: 'u2', username: 'moth', color: 'blue', ...over })
+const CONCEDED: Partial<ZTest_PlayerFacts> = {
+  ending: { at: '2026-01-01T00:02:00Z', reason: 'conceded', detail: 'conceded' },
+  outcome: 'lost',
 }
 
-function loaded(game: SpellingbeeGame, foundWords: FoundWordRow[] = []): GameHook {
-  // See boggle's note: `rowsLoaded` went missing while `GameHook` was
-  // hand-written, and `ready` fell back to its `true` default.
-  return { game, foundWords, loading: false, rowsLoaded: true, failure: null }
+/** A stopped game: the common ending, every player neutral. */
+const STOPPED: Partial<ZTest_GameDataFacts> = {
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  outcome: 'neutral',
 }
 
-const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
+/** The props `<GamePage>` hands the surface, from the game's facts. Coop,
+ *  solo, in play, on the fixture board unless said otherwise. */
+function makeCtx(
+  facts: ZTest_GameDataFacts = {},
+  over: Parameters<typeof ZTest_makeSpellingbeeCtx>[1] = {},
+): PlayAreaLoaderProps {
+  return ZTest_makeSpellingbeeCtx({ words: WORDS, ...facts }, over)
+}
 
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
- *  the page derives it (`whereIStand`), so a test sets up the facts and never
- *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [ZTest_gp('u1', 'me', 'red')],
-    isTerminal: false,
-    isTurnBased: false,
-    turnHolderId: null,
-    ...over,
-  }
-  return {
-    gameId: 'g1',
-    brand: 'FreeBee',
-    playState: 'playing',
-    timer: { displaySeconds: 0, expired: false },
-    // A realistic setup blob — the info-column disclosure + rank target read it.
-    setup: { required_band: 3, legal_band: 5, timer: { kind: 'none' } },
-    status: null,
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: ZTest_actionFixture('act-help'),
-      actChat: ZTest_actionFixture('act-open-chat'),
-      actBackToClub: ZTest_actionFixture('act-back-to-club'),
-    },
-    ...facts,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.isTerminal,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId: facts.turnHolderId,
-      draftsOffTurn: false,
-    }),
-  } as unknown as PlayAreaLoaderProps
+/** A race to rank 5 (Amazing) between me and moth. */
+const race = (facts: ZTest_GameDataFacts = {}): ZTest_GameDataFacts => ({
+  mode: 'compete', players: [me(), moth()], targetRankIdx: 5, ...facts,
+})
+
+/** A ctx whose global slot is real, with a spy on its one door. */
+function narrationCtx(facts: ZTest_GameDataFacts = {}) {
+  const globalFeedbackSlot = createFeedbackSlot('global')
+  const shown = vi.spyOn(globalFeedbackSlot, 'show')
+  return { ctx: makeCtx(facts, { globalFeedbackSlot }), shown }
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
@@ -176,7 +134,6 @@ const acceptedEnvelope = {
 }
 
 beforeEach(() => {
-  h.result = loaded(loadedGame())
   rpc.mockReset()
   rpc.mockResolvedValue(acceptedEnvelope) // trusting-commit succeeds by default
   // Reset the edge-fn mock too: without this its call COUNT leaks between
@@ -198,17 +155,14 @@ describe('spellingbee PlayArea — render smoke', () => {
   })
 
   it('renders the OpponentStrip (Rank) in compete play', () => {
-    h.result = loaded(loadedGame({ mode: 'compete' }))
-    render(<PlayAreaLoader {...makeCtx({ players: twoMembers, setup: { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } } })} />)
+    render(<PlayAreaLoader {...makeCtx(race())} />)
     expect(screen.getByText('Rank:')).toBeInTheDocument()
   })
 
-  it('holds the missed words one select back at terminal, and shows them on ask', async () => {
+  it('holds the missed words one select back at the end, and shows them on ask', async () => {
     // The missed words are in the rows the moment the game ends; the WHO
-    // filter's terminal default, Found, is what holds them one select back.
-    render(
-      <PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'ended' })} />,
-    )
+    // filter's default at the end, Found, is what holds them one select back.
+    render(<PlayAreaLoader {...makeCtx(STOPPED)} />)
     // 'bead' was never submitted, so it is a missed word and not on show.
     expect(screen.queryByText(/bead/i)).toBeNull()
 
@@ -225,7 +179,7 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
       .map((t) => t.getAttribute('data-hex'))
 
   it('marks a letter as it is typed, and gives it back on Delete', async () => {
-    // Letters are cabdfg around a center e. The marks are what a pangram hunter
+    // Letters are abcdfg around a center e. The marks are what a pangram hunter
     // reads: the unmarked hexes are the letters still missing from the word.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
@@ -250,15 +204,7 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
 
   it('a conceded racer types nothing: the entry is closed as the engine is', async () => {
     const user = userEvent.setup()
-    h.result = loaded(loadedGame({ mode: 'compete' }))
-    render(
-      <WithKeys
-        {...makeCtx({
-          players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')],
-          setup: { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } },
-        })}
-      />,
-    )
+    render(<WithKeys {...makeCtx(race({ players: [me(CONCEDED), moth()] }))} />)
     // The keys themselves are closed — the marks alone would not show it, since
     // a read-only board draws none whatever the word holds.
     expect(getAction('act-type-letter').describe('key').state).toBe('disabled')
@@ -283,17 +229,9 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
     expect(new Set(usedHexes())).toEqual(new Set(['B', 'E', 'D']))
   })
 
-  it('a conceded racer\'s hive is inert: a tap adds nothing', async () => {
+  it("a conceded racer's hive is inert: a tap adds nothing", async () => {
     const user = userEvent.setup()
-    h.result = loaded(loadedGame({ mode: 'compete' }))
-    render(
-      <WithKeys
-        {...makeCtx({
-          players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')],
-          setup: { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } },
-        })}
-      />,
-    )
+    render(<WithKeys {...makeCtx(race({ players: [me(CONCEDED), moth()] }))} />)
     expect(inertHexes()).toHaveLength(7)
     await tap(user, 'BED')
     expect(usedHexes()).toEqual([])
@@ -304,13 +242,13 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
     const { rerender } = render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bed')
     expect(new Set(usedHexes())).toEqual(new Set(['B', 'E', 'D']))
-    rerender(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    rerender(<WithKeys {...makeCtx(STOPPED)} />)
     expect(usedHexes()).toEqual([])
   })
 
-  it('a finished game\'s hive is inert too', async () => {
+  it("a finished game's hive is inert too", async () => {
     const user = userEvent.setup()
-    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    render(<WithKeys {...makeCtx(STOPPED)} />)
     expect(inertHexes()).toHaveLength(7)
     await tap(user, 'BED')
     expect(usedHexes()).toEqual([])
@@ -318,83 +256,76 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
 })
 
 /**
- * The compete collective losses both land on play_state `lost_compete` and are
- * told apart only by `status.reason` — the two-places trap's third surface
- * (summaryFor and the report fixtures assert the club card; nothing else asserts
- * the in-game verdict). These pin buildTerminalMessage to the terminals the server
- * actually writes: common.concede → 'lost_compete' + reason 'conceded',
- * submit_timeout → 'lost_compete' + reason 'timeout'.
+ * The compete collective losses both come back as a lost game and are told
+ * apart only by the ending's reason: common._concede writes `conceded`,
+ * submit_timeout writes `timeout`. These pin the ending message to the endings
+ * the server actually writes.
  */
-describe('spellingbee PlayArea — compete terminal verdicts', () => {
-  const competeCtx = (playState: string, reason: string) =>
-    makeCtx({
-      players: twoMembers,
-      isTerminal: true,
-      playState,
-      status: { reason },
-      setup: { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } },
-    })
+describe('spellingbee PlayArea — compete ending verdicts', () => {
+  const endedRace = (reason: 'conceded' | 'timeout' | 'stopped', outcome: 'lost' | 'neutral') =>
+    makeCtx(race({
+      players: [me({ outcome }), moth({ outcome })],
+      ending: { reason, detail: reason, by: null, winner: null },
+      outcome,
+    }))
 
-  beforeEach(() => {
-    h.result = loaded(loadedGame({ mode: 'compete' }))
-  })
-
-  it('all-conceded (lost_compete + outcome conceded) says so', () => {
-    render(<PlayAreaLoader {...competeCtx('lost_compete', 'conceded')} />)
+  it('all-conceded says so', () => {
+    render(<PlayAreaLoader {...endedRace('conceded', 'lost')} />)
     expect(screen.getByText('Lost: all conceded')).toBeInTheDocument()
   })
 
-  it('timeout (lost_compete + outcome timeout) blames the clock', () => {
-    render(<PlayAreaLoader {...competeCtx('lost_compete', 'timeout')} />)
+  it('timeout blames the clock', () => {
+    render(<PlayAreaLoader {...endedRace('timeout', 'lost')} />)
     expect(screen.getByText('Lost: ran out of time')).toBeInTheDocument()
   })
 
-  it('manual end (ended + outcome manual) stays neutral', () => {
-    render(<PlayAreaLoader {...competeCtx('ended', 'manual')} />)
+  it('a Stop stays neutral', () => {
+    render(<PlayAreaLoader {...endedRace('stopped', 'neutral')} />)
     expect(screen.getByText(/game ended/i)).toBeInTheDocument()
   })
 })
 
 /**
- * The win's confetti fires at the MOMENT the game is won — the playState flip —
- * never on mounting a game already won: the team's in coop, and in a race MY
- * win, read off the server's `status.winner_user_id`. The dialog's handle is
- * its title; the pill and the row's line say the verdict in their own words.
+ * The win's confetti fires at the MOMENT the game is won — my outcome turning
+ * `won` — never on mounting a game already won: the team's in coop, and in a
+ * race MY win alone. The dialog's handle is its title; the pill and the row's
+ * line say the verdict in their own words.
  */
 describe('spellingbee PlayArea — the celebration', () => {
-  const target = { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } }
-  /** My pangram: 17 of the board's 18 points. */
-  const myPangram: FoundWordRow = {
-    game_id: 'g1', user_id: 'u1', word: 'abcdefg', points: 17,
-    is_pangram: true, is_bonus: false, found_at: '2026-01-01T00:00:01Z',
+  /** My pangram: 17 of the board's 18 points, rank 6. */
+  const myPangram = ZTest_find('u1', 'abcdefg', 17, { pangram: true })
+  const coopWon: ZTest_GameDataFacts = {
+    players: [me({ outcome: 'won', solvedAt: 't' }), moth({ outcome: 'won', solvedAt: 't' })],
+    foundWords: [myPangram],
+    ending: { reason: 'reached_goal', detail: 'target', by: 'u1', winner: 'u1' },
+    outcome: 'won',
   }
+  const coopTeam: ZTest_GameDataFacts = { players: [me(), moth()], targetRankIdx: 5 }
 
   it('pops when the coop team crosses its target mid-session', () => {
-    const base = { players: twoMembers, setup: target }
-    const { rerender } = render(<PlayAreaLoader {...makeCtx(base)} />)
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(coopTeam)} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
-    h.result = loaded(loadedGame(), [myPangram])
-    rerender(<PlayAreaLoader {...makeCtx({ ...base, isTerminal: true, playState: 'won' })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ ...coopTeam, ...coopWon })} />)
     expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
     expect(screen.getByText('Reached "Amazing" — 17/18 points.')).toBeInTheDocument()
   })
 
   it('does not pop when mounted into a coop game already won', () => {
-    h.result = loaded(loadedGame(), [myPangram])
-    render(<PlayAreaLoader {...makeCtx({ players: twoMembers, setup: target, isTerminal: true, playState: 'won' })} />)
+    render(<PlayAreaLoader {...makeCtx({ ...coopTeam, ...coopWon })} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('pops for the race I won, at the moment it ends', () => {
-    h.result = loaded(loadedGame({ mode: 'compete' }))
-    const base = { players: twoMembers, setup: target }
-    const { rerender } = render(<PlayAreaLoader {...makeCtx(base)} />)
-
-    h.result = loaded(loadedGame({ mode: 'compete' }), [myPangram])
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(race())} />)
     rerender(
       <PlayAreaLoader
-        {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { reason: 'target', winner_user_id: 'u1' } })}
+        {...makeCtx(race({
+          players: [me({ outcome: 'won', solvedAt: 't' }), moth({ outcome: 'lost' })],
+          foundWords: [myPangram],
+          ending: { reason: 'reached_goal', detail: 'target', by: 'u1', winner: 'u1' },
+          outcome: 'won',
+        }))}
       />,
     )
     expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
@@ -402,26 +333,15 @@ describe('spellingbee PlayArea — the celebration', () => {
   })
 
   it('does not pop for a race somebody else won', () => {
-    h.result = loaded(loadedGame({ mode: 'compete' }))
-    const base = { players: twoMembers, setup: target }
-    const { rerender } = render(<PlayAreaLoader {...makeCtx(base)} />)
-
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(race())} />)
     rerender(
       <PlayAreaLoader
-        {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { reason: 'target', winner_user_id: 'u2' } })}
-      />,
-    )
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
-  it('does not pop when mounted into a race I already won', () => {
-    h.result = loaded(loadedGame({ mode: 'compete' }), [myPangram])
-    render(
-      <PlayAreaLoader
-        {...makeCtx({
-          players: twoMembers, setup: target, isTerminal: true, playState: 'won_compete',
-          status: { reason: 'target', winner_user_id: 'u1' },
-        })}
+        {...makeCtx(race({
+          players: [me({ outcome: 'lost' }), moth({ outcome: 'won', solvedAt: 't' })],
+          foundWords: [ZTest_find('u2', 'abcdefg', 17, { pangram: true })],
+          ending: { reason: 'reached_goal', detail: 'target', by: 'u2', winner: 'u2' },
+          outcome: 'won',
+        }))}
       />,
     )
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -431,7 +351,7 @@ describe('spellingbee PlayArea — the celebration', () => {
 /**
  * The icon-only action row (the waffle arrangement — labels live in tooltips):
  * one row listing every action, each deciding for itself whether it is on
- * screen. Restart = spellingbee.replay_board (unconfirmed at terminal); New
+ * screen. Restart = spellingbee.replay_board (unconfirmed at the end); New
  * game = the spellingbee-build-board edge function with THIS game's setup/
  * roster/mode, then ctx.goToFollowUpGame.
  */
@@ -443,14 +363,14 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
       expect(getAction(id).describe('menu').state).not.toBe('hidden')
     }
     unmount()
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    render(<PlayAreaLoader {...makeCtx(STOPPED)} />)
     for (const id of ['act-restart', 'act-new-game'] as const) {
       expect(getAction(id).describe('button').state).toBe('active')
     }
   })
 
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
-    // ONE action for both rows: it navigates directly at terminal and routes
+    // ONE action for both rows: it navigates directly at the end and routes
     // through the suspend-confirm flow mid-game, so the game picks nothing
     // and cannot pick wrong.
     const user = userEvent.setup()
@@ -460,35 +380,28 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
     expect(ctx.menu.actBackToClub.run).toHaveBeenCalled()
   })
 
-  it('terminal Restart calls replay_board WITHOUT confirming', async () => {
+  it('Restart at the end calls replay_board WITHOUT confirming', async () => {
     const user = userEvent.setup()
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    render(<PlayAreaLoader {...makeCtx(STOPPED)} />)
     await user.click(screen.getByRole('button', { name: 'Restart' }))
     // No <ConfirmationHost/> is mounted, so a question would have been answered
     // "no" — the RPC firing proves none was asked.
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
   })
 
-  it('terminal "New game" starts a fresh game with this setup/roster/mode', async () => {
+  it('"New game" at the end starts a fresh game with this setup/roster/mode', async () => {
     startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
     const user = userEvent.setup()
-    const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
+    const ctx = makeCtx(STOPPED)
     render(<PlayAreaLoader {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'New game' }))
     await waitFor(() =>
       expect(startEdgeFn).toHaveBeenCalledWith(
         'spellingbee-build-board',
-        {
-          target_club: 'testclub',
-          setup: ctx.setup,
-          player_user_ids: ['u1'],
-          mode: 'coop',
-        },
+        expect.objectContaining({ target_club: 'testclub', player_user_ids: ['u1'], mode: 'coop' }),
       ),
     )
-    await waitFor(() =>
-      expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('fresh-game-id'),
-    )
+    await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('fresh-game-id'))
   })
 
   it('"New game" after a hand-picked board asks for a random one', async () => {
@@ -496,8 +409,8 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
     // drops the two letter keys, so the edge function takes the random path.
     startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
     const user = userEvent.setup()
-    const setup = { required_band: 4, legal_band: 5, timer: { kind: 'none' }, custom_center: 'e', custom_letters: 'abcdfg' }
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'ended', setup })} />)
+    const setup = { required_band: 4, legal_band: 5, timer: { kind: 'none' as const }, custom_center: 'e', custom_letters: 'abcdfg' }
+    render(<PlayAreaLoader {...makeCtx({ ...STOPPED, setup })} />)
     await user.click(screen.getByRole('button', { name: 'New game' }))
     await waitFor(() => expect(startEdgeFn).toHaveBeenCalled())
     const sent = startEdgeFn.mock.calls[0]![1].setup
@@ -511,7 +424,7 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
    * than only on the hook (`common/single-flight/useSingleFlight.test.ts`). It matters
    * here because `create_game` is NOT idempotent: a second call shelves the game
    * the first one just made, orphaning it in the club list and toasting every
-   * peer a second time. Terminal is the case to test — that's where New game
+   * peer a second time. The end is the case to test — that's where New game
    * lives and where the handler skips its confirm, so nothing else slows a
    * double-click down.
    */
@@ -519,7 +432,7 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
     let release!: (v: unknown) => void
     startEdgeFn.mockImplementation(() => new Promise((resolve) => (release = resolve)))
     const user = userEvent.setup()
-    const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
+    const ctx = makeCtx(STOPPED)
     render(<PlayAreaLoader {...ctx} />)
 
     const button = screen.getByRole('button', { name: 'New game' })
@@ -542,7 +455,7 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     expect(screen.getByText(/BEAD — \+1/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith(
       'submit_word',
-      expect.objectContaining({ word: 'bead', points: 1, is_bonus: false, is_pangram: false }),
+      { p_game_id: 'g1', p_word: 'bead', p_points: 1, p_is_bonus: false, p_is_pangram: false },
     )
   })
 
@@ -551,7 +464,7 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bcdfge{Enter}')
     expect(screen.getByText(/BCDFGE • — \+6/)).toBeInTheDocument()
-    expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_bonus: true }))
+    expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ p_is_bonus: true }))
   })
 
   it('shows the pangram flourish for a pangram', async () => {
@@ -559,7 +472,7 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('abcdefg{Enter}')
     expect(screen.getByText(/pangram \+17/)).toBeInTheDocument()
-    expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_pangram: true }))
+    expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ p_is_pangram: true }))
   })
 
   it('rejects a non-legal word with a reason and no submit_word call', async () => {
@@ -567,6 +480,14 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('zzzz{Enter}') // z is not a puzzle letter
     expect(screen.getByText(/bad letters/i)).toBeInTheDocument()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('refuses a word a teammate already found, without a call', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx({ players: [me(), moth()], foundWords: [ZTest_find('u2', 'bead', 1)] })} />)
+    await user.keyboard('bead{Enter}')
+    expect(screen.getByText(/already found/i)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
   })
 
@@ -654,30 +575,15 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
 })
 
 describe('spellingbee PlayArea — coop peer narration (global header)', () => {
-  // `useShowPeerFeedback` seeds the backlog silently on the first loaded
-  // render, then fires a header pill for each NEW peer row. Each test renders
-  // once (empty seed), pushes a peer row into the mocked useGame, and
-  // re-renders to fire.
-
-  /** A peer's accepted found_words row (the coop header reads these). */
-  function foundRow(over: Partial<FoundWordRow> = {}): FoundWordRow {
-    return {
-      game_id: 'g1',
-      user_id: 'u2', // 'moth' — a teammate, not the caller (u1)
-      word: 'bead',
-      points: 1,
-      is_pangram: false,
-      is_bonus: false,
-      found_at: '2026-01-01T00:00:01Z',
-      ...over,
-    }
-  }
+  // `useShowPeerFeedback` seeds the backlog silently on the first render, then
+  // fires a header pill for each NEW peer find. Each test renders once (empty
+  // seed), then re-renders with a teammate's find in the blob to fire.
+  const team = { players: [me(), moth()] }
 
   it("narrates a teammate's find with the word + points, the actor leading", () => {
-    const { ctx, shown } = narrationCtx({ players: twoMembers })
+    const { ctx, shown } = narrationCtx(team)
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
-    h.result = loaded(loadedGame(), [foundRow({ word: 'bead', points: 1 })])
-    rerender(<PlayAreaLoader {...ctx} />)
+    rerender(<PlayAreaLoader {...makeCtx({ ...team, foundWords: [ZTest_find('u2', 'bead', 1)] }, { globalFeedbackSlot: ctx.globalFeedbackSlot })} />)
     const feedbackMsg = shown.mock.calls.at(-1)![0]
     expect(feedbackMsg.kind).toBe('peer')
     expect(feedbackMsg.actor?.username).toBe('moth')
@@ -686,73 +592,55 @@ describe('spellingbee PlayArea — coop peer narration (global header)', () => {
   })
 
   it('adds the pangram flourish for a peer pangram', () => {
-    const { ctx, shown } = narrationCtx({ players: twoMembers })
+    const { ctx, shown } = narrationCtx(team)
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
-    h.result = loaded(loadedGame(), [foundRow({ word: 'abcdefg', points: 17, is_pangram: true })])
-    rerender(<PlayAreaLoader {...ctx} />)
+    rerender(<PlayAreaLoader {...makeCtx({ ...team, foundWords: [ZTest_find('u2', 'abcdefg', 17, { pangram: true })] }, { globalFeedbackSlot: ctx.globalFeedbackSlot })} />)
     expect(shown.mock.calls.at(-1)![0].text).toBe('pangram 🐝 ABCDEFG +17')
   })
 
   it('shows the bonus dot after a peer bonus find', () => {
-    const { ctx, shown } = narrationCtx({ players: twoMembers })
+    const { ctx, shown } = narrationCtx(team)
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
-    h.result = loaded(loadedGame(), [foundRow({ word: 'bcdfge', points: 6, is_bonus: true })])
-    rerender(<PlayAreaLoader {...ctx} />)
+    rerender(<PlayAreaLoader {...makeCtx({ ...team, foundWords: [ZTest_find('u2', 'bcdfge', 6, { bonus: true })] }, { globalFeedbackSlot: ctx.globalFeedbackSlot })} />)
     expect(shown.mock.calls.at(-1)![0].text).toBe('found BCDFGE • +6')
   })
 
   it('does not narrate your own find (that goes to the local slot)', () => {
-    const { ctx, shown } = narrationCtx({ players: twoMembers })
+    const { ctx, shown } = narrationCtx(team)
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
-    h.result = loaded(loadedGame(), [foundRow({ user_id: 'u1', word: 'bead', points: 1 })])
-    rerender(<PlayAreaLoader {...ctx} />)
+    rerender(<PlayAreaLoader {...makeCtx({ ...team, foundWords: [ZTest_find('u1', 'bead', 1)] }, { globalFeedbackSlot: ctx.globalFeedbackSlot })} />)
     expect(shown).not.toHaveBeenCalled()
   })
 })
 
 describe('spellingbee PlayArea — compete opponent rank climb', () => {
-  // The compete channel is a hand-rolled rank-delta detector over
-  // `status.leaderboard` (opponents' words are private, so it reads the aggregate
-  // rank). It seeds each opponent's rank on the first render, then shows a
-  // `peer` message when a rank INCREASES.
-  const entry = (rank_idx: number) => ({
-    user_id: 'u2',
-    rank_idx,
-    found_words_score: 10 * rank_idx,
-    found_words_count: rank_idx,
-  })
-  const competeCtx = (rank_idx: number, over: Partial<PlayAreaLoaderProps> = {}) =>
-    makeCtx({
-      players: twoMembers,
-      setup: { required_band: 3, legal_band: 5, target_rank: 6, timer: { kind: 'none' } },
-      status: { leaderboard: [entry(rank_idx)] },
-      ...over,
-    })
-
+  // A rival's finds are withheld mid-race, so what this mode narrates is
+  // their rank on the player going up: seeded on the first render, announced
+  // on a rise.
   it('narrates an opponent reaching a higher rank', () => {
-    h.result = loaded(loadedGame({ mode: 'compete' }))
     const globalFeedbackSlot = createFeedbackSlot('global')
     const shown = vi.spyOn(globalFeedbackSlot, 'show')
-    const props = competeCtx(1, { globalFeedbackSlot })
-    const { rerender } = render(<PlayAreaLoader {...props} />)
-    // Same slot + players, new leaderboard with u2 climbing 1 → 2.
-    rerender(<PlayAreaLoader {...props} status={{ leaderboard: [entry(2)] }} />)
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(race(), { globalFeedbackSlot })} />)
+    // moth's pangram lifts her from Start to Genius; her words stay unseen.
+    rerender(
+      <PlayAreaLoader
+        {...makeCtx(race({ foundWords: [ZTest_find('u2', 'abcdefg', 17, { pangram: true })] }), { globalFeedbackSlot })}
+      />,
+    )
     const feedbackMsg = shown.mock.calls.at(-1)![0]
     expect(feedbackMsg.kind).toBe('peerMilestone')
     expect(feedbackMsg.actor?.username).toBe('moth')
-    expect(feedbackMsg.text).toMatch(/^reached /)
+    expect(feedbackMsg.text).toBe('reached Genius')
+    expect(screen.queryByText(/abcdefg/i)).toBeNull()
   })
 })
 
 describe('spellingbee PlayArea — concede', () => {
-  const competeSetup = { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } }
-
   it('compete shows Concede and calls spellingbee.concede on click', async () => {
     const user = userEvent.setup()
-    h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
       <>
-        <PlayAreaLoader {...makeCtx({ players: twoMembers, setup: competeSetup })} />
+        <PlayAreaLoader {...makeCtx(race())} />
         <ConfirmationHost />
       </>,
     )
@@ -761,7 +649,7 @@ describe('spellingbee PlayArea — concede', () => {
     await user.click(screen.getByRole('button', { name: /concede/i }))
     const confirms = await screen.findAllByRole('button', { name: /concede/i })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
   })
 
   it('coop shows Stop (not Concede) and calls stop_game', async () => {
@@ -779,32 +667,16 @@ describe('spellingbee PlayArea — concede', () => {
     await user.click(screen.getByRole('button', { name: 'Stop game' }))
     const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1])
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
   it('marks a conceded opponent "out" in the strip (mid-game)', () => {
-    h.result = loaded(loadedGame({ mode: 'compete' }))
-    render(
-      <PlayAreaLoader
-        {...makeCtx({
-          players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue', { conceded: true })],
-          setup: competeSetup,
-        })}
-      />,
-    )
+    render(<PlayAreaLoader {...makeCtx(race({ players: [me(), moth(CONCEDED)] }))} />)
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
-  it('shows the "You conceded" locally-terminal look after I concede', () => {
-    h.result = loaded(loadedGame({ mode: 'compete' }))
-    render(
-      <PlayAreaLoader
-        {...makeCtx({
-          players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')],
-          setup: competeSetup,
-        })}
-      />,
-    )
+  it('shows the "You conceded" look after I concede, while the race goes on', () => {
+    render(<PlayAreaLoader {...makeCtx(race({ players: [me(CONCEDED), moth()] }))} />)
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     // A spent Concede goes, and Stop takes its place: one flag, not two.
     expect(getAction('act-concede').describe('button').state).toBe('hidden')
@@ -816,27 +688,19 @@ describe('spellingbee PlayArea — concede', () => {
     expect(getAction('act-new-game').describe('button').state).toBe('hidden')
   })
 
-  it('distinguishes Conceded / Lost / Won at terminal in the strip', () => {
-    h.result = loaded(loadedGame({ mode: 'compete' }))
+  it('distinguishes Conceded / Lost / Won at the end in the strip', () => {
     render(
       <PlayAreaLoader
-        {...makeCtx({
-          isTerminal: true,
-          playState: 'ended',
+        {...makeCtx(race({
           players: [
-            ZTest_gp('u1', 'me', 'red', { result: { won: false } }), // self → Lost
-            ZTest_gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }), // → Conceded
-            ZTest_gp('u3', 'cade', 'green', { result: { won: true } }), // → Won
+            me({ outcome: 'lost' }),
+            moth({ ...CONCEDED }),
+            { id: 'u3', username: 'cade', color: 'green', outcome: 'won', solvedAt: 't' },
           ],
-          setup: competeSetup,
-          status: {
-            winner_user_id: 'u3',
-            leaderboard: [
-              { user_id: 'u2', rank_idx: 4, found_words_score: 40, found_words_count: 4 },
-              { user_id: 'u3', rank_idx: 5, found_words_score: 60, found_words_count: 6 },
-            ],
-          },
-        })}
+          foundWords: [ZTest_find('u3', 'abcdefg', 17, { pangram: true })],
+          ending: { reason: 'reached_goal', detail: 'target', by: 'u3', winner: 'u3' },
+          outcome: 'won',
+        }))}
       />,
     )
     expect(screen.getByText(/Conceded at/)).toBeInTheDocument()
@@ -848,15 +712,13 @@ describe('spellingbee PlayArea — concede', () => {
 /**
  * The keys, through the app-root dispatcher. Each key is an action's, so
  * what these pin is the wiring: the chord reaches the action, the action asks
- * the registry's question mid-game and skips it at terminal, and the answer
+ * the registry's question mid-game and skips it at the end, and the answer
  * runs the same call the button does.
  */
 describe('spellingbee PlayArea — the keys', () => {
-  const competeSetup = { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } }
-
-  it('+ at terminal starts the next game with no question', async () => {
+  it('+ at the end starts the next game with no question', async () => {
     startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
-    const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
+    const ctx = makeCtx(STOPPED)
     render(<WithKeys {...ctx} />)
 
     // No <ConfirmationHost/> is mounted, so a question would have been answered
@@ -900,15 +762,14 @@ describe('spellingbee PlayArea — the keys', () => {
     expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
     await answer(user, 'Stop game')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
   it('⌥⌫ in compete asks to concede, and yes calls concede', async () => {
     const user = userEvent.setup()
-    h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
       <>
-        <WithKeys {...makeCtx({ players: twoMembers, setup: competeSetup })} />
+        <WithKeys {...makeCtx(race())} />
         <ConfirmationHost />
       </>,
     )
@@ -916,7 +777,7 @@ describe('spellingbee PlayArea — the keys', () => {
     press(OPT_BACKSPACE)
     expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await answer(user, 'Concede')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
     expect(rpc).not.toHaveBeenCalledWith('stop_game', expect.anything())
   })
 
@@ -950,7 +811,7 @@ describe('spellingbee PlayArea — the keys', () => {
     })
 
     it('still works on a finished board — the fidget is deliberate', async () => {
-      render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+      render(<WithKeys {...makeCtx(STOPPED)} />)
       expect(getAction('act-shuffle').describe('button').state).toBe('active')
       const before = outerOrder()
 
@@ -962,8 +823,8 @@ describe('spellingbee PlayArea — the keys', () => {
 
   describe('Restart mid-game', () => {
     // Keyless, so it is fired as the menu row would fire it: the action's run,
-    // which is where the registry's question is asked. (The terminal case,
-    // where it goes straight through, is under "icon-only action rows".)
+    // which is where the registry's question is asked. (The ended case, where
+    // it goes straight through, is under "icon-only action rows".)
     it('asks first, and Keep playing wipes nothing', async () => {
       const user = userEvent.setup()
       render(
@@ -991,7 +852,7 @@ describe('spellingbee PlayArea — the keys', () => {
 
       act(() => getAction('act-restart').run())
       await answer(user, 'Restart')
-      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
     })
   })
 })

@@ -4,6 +4,8 @@ import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
@@ -14,6 +16,7 @@ import {
 } from './lib/setup'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import logoUrl from './logo.svg?url'
+import type { GSummaryData } from './types'
 
 /**
  * wordwheel's registration with the shell — **two manifests, one
@@ -74,7 +77,29 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-type StatusBlob = Record<string, unknown>
+// The summary reads the game's `summary_data` (`GSummaryData`: the common part
+// with the team's progress, null in compete, and what it is measured against).
+
+/** The team's points against the required set's. */
+function pointsTally(summary: GSummaryData) {
+  return `${summary.team!.foundWordsScore}/${summary.reqdWordsScore} pts`
+}
+
+/** The team's finds against the required set's count. */
+function wordsTally(summary: GSummaryData) {
+  return tally(summary.team!.nFoundWords, summary.nReqdWords, 'words')
+}
+
+/** The rank the game set out for, for a label; a coop game with none never
+ *  reads it, and a race always has one. */
+function targetRankName(summary: GSummaryData) {
+  return RANKS[summary.targetRankIdx ?? 0]
+}
+
+/** A member's username, or undefined for an id that names nobody. */
+function usernameOf(members: readonly Member[], userId: string | null) {
+  return userId === null ? undefined : memberById(members, userId)?.username
+}
 
 // The single source of truth for this game's user-facing brand name.
 // Both sibling manifests set `name: BRAND`, and the start-game error
@@ -114,31 +139,30 @@ export const wordwheelCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: (row) => {
-    const s = (row.status ?? {}) as StatusBlob
-    const pts = `${(s.found_words_score as number | undefined) ?? 0}/${(s.required_words_score as number | undefined) ?? 0} pts`
-    const words = tally(
-      s.found_words_count as number | undefined,
-      s.required_words_count as number | undefined, 'words')
-
-    // The rank a coop win names is the one the team set out for; a status with
-    // none is not a won game, so the fallback is never read there.
-    const rank = RANKS[(s.target_rank as number | undefined) ?? 6]
-    switch (row.play_state) {
-      case 'playing':
-        return statusLine(verdict('Playing'), pts, words)
+  summaryFor: (data) => {
+    const summary = data as GSummaryData
+    if (summary.ending === null) {
+      return statusLine(verdict('Playing'), pointsTally(summary), wordsTally(summary))
+    }
+    // Written with the ending.
+    const outcome = summary.outcome!
+    switch (outcome) {
       case 'won':
-        // "Won at …" is one phrase, not two facts — no separator inside it.
-        return statusLine(`${verdict('Won')} at "${rank}"`, pts)
+        // The rank named is the one the team set out for. "Won at …" is one
+        // phrase, not two facts — no separator inside it.
+        return statusLine(`${verdict('Won')} at "${targetRankName(summary)}"`, pointsTally(summary))
       // Ran out WITH a target to hit. (Ran out with nothing to fail at is
-      // 'ended' below — the neutral close of an open hunt.)
+      // neutral below — the close of an open hunt.)
       case 'lost':
-        return statusLine(verdict('Lost', 'out of time'), pts, words)
-      case 'ended':
+        return statusLine(verdict('Lost', 'out of time'), pointsTally(summary), wordsTally(summary))
+      case 'neutral':
         return statusLine(
-          verdict('Ended', (s.reason as string) === 'timeout' ? 'out of time' : null), pts, words)
+          verdict('Ended', summary.ending.reason === 'timeout' ? 'out of time' : null),
+          pointsTally(summary),
+          wordsTally(summary),
+        )
       default:
-        return row.play_state
+        return outcome
     }
   },
 
@@ -175,34 +199,28 @@ export const wordwheelCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  // Compete's label reads the status's target rank mid-game and its
-  // winner_username at the end; no player's score reaches the listing row.
-  summaryFor: (row) => {
-    const s = (row.status ?? {}) as StatusBlob
-    const rank = RANKS[(s.target_rank as number | undefined) ?? 0] ?? '?'
-
-    // The all-conceded terminal comes through common.concede as
-    // play_state='lost_compete' + status {reason:'conceded'} with NO
-    // target_rank, so it must be caught BEFORE anything that prints the rank —
-    // otherwise the rank falls back to 0 and the label reads the wrong
-    // "…at Start". (Keyed on the outcome, not the state, so it also sits ahead
-    // of the lost_compete arm below, which is the CLOCK's version of the loss.)
-    if ((s.reason as string) === 'conceded') return verdict('Lost', 'all conceded')
-
-    switch (row.play_state) {
-      case 'playing':
-        return statusLine(verdict('Playing'), `race to "${rank}"`)
-      case 'won_compete':
-        return `${wonBy(s.winner_username as string | undefined)} at "${rank}"`
-      // The clock beat everyone to the rank — a real loss for the table.
-      case 'lost_compete':
-        return statusLine(verdict('Lost', 'out of time'), `nobody reached "${rank}"`)
-      // The one neutral race ending, the players agreeing to stop: the clock
-      // running out is `lost_compete` above.
-      case 'ended':
+  // Compete's label reads the target rank mid-game and the winner at the end;
+  // no racer's score reaches the listing row (`summary_data.team` is null).
+  summaryFor: (data, members) => {
+    const summary = data as GSummaryData
+    const rank = targetRankName(summary)
+    if (summary.ending === null) return statusLine(verdict('Playing'), `race to "${rank}"`)
+    // Written with the ending.
+    const outcome = summary.outcome!
+    switch (outcome) {
+      case 'won':
+        return `${wonBy(usernameOf(members, summary.ending.winner))} at "${rank}"`
+      // The two collective losses, told apart by the reason: the last racer
+      // dropped out, or the clock beat everyone to the rank.
+      case 'lost':
+        return summary.ending.reason === 'conceded'
+          ? verdict('Lost', 'all conceded')
+          : statusLine(verdict('Lost', 'out of time'), `nobody reached "${rank}"`)
+      // The one neutral race ending, the players agreeing to stop.
+      case 'neutral':
         return statusLine(verdict('Ended'), `nobody reached "${rank}"`)
       default:
-        return row.play_state
+        return outcome
     }
   },
 

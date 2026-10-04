@@ -74,6 +74,27 @@ function isGameEndingFamily(fam: Family | GameEndingFamily): fam is GameEndingFa
  * on a Stop and "found" a bug the SQL does not have (every spellingbee ending writes
  * target_rank). Check the RPC before adding a case.
  */
+// The coop team at 21 of 50 points (rank 3) chasing Genius; the required set is 30 words.
+const BEE_TEAM = { nFoundWords: 7, foundWordsScore: 21, rankIdx: 3, targetRankIdx: 6 }
+const BEE_LIVE = { team: BEE_TEAM, nReqdWords: 30, reqdWordsScore: 50, targetRankIdx: 6 }
+const BEE_RACE = { team: null, nReqdWords: 30, reqdWordsScore: 50, targetRankIdx: 6 }
+// spellingbee and wordwheel end alike and their builders write the same blob, so one matrix.
+const BEE_CASES: GameEndingFamily = {
+  live: BEE_LIVE,
+  coop: [
+    [{ outcome: 'won', reason: 'reached_goal' }, { ...BEE_LIVE, team: { ...BEE_TEAM, nFoundWords: 20, foundWordsScore: 47, rankIdx: 6 } }, 'reached target'],
+    [{ outcome: 'lost', reason: 'timeout' }, BEE_LIVE, 'timeout, target set'],
+    [{ outcome: 'neutral', reason: 'timeout' }, { ...BEE_LIVE, team: { ...BEE_TEAM, targetRankIdx: null }, targetRankIdx: null }, 'timeout, no target'],
+    [{ outcome: 'neutral', reason: 'stopped' }, BEE_LIVE, 'Stop'],
+  ],
+  compete: [
+    [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, BEE_RACE, 'someone hit the target'],
+    [{ outcome: 'lost', reason: 'timeout' }, BEE_RACE, 'timeout'],
+    [{ outcome: 'lost', reason: 'conceded' }, BEE_RACE, 'all conceded'],
+    [{ outcome: 'neutral', reason: 'stopped' }, BEE_RACE, 'Stop'],
+  ],
+}
+
 const CASES: Record<string, Family | GameEndingFamily> = {
   // No siblings — one manifest, one vocabulary.
   codenamesduet: {
@@ -147,37 +168,10 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxMistakes: 4 }, 'Stop'],
     ],
   },
-  spellingbee: {
-    playing: { found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30, target_rank: 6 },
-    coop: [
-      ['won', { reason: 'target', target_rank: 6, found_words_score: 47, required_words_score: 50 }, 'reached target'],
-      ['lost', { reason: 'timeout', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, target set'],
-      ['ended', { reason: 'timeout', target_rank: null, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, no target'],
-      ['ended', { reason: 'manual', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'manual end'],
-    ],
-    compete: [
-      ['won_compete', { target_rank: 6, ...W }, 'someone hit the target'],
-      // submit_timeout and stop_game both write target_rank, so neither reads "at Start".
-      ['lost_compete', { reason: 'timeout', target_rank: 6 }, 'timeout'],
-      ['ended', { reason: 'manual', target_rank: 6 }, 'manual end'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
-    ],
-  },
-  wordwheel: {
-    playing: { found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30, target_rank: 6 },
-    coop: [
-      ['won', { reason: 'target', target_rank: 6, found_words_score: 47, required_words_score: 50 }, 'reached target'],
-      ['lost', { reason: 'timeout', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, target set'],
-      ['ended', { reason: 'timeout', target_rank: null, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, no target'],
-      ['ended', { reason: 'manual', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'manual end'],
-    ],
-    compete: [
-      ['won_compete', { target_rank: 6, ...W }, 'someone hit the target'],
-      ['lost_compete', { reason: 'timeout', target_rank: 6 }, 'timeout'],
-      ['ended', { reason: 'manual', target_rank: 6 }, 'manual end'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
-    ],
-  },
+  // The bee games' summary_data, as their twin builders write it: `team` is the coop team's
+  // four figures and null in compete; the target rank is the game's, null when coop set none.
+  spellingbee: BEE_CASES,
+  wordwheel: BEE_CASES,
   // boggle's terminal state now depends on whether a TARGET was set —
   // setup.win_percent, which the label reads off the row's setup.
   boggle: {

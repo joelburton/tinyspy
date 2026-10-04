@@ -38,6 +38,14 @@ Agreed with Joel 2026-09-22 (*"agree to the list"*), `cs-met-spellingbee` —
 | `supabase/tests/spellingbee/` | 12 | every pgTAP file but one, and `setup.psql` |
 | `supabase/functions/spellingbee-build-board/` | 3 | `index.ts`, `board.ts`, `board_test.ts` — **the first edge function on a game roster.** This game's own code, so it is read here; nothing in the shape the earlier games settled covers a Deno chunk, so what its read looks like is this area's to work out |
 
+**The seat-view conversion (2026-10-03/04) added, all `cs-unmet` until this
+area re-reads them:** `hooks/useGame.test.ts`, `lib/gameData.fixture.ts`,
+`lib/wordRows.ts`, `hooks/useActionsAndMenu.ts`,
+`hooks/useGetGameEndingMessage.ts`, `hooks/useGetPlayerEndingMessage.ts`,
+`hooks/useShowOppsRankMessages.ts`, `supabase/tests/spellingbee/game_data_test.sql`;
+and deleted `supabase/tests/spellingbee/statuses_test.sql`. `components/PlayArea.test.tsx`
+was rewritten over the fixture.
+
 `src/spellingbee/logo.svg` has nowhere to put a stamp; `todo.md` is markdown
 and carries none. **`src/spellingbee/doc.md` was written at Step 3**
 (2026-09-22), markdown like the todo, roster all the same;

@@ -30,8 +30,10 @@ export type ZTest_BeeGameDataFacts<Setup> = {
   title?: string
   clubHandle?: string
   setup?: Setup
-  // The puzzle's words, the required ones first; the letters are the game's
-  // fixture board.
+  // The board's outer letters, when a test needs a board other than the game's
+  // fixture one — a wheel with a letter on two tiles, say. The center stays.
+  outerLetters?: string
+  // The puzzle's words, the required ones first; the letters are the board's.
   words?: GBeeWord[]
   targetRankIdx?: number | null
   sameBandsAndHaveNoBonus?: boolean
@@ -94,7 +96,8 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
   const {
     id = 'g1',
     mode = 'coop',
-    title = `${game.centerLetter.toUpperCase()}·${[...game.outerLetters].sort().join('').toUpperCase()}`,
+    outerLetters = game.outerLetters,
+    title = `${game.centerLetter.toUpperCase()}·${[...outerLetters].sort().join('').toUpperCase()}`,
     clubHandle = 'testclub',
     setup = game.defaultSetup,
     words = [ZTest_word('bead', 1), ZTest_word('faced', 5)],
@@ -111,9 +114,9 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
   const reqdWordsScore = reqdWords.reduce((sum, w) => sum + w.points, 0)
 
   const puzzle: GBeePuzzle = {
-    tiles: ZTest_tilesOf(game.centerLetter, game.outerLetters),
+    tiles: ZTest_tilesOf(game.centerLetter, outerLetters),
     centerLetter: game.centerLetter,
-    outerLetters: game.outerLetters,
+    outerLetters,
     words,
     nReqdWords: reqdWords.length,
     reqdWordsScore,
