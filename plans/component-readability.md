@@ -303,6 +303,40 @@ two folders, and settled beyond the three games above:
 - **`isCenter`, `used` and `spent` are required booleans** on the tiles: every
   Board passes them, so an optional lied.
 
+## What boggle added
+
+boggle converted alone (2026-10-04) and settled, beyond the games above:
+
+- **A component that takes `gd` takes no `myId`.** It reads `gd.me.id`; a
+  `myId` beside `gd` is a second copy of one fact. The earlier games' columns
+  dropped theirs, and `PlayArea` needs no `auth` once nothing below it does.
+- **Types that reach React live in `reactTypes.ts`.** A game whose edge
+  function imports its `types.ts` keeps that file to relative `.ts` imports with
+  no `@/` and no package name, since the edge runtime resolves neither; the
+  types that name React's (`GActions`, the refused mark) go beside it, still
+  under `G` names. The `edgeFunctionImports` guard checks the rule.
+- **`BoardCol` lays out; the word the board and the entry share is a hook
+  above both.** `useTracedWord` holds the move (`useSubmitWord`), the tapped
+  path, the typing rules and the marks; a tap adds a letter to the entry and a
+  typed letter lights tiles, so neither child can own it.
+- **The Board owns a view-only transform,** as the bees' Board owns the
+  Shuffle: `useBoardRotation` hands back the tiles in draw order and the
+  Rotate action. Because every mark is held as tile ids, a turn carries the
+  marks, a half-tapped path included, with nothing remapped.
+- **A value `gd` can build once, it builds.** `gd.puzzle.traceBoard`, the
+  board the tracer walks, is made in `makeGameData`, not per keystroke.
+- **One word per idea, from the function to the pixel.** The tracer's
+  `settled` / `maybe` are the marks' and the CSS's words; `bonus`, not
+  `isBonus`, is the blob's and `GAnswer`'s.
+- **Capitals are drawn.** A two-letter tile reads `Qu` through CSS
+  `capitalize` over lowercase letters; the typed word takes the entry box's
+  uppercase.
+- **A readout draws its cells itself.** `StateLine` lays out the four cells
+  where `Stats` had been a second component for one caller.
+- **Test-only helpers are `ZTest_`, in a `.fixture.ts`,** and one no test
+  needs is deleted. A test reaches the writer players actually read
+  (`makeSetupRows`) rather than a copy kept for the test.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

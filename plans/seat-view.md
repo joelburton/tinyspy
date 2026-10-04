@@ -490,6 +490,19 @@ next open (todo.md → Someday).
   the setup pair and `Answer` into `types.ts` under `G` names, and made the
   geometry modules `lib/board.ts`. `wordsByWord` stays in `useSubmitWord` by
   ruling.
+- **boggle — done 2026-10-04**, the bee games' way without their shared
+  folder: `boggle._make_json_found_counts` writes the six counts for the team
+  and each player, and `_rebuild_data_cols` the puzzle (tiles `{id, letters}`,
+  one `words` list with a bare `bonus` flag), `foundWords` and `summary_data`
+  (`team`, `targetWinPercent`, `topScore`); a target reached stamps
+  `solved_at`. `useGame` is `makeGameData`, which builds `tilesById` and the
+  tracer's `traceBoard` once. `_write_statuses`, `statuses_test` and the games
+  subscription went (plans/areas/boggle.md → The convenience RLS). Types that
+  reach React are `reactTypes.ts`'s, because the edge function imports
+  `types.ts`. `BoardCol` lays out; `useTracedWord` owns the word the board and
+  the entry share; `Board` owns the rotation; every mark is tile ids. The
+  tracer says `settled` / `maybe`; `StateLine` draws its four cells (`Stats`
+  went); test-only helpers are `ZTest_` in fixtures.
 - **psychicnum's and wordle's naming passes — done 2026-10-03.** psychicnum
   took `nFoundSecrets`, `nReqdSecrets` and `nGuessesUsed` with the two
   columns, its `BoardCol` reads `gd.me.outcome`, and its `GTile` (decision 9)
