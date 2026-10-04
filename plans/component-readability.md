@@ -51,6 +51,9 @@ the tile it draws). Each pass:
 - **What a child gets:** the two columns take `gd` whole. A leaf gets fields or
   its own groups, never `gd`: `Board` takes `tiles`, `marks`, `historyView`;
   `StateLine` takes a player.
+- **Whatever takes `gd` takes nothing `gd` already holds.** No `myId` beside
+  `gd`: the viewer is `gd.me.id`. The same for a component, a hook, and the
+  `PlayArea`, which therefore needs no `auth`.
 - **Identity:** `gd` is memoized on the blob, so it is rebuilt when the page
   hands down a new one and not on every render. What an effect depends on is
   a field (`gd.me.onTurn`), never a group.

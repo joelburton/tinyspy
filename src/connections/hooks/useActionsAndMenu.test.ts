@@ -43,7 +43,6 @@ function setup(gd: GGameData) {
   const { result } = renderHook(() =>
     useActionsAndMenu({
       gd,
-      myId: 'u1',
       localFeedbackSlot: createFeedbackSlot('local'),
       goToFollowUpGame: vi.fn(),
       menu,

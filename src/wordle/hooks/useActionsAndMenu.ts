@@ -35,13 +35,11 @@ import type { GActions, GGameData } from '../types'
  */
 export function useActionsAndMenu({
   gd,
-  myId,
   localFeedbackSlot,
   goToFollowUpGame,
   menu,
 }: {
   gd: GGameData
-  myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
 } & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): {
@@ -147,7 +145,7 @@ export function useActionsAndMenu({
           wordLength: WORD_LENGTH,
           events: gd.events,
           players: gd.players,
-          myId,
+          myId: gd.me.id,
           target: gd.puzzle.target,
           answerShown,
           setupRows: gd.setupRows,

@@ -20,13 +20,11 @@ import type { GGameData, GPlayer, GHistoryView, GActions } from '../types'
  */
 export function InfoCol({
   gd,
-  myId,
   endingMessage,
   actions,
   historyView,
 }: {
   gd: GGameData
-  myId: string
   // The ending that applies to me — the game's once it has ended, else mine —
   // or null while I can still play.
   endingMessage: TerminalMessage | null
@@ -58,7 +56,7 @@ export function InfoCol({
         {gd.compete && (
           <OpponentStrip
             players={gd.players}
-            myId={myId}
+            myId={gd.me.id}
             metricLabel="Found"
             metricFor={getScoreOrOut}
           />
@@ -98,7 +96,7 @@ export function InfoCol({
       <GameEventLog
         events={gd.events}
         players={gd.players}
-        myId={myId}
+        myId={gd.me.id}
         mode={gd.mode}
         isGameEnded={gd.ended}
         historyView={historyView}

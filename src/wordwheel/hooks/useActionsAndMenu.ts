@@ -26,13 +26,11 @@ import type { GActions, GGameData } from '../types'
  */
 export function useActionsAndMenu({
   gd,
-  myId,
   localFeedbackSlot,
   goToFollowUpGame,
   menu,
 }: {
   gd: GGameData
-  myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
 } & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): { actions: GActions } {
@@ -123,7 +121,7 @@ export function useActionsAndMenu({
           words,
           gd.mode,
           gd.players.map((p) => ({ user_id: p.id, username: p.username })),
-          myId,
+          gd.me.id,
         ),
       })
     },

@@ -27,7 +27,7 @@ function setup(initial: GGameData) {
   const slot = createFeedbackSlot('global')
   const shown = vi.spyOn(slot, 'show')
   const { rerender } = renderHook(
-    (gd: GGameData) => useShowOppsFoundMessages(gd, 'u1', slot),
+    (gd: GGameData) => useShowOppsFoundMessages(gd, slot),
     { initialProps: initial },
   )
   return { shown, rerender }

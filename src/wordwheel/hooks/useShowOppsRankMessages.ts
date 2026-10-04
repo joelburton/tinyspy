@@ -20,7 +20,6 @@ import type { GGameData } from '../types'
  */
 export function useShowOppsRankMessages(
   gd: GGameData,
-  myId: string,
   globalFeedbackSlot: FeedbackSlot,
 ): void {
   // Each player's rank as last seen; null until the first render has seeded it.
@@ -31,7 +30,7 @@ export function useShowOppsRankMessages(
     seenRanksRef.current = new Map(gd.players.map((p) => [p.id, p.rankIdx]))
     if (seen === null) return
     for (const p of gd.players) {
-      if (p.id === myId) continue
+      if (p.id === gd.me.id) continue
       if (p.rankIdx > (seen.get(p.id) ?? 0)) {
         const { outcome, text } = answerMessage({
           answerType: 'reached_peer',
@@ -40,5 +39,5 @@ export function useShowOppsRankMessages(
         globalFeedbackSlot.show(FeedbackMessage.peerMilestone(p, outcome, text))
       }
     }
-  }, [gd.compete, gd.players, myId, globalFeedbackSlot])
+  }, [gd.compete, gd.players, gd.me.id, globalFeedbackSlot])
 }

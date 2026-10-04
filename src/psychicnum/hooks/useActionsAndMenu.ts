@@ -52,13 +52,11 @@ type SpoilerAnswer = {
  */
 export function useActionsAndMenu({
   gd,
-  myId,
   localFeedbackSlot,
   goToFollowUpGame,
   menu,
 }: {
   gd: GGameData
-  myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
 } & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): {
@@ -236,7 +234,7 @@ export function useActionsAndMenu({
           events: gd.events,
           nReqdSecrets: gd.me.nReqdSecrets,
           players: gd.players,
-          myId,
+          myId: gd.me.id,
           setupRows: gd.setupRows,
         }),
       )

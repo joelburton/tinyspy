@@ -23,7 +23,6 @@ import type { GGameData } from '../types'
  */
 export function useShowOppsFoundMessages(
   gd: GGameData,
-  myId: string,
   globalFeedbackSlot: FeedbackSlot,
 ): void {
   const nFoundSecretsSeenRef = useRef<Map<string, number>>(new Map())
@@ -39,7 +38,7 @@ export function useShowOppsFoundMessages(
     for (const player of gd.players) {
       const was = seen.get(player.id) ?? 0
       seen.set(player.id, player.nFoundSecrets)
-      if (player.id === myId) continue
+      if (player.id === gd.me.id) continue
       if (player.nFoundSecrets <= was) continue
       // `found_peer`, not `hit_peer`: in compete a player may learn THAT an
       // opponent found a secret and never which, so the answer that names a
@@ -47,5 +46,5 @@ export function useShowOppsFoundMessages(
       const { outcome, text } = answerMessage({ answerType: 'found_peer' })
       globalFeedbackSlot.show(FeedbackMessage.peer(player, outcome, text))
     }
-  }, [gd.players, gd.compete, myId, globalFeedbackSlot])
+  }, [gd.players, gd.compete, gd.me.id, globalFeedbackSlot])
 }

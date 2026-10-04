@@ -20,7 +20,6 @@ import type { GGameData } from '../types'
  */
 export function useShowOppsSolvedMessages(
   gd: GGameData,
-  myId: string,
   globalFeedbackSlot: FeedbackSlot,
 ): void {
   // Keyed on the players, which keep their identity across renders, so the
@@ -31,7 +30,7 @@ export function useShowOppsSolvedMessages(
     items: solved,
     keyOf: (p) => p.id,
     messageFor: (p) => {
-      if (p.id === myId) return null
+      if (p.id === gd.me.id) return null
       const { outcome, text } = answerMessage({ answerType: 'solved_peer' })
       return FeedbackMessage.peerMilestone(p, outcome, text)
     },

@@ -37,7 +37,6 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   return (
     <PlayArea
       gd={gd}
-      auth={ctx.auth}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
       goToFollowUpGame={ctx.goToFollowUpGame}
       menu={ctx.menu}
@@ -47,7 +46,7 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
 
 type PlayAreaProps = Pick<
   PlayAreaLoaderProps,
-  'auth' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
+  'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
 > & {
   gd: GGameData
 }
@@ -69,7 +68,6 @@ type PlayAreaProps = Pick<
  */
 function PlayArea({
   gd,
-  auth,
   globalFeedbackSlot,
   goToFollowUpGame,
   menu,
@@ -134,7 +132,7 @@ function PlayArea({
   })
 
   // An opponent found a secret (compete): say so, never which.
-  useShowOppsFoundMessages(gd, auth.user.id, globalFeedbackSlot)
+  useShowOppsFoundMessages(gd, globalFeedbackSlot)
 
   // ─── The turn-history view ─────────────────────────────
   // Which past turn, if any, is open on the board, and that turn replayed.
@@ -145,7 +143,6 @@ function PlayArea({
   // the menu lists them, and the reveal's state comes back for the board.
   const { actions, secretsShown } = useActionsAndMenu({
     gd,
-    myId: auth.user.id,
     localFeedbackSlot,
     goToFollowUpGame,
     menu,
@@ -177,7 +174,6 @@ function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           gd={gd}
-          myId={auth.user.id}
           endingMessage={endingMessage}
           actions={actions}
           historyView={historyView}

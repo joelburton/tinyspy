@@ -38,13 +38,11 @@ import type { GActions, GGameData, GPuzzleAnswer } from '../types'
  */
 export function useActionsAndMenu({
   gd,
-  myId,
   localFeedbackSlot,
   goToFollowUpGame,
   menu,
 }: {
   gd: GGameData
-  myId: string
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
 } & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): {
@@ -191,7 +189,7 @@ export function useActionsAndMenu({
           tilesLeft: gd.me.board.tilesLeft.map((t) => t.word),
           guesses: gd.events,
           players: gd.players,
-          myId,
+          myId: gd.me.id,
           mode: gd.mode,
           isGameEnded: gd.ended,
           nMistakes: gd.stateLineData.nMistakes,

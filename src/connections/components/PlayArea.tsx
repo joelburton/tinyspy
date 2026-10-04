@@ -36,7 +36,6 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   return (
     <PlayArea
       gd={gd}
-      auth={ctx.auth}
       globalFeedbackSlot={ctx.globalFeedbackSlot}
       goToFollowUpGame={ctx.goToFollowUpGame}
       menu={ctx.menu}
@@ -46,7 +45,7 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
 
 type PlayAreaProps = Pick<
   PlayAreaLoaderProps,
-  'auth' | 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
+  'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
 > & {
   gd: GGameData
 }
@@ -67,12 +66,10 @@ type PlayAreaProps = Pick<
  */
 function PlayArea({
   gd,
-  auth,
   globalFeedbackSlot,
   goToFollowUpGame,
   menu,
 }: PlayAreaProps) {
-  const myId = auth.user.id
 
   // ─── Page hooks ────────────────────────────────────────
 
@@ -137,7 +134,6 @@ function PlayArea({
   // the menu lists them, and the reveal's and the hint list's states come back.
   const { actions, solutionShown, hintsOpen, acknowledgeModal } = useActionsAndMenu({
     gd,
-    myId,
     localFeedbackSlot,
     goToFollowUpGame,
     menu,
@@ -171,7 +167,6 @@ function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           gd={gd}
-          myId={myId}
           endingMessage={endingMessage}
           actions={actions}
           historyView={historyView}
