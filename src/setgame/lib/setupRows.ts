@@ -1,7 +1,8 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { makeCoopRows, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
+import type { SetupRow } from '@/common/setup-form/types'
 import { paletteOf, type SetgameSetup } from './setup'
 
 /**

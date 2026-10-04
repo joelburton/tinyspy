@@ -17,12 +17,12 @@
 import type { Action } from '@/common/actions/useBindAction'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
-import type { TimerMode } from '@/common/manifest/gameManifest'
+import type { TimerMode } from '@/common/manifest/types'
 import type { Actor } from '@/common/members/member'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
-import type { SetupOf } from '@/common/setup-form/setupForm'
-import type { SetupRow } from '@/common/setup-form/setupRows'
+import type { SetupOf } from '@/common/setup-form/types'
+import type { SetupRow } from '@/common/setup-form/types'
 
 /**
  * psychicnum's `game_data`, as `psychicnum._rebuild_data_cols` writes it

@@ -29,8 +29,7 @@ import { answerMessage, answerOf, peerAnswerMessage } from '../lib/answer'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { useMark } from '@/common/board-marks/useMark'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import { type LadderName } from '../lib/solver'
-import type { BoggleSetup } from '../lib/setup'
+import type { GLadderName, GSetup } from '../types'
 import { useGame } from '../hooks/useGame'
 import { buildWordListRows } from '@/shared/found-words/wordListRows'
 import { printBogglePdf } from '../pdf/printBogglePdf'
@@ -111,9 +110,8 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   )
   const myId = authSession.user.id
 
-  // `setup` is typed `Record<string, unknown>`; BoggleSetup is an `interface`,
-  // which TS won't treat as index-compatible with Record, so route through unknown.
-  const boggleSetup = setup as unknown as BoggleSetup
+  // `setup` is typed `Record<string, unknown>`, so it is read as `GSetup` through unknown.
+  const boggleSetup = setup as unknown as GSetup
 
   // The setup rows, built ONCE and handed to both consumers — the info column
   // renders them as <li>s, the print model prints the same array object
@@ -130,7 +128,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
       ),
     [boggleSetup, game, players],
   )
-  const ladder: LadderName = (boggleSetup.scoring_ladder as LadderName) ?? 'basic'
+  const ladder: GLadderName = (boggleSetup.scoring_ladder as GLadderName) ?? 'basic'
 
   // When the legal band equals the required band, bonus words are only words the
   // clean filter removed from the required set — not an intentional wider

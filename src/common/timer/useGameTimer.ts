@@ -5,7 +5,7 @@ import { db as commonDb } from '../supabase/db'
 import { readRows, runRpc } from '../supabase/dbResult'
 import { isEnvironmental, reportUnhandled } from '../supabase/dbEnvelope'
 import { showFaultModal } from '../faults/faultStore'
-import type { TimerMode } from '../manifest/gameManifest'
+import type { TimerMode } from '../manifest/types'
 
 /** What `common.tick_timer` puts in `data`. Nullable because its other `ok` —
  *  PA004, the game is gone — arrives through a raise, and

@@ -1,7 +1,8 @@
 // cs-blessed-codenamesduet
 
 import type { Member } from '@/common/members/member'
-import { makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
+import type { SetupRow } from '@/common/setup-form/types'
 import type { CodenamesduetSetup } from './setup'
 
 /**

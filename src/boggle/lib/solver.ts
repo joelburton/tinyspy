@@ -26,7 +26,7 @@
  *      hashing. During rejection sampling, where ~all boards are discarded, that's
  *      the dominant saving.
  *
- * Board sizes 4×4, 5×5 and 6×6 are all supported (every wsboggle dice set ships).
+ * GBoard sizes 4×4, 5×5 and 6×6 are all supported (every wsboggle dice set ships).
  * We track used tiles with a small visited byte array rather than a single
  * 32-bit number, since 6×6 = 36 tiles overflows 32 bits.
  */
@@ -37,7 +37,7 @@
 // and Deno resolves neither the `@/` alias nor an extensionless path.
 import type { Trie } from '../../shared/dict-trie/trie.ts'
 export { buildTrie } from '../../shared/dict-trie/trie.ts'
-export type { Trie }
+import type { GBoard, GLadderName } from '../types.ts'
 
 /** Multiface tiles, encoded in board strings as a digit. Each occupies one tile
  *  but contributes two letters (you can't use half a tile). Matches wsboggle's
@@ -55,27 +55,15 @@ export const LADDERS = {
   big:   [0, 0, 0, 1, 1, 2, 4, 6, 9, 12, 16, 20, 25, 30, 36, 42, 50],
 } as const
 
-export type LadderName = keyof typeof LADDERS
-
 export function scoreFor(len: number, ladder: readonly number[]): number {
   return ladder[Math.min(len, ladder.length - 1)]
 }
 
 const A = 'a'.charCodeAt(0)
 
-/** A board ready to solve. `first`/`second` hold letter indices (0–25) per tile;
- *  `first[cell]` is -1 for a **blank** tile (matches nothing), and `second[cell]`
- *  is -1 for a normal tile or the second letter of a multiface tile. `n` is the
- *  side length (board is `n × n`). */
-export interface Board {
-  n: number
-  first: Int8Array
-  second: Int8Array
-}
-
 /** Parse a board string (length `n²`; chars `A`–`Z`, a multiface digit `1`–`6`,
- *  or `0` for a blank tile) into a `Board`. Side length is inferred as `√length`. */
-export function parseBoard(s: string): Board {
+ *  or `0` for a blank tile) into a `GBoard`. Side length is inferred as `√length`. */
+export function parseBoard(s: string): GBoard {
   const len = s.length
   const n = Math.round(Math.sqrt(len))
   if (n * n !== len) throw new Error(`non-square board of length ${len}`)
@@ -95,16 +83,16 @@ export function parseBoard(s: string): Board {
   return { n, first, second }
 }
 
-export interface SolveOptions {
+interface SolveOptions {
   minWordLength?: number
-  ladder?: LadderName
+  ladder?: GLadderName
   /** Generation fail-fast: abort the moment a board exceeds these (it'll be
    *  rejected anyway). Defaults to no cap (full enumeration, for scoring/parity). */
   maxWords?: number
   maxScore?: number
 }
 
-export interface SolveResult {
+interface SolveResult {
   count: number
   longest: number
   score: number
@@ -204,7 +192,7 @@ export function createSolver(trie: Trie) {
 
   /** Solve one board: find every distinct word (≥ min length) traceable through
    *  adjacent tiles, no tile reused. */
-  function solve(b: Board, opts: SolveOptions = {}): SolveResult {
+  function solve(b: GBoard, opts: SolveOptions = {}): SolveResult {
     first = b.first
     second = b.second
     neighbors = neighborsFor(b.n)
@@ -252,7 +240,7 @@ export interface FoundWord {
  *  not on the rejection-sampling path, so clarity beats speed here (plain
  *  recursion, a visited byte array, the word built as a list of letter indices).
  *  Its `(count, longest, score)` agree with `solve()` by construction. */
-export function listWords(trie: Trie, board: Board, opts: SolveOptions = {}): FoundWord[] {
+export function listWords(trie: Trie, board: GBoard, opts: SolveOptions = {}): FoundWord[] {
   const { children, eow } = trie
   const minLen = opts.minWordLength ?? 3
   const ladder = LADDERS[opts.ladder ?? 'basic']

@@ -10,7 +10,7 @@
  * erase at compile time and never join an import cycle.
  */
 
-import type { Outcome } from '../outcomes/outcomes'
+import type { Outcome } from '../outcomes/outcomes.ts'
 
 /** Why a game ended: the category of the act that ended it
  *  (`common.games.game_ended_reason`). The game's own word for the act is the

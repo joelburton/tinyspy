@@ -7,11 +7,11 @@ import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { Action } from '@/common/actions/useBindAction'
-import type { SetupRow } from '@/common/setup-form/setupRows'
+import type { SetupRow } from '@/common/setup-form/types'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { WordList, type WordListRow } from '@/common/word-list/WordList'
 import { Stats, type BoggleStats } from './Stats'
-import type { BoggleSetup } from '../lib/setup'
+import type { GSetup } from '../types'
 import shared from '@/common/info-sheet/infoCol.module.css'
 
 /**
@@ -90,7 +90,7 @@ export function InfoCol({
   actBackToClub: Action
 
   // ── Setup disclosure ──
-  setup: BoggleSetup
+  setup: GSetup
   /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
   /** The board's dice-set description (setup echo). */

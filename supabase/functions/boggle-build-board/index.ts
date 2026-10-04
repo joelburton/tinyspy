@@ -45,15 +45,15 @@
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { generateBoard, listBonusWords, type BoardConstraints } from '../../../src/boggle/lib/generate.ts'
+import { generateBoard, listBonusWords } from '../../../src/boggle/lib/generate.ts'
 import { DICE_BY_NAME } from '../../../src/boggle/lib/dice.ts'
 import {
   LADDERS,
   listWords,
   parseBoard,
   type FoundWord,
-  type LadderName,
 } from '../../../src/boggle/lib/solver.ts'
+import type { GBoardConstraints, GLadderName } from '../../../src/boggle/types.ts'
 import { parseCustomBoard } from '../../../src/boggle/lib/customBoard.ts'
 import { requiredTrie, legalTrie } from './dict.ts'
 import { preflight } from '../_shared/http.ts'
@@ -65,8 +65,8 @@ interface BoggleSetup {
   band?: number
   legal_band?: number
   min_word_length?: number
-  scoring_ladder?: LadderName
-  constraints?: BoardConstraints
+  scoring_ladder?: GLadderName
+  constraints?: GBoardConstraints
   /** Optional custom board — the player's own tiles, written as the setup row
    *  prints them ("ABQuD EFGH IJKL MNOP"). Set → we solve exactly this board instead of
    *  rolling one. Re-parsed here rather than trusted: the FE's Start gate runs
@@ -116,10 +116,10 @@ serve(async (req: Request): Promise<Response> => {
 
     // ─── Generate the board (cached band trie + synchronous solve loop) ─────
     const trie = await requiredTrie(band)
-    const constraints: BoardConstraints = {
+    const constraints: GBoardConstraints = {
       ...setup.constraints,
       minWordLength: setup.min_word_length ?? 3,
-      ladder: ladder as LadderName,
+      ladder: ladder as GLadderName,
     }
     // The board, one of two ways — both ending in the same shape: the raw face
     // string, its side length, and its solved required-word list.

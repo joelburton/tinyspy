@@ -1,9 +1,10 @@
 // cs-blessed-setup-form
 
 import type { CoopStyle, CoopTurnSetup } from './SetupCoopStyleSection'
-import type { TimerMode } from '../manifest/gameManifest'
+import type { TimerMode } from '../manifest/types'
 import type { Member } from '../members/member'
 import { timerLabel } from '../timer/timerLabel'
+import type { SetupRow } from './types'
 
 /**
  * The setup rows — **one array per game, for the info column and the PDF to
@@ -21,22 +22,6 @@ import { timerLabel } from '../timer/timerLabel'
  * holds every game to having the module, and carries a reason beside each game
  * exempted from it.
  */
-
-/** One setup row: what it describes, what it's called, what it says. */
-export type SetupRow = {
-  // The setup key this row describes — `'timer'`, `'legal_band'`, … Nothing
-  // RENDERS it; it exists so `src/guards/setupRows.test.ts` can assert that
-  // every key in a game's default setup produces a row — so adding a setup
-  // field forces a decision about whether players see it recorded, rather than
-  // leaving two lists to agree by convention. The two PSEUDO-KEYS below
-  // describe something real that isn't a setup key: the roster, and the board.
-  key: string
-  label: string
-  // Plain string, never a React node. The PDF is WinAnsi (no `→`, no elements),
-  // so it's the lower bound for what a shared row may carry — which is the
-  // right way round. Screen-only richness lives outside these rows.
-  value: string
-}
 
 /** Who played. One of the two pseudo-keys — see `SetupRow.key`. */
 export const ROSTER_KEY = 'players'

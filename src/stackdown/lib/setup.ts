@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { TimerMode } from '@/common/manifest/gameManifest'
-import type { SetupOf } from '@/common/setup-form/setupForm'
+import type { TimerMode } from '@/common/manifest/types'
+import type { SetupOf } from '@/common/setup-form/types'
 
 /**
  * stackdown's per-game setup — collected by the start-game dialog,

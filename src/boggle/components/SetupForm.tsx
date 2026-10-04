@@ -8,17 +8,16 @@ import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import type { BoardConstraints } from '../lib/generate'
-import { WIN_PERCENT_OPTIONS, type BoggleValues } from '../lib/setup'
+import { WIN_PERCENT_OPTIONS } from '../lib/setup'
+import type { GBoardConstraints, GLadderName, GSetupValues } from '../types'
 import { capBoard, cleanCustomBoard, readTiles, twoLetterList } from '../lib/customBoard'
-import type { LadderName } from '../lib/solver'
 import { DICE_SETS, DICE_BY_NAME } from '../lib/dice'
 import styles from './SetupForm.module.css'
 import { ManualBoardField } from '@/common/fields/ManualBoardField'
 import { groupTiles } from '@/common/fields/groupTiles'
 
 // Ladder labels + order ported verbatim from wsboggle (NewSoloGamePage.tsx).
-const SCORING_LADDERS: ReadonlyArray<{ name: LadderName; label: string }> = [
+const SCORING_LADDERS: ReadonlyArray<{ name: GLadderName; label: string }> = [
   { name: 'basic', label: 'Basic: 1–11' },
   { name: 'flat', label: 'Flat: 1' },
   { name: 'fib', label: 'Fibonacci: 1–377' },
@@ -27,7 +26,7 @@ const SCORING_LADDERS: ReadonlyArray<{ name: LadderName; label: string }> = [
 
 const MIN_WORD_LENGTHS = [3, 4, 5] as const
 
-// The numeric board-constraint keys (BoardConstraints also has non-numeric
+// The numeric board-constraint keys (GBoardConstraints also has non-numeric
 // minWordLength/ladder, which the grid doesn't touch).
 type NumKey = 'minWords' | 'maxWords' | 'minScore' | 'maxScore' | 'minLongest' | 'maxLongest'
 
@@ -49,12 +48,12 @@ const CONSTRAINT_ROWS: ReadonlyArray<{ label: string; min: NumKey; max: NumKey }
 export function SetupForm({
   mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as BoggleValues
-  const set = setValue as SetupSetter<BoggleValues>
-  const c: BoardConstraints = s.constraints ?? {}
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
+  const c: GBoardConstraints = s.constraints ?? {}
 
   function setConstraint(key: NumKey, raw: string) {
-    const next: BoardConstraints = { ...c }
+    const next: GBoardConstraints = { ...c }
     const trimmed = raw.trim()
     if (trimmed === '') delete next[key]
     else next[key] = Math.max(0, Math.floor(Number(trimmed)))
@@ -199,7 +198,7 @@ export function SetupForm({
           error={errors.scoring_ladder}
           label="Ladder"
           value={s.scoring_ladder}
-          onChange={(ladder) => set('scoring_ladder', ladder as LadderName)}
+          onChange={(ladder) => set('scoring_ladder', ladder as GLadderName)}
         >
           {SCORING_LADDERS.map((l) => (
             <option key={l.name} value={l.name}>
@@ -279,7 +278,7 @@ function Row({
   onSet,
 }: {
   row: { label: string; min: NumKey; max: NumKey }
-  c: BoardConstraints
+  c: GBoardConstraints
   onSet: (key: NumKey, raw: string) => void
 }) {
   return (

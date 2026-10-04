@@ -1,76 +1,18 @@
 // cs-unmet
 
-import type { TimerMode } from '@/common/manifest/gameManifest'
-import type { SetupOf } from '@/common/setup-form/setupForm'
 import type { FormErrors } from '@/common/forms/formState'
-import type { BoardConstraints } from './generate'
-import type { LadderName } from './solver'
 import { LADDERS } from './solver'
 import { DICE_BY_NAME } from './dice'
 import { parseCustomBoard } from './customBoard'
+import type { GSetup } from '../types'
 
-/**
- * The setup blob the dialog collects and `boggle.create_game` validates. `mode`
- * is NOT here — it's a top-level manifest/RPC arg (the sibling-pair split).
- * `constraints` are the optional board-generation targets (min/max words, score,
- * longest word) measured against the required words.
- */
-export interface BoggleValues {
-  timer: TimerMode
-  dice_set: string
-  /** required-word difficulty band, 1 (universal) … 6 (expert) — the words the
-   *  board generator guarantees are findable (clean: american, no slur/crude/slang) */
-  band: number
-  /** legal (bonus) difficulty band, `band`…6 — the ceiling for words that aren't
-   *  required but still score. Filters on difficulty ONLY (any dialect/slur/
-   *  crude/slang qualifies), so it's the wider net of "real words you might find". */
-  legal_band: number
-  min_word_length: number
-  scoring_ladder: LadderName
-  /** Win-on-target: the percent of the required-words SCORE a player (compete)
-   *  or the team (coop) must reach to win — one of 50, 55, … 100 — or `null`
-   *  for "no target" (play until Stop or the timer expires). Measured
-   *  against the score of the REQUIRED words found ONLY — bonus finds don't
-   *  count — so 100% means every required word, 50% means required finds worth
-   *  half the required total. */
-  win_percent: number | null
-  constraints?: BoardConstraints
-  /**
-   * An OPTIONAL player-typed board — the tiles themselves, written the way the
-   * `Letters` setup row prints them (`"ABQuD EFGH IJKL MNOP"`; see `lib/customBoard.ts`).
-   * Set → the edge function solves exactly this board instead of rolling one;
-   * blank/absent → the normal roll. Either mode.
-   *
-   * Stored AS TYPED rather than as the internal face string: the field has to
-   * survive half-finished input (you can't hold a partial board in a canonical
-   * encoding), and keeping the text means what you pasted is what you see. The
-   * server re-parses — it never trusts the client's reading.
-   *
-   * Because the player chose the tiles, a custom board skips BOTH the
-   * `constraints` targets (nothing is being rejection-sampled) and the roll
-   * loop's quality bar; it need only yield ≥1 required word, or `win_percent`
-   * would compute a threshold of zero. It is NOT saved as the club's next
-   * default — a one-off, not a new baseline (see `boggle.create_game`).
-   */
-  custom_board?: string
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
-  player_user_ids: Set<string>
-}
-
-
-/** What is SENT and STORED — every value the form collects except the players
- *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupRows.ts` and `PlayArea` read back. */
-export type BoggleSetup = SetupOf<BoggleValues>
 /** The `win_percent` dropdown options: None (null) + 50…100 by 5. */
 export const WIN_PERCENT_OPTIONS: ReadonlyArray<number | null> = [
   null, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
 ]
 
 /** Coop default: 4×4 Revised board, familiar band, standard scoring, no timer. */
-export const DEFAULT_BOGGLE_SETUP_COOP: BoggleSetup = {
+export const DEFAULT_BOGGLE_SETUP_COOP: GSetup = {
   timer: { kind: 'none' },
   dice_set: '4',
   band: 3,
@@ -91,11 +33,11 @@ export const DEFAULT_BOGGLE_SETUP_COOP: BoggleSetup = {
 }
 
 /** Compete shares the coop defaults (mode is a positional RPC arg). */
-export const DEFAULT_BOGGLE_SETUP_COMPETE: BoggleSetup = { ...DEFAULT_BOGGLE_SETUP_COOP }
+export const DEFAULT_BOGGLE_SETUP_COMPETE: GSetup = { ...DEFAULT_BOGGLE_SETUP_COOP }
 
 /** Cross-field guard for the Start button. Pure + synchronous; `create_game`
  *  re-validates server-side (this is UX, not the authority). */
-export function legalError(s: BoggleSetup): FormErrors {
+export function legalError(s: GSetup): FormErrors {
   // Six checks over six different controls, and each one says which. Before
   // these carried their field they all landed on the dialog's bottom line, so
   // "Difficulty band must be 1–6" and "Minimum word length must be 3–9" arrived
@@ -130,7 +72,7 @@ export function legalError(s: BoggleSetup): FormErrors {
  * `parseCustomBoard` owns the reading itself, and the edge function calls the
  * same function server-side; this is the fail-fast, not the authority.
  */
-export function customBoardError(s: BoggleSetup): FormErrors {
+export function customBoardError(s: GSetup): FormErrors {
   const text = (s.custom_board ?? '').trim()
   if (!text) return {} // blank → roll a board, the normal path
   const set = DICE_BY_NAME[s.dice_set]
@@ -147,6 +89,6 @@ export function customBoardError(s: BoggleSetup): FormErrors {
  * `validate` shows the returned string and disables Start until it's `null`).
  * Mirrors freebee's `spellingbeeSetupError`.
  */
-export function boggleSetupError(s: BoggleSetup): FormErrors {
+export function boggleSetupError(s: GSetup): FormErrors {
   return { ...legalError(s), ...customBoardError(s) }
 }

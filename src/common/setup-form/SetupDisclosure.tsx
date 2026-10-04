@@ -1,7 +1,7 @@
 // cs-blessed-setup-form
 
 import { InfoDisclosure } from '../info-sheet/InfoDisclosure'
-import type { SetupRow } from './setupRows'
+import type { SetupRow } from './types'
 import styles from './SetupDisclosure.module.css'
 
 /**

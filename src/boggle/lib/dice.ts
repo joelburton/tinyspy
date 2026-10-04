@@ -15,16 +15,7 @@
  *     (wsboggle's C maps it to `__`.)
  */
 
-export interface DiceSet {
-  /** registry key (also the value stored in a game's setup) */
-  name: string
-  /** player-facing label */
-  desc: string
-  /** board side length; board is n × n */
-  n: number
-  /** one 6-char face string per die; length === n * n */
-  dice: readonly string[]
-}
+import type { GDiceSet } from '../types.ts'
 
 /** Display text for a single raw face char. */
 const FACE_DISPLAY: Record<string, string> = {
@@ -45,7 +36,7 @@ export function boardToDisplay(board: string, n: number): string[][] {
   return grid
 }
 
-export const DICE_SETS: readonly DiceSet[] = [
+export const DICE_SETS: readonly GDiceSet[] = [
   {
     name: '4-classic', desc: '4×4 Classic', n: 4, dice: [
       'AACIOT', 'ABILTY', 'ABJMOQ', 'ACDEMP',
@@ -120,5 +111,5 @@ export const DICE_SETS: readonly DiceSet[] = [
   },
 ]
 
-export const DICE_BY_NAME: Record<string, DiceSet> =
+export const DICE_BY_NAME: Record<string, GDiceSet> =
   Object.fromEntries(DICE_SETS.map((s) => [s.name, s]))

@@ -2,10 +2,11 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { BOARD_KEY, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { BOARD_KEY, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
+import type { SetupRow } from '@/common/setup-form/types'
 import { DICE_BY_NAME } from './dice'
 import { formatBoard } from './customBoard'
-import type { BoggleSetup } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * One "Board constraints" grid row (Words / Score / Longest), read back as a
@@ -43,7 +44,7 @@ function boundsValue(min: number | undefined, max: number | undefined): string |
  * the side length.
  */
 export function makeSetupRows(
-  setup: BoggleSetup,
+  setup: GSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
   /** The board's raw face string + side length, or null while the game row is

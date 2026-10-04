@@ -103,7 +103,7 @@ export function formatBoard(board: string, n: number): string {
  * narrow it the same way — the edge function typechecks under Deno's tsc, which
  * won't discriminate a union on an `error?: undefined` property.
  */
-export type CustomBoardResult =
+type CustomBoardResult =
   | { ok: true; board: string }
   | { ok: false; error: string }
 

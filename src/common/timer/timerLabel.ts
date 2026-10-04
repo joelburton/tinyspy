@@ -1,6 +1,6 @@
 // cs-blessed-timer
 
-import type { TimerMode } from '../manifest/gameManifest'
+import type { TimerMode } from '../manifest/types'
 
 /**
  * The VALUE of a game's CONFIGURED timer — `none`, `count-up`, or

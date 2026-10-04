@@ -10,8 +10,8 @@ import {
   DEFAULT_BOGGLE_SETUP_COMPETE,
   DEFAULT_BOGGLE_SETUP_COOP,
   boggleSetupError,
-  type BoggleSetup,
 } from './lib/setup'
+import type { GSetup } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -44,7 +44,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // create_game returns, relayed untouched (see _shared/startGame.ts).
     runEdgeFn<CreatedGame>('boggle-build-board', {
       target_club: clubHandle,
-      setup: setup as BoggleSetup,
+      setup: setup as GSetup,
       player_user_ids: playerUserIds,
       mode,
     })
@@ -144,7 +144,7 @@ export const boggleCoopGame: GameManifest = {
       'Everyone hunts the same board together and the team’s finds pile up into one score.',
     Component: setupFormLoader,
     defaults: DEFAULT_BOGGLE_SETUP_COOP,
-    validate: (setup) => boggleSetupError(setup as BoggleSetup),
+    validate: (setup) => boggleSetupError(setup as GSetup),
   },
   startGameInClub: startGameInClubFactory('coop'),
   summaryFor: (row) => coopLabel(row),
@@ -171,7 +171,7 @@ export const boggleCompeteGame: GameManifest = {
       'Everyone races the same board independently — most points wins. You see each other’s word counts, not the words themselves, until the game ends.',
     Component: setupFormLoader,
     defaults: DEFAULT_BOGGLE_SETUP_COMPETE,
-    validate: (setup) => boggleSetupError(setup as BoggleSetup),
+    validate: (setup) => boggleSetupError(setup as GSetup),
   },
   startGameInClub: startGameInClubFactory('compete'),
   summaryFor: (row) => competeLabel(row),

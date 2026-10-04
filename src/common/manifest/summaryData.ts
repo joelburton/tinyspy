@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { GameEndingRaw } from '../game-page/gameData'
-import type { EndOutcome } from '../terminal/gameEnding'
+import type { GameEndingRaw } from '../game-page/gameData.ts'
+import type { EndOutcome } from '../terminal/gameEnding.ts'
 
 /**
  * The common part of every game's `summary_data`, as

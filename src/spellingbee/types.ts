@@ -26,8 +26,8 @@ import type {
   BeeTile,
   BeeWord,
 } from '@/shared/bee-games/beeGameData'
-import type { TimerMode } from '@/common/manifest/gameManifest'
-import type { SetupOf } from '@/common/setup-form/setupForm'
+import type { TimerMode } from '@/common/manifest/types'
+import type { SetupOf } from '@/common/setup-form/types'
 
 /** spellingbee's `game_data`, as `spellingbee._rebuild_data_cols` writes it
  *  (supabase/sql/spellingbee.sql → The page blobs). */

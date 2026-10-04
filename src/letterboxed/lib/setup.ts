@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { TimerMode } from '@/common/manifest/gameManifest'
-import type { SetupOf } from '@/common/setup-form/setupForm'
+import type { TimerMode } from '@/common/manifest/types'
+import type { SetupOf } from '@/common/setup-form/types'
 import type { FormErrors } from '@/common/forms/formState'
 import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
 import { parseSides } from './customBoard'

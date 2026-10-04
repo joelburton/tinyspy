@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '../terminal/gameEnding'
-import type { Player } from '../members/member'
+import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '../terminal/gameEnding.ts'
+import type { Player } from '../members/member.ts'
 
 /**
  * The common part of every game's `game_data`, as `common._make_json_game_data`

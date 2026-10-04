@@ -1,7 +1,7 @@
 // cs-blessed-pdf
 
 import { jsPDF } from 'jspdf'
-import type { SetupRow } from '../setup-form/setupRows'
+import type { SetupRow } from '../setup-form/types'
 
 export type { SetupRow }
 

@@ -2,7 +2,8 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { makeCenterLettersRow, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeCenterLettersRow, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
+import type { SetupRow } from '@/common/setup-form/types'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { GSetup } from '../types'
 

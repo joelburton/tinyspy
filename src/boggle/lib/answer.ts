@@ -4,29 +4,7 @@ import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
 import { type WordSubmitReport } from '@/shared/found-words/useFoundWordSubmit'
 import { wordWithBonusBullet } from '@/shared/found-words/foundWords'
 import { traceableStr } from './boardTrace'
-
-/**
- * Everything that can be SAID about a word in this game, as a closed set — and
- * **read as a list, it is the whole roster of what this game tells anybody.**
- *
- * "_peer" versions are answers that come from subscriptions and are for peer
- * feedback. `word` is lowercase, as the engine and the rows carry it.
- */
-export type Answer =
-  // My word counted.
-  | { answerType: 'accepted'; word: string; points: number; isBonus: boolean }
-  // A coop teammate's did, off `found_words`.
-  | { answerType: 'accepted_peer'; word: string; points: number; isBonus: boolean }
-
-  // Already found — by anyone in coop, by me in compete.
-  | { answerType: 'already_found'; word: string; isBonus: boolean }
-  // Shorter than this board's minimum.
-  | { answerType: 'too_short'; word: string }
-
-  // Not in the list, by why: no path on the board spells it…
-  | { answerType: 'not_on_board'; word: string }
-  // …or a path does, and it is simply not a word.
-  | { answerType: 'not_a_word'; word: string }
+import type { GAnswer } from '../types'
 
 /**
  * How an answer reads — **the one place this game decides that.** The pill,
@@ -38,7 +16,7 @@ export type Answer =
  * and already found are not — you have not finished typing, or you already
  * have it — so they are `warning`.
  */
-export function answerMessage(answer: Answer): AnswerMessage {
+export function answerMessage(answer: GAnswer): AnswerMessage {
   switch (answer.answerType) {
     case 'accepted':
       return { outcome: 'won', text: `${wordWithBonusBullet(answer.word, answer.isBonus)} — +${answer.points}` }
@@ -67,7 +45,7 @@ export function answerMessage(answer: Answer): AnswerMessage {
  * Which of this game's answers the engine's report is. The engine knows only
  * that a word missed the list; the board says why — whether any path spells it.
  */
-export function answerOf(report: WordSubmitReport, board: string): Answer {
+export function answerOf(report: WordSubmitReport, board: string): GAnswer {
   const word = report.word
   switch (report.answer) {
     case 'accepted':

@@ -26,8 +26,8 @@ import type {
   BeeTile,
   BeeWord,
 } from '@/shared/bee-games/beeGameData'
-import type { TimerMode } from '@/common/manifest/gameManifest'
-import type { SetupOf } from '@/common/setup-form/setupForm'
+import type { TimerMode } from '@/common/manifest/types'
+import type { SetupOf } from '@/common/setup-form/types'
 
 /** wordwheel's `game_data`, as `wordwheel._rebuild_data_cols` writes it
  *  (supabase/sql/wordwheel.sql → The page blobs). */

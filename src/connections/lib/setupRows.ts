@@ -1,7 +1,8 @@
 // cs-blessed-connections
 
 import type { Member } from '@/common/members/member'
-import { makeCoopRows, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
+import type { SetupRow } from '@/common/setup-form/types'
 import type { GSetup } from '../types'
 
 /** Format a puzzle's NYT date (`YYYY-MM-DD`) for its setup row. Parsed as UTC so a

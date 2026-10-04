@@ -1,7 +1,7 @@
 // cs-blessed-pdf
 
 import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, setupBlockHeight, setupLineCount, type PrintDoc } from './frame'
-import type { SetupRow } from '../setup-form/setupRows'
+import type { SetupRow } from '../setup-form/types'
 
 // Column x-offsets from a column's left edge. The <move> column is the important one,
 // so it gets the most room; Player is narrow and truncates (a cut name is still legible).

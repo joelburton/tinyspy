@@ -14,7 +14,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { SetupDisclosure } from './SetupDisclosure'
-import type { SetupRow } from './setupRows'
+import type { SetupRow } from './types'
 
 const ROWS: SetupRow[] = [
   { key: 'timer', label: 'Timer', value: 'none' },

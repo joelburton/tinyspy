@@ -1,7 +1,8 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
+import type { SetupRow } from '@/common/setup-form/types'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import { WORD_CHECK_OPTIONS, type BananagramsSetup } from './setup'
 

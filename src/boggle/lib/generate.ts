@@ -14,8 +14,9 @@
 // module graph, and Deno requires extensions. Vite/Vitest/tsc accept them too
 // (tsconfig `allowImportingTsExtensions`).
 import { createSolver, listWords, parseBoard } from './solver.ts'
-import type { FoundWord, LadderName, Trie } from './solver.ts'
-import type { DiceSet } from './dice.ts'
+import type { FoundWord } from './solver.ts'
+import type { Trie } from '../../shared/dict-trie/trie.ts'
+import type { GBoardConstraints, GDiceSet, GLadderName } from '../types.ts'
 // Board generation is seeded so a board is reproducible from its seed — per
 // CLAUDE.md's trust table, seeds are server-chosen for fairness, not secrecy.
 // Relative, not `@/`: this module is on the Deno import graph
@@ -24,7 +25,7 @@ import { mulberry32 } from '../../common/utils/mulberry32.ts'
 
 /** Roll one board: Fisher–Yates shuffle the dice across cells, then pick a random
  *  face per die. Returns the row-major raw-face string (length n²). */
-export function rollBoard(set: DiceSet, rand: () => number): string {
+export function rollBoard(set: GDiceSet, rand: () => number): string {
   const order = set.dice.slice()
   for (let i = order.length - 1; i > 0; i--) {
     const j = (rand() * (i + 1)) | 0
@@ -35,18 +36,7 @@ export function rollBoard(set: DiceSet, rand: () => number): string {
   return board
 }
 
-export interface BoardConstraints {
-  minWordLength?: number
-  ladder?: LadderName
-  minWords?: number
-  maxWords?: number
-  minScore?: number
-  maxScore?: number
-  minLongest?: number
-  maxLongest?: number
-}
-
-export interface GeneratedBoard {
+interface GeneratedBoard {
   /** row-major raw-face string (A–Z, multiface digit, or 0 for blank) */
   board: string
   n: number
@@ -68,8 +58,8 @@ export interface GeneratedBoard {
  *  Leaving `maxMs` undefined skips all clock reads, so tests stay pure. */
 export function generateBoard(
   trie: Trie,
-  set: DiceSet,
-  constraints: BoardConstraints,
+  set: GDiceSet,
+  constraints: GBoardConstraints,
   seed: number,
   maxTries = 200_000,
   maxMs?: number,
@@ -124,7 +114,7 @@ export function listBonusWords(
   legalTrie: Trie,
   boardStr: string,
   requiredWords: FoundWord[],
-  opts: { minWordLength?: number; ladder?: LadderName },
+  opts: { minWordLength?: number; ladder?: GLadderName },
 ): FoundWord[] {
   const required = new Set(requiredWords.map((w) => w.word))
   return listWords(legalTrie, parseBoard(boardStr), opts).filter((w) => !required.has(w.word))

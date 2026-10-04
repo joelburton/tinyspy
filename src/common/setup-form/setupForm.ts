@@ -11,7 +11,7 @@ import type { Member } from '../members/member'
  *
  * Reach for this when you are WRITING a game's setup form: `SetupBodyProps` is
  * what your body receives, `SetupSetter<V>` is what you cast `set` to so field
- * names are checked, `SetupOf<V>` derives the blob your `create_game` is sent,
+ * names are checked, `SetupOf<V>` (in `types.ts`) derives the blob your `create_game` is sent,
  * and `GameSetupForm` is the object your manifest's `setupForm` must be.
  *
  * **`CreatedGame` is deliberately NOT here** even though it reads like setup.
@@ -23,20 +23,6 @@ import type { Member } from '../members/member'
  * object keyed by field name, which is what lets a server validation naming a
  * column land under the box that wrote it.
  */
-
-/**
- * WHAT THE FORM HOLDS, minus what the form alone needs — the setup blob a
- * game's `create_game` is actually sent, and the shape stored on
- * `common.games.setup` and `clubs_gametypes.default_setup`.
- *
- * `Values` is the primary type and `Setup` is derived from it, because the form
- * is where every one of these values is decided. The only difference is the
- * players: they are the RPC's own argument and become `common.game_players`
- * rows, so they are never in the setup blob — which matters, because
- * `<game>/lib/setupRows.ts` and each `PlayArea` read that blob BACK as
- * `<Game>Setup` and would otherwise be typed for a key that is never there.
- */
-export type SetupOf<V> = Omit<V, 'player_user_ids'>
 
 /**
  * Write one field of the form. The setup body casts the loose `set` it is given

@@ -8,7 +8,8 @@
  * including multiface tiles (Qu, …) matching their two letters together and
  * blank tiles matching nothing.
  */
-import { parseBoard, type Board } from './solver'
+import { parseBoard } from './solver'
+import type { GBoard, GTraceCells } from '../types'
 
 const A = 'a'.charCodeAt(0)
 
@@ -30,7 +31,7 @@ const STEP_BUDGET = 200_000
  * order below. Arbitrary, invisible to the player (the word is refused either
  * way), and worth knowing it is a choice rather than a fact.
  */
-export function tracePath(board: Board, word: string): number[] | null {
+export function tracePath(board: GBoard, word: string): number[] | null {
   const w = word.toLowerCase()
   const len = w.length
   if (len === 0) return null
@@ -81,18 +82,6 @@ export function tracePathStr(boardStr: string, word: string): number[] | null {
   return tracePath(parseBoard(boardStr), word)
 }
 
-/** Where the typed word's letters can sit, and how far the board follows it. */
-export type TraceCells = {
-  /** Cells no route can avoid — one per letter position that has a single candidate. */
-  certain: number[]
-  /** Cells that carry a letter position with more than one candidate. */
-  possible: number[]
-  /** How many letters the board can actually spell, from the start. Equal to the
-   *  word's length while it still traces; the letters past it are the ones the
-   *  board cannot follow, and the entry box dims them. */
-  reach: number
-}
-
 /**
  * WHERE the board could put each letter of `word`, collapsed to two sets of
  * cells, plus how far into the word the board can follow at all.
@@ -114,7 +103,7 @@ export type TraceCells = {
  * the walk stopped early, so it can no longer tell a settled letter from an open
  * one, and saying "maybe" about all of them is the version that isn't a lie.
  */
-export function traceCells(board: Board, word: string): TraceCells {
+export function traceCells(board: GBoard, word: string): GTraceCells {
   const w = word.toLowerCase()
   const len = w.length
   if (len === 0) return { certain: [], possible: [], reach: 0 }
@@ -194,12 +183,12 @@ export function traceCells(board: Board, word: string): TraceCells {
 }
 
 /** …the same, against a raw board string. */
-export function traceCellsStr(boardStr: string, word: string): TraceCells {
+export function traceCellsStr(boardStr: string, word: string): GTraceCells {
   return traceCells(parseBoard(boardStr), word)
 }
 
 /** Can `word` be traced on a parsed board? */
-export function traceable(board: Board, word: string): boolean {
+export function traceable(board: GBoard, word: string): boolean {
   const w = word.toLowerCase()
   const len = w.length
   if (len === 0) return false

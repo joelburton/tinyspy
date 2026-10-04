@@ -1,7 +1,7 @@
 // cs-blessed-codenamesduet
 
-import type { TimerMode } from '@/common/manifest/gameManifest'
-import type { SetupOf } from '@/common/setup-form/setupForm'
+import type { TimerMode } from '@/common/manifest/types'
+import type { SetupOf } from '@/common/setup-form/types'
 
 /**
  * codenamesduet's per-game setup — the choices collected by the

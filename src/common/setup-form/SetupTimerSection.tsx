@@ -5,7 +5,7 @@ import { formatTimerSeconds, timerLabel } from '../timer/timerLabel'
 import { RadioRow } from '../fields/RadioRow'
 import type { FormErrors } from '../forms/formState'
 import { SetupSection } from './SetupSection'
-import type { TimerMode } from '../manifest/gameManifest'
+import type { TimerMode } from '../manifest/types'
 import styles from './SetupTimerSection.module.css'
 
 // Bounds for the count-down picker, kept in lockstep with the server-side range

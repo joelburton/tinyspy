@@ -2,12 +2,8 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import {
-  makeCoopRows,
-  makeRosterRow,
-  makeTimerRow,
-  type SetupRow,
-} from '@/common/setup-form/setupRows'
+import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
+import type { SetupRow } from '@/common/setup-form/types'
 import type { GSetup } from '../types'
 
 /**

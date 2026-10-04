@@ -6,7 +6,6 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import type { TraceCells } from '../lib/boardTrace'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { TypedWord } from './TypedWord'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
@@ -17,6 +16,7 @@ import { Stats, type BoggleStats } from './Stats'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
 import styles from './PlayArea.module.css'
+import type { GTraceCells } from '../types'
 
 /** Rotate a square grid 90° clockwise — repositions tiles; the letters themselves
  *  render upright (no spin). new[i][j] = old[n-1-j][i]. */
@@ -100,7 +100,7 @@ export function BoardCol({
    *  letter with one candidate tile, `possible` a letter with several. Null when
    *  nothing is typed. Ignored while a tapped path exists — that one is the
    *  player's own choice, not a deduction. */
-  typedCells: TraceCells | null
+  typedCells: GTraceCells | null
 
   // ── Word entry ──
   /** The pending typed word. */

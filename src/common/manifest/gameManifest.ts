@@ -15,10 +15,8 @@ import type { Member } from '../members/member'
  * `GameManifest` is the whole subject; everything else here exists because one
  * of its members needs a type. `CreatedGame` and `GameStopResult` are what its three
  * RPC members answer with; the `playerCount*` helpers format `numberOfPlayers`
- * for the club page. `TimerMode` is the one exception to "a member needs it":
- * it is the shape of a game's `setup.timer`, kept here because every setup
- * form and `useGameTimer` speak it and the manifest is where a game's contract
- * with the shell is read.
+ * for the club page. `TimerMode`, the shape of a game's `setup.timer`, is in
+ * `types.ts` beside this file.
  *
  * **The two files either side of this one**, since the names are close:
  * `src/gametypes.ts` is the REGISTRY — the list that collects these manifests,
@@ -268,24 +266,6 @@ export type GameManifest = {
   // mean taking the first.
   stopGame: (gameId: string) => Promise<Envelope<GameStopResult>>
 }
-
-/**
- * Per-game timer declaration, consumed by `useGameTimer`:
- *
- *   - `none` — no timer.
- *   - `countup` — display-only: the count of seconds somebody was
- *     playing, shown as it climbs. Drives no state change.
- *   - `countdown` — `seconds` minus that count. At zero,
- *     `useGameTimer.expired` is true; `GamePage` fires the gametype's
- *     `submitTimeout` on that edge, which ends the game.
- *
- * The count is the server's (`common.timers.ticks`, advanced by
- * `common.tick_timer`); the design is `src/common/timer/doc.md`.
- */
-export type TimerMode =
-  | { kind: 'none' }
-  | { kind: 'countup' }
-  | { kind: 'countdown'; seconds: number }
 
 /**
  * Does a player count fall inside a gametype's supported range?

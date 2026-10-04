@@ -2,7 +2,8 @@
 
 import { describe, expect, it } from 'vitest'
 import { gametypes as GAMES } from '@/gametypes'
-import { ROSTER_KEY, type SetupRow } from '@/common/setup-form/setupRows'
+import { ROSTER_KEY } from '@/common/setup-form/setupRows'
+import type { SetupRow } from '@/common/setup-form/types'
 import type { Member } from '@/common/members/member'
 
 /**

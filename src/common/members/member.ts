@@ -1,6 +1,6 @@
 // cs-blessed-members
 
-import type { EndOutcome, PlayerEndedReason } from '../terminal/gameEnding'
+import type { EndOutcome, PlayerEndedReason } from '../terminal/gameEnding.ts'
 
 /**
  * Who someone IS — the identity shape every render site in the app shares, and
