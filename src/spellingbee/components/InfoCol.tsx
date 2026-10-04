@@ -7,16 +7,15 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { WordList } from '@/common/word-list/WordList'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
-import { RankBar } from '@/shared/rank-ladder/RankBar'
-import { Stats } from '@/shared/rank-ladder/Stats'
 import { makeWordRows } from '../lib/wordRows'
+import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
 import type { GActions, GGameData, GPlayer } from '../types'
 
 /**
  * spellingbee's info column: the shared readouts in the fixed order
- * (docs/playarea.md → Info-column readouts) — the rank ladder and the figures,
- * the opponent strip, the action row, setup, then the word list. There is no
+ * (docs/playarea.md → Info-column readouts) — the state line (the rank ladder and the
+ * figures), the opponent strip, the action row, setup, then the word list. There is no
  * help line. Every command is an action PlayArea hands down; an action that
  * does not apply draws nothing, which is how one row serves coop and compete.
  */
@@ -37,13 +36,13 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  // A racer's cell in the strip: their rank; a conceder reads "out" while the
-  // race runs, and once it has ended the outcome verb leads so the two
-  // "no longer active" states read differently — "Conceded at Amazing" vs
+  // A racer's cell in the strip: their rank; a racer who has ended reads "out"
+  // while the race runs, and once it has ended the outcome verb leads so the
+  // two "no longer active" states read differently — "Conceded at Amazing" vs
   // "Lost at Amazing" vs "Won at Genius".
   function getRankOrOut(player: GPlayer) {
     const rank = RANKS[player.rankIdx]
-    if (!gd.ended) return player.conceded ? 'out' : rank
+    if (!gd.ended) return player.ending ? 'out' : rank
     const verb = player.outcome === 'won' ? 'Won' : player.conceded ? 'Conceded' : 'Lost'
     return `${verb} at ${rank}`
   }
@@ -53,17 +52,7 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        <RankBar
-          score={gd.stateLineData.foundWordsScore}
-          total={gd.stateLineData.reqdWordsScore}
-          targetIdx={gd.stateLineData.targetRankIdx}
-        />
-        <Stats
-          foundWordsScore={gd.stateLineData.foundWordsScore}
-          requiredWordsScore={gd.stateLineData.reqdWordsScore}
-          foundWordsCount={gd.stateLineData.nFoundWords}
-          requiredWordsCount={gd.stateLineData.nReqdWords}
-        />
+        <StateLine data={gd.stateLineData} />
 
         {gd.compete && (
           <OpponentStrip

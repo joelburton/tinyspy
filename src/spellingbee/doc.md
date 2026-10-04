@@ -399,18 +399,18 @@ then `PlayArea` in the eight sections.
 <PlayAreaLoader {...PlayAreaLoaderProps}>        useGame, and the three gates
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the board column — the word engine and submit_word
-        │     ├── MobileStatusBar ←      phone only: the RankBar and Stats, mirrored above the hive
+        │     ├── MobileStatusBar ←      phone only: the StateLine, mirrored above the board
         │     ├── Board                  the board: seven <Tile> hexes in one svg
         │     │     └── ShuffleButton ←  floated over its top-right
         │     └── WordEntryArea ←        ⌫, the typed word (drawn through TypedWord), Submit, the
         │                                capture keyboard — or the local slot's pill in their place
         ├── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
         │     └── InfoCol                the readouts and the action row
-        │           ├── RankBar ⇐ Stats ⇐  the ladder, and the score and count under it
+        │           ├── StateLine              the ladder (RankBar ⇐), and the score and count under it (Stats ⇐)
         │           ├── OpponentStrip ←  compete only: each rival's rank, or "out"
         │           ├── InfoActionsRow ← one row, every action, in the menu's order
         │           ├── SetupDisclosure ←
-        │           └── WordList ←       the found words, and at terminal the missed ones
+        │           └── WordList ←       the found words, and once the game has ended the missed ones
         └── CelebrationBlockingModal ←   a win, as it lands — the team's, or mine in a race
 
   ← belongs to common/ ; ⇐ to shared/ ; everything else is this folder's

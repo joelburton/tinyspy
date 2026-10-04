@@ -6,9 +6,8 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
-import { RankBar } from '@/shared/rank-ladder/RankBar'
-import { Stats } from '@/shared/rank-ladder/Stats'
 import { useSubmitWord } from '../hooks/useSubmitWord'
+import { StateLine } from './StateLine'
 import { wordFitsWheel } from '../lib/tiles'
 import { Board } from './Board'
 import { TypedWord } from './TypedWord'
@@ -87,22 +86,12 @@ export function BoardCol({
   // ─── Render ────────────────────────────────────────────
   return (
     <div className={cls(shared.boardCol, bee.boardCol)}>
-      {/* Mobile only (`<MobileStatusBar>` is CSS-hidden on desktop): the rank
-          ladder and the figures, above the board. A fixed-height block, already
+      {/* Mobile only (`<MobileStatusBar>` is CSS-hidden on desktop): the state
+          line, above the board. A fixed-height block, already
           subtracted from the board's `--avail-h`. */}
       <MobileStatusBar>
         <div className={bee.mobileStatus}>
-          <RankBar
-            score={gd.stateLineData.foundWordsScore}
-            total={gd.stateLineData.reqdWordsScore}
-            targetIdx={gd.stateLineData.targetRankIdx}
-          />
-          <Stats
-            foundWordsScore={gd.stateLineData.foundWordsScore}
-            requiredWordsScore={gd.stateLineData.reqdWordsScore}
-            foundWordsCount={gd.stateLineData.nFoundWords}
-            requiredWordsCount={gd.stateLineData.nReqdWords}
-          />
+          <StateLine data={gd.stateLineData} />
         </div>
       </MobileStatusBar>
       <Board
