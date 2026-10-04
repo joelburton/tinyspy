@@ -646,6 +646,20 @@ describe('boggle PlayArea — the keys', () => {
       expect(boardFaces()).toEqual(before)
     })
 
+    it('keeps a half-tapped word through a turn, on the tiles that spell it', async () => {
+      const user = userEvent.setup()
+      render(<WithKeys {...makeCtx()} />)
+      const tileShowing = (face: string) =>
+        [...document.querySelectorAll('[data-boggle-tile]')].find((t) => t.textContent === face)!
+      await user.click(tileShowing('A'))
+      await user.click(tileShowing('F'))
+
+      await act(async () => press(OPT_Z))
+      expect(tileShowing('A').getAttribute('data-step')).toBe('1')
+      expect(tileShowing('F').getAttribute('data-step')).toBe('2')
+      expect(screen.getByTestId('entry-value').textContent).toBe('AF')
+    })
+
     it('still works on a finished board — the fidget is deliberate', async () => {
       render(<WithKeys {...makeCtx(STOPPED)} />)
       expect(getAction('act-rotate').describe('button').state).toBe('active')

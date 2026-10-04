@@ -142,6 +142,7 @@ export type GStateLineData = {
  *   puzzle:
  *     tiles: [tile, …]                       # row by row
  *     tilesById
+ *     traceBoard                             # the board as lib/boardTrace.ts walks it
  *     boardSideSize
  *     minWordLength
  *     words: [word, …]                       # the required ones first
@@ -200,9 +201,9 @@ export type GStateLineData = {
  * Read-only: `makeGameData` builds it and nothing else writes it.
  */
 export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'foundWords' | 'players'> & {
-  // The puzzle, with its tiles by id beside the list: what a held tile id is
-  // looked up in.
-  puzzle: GPuzzle & { tilesById: ReadonlyMap<string, GTile> }
+  // The puzzle, with its tiles by id beside the list — what a held tile id is
+  // looked up in — and the board as the tracer walks it.
+  puzzle: GPuzzle & { tilesById: ReadonlyMap<string, GTile>; traceBoard: GBoard }
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).

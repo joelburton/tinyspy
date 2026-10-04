@@ -23,3 +23,12 @@ export function makeTraceBoard(tiles: readonly GTile[], side: number): GBoard {
   })
   return { n: side, first, second }
 }
+
+/** King-move adjacency (8-way), the Boggle path rule, between two tiles of a
+ *  board this many tiles on a side. A tile's id is its index, row by row. */
+export function isAdjacent(a: string, b: string, side: number): boolean {
+  const [ai, bi] = [Number(a), Number(b)]
+  const dy = Math.abs(((ai / side) | 0) - ((bi / side) | 0))
+  const dx = Math.abs((ai % side) - (bi % side))
+  return dy <= 1 && dx <= 1 && ai !== bi
+}

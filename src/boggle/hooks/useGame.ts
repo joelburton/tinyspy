@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import { makeTraceBoard } from '../lib/board'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GFoundWord, GGameData, GGameDataRaw, GPlayer } from '../types'
 
@@ -45,7 +46,11 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const { turns, ending, ...rest } = raw
   return {
     ...rest,
-    puzzle: { ...raw.puzzle, tilesById: new Map(raw.puzzle.tiles.map((t) => [t.id, t])) },
+    puzzle: {
+      ...raw.puzzle,
+      tilesById: new Map(raw.puzzle.tiles.map((t) => [t.id, t])),
+      traceBoard: makeTraceBoard(raw.puzzle.tiles, raw.puzzle.boardSideSize),
+    },
     setupRows: makeSetupRows(raw.setup, raw.mode, players, raw.puzzle),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
     ending: ending === null

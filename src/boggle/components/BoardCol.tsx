@@ -1,62 +1,24 @@
 // cs-unmet
 
-import { useCallback, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
-import { TypedWord } from './TypedWord'
-import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { useBindAction } from '@/common/actions/useBindAction'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
+import { useTracedWord } from '../hooks/useTracedWord'
+import { Board } from './Board'
 import { StateLine } from './StateLine'
+import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
 import styles from './PlayArea.module.css'
-import { useSubmitWord } from '../hooks/useSubmitWord'
-import { makeDisplayGrid, makeTraceBoard } from '../lib/board'
-import { traceCells } from '../lib/boardTrace'
 import type { GGameData } from '../types'
 
-/** Rotate a square grid 90° clockwise — repositions tiles; the letters themselves
- *  render upright (no spin). new[i][j] = old[n-1-j][i]. */
-function rotateCW(g: string[][]): string[][] {
-  const n = g.length
-  return g.map((_, i) => g.map((_, j) => g[n - 1 - j][i]))
-}
-
-/** A tile position in the (displayed, possibly-rotated) grid. */
-type Cell = { y: number; x: number }
-
-/** The letters a tile contributes to the word: its display string (a multiface
- *  tile like "Qu" gives two), uppercased — except a blank ("?"), which matches no
- *  letter, so it can't be part of a word. */
-function tileLetters(cell: string): string {
-  return cell === '?' ? '' : cell.toUpperCase()
-}
-
-/** King-move adjacency (8-way), the Boggle path rule. */
-function adjacent(a: Cell, b: Cell): boolean {
-  return Math.abs(a.y - b.y) <= 1 && Math.abs(a.x - b.x) <= 1 && !(a.y === b.y && a.x === b.x)
-}
-
-/** The word spelled by a path of tiles through the current view. */
-function pathWord(path: Cell[], view: string[][]): string {
-  return path.map((c) => tileLetters(view[c.y][c.x])).join('')
-}
-
 /**
- * boggle's board column — the square tile grid, a floating Rotate control over its
- * top-right, and the below-board slot (the shared `<WordEntryArea>` — the typed-word input
- * + capture keyboard — which draws the local feedback slot's top message in
- * place of the controls).
- *
- * It owns the **move**: submitting the typed word (`useSubmitWord`), what the
- * board shows for the answer, and the tile taps that trace a word. And it owns
- * the **local board rotation** (a per-player view-only matrix rotation — the
- * tiles reposition, each letter stays upright — never persisted or shared).
- * See docs/playarea.md.
+ * boggle's board column — the `<Board>`, and the below-board region: the
+ * shared `<WordEntryArea>`, whose typed word is drawn through `<TypedWord>` so
+ * the letters past where the board can follow dim. The word they share, and
+ * the move, are `useTracedWord`'s. See docs/playarea.md.
  */
 export function BoardCol({
   gd,
@@ -72,258 +34,45 @@ export function BoardCol({
   // the others play on.
   const isInteractive = gd.me.onTurn
 
-  const n = gd.puzzle.boardSideSize
-  // What each tile shows, in board order; this column rotates the view on top.
-  const grid = useMemo(() => makeDisplayGrid(gd.puzzle.tiles, n), [gd.puzzle.tiles, n])
-  // The board as the tracer walks it.
-  const board = useMemo(() => makeTraceBoard(gd.puzzle.tiles, n), [gd.puzzle.tiles, n])
-
-  // ─── The move ──────────────────────────────────────────
-  const submission = useSubmitWord({
-    gameId: gd.id,
-    words: gd.puzzle.words,
-    foundWords: gd.foundWords,
-    board,
-    minWordLength: gd.puzzle.minWordLength,
-    isMyTurn: isInteractive,
-    localFeedbackSlot,
-  })
-  const word = submission.word
-
-  // TRACE AS YOU TYPE. Every letter lights the tiles that could carry it: one
-  // candidate and the tile is settled, more than one and they all light faintly
-  // until a later letter picks between them, so the board only ever ADDS
-  // certainty as the word grows. Board-cell indices, like the refused word's.
-  const typedCells = useMemo(
-    () => (word.length > 0 ? traceCells(board, word) : null),
-    [board, word],
-  )
-
-  // Number of 90° clockwise turns applied to the displayed grid (local view only).
-  const [turns, setTurns] = useState(0)
-  // Rotating repositions the tiles but keeps each letter upright (a matrix rotation,
-  // not a visual spin) — so it stays readable from any side.
-  const view = useMemo(() => {
-    let g = grid
-    for (let i = 0; i < turns; i++) g = rotateCW(g)
-    return g
-  }, [grid, turns])
-
-  /** Board cells → the keys the grid below draws by, through however many turns
-   *  the player has given the board. One clockwise turn sends (row, col) to
-   *  (col, n-1-row). */
-  const inView = useCallback(
-    (cells: number[]) => {
-      const out = new Set<string>()
-      for (const cell of cells) {
-        let y = (cell / n) | 0
-        let x = cell % n
-        for (let i = 0; i < turns; i++) {
-          const py = y
-          y = x
-          x = n - 1 - py
-        }
-        out.add(`${y}-${x}`)
-      }
-      return out
-    },
-    [n, turns],
-  )
-
-  const answeredCells = useMemo(
-    () =>
-      submission.refused
-        ? {
-            cells: inView(submission.refused.value.cells),
-            outcome: submission.refused.value.outcome,
-            nonce: submission.refused.nonce,
-          }
-        : null,
-    [submission.refused, inView],
-  )
-  const typed = useMemo(
-    () =>
-      typedCells
-        ? { certain: inView(typedCells.certain), possible: inView(typedCells.possible) }
-        : null,
-    [typedCells, inView],
-  )
-
-  // ── Tap-to-trace a word ───────────────────────────────────────────────────
-  // Build a word by tapping tiles along a Boggle path — the touch input, and a
-  // fine desktop affordance too. `path` is the picked tiles (in VIEW coords, so
-  // it's cleared on rotate below, since the coords would no longer point at the
-  // same letters). The traced word drives the shared `word`/`onChange` engine, so
-  // submit + validation (traceableStr) are unchanged. Typing clears the path (you
-  // switched to the keyboard); Backspace/Delete steps it back one tile (see
-  // `handleTyping`); submitting clears it (fresh word).
-  const [path, setPath] = useState<Cell[]>([])
-  const handleTap = (y: number, x: number) => {
-    if (!isInteractive || view[y][x] === '?') return // frozen, or a blank (matches nothing)
-    localFeedbackSlot.dismiss() // a tap is the next move, like a keystroke
-    const idx = path.findIndex((c) => c.y === y && c.x === x)
-    let next: Cell[]
-    if (idx >= 0) {
-      // Tapping a picked tile un-picks it AND everything after — tap the last
-      // to step back one, tap an earlier one to undo back to it, tap the first to
-      // clear.
-      next = path.slice(0, idx)
-    } else if (path.length === 0 || adjacent(path[path.length - 1], { y, x })) {
-      next = [...path, { y, x }] // start, or extend along an adjacent tile
-    } else {
-      return // an unused, non-adjacent tile — not a legal next step; ignore
-    }
-    setPath(next)
-    submission.setWord(pathWord(next, view))
-  }
-  // Every non-tap edit of the word (typing, Backspace, the Delete button, ArrowUp
-  // recall) arrives here. A typed character makes the word stop describing the
-  // traced path, so the highlight (and its coords) has to go — but a DELETE is
-  // exactly the undo the path can express, so it steps the trace back one tile
-  // instead of dropping the whole highlight. Detected by shape rather than by
-  // plumbing a "this was Backspace" flag down from the capture keyboard: a
-  // one-character shortening of a word that still equals the traced path can only
-  // be Backspace/Delete (a recalled word is a whole different string).
-  //
-  // A multiface tile (`Qu`) is one tile but two characters, so stepping back one
-  // tile takes both — the trace stays a real path, which is what submit validates.
-  const handleTyping = (next: string) => {
-    const traced = path.length > 0 && word === pathWord(path, view)
-    if (traced && next === word.slice(0, -1)) {
-      const back = path.slice(0, -1)
-      setPath(back)
-      submission.setWord(pathWord(back, view))
-      return
-    }
-    setPath([])
-    submission.setWord(next)
-  }
-  const handleSubmit = () => {
-    setPath([])
-    submission.submit()
-  }
-
-  // ⌥Z rotates — a fresh visual scan of the SAME board, never a move. Bound HERE
-  // rather than in the PlayArea because this column owns the view's rotation, and
-  // plainly active: rotating writes nothing and reaches nobody else, so the
-  // post-game fidget is deliberate. Rotating invalidates the traced path's
-  // coords (they point at view positions), so clear it — said once for the key
-  // and the round pill below, which are one action.
-  const handleRotate = useCallback(() => {
-    setTurns((t) => (t + 1) % 4)
-    setPath([])
-  }, [])
-  const actRotate = useBindAction('act-rotate', {
-    describe: () => 'active',
-    run: handleRotate,
-  })
+  const traced = useTracedWord({ gd, isInteractive, localFeedbackSlot })
 
   return (
     <div
       className={cls(shared.boardCol, styles.boardCol)}
-      style={{ ['--cols' as string]: n, ['--rows' as string]: n }}
+      style={{
+        ['--cols' as string]: gd.puzzle.boardSideSize,
+        ['--rows' as string]: gd.puzzle.boardSideSize,
+      }}
     >
-      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
-          the Req/Bonus × Words/Score grid, above the board. A fixed-height
-          block — the board's `--side` already has it subtracted, so the tray
-          shrinks by exactly this much and the page still doesn't scroll. */}
+      {/* The state line above the board, on a phone only; see `<MobileStatusBar>`. */}
       <MobileStatusBar>
         <div className={styles.mobileStatus}>
           <StateLine data={gd.stateLineData} />
         </div>
       </MobileStatusBar>
-      <div className={cls(shared.boardSeal, styles.grid)}>
-        {view.flatMap((row, y) =>
-          row.map((cell, x) => {
-            const isBlank = cell === '?'
-            const step = path.findIndex((c) => c.y === y && c.x === x) // -1 if not on the path
-            return (
-              <div
-                // A tile wearing an answer is keyed by the RAISE, not just by
-                // its place: the head-shake is a CSS animation, and an animation
-                // runs once per mount, so refusing the same word twice inside
-                // the answer's beat would leave the class where it was and shake
-                // nothing the second time. Changing the key remounts the tile
-                // and the shake starts over. (letterboxed's letters carry the
-                // same nonce in their keys, for the same reason.)
-                key={
-                  answeredCells?.cells.has(`${y}-${x}`)
-                    ? `${y}-${x}#${answeredCells.nonce}`
-                    : `${y}-${x}`
-                }
-                className={cls(
-                  styles.tile,
-                  // A refused word's tiles: the answer's own color, and the
-                  // head-shake, for the beat. No attention flash — you know
-                  // what you typed and where it went.
-                  answeredCells?.cells.has(`${y}-${x}`) && styles.answered,
-                  answeredCells?.cells.has(`${y}-${x}`) &&
-                    OUTCOME_TO_VERDICT_CLASS[answeredCells.outcome],
-                  answeredCells?.cells.has(`${y}-${x}`) && shared.verdictShake,
-                  // A blank takes no clicks (its handlers are dropped below), so
-                  // it takes none of the pointer/hover/press treatment either —
-                  // said on the TILE, since `.blank` styles the letter inside it.
-                  isBlank && styles.tileBlank,
-                  // Picked: the tiles this word uses — the ones tapped, or,
-                  // for a typed word, the ones a letter has settled on.
-                  (step >= 0 || (path.length === 0 && typed?.certain.has(`${y}-${x}`))) &&
-                    styles.picked,
-                  // …and the same border, held back, where a letter still has more
-                  // than one tile it could mean.
-                  path.length === 0 && typed?.possible.has(`${y}-${x}`) && styles.maybePicked,
-                )}
-                // The stable test handle; `data-step` is the tile's 1-based
-                // position in the traced word, absent when it isn't on the path.
-                data-boggle-tile
-                data-step={step >= 0 ? step + 1 : undefined}
-                // POINTER-ONLY: no tabIndex, no role, no Enter/Space keydown.
-                // A tile isn't keyboard-reachable — the page's tab ring is
-                // empty — so the button costume was unreachable,
-                // and it was actively harmful: a focused tile's own keydown
-                // would eat the player's next Enter, tracing a stray tile onto
-                // the word instead of submitting it. Nothing to eat it now.
-                // (spellingbee's Letter carries the same note at length.)
-                //
-                // preventDefault on mousedown remains, to stop a click
-                // selecting the tile's letter — the tile can't take focus any
-                // more, so that's all it's for.
-                onMouseDown={isBlank ? undefined : (e) => e.preventDefault()}
-                onClick={isBlank ? undefined : () => handleTap(y, x)}
-              >
-                {/* a blank tile (face 0) shows a faint "?", like a scrabble blank */}
-                <span className={isBlank ? styles.blank : undefined}>{cell}</span>
-              </div>
-            )
-          }),
-        )}
-        {/* Rotate floats over the board's top-right — a fresh visual scan of the SAME
-            board (letters stay upright), not a turn action. Local to this player in
-            both modes; never persisted, never seen by others. INSIDE the grid (its
-            position anchor) so it hugs the visual board, not the column. Rotating
-            invalidates the traced path's coords, so clear it. */}
-        <ShuffleButton action={actRotate} tooltip="Rotate board" className={shared.floatingShuffle} />
-      </div>
-      {/* The below-board slot — the shared <WordEntryArea> (icon-only Delete + the WordEntryInput
-          + icon-only Submit, plus the capture keyboard). While the slot holds a
-          message it draws it in place of the controls — the verdict, "you're
-          out", a word result, whichever ranks highest. */}
+      <Board
+        tiles={gd.puzzle.tiles}
+        boardSideSize={gd.puzzle.boardSideSize}
+        marks={traced.marks}
+        isInteractive={isInteractive}
+        onTileTap={traced.tapTile}
+      />
+      {/* The below-board slot: `<WordEntryArea>` draws the controls, or the
+          slot's message in their place — the same slot, so nothing reflows. */}
       <div className={surface.belowBoard}>
         <div className={shared.moveAreaOrLocalFeedback}>
           <WordEntryArea
-            value={word}
-            onChange={handleTyping}
-            onSubmit={handleSubmit}
+            value={traced.word}
+            onChange={traced.changeWord}
+            onSubmit={traced.submitWord}
             placeholder="Type or tap letters"
             disabled={!isInteractive}
             onAnyKey={localFeedbackSlot.dismiss}
-            charFor={asciiLetters('upper')}
-            recall={submission.lastWord}
+            charFor={asciiLetters()}
+            recall={traced.lastWord}
             localFeedbackSlot={localFeedbackSlot}
           >
-            {/* Per-character: the letters past where the board can follow are
-                dimmed. A tapped word is traced by construction, so `reach` is
-                its whole length and nothing dims. */}
-            <TypedWord word={word} reach={typedCells?.reach ?? word.length} />
+            <TypedWord word={traced.word} reach={traced.reach} />
           </WordEntryArea>
         </div>
       </div>
