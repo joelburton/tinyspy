@@ -20,6 +20,10 @@ import { describe, expect, it } from 'vitest'
  * `ZTest_` name), and tests themselves. A component's props are not exported,
  * so they never reach it.
  *
+ * And the other way round, across `src/shared/` and `src/common/`: a type a
+ * shared folder exports is bare, never `G`-prefixed, since `G` means "this
+ * game's" and a shape two games share is not that.
+ *
  * A game joins the list at step 6 of its conversion (plans/seat-view.md → How
  * a game converts).
  */
@@ -27,8 +31,8 @@ import { describe, expect, it } from 'vitest'
 /** The games converted onto the page blobs, whose `types.ts` is under the rule. */
 const CONVERTED_GAMES = ['psychicnum', 'wordle', 'connections', 'spellingbee', 'wordwheel']
 
-function sourceFiles(game: string): string[] {
-  return execFileSync('git', ['ls-files', `src/${game}`], { encoding: 'utf8' })
+function sourceFiles(folder: string): string[] {
+  return execFileSync('git', ['ls-files', folder], { encoding: 'utf8' })
     .split('\n')
     .filter(
       (f) =>
@@ -59,7 +63,7 @@ describe("a converted game's types", () => {
   it('every exported type is in types.ts', () => {
     const offenders: string[] = []
     for (const game of CONVERTED_GAMES) {
-      for (const f of sourceFiles(game)) {
+      for (const f of sourceFiles(`src/${game}`)) {
         if (f.endsWith('/types.ts')) continue
         for (const t of exportedTypes(f)) {
           if (t.name.startsWith('ZTest_')) continue
@@ -82,5 +86,21 @@ describe("a converted game's types", () => {
       }
     }
     expect(offenders, "These names in a game's types.ts lack the `G` prefix:").toEqual([])
+  })
+
+  it('no shared folder exports a G-prefixed type', () => {
+    const offenders: string[] = []
+    for (const folder of ['src/shared', 'src/common']) {
+      for (const f of sourceFiles(folder)) {
+        for (const t of exportedTypes(f)) {
+          if (/^G[A-Z]/.test(t.name)) offenders.push(`${f}:${t.line} exports ${t.name}`)
+        }
+      }
+    }
+    expect(
+      offenders,
+      'These shared types carry the `G` that means "this game\'s". Drop it; each game names ' +
+        'the shape as its own in its types.ts:',
+    ).toEqual([])
   })
 })

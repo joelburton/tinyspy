@@ -45,7 +45,7 @@ shipped the same day, at the gate, fixing all sixteen games.
 `src/shared/bee-games/` — every code file `cs-met-bee-games`:
 
 - `beeGameData.ts` · `beeGameData.test.ts` · `beeGameData.fixture.ts` — the
-  blob shape both builders write (`GBee*`), `makeBeeGameData` with the seat
+  blob shape both builders write (`Bee*`), `makeBeeGameData` with the seat
   rule, and the fixture that builds a blob from a test's facts (2026-10-03,
   the seat-view conversion; they replaced `makeBeeGame.ts` and its test,
   `cs-unmet` until this area re-reads them)

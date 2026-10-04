@@ -263,7 +263,10 @@ what nobody reads for that: a component's props stay with the component
 file and needs no `G`; the printer's model stays in `pdf/`, bare, since it is
 exported only to the printer beside it and says nothing about the game; the
 test fixtures' facts stay in the fixture file. A `lib/` module keeps its
-functions and loses its types.
+functions and loses its types. A type a SHARED folder exports (`src/shared/`,
+`src/common/`) is bare — `BeeTile`, `FoundWordsWord` — since `G` means "this
+game's" and a shape two games share is not that; each game's `types.ts` names
+it as its own (`export type GTile = BeeTile`).
 
 The shape a game is handed and the shape it reads are two types: `GGameDataRaw`
 is `game_data` as the builder wrote it (ids, records), and `GGameData` is

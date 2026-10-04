@@ -22,7 +22,7 @@ once, when the board is made, and ships the finished word lists with the board.
 So the multiset rule is spent inside an edge function, and what arrives at the
 page is two scored lists either way. A set and a multiset produce the same
 SHAPE of blob, and the shape is all the reading sees. Hence one `makeBeeGameData`
-and one set of `GBee` types here, and hence the seam being where it is: a
+and one set of `Bee` types here, and hence the seam being where it is: a
 game's `hooks/useGame.ts` is the one-line binding that calls it (with the
 game's own setup rows), its `types.ts` names the shapes as its own, and the
 moment either game grows a fact of its own, those two files are what take it.
@@ -48,7 +48,7 @@ boards, no shared geometry between them.
 ```
 spellingbee/hooks/useGame ─┐
   wordwheel/hooks/useGame ─┴─▶ makeBeeGameData(blob, myId, makeSetupRows) ─▶ gd
-                                   └─▶ GBee* types ─▶ named in each types.ts as G*
+                                   └─▶ Bee* types ─▶ named in each types.ts as G*
 
 the two BoardCols ─▶ beeBoard.module.css   (.boardCol → --u · --board-width
                                             .mobileStatus)

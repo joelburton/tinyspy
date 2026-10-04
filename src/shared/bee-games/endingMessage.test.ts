@@ -6,12 +6,12 @@
  * collective losses told apart by the reason, and the Stop.
  */
 import { describe, expect, it } from 'vitest'
-import type { GBeePlayer } from './beeGameData'
+import type { BeePlayer } from './beeGameData'
 import { buildBeeGameEndingMessage, buildBeePlayerEndingMessage } from './endingMessage'
 
 /** 47 of 50 points is rank 5 (Amazing); the target is rank 6 (Genius). */
 const stateLineData = { nFoundWords: 20, foundWordsScore: 47, rankIdx: 5, targetRankIdx: 6, nReqdWords: 30, reqdWordsScore: 50 }
-const alice = { id: 'u2', username: 'alice', color: 'blue' } as GBeePlayer
+const alice = { id: 'u2', username: 'alice', color: 'blue' } as BeePlayer
 
 describe('coop', () => {
   it('a win names the rank the team set out for, not the one it reached', () => {

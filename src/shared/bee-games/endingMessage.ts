@@ -3,7 +3,7 @@
 import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '@/common/terminal/gameEnding'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
-import type { GBeePlayer, GBeeStateLineData } from './beeGameData'
+import type { BeePlayer, BeeStateLineData } from './beeGameData'
 
 /**
  * What a bee game — spellingbee or wordwheel — says once the game is over, for
@@ -50,9 +50,9 @@ export function buildBeeGameEndingMessage({
   // game's is `won`.
   playerOutcome: EndOutcome | null
   // The player ranked first (`gd.ending.winner`), or null when nobody was.
-  winner: GBeePlayer | null
+  winner: BeePlayer | null
   // What the state line shows: the team's figures in coop, my own in compete.
-  stateLineData: GBeeStateLineData
+  stateLineData: BeeStateLineData
 }): TerminalMessage {
   const rankName = RANKS[stateLineData.rankIdx]
   const points = `${stateLineData.foundWordsScore}/${stateLineData.reqdWordsScore} points`

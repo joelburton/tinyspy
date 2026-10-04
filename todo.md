@@ -24,6 +24,15 @@ decision against, so a review doesn't propose it again
 
 ## Soon
 
+- **Every folder directly under `src/shared/` and `src/common/` gets a
+  `types.ts`.** A game's exported types live in its `types.ts` (docs/
+  code-conventions.md → A game's types), and the shared folders should read
+  the same way: one place to see the data a folder slings around, side by
+  side. No shared folder has one today; forty of them export a type from the
+  module that happens to define it (`beeGameData.ts`, `foundWords.ts`,
+  `gameData.ts`). The names stay bare — the `G` is a game's — and
+  `src/guards/gameTypes.test.ts` can then hold the placement for shared
+  folders as it does for games (2026-10-04).
 - **An actor is a player, and an absent one is null.** The history views
   (`GHistoryView.actor` in every game that has one) return `undefined` for
   "no one to name", and `HistoryBanner`, `ActorMention`, `FeedbackMessage`'s

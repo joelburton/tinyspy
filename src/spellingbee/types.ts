@@ -13,39 +13,39 @@ import type { Action } from '@/common/actions/useBindAction'
 import type { Mark } from '@/common/board-marks/useMark'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type {
-  GBeeFoundWord,
-  GBeeFoundWordRaw,
-  GBeeGameData,
-  GBeeGameDataRaw,
-  GBeePlayer,
-  GBeePlayerRaw,
-  GBeePuzzle,
-  GBeeStateLineData,
-  GBeeSummaryData,
-  GBeeTeam,
-  GBeeTile,
-  GBeeWord,
+  BeeFoundWord,
+  BeeFoundWordRaw,
+  BeeGameData,
+  BeeGameDataRaw,
+  BeePlayer,
+  BeePlayerRaw,
+  BeePuzzle,
+  BeeStateLineData,
+  BeeSummaryData,
+  BeeTeam,
+  BeeTile,
+  BeeWord,
 } from '@/shared/bee-games/beeGameData'
 import type { TimerMode } from '@/common/manifest/gameManifest'
 import type { SetupOf } from '@/common/setup-form/setupForm'
 
 /** spellingbee's `game_data`, as `spellingbee._rebuild_data_cols` writes it
  *  (supabase/sql/spellingbee.sql → The page blobs). */
-export type GGameDataRaw = GBeeGameDataRaw<GSetup>
+export type GGameDataRaw = BeeGameDataRaw<GSetup>
 
 /** `gd`: the blob read for the surface — players, the seat rule applied. */
-export type GGameData = GBeeGameData<GSetup>
+export type GGameData = BeeGameData<GSetup>
 
-export type GPlayerRaw = GBeePlayerRaw
-export type GPlayer = GBeePlayer
-export type GPuzzle = GBeePuzzle
-export type GTile = GBeeTile
-export type GWord = GBeeWord
-export type GTeam = GBeeTeam
-export type GFoundWordRaw = GBeeFoundWordRaw
-export type GFoundWord = GBeeFoundWord
-export type GStateLineData = GBeeStateLineData
-export type GSummaryData = GBeeSummaryData
+export type GPlayerRaw = BeePlayerRaw
+export type GPlayer = BeePlayer
+export type GPuzzle = BeePuzzle
+export type GTile = BeeTile
+export type GWord = BeeWord
+export type GTeam = BeeTeam
+export type GFoundWordRaw = BeeFoundWordRaw
+export type GFoundWord = BeeFoundWord
+export type GStateLineData = BeeStateLineData
+export type GSummaryData = BeeSummaryData
 
 /**
  * Every command spellingbee offers, bound once: the info column's action row

@@ -2,7 +2,7 @@
 
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import { currentRankIndex } from '@/shared/rank-ladder/rankLadder'
-import type { GBeeFoundWordRaw, GBeeGameDataRaw, GBeePlayerRaw, GBeePuzzle, GBeeTile, GBeeWord } from './beeGameData'
+import type { BeeFoundWordRaw, BeeGameDataRaw, BeePlayerRaw, BeePuzzle, BeeTile, BeeWord } from './beeGameData'
 
 /**
  * The facts a test sets up about one player. Where they stand is DERIVED the
@@ -34,11 +34,11 @@ export type ZTest_BeeGameDataFacts<Setup> = {
   // fixture one — a wheel with a letter on two tiles, say. The center stays.
   outerLetters?: string
   // The puzzle's words, the required ones first; the letters are the board's.
-  words?: GBeeWord[]
+  words?: BeeWord[]
   targetRankIdx?: number | null
   sameBandsAndHaveNoBonus?: boolean
   // Every player's rows, as the blob carries them, in the order found.
-  foundWords?: GBeeFoundWordRaw[]
+  foundWords?: BeeFoundWordRaw[]
   players?: ZTest_BeePlayerFacts[]
   ending?: GameDataRaw['ending']
   outcome?: GameDataRaw['outcome']
@@ -58,16 +58,16 @@ export type ZTest_BeeGameFixture<Setup> = {
 export const ZTest_word = (
   word: string,
   points: number,
-  over: Partial<Pick<GBeeWord, 'pangram' | 'bonus'>> = {},
-): GBeeWord => ({ word, points, pangram: false, bonus: false, ...over })
+  over: Partial<Pick<BeeWord, 'pangram' | 'bonus'>> = {},
+): BeeWord => ({ word, points, pangram: false, bonus: false, ...over })
 
 /** One find, as the blob carries it. */
 export function ZTest_find(
   userId: string,
   word: string,
   points: number,
-  over: Partial<Pick<GBeeFoundWordRaw, 'pangram' | 'bonus' | 'at'>> = {},
-): GBeeFoundWordRaw {
+  over: Partial<Pick<BeeFoundWordRaw, 'pangram' | 'bonus' | 'at'>> = {},
+): BeeFoundWordRaw {
   return {
     userId, word, points,
     pangram: false, bonus: false, at: '2026-06-15T00:01:00Z',
@@ -77,7 +77,7 @@ export function ZTest_find(
 
 /** The board's tiles as the builder writes them: the center first, then each
  *  outer letter at its place. */
-export function ZTest_tilesOf(centerLetter: string, outerLetters: string): GBeeTile[] {
+export function ZTest_tilesOf(centerLetter: string, outerLetters: string): BeeTile[] {
   return [
     { id: '0', letter: centerLetter, center: true },
     ...[...outerLetters].map((letter, i) => ({ id: String(i + 1), letter, center: false })),
@@ -92,7 +92,7 @@ export function ZTest_tilesOf(centerLetter: string, outerLetters: string): GBeeT
 export function ZTest_makeBeeGameDataRaw<Setup>(
   game: ZTest_BeeGameFixture<Setup>,
   facts: ZTest_BeeGameDataFacts<Setup> = {},
-): GBeeGameDataRaw<Setup> {
+): BeeGameDataRaw<Setup> {
   const {
     id = 'g1',
     mode = 'coop',
@@ -113,7 +113,7 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
   const reqdWords = words.filter((w) => !w.bonus)
   const reqdWordsScore = reqdWords.reduce((sum, w) => sum + w.points, 0)
 
-  const puzzle: GBeePuzzle = {
+  const puzzle: BeePuzzle = {
     tiles: ZTest_tilesOf(game.centerLetter, outerLetters),
     centerLetter: game.centerLetter,
     outerLetters,
@@ -123,7 +123,7 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
     sameBandsAndHaveNoBonus,
   }
 
-  const countsOf = (rows: GBeeFoundWordRaw[]) => {
+  const countsOf = (rows: BeeFoundWordRaw[]) => {
     const foundWordsScore = rows.reduce((sum, r) => sum + r.points, 0)
     return {
       nFoundWords: rows.length,
@@ -134,7 +134,7 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
   }
   const team = coop ? countsOf(foundWords) : null
 
-  const players = playerFacts.map(function makePlayer(p): GBeePlayerRaw {
+  const players = playerFacts.map(function makePlayer(p): BeePlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     return {
       id: p.id,

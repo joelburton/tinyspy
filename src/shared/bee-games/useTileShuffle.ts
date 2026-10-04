@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useBindAction, type Action } from '@/common/actions/useBindAction'
 import { shuffle } from '@/common/utils/shuffle'
-import type { GBeeTile } from './beeGameData'
+import type { BeeTile } from './beeGameData'
 
 /**
  * The board's display order, and the Shuffle that changes it: the center where
@@ -20,9 +20,9 @@ import type { GBeeTile } from './beeGameData'
  * fresh tiles, and keying on them would reshuffle the board on every submit.
  * The tiles handed back are the live ones, looked up in that order.
  */
-export function useTileShuffle(tiles: readonly GBeeTile[]): {
+export function useTileShuffle(tiles: readonly BeeTile[]): {
   // The tiles in display order, the center first.
-  tiles: GBeeTile[]
+  tiles: BeeTile[]
   actShuffle: Action
 } {
   const [shuffleSeed, setShuffleSeed] = useState(0)

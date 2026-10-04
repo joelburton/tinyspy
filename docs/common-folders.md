@@ -369,7 +369,7 @@ from everyone else.
   of a hive and a wheel. The folders were the other way round for months, because boggle was
   written independently and was never in the room when anything was factored
   out of the other two. Nothing bee-specific is named for the family, either:
-  the shared types are `GBee…` and the reading `makeBeeGameData`, and if a
+  the shared types are `Bee…` and the reading `makeBeeGameData`, and if a
   name in `bee-games` ever says "found-words" again it is wrong.
 - **`common/word-list` is the PANEL and only the panel.** It is handed a flat
   array of rows and knows nothing about found-word tables, reveals, bands or
