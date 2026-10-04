@@ -435,7 +435,7 @@ then `PlayArea` in the eight sections.
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the board column — the word engine and submit_word
         │     ├── MobileStatusBar ←      phone only: the RankBar and Stats, mirrored above the wheel
-        │     ├── Wheel                  the wheel: nine <Tile> boxes placed on a square
+        │     ├── Board                  the board: nine <Tile> boxes placed on a square
         │     │     └── ShuffleButton ←  floated over its top-right
         │     └── WordEntryArea ←        ⌫, the typed word (drawn through TypedWord), Submit, the
         │                                capture keyboard — or the local slot's pill in their place

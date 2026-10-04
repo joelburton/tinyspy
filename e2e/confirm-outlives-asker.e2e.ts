@@ -35,8 +35,8 @@ test.describe('a confirmation question outlives its asker', () => {
     const beaPage = await open(bea.session)
     // Only now wait for the wheels: a lone player is paused, so neither board
     // renders until presence has seen both tabs.
-    await boardReady(adaPage, adaPage.locator('[data-wheel]'), 15000)
-    await boardReady(beaPage, beaPage.locator('[data-wheel]'), 15000)
+    await boardReady(adaPage, adaPage.locator('[data-board]'), 15000)
+    await boardReady(beaPage, beaPage.locator('[data-board]'), 15000)
 
     // A found word, so there is something for a stray Restart to wipe.
     await beaPage.keyboard.type('bead')

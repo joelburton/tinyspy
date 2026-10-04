@@ -1,27 +1,29 @@
 // cs-blessed-wordwheel
 
-import type { ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
+import { ShuffleButton } from '@/common/buttons/ShuffleButton'
+import { useTileShuffle } from '@/shared/bee-games/useTileShuffle'
 import shared from '@/common/game-page/playArea.module.css'
 import { ordinals, spentTiles, type Claim } from '../lib/spend'
 import { TILE_POSITIONS } from '../lib/wheel'
 import { Tile } from './Tile'
-import styles from './Wheel.module.css'
+import styles from './Board.module.css'
 
 type Props = {
-  // The 8 outer letters in their display order — shuffled by the caller.
-  outerLetters: string[]
+  // The 8 outer letters as the puzzle holds them; the display order is this
+  // component's (`useTileShuffle`).
+  outerLetters: string
   // The 1 mandatory center letter.
   centerLetter: string
   // Called with the clicked letter and WHICH of that letter's tiles was hit
   // (its ordinal in render order); the caller appends the letter to the typed
   // word and records the claim.
   onLetterClick: (letter: string, ordinal: number) => void
-  // The board responds to me (the page's `isBoardInteractive`). When false no
-  // tile takes a click, a hover or a press.
-  isBoardInteractive: boolean
+  // The board responds to me. When false no tile takes a click, a hover or a
+  // press.
+  isInteractive: boolean
   // Per-letter counts of the typed word, lower-cased. Each use SPENDS one
   // tile of its letter, which wears the selected edge and takes no click.
   typedCounts: Map<string, number>
@@ -34,21 +36,19 @@ type Props = {
   // the same letters again remounts them and the shake plays again — a CSS
   // animation restarts on a remount, not on a class that is already there.
   refused: Mark<{ counts: Map<string, number>; claims: readonly Claim[]; outcome: Outcome }> | null
-  // A control floated over the wheel's top-right (the Shuffle button). Rendered
-  // inside the shrink-wrapped `.floatAnchor` around the grid, so it hugs the
-  // VISUAL wheel rather than the column, which the vertically-centered wheel
-  // does not touch.
-  floatingControl?: ReactNode
 }
 
 /**
- * The 9-tile wheel: round boxes absolutely placed on a square sized in `--u`,
+ * The board: a 9-tile wheel, round boxes absolutely placed on a square sized in `--u`,
  * the wheel's coordinate unit (the box is 300 units across). The geometry
  * lives in `lib/wheel.ts`, shared with the PDF.
  *
- * Render order matches `TILE_POSITIONS`: the center first, then the eight
- * outer letters clockwise from the top in the order the caller passes them, so
- * a shuffle changes the visual order and nothing else.
+ * The board owns its display order and the Shuffle (`useTileShuffle`). Render
+ * order matches `TILE_POSITIONS`: the center first, then the eight outer
+ * letters clockwise from the top in this client's order, so a shuffle changes
+ * the visual order and nothing else. The Shuffle button floats over the
+ * board's top-right, anchored to the visual board rather than the column,
+ * which the vertically-centered board does not touch.
  *
  * A click appends the letter to the typed word. The wheel is a multiset, so a
  * typed letter says how many of its tiles are in use but not which; a click
@@ -56,17 +56,17 @@ type Props = {
  * first (`lib/spend.ts`). A shuffle can swap which of two identical tiles is
  * marked; the marked COUNT is always right.
  */
-export function Wheel({
+export function Board({
   outerLetters,
   centerLetter,
   onLetterClick,
-  isBoardInteractive,
+  isInteractive,
   typedCounts,
   claims,
   refused,
-  floatingControl,
 }: Props) {
-  const letters = [centerLetter, ...outerLetters]
+  const shuffle = useTileShuffle(outerLetters)
+  const letters = [centerLetter, ...shuffle.outerLetters]
   const spent = spentTiles(letters, typedCounts, claims)
   // The refused word's tiles: the ones it was spending — a clicked twin over
   // its sibling — as many of each letter as it used. A letter off the wheel
@@ -80,7 +80,7 @@ export function Wheel({
   return (
     <div className={cls(shared.boardSeal, styles.board)}>
       <div className={styles.floatAnchor}>
-        <div className={styles.grid} data-wheel>
+        <div className={styles.grid} data-board>
           {letters.map((letter, i) => {
             // The refusal's mark, when this tile is one the word used.
             const mark = refused && answered.has(i) ? refused : null
@@ -93,12 +93,16 @@ export function Wheel({
                 spent={spent.has(i)}
                 answer={mark?.value.outcome}
                 // A tile with no handler is inert — no click, hover or press.
-                onClick={isBoardInteractive ? () => onLetterClick(letter, tileOrdinals[i] ?? 0) : undefined}
+                onClick={isInteractive ? () => onLetterClick(letter, tileOrdinals[i] ?? 0) : undefined}
               />
             )
           })}
         </div>
-        {floatingControl}
+        <ShuffleButton
+          action={shuffle.actShuffle}
+          tooltip="Shuffle outer letters"
+          className={shared.floatingShuffle}
+        />
       </div>
     </div>
   )

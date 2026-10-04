@@ -1,12 +1,9 @@
 // cs-blessed-spellingbee
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
-import { shuffle } from '@/common/utils/shuffle'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { useBindAction } from '@/common/actions/useBindAction'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { RankBar } from '@/shared/rank-ladder/RankBar'
@@ -20,7 +17,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { useFoundWordSubmit } from '@/shared/found-words/useFoundWordSubmit'
 import { db } from '../db'
 import { answerMessage, answerOf } from '../lib/answer'
-import { Hive } from './Hive'
+import { Board } from './Board'
 import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
@@ -38,14 +35,13 @@ type SubmittedWord =
   | null
 
 /**
- * spellingbee's board column — the honeycomb `<Hive>`, a floating Shuffle
+ * spellingbee's board column — the honeycomb `<Board>`, a floating Shuffle
  * over its top-right, and the below-board region: the shared `<WordEntryArea>`,
  * whose typed word is drawn through `<TypedWord>` so a letter off the hive dims.
  *
  * It owns the **move**: the word engine (`useFoundWordSubmit`), the
  * `submit_word` commit, what each answer shows, and the hive's answer to a
- * refused word (the shake and the hex marks). It also owns the local
- * outer-letter shuffle — a per-player, view-only rearrange — and the letter
+ * refused word (the shake and the tile marks). It also owns the letter
  * click that appends to the word. See docs/playarea.md.
  */
 export function BoardCol({
@@ -57,7 +53,7 @@ export function BoardCol({
   // row draws it in place of the controls.
   localFeedbackSlot: FeedbackSlot
 }) {
-  // The board is mine to touch: the hive and the entry take letters, and the
+  // The board is mine to touch: the board and the entry take letters, and the
   // engine commits a word. False once the game is over, or I conceded a race
   // the others play on.
   const isInteractive = gd.me.onTurn
@@ -68,7 +64,7 @@ export function BoardCol({
   // The shared engine owns the typed word, the dedup and the optimistic commit;
   // this game supplies the lookup, the RPC and what it shows for each answer.
 
-  // The hive's seven letters, lower-cased — the typed word's illegal-letter
+  // The board's seven letters, lower-cased — the typed word's illegal-letter
   // dim, and why a word missed.
   const allowedLetters = useMemo(() => {
     const s = new Set<string>()
@@ -125,7 +121,7 @@ export function BoardCol({
         }
       },
       // Every answer shows in the pill, in `lib/answer.ts`'s words. A refused
-      // word also answers ON the board: the hexes the word used shake and take
+      // word also answers ON the board: the tiles the word used shake and take
       // the same outcome, so the two cannot disagree.
       onAnswer: (report) => {
         const { outcome, text } = answerMessage(answerOf(report, { letters: allowedLetters, center }))
@@ -139,8 +135,8 @@ export function BoardCol({
   // The typed word is the engine's, above; what this column reads off it, and
   // the letter click that adds to it, sit here.
 
-  // The hexes the typed word is using. A Set of its letters is the whole of
-  // it: a hive letter can be typed more than once and there is nothing to
+  // The tiles the typed word is using. A Set of its letters is the whole of
+  // it: a board letter can be typed more than once and there is nothing to
   // count. Empty once the board is inert, so a word left half-typed when the
   // game ended, or when I conceded, drops its marks.
   const usedLetters = useMemo(
@@ -157,33 +153,13 @@ export function BoardCol({
     [localFeedbackSlot, setWord],
   )
 
-  // ─── The board's display order ─────────────────────────
-  // The shuffle — purely visual, touches nothing else.
-
-  // A counter drives a memo, rather than an order kept in state plus a sync
-  // effect. Keyed on the outer-letters STRING, not the puzzle object: a new
-  // blob is a fresh object even when the letters did not change, which would
-  // re-shuffle on every submit.
-  const [shuffleSeed, setShuffleSeed] = useState(0)
-  const outerShuffled = useMemo(() => {
-    void shuffleSeed
-    return shuffle(Array.from(outerLetters))
-  }, [outerLetters, shuffleSeed])
-
-  // A fresh visual scan of the SAME letters, never a move. The floating button
-  // below is this same action.
-  const actShuffle = useBindAction('act-shuffle', {
-    describe: () => 'active',
-    run: () => setShuffleSeed((s) => s + 1),
-  })
-
   // ─── Render ────────────────────────────────────────────
   const readout = gd.stateLineData
   return (
     <div className={cls(shared.boardCol, bee.boardCol)}>
       {/* Mobile only (`<MobileStatusBar>` is CSS-hidden on desktop): the rank
-          ladder and the figures, above the hive. A fixed-height block, already
-          subtracted from the hive's `--avail-h`. */}
+          ladder and the figures, above the board. A fixed-height block, already
+          subtracted from the board's `--avail-h`. */}
       <MobileStatusBar>
         <div className={bee.mobileStatus}>
           <RankBar score={readout.foundWordsScore} total={readout.reqdWordsScore} targetIdx={readout.targetRankIdx} />
@@ -195,22 +171,13 @@ export function BoardCol({
           />
         </div>
       </MobileStatusBar>
-      <Hive
+      <Board
         refused={refused}
-        outerLetters={outerShuffled}
+        outerLetters={outerLetters}
         centerLetter={centerLetter}
-        isBoardInteractive={isInteractive}
+        isInteractive={isInteractive}
         onLetterClick={handleLetterClick}
         usedLetters={usedLetters}
-        // Passed into Hive so it anchors to the visual hive rather than
-        // the column (`.floatingShuffle`).
-        floatingControl={
-          <ShuffleButton
-            action={actShuffle}
-            tooltip="Shuffle outer letters"
-            className={shared.floatingShuffle}
-          />
-        }
       />
       {/* The below-board slot: `<WordEntryArea>` draws the controls, or the
           slot's message in their place — the same slot, so nothing reflows. */}

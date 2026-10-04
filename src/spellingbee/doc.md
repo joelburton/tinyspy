@@ -400,7 +400,7 @@ then `PlayArea` in the eight sections.
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the board column — the word engine and submit_word
         │     ├── MobileStatusBar ←      phone only: the RankBar and Stats, mirrored above the hive
-        │     ├── Hive                   the hive: seven <Letter> hexes in one svg
+        │     ├── Board                  the board: seven <Tile> hexes in one svg
         │     │     └── ShuffleButton ←  floated over its top-right
         │     └── WordEntryArea ←        ⌫, the typed word (drawn through TypedWord), Submit, the
         │                                capture keyboard — or the local slot's pill in their place
@@ -424,7 +424,7 @@ play_state, pause, chat — and unmounts this whole surface on pause. `Help` and
 
 What is spellingbee's own:
 
-- **The hive is one svg.** Seven `<polygon>` hexes with a real fill and stroke,
+- **The board is one svg.** Seven `<polygon>` hexes with a real fill and stroke,
   positioned from `lib/honeycomb.ts` in the flower's own coordinate units and
   scaled by one token, so the whole board sizes to the column and the printer
   draws the same geometry. The outer six are shuffled locally, a fresh scan of

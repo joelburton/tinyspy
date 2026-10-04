@@ -4,7 +4,7 @@
  * that is the piece with its rest / hover / press depth, and the states a tile
  * can be in — the center, read-only, SPENT by the typed word, and wearing a
  * refused word's answer. The square the tiles sit on, and its touch behavior,
- * are `Wheel.module.css`.
+ * are `Board.module.css`.
  *
  * Each tile is a round BOX rather than an SVG circle, so the depth can be the
  * shared tile shadow and a lifted face can be raised over its neighbors: the

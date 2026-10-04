@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useState, type SetStateAction } from 'react'
 import { cls } from '@/common/utils/cls'
-import { shuffle } from '@/common/utils/shuffle'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Outcome } from '@/common/outcomes/outcomes'
@@ -13,8 +12,6 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { useFoundWordSubmit } from '@/shared/found-words/useFoundWordSubmit'
 import { db } from '../db'
 import { answerMessage, answerOf } from '../lib/answer'
-import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { useBindAction } from '@/common/actions/useBindAction'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
@@ -22,7 +19,7 @@ import { RankBar } from '@/shared/rank-ladder/RankBar'
 import { Stats } from '@/shared/rank-ladder/Stats'
 import { trimClaims, type Claim } from '../lib/spend'
 import { wordFitsWheel } from '../lib/tiles'
-import { Wheel } from './Wheel'
+import { Board } from './Board'
 import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
@@ -40,15 +37,14 @@ type SubmittedWord =
   | null
 
 /**
- * wordwheel's board column — the `<Wheel>`, a floating Shuffle over its
+ * wordwheel's board column — the `<Board>`, a floating Shuffle over its
  * top-right, and the below-board region: the shared `<WordEntryArea>`, whose
  * typed word is drawn through `<TypedWord>` so a letter the wheel cannot spell
  * dims.
  *
  * It owns the **move**: the word engine (`useFoundWordSubmit`), the
  * `submit_word` commit, what each answer shows, and the wheel's answer to a
- * refused word (the shake and the tile marks). It also owns the local
- * outer-letter shuffle — a per-player, view-only rearrange — the letter click
+ * refused word (the shake and the tile marks). It also owns the letter click
  * that appends to the word, and the tile-spend bookkeeping a wheel needs and a
  * hive does not: a letter may sit on two tiles, so each use of a letter spends
  * ONE tile, and a click says which (`lib/spend.ts`). See docs/playarea.md.
@@ -62,7 +58,7 @@ export function BoardCol({
   // row draws it in place of the controls.
   localFeedbackSlot: FeedbackSlot
 }) {
-  // The board is mine to touch: the wheel and the entry take letters, and the
+  // The board is mine to touch: the board and the entry take letters, and the
   // engine commits a word. False once the game is over, or I conceded a race
   // the others play on.
   const isInteractive = gd.me.onTurn
@@ -95,7 +91,7 @@ export function BoardCol({
   // A refused word's tiles shake and wear its answer for a beat — as many of
   // each letter as the word used, since a letter can sit on two tiles and only
   // the ones the word would have spent should answer. Its clicks ride along so
-  // a clicked twin answers rather than its sibling (the Wheel picks them).
+  // a clicked twin answers rather than its sibling (the Board picks them).
   const [refused, showRefused] =
     useMark<{ counts: Map<string, number>; claims: Claim[]; outcome: Outcome }>(WORD_ANSWER_MS)
 
@@ -199,33 +195,13 @@ export function BoardCol({
     return m
   }, [isInteractive, word])
 
-  // ─── The board's display order ─────────────────────────
-  // The shuffle — purely visual, touches nothing else.
-
-  // A counter drives a memo, rather than an order kept in state plus a sync
-  // effect. Keyed on the outer-letters STRING, not the puzzle object: a new
-  // blob is a fresh object even when the letters did not change, which would
-  // re-shuffle on every submit.
-  const [shuffleSeed, setShuffleSeed] = useState(0)
-  const outerShuffled = useMemo(() => {
-    void shuffleSeed
-    return shuffle(Array.from(outerLetters))
-  }, [outerLetters, shuffleSeed])
-
-  // A fresh visual scan of the SAME letters, never a move. The floating button
-  // below is this same action.
-  const actShuffle = useBindAction('act-shuffle', {
-    describe: () => 'active',
-    run: () => setShuffleSeed((s) => s + 1),
-  })
-
   // ─── Render ────────────────────────────────────────────
   const readout = gd.stateLineData
   return (
     <div className={cls(shared.boardCol, bee.boardCol)}>
       {/* Mobile only (`<MobileStatusBar>` is CSS-hidden on desktop): the rank
-          ladder and the figures, above the wheel. A fixed-height block, already
-          subtracted from the wheel's `--avail-h`. */}
+          ladder and the figures, above the board. A fixed-height block, already
+          subtracted from the board's `--avail-h`. */}
       <MobileStatusBar>
         <div className={bee.mobileStatus}>
           <RankBar score={readout.foundWordsScore} total={readout.reqdWordsScore} targetIdx={readout.targetRankIdx} />
@@ -237,23 +213,14 @@ export function BoardCol({
           />
         </div>
       </MobileStatusBar>
-      <Wheel
+      <Board
         refused={refused}
-        outerLetters={outerShuffled}
+        outerLetters={outerLetters}
         centerLetter={centerLetter}
-        isBoardInteractive={isInteractive}
+        isInteractive={isInteractive}
         onLetterClick={handleLetterClick}
         claims={claims}
         typedCounts={typedCounts}
-        // Passed into Wheel so it anchors to the visual wheel rather than the
-        // column (`.floatingShuffle`).
-        floatingControl={
-          <ShuffleButton
-            action={actShuffle}
-            tooltip="Shuffle outer letters"
-            className={shared.floatingShuffle}
-          />
-        }
       />
       {/* The below-board slot: `<WordEntryArea>` draws the controls, or the
           slot's message in their place — the same slot, so nothing reflows. */}

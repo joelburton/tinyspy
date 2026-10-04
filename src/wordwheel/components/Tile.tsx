@@ -21,7 +21,7 @@ type Props = {
   spent?: boolean
   // A refused word used this tile: its face wears that answer's fill, edge and
   // white ink for as long as the answer is up, and shakes once as it arrives
-  // (the Wheel remounts it per refusal, which is what replays the shake).
+  // (the Board remounts it per refusal, which is what replays the shake).
   answer?: Outcome
 }
 

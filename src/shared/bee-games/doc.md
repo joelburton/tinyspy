@@ -52,6 +52,7 @@ spellingbee/hooks/useGame ─┐
 
 the two BoardCols ─▶ beeBoard.module.css   (.boardCol → --u · --board-width
                                             .mobileStatus)
+the two Boards ─▶ useTileShuffle.ts         (the display order and the Shuffle)
 the two ending hooks ─▶ endingMessage.ts   (buildBeeGameEndingMessage and
                                             buildBeePlayerEndingMessage — the pill
                                             and the action row's line)

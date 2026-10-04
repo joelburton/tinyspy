@@ -1,17 +1,17 @@
 /* cs-blessed-spellingbee */
 
-/* One hex of the hive — what `Letter.tsx` wears: the clickable `<g>` with its
+/* One tile of the board — what `Tile.tsx` wears: the clickable `<g>` with its
  * rest / hover / press depth, the `<polygon>` that is the hex's fill and border,
  * the `<text>` that is its letter, and the three states a hex can be in — the
  * center letter, USED by the typed word, and wearing a refused word's answer.
- * The svg the hexes sit in, and its touch behavior, are `Hive.module.css`.
+ * The svg the hexes sit in, and its touch behavior, are `Board.module.css`.
  *
  * Every length here is in the hive's coordinate units (an SVG transform length
  * and a filter length are user units), so the depth scales with the board —
  * except the stroke, which `.hexShape` opts out of the scale so the border can
  * be the app's real pixel width. */
 
-/* One hex = a clickable group (the click lives on the group in Letter.tsx; a
+/* One hex = a clickable group (the click lives on the group in Tile.tsx; a
  * hex is pointer-only, with no button costume).
  *
  * It rests with a shadow, rises on hover while the shadow falls away, and
@@ -28,7 +28,7 @@
  *
  * Transforms are about the hex's OWN center — transform-box/-origin, since an
  * SVG transform is otherwise about the viewBox origin. */
-/* @@ */ .hex {
+/* @@ */ .tile {
   cursor: pointer;
   transform-box: fill-box;
   transform-origin: center;
@@ -45,22 +45,22 @@
  * last-tapped hex, which would sit raised after every letter. Same gate as
  * strands' tiles and the tooltip bubble (common/tooltips/doc.md). */
 @media (hover: hover) {
-/* @@ */   .hex:hover:not(.inert) {
+/* @@ */   .tile:hover:not(.inert) {
     transform: translateY(-1.3px);
     filter: var(--spellingbee-hex-hover-shadow);
   }
 }
 /* Pressed: back down, slightly smaller, slightly darker — 0.96, the same shrink
  * every other board presses by. */
-/* @@ */ .hex:active:not(.inert) {
+/* @@ */ .tile:active:not(.inert) {
   transform: translateY(0) scale(0.96);
   filter: var(--spellingbee-hex-shadow) brightness(0.92);
 }
 
 /* Reduced motion: the movement goes, the depth stays. */
 @media (prefers-reduced-motion: reduce) {
-/* @@ */   .hex:hover:not(.inert),
-/* @@ */   .hex:active:not(.inert) {
+/* @@ */   .tile:hover:not(.inert),
+/* @@ */   .tile:active:not(.inert) {
     transform: none;
   }
 }
@@ -123,11 +123,11 @@
   fill: var(--verdict-fill);
   stroke: var(--verdict-edge);
 }
-/* @@ */ .answered .hexText {
+/* @@ */ .answered .text {
   fill: var(--verdict-ink);
 }
 
-/* @@ */ .hexText {
+/* @@ */ .text {
   fill: var(--spellingbee-hex-text);
   font-size: 30px; /* flower coordinate units (scaled by --u) */
   font-weight: 800;

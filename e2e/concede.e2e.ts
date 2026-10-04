@@ -39,8 +39,8 @@ test.describe('concede (compete)', () => {
     await pageB.goto(url)
 
     // Wait until both boards are up (both present) so the game is live for Alice.
-    await expect(pageA.locator('[data-wheel]')).toBeVisible({ timeout: 20000 })
-    await expect(pageB.locator('[data-wheel]')).toBeVisible({ timeout: 20000 })
+    await expect(pageA.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+    await expect(pageB.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
     // Alice concedes (Playwright retries the click until it's actionable, so a brief
     // startup pause before Bob's presence registers self-heals), then answers the

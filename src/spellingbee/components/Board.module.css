@@ -1,8 +1,8 @@
 /* cs-blessed-spellingbee */
 
-/* The hive as a whole — what `Hive.tsx` wears: the board wrapper, the anchor
+/* The board as a whole — what `Board.tsx` wears: the board wrapper, the anchor
  * the floating Shuffle hugs, and the `<svg>` the seven hexes are drawn in. One
- * hex is `Letter.tsx`'s, in `Letter.module.css`.
+ * hex is `Tile.tsx`'s, in `Tile.module.css`.
  *
  * The svg's viewBox is the flower's own bounding box, 256 wide × 267 tall in
  * coordinate units (the hexes are 100×87, positioned from `lib/honeycomb.ts`).
@@ -19,8 +19,7 @@
   justify-content: center;
 }
 
-/* Shrink-wraps the hive svg exactly (a flex child hugs its content) and anchors
- * the floating shuffle control (`floatingControl` prop), so the float hugs the
+/* Shrink-wraps the hive svg exactly (a flex child hugs its content) and  * the floating Shuffle button, so the float hugs the
  * VISUAL hive's top-right — not `.board`, which stretches to the column width. */
 /* @@ */ .floatAnchor {
   position: relative;
@@ -37,7 +36,7 @@
   overflow: visible;
 
   /* Touch behavior for the whole hive — declared HERE, on the <svg>, and not on
-   * the `.hex` groups it actually describes.
+   * the `.tile` groups it actually describes.
    *
    * `touch-action` is IGNORED on an SVG child element: a `<g>` generates no CSS
    * box, so the browser drops the declaration silently and the hive keeps

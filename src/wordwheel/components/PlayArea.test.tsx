@@ -11,7 +11,7 @@
  * composition.
  *
  * `db` and the start-game edge function are mocked so no client or network is
- * needed; everything else — the wheel, RankBar, entry row, word list —
+ * needed; everything else — the board, RankBar, entry row, word list —
  * renders real.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -143,9 +143,9 @@ beforeEach(() => {
 })
 
 describe('wordwheel PlayArea — render smoke', () => {
-  it('renders the wheel + RankBar + Stats in coop play', () => {
+  it('renders the board + RankBar + Stats in coop play', () => {
     render(<PlayAreaLoader {...makeCtx()} />)
-    expect(document.querySelector('[data-wheel]')).toBeInTheDocument()
+    expect(document.querySelector('[data-board]')).toBeInTheDocument()
     // The center tile. Selected by its data hook rather than a role + aria-label:
     // a tile is pointer-only (see Tile.tsx), so dressing it as a button just to
     // give the test a handle would put back the costume that trapped focus.
@@ -331,7 +331,7 @@ describe('wordwheel PlayArea — the tiles the word is spending', () => {
     expect(new Set(spentTiles())).toEqual(new Set(['B', 'E', 'D']))
   })
 
-  it("a conceded racer's wheel is inert: a tap adds nothing", async () => {
+  it("a conceded racer's board is inert: a tap adds nothing", async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx(race({ players: [me(CONCEDED), moth()] }))} />)
     expect(inertTiles()).toHaveLength(9)
@@ -348,7 +348,7 @@ describe('wordwheel PlayArea — the tiles the word is spending', () => {
     expect(spentTiles()).toEqual([])
   })
 
-  it("a finished game's wheel is inert too", async () => {
+  it("a finished game's board is inert too", async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx(STOPPED)} />)
     expect(inertTiles()).toHaveLength(9)
@@ -612,7 +612,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it("answers a refusal on the board: the word's own tiles shake and go red, the wheel holds still", async () => {
+  it("answers a refusal on the board: the word's own tiles shake and go red, the board holds still", async () => {
     // The head-shake for a move that wasn't a winning one, on each FACE the word
     // used and no other, and the outcome's own fill on the tile — one table
     // (lib/answer.ts) decides which color, and the pill reads the same one.
@@ -622,8 +622,8 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
       [...document.querySelectorAll('[data-tile]')]
         .filter((t) => (t.firstElementChild?.getAttribute('class') ?? '').includes('verdictShake'))
         .map((t) => t.getAttribute('data-tile'))
-    const wheelShakes = () =>
-      (document.querySelector('[data-wheel]')?.getAttribute('class') ?? '').includes('verdictShake')
+    const boardShakes = () =>
+      (document.querySelector('[data-board]')?.getAttribute('class') ?? '').includes('verdictShake')
 
     await user.keyboard('bead{Enter}') // a required word: nothing is refused
     expect(shakingTiles()).toEqual([])
@@ -632,7 +632,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     await user.keyboard('bcdf{Enter}') // fits the wheel, but has no center E
     expect(new Set(shakingTiles())).toEqual(new Set(['B', 'C', 'D', 'F']))
     expect(new Set(answeredTiles().map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['B', 'C', 'D', 'F']))
-    expect(wheelShakes()).toBe(false)
+    expect(boardShakes()).toBe(false)
   })
 
   it('shakes the same tiles again when the same word is refused twice', async () => {

@@ -291,9 +291,9 @@
  * scan of the SAME board (not a turn action), so it lives on the board, not in
  * the info-column action row. A drop shadow so it reads as hovering above.
  *
- * Anchoring: each game renders this INSIDE its board root (psychicnum's /
- * connections' `floatingControl` prop, spellingbee's Hive `.floatAnchor`,
- * boggle's grid), and that root is the `position: relative` containing block.
+ * Anchoring: each game renders this INSIDE its board root (the `Board` of
+ * psychicnum, connections, spellingbee and wordwheel; boggle's grid), and that
+ * root is the `position: relative` containing block.
  * It must NOT anchor to `.boardCol`: the column spans the full layout height
  * while the board stack centers vertically within it, so the column's top-right
  * can sit well above the visual board. */

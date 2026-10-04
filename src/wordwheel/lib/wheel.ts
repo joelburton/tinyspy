@@ -2,7 +2,7 @@
 
 /**
  * The 9-circle wheel geometry — the single source shared by the on-screen board
- * (`Wheel` / `Tile`, laid out as round boxes) and the PDF export
+ * (`Board` / `Tile`, laid out as round boxes) and the PDF export
  * (`printWordwheelPdf`, drawn as jsPDF circles). Keeping it here means the two
  * renderings can never drift.
  *

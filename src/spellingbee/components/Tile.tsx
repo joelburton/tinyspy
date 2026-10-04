@@ -5,39 +5,40 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import shared from '@/common/game-page/playArea.module.css'
 import { HEX_W, HEX_H, HEX_VERTS, HEX_SHRINK } from '../lib/honeycomb'
-import styles from './Letter.module.css'
+import styles from './Tile.module.css'
 
 type Props = {
   letter: string
   isCenter?: boolean
-  // Top-left of this hex's box, in the flower's coordinate units.
+  // Top-left of this tile's box, in the flower's coordinate units.
   pos: { left: number; top: number }
-  // Absent when the board is read-only: the hex takes no click and wears no
+  // Absent when the board is read-only: the tile takes no click and wears no
   // hover or press.
   onClick?: () => void
-  // This letter is in the word being typed — the hex wears the selected edge.
+  // This letter is in the word being typed — the tile wears the selected edge.
   used?: boolean
-  // A refused word used this letter: the hex wears that answer's fill, edge and
+  // A refused word used this letter: the tile wears that answer's fill, edge and
   // white ink for as long as the answer is up, and shakes once as it arrives
   // (the parent remounts it per refusal, which is what replays the shake).
   answer?: Outcome
 }
 
 /**
- * One hex in the honeycomb — an SVG `<polygon>` plus a centered `<text>`, drawn
- * inside the parent `<Hive>` svg so it shares the flower's coordinate space.
+ * One tile of the board — a hexagonal SVG `<polygon>` plus a centered `<text>`,
+ * drawn inside the parent `<Board>` svg so it shares the flower's coordinate
+ * space.
  *
  * The group carries the click, since a real `<button>` cannot nest in SVG, and
  * the polygon's fill is the hit area, so a click lands on the hex shape and
  * not its bounding-box corners. **POINTER-ONLY**: no `tabIndex`, no `role`, no
- * Enter/Space keydown — the page's tab ring is empty, so a hex is not
- * keyboard-reachable; the letters are typed, or clicked. `data-hex` /
+ * Enter/Space keydown — the page's tab ring is empty, so a tile is not
+ * keyboard-reachable; the letters are typed, or clicked. `data-tile` /
  * `data-center` are the test handles.
  *
  * `onMouseDown` is prevented so a click does not select the letter text.
  * SVG `<text>` ignores `text-transform`, so the letter is uppercased here.
  */
-export function Letter({ letter, isCenter, pos, onClick, used, answer }: Props) {
+export function Tile({ letter, isCenter, pos, onClick, used, answer }: Props) {
   const up = letter.toUpperCase()
   const points = HEX_VERTS.map(([fx, fy]) => {
     const sx = 0.5 + (fx - 0.5) * HEX_SHRINK
@@ -49,25 +50,25 @@ export function Letter({ letter, isCenter, pos, onClick, used, answer }: Props) 
   return (
     <g
       className={cls(
-        styles.hex,
+        styles.tile,
         !onClick && styles.inert,
         isCenter && styles.center,
         used && styles.used,
         // The verdict class sets only the verdict tokens (`OUTCOME_TO_VERDICT_CLASS`), which
-        // is why a hex can wear one without being a `.tileFace`; `.answered`
+        // is why a tile can wear one without being a `.tileFace`; `.answered`
         // maps them onto the shape and the text.
         answer && styles.answered,
         answer && OUTCOME_TO_VERDICT_CLASS[answer],
-        // The shared head-shake: every answer this hex can wear is a refusal.
+        // The shared head-shake: every answer this tile can wear is a refusal.
         answer && shared.verdictShake,
       )}
-      data-hex={up}
+      data-tile={up}
       data-center={isCenter || undefined}
       onClick={onClick}
       onMouseDown={(e) => e.preventDefault()}
     >
       <polygon className={styles.hexShape} points={points} />
-      <text className={styles.hexText} x={cx} y={cy}>
+      <text className={styles.text} x={cx} y={cy}>
         {up}
       </text>
     </g>

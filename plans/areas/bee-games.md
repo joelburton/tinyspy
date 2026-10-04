@@ -52,6 +52,9 @@ shipped the same day, at the gate, fixing all sixteen games.
 - `endingMessage.ts` · `endingMessage.test.ts` — the two ending builders the
   games' ending hooks feed from `gd` (2026-10-04; replaced `terminal.ts` and
   its test, `cs-unmet` until this area re-reads them)
+- `useTileShuffle.ts` · `useTileShuffle.test.ts` — the display order and the
+  Shuffle both Boards own (2026-10-04, the Board pass; `cs-unmet` until this
+  area re-reads them)
 - `beeBoard.module.css` — the coordinate-unit board geometry: `--u`,
   `--board-width`, and the mobile status block's content width
 - `beeLeaderboard.ts` — the compete leaderboard row on `common.games.status`.

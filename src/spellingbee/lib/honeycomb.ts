@@ -2,7 +2,7 @@
 
 /**
  * The 7-hex flat-top honeycomb geometry — the single source shared by the on-screen
- * board (`Hive` / `Letter`, drawn as SVG) and the PDF export (`printSpellingbeePdf`,
+ * board (`Board` / `Tile`, drawn as SVG) and the PDF export (`printSpellingbeePdf`,
  * drawn as jsPDF polygons). Keeping it here means the two renderings can never drift.
  *
  * Coordinates live in the "flower's" own unit box (the SVG viewBox); a renderer scales

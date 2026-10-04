@@ -41,9 +41,9 @@ import { signIn } from './helpers/session'
 const TAPPED_BOARDS = [
   // spellingbee is the SVG-drawn board — the shape that made this bug possible.
   // Its rule has to live on the <svg> root, not on the <g> that is the hex.
-  // `data-hex`, not `g[role="button"]`: those tiles are pointer-only and carry
+  // `data-tile`, not `g[role="button"]`: those tiles are pointer-only and carry
   // no ARIA role.
-  { name: 'spellingbee', make: createSpellingbeeGame, target: 'g[data-hex]' },
+  { name: 'spellingbee', make: createSpellingbeeGame, target: 'g[data-tile]' },
   // wordwheel's tiles and letterboxed's letters are HTML boxes that take the
   // rule from an HTML ancestor (the wheel, the board square), so the
   // inert-child trap can't reach them.

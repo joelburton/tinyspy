@@ -11,7 +11,7 @@
  * composition.
  *
  * `db` and the start-game edge function are mocked so no client or network is
- * needed; everything else — the honeycomb, RankBar, entry row, word list —
+ * needed; everything else — the board, RankBar, entry row, word list —
  * renders real.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -120,7 +120,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
 /** The outer hexes' letters in the order they are drawn — what the shuffle
  *  rearranges; the center never moves. */
 const outerOrder = () =>
-  [...document.querySelectorAll('[data-hex]:not([data-center])')].map((t) => t.getAttribute('data-hex'))
+  [...document.querySelectorAll('[data-tile]:not([data-center])')].map((t) => t.getAttribute('data-tile'))
 
 /** A trusting-commit success, in the envelope `runRpc` unwraps. `accepted` is
  *  the plain classification; the bonus/pangram ones return the same `null` to
@@ -143,13 +143,13 @@ beforeEach(() => {
 })
 
 describe('spellingbee PlayArea — render smoke', () => {
-  it('renders the honeycomb + RankBar + Stats in coop play', () => {
+  it('renders the board + RankBar + Stats in coop play', () => {
     render(<PlayAreaLoader {...makeCtx()} />)
-    expect(document.querySelector('[data-hive]')).toBeInTheDocument()
-    // The center hex. Selected by its data hook rather than a role + aria-label:
-    // a hex is pointer-only (see Letter.tsx), so dressing it as a button just to
+    expect(document.querySelector('[data-board]')).toBeInTheDocument()
+    // The center tile. Selected by its data hook rather than a role + aria-label:
+    // a tile is pointer-only (see Tile.tsx), so dressing it as a button just to
     // give the test a handle would put back the costume that trapped focus.
-    expect(document.querySelector('[data-hex][data-center]')).toBeInTheDocument()
+    expect(document.querySelector('[data-tile][data-center]')).toBeInTheDocument()
     // The WordList rendered (empty during play).
     expect(screen.getByText(/no words yet/i)).toBeInTheDocument()
   })
@@ -171,35 +171,35 @@ describe('spellingbee PlayArea — render smoke', () => {
   })
 })
 
-describe('spellingbee PlayArea — the hexes the word is using', () => {
-  /** The letters whose hexes wear the selected edge, in draw order. */
-  const usedHexes = () =>
-    [...document.querySelectorAll('[data-hex]')]
+describe('spellingbee PlayArea — the tiles the word is using', () => {
+  /** The letters whose tiles wear the selected edge, in draw order. */
+  const usedTiles = () =>
+    [...document.querySelectorAll('[data-tile]')]
       .filter((t) => (t.getAttribute('class') ?? '').includes('_used_'))
-      .map((t) => t.getAttribute('data-hex'))
+      .map((t) => t.getAttribute('data-tile'))
 
   it('marks a letter as it is typed, and gives it back on Delete', async () => {
     // Letters are abcdfg around a center e. The marks are what a pangram hunter
-    // reads: the unmarked hexes are the letters still missing from the word.
+    // reads: the unmarked tiles are the letters still missing from the word.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    expect(usedHexes()).toEqual([])
+    expect(usedTiles()).toEqual([])
 
     await user.keyboard('bed')
-    expect(new Set(usedHexes())).toEqual(new Set(['B', 'E', 'D']))
+    expect(new Set(usedTiles())).toEqual(new Set(['B', 'E', 'D']))
 
     await user.keyboard('{Backspace}')
-    expect(new Set(usedHexes())).toEqual(new Set(['B', 'E']))
+    expect(new Set(usedTiles())).toEqual(new Set(['B', 'E']))
   })
 
-  it('marks the center hex too, and clears every mark on submit', async () => {
+  it('marks the center tile too, and clears every mark on submit', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bee')
-    expect(usedHexes()).toContain('E') // the center letter, black-edged like the rest
+    expect(usedTiles()).toContain('E') // the center letter, black-edged like the rest
 
     await user.keyboard('{Enter}')
-    expect(usedHexes()).toEqual([])
+    expect(usedTiles()).toEqual([])
   })
 
   it('a conceded racer types nothing: the entry is closed as the engine is', async () => {
@@ -209,49 +209,49 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
     // a read-only board draws none whatever the word holds.
     expect(getAction('act-type-letter').describe('key').state).toBe('disabled')
     await user.keyboard('bed')
-    expect(usedHexes()).toEqual([])
+    expect(usedTiles()).toEqual([])
   })
 
-  /** Tap the hexes for these letters, in order. */
+  /** Tap the tiles for these letters, in order. */
   const tap = async (user: ReturnType<typeof userEvent.setup>, letters: string) => {
-    for (const l of letters) await user.click(document.querySelector(`[data-hex="${l}"]`)!)
+    for (const l of letters) await user.click(document.querySelector(`[data-tile="${l}"]`)!)
   }
-  const inertHexes = () =>
-    [...document.querySelectorAll('[data-hex]')].filter((t) =>
+  const inertTiles = () =>
+    [...document.querySelectorAll('[data-tile]')].filter((t) =>
       (t.getAttribute('class') ?? '').includes('_inert_'),
     )
 
-  it('a tapped hex adds its letter while I can play', async () => {
+  it('a tapped tile adds its letter while I can play', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    expect(inertHexes()).toEqual([])
+    expect(inertTiles()).toEqual([])
     await tap(user, 'BED')
-    expect(new Set(usedHexes())).toEqual(new Set(['B', 'E', 'D']))
+    expect(new Set(usedTiles())).toEqual(new Set(['B', 'E', 'D']))
   })
 
-  it("a conceded racer's hive is inert: a tap adds nothing", async () => {
+  it("a conceded racer's board is inert: a tap adds nothing", async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx(race({ players: [me(CONCEDED), moth()] }))} />)
-    expect(inertHexes()).toHaveLength(7)
+    expect(inertTiles()).toHaveLength(7)
     await tap(user, 'BED')
-    expect(usedHexes()).toEqual([])
+    expect(usedTiles()).toEqual([])
   })
 
   it('a half-typed word loses its marks when the game ends under it', async () => {
     const user = userEvent.setup()
     const { rerender } = render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bed')
-    expect(new Set(usedHexes())).toEqual(new Set(['B', 'E', 'D']))
+    expect(new Set(usedTiles())).toEqual(new Set(['B', 'E', 'D']))
     rerender(<WithKeys {...makeCtx(STOPPED)} />)
-    expect(usedHexes()).toEqual([])
+    expect(usedTiles()).toEqual([])
   })
 
-  it("a finished game's hive is inert too", async () => {
+  it("a finished game's board is inert too", async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx(STOPPED)} />)
-    expect(inertHexes()).toHaveLength(7)
+    expect(inertTiles()).toHaveLength(7)
     await tap(user, 'BED')
-    expect(usedHexes()).toEqual([])
+    expect(usedTiles()).toEqual([])
   })
 })
 
@@ -497,40 +497,40 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     // (lib/answer.ts) decides which color, and the pill reads the same one.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    const hexesWith = (cls: string) =>
-      [...document.querySelectorAll('[data-hex]')]
+    const tilesWith = (cls: string) =>
+      [...document.querySelectorAll('[data-tile]')]
         .filter((t) => (t.getAttribute('class') ?? '').includes(cls))
-        .map((t) => t.getAttribute('data-hex'))
-    const hiveShakes = () =>
-      (document.querySelector('[data-hive]')?.getAttribute('class') ?? '').includes('verdictShake')
+        .map((t) => t.getAttribute('data-tile'))
+    const boardShakes = () =>
+      (document.querySelector('[data-board]')?.getAttribute('class') ?? '').includes('verdictShake')
 
     await user.keyboard('bead{Enter}') // a required word: nothing is refused
-    expect(hexesWith('verdictShake')).toEqual([])
-    expect(hexesWith('_answered_')).toEqual([])
+    expect(tilesWith('verdictShake')).toEqual([])
+    expect(tilesWith('_answered_')).toEqual([])
 
     await user.keyboard('bcdf{Enter}') // real letters, but no center E
-    expect(new Set(hexesWith('verdictShake'))).toEqual(new Set(['B', 'C', 'D', 'F']))
-    expect(new Set(hexesWith('_answered_'))).toEqual(new Set(['B', 'C', 'D', 'F']))
-    expect(hiveShakes()).toBe(false)
+    expect(new Set(tilesWith('verdictShake'))).toEqual(new Set(['B', 'C', 'D', 'F']))
+    expect(new Set(tilesWith('_answered_'))).toEqual(new Set(['B', 'C', 'D', 'F']))
+    expect(boardShakes()).toBe(false)
   })
 
   it('shakes the same letters again when the same word is refused twice', async () => {
-    // A CSS animation plays once per mount, so the word's hexes are keyed on
+    // A CSS animation plays once per mount, so the word's tiles are keyed on
     // the mark's nonce: a second refusal is a new element, and a new shake.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    const hexB = () => document.querySelector('[data-hex="B"]')
+    const tileB = () => document.querySelector('[data-tile="B"]')
 
     await user.keyboard('bcdf{Enter}')
-    const first = hexB()
+    const first = tileB()
     await user.keyboard('bcdf{Enter}')
-    expect(hexB()).not.toBe(first)
-    expect(hexB()?.getAttribute('class')).toMatch(/verdictShake/)
+    expect(tileB()).not.toBe(first)
+    expect(tileB()?.getAttribute('class')).toMatch(/verdictShake/)
   })
 
-  /** The hexes wearing a refused word's answer, with their class strings. */
-  const answeredHexes = () =>
-    [...document.querySelectorAll('[data-hex]')].filter((t) =>
+  /** The tiles wearing a refused word's answer, with their class strings. */
+  const answeredTiles = () =>
+    [...document.querySelectorAll('[data-tile]')].filter((t) =>
       (t.getAttribute('class') ?? '').includes('_answered_'),
     )
 
@@ -543,11 +543,11 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bed{Enter}')
 
-    const marked = answeredHexes()
-    expect(new Set(marked.map((t) => t.getAttribute('data-hex')))).toEqual(new Set(['B', 'E', 'D']))
-    for (const hex of marked) {
-      expect(hex.getAttribute('class')).toMatch(/verdictWarning/)
-      expect(hex.getAttribute('class')).not.toMatch(/verdictLost/)
+    const marked = answeredTiles()
+    expect(new Set(marked.map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['B', 'E', 'D']))
+    for (const tile of marked) {
+      expect(tile.getAttribute('class')).toMatch(/verdictWarning/)
+      expect(tile.getAttribute('class')).not.toMatch(/verdictLost/)
     }
   })
 
@@ -556,11 +556,11 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bed{Enter}')
-    expect(answeredHexes()).toHaveLength(3)
+    expect(answeredTiles()).toHaveLength(3)
 
     await act(async () => void vi.advanceTimersByTime(WORD_ANSWER_MS + 1))
 
-    expect(answeredHexes()).toEqual([])
+    expect(answeredTiles()).toEqual([])
     vi.useRealTimers()
   })
 
