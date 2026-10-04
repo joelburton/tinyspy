@@ -27,8 +27,8 @@ import type { Member } from '@/common/members/member'
 import type { FormErrors } from '@/common/forms/formState'
 
 const MEMBERS = [
-  { user_id: 'self', username: 'joel', color: 'red' },
-  { user_id: 'moth', username: 'moth', color: 'blue' },
+  { id: 'self', username: 'joel', color: 'red' },
+  { id: 'moth', username: 'moth', color: 'blue' },
 ] as Member[]
 
 function draw({
@@ -48,7 +48,7 @@ function draw({
       numberOfPlayers={[1, 8]}
       values={{
         ...DEFAULT_BOGGLE_SETUP_COOP,
-        player_user_ids: new Set(members.map((m) => m.user_id)),
+        player_user_ids: new Set(members.map((m) => m.id)),
         ...values,
       }}
       set={set}
