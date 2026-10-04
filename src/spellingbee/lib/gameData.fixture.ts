@@ -11,7 +11,8 @@ import {
   type ZTest_BeeGameDataFacts,
   type ZTest_BeeGameFixture,
 } from '@/shared/bee-games/beeGameData.fixture'
-import { DEFAULT_SPELLINGBEE_SETUP_COOP, type SpellingbeeSetup } from './setup'
+import { DEFAULT_SPELLINGBEE_SETUP_COOP } from './setup'
+import type { GSetup } from '../types'
 import type { GGameDataRaw } from '../types'
 
 export type { ZTest_BeePlayerFacts as ZTest_PlayerFacts } from '@/shared/bee-games/beeGameData.fixture'
@@ -19,11 +20,11 @@ export { ZTest_find, ZTest_word } from '@/shared/bee-games/beeGameData.fixture'
 
 /** The facts a test sets up about a spellingbee game; the rest is the
  *  shared bee fixture's defaults on this game's board. */
-export type ZTest_GameDataFacts = ZTest_BeeGameDataFacts<SpellingbeeSetup>
+export type ZTest_GameDataFacts = ZTest_BeeGameDataFacts<GSetup>
 
 /** This game's fixture board: the outer letters `abcdfg` around the center
  *  `e`, as the pgTAP fixture has it. */
-export const ZTest_SPELLINGBEE: ZTest_BeeGameFixture<SpellingbeeSetup> = {
+export const ZTest_SPELLINGBEE: ZTest_BeeGameFixture<GSetup> = {
   gametypePrefix: 'spellingbee',
   brand: 'FreeBee',
   centerLetter: 'e',

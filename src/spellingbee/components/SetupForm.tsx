@@ -8,7 +8,7 @@ import { SetupSection } from '@/common/setup-form/SetupSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
-import type { SpellingbeeValues } from '../lib/setup'
+import type { GSetupValues } from '../types'
 import { ManualBoardField } from '@/common/fields/ManualBoardField'
 import { groupTiles } from '@/common/fields/groupTiles'
 import { NO_TARGET, splitCustomLetters, TARGET_RANK_CHOICES } from '@/shared/bee-games/beeSetup'
@@ -25,15 +25,15 @@ import { NO_TARGET, splitCustomLetters, TARGET_RANK_CHOICES } from '@/shared/bee
  * Start is withheld (`TARGET_RANK_CHOICES`).
  *
  * Controlled: state lives in the wrapping `SetupGameModal`, this body renders
- * `values` and signals via `set`. The `values as SpellingbeeValues` cast at the
+ * `values` and signals via `set`. The `values as GSetupValues` cast at the
  * top is the boundary between the manifest's `unknown` setup type and
  * spellingbee's narrow shape.
  */
 export function SetupForm({
   mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as SpellingbeeValues
-  const set = setValue as SetupSetter<SpellingbeeValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
 
   // Disclosure summaries carry the current value so it reads without opening.
   const dictLabel = `Dictionaries: ${difficultyValue(s.required_band)} / ${difficultyValue(s.legal_band)}`

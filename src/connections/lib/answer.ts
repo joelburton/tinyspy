@@ -2,49 +2,13 @@
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
-
-/**
- * What a 4-tile guess was — the three values `connections.events.result`
- * stores.
- *
- * Unusually for this roster, the FRONTEND decides which one a guess is: the
- * board is publicly readable, so `evaluateGuess` adjudicates locally and sends
- * the verdict up (the FE-knows decision, doc.md → Intro). The column, the RPC's
- * `result` argument and this type are the same three facts.
- */
-export type GGuessResult = 'correct' | 'oneAway' | 'wrong'
-
-/**
- * Everything that can be SAID about a move in this game, as a closed set — and
- * **read as a list, it is the whole roster of what this game tells anybody.**
- *
- * "_peer" versions are answers that come from subscriptions and are for peer
- * feedback.
- */
-export type Answer =
-  // My guess matched a category.
-  | { answerType: 'correct' }
-  // A coop teammate's did, on the board we share.
-  | { answerType: 'correct_peer' }
-
-  // Three of my four were in one category.
-  | { answerType: 'one_away' }
-  // Three of a coop teammate's four were.
-  | { answerType: 'one_away_peer' }
-
-  // My guess matched nothing.
-  | { answerType: 'wrong' }
-  // A coop teammate's matched nothing.
-  | { answerType: 'wrong_peer' }
-
-  // Refused here: this set of four was already tried.
-  | { answerType: 'already_tried' }
+import type { GAnswer, GGuessResult } from '../types'
 
 /**
  * How an answer reads — **the one place this game decides that.** A pair
  * shares its words: a teammate's line is "● moth" and then the same text.
  */
-export function answerMessage(answer: Answer): AnswerMessage {
+export function answerMessage(answer: GAnswer): AnswerMessage {
   switch (answer.answerType) {
     case 'correct':
     case 'correct_peer':

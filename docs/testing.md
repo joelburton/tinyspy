@@ -636,6 +636,7 @@ before trusting a green run. The full set:
 | `actionIds` | an action's two spellings agree — `act-new-game` ⇄ `actNewGame` |
 | `registeredChords` | nothing outside `common/actions/` matches a registered chord by hand |
 | `componentKeyGroups` | every hand-written key handler in `src/` matches through an action or a key group (`common/keyboard/componentKeyGroups.ts`), so Help and `gmake dev-keys` can list it |
+| `gameTypes` | every converted game — an exported type is in `types.ts` and starts with `G`; `pdf/`, fixtures and tests exempt |
 | `commonNeverImportsShared` | `src/common/` never imports `src/shared/` — the one-way rule ([common-folders.md](common-folders.md)) |
 | `escapeListeners` | only the two sanctioned places listen for Escape globally |
 | `memberPalette` | the member color names agree between `MEMBER_COLORS` and the SQL that spells them |

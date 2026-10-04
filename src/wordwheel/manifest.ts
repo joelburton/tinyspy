@@ -12,11 +12,10 @@ import {
   DEFAULT_WORDWHEEL_SETUP_COMPETE,
   DEFAULT_WORDWHEEL_SETUP_COOP,
   wordwheelSetupError,
-  type WordwheelSetup,
 } from './lib/setup'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import logoUrl from './logo.svg?url'
-import type { GSummaryData } from './types'
+import type { GSetup, GSummaryData } from './types'
 
 /**
  * wordwheel's registration with the shell — **two manifests, one
@@ -65,7 +64,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // create_game returns, relayed untouched (see _shared/startGame.ts).
     runEdgeFn<CreatedGame>('wordwheel-build-board', {
       target_club: clubHandle,
-      setup: setup as WordwheelSetup,
+      setup: setup as GSetup,
       player_user_ids: playerUserIds,
       mode,
     })
@@ -134,7 +133,7 @@ export const wordwheelCoopGame: GameManifest = {
       'Everyone in the club types words into the same wheel and the team racks up the score together.',
     Component: setupFormLoader,
     defaults: DEFAULT_WORDWHEEL_SETUP_COOP,
-    validate: (setup) => wordwheelSetupError(setup as WordwheelSetup),
+    validate: (setup) => wordwheelSetupError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('coop'),
@@ -194,7 +193,7 @@ export const wordwheelCompeteGame: GameManifest = {
       'Each player works the same wheel independently. First to the target rank wins; the rest of the time you only see each other\'s rank, not the words you found.',
     Component: setupFormLoader,
     defaults: DEFAULT_WORDWHEEL_SETUP_COMPETE,
-    validate: (setup) => wordwheelSetupError(setup as WordwheelSetup),
+    validate: (setup) => wordwheelSetupError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('compete'),

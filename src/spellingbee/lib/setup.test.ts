@@ -6,11 +6,11 @@ import {
   legalError,
   spellingbeeSetupError,
   DEFAULT_SPELLINGBEE_SETUP_COOP,
-  type SpellingbeeSetup,
 } from './setup'
+import type { GSetup } from '../types'
 
 /** A valid coop base to layer custom-letter fields onto. */
-const base: SpellingbeeSetup = DEFAULT_SPELLINGBEE_SETUP_COOP
+const base: GSetup = DEFAULT_SPELLINGBEE_SETUP_COOP
 
 /** Every `customLettersError` message is about the ONE box the letters are
  *  typed into (the form writes `custom_center` and `custom_letters` from a
@@ -62,7 +62,7 @@ describe('customLettersError', () => {
 
 describe('spellingbeeSetupError — combines legal-band + custom-letters', () => {
   it('surfaces the legal-band error first', () => {
-    const bad: SpellingbeeSetup = { ...base, required_band: 5, legal_band: 3 }
+    const bad: GSetup = { ...base, required_band: 5, legal_band: 3 }
     expect(spellingbeeSetupError(bad)).toEqual(legalError(bad))
     expect(spellingbeeSetupError(bad)).toEqual(onLegal(/legal words/i))
   })

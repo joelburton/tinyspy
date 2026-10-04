@@ -1,7 +1,8 @@
 // cs-blessed-connections
 
 import { describe, it, expect } from 'vitest'
-import { answerMessage, eventToOutcome, peerAnswerMessage, type Answer } from './answer'
+import { answerMessage, eventToOutcome, peerAnswerMessage } from './answer'
+import type { GAnswer } from '../types'
 
 /**
  * connections' one presentation decision, both halves.
@@ -23,7 +24,7 @@ describe('answerMessage', () => {
   // Every member, with its color and its words — one table to read them from,
   // which is what the three surfaces now agree about. A pair shares its words:
   // a teammate's line is their name and then the same text.
-  const CASES: [Answer, string, string][] = [
+  const CASES: [GAnswer, string, string][] = [
     [{ answerType: 'correct' }, 'won', 'Correct'],
     [{ answerType: 'correct_peer' }, 'won', 'Correct'],
     [{ answerType: 'one_away' }, 'near', 'One away!'],
@@ -42,7 +43,7 @@ describe('answerMessage', () => {
     // table: adding a member without a row here fails, and `answerMessage`'s
     // exhaustive switch fails to compile the other way round.
     const listed = new Set(CASES.map(([a]) => a.answerType))
-    const all: Answer['answerType'][] = [
+    const all: GAnswer['answerType'][] = [
       'correct', 'correct_peer', 'one_away', 'one_away_peer', 'wrong', 'wrong_peer', 'already_tried',
     ]
     expect([...listed].sort()).toEqual([...all].sort())

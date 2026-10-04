@@ -543,7 +543,11 @@ step names where its rules live; this list does not restate them.
 6. **`types.ts`** under the four rules (docs/code-conventions.md → A game's
    types), test-only exports `ZTest_`: `GGameDataRaw` and `GGameData`,
    `GPlayerRaw` and `GPlayer`, `GTeam`, `GStateLineData`, `GEventRaw` and
-   `GEvent`, `GTile` if any; the shape sketch in a comment.
+   `GEvent`, `GTile` if any; the shape sketch in a comment. **Then sweep the
+   whole folder**: every `export type` outside `types.ts` (the setup pair,
+   `Answer`, a hook's mark) moves in under a `G` name or stops being
+   exported, and the game joins `CONVERTED_GAMES` in
+   `src/guards/gameTypes.test.ts`, which holds the rule from then on.
 7. **`useGame`** is `makeGameData(blob, auth.user.id)`, pure and memoized on
    the blob: `playersById` and `tilesById` beside their lists, links
    resolved, the seat rule applied, every outcome read once through

@@ -4,7 +4,7 @@ import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import { makeCenterLettersRow, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
-import type { SpellingbeeSetup } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * spellingbee's setup rows — ONE array, rendered by the info column and the
@@ -20,7 +20,7 @@ import type { SpellingbeeSetup } from './setup'
  * this was outranks how it was configured.
  */
 export function makeSetupRows(
-  setup: SpellingbeeSetup,
+  setup: GSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
   // The board's letters; null draws no Letters row.

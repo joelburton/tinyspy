@@ -6,11 +6,11 @@ import {
   legalError,
   wordwheelSetupError,
   DEFAULT_WORDWHEEL_SETUP_COOP,
-  type WordwheelSetup,
 } from './setup'
+import type { GSetup } from '../types'
 
 /** A valid coop base to layer custom-letter fields onto. */
-const base: WordwheelSetup = DEFAULT_WORDWHEEL_SETUP_COOP
+const base: GSetup = DEFAULT_WORDWHEEL_SETUP_COOP
 
 /** Every `customLettersError` message is about the ONE box the letters are
  *  typed into (the form writes `custom_center` and `custom_letters` from a
@@ -66,7 +66,7 @@ describe('customLettersError', () => {
 
 describe('wordwheelSetupError — combines legal-band + custom-letters', () => {
   it('puts a band error under legal_band', () => {
-    const bad: WordwheelSetup = { ...base, required_band: 5, legal_band: 3 }
+    const bad: GSetup = { ...base, required_band: 5, legal_band: 3 }
     expect(wordwheelSetupError(bad)).toEqual(legalError(bad))
     expect(wordwheelSetupError(bad)).toEqual(onLegal(/legal words/i))
   })

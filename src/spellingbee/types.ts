@@ -26,14 +26,15 @@ import type {
   GBeeTile,
   GBeeWord,
 } from '@/shared/bee-games/beeGameData'
-import type { SpellingbeeSetup } from './lib/setup'
+import type { TimerMode } from '@/common/manifest/gameManifest'
+import type { SetupOf } from '@/common/setup-form/setupForm'
 
 /** spellingbee's `game_data`, as `spellingbee._rebuild_data_cols` writes it
  *  (supabase/sql/spellingbee.sql → The page blobs). */
-export type GGameDataRaw = GBeeGameDataRaw<SpellingbeeSetup>
+export type GGameDataRaw = GBeeGameDataRaw<GSetup>
 
 /** `gd`: the blob read for the surface — players, the seat rule applied. */
-export type GGameData = GBeeGameData<SpellingbeeSetup>
+export type GGameData = GBeeGameData<GSetup>
 
 export type GPlayerRaw = GBeePlayerRaw
 export type GPlayer = GBeePlayer
@@ -72,3 +73,98 @@ export type GActions = {
  * their tiles wear the answer and shake — and the outcome they wear.
  */
 export type GRefusedMark = Mark<{ letters: ReadonlySet<string>; outcome: Outcome }>
+
+/**
+ * spellingbee's per-game setup — collected by the start-game dialog,
+ * persisted to `common.games.setup`, validated server-side in
+ * `spellingbee.create_game`.
+ *
+ * **Mode is NOT on this type** — it is the manifest's, picked by which Start
+ * button was pressed, and `create_game` takes it as its own argument; both
+ * manifests share this one setup shape.
+ *
+ * Fields:
+ *   - `timer` — wall-clock mode (none / countup / countdown).
+ *     Per-game rather than per-gametype so friends can pick
+ *     their own challenge each session.
+ *   - `target_rank` — 0..6 on the Start..Genius rank ladder.
+ *     REQUIRED in compete (the race's finish line — first player
+ *     there wins). OPTIONAL in coop, where it's the TEAM's win
+ *     threshold: reach it together and the game ends as a win.
+ *     `undefined` in coop means the open-ended word hunt, which
+ *     only the clock or the Stop button stops — the default, and
+ *     the right pick for a group that just wants to find words.
+ *   - `required_band` / `legal_band` — the vocabulary bands, each a
+ *     dictionary difficulty ceiling. `required_band` (1..6) is where
+ *     the displayed goal words come from; `legal_band`
+ *     (required_band..6) is the wider set of accepted/bonus words;
+ *     it must contain the required band (see `legalError`). Every
+ *     random board is grown from a band-1 pangram, but a narrow
+ *     `required_band` can still leave no board with 30 required words,
+ *     which the edge function refuses under this field.
+ *   - `custom_center` + `custom_letters` — an OPTIONAL player-
+ *     specified letter set: the center letter + the six other
+ *     letters. When both are set (and valid — see
+ *     `customLettersError`) the edge function builds a board from
+ *     exactly those letters instead of sampling a random pangram
+ *     seed; both empty means a random board. Works in either mode.
+ *     Because the player chose the letters, a custom board skips
+ *     the ≥30-required-words quality gate the random builder
+ *     enforces (it only needs ≥1 required word to be playable), and
+ *     the letters are NOT saved as the club's next default — a
+ *     one-off, not a new baseline.
+ */
+export type GSetupValues = {
+  timer: TimerMode
+  // Required in compete; optional in coop, where it's the team's win
+  // threshold (undefined = no win condition, the coop default).
+  target_rank?: number
+  // Required-words band (1..6); see the type-level notes.
+  required_band: number
+  // Legal/bonus-words band (required_band..6).
+  legal_band: number
+  // Optional custom board: the center letter (1) + the six other letters.
+  // Both set → custom board; both empty/undefined → random. See the type notes
+  // and `customLettersError`.
+  custom_center?: string
+  custom_letters?: string
+  // WHO IS PLAYING — a field like any other, and the only one that is not
+  // part of the setup blob: `create_game` takes it as its own argument and
+  // writes `common.game_players` rows from it.
+  player_user_ids: Set<string>
+}
+
+
+/** What is SENT and STORED — every value the form collects except the players
+ *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
+ *  `setupRows.ts` and `PlayArea` read back. */
+export type GSetup = SetupOf<GSetupValues>
+
+/**
+ * Everything that can be SAID about a word in this game, as a closed set — and
+ * **read as a list, it is the whole roster of what this game tells anybody.**
+ *
+ * "_peer" versions are answers that come from subscriptions and are for peer
+ * feedback. `word` is lowercase, as the engine and the rows carry it.
+ */
+export type GAnswer =
+  // My word counted.
+  | { answerType: 'accepted'; word: string; points: number; isBonus: boolean; isPangram: boolean }
+  // A coop teammate's did, off `found_words`.
+  | { answerType: 'accepted_peer'; word: string; points: number; isBonus: boolean; isPangram: boolean }
+
+  // Already found — by anyone in coop, by me in compete.
+  | { answerType: 'already_found'; word: string; isBonus: boolean }
+  // Fewer than four letters.
+  | { answerType: 'too_short'; word: string }
+
+  // Not in the list, by why: a letter that is not on the hive…
+  | { answerType: 'bad_letters'; word: string }
+  // …every letter on the hive, but not the center one…
+  | { answerType: 'missing_center'; word: string; center: string }
+  // …or a word made of the right letters that is simply not a word.
+  | { answerType: 'not_a_word'; word: string }
+
+  // A compete opponent climbed a rank. It has no twin of mine: my own rank is
+  // the RankBar's, and an opponent's words are hidden, so this is all there is.
+  | { answerType: 'reached_peer'; rank: string }

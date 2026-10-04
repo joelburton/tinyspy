@@ -11,7 +11,8 @@ import {
   type ZTest_BeeGameDataFacts,
   type ZTest_BeeGameFixture,
 } from '@/shared/bee-games/beeGameData.fixture'
-import { DEFAULT_WORDWHEEL_SETUP_COOP, type WordwheelSetup } from './setup'
+import { DEFAULT_WORDWHEEL_SETUP_COOP } from './setup'
+import type { GSetup } from '../types'
 import type { GGameDataRaw } from '../types'
 
 export type { ZTest_BeePlayerFacts as ZTest_PlayerFacts } from '@/shared/bee-games/beeGameData.fixture'
@@ -19,11 +20,11 @@ export { ZTest_find, ZTest_word } from '@/shared/bee-games/beeGameData.fixture'
 
 /** The facts a test sets up about a wordwheel game; the rest is the
  *  shared bee fixture's defaults on this game's board. */
-export type ZTest_GameDataFacts = ZTest_BeeGameDataFacts<WordwheelSetup>
+export type ZTest_GameDataFacts = ZTest_BeeGameDataFacts<GSetup>
 
 /** This game's fixture board: the outer letters `abcdfghi` around the center
  *  `e`, as the pgTAP fixture has it. */
-export const ZTest_WORDWHEEL: ZTest_BeeGameFixture<WordwheelSetup> = {
+export const ZTest_WORDWHEEL: ZTest_BeeGameFixture<GSetup> = {
   gametypePrefix: 'wordwheel',
   brand: 'MooseWheel',
   centerLetter: 'e',

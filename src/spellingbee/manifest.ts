@@ -12,11 +12,10 @@ import {
   DEFAULT_SPELLINGBEE_SETUP_COMPETE,
   DEFAULT_SPELLINGBEE_SETUP_COOP,
   spellingbeeSetupError,
-  type SpellingbeeSetup,
 } from './lib/setup'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import logoUrl from './logo.svg?url'
-import type { GSummaryData } from './types'
+import type { GSetup, GSummaryData } from './types'
 
 /**
  * spellingbee's registration with the shell — **two manifests, one
@@ -65,7 +64,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // direct create_game returns, relayed untouched (see _shared/startGame.ts).
     runEdgeFn<CreatedGame>('spellingbee-build-board', {
       target_club: clubHandle,
-      setup: setup as SpellingbeeSetup,
+      setup: setup as GSetup,
       player_user_ids: playerUserIds,
       mode,
     })
@@ -134,7 +133,7 @@ export const spellingbeeCoopGame: GameManifest = {
       'Everyone in the club types words into the same honeycomb and the team racks up the score together.',
     Component: setupFormLoader,
     defaults: DEFAULT_SPELLINGBEE_SETUP_COOP,
-    validate: (setup) => spellingbeeSetupError(setup as SpellingbeeSetup),
+    validate: (setup) => spellingbeeSetupError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('coop'),
@@ -194,7 +193,7 @@ export const spellingbeeCompeteGame: GameManifest = {
       'Each player works the same honeycomb independently. First to the target rank wins; the rest of the time you only see each other\'s rank, not the words you found.',
     Component: setupFormLoader,
     defaults: DEFAULT_SPELLINGBEE_SETUP_COMPETE,
-    validate: (setup) => spellingbeeSetupError(setup as SpellingbeeSetup),
+    validate: (setup) => spellingbeeSetupError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('compete'),

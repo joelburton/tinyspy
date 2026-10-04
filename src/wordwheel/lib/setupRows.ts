@@ -4,7 +4,7 @@ import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import { makeCenterLettersRow, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
-import type { WordwheelSetup } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * wordwheel's setup rows — ONE array, rendered by the info column and the PDF
@@ -21,7 +21,7 @@ import type { WordwheelSetup } from './setup'
  * configured.
  */
 export function makeSetupRows(
-  setup: WordwheelSetup,
+  setup: GSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
   // The wheel's letters; null draws no Letters row.

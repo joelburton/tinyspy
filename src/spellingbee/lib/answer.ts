@@ -3,41 +3,13 @@
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
 import { type WordSubmitReport } from '@/shared/found-words/useFoundWordSubmit'
 import { wordWithBonusBullet } from '@/shared/found-words/foundWords'
-
-/**
- * Everything that can be SAID about a word in this game, as a closed set — and
- * **read as a list, it is the whole roster of what this game tells anybody.**
- *
- * "_peer" versions are answers that come from subscriptions and are for peer
- * feedback. `word` is lowercase, as the engine and the rows carry it.
- */
-export type Answer =
-  // My word counted.
-  | { answerType: 'accepted'; word: string; points: number; isBonus: boolean; isPangram: boolean }
-  // A coop teammate's did, off `found_words`.
-  | { answerType: 'accepted_peer'; word: string; points: number; isBonus: boolean; isPangram: boolean }
-
-  // Already found — by anyone in coop, by me in compete.
-  | { answerType: 'already_found'; word: string; isBonus: boolean }
-  // Fewer than four letters.
-  | { answerType: 'too_short'; word: string }
-
-  // Not in the list, by why: a letter that is not on the hive…
-  | { answerType: 'bad_letters'; word: string }
-  // …every letter on the hive, but not the center one…
-  | { answerType: 'missing_center'; word: string; center: string }
-  // …or a word made of the right letters that is simply not a word.
-  | { answerType: 'not_a_word'; word: string }
-
-  // A compete opponent climbed a rank. It has no twin of mine: my own rank is
-  // the RankBar's, and an opponent's words are hidden, so this is all there is.
-  | { answerType: 'reached_peer'; rank: string }
+import type { GAnswer } from '../types'
 
 /**
  * How an answer reads — **the one place this game decides that.** The pill,
  * the hexes a refused word used, and the header's peer lines all read it.
  */
-export function answerMessage(answer: Answer): AnswerMessage {
+export function answerMessage(answer: GAnswer): AnswerMessage {
   switch (answer.answerType) {
     case 'accepted':
       return {
@@ -80,7 +52,7 @@ export function answerMessage(answer: Answer): AnswerMessage {
 export function answerOf(
   report: WordSubmitReport,
   hive: { letters: ReadonlySet<string>; center: string },
-): Answer {
+): GAnswer {
   const word = report.word
   switch (report.answer) {
     case 'accepted':
