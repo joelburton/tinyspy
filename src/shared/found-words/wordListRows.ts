@@ -24,18 +24,14 @@ import { buildRevealWords } from './revealWords'
 export function buildWordListRows({
   foundWords,
   words,
-  sameBandsAndHaveNoBonus,
   isEnded,
 }: {
   foundWords: readonly FoundWordRow[]
   // Every legal word of the board (`gd.puzzle.words`).
   words: readonly FoundWordsWord[]
-  // The bonus words are only what the cleanliness filter removed, so they are
-  // never revealed (`gd.puzzle.sameBandsAndHaveNoBonus`).
-  sameBandsAndHaveNoBonus: boolean
   // Is the game over for everyone? The reveal's only gate.
   isEnded: boolean
 }): WordListRow[] {
-  const reveal = isEnded ? buildRevealWords(words, foundWords, !sameBandsAndHaveNoBonus) : null
+  const reveal = isEnded ? buildRevealWords(words, foundWords) : null
   return buildDisplayRows(foundWords, reveal)
 }

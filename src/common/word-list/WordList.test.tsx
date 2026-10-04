@@ -38,8 +38,11 @@ const base = {
   myId: 'ada',
   isCompete: false,
   isTerminal: true,
-  hasBonus: false,
 }
+
+// The two selects, KIND first.
+const KIND = 0
+const WHO = 1
 
 describe('WordList — the heading tally', () => {
   // The WHOLE heading, as one exact string rather than three substring matches.
@@ -66,18 +69,18 @@ describe('WordList — the heading tally', () => {
     render(<WordList rows={ROWS} {...base} />)
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Words: 2 · Score: 6')
 
-    await pickFilter('All')
+    await pickFilter('All', WHO)
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Words: 3 · Score: 11')
   })
 
   it('tracks the WHO filter — a player, then the missed words', async () => {
     render(<WordList rows={ROWS} {...base} />)
 
-    await pickFilter('bea')
+    await pickFilter('bea', WHO)
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Words: 1 · Score: 5')
 
     // The terminal reveal's cost, as a number: what the missed words were worth.
-    await pickFilter('Missed')
+    await pickFilter('Missed', WHO)
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Words: 1 · Score: 5')
   })
 
@@ -97,7 +100,7 @@ describe('WordList — the heading tally', () => {
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('· Longest: 5')
 
     // Narrow to ada, whose only word is the 4-letter one.
-    await pickFilter('ada')
+    await pickFilter('ada', WHO)
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('· Longest: 4')
   })
 })
@@ -145,13 +148,13 @@ describe('WordList — what a row wears', () => {
     { kind: 'unfound', word: 'chafe', points: 5 },
     { kind: 'unfound', word: 'zho', points: 2, isBonus: true },
   ]
-  // hasBonus so BOTH selects render: KIND is 0, WHO is 1. The rows carry bonus
-  // words of each kind, which is the whole point of the pair.
-  const all = { ...base, rows: mixed, hasBonus: true }
+  // The rows carry bonus words of each kind, which is the whole point of the
+  // pair of selects.
+  const all = { ...base, rows: mixed }
 
   it("fills a found word's dot in its FINDER's color, leaving the word plain", async () => {
     render(<WordList {...all} />)
-    await pickFilter('All', 1) // WHO; KIND is 0 on a bonus board
+    await pickFilter('All', WHO)
     // ada and bea hold different palette colors, so the two discs differ — the
     // dot is where identity lives.
     expect(dotIn('BEAD').getAttribute('style')).toContain('--member-red')
@@ -162,7 +165,7 @@ describe('WordList — what a row wears', () => {
 
   it('draws a word nobody found as a HOLLOW ring with the word muted', async () => {
     render(<WordList {...all} />)
-    await pickFilter('All', 1) // WHO; KIND is 0 on a bonus board
+    await pickFilter('All', WHO)
     expect(dotIn('CHAFE').className).toMatch(/hollow/)
     expect(dotIn('CHAFE').className).toMatch(/dotUnfound/)
     expect(rowFor('CHAFE').className).toMatch(/unfound/)
@@ -172,7 +175,7 @@ describe('WordList — what a row wears', () => {
 
   it('marks a bonus word on BOTH kinds — a missed bonus is not a missed required', async () => {
     render(<WordList {...all} />)
-    await pickFilter('All', 1) // WHO; KIND is 0 on a bonus board
+    await pickFilter('All', WHO)
     expect(rowFor('BEACH').textContent).toContain('•')
     expect(rowFor('ZHO').textContent).toContain('•')
     // …and a plain word of either kind carries none.
@@ -182,19 +185,19 @@ describe('WordList — what a row wears', () => {
 
   it('bolds a pangram, and only a pangram', async () => {
     render(<WordList {...all} />)
-    await pickFilter('All', 1) // WHO; KIND is 0 on a bonus board
+    await pickFilter('All', WHO)
     expect(rowFor('CABBAGE').className).toMatch(/pangram/)
     expect(rowFor('BEAD').className).not.toMatch(/pangram/)
   })
 
   it('narrows KIND within the missed words', async () => {
     render(<WordList {...all} />)
-    await pickFilter('Missed', 1)
+    await pickFilter('Missed', WHO)
     // Both picks leave a row, which is the point: KIND cuts the missed set into
     // its two shipped halves rather than replacing the WHO choice.
-    await pickFilter('Required', 0)
+    await pickFilter('Required', KIND)
     expect(screen.getByText('CHAFE')).toBeInTheDocument()
-    await pickFilter('Bonus', 0)
+    await pickFilter('Bonus', KIND)
     expect(screen.getByText('ZHO')).toBeInTheDocument()
   })
 
@@ -202,8 +205,8 @@ describe('WordList — what a row wears', () => {
     render(<WordList {...all} />)
     // ada found a plain word and a pangram, never a bonus one, so this pair is
     // genuinely empty — the one combination above that never gets there.
-    await pickFilter('ada', 1)
-    await pickFilter('Bonus', 0)
+    await pickFilter('ada', WHO)
+    await pickFilter('Bonus', KIND)
     expect(screen.queryByText('BEAD')).toBeNull()
     expect(screen.getByText('No bonus words from ada.')).toBeInTheDocument()
   })

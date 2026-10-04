@@ -56,6 +56,100 @@ last column is what the conversion will do, filled in as it does it.
 
 boggle has no view.
 
+## The `gd` and `summary_data` sketch — approved 2026-10-04
+
+Seat-view step 2. Step 6 moves it into `types.ts` as the shape comment, and
+this section goes then.
+
+```
+gd:
+  id
+  gametype
+  brand
+  club: {handle}
+  mode
+  coop
+  compete
+  oneBoard
+  title
+  setup
+  setupRows
+  puzzle:
+    tiles: [tile, …]                       # row-major
+    tilesById
+    boardSideSize
+    minWordLength
+    words: [word, …]                       # the required ones first
+    nReqdWords
+    reqdWordsScore
+    nBonusWords
+    bonusWordsScore
+  team                                     # null in compete
+    nFoundWords
+    foundWordsScore
+    nFoundReqdWords
+    foundReqdWordsScore
+    nFoundBonusWords
+    foundBonusWordsScore
+  turns                                    # always null
+  ending: {reason, detail, by, winner}
+  ended
+  outcome
+  foundWords: [{by, word, points, bonus, at}, …]   # my rows only, mid-race
+  players: [player, …]
+  playersById
+  me
+  stateLineData
+    nFoundReqdWords
+    foundReqdWordsScore
+    nFoundBonusWords
+    foundBonusWordsScore
+    nReqdWords
+    reqdWordsScore
+    nBonusWords
+    bonusWordsScore
+
+player:
+  the common player
+  nFoundWords
+  foundWordsScore
+  nFoundReqdWords
+  foundReqdWordsScore
+  nFoundBonusWords
+  foundBonusWordsScore
+
+tile:
+  id                                       # the cell's index, as text
+  letters                                  # "a", "qu"; null for a blank
+
+word:
+  word
+  points
+  bonus
+
+summary_data:
+  the common summary
+  team                                     # the same group; null in compete
+  targetWinPercent
+  topScore                                 # compete; null until the end
+```
+
+The rulings behind it:
+
+- Each player and the team carry all six counts: the totals (the strip, the
+  ending's tally) beside the required/bonus split (the Stats grid).
+- A blank tile is `letters: null`.
+- The target stays out of `gd`: the page shows it only in the setup rows,
+  which read `setup.win_percent`. The club card reads `targetWinPercent`.
+- The raw board string (`boggle.games.board`, `"AB1D…"`) is not in the blob:
+  `tiles` and `boardSideSize` replace it, and the tracer, `answerOf` and the
+  PDF move onto the tiles at step 7.
+- Equal bands are not a special case (2026-10-04): their bonus words are the
+  unclean ones, shown and revealed like any bonus word. The Stats grid always
+  draws its Bonus cells, and the word list always offers its Required/Bonus
+  filter. `hasBonusDifficulty` and the zeros it writes into the Stats figures
+  go at the conversion.
+
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group

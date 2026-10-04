@@ -56,7 +56,7 @@ calls two hooks and three shared pieces:
 
 ```
 spellingbee/InfoCol ┐
-   wordwheel/InfoCol ├─▶ <WordList rows players myId isCompete isTerminal hasBonus>
+   wordwheel/InfoCol ├─▶ <WordList rows players myId isCompete isTerminal>
       boggle/InfoCol ┘         │
                                ├─▶ useWordListFilter  → the two selects + `filter()` + `emptyText`
                                │        └─▶ <FilterSelect> ×2      (common/lists)

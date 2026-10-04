@@ -14,7 +14,7 @@ import { render, renderHook, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { WordListRow } from './WordList'
 import { ZTest_gp } from '../members/gamePlayer.fixture'
-import { filterOptions, closedSelects, pickFilter } from '../lists/filterSelectHelpers'
+import { filterOptions, pickFilter } from '../lists/filterSelectHelpers'
 import { useWordListFilter } from './useWordListFilter'
 
 const found = (word: string, userId: string, extra: Partial<WordListRow> = {}): WordListRow =>
@@ -40,7 +40,6 @@ const setup = (over: Partial<Parameters<typeof useWordListFilter>[0]> = {}) =>
       myId: 'u1',
       isCompete: false,
       isTerminal: true,
-      hasBonus: true,
       ...over,
     }),
   )
@@ -65,15 +64,6 @@ describe('useWordListFilter — the two axes', () => {
   it('defaults to Legal · All mid-game, where there is nothing to hold back', () => {
     const { result } = setup({ rows: playing, isTerminal: false })
     expect(result.current.filter(playing).map((r) => r.word)).toEqual(['bead', 'blag'])
-  })
-
-  it('drops the KIND picker entirely on a board with no bonus list', async () => {
-    // boggle with legal_band === band: a lone "Legal" option would be a dead
-    // control, and "Bonus" could never match.
-    const { result } = setup({ hasBonus: false })
-    render(<>{result.current.picker}</>)
-    expect(closedSelects()).toHaveLength(1)
-    expect(await filterOptions(0)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
   })
 
   it('names players by handle, including the viewer, self first', async () => {
@@ -137,7 +127,7 @@ describe('useWordListFilter — what each axis gates on', () => {
 describe('useWordListFilter — filtering', () => {
   function Probe(over: Partial<Parameters<typeof useWordListFilter>[0]> = {}) {
     const f = useWordListFilter({
-      rows: ended, players: two, myId: 'u1', isCompete: false, isTerminal: true, hasBonus: true, ...over,
+      rows: ended, players: two, myId: 'u1', isCompete: false, isTerminal: true, ...over,
     })
     const rows = (over.rows ?? ended) as WordListRow[]
     return (
@@ -216,7 +206,7 @@ describe('useWordListFilter — filtering', () => {
 describe('useWordListFilter — the empty line names the filter', () => {
   function Probe({ isTerminal = true }: { isTerminal?: boolean } = {}) {
     const f = useWordListFilter({
-      rows: ended, players: two, myId: 'u1', isCompete: false, isTerminal, hasBonus: true,
+      rows: ended, players: two, myId: 'u1', isCompete: false, isTerminal,
     })
     return (<>{f.picker}<p data-testid="empty">{f.emptyText}</p></>)
   }

@@ -202,5 +202,12 @@ decision against, so a review doesn't propose it again
   `isGameId` becomes a type guard), then tighten parameters from the edges
   inward, since a parameter can only become `GameId` once all its callers
   supply one.
+- **Setup options for which words a game may show: "don't show slur /
+  offensive / non-American / … words".** The word games would then filter
+  their word lists by those flags, and a hidden word never appears in the
+  missed words or the full list, whatever its band. That is a better way to
+  avoid showing people unclean words, or dinging them for not finding one,
+  than a rule tied to the bands: today a band's unclean words are bonus words,
+  shown and revealed like any other (2026-10-04).
 
 ## Won't do

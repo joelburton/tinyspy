@@ -93,8 +93,7 @@ create function pg_temp.expected_puzzle(game uuid) returns jsonb language sql as
        'outerLetters',   'abcdfghi',
        'words',          pg_temp.words(required_words, false) || pg_temp.words(bonus_words, true),
        'nReqdWords',     required_words_count,
-       'reqdWordsScore', required_words_score,
-       'sameBandsAndHaveNoBonus', false)
+       'reqdWordsScore', required_words_score)
        from wordwheel.games where game_id = game $$;
 
 -- ─── (1) A fresh game ───

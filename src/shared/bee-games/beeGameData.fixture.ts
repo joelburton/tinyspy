@@ -36,7 +36,6 @@ export type ZTest_BeeGameDataFacts<Setup> = {
   // The puzzle's words, the required ones first; the letters are the board's.
   words?: BeeWord[]
   targetRankIdx?: number | null
-  sameBandsAndHaveNoBonus?: boolean
   // Every player's rows, as the blob carries them, in the order found.
   foundWords?: BeeFoundWordRaw[]
   players?: ZTest_BeePlayerFacts[]
@@ -102,7 +101,6 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
     setup = game.defaultSetup,
     words = [ZTest_word('bead', 1), ZTest_word('faced', 5)],
     targetRankIdx = null,
-    sameBandsAndHaveNoBonus = false,
     foundWords = [],
     players: playerFacts = [{ id: 'u1', username: 'me', color: 'red' }],
     ending = null,
@@ -120,7 +118,6 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
     words,
     nReqdWords: reqdWords.length,
     reqdWordsScore,
-    sameBandsAndHaveNoBonus,
   }
 
   const countsOf = (rows: BeeFoundWordRaw[]) => {

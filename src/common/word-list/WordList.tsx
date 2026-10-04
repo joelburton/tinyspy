@@ -56,14 +56,12 @@ type Props = {
   // Compete gates the per-player filter options until terminal (RLS).
   isCompete: boolean
   isTerminal: boolean
-  // Does this board have a bonus list? False drops the KIND filter entirely.
-  hasBonus: boolean
 }
 
 /**
  * The shared found-words list: a heading over a bordered card holding an
  * alphabetical, column-major grid of `rows`. Call it with the rows a game built
- * and the five facts the filter needs; it owns everything below that.
+ * and the four facts the filter needs; it owns everything below that.
  *
  * What a row draws: a filled dot in its finder's color for a found word, a
  * hollow gray one for an unfound reveal entry, with the word itself plain — so
@@ -82,9 +80,8 @@ export function WordList({
   myId,
   isCompete,
   isTerminal,
-  hasBonus,
 }: Props) {
-  const wordFilter = useWordListFilter({ rows, players, myId, isCompete, isTerminal, hasBonus })
+  const wordFilter = useWordListFilter({ rows, players, myId, isCompete, isTerminal })
   const shown = wordFilter.filter(rows)
 
   // The heading tallies THE FILTERED LIST — "Words: 7 · Score: 10" — so the

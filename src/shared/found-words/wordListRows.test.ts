@@ -2,8 +2,8 @@
 
 /**
  * What composing the reveal and the merge in one call promises: the gate is
- * `isEnded` and nothing else, and `sameBandsAndHaveNoBonus` decides whether
- * the missed bonus words are revealed.
+ * `isEnded` and nothing else, and the missed words it reveals are the bonus
+ * ones as well as the required.
  */
 import { describe, expect, it } from 'vitest'
 import type { FoundWordRow, FoundWordsWord } from './foundWords'
@@ -31,7 +31,6 @@ describe('buildWordListRows', () => {
     const rows = buildWordListRows({
       foundWords: [found('alpha')],
       words: WORDS,
-      sameBandsAndHaveNoBonus: false,
       isEnded: false,
     })
     expect(words(rows)).toEqual(['alpha'])
@@ -42,22 +41,11 @@ describe('buildWordListRows', () => {
     const rows = buildWordListRows({
       foundWords: [found('alpha')],
       words: WORDS,
-      sameBandsAndHaveNoBonus: false,
       isEnded: true,
     })
     expect(words(rows)).toEqual(['alpha', 'bravo', 'zulu'])
     // The one they found stays theirs; the rest are the reveal.
     expect(rows.map((r) => r.kind)).toEqual(['found', 'unfound', 'unfound'])
-  })
-
-  it('reveals the required words alone on a board whose bonus words are only the unclean ones', () => {
-    const rows = buildWordListRows({
-      foundWords: [found('alpha')],
-      words: WORDS,
-      sameBandsAndHaveNoBonus: true,
-      isEnded: true,
-    })
-    expect(words(rows)).toEqual(['alpha', 'bravo'])
   })
 
   it('keeps every finder of a word several people found', () => {
@@ -67,7 +55,6 @@ describe('buildWordListRows', () => {
         found('alpha', 'u1', '2026-01-01T00:00:01Z'),
       ],
       words: WORDS,
-      sameBandsAndHaveNoBonus: false,
       isEnded: false,
     })
     expect(rows).toHaveLength(1)

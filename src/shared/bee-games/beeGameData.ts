@@ -52,17 +52,11 @@ export type BeePuzzle = {
   centerLetter: string
   outerLetters: string
   // Every legal word, the required ones first; the required set (`!bonus`)
-  // is the goal and the missed-words reveal; the bonus words are revealed
-  // unless `sameBandsAndHaveNoBonus`.
+  // is the goal.
   words: BeeWord[]
   nReqdWords: number
   // The required set's points: the rank ladder's denominator.
   reqdWordsScore: number
-  // The required and legal bands are equal, so the bonus words are only what
-  // the cleanliness filter removed from the required list: a player who types
-  // one scores it, and the game never suggests one — no bonus reveal at the
-  // end, and no required/bonus filter on the word list.
-  sameBandsAndHaveNoBonus: boolean
 }
 
 /**
@@ -155,7 +149,7 @@ export type BeeStateLineData = BeeTeam & BeeRankNames & {
  *   title
  *   setup
  *   setupRows
- *   puzzle: {tiles, tilesById, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore, sameBandsAndHaveNoBonus}
+ *   puzzle: {tiles, tilesById, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore}
  *   team: {nFoundWords, foundWordsScore, rankIdx, rankName, targetRankIdx, targetRankName}   # what the team shares; null in compete
  *   turns                                            # always null: no turn order
  *   ending: {reason, detail, by, winner}             # null while playing; by and winner are players

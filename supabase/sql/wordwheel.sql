@@ -211,16 +211,13 @@ drop function if exists wordwheel._write_statuses(uuid, boolean);
 --
 --   game_data, wordwheel's part:
 --     puzzle: {tiles, centerLetter, outerLetters,  frozen at create_game: the board's tiles,
---              words, nReqdWords, reqdWordsScore,  the center first — a tile is {id, letter,
---              sameBandsAndHaveNoBonus}            center}, its id its place as text — the
+--              words, nReqdWords, reqdWordsScore}  the center first — a tile is {id, letter,
+--                                                  center}, its id its place as text — the
 --                                                  letters as the row stores them, every legal
 --                                                  word scored ({word, points, pangram,
 --                                                  bonus}; a bonus word is legal but not
---                                                  required), the required set's count and
---                                                  score, and sameBandsAndHaveNoBonus: the two bands
---                                                  are equal, so the bonus words are only what
---                                                  the cleanliness filter removed and are never
---                                                  revealed
+--                                                  required), and the required set's count and
+--                                                  score
 --     team: {nFoundWords, foundWordsScore,        what the team shares, over every row, and the
 --            rankIdx, targetRankIdx}              rank it set out for; null in compete
 --                                                 (plans/team-facts.md)
@@ -306,8 +303,7 @@ as $$
     'words',          wordwheel._make_json_words(g.required_words, false)
                       || wordwheel._make_json_words(g.bonus_words, true),
     'nReqdWords',     g.required_words_count,
-    'reqdWordsScore', g.required_words_score,
-    'sameBandsAndHaveNoBonus', g.legal_band = g.required_band);
+    'reqdWordsScore', g.required_words_score);
 $$;
 
 revoke execute on function wordwheel._make_json_puzzle(wordwheel.games) from public;

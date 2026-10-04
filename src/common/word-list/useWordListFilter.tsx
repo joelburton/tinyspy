@@ -24,6 +24,7 @@ const BONUS = 'bonus'
  *  the compiler can read `kind === BONUS` rather than trusting a `string`. WHO
  *  gets no such type on purpose: it holds user ids, so it is genuinely open. */
 type Kind = typeof LEGAL | typeof REQUIRED | typeof BONUS
+const KINDS: readonly Kind[] = [LEGAL, REQUIRED, BONUS]
 
 /** The WHO axis's three aggregates. None is a user id, so they can't collide. */
 const ALL = 'all'
@@ -50,13 +51,13 @@ export type WordListFilter = {
  * exists, which is how these games hold the answer back a beat — see `doc.md`.
  * KIND always defaults to Legal.
  *
- * Both option sets are DERIVED, from the rows and from the flags below, so
- * a caller never has to decide what to offer: KIND is dropped whole without a
- * bonus list, and WHO adds Found/Missed only once a missed row exists and the
- * per-player entries only where peers' words are visible. Players are named by
+ * KIND always offers all three. WHO's option set is DERIVED, from the rows and
+ * from the flags below, so a caller never has to decide what to offer: it adds
+ * Found/Missed only once a missed row exists and the per-player entries only
+ * where peers' words are visible. Players are named by
  * handle, yours included.
  *
- *     const f = useWordListFilter({ rows, players, myId, isCompete, isTerminal, hasBonus })
+ *     const f = useWordListFilter({ rows, players, myId, isCompete, isTerminal })
  *     const shown = f.filter(rows)
  *
  * Why the axes are shaped this way, and why only one of them is gated, is in
@@ -68,7 +69,6 @@ export function useWordListFilter({
   myId,
   isCompete,
   isTerminal,
-  hasBonus,
 }: {
   // The unfiltered rows — the option set is partly derived from what is IN them.
   rows: readonly WordListRow[]
@@ -77,9 +77,6 @@ export function useWordListFilter({
   isCompete: boolean
   // Gates the per-player options in compete, where RLS hides peers until the end.
   isTerminal: boolean
-  // Does this board have a bonus list at all? False drops the KIND select
-  // entirely rather than offering a `Bonus` option that can never match.
-  hasBonus: boolean
 }): WordListFilter {
   const [kindChosen, setKindChosen] = useState<Kind | null>(null)
   const [whoChosen, setWhoChosen] = useState<string | null>(null)
@@ -97,7 +94,6 @@ export function useWordListFilter({
   // guaranteed-empty lists. A solo game has nobody to pick between.
   const arePlayersOffered = players.length > 1 && (!isCompete || isTerminal)
 
-  const kindOffered: Kind[] = hasBonus ? [LEGAL, REQUIRED, BONUS] : [LEGAL]
   const whoOffered = [
     ALL,
     ...(hasMissed ? [FOUND, MISSED] : []),
@@ -119,7 +115,7 @@ export function useWordListFilter({
   // until a missed row exists — a default that is not in the option set would
   // filter to a list the player cannot get back from.
   const whoDefault = isTerminal && hasMissed ? FOUND : ALL
-  const kind: Kind = kindChosen !== null && kindOffered.includes(kindChosen) ? kindChosen : LEGAL
+  const kind: Kind = kindChosen ?? LEGAL
   const who = whoChosen !== null && whoOffered.includes(whoChosen) ? whoChosen : whoDefault
 
   function matchesKind(r: WordListRow): boolean {
@@ -143,24 +139,20 @@ export function useWordListFilter({
       // the board and there's no event that reliably gives it back. See
       // FilterSelect's docstring.
       <div className={infoPanel.selectGroup}>
-        {/* KIND is dropped entirely when there's no bonus list to distinguish —
-            a lone "Legal" option would be a dead control. */}
-        {hasBonus && (
-          <FilterSelect
-            label="Which words to show"
-            value={kind}
-            // `FilterSelect` answers in `string`, so the closed set is narrowed
-            // HERE rather than asserted: anything it hands back that is not an
-            // offered kind stores null, which the derivation below reads as the
-            // default. A cast would have promised what only this check proves.
-            onChange={(v) => setKindChosen(kindOffered.find((k) => k === v) ?? null)}
-            options={[
-              { value: LEGAL, label: 'Legal' },
-              { value: REQUIRED, label: 'Required' },
-              { value: BONUS, label: 'Bonus' },
-            ]}
-          />
-        )}
+        <FilterSelect
+          label="Which words to show"
+          value={kind}
+          // `FilterSelect` answers in `string`, so the closed set is narrowed
+          // HERE rather than asserted: anything it hands back that is not an
+          // kind stores null, which the derivation above reads as the default. A
+          // cast would have promised what only this check proves.
+          onChange={(v) => setKindChosen(KINDS.find((k) => k === v) ?? null)}
+          options={[
+            { value: LEGAL, label: 'Legal' },
+            { value: REQUIRED, label: 'Required' },
+            { value: BONUS, label: 'Bonus' },
+          ]}
+        />
         <FilterSelect
           label="Whose words to show"
           value={who}

@@ -89,7 +89,6 @@ export function InfoCol({
         myId={myId}
         isCompete={gd.compete}
         isTerminal={gd.ended}
-        hasBonus={!gd.puzzle.sameBandsAndHaveNoBonus}
       />
     </div>
   )

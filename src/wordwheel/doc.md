@@ -73,8 +73,7 @@ Which words fall on which side is set at creation by two dictionary bands: a
 word is required at or below the **required band** when it is also American,
 not slang and clean; it is legal at or below the **legal band** with no further
 condition. So even at equal bands the bonus list holds the words the clean
-filter removed — which is why a board whose bands are equal shows no bonus
-list at all.
+filter removed, and they are shown and revealed like any bonus word.
 
 The **rank ladder** runs Start → Good → Solid → Nice → Great → Amazing →
 Genius, evenly spaced up to Genius at 70% of the required total; a score past
@@ -184,7 +183,7 @@ game's own, the same shape as the other bee game's
 
 | blob | wordwheel's part |
 |---|---|
-| `game_data` | `puzzle: {tiles, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore, sameBandsAndHaveNoBonus}`, as `create_game` froze it — a tile being `{id, letter, center}` with its place as its id and the center first, and every legal word `{word, points, pangram, bonus}`, the required ones first; `team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}`, what the team shares and the rank it set out for, null in compete; `foundWords`, every find `{userId, word, points, pangram, bonus, at}` in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx`, and `targetRankIdx`, the same on every player |
+| `game_data` | `puzzle: {tiles, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore}`, as `create_game` froze it — a tile being `{id, letter, center}` with its place as its id and the center first, and every legal word `{word, points, pangram, bonus}`, the required ones first; `team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}`, what the team shares and the rank it set out for, null in compete; `foundWords`, every find `{userId, word, points, pangram, bonus, at}` in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx`, and `targetRankIdx`, the same on every player |
 | `summary_data` | `team`, the same group; `nReqdWords`, `reqdWordsScore`, `targetRankIdx` |
 
 **The club-list title is the board**, `<CENTER>·<OUTER-SORTED>` — `D·AEEGINNR`
@@ -488,9 +487,8 @@ What is wordwheel's own:
   same outcome the pill reads (`common/board-marks`). Refusing the same
   letters again shakes them again: they are keyed on the mark's nonce.
 - **Two lists, one reveal.** Both word lists ship at load; the engine looks a
-  word up in their union and the missed words fold into the list once the game has ended —
-  bonus included, unless the bands are equal and there is no bonus list worth
-  showing. The list is the shared `WordList`, found words in their finder's
+  word up in their union and the missed words fold into the list once the game has ended,
+  bonus included. The list is the shared `WordList`, found words in their finder's
   color, pangrams bold, bonus words dotted.
 - **The state line** (`StateLine`) is the shared rank-ladder pieces drawn from
   `gd.stateLineData`, mirrored above the wheel on a phone by `MobileStatusBar` so the readout stays on the

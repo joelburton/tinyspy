@@ -84,12 +84,7 @@ That is the point of `buildWordListRows` existing above the reveal and the
 merge: a printed board cannot quietly disagree with the one on screen about what
 was missed, because there is only one place that decides.
 
-**`sameBandsAndHaveNoBonus` is the builder's**, written into each game's puzzle
-from its two bands (boggle's `legal_band = band`, the bees' `legal_band =
-required_band`). True keeps the missed bonus words out of the reveal: they are
-only what the cleanliness filter removed, and the game never suggests one.
-
-## The reveal's sizing, and the board with no real bonus list
+## The reveal's sizing, and the board whose bands are equal
 
 `buildRevealWords` is a pure client-side fold — nothing new crosses the wire at
 game end, and the gate is the viewer's own reveal toggle. Two things about what
@@ -103,10 +98,7 @@ separates the two is the `american / not slang / clean` filter. So the terminal
 list roughly doubles. The grid it lands in is column-major and takes its height
 from its column, so that reads as *more columns*, never a taller panel.
 
-**When a board has no real bonus list**, the reveal skips it and the word list's
-KIND filter disappears. That is `legal_band === band` (boggle) / `legal ===
-required` (spellingbee, wordwheel), where "bonus" degenerates to nothing but the
-words the clean filter removed from required — crude/slang/slur, not a wider
-dictionary, and not a list to hand anyone as "here's what you missed." One flag
-per game gates the reveal, the KIND select, and (in boggle) the Bonus stat cells,
-so the three cannot disagree about whether this board has bonus words.
+**A board whose legal band equals its required band** still has bonus words:
+the ones the clean filter removed from the required list (crude, slang, slur).
+They are bonus words like any other — scored when found, revealed when missed —
+the same as a band's unclean words are when the legal band is wider.
