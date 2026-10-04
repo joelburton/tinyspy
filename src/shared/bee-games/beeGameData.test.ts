@@ -4,9 +4,9 @@
  * WHAT A BEE GAME'S GAME_DATA BLOB BECOMES, AND WHAT A RACER MAY NOT SEE.
  *
  * `makeBeeGameData` is a pure function of the blob and who I am, so this tests
- * it directly: the links turned into players, each row's player, the setup
+ * it directly: the links turned into players, each find's finder, the setup
  * rows built once from the players, the readout decided once — and the seat
- * rule, which is the one thing the blob does not carry: a rival's rows are
+ * rule, which is the one thing the blob does not carry: a rival's finds are
  * withheld mid-race and nowhere else, while their counts stay.
  */
 import { describe, expect, it, vi } from 'vitest'
@@ -28,7 +28,7 @@ const TWO = [
 ]
 
 /** me found bead; moth found faced. */
-const EVENTS = [ZTest_find('u1', 'bead', 1), ZTest_find('u2', 'faced', 5)]
+const FINDS = [ZTest_find('u1', 'bead', 1), ZTest_find('u2', 'faced', 5)]
 
 const noRows = () => []
 
@@ -74,9 +74,9 @@ describe('makeBeeGameData — the links become players', () => {
     expect(gd.ending?.winner).toBeNull()
   })
 
-  it('gives each found word its player', () => {
-    const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO, events: EVENTS }), 'u1', noRows)
-    expect(gd.events.map((e) => [e.by.username, e.word])).toEqual([['me', 'bead'], ['moth', 'faced']])
+  it('gives each find its finder', () => {
+    const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO, foundWords: FINDS }), 'u1', noRows)
+    expect(gd.foundWords.map((w) => [w.by.username, w.word])).toEqual([['me', 'bead'], ['moth', 'faced']])
   })
 
   it('builds the setup rows once, from the players', () => {
@@ -88,8 +88,9 @@ describe('makeBeeGameData — the links become players', () => {
   })
 
   it('carries the puzzle and the counts through from the blob', () => {
-    const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO, events: EVENTS }), 'u1', noRows)
-    expect(gd.puzzle.tiles[0]).toEqual({ id: '0', letter: 'e', isCenter: true })
+    const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO, foundWords: FINDS }), 'u1', noRows)
+    expect(gd.puzzle.tiles[0]).toEqual({ id: '0', letter: 'e', center: true })
+    expect(gd.puzzle.words.map((w) => [w.word, w.bonus])).toEqual([['bead', false], ['faced', false]])
     expect(gd.puzzle.tiles).toHaveLength(7)
     expect(gd.puzzle.reqdWordsScore).toBe(6)
     expect([gd.me.nFoundWords, gd.me.foundWordsScore]).toEqual([1, 1])
@@ -98,24 +99,24 @@ describe('makeBeeGameData — the links become players', () => {
 
   it("the readout shows the team's finds in coop, against the required set and the target", () => {
     const gd = makeBeeGameData(
-      ZTest_makeBeeGameDataRaw(GAME, { players: TWO, events: EVENTS, targetRankIdx: 3 }),
+      ZTest_makeBeeGameDataRaw(GAME, { players: TWO, foundWords: FINDS, targetRankIdx: 3 }),
       'u1',
       noRows,
     )
     expect(gd.stateLineData).toEqual({
-      nFoundWords: 2, foundWordsScore: 6, rankIdx: gd.team!.rankIdx,
-      nReqdWords: 2, reqdWordsScore: 6, targetRankIdx: 3,
+      nFoundWords: 2, foundWordsScore: 6, rankIdx: gd.team!.rankIdx, targetRankIdx: 3,
+      nReqdWords: 2, reqdWordsScore: 6,
     })
   })
 })
 
 describe('makeBeeGameData — the seat rule', () => {
   const race = (over: Parameters<typeof ZTest_makeBeeGameDataRaw>[1] = {}) =>
-    ZTest_makeBeeGameDataRaw(GAME, { mode: 'compete', players: TWO, events: EVENTS, targetRankIdx: 3, ...over })
+    ZTest_makeBeeGameDataRaw(GAME, { mode: 'compete', players: TWO, foundWords: FINDS, targetRankIdx: 3, ...over })
 
-  it("mid-race, a rival's rows leave the log", () => {
+  it("mid-race, a rival's finds are withheld", () => {
     const gd = makeBeeGameData(race(), 'u1', noRows)
-    expect(gd.events.map((e) => e.word)).toEqual(['bead'])
+    expect(gd.foundWords.map((w) => w.word)).toEqual(['bead'])
   })
 
   it("a rival's counts stay visible mid-race — the strip shows them", () => {
@@ -129,12 +130,12 @@ describe('makeBeeGameData — the seat rule', () => {
       'u1',
       noRows,
     )
-    expect(gd.events.map((e) => e.word)).toEqual(['bead', 'faced'])
+    expect(gd.foundWords.map((w) => w.word)).toEqual(['bead', 'faced'])
   })
 
   it('coop withholds nothing: one list, one team', () => {
-    const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO, events: EVENTS }), 'u1', noRows)
-    expect(gd.events).toHaveLength(2)
+    const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO, foundWords: FINDS }), 'u1', noRows)
+    expect(gd.foundWords).toHaveLength(2)
     expect(gd.team).not.toBeNull()
   })
 

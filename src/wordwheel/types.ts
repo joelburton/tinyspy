@@ -10,8 +10,8 @@
  */
 
 import type {
-  GBeeEvent,
-  GBeeEventRaw,
+  GBeeFoundWord,
+  GBeeFoundWordRaw,
   GBeeGameData,
   GBeeGameDataRaw,
   GBeePlayer,
@@ -38,7 +38,7 @@ export type GPuzzle = GBeePuzzle
 export type GTile = GBeeTile
 export type GWord = GBeeWord
 export type GTeam = GBeeTeam
-export type GEventRaw = GBeeEventRaw
-export type GEvent = GBeeEvent
+export type GFoundWordRaw = GBeeFoundWordRaw
+export type GFoundWord = GBeeFoundWord
 export type GStateLineData = GBeeStateLineData
 export type GSummaryData = GBeeSummaryData

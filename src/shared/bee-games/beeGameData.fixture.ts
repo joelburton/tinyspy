@@ -2,7 +2,7 @@
 
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import { currentRankIndex } from '@/shared/rank-ladder/rankLadder'
-import type { GBeeEventRaw, GBeeGameDataRaw, GBeePlayerRaw, GBeePuzzle, GBeeTile, GBeeWord } from './beeGameData'
+import type { GBeeFoundWordRaw, GBeeGameDataRaw, GBeePlayerRaw, GBeePuzzle, GBeeTile, GBeeWord } from './beeGameData'
 
 /**
  * The facts a test sets up about one player. Where they stand is DERIVED the
@@ -30,13 +30,13 @@ export type ZTest_BeeGameDataFacts<Setup> = {
   title?: string
   clubHandle?: string
   setup?: Setup
-  // The puzzle's two lists; the letters are the game's fixture board.
-  reqdWords?: GBeeWord[]
-  bonusWords?: GBeeWord[]
+  // The puzzle's words, the required ones first; the letters are the game's
+  // fixture board.
+  words?: GBeeWord[]
   targetRankIdx?: number | null
-  hasBonus?: boolean
+  sameBandsAndHaveNoBonus?: boolean
   // Every player's rows, as the blob carries them, in the order found.
-  events?: GBeeEventRaw[]
+  foundWords?: GBeeFoundWordRaw[]
   players?: ZTest_BeePlayerFacts[]
   ending?: GameDataRaw['ending']
   outcome?: GameDataRaw['outcome']
@@ -52,20 +52,23 @@ export type ZTest_BeeGameFixture<Setup> = {
   defaultSetup: Setup
 }
 
-/** A word in a list, scored. */
-export const ZTest_word = (word: string, points: number, isPangram = false): GBeeWord =>
-  ({ word, points, isPangram })
+/** A legal word, scored; required unless `bonus`. */
+export const ZTest_word = (
+  word: string,
+  points: number,
+  over: Partial<Pick<GBeeWord, 'pangram' | 'bonus'>> = {},
+): GBeeWord => ({ word, points, pangram: false, bonus: false, ...over })
 
-/** A found row for the log. */
+/** One find, as the blob carries it. */
 export function ZTest_find(
   userId: string,
   word: string,
   points: number,
-  over: Partial<Pick<GBeeEventRaw, 'isPangram' | 'isBonus' | 'at'>> = {},
-): GBeeEventRaw {
+  over: Partial<Pick<GBeeFoundWordRaw, 'pangram' | 'bonus' | 'at'>> = {},
+): GBeeFoundWordRaw {
   return {
     userId, word, points,
-    isPangram: false, isBonus: false, at: '2026-06-15T00:01:00Z',
+    pangram: false, bonus: false, at: '2026-06-15T00:01:00Z',
     ...over,
   }
 }
@@ -74,8 +77,8 @@ export function ZTest_find(
  *  outer letter at its place. */
 export function ZTest_tilesOf(centerLetter: string, outerLetters: string): GBeeTile[] {
   return [
-    { id: '0', letter: centerLetter, isCenter: true },
-    ...[...outerLetters].map((letter, i) => ({ id: String(i + 1), letter, isCenter: false })),
+    { id: '0', letter: centerLetter, center: true },
+    ...[...outerLetters].map((letter, i) => ({ id: String(i + 1), letter, center: false })),
   ]
 }
 
@@ -94,40 +97,39 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
     title = `${game.centerLetter.toUpperCase()}·${[...game.outerLetters].sort().join('').toUpperCase()}`,
     clubHandle = 'testclub',
     setup = game.defaultSetup,
-    reqdWords = [ZTest_word('bead', 1), ZTest_word('faced', 5)],
-    bonusWords = [],
+    words = [ZTest_word('bead', 1), ZTest_word('faced', 5)],
     targetRankIdx = null,
-    hasBonus = true,
-    events = [],
+    sameBandsAndHaveNoBonus = false,
+    foundWords = [],
     players: playerFacts = [{ id: 'u1', username: 'me', color: 'red' }],
     ending = null,
     outcome = null,
   } = facts
   const ended = ending !== null
   const coop = mode === 'coop'
+  const reqdWords = words.filter((w) => !w.bonus)
   const reqdWordsScore = reqdWords.reduce((sum, w) => sum + w.points, 0)
 
   const puzzle: GBeePuzzle = {
     tiles: ZTest_tilesOf(game.centerLetter, game.outerLetters),
     centerLetter: game.centerLetter,
     outerLetters: game.outerLetters,
-    reqdWords,
-    bonusWords,
+    words,
     nReqdWords: reqdWords.length,
     reqdWordsScore,
-    targetRankIdx,
-    hasBonus,
+    sameBandsAndHaveNoBonus,
   }
 
-  const countsOf = (rows: GBeeEventRaw[]) => {
+  const countsOf = (rows: GBeeFoundWordRaw[]) => {
     const foundWordsScore = rows.reduce((sum, r) => sum + r.points, 0)
     return {
       nFoundWords: rows.length,
       foundWordsScore,
       rankIdx: currentRankIndex(foundWordsScore, reqdWordsScore),
+      targetRankIdx,
     }
   }
-  const team = coop ? countsOf(events) : null
+  const team = coop ? countsOf(foundWords) : null
 
   const players = playerFacts.map(function makePlayer(p): GBeePlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
@@ -146,7 +148,7 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
       stillPlaying,
       onTurn: stillPlaying,
       waitingForTurn: false,
-      ...countsOf(events.filter((e) => e.userId === p.id)),
+      ...countsOf(foundWords.filter((w) => w.userId === p.id)),
     }
   })
 
@@ -167,7 +169,7 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
     outcome,
     puzzle,
     team,
-    events,
+    foundWords,
     players,
   }
 }

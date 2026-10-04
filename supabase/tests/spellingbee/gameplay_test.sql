@@ -24,7 +24,7 @@
 --   8. a submit after the end is the game-over race.
 --   9. coop has NO automatic ending past required_words_count.
 --  10. submit_timeout: ended, reason 'timeout', idempotent, the blobs
---      rewritten, and game_data still carrying the required list.
+--      rewritten, and game_data still carrying the words.
 --  11. stop_game: ended, reason 'stopped', the live tally, idempotent, the
 --      blobs rewritten, and a non-player refused.
 --  12. a word into a game deleted under it is the shared race (PN485).
@@ -422,10 +422,10 @@ select pg_temp.envelope_is(
 -- game_data carries the full required list after the end as it did in play:
 -- the page has it from game start.
 select is(
-  (select jsonb_array_length(game_data->'puzzle'->'reqdWords') from common.games
-    where id = (select id from timeout_g)),
+  (select count(*)::int from jsonb_array_elements((select game_data->'puzzle'->'words' from common.games where id = (select id from timeout_g))) w
+    where not (w->>'bonus')::boolean),
   30,
-  'game_data.puzzle.reqdWords is present (30 required entries)'
+  'game_data.puzzle.words carries the required set (30 required entries)'
 );
 
 -- ============================================================

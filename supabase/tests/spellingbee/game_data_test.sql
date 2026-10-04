@@ -8,11 +8,11 @@
 -- This file pins what the page gets:
 --
 --   1. A fresh game: the puzzle as create_game froze it, its tiles the center
---      first, no team progress, no log, every player fresh; compete's target
+--      first, no team progress, nothing found, every player fresh; compete's target
 --      and no team
---   2. Mid-game coop: the log in the order found, each player's own finds,
+--   2. Mid-game coop: the found words in the order found, each player's own finds,
 --      the team's summed with its rank
---   3. Mid-game compete: each racer's own finds and rank; the log carries
+--   3. Mid-game compete: each racer's own finds and rank; the found words carry
 --      every racer's rows (the hook withholds, not the builder)
 --   4. The endings: the race's winner, won; the stopped coop game's summary;
 --      shell_data rewritten beside them
@@ -76,56 +76,54 @@ create function pg_temp.total(game uuid) returns int language sql as
 -- The board's tiles as the page draws them: the center first, then each
 -- outer letter at its place.
 create function pg_temp.expected_tiles() returns jsonb language sql as
-  $$ select jsonb_build_array(jsonb_build_object('id', '0', 'letter', 'e', 'isCenter', true))
-         || (select jsonb_agg(jsonb_build_object('id', ord::text, 'letter', l, 'isCenter', false) order by ord)
+  $$ select jsonb_build_array(jsonb_build_object('id', '0', 'letter', 'e', 'center', true))
+         || (select jsonb_agg(jsonb_build_object('id', ord::text, 'letter', l, 'center', false) order by ord)
                from unnest(string_to_array('abcdfg', null)) with ordinality as x(l, ord)) $$;
--- A stored word list, camel.
-create function pg_temp.words(list jsonb) returns jsonb language sql as
+-- A stored word list, camel, every word flagged with its band.
+create function pg_temp.words(list jsonb, bonus boolean) returns jsonb language sql as
   $$ select jsonb_agg(jsonb_build_object(
-              'word', w ->> 'word', 'points', (w ->> 'points')::int, 'isPangram', (w ->> 'is_pangram')::boolean)
+              'word', w ->> 'word', 'points', (w ->> 'points')::int, 'pangram', (w ->> 'is_pangram')::boolean, 'bonus', bonus)
             order by ord)
        from jsonb_array_elements(list) with ordinality as x(w, ord) $$;
--- The puzzle as create_game froze it onto the row, with this target.
-create function pg_temp.expected_puzzle(game uuid, target int) returns jsonb language sql as
+-- The puzzle as create_game froze it onto the row.
+create function pg_temp.expected_puzzle(game uuid) returns jsonb language sql as
   $$ select jsonb_build_object(
        'tiles',          pg_temp.expected_tiles(),
        'centerLetter',   'e',
        'outerLetters',   'abcdfg',
-       'reqdWords',      pg_temp.words(required_words),
-       'bonusWords',     pg_temp.words(bonus_words),
+       'words',          pg_temp.words(required_words, false) || pg_temp.words(bonus_words, true),
        'nReqdWords',     required_words_count,
        'reqdWordsScore', required_words_score,
-       'targetRankIdx',  target,
-       'hasBonus',       true)
+       'sameBandsAndHaveNoBonus', false)
        from spellingbee.games where game_id = game $$;
 
 -- ─── (1) A fresh game ───
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'puzzle',
-  pg_temp.expected_puzzle(pg_temp.coop(), null),
-  'coop: the puzzle as create_game froze it — the tiles center first, the two word lists, the totals, no target'
+  pg_temp.expected_puzzle(pg_temp.coop()),
+  'coop: the puzzle as create_game froze it — the tiles center first, every legal word flagged, the totals'
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',
-  '{"nFoundWords": 0, "foundWordsScore": 0, "rankIdx": 0}'::jsonb,
-  'coop: the team has found nothing'
+  '{"nFoundWords": 0, "foundWordsScore": 0, "rankIdx": 0, "targetRankIdx": null}'::jsonb,
+  'coop: the team has found nothing, and set out for no rank'
 );
-select is(pg_temp.game_data(pg_temp.coop()) -> 'events', '[]'::jsonb, 'coop: no log yet');
+select is(pg_temp.game_data(pg_temp.coop()) -> 'foundWords', '[]'::jsonb, 'coop: nothing found yet');
 select is(pg_temp.counts(pg_temp.coop()), '[[0, 0, 0], [0, 0, 0]]'::jsonb, 'coop: every player fresh');
 select is(pg_temp.game_data(pg_temp.coop()) ->> 'gametype', 'spellingbee_coop', 'the common part is underneath');
 select is(
   pg_temp.summary_data(pg_temp.coop()) - (select array_agg(k) from jsonb_object_keys(common._make_json_summary_data(pg_temp.coop(), now())) k),
   jsonb_build_object(
-    'team',           '{"nFoundWords": 0, "foundWordsScore": 0, "rankIdx": 0}'::jsonb,
+    'team',           '{"nFoundWords": 0, "foundWordsScore": 0, "rankIdx": 0, "targetRankIdx": null}'::jsonb,
     'nReqdWords',     (select required_words_count from spellingbee.games where game_id = pg_temp.coop()),
     'reqdWordsScore', pg_temp.total(pg_temp.coop()),
     'targetRankIdx',  null),
   'coop: summary_data carries the team, the totals and no target beside the common part'
 );
 select is(
-  pg_temp.game_data(pg_temp.compete()) -> 'puzzle' -> 'targetRankIdx',
-  '1'::jsonb,
-  'compete: the puzzle carries the rank that wins'
+  (select jsonb_agg(p -> 'targetRankIdx') from jsonb_array_elements(pg_temp.game_data(pg_temp.compete()) -> 'players') p),
+  '[1, 1]'::jsonb,
+  'compete: every player carries the rank that wins'
 );
 select is(pg_temp.game_data(pg_temp.compete()) -> 'team', 'null'::jsonb, 'compete: no team');
 select is(pg_temp.summary_data(pg_temp.compete()) -> 'team', 'null'::jsonb, '… and none in its summary');
@@ -139,16 +137,16 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select jsonb_agg(e - 'at') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'events') e),
+  (select jsonb_agg(e - 'at') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'foundWords') e),
   jsonb_build_array(
     jsonb_build_object('userId', 'ada11111-1111-1111-1111-111111111111', 'word', 'bead',
-                       'points', 1, 'isPangram', false, 'isBonus', false),
+                       'points', 1, 'pangram', false, 'bonus', false),
     jsonb_build_object('userId', 'bea22222-2222-2222-2222-222222222222', 'word', 'faced',
-                       'points', 5, 'isPangram', false, 'isBonus', false)),
-  'the log carries each find''s player, word, points and flags, in the order found'
+                       'points', 5, 'pangram', false, 'bonus', false)),
+  'the found words carry each find''s player, word, points and flags, in the order found'
 );
 select is(
-  (select jsonb_typeof(e -> 'at') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'events') e limit 1),
+  (select jsonb_typeof(e -> 'at') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'foundWords') e limit 1),
   'string',
   '… each with its time'
 );
@@ -162,7 +160,7 @@ select is(
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',
   jsonb_build_object('nFoundWords', 2, 'foundWordsScore', 6,
-                     'rankIdx', common._rank_idx(6, pg_temp.total(pg_temp.coop()))),
+                     'rankIdx', common._rank_idx(6, pg_temp.total(pg_temp.coop())), 'targetRankIdx', null),
   'coop: the team''s finds summed, with the rank that score reaches'
 );
 select is(
@@ -187,9 +185,9 @@ select is(
   'compete: each racer''s own finds'
 );
 select is(
-  (select jsonb_agg(e ->> 'userId' order by e ->> 'userId') from jsonb_array_elements(pg_temp.game_data(pg_temp.compete()) -> 'events') e),
+  (select jsonb_agg(e ->> 'userId' order by e ->> 'userId') from jsonb_array_elements(pg_temp.game_data(pg_temp.compete()) -> 'foundWords') e),
   '["ada11111-1111-1111-1111-111111111111", "bea22222-2222-2222-2222-222222222222"]'::jsonb,
-  'compete: the log carries every racer''s rows — the builder withholds nothing'
+  'compete: the found words carry every racer''s rows — the builder withholds nothing'
 );
 select is(pg_temp.game_data(pg_temp.compete()) -> 'ending', 'null'::jsonb, 'compete: still racing');
 
@@ -246,7 +244,7 @@ select is(pg_temp.summary_data(pg_temp.coop()) -> 'ending' -> 'winner', 'null'::
 select is(
   pg_temp.summary_data(pg_temp.coop()) -> 'team',
   jsonb_build_object('nFoundWords', 2, 'foundWordsScore', 6,
-                     'rankIdx', common._rank_idx(6, pg_temp.total(pg_temp.coop()))),
+                     'rankIdx', common._rank_idx(6, pg_temp.total(pg_temp.coop())), 'targetRankIdx', null),
   '… and keeps the team''s progress'
 );
 
@@ -255,7 +253,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select spellingbee.replay_board(pg_temp.compete());
 reset role;
 select set_config('request.jwt.claims', '', true);
-select is(pg_temp.game_data(pg_temp.compete()) -> 'events', '[]'::jsonb, 'after a Restart the log is empty');
+select is(pg_temp.game_data(pg_temp.compete()) -> 'foundWords', '[]'::jsonb, 'after a Restart nothing is found');
 select is(pg_temp.counts(pg_temp.compete()), '[[0, 0, 0], [0, 0, 0]]'::jsonb, '… every player fresh');
 select is(pg_temp.game_data(pg_temp.compete()) -> 'ending', 'null'::jsonb, '… and the ending gone');
 

@@ -21,7 +21,7 @@
 --   2. Their PEERS' found_words (cat B "found by others" source) —
 --      which the hook's seat rule withholds mid-race and opens once the
 --      game has ended; the table shows a member every row.
---   3. game_data.puzzle.reqdWords (cat B "nobody found" source) —
+--   3. game_data.puzzle.words (cat B "nobody found" source) —
 --      the answer key, which ships from the start; the frontend
 --      shows the missed words only at the end.
 --
@@ -118,10 +118,10 @@ select is(
 );
 
 select is(
-  (select jsonb_array_length(game_data->'puzzle'->'reqdWords') from common.games
-    where id = (select id from g)),
+  (select count(*)::int from jsonb_array_elements((select game_data->'puzzle'->'words' from common.games where id = (select id from g))) w
+    where not (w->>'bonus')::boolean),
   19,
-  'compete mid-game / bea: game_data.puzzle.reqdWords is present (the page gates the reveal on the ending)'
+  'compete mid-game / bea: game_data.puzzle.words carries the required set (the page gates the reveal on the ending)'
 );
 
 -- ============================================================
@@ -194,13 +194,13 @@ select ok(
 -- ============================================================
 -- The other half of cat B — the words nobody found — is computed
 -- FE-side from the shipped lists minus found_words. That needs the
--- full required list, which game_data carries throughout.
+-- full required list, which game_data's words carry throughout.
 
 select is(
-  (select jsonb_array_length(game_data->'puzzle'->'reqdWords') from common.games
-    where id = (select id from g)),
+  (select count(*)::int from jsonb_array_elements((select game_data->'puzzle'->'words' from common.games where id = (select id from g))) w
+    where not (w->>'bonus')::boolean),
   19,
-  'compete, ended / bea: game_data.puzzle.reqdWords is present (19 entries) — cat B "nobody found" source'
+  'compete, ended / bea: game_data.puzzle.words carries the required set (19 entries) — cat B "nobody found" source'
 );
 
 -- ============================================================

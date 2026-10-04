@@ -165,7 +165,7 @@ game's own, the same shape as the other bee game's
 
 | blob | spellingbee's part |
 |---|---|
-| `game_data` | `puzzle: {tiles, centerLetter, outerLetters, reqdWords, bonusWords, nReqdWords, reqdWordsScore, targetRankIdx, hasBonus}`, as `create_game` froze it, a tile being `{id, letter, isCenter}` with its place as its id and the center first; `team: {nFoundWords, foundWordsScore, rankIdx}`, what the team shares, null in compete; `events`, every found word in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx` |
+| `game_data` | `puzzle: {tiles, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore, sameBandsAndHaveNoBonus}`, as `create_game` froze it — a tile being `{id, letter, center}` with its place as its id and the center first, and every legal word `{word, points, pangram, bonus}`, the required ones first; `team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}`, what the team shares and the rank it set out for, null in compete; `events`, every found word in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx`, and `targetRankIdx`, the same on every player |
 | `summary_data` | `team`, the same group; `nReqdWords`, `reqdWordsScore`, `targetRankIdx` |
 
 **The club-list title is the board**, `<CENTER>·<OUTER-SORTED>` — `A·CHIORT` —

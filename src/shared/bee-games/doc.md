@@ -73,7 +73,7 @@ ending needs a word the other's doesn't, the function goes back to the game
 folders.
 
 **The blob is the whole read.** Each game's `_rebuild_data_cols` writes
-`game_data` after every move — the puzzle and its two lists, every found word,
+`game_data` after every move — the puzzle and its words, every found word,
 each player's finds and rank, the team's in coop — and the page re-reads the
 blob off `common.games`; nothing here reads a table or subscribes to one. The
 seat rule is `makeBeeGameData`'s: mid-race in compete a rival's rows leave

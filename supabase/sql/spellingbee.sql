@@ -198,68 +198,75 @@ drop function if exists spellingbee._write_statuses(uuid, boolean);
 --
 --   game_data, spellingbee's part:
 --     puzzle: {tiles, centerLetter, outerLetters,  frozen at create_game: the board's tiles,
---              reqdWords, bonusWords, nReqdWords,  the center first — a tile is {id, letter,
---              reqdWordsScore, targetRankIdx,      isCenter}, its id its place as text — the
---              hasBonus}                           letters as the row stores them, the two
---                                                  scored word lists ({word, points,
---                                                  isPangram}), the required set's count and
---                                                  score, the rank that wins (null for none),
---                                                  and whether the bonus list is worth a
---                                                  reveal (the two bands differ)
---     team: {nFoundWords, foundWordsScore,        what the team shares, over every row; null
---            rankIdx}                             in compete (plans/team-facts.md)
---     events: [{userId, word, points, isPangram,  every found word, in the order found; what
---               isBonus, at}, …]                  a racer may see of a rival mid-race is the
---                                                 hook's rule
+--              words, nReqdWords, reqdWordsScore,  the center first — a tile is {id, letter,
+--              sameBandsAndHaveNoBonus}            center}, its id its place as text — the
+--                                                  letters as the row stores them, every legal
+--                                                  word scored ({word, points, pangram,
+--                                                  bonus}; a bonus word is legal but not
+--                                                  required), the required set's count and
+--                                                  score, and sameBandsAndHaveNoBonus: the two bands
+--                                                  are equal, so the bonus words are only what
+--                                                  the cleanliness filter removed and are never
+--                                                  revealed
+--     team: {nFoundWords, foundWordsScore,        what the team shares, over every row, and the
+--            rankIdx, targetRankIdx}              rank it set out for; null in compete
+--                                                 (plans/team-facts.md)
+--     foundWords: [{userId, word, points,         every found word, in the order found, with
+--                   pangram, bonus, at}, …]       its finder; what a racer may see of a rival
+--                                                 mid-race is the hook's rule
 --     players: [player, …]                        the common player, plus:
 --       nFoundWords                               this player's own finds, bonus included
 --       foundWordsScore                           their points, bonus included
 --       rankIdx                                   their rank on the ladder (common._rank_idx)
+--       targetRankIdx                             the rank that wins; the same on every player
 --
 --   summary_data, spellingbee's part (the common part names and dates the
 --   game and carries its ending; the winner is `ending.winner`):
---     team: {nFoundWords, foundWordsScore, rankIdx}   the same group; null in compete
+--     team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}   the same group; null in compete
 --     nReqdWords, reqdWordsScore, targetRankIdx
 
--- A word as the page draws it: the stored `{word, points, is_pangram}`, camel.
-create or replace function spellingbee._make_json_word(p_word jsonb)
+-- A word as the page draws it: the stored `{word, points, is_pangram}`, camel,
+-- flagged with the band it came from — a bonus word is legal but not required.
+create or replace function spellingbee._make_json_word(p_word jsonb, p_bonus boolean)
 returns jsonb
 language sql
 immutable
 set search_path = spellingbee, common, public, extensions
 as $$
   select jsonb_build_object(
-    'word',      p_word ->> 'word',
-    'points',    (p_word ->> 'points')::int,
-    'isPangram', coalesce((p_word ->> 'is_pangram')::boolean, false));
+    'word',    p_word ->> 'word',
+    'points',  (p_word ->> 'points')::int,
+    'pangram', coalesce((p_word ->> 'is_pangram')::boolean, false),
+    'bonus',   p_bonus);
 $$;
 
-revoke execute on function spellingbee._make_json_word(jsonb) from public;
+revoke execute on function spellingbee._make_json_word(jsonb, boolean) from public;
 
--- A stored word list, as the page draws it, in the same order.
-create or replace function spellingbee._make_json_words(p_words jsonb)
+-- A stored word list, as the page draws it, in the same order, every word
+-- flagged the same way.
+create or replace function spellingbee._make_json_words(p_words jsonb, p_bonus boolean)
 returns jsonb
 language sql
 immutable
 set search_path = spellingbee, common, public, extensions
 as $$
-  select coalesce(jsonb_agg(spellingbee._make_json_word(w.word) order by w.ord), '[]'::jsonb)
+  select coalesce(jsonb_agg(spellingbee._make_json_word(w.word, p_bonus) order by w.ord), '[]'::jsonb)
     from jsonb_array_elements(p_words) with ordinality as w(word, ord);
 $$;
 
-revoke execute on function spellingbee._make_json_words(jsonb) from public;
+revoke execute on function spellingbee._make_json_words(jsonb, boolean) from public;
 
 -- The board's tiles, the center first (plans/seat-view.md → A tile is an
--- instance the builder writes): a tile is {id, letter, isCenter}, and its id
--- is its place as text, since a letter may repeat on a wheel.
+-- instance the builder writes): a tile is {id, letter, center}, and its id is
+-- its place as text, since a letter may repeat on a wheel.
 create or replace function spellingbee._make_json_tiles(g spellingbee.games)
 returns jsonb
 language sql
 immutable
 set search_path = spellingbee, common, public, extensions
 as $$
-  select jsonb_build_array(jsonb_build_object('id', '0', 'letter', g.center_letter::text, 'isCenter', true))
-         || coalesce((select jsonb_agg(jsonb_build_object('id', l.ord::text, 'letter', l.letter, 'isCenter', false)
+  select jsonb_build_array(jsonb_build_object('id', '0', 'letter', g.center_letter::text, 'center', true))
+         || coalesce((select jsonb_agg(jsonb_build_object('id', l.ord::text, 'letter', l.letter, 'center', false)
                                        order by l.ord)
                         from unnest(string_to_array(g.outer_letters::text, null)) with ordinality as l(letter, ord)),
                      '[]'::jsonb);
@@ -278,19 +285,18 @@ as $$
     'tiles',          spellingbee._make_json_tiles(g),
     'centerLetter',   g.center_letter::text,
     'outerLetters',   g.outer_letters::text,
-    'reqdWords',      spellingbee._make_json_words(g.required_words),
-    'bonusWords',     spellingbee._make_json_words(g.bonus_words),
+    'words',          spellingbee._make_json_words(g.required_words, false)
+                      || spellingbee._make_json_words(g.bonus_words, true),
     'nReqdWords',     g.required_words_count,
     'reqdWordsScore', g.required_words_score,
-    'targetRankIdx',  g.target_rank,
-    'hasBonus',       g.legal_band <> g.required_band);
+    'sameBandsAndHaveNoBonus', g.legal_band = g.required_band);
 $$;
 
 revoke execute on function spellingbee._make_json_puzzle(spellingbee.games) from public;
 
--- What the team shares: every row's count and points, and the rank that score
--- reaches on the ladder. Null in compete, where there is no team
--- (plans/team-facts.md).
+-- What the team shares: every row's count and points, the rank that score
+-- reaches on the ladder, and the rank the team set out for (null for coop's
+-- open hunt). Null in compete, where there is no team (plans/team-facts.md).
 create or replace function spellingbee._make_json_team(p_game_id uuid)
 returns jsonb
 language sql
@@ -301,11 +307,12 @@ as $$
            select jsonb_build_object(
              'nFoundWords',     count(fw.word),
              'foundWordsScore', coalesce(sum(fw.points), 0),
-             'rankIdx',         common._rank_idx(coalesce(sum(fw.points), 0)::int, g.required_words_score))
+             'rankIdx',         common._rank_idx(coalesce(sum(fw.points), 0)::int, g.required_words_score),
+             'targetRankIdx',   g.target_rank)
              from spellingbee.games g
              left join spellingbee.found_words fw on fw.game_id = g.game_id
             where g.game_id = p_game_id
-            group by g.required_words_score)
+            group by g.required_words_score, g.target_rank)
          end
     from common.games cg
    where cg.id = p_game_id;
@@ -313,9 +320,9 @@ $$;
 
 revoke execute on function spellingbee._make_json_team(uuid) from public;
 
--- Every found word, in the order found — the game's one log. Every player's
--- row is here; what a racer may see of a rival mid-race is the hook's rule.
-create or replace function spellingbee._make_json_events(p_game_id uuid)
+-- Every found word, in the order found, each with its finder. Every player's
+-- rows are here; what a racer may see of a rival mid-race is the hook's rule.
+create or replace function spellingbee._make_json_found_words(p_game_id uuid)
 returns jsonb
 language sql
 stable
@@ -325,17 +332,18 @@ as $$
            'userId',    fw.user_id,
            'word',      fw.word,
            'points',    fw.points,
-           'isPangram', fw.is_pangram,
-           'isBonus',   fw.is_bonus,
+           'pangram',   fw.is_pangram,
+           'bonus',     fw.is_bonus,
            'at',        fw.found_at) order by fw.found_at, fw.word), '[]'::jsonb)
     from spellingbee.found_words fw
    where fw.game_id = p_game_id;
 $$;
 
-revoke execute on function spellingbee._make_json_events(uuid) from public;
+revoke execute on function spellingbee._make_json_found_words(uuid) from public;
 
 -- Every player as spellingbee's game_data shows them: the common player, with
--- their own finds, points and rank.
+-- their own finds, points and rank, and the rank that wins — the game's one
+-- target, the same on every player.
 create or replace function spellingbee._make_json_players(p_game_id uuid)
 returns jsonb
 language sql
@@ -346,7 +354,8 @@ as $$
            cp.player || jsonb_build_object(
              'nFoundWords',     t.n_found,
              'foundWordsScore', t.score,
-             'rankIdx',         common._rank_idx(t.score, g.required_words_score))
+             'rankIdx',         common._rank_idx(t.score, g.required_words_score),
+             'targetRankIdx',   g.target_rank)
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
     join spellingbee.games g on g.game_id = p_game_id
@@ -367,10 +376,10 @@ stable
 set search_path = spellingbee, common, public, extensions
 as $$
   select common._make_json_game_data(p_game_id) || jsonb_build_object(
-           'puzzle',  spellingbee._make_json_puzzle(g),
-           'team',    spellingbee._make_json_team(p_game_id),
-           'events',  spellingbee._make_json_events(p_game_id),
-           'players', spellingbee._make_json_players(p_game_id))
+           'puzzle',     spellingbee._make_json_puzzle(g),
+           'team',       spellingbee._make_json_team(p_game_id),
+           'foundWords', spellingbee._make_json_found_words(p_game_id),
+           'players',    spellingbee._make_json_players(p_game_id))
     from spellingbee.games g
    where g.game_id = p_game_id;
 $$;

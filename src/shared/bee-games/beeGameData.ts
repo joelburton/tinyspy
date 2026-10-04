@@ -26,14 +26,17 @@ import type { SetupRow } from '@/common/setup-form/setupRows'
 export type GBeeTile = {
   id: string
   letter: string
-  isCenter: boolean
+  center: boolean
 }
 
-/** A word in one of the two lists, scored once when the board was built. */
+/** A legal word on this board, scored once when the board was built. A bonus
+ *  word is legal but not required: it scores and is accepted, and is not the
+ *  goal. */
 export type GBeeWord = {
   word: string
   points: number
-  isPangram: boolean
+  pangram: boolean
+  bonus: boolean
 }
 
 /**
@@ -47,28 +50,33 @@ export type GBeePuzzle = {
   // title read these.
   centerLetter: string
   outerLetters: string
-  // The required set: the goal, and the missed-words reveal.
-  reqdWords: GBeeWord[]
-  // The bonus set, legal minus required: accepted and scored, never revealed
-  // unless `hasBonus`.
-  bonusWords: GBeeWord[]
+  // Every legal word, the required ones first; the required set (`!bonus`)
+  // is the goal and the missed-words reveal; the bonus words are revealed
+  // unless `sameBandsAndHaveNoBonus`.
+  words: GBeeWord[]
   nReqdWords: number
   // The required set's points: the rank ladder's denominator.
   reqdWordsScore: number
-  // The rank that wins (an index into `RANKS`); null for coop's open hunt.
-  targetRankIdx: number | null
-  // The two bands differ, so the bonus list is a list worth revealing.
-  hasBonus: boolean
+  // The required and legal bands are equal, so the bonus words are only what
+  // the cleanliness filter removed from the required list: a player who types
+  // one scores it, and the game never suggests one — no bonus reveal at the
+  // end, and no required/bonus filter on the word list.
+  sameBandsAndHaveNoBonus: boolean
 }
 
 /**
- * What one player, or the team, has found: the count and the points, bonus
- * included, and the rank that score reaches (`common._rank_idx`).
+ * What one player, or the team, has found — the count and the points, bonus
+ * included, and the rank that score reaches (`common._rank_idx`) — and the
+ * rank they set out for.
  */
 export type GBeeTeam = {
   nFoundWords: number
   foundWordsScore: number
   rankIdx: number
+  // The rank that wins, an index into `RANKS`; null for coop's open hunt. The
+  // game's one target, the same on every player: a goal for the board, not
+  // part of it.
+  targetRankIdx: number | null
 }
 
 /** A player as the bee games' game_data shows them: the common player, with
@@ -79,26 +87,26 @@ export type GBeePlayerRaw = PlayerRaw & GBeeTeam
 export type GBeePlayer = GBeePlayerRaw
 
 /** One found word, as the blob carries it: `gd` turns `userId` into the
- *  player (`GBeeEvent`). The table has no row id; a row is its player and its
- *  word. */
-export type GBeeEventRaw = {
+ *  player (`GBeeFoundWord`). The table has no row id; a row is its player and
+ *  its word. */
+export type GBeeFoundWordRaw = {
   userId: string
   word: string
   points: number
-  isPangram: boolean
-  isBonus: boolean
+  pangram: boolean
+  bonus: boolean
   at: string
 }
 
-/** One found word, as `gd` holds it: the blob's row, with its player. */
-export type GBeeEvent = Omit<GBeeEventRaw, 'userId'> & {
+/** One found word, as `gd` holds it: the blob's row, with its finder. */
+export type GBeeFoundWord = Omit<GBeeFoundWordRaw, 'userId'> & {
   by: GBeePlayer
 }
 
 /**
  * A bee game's `game_data`, as its `_rebuild_data_cols` writes it: the common
- * part, with the puzzle, the team, the found words and the game's facts about
- * each player on top. What the page is handed in `PlayAreaLoaderProps.gameData`;
+ * part, with the puzzle, the team, every find and the game's facts about each
+ * player on top. What the page is handed in `PlayAreaLoaderProps.gameData`;
  * `makeBeeGameData` turns it into `gd`. It carries every player's rows; what
  * a racer may see of a rival mid-race is `makeBeeGameData`'s rule.
  */
@@ -107,8 +115,8 @@ export type GBeeGameDataRaw<Setup> = Omit<GameDataRaw, 'setup' | 'players'> & {
   puzzle: GBeePuzzle
   // What the team shares; null in compete, where there is no team.
   team: GBeeTeam | null
-  // Every found word, in the order found.
-  events: GBeeEventRaw[]
+  // Every found word, in the order found, each with its finder.
+  foundWords: GBeeFoundWordRaw[]
   players: GBeePlayerRaw[]
 }
 
@@ -121,7 +129,6 @@ export type GBeeGameDataRaw<Setup> = Omit<GameDataRaw, 'setup' | 'players'> & {
 export type GBeeStateLineData = GBeeTeam & {
   nReqdWords: number
   reqdWordsScore: number
-  targetRankIdx: number | null
 }
 
 /*
@@ -140,13 +147,13 @@ export type GBeeStateLineData = GBeeTeam & {
  *   title
  *   setup
  *   setupRows
- *   puzzle: {tiles, centerLetter, outerLetters, reqdWords, bonusWords, nReqdWords, reqdWordsScore, targetRankIdx, hasBonus}
- *   team: {nFoundWords, foundWordsScore, rankIdx}   # what the team shares; null in compete
+ *   puzzle: {tiles, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore, sameBandsAndHaveNoBonus}
+ *   team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}   # what the team shares; null in compete
  *   turns                                            # always null: no turn order
  *   ending: {reason, detail, by, winner}             # null while playing; by and winner are players
  *   ended
  *   outcome                                          # null until the game ends
- *   events: [{by, word, points, isPangram, isBonus, at}, …]   # the found words, by a player; my rows only, mid-race
+ *   foundWords: [{by, word, points, pangram, bonus, at}, …]   # every find, by a player; my rows only, mid-race
  *   players: [player, …]                             # seat order
  *   playersById
  *   me                                               # same object as playersById[auth.user.id]
@@ -157,11 +164,18 @@ export type GBeeStateLineData = GBeeTeam & {
  *   nFoundWords                                      # own, in every mode
  *   foundWordsScore                                  # own, in every mode
  *   rankIdx                                          # own
+ *   targetRankIdx                                    # the rank that wins; the same on every player
  *
  * tile:                                              # puzzle.tiles[], the center first
  *   id                                               # the tile's place, as text
  *   letter
- *   isCenter
+ *   center
+ *
+ * word:                                              # puzzle.words[], the required ones first
+ *   word
+ *   points
+ *   pangram
+ *   bonus                                            # legal but not required
  */
 
 /**
@@ -170,14 +184,15 @@ export type GBeeStateLineData = GBeeTeam & {
  * links turned into players, the setup rows built, and the seat rule
  * applied. Read-only: `makeBeeGameData` builds it and nothing else writes it.
  */
-export type GBeeGameData<Setup> = Omit<GBeeGameDataRaw<Setup>, 'turns' | 'ending' | 'events' | 'players'> & {
+export type GBeeGameData<Setup> = Omit<GBeeGameDataRaw<Setup>, 'turns' | 'ending' | 'foundWords' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
   setupRows: SetupRow[]
   turns: { holder: GBeePlayer } | null
-  // The found words, by player; mid-race in compete, my rows only.
-  events: GBeeEvent[]
+  // Every find, by player, in the order found; mid-race in compete, my rows
+  // only. The page filters it as a reader asks: mine, ours, required, bonus.
+  foundWords: GBeeFoundWord[]
   ending: {
     reason: NonNullable<GameDataRaw['ending']>['reason']
     detail: string
@@ -233,8 +248,8 @@ export function makeBeeGameData<Setup>(
 
   // Every find is a seated player's: a player's rows go with their profile
   // (`on delete cascade`), so the lookup cannot miss.
-  const events: GBeeEvent[] = raw.events
-    .filter((e) => seeRival || isMine(e.userId))
+  const foundWords: GBeeFoundWord[] = raw.foundWords
+    .filter((w) => seeRival || isMine(w.userId))
     .map(({ userId, ...row }) => ({ ...row, by: playersById[userId]! }))
 
   // The gate has checked that I am seated.
@@ -256,7 +271,7 @@ export function makeBeeGameData<Setup>(
         by: playerOf(ending.by),
         winner: playerOf(ending.winner),
       },
-    events,
+    foundWords,
     players,
     playersById,
     me,
@@ -264,9 +279,9 @@ export function makeBeeGameData<Setup>(
       nFoundWords: teamOrMe.nFoundWords,
       foundWordsScore: teamOrMe.foundWordsScore,
       rankIdx: teamOrMe.rankIdx,
+      targetRankIdx: teamOrMe.targetRankIdx,
       nReqdWords: raw.puzzle.nReqdWords,
       reqdWordsScore: raw.puzzle.reqdWordsScore,
-      targetRankIdx: raw.puzzle.targetRankIdx,
     },
   }
 }
