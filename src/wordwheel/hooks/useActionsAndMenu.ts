@@ -103,7 +103,7 @@ export function useActionsAndMenu({
             ? { points: r.points ?? 0, who: memberById(gd.players, r.userId)?.username ?? 'someone' }
             : null,
       }))
-      const readout = gd.stateLineData
+      const sld = gd.stateLineData
       printWordwheelPdf({
         brand: gd.brand,
         gameTitle: gd.title,
@@ -112,8 +112,8 @@ export function useActionsAndMenu({
         // Compete's are per player — each section carries its own — so the
         // header states only the shared targets.
         summary: gd.compete
-          ? `Target: ${readout.reqdWordsScore} pts · ${readout.nReqdWords} words`
-          : `${RANKS[readout.rankIdx]} · Score ${readout.foundWordsScore} / ${readout.reqdWordsScore} · Words ${readout.nFoundWords} / ${readout.nReqdWords}`,
+          ? `Target: ${sld.reqdWordsScore} pts · ${sld.nReqdWords} words`
+          : `${RANKS[sld.rankIdx]} · Score ${sld.foundWordsScore} / ${sld.reqdWordsScore} · Words ${sld.nFoundWords} / ${sld.nReqdWords}`,
         outerLetters: gd.puzzle.outerLetters.split(''),
         centerLetter: gd.puzzle.centerLetter,
         mode: gd.mode,

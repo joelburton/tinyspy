@@ -14,6 +14,14 @@ decision against, so a review doesn't propose it again
 
 ## Bugs
 
+- **No shared counter.** The same four lines — a `Map<string, number>`, a loop,
+  `m.set(ch, (m.get(ch) ?? 0) + 1)` — are written out by hand in wordwheel's
+  `BoardCol` twice, its `hooks/useSubmitWord.ts` and `lib/spend.ts`,
+  bananagrams' `lib/board.ts` twice and scrabble's `lib/rank.ts`. One
+  `countBy(items)` in `common/utils`, beside `shuffle`, with a test; the
+  running counts in wordwheel's `lib/tiles.ts` and `TypedWord` are a different
+  shape and stay (2026-10-04).
+
 ## Soon
 
 - **An actor is a player, and an absent one is null.** The history views

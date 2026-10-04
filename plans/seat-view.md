@@ -556,7 +556,12 @@ propose numbered with no code, Joel answers by number, build, close read):
 10. **BoardCol**: owns the move; `isInteractive` computed once; hooks read
     through their names; the action's own `pending` is the one in-flight
     guard; the key-dismiss hook lives here; a leaf gets the answer; the
-    state line in `MobileStatusBar` where the game has one.
+    state line in `MobileStatusBar` where the game has one. **One case,
+    the data's**: the word list is lowercase, so the typed word, the found
+    words and every letter held in state stay lowercase, and the capitals are
+    put on at the very point a tile or a word is drawn — `text-transform` in
+    CSS, or by hand where CSS cannot reach (an SVG `<text>`, a pill's
+    sentence, the PDF). Nothing lowercases on the way in (2026-10-04).
 11. **Board and its pieces**: a component per visual unit with its own CSS
     module; Board decides which marks each piece wears, the piece draws
     them; `useTileShuffle` and `useTileCursor`; held things are ids and say

@@ -50,7 +50,7 @@ type Props = {
   // the slot's `dismiss`, so a gesture-cleared message leaves the same way
   // from the keyboard and the button.
   onAnyKey?: () => void
-  // What may be entered (default lowercase A–Z). spellingbee/boggle pass upper.
+  // What may be entered (default lowercase A–Z). boggle passes upper.
   charFor?: (key: string) => string | null
   // Last submitted value, restored by ArrowUp (see `./useArrowHistory`).
   recall?: string

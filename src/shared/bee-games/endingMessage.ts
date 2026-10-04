@@ -7,7 +7,7 @@ import type { GBeePlayer, GBeeStateLineData } from './beeGameData'
 
 /**
  * What a bee game — spellingbee or wordwheel — says once the game is over, for
- * the mode, how it ended, how I came out, and the readout.
+ * the mode, how it ended, how I came out, and the state line's data.
  *
  * `pillText` + `outcome` are the below-board verdict, `infoColText` + `outcome`
  * the short bold line in the info-column action row. Both come back in one
@@ -41,7 +41,7 @@ export function buildBeeGameEndingMessage({
   gameEnding,
   playerOutcome,
   winner,
-  readout,
+  stateLineData,
 }: {
   mode: 'coop' | 'compete'
   // How the GAME ended (`gd.outcome`, `gd.ending.reason`).
@@ -51,15 +51,15 @@ export function buildBeeGameEndingMessage({
   playerOutcome: EndOutcome | null
   // The player ranked first (`gd.ending.winner`), or null when nobody was.
   winner: GBeePlayer | null
-  // The team's figures in coop, my own in compete (`gd.stateLineData`).
-  readout: GBeeStateLineData
+  // What the state line shows: the team's figures in coop, my own in compete.
+  stateLineData: GBeeStateLineData
 }): TerminalMessage {
-  const rankName = RANKS[readout.rankIdx]
-  const points = `${readout.foundWordsScore}/${readout.reqdWordsScore} points`
+  const rankName = RANKS[stateLineData.rankIdx]
+  const points = `${stateLineData.foundWordsScore}/${stateLineData.reqdWordsScore} points`
   // The rank NAMED in a win is the one they set out for; the score can
   // overshoot it. A coop game with no target cannot be won, so the fallback is
   // for the type alone.
-  const targetRankName = RANKS[readout.targetRankIdx ?? readout.rankIdx]
+  const targetRankName = RANKS[stateLineData.targetRankIdx ?? stateLineData.rankIdx]
 
   if (mode === 'compete') {
     if (gameEnding.outcome === 'won') {

@@ -21,7 +21,7 @@ type Props = {
   isInteractive: boolean
   // Called with the clicked letter; the caller appends it to the typed word.
   onLetterClick: (letter: string) => void
-  // The letters the word being typed is using, uppercase — those tiles wear
+  // The letters the word being typed is using — those tiles wear
   // the selected edge.
   usedLetters: Set<string>
   // A refused word's mark: its letters wear the answer and shake. The nonce
@@ -65,14 +65,14 @@ export function Board({
         <svg className={styles.grid} viewBox="0 0 256 267" data-board>
           {letters.map((letter, i) => {
             // The refusal's mark, when this tile is one of the word's letters.
-            const mark = refused?.value.letters.has(letter.toUpperCase()) ? refused : null
+            const mark = refused?.value.letters.has(letter) ? refused : null
             return (
               <Tile
                 key={mark ? `${letter}-${i}#${mark.nonce}` : `${letter}-${i}`}
                 letter={letter}
                 isCenter={i === 0}
                 pos={HEX_POSITIONS[i] ?? HEX_POSITIONS[0]}
-                used={usedLetters.has(letter.toUpperCase())}
+                used={usedLetters.has(letter)}
                 answer={mark?.value.outcome}
                 // A tile with no handler is inert — no click, hover or press.
                 onClick={isInteractive ? () => onLetterClick(letter) : undefined}

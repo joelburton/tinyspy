@@ -19,7 +19,7 @@ export function wordFitsWheel(word: string, letterCounts: Map<string, number>): 
   // Count occurrences as we scan so the (k+1)th use of a k-tile letter fails —
   // the first k uses stay legal (mirrors `<TypedWord>` and the edge function).
   const used = new Map<string, number>()
-  for (const ch of word.toLowerCase()) {
+  for (const ch of word) {
     const n = (used.get(ch) ?? 0) + 1
     used.set(ch, n)
     if (n > (letterCounts.get(ch) ?? 0)) return false

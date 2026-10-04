@@ -5,7 +5,7 @@
  *
  * `makeBeeGameData` is a pure function of the blob and who I am, so this tests
  * it directly: the links turned into players, each find's finder, the setup
- * rows built once from the players, the readout decided once — and the seat
+ * rows built once from the players, the state line's data decided once — and the seat
  * rule, which is the one thing the blob does not carry: a rival's finds are
  * withheld mid-race and nowhere else, while their counts stay.
  */
@@ -97,7 +97,7 @@ describe('makeBeeGameData — the links become players', () => {
     expect([gd.playersById.u2!.nFoundWords, gd.playersById.u2!.foundWordsScore]).toEqual([1, 5])
   })
 
-  it("the readout shows the team's finds in coop, against the required set and the target", () => {
+  it("the state line shows the team's finds in coop, against the required set and the target", () => {
     const gd = makeBeeGameData(
       ZTest_makeBeeGameDataRaw(GAME, { players: TWO, foundWords: FINDS, targetRankIdx: 3 }),
       'u1',
@@ -139,7 +139,7 @@ describe('makeBeeGameData — the seat rule', () => {
     expect(gd.team).not.toBeNull()
   })
 
-  it('a race has no team, so the readout shows my own counts', () => {
+  it('a race has no team, so the state line shows my own counts', () => {
     const gd = makeBeeGameData(race(), 'u1', noRows)
     expect(gd.team).toBeNull()
     expect([gd.stateLineData.nFoundWords, gd.stateLineData.foundWordsScore]).toEqual([1, 1])

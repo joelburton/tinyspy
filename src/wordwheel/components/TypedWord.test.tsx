@@ -16,38 +16,38 @@ const dupTiles = new Map([
   ['a', 1], ['b', 1], ['c', 1], ['d', 1], ['e', 2], ['f', 1], ['g', 2],
 ])
 
-/** A span is "dimmed" (illegal) iff it carries a (hashed) CSS-module class; a
- *  legal character renders with an empty className. */
+/** A span is "dimmed" iff it wears the (hashed) `illegal` class; every span
+ *  wears `char`, which draws the capitals. */
 function dimFlags(word: string, letterCounts: Map<string, number>): boolean[] {
   const { container } = render(<TypedWord word={word} letterCounts={letterCounts} />)
-  return Array.from(container.querySelectorAll('span')).map((s) => s.className !== '')
+  return Array.from(container.querySelectorAll('span')).map((s) => /illegal/.test(s.className))
 }
 
 describe('TypedWord dimming', () => {
   it('dims a letter that is not on the wheel', () => {
     // 't' is off the wheel → dimmed; the rest are legal.
-    expect(dimFlags('BEAT', singleTiles)).toEqual([false, false, false, true])
+    expect(dimFlags('beat', singleTiles)).toEqual([false, false, false, true])
   })
 
   it('dims a letter past its tile count (single-tile wheel: from the 2nd use)', () => {
     // 'BEE': first E legal, second E dimmed (one e-tile).
-    expect(dimFlags('BEE', singleTiles)).toEqual([false, false, true])
+    expect(dimFlags('bee', singleTiles)).toEqual([false, false, true])
     // 'ABIDE' — all distinct, all on the wheel → none dimmed.
-    expect(dimFlags('ABIDE', singleTiles)).toEqual([false, false, false, false, false])
+    expect(dimFlags('abide', singleTiles)).toEqual([false, false, false, false, false])
   })
 
   it('dims the third occurrence too, and treats off-wheel + over-count the same', () => {
     // 'BEEF': B ok, E ok, E over-count (dim), F ok.
-    expect(dimFlags('BEEF', singleTiles)).toEqual([false, false, true, false])
+    expect(dimFlags('beef', singleTiles)).toEqual([false, false, true, false])
     // 'EEE': first ok, next two exceed the single e-tile.
-    expect(dimFlags('EEE', singleTiles)).toEqual([false, true, true])
+    expect(dimFlags('eee', singleTiles)).toEqual([false, true, true])
   })
 
   it('allows a repeat UP TO the tile count on a duplicate-letter wheel', () => {
     // Two e-tiles: 'BEE' is fully legal; a THIRD e would dim.
-    expect(dimFlags('BEE', dupTiles)).toEqual([false, false, false])
-    expect(dimFlags('BEEE', dupTiles)).toEqual([false, false, false, true])
+    expect(dimFlags('bee', dupTiles)).toEqual([false, false, false])
+    expect(dimFlags('beee', dupTiles)).toEqual([false, false, false, true])
     // 'EGGED' spends both e-tiles and both g-tiles — fully legal.
-    expect(dimFlags('EGGED', dupTiles)).toEqual([false, false, false, false, false])
+    expect(dimFlags('egged', dupTiles)).toEqual([false, false, false, false, false])
   })
 })

@@ -122,7 +122,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
 const outerOrder = () =>
   [...document.querySelectorAll('[data-tile]:not([data-center])')].map((t) => t.getAttribute('data-tile'))
 
-/** A trusting-commit success, in the envelope `runRpc` unwraps. `accepted` is
+/** A submit that landed, in the envelope `runRpc` unwraps. `accepted` is
  *  the plain classification; the bonus/pangram ones return the same `null` to
  *  the hook, so one fixture covers every accept. */
 const acceptedEnvelope = {
@@ -135,7 +135,7 @@ const acceptedEnvelope = {
 
 beforeEach(() => {
   rpc.mockReset()
-  rpc.mockResolvedValue(acceptedEnvelope) // trusting-commit succeeds by default
+  rpc.mockResolvedValue(acceptedEnvelope) // the send lands by default
   // Reset the edge-fn mock too: without this its call COUNT leaks between
   // tests, which silently breaks any toHaveBeenCalledTimes assertion (each
   // New-game test sets its own resolved value, so clearing is safe).
@@ -186,17 +186,17 @@ describe('spellingbee PlayArea — the tiles the word is using', () => {
     expect(usedTiles()).toEqual([])
 
     await user.keyboard('bed')
-    expect(new Set(usedTiles())).toEqual(new Set(['B', 'E', 'D']))
+    expect(new Set(usedTiles())).toEqual(new Set(['b', 'e', 'd']))
 
     await user.keyboard('{Backspace}')
-    expect(new Set(usedTiles())).toEqual(new Set(['B', 'E']))
+    expect(new Set(usedTiles())).toEqual(new Set(['b', 'e']))
   })
 
   it('marks the center tile too, and clears every mark on submit', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bee')
-    expect(usedTiles()).toContain('E') // the center letter, black-edged like the rest
+    expect(usedTiles()).toContain('e') // the center letter, black-edged like the rest
 
     await user.keyboard('{Enter}')
     expect(usedTiles()).toEqual([])
@@ -225,15 +225,15 @@ describe('spellingbee PlayArea — the tiles the word is using', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     expect(inertTiles()).toEqual([])
-    await tap(user, 'BED')
-    expect(new Set(usedTiles())).toEqual(new Set(['B', 'E', 'D']))
+    await tap(user, 'bed')
+    expect(new Set(usedTiles())).toEqual(new Set(['b', 'e', 'd']))
   })
 
   it("a conceded racer's board is inert: a tap adds nothing", async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx(race({ players: [me(CONCEDED), moth()] }))} />)
     expect(inertTiles()).toHaveLength(7)
-    await tap(user, 'BED')
+    await tap(user, 'bed')
     expect(usedTiles()).toEqual([])
   })
 
@@ -241,7 +241,7 @@ describe('spellingbee PlayArea — the tiles the word is using', () => {
     const user = userEvent.setup()
     const { rerender } = render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bed')
-    expect(new Set(usedTiles())).toEqual(new Set(['B', 'E', 'D']))
+    expect(new Set(usedTiles())).toEqual(new Set(['b', 'e', 'd']))
     rerender(<WithKeys {...makeCtx(STOPPED)} />)
     expect(usedTiles()).toEqual([])
   })
@@ -250,7 +250,7 @@ describe('spellingbee PlayArea — the tiles the word is using', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx(STOPPED)} />)
     expect(inertTiles()).toHaveLength(7)
-    await tap(user, 'BED')
+    await tap(user, 'bed')
     expect(usedTiles()).toEqual([])
   })
 })
@@ -509,8 +509,8 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     expect(tilesWith('_answered_')).toEqual([])
 
     await user.keyboard('bcdf{Enter}') // real letters, but no center E
-    expect(new Set(tilesWith('verdictShake'))).toEqual(new Set(['B', 'C', 'D', 'F']))
-    expect(new Set(tilesWith('_answered_'))).toEqual(new Set(['B', 'C', 'D', 'F']))
+    expect(new Set(tilesWith('verdictShake'))).toEqual(new Set(['b', 'c', 'd', 'f']))
+    expect(new Set(tilesWith('_answered_'))).toEqual(new Set(['b', 'c', 'd', 'f']))
     expect(boardShakes()).toBe(false)
   })
 
@@ -519,7 +519,7 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     // the mark's nonce: a second refusal is a new element, and a new shake.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    const tileB = () => document.querySelector('[data-tile="B"]')
+    const tileB = () => document.querySelector('[data-tile="b"]')
 
     await user.keyboard('bcdf{Enter}')
     const first = tileB()
@@ -544,7 +544,7 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     await user.keyboard('bed{Enter}')
 
     const marked = answeredTiles()
-    expect(new Set(marked.map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['B', 'E', 'D']))
+    expect(new Set(marked.map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['b', 'e', 'd']))
     for (const tile of marked) {
       expect(tile.getAttribute('class')).toMatch(/verdictWarning/)
       expect(tile.getAttribute('class')).not.toMatch(/verdictLost/)

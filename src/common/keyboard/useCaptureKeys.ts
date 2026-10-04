@@ -5,9 +5,9 @@ import { useBindAction, type ActionState, type Action } from '../actions/useBind
 /**
  * A `charFor` (see below) for ASCII letters, stored in the given case. This is
  * the common filter for word games: a single A–Z keystroke becomes the character
- * to append; everything else is ignored. Most games store **lowercase** (board
- * words are lowercase); spellingbee displays **uppercase**, so it passes
- * `asciiLetters('upper')`.
+ * to append; everything else is ignored. The word games store **lowercase**, the
+ * case the board's letters and the server's rows are in, and draw the capitals
+ * in CSS; boggle still stores uppercase and passes `asciiLetters('upper')`.
  */
 export function asciiLetters(store: 'lower' | 'upper' = 'lower') {
   return (key: string): string | null => {

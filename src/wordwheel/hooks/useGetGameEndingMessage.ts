@@ -9,7 +9,7 @@ import type { GGameData } from '../types'
  * The ending's message — the below-board pill and the info column's line —
  * or null while the game is played. The words are the bee games' shared ones
  * (`buildBeeGameEndingMessage`), fed from `gd`: how the game ended, how I came
- * out, who won, and the readout the score is read against.
+ * out, who won, and the state line's data the score is read against.
  *
  * The message keeps its identity for as long as the ending does, which is what
  * lets the effect that shows it show it once rather than on every reload of
@@ -31,7 +31,7 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
             gameEnding: { outcome, reason },
             playerOutcome,
             winner,
-            readout: gd.stateLineData,
+            stateLineData: gd.stateLineData,
           }),
     // `winner` is a player object the blob rebuilds; its id is what matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps

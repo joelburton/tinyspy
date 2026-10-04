@@ -4,9 +4,9 @@ import { cls } from '@/common/utils/cls'
 import styles from '@/shared/found-words/typedWord.module.css'
 
 type Props = {
-  // The typed word. Uppercased again here, so a lowercase caller draws the same.
+  // The typed word, lowercase like the board; the stylesheet draws it in capitals.
   word: string
-  // The wheel's per-letter tile counts, lower-cased. A character beyond its
+  // The wheel's per-letter tile counts. A character beyond its
   // letter's count, or off the wheel entirely, dims — the submit gate holds
   // the word back.
   letterCounts: Map<string, number>
@@ -29,13 +29,12 @@ export function TypedWord({ word, letterCounts }: Props) {
   return (
     <>
       {Array.from(word).map((ch, i) => {
-        const lower = ch.toLowerCase()
-        const count = (used.get(lower) ?? 0) + 1
-        used.set(lower, count)
-        const illegal = count > (letterCounts.get(lower) ?? 0)
+        const count = (used.get(ch) ?? 0) + 1
+        used.set(ch, count)
+        const illegal = count > (letterCounts.get(ch) ?? 0)
         return (
-          <span key={i} className={cls(illegal && styles.illegal)}>
-            {ch.toUpperCase()}
+          <span key={i} className={cls(styles.char, illegal && styles.illegal)}>
+            {ch}
           </span>
         )
       })}

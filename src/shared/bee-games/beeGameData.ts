@@ -121,9 +121,9 @@ export type GBeeGameDataRaw<Setup> = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * What the readout shows — the ladder and the figures under it: the team's
+ * What the state line shows — the ladder and the figures under it: the team's
  * finds in coop, my own in compete, against the required set and the target.
- * Decided once, in `makeBeeGameData`, so the readout draws it and picks
+ * Decided once, in `makeBeeGameData`, so the state line draws it and picks
  * nothing.
  */
 export type GBeeStateLineData = GBeeTeam & {
@@ -254,7 +254,7 @@ export function makeBeeGameData<Setup>(
 
   // The gate has checked that I am seated.
   const me = playersById[myId]!
-  // What the readout shows: the team's finds where the game has one, else my
+  // What the state line shows: the team's finds where the game has one, else my
   // own (plans/team-facts.md).
   const teamOrMe = raw.team ?? me
 

@@ -107,9 +107,9 @@ test.describe('spellingbee custom letters', () => {
 
     // The honeycomb renders with EXACTLY our letters: center A, outers C/H/I/R/O/T.
     // Selected by `data-tile` — a tile is pointer-only and carries no ARIA role
-    // (Letter.tsx), so there is no accessible name to match on.
-    await expect(page.locator('[data-tile="A"][data-center]')).toBeVisible({ timeout: 20000 })
-    for (const letter of ['C', 'H', 'I', 'R', 'O', 'T']) {
+    // (Tile.tsx), so there is no accessible name to match on.
+    await expect(page.locator('[data-tile="a"][data-center]')).toBeVisible({ timeout: 20000 })
+    for (const letter of ['c', 'h', 'i', 'r', 'o', 't']) {
       await expect(page.locator(`[data-tile="${letter}"]`)).toBeVisible()
     }
 

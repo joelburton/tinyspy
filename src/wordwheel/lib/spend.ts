@@ -25,9 +25,8 @@ export type Claim = { letter: string; ordinal: number }
 export function ordinals(tileLetters: string[]): number[] {
   const seen = new Map<string, number>()
   return tileLetters.map((letter) => {
-    const lower = letter.toLowerCase()
-    const n = seen.get(lower) ?? 0
-    seen.set(lower, n + 1)
+    const n = seen.get(letter) ?? 0
+    seen.set(letter, n + 1)
     return n
   })
 }
@@ -35,7 +34,7 @@ export function ordinals(tileLetters: string[]): number[] {
 /**
  * The tile indices the typed word is spending, given what the player clicked.
  *
- * `counts` is the word's per-letter count, lower-cased. A claim beyond that
+ * `counts` is the word's per-letter count. A claim beyond that
  * count is ignored rather than trimmed here — `trimClaims` is what forgets a
  * click, and it needs the word to do it.
  */
@@ -50,16 +49,14 @@ export function spentTiles(
   // Claims first, oldest first, and only as many as the word still uses.
   const takenPer = new Map<string, Set<number>>()
   for (const claim of claims) {
-    const lower = claim.letter.toLowerCase()
-    const taken = takenPer.get(lower) ?? new Set<number>()
-    if (taken.size >= (counts.get(lower) ?? 0)) continue
+    const taken = takenPer.get(claim.letter) ?? new Set<number>()
+    if (taken.size >= (counts.get(claim.letter) ?? 0)) continue
     taken.add(claim.ordinal)
-    takenPer.set(lower, taken)
+    takenPer.set(claim.letter, taken)
   }
 
   for (let i = 0; i < tileLetters.length; i++) {
-    const lower = (tileLetters[i] ?? '').toLowerCase()
-    if (takenPer.get(lower)?.has(ord[i] ?? 0)) spent.add(i)
+    if (takenPer.get(tileLetters[i]!)?.has(ord[i] ?? 0)) spent.add(i)
   }
 
   // Then the rest, in render order — the center first where it carries the
@@ -68,11 +65,11 @@ export function spentTiles(
   for (const [letter, n] of counts) left.set(letter, n - (takenPer.get(letter)?.size ?? 0))
   for (let i = 0; i < tileLetters.length; i++) {
     if (spent.has(i)) continue
-    const lower = (tileLetters[i] ?? '').toLowerCase()
-    const remaining = left.get(lower) ?? 0
+    const letter = tileLetters[i]!
+    const remaining = left.get(letter) ?? 0
     if (remaining <= 0) continue
     spent.add(i)
-    left.set(lower, remaining - 1)
+    left.set(letter, remaining - 1)
   }
   return spent
 }
@@ -83,13 +80,12 @@ export function spentTiles(
  */
 export function trimClaims(claims: readonly Claim[], word: string): Claim[] {
   const left = new Map<string, number>()
-  for (const ch of word.toLowerCase()) left.set(ch, (left.get(ch) ?? 0) + 1)
+  for (const ch of word) left.set(ch, (left.get(ch) ?? 0) + 1)
   const kept: Claim[] = []
   for (const claim of claims) {
-    const lower = claim.letter.toLowerCase()
-    const n = left.get(lower) ?? 0
+    const n = left.get(claim.letter) ?? 0
     if (n <= 0) continue
-    left.set(lower, n - 1)
+    left.set(claim.letter, n - 1)
     kept.push(claim)
   }
   return kept

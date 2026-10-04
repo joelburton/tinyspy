@@ -310,7 +310,7 @@ both.
 
 ### `wordwheel.submit_word(p_game_id, p_word, p_points, p_is_pangram, p_is_bonus)`
 
-The only mid-game move, and a trusting commit: the word arrives already judged
+The only mid-game move, and a trusting submit: the word arrives already judged
 and scored by the frontend, and the server does not re-check its letters, its
 tiles, its length or the dictionary. What it does check, under a lock on the
 game row, is that the game still exists, hasn't ended and the caller has

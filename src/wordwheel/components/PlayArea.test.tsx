@@ -122,7 +122,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
 const outerOrder = () =>
   [...document.querySelectorAll('[data-tile]:not([data-center])')].map((t) => t.getAttribute('data-tile'))
 
-/** A trusting-commit success, in the envelope `runRpc` unwraps. `accepted` is
+/** A submit that landed, in the envelope `runRpc` unwraps. `accepted` is
  *  the plain classification; the bonus/pangram ones return the same `null` to
  *  the hook, so one fixture covers every accept. */
 const acceptedEnvelope = {
@@ -135,7 +135,7 @@ const acceptedEnvelope = {
 
 beforeEach(() => {
   rpc.mockReset()
-  rpc.mockResolvedValue(acceptedEnvelope) // trusting-commit succeeds by default
+  rpc.mockResolvedValue(acceptedEnvelope) // the send lands by default
   // Reset the edge-fn mock too: without this its call COUNT leaks between
   // tests, which silently breaks any toHaveBeenCalledTimes assertion (each
   // New-game test sets its own resolved value, so clearing is safe).
@@ -182,25 +182,25 @@ describe('wordwheel PlayArea — the tiles the word is spending', () => {
     [...document.querySelectorAll('[data-tile][data-spent]')].map((t) => t.getAttribute('data-tile'))
   const tile = (letter: string) => document.querySelector(`[data-tile="${letter}"]`)!
   /** The twin E tiles of the `bacdfghe` board: the center, and the outer one. */
-  const centerE = () => document.querySelector('[data-tile="E"][data-center]')!
-  const outerE = () => document.querySelector('[data-tile="E"]:not([data-center])')!
+  const centerE = () => document.querySelector('[data-tile="e"][data-center]')!
+  const outerE = () => document.querySelector('[data-tile="e"]:not([data-center])')!
   /** A wheel where the center letter `e` is duplicated on an outer tile. */
   const TWIN_E: ZTest_GameDataFacts = { outerLetters: 'bacdfghe' }
 
   it('marks a wheel tile once its letter is in the word (tile-spend rule)', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    // Before typing: neither the 'B' tile nor the center 'E' tile is spent.
-    expect(tile('B')).not.toHaveAttribute('data-spent')
-    expect(tile('E')).not.toHaveAttribute('data-spent')
-    // Type 'be' → both spent; an untyped tile ('C') is not.
+    // Before typing: neither the 'b' tile nor the center 'e' tile is spent.
+    expect(tile('b')).not.toHaveAttribute('data-spent')
+    expect(tile('e')).not.toHaveAttribute('data-spent')
+    // Type 'be' → both spent; an untyped tile ('c') is not.
     await user.keyboard('be')
-    expect(tile('B')).toHaveAttribute('data-spent', 'true')
-    expect(tile('E')).toHaveAttribute('data-spent', 'true')
-    expect(tile('C')).not.toHaveAttribute('data-spent')
+    expect(tile('b')).toHaveAttribute('data-spent', 'true')
+    expect(tile('e')).toHaveAttribute('data-spent', 'true')
+    expect(tile('c')).not.toHaveAttribute('data-spent')
     // Backspace gives the freed tile back.
     await user.keyboard('{Backspace}') // removes 'e'
-    expect(tile('E')).not.toHaveAttribute('data-spent')
+    expect(tile('e')).not.toHaveAttribute('data-spent')
   })
 
   it('wears the selected border while spent, and gives it back', async () => {
@@ -216,9 +216,9 @@ describe('wordwheel PlayArea — the tiles the word is spending', () => {
 
     expect(marked()).toEqual([])
     await user.keyboard('be')
-    expect(new Set(marked())).toEqual(new Set(['B', 'E']))
+    expect(new Set(marked())).toEqual(new Set(['b', 'e']))
     await user.keyboard('{Backspace}')
-    expect(marked()).toEqual(['B'])
+    expect(marked()).toEqual(['b'])
   })
 
   it('clears every mark on submit', async () => {
@@ -327,15 +327,15 @@ describe('wordwheel PlayArea — the tiles the word is spending', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     expect(inertTiles()).toEqual([])
-    await tap(user, 'BED')
-    expect(new Set(spentTiles())).toEqual(new Set(['B', 'E', 'D']))
+    await tap(user, 'bed')
+    expect(new Set(spentTiles())).toEqual(new Set(['b', 'e', 'd']))
   })
 
   it("a conceded racer's board is inert: a tap adds nothing", async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx(race({ players: [me(CONCEDED), moth()] }))} />)
     expect(inertTiles()).toHaveLength(9)
-    await tap(user, 'BED')
+    await tap(user, 'bed')
     expect(spentTiles()).toEqual([])
   })
 
@@ -343,7 +343,7 @@ describe('wordwheel PlayArea — the tiles the word is spending', () => {
     const user = userEvent.setup()
     const { rerender } = render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bed')
-    expect(new Set(spentTiles())).toEqual(new Set(['B', 'E', 'D']))
+    expect(new Set(spentTiles())).toEqual(new Set(['b', 'e', 'd']))
     rerender(<WithKeys {...makeCtx(STOPPED)} />)
     expect(spentTiles()).toEqual([])
   })
@@ -352,7 +352,7 @@ describe('wordwheel PlayArea — the tiles the word is spending', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx(STOPPED)} />)
     expect(inertTiles()).toHaveLength(9)
-    await tap(user, 'BED')
+    await tap(user, 'bed')
     expect(spentTiles()).toEqual([])
   })
 })
@@ -630,8 +630,8 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     expect(answeredTiles()).toEqual([])
 
     await user.keyboard('bcdf{Enter}') // fits the wheel, but has no center E
-    expect(new Set(shakingTiles())).toEqual(new Set(['B', 'C', 'D', 'F']))
-    expect(new Set(answeredTiles().map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['B', 'C', 'D', 'F']))
+    expect(new Set(shakingTiles())).toEqual(new Set(['b', 'c', 'd', 'f']))
+    expect(new Set(answeredTiles().map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['b', 'c', 'd', 'f']))
     expect(boardShakes()).toBe(false)
   })
 
@@ -640,7 +640,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     // the mark's nonce: a second refusal is a new element, and a new shake.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    const tileB = () => document.querySelector('[data-tile="B"]')
+    const tileB = () => document.querySelector('[data-tile="b"]')
 
     await user.keyboard('bcdf{Enter}')
     const first = tileB()
@@ -656,7 +656,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     render(<WithKeys {...makeCtx({ outerLetters: 'bacdfghe' })} />)
     await user.keyboard('bed{Enter}')
 
-    const es = answeredTiles().filter((t) => t.getAttribute('data-tile') === 'E')
+    const es = answeredTiles().filter((t) => t.getAttribute('data-tile') === 'e')
     expect(es).toHaveLength(1)
     expect(es[0]?.hasAttribute('data-center')).toBe(true)
   })
@@ -666,10 +666,10 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     // the outer E the player clicked is the E that shakes.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx({ outerLetters: 'bacdfghe' })} />)
-    await user.click(document.querySelector('[data-tile="E"]:not([data-center])')!)
+    await user.click(document.querySelector('[data-tile="e"]:not([data-center])')!)
     await user.keyboard('bd{Enter}')
 
-    const es = answeredTiles().filter((t) => t.getAttribute('data-tile') === 'E')
+    const es = answeredTiles().filter((t) => t.getAttribute('data-tile') === 'e')
     expect(es).toHaveLength(1)
     expect(es[0]?.hasAttribute('data-center')).toBe(false)
   })
@@ -684,7 +684,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     await user.keyboard('bed{Enter}')
 
     const marked = answeredTiles()
-    expect(new Set(marked.map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['B', 'E', 'D']))
+    expect(new Set(marked.map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['b', 'e', 'd']))
     for (const tile of marked) {
       expect(tile.getAttribute('class')).toMatch(/verdictWarning/)
       expect(tile.getAttribute('class')).not.toMatch(/verdictLost/)

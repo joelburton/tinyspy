@@ -38,11 +38,6 @@ describe('wordFitsWheel', () => {
     expect(wordFitsWheel('dead', counts)).toBe(false)
   })
 
-  it('is case-insensitive', () => {
-    expect(wordFitsWheel('BEAD', counts)).toBe(true)
-    expect(wordFitsWheel('BEZ', counts)).toBe(false)
-  })
-
   it('treats the empty word as fitting (vacuously)', () => {
     expect(wordFitsWheel('', counts)).toBe(true)
   })

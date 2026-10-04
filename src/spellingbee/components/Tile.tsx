@@ -9,14 +9,14 @@ import styles from './Tile.module.css'
 
 type Props = {
   letter: string
-  isCenter?: boolean
+  isCenter: boolean
   // Top-left of this tile's box, in the flower's coordinate units.
   pos: { left: number; top: number }
   // Absent when the board is read-only: the tile takes no click and wears no
   // hover or press.
   onClick?: () => void
   // This letter is in the word being typed — the tile wears the selected edge.
-  used?: boolean
+  used: boolean
   // A refused word used this letter: the tile wears that answer's fill, edge and
   // white ink for as long as the answer is up, and shakes once as it arrives
   // (the parent remounts it per refusal, which is what replays the shake).
@@ -62,7 +62,7 @@ export function Tile({ letter, isCenter, pos, onClick, used, answer }: Props) {
         // The shared head-shake: every answer this tile can wear is a refusal.
         answer && shared.verdictShake,
       )}
-      data-tile={up}
+      data-tile={letter}
       data-center={isCenter || undefined}
       onClick={onClick}
       onMouseDown={(e) => e.preventDefault()}

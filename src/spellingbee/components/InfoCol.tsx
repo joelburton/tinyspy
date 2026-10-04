@@ -48,18 +48,21 @@ export function InfoCol({
     return `${verb} at ${rank}`
   }
 
-  const readout = gd.stateLineData
   const wordRows = makeWordRows(gd)
 
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        <RankBar score={readout.foundWordsScore} total={readout.reqdWordsScore} targetIdx={readout.targetRankIdx} />
+        <RankBar
+          score={gd.stateLineData.foundWordsScore}
+          total={gd.stateLineData.reqdWordsScore}
+          targetIdx={gd.stateLineData.targetRankIdx}
+        />
         <Stats
-          foundWordsScore={readout.foundWordsScore}
-          requiredWordsScore={readout.reqdWordsScore}
-          foundWordsCount={readout.nFoundWords}
-          requiredWordsCount={readout.nReqdWords}
+          foundWordsScore={gd.stateLineData.foundWordsScore}
+          requiredWordsScore={gd.stateLineData.reqdWordsScore}
+          foundWordsCount={gd.stateLineData.nFoundWords}
+          requiredWordsCount={gd.stateLineData.nReqdWords}
         />
 
         {gd.compete && (

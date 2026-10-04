@@ -2,14 +2,20 @@
 
 /* Per-character styling for a typed word rendered inside <WordEntryInput> (a game
  * passes its own `<TypedWord>` as the box's children). The input-like box, the
- * blinking caret, and the placeholder are WordEntryInput's; only the illegal-letter
- * dim lives here.
+ * blinking caret, and the placeholder are WordEntryInput's; the capitals and the
+ * illegal-letter dim live here.
  *
  * Worn by each of the family's `TypedWord.tsx` files, which genuinely
  * differ: WHICH letter is illegal is real game logic and stays per-game. The
  * *styling* of the answer never differed, so it lives here instead of in three
  * identical rules that could drift apart.
  */
+
+/* Every character of the word. The word is held lowercase, like the board's
+ * letters and the server's rows; the capitals are drawn here. */
+/* @@ */ .char {
+  text-transform: uppercase;
+}
 
 /* A character the submission will reject: off the puzzle's letters entirely
  * (spellingbee), past the tile count for that letter (wordwheel), or beyond the

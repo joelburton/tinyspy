@@ -15,7 +15,7 @@ import type { FoundWordsWord } from './foundWords'
  * legal list to look it up in, and a growing set of found words to dedup
  * against.** A game with the list in hand does the same thing on every submit —
  * validate the typed word against it, and, if it's good, answer at once and
- * fire a trusting-commit RPC in the background. The per-game bits are the list
+ * send it to the server in the background, a trusting submit. The per-game bits are the list
  * lookup, the RPC, and everything the player is told; everything structural
  * (dedup, the optimistic in-flight guard, last-word recall) lives here once.
  * Wordiply is the caller
@@ -25,9 +25,9 @@ import type { FoundWordsWord } from './foundWords'
  *
  * **Optimistic, never blocking.** Because the FE already knows the full legal
  * list, a valid word needs no server round-trip to *confirm* — we show `+points`
- * immediately and commit in the background. So there is no busy/disabled state:
- * the player can keep typing the next word while the last one commits. Dedup
- * spans `foundWords` (the committed rows from realtime) **plus** a synchronous
+ * immediately and send it in the background. So there is no busy/disabled state:
+ * the player can keep typing the next word while the last one is in flight.
+ * Dedup spans `foundWords` (the rows that have landed) **plus** a synchronous
  * `pendingRef` of words accepted-but-not-yet-landed, which closes the realtime-lag
  * window that would otherwise allow a double count.
  *
@@ -35,7 +35,7 @@ import type { FoundWordsWord } from './foundWords'
  * and the game turns it into words and an outcome in its `lib/answer.ts` —
  * the games word the same answer differently, and some have answers (a
  * pangram) the others lack. The one thing shown here is the server's `not-ok`
- * when a commit does not land: that is the server's sentence, and every game
+ * when a submit does not land: that is the server's sentence, and every game
  * in the family shows it the same way.
  *
  * It owns `word`/`lastWord` state. It does NOT own `useCaptureKeys`; that lives
@@ -69,7 +69,7 @@ export type FoundWordSubmitConfig = {
   // the game is over, I am out of it, or it is a teammate's turn.
   isMyTurn: boolean
   minWordLength: number
-  // The game's below-board slot, for the server's `not-ok` when a commit does
+  // The game's below-board slot, for the server's `not-ok` when a submit does
   // not land. Everything else the game shows there itself, from `onAnswer`.
   localFeedbackSlot: FeedbackSlot
   // The finds I can see (`gd.foundWords`), the dedup source: everyone's in
@@ -79,14 +79,15 @@ export type FoundWordSubmitConfig = {
   // O(1) membership over the board's words, keyed by lowercase word. Returns
   // the matched word (points + flags) or `null` for a non-legal word.
   lookup: (word: string) => FoundWordsWord | null
-  // The trusting-commit RPC, fired in the background. **`null` means the word
-  // LANDED; a `NotOkEnvelope` means it did not** — the game reads its own
-  // answers (`pangram` in one, `dealt` in another, which a shared hook could
-  // not) and hands back only whether the optimistic pill is still true.
-  commit: (entry: FoundWordsWord) => Promise<NotOkEnvelope | null>
+  // Send the accepted word to the server, in the background — a trusting
+  // submit. **`null` means the word LANDED; a `NotOkEnvelope` means it did
+  // not** — the game reads its own answers (`pangram` in one, `dealt` in
+  // another, which a shared hook could not) and hands back only whether the
+  // optimistic pill is still true.
+  send: (entry: FoundWordsWord) => Promise<NotOkEnvelope | null>
   // Every answer, as it is decided — the game says what it means (its
   // `lib/answer.ts`) and shows it. Fires for EVERY answer, already-found
-  // included, and before the commit for an accepted word.
+  // included, and before the send for an accepted word.
   onAnswer: (report: WordSubmitReport) => void
   // Optional: also RECORD the rejection, don't just show it. Omitted, a rejected
   // word never leaves the client. Supplied, the rejection is a TURN — it goes in
@@ -137,15 +138,15 @@ export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitA
   // never lags a keystroke. This is what makes **tap-to-submit** correct: a player
   // builds a word by tapping (board tiles in boggle, hive letters in spellingbee —
   // each an `onChange`/`setWord`), then taps the Submit button. A passive-effect
-  // sync updates only after paint, so a fast Submit tap in the commit→paint gap
+  // sync updates only after paint, so a fast Submit tap in the state→paint gap
   // would read a one-tap-stale word ("tapped 3 tiles, submitted 2 letters"); a
   // synchronous write closes that window, and the ref keeps `submit` stable.
   const wordRef = useRef(word)
 
   // Words accepted this session but whose `found_words` row may not have arrived
   // via realtime yet — dedup against these too, so a fast re-submit during the
-  // propagation lag doesn't double-commit. A word leaves the set only if its
-  // commit fails (so a retry is allowed); on success the realtime row supersedes it.
+  // propagation lag doesn't double-submit. A word leaves the set only if its
+  // send fails (so a retry is allowed); on success the landed row supersedes it.
   const pendingRef = useRef<Set<string>>(new Set())
 
   // The exposed setter updates the ref eagerly (event time, not render) so
@@ -196,15 +197,15 @@ export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitA
       return
     }
 
-    // Accept optimistically: reserve the word, answer, commit in the background.
+    // Accept optimistically: reserve the word, answer, send in the background.
     pendingRef.current.add(w)
     c.onAnswer({ answer: 'accepted', word: w, entry })
 
-    // The commit lost: free the word so it can be retried, and put the
+    // The send lost: free the word so it can be retried, and put the
     // server's own sentence up — a notOk, which ranks over the optimistic
     // answer and needs its × (docs/ui.md → Feedback pill). A fault's modal is
     // raised centrally by `runRpc` rather than by anything here.
-    c.commit(entry).then(
+    c.send(entry).then(
       (failure) => {
         if (failure === null) return // it landed; the optimistic answer stands
         pendingRef.current.delete(w) // free it so the player can retry
@@ -214,8 +215,8 @@ export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitA
         c.localFeedbackSlot.show(FeedbackMessage.notOk(failure))
       },
       // `runRpc` resolves for every answer it can classify, so a REJECTION here
-      // is ours — a commit that threw rather than answering.
-      () => showFaultModal({ text: 'BUG: a word commit threw instead of answering' }),
+      // is ours — a send that threw rather than answering.
+      () => showFaultModal({ text: 'BUG: a word submit threw instead of answering' }),
     )
   }, [])
 

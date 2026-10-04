@@ -53,12 +53,12 @@ type PlayAreaProps = Pick<
 /**
  * spellingbee's play surface, shared by the coop and compete manifests — the
  * coordinator. It holds no board and draws no control of its own: `<BoardCol>`
- * takes the hive, the word engine and the `submit_word` commit, `<InfoCol>` the
+ * takes the hive, the word engine and the `submit_word` RPC, `<InfoCol>` the
  * readouts, the action row and the word list, and this component decides what
  * each of them is handed.
  *
  * Both manifests mount it, and the mode (`gd.mode`) is what differs: whose
- * finds the readout counts, what a peer's move is worth narrating (a
+ * finds the state line counts, what a peer's move is worth narrating (a
  * teammate's find in coop, a rival's rank climbed in compete), and the
  * ending's words.
  *
@@ -92,7 +92,7 @@ function PlayArea({
   // ─── The local slot, and what stands in it ─────────────
 
   // The slot under the board is for messages about ME: each word's answer, a
-  // commit's not-ok, and the two endings below.
+  // submit's not-ok, and the two endings below.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // The endings' messages, for the pill and the info column: the game's once

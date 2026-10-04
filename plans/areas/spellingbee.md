@@ -42,7 +42,8 @@ Agreed with Joel 2026-09-22 (*"agree to the list"*), `cs-met-spellingbee` —
 area re-reads them:** `hooks/useGame.test.ts`, `lib/gameData.fixture.ts`,
 `lib/wordRows.ts`, `hooks/useActionsAndMenu.ts`,
 `hooks/useGetGameEndingMessage.ts`, `hooks/useGetPlayerEndingMessage.ts`,
-`hooks/useShowOppsRankMessages.ts`, `supabase/tests/spellingbee/game_data_test.sql`;
+`hooks/useShowOppsRankMessages.ts`, `hooks/useSubmitWord.ts` + its test (the
+Board pass, 2026-10-04), `supabase/tests/spellingbee/game_data_test.sql`;
 and deleted `supabase/tests/spellingbee/statuses_test.sql`. `components/PlayArea.test.tsx`
 was rewritten over the fixture.
 

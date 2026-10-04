@@ -67,6 +67,7 @@
   font-size: calc(34 * var(--u));
   font-weight: 800;
   line-height: 1;
+  text-transform: uppercase;
   transition:
     transform 80ms ease,
     box-shadow 80ms ease,

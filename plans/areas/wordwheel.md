@@ -40,7 +40,8 @@ Agreed with Joel 2026-09-23 (*"i do; stamp the files"*), `cs-met-wordwheel` —
 area re-reads them:** `hooks/useGame.test.ts`, `lib/gameData.fixture.ts`,
 `lib/wordRows.ts`, `hooks/useActionsAndMenu.ts`,
 `hooks/useGetGameEndingMessage.ts`, `hooks/useGetPlayerEndingMessage.ts`,
-`hooks/useShowOppsRankMessages.ts`, `supabase/tests/wordwheel/game_data_test.sql`;
+`hooks/useShowOppsRankMessages.ts`, `hooks/useSubmitWord.ts` + its test (the
+Board pass, 2026-10-04), `supabase/tests/wordwheel/game_data_test.sql`;
 and deleted `supabase/tests/wordwheel/statuses_test.sql`. `components/PlayArea.test.tsx`
 was rewritten over the fixture.
 

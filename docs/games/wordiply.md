@@ -529,7 +529,7 @@ follows it line-for-line).
   to the FE, submit is the same **sync-lookup + optimistic + trusting-commit**
   engine wordwheel uses — the lookup is membership in the shipped `legalWords`
   Set (points = the word's **length**, so the hook's per-word value IS the
-  length), `commit` calls the `submit_guess` RPC (and surfaces a server
+  length), `send` calls the `submit_guess` RPC (and surfaces a server
   `{ok:false}` as a release). `minWordLength = base.length + 1`; `answerOf`
   distinguishes "must contain BASE" from "not a word". A rejected guess is
   decided on the FE and then recorded through `recordReject` (§7b). **An

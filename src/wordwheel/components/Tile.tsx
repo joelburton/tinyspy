@@ -10,7 +10,7 @@ import styles from './Tile.module.css'
 
 type Props = {
   letter: string
-  isCenter?: boolean
+  isCenter: boolean
   // This tile's center + radius, in the wheel's coordinate units.
   pos: { cx: number; cy: number; r: number }
   // Absent when the board is read-only: the tile takes no click and wears no
@@ -18,7 +18,7 @@ type Props = {
   onClick?: () => void
   // The typed word is spending this tile: it wears the selected edge and takes
   // no click, hover or press, since a word uses each tile once.
-  spent?: boolean
+  spent: boolean
   // A refused word used this tile: its face wears that answer's fill, edge and
   // white ink for as long as the answer is up, and shakes once as it arrives
   // (the Board remounts it per refusal, which is what replays the shake).
@@ -47,7 +47,6 @@ type Props = {
  * `onMouseDown` is prevented so a click does not select the letter text.
  */
 export function Tile({ letter, isCenter, pos, onClick, spent, answer }: Props) {
-  const up = letter.toUpperCase()
   return (
     <div
       className={cls(
@@ -72,7 +71,7 @@ export function Tile({ letter, isCenter, pos, onClick, spent, answer }: Props) {
           '--d': `calc(${2 * pos.r + RING_W} * var(--u))`,
         } as CSSProperties
       }
-      data-tile={up}
+      data-tile={letter}
       data-center={isCenter || undefined}
       data-spent={spent || undefined}
       onClick={spent ? undefined : onClick}
@@ -80,7 +79,7 @@ export function Tile({ letter, isCenter, pos, onClick, spent, answer }: Props) {
     >
       {/* The shared head-shake, on the FACE — the piece; the seats are the
           flower and stay put. Every answer a tile can wear is a refusal. */}
-      <div className={cls(styles.face, answer && shared.verdictShake)}>{up}</div>
+      <div className={cls(styles.face, answer && shared.verdictShake)}>{letter}</div>
     </div>
   )
 }

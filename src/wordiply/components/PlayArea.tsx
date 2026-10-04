@@ -74,7 +74,7 @@ type LeaderRow = {
 /** What `wordiply.submit_guess` puts in `data`.
  *
  *  The two results reach DIFFERENT call sites, which is what `fe_legal` says:
- *  `commit` claims the word is legal and can only be told `accepted`, while
+ *  `send` claims the word is legal and can only be told `accepted`, while
  *  `recordReject` reports a rejection the FE already made and asks which guard
  *  applied. A duplicate is neither — nothing is recorded, so it refuses. */
 type GuessResult =
@@ -243,7 +243,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
       // give, but only to `recordReject` below: the FE gates all three reasons
       // before committing, so a structural break claimed legal here comes back
       // as PN367, a fault. Every refusal means the guess was NOT recorded.
-      commit: async (e) => {
+      send: async (e) => {
         const res = await runRpc<GuessResult>(
           db.rpc('submit_guess', { target_game: gameId, word: e.word }),
         )

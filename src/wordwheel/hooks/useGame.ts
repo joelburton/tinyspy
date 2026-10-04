@@ -10,7 +10,7 @@ import type { GGameData, GGameDataRaw } from '../types'
  * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
  * reads what the surface would. The reading is the bee games' shared one
  * (`makeBeeGameData`: the links become players, the seat rule withholds a
- * rival's finds mid-race, the readout is decided once); what is wordwheel's
+ * rival's finds mid-race, the state line's data is decided once); what is wordwheel's
  * is its setup rows, built from its setup and its board's letters.
  */
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {

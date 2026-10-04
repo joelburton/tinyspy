@@ -27,8 +27,8 @@ The **shipped** in "shipped legal list" carries weight. Each board's full answer
 key is computed when the board is made and travels to the browser with it, so
 the client holds every word that counts before the first keystroke. That is what
 makes the engine optimistic: a legal word needs no round trip to confirm, the
-`+N` shows immediately, and the commit happens in the background without ever
-blocking the next word. It is also why these games are trusting-commit — the
+`+N` shows immediately, and the send happens in the background without ever
+blocking the next word. It is also why the submit is a TRUSTING one — the
 server records what it is told, because the client was given the answers
 ([CLAUDE.md → Trust model](../../../CLAUDE.md)).
 
@@ -43,7 +43,7 @@ would be mean. Some games have answers the others lack — a pangram — and one
 misses the list in more ways than another can tell apart. What an answer MEANS
 is a rule of the game, not a fact about the lookup that produced it, so the
 engine has no words of its own. The one thing it shows is the server's `not-ok`
-when a commit does not land: that sentence is the server's, and every game shows
+when a send does not land: that sentence is the server's, and every game shows
 it the same way ([docs/outcomes.md → One event, one outcome](../../../docs/outcomes.md)).
 
 A word has one spelling in this folder: the blob's. `FoundWordsWord` is a
@@ -61,8 +61,8 @@ The folder holds no component. Its seams are a who-calls-what question, so:
 ```
 spellingbee/PlayArea ┐
    wordwheel/PlayArea ├─▶ useFoundWordSubmit ──▶ the game's localFeedbackSlot
-      boggle/PlayArea │            ▲                (a commit's not-ok only)
-     wordiply/PlayArea ┘            lookup / commit / onAnswer
+      boggle/PlayArea │            ▲                (a send's not-ok only)  
+     wordiply/PlayArea ┘            lookup / send / onAnswer
                                     (onAnswer shows the game's own lib/answer.ts)
 
 spellingbee/PlayArea ┐  (twice each: once for the screen, once inside the print action)

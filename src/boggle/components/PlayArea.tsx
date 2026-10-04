@@ -189,7 +189,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
       // Two ok answers, both meaning the row landed — the classification is the
       // FE's own flag coming back, and the optimistic pill already said it. The
       // three refusals all mean the word was NOT recorded, so each releases it.
-      commit: async (e) => {
+      send: async (e) => {
         const res = await runRpc<SubmittedWord>(
           db.rpc('submit_word', {
             target_game: gameId,
