@@ -5,8 +5,7 @@ import { difficultyValue } from '@/common/setup-form/difficulty'
 import { BOARD_KEY, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import { DICE_BY_NAME } from './dice'
-import { formatBoard } from './customBoard'
-import type { GSetup } from '../types'
+import type { GPuzzle, GSetup, GTile } from '../types'
 
 /**
  * One "Board constraints" grid row (Words / Score / Longest), read back as a
@@ -17,6 +16,17 @@ import type { GSetup } from '../types'
  * flat list beside "Min word length: 3", where a bare pair of numbers would
  * read as two separate facts, and the same string has to work on paper.
  */
+/**
+ * The board as rows of written tiles — `"ABQuD-EFGH-IJKL-MNOP"`, a blank as
+ * `?` — the form the setup field takes back (`lib/customBoard.ts`).
+ */
+function writeTiles(tiles: GTile[], side: number): string {
+  const written = tiles.map((t) => (t.letters === null ? '?' : t.letters[0]!.toUpperCase() + t.letters.slice(1)))
+  const rows: string[] = []
+  for (let y = 0; y < side; y++) rows.push(written.slice(y * side, (y + 1) * side).join(''))
+  return rows.join('-')
+}
+
 function boundsValue(min: number | undefined, max: number | undefined): string | null {
   if (min == null && max == null) return null
   if (min != null && max != null) return min === max ? `exactly ${min}` : `${min} to ${max}`
@@ -47,9 +57,7 @@ export function makeSetupRows(
   setup: GSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
-  /** The board's raw face string + side length, or null while the game row is
-   *  still loading. */
-  board: { board: string; n: number } | null = null,
+  puzzle: Pick<GPuzzle, 'tiles' | 'boardSideSize'>,
 ): SetupRow[] {
   // Derived here rather than taken as an argument: it's a pure function of a
   // setup KEY, and the component computed it too late in its render to hand over.
@@ -60,7 +68,7 @@ export function makeSetupRows(
   const isCustomBoard = (setup.custom_board ?? '').trim() !== ''
   return [
     makeRosterRow(players),
-    ...(board ? [{ key: BOARD_KEY, label: 'Letters', value: formatBoard(board.board, board.n) }] : []),
+    { key: BOARD_KEY, label: 'Letters', value: writeTiles(puzzle.tiles, puzzle.boardSideSize) },
     {
       key: 'dice_set',
       label: 'Board',

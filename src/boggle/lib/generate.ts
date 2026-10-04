@@ -14,9 +14,8 @@
 // module graph, and Deno requires extensions. Vite/Vitest/tsc accept them too
 // (tsconfig `allowImportingTsExtensions`).
 import { createSolver, listWords, parseBoard } from './solver.ts'
-import type { FoundWord } from './solver.ts'
 import type { Trie } from '../../shared/dict-trie/trie.ts'
-import type { GBoardConstraints, GDiceSet, GLadderName } from '../types.ts'
+import type { GBoardConstraints, GDiceSet, GLadderName, GSolverWord } from '../types.ts'
 // Board generation is seeded so a board is reproducible from its seed — per
 // CLAUDE.md's trust table, seeds are server-chosen for fairness, not secrecy.
 // Relative, not `@/`: this module is on the Deno import graph
@@ -40,7 +39,7 @@ interface GeneratedBoard {
   /** row-major raw-face string (A–Z, multiface digit, or 0 for blank) */
   board: string
   n: number
-  requiredWords: FoundWord[]
+  requiredWords: GSolverWord[]
   count: number
   longest: number
   score: number
@@ -113,9 +112,9 @@ export function generateBoard(
 export function listBonusWords(
   legalTrie: Trie,
   boardStr: string,
-  requiredWords: FoundWord[],
+  requiredWords: GSolverWord[],
   opts: { minWordLength?: number; ladder?: GLadderName },
-): FoundWord[] {
+): GSolverWord[] {
   const required = new Set(requiredWords.map((w) => w.word))
   return listWords(legalTrie, parseBoard(boardStr), opts).filter((w) => !required.has(w.word))
 }

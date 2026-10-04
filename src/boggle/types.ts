@@ -363,3 +363,10 @@ export type GDiceSet = {
   /** one 6-char face string per die; length === n * n */
   dice: readonly string[]
 }
+
+/** A word the solver finds on a board while it is built, with its points; the
+ *  board's required and bonus lists are made of these. */
+export type GSolverWord = {
+  word: string
+  points: number
+}

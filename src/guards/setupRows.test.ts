@@ -115,6 +115,7 @@ const PLAYERS: Member[] = [
  */
 const EXTRA_ARGS: Record<string, unknown[]> = {
   letterboxed: ['abcdefghijkl'],
+  boggle: [{ tiles: [...'abcdefghijklmnop'].map((l, i) => ({ id: String(i), letters: l })), boardSideSize: 4 }],
 }
 
 /** One manifest per game FAMILY — a coop/compete pair shares a setup-rows module. */

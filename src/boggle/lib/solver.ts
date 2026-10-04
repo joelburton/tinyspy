@@ -37,7 +37,7 @@
 // and Deno resolves neither the `@/` alias nor an extensionless path.
 import type { Trie } from '../../shared/dict-trie/trie.ts'
 export { buildTrie } from '../../shared/dict-trie/trie.ts'
-import type { GBoard, GLadderName } from '../types.ts'
+import type { GBoard, GLadderName, GSolverWord } from '../types.ts'
 
 /** Multiface tiles, encoded in board strings as a digit. Each occupies one tile
  *  but contributes two letters (you can't use half a tile). Matches wsboggle's
@@ -228,11 +228,6 @@ export function createSolver(trie: Trie) {
   return { solve }
 }
 
-export interface FoundWord {
-  word: string
-  points: number
-}
-
 /** List every distinct word (≥ min length) on a board, with its score — i.e. the
  *  actual word strings, which the hot `solve()` deliberately never builds.
  *
@@ -240,7 +235,7 @@ export interface FoundWord {
  *  not on the rejection-sampling path, so clarity beats speed here (plain
  *  recursion, a visited byte array, the word built as a list of letter indices).
  *  Its `(count, longest, score)` agree with `solve()` by construction. */
-export function listWords(trie: Trie, board: GBoard, opts: SolveOptions = {}): FoundWord[] {
+export function listWords(trie: Trie, board: GBoard, opts: SolveOptions = {}): GSolverWord[] {
   const { children, eow } = trie
   const minLen = opts.minWordLength ?? 3
   const ladder = LADDERS[opts.ladder ?? 'basic']
@@ -249,7 +244,7 @@ export function listWords(trie: Trie, board: GBoard, opts: SolveOptions = {}): F
   const seen = new Uint8Array(trie.nNodes) // 1 once a terminal node is emitted
   const used = new Uint8Array(n * n)
   const letters: number[] = [] // letter indices of the in-progress word
-  const out: FoundWord[] = []
+  const out: GSolverWord[] = []
 
   function emitIfWord(node: number): void {
     if (letters.length >= minLen && eow[node] && !seen[node]) {

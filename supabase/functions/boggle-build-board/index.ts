@@ -51,9 +51,8 @@ import {
   LADDERS,
   listWords,
   parseBoard,
-  type FoundWord,
 } from '../../../src/boggle/lib/solver.ts'
-import type { GBoardConstraints, GLadderName } from '../../../src/boggle/types.ts'
+import type { GBoardConstraints, GLadderName, GSolverWord } from '../../../src/boggle/types.ts'
 import { parseCustomBoard } from '../../../src/boggle/lib/customBoard.ts'
 import { requiredTrie, legalTrie } from './dict.ts'
 import { preflight } from '../_shared/http.ts'
@@ -124,7 +123,7 @@ serve(async (req: Request): Promise<Response> => {
     // The board, one of two ways — both ending in the same shape: the raw face
     // string, its side length, and its solved required-word list.
     const customText = (setup.custom_board ?? '').trim()
-    let board: { board: string; n: number; requiredWords: FoundWord[]; score: number }
+    let board: { board: string; n: number; requiredWords: GSolverWord[]; score: number }
 
     if (customText !== '') {
       // ─── Custom board: solve exactly the player's tiles ──────────────────
