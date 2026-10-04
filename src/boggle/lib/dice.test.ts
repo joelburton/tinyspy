@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { DICE_BY_NAME, DICE_SETS, boardToDisplay, faceToDisplay } from './dice'
+import { DICE_BY_NAME, DICE_SETS, faceToDisplay } from './dice'
 
 describe('boggle dice sets', () => {
   it('every set has n² dice of 6 valid faces each', () => {
@@ -27,10 +27,5 @@ describe('boggle dice sets', () => {
     expect(faceToDisplay('1')).toBe('Qu')
     expect(faceToDisplay('6')).toBe('An')
     expect(faceToDisplay('0')).toBe('?')
-  })
-
-  it('renders a board into an n×n display grid', () => {
-    const grid = boardToDisplay('AB1D', 2) // 2×2; cell 2 is a Qu tile
-    expect(grid).toEqual([['A', 'B'], ['Qu', 'D']])
   })
 })

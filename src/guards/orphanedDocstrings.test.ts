@@ -50,9 +50,6 @@ import { describe, expect, it } from 'vitest'
 const KNOWN: string[] = [
   // → bananagrams
   'src/bananagrams/hooks/usePlayerBoard.ts › BananagramsCheckResult',
-  // → boggle
-  'src/boggle/manifest.ts › coopLabel',
-  'src/boggle/manifest.ts › competeLabel',
   // → crosswords
   'src/crosswords/components/PlayArea.tsx › CheckAnswer',
   'src/crosswords/components/PuzzleSourceField.tsx › NextDateAnswer',

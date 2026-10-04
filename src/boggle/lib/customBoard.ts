@@ -77,25 +77,6 @@ export function cleanCustomBoard(raw: string): string {
 }
 
 /**
- * A board string as ROWS of written tiles — `"ABQuD-EFGH-IJKL-MNOP"`. This is
- * what the `Letters` setup row prints and what the setup field takes back.
- *
- * DASHES, matching what the setup field draws as you type and what letterboxed
- * writes its four sides in. A setup row that separated rows differently would be a
- * second written form of the same thing, against the whole point: you read a
- * board off the info column or the printout and paste it straight back.
- */
-export function formatBoard(board: string, n: number): string {
-  const rows: string[] = []
-  for (let y = 0; y < n; y++) {
-    let row = ''
-    for (let x = 0; x < n; x++) row += faceToDisplay(board[y * n + x])
-    rows.push(row)
-  }
-  return rows.join('-')
-}
-
-/**
  * What a typed board read as: the raw face string, or the one-line reason it
  * couldn't be read.
  *

@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest'
 import { DICE_SETS } from './dice'
 import { rollBoard } from './generate'
 import { mulberry32 } from '@/common/utils/mulberry32'
-import { capBoard, cleanCustomBoard, formatBoard, parseCustomBoard, readTiles } from './customBoard'
+import { capBoard, cleanCustomBoard, parseCustomBoard, readTiles } from './customBoard'
+import { ZTest_formatBoard } from './customBoard.fixture'
 
 /**
  * The custom-board round trip. The feature's whole promise is "read the letters
@@ -12,7 +13,7 @@ import { capBoard, cleanCustomBoard, formatBoard, parseCustomBoard, readTiles } 
  * that either function is individually sensible — it's that they COMPOSE:
  * `parse(format(board)) === board`, for boards that really occur.
  */
-describe('formatBoard / parseCustomBoard round trip', () => {
+describe('the written board / parseCustomBoard round trip', () => {
   // Every dice set, many rolls each: the multiface tiles and the blank are rare
   // per-roll (one `1` die in 4×4 Revised, three `0` faces on one 6×6 die), so a
   // handful of boards would mostly exercise plain letters and prove nothing
@@ -23,7 +24,7 @@ describe('formatBoard / parseCustomBoard round trip', () => {
       const rand = mulberry32(20260811)
       for (let i = 0; i < 200; i++) {
         const board = rollBoard(set, rand)
-        expect(parseCustomBoard(formatBoard(board, set.n), set.n)).toEqual({ ok: true, board })
+        expect(parseCustomBoard(ZTest_formatBoard(board, set.n), set.n)).toEqual({ ok: true, board })
       }
     })
   }
@@ -40,18 +41,6 @@ describe('formatBoard / parseCustomBoard round trip', () => {
       }
     }
     expect([...seen].sort()).toEqual(['0', '1', '2', '3', '4', '5', '6'])
-  })
-})
-
-describe('formatBoard', () => {
-  it('reads top-to-bottom, left-to-right, one DASH per row', () => {
-    // Matches what <ManualBoardField> draws as you type, so a board reads back
-    // in the form you would paste it.
-    expect(formatBoard('ABCDEFGHIJKLMNOP', 4)).toBe('ABCD-EFGH-IJKL-MNOP')
-  })
-
-  it('writes the two-letter tiles and the blank as a player sees them', () => {
-    expect(formatBoard('AB1D0FGH123456IJ', 4)).toBe('ABQuD-?FGH-QuInThEr-HeAnIJ')
   })
 })
 

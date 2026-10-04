@@ -8,7 +8,6 @@
  * including multiface tiles (Qu, …) matching their two letters together and
  * blank tiles matching nothing.
  */
-import { parseBoard } from './solver'
 import type { GBoard, GTraceCells } from '../types'
 
 const A = 'a'.charCodeAt(0)
@@ -75,11 +74,6 @@ export function tracePath(board: GBoard, word: string): number[] | null {
     path.length = 0
   }
   return null
-}
-
-/** …the same walk against a raw board string (the `boggle.games.board` shape). */
-export function tracePathStr(boardStr: string, word: string): number[] | null {
-  return tracePath(parseBoard(boardStr), word)
 }
 
 /**
@@ -182,11 +176,6 @@ export function traceCells(board: GBoard, word: string): GTraceCells {
   return { certain: [...certain], possible: [...possible], reach: full.reach }
 }
 
-/** …the same, against a raw board string. */
-export function traceCellsStr(boardStr: string, word: string): GTraceCells {
-  return traceCells(parseBoard(boardStr), word)
-}
-
 /** Can `word` be traced on a parsed board? */
 export function traceable(board: GBoard, word: string): boolean {
   const w = word.toLowerCase()
@@ -232,7 +221,3 @@ export function traceable(board: GBoard, word: string): boolean {
   return false
 }
 
-/** Convenience: trace against a raw board string (the `boggle.games.board` shape). */
-export function traceableStr(boardStr: string, word: string): boolean {
-  return traceable(parseBoard(boardStr), word)
-}

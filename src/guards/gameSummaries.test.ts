@@ -78,6 +78,12 @@ function isGameEndingFamily(fam: Family | GameEndingFamily): fam is GameEndingFa
 const BEE_TEAM = { nFoundWords: 7, foundWordsScore: 21, rankIdx: 3, targetRankIdx: 6 }
 const BEE_LIVE = { team: BEE_TEAM, nReqdWords: 30, reqdWordsScore: 50, targetRankIdx: 6 }
 const BEE_RACE = { team: null, nReqdWords: 30, reqdWordsScore: 50, targetRankIdx: 6 }
+/** boggle's coop team figures, as `boggle._make_json_found_counts` writes them. */
+const BOGGLE_TEAM = {
+  nFoundWords: 7, foundWordsScore: 21, nFoundReqdWords: 5, foundReqdWordsScore: 15,
+  nFoundBonusWords: 2, foundBonusWordsScore: 6,
+}
+
 // spellingbee and wordwheel end alike and their builders write the same blob, so one matrix.
 const BEE_CASES: GameEndingFamily = {
   live: BEE_LIVE,
@@ -172,25 +178,24 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   // four figures and null in compete; the target rank is the game's, null when coop set none.
   spellingbee: BEE_CASES,
   wordwheel: BEE_CASES,
-  // boggle's terminal state now depends on whether a TARGET was set —
-  // setup.win_percent, which the label reads off the row's setup.
+  // boggle._make_json_summary_data: `team` is the coop team's six counts and null in compete;
+  // the target is the game's share of the required points, null when none was set; the top
+  // score is compete's, null until the end.
   boggle: {
-    playing: { found_words_count: 7, found_words_score: 21, leaderboard: [{}, {}] },
-    setup: { win_percent: 65 },
+    live: { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null },
     coop: [
-      ['won', { reason: 'target', found_words_count: 30, found_words_score: 90 }, 'reached target'],
-      ['lost', { reason: 'timeout', found_words_count: 7, found_words_score: 21 }, 'timeout, target set'],
-      ['ended', { reason: 'timeout', found_words_count: 7, found_words_score: 21 }, 'timeout, no target'],
-      ['ended', { reason: 'manual', found_words_count: 7, found_words_score: 21 }, 'manual end'],
+      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'reached the target'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'timeout, target set'],
+      [{ outcome: 'neutral', reason: 'timeout' }, { team: BOGGLE_TEAM, targetWinPercent: null, topScore: null }, 'timeout, no target'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'Stop'],
     ],
     compete: [
-      ['won_compete', { reason: 'target', ...W }, 'reached target'],
-      ['won_compete', { reason: 'timeout', top_score: 90, ...W }, 'top score at the buzzer (no target)'],
-      ['won_compete', { reason: 'timeout', top_score: 90 }, 'tied top score (no target)'],
-      ['lost_compete', { reason: 'timeout' }, 'timeout, target set'],
-      ['lost_compete', { reason: 'timeout', leaderboard: [] }, 'timeout, nobody scored'],
-      ['ended', { reason: 'manual' }, 'manual end'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: null, targetWinPercent: 65, topScore: 70 }, 'reached the target'],
+      [{ outcome: 'won', reason: 'timeout', winner: 'u-alice' }, { team: null, targetWinPercent: null, topScore: 90 }, 'top score at the buzzer (no target)'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, targetWinPercent: 65, topScore: 40 }, 'timeout, target set'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, targetWinPercent: null, topScore: 0 }, 'timeout, nobody scored'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, targetWinPercent: null, topScore: 0 }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, targetWinPercent: null, topScore: 40 }, 'Stop'],
     ],
   },
   bananagrams: {

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { traceableStr, tracePathStr, traceCellsStr } from './boardTrace'
+import { ZTest_traceableStr, ZTest_tracePathStr, ZTest_traceCellsStr } from './boardTrace.fixture'
 import { buildTrie, listWords, parseBoard } from './solver'
 import { boggleSolverFixture as fixture } from './solver.fixture'
 
@@ -14,7 +14,7 @@ describe('boardTrace', () => {
     const fails: string[] = []
     for (const c of fixture.cases.slice(0, 12)) {
       for (const { word } of listWords(trie, parseBoard(c.board), opts)) {
-        if (!traceableStr(c.board, word)) fails.push(`${c.board}:${word}`)
+        if (!ZTest_traceableStr(c.board, word)) fails.push(`${c.board}:${word}`)
       }
     }
     expect(fails).toEqual([])
@@ -22,30 +22,30 @@ describe('boardTrace', () => {
 
   it('rejects words not on the board', () => {
     // 2×2: C A / T R (all mutually adjacent)
-    expect(traceableStr('CATR', 'cat')).toBe(true)
-    expect(traceableStr('CATR', 'arc')).toBe(true)
-    expect(traceableStr('CATR', 'dog')).toBe(false) // letters not present
-    expect(traceableStr('CATR', 'cc')).toBe(false)  // only one C, no reuse
+    expect(ZTest_traceableStr('CATR', 'cat')).toBe(true)
+    expect(ZTest_traceableStr('CATR', 'arc')).toBe(true)
+    expect(ZTest_traceableStr('CATR', 'dog')).toBe(false) // letters not present
+    expect(ZTest_traceableStr('CATR', 'cc')).toBe(false)  // only one C, no reuse
   })
 
   it('handles multiface (Qu) and blank tiles', () => {
     // 2×2: cell0 = Qu (1), I, T, S
-    expect(traceableStr('1ITS', 'quit')).toBe(true)  // Qu→I→T
-    expect(traceableStr('1ITS', 'its')).toBe(true)
+    expect(ZTest_traceableStr('1ITS', 'quit')).toBe(true)  // Qu→I→T
+    expect(ZTest_traceableStr('1ITS', 'its')).toBe(true)
     // blank (0) tile matches nothing
-    expect(traceableStr('CA0T', 'cat')).toBe(true)   // C-A-T, blank unused
-    expect(traceableStr('0000', 'cat')).toBe(false)
+    expect(ZTest_traceableStr('CA0T', 'cat')).toBe(true)   // C-A-T, blank unused
+    expect(ZTest_traceableStr('0000', 'cat')).toBe(false)
   })
 })
 
 describe('tracePath', () => {
   it('gives the cells a word uses, in order', () => {
     // CATR on one row: C=0, A=1, T=2, R=3.
-    expect(tracePathStr('CATR', 'cat')).toEqual([0, 1, 2])
+    expect(ZTest_tracePathStr('CATR', 'cat')).toEqual([0, 1, 2])
   })
 
   it('is null for a word the board cannot spell', () => {
-    expect(tracePathStr('CATR', 'dog')).toBeNull()
+    expect(ZTest_tracePathStr('CATR', 'dog')).toBeNull()
   })
 
   it('finds a path for every word the solver finds', () => {
@@ -54,14 +54,14 @@ describe('tracePath', () => {
     const fails: string[] = []
     for (const c of fixture.cases.slice(0, 12)) {
       for (const { word } of listWords(trie, parseBoard(c.board), opts)) {
-        if (tracePathStr(c.board, word) === null) fails.push(`${c.board}:${word}`)
+        if (ZTest_tracePathStr(c.board, word) === null) fails.push(`${c.board}:${word}`)
       }
     }
     expect(fails).toEqual([])
   })
 
   it('returns one cell per letter, never reusing a tile', () => {
-    const path = tracePathStr('CATR', 'cat')
+    const path = ZTest_tracePathStr('CATR', 'cat')
     expect(path).toHaveLength(3)
     expect(new Set(path)).toHaveLength(3)
   })
@@ -78,7 +78,7 @@ describe('traceCells', () => {
   // that everything OUTSIDE that choice stays settled the whole time.
   const B = 'HEAXTZZARZZZZZZZZZZZZZZZ' + 'Z'
   const cells = (word: string) => {
-    const { certain, possible, reach } = traceCellsStr(B, word)
+    const { certain, possible, reach } = ZTest_traceCellsStr(B, word)
     return {
       certain: [...certain].sort((a, b) => a - b),
       possible: [...possible].sort((a, b) => a - b),
@@ -118,7 +118,7 @@ describe('traceCells', () => {
     // A board of one letter multiplies routes without end. The walk stops, and
     // what it reports is the honest half: these tiles are in play, and it can no
     // longer say which of them a letter is pinned to.
-    const { certain, possible, reach } = traceCellsStr('A'.repeat(25), 'aaaaaaa')
+    const { certain, possible, reach } = ZTest_traceCellsStr('A'.repeat(25), 'aaaaaaa')
     expect(certain).toEqual([])
     expect(possible.length).toBe(25)
     expect(reach).toBe(7)

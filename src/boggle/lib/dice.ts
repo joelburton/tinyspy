@@ -26,16 +26,6 @@ export function faceToDisplay(face: string): string {
   return FACE_DISPLAY[face] ?? face
 }
 
-/** Turn a row-major raw board string into an n×n grid of display strings. */
-export function boardToDisplay(board: string, n: number): string[][] {
-  if (board.length !== n * n) throw new Error(`board length ${board.length} != ${n * n}`)
-  const grid: string[][] = []
-  for (let y = 0; y < n; y++) {
-    grid.push(Array.from({ length: n }, (_, x) => faceToDisplay(board[y * n + x])))
-  }
-  return grid
-}
-
 export const DICE_SETS: readonly GDiceSet[] = [
   {
     name: '4-classic', desc: '4×4 Classic', n: 4, dice: [

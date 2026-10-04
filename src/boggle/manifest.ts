@@ -3,7 +3,9 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/summary'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
@@ -11,7 +13,7 @@ import {
   DEFAULT_BOGGLE_SETUP_COOP,
   boggleSetupError,
 } from './lib/setup'
-import type { GSetup } from './types'
+import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -55,69 +57,79 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-type StatusBlob = Record<string, unknown>
-type SetupBlob = Record<string, unknown> | null
+// The summary reads the game's `summary_data` (`GSummaryData`: the common part
+// with the team's finds, null in compete, the target and the top score).
 
-/** Coop club-page label: words found + points (and the terminal reason). */
+/** The team's words and points, for a coop label. */
+function teamTally(summary: GSummaryData): [string | null, string] {
+  const team = summary.team!
+  return [count(team.nFoundWords, 'word'), `${team.foundWordsScore} pts`]
+}
+
+/** A member's username, or undefined for an id that names nobody. */
+function usernameOf(members: readonly Member[], userId: string | null) {
+  return userId === null ? undefined : memberById(members, userId)?.username
+}
+
 /**
  * boggle coop. A game with a TARGET can be won or lost against it; a game
  * without one is an exercise, so any ending is neutral — the same rule
- * spellingbee applies to its rank target (boggle._finish picks the play_state,
- * this just renders it).
+ * spellingbee applies to its rank target (boggle._finish ranks the players,
+ * this just words it).
  */
-function coopLabel(row: { play_state: string; status: StatusBlob | null; setup: SetupBlob }): string {
-  const s = row.status ?? {}
-  const words = count(s.found_words_count as number | undefined, 'word')
-  const pts = `${(s.found_words_score as number | undefined) ?? 0} pts`
-  const pct = setupNum(row.setup, 'win_percent')
-  switch (row.play_state) {
-    case 'playing':
-      return statusLine(verdict('Playing'), words, pts)
+function makeCoopLabel(summary: GSummaryData): string {
+  const pct = summary.targetWinPercent
+  if (summary.ending === null) return statusLine(verdict('Playing'), ...teamTally(summary))
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
     case 'won':
-      return statusLine(verdict('Won', pct != null ? `reached ${pct}%` : null), words, pts)
+      return statusLine(verdict('Won', pct !== null ? `reached ${pct}%` : null), ...teamTally(summary))
     case 'lost':
-      return statusLine(verdict('Lost', 'out of time'), words, pts)
-    case 'ended':
+      return statusLine(verdict('Lost', 'out of time'), ...teamTally(summary))
+    case 'neutral':
       return statusLine(
-        verdict('Ended', (s.reason as string) === 'timeout' ? 'out of time' : null), words, pts)
+        verdict('Ended', summary.ending.reason === 'timeout' ? 'out of time' : null),
+        ...teamTally(summary),
+      )
     default:
-      return row.play_state
+      return outcome
   }
 }
 
-/** Compete club-page label: rank-only, no per-player scores in the listing. */
 /**
  * boggle compete. Two shapes of win: crossing the target first, and — in a
  * game with no target — holding the top score when the clock stops. A target
  * game whose clock runs out is a loss for everyone: nobody reached the bar,
- * however high the scores got.
+ * however high the scores got. No racer's own score reaches the listing.
  */
-function competeLabel(row: { play_state: string; status: StatusBlob | null; setup: SetupBlob }): string {
-  const s = row.status ?? {}
-  const pct = setupNum(row.setup, 'win_percent')
-  const top = s.top_score != null ? `${s.top_score as number} pts` : null
-  switch (row.play_state) {
-    case 'playing':
-      return statusLine(verdict('Playing'), pct != null ? `race to ${pct}%` : null)
-    case 'won_compete': {
-      // A tie leaves winner_username null — they share the top score.
-      const who = s.winner_username ? wonBy(s.winner_username as string) : verdict('Won', 'co-winners')
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
+  const pct = summary.targetWinPercent
+  if (summary.ending === null) {
+    return statusLine(verdict('Playing'), pct !== null ? `race to ${pct}%` : null)
+  }
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won': {
+      const who = wonBy(usernameOf(members, summary.ending.winner))
       // A target win reads "Won by alice at 65%" — one phrase. A score race
       // has no bar to name, so the winning score goes in the facts slot.
-      return (s.reason as string) === 'target' && pct != null
+      return summary.ending.reason === 'reached_goal' && pct !== null
         ? `${who} at ${pct}%`
-        : statusLine(who, top)
+        : statusLine(who, summary.topScore !== null ? `${summary.topScore} pts` : null)
     }
-    // Two collective losses share this state — the clock, and the last racer
-    // conceding (common.concede) — told apart by status.reason.
-    case 'lost_compete':
-      return (s.reason as string) === 'conceded'
+    // The two collective losses, told apart by the reason: the last racer
+    // dropped out, or the clock beat everyone to the target.
+    case 'lost':
+      return summary.ending.reason === 'conceded'
         ? verdict('Lost', 'all conceded')
         : statusLine(verdict('Lost', 'out of time'), 'no winner')
-    case 'ended':
+    // The one neutral race ending, the players agreeing to stop.
+    case 'neutral':
       return statusLine(verdict('Ended'), 'no winner')
     default:
-      return row.play_state
+      return outcome
   }
 }
 
@@ -147,7 +159,7 @@ export const boggleCoopGame: GameManifest = {
     validate: (setup) => boggleSetupError(setup as GSetup),
   },
   startGameInClub: startGameInClubFactory('coop'),
-  summaryFor: (row) => coopLabel(row),
+  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
   submitTimeout,
   stopGame,
 }
@@ -174,7 +186,7 @@ export const boggleCompeteGame: GameManifest = {
     validate: (setup) => boggleSetupError(setup as GSetup),
   },
   startGameInClub: startGameInClubFactory('compete'),
-  summaryFor: (row) => competeLabel(row),
+  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
   submitTimeout,
   stopGame,
 }

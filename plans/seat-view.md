@@ -554,7 +554,10 @@ step names where its rules live; this list does not restate them.
    the blob: `playersById` and `tilesById` beside their lists, links
    resolved, the seat rule applied, every outcome read once through
    `lib/answer.ts`; no reads, no subscription. Live state that only one
-   column reads is that column's hook (connections' `usePicks`).
+   column reads is that column's hook (connections' `usePicks`). The club
+   card goes with it: `manifest.ts`'s `summaryFor` reads `summary_data`
+   (`GSummaryData`), and the game's `gameSummaries` guard entry takes the
+   new shape.
 8. **The fixture** builds the raw blob from facts, as the builder would,
    under `ZTest_` names.
 
