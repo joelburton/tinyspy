@@ -485,8 +485,11 @@ next open (todo.md → Someday).
   carries `tilesById`); `useSubmitWord` owns each game's move; one case, the
   data's. `games_state`,
   `_write_statuses` and `found_words_select`'s mode arms went (each area file →
-  The convenience RLS). Still owed to both: the hive/wheel → board, hex/Letter
-  → Tile renames and the setup-type names (`SpellingbeeSetup` → `GSetup`).
+  The convenience RLS). The InfoCol pass gave each game a `StateLine` drawn in both
+  places; the naming pass put the blob's names on `GAnswer` and `Stats`, moved
+  the setup pair and `Answer` into `types.ts` under `G` names, and made the
+  geometry modules `lib/board.ts`. `wordsByWord` stays in `useSubmitWord` by
+  ruling.
 - **Next, in this order (2026-10-03):** psychicnum's naming pass
   (`nFoundSecrets`, `nReqdSecrets`, `nGuessesUsed`, with the two columns, plus
   `BoardCol` reading `gd.me.outcome` and the doc's stale lines), then

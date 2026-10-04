@@ -259,6 +259,47 @@ connections' BoardCol pass (2026-10-03) settled, beyond the two games above:
   through PlayArea as a prop that only `BoardCol` read; they are `usePicks`,
   a hook of `BoardCol`'s, and `useGame` hands back `gd` alone.
 
+## What spellingbee and wordwheel added
+
+The two bee games converted in tandem (2026-10-03/04), one shared shape under
+two folders, and settled beyond the three games above:
+
+- **Twins are byte-identical where the game is the same.** `PlayArea`,
+  `InfoCol`, `StateLine`, the actions hook and the four ending and narration
+  hooks differ only in the game's name; `Board`, `Tile`, `BoardCol` and
+  `useSubmitWord` differ only where the multiset does. What both need lives in
+  `shared/bee-games` — the blob shape and `makeBeeGameData`, the two ending
+  builders, `useTileShuffle` — under BARE names, since `G` means "this game's";
+  each `types.ts` names them as its own.
+- **The move is a hook, as psychicnum's.** `useSubmitWord` owns the lookup over
+  `gd.puzzle.words`, the `submit_word` call, what each answer shows and the
+  refused mark; the column passes `gameId`, `words`, `foundWords`, the center,
+  `isMyTurn` and the slot, and gets the typed word, `submit` and the mark back.
+  The engine's option for the RPC is `send`, psychicnum's word — never
+  "commit", which is not a word for submit.
+- **Wordwheel's claims are tile ids.** A click claims the tile it landed on, held
+  as `claimedTileIds` beside the word in the hook, for exactly as long as its
+  letter is in the word; `lib/spend.ts` works in ids, and the leftover spend
+  falls to the puzzle's order, which a shuffle no longer moves. `gd.puzzle`
+  carries `tilesById` for the lookup.
+- **The Board owns its display order and the Shuffle**, through the shared
+  `useTileShuffle` over tiles, and renders the `ShuffleButton` itself; the
+  `floatingControl` prop went.
+- **One case, the data's.** The word list is lowercase, so the typed word, the
+  marks and the claims stay lowercase and the capitals are put on at the draw
+  point: `text-transform` on the typed word and the wheel's face, by hand for
+  the SVG tile, the pill's sentence and the PDF. Nothing lowercases on the way
+  in.
+- **A fact read in two places is one component.** `StateLine` draws the ladder
+  and the figures from `gd.stateLineData` in the info column and the mobile
+  status bar; the strip's cell reads `player.ending` for "out", as the
+  siblings' do.
+- **An alias earns its place by being transparent.** `sld` for
+  `gd.stateLineData` where the full path six times in a line hid the sentence;
+  `readout`, a second word for the same thing, did not.
+- **`isCenter`, `used` and `spent` are required booleans** on the tiles: every
+  Board passes them, so an optional lied.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

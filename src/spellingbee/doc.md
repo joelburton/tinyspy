@@ -145,7 +145,7 @@ Three tables, in `supabase/migrations/20260617000000_spellingbee.sql`
 | `spellingbee.found_words` | one row per `(game, player, word)`, with `points`, `is_pangram`, `is_bonus` and `found_at`. The game's only working state |
 
 **Nothing is hidden from a client.** Both word lists are in the column grant
-and the view exposes them from the first read; the frontend judges every word
+and the `game_data` blob carries them from the first read; the frontend judges every word
 against them and the missed-words reveal is computed on the client once the
 game has ended. The trust model does not withhold an answer key from friends
 (CLAUDE.md → Trust model).
@@ -165,18 +165,17 @@ game's own, the same shape as the other bee game's
 
 | blob | spellingbee's part |
 |---|---|
-| `game_data` | `puzzle: {tiles, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore, sameBandsAndHaveNoBonus}`, as `create_game` froze it — a tile being `{id, letter, center}` with its place as its id and the center first, and every legal word `{word, points, pangram, bonus}`, the required ones first; `team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}`, what the team shares and the rank it set out for, null in compete; `events`, every found word in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx`, and `targetRankIdx`, the same on every player |
+| `game_data` | `puzzle: {tiles, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore, sameBandsAndHaveNoBonus}`, as `create_game` froze it — a tile being `{id, letter, center}` with its place as its id and the center first, and every legal word `{word, points, pangram, bonus}`, the required ones first; `team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}`, what the team shares and the rank it set out for, null in compete; `foundWords`, every find `{userId, word, points, pangram, bonus, at}` in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx`, and `targetRankIdx`, the same on every player |
 | `summary_data` | `team`, the same group; `nReqdWords`, `reqdWordsScore`, `targetRankIdx` |
 
 **The club-list title is the board**, `<CENTER>·<OUTER-SORTED>` — `A·CHIORT` —
 written once at creation and never changed, so one board reads one way in the
 club's history whatever the local shuffle.
 
-**Realtime is one room per client**, postgres-changes on both tables, and every
-change refetches the found list; the header loads once, since nothing in it
-changes during play. Both tables must be in the publication, since a
-subscription naming an unpublished table is rejected whole. Every move and ending
-rewrites the page blobs on `common.games`.
+**The client reads nothing from these tables.** The page is handed the blobs
+off `common.games` and re-reads them as the shell delivers each rewrite, and
+every move and ending rewrites them. The found rows are the server's working
+state; who may see a rival's mid-race is the hook's seat rule over the blob.
 
 ## RPCs
 
@@ -295,8 +294,8 @@ An accepted word is written to `found_words` with its points and flags. When
 the game has a target rank and this word carries the team's score (coop) or
 the caller's (compete) to it, the game ends `reached_goal` / `target`: the team
 ranked 1, or the caller alone. Either way the page blobs are rewritten. **The answer is about the caller's word and never
-about anyone else's**: the terminal reaches every client over realtime, and
-the reply only names this word's kind.
+about anyone else's**: the ending reaches every client with the rewritten blob, and the
+reply only names this word's kind.
 
 **Passed:** `{ "p_game_id": "3f2a…", "p_word": "chariot", "p_points": 17,
 "p_is_pangram": true, "p_is_bonus": false }`
@@ -350,8 +349,8 @@ The reply is read only for whether the row landed: any of its four `ok`s
 leaves the pill as it is, and a not-ok — the game ended or was deleted, the
 caller conceded, or a duplicate that slipped past the local check — replaces it with the
 server's own sentence and frees the word to be tried again. The end of the
-game, when this word was the one that ended it, arrives by realtime like every
-other terminal.
+game, when this word was the one that ended it, arrives with the next blob like every
+other ending.
 
 **Everything this game says about a word is [`lib/answer.ts`](lib/answer.ts)**
 — the words and the outcome together, one answer each. The engine names no
@@ -378,15 +377,16 @@ so the two routes to it read alike.
 Coop narrates every teammate's accepted word in the header, in the same
 outcome the finder saw; a refused word never becomes a row, so there is
 nothing to narrate. Compete cannot see an opponent's words and narrates the
-one thing it can: a rank reached, read off the status leaderboard as it
-changes. The terminal verdict and the out-of-race line are standing conditions
-of the local slot, not answers to a move; they are built in `PlayArea`.
+one thing it can: a rank reached — a rival's `rankIdx` climbing on the blob's player
+(`useShowOppsRankMessages`). The ending's line and the out-of-race line are
+standing conditions of the local slot, not answers to a move; the two ending
+hooks build them and `PlayArea` shows them.
 
 **New game goes through the edge function again**, with this game's setup,
 roster and mode, minus any custom letters: a hand-picked board is a one-off,
 and the follow-up game gets a random one. The creator jumps to the new game
 and the others arrive by the invitation toast. Mid-game the shell asks first,
-since starting another shelves this one; at terminal there is nothing to
+since starting another shelves this one; once the game has ended there is nothing to
 interrupt.
 
 ## Frontend
@@ -419,8 +419,10 @@ then `PlayArea` in the eight sections.
 `GamePage` mounts the loader and owns everything above it — members, the timer,
 play_state, pause, chat — and unmounts this whole surface on pause. `Help` and
 `SetupForm` are the shell's to mount, from the menu and the start-game dialog.
-`useGame` is the bee games' shared hook bound to this schema: the header from
-`games_state`, loaded once, and the found rows, refetched on every change.
+`useGame` builds `gd` from the `game_data` blob the page was handed, through
+the bee games' shared `makeBeeGameData` with this game's setup rows
+([shared/bee-games](../shared/bee-games/doc.md)); it reads nothing and
+subscribes to nothing.
 
 What is spellingbee's own:
 
@@ -436,33 +438,38 @@ What is spellingbee's own:
   the letters not yet used. A letter off the hive dims as it is typed
   (`TypedWord`). Once the game is over, or I conceded a race, the board is
   read-only: the entry closes, the hexes go inert and drop their marks.
+- **The move is `hooks/useSubmitWord`.** The lookup over the puzzle's words, the
+  `submit_word` call and what each answer shows live there; `BoardCol` hands
+  it the few values it needs and gets the typed word, `submit` and the refused
+  mark back.
 - **A refused word answers on the board.** The hexes the word used shake, each
   on its own and no others, and wear the answer's color for a beat, the same
   outcome the pill reads (`common/board-marks`). Refusing the same letters again
   shakes them again: they are keyed on the mark's nonce.
 - **Two lists, one reveal.** Both word lists ship at load; the engine looks a
-  word up in their union and the missed words fold into the list at terminal —
+  word up in their union and the missed words fold into the list once the game has ended —
   bonus included, unless the bands are equal and there is no bonus list worth
   showing. The list is the shared `WordList`, found words in their finder's
   color, pangrams bold, bonus words dotted.
-- **The ladder and the figures** are the shared rank-ladder pieces, mirrored
-  above the hive on a phone by `MobileStatusBar` so the readout stays on the
+- **The state line** (`StateLine`) is the shared rank-ladder pieces drawn from
+  `gd.stateLineData`, mirrored above the hive on a phone by `MobileStatusBar` so the readout stays on the
   play surface when the info column is off-canvas. Coop shows the team's;
   compete the caller's own, with the Rank strip for the rivals.
-- **The terminal** is the pill and the row's line, in sentences wordwheel
-  shares ([`shared/bee-games`](../shared/bee-games/doc.md)), the inert hive, and the list with its missed words. A win celebrates once, on
-  the flip — the team's in coop, and in a race only the winner's screen, read
-  off `status.winner_user_id`; nothing pops for any other ending.
+- **The ending** is the pill and the row's line, in sentences wordwheel shares
+  ([`shared/bee-games`](../shared/bee-games/doc.md)), the inert hive, and the
+  list with its missed words. A win celebrates once, as `gd.me.outcome` turns
+  `won` — the team's in coop, and in a race only the winner's screen; nothing
+  pops for any other ending.
 - **The setup form** offers the target rank — *Win at* in coop with a *None*,
   *Target rank* in compete — the two dictionary bands, and one box for custom
   letters that writes both setup keys, split after the first letter. Start is
   gated on the legal band containing the required one and on the letter rules,
   the same rules the edge function and `create_game` check again.
-- **The club label** (`manifest.ts`) reads the status: coop's points and words,
+- **The club label** (`manifest.ts`) reads `summary_data`: coop's points and words,
   compete's target and, at the end, who won at it or that nobody did.
 - **The printer** (`pdf/`) is the honeycomb above the word list, coop's one
-  shared list and compete's a section per player, the missed words folded in
-  at terminal as they are on screen.
+  shared list and compete's a section per player, the missed words folded in once
+  the game has ended as they are on screen.
 - **No event log and no history viewer.** A found list is alphabetical, not
   chronological, so there is no turn to replay.
 
@@ -476,8 +483,8 @@ checks shape, not spelling) and three bonus ones, and
 
 | file | pins |
 |---|---|
-| `schema_test` | both gametypes registered; the seed pool readable; both word lists readable by a client and present on the row during play and at terminal |
-| `game_data_test` | the page blobs: a fresh game's puzzle, team, log and players; the coop and compete mid-game shapes; the won race and the stopped coop game; a Restart; a rebuild of every game without re-dating it |
+| `schema_test` | both gametypes registered; the seed pool readable; both word lists readable by a client and present on the row during play and once the game has ended |
+| `game_data_test` | the page blobs: a fresh game's puzzle, team, found words and players; the coop and compete mid-game shapes; the won race and the stopped coop game; a Restart; a rebuild of every game without re-dating it |
 | `rls_test` | a member sees every row of both tables in both modes; an outsider sees no row of any table; a direct insert is denied |
 | `create_game_test` | both modes' rows, the gametype suffix and the mode; the title formula; the target and bands copied to their columns; an outsider, a bad mode, a short race, a missing or out-of-range target, a bad band, every board-shape fault, and seven players refused |
 | `custom_letters_test` | a hand-picked board is accepted under thirty words and refused at zero; the custom letters are stripped from the saved default; a random board still needs thirty |
@@ -487,7 +494,7 @@ checks shape, not spelling) and three bonus ones, and
 | `concede_test` | refused in coop; a conceder is out while the others race and cannot submit a word; the last one out ends the race as a collective loss |
 | `replay_test` | the found list cleared, the ending reset, the clock zeroed, the board and target kept; any player may, mid-game or after; a non-player may not |
 | `player_subset_test` | a club member not seated in the game can read it and cannot move in it |
-| `reveal_partition_test` | through the real RPCs, from the loser's seat: their own rows mid-game and no rival's; every row at terminal, still partitionable by user; the answer key present throughout; and the sum over every visible row no longer equals the caller's own score, which is why the frontend filters to self in compete |
+| `reveal_partition_test` | through the real RPCs, from the loser's seat: the table shows a member every racer's row mid-race — the hook's seat rule withholds a rival's, not RLS — and every row once the race has ended, still partitionable by user; `game_data.puzzle.words` carries the required set throughout; and the sum over every visible row is not the caller's own score, which is why the page counts the caller's own rows in compete |
 
 `rank_idx_test` sits in the folder too, but pins `common._rank_idx` and
 belongs to `shared/rank-ladder`.
@@ -503,8 +510,9 @@ Vitest, beside the code:
 
 | file | pins |
 |---|---|
-| `lib/answer.test` | every answer's words and outcome, and the three-way split of a miss (the terminal sentences are `shared/bee-games`' `terminal.test`) |
+| `lib/answer.test` | every answer's words and outcome, and the three-way split of a miss (the ending sentences are `shared/bee-games`' `endingMessage.test`) |
 | `lib/setup.test` · `components/SetupForm.test` | the letter rules and the band rule, each refusal under the field it names; the form's settings in order, the compete caption, the solo club's missing picker, and where a server refusal lands |
+| `hooks/useGame.test` · `hooks/useSubmitWord.test` | `gd` from the blob — players, the seat rule, the state line's data; and the move without a board — a legal word answered and sent with its own points and flags, a miss refused without a call and its letters marked |
 | `components/PlayArea.test` | the surface mounts in every mode and state; the hexes a word is using, marked and cleared; the inert board after a concede or an ending; a required, bonus and pangram word accepted with the right call, a miss refused with its reason and answered on the board — its own letters and no others shaking and wearing its own outcome, for `WORD_ANSWER_MS`, and shaking again when refused again; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs Stop per mode and the strip's *out* / *Conceded at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, Stop, Concede, Shuffle, Restart |
 
 Playwright, in `e2e/`: `spellingbee` (the play loop on screen — a required

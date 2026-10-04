@@ -31,6 +31,10 @@
 
 ## Won't do
 
+- **`wordsByWord` stays in `hooks/useSubmitWord.ts`** (Joel, 2026-10-04: "don't do
+  it; keep what we have"). The map from a typed word to its `GWord` is built
+  by the one hook that reads it, not carried on `gd.puzzle` the way
+  `tilesById` is.
 - **`Board.module.css` + `Tile.module.css` are deliberately NOT folded with
   spellingbee's pair of the same names** (2026-07-31). The rest of the
   pair's CSS is shared (`shared/bee-games`), but these stay separate copies.
