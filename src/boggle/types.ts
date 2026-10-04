@@ -108,7 +108,7 @@ export type GFoundWord = Omit<GFoundWordRaw, 'userId'> & {
 }
 
 /**
- * What the state line shows — the Stats grid's found and total figures: the
+ * What the state line shows — its four cells' found and total figures: the
  * team's finds in coop, my own in compete, against both word lists. Decided
  * once, in `makeGameData`, so the state line draws it and picks nothing.
  */

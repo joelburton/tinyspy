@@ -75,7 +75,8 @@ export function InfoCol({
             off and the prompt would misdirect. */}
         {gd.me.onTurn && (
           <p className={shared.infoHelp}>
-            Type a word, then Enter. <kbd>↑</kbd> recalls your last word.
+            Type a word, then Enter, or tap a path of tiles.{' '}
+            <kbd>↑</kbd> recalls your last word.
           </p>
         )}
 

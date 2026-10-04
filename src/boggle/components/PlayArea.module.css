@@ -26,10 +26,11 @@
 /* @@ */ .layout {
 /* @@ */   --board-reserve: 24rem;
 
-  /* How tall the mobile status block is — the 4-cell Stats grid, mirrored above
-   * the board by the shared `<MobileStatusBar>` once the info column goes
-   * off-canvas. TALLER than the bee games' 4.25rem, which is exactly why the
-   * family's scaffolding reads this token rather than declaring it.
+  /* How tall the mobile status block is — the state line's four cells,
+   * mirrored above the board by the shared `<MobileStatusBar>` once the info
+   * column goes off-canvas. TALLER than the bee games' 4.25rem, which is
+   * exactly why the family's scaffolding reads this token rather than
+   * declaring it.
    *
    * 4.5rem (72px) is measured, not guessed: the compact three-line cell (label /
    * value / percent) plus its 0.25rem lead-in comes to 69px. It was 4rem while

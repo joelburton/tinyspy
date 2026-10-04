@@ -135,12 +135,12 @@ beforeEach(() => {
 })
 
 describe('boggle PlayArea — render smoke', () => {
-  /** A Stats label, stacked on two lines ("Req" over "Words"). It renders
+  /** A state-line label, stacked on two lines ("Req" over "Words"). It renders
    *  TWICE — the info column and the mobile status block above the board. */
   const label = (a: string, b: string) =>
     screen.queryAllByText((_t, el) => el?.textContent === `${a}${b}`, { selector: 'span' })
 
-  it('renders the 4×4 board + all four Stats cells in coop play', () => {
+  it('renders the 4×4 board + all four state-line cells in coop play', () => {
     const { container } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(container.querySelectorAll('[data-tile]')).toHaveLength(16)
     expect(label('Req', 'Words').length).toBeGreaterThan(0)
