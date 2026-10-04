@@ -225,6 +225,11 @@ drop function if exists spellingbee._write_statuses(uuid, boolean);
 --     team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}   the same group; null in compete
 --     nReqdWords, reqdWordsScore, targetRankIdx
 
+-- The one-argument signatures these two had before the band flag; supabase/sql
+-- is re-applied, not diffed, so the old overload has to go by name.
+drop function if exists spellingbee._make_json_word(jsonb);
+drop function if exists spellingbee._make_json_words(jsonb);
+
 -- A word as the page draws it: the stored `{word, points, is_pangram}`, camel,
 -- flagged with the band it came from — a bonus word is legal but not required.
 create or replace function spellingbee._make_json_word(p_word jsonb, p_bonus boolean)
