@@ -5,12 +5,12 @@
 -- ============================================================
 -- submit_word is trusting-commit: the FE validated the word against the board's
 -- shipped legal list and scored it, so the RPC trusts word + points + is_bonus
--- and only enforces the live-game check, dedups, records, and rewrites the
--- statuses. It does NOT validate word content (no tooShort/invalid/notAWord).
+-- and only enforces the live-game check, dedups, records, and rebuilds the
+-- page blobs. It does NOT validate word content (no tooShort/invalid/notAWord).
 -- Coverage:
 --   is_bonus false → 'accepted'; is_bonus true → 'bonus' (stores the flag + the
 --   FE points); 'alreadyFound' (coop = per-team, compete = per-player); 'gameOver'
---   once the game has ended; the club line refreshed; stop_game /
+--   once the game has ended; the page blob rebuilt; stop_game /
 --   submit_timeout endings + idempotency; non-player rejection.
 --   A word into a game deleted under it is the shared race (PN485).
 
@@ -51,10 +51,10 @@ select is((select ret->>'message' from cat_ret), null::text,
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select count(*) from boggle.found_words where game_id = (select id from g) and word = 'cat'),
   1::bigint, 'accepted word inserts one found_words row');
-select is((select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from g)),
-  1, 'the club line''s found_words_count refreshed to 1');
-select is((select (clubpage_info->>'found_words_score')::int from common.games where id = (select id from g)),
-  1, 'the club line''s found_words_score refreshed to 1');
+select is((select (game_data->'team'->>'nFoundWords')::int from common.games where id = (select id from g)),
+  1, 'the page blob is rebuilt: the team has found 1 word');
+select is((select (game_data->'team'->>'foundWordsScore')::int from common.games where id = (select id from g)),
+  1, '… worth 1 point');
 
 -- ── (2) coop dedup: same word by anyone is alreadyFound ───
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

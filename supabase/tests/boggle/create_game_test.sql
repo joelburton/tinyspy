@@ -3,7 +3,7 @@
 -- ============================================================
 -- Test: boggle.create_game
 -- ============================================================
--- Covers: coop happy path (header + per-game row + club line), compete happy path,
+-- Covers: coop happy path (header + per-game row + page blob), compete happy path,
 -- and the validation guards (mode, compete player floor, band, ladder, dice_set,
 -- non-member).
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
@@ -60,8 +60,8 @@ select is(
   (select gametype from common.games where id = (select id from g)), 'boggle_coop',
   'common.games.gametype = boggle_coop');
 select is(
-  (select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from g)), 0,
-  'the club line''s found_words_count starts at 0');
+  (select (game_data->'team'->>'nFoundWords')::int from common.games where id = (select id from g)), 0,
+  'the page blob is written at create: the team has found nothing');
 -- Club-list title = size + the board's top row. The fixture board is
 -- 'CATRSEXOTMPLNGDB' at n=4, so the first four faces are C A T R.
 select is(

@@ -1,16 +1,17 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: boggle RLS (found-word visibility + game read)
+-- Test: boggle RLS — club gating
 -- ============================================================
--- The load-bearing rule for compete: you see only your own finds mid-game; a
--- coop team sees everything; everyone sees everything once the game ends;
--- outsiders see nothing. Reads run under `as_user` so RLS actually applies
+-- One layer of access control on boggle.found_words and boggle.games: a
+-- reader must be a member of the game's club. The tables carry no mode arm:
+-- who may see a rival's finds mid-race is the page's rule over `game_data`.
+-- Outsiders see nothing. Reads run under `as_user` so RLS actually applies
 -- (the superuser bypasses it).
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(6);
+select plan(5);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -41,7 +42,7 @@ select is((select count(*) from boggle.found_words where game_id = (select id fr
 select is((select count(*) from boggle.games where game_id = (select id from g)),
   0::bigint, 'outsider cannot read the game row');
 
--- ── Compete: own-only mid-game, all once ended ────────────
+-- ── Compete: every member reads every racer's row ─────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cg on commit drop as
 select (boggle.create_game(
@@ -55,16 +56,10 @@ select boggle.submit_word((select id from cg), 'car', 1, false);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is((select count(*) from boggle.found_words where game_id = (select id from cg)),
-  1::bigint, 'compete mid-game: ada sees only her own find');
-select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+  2::bigint, 'compete mid-game: ada reads every racer''s row — the table carries no mode arm');
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is((select count(*) from boggle.found_words where game_id = (select id from cg)),
-  1::bigint, 'compete mid-game: bea sees only her own find');
-
--- End the game; now everyone sees everything.
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select boggle.stop_game((select id from cg));
-select is((select count(*) from boggle.found_words where game_id = (select id from cg)),
-  2::bigint, 'compete once ended: ada sees all finds (the reveal)');
+  0::bigint, 'compete: an outsider still sees nothing');
 
 select * from finish();
 rollback;

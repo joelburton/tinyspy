@@ -5,8 +5,8 @@
 -- ============================================================
 -- The "Replay board" game-menu item / end-of-game RestartButton
 -- (spellingbee's twin). Clears the found-words log (the game's only
--- working state), clears the ending (common._reset_game), rewrites the
--- statuses as create_game seeds them, and zeroes the shared clock. The
+-- working state), clears the ending (common._reset_game), rebuilds the
+-- page blobs as create_game writes them, and zeroes the shared clock. The
 -- frozen board (faces + word lists) survives. Any game player may call
 -- it, mid-game or after the end; a non-player is rejected.
 
@@ -59,8 +59,8 @@ select is(
   (select count(*) from boggle.found_words where game_id = (select id from g1)),
   0::bigint, 'replay → the found-words log is cleared');
 select is(
-  (select clubpage_info->>'found_words_score' from common.games where id = (select id from g1)),
-  '0', 'replay → the club line''s found_words_score reset to 0');
+  (select game_data->'team'->>'foundWordsScore' from common.games where id = (select id from g1)),
+  '0', 'replay → the team''s score in the page blob is back to 0');
 select is(
   (select ticks from common.timers where game_id = (select id from g1)),
   0, 'replay → the shared clock is zeroed (a timed game restarts full)');
@@ -82,8 +82,9 @@ select boggle.submit_word((select id from g2), 'cat', 1, false);
 select boggle.replay_board((select id from g2));
 reset role;
 select is(
-  (select player_status->>'found_required_words_score' from common.game_players
-    where game_id = (select id from g2) and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  (select p->>'foundReqdWordsScore'
+     from common.games cg, jsonb_array_elements(cg.game_data->'players') p
+    where cg.id = (select id from g2) and p->>'id' = 'ada11111-1111-1111-1111-111111111111'),
   '0', 'compete replay → the racer''s score resets to 0');
 
 -- ── Non-player rejected ─────────────────────────────────────
