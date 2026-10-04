@@ -99,8 +99,8 @@ export function useTracedWord({
     tapTile,
     marks: {
       pathIds,
-      settledIds: new Set(typedCells?.certain.map(String) ?? []),
-      maybeIds: new Set(typedCells?.possible.map(String) ?? []),
+      settledIds: new Set(typedCells?.settled.map(String) ?? []),
+      maybeIds: new Set(typedCells?.maybe.map(String) ?? []),
       refused: refused
         ? {
             ids: new Set(refused.value.cells.map(String)),

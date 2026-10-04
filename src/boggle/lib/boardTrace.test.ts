@@ -78,49 +78,49 @@ describe('traceCells', () => {
   // that everything OUTSIDE that choice stays settled the whole time.
   const B = 'HEAXTZZARZZZZZZZZZZZZZZZ' + 'Z'
   const cells = (word: string) => {
-    const { certain, possible, reach } = ZTest_traceCellsStr(B, word)
+    const { settled, maybe, reach } = ZTest_traceCellsStr(B, word)
     return {
-      certain: [...certain].sort((a, b) => a - b),
-      possible: [...possible].sort((a, b) => a - b),
+      settled: [...settled].sort((a, b) => a - b),
+      maybe: [...maybe].sort((a, b) => a - b),
       reach,
     }
   }
 
   it('settles a letter with one candidate tile', () => {
-    expect(cells('he')).toEqual({ certain: [0, 1], possible: [], reach: 2 })
+    expect(cells('he')).toEqual({ settled: [0, 1], maybe: [], reach: 2 })
   })
 
   it('holds both tiles when a letter could be either', () => {
     // The A is the choice; H and E are not, and do not become one.
-    expect(cells('hea')).toEqual({ certain: [0, 1], possible: [2, 7], reach: 3 })
+    expect(cells('hea')).toEqual({ settled: [0, 1], maybe: [2, 7], reach: 3 })
   })
 
   it('keeps settling the letters after an open one', () => {
     // Both As reach the R, so the R is settled while the A is still open —
     // the board adds certainty rightward without resolving what came before.
-    expect(cells('hear')).toEqual({ certain: [0, 1, 8], possible: [2, 7], reach: 4 })
-    expect(cells('heart')).toEqual({ certain: [0, 1, 4, 8], possible: [2, 7], reach: 5 })
+    expect(cells('hear')).toEqual({ settled: [0, 1, 8], maybe: [2, 7], reach: 4 })
+    expect(cells('heart')).toEqual({ settled: [0, 1, 4, 8], maybe: [2, 7], reach: 5 })
   })
 
   it('keeps the prefix lit when a letter the board cannot follow arrives', () => {
     // No R touches the E, so HER stops at two: the marks stay where HE put them
     // and `reach` is what says the R (and everything after it) is unspellable.
-    expect(cells('her')).toEqual({ certain: [0, 1], possible: [], reach: 2 })
-    expect(cells('herd')).toEqual({ certain: [0, 1], possible: [], reach: 2 })
+    expect(cells('her')).toEqual({ settled: [0, 1], maybe: [], reach: 2 })
+    expect(cells('herd')).toEqual({ settled: [0, 1], maybe: [], reach: 2 })
   })
 
   it('lights nothing when the very first letter is off the board', () => {
-    expect(cells('q')).toEqual({ certain: [], possible: [], reach: 0 })
-    expect(cells('')).toEqual({ certain: [], possible: [], reach: 0 })
+    expect(cells('q')).toEqual({ settled: [], maybe: [], reach: 0 })
+    expect(cells('')).toEqual({ settled: [], maybe: [], reach: 0 })
   })
 
-  it('calls everything merely possible once the walk runs out of budget', () => {
+  it('calls every cell a maybe once the walk runs out of budget', () => {
     // A board of one letter multiplies routes without end. The walk stops, and
     // what it reports is the honest half: these tiles are in play, and it can no
     // longer say which of them a letter is pinned to.
-    const { certain, possible, reach } = ZTest_traceCellsStr('A'.repeat(25), 'aaaaaaa')
-    expect(certain).toEqual([])
-    expect(possible.length).toBe(25)
+    const { settled, maybe, reach } = ZTest_traceCellsStr('A'.repeat(25), 'aaaaaaa')
+    expect(settled).toEqual([])
+    expect(maybe.length).toBe(25)
     expect(reach).toBe(7)
   })
 })

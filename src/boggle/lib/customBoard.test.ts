@@ -1,19 +1,38 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { DICE_SETS } from './dice'
-import { rollBoard } from './generate'
+import { BOARD_KEY } from '@/common/setup-form/setupRows'
 import { mulberry32 } from '@/common/utils/mulberry32'
+import { DICE_SETS, faceToDisplay } from './dice'
+import { rollBoard } from './generate'
+import { DEFAULT_BOGGLE_SETUP_COOP } from './setup'
+import { makeSetupRows } from './setupRows'
 import { capBoard, cleanCustomBoard, parseCustomBoard, readTiles } from './customBoard'
-import { ZTest_formatBoard } from './customBoard.fixture'
+import type { GTile } from '../types'
+
+/** A raw board's tiles, as `boggle._make_json_tiles` decodes them: a blank's
+ *  letters null, every other tile's lowercase. */
+function tilesOf(board: string): GTile[] {
+  return [...board].map((face, i) => ({
+    id: String(i),
+    letters: face === '0' ? null : faceToDisplay(face).toLowerCase(),
+  }))
+}
+
+/** The `Letters` setup row for a board — what a player reads off a game. */
+function writtenBoard(board: string, side: number): string {
+  const rows = makeSetupRows(DEFAULT_BOGGLE_SETUP_COOP, 'coop', [], { tiles: tilesOf(board), boardSideSize: side })
+  return rows.find((r) => r.key === BOARD_KEY)!.value
+}
 
 /**
  * The custom-board round trip. The feature's whole promise is "read the letters
  * off one game, paste them into the next", so the property that matters isn't
- * that either function is individually sensible — it's that they COMPOSE:
- * `parse(format(board)) === board`, for boards that really occur.
+ * that either half is individually sensible — it's that they COMPOSE: the
+ * `Letters` setup row, read back by `parseCustomBoard`, is the board again,
+ * for boards that really occur.
  */
-describe('the written board / parseCustomBoard round trip', () => {
+describe('the Letters setup row / parseCustomBoard round trip', () => {
   // Every dice set, many rolls each: the multiface tiles and the blank are rare
   // per-roll (one `1` die in 4×4 Revised, three `0` faces on one 6×6 die), so a
   // handful of boards would mostly exercise plain letters and prove nothing
@@ -24,7 +43,7 @@ describe('the written board / parseCustomBoard round trip', () => {
       const rand = mulberry32(20260811)
       for (let i = 0; i < 200; i++) {
         const board = rollBoard(set, rand)
-        expect(parseCustomBoard(ZTest_formatBoard(board, set.n), set.n)).toEqual({ ok: true, board })
+        expect(parseCustomBoard(writtenBoard(board, set.n), set.n)).toEqual({ ok: true, board })
       }
     })
   }

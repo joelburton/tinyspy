@@ -93,14 +93,14 @@ export function tracePath(board: GBoard, word: string): number[] | null {
  *
  * Every route is walked, so this is the expensive one of the three in this file
  * — bounded by `STEP_BUDGET` for a board of repeated letters, where the routes
- * multiply. Past the budget it reports every cell it reached as merely POSSIBLE:
+ * multiply. Past the budget it reports every cell it reached as `maybe`:
  * the walk stopped early, so it can no longer tell a settled letter from an open
  * one, and saying "maybe" about all of them is the version that isn't a lie.
  */
 export function traceCells(board: GBoard, word: string): GTraceCells {
   const w = word.toLowerCase()
   const len = w.length
-  if (len === 0) return { certain: [], possible: [], reach: 0 }
+  if (len === 0) return { settled: [], maybe: [], reach: 0 }
   const target = new Int8Array(len)
   for (let i = 0; i < len; i++) target[i] = w.charCodeAt(i) - A
 
@@ -163,17 +163,17 @@ export function traceCells(board: GBoard, word: string): GTraceCells {
   const full = walk(len)
   const { carriers, spent } = full.reach >= len ? full : walk(full.reach)
 
-  const certain = new Set<number>()
-  const possible = new Set<number>()
+  const settled = new Set<number>()
+  const maybe = new Set<number>()
   for (const cells of carriers) {
-    if (cells.size === 1 && !spent) certain.add([...cells][0])
-    else for (const cell of cells) possible.add(cell)
+    if (cells.size === 1 && !spent) settled.add([...cells][0])
+    else for (const cell of cells) maybe.add(cell)
   }
   // A settled letter's cell belongs to no other letter — no route can reuse it —
   // so the two sets never overlap. Subtracted anyway: the budget can end a walk
   // mid-route, and half a route proves nothing about which set a cell is in.
-  for (const cell of certain) possible.delete(cell)
-  return { certain: [...certain], possible: [...possible], reach: full.reach }
+  for (const cell of settled) maybe.delete(cell)
+  return { settled: [...settled], maybe: [...maybe], reach: full.reach }
 }
 
 /** Can `word` be traced on a parsed board? */

@@ -19,18 +19,18 @@ import type { GAnswer, GBoard, GFoundWord } from '../types'
 export function answerMessage(answer: GAnswer): AnswerMessage {
   switch (answer.answerType) {
     case 'accepted':
-      return { outcome: 'won', text: `${wordWithBonusBullet(answer.word, answer.isBonus)} — +${answer.points}` }
+      return { outcome: 'won', text: `${wordWithBonusBullet(answer.word, answer.bonus)} — +${answer.points}` }
     // A long find (7+ letters) is boggle's "wow" moment. It leads with the
     // flourish so the headline reads before the word does — and so the line
     // fits the header's ~26 phone characters.
     case 'accepted_peer':
       return {
         outcome: 'won',
-        text: `${answer.word.length >= 7 ? 'wow!' : 'found'} ${wordWithBonusBullet(answer.word, answer.isBonus)} +${answer.points}`,
+        text: `${answer.word.length >= 7 ? 'wow!' : 'found'} ${wordWithBonusBullet(answer.word, answer.bonus)} +${answer.points}`,
       }
 
     case 'already_found':
-      return { outcome: 'warning', text: `${wordWithBonusBullet(answer.word, answer.isBonus)} — already found` }
+      return { outcome: 'warning', text: `${wordWithBonusBullet(answer.word, answer.bonus)} — already found` }
     case 'too_short':
       return { outcome: 'warning', text: `${answer.word.toUpperCase()} — too short` }
 
@@ -49,9 +49,9 @@ export function answerOf(report: WordSubmitReport, board: GBoard): GAnswer {
   const word = report.word
   switch (report.answer) {
     case 'accepted':
-      return { answerType: 'accepted', word, points: report.entry.points, isBonus: report.entry.bonus }
+      return { answerType: 'accepted', word, points: report.entry.points, bonus: report.entry.bonus }
     case 'already_found':
-      return { answerType: 'already_found', word, isBonus: report.entry?.bonus ?? false }
+      return { answerType: 'already_found', word, bonus: report.entry?.bonus ?? false }
     case 'too_short':
       return { answerType: 'too_short', word }
     case 'not_legal':
@@ -67,5 +67,5 @@ export function answerOf(report: WordSubmitReport, board: GBoard): GAnswer {
  * slot's).
  */
 export function peerAnswerMessage(found: GFoundWord): AnswerMessage {
-  return answerMessage({ answerType: 'accepted_peer', word: found.word, points: found.points, isBonus: found.bonus })
+  return answerMessage({ answerType: 'accepted_peer', word: found.word, points: found.points, bonus: found.bonus })
 }

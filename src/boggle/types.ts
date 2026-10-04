@@ -301,12 +301,12 @@ export type GSetup = SetupOf<GSetupValues>
  */
 export type GAnswer =
   // My word counted.
-  | { answerType: 'accepted'; word: string; points: number; isBonus: boolean }
+  | { answerType: 'accepted'; word: string; points: number; bonus: boolean }
   // A coop teammate's did, off `found_words`.
-  | { answerType: 'accepted_peer'; word: string; points: number; isBonus: boolean }
+  | { answerType: 'accepted_peer'; word: string; points: number; bonus: boolean }
 
   // Already found — by anyone in coop, by me in compete.
-  | { answerType: 'already_found'; word: string; isBonus: boolean }
+  | { answerType: 'already_found'; word: string; bonus: boolean }
   // Shorter than this board's minimum.
   | { answerType: 'too_short'; word: string }
 
@@ -318,9 +318,9 @@ export type GAnswer =
 /** Where the typed word's letters can sit, and how far the board follows it. */
 export type GTraceCells = {
   /** Cells no route can avoid — one per letter position that has a single candidate. */
-  certain: number[]
+  settled: number[]
   /** Cells that carry a letter position with more than one candidate. */
-  possible: number[]
+  maybe: number[]
   /** How many letters the board can actually spell, from the start. Equal to the
    *  word's length while it still traces; the letters past it are the ones the
    *  board cannot follow, and the entry box dims them. */

@@ -15,18 +15,18 @@ import { makeGameData } from '../hooks/useGame'
  */
 describe('answerMessage', () => {
   it('reads every answer', () => {
-    expect(answerMessage({ answerType: 'accepted', word: 'apple', points: 2, isBonus: false }))
+    expect(answerMessage({ answerType: 'accepted', word: 'apple', points: 2, bonus: false }))
       .toEqual({ outcome: 'won', text: 'APPLE — +2' })
-    expect(answerMessage({ answerType: 'accepted', word: 'zesty', points: 2, isBonus: true }))
+    expect(answerMessage({ answerType: 'accepted', word: 'zesty', points: 2, bonus: true }))
       .toEqual({ outcome: 'won', text: 'ZESTY • — +2' })
 
-    expect(answerMessage({ answerType: 'accepted_peer', word: 'apple', points: 2, isBonus: false }))
+    expect(answerMessage({ answerType: 'accepted_peer', word: 'apple', points: 2, bonus: false }))
       .toEqual({ outcome: 'won', text: 'found APPLE +2' })
     // Seven letters or more is the "wow" find.
-    expect(answerMessage({ answerType: 'accepted_peer', word: 'jackpot', points: 9, isBonus: false }))
+    expect(answerMessage({ answerType: 'accepted_peer', word: 'jackpot', points: 9, bonus: false }))
       .toEqual({ outcome: 'won', text: 'wow! JACKPOT +9' })
 
-    expect(answerMessage({ answerType: 'already_found', word: 'zesty', isBonus: true }))
+    expect(answerMessage({ answerType: 'already_found', word: 'zesty', bonus: true }))
       .toEqual({ outcome: 'warning', text: 'ZESTY • — already found' })
     expect(answerMessage({ answerType: 'too_short', word: 'ab' }))
       .toEqual({ outcome: 'warning', text: 'AB — too short' })
@@ -50,9 +50,9 @@ describe('answerOf', () => {
   it('carries the entry\'s points and bonus flag', () => {
     const entry = { word: 'fine', points: 1, pangram: false, bonus: true }
     expect(answerOf({ answer: 'accepted', word: 'fine', entry }, board))
-      .toEqual({ answerType: 'accepted', word: 'fine', points: 1, isBonus: true })
+      .toEqual({ answerType: 'accepted', word: 'fine', points: 1, bonus: true })
     expect(answerOf({ answer: 'already_found', word: 'fine', entry }, board))
-      .toEqual({ answerType: 'already_found', word: 'fine', isBonus: true })
+      .toEqual({ answerType: 'already_found', word: 'fine', bonus: true })
     expect(answerOf({ answer: 'too_short', word: 'ab' }, board))
       .toEqual({ answerType: 'too_short', word: 'ab' })
   })
