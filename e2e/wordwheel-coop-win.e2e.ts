@@ -20,7 +20,7 @@ async function submitWord(page: Page, word: string): Promise<void> {
   await expect(async () => {
     for (let i = 0; i < word.length + 2; i++) await page.keyboard.press('Backspace')
     await page.keyboard.type(word)
-    await expect(page.getByTestId('entry-value')).toHaveText(word.toUpperCase(), { timeout: 500 })
+    await expect(page.getByTestId('entry-value')).toHaveText(word, { timeout: 500 })
   }).toPass({ timeout: 10_000 })
   await page.keyboard.press('Enter')
 }

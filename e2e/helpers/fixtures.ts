@@ -590,9 +590,9 @@ export async function createSpellingbeeGame(
   club: E2EClub,
   mode: 'coop' | 'compete' = 'coop',
   playerUserIds: string[] = club.members.map((m) => m.userId),
-  /** Optional win threshold. Compete always needs one (the fixture passes 5
-   *  implicitly via the RPC default below); coop is the interesting case —
-   *  omitted it's the open-ended hunt, set it's the team's win condition. */
+  /** Optional win threshold. Compete refuses to start without one, so a
+   *  compete caller passes it; in coop, omitted it's the open-ended hunt and
+   *  set it's the team's win condition. */
   targetRank?: number,
 ): Promise<{ id: string; gametype: string }> {
   const reqWords = [
@@ -606,16 +606,16 @@ export async function createSpellingbeeGame(
   const res = await asUser(creator.session.access_token)
     .schema('spellingbee')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: {
+      p_club_handle: club.handle,
+      p_setup: {
         timer: { kind: 'none' },
         required_band: 3,
         legal_band: 5,
         ...(targetRank !== undefined ? { target_rank: targetRank } : {}),
       },
-      player_user_ids: playerUserIds,
-      mode,
-      board: {
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
+      p_board: {
         outer_letters: 'cabdfg',
         center_letter: 'e',
         reqd_words_score: required.reduce((s, r) => s + r.points, 0),
@@ -655,10 +655,10 @@ export async function createWordwheelGame(
   const res = await asUser(creator.session.access_token)
     .schema('wordwheel')
     .rpc('create_game', {
-      target_club: club.handle,
+      p_club_handle: club.handle,
       // compete requires a target_rank (the race-to goal); coop MAY set one,
       // and then it's the team's win threshold.
-      setup: {
+      p_setup: {
         timer: { kind: 'none' },
         required_band: 3,
         legal_band: 5,
@@ -668,9 +668,9 @@ export async function createWordwheelGame(
             ? { target_rank: targetRank }
             : {}),
       },
-      player_user_ids: playerUserIds,
-      mode,
-      board: {
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
+      p_board: {
         outer_letters: 'abcdfghi',
         center_letter: 'e',
         reqd_words_score: required.reduce((s, r) => s + r.points, 0),

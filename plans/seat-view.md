@@ -606,3 +606,16 @@ crosswords (one shared grid, per-cell authors), scrabble (one board, private
 racks, a shared bag) and bananagrams (per-player boards, a shared bag) may not
 fit "a seat's view" cleanly. Decide the exception, if any, when each area
 opens, with the simple games already on the shape.
+
+## When every game has converted
+
+Sweeps that wait for the last game, done once across all of them:
+
+- **The e2e helpers' `create_game` calls.** Most of `e2e/helpers/fixtures.ts`
+  still sends the old argument names (`target_club`, `setup`,
+  `player_user_ids`, `mode`, the game's own board or puzzle key) where each
+  RPC now takes `p_club_handle`, `p_setup`, `p_player_user_ids`, `p_mode`, …,
+  so every e2e spec that creates one of those games fails before its page
+  loads. The converted games' helpers are fixed; the rest are swept together,
+  each checked against its RPC's signature and the keys its `create_game`
+  reads, and then each game's specs run (2026-10-04).
