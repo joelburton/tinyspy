@@ -1,7 +1,7 @@
 # bee-games
 
-What spellingbee and wordwheel share and nothing else does: the hook factory
-behind their identical data lifecycles, the board header it returns, the compete
+What spellingbee and wordwheel share and nothing else does: the one blob shape
+their builders write and the one reading that turns it into `gd`, the compete
 leaderboard row, the coordinate-unit geometry a hive and a wheel are both drawn
 by, the setup form's target-rank choices and custom-letters split, and the
 sentences a finished game says. Everything the wider found-words family
@@ -20,11 +20,12 @@ It shares almost everything anyway, because of where that difference lives.
 Neither client decides whether a word is legal: the board builder resolves it
 once, when the board is made, and ships the finished word lists with the board.
 So the multiset rule is spent inside an edge function, and what arrives at the
-frontend is two scored lists either way. A set and a multiset produce the same
-SHAPE of answer, and the shape is all a data hook sees. Hence one factory, and
-hence the seam being where it is: a game's `hooks/useGame.ts` is a binding and
-its type aliases, and the moment either game grows a column of its own, that
-file is what takes its body back.
+page is two scored lists either way. A set and a multiset produce the same
+SHAPE of blob, and the shape is all the reading sees. Hence one `makeBeeGameData`
+and one set of `GBee` types here, and hence the seam being where it is: a
+game's `hooks/useGame.ts` is the one-line binding that calls it (with the
+game's own setup rows), its `types.ts` names the shapes as its own, and the
+moment either game grows a fact of its own, those two files are what take it.
 
 The same trick makes one stylesheet draw both boards, which is the part worth
 reading `beeBoard.module.css` for. A hexagonal hive and a round wheel have no
@@ -46,10 +47,8 @@ boards, no shared geometry between them.
 
 ```
 spellingbee/hooks/useGame ─┐
-  wordwheel/hooks/useGame ─┴─▶ makeBeeGame(schema) ─▶ useBeeGame(gameId)
-                                   │                    ├─ games_state  (once)
-                                   │                    └─ found_words  (realtime)
-                                   └─▶ BeeGame  ─▶ re-exported as <Game>Game
+  wordwheel/hooks/useGame ─┴─▶ makeBeeGameData(blob, myId, makeSetupRows) ─▶ gd
+                                   └─▶ GBee* types ─▶ named in each types.ts as G*
 
 the two BoardCols ─▶ beeBoard.module.css   (.boardCol → --u · --board-width
                                             .mobileStatus)
@@ -73,21 +72,13 @@ game keeps its `buildTerminalMessage` in its own `lib/terminal.ts`
 ending needs a word the other's doesn't, the function goes back to the game
 folders.
 
-**The header is read once and the found list is not.** `<schema>.games` is
-immutable during play — the letters and both word lists never change, and
-terminal lives on `common.games` — so the header is a one-shot fetch. Making it
-a per-event refetch instead would re-download both word lists on every teammate
-submission. `found_words` is the opposite: every submission appends a row, so it
-refetches on realtime events.
+**The blob is the whole read.** Each game's `_rebuild_data_cols` writes
+`game_data` after every move — the puzzle and its two lists, every found word,
+each player's finds and rank, the team's in coop — and the page re-reads the
+blob off `common.games`; nothing here reads a table or subscribes to one. The
+seat rule is `makeBeeGameData`'s: mid-race in compete a rival's rows leave
+the log while their counts stay, and the game's end opens everything.
 
-**Two failure slots, not one.** The header is fetched once and never retried, so
-a failure of it is permanent; the found list refetches constantly, so a failure
-of it should clear the moment one read works. Sharing a slot would let a good
-refetch erase a header failure that is still true. The header's wins at the
-return, because once it has failed the board is not coming back however well the
-found list is loading.
-
-**The `games` subscription beside `found_words` is not redundant.**
-`replay_board` only DELETEs found rows, and realtime filters do not reliably
-match DELETE events — so the RPC's no-op write to `games` is what wakes every
-client into refetching the now-empty list.
+**The fixture is shared too** (`beeGameData.fixture.ts`): it builds the blob
+the builder would from facts, over a game's fixture board, and each game's
+`lib/gameData.fixture.ts` fixes that board and its brand.

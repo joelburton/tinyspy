@@ -365,12 +365,12 @@ from everyone else.
   (2026-09-21). `shared/found-words` is "the games that accumulate a list of
   found words" — which is three games, plus wordiply for the submit engine
   alone — and `shared/bee-games` is what is left when you take that away from
-  spellingbee and wordwheel: a shared hook body and the geometry of a hive and
-  a wheel. The folders were the other way round for months, because boggle was
+  spellingbee and wordwheel: one blob shape and its reading, and the geometry
+  of a hive and a wheel. The folders were the other way round for months, because boggle was
   written independently and was never in the room when anything was factored
   out of the other two. Nothing bee-specific is named for the family, either:
-  the header is `BeeGame` and the factory `makeBeeGame`, and if a name in
-  `bee-games` ever says "found-words" again it is wrong.
+  the shared types are `GBee…` and the reading `makeBeeGameData`, and if a
+  name in `bee-games` ever says "found-words" again it is wrong.
 - **`common/word-list` is the PANEL and only the panel.** It is handed a flat
   array of rows and knows nothing about found-word tables, reveals, bands or
   scoring. That is what keeps it common rather than the family's: a game could

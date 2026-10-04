@@ -74,8 +74,9 @@ spellingbee/PlayArea ┐  (twice each: once for the screen, once inside the prin
 the three PlayArea roots + BoardCols ─▶ foundWordsPlayArea.module.css
                                         (.layout · .belowBoard · .loading · .empty)
 the three TypedWord.tsx              ─▶ typedWord.module.css   (.illegal)
-bee-games/makeBeeGame · the three useGame.ts ─▶ foundWords.ts
-                                        (FoundWordRow · FoundWordsWord)
+boggle's useGame.ts                   ─▶ foundWords.ts
+                                        (FoundWordRow · FoundWordsWord; the bee
+                                         games read their blobs instead)
 ```
 
 **The screen and the printer are the same call, not two copies of one recipe.**

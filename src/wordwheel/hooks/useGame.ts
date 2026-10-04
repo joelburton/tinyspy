@@ -1,27 +1,47 @@
-// cs-blessed-wordwheel
+// cs-unmet
 
-import type { Member } from '@/common/members/member'
-import { makeBeeGame } from '@/shared/bee-games/makeBeeGame'
-
-/**
- * One player in a wordwheel game — a straight Member re-export (wordwheel adds
- * no per-player state; any club member who joined can submit). Kept per the
- * cross-game vocabulary convention (naming.md → player): every game's hook file
- * exposes a Player type so a reader scanning per-game folders finds the same
- * parallel everywhere.
- */
-export type Player = Member
+import { useMemo } from 'react'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import { makeBeeGameData } from '@/shared/bee-games/beeGameData'
+import { makeSetupRows } from '../lib/setupRows'
+import type { GGameData, GGameDataRaw } from '../types'
 
 /**
- * wordwheel's `useGame`: the shared bee-games hook body bound to this schema,
- * with the data types re-exported under wordwheel's local names. What the bee
- * games share, and when a game should stop sharing it, is `makeBeeGame`'s own
- * docstring — this file is the seam that would change.
+ * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
+ * reads what the surface would. The reading is the bee games' shared one
+ * (`makeBeeGameData`: the links become players, the seat rule withholds a
+ * rival's finds mid-race, the readout is decided once); what is wordwheel's
+ * is its setup rows, built from its setup and its board's letters.
  */
-export type { BeeGame as WordwheelGame } from '@/shared/bee-games/makeBeeGame'
-export type {
-  FoundWordsWord as WordwheelWord,
-  FoundWordRow,
-} from '@/shared/found-words/foundWords'
+export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
+  return makeBeeGameData(raw, myId, (players) =>
+    makeSetupRows(raw.setup, raw.mode, players, {
+      center: raw.puzzle.centerLetter,
+      outer: raw.puzzle.outerLetters,
+    }),
+  )
+}
 
-export const useGame = makeBeeGame('wordwheel')
+/**
+ * Per-gametype data hook for wordwheel (both modes share it): `gd`, built
+ * from the `game_data` blob the page was handed and who I am. No reads and no
+ * subscription: the page re-reads the blob on every move, and `makeGameData`
+ * is a pure function of it (plans/seat-view.md → The page is written, not
+ * assembled).
+ *
+ * A game whose builder has not written a blob yet cannot be drawn; the throw
+ * lands in `PlayAreaErrorBoundary`'s card.
+ *
+ * The cross-cutting machinery (presence, manual-pause, timer) lives on
+ * `useCommonGame` inside `GamePage` — see `src/common/game-page/useCommonGame.ts`.
+ */
+export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
+  const raw = ctx.gameData as GGameDataRaw | null
+  if (raw === null) {
+    throw new Error(`no game_data; run wordwheel._rebuild_data_cols_for_all()`)
+  }
+  const myId = ctx.auth.user.id
+  // Rebuilt when the page hands down a new blob, and not on every render.
+  const gd = useMemo(() => makeGameData(raw, myId), [raw, myId])
+  return { gd }
+}
