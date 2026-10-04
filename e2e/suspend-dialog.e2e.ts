@@ -60,7 +60,7 @@ test.describe('confirm modals — suspend + stop game', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await page.locator('[data-boggle-tile]').first().waitFor({ timeout: 15000 })
+    await page.locator('[data-tile]').first().waitFor({ timeout: 15000 })
 
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: /back to club/i }).click()
@@ -77,8 +77,8 @@ test.describe('confirm modals — suspend + stop game', () => {
     const { alice, bob } = await twoUp(browser, (club) => createBoggleGame(club))
     // Waiting for a tile absorbs presence-sync — a paused board renders the
     // overlay instead of the tiles, so this un-pauses first.
-    await alice.locator('[data-boggle-tile]').first().waitFor({ timeout: 15000 })
-    await bob.locator('[data-boggle-tile]').first().waitFor({ timeout: 15000 })
+    await alice.locator('[data-tile]').first().waitFor({ timeout: 15000 })
+    await bob.locator('[data-tile]').first().waitFor({ timeout: 15000 })
 
     // Esc cancels: the dialog closes, still on the game page.
     await openSuspendDialog(alice)
@@ -89,7 +89,7 @@ test.describe('confirm modals — suspend + stop game', () => {
     // The backdrop consumes outside clicks: a click on the board region
     // neither closes the dialog nor reaches the tile underneath.
     await openSuspendDialog(alice)
-    const box = (await alice.locator('[data-boggle-tile]').first().boundingBox())!
+    const box = (await alice.locator('[data-tile]').first().boundingBox())!
     await alice.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
     await expect(alice.getByText('Suspend this game?')).toBeVisible()
     await alice.keyboard.press('Escape') // close (the backdrop click blurred the button)
@@ -104,8 +104,8 @@ test.describe('confirm modals — suspend + stop game', () => {
 
   test('multiplayer: Tab cycles within the dialog and does not escape to the page', async ({ browser }) => {
     const { alice, bob } = await twoUp(browser, (club) => createBoggleGame(club))
-    await alice.locator('[data-boggle-tile]').first().waitFor({ timeout: 15000 })
-    await bob.locator('[data-boggle-tile]').first().waitFor({ timeout: 15000 })
+    await alice.locator('[data-tile]').first().waitFor({ timeout: 15000 })
+    await bob.locator('[data-tile]').first().waitFor({ timeout: 15000 })
     await openSuspendDialog(alice)
 
     const label = () =>

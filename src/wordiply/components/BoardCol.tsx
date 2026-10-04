@@ -95,7 +95,7 @@ export function BoardCol({
     onSubmit,
     disabled: entryDisabled,
     onAnyKey: localFeedbackSlot.dismiss,
-    charFor: asciiLetters('lower'),
+    charFor: asciiLetters(),
     maxLength: MAX_LEN,
   })
   // ArrowUp recalls the last guess, ArrowDown clears — handy here since the

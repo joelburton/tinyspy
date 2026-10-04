@@ -10,7 +10,7 @@
  */
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { asciiLetters, useCaptureKeys, type CaptureKeysOptions } from './useCaptureKeys'
+import { useCaptureKeys, type CaptureKeysOptions } from './useCaptureKeys'
 import { useActionDispatcher } from '../actions/useActionDispatcher'
 
 /** Dispatch a window keydown, the way the dispatcher listens for it. Awaited,
@@ -98,12 +98,6 @@ describe('useCaptureKeys — core entry', () => {
     const { onChange } = setup({ pendingText: 'cat', maxLength: 3 })
     await press('s')
     expect(onChange).not.toHaveBeenCalled()
-  })
-
-  it("stores uppercase with asciiLetters('upper')", async () => {
-    const { onChange } = setup({ pendingText: 'CA', charFor: asciiLetters('upper') })
-    await press('t')
-    expect(onChange).toHaveBeenCalledWith('CAT')
   })
 
   it('a letter that types ALSO dismisses feedback — the watcher does not claim the key', async () => {

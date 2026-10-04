@@ -32,3 +32,14 @@ export function isAdjacent(a: string, b: string, side: number): boolean {
   const dx = Math.abs((ai % side) - (bi % side))
   return dy <= 1 && dx <= 1 && ai !== bi
 }
+
+/** The tiles' indices in the order they are drawn, row by row, once the board
+ *  has been turned a quarter clockwise this many times. One turn draws the
+ *  bottom-left tile at the top-left; each letter stays upright. */
+export function makeDrawOrder(side: number, quarterTurns: number): number[] {
+  let order = Array.from({ length: side * side }, (_, i) => i)
+  for (let t = 0; t < quarterTurns; t++) {
+    order = order.map((_, k) => order[(side - 1 - (k % side)) * side + ((k / side) | 0)]!)
+  }
+  return order
+}

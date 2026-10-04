@@ -3,16 +3,16 @@
 import { useBindAction, type ActionState, type Action } from '../actions/useBindAction'
 
 /**
- * A `charFor` (see below) for ASCII letters, stored in the given case. This is
- * the common filter for word games: a single A–Z keystroke becomes the character
- * to append; everything else is ignored. The word games store **lowercase**, the
- * case the board's letters and the server's rows are in, and draw the capitals
- * where they draw the word.
+ * A `charFor` (see below) for ASCII letters. This is the common filter for word
+ * games: a single A–Z keystroke becomes the character to append, lowercase;
+ * everything else is ignored. A word is stored and sent **lowercase**, the case
+ * the board's letters and the server's rows are in, and drawn in capitals
+ * where it is drawn.
  */
-export function asciiLetters(store: 'lower' | 'upper' = 'lower') {
+export function asciiLetters() {
   return (key: string): string | null => {
     if (key.length !== 1 || !/^[a-zA-Z]$/.test(key)) return null
-    return store === 'upper' ? key.toUpperCase() : key.toLowerCase()
+    return key.toLowerCase()
   }
 }
 
@@ -46,7 +46,7 @@ export type CaptureKeysOptions = {
   // Optional; tile/letter clicks dismiss via their own handlers, not this.
   onAnyKey?: () => void
   // Map a pressed key to the character to append, or null to ignore it.
-  // Defaults to `asciiLetters('lower')` (single A–Z, lowercased). This is the
+  // Defaults to `asciiLetters()` (single A–Z, lowercased). This is the
   // one genuinely per-game piece — WHAT may be entered (letters vs digits, the
   // stored case). The rest of the flow is uniform.
   charFor?: (key: string) => string | null
@@ -94,7 +94,7 @@ export function useCaptureKeys({
   disabled = false,
   busy = false,
   onAnyKey,
-  charFor = asciiLetters('lower'),
+  charFor = asciiLetters(),
   maxLength = 16,
   submitDisabled = false,
 }: CaptureKeysOptions): CaptureKeysActions {

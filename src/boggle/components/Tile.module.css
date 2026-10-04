@@ -1,0 +1,104 @@
+/* cs-unmet */
+
+/* One boggle tile (`Tile.tsx`). */
+
+/* @@ */ .tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--boggle-tile);
+  color: var(--boggle-tile-text);
+  /* `border-box` sized, so the picked border below costs no layout — it
+   * thickens inward and nothing on the board moves. */
+  border: var(--tile-edge-width) solid var(--boggle-tile-edge);
+  box-sizing: border-box;
+  border-radius: 8px;
+  box-shadow: var(--tile-shadow);
+  min-width: 0;
+  min-height: 0;
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    background 80ms ease,
+    color 80ms ease;
+  /* The mobile tap highlight paints a gray box that fights the tile. */
+  -webkit-tap-highlight-color: transparent;
+  /* Tracing is rapid taps on neighboring tiles — the gesture iOS Safari reads
+   * as double-tap-to-zoom. */
+  touch-action: manipulation;
+  /* A sizing container, so the letter scales with the tile at any board size. */
+  container-type: size;
+}
+
+/* @@ */ .tile span {
+  /* The app's system-ui sans-serif, like every other game's tiles. */
+  font-weight: 700;
+  font-size: 42cqmin;
+  line-height: 1;
+  /* The letters are held lowercase; the capital is drawn here, on the first
+   * letter only, so a two-letter tile reads "Qu". */
+  text-transform: capitalize;
+}
+
+/* A blank's "?" fades, like scrabble's blank. */
+/* @@ */ .blank {
+  opacity: 0.4;
+}
+
+/* A tile that cannot be tapped — a blank, or a board that is not mine to
+ * touch — takes none of the pointer, the hover lift or the press below. */
+/* @@ */ .inert {
+  cursor: default;
+}
+
+/* A tile you can tap: the pointer, the hover lift and the press. The piece
+ * rises while its shadow falls away, and presses back down when tapped.
+ * `:not(:disabled)` keeps the pointer from out-ranking
+ * `button:disabled { cursor: not-allowed }`, should a tile ever become one. */
+/* @@ */ .tile:not(.inert):not(:disabled) {
+  cursor: pointer;
+}
+/* @@ */ .tile:not(.inert):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--tile-hover-shadow);
+}
+/* @@ */ .tile:not(.inert):active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: var(--tile-shadow);
+  filter: brightness(0.92);
+}
+
+/* Reduced motion: the movement goes, the shadows stay. */
+@media (prefers-reduced-motion: reduce) {
+/* @@ */   .tile:not(.inert):hover,
+/* @@ */   .tile:not(.inert):active {
+    transform: none;
+  }
+}
+
+/* THE ANSWER on a refused word's tiles: the outcome's own fill and white ink.
+ * The verdict classes beside this one set nothing but the two custom
+ * properties read here, which is why a tile can take one without being a
+ * `.tileFace`. */
+/* @@ */ .answered {
+  background: var(--verdict-fill);
+  border-color: var(--verdict-fill);
+  color: var(--verdict-ink);
+}
+
+/* The same border where a typed letter has MORE than one tile it could mean:
+ * the same width, the color held back toward the tile, so settling on one
+ * reads as the same mark going solid. A tapped path names its tiles outright,
+ * so only a typed word raises this. */
+/* @@ */ .maybePicked {
+  border-color: var(--boggle-tile-maybe-edge);
+  border-width: var(--tile-picked-edge-width);
+}
+
+/* A tile on the word being built, in the PICKED channel: a border thicker than
+ * the resting one, in the khaki the word-finding games wear for it — a traced
+ * word lights several dice at once, and a crowd of black edges distracts. */
+/* @@ */ .picked {
+  border-color: var(--tile-spent-edge-color);
+  border-width: var(--tile-picked-edge-width);
+}

@@ -116,7 +116,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
 
 /** The board's faces in the order they are drawn, row-major. */
 const boardFaces = () =>
-  [...document.querySelectorAll('[data-boggle-tile]')].map((t) => t.textContent)
+  [...document.querySelectorAll('[data-tile]')].map((t) => t.textContent)
 
 /** A trusting-commit success, in the envelope `runRpc` unwraps. */
 const acceptedEnvelope = {
@@ -142,7 +142,7 @@ describe('boggle PlayArea — render smoke', () => {
 
   it('renders the 4×4 board + all four Stats cells in coop play', () => {
     const { container } = render(<PlayAreaLoader {...makeCtx()} />)
-    expect(container.querySelectorAll('[data-boggle-tile]')).toHaveLength(16)
+    expect(container.querySelectorAll('[data-tile]')).toHaveLength(16)
     expect(label('Req', 'Words').length).toBeGreaterThan(0)
     expect(label('Req', 'Score').length).toBeGreaterThan(0)
     expect(label('Bonus', 'Words').length).toBeGreaterThan(0)
@@ -359,7 +359,7 @@ describe('boggle PlayArea — trace as you type', () => {
    *  module hashes a class to `_<name>_<hash>`, so the underscores are what keep
    *  `picked` from also matching `maybePicked`. */
   const wearing = (mark: 'picked' | 'maybePicked') =>
-    [...document.querySelectorAll('[data-boggle-tile]')]
+    [...document.querySelectorAll('[data-tile]')]
       .flatMap((t, i) => (t.className.includes(`_${mark}_`) ? [i] : []))
 
   it('lights the tiles a typed word can only mean one way', async () => {
@@ -404,7 +404,7 @@ describe('boggle PlayArea — trace as you type', () => {
     // the second refusal moves nothing. ArrowUp + Enter is how a player gets here.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    const tileAt = (i: number) => document.querySelectorAll('[data-boggle-tile]')[i]!
+    const tileAt = (i: number) => document.querySelectorAll('[data-tile]')[i]!
 
     await user.keyboard('abe{Enter}') // traceable, not a word: a(0) b(1) e(4)
     const first = tileAt(0)
@@ -422,11 +422,21 @@ describe('boggle PlayArea — trace as you type', () => {
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('ac')
     expect(wearing('picked')).toEqual([0])
-    expect(typedWord()).toBe('AC/ ·')
+    expect(typedWord()).toBe('ac/ ·')
 
     await user.keyboard('e')
     expect(wearing('picked')).toEqual([0])
-    expect(typedWord()).toBe('ACE/ ··')
+    expect(typedWord()).toBe('ace/ ··')
+  })
+
+  it('a finished board takes no tap, and its tiles wear no hover or press', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx(STOPPED)} />)
+    const tiles = [...document.querySelectorAll('[data-tile]')]
+    // The CSS module hashes a class to `_<name>_<hash>`.
+    expect(tiles.every((t) => t.className.includes('_inert_'))).toBe(true)
+    await user.click(tiles[0]!)
+    expect(tiles[0]!.getAttribute('data-step')).toBeNull()
   })
 
   it('lights nothing when the first letter is off the board', async () => {
@@ -435,7 +445,7 @@ describe('boggle PlayArea — trace as you type', () => {
     await user.keyboard('zz')
     expect(wearing('picked')).toEqual([])
     expect(wearing('maybePicked')).toEqual([])
-    expect(typedWord()).toBe('ZZ/··')
+    expect(typedWord()).toBe('zz/··')
   })
 
   it('goes dark again when the word is submitted', async () => {
@@ -650,14 +660,14 @@ describe('boggle PlayArea — the keys', () => {
       const user = userEvent.setup()
       render(<WithKeys {...makeCtx()} />)
       const tileShowing = (face: string) =>
-        [...document.querySelectorAll('[data-boggle-tile]')].find((t) => t.textContent === face)!
-      await user.click(tileShowing('A'))
-      await user.click(tileShowing('F'))
+        [...document.querySelectorAll('[data-tile]')].find((t) => t.textContent === face)!
+      await user.click(tileShowing('a'))
+      await user.click(tileShowing('f'))
 
       await act(async () => press(OPT_Z))
-      expect(tileShowing('A').getAttribute('data-step')).toBe('1')
-      expect(tileShowing('F').getAttribute('data-step')).toBe('2')
-      expect(screen.getByTestId('entry-value').textContent).toBe('AF')
+      expect(tileShowing('a').getAttribute('data-step')).toBe('1')
+      expect(tileShowing('f').getAttribute('data-step')).toBe('2')
+      expect(screen.getByTestId('entry-value').textContent).toBe('af')
     })
 
     it('still works on a finished board — the fidget is deliberate', async () => {

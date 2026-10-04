@@ -26,7 +26,7 @@ test.describe('boggle play loop', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
     // The 4×4 board renders all 16 tiles.
-    await expect(page.locator('[data-boggle-tile]')).toHaveCount(16, { timeout: 15000 })
+    await expect(page.locator('[data-tile]')).toHaveCount(16, { timeout: 15000 })
     // …and is LISTENING, not merely mounted (see helpers/ready).
     await settled(page)
 
@@ -69,12 +69,12 @@ test.describe('boggle play loop', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
-    const tiles = page.locator('[data-boggle-tile]')
+    const tiles = page.locator('[data-tile]')
     await expect(tiles).toHaveCount(16, { timeout: 15000 })
     // …and is LISTENING, not merely mounted (see helpers/ready).
     await settled(page)
     // Highlighted path tiles carry the (hashed) `.picked` class.
-    const picked = page.locator('[data-boggle-tile][class*="picked"]')
+    const picked = page.locator('[data-tile][class*="picked"]')
 
     // Trace C(0) → A(1) → T(2): three adjacent tiles along the top row.
     await tiles.nth(0).click()
@@ -130,7 +130,7 @@ test.describe('boggle play loop', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
-    const tiles = page.locator('[data-boggle-tile]')
+    const tiles = page.locator('[data-tile]')
     await expect(tiles).toHaveCount(16, { timeout: 15000 })
     // …and is LISTENING, not merely mounted (see helpers/ready).
     await settled(page)
@@ -196,7 +196,7 @@ test.describe('boggle custom board', () => {
     // Start → the edge function solves exactly this board and lands us on it.
     await page.getByRole('button', { name: 'Start' }).click()
 
-    const tiles = page.locator('[data-boggle-tile]')
+    const tiles = page.locator('[data-tile]')
     await expect(tiles).toHaveCount(16, { timeout: 20000 })
     // The tiles ARE the typed board, in row-major order.
     expect((await tiles.allInnerTexts()).join('')).toBe(CUSTOM_BOARD.replace(/-/g, ''))

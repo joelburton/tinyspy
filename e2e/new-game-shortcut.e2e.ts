@@ -24,7 +24,7 @@ test('“+” starts a new game, after confirming mid-play', async ({ browser })
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page.locator('[data-boggle-tile]')).toHaveCount(16, { timeout: 20000 })
+  await expect(page.locator('[data-tile]')).toHaveCount(16, { timeout: 20000 })
   const originalUrl = page.url()
 
   // See "New game" in the menu before pressing the key: the row is the same
@@ -74,7 +74,7 @@ test('“⌥+” confirms, then opens the setup dialog on the club page', async 
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page.locator('[data-boggle-tile]')).toHaveCount(16, { timeout: 20000 })
+  await expect(page.locator('[data-tile]')).toHaveCount(16, { timeout: 20000 })
 
   // Mid-play it asks the same question `+` does — an accidental chord shouldn't
   // move you off the board either.

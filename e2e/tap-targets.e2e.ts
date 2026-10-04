@@ -53,7 +53,7 @@ const TAPPED_BOARDS = [
   // shared `.tile` (connections, waffle).
   { name: 'strands', make: createStrandsGame, target: 'button[class*="tile"]' },
   { name: 'connections', make: createConnectionsGame, target: '[class*="tile"]' },
-  { name: 'boggle', make: createBoggleGame, target: '[data-boggle-tile]' },
+  { name: 'boggle', make: createBoggleGame, target: '[data-tile]' },
   { name: 'stackdown', make: createStackdownGame, target: '[class*="tile"]' },
   { name: 'waffle', make: createWaffleGame, target: '[class*="tile"]' },
   { name: 'scrabble', make: createScrabbleGame, target: '[data-rack-tile]' },

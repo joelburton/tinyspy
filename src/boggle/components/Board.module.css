@@ -1,0 +1,26 @@
+/* cs-unmet */
+
+/* boggle's board (`Board.tsx`): the square tile grid.
+ *
+ * An n×n lattice of 1fr tracks sized to the definite `--side` square, which
+ * the board column computes (PlayArea.module.css → `.boardCol`). The tray and
+ * its padding sit on the grid itself; `border-box` keeps the padding inside
+ * `--side`. */
+/* @@ */ .grid {
+  width: var(--side);
+  height: var(--side);
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  gap: var(--grid-gap);
+  padding: 10px;
+  background: var(--boggle-board-bg);
+  /* The tray is a shade of the same warm ramp its tiles are, so it needs an edge
+   * of its own or it dissolves into the page. */
+  border: var(--tile-edge-width) solid var(--boggle-board-edge);
+  border-radius: 12px;
+  box-sizing: border-box;
+  /* The floating Rotate control's anchor, so it hugs the board's top-right
+   * rather than the column's. */
+  position: relative;
+}

@@ -28,7 +28,7 @@ export function TypedWord({ word, reach }: Props) {
     <>
       {Array.from(word).map((ch, i) => (
         <span key={i} className={cls(i >= reach && styles.illegal)}>
-          {ch.toUpperCase()}
+          {ch}
         </span>
       ))}
     </>

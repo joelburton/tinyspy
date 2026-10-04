@@ -31,7 +31,7 @@ test('chat keyboard: "/" takes the keyboard, Tab hands it back', async ({ browse
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page.locator('[data-boggle-tile]')).toHaveCount(16, { timeout: 20000 })
+  await expect(page.locator('[data-tile]')).toHaveCount(16, { timeout: 20000 })
 
   const chatInput = page.locator('[data-chat-input]')
   // True when the chat entry — not merely something in the panel — has focus.

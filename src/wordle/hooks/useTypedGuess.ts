@@ -55,7 +55,7 @@ export function useTypedGuess({
     pendingText: typedWord,
     onChange: setTypedWord,
     onSubmit: submitTypedWord,
-    charFor: asciiLetters('lower'),
+    charFor: asciiLetters(),
     onAnyKey: localFeedbackSlot.dismiss,
     disabled: !canType,
     maxLength: WORD_LENGTH,
