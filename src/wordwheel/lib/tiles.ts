@@ -15,7 +15,7 @@
  * this collapses that per-character judgment to the whole-word question the
  * submit gate needs.)
  */
-export function wordFitsWheel(word: string, letterCounts: Map<string, number>): boolean {
+export function canSpellFromTiles(word: string, letterCounts: Map<string, number>): boolean {
   // Count occurrences as we scan so the (k+1)th use of a k-tile letter fails —
   // the first k uses stay legal (mirrors `<TypedWord>` and the edge function).
   const used = new Map<string, number>()

@@ -4,17 +4,17 @@ import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '@/common/pdf/frame'
 import type { WordSection } from '@/common/pdf/wordSections'
 import { drawWordListBody } from '@/common/pdf/wordListBody'
-import { BOX_H, BOX_W, HEX_H, HEX_POSITIONS, HEX_SHRINK, HEX_VERTS, HEX_W } from '../lib/honeycomb'
+import { BOX_H, BOX_W, HEX_H, HEX_POSITIONS, HEX_SHRINK, HEX_VERTS, HEX_W } from '../lib/board'
 
 /**
  * spellingbee's print-to-PDF, composed from the shared `common/pdf` helpers
  * (common/pdf/doc.md): the frame (header / Setup / save) + `drawWordListBody`
  * (the board beside the setup, the word list below). All that is
  * spellingbee's is the **honeycomb** — the 7-hex flower drawn from the same
- * `lib/honeycomb.ts` geometry the on-screen board uses.
+ * `lib/board.ts` geometry the on-screen board uses.
  *
  * The word list reads both per-row flags: `pangram` → bold, `bonus` → a dot.
- * At terminal every missed word — required and bonus — folds in as a bare row
+ * Once the game has ended every missed word — required and bonus — folds in as a bare row
  * (`found: null`), from the same rows call the on-screen list makes.
  */
 

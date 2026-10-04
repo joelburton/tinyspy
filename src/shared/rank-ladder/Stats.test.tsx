@@ -24,9 +24,9 @@ describe('Stats', () => {
     render(
       <Stats
         foundWordsScore={12}
-        requiredWordsScore={93}
-        foundWordsCount={4}
-        requiredWordsCount={30}
+        reqdWordsScore={93}
+        nFoundWords={4}
+        nReqdWords={30}
       />,
     ).container
 

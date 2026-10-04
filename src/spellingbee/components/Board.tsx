@@ -4,7 +4,7 @@ import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useTileShuffle } from '@/shared/bee-games/useTileShuffle'
 import shared from '@/common/game-page/playArea.module.css'
-import { HEX_POSITIONS } from '../lib/honeycomb'
+import { HEX_POSITIONS } from '../lib/board'
 import { Tile } from './Tile'
 import styles from './Board.module.css'
 import type { GRefusedMark, GTile } from '../types'
@@ -34,7 +34,7 @@ type Props = {
  * The board: a 7-hex honeycomb, drawn as ONE inline `<svg>` (viewBox
  * `0 0 256 267`, the flower's coordinate units). Each tile is an SVG
  * `<polygon>` with a real fill and stroke, so it has a true border. The
- * geometry — positions and hex vertices — lives in `lib/honeycomb.ts`, shared
+ * geometry — positions and hex vertices — lives in `lib/board.ts`, shared
  * with the PDF.
  *
  * The board owns its display order and the Shuffle (`useTileShuffle`): the

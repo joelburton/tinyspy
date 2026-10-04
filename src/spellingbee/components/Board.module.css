@@ -5,7 +5,7 @@
  * hex is `Tile.tsx`'s, in `Tile.module.css`.
  *
  * The svg's viewBox is the flower's own bounding box, 256 wide × 267 tall in
- * coordinate units (the hexes are 100×87, positioned from `lib/honeycomb.ts`).
+ * coordinate units (the hexes are 100×87, positioned from `lib/board.ts`).
  * It is sized in `--u` — one coordinate unit, declared on `.boardCol` by
  * `shared/bee-games/beeBoard.module.css` — so the whole flower SCALES with the
  * board, and the below-board input row reads the board width from the same

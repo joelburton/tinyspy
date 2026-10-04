@@ -13,20 +13,20 @@ import { answerMessage, answerOf, peerAnswerMessage } from './answer'
  */
 describe('answerMessage', () => {
   it('reads every answer', () => {
-    const word = { points: 1, isBonus: false, isPangram: false }
+    const word = { points: 1, bonus: false, pangram: false }
     expect(answerMessage({ answerType: 'accepted', word: 'bead', ...word }))
       .toEqual({ outcome: 'won', text: 'BEAD — +1' })
-    expect(answerMessage({ answerType: 'accepted', word: 'bcdfge', ...word, points: 6, isBonus: true }))
+    expect(answerMessage({ answerType: 'accepted', word: 'bcdfge', ...word, points: 6, bonus: true }))
       .toEqual({ outcome: 'won', text: 'BCDFGE • — +6' })
-    expect(answerMessage({ answerType: 'accepted', word: 'abcdefghi', ...word, points: 24, isPangram: true }))
+    expect(answerMessage({ answerType: 'accepted', word: 'abcdefghi', ...word, points: 24, pangram: true }))
       .toEqual({ outcome: 'won', text: 'ABCDEFGHI — pangram +24' })
 
     expect(answerMessage({ answerType: 'accepted_peer', word: 'bead', ...word }))
       .toEqual({ outcome: 'won', text: 'found BEAD +1' })
-    expect(answerMessage({ answerType: 'accepted_peer', word: 'abcdefghi', ...word, points: 24, isPangram: true }))
+    expect(answerMessage({ answerType: 'accepted_peer', word: 'abcdefghi', ...word, points: 24, pangram: true }))
       .toEqual({ outcome: 'won', text: 'pangram 🦌 ABCDEFGHI +24' })
 
-    expect(answerMessage({ answerType: 'already_found', word: 'bcdfge', isBonus: true }))
+    expect(answerMessage({ answerType: 'already_found', word: 'bcdfge', bonus: true }))
       .toEqual({ outcome: 'warning', text: 'BCDFGE • — already found' })
     expect(answerMessage({ answerType: 'too_short', word: 'bed' }))
       .toEqual({ outcome: 'warning', text: 'BED — too short' })
@@ -51,9 +51,9 @@ describe('answerOf', () => {
   it('carries the entry\'s points and flags', () => {
     const entry = { word: 'abcdefghi', points: 24, pangram: true, bonus: false }
     expect(answerOf({ answer: 'accepted', word: 'abcdefghi', entry }, 'e'))
-      .toEqual({ answerType: 'accepted', word: 'abcdefghi', points: 24, isBonus: false, isPangram: true })
+      .toEqual({ answerType: 'accepted', word: 'abcdefghi', points: 24, bonus: false, pangram: true })
     expect(answerOf({ answer: 'already_found', word: 'abcdefghi', entry: null }, 'e'))
-      .toEqual({ answerType: 'already_found', word: 'abcdefghi', isBonus: false })
+      .toEqual({ answerType: 'already_found', word: 'abcdefghi', bonus: false })
     expect(answerOf({ answer: 'too_short', word: 'bed' }, 'e'))
       .toEqual({ answerType: 'too_short', word: 'bed' })
   })

@@ -4,7 +4,7 @@ import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import shared from '@/common/game-page/playArea.module.css'
-import { HEX_W, HEX_H, HEX_VERTS, HEX_SHRINK } from '../lib/honeycomb'
+import { HEX_W, HEX_H, HEX_VERTS, HEX_SHRINK } from '../lib/board'
 import styles from './Tile.module.css'
 import type { GTile } from '../types'
 

@@ -460,7 +460,7 @@ play_state, pause, chat — and unmounts this whole surface on pause. `Help` and
 What is wordwheel's own:
 
 - **The wheel is nine round boxes.** Each tile is a mustard seat placed on a
-  square by its own center, from `lib/wheel.ts`, and the face that sits in it;
+  square by its own center, from `lib/board.ts`, and the face that sits in it;
   the seats touch by construction and merge into one flower, and only the face
   is the piece — it rests with a shadow, rises on hover and presses back down.
   The square is sized in one coordinate unit, so the whole board sizes to the

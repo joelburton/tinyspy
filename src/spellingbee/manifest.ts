@@ -71,8 +71,8 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 }
 
 // Timeout + manual end — the shared one-arg RPC dispatchers (see
-// common/manifest/manifestRpcs). submit_timeout is mode-aware server-side
-// (per-mode terminal vocab lives in spellingbee.submit_timeout) + idempotent.
+// common/manifest/manifestRpcs). submit_timeout writes the ending the mode
+// calls for, and is idempotent.
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 

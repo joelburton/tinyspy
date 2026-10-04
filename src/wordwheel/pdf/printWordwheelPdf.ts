@@ -4,13 +4,13 @@ import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '@/common/pdf/frame'
 import type { WordSection } from '@/common/pdf/wordSections'
 import { drawWordListBody } from '@/common/pdf/wordListBody'
-import { BOX_H, BOX_W, TILE_POSITIONS } from '../lib/wheel'
+import { BOX_H, BOX_W, TILE_POSITIONS } from '../lib/board'
 
 /**
  * wordwheel's print-to-PDF, composed from the shared `common/pdf` helpers
  * (common/pdf/doc.md): the frame (header / Setup / save) + `drawWordListBody`
  * (the board beside the setup, the word list below). All that is wordwheel's
- * is the **wheel** — the 9-circle board drawn from the same `lib/wheel.ts`
+ * is the **wheel** — the 9-circle board drawn from the same `lib/board.ts`
  * geometry the on-screen board uses.
  *
  * On the clean-printable page we can't lean on the on-screen purple center tile (the
@@ -19,7 +19,7 @@ import { BOX_H, BOX_W, TILE_POSITIONS } from '../lib/wheel'
  * the geometry) and drawn with a thicker border.
  *
  * The word list reads both per-row flags: `pangram` → bold, `bonus` → a dot.
- * At terminal every missed word — required and bonus — folds in as a bare row
+ * Once the game has ended every missed word — required and bonus — folds in as a bare row
  * (`found: null`), from the same rows call the on-screen list makes.
  */
 

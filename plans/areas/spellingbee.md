@@ -43,7 +43,7 @@ area re-reads them:** `hooks/useGame.test.ts`, `lib/gameData.fixture.ts`,
 `lib/wordRows.ts`, `hooks/useActionsAndMenu.ts`,
 `hooks/useGetGameEndingMessage.ts`, `hooks/useGetPlayerEndingMessage.ts`,
 `hooks/useShowOppsRankMessages.ts`, `hooks/useSubmitWord.ts` + its test (the
-Board pass, 2026-10-04), `components/StateLine.tsx` (the InfoCol pass, 2026-10-04), `supabase/tests/spellingbee/game_data_test.sql`;
+Board pass, 2026-10-04), `components/StateLine.tsx` (the InfoCol pass, 2026-10-04), and the geometry module is `lib/board.ts` (the naming pass, 2026-10-04), `supabase/tests/spellingbee/game_data_test.sql`;
 and deleted `supabase/tests/spellingbee/statuses_test.sql`. `components/PlayArea.test.tsx`
 was rewritten over the fixture.
 

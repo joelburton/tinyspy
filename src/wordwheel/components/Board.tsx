@@ -5,7 +5,7 @@ import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useTileShuffle } from '@/shared/bee-games/useTileShuffle'
 import shared from '@/common/game-page/playArea.module.css'
 import { spentTileIds } from '../lib/spend'
-import { TILE_POSITIONS } from '../lib/wheel'
+import { TILE_POSITIONS } from '../lib/board'
 import { Tile } from './Tile'
 import styles from './Board.module.css'
 import type { GRefusedMark, GTile } from '../types'
@@ -37,7 +37,7 @@ type Props = {
 /**
  * The board: a 9-tile wheel, round boxes absolutely placed on a square sized in `--u`,
  * the wheel's coordinate unit (the box is 300 units across). The geometry
- * lives in `lib/wheel.ts`, shared with the PDF.
+ * lives in `lib/board.ts`, shared with the PDF.
  *
  * The board owns its display order and the Shuffle (`useTileShuffle`). Render
  * order matches `TILE_POSITIONS`: the center first, then the eight outer

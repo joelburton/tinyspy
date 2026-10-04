@@ -14,20 +14,20 @@ import { answerMessage, answerOf, peerAnswerMessage } from './answer'
  */
 describe('answerMessage', () => {
   it('reads every answer', () => {
-    const word = { points: 1, isBonus: false, isPangram: false }
+    const word = { points: 1, bonus: false, pangram: false }
     expect(answerMessage({ answerType: 'accepted', word: 'chat', ...word }))
       .toEqual({ outcome: 'won', text: 'CHAT — +1' })
-    expect(answerMessage({ answerType: 'accepted', word: 'airt', ...word, isBonus: true }))
+    expect(answerMessage({ answerType: 'accepted', word: 'airt', ...word, bonus: true }))
       .toEqual({ outcome: 'won', text: 'AIRT • — +1' })
-    expect(answerMessage({ answerType: 'accepted', word: 'chariot', ...word, points: 17, isPangram: true }))
+    expect(answerMessage({ answerType: 'accepted', word: 'chariot', ...word, points: 17, pangram: true }))
       .toEqual({ outcome: 'won', text: 'CHARIOT — pangram +17' })
 
     expect(answerMessage({ answerType: 'accepted_peer', word: 'chat', ...word }))
       .toEqual({ outcome: 'won', text: 'found CHAT +1' })
-    expect(answerMessage({ answerType: 'accepted_peer', word: 'chariot', ...word, points: 17, isPangram: true }))
+    expect(answerMessage({ answerType: 'accepted_peer', word: 'chariot', ...word, points: 17, pangram: true }))
       .toEqual({ outcome: 'won', text: 'pangram 🐝 CHARIOT +17' })
 
-    expect(answerMessage({ answerType: 'already_found', word: 'airt', isBonus: true }))
+    expect(answerMessage({ answerType: 'already_found', word: 'airt', bonus: true }))
       .toEqual({ outcome: 'warning', text: 'AIRT • — already found' })
     expect(answerMessage({ answerType: 'too_short', word: 'cat' }))
       .toEqual({ outcome: 'warning', text: 'CAT — too short' })
@@ -45,26 +45,26 @@ describe('answerMessage', () => {
 })
 
 describe('answerOf', () => {
-  const hive = { letters: new Set('achiort'), center: 'a' }
+  const board = { letters: new Set('achiort'), center: 'a' }
   const AIRT: FoundWordsWord = { word: 'airt', points: 1, pangram: false, bonus: true }
 
-  it('splits a miss by why: a letter off the hive, then the center, then not a word', () => {
-    expect(answerOf({ answer: 'not_legal', word: 'caxt' }, hive).answerType).toBe('bad_letters')
-    expect(answerOf({ answer: 'not_legal', word: 'chit' }, hive))
+  it('splits a miss by why: a letter off the board, then the center, then not a word', () => {
+    expect(answerOf({ answer: 'not_legal', word: 'caxt' }, board).answerType).toBe('bad_letters')
+    expect(answerOf({ answer: 'not_legal', word: 'chit' }, board))
       .toEqual({ answerType: 'missing_center', word: 'chit', center: 'a' })
-    expect(answerOf({ answer: 'not_legal', word: 'chait' }, hive).answerType).toBe('not_a_word')
-    // A letter off the hive wins over the missing center — it is the first thing wrong.
-    expect(answerOf({ answer: 'not_legal', word: 'xhit' }, hive).answerType).toBe('bad_letters')
+    expect(answerOf({ answer: 'not_legal', word: 'chait' }, board).answerType).toBe('not_a_word')
+    // A letter off the board wins over the missing center — it is the first thing wrong.
+    expect(answerOf({ answer: 'not_legal', word: 'xhit' }, board).answerType).toBe('bad_letters')
   })
 
   it('carries the entry\'s points and flags', () => {
-    expect(answerOf({ answer: 'accepted', word: 'airt', entry: AIRT }, hive))
-      .toEqual({ answerType: 'accepted', word: 'airt', points: 1, isBonus: true, isPangram: false })
-    expect(answerOf({ answer: 'already_found', word: 'airt', entry: AIRT }, hive))
-      .toEqual({ answerType: 'already_found', word: 'airt', isBonus: true })
-    expect(answerOf({ answer: 'already_found', word: 'airt', entry: null }, hive))
-      .toEqual({ answerType: 'already_found', word: 'airt', isBonus: false })
-    expect(answerOf({ answer: 'too_short', word: 'cat' }, hive))
+    expect(answerOf({ answer: 'accepted', word: 'airt', entry: AIRT }, board))
+      .toEqual({ answerType: 'accepted', word: 'airt', points: 1, bonus: true, pangram: false })
+    expect(answerOf({ answer: 'already_found', word: 'airt', entry: AIRT }, board))
+      .toEqual({ answerType: 'already_found', word: 'airt', bonus: true })
+    expect(answerOf({ answer: 'already_found', word: 'airt', entry: null }, board))
+      .toEqual({ answerType: 'already_found', word: 'airt', bonus: false })
+    expect(answerOf({ answer: 'too_short', word: 'cat' }, board))
       .toEqual({ answerType: 'too_short', word: 'cat' })
   })
 })

@@ -14,7 +14,7 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
     case 'accepted':
       return {
         outcome: 'won',
-        text: `${wordWithBonusBullet(answer.word, answer.isBonus)} — ${answer.isPangram ? 'pangram ' : ''}+${answer.points}`,
+        text: `${wordWithBonusBullet(answer.word, answer.bonus)} — ${answer.pangram ? 'pangram ' : ''}+${answer.points}`,
       }
     // A pangram leads with the label and the moose, so the headline reads
     // before the word does — and so the line fits the header's ~26 phone
@@ -22,11 +22,11 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
     case 'accepted_peer':
       return {
         outcome: 'won',
-        text: `${answer.isPangram ? 'pangram 🦌' : 'found'} ${wordWithBonusBullet(answer.word, answer.isBonus)} +${answer.points}`,
+        text: `${answer.pangram ? 'pangram 🦌' : 'found'} ${wordWithBonusBullet(answer.word, answer.bonus)} +${answer.points}`,
       }
 
     case 'already_found':
-      return { outcome: 'warning', text: `${wordWithBonusBullet(answer.word, answer.isBonus)} — already found` }
+      return { outcome: 'warning', text: `${wordWithBonusBullet(answer.word, answer.bonus)} — already found` }
     case 'too_short':
       return { outcome: 'warning', text: `${answer.word.toUpperCase()} — too short` }
 
@@ -56,11 +56,11 @@ export function answerOf(report: WordSubmitReport, center: string): GAnswer {
         answerType: 'accepted',
         word,
         points: report.entry.points,
-        isBonus: report.entry.bonus,
-        isPangram: report.entry.pangram,
+        bonus: report.entry.bonus,
+        pangram: report.entry.pangram,
       }
     case 'already_found':
-      return { answerType: 'already_found', word, isBonus: report.entry?.bonus ?? false }
+      return { answerType: 'already_found', word, bonus: report.entry?.bonus ?? false }
     case 'too_short':
       return { answerType: 'too_short', word }
     case 'not_legal':
@@ -83,7 +83,7 @@ export function peerAnswerMessage(row: LoggedWord): AnswerMessage {
     answerType: 'accepted_peer',
     word: row.word,
     points: row.points,
-    isBonus: row.bonus,
-    isPangram: row.pangram,
+    bonus: row.bonus,
+    pangram: row.pangram,
   })
 }

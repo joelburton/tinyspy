@@ -4,9 +4,9 @@ import styles from './Stats.module.css'
 
 type Props = {
   foundWordsScore: number
-  requiredWordsScore: number
-  foundWordsCount: number
-  requiredWordsCount: number
+  reqdWordsScore: number
+  nFoundWords: number
+  nReqdWords: number
 }
 
 /**
@@ -22,15 +22,16 @@ type Props = {
  * to `Stats.module.css`, beside `.muted`, because every grid built on that file
  * follows it and not every one of them is this component.
  *
- * Pure presentation — no derivation, no state. The parent (PlayArea) wires in
- * the found vs required figures (found counts include bonus words, so each
- * numerator can overshoot its required denominator).
+ * Pure presentation — no derivation, no state. The caller (each bee game's
+ * `StateLine`) hands in the found and required figures under the blob's own
+ * names; found counts include bonus words, so each numerator can overshoot
+ * its required denominator.
  */
 export function Stats({
   foundWordsScore,
-  requiredWordsScore,
-  foundWordsCount,
-  requiredWordsCount,
+  reqdWordsScore,
+  nFoundWords,
+  nReqdWords,
 }: Props) {
   return (
     <div className={styles.stats}>
@@ -38,14 +39,14 @@ export function Stats({
         <span className={styles.label}>Score</span>
         <span className={styles.value}>
           {foundWordsScore}
-          <span className={styles.muted}>/{requiredWordsScore}</span>
+          <span className={styles.muted}>/{reqdWordsScore}</span>
         </span>
       </div>
       <div className={styles.cell}>
         <span className={styles.label}>Words</span>
         <span className={styles.value}>
-          {foundWordsCount}
-          <span className={styles.muted}>/{requiredWordsCount}</span>
+          {nFoundWords}
+          <span className={styles.muted}>/{nReqdWords}</span>
         </span>
       </div>
     </div>

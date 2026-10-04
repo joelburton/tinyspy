@@ -425,7 +425,7 @@ play_state, pause, chat — and unmounts this whole surface on pause. `Help` and
 What is spellingbee's own:
 
 - **The board is one svg.** Seven `<polygon>` hexes with a real fill and stroke,
-  positioned from `lib/honeycomb.ts` in the flower's own coordinate units and
+  positioned from `lib/board.ts` in the flower's own coordinate units and
   scaled by one token, so the whole board sizes to the column and the printer
   draws the same geometry. The outer six are shuffled locally, a fresh scan of
   the same letters that writes nothing and reaches nobody, and the button

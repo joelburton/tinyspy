@@ -8,7 +8,7 @@ import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { useSubmitWord } from '../hooks/useSubmitWord'
 import { StateLine } from './StateLine'
-import { wordFitsWheel } from '../lib/tiles'
+import { canSpellFromTiles } from '../lib/tiles'
 import { Board } from './Board'
 import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
@@ -119,7 +119,7 @@ export function BoardCol({
             // the wheel's tiles — the same characters `<TypedWord>` dims. A word
             // that fits but misses the center, or is not in the list, still
             // submits and gets its answer.
-            submitDisabled={!wordFitsWheel(submission.word, letterToCounts)}
+            submitDisabled={!canSpellFromTiles(submission.word, letterToCounts)}
             localFeedbackSlot={localFeedbackSlot}
           >
             <TypedWord word={submission.word} letterCounts={letterToCounts} />

@@ -22,9 +22,9 @@ export function StateLine({ data }: { data: GStateLineData }) {
       <RankBar score={data.foundWordsScore} total={data.reqdWordsScore} targetIdx={data.targetRankIdx} />
       <Stats
         foundWordsScore={data.foundWordsScore}
-        requiredWordsScore={data.reqdWordsScore}
-        foundWordsCount={data.nFoundWords}
-        requiredWordsCount={data.nReqdWords}
+        reqdWordsScore={data.reqdWordsScore}
+        nFoundWords={data.nFoundWords}
+        nReqdWords={data.nReqdWords}
       />
     </>
   )

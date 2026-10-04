@@ -5,7 +5,7 @@
  * tile is `Tile.tsx`'s, in `Tile.module.css`.
  *
  * The square is 300 × 300 coordinate units (the tile positions come from
- * `lib/wheel.ts`, which the PDF shares). It is sized in `--u` — one coordinate
+ * `lib/board.ts`, which the PDF shares). It is sized in `--u` — one coordinate
  * unit, declared on `.boardCol` by `shared/bee-games/beeBoard.module.css` — so
  * the whole wheel SCALES with the board, and the below-board input row reads
  * the board width from the same source. */

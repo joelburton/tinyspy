@@ -149,12 +149,12 @@ export type GSetup = SetupOf<GSetupValues>
  */
 export type GAnswer =
   // My word counted.
-  | { answerType: 'accepted'; word: string; points: number; isBonus: boolean; isPangram: boolean }
+  | { answerType: 'accepted'; word: string; points: number; bonus: boolean; pangram: boolean }
   // A coop teammate's did, off `found_words`.
-  | { answerType: 'accepted_peer'; word: string; points: number; isBonus: boolean; isPangram: boolean }
+  | { answerType: 'accepted_peer'; word: string; points: number; bonus: boolean; pangram: boolean }
 
   // Already found — by anyone in coop, by me in compete.
-  | { answerType: 'already_found'; word: string; isBonus: boolean }
+  | { answerType: 'already_found'; word: string; bonus: boolean }
   // Fewer than four letters.
   | { answerType: 'too_short'; word: string }
 
