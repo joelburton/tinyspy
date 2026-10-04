@@ -3,8 +3,8 @@
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
 import { type WordSubmitReport } from '@/shared/found-words/useFoundWordSubmit'
 import { wordWithBonusBullet } from '@/shared/found-words/foundWords'
-import { traceableStr } from './boardTrace'
-import type { GAnswer } from '../types'
+import { traceable } from './boardTrace'
+import type { GAnswer, GBoard, GFoundWord } from '../types'
 
 /**
  * How an answer reads — **the one place this game decides that.** The pill,
@@ -45,30 +45,27 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
  * Which of this game's answers the engine's report is. The engine knows only
  * that a word missed the list; the board says why — whether any path spells it.
  */
-export function answerOf(report: WordSubmitReport, board: string): GAnswer {
+export function answerOf(report: WordSubmitReport, board: GBoard): GAnswer {
   const word = report.word
   switch (report.answer) {
     case 'accepted':
-      return { answerType: 'accepted', word, points: report.entry.points, isBonus: report.entry.isBonus }
+      return { answerType: 'accepted', word, points: report.entry.points, isBonus: report.entry.bonus }
     case 'already_found':
-      return { answerType: 'already_found', word, isBonus: report.entry?.isBonus ?? false }
+      return { answerType: 'already_found', word, isBonus: report.entry?.bonus ?? false }
     case 'too_short':
       return { answerType: 'too_short', word }
     case 'not_legal':
-      return traceableStr(board, word)
+      return traceable(board, word)
         ? { answerType: 'not_a_word', word }
         : { answerType: 'not_on_board', word }
   }
 }
-
-/** The columns of a `boggle.found_words` row that say what it WAS. */
-type LoggedWord = { word: string; points: number; is_bonus: boolean }
 
 /**
  * How a teammate's found word reads in the header. The caller has already
  * established that the row is not the viewer's own (its own line is the local
  * slot's).
  */
-export function peerAnswerMessage(row: LoggedWord): AnswerMessage {
-  return answerMessage({ answerType: 'accepted_peer', word: row.word, points: row.points, isBonus: row.is_bonus })
+export function peerAnswerMessage(found: GFoundWord): AnswerMessage {
+  return answerMessage({ answerType: 'accepted_peer', word: found.word, points: found.points, isBonus: found.bonus })
 }

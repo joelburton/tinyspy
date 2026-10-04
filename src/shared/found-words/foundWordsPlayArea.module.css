@@ -8,8 +8,8 @@
  *
  * WHAT IS HERE: everything about the play surface that does not depend on what
  * the board looks like — the layout's two vertical budgets, the mobile regime,
- * the below-board slot, and the loading/empty states. Every class here is
- * composed by every game that composes the file — there is no à la carte half.
+ * and the below-board slot. Every class here is composed by every game that
+ * composes the file — there is no à la carte half.
  *
  * WHAT IS NOT: the board's own geometry. A hive and a wheel are rectangles
  * measured in coordinate units and share that arithmetic in
@@ -101,11 +101,4 @@
   margin-top: var(--below-board-gap);
   display: flex;
   flex-direction: column;
-}
-
-/* @@ */ .loading,
-/* @@ */ .empty {
-  padding: 3rem 1rem;
-  text-align: center;
-  color: var(--page-text-muted-color);
 }

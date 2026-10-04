@@ -1,0 +1,44 @@
+// cs-unmet
+
+import { useMemo } from 'react'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import { buildGameEndingMessage } from '../lib/endingMessage'
+import type { GGameData } from '../types'
+
+/**
+ * The ending's message — the below-board pill and the info column's line —
+ * or null while the game is played (`buildGameEndingMessage`, fed from `gd`).
+ *
+ * The message keeps its identity for as long as the ending does, which is what
+ * lets the effect that shows it show it once rather than on every reload of
+ * the blob. The blob rebuilds its objects on every reload, so the memo keys on
+ * the strings and numbers, not on them.
+ */
+export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
+  const outcome = gd.outcome
+  const reason = gd.ending?.reason ?? null
+  const playerOutcome = gd.me.outcome
+  const conceded = gd.me.conceded
+  const winner = gd.ending?.winner ?? null
+  const hasTarget = gd.setup.win_percent !== null
+  // The team's finds in coop, my own in compete.
+  const finds = gd.team ?? gd.me
+  const tally = `${finds.nFoundWords} words, ${finds.foundWordsScore} points`
+  return useMemo(
+    () =>
+      outcome === null || reason === null
+        ? null
+        : buildGameEndingMessage({
+            mode: gd.mode,
+            gameEnding: { outcome, reason },
+            playerOutcome,
+            conceded,
+            winner,
+            hasTarget,
+            tally,
+          }),
+    // `winner` is a player object the blob rebuilds; its id is what matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [outcome, reason, gd.mode, playerOutcome, conceded, winner?.id, hasTarget, tally],
+  )
+}

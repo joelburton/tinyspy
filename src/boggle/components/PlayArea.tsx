@@ -1,760 +1,157 @@
 // cs-unmet
 
-import { useEffect, useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { readLeaderboard } from '@/common/game-page/readLeaderboard'
-import { useTabRing } from '@/common/keyboard/useTabRing'
-import { buildGameMenu } from '@/common/menu/gameMenu'
-import { makeSetupRows } from '../lib/setupRows'
-import { runEdgeFn } from '@/common/supabase/dbResult'
-import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useBindAction } from '@/common/actions/useBindAction'
-import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import type { Actor } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
-import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
-import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
-import { tracePathStr, traceCellsStr } from '../lib/boardTrace'
-import { answerMessage, answerOf, peerAnswerMessage } from '../lib/answer'
-import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
-import { useMark } from '@/common/board-marks/useMark'
-import type { Outcome } from '@/common/outcomes/outcomes'
-import type { GLadderName, GSetup } from '../types'
+import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
+import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
+import { InfoSheet } from '@/common/info-sheet/InfoSheet'
+import { useTabRing } from '@/common/keyboard/useTabRing'
+import { peerAnswerMessage } from '../lib/answer'
 import { useGame } from '../hooks/useGame'
-import { buildWordListRows } from '@/shared/found-words/wordListRows'
-import { printBogglePdf } from '../pdf/printBogglePdf'
-import { buildWordSections } from '@/common/pdf/wordSections'
-import { db } from '../db'
+import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
+import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
+import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
-import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { runRpc } from '@/common/supabase/dbResult'
 import styles from './PlayArea.module.css'
 import '../theme.css'
-import { reportUnhandled } from '@/common/supabase/dbEnvelope'
+import type { GGameData } from '../types'
 
 /**
- * boggle play surface, shared by the coop and compete manifests, on the shared
- * two-column scaffold (board column + fixed info column — see docs/playarea.md →
- * "PlayArea layout"):
- *
- *   - **Board column** — the square tile grid (sized like waffle's: the largest
- *     square that fits) with a floating Rotate control over its top-right, and a
- *     below-board slot holding ONE of: the typed-word input row, the sticky
- *     own-move feedback pill, or the permanent terminal pill (they replace each
- *     other in a fixed-height slot so the board never reflows).
- *   - **Info column** — the live word/score state, the compete OpponentStrip, the
- *     Stop/Concede action row (terminal outcome line at game-over), a help line,
- *     the setup disclosure, and the found-words `<WordList>` filling the rest.
- *
- * The board is shipped to the FE with its required-word list, so guesses are
- * classified instantly: a required word (membership) or an off-board/too-short
- * word needs no server round-trip; only an unknown (bonus-candidate) word is sent
- * for the dictionary check. Traceability is checked client-side (trusting-commit).
- *
- * Move entry is the shared capture model (window key capture + a chrome-less
- * `<WordEntryInput>` display), the same as spellingbee — boggle's structural twin.
+ * The manifest's component: builds `gd` from the blob the page was handed and
+ * draws the surface.
  */
-/** What `boggle.submit_word` puts in `data`. Both results mean the row landed;
- *  they differ only by the bonus flag the caller sent. A duplicate and a
- *  post-terminal submit record nothing, so they arrive as refusals. */
-type SubmittedWord =
-  | { result: 'accepted'; points: number }
-  | { result: 'bonus'; points: number }
-  | null
+export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
+  const { gd } = useGame(ctx)
+  return (
+    <PlayArea
+      gd={gd}
+      globalFeedbackSlot={ctx.globalFeedbackSlot}
+      goToFollowUpGame={ctx.goToFollowUpGame}
+      menu={ctx.menu}
+    />
+  )
+}
 
-export function PlayArea(ctx: PlayAreaLoaderProps) {
-  const { gameId, players, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive, playState, setup, clubHandle, goToFollowUpGame, authSession, status, globalFeedbackSlot, menu, brand, title } = ctx
-  const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
+type PlayAreaProps = Pick<PlayAreaLoaderProps, 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'> & {
+  gd: GGameData
+}
 
-  // The entry is typed at the window rather than into an input, so nothing here
-  // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
-  // out to the browser.
+/**
+ * boggle's play surface, shared by the coop and compete manifests — the
+ * coordinator. It holds no board and draws no control of its own: `<BoardCol>`
+ * takes the board, the word engine and the `submit_word` RPC, `<InfoCol>` the
+ * readouts, the action row and the word list, and this component decides what
+ * each of them is handed.
+ *
+ * Both manifests mount it, and the mode (`gd.mode`) is what differs: whose
+ * finds the state line counts, whether a teammate's find is narrated, and the
+ * ending's words.
+ *
+ * Above it, `<GamePage>` owns members, the timer, the ending, pause and chat,
+ * and unmounts this surface on pause — every piece of state below goes with it.
+ */
+function PlayArea({
+  gd,
+  globalFeedbackSlot,
+  goToFollowUpGame,
+  menu,
+}: PlayAreaProps) {
+  // ─── Page hooks ────────────────────────────────────────
+
+  // Tab isn't used; an empty ring keeps it from reaching browser chrome.
   useTabRing([])
 
-  // Mobile (docs/mobile.md → The info-sheet recipe): below the breakpoint the board
-  // fills the screen and the info column moves into a full-width off-canvas
-  // <InfoSheet> (wide, like spellingbee — its WordList wants the room). The board
-  // fills for free (a square sized min(--avail-w, --avail-h, …)); input is tile
-  // taps (path-tracing, see BoardCol). Desktop is unchanged.
+  // On a phone the board fills the screen and the info column moves into an
+  // off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
   const infoSheet = useInfoSheet()
 
-  // ─── Coop-target celebration ───────────────────────────
-  // boggle's only unambiguous win: a COOP team crossing the score target
-  // (`setup.win_percent`, `status.reason='target'`). Confetti at the moment it
-  // happens — the crossing word ends the game on every connected client via
-  // realtime — and never on mount, so opening a finished game is quiet review
-  // (`useCelebration`). Both inputs come off the SAME common.games row that
-  // gates GamePage's render, so they're correct on the first render here; no
-  // per-player data is involved, which is what keeps this safe (the
-  // connections/psychicnum loading-race lesson).
-  //
-  // Compete deliberately doesn't celebrate, matching the other games: the
-  // winner-vs-loser test is a leaderboard comparison, and a race has a loser
-  // watching.
-  const celebration = useCelebration(
-    (status?.mode as string | undefined) === 'coop' &&
-      (status?.reason as string | undefined) === 'target',
-  )
-  const myId = authSession.user.id
+  // Confetti the moment the win is MINE, as the server ranked it: the team's
+  // in coop, mine alone in a race. It is shown only when it happens.
+  const celebration = useCelebration(gd.me.outcome === 'won')
 
-  // `setup` is typed `Record<string, unknown>`, so it is read as `GSetup` through unknown.
-  const boggleSetup = setup as unknown as GSetup
+  // ─── The local slot, and what stands in it ─────────────
 
-  // The setup rows, built ONCE and handed to both consumers — the info column
-  // renders them as <li>s, the print model prints the same array object
-  // (common/setup-form/doc.md → Setup rows).
-  // The board itself rides along as the `Letters` setup row — the raw face
-  // string, which `makeSetupRows` writes out the way the setup dialog takes it back.
-  const setupRows = useMemo(
-    () =>
-      makeSetupRows(
-        boggleSetup,
-        game?.mode ?? 'coop',
-        players,
-        game ? { board: game.board, n: game.n } : null,
-      ),
-    [boggleSetup, game, players],
-  )
-  const ladder: GLadderName = (boggleSetup.scoring_ladder as GLadderName) ?? 'basic'
-
-  // When the legal band equals the required band, bonus words are only words the
-  // clean filter removed from the required set — not an intentional wider
-  // dictionary. Declared up here because THREE things read it: the Bonus stat
-  // cells, the missed-word reveal, and the word list's kind filter. They must
-  // agree, or the UI claims this board has bonus words in one place and denies it
-  // in another.
-  const hasBonusDifficulty = boggleSetup.legal_band !== boggleSetup.band
-
-  // ─── The local feedback slot ────
-  // The below-board slot every own-move result lands in: the answer to each
-  // word, a commit's not-ok, Stop / Concede's not-oks, and the two standing
-  // conditions below.
+  // The slot under the board is for messages about ME.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // ─── Move entry + own-move results (shared engine) ────
-  // The board ships with its full legal list (required ∪ bonus), so a guess is
-  // validated + scored locally — index it by word for O(1) lookup. `useFoundWordSubmit`
-  // owns the typed-word state and the optimistic commit + dedup; boggle
-  // supplies the lookup, the RPC, and what it shows for each answer.
-  const legalIndex = useMemo(() => {
-    const m = new Map<string, LegalWord>()
-    for (const r of game?.required_words ?? []) {
-      m.set(r.word, { word: r.word, points: r.points, isBonus: false })
-    }
-    for (const b of game?.bonus_words ?? []) {
-      m.set(b.word, { word: b.word, points: b.points, isBonus: true })
-    }
-    return m
-  }, [game?.required_words, game?.bonus_words])
-
-  // Concede state (the page's `isConceded`, off the common roster). A conceder
-  // can't submit and sees the out-of-the-race look while the others race;
-  // peers show as "out" in the strip.
-  const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
-
-  /** The tiles a refused word used, wearing its answer. Board-cell indices —
-   *  BoardCol turns them into view positions, since the player may have rotated
-   *  the board under them.
-   *
-   *  The mark's own `nonce` is what the tiles are keyed by: a CSS animation runs
-   *  once per mount, and refusing the same word twice inside the answer's beat
-   *  would leave the shake's class exactly where it was. ArrowUp recalls the
-   *  last word and Enter re-submits it, so twice is a keystroke away. */
-  const [answered, showAnswer] = useMark<{ cells: number[]; outcome: Outcome }>(WORD_ANSWER_MS)
-
-  const { word, setWord, lastWord, submit } =
-    useFoundWordSubmit({
-      mode: game?.mode ?? 'coop',
-      userId: myId,
-      isMyTurn,
-      minWordLength: game?.min_word_length ?? 3,
-      localFeedbackSlot,
-      foundWords,
-      lookup: (w) => legalIndex.get(w) ?? null,
-      // Two ok answers, both meaning the row landed — the classification is the
-      // FE's own flag coming back, and the optimistic pill already said it. The
-      // three refusals all mean the word was NOT recorded, so each releases it.
-      send: async (e) => {
-        const res = await runRpc<SubmittedWord>(
-          db.rpc('submit_word', {
-            target_game: gameId,
-            word: e.word,
-            points: e.points,
-            is_bonus: e.isBonus,
-          }),
-        )
-        if (res.type === 'not-ok') {
-          return res
-        } else if (res.type === 'ok' && res.data?.result === 'accepted') {
-          return null
-        } else if (res.type === 'ok' && res.data?.result === 'bonus') {
-          return null
-        } else {
-          reportUnhandled('submit_word', res)
-          return null
-        }
-      },
-      // Every answer shows in the pill, in `lib/answer.ts`'s words. A refused
-      // word also wears that answer's outcome on the tiles it used. The path has
-      // to be WORKED OUT: a typed word says nothing about which of two Es it
-      // meant, so the board is walked for a route that spells it. A word that
-      // traces nowhere ("not on board") has no tiles to mark, and the pill
-      // carries it alone.
-      //
-      // The actor's alone, and no attention flash with it: you know what you
-      // just typed, and a peer is never told about somebody else's miss.
-      onAnswer: (report) => {
-        if (!game) return // no board is drawn to type at until the game loads
-        const { outcome, text } = answerMessage(answerOf(report, game.board))
-        localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
-        if (report.answer === 'accepted') return
-        const cells = tracePathStr(game.board, report.word)
-        if (cells === null) return
-        showAnswer({ cells, outcome })
-      },
-    })
-
-  // TRACE AS YOU TYPE. Every letter lights the tiles that could carry it: one
-  // candidate and the tile is settled, more than one and they all light faintly
-  // until a later letter picks between them. So the board only ever ADDS
-  // certainty as the word grows — no tile is ever lit and then taken back.
-  //
-  // Board-cell indices, like the refused-word marks — BoardCol turns them into
-  // whatever rotation the player is looking at, and ignores them entirely while
-  // a TAPPED path exists, since that path is what the player actually chose.
-  const typedCells = useMemo(
-    () => (game && word.length > 0 ? traceCellsStr(game.board, word) : null),
-    [game, word],
-  )
-
-  // The display grid (letters in board order). BoardCol owns the local rotate on top.
-  const grid = useMemo(
-    () => (game ? boardToDisplay(game.board, game.n) : null),
-    [game],
-  )
-
-  // The viewer/team's own found rows: coop sees the whole team's; compete sees
-  // only the caller's (filtered explicitly so the post-terminal reveal — which
-  // opens peers' rows — doesn't inflate the caller's count/score).
-  const myFoundRows = useMemo(
-    () => (game?.mode === 'compete' ? foundWords.filter((f) => f.user_id === myId) : foundWords),
-    [foundWords, game?.mode, myId],
-  )
-  const myScore = useMemo(() => myFoundRows.reduce((s, r) => s + r.points, 0), [myFoundRows])
-  const myCount = useMemo(() => new Set(myFoundRows.map((r) => r.word)).size, [myFoundRows])
-  // The Stats grid figures, split required vs bonus (count + score each). The
-  // *found* sides come off `myFoundRows` (non-bonus vs bonus); the *total* sides
-  // are the board's required/bonus lists.
-  const requiredFound = useMemo(
-    () => new Set(myFoundRows.filter((r) => !r.is_bonus).map((r) => r.word)).size,
-    [myFoundRows],
-  )
-  const requiredFoundScore = useMemo(
-    () => myFoundRows.filter((r) => !r.is_bonus).reduce((s, r) => s + r.points, 0),
-    [myFoundRows],
-  )
-  const bonusFound = useMemo(
-    () => new Set(myFoundRows.filter((r) => r.is_bonus).map((r) => r.word)).size,
-    [myFoundRows],
-  )
-  const bonusFoundScore = useMemo(
-    () => myFoundRows.filter((r) => r.is_bonus).reduce((s, r) => s + r.points, 0),
-    [myFoundRows],
-  )
-  // The board's total bonus score (H) — sum of every bonus word's points.
-  const bonusScore = useMemo(
-    () => (game?.bonus_words ?? []).reduce((s, b) => s + b.points, 0),
-    [game?.bonus_words],
-  )
-
-  // Print the board — the plain-data print model built from the live state (RLS
-  // already scoped `foundWords` to what I may see — coop = the team's, compete =
-  // my own) and handed to the jsPDF renderer. Built inside `run`, so it is a
-  // snapshot at CLICK time and the menu needn't rebuild as words are found.
-  // Works mid-game or at the end. See common/pdf/doc.md.
-  const actPrintBoard = useBindAction('act-print-board', {
-    describe: () => (game ? 'active' : 'hidden'),
-    run: () => {
-      if (!game) return
-      // The same call the on-screen list makes, which is what keeps the two
-      // agreeing by construction rather than by two copies of one recipe: at
-      // terminal every missed word folds in — required always, bonus only on a
-      // board with a genuinely wider legal band; mid-game there's no reveal, so
-      // only found words show. The print follows the screen deliberately:
-      // the missed-word list IS the post-game artifact.
-      const words = buildWordListRows({
-        foundWords,
-        requiredWords: game.required_words,
-        bonusWords: game.bonus_words,
-        hasBonus: hasBonusDifficulty,
-        isTerminal,
-      }).map((r) => ({
-        word: r.word.toUpperCase(),
-        bonus: r.isBonus ?? false,
-        // A found word carries score + finder; an unfound (missed) reveal entry is bare.
-        found:
-          r.kind === 'found'
-            ? { points: r.points ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
-            : null,
-      }))
-      printBogglePdf({
-        brand,
-        gameTitle: title,
-        date: new Date().toLocaleDateString(),
-        // Coop's counts are the TEAM's, so the header can state them. Compete's
-        // are per-player — each section carries its own — so the header states
-        // only the shared target, rather than reporting the viewer's tally as if
-        // it were the table's.
-        summary:
-          game.mode === 'compete'
-            ? `${game.required_words_count} word${game.required_words_count === 1 ? '' : 's'} to find`
-            : `${myCount} / ${game.required_words_count} words · ${myScore} pts`,
-        board: boardToDisplay(game.board, game.n),
-        mode: game.mode,
-        setupRows,
-        // Coop prints one shared list; compete a section per player, each with
-        // its own score, plus a trailing "Not found" for the terminal reveal.
-        sections: buildWordSections(words, game.mode, players, myId),
-      })
-    },
+  // The endings' messages, for the pill and the info column: the game's once
+  // it has ended, mine while I am out of the race and the others play on.
+  const gameEndingMessage = useGetGameEndingMessage(gd)
+  const playerEndingMessage = useGetPlayerEndingMessage(gd)
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage,
+    playerEndingMessage,
   })
 
-  // ─── The commands, bound ───────────────────────────────
-  // The byte-identical shared handlers (useStandardGameActions); only the
-  // replay sentence is boggle's. Its not-oks land in the same below-board slot
-  // as a word result. New game stays below — its create path diverges per game.
-  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
-    db,
-    gameId,
-    isTerminal,
-    mode: game?.mode === 'compete' ? 'compete' : 'coop',
-    isLocallyTerminal,
-    localFeedbackSlot,
-  })
+  // ─── What a PEER did, in the header slot ───────────────
 
-  // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──
-  // Same roster + mode, in the same club, via the same boggle-build-board edge
-  // function the manifest's startGameInClub uses. Non-destructive (this game
-  // un-currents into the club list); the creator jumps in via ctx.goToFollowUpGame,
-  // peers arrive via the game-invitation toast.
-  //
-  // A plain function, rebuilt every render: the action below reads it at click
-  // time, so `setup` and `players` are whatever the last realtime refetch left,
-  // and the action's own identity doesn't move when they do.
-  const gameMode = game?.mode
-  const createNewGame = async () => {
-    if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const res = await runEdgeFn<CreatedGame>(
-      'boggle-build-board',
-      {
-        target_club: clubHandle,
-        setup,
-        player_user_ids: players.map((p) => p.user_id),
-        mode: gameMode,
-      },
-    )
-    if (res.type === 'not-ok') {
-      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
-      // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the slot as it reads, over
-      // the verdict, until its × is pressed. Shown even for a fault whose
-      // modal has already fired centrally — the modal escalates, it does not
-      // replace (docs/envelopes.md), so dismissing it must not leave the board
-      // silent about why the game didn't start. THREE of the answers here are
-      // genuinely form-validations rather than faults — PN154 (no words for
-      // those letters), PN155 (no board met those constraints) and the RPC's
-      // own PN147 — and the message wears whatever outcome arrived.
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToFollowUpGame(res.data.id)
-      return
-    } else {
-      reportUnhandled('boggle-build-board', res)
-      return
-    }
-  }
-
-  // New game — its `+`, its menu row and its terminal button, from one action.
-  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
-  // create_game clears the club's current-view flag, so it stays resumable — the
-  // copy says shelved, not ended) and goes straight through at terminal, where
-  // there is nothing to interrupt. The shared run's single flight is what stops a
-  // second press building a second board.
-  const actNewGame = useBindAction('act-new-game', {
-    terminal: isTerminal,
-    describe: () => 'active',
-    run: createNewGame,
-  })
-
-  // The FULL boggle menu. `buildGameMenu` supplies the framing (Help + chat
-  // above, Back to club below); the middle is this game's own rows, each one an
-  // action it already made — so a row's words, glyph, key and availability come
-  // from the action rather than being typed here a second time. The effect
-  // re-runs only when the SHAPE changes, which is why every dep is stable.
-  useEffect(function publishGameMenu() {
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
-        // Both exits, in reading order; each hides itself in the mode that isn't
-        // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actStopGame],
-        extra: [
-          { items: [actPrintBoard] },
-          // Same board, wiped finds / same setup, fresh board + id.
-          { items: [actRestart, actNewGame] },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actPrintBoard])
-
-  // ─── Coop peer-word narration (global header) ──────────────────
-  // coop's `found_words` is club-wide, so a teammate's accepted word arrives in
-  // `foundWords`; surface it in the shared header slot (the twin of spellingbee's
-  // coop narration). Rejected words never become a row, so there's nothing to
-  // suppress; own words go to the in-body local pill. boggle has no pangram, but
-  // a long find (7+ letters) is its "wow" moment — flag those. Compete stays
-  // silent by design (opponents' words are private; no rank ladder to announce).
+  // A teammate's find (coop). My own are the local slot's, so they're skipped;
+  // in compete a rival's finds are withheld until the end, so there is nothing
+  // to narrate.
   useShowPeerFeedback({
-    enabled: game?.mode === 'coop',
-    // Gate the seed on the found_words fetch (separate from the header that sets
-    // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.
-    ready: rowsLoaded,
-    items: foundWords,
-    keyOf: (r) => `${r.user_id}:${r.word}`,
-    messageFor: (r) => {
-      if (r.user_id === myId) return null // own word → the local slot
-      const member = memberById(players, r.user_id)
-      const { outcome, text } = peerAnswerMessage(r)
-      return FeedbackMessage.peer(member, outcome, text)
+    enabled: gd.coop,
+    items: gd.foundWords,
+    keyOf: (w) => `${w.by.id}:${w.word}`,
+    messageFor: (w) => {
+      if (w.by === gd.me) return null
+      const { outcome, text } = peerAnswerMessage(w)
+      return FeedbackMessage.peer(w.by, outcome, text)
     },
     globalFeedbackSlot,
   })
 
-  // ─── The two standing conditions of the local slot ───
-  // Each is an effect on a primitive edge that shows on true and retracts in
-  // its cleanup — the slot draws whichever ranks highest. Above the early
-  // returns because effects must be.
-
-  // The per-status terminal message, memoized on primitives so the verdict
-  // effect sees one object per outcome, not one per render. The two people it
-  // can name — a target crosser, or the top scorer among the non-conceded —
-  // are resolved here to name + color for the same reason.
-  const isCompete = game?.mode === 'compete'
-  const statusOutcome = (status?.reason as string | undefined) ?? null
-  const winnerId = (status?.winner_user_id as string | undefined) ?? null
-  const winner = players.find((p) => p.user_id === winnerId)
-  const winnerName = winner?.username ?? (status?.winner_username as string | undefined)
-  const winnerColor = winner?.color
-  // The winning bar excludes conceded players — a drop-out can't be the
-  // winner anyone sees, matching boggle._finish's max_score.
-  const racers = readLeaderboard<LeaderRow>(status).filter(
-    (r) => !concededIds.has(r.user_id),
-  )
-  const leaderMax = racers.reduce((m, r) => Math.max(m, r.found_words_score), 0)
-  const leaderId = racers.find((r) => r.found_words_score === leaderMax)?.user_id ?? null
-  const leader = players.find((p) => p.user_id === leaderId)
-  const leaderName = leader?.username
-  const leaderColor = leader?.color
-  const over = useMemo(
-    () =>
-      isTerminal && gameMode
-        ? buildOver({
-            mode: gameMode,
-            playState,
-            statusOutcome,
-            myCount,
-            myScore,
-            isConceded,
-            myId: myId,
-            winnerId,
-            winner: winnerName === undefined ? undefined : { username: winnerName, color: winnerColor ?? '' },
-            leaderMax,
-            leader: leaderName === undefined ? undefined : { username: leaderName, color: leaderColor ?? '' },
-          })
-        : null,
-    [isTerminal, gameMode, playState, statusOutcome, myCount, myScore, isConceded, myId,
-     winnerId, winnerName, winnerColor, leaderMax, leaderName, leaderColor],
-  )
-  useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage: over,
-    playerEndingMessage: null,
+  // ─── The commands, and the menu that lists them ────────
+  // Every command this game offers: the info column's action row places them,
+  // the menu lists them.
+  const { actions } = useActionsAndMenu({
+    gd,
+    localFeedbackSlot,
+    goToFollowUpGame,
+    menu,
   })
 
-  // Out of the race while the others play on (compete only; the page's
-  // `isLocallyTerminal`). boggle has no elimination, so conceding is the only
-  // path to it.
-  useEffect(function showOutOfRace() {
-    if (isTerminal || !isLocallyTerminal) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
+  // ─── Render ────────────────────────────────────────────
 
-  if (loading) return <div className={surface.loading}>Loading…</div>
-  // A failed read is NOT a missing game. Both leave `game` null, and saying
-  // "Game not found." about a dead connection is a confident wrong answer —
-  // this is what remains once the fault modal is dismissed.
-  if (failure) return <EnvelopeErrorPage envelope={failure} />
-  // `!grid` stays fused with `!game`: the grid is DERIVED from the game's board,
-  // so it can only be absent when the game is, and it has no failure of its own.
-  if (!game || !grid) return <div className={surface.empty}>Game not found.</div>
+  // The ending that applies to me: the game's once it has ended, else mine.
+  const endingMessage = gameEndingMessage ?? playerEndingMessage
 
-  // The reveal: every word nobody found, folded in at game over. Nothing gates
-  // it — see src/common/word-list/doc.md for why the list needs no Reveal button.
-  //
-  // The missed BONUS words fold in too — but only when the board actually has a
-  // wider legal band. With the bands equal, "bonus" means nothing but the words
-  // the clean filter removed from required (crude / slang / slur), and printing
-  // those as a list of things you might have played is not the post-game read
-  // anyone wants. Same `hasBonusDifficulty` flag that suppresses the Bonus stat
-  // cells, so the two can't disagree about whether this board has bonus words.
-  // Merged, alphabetized rows for the shared WordList: the found words, plus
-  // the reveal once the game is over.
-  const wordRows = buildWordListRows({
-    foundWords,
-    requiredWords: game.required_words,
-    bonusWords: game.bonus_words,
-    hasBonus: hasBonusDifficulty,
-    isTerminal,
-  })
-
-  // Index the compete leaderboard by user so the OpponentStrip metric can read
-  // each peer's score (self reads the live local computation so it stays in lock
-  // step with the state line above). Every row, conceded included: the strip
-  // shows a conceder's banked score beside their "out" cell.
-  const scoreByUser = new Map(
-    readLeaderboard<LeaderRow>(status).map((e) => [e.user_id, e.found_words_score]),
-  )
-
-  const ladderLabel = ladder.charAt(0).toUpperCase() + ladder.slice(1)
-  const diceLabel = DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? `${game.n}×${game.n}`
-
-  // The 4-cell Stats figures, built once and handed to BOTH surfaces: the info
-  // column (desktop) and the mobile status block above the board (where the info
-  // column is off-canvas). One object, so the two can't drift.
-  const stats = {
-    requiredFound,
-    requiredCount: game.required_words_count,
-    requiredFoundScore,
-    requiredScore: game.required_words_score,
-    bonusFound: hasBonusDifficulty ? bonusFound : 0,
-    bonusCount: hasBonusDifficulty ? game.bonus_words.length : 0,
-    bonusFoundScore: hasBonusDifficulty ? bonusFoundScore : 0,
-    bonusScore: hasBonusDifficulty ? bonusScore : 0,
-  }
+  // The team's finds in coop, my own in compete.
+  const finds = gd.team ?? gd.me
 
   return (
-    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
-      <BoardCol
-        // ── Mobile-only status block (the SAME Stats the InfoCol renders; on a
-        //    phone the info column is off-canvas in the InfoSheet) ──
-        stats={stats}
-        // ── Board to render ──
-        grid={grid}
-        n={game.n}
-        // The tiles a refused word used, wearing its answer — board-cell
-        // indices, which BoardCol rotates into the view the player is looking at.
-        answered={answered}
-        typedCells={typedCells}
-        // ── Word entry (engine here; rendered in BoardCol) ──
-        word={word}
-        onChange={setWord}
-        onSubmit={submit}
-        // The slot the entry row draws: a word result, the "you're out" state
-        // (its info-column twin is the InfoActionsRow's line — dual placement is the
-        // rule, docs/playarea.md, and on a phone the InfoCol is off-canvas, so
-        // this is the ONLY copy the player sees), the verdict.
-        localFeedbackSlot={localFeedbackSlot}
-        lastWord={lastWord}
-        isBoardInteractive={isBoardInteractive}
-      />
+    <div
+      className={cls(
+        shared.layout,
+        shared.responsiveInfoCol,
+        shared.mobileFill,
+        surface.layout,
+        styles.layout,
+      )}
+    >
+      <BoardCol gd={gd} localFeedbackSlot={localFeedbackSlot} />
 
-      {/* Info column — off-canvas full-width sheet on mobile, flex child on desktop. */}
+      {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
-        <InfoCol
-        // ── Mode + phase ──
-        isCompete={isCompete}
-        isTerminal={isTerminal}
-        over={over}
-        isLocallyTerminal={isLocallyTerminal}
-        // ── State readout ──
-        score={myScore}
-        stats={stats}
-        // ── Players (OpponentStrip, compete) ──
-        players={players}
-        myId={myId}
-        metricByUser={scoreByUser}
-        concededIds={concededIds}
-        // ── Action row ──
-        actStopGame={actStopGame}
-        actConcede={actConcede}
-        actRestart={actRestart}
-        actNewGame={actNewGame}
-        actBackToClub={menu.actBackToClub}
-        // ── Setup disclosure ──
-        setup={boggleSetup}
-        setupRows={setupRows}
-        diceLabel={diceLabel}
-        ladderLabel={ladderLabel}
-        minWordLength={game.min_word_length}
-        // ── Found-words list ──
-        wordRows={wordRows}
-        hasBonus={hasBonusDifficulty}
-        />
+        <InfoCol gd={gd} endingMessage={endingMessage} actions={actions} />
       </InfoSheet>
 
-      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
-          in-page by the below-board pill + the info-column outcome line. A coop TARGET
-          win — the only unambiguous win boggle has — gets the celebration
-          instead, once, at the moment the team crosses. */}
+      {/* My win's confetti — once, when it happens: a target reached, or a
+          race won on score when the clock stopped. */}
       {celebration.isOpen && (
         <CelebrationBlockingModal
-          title="Target reached! 🎉"
-          body={`${myCount} words, ${myScore} points.`}
+          title={gd.ending?.detail === 'target' ? 'Target reached! 🎉' : 'You win! 🎉'}
+          body={`${finds.nFoundWords} words, ${finds.foundWordsScore} points.`}
           onClose={celebration.close}
         />
       )}
     </div>
   )
-}
-
-type LeaderRow = { user_id: string; found_words_count: number; found_words_score: number }
-
-/**
- * The per-status terminal message. A game ends three ways (`status.reason`):
- * a player hitting Stop (`'manual'`), the timer expiring (`'timeout'`), or a
- * score TARGET being reached (`'target'`, when setup.win_percent is set — a
- * real win). Coop is otherwise a neutral shared hunt (no win/loss); compete
- * without a target picks the highest score. A `'target'` compete win names
- * the crosser in `status.winner_user_id` / `status.winner_username`.
- *
- * `pillText` + `outcome` are the below-board verdict; `infoColText` +
- * `outcome` the short bold line in the info-column action row. A verdict
- * that names a person carries them as `actor`, and the pill draws the
- * mention the way every other peer message names someone.
- */
-function buildOver({
-  mode,
-  playState,
-  statusOutcome,
-  myCount,
-  myScore,
-  isConceded,
-  myId,
-  winnerId,
-  winner,
-  leaderMax,
-  leader,
-}: {
-  mode: 'coop' | 'compete'
-  /** The terminal play_state — coop distinguishes a missed TARGET (`lost`)
-   *  from the neutral end of a no-target hunt (`ended`) by it. */
-  playState: string
-  /** `status.reason`, or null when the status carries none. */
-  statusOutcome: string | null
-  myCount: number
-  myScore: number
-  isConceded: boolean
-  myId: string
-  /** A target crosser — `status.winner_user_id`, or null. */
-  winnerId: string | null
-  winner: Actor | undefined
-  /** The best score among the non-conceded, and who holds it. */
-  leaderMax: number
-  leader: Actor | undefined
-}): TerminalMessage {
-  const isTarget = statusOutcome === 'target'
-  const reason = statusOutcome === 'timeout' ? "Time's up" : 'Game ended'
-
-  const tally = `${myCount} words, ${myScore} points`
-
-  if (mode === 'coop') {
-    // Coop is a shared hunt, and what it means to END depends on whether there
-    // was a TARGET to reach — the same three-way the server picks the
-    // play_state from (boggle._finish):
-    //   reached it            → a real win
-    //   clock beat a target   → a real loss; there WAS a bar and we missed it
-    //   anything else         → neutral (no bar to fail, or we chose to stop)
-    // Which of timeout-vs-manual ended it rides in the info-column line
-    // ("Time's up" / "Game ended") — the pill spends its width on the tally.
-    if (isTarget) {
-      return { pillText: `Won: ${tally}`, infoColText: 'Target reached!', outcome: 'won' }
-    }
-    if (playState === 'lost') {
-      return { pillText: `Lost: ${tally}`, infoColText: reason, outcome: 'lost' }
-    }
-    return { pillText: `Ended: ${tally}`, infoColText: reason, outcome: 'neutral' }
-  }
-
-  // A race the friends chose to stop (`ended`, boggle.stop_game) is neutral —
-  // no one won, no one lost (Joel, 2026-09-19) — whatever the scores were, so
-  // it is answered before anything compares them.
-  if (playState === 'ended') return buildGameEndedMessageNeutral('compete')
-
-  // Compete — most points wins (no dupes-cancel; see boggle.md §12).
-  // A conceder forfeited the race: they see a plain loss even if their
-  // banked score was the highest (mirrors the server's won:false).
-  if (isConceded) {
-    return {
-      pillText: 'Lost: conceded',
-      infoColText: 'You conceded',
-      outcome: 'lost',
-    }
-  }
-  // A target win is a RACE the server already decided: the crosser (named in the
-  // status) wins outright, everyone else loses — no leaderboard comparison.
-  if (isTarget) {
-    if (winnerId === myId) {
-      return {
-        pillText: `Won: ${tally}`,
-        infoColText: 'You won!',
-        outcome: 'won',
-      }
-    }
-    return {
-      pillText: 'won',
-      infoColText: `${winner?.username ?? 'a player'} won`,
-      outcome: 'lost',
-      actor: winner,
-    }
-  }
-  // Nobody scored. The server agrees — boggle._finish writes lost_compete for
-  // exactly this case, rather than flagging everyone a co-winner at 0 (which
-  // is what "your score is the best score" does when every score is 0). This
-  // used to render a neutral "Ended" while the club-page label read
-  // "Won (co-winners)" off the same row; both now say the same thing.
-  if (leaderMax === 0) {
-    return {
-      pillText: 'Lost: no words found',
-      infoColText: 'No winner',
-      outcome: 'lost',
-    }
-  }
-  if (myScore >= leaderMax) {
-    return {
-      pillText: `Won: ${tally}`,
-      infoColText: 'You won!',
-      outcome: 'won',
-    }
-  }
-  return {
-    pillText: 'won',
-    infoColText: `${leader?.username ?? 'a player'} won`,
-    outcome: 'lost',
-    actor: leader,
-  }
 }

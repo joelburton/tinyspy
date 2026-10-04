@@ -257,7 +257,11 @@ import. Components keep their bare names (`PlayArea`, `BoardCol`): no shared
 component shares a name with them, so there is nothing to tell apart.
 
 `types.ts` is the one place to read the data a game slings around, side by
-side, which is where a duplicate or a wrong name shows. What stays out of it is
+side, which is where a duplicate or a wrong name shows. The one exception is a
+type that reaches React (a game's `GActions`, built on `Action`): it lives in
+the game's `reactTypes.ts`, `G`-prefixed the same way, because an edge
+function may load `types.ts` and the edge runtime cannot load React
+(`src/guards/edgeFunctionImports.test.ts`). What stays out of it is
 what nobody reads for that: a component's props stay with the component
 (`BoardTiles`, `BoardMarks` beside `Board`); a type one file uses stays in that
 file and needs no `G`; the printer's model stays in `pdf/`, bare, since it is

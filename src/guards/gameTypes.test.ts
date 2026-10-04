@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 /**
@@ -14,8 +14,9 @@ import { describe, expect, it } from 'vitest'
  * `types.ts` cannot be told from a shared one without checking the import.
  *
  * **What is flagged**, per game on the converted list: an `export type` or
- * `export interface` anywhere but `types.ts`, and one in `types.ts` whose name
- * does not start with `G`. What the rule exempts, and this guard skips: the
+ * `export interface` anywhere but `types.ts` and `reactTypes.ts` (the types
+ * that reach React, which an edge function cannot load), and one in either
+ * whose name does not start with `G`. What the rule exempts, and this guard skips: the
  * printer's model in `pdf/`, the test fixtures (`*.fixture.ts` and any
  * `ZTest_` name), and tests themselves. A component's props are not exported,
  * so they never reach it.
@@ -29,7 +30,7 @@ import { describe, expect, it } from 'vitest'
  */
 
 /** The games converted onto the page blobs, whose `types.ts` is under the rule. */
-const CONVERTED_GAMES = ['psychicnum', 'wordle', 'connections', 'spellingbee', 'wordwheel']
+const CONVERTED_GAMES = ['psychicnum', 'wordle', 'connections', 'spellingbee', 'wordwheel', 'boggle']
 
 function sourceFiles(folder: string): string[] {
   return execFileSync('git', ['ls-files', folder], { encoding: 'utf8' })
@@ -60,11 +61,11 @@ function exportedTypes(path: string): { name: string; line: number }[] {
 }
 
 describe("a converted game's types", () => {
-  it('every exported type is in types.ts', () => {
+  it('every exported type is in types.ts, or reactTypes.ts', () => {
     const offenders: string[] = []
     for (const game of CONVERTED_GAMES) {
       for (const f of sourceFiles(`src/${game}`)) {
-        if (f.endsWith('/types.ts')) continue
+        if (f.endsWith('/types.ts') || f.endsWith('/reactTypes.ts')) continue
         for (const t of exportedTypes(f)) {
           if (t.name.startsWith('ZTest_')) continue
           offenders.push(`${f}:${t.line} exports ${t.name}`)
@@ -78,11 +79,15 @@ describe("a converted game's types", () => {
     ).toEqual([])
   })
 
-  it('every type in types.ts starts with G', () => {
+  it('every type in types.ts and reactTypes.ts starts with G', () => {
     const offenders: string[] = []
     for (const game of CONVERTED_GAMES) {
-      for (const t of exportedTypes(`src/${game}/types.ts`)) {
-        if (!/^G[A-Z]/.test(t.name)) offenders.push(`src/${game}/types.ts:${t.line} exports ${t.name}`)
+      for (const file of ['types.ts', 'reactTypes.ts']) {
+        const path = `src/${game}/${file}`
+        if (!existsSync(path)) continue
+        for (const t of exportedTypes(path)) {
+          if (!/^G[A-Z]/.test(t.name)) offenders.push(`${path}:${t.line} exports ${t.name}`)
+        }
       }
     }
     expect(offenders, "These names in a game's types.ts lack the `G` prefix:").toEqual([])

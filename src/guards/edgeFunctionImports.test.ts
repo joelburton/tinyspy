@@ -18,8 +18,14 @@ import { describe, expect, it } from 'vitest'
  *     anywhere on a function's import graph kills the worker at boot.
  *   - **Deno requires the file extension.** `./board` resolves in Vite and
  *     fails in Deno; `./board.ts` works in both.
+ *   - **A bare package name does not resolve.** `react` comes from
+ *     `node_modules` for the page; the edge runtime has none, and fails on it
+ *     even for a type-only import. A function reaches a package only through a
+ *     scheme (`npm:`, `jsr:`, `https:`, `node:`). This is why a game's types
+ *     that reach React live in its `reactTypes.ts`, apart from the `types.ts`
+ *     a function may load.
  *
- * Either mistake fails the same way, and it is the worst way: the worker never
+ * Any of these fails the same way, and it is the worst way: the worker never
  * boots, so the function answers nothing, and the only place it is written
  * down is the edge runtime's docker log. `deno check` on the entry point does
  * NOT catch it — measured against the real breakage this guard was written
@@ -34,8 +40,8 @@ import { describe, expect, it } from 'vitest'
  *
  * So the check is a static walk of the import graph from each function's
  * `index.ts`, through every relative hop, reporting each specifier Deno would
- * refuse. It follows relative imports only: a bare specifier is a URL or an
- * npm package, which is Deno's business, not ours.
+ * refuse. It follows relative imports only; a specifier with a scheme is
+ * Deno's to fetch.
  */
 
 const CWD = process.cwd()
@@ -72,7 +78,12 @@ function unresolvable(entry: string): string[] {
         bad.push(`${where} → ${spec}  (the @/ alias; Deno has no alias map)`)
         continue
       }
-      if (!spec.startsWith('.')) continue
+      if (!spec.startsWith('.')) {
+        if (!/^(npm|jsr|https?|node):/.test(spec)) {
+          bad.push(`${where} → ${spec}  (a bare package name; the edge runtime has no node_modules)`)
+        }
+        continue
+      }
       const next = target(file, spec)
       if (next === null) continue
       if (!/\.(ts|tsx)$/.test(spec)) {

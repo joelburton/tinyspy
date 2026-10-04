@@ -2,6 +2,9 @@
 
 import { describe, it, expect } from 'vitest'
 import { answerMessage, answerOf, peerAnswerMessage } from './answer'
+import { makeTraceBoard } from './board'
+import { ZTest_find, ZTest_makeGameDataRaw } from './gameData.fixture'
+import { makeGameData } from '../hooks/useGame'
 
 /**
  * Everything boggle says about a word, and how the engine's report becomes one
@@ -37,7 +40,7 @@ describe('answerMessage', () => {
 
 describe('answerOf', () => {
   // a b c d / e f g h / i j k l / m n o p
-  const board = 'abcdefghijklmnop'
+  const board = makeTraceBoard([...'abcdefghijklmnop'].map((l, i) => ({ id: String(i), letters: l })), 4)
 
   it('splits a miss by whether any path on the board spells it', () => {
     expect(answerOf({ answer: 'not_legal', word: 'abe' }, board).answerType).toBe('not_a_word')
@@ -45,7 +48,7 @@ describe('answerOf', () => {
   })
 
   it('carries the entry\'s points and bonus flag', () => {
-    const entry = { word: 'fine', points: 1, isBonus: true }
+    const entry = { word: 'fine', points: 1, pangram: false, bonus: true }
     expect(answerOf({ answer: 'accepted', word: 'fine', entry }, board))
       .toEqual({ answerType: 'accepted', word: 'fine', points: 1, isBonus: true })
     expect(answerOf({ answer: 'already_found', word: 'fine', entry }, board))
@@ -56,8 +59,9 @@ describe('answerOf', () => {
 })
 
 describe('peerAnswerMessage', () => {
-  it('reads a teammate\'s row as the accepted_peer answer', () => {
-    expect(peerAnswerMessage({ word: 'zesty', points: 2, is_bonus: true }))
+  it('reads a teammate\'s find as the accepted_peer answer', () => {
+    const gd = makeGameData(ZTest_makeGameDataRaw({ foundWords: [ZTest_find('u1', 'zesty', 2, { bonus: true })] }), 'u1')
+    expect(peerAnswerMessage(gd.foundWords[0]!))
       .toEqual({ outcome: 'won', text: 'found ZESTY • +2' })
   })
 })

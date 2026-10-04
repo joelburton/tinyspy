@@ -2,8 +2,6 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { Outcome } from '@/common/outcomes/outcomes'
-import type { Mark } from '@/common/board-marks/useMark'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
@@ -12,11 +10,14 @@ import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useBindAction } from '@/common/actions/useBindAction'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
-import { Stats, type BoggleStats } from './Stats'
+import { StateLine } from './StateLine'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
 import styles from './PlayArea.module.css'
-import type { GTraceCells } from '../types'
+import { useSubmitWord } from '../hooks/useSubmitWord'
+import { makeDisplayGrid, makeTraceBoard } from '../lib/board'
+import { traceCells } from '../lib/boardTrace'
+import type { GGameData } from '../types'
 
 /** Rotate a square grid 90° clockwise — repositions tiles; the letters themselves
  *  render upright (no spin). new[i][j] = old[n-1-j][i]. */
@@ -51,72 +52,53 @@ function pathWord(path: Cell[], view: string[][]): string {
  * + capture keyboard — which draws the local feedback slot's top message in
  * place of the controls).
  *
- * It owns the **local board rotation** (a per-player view-only matrix rotation — the
- * tiles reposition, each letter stays upright — never persisted or shared). The
- * word-entry ENGINE (`useFoundWordSubmit`: the typed word, the submit RPC, the results)
- * stays in PlayArea, as does the local feedback slot it shows into — InfoCol's
- * Stop / Concede and PlayArea's standing conditions show into the same slot — so
- * PlayArea passes the entry primitives (`word` / `onChange` / `onSubmit` / the
- * slot / …) DOWN and this column renders them. Like the other games' BoardCol
- * it does NOT own the game state: PlayArea hands it the display `grid`. See
- * docs/playarea.md.
+ * It owns the **move**: submitting the typed word (`useSubmitWord`), what the
+ * board shows for the answer, and the tile taps that trace a word. And it owns
+ * the **local board rotation** (a per-player view-only matrix rotation — the
+ * tiles reposition, each letter stays upright — never persisted or shared).
+ * See docs/playarea.md.
  */
 export function BoardCol({
-  // ── Mobile-only status block (above the board) ──
-  stats,
-  // ── Board to render ──
-  grid,
-  n,
-  answered,
-  typedCells,
-  // ── Word entry (engine in PlayArea; rendered here) ──
-  word,
-  onChange,
-  onSubmit,
+  gd,
   localFeedbackSlot,
-  lastWord,
-  isBoardInteractive,
 }: {
-  // ── Mobile-only status block ──
-  /** The figures behind the 4-cell `<Stats>` grid — the SAME component the info
-   *  column renders, mirrored above the board below the `--mobile` breakpoint
-   *  (where the info column is off-canvas in the InfoSheet). Hidden by CSS on
-   *  desktop; see `<MobileStatusBar>`. */
-  stats: BoggleStats
-
-  // ── Board to render ──
-  /** The display grid (letters in board order) — PlayArea builds it from the board;
-   *  this column rotates the local view on top. */
-  grid: string[][]
-  /** The board dimension (game.n) — drives the grid's --cols / --rows. */
-  n: number
-  /** The tiles a refused word used, wearing its answer, in BOARD cell indices —
-   *  this column turns them into the view the player is looking at. Null when
-   *  nothing was just refused, which is nearly always. The mark's `nonce` counts
-   *  the raises; the marked tiles are keyed by it so the head-shake replays
-   *  (see below). */
-  answered: Mark<{ cells: number[]; outcome: Outcome }> | null
-  /** Where the TYPED word's letters can sit, in board cells: `certain` is a
-   *  letter with one candidate tile, `possible` a letter with several. Null when
-   *  nothing is typed. Ignored while a tapped path exists — that one is the
-   *  player's own choice, not a deduction. */
-  typedCells: GTraceCells | null
-
-  // ── Word entry ──
-  /** The pending typed word. */
-  word: string
-  onChange: (next: string) => void
-  onSubmit: () => void
-  /** PlayArea's below-board slot — the entry row draws its top in place of the
-   *  controls, and a keystroke or tile tap is the player's next action, so it
-   *  dismisses a gesture-cleared result. */
+  gd: GGameData
+  // PlayArea's below-board slot — every answer shows into it, and the entry
+  // row draws it in place of the controls.
   localFeedbackSlot: FeedbackSlot
-  /** The last submitted word, for ArrowUp recall. */
-  lastWord: string
-  /** The board responds to me (the page's `isBoardInteractive`); entry and
-   *  taps freeze when it doesn't — over, or conceded. */
-  isBoardInteractive: boolean
 }) {
+  // The board is mine to touch: tiles take taps, the entry takes letters, and
+  // a word can be submitted. False once the game is over, or I conceded a race
+  // the others play on.
+  const isInteractive = gd.me.onTurn
+
+  const n = gd.puzzle.boardSideSize
+  // What each tile shows, in board order; this column rotates the view on top.
+  const grid = useMemo(() => makeDisplayGrid(gd.puzzle.tiles, n), [gd.puzzle.tiles, n])
+  // The board as the tracer walks it.
+  const board = useMemo(() => makeTraceBoard(gd.puzzle.tiles, n), [gd.puzzle.tiles, n])
+
+  // ─── The move ──────────────────────────────────────────
+  const submission = useSubmitWord({
+    gameId: gd.id,
+    words: gd.puzzle.words,
+    foundWords: gd.foundWords,
+    board,
+    minWordLength: gd.puzzle.minWordLength,
+    isMyTurn: isInteractive,
+    localFeedbackSlot,
+  })
+  const word = submission.word
+
+  // TRACE AS YOU TYPE. Every letter lights the tiles that could carry it: one
+  // candidate and the tile is settled, more than one and they all light faintly
+  // until a later letter picks between them, so the board only ever ADDS
+  // certainty as the word grows. Board-cell indices, like the refused word's.
+  const typedCells = useMemo(
+    () => (word.length > 0 ? traceCells(board, word) : null),
+    [board, word],
+  )
+
   // Number of 90° clockwise turns applied to the displayed grid (local view only).
   const [turns, setTurns] = useState(0)
   // Rotating repositions the tiles but keeps each letter upright (a matrix rotation,
@@ -150,14 +132,14 @@ export function BoardCol({
 
   const answeredCells = useMemo(
     () =>
-      answered
+      submission.refused
         ? {
-            cells: inView(answered.value.cells),
-            outcome: answered.value.outcome,
-            nonce: answered.nonce,
+            cells: inView(submission.refused.value.cells),
+            outcome: submission.refused.value.outcome,
+            nonce: submission.refused.nonce,
           }
         : null,
-    [answered, inView],
+    [submission.refused, inView],
   )
   const typed = useMemo(
     () =>
@@ -177,7 +159,7 @@ export function BoardCol({
   // `handleTyping`); submitting clears it (fresh word).
   const [path, setPath] = useState<Cell[]>([])
   const handleTap = (y: number, x: number) => {
-    if (!isBoardInteractive || view[y][x] === '?') return // frozen, or a blank (matches nothing)
+    if (!isInteractive || view[y][x] === '?') return // frozen, or a blank (matches nothing)
     localFeedbackSlot.dismiss() // a tap is the next move, like a keystroke
     const idx = path.findIndex((c) => c.y === y && c.x === x)
     let next: Cell[]
@@ -192,7 +174,7 @@ export function BoardCol({
       return // an unused, non-adjacent tile — not a legal next step; ignore
     }
     setPath(next)
-    onChange(pathWord(next, view))
+    submission.setWord(pathWord(next, view))
   }
   // Every non-tap edit of the word (typing, Backspace, the Delete button, ArrowUp
   // recall) arrives here. A typed character makes the word stop describing the
@@ -210,15 +192,15 @@ export function BoardCol({
     if (traced && next === word.slice(0, -1)) {
       const back = path.slice(0, -1)
       setPath(back)
-      onChange(pathWord(back, view))
+      submission.setWord(pathWord(back, view))
       return
     }
     setPath([])
-    onChange(next)
+    submission.setWord(next)
   }
   const handleSubmit = () => {
     setPath([])
-    onSubmit()
+    submission.submit()
   }
 
   // ⌥Z rotates — a fresh visual scan of the SAME board, never a move. Bound HERE
@@ -247,7 +229,7 @@ export function BoardCol({
           shrinks by exactly this much and the page still doesn't scroll. */}
       <MobileStatusBar>
         <div className={styles.mobileStatus}>
-          <Stats {...stats} />
+          <StateLine data={gd.stateLineData} />
         </div>
       </MobileStatusBar>
       <div className={cls(shared.boardSeal, styles.grid)}>
@@ -332,10 +314,10 @@ export function BoardCol({
             onChange={handleTyping}
             onSubmit={handleSubmit}
             placeholder="Type or tap letters"
-            disabled={!isBoardInteractive}
+            disabled={!isInteractive}
             onAnyKey={localFeedbackSlot.dismiss}
             charFor={asciiLetters('upper')}
-            recall={lastWord}
+            recall={submission.lastWord}
             localFeedbackSlot={localFeedbackSlot}
           >
             {/* Per-character: the letters past where the board can follow are

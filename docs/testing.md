@@ -610,7 +610,7 @@ before trusting a green run. The full set:
 | `gameSummaries` | every manifest's `summaryFor` over its reachable states: an unknown state never reads as live, no reason doubles as a play state; `npm run report:summaries` prints every line ([game-summary.md](game-summary.md)) |
 | `deployLists` | `supabase/config.toml`, `supabase/deploy/env.sh`, `Makefile` vs the registry |
 | `edgeFnErrorKeys` | every `json({ error: … })` in `supabase/functions/` carries an error key (none remain: functions answer envelopes) |
-| `edgeFunctionImports` | every module an edge function reaches resolves under Deno — no `@/` alias, no extensionless import |
+| `edgeFunctionImports` | every module an edge function reaches resolves under Deno — no `@/` alias, no extensionless import, no bare package name |
 | `raiseCodes` | every `PN`/`PA` raise in `supabase/sql/` — unique, hinted, outcome read back |
 | `dbCallShape` | `runRpc` takes an RPC, `readRows` takes a query — never crossed |
 | `dbCallWrapped` | every `.rpc(` / `.from(` in `src/` reaches a wrapper at all |
@@ -636,7 +636,7 @@ before trusting a green run. The full set:
 | `actionIds` | an action's two spellings agree — `act-new-game` ⇄ `actNewGame` |
 | `registeredChords` | nothing outside `common/actions/` matches a registered chord by hand |
 | `componentKeyGroups` | every hand-written key handler in `src/` matches through an action or a key group (`common/keyboard/componentKeyGroups.ts`), so Help and `gmake dev-keys` can list it |
-| `gameTypes` | every converted game — an exported type is in `types.ts` and starts with `G` (`pdf/`, fixtures and tests exempt); every shared folder — no exported type carries the `G` |
+| `gameTypes` | every converted game — an exported type is in `types.ts` (or `reactTypes.ts`, for one that reaches React) and starts with `G` (`pdf/`, fixtures and tests exempt); every shared folder — no exported type carries the `G` |
 | `commonNeverImportsShared` | `src/common/` never imports `src/shared/` — the one-way rule ([common-folders.md](common-folders.md)) |
 | `escapeListeners` | only the two sanctioned places listen for Escape globally |
 | `memberPalette` | the member color names agree between `MEMBER_COLORS` and the SQL that spells them |
