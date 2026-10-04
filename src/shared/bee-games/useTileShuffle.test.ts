@@ -1,17 +1,21 @@
 // cs-unmet
 
 /**
- * The display order: the puzzle's letters until the first shuffle, a
- * permutation of the same letters after it, and the same order again when the
- * letters come back as a fresh string.
+ * The display order: the puzzle's tiles until the first shuffle, the same
+ * tiles with the outers rearranged after it, the center first throughout, and
+ * the same order again when the tiles come back rebuilt.
  */
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ZTest_tilesOf } from './beeGameData.fixture'
 import { useTileShuffle } from './useTileShuffle'
+
+const TILES = ZTest_tilesOf('e', 'abcdfg')
+const idsOf = (tiles: readonly { id: string }[]) => tiles.map((t) => t.id)
 
 describe('useTileShuffle', () => {
   // Fisher–Yates on `Math.random`: a pinned value is a fixed permutation, so
-  // "a different order of the same letters" is a deterministic claim. 0 rotates
+  // "a different order of the same tiles" is a deterministic claim. 0 rotates
   // the list; ~1 leaves it alone.
   beforeEach(() => {
     vi.spyOn(Math, 'random').mockReturnValue(0.999999)
@@ -20,31 +24,38 @@ describe('useTileShuffle', () => {
     vi.restoreAllMocks()
   })
 
-  it('hands back the same letters, rearranged, on a shuffle', () => {
-    const { result } = renderHook(() => useTileShuffle('abcdfg'))
-    expect(result.current.outerLetters).toEqual(['a', 'b', 'c', 'd', 'f', 'g'])
+  it("shows the puzzle's own order until the first shuffle, then the same tiles rearranged", () => {
+    const { result } = renderHook(() => useTileShuffle(TILES))
+    expect(idsOf(result.current.tiles)).toEqual(idsOf(TILES))
 
     vi.spyOn(Math, 'random').mockReturnValue(0)
     act(() => void result.current.actShuffle.run())
-    const after = result.current.outerLetters
-    expect(after).not.toEqual(['a', 'b', 'c', 'd', 'f', 'g'])
-    expect([...after].sort()).toEqual(['a', 'b', 'c', 'd', 'f', 'g'])
+    const after = idsOf(result.current.tiles)
+    expect(after).not.toEqual(idsOf(TILES))
+    expect([...after].sort()).toEqual(idsOf(TILES).sort())
   })
 
-  it('keeps its order across a reload that hands the same letters again', () => {
-    const { result, rerender } = renderHook(({ letters }) => useTileShuffle(letters), {
-      initialProps: { letters: 'abcdfg' },
+  it('keeps the center first', () => {
+    const { result } = renderHook(() => useTileShuffle(TILES))
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    act(() => void result.current.actShuffle.run())
+    expect(result.current.tiles[0]!.center).toBe(true)
+  })
+
+  it('keeps its order across a reload that hands the tiles rebuilt', () => {
+    const { result, rerender } = renderHook(({ tiles }) => useTileShuffle(tiles), {
+      initialProps: { tiles: TILES },
     })
     vi.spyOn(Math, 'random').mockReturnValue(0)
     act(() => void result.current.actShuffle.run())
-    const after = result.current.outerLetters
+    const after = idsOf(result.current.tiles)
 
-    rerender({ letters: 'abcdfg' })
-    expect(result.current.outerLetters).toBe(after)
+    rerender({ tiles: ZTest_tilesOf('e', 'abcdfg') })
+    expect(idsOf(result.current.tiles)).toEqual(after)
   })
 
   it('is live in every state', () => {
-    const { result } = renderHook(() => useTileShuffle('abcdfg'))
+    const { result } = renderHook(() => useTileShuffle(TILES))
     expect(result.current.actShuffle.describe('button').state).toBe('active')
   })
 })

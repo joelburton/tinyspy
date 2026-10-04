@@ -109,6 +109,13 @@ const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
  *  its button all fire. */
 const getAction = (id: ActionId) => getActions().find((action) => action.id === id)!
 
+/** The letter a tile draws, lowercase as the app holds it; `data-tile` is the
+ *  tile's id, so a test finds a tile by what it shows. */
+const letterOf = (tile: Element) => tile.textContent!.trim().toLowerCase()
+/** The tile drawing this letter — on a board with two, the first drawn. */
+const tileOf = (letter: string) =>
+  [...document.querySelectorAll('[data-tile]')].find((t) => letterOf(t) === letter)!
+
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
  *  the host adds, so it is last in the DOM. */
@@ -120,7 +127,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
 /** The outer hexes' letters in the order they are drawn — what the shuffle
  *  rearranges; the center never moves. */
 const outerOrder = () =>
-  [...document.querySelectorAll('[data-tile]:not([data-center])')].map((t) => t.getAttribute('data-tile'))
+  [...document.querySelectorAll('[data-tile]:not([data-center])')].map(letterOf)
 
 /** A submit that landed, in the envelope `runRpc` unwraps. `accepted` is
  *  the plain classification; the bonus/pangram ones return the same `null` to
@@ -176,7 +183,7 @@ describe('spellingbee PlayArea — the tiles the word is using', () => {
   const usedTiles = () =>
     [...document.querySelectorAll('[data-tile]')]
       .filter((t) => (t.getAttribute('class') ?? '').includes('_used_'))
-      .map((t) => t.getAttribute('data-tile'))
+      .map(letterOf)
 
   it('marks a letter as it is typed, and gives it back on Delete', async () => {
     // Letters are abcdfg around a center e. The marks are what a pangram hunter
@@ -214,7 +221,7 @@ describe('spellingbee PlayArea — the tiles the word is using', () => {
 
   /** Tap the tiles for these letters, in order. */
   const tap = async (user: ReturnType<typeof userEvent.setup>, letters: string) => {
-    for (const l of letters) await user.click(document.querySelector(`[data-tile="${l}"]`)!)
+    for (const l of letters) await user.click(tileOf(l))
   }
   const inertTiles = () =>
     [...document.querySelectorAll('[data-tile]')].filter((t) =>
@@ -500,7 +507,7 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     const tilesWith = (cls: string) =>
       [...document.querySelectorAll('[data-tile]')]
         .filter((t) => (t.getAttribute('class') ?? '').includes(cls))
-        .map((t) => t.getAttribute('data-tile'))
+        .map(letterOf)
     const boardShakes = () =>
       (document.querySelector('[data-board]')?.getAttribute('class') ?? '').includes('verdictShake')
 
@@ -519,7 +526,7 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     // the mark's nonce: a second refusal is a new element, and a new shake.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    const tileB = () => document.querySelector('[data-tile="b"]')
+    const tileB = () => tileOf('b')
 
     await user.keyboard('bcdf{Enter}')
     const first = tileB()
@@ -544,7 +551,7 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     await user.keyboard('bed{Enter}')
 
     const marked = answeredTiles()
-    expect(new Set(marked.map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['b', 'e', 'd']))
+    expect(new Set(marked.map(letterOf))).toEqual(new Set(['b', 'e', 'd']))
     for (const tile of marked) {
       expect(tile.getAttribute('class')).toMatch(/verdictWarning/)
       expect(tile.getAttribute('class')).not.toMatch(/verdictLost/)

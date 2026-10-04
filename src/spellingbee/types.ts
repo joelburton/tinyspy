@@ -10,6 +10,8 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
+import type { Mark } from '@/common/board-marks/useMark'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import type {
   GBeeFoundWord,
   GBeeFoundWordRaw,
@@ -64,3 +66,9 @@ export type GActions = {
   // Leave for the club — the shell's own action, off `menu`.
   actBackToClub: Action
 }
+
+/**
+ * A refused word's mark, while its answer is up: the letters the word used —
+ * their tiles wear the answer and shake — and the outcome they wear.
+ */
+export type GRefusedMark = Mark<{ letters: ReadonlySet<string>; outcome: Outcome }>

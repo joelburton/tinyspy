@@ -6,16 +6,17 @@ import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictCla
 import shared from '@/common/game-page/playArea.module.css'
 import { HEX_W, HEX_H, HEX_VERTS, HEX_SHRINK } from '../lib/honeycomb'
 import styles from './Tile.module.css'
+import type { GTile } from '../types'
 
 type Props = {
-  letter: string
-  isCenter: boolean
+  tile: GTile
   // Top-left of this tile's box, in the flower's coordinate units.
   pos: { left: number; top: number }
   // Absent when the board is read-only: the tile takes no click and wears no
   // hover or press.
   onClick?: () => void
-  // This letter is in the word being typed — the tile wears the selected edge.
+  // This tile's letter is in the word being typed — the tile wears the
+  // selected edge.
   used: boolean
   // A refused word used this letter: the tile wears that answer's fill, edge and
   // white ink for as long as the answer is up, and shakes once as it arrives
@@ -32,14 +33,14 @@ type Props = {
  * the polygon's fill is the hit area, so a click lands on the hex shape and
  * not its bounding-box corners. **POINTER-ONLY**: no `tabIndex`, no `role`, no
  * Enter/Space keydown — the page's tab ring is empty, so a tile is not
- * keyboard-reachable; the letters are typed, or clicked. `data-tile` /
- * `data-center` are the test handles.
+ * keyboard-reachable; the letters are typed, or clicked. `data-tile` (the
+ * tile's id) / `data-center` are the test handles.
  *
  * `onMouseDown` is prevented so a click does not select the letter text.
- * SVG `<text>` ignores `text-transform`, so the letter is uppercased here.
+ * The letter is held lowercase like every letter in the app, and SVG `<text>`
+ * ignores `text-transform`, so the capital is put on here, by hand.
  */
-export function Tile({ letter, isCenter, pos, onClick, used, answer }: Props) {
-  const up = letter.toUpperCase()
+export function Tile({ tile, pos, onClick, used, answer }: Props) {
   const points = HEX_VERTS.map(([fx, fy]) => {
     const sx = 0.5 + (fx - 0.5) * HEX_SHRINK
     const sy = 0.5 + (fy - 0.5) * HEX_SHRINK
@@ -52,7 +53,7 @@ export function Tile({ letter, isCenter, pos, onClick, used, answer }: Props) {
       className={cls(
         styles.tile,
         !onClick && styles.inert,
-        isCenter && styles.center,
+        tile.center && styles.center,
         used && styles.used,
         // The verdict class sets only the verdict tokens (`OUTCOME_TO_VERDICT_CLASS`), which
         // is why a tile can wear one without being a `.tileFace`; `.answered`
@@ -62,14 +63,14 @@ export function Tile({ letter, isCenter, pos, onClick, used, answer }: Props) {
         // The shared head-shake: every answer this tile can wear is a refusal.
         answer && shared.verdictShake,
       )}
-      data-tile={letter}
-      data-center={isCenter || undefined}
+      data-tile={tile.id}
+      data-center={tile.center || undefined}
       onClick={onClick}
       onMouseDown={(e) => e.preventDefault()}
     >
       <polygon className={styles.hexShape} points={points} />
       <text className={styles.text} x={cx} y={cy}>
-        {up}
+        {tile.letter.toUpperCase()}
       </text>
     </g>
   )

@@ -472,7 +472,7 @@ What is wordwheel's own:
   and the wheel marks the tiles it is spending — one per use of a letter. A
   typed letter says how many of its tiles are in use but not which, so a click
   claims the tile it landed on, for that word only, and the rest fall to
-  render order, the center first (`lib/spend.ts`); a spent tile takes no click. A letter past its tile
+  the puzzle's order, the center first (`lib/spend.ts`); a spent tile takes no click. A letter past its tile
   count, or off the wheel, dims as it is typed (`TypedWord`), and Submit and
   Enter are inert until the word fits (`lib/tiles.ts`), so the engine never
   sees a word the tiles cannot spell. Once the game is over, or I conceded a

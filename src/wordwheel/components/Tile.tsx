@@ -7,10 +7,10 @@ import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictCla
 import shared from '@/common/game-page/playArea.module.css'
 import { RING_W } from '../lib/wheel'
 import styles from './Tile.module.css'
+import type { GTile } from '../types'
 
 type Props = {
-  letter: string
-  isCenter: boolean
+  tile: GTile
   // This tile's center + radius, in the wheel's coordinate units.
   pos: { cx: number; cy: number; r: number }
   // Absent when the board is read-only: the tile takes no click and wears no
@@ -41,18 +41,19 @@ type Props = {
  *
  * **POINTER-ONLY**: no `tabIndex`, no `role`, no Enter/Space keydown — the
  * page's tab ring is empty, so a tile is not keyboard-reachable; the letters
- * are typed, or clicked. `data-tile` / `data-center` / `data-spent` are the
- * test handles.
+ * are typed, or clicked. `data-tile` (the tile's id) / `data-center` /
+ * `data-spent` are the test handles. The letter is held lowercase like every
+ * letter in the app; the face's stylesheet draws the capital.
  *
  * `onMouseDown` is prevented so a click does not select the letter text.
  */
-export function Tile({ letter, isCenter, pos, onClick, spent, answer }: Props) {
+export function Tile({ tile, pos, onClick, spent, answer }: Props) {
   return (
     <div
       className={cls(
         styles.tile,
         !onClick && styles.inert,
-        isCenter && styles.center,
+        tile.center && styles.center,
         spent && styles.spent,
         // The verdict class sets only the verdict tokens (`OUTCOME_TO_VERDICT_CLASS`);
         // `.answered` maps them onto the face.
@@ -71,15 +72,15 @@ export function Tile({ letter, isCenter, pos, onClick, spent, answer }: Props) {
           '--d': `calc(${2 * pos.r + RING_W} * var(--u))`,
         } as CSSProperties
       }
-      data-tile={letter}
-      data-center={isCenter || undefined}
+      data-tile={tile.id}
+      data-center={tile.center || undefined}
       data-spent={spent || undefined}
       onClick={spent ? undefined : onClick}
       onMouseDown={(e) => e.preventDefault()}
     >
       {/* The shared head-shake, on the FACE — the piece; the seats are the
           flower and stay put. Every answer a tile can wear is a refusal. */}
-      <div className={cls(styles.face, answer && shared.verdictShake)}>{letter}</div>
+      <div className={cls(styles.face, answer && shared.verdictShake)}>{tile.letter}</div>
     </div>
   )
 }

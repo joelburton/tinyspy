@@ -1,9 +1,8 @@
 // cs-unmet
 
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
-import type { Outcome } from '@/common/outcomes/outcomes'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
-import { useMark, type Mark } from '@/common/board-marks/useMark'
+import { useMark } from '@/common/board-marks/useMark'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { runRpc } from '@/common/supabase/dbResult'
@@ -11,8 +10,8 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { useFoundWordSubmit, type FoundWordSubmitApi } from '@/shared/found-words/useFoundWordSubmit'
 import { db } from '../db'
 import { answerMessage, answerOf } from '../lib/answer'
-import { trimClaims, type Claim } from '../lib/spend'
-import type { GFoundWord, GWord } from '../types'
+import { trimClaims } from '../lib/spend'
+import type { GFoundWord, GRefusedMark, GTile, GWord } from '../types'
 
 /** What `wordwheel.submit_word` puts in `data`. All four mean the row landed:
  *  three classifications echoing the caller's own flags, plus `won` — the word
@@ -23,11 +22,6 @@ type SubmittedWord =
   | { result: 'pangram'; points: number }
   | { result: 'won'; points: number }
   | null
-
-/** A refused word's mark: how many of each letter it used and the tiles it had
- *  clicked — the tiles it would have spent wear its answer and shake — and the
- *  outcome they wear. */
-export type RefusedMark = Mark<{ counts: Map<string, number>; claims: readonly Claim[]; outcome: Outcome }>
 
 /**
  * Submitting a word, and what the board says back.
@@ -49,13 +43,15 @@ export type RefusedMark = Mark<{ counts: Map<string, number>; claims: readonly C
  *   outcome, so the two cannot disagree.
  * - **The claims ride with the word.** The wheel is a multiset: a letter may
  *   sit on two tiles, and a click says WHICH tile a use spends where a typed
- *   letter does not (`lib/spend.ts`). A claim lives exactly as long as its
- *   letter is in the word — a Backspace at the end takes it away, a submit or a
- *   recall drops them all — so the claims are held beside the word, here.
+ *   letter does not (`lib/spend.ts`). A claim is held as the tile's id and
+ *   lives exactly as long as its letter is in the word — a Backspace at the
+ *   end takes it away, a submit or a recall drops them all — so the claims are
+ *   held beside the word, here.
  */
 export function useSubmitWord({
   gameId,
   words,
+  tilesById,
   foundWords,
   centerLetter,
   isMyTurn,
@@ -64,6 +60,8 @@ export function useSubmitWord({
   gameId: string
   // The puzzle's words (`gd.puzzle.words`), required and bonus alike.
   words: readonly GWord[]
+  // The board's tiles by id (`gd.puzzle.tilesById`): what a claim names.
+  tilesById: ReadonlyMap<string, GTile>
   // The finds I can see (`gd.foundWords`), the dedup source.
   foundWords: readonly GFoundWord[]
   centerLetter: string
@@ -72,21 +70,20 @@ export function useSubmitWord({
   isMyTurn: boolean
   localFeedbackSlot: FeedbackSlot
 }): FoundWordSubmitApi & {
-  refused: RefusedMark | null
-  // The tiles the player CLICKED for the typed word, oldest first.
-  claims: readonly Claim[]
-  // A clicked tile: its letter joins the word, and the click claims that tile.
-  addClickedLetter: (letter: string, ordinal: number) => void
+  refused: GRefusedMark | null
+  // The tiles the player CLICKED for the typed word, by id, oldest first.
+  claimedTileIds: readonly string[]
+  // A clicked tile: its letter joins the word, and the click claims the tile.
+  addClickedTile: (tile: GTile) => void
 } {
   // The board's words by word: a typed word is judged and scored against them.
   const wordsByWord = useMemo(() => new Map(words.map((w) => [w.word, w])), [words])
 
-  const [refused, showRefused] =
-    useMark<{ counts: Map<string, number>; claims: readonly Claim[]; outcome: Outcome }>(WORD_ANSWER_MS)
+  const [refused, showRefused] = useMark<GRefusedMark['value']>(WORD_ANSWER_MS)
 
   // WHICH tile each use of a letter spends. A click claims the tile it landed
-  // on; everything else falls to the render order (`lib/spend.ts`).
-  const [claims, setClaims] = useState<Claim[]>([])
+  // on; everything else falls to the puzzle's order (`lib/spend.ts`).
+  const [claimedTileIds, setClaimedTileIds] = useState<string[]>([])
 
   const engine = useFoundWordSubmit({
     isMyTurn,
@@ -122,14 +119,14 @@ export function useSubmitWord({
     onAnswer: (report) => {
       // The word's clicks, kept for the refusal below before they are dropped:
       // the engine has already emptied the box without going through `setWord`.
-      const wordClaims = claims
-      setClaims([])
+      const wordClaims = claimedTileIds
+      setClaimedTileIds([])
       const { outcome, text } = answerMessage(answerOf(report, centerLetter))
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
       if (report.answer === 'accepted') return
       const counts = new Map<string, number>()
       for (const ch of report.word) counts.set(ch, (counts.get(ch) ?? 0) + 1)
-      showRefused({ counts, claims: wordClaims, outcome })
+      showRefused({ counts, claimedTileIds: wordClaims, outcome })
     },
   })
 
@@ -145,19 +142,19 @@ export function useSubmitWord({
       const isEdit =
         (value.length === word.length + 1 && value.startsWith(word)) ||
         value === word.slice(0, -1)
-      setClaims((c) => (isEdit ? trimClaims(c, value) : []))
+      setClaimedTileIds((ids) => (isEdit ? trimClaims(ids, value, tilesById) : []))
       setEngineWord(next)
     },
-    [setEngineWord, word],
+    [setEngineWord, tilesById, word],
   )
 
-  const addClickedLetter = useCallback(
-    (letter: string, ordinal: number) => {
-      setClaims((c) => [...c, { letter, ordinal }])
-      setEngineWord((prev) => prev + letter)
+  const addClickedTile = useCallback(
+    (tile: GTile) => {
+      setClaimedTileIds((ids) => [...ids, tile.id])
+      setEngineWord((prev) => prev + tile.letter)
     },
     [setEngineWord],
   )
 
-  return { ...engine, setWord, refused, claims, addClickedLetter }
+  return { ...engine, setWord, refused, claimedTileIds, addClickedTile }
 }

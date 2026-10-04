@@ -109,6 +109,16 @@ const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
  *  its button all fire. */
 const getAction = (id: ActionId) => getActions().find((action) => action.id === id)!
 
+/** The letter a tile draws, lowercase as the app holds it; `data-tile` is the
+ *  tile's id, so a test finds a tile by what it shows. */
+const letterOf = (tile: Element) => tile.textContent!.trim().toLowerCase()
+/** The tile drawing this letter — on a board with two, the first drawn. */
+const tileOf = (letter: string) =>
+  [...document.querySelectorAll('[data-tile]')].find((t) => letterOf(t) === letter)!
+/** The OUTER tile drawing this letter, where the center draws it too. */
+const outerTileOf = (letter: string) =>
+  [...document.querySelectorAll('[data-tile]:not([data-center])')].find((t) => letterOf(t) === letter)!
+
 /** Answer the open question with the button that says `name`. The trigger can
  *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
  *  the host adds, so it is last in the DOM. */
@@ -120,7 +130,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
 /** The outer tiles' letters in the order they are drawn — what the shuffle
  *  rearranges; the center never moves. */
 const outerOrder = () =>
-  [...document.querySelectorAll('[data-tile]:not([data-center])')].map((t) => t.getAttribute('data-tile'))
+  [...document.querySelectorAll('[data-tile]:not([data-center])')].map(letterOf)
 
 /** A submit that landed, in the envelope `runRpc` unwraps. `accepted` is
  *  the plain classification; the bonus/pangram ones return the same `null` to
@@ -179,11 +189,11 @@ describe('wordwheel PlayArea — render smoke', () => {
 describe('wordwheel PlayArea — the tiles the word is spending', () => {
   /** The tiles the typed word is spending, in draw order. */
   const spentTiles = () =>
-    [...document.querySelectorAll('[data-tile][data-spent]')].map((t) => t.getAttribute('data-tile'))
-  const tile = (letter: string) => document.querySelector(`[data-tile="${letter}"]`)!
+    [...document.querySelectorAll('[data-tile][data-spent]')].map(letterOf)
+  const tile = tileOf
   /** The twin E tiles of the `bacdfghe` board: the center, and the outer one. */
-  const centerE = () => document.querySelector('[data-tile="e"][data-center]')!
-  const outerE = () => document.querySelector('[data-tile="e"]:not([data-center])')!
+  const centerE = () => document.querySelector('[data-tile][data-center]')!
+  const outerE = () => outerTileOf('e')
   /** A wheel where the center letter `e` is duplicated on an outer tile. */
   const TWIN_E: ZTest_GameDataFacts = { outerLetters: 'bacdfghe' }
 
@@ -212,7 +222,7 @@ describe('wordwheel PlayArea — the tiles the word is spending', () => {
     const marked = () =>
       [...document.querySelectorAll('[data-tile]')]
         .filter((t) => (t.getAttribute('class') ?? '').includes('_spent_'))
-        .map((t) => t.getAttribute('data-tile'))
+        .map(letterOf)
 
     expect(marked()).toEqual([])
     await user.keyboard('be')
@@ -316,7 +326,7 @@ describe('wordwheel PlayArea — the tiles the word is spending', () => {
 
   /** Tap the tiles for these letters, in order. */
   const tap = async (user: ReturnType<typeof userEvent.setup>, letters: string) => {
-    for (const l of letters) await user.click(document.querySelector(`[data-tile="${l}"]`)!)
+    for (const l of letters) await user.click(tileOf(l))
   }
   const inertTiles = () =>
     [...document.querySelectorAll('[data-tile]')].filter((t) =>
@@ -621,7 +631,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     const shakingTiles = () =>
       [...document.querySelectorAll('[data-tile]')]
         .filter((t) => (t.firstElementChild?.getAttribute('class') ?? '').includes('verdictShake'))
-        .map((t) => t.getAttribute('data-tile'))
+        .map(letterOf)
     const boardShakes = () =>
       (document.querySelector('[data-board]')?.getAttribute('class') ?? '').includes('verdictShake')
 
@@ -631,7 +641,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
 
     await user.keyboard('bcdf{Enter}') // fits the wheel, but has no center E
     expect(new Set(shakingTiles())).toEqual(new Set(['b', 'c', 'd', 'f']))
-    expect(new Set(answeredTiles().map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['b', 'c', 'd', 'f']))
+    expect(new Set(answeredTiles().map(letterOf))).toEqual(new Set(['b', 'c', 'd', 'f']))
     expect(boardShakes()).toBe(false)
   })
 
@@ -640,7 +650,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     // the mark's nonce: a second refusal is a new element, and a new shake.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    const tileB = () => document.querySelector('[data-tile="b"]')
+    const tileB = () => tileOf('b')
 
     await user.keyboard('bcdf{Enter}')
     const first = tileB()
@@ -656,7 +666,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     render(<WithKeys {...makeCtx({ outerLetters: 'bacdfghe' })} />)
     await user.keyboard('bed{Enter}')
 
-    const es = answeredTiles().filter((t) => t.getAttribute('data-tile') === 'e')
+    const es = answeredTiles().filter((t) => letterOf(t) === 'e')
     expect(es).toHaveLength(1)
     expect(es[0]?.hasAttribute('data-center')).toBe(true)
   })
@@ -666,10 +676,10 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     // the outer E the player clicked is the E that shakes.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx({ outerLetters: 'bacdfghe' })} />)
-    await user.click(document.querySelector('[data-tile="e"]:not([data-center])')!)
+    await user.click(outerTileOf('e'))
     await user.keyboard('bd{Enter}')
 
-    const es = answeredTiles().filter((t) => t.getAttribute('data-tile') === 'e')
+    const es = answeredTiles().filter((t) => letterOf(t) === 'e')
     expect(es).toHaveLength(1)
     expect(es[0]?.hasAttribute('data-center')).toBe(false)
   })
@@ -684,7 +694,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     await user.keyboard('bed{Enter}')
 
     const marked = answeredTiles()
-    expect(new Set(marked.map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['b', 'e', 'd']))
+    expect(new Set(marked.map(letterOf))).toEqual(new Set(['b', 'e', 'd']))
     for (const tile of marked) {
       expect(tile.getAttribute('class')).toMatch(/verdictWarning/)
       expect(tile.getAttribute('class')).not.toMatch(/verdictLost/)

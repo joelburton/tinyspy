@@ -90,6 +90,7 @@ describe('makeBeeGameData — the links become players', () => {
   it('carries the puzzle and the counts through from the blob', () => {
     const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO, foundWords: FINDS }), 'u1', noRows)
     expect(gd.puzzle.tiles[0]).toEqual({ id: '0', letter: 'e', center: true })
+    expect(gd.puzzle.tilesById.get('0')).toBe(gd.puzzle.tiles[0])
     expect(gd.puzzle.words.map((w) => [w.word, w.bonus])).toEqual([['bead', false], ['faced', false]])
     expect(gd.puzzle.tiles).toHaveLength(7)
     expect(gd.puzzle.reqdWordsScore).toBe(6)

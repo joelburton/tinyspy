@@ -478,7 +478,12 @@ next open (todo.md → Someday).
   `useShowOppsRankMessages` (a rival's `rankIdx` climbing, in place of the
   status leaderboard) and `lib/wordRows.ts`; `BoardCol` and `InfoCol` take
   `gd`; the two ending builders are `shared/bee-games/endingMessage.ts`;
-  `terminal.ts` and `beeLeaderboard.ts` went. `games_state`,
+  `terminal.ts` and `beeLeaderboard.ts` went. The Board pass (2026-10-04):
+  `Board` and `Tile` in both games take `gd.puzzle.tiles` and a `GTile`,
+  `data-tile` is the tile's id, the shared `useTileShuffle` holds ids, and
+  wordwheel's claims are tile ids (`lib/spend.ts` works in ids; `gd.puzzle`
+  carries `tilesById`); `useSubmitWord` owns each game's move; one case, the
+  data's. `games_state`,
   `_write_statuses` and `found_words_select`'s mode arms went (each area file →
   The convenience RLS). Still owed to both: the hive/wheel → board, hex/Letter
   → Tile renames and the setup-type names (`SpellingbeeSetup` → `GSetup`).

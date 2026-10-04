@@ -14,7 +14,7 @@ import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
 import bee from '@/shared/bee-games/beeBoard.module.css'
-import type { GGameData } from '../types'
+import type { GGameData, GTile } from '../types'
 
 /**
  * spellingbee's board column — the honeycomb `<Board>`, a floating Shuffle
@@ -22,7 +22,7 @@ import type { GGameData } from '../types'
  * whose typed word is drawn through `<TypedWord>` so a letter off the board dims.
  *
  * It owns the **move**: submitting the typed word (`useSubmitWord`), what the
- * board shows for the answer, and the letter click that appends to the word.
+ * board shows for the answer, and the tile click that appends its letter to the word.
  * See docs/playarea.md.
  */
 export function BoardCol({
@@ -59,7 +59,7 @@ export function BoardCol({
 
   // ─── The pending word ──────────────────────────────────
   // The typed word is the move's, above; what this column reads off it, and
-  // the letter click that adds to it, sit here.
+  // the tile click that adds to it, sit here.
 
   // The tiles the typed word is using. A Set of its letters is the whole of
   // it: a board letter can be typed more than once and there is nothing to
@@ -71,9 +71,9 @@ export function BoardCol({
   )
 
   // A click is my next action, so it dismisses a gesture-cleared result.
-  function handleLetterClick(letter: string) {
+  function handleTileClick(tile: GTile) {
     localFeedbackSlot.dismiss()
-    submission.setWord((prev) => prev + letter)
+    submission.setWord((prev) => prev + tile.letter)
   }
 
   // ─── Render ────────────────────────────────────────────
@@ -99,12 +99,11 @@ export function BoardCol({
         </div>
       </MobileStatusBar>
       <Board
-        refused={submission.refused}
-        outerLetters={outerLetters}
-        centerLetter={centerLetter}
+        tiles={gd.puzzle.tiles}
         isInteractive={isInteractive}
-        onLetterClick={handleLetterClick}
+        onTileClick={handleTileClick}
         usedLetters={usedLetters}
+        refused={submission.refused}
       />
       {/* The below-board slot: `<WordEntryArea>` draws the controls, or the
           slot's message in their place — the same slot, so nothing reflows. */}

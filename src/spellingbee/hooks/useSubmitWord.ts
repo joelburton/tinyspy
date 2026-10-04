@@ -1,9 +1,8 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import type { Outcome } from '@/common/outcomes/outcomes'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
-import { useMark, type Mark } from '@/common/board-marks/useMark'
+import { useMark } from '@/common/board-marks/useMark'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { runRpc } from '@/common/supabase/dbResult'
@@ -11,7 +10,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { useFoundWordSubmit, type FoundWordSubmitApi } from '@/shared/found-words/useFoundWordSubmit'
 import { db } from '../db'
 import { answerMessage, answerOf } from '../lib/answer'
-import type { GFoundWord, GWord } from '../types'
+import type { GFoundWord, GRefusedMark, GWord } from '../types'
 
 /** What `spellingbee.submit_word` puts in `data`. All four mean the row landed:
  *  three classifications echoing the caller's own flags, plus `won` — the word
@@ -22,10 +21,6 @@ type SubmittedWord =
   | { result: 'pangram'; points: number }
   | { result: 'won'; points: number }
   | null
-
-/** A refused word's mark: the letters it used, which wear its answer and
- *  shake, and the outcome they wear. */
-export type RefusedMark = Mark<{ letters: Set<string>; outcome: Outcome }>
 
 /**
  * Submitting a word, and what the board says back.
@@ -68,11 +63,11 @@ export function useSubmitWord({
   // others play on.
   isMyTurn: boolean
   localFeedbackSlot: FeedbackSlot
-}): FoundWordSubmitApi & { refused: RefusedMark | null } {
+}): FoundWordSubmitApi & { refused: GRefusedMark | null } {
   // The board's words by word: a typed word is judged and scored against them.
   const wordsByWord = useMemo(() => new Map(words.map((w) => [w.word, w])), [words])
 
-  const [refused, showRefused] = useMark<{ letters: Set<string>; outcome: Outcome }>(WORD_ANSWER_MS)
+  const [refused, showRefused] = useMark<GRefusedMark['value']>(WORD_ANSWER_MS)
 
   const engine = useFoundWordSubmit({
     isMyTurn,

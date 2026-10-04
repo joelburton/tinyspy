@@ -147,7 +147,7 @@ export type GBeeStateLineData = GBeeTeam & {
  *   title
  *   setup
  *   setupRows
- *   puzzle: {tiles, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore, sameBandsAndHaveNoBonus}
+ *   puzzle: {tiles, tilesById, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore, sameBandsAndHaveNoBonus}
  *   team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}   # what the team shares; null in compete
  *   turns                                            # always null: no turn order
  *   ending: {reason, detail, by, winner}             # null while playing; by and winner are players
@@ -184,7 +184,10 @@ export type GBeeStateLineData = GBeeTeam & {
  * links turned into players, the setup rows built, and the seat rule
  * applied. Read-only: `makeBeeGameData` builds it and nothing else writes it.
  */
-export type GBeeGameData<Setup> = Omit<GBeeGameDataRaw<Setup>, 'turns' | 'ending' | 'foundWords' | 'players'> & {
+export type GBeeGameData<Setup> = Omit<GBeeGameDataRaw<Setup>, 'puzzle' | 'turns' | 'ending' | 'foundWords' | 'players'> & {
+  // The puzzle, with its tiles by id beside the list: what a held tile id
+  // (a wordwheel claim) is looked up in.
+  puzzle: GBeePuzzle & { tilesById: ReadonlyMap<string, GBeeTile> }
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -261,6 +264,7 @@ export function makeBeeGameData<Setup>(
   const { turns, ending, ...rest } = raw
   return {
     ...rest,
+    puzzle: { ...raw.puzzle, tilesById: new Map(raw.puzzle.tiles.map((t) => [t.id, t])) },
     setupRows: makeSetupRows(players),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
     ending: ending === null

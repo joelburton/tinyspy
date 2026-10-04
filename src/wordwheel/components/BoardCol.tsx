@@ -15,7 +15,7 @@ import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
 import bee from '@/shared/bee-games/beeBoard.module.css'
-import type { GGameData } from '../types'
+import type { GGameData, GTile } from '../types'
 
 /**
  * wordwheel's board column — the `<Board>`, a floating Shuffle over its
@@ -25,7 +25,7 @@ import type { GGameData } from '../types'
  *
  * It owns the **move**: submitting the typed word (`useSubmitWord`, which also
  * holds which tile each click spent), what the board shows for the answer, and
- * the letter click that appends to the word. See docs/playarea.md.
+ * the tile click that appends its letter to the word. See docs/playarea.md.
  */
 export function BoardCol({
   gd,
@@ -56,6 +56,7 @@ export function BoardCol({
   const submission = useSubmitWord({
     gameId: gd.id,
     words: gd.puzzle.words,
+    tilesById: gd.puzzle.tilesById,
     foundWords: gd.foundWords,
     centerLetter,
     isMyTurn: isInteractive,
@@ -64,12 +65,12 @@ export function BoardCol({
 
   // ─── The pending word ──────────────────────────────────
   // The typed word is the move's, above; what this column reads off it, and
-  // the letter click that adds to it, sit here.
+  // the tile click that adds to it, sit here.
 
   // A click is my next action, so it dismisses a gesture-cleared result.
-  function handleLetterClick(letter: string, ordinal: number) {
+  function handleTileClick(tile: GTile) {
     localFeedbackSlot.dismiss()
-    submission.addClickedLetter(letter, ordinal)
+    submission.addClickedTile(tile)
   }
 
   // Per-letter counts of the typed word: each use SPENDS one tile
@@ -105,13 +106,12 @@ export function BoardCol({
         </div>
       </MobileStatusBar>
       <Board
-        refused={submission.refused}
-        outerLetters={outerLetters}
-        centerLetter={centerLetter}
+        tiles={gd.puzzle.tiles}
         isInteractive={isInteractive}
-        onLetterClick={handleLetterClick}
-        claims={submission.claims}
+        onTileClick={handleTileClick}
         typedCounts={typedCounts}
+        claimedTileIds={submission.claimedTileIds}
+        refused={submission.refused}
       />
       {/* The below-board slot: `<WordEntryArea>` draws the controls, or the
           slot's message in their place — the same slot, so nothing reflows. */}
