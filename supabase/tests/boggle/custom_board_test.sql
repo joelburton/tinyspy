@@ -81,8 +81,8 @@ select pg_temp.envelope_is(
           'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop',
     pg_temp.boggle_board()
-      || '{"required_words":[],"required_words_count":0,
-           "required_words_score":0}'::jsonb),
+      || '{"required_words":[],"n_reqd_words":0,
+           "reqd_words_score":0}'::jsonb),
   '{"type":"not-ok","severity":"form-validation","field":"custom_board","dbcode":"PN147",
     "message":"No words for those letters at that difficulty"}'::jsonb,
   'a custom board with ZERO required words is rejected (win_percent floor)');
@@ -96,8 +96,8 @@ select isnt(
            'bea22222-2222-2222-2222-222222222222'::uuid],
      'coop',
      pg_temp.boggle_board()
-       || '{"required_words":[],"required_words_count":0,
-            "required_words_score":0}'::jsonb)->'data'->>'id'),
+       || '{"required_words":[],"n_reqd_words":0,
+            "reqd_words_score":0}'::jsonb)->'data'->>'id'),
   null, 'a ROLLED board with no required words is still accepted (floor is custom-only)');
 
 select * from finish();

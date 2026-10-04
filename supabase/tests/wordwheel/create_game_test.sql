@@ -129,13 +129,13 @@ select is(
 select is(
   (select (game_data->'puzzle'->>'reqdWordsScore')::int from common.games where id = (select id from g)),
   62,
-  'coop game_data.puzzle.reqdWordsScore = board.required_words_score'
+  'coop game_data.puzzle.reqdWordsScore = board.reqd_words_score'
 );
 
 select is(
   (select (game_data->'puzzle'->>'nReqdWords')::int from common.games where id = (select id from g)),
   19,
-  'coop game_data.puzzle.nReqdWords = board.required_words_count'
+  'coop game_data.puzzle.nReqdWords = board.n_reqd_words'
 );
 
 select is(
@@ -309,7 +309,7 @@ select pg_temp.envelope_is(
   'rejects setup.required_band below 1 (band floor)');
 
 -- required = 1 is the floor — accepted. Same fixture board (its
--- required_words_count clears the ≥15 gate regardless of the band).
+-- n_reqd_words clears the ≥15 gate regardless of the band).
 select isnt(
       (wordwheel.create_game(
       (select pg_temp.create_club('Required one', array['ada','bea']) as handle),
@@ -452,10 +452,10 @@ select pg_temp.envelope_is(
   wordwheel.create_game((select handle from club), pg_temp.wordwheel_setup(),
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
-    pg_temp.wordwheel_board() || '{"required_words_count": 14}'::jsonb),
+    pg_temp.wordwheel_board() || '{"n_reqd_words": 14}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN189",
     "message":"BUG: generated wheel had only 14 words to find"}'::jsonb,
-  'rejects board.required_words_count < 15 (puzzle-quality gate — the wordwheel floor)');
+  'rejects board.n_reqd_words < 15 (puzzle-quality gate — the wordwheel floor)');
 
 -- ============================================================
 -- (12) Player-count upper bound (max 6)

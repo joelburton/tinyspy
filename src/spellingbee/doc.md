@@ -261,8 +261,8 @@ both.
   "board": {
     "outer_letters": "chirot",
     "center_letter": "a",
-    "required_words_score": 385,
-    "required_words_count": 81,
+    "reqd_words_score": 385,
+    "n_reqd_words": 81,
     "required_words": [ { "word": "chariot", "points": 17, "is_pangram": true }, … ],
     "bonus_words":    [ { "word": "trochaic", "points": 18, "is_pangram": true }, … ]
   }

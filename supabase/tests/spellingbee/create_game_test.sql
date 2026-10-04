@@ -20,7 +20,7 @@
 --      or above 6, either one not a number; required = 1 and an
 --      explicit 4 / 6 accepted.
 --   5. Board validation: outer_letters length and no-s;
---      center-not-in-outer; required_words_count ≥ 30 gate. (Not
+--      center-not-in-outer; n_reqd_words ≥ 30 gate. (Not
 --      pinned here: outer distinctness, the center's own shape, and a
 --      target_rank that is not a number.)
 --   6. Title formula: "<CENTER>·<OUTER-SORTED>".
@@ -122,13 +122,13 @@ select is(
 select is(
   (select (game_data->'puzzle'->>'reqdWordsScore')::int from common.games where id = (select id from g)),
   50,
-  'coop game_data.puzzle.reqdWordsScore = board.required_words_score'
+  'coop game_data.puzzle.reqdWordsScore = board.reqd_words_score'
 );
 
 select is(
   (select (game_data->'puzzle'->>'nReqdWords')::int from common.games where id = (select id from g)),
   30,
-  'coop game_data.puzzle.nReqdWords = board.required_words_count'
+  'coop game_data.puzzle.nReqdWords = board.n_reqd_words'
 );
 
 select is(
@@ -307,7 +307,7 @@ select pg_temp.envelope_is(
   'rejects setup.required_band below 1 (band floor)');
 
 -- required = 1, the floor, is accepted. Same fixture board (its
--- required_words_count clears the ≥30 gate regardless of the required band).
+-- n_reqd_words clears the ≥30 gate regardless of the required band).
 select isnt(
       (spellingbee.create_game(
       (select pg_temp.create_club('Required one', array['ada','bea']) as handle),
@@ -419,10 +419,10 @@ select pg_temp.envelope_is(
   spellingbee.create_game((select handle from club), pg_temp.spellingbee_setup(),
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
-    pg_temp.spellingbee_board() || '{"required_words_count": 29}'::jsonb),
+    pg_temp.spellingbee_board() || '{"n_reqd_words": 29}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN169",
     "message":"BUG: generated board had only 29 words to find"}'::jsonb,
-  'rejects board.required_words_count < 30 (puzzle-quality gate)');
+  'rejects board.n_reqd_words < 30 (puzzle-quality gate)');
 
 -- ============================================================
 -- (23) Player-count upper bound (max 6)

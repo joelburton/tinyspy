@@ -401,8 +401,8 @@ export async function createBoggleGame(
         board: boardStr,
         n: 4,
         required_words: [{ word: 'cat', points: 1 }],
-        required_words_count: 1,
-        required_words_score: 1,
+        n_reqd_words: 1,
+        reqd_words_score: 1,
       },
     })
   return { id: createdGameId(res, 'boggle.create_game'), gametype: `boggle_${mode}` }
@@ -618,8 +618,8 @@ export async function createSpellingbeeGame(
       board: {
         outer_letters: 'cabdfg',
         center_letter: 'e',
-        required_words_score: required.reduce((s, r) => s + r.points, 0),
-        required_words_count: required.length,
+        reqd_words_score: required.reduce((s, r) => s + r.points, 0),
+        n_reqd_words: required.length,
         required_words: required,
         bonus_words: [{ word: 'bcdfge', points: 6, is_pangram: false }],
       },
@@ -673,8 +673,8 @@ export async function createWordwheelGame(
       board: {
         outer_letters: 'abcdfghi',
         center_letter: 'e',
-        required_words_score: required.reduce((s, r) => s + r.points, 0),
-        required_words_count: required.length,
+        reqd_words_score: required.reduce((s, r) => s + r.points, 0),
+        n_reqd_words: required.length,
         required_words: required,
         bonus_words: [{ word: 'cadge', points: 5, is_pangram: false }],
       },

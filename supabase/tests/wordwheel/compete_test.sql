@@ -25,7 +25,7 @@
 -- sibling-manifest test (gametype string + denormalized mode).
 --
 -- THE FORK numbers: the fixture pangram 'abcdefghi' scores 24 (9 + 15);
--- the fixture required_words_score is 62.
+-- the fixture reqd_words_score is 62.
 
 begin;
 

@@ -61,7 +61,7 @@ create policy pangrams_select on wordwheel.pangrams
 -- explicit per docs/code-conventions.md → "Avoid SELECT *".
 grant select
   (game_id, outer_letters, center_letter,
-   required_words_score, required_words_count, required_words, bonus_words,
+   reqd_words_score, n_reqd_words, required_words, bonus_words,
    target_rank, required_band, legal_band)
   on wordwheel.games to authenticated;
 
@@ -302,8 +302,8 @@ as $$
     'outerLetters',   g.outer_letters::text,
     'words',          wordwheel._make_json_words(g.required_words, false)
                       || wordwheel._make_json_words(g.bonus_words, true),
-    'nReqdWords',     g.required_words_count,
-    'reqdWordsScore', g.required_words_score);
+    'nReqdWords',     g.n_reqd_words,
+    'reqdWordsScore', g.reqd_words_score);
 $$;
 
 revoke execute on function wordwheel._make_json_puzzle(wordwheel.games) from public;
@@ -321,12 +321,12 @@ as $$
            select jsonb_build_object(
              'nFoundWords',     count(fw.word),
              'foundWordsScore', coalesce(sum(fw.points), 0),
-             'rankIdx',         common._rank_idx(coalesce(sum(fw.points), 0)::int, g.required_words_score),
+             'rankIdx',         common._rank_idx(coalesce(sum(fw.points), 0)::int, g.reqd_words_score),
              'targetRankIdx',   g.target_rank)
              from wordwheel.games g
              left join wordwheel.found_words fw on fw.game_id = g.game_id
             where g.game_id = p_game_id
-            group by g.required_words_score, g.target_rank)
+            group by g.reqd_words_score, g.target_rank)
          end
     from common.games cg
    where cg.id = p_game_id;
@@ -368,7 +368,7 @@ as $$
            cp.player || jsonb_build_object(
              'nFoundWords',     t.n_found,
              'foundWordsScore', t.score,
-             'rankIdx',         common._rank_idx(t.score, g.required_words_score),
+             'rankIdx',         common._rank_idx(t.score, g.reqd_words_score),
              'targetRankIdx',   g.target_rank)
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
@@ -412,8 +412,8 @@ set search_path = wordwheel, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
            'team',           wordwheel._make_json_team(p_game_id),
-           'nReqdWords',     g.required_words_count,
-           'reqdWordsScore', g.required_words_score,
+           'nReqdWords',     g.n_reqd_words,
+           'reqdWordsScore', g.reqd_words_score,
            'targetRankIdx',  g.target_rank)
     from wordwheel.games g
    where g.game_id = p_game_id;
@@ -512,8 +512,8 @@ drop function if exists wordwheel.create_game(text, jsonb, uuid[], text, jsonb);
 --   {
 --     "outer_letters": "abbcdefg",          -- 8 lowercase (repeats allowed)
 --     "center_letter": "i",                 -- 1 lowercase (may repeat an outer)
---     "required_words_score":   int,
---     "required_words_count":   int,
+--     "reqd_words_score":   int,
+--     "n_reqd_words":   int,
 --     "required_words": [ { "word": text, "points": int, "is_pangram": bool }, … ],
 --     "bonus_words":   [ { "word", "points", "is_pangram" }, … ]  -- legal − required
 --   }
@@ -547,8 +547,8 @@ declare
   s_legal int;
   b_outer text;
   b_center text;
-  b_required_words_score int;
-  b_required_words_count int;
+  b_reqd_words_score int;
+  b_n_reqd_words int;
   game_title text;
   -- A player-specified letter set (setup.custom_letters non-empty) — the board
   -- was built from the player's own letters, not a random seed. Relaxes the
@@ -665,27 +665,27 @@ begin
       detail = 'center must be a lowercase ASCII letter';
   end if;
 
-  b_required_words_score := (p_board->>'required_words_score')::int;
-  b_required_words_count := (p_board->>'required_words_count')::int;
+  b_reqd_words_score := (p_board->>'reqd_words_score')::int;
+  b_n_reqd_words := (p_board->>'n_reqd_words')::int;
   -- Custom (player-specified) letters skip the ≥15 quality gate — the player
   -- chose these letters, so we build whatever puzzle they yield. It must still
   -- have ≥1 required word, or the rank ladder is degenerate (Genius at 0 pts).
   -- Random boards keep the ≥15 gate the edge function's builder targets.
   is_custom_board := coalesce(p_setup->>'custom_letters', '') <> '';
   if is_custom_board then
-    if b_required_words_count < 1 then
+    if b_n_reqd_words < 1 then
       raise exception 'No words for those letters at that difficulty'
         using errcode = 'PN188', hint = 'form-validation', column = 'custom_letters',
         detail = 'the chosen wheel produces an empty required set at that band';
     end if;
-  elsif b_required_words_count < 15 then
+  elsif b_n_reqd_words < 15 then
     -- A wheel whose tiles are spent per use yields far fewer words than a
     -- spellingbee board (which allows unbounded reuse), so the floor is lower
     -- than spellingbee's ≥30. The edge function's builder targets the same
     -- number.
-    raise exception 'BUG: generated wheel had only % words to find', b_required_words_count
+    raise exception 'BUG: generated wheel had only % words to find', b_n_reqd_words
       using errcode = 'PN189', hint = 'fault', column = '_',
-      detail = 'required_words_count must be >= 15; the edge function''s gate must agree';
+      detail = 'n_reqd_words must be >= 15; the edge function''s gate must agree';
   end if;
 
   if jsonb_typeof(p_board->'required_words') <> 'array' then
@@ -717,12 +717,12 @@ begin
 
   insert into wordwheel.games (
     game_id, outer_letters, center_letter,
-    required_words_score, required_words_count, required_words, bonus_words,
+    reqd_words_score, n_reqd_words, required_words, bonus_words,
     target_rank, required_band, legal_band
   )
   values (
     new_id, b_outer, b_center,
-    b_required_words_score, b_required_words_count,
+    b_reqd_words_score, b_n_reqd_words,
     p_board->'required_words', coalesce(p_board->'bonus_words', '[]'::jsonb),
     s_target_rank, s_required, s_legal
   );
@@ -872,7 +872,7 @@ begin
      where fw.game_id = p_game_id
        and (v_mode = 'coop' or fw.user_id = caller_id);
 
-    if common._rank_idx(v_score, g.required_words_score) >= g.target_rank then
+    if common._rank_idx(v_score, g.reqd_words_score) >= g.target_rank then
       if v_mode = 'coop' then
         -- The team solves, so every teammate solved at this word.
         update common.game_players set solved_at = now() where game_id = p_game_id;

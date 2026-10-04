@@ -59,7 +59,7 @@ select is(
 -- lives in common.words, not spellingbee — only the spellingbee-specific
 -- pangram seed pool is checked here.
 reset role;
-insert into spellingbee.pangrams (mask, required_words_count, has_rare_letters)
+insert into spellingbee.pangrams (mask, n_reqd_words, has_rare_letters)
 values (1::bigint, 30, false);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -116,7 +116,7 @@ insert into common_g (id) select id from ins;
 -- present + retrievable. The bands are the create_game defaults.
 insert into spellingbee.games
   (game_id, outer_letters, center_letter,
-   required_words_score, required_words_count, required_words, bonus_words,
+   reqd_words_score, n_reqd_words, required_words, bonus_words,
    required_band, legal_band)
 values (
   (select id from common_g),

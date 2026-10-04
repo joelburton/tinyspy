@@ -110,7 +110,7 @@ insert into common_g (id) select id from ins;
 -- is char(8).
 insert into wordwheel.games
   (game_id, outer_letters, center_letter,
-   required_words_score, required_words_count, required_words, bonus_words,
+   reqd_words_score, n_reqd_words, required_words, bonus_words,
    required_band, legal_band)
 values (
   (select id from common_g),

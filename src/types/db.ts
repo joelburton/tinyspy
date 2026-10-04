@@ -204,10 +204,10 @@ export type Database = {
           game_id: string
           legal_band: number
           min_word_length: number
+          n_reqd_words: number
+          reqd_words_score: number
           required_band: number
           required_words: Json
-          required_words_count: number
-          required_words_score: number
           target_win_percent: number | null
         }
         Insert: {
@@ -217,10 +217,10 @@ export type Database = {
           game_id: string
           legal_band: number
           min_word_length: number
+          n_reqd_words: number
+          reqd_words_score: number
           required_band: number
           required_words: Json
-          required_words_count: number
-          required_words_score: number
           target_win_percent?: number | null
         }
         Update: {
@@ -230,10 +230,10 @@ export type Database = {
           game_id?: string
           legal_band?: number
           min_word_length?: number
+          n_reqd_words?: number
+          reqd_words_score?: number
           required_band?: number
           required_words?: Json
-          required_words_count?: number
-          required_words_score?: number
           target_win_percent?: number | null
         }
         Relationships: []
@@ -2697,11 +2697,11 @@ export type Database = {
           center_letter: string
           game_id: string
           legal_band: number
+          n_reqd_words: number
           outer_letters: string
+          reqd_words_score: number
           required_band: number
           required_words: Json
-          required_words_count: number
-          required_words_score: number
           target_rank: number | null
         }
         Insert: {
@@ -2709,11 +2709,11 @@ export type Database = {
           center_letter: string
           game_id: string
           legal_band: number
+          n_reqd_words: number
           outer_letters: string
+          reqd_words_score: number
           required_band: number
           required_words: Json
-          required_words_count: number
-          required_words_score: number
           target_rank?: number | null
         }
         Update: {
@@ -2721,11 +2721,11 @@ export type Database = {
           center_letter?: string
           game_id?: string
           legal_band?: number
+          n_reqd_words?: number
           outer_letters?: string
+          reqd_words_score?: number
           required_band?: number
           required_words?: Json
-          required_words_count?: number
-          required_words_score?: number
           target_rank?: number | null
         }
         Relationships: []
@@ -2734,17 +2734,17 @@ export type Database = {
         Row: {
           has_rare_letters: boolean
           mask: number
-          required_words_count: number
+          n_reqd_words: number
         }
         Insert: {
           has_rare_letters: boolean
           mask: number
-          required_words_count: number
+          n_reqd_words: number
         }
         Update: {
           has_rare_letters?: boolean
           mask?: number
-          required_words_count?: number
+          n_reqd_words?: number
         }
         Relationships: []
       }
@@ -4043,11 +4043,11 @@ export type Database = {
           center_letter: string
           game_id: string
           legal_band: number
+          n_reqd_words: number
           outer_letters: string
+          reqd_words_score: number
           required_band: number
           required_words: Json
-          required_words_count: number
-          required_words_score: number
           target_rank: number | null
         }
         Insert: {
@@ -4055,11 +4055,11 @@ export type Database = {
           center_letter: string
           game_id: string
           legal_band: number
+          n_reqd_words: number
           outer_letters: string
+          reqd_words_score: number
           required_band: number
           required_words: Json
-          required_words_count: number
-          required_words_score: number
           target_rank?: number | null
         }
         Update: {
@@ -4067,11 +4067,11 @@ export type Database = {
           center_letter?: string
           game_id?: string
           legal_band?: number
+          n_reqd_words?: number
           outer_letters?: string
+          reqd_words_score?: number
           required_band?: number
           required_words?: Json
-          required_words_count?: number
-          required_words_score?: number
           target_rank?: number | null
         }
         Relationships: []

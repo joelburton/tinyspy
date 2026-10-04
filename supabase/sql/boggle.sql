@@ -24,8 +24,8 @@
 --     wins at once (the team in coop, the crosser in compete). Without one, a
 --     compete race is ranked by score when the clock stops, and a coop game
 --     is an exercise with no result.
---   - Found words are the one mode-aware read: coop sees everyone's, compete
---     only your own until the game ends.
+--   - What a racer may see of a rival's finds mid-race is the page's rule,
+--     applied to game_data; the tables carry no mode arm.
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -52,10 +52,9 @@ create policy games_select on boggle.games
     )
   );
 
--- Found-words visibility, mode-aware (the load-bearing piece for compete):
---   (1) coop          — everyone in the club sees everyone's finds.
---   (2) your own       — you always see your finds (private in compete mid-game).
---   (3) the game ended — everyone sees everything.
+-- Found words: any club member sees every row. Who may see a rival's finds
+-- mid-race is the page's rule, applied to `game_data`; nothing reads this
+-- table from the client.
 drop policy if exists found_words_select on boggle.found_words;
 create policy found_words_select on boggle.found_words
   for select to authenticated
@@ -64,113 +63,12 @@ create policy found_words_select on boggle.found_words
       select 1 from common.games cg
        where cg.id = found_words.game_id
          and common._is_club_member(cg.club_handle)
-         and (
-               cg.mode = 'coop'
-            or found_words.user_id = (select auth.uid())
-            or cg.ended_at is not null
-             )
     )
   );
 
 drop function if exists boggle._refresh_status(uuid);
 
--- ============================================================
--- boggle._write_statuses — the page's copies of the game
--- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from boggle's own tables, assigning each
--- whole (plans/common-tables.md → The statuses). Every key is always present,
--- null when it has no value:
---
---   game_status    { required_words_count, required_words_score,
---                    bonus_words_count, bonus_words_score }
---                  — the board's totals, the Stats grid's second column
---   player_status  { found_required_words_count, found_required_words_score,
---                    found_bonus_words_count, found_bonus_words_score,
---                    player_ended_reason }
---                  — that player's own finds; in coop the page sums them for
---                  the team, and the strip's score is the two scores summed
---   clubpage_info  { found_words_count, found_words_score,
---                    target_win_percent, top_score, winner_user_id }
---                  — the found counts are coop's team totals and null in
---                  compete; the top score (a conceder's banked score never
---                  counts) and a sole winner are compete's, null until the
---                  end (a tie for first names no winner)
---
--- `p_update_status_changed_at` is true from create, Restart and every move,
--- false from a rebuild (the pass over every game, a repair by hand), so a
--- rebuild never re-dates a game.
-create or replace function boggle._write_statuses(
-  p_game_id uuid,
-  p_update_status_changed_at boolean
-)
-returns void
-language plpgsql
-security definer
-set search_path = boggle, common, public, extensions
-as $$
-declare
-  g boggle.games%rowtype;
-  v_mode text;
-  v_ended_at timestamptz;
-begin
-  select * into g from boggle.games where game_id = p_game_id;
-  select mode, ended_at into v_mode, v_ended_at from common.games where id = p_game_id;
-
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'found_required_words_count', coalesce(t.req_count, 0),
-           'found_required_words_score', coalesce(t.req_score, 0),
-           'found_bonus_words_count', coalesce(t.bonus_count, 0),
-           'found_bonus_words_score', coalesce(t.bonus_score, 0),
-           'player_ended_reason', gp.player_ended_reason)
-    from (
-      select p.user_id,
-             count(fw.word) filter (where not fw.is_bonus) as req_count,
-             sum(fw.points) filter (where not fw.is_bonus) as req_score,
-             count(fw.word) filter (where fw.is_bonus) as bonus_count,
-             sum(fw.points) filter (where fw.is_bonus) as bonus_score
-        from common.game_players p
-        left join boggle.found_words fw
-          on fw.game_id = p.game_id and fw.user_id = p.user_id
-       where p.game_id = p_game_id
-       group by p.user_id
-    ) t
-   where gp.game_id = p_game_id
-     and gp.user_id = t.user_id;
-
-  update common.games
-     set game_status = jsonb_build_object(
-           'required_words_count', g.required_words_count,
-           'required_words_score', g.required_words_score,
-           'bonus_words_count', jsonb_array_length(g.bonus_words),
-           'bonus_words_score', (select coalesce(sum((b->>'points')::int), 0)
-                                   from jsonb_array_elements(g.bonus_words) b)),
-         clubpage_info = jsonb_build_object(
-           'found_words_count', case when v_mode = 'coop' then (
-             select count(*) from boggle.found_words where game_id = p_game_id) end,
-           'found_words_score', case when v_mode = 'coop' then (
-             select coalesce(sum(points), 0) from boggle.found_words
-              where game_id = p_game_id) end,
-           'target_win_percent', g.target_win_percent,
-           'top_score', case when v_mode = 'compete' and v_ended_at is not null then (
-             select coalesce(max(t.sc), 0)
-               from (select user_id, sum(points) as sc from boggle.found_words
-                      where game_id = p_game_id group by user_id) t
-               join common.game_players gp
-                 on gp.game_id = p_game_id and gp.user_id = t.user_id
-              where gp.player_ended_reason is distinct from 'conceded') end,
-           'winner_user_id', case when v_mode = 'compete' then (
-             select min(user_id::text)::uuid from common.game_players
-              where game_id = p_game_id and final_ranking = 1
-             having count(*) = 1) end),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
-   where id = p_game_id;
-end;
-$$;
-
-revoke execute on function boggle._write_statuses(uuid, boolean) from public;
+drop function if exists boggle._write_statuses(uuid, boolean);
 
 -- ============================================================
 -- The page blobs — what the page shows, written by this game's builder
@@ -264,8 +162,8 @@ as $$
     'minWordLength',   g.min_word_length,
     'words',           boggle._make_json_words(g.required_words, false)
                        || boggle._make_json_words(g.bonus_words, true),
-    'nReqdWords',      g.required_words_count,
-    'reqdWordsScore',  g.required_words_score,
+    'nReqdWords',      g.n_reqd_words,
+    'reqdWordsScore',  g.reqd_words_score,
     'nBonusWords',     jsonb_array_length(g.bonus_words),
     'bonusWordsScore', (select coalesce(sum((b ->> 'points')::int), 0)
                           from jsonb_array_elements(g.bonus_words) b));
@@ -469,9 +367,9 @@ drop function if exists boggle.create_game(text, jsonb, uuid[], text, jsonb);
 -- ============================================================
 -- Starts a game on `p_board`, rolled (or typed) by the boggle-build-board
 -- edge function: { board, n, required_words, bonus_words,
--- required_words_count, required_words_score }. Validates the setup and the
+-- n_reqd_words, reqd_words_score }. Validates the setup and the
 -- board's structure, writes the common header, the game row (the setup's
--- band and target copied to their columns) and the statuses.
+-- band and target copied to their columns) and the page blobs.
 create or replace function boggle.create_game(
   p_club_handle text,
   p_setup jsonb,
@@ -588,8 +486,8 @@ begin
       using errcode = 'PN146', hint = 'fault', column = '_',
       detail = 'board.bonus_words must be a jsonb array';
   end if;
-  b_required_count := (p_board->>'required_words_count')::int;
-  b_required_score := (p_board->>'required_words_score')::int;
+  b_required_count := (p_board->>'n_reqd_words')::int;
+  b_required_score := (p_board->>'reqd_words_score')::int;
 
   -- A player-typed board (setup.custom_board non-empty) skipped the roll loop
   -- entirely, so nothing measured it. It must still have SOMETHING to find:
@@ -635,7 +533,7 @@ begin
 
   insert into boggle.games (
     game_id, board, board_side_size, min_word_length, required_band, legal_band,
-    required_words, bonus_words, required_words_count, required_words_score,
+    required_words, bonus_words, n_reqd_words, reqd_words_score,
     target_win_percent
   )
   values (
@@ -644,7 +542,6 @@ begin
     b_required_count, b_required_score, s_win_percent
   );
 
-  perform boggle._write_statuses(new_id, p_update_status_changed_at => true);
   perform boggle._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. REQUIRED, not
@@ -689,6 +586,9 @@ drop function if exists boggle._finish(uuid, text, uuid);
 --                                 concede and scored is ranked by score,
 --                                 ties sharing; nobody scored → nobody ranked
 --   timeout, no target, coop      an exercise with no result: neutral
+--
+-- A target reached is a solve, stamped on `common.game_players.solved_at`:
+-- every teammate in coop, the crosser alone in compete.
 create or replace function boggle._finish(
   p_game_id uuid,
   p_reason_detail text,
@@ -711,9 +611,12 @@ begin
 
   if p_reason_detail = 'target' then
     if v_mode = 'coop' then
+      update common.game_players set solved_at = now() where game_id = p_game_id;
       select jsonb_object_agg(user_id::text, 1) into v_rankings
         from common.game_players where game_id = p_game_id;
     else
+      update common.game_players set solved_at = now()
+       where game_id = p_game_id and user_id = p_ended_by_user_id;
       v_rankings := jsonb_build_object(p_ended_by_user_id::text, 1);
     end if;
   elsif v_target is null then
@@ -792,7 +695,7 @@ begin
   -- and the clock serialize. A friend deleted the game while this call was in
   -- flight: the shared race, asked before the membership gate, which the
   -- delete took with it.
-  select target_win_percent, required_words_score into g_win_percent, g_req_score
+  select target_win_percent, reqd_words_score into g_win_percent, g_req_score
     from boggle.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('boggle');
@@ -868,7 +771,6 @@ begin
     end if;
   end if;
 
-  perform boggle._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform boggle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(jsonb_build_object(
@@ -916,7 +818,6 @@ begin
 
   perform common._stop(p_game_id);
 
-  perform boggle._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform boggle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -973,7 +874,6 @@ begin
 
   perform common._reset_game(p_game_id);
 
-  perform boggle._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform boggle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
@@ -1019,7 +919,6 @@ begin
 
   perform common._concede(p_game_id);
 
-  perform boggle._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform boggle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
@@ -1067,7 +966,6 @@ begin
 
   perform boggle._finish(p_game_id, 'timeout', null);
 
-  perform boggle._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform boggle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 

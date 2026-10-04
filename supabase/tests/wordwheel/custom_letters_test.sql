@@ -48,8 +48,8 @@ create temp table small on commit drop as
 select jsonb_build_object(
   'outer_letters',        'abcdfghi',
   'center_letter',        'e',
-  'required_words_score', 3,
-  'required_words_count', 3,
+  'reqd_words_score', 3,
+  'n_reqd_words', 3,
   'required_words', jsonb_build_array(
     jsonb_build_object('word', 'bead', 'points', 1, 'is_pangram', false),
     jsonb_build_object('word', 'face', 'points', 1, 'is_pangram', false),
@@ -70,8 +70,8 @@ select (wordwheel.create_game(
 select isnt((select id from g), null,
   'custom board with only 3 required words is accepted (≥15 gate relaxed)');
 select is(
-  (select required_words_count from wordwheel.games where game_id = (select id from g)),
-  3, 'custom board stores its actual (sub-15) required_words_count');
+  (select n_reqd_words from wordwheel.games where game_id = (select id from g)),
+  3, 'custom board stores its actual (sub-15) n_reqd_words');
 
 -- ── (2) Saved default strips the one-off custom letters ─────
 select is(
@@ -113,7 +113,7 @@ select pg_temp.envelope_is(
     'coop',
     jsonb_build_object(
       'outer_letters','abcdfghi','center_letter','e',
-      'required_words_score',0,'required_words_count',0,
+      'reqd_words_score',0,'n_reqd_words',0,
       'required_words','[]'::jsonb,'bonus_words','[]'::jsonb)),
   '{"type":"not-ok","severity":"form-validation","field":"custom_letters","dbcode":"PN188",
     "message":"No words for those letters at that difficulty"}'::jsonb,
@@ -132,7 +132,7 @@ select (wordwheel.create_game(
   'coop',
   jsonb_build_object(
     'outer_letters','abcdefgg','center_letter','e',
-    'required_words_score',2,'required_words_count',2,
+    'reqd_words_score',2,'n_reqd_words',2,
     'required_words', jsonb_build_array(
       jsonb_build_object('word', 'edge', 'points', 1, 'is_pangram', false),
       jsonb_build_object('word', 'face', 'points', 1, 'is_pangram', false)),

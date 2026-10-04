@@ -49,7 +49,7 @@
 --   points = (len == 4 ? 1 : len == 9 pangram ? len + 15 : len)
 --   rank_idx(score, total) = LEAST(6, floor(score * 60 / (total * 7)))
 --
--- Rank thresholds for required_words_score = 62 (score needed to
+-- Rank thresholds for reqd_words_score = 62 (score needed to
 -- UNLOCK each rank; derived: score >= ceil(i * total * 7 / 60)):
 --   Start   ≥ 0
 --   Good    ≥ 8
@@ -111,8 +111,8 @@ begin
   return jsonb_build_object(
     'outer_letters',        'abcdfghi',
     'center_letter',        'e',
-    'required_words_score', total,
-    'required_words_count', jsonb_array_length(required),
+    'reqd_words_score', total,
+    'n_reqd_words', jsonb_array_length(required),
     'required_words',       required,
     'bonus_words',          bonus
   );
@@ -174,8 +174,8 @@ begin
   return jsonb_build_object(
     'outer_letters',        'abcdefgg',
     'center_letter',        'e',
-    'required_words_score', total,
-    'required_words_count', jsonb_array_length(required),
+    'reqd_words_score', total,
+    'n_reqd_words', jsonb_array_length(required),
     'required_words',       required,
     'bonus_words',          bonus
   );

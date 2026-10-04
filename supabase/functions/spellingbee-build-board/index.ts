@@ -173,7 +173,7 @@ function sampleMask(weighted: PangramRow[]): PangramRow {
     const row = weighted[Math.floor(Math.random() * weighted.length)]
     const mask = BigInt(row.mask)
     if (!shouldKeepForIng(mask)) continue
-    if (row.required_words_count < MIN_REQUIRED_WORDS_COUNT) continue
+    if (row.n_reqd_words < MIN_REQUIRED_WORDS_COUNT) continue
     return row
   }
   // After MAX_SAMPLE_ATTEMPTS the ING-rejection has cumulative
@@ -204,7 +204,7 @@ async function fetchPangrams(supabase: SupabaseClient): Promise<PangramRow[]> {
     const { data, error } = await supabase
       .schema('spellingbee')
       .from('pangrams')
-      .select('mask, required_words_count, has_rare_letters')
+      .select('mask, n_reqd_words, has_rare_letters')
       // Order by the primary key so successive .range() windows are stable
       // pages of ONE ordering (without it Postgres gives no cross-statement
       // order guarantee — rows could be skipped or double-counted across pages).
@@ -350,9 +350,9 @@ serve(async (req) => {
       const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
       board = buildBoard(customLetters, customCenter, candidates)
       console.log(
-        `custom board: ${customLetters}+${customCenter} → ${board.required_words_count} required words`,
+        `custom board: ${customLetters}+${customCenter} → ${board.n_reqd_words} required words`,
       )
-      if (board.required_words_count < 1) {
+      if (board.n_reqd_words < 1) {
         // The one player-reachable rejection on this path: the letters are the
         // form's own input, and whether they yield anything is the dictionary's
         // answer rather than a shape the dialog could have checked. Under the
@@ -390,7 +390,7 @@ serve(async (req) => {
       const weighted = buildWeightedPool(eligible)
 
       // 3-4. Sample a seed AND a center that clears the word gate.
-      // A seed's stored `required_words_count` is over its whole 7-letter SET, but the
+      // A seed's stored `n_reqd_words` is over its whole 7-letter SET, but the
       // puzzle only counts words that CONTAIN THE CENTER, so one center can land
       // a board below the ≥30 gate even though the set is fine. Try the seed's 7
       // centers in random order and keep the first that clears the gate;
@@ -409,12 +409,12 @@ serve(async (req) => {
           const centerBit = 1n << BigInt(center.charCodeAt(0) - 97)
           const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
           const cand = buildBoard(letters.replace(center, ''), center, candidates)
-          if (cand.required_words_count >= MIN_REQUIRED_WORDS_COUNT) {
+          if (cand.n_reqd_words >= MIN_REQUIRED_WORDS_COUNT) {
             board = cand
             break
           }
           console.log(
-            `seed ${letters} center '${center}': ${cand.required_words_count} words`
+            `seed ${letters} center '${center}': ${cand.n_reqd_words} words`
             + ` (< ${MIN_REQUIRED_WORDS_COUNT}) — trying another center`,
           )
         }
@@ -436,7 +436,7 @@ serve(async (req) => {
     }
     console.log(
       `board: outer=${board.outer_letters} center=${board.center_letter}`
-      + ` required_words_score=${board.required_words_score} required_words_count=${board.required_words_count}`,
+      + ` reqd_words_score=${board.reqd_words_score} n_reqd_words=${board.n_reqd_words}`,
     )
 
     // ─── 5. Create the game ───────────────────────────────

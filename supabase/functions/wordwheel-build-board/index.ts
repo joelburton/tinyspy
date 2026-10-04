@@ -333,9 +333,9 @@ serve(async (req) => {
       const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
       board = buildBoard(customLetters, customCenter, candidates)
       console.log(
-        `custom board: ${customLetters}+${customCenter} → ${board.required_words_count} required words`,
+        `custom board: ${customLetters}+${customCenter} → ${board.n_reqd_words} required words`,
       )
-      if (board.required_words_count < 1) {
+      if (board.n_reqd_words < 1) {
         // The one player-reachable rejection on this path: the letters are the
         // form's own input, and whether they yield anything is the dictionary's
         // answer rather than a shape the dialog could have checked. Under the
@@ -442,12 +442,12 @@ serve(async (req) => {
           // replace() removes exactly ONE occurrence — a duplicated center
           // leaves its twin among the outer tiles, as it should.
           const cand = buildBoard(letters.replace(center, ''), center, candidates)
-          if (cand.required_words_count >= MIN_REQUIRED_WORDS_COUNT) {
+          if (cand.n_reqd_words >= MIN_REQUIRED_WORDS_COUNT) {
             board = cand
             break
           }
           console.log(
-            `seed ${letters} center '${center}': ${cand.required_words_count} words`
+            `seed ${letters} center '${center}': ${cand.n_reqd_words} words`
             + ` (< ${MIN_REQUIRED_WORDS_COUNT}) — trying another center`,
           )
         }
@@ -469,7 +469,7 @@ serve(async (req) => {
     }
     console.log(
       `board: outer=${board.outer_letters} center=${board.center_letter}`
-      + ` required_words_score=${board.required_words_score} required_words_count=${board.required_words_count}`,
+      + ` reqd_words_score=${board.reqd_words_score} n_reqd_words=${board.n_reqd_words}`,
     )
 
     // ─── 5. Create the game ───────────────────────────────

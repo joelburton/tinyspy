@@ -37,8 +37,8 @@ begin
     'board', 'CATRSEXOTMPLNGDB',   -- 16 raw faces (content unused by the RPCs)
     'n', 4,
     'required_words', req,
-    'required_words_count', jsonb_array_length(req),
-    'required_words_score', total
+    'n_reqd_words', jsonb_array_length(req),
+    'reqd_words_score', total
   );
 end;
 $$;

@@ -64,8 +64,8 @@ Deno.test('buildBoard: partitions required vs bonus, tallies required only', () 
     cand('acned', false),   // 5 → bonus
   ]
   const board = buildBoard('cabdon', 'e', words)
-  eq(board.required_words_count, 2, 'two required words')
-  eq(board.required_words_score, 1 + 6, 'required score = 1 + 6')
+  eq(board.n_reqd_words, 2, 'two required words')
+  eq(board.reqd_words_score, 1 + 6, 'required score = 1 + 6')
   eq(board.bonus_words.length, 1, 'one bonus word')
   eq(board.bonus_words[0].points, 5, "'acned' scores 5 as a bonus word")
   eq(board.outer_letters, 'cabdon', 'outer letters echoed')
@@ -94,23 +94,23 @@ Deno.test('buildBoard: a word missing a letter is NOT a pangram', () => {
 Deno.test('applyOverlapCap: drops seeds sharing > 4 of 7 letters with the previous board', () => {
   const previous = letterMask('abcdefg') // 7 distinct
   const pool = [
-    { mask: letterMask('abcdefg').toString(), required_words_count: 40, has_rare_letters: false }, // 7 shared → drop
-    { mask: letterMask('abcdhij').toString(), required_words_count: 40, has_rare_letters: false }, // 4 shared → keep
-    { mask: letterMask('hijklmn').toString(), required_words_count: 40, has_rare_letters: false }, // 0 shared → keep
+    { mask: letterMask('abcdefg').toString(), n_reqd_words: 40, has_rare_letters: false }, // 7 shared → drop
+    { mask: letterMask('abcdhij').toString(), n_reqd_words: 40, has_rare_letters: false }, // 4 shared → keep
+    { mask: letterMask('hijklmn').toString(), n_reqd_words: 40, has_rare_letters: false }, // 0 shared → keep
   ]
   const kept = applyOverlapCap(pool, previous)
   eq(kept.length, 2, 'the 7-overlap seed is dropped, ≤4 kept')
 })
 
 Deno.test('applyOverlapCap: null previous mask keeps the whole pool', () => {
-  const pool = [{ mask: '1', required_words_count: 40, has_rare_letters: false }]
+  const pool = [{ mask: '1', n_reqd_words: 40, has_rare_letters: false }]
   eq(applyOverlapCap(pool, null).length, 1, 'no previous board → no filtering')
 })
 
 Deno.test('buildWeightedPool: rare-letter seeds appear 3×', () => {
   const pool = [
-    { mask: '1', required_words_count: 40, has_rare_letters: false },
-    { mask: '2', required_words_count: 40, has_rare_letters: true },
+    { mask: '1', n_reqd_words: 40, has_rare_letters: false },
+    { mask: '2', n_reqd_words: 40, has_rare_letters: true },
   ]
   eq(buildWeightedPool(pool).length, 1 + 3, 'common ×1 + rare ×3')
 })

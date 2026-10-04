@@ -71,7 +71,7 @@ create function pg_temp.counts(game uuid) returns jsonb language sql as
        from jsonb_array_elements(pg_temp.game_data(game) -> 'players') p $$;
 -- The required set's score, off the row.
 create function pg_temp.total(game uuid) returns int language sql as
-  $$ select required_words_score from wordwheel.games where game_id = game $$;
+  $$ select reqd_words_score from wordwheel.games where game_id = game $$;
 
 -- The board's tiles as the page draws them: the center first, then each
 -- outer letter at its place.
@@ -92,8 +92,8 @@ create function pg_temp.expected_puzzle(game uuid) returns jsonb language sql as
        'centerLetter',   'e',
        'outerLetters',   'abcdfghi',
        'words',          pg_temp.words(required_words, false) || pg_temp.words(bonus_words, true),
-       'nReqdWords',     required_words_count,
-       'reqdWordsScore', required_words_score)
+       'nReqdWords',     n_reqd_words,
+       'reqdWordsScore', reqd_words_score)
        from wordwheel.games where game_id = game $$;
 
 -- ─── (1) A fresh game ───
@@ -114,7 +114,7 @@ select is(
   pg_temp.summary_data(pg_temp.coop()) - (select array_agg(k) from jsonb_object_keys(common._make_json_summary_data(pg_temp.coop(), now())) k),
   jsonb_build_object(
     'team',           '{"nFoundWords": 0, "foundWordsScore": 0, "rankIdx": 0, "targetRankIdx": null}'::jsonb,
-    'nReqdWords',     (select required_words_count from wordwheel.games where game_id = pg_temp.coop()),
+    'nReqdWords',     (select n_reqd_words from wordwheel.games where game_id = pg_temp.coop()),
     'reqdWordsScore', pg_temp.total(pg_temp.coop()),
     'targetRankIdx',  null),
   'coop: summary_data carries the team, the totals and no target beside the common part'

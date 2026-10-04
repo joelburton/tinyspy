@@ -54,7 +54,7 @@ insert into coop_game (id) select id from ins;
 
 insert into spellingbee.games
   (game_id, outer_letters, center_letter,
-   required_words_score, required_words_count, required_words, bonus_words,
+   reqd_words_score, n_reqd_words, required_words, bonus_words,
    required_band, legal_band)
 values (
   (select id from coop_game),
@@ -137,7 +137,7 @@ select throws_ok(
   format(
     $$ insert into spellingbee.games
          (game_id, outer_letters, center_letter,
-          required_words_score, required_words_count, required_words, bonus_words,
+          reqd_words_score, n_reqd_words, required_words, bonus_words,
           required_band, legal_band)
        values (%L::uuid,
                'aaaaaa', 'b', 1, 1, '[]'::jsonb, '[]'::jsonb, 3, 5) $$,
@@ -173,7 +173,7 @@ insert into compete_game (id) select id from ins;
 
 insert into spellingbee.games
   (game_id, outer_letters, center_letter,
-   required_words_score, required_words_count, required_words, bonus_words, target_rank,
+   reqd_words_score, n_reqd_words, required_words, bonus_words, target_rank,
    required_band, legal_band)
 values (
   (select id from compete_game),

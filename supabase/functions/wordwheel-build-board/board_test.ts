@@ -100,8 +100,8 @@ Deno.test('buildBoard: partitions required vs bonus, tallies required only', () 
   // Wheel with a single 'b' tile so 'cabbie' (two b's) is DROPPED — proves
   // the tile-fit filter runs before scoring, on bonus words too.
   const board = buildBoard('abcdfghi', 'e', words)
-  eq(board.required_words_count, 2, 'two required words counted')
-  eq(board.required_words_score, 1 + 5, 'required score = 1 + 5')
+  eq(board.n_reqd_words, 2, 'two required words counted')
+  eq(board.reqd_words_score, 1 + 5, 'required score = 1 + 5')
   eq(board.required_words.length, 2, 'required list has 2')
   eq(board.bonus_words.length, 0, "'cabbie' dropped (two b's, one b-tile)")
   eq(board.outer_letters, 'abcdfghi', 'outer letters echoed')
@@ -114,7 +114,7 @@ Deno.test('buildBoard: a 9-letter word that fits IS a pangram (+15)', () => {
     { word: 'abcdefghi', is_required: true },
   ]
   const board = buildBoard('abcdefgh', 'i', words)
-  eq(board.required_words_count, 1, 'the pangram counts')
+  eq(board.n_reqd_words, 1, 'the pangram counts')
   eq(board.required_words[0].is_pangram, true, 'flagged pangram')
   eq(board.required_words[0].points, WHEEL_SIZE + 15, 'length 9 + 15 pangram bonus')
 })
@@ -124,8 +124,8 @@ Deno.test('buildBoard: bonus words score but do not touch the required tally', (
     { word: 'bead', is_required: false }, // bonus, fits
   ]
   const board = buildBoard('abcdfghi', 'e', words)
-  eq(board.required_words_count, 0, 'no required')
-  eq(board.required_words_score, 0, 'required score 0')
+  eq(board.n_reqd_words, 0, 'no required')
+  eq(board.reqd_words_score, 0, 'required score 0')
   eq(board.bonus_words.length, 1, 'one bonus word')
   eq(board.bonus_words[0].points, 1, "'bead' scores 1 as a bonus word too")
 })

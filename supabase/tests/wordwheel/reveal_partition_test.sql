@@ -41,7 +41,7 @@
 -- RLS; the final two assertions document exactly that divergence.
 --
 -- THE FORK numbers: the pangram 'abcdefghi' scores 24 (9 + 15); the
--- fixture required list has 19 entries; required_words_score = 62.
+-- fixture required list has 19 entries; reqd_words_score = 62.
 --
 -- Personas: ada (winner), bea (the loser / viewer of interest),
 -- cade (a third player, so cat B has a non-winner peer in it too).

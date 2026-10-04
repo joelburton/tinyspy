@@ -31,7 +31,7 @@
 --   - 3 bonus entries (legal − required).
 -- Total required: 28 + 5 + 17 = 50 points across 30 words.
 --
--- Rank thresholds for required_words_score=50:
+-- Rank thresholds for reqd_words_score=50:
 --   Good   ≥ 6
 --   Solid  ≥ 12
 --   Nice   ≥ 18
@@ -89,8 +89,8 @@ begin
   return jsonb_build_object(
     'outer_letters',        'abcdfg',
     'center_letter',        'e',
-    'required_words_score', total,
-    'required_words_count', jsonb_array_length(required),
+    'reqd_words_score', total,
+    'n_reqd_words', jsonb_array_length(required),
     'required_words',       required,
     'bonus_words',          bonus
   );

@@ -48,8 +48,8 @@ select is(
   (select mode from common.games where id = (select id from g)), 'coop',
   'common.games.mode = coop');
 select is(
-  (select required_words_count from boggle.games where game_id = (select id from g)), 6,
-  'required_words_count cached = 6');
+  (select n_reqd_words from boggle.games where game_id = (select id from g)), 6,
+  'n_reqd_words cached = 6');
 select is(
   (select board_side_size from boggle.games where game_id = (select id from g)), 4,
   'board side length = 4');

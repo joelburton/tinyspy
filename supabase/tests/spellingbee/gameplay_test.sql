@@ -22,7 +22,7 @@
 --   6. compete duplicate is per-player.
 --   7. compete target-rank hit → 'won', reached_goal / target, the winner named.
 --   8. a submit after the end is the game-over race.
---   9. coop has NO automatic ending past required_words_count.
+--   9. coop has NO automatic ending past n_reqd_words.
 --  10. submit_timeout: ended, reason 'timeout', idempotent, the blobs
 --      rewritten, and game_data still carrying the words.
 --  11. stop_game: ended, reason 'stopped', the live tally, idempotent, the
@@ -286,7 +286,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (9) Coop has NO automatic ending — players keep going past required_words_count
+-- (9) Coop has NO automatic ending — players keep going past n_reqd_words
 -- ============================================================
 -- Bulk-insert the rest of the required set directly, drop one, and re-submit it
 -- via the RPC to exercise the aggregate recount at the count-complete boundary.
@@ -344,14 +344,14 @@ select is(
   (select (summary_data->'team'->>'foundWordsScore')::int > (summary_data->>'reqdWordsScore')::int
      from common.games where id = (select id from g)),
   true,
-  'coop: the team score can exceed required_words_score once bonus words are found'
+  'coop: the team score can exceed reqd_words_score once bonus words are found'
 );
 
 select is(
   (select (summary_data->'team'->>'rankIdx')::int
      from common.games where id = (select id from g)),
   6,
-  'coop: the team rank clamps at 6 (Genius) past required_words_score'
+  'coop: the team rank clamps at 6 (Genius) past reqd_words_score'
 );
 
 -- ============================================================

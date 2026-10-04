@@ -291,8 +291,8 @@ both.
   "board": {
     "outer_letters": "aeeginnr",
     "center_letter": "d",
-    "required_words_score": 401,
-    "required_words_count": 83,
+    "reqd_words_score": 401,
+    "n_reqd_words": 83,
     "required_words": [ { "word": "endearing", "points": 24, "is_pangram": true }, … ],
     "bonus_words":    [ { "word": "dene", "points": 1, "is_pangram": false }, … ]
   }

@@ -22,8 +22,8 @@
 export type Board = {
   outer_letters: string
   center_letter: string
-  required_words_score: number
-  required_words_count: number
+  reqd_words_score: number
+  n_reqd_words: number
   // The required set: words in the smaller list (the displayed goal).
   required_words: Array<{ word: string; points: number; is_pangram: boolean }>
   // The bonus set (legal − required): accepted + scored, not the goal. Same
@@ -34,7 +34,7 @@ export type Board = {
 export type PangramRow = {
   mask: string                // bigint comes through PostgREST as string
   // How many required words fit this 7-letter seed — the ≥30 gate.
-  required_words_count: number
+  n_reqd_words: number
   // Whether the seed's 7 letters include a rare one — {j, q, x, z}
   // (very rare), {k, v, w, y} (somewhat rare) or {b, f, h} (mildly
   // under-represented), per the pangram import. The diverse builder
@@ -157,8 +157,8 @@ export function buildBoard(
   const puzzleMask = letterMask(outerLetters + centerLetter)
   const required: Board['required_words'] = []
   const bonus: Board['bonus_words'] = []
-  let requiredWordsScore = 0
-  let requiredWordsCount = 0
+  let reqdWordsScore = 0
+  let nReqdWords = 0
 
   for (const row of candidateWords) {
     const wMask = BigInt(row.letter_mask)
@@ -169,8 +169,8 @@ export function buildBoard(
     const points = lengthScore(row.word) + (isPangram ? PANGRAM_BONUS : 0)
     if (row.is_required) {
       required.push({ word: row.word, points, is_pangram: isPangram })
-      requiredWordsScore += points
-      requiredWordsCount++
+      reqdWordsScore += points
+      nReqdWords++
     } else {
       bonus.push({ word: row.word, points, is_pangram: isPangram })
     }
@@ -179,8 +179,8 @@ export function buildBoard(
   return {
     outer_letters: outerLetters,
     center_letter: centerLetter,
-    required_words_score: requiredWordsScore,
-    required_words_count: requiredWordsCount,
+    reqd_words_score: reqdWordsScore,
+    n_reqd_words: nReqdWords,
     required_words: required,
     bonus_words: bonus,
   }

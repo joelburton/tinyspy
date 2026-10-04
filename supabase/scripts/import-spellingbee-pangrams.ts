@@ -13,7 +13,7 @@
  *     findable pangram — the whole point (no obscure-only pangrams
  *     like CALDRON).
  *   - **Count = required FLOOR (band 1).** For each seed we precompute
- *     `required_words_count` = how many REQUIRED words fit it (band 1,
+ *     `n_reqd_words` = how many REQUIRED words fit it (band 1,
  *     american, no slang, clean: slur 0 + crude 0), and keep only seeds with
  *     >= 30 so no board is thin. The in-play required band is a per-game
  *     setup choice (1..6); counting at the band-1 FLOOR keeps selection
@@ -123,7 +123,7 @@ function maskHasRareLetters(mask: bigint): boolean {
 
 type PangramRow = {
   mask: string
-  required_words_count: number
+  n_reqd_words: number
   has_rare_letters: boolean
 }
 
@@ -202,7 +202,7 @@ function main() {
     if (count >= MIN_REQUIRED_WORDS_COUNT) {
       pangramRows.push({
         mask: seedMask.toString(),
-        required_words_count: count,
+        n_reqd_words: count,
         has_rare_letters: maskHasRareLetters(seedMask),
       })
     }
@@ -216,8 +216,8 @@ function main() {
   copyLoad(
     DB_URL,
     'spellingbee.pangrams',
-    ['mask', 'required_words_count', 'has_rare_letters'],
-    pangramRows.map((r) => [r.mask, r.required_words_count, r.has_rare_letters]),
+    ['mask', 'n_reqd_words', 'has_rare_letters'],
+    pangramRows.map((r) => [r.mask, r.n_reqd_words, r.has_rare_letters]),
   )
 
   console.log('Done.')
