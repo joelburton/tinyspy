@@ -172,6 +172,296 @@ $$;
 
 revoke execute on function boggle._write_statuses(uuid, boolean) from public;
 
+-- ============================================================
+-- The page blobs — what the page shows, written by this game's builder
+-- ============================================================
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- boggle's own, each builder bearing its column's name. `game_data` is the
+-- common part (supabase/sql/common.sql → The page blobs' common parts) with
+-- boggle's facts on top; the pieces below build each part, so
+-- `select game_data from common.games` shows the page what it gets.
+--
+--   game_data, boggle's part:
+--     puzzle: {tiles, boardSideSize,              frozen at create_game: the board's tiles in
+--              minWordLength, words,              row order — a tile is {id, letters}, its id
+--              nReqdWords, reqdWordsScore,        its cell's index as text, its letters null
+--              nBonusWords, bonusWordsScore}      for a blank — every legal word scored
+--                                                 ({word, points, bonus}; a bonus word is
+--                                                 legal but not required), and each list's
+--                                                 count and score
+--     team: {the six counts}                      what the team shares, over every row; null
+--                                                 in compete (plans/team-facts.md)
+--     foundWords: [{userId, word, points,         every found word, in the order found, with
+--                   bonus, at}, …]                its finder; what a racer may see of a rival
+--                                                 mid-race is the page's rule
+--     players: [player, …]                        the common player, plus their own six counts
+--
+--   the six counts: nFoundWords and foundWordsScore over every find, and
+--   nFoundReqdWords, foundReqdWordsScore, nFoundBonusWords and
+--   foundBonusWordsScore split by list. A target counts the required points
+--   alone; the strip and a race with no target count them all.
+--
+--   summary_data, boggle's part (the common part names and dates the game and
+--   carries its ending; the winner is `ending.winner`):
+--     team                the same group; null in compete
+--     targetWinPercent    the share of the required points that wins; null for none
+--     topScore            compete's best score among those who did not concede;
+--                         null in coop, and until the game ends
+
+-- A stored word list, as the page draws it, in the same order: `{word,
+-- points}`, flagged with the list it came from — a bonus word is legal but not
+-- required.
+create or replace function boggle._make_json_words(p_words jsonb, p_bonus boolean)
+returns jsonb
+language sql
+immutable
+set search_path = boggle, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'word',   w.word ->> 'word',
+           'points', (w.word ->> 'points')::int,
+           'bonus',  p_bonus) order by w.ord), '[]'::jsonb)
+    from jsonb_array_elements(p_words) with ordinality as w(word, ord);
+$$;
+
+revoke execute on function boggle._make_json_words(jsonb, boolean) from public;
+
+-- The board's tiles in row order (plans/seat-view.md → A tile is an instance
+-- the builder writes): a tile is {id, letters}, its id its cell's index as
+-- text. The stored board packs a two-letter tile as one digit and a blank as
+-- `0` (src/boggle/lib/dice.ts); a tile carries its letters in the data's case,
+-- and a blank's are null.
+create or replace function boggle._make_json_tiles(g boggle.games)
+returns jsonb
+language sql
+immutable
+set search_path = boggle, common, public, extensions
+as $$
+  select jsonb_agg(jsonb_build_object(
+           'id',      (f.ord - 1)::text,
+           'letters', case f.face
+                        when '0' then null when '1' then 'qu' when '2' then 'in'
+                        when '3' then 'th' when '4' then 'er' when '5' then 'he'
+                        when '6' then 'an' else lower(f.face)
+                      end) order by f.ord)
+    from unnest(string_to_array(g.board, null)) with ordinality as f(face, ord);
+$$;
+
+revoke execute on function boggle._make_json_tiles(boggle.games) from public;
+
+-- The puzzle, as create_game froze it onto the game's row.
+create or replace function boggle._make_json_puzzle(g boggle.games)
+returns jsonb
+language sql
+immutable
+set search_path = boggle, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'tiles',           boggle._make_json_tiles(g),
+    'boardSideSize',   g.board_side_size,
+    'minWordLength',   g.min_word_length,
+    'words',           boggle._make_json_words(g.required_words, false)
+                       || boggle._make_json_words(g.bonus_words, true),
+    'nReqdWords',      g.required_words_count,
+    'reqdWordsScore',  g.required_words_score,
+    'nBonusWords',     jsonb_array_length(g.bonus_words),
+    'bonusWordsScore', (select coalesce(sum((b ->> 'points')::int), 0)
+                          from jsonb_array_elements(g.bonus_words) b));
+$$;
+
+revoke execute on function boggle._make_json_puzzle(boggle.games) from public;
+
+-- The six counts over one player's finds, or over everyone's when
+-- `p_user_id` is null: every find, then the required and bonus finds apart.
+create or replace function boggle._make_json_found_counts(p_game_id uuid, p_user_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = boggle, common, public, extensions
+as $$
+  select jsonb_build_object(
+           'nFoundWords',          count(fw.word),
+           'foundWordsScore',      coalesce(sum(fw.points), 0),
+           'nFoundReqdWords',      count(fw.word) filter (where not fw.is_bonus),
+           'foundReqdWordsScore',  coalesce(sum(fw.points) filter (where not fw.is_bonus), 0),
+           'nFoundBonusWords',     count(fw.word) filter (where fw.is_bonus),
+           'foundBonusWordsScore', coalesce(sum(fw.points) filter (where fw.is_bonus), 0))
+    from boggle.found_words fw
+   where fw.game_id = p_game_id
+     and (p_user_id is null or fw.user_id = p_user_id);
+$$;
+
+revoke execute on function boggle._make_json_found_counts(uuid, uuid) from public;
+
+-- What the team shares: the six counts over every row. Null in compete, where
+-- there is no team (plans/team-facts.md).
+create or replace function boggle._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = boggle, common, public, extensions
+as $$
+  select case when cg.mode = 'coop' then boggle._make_json_found_counts(p_game_id, null) end
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function boggle._make_json_team(uuid) from public;
+
+-- Every found word, in the order found, each with its finder. Every player's
+-- rows are here; what a racer may see of a rival mid-race is the page's rule.
+create or replace function boggle._make_json_found_words(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = boggle, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'userId', fw.user_id,
+           'word',   fw.word,
+           'points', fw.points,
+           'bonus',  fw.is_bonus,
+           'at',     fw.found_at) order by fw.found_at, fw.word), '[]'::jsonb)
+    from boggle.found_words fw
+   where fw.game_id = p_game_id;
+$$;
+
+revoke execute on function boggle._make_json_found_words(uuid) from public;
+
+-- Every player as boggle's game_data shows them: the common player, with the
+-- six counts over their own finds.
+create or replace function boggle._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = boggle, common, public, extensions
+as $$
+  select jsonb_agg(cp.player || boggle._make_json_found_counts(p_game_id, cp.id) order by cp.ord)
+    from common._make_json_players(p_game_id) cp;
+$$;
+
+revoke execute on function boggle._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with boggle's puzzle, team, log
+-- and players on top.
+create or replace function boggle._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = boggle, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'puzzle',     boggle._make_json_puzzle(g),
+           'team',       boggle._make_json_team(p_game_id),
+           'foundWords', boggle._make_json_found_words(p_game_id),
+           'players',    boggle._make_json_players(p_game_id))
+    from boggle.games g
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function boggle._make_json_game_data(uuid) from public;
+
+-- The game summed up: the numbers a list of games shows for this one. A
+-- conceder's banked score never counts toward the top score.
+create or replace function boggle._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = boggle, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+           'team',             boggle._make_json_team(p_game_id),
+           'targetWinPercent', g.target_win_percent,
+           'topScore',         case when cg.mode = 'compete' and cg.ended_at is not null then (
+                                 select coalesce(max(t.score), 0)
+                                   from (select fw.user_id, sum(fw.points) as score
+                                           from boggle.found_words fw
+                                          where fw.game_id = p_game_id
+                                          group by fw.user_id) t
+                                   join common.game_players gp
+                                     on gp.game_id = p_game_id and gp.user_id = t.user_id
+                                  where gp.player_ended_reason is distinct from 'conceded') end)
+    from boggle.games g
+    join common.games cg on cg.id = g.game_id
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function boggle._make_json_summary_data(uuid, timestamptz) from public;
+
+-- ============================================================
+-- boggle._rebuild_data_cols — one game's data columns, rebuilt
+-- ============================================================
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from boggle's own tables, assigning
+-- each whole. Every RPC calls it after a move, so the blobs carry what the
+-- move left; it is also the repair for one game by hand. Every key is always
+-- present, null when it has no value; the shapes are drawn above.
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function boggle._rebuild_data_cols(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = boggle, common, public, extensions
+as $$
+declare
+  v_status_changed_at timestamptz;
+begin
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
+
+  update common.games
+     set game_data = boggle._make_json_game_data(p_game_id),
+         summary_data = boggle._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function boggle._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- boggle._rebuild_data_cols_for_all — every boggle game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every boggle game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function boggle._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = boggle, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('boggle_coop', 'boggle_compete')
+  loop
+    perform boggle._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function boggle._rebuild_data_cols_for_all() from public;
+
 drop function if exists boggle.create_game(text, jsonb, uuid[], text, jsonb);
 
 -- ============================================================
@@ -355,6 +645,7 @@ begin
   );
 
   perform boggle._write_statuses(new_id, p_update_status_changed_at => true);
+  perform boggle._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. REQUIRED, not
   -- decorative: it is the only thing a call site can filter the `ok` on, and
@@ -578,6 +869,7 @@ begin
   end if;
 
   perform boggle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform boggle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(jsonb_build_object(
     'result', case when coalesce(p_is_bonus, false) then 'bonus' else 'accepted' end,
@@ -625,6 +917,7 @@ begin
   perform common._stop(p_game_id);
 
   perform boggle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform boggle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -681,6 +974,7 @@ begin
   perform common._reset_game(p_game_id);
 
   perform boggle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform boggle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -726,6 +1020,7 @@ begin
   perform common._concede(p_game_id);
 
   perform boggle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform boggle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -773,6 +1068,7 @@ begin
   perform boggle._finish(p_game_id, 'timeout', null);
 
   perform boggle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform boggle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
