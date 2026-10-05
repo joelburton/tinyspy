@@ -195,7 +195,7 @@ const CASES: Case[] = [
         write: async (m) => {
           const res = await asUser(m.session.access_token)
             .schema('wordiply')
-            .rpc('submit_guess', { target_game: game.id, word: 'bar' })
+            .rpc('submit_guess', { p_game_id: game.id, p_word: 'bar' })
           envelopeData(res, 'wordiply.submit_guess(bar)')
         },
       }

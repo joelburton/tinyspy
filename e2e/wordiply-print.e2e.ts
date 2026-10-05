@@ -30,7 +30,8 @@ test.describe('wordiply — print board', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${gametype}/${id}`)
-    await boardReady(page, page.getByText('AR', { exact: true }))
+    // The starter, in the data's case; CSS draws its capitals.
+    await boardReady(page, page.getByText('ar', { exact: true }))
 
     // One accepted guess and one reject, so the printed log has both row kinds.
     await page.keyboard.type('hangars')

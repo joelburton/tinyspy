@@ -30,7 +30,8 @@ test.describe('wordiply live updates', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
     // The base 'ar' is shown plainly at the top of the board.
-    await boardReady(page, page.getByText('AR', { exact: true }), 15000)
+    // The starter, in the data's case; CSS draws its capitals.
+    await boardReady(page, page.getByText('ar', { exact: true }), 15000)
     // Starts with no guesses spent.
     await expect(page.getByText(/0 \/ 5 guesses/)).toBeVisible()
 
