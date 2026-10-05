@@ -14,12 +14,16 @@ import styles from './PlayArea.module.css'
  * (`InfoCol`'s state block). The same name and shape as every game's state
  * line (docs/playarea.md → Info-column readouts).
  */
-export function StateLine({ data, isGameEnded }: { data: GStateLineData; isGameEnded: boolean }) {
+export function StateLine({ data, isGameEnded }: {
+  data: GStateLineData;
+  isGameEnded: boolean
+}) {
   if (!isGameEnded) {
     return (
       <div className={styles.guessCount}>
         <strong>{data.nGuessesUsed}</strong>
-        <span className={styles.guessCountOf}> / {data.maxGuesses} guesses</span>
+        <span
+          className={styles.guessCountOf}> / {data.maxGuesses} guesses</span>
       </div>
     )
   }
@@ -33,7 +37,8 @@ export function StateLine({ data, isGameEnded }: { data: GStateLineData; isGameE
         maxWordLen={data.maxWordLen}
       />
       <div className={styles.letterStat}>
-        <strong>{data.nLetters}</strong> letters across {data.nGuessesUsed} guess
+        <strong>{data.nLetters}</strong> letters
+        across {data.nGuessesUsed} guess
         {data.nGuessesUsed === 1 ? '' : 'es'}
       </div>
     </>

@@ -1,6 +1,12 @@
 // cs-unmet
 
-import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import {
+  useCallback,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useMark } from '@/common/board-marks/useMark'
@@ -60,12 +66,14 @@ export function useSubmitGuess({
   answerMark: GAnswerMark
 } {
   const base = gd.puzzle.base
-  const legalWords = useMemo(() => new Set(gd.puzzle.legalWords), [gd.puzzle.legalWords])
+  const legalWords = useMemo(() =>
+    new Set(gd.puzzle.legalWords), [gd.puzzle.legalWords])
 
   const [held, setHeld] = useState<GAnswerMark['held']>(null)
   // Always timed, for everyone: a mark that waits for your next move is a mark
   // still claiming something about a board you have moved on from.
-  const [flash, showFlash] = useMark<{ word: string; outcome: Outcome }>(WORD_ANSWER_MS)
+  const [flash, showFlash] = useMark<{ word: string; outcome: Outcome }>(
+    WORD_ANSWER_MS)
 
   const showAnswer = useCallback(
     (word: string, outcome: Outcome, isForeign = false) => {
@@ -75,7 +83,10 @@ export function useSubmitGuess({
       if (!isForeign) setHeld({ word, awaitingRow: outcome === 'won' })
       showFlash(
         { word, outcome },
-        { attention: isForeign, onEnd: outcome === 'won' ? undefined : () => setHeld(null) },
+        {
+          attention: isForeign,
+          onEnd: outcome === 'won' ? undefined : () => setHeld(null),
+        },
       )
     },
     [showFlash],
@@ -95,7 +106,12 @@ export function useSubmitGuess({
     // too, so a retry reads as "already found" here rather than round-tripping.
     foundWords: gd.events,
     lookup: (w): FoundWordsWord | null =>
-      legalWords.has(w) ? { word: w, points: w.length, bonus: false, pangram: false } : null,
+      legalWords.has(w) ? {
+        word: w,
+        points: w.length,
+        bonus: false,
+        pangram: false,
+      } : null,
     // One `ok` reaches this path. `rejected` is the other answer the RPC can
     // give, but only to `recordReject`: the page checks every rule before
     // sending, so a rules break claimed legal comes back as PN367, a fault.
@@ -118,7 +134,8 @@ export function useSubmitGuess({
     onAnswer: (report) => {
       const { outcome, text } = answerMessage(answerOf(report, base))
       showAnswer(report.word, outcome)
-      if (text !== '') localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
+      if (text !== '') localFeedbackSlot.show(FeedbackMessage.result(outcome,
+        text))
     },
     // Record the rejection: `p_fe_legal: false` reports a rejection the page
     // made, and the server says which rule applied. Fire-and-forget: the pill
@@ -126,7 +143,8 @@ export function useSubmitGuess({
     // the player sees.
     recordReject: (w) => {
       void runRpc<GuessResult>(
-        db.rpc('submit_guess', { p_game_id: gd.id, p_word: w, p_fe_legal: false }),
+        db.rpc('submit_guess',
+          { p_game_id: gd.id, p_word: w, p_fe_legal: false }),
       ).then((res) => {
         if (res.type === 'ok' && res.data.result === 'rejected') {
           // Expected: the row is logged. Nothing to show.
@@ -141,5 +159,11 @@ export function useSubmitGuess({
     },
   })
 
-  return { word, setWord, lastWord, submit, answerMark: { held, flash, show: showAnswer } }
+  return {
+    word,
+    setWord,
+    lastWord,
+    submit,
+    answerMark: { held, flash, show: showAnswer },
+  }
 }

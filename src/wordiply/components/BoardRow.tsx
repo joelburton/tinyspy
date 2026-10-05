@@ -2,7 +2,9 @@
 
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
-import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
+import {
+  OUTCOME_TO_VERDICT_CLASS,
+} from '@/common/game-page/outcomeToVerdictClass'
 import type { GAnswerMark } from '../types'
 import { DimmedBaseWord } from './DimmedBaseWord'
 import styles from './BoardRow.module.css'
@@ -27,7 +29,7 @@ export function BoardRow({
   answer: GAnswerMark['flash']
 }) {
   if (kind === 'empty') {
-    return <li className={cls(styles.row, styles.empty)} aria-hidden="true" />
+    return <li className={cls(styles.row, styles.empty)} aria-hidden="true"/>
   }
 
   return (
@@ -37,12 +39,15 @@ export function BoardRow({
         kind === 'landed' ? styles.done : styles.active,
         answer?.phase === 'attention' && shared.attentionFlash,
         answer?.phase === 'answer' && styles.answered,
-        answer?.phase === 'answer' && OUTCOME_TO_VERDICT_CLASS[answer.value.outcome],
+        answer?.phase === 'answer' &&
+        OUTCOME_TO_VERDICT_CLASS[answer.value.outcome],
         // Side to side means "not a winning move", so only a win is spared it.
-        answer?.phase === 'answer' && answer.value.outcome !== 'won' && shared.verdictShake,
+        answer?.phase === 'answer' &&
+        answer.value.outcome !== 'won' &&
+        shared.verdictShake,
       )}
     >
-      <DimmedBaseWord word={word} base={base} className={styles.rowWord} />
+      <DimmedBaseWord word={word} base={base} className={styles.rowWord}/>
       {/* The typing line shows its running length once something is typed. */}
       {word.length > 0 && (
         <span className={styles.badge} aria-label={`${word.length} letters`}>

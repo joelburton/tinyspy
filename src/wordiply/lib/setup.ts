@@ -33,7 +33,8 @@ export function cleanBase(raw: string): string {
 export function customBaseError(setup: GSetup): FormErrors {
   const base = cleanBase(setup.custom_base ?? '')
   if (!base) return {} // blank → a random starter
-  if (base.length < 2) return { custom_base: 'A starter needs at least 2 letters.' }
+  if (base.length <
+    2) return { custom_base: 'A starter needs at least 2 letters.' }
   return {}
 }
 

@@ -1,6 +1,9 @@
 // cs-unmet
 
-import type { EndOutcome, PlayerEndedReason } from '@/common/terminal/gameEnding'
+import type {
+  EndOutcome,
+  PlayerEndedReason,
+} from '@/common/terminal/gameEnding'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 
 /**
@@ -30,9 +33,15 @@ export function buildPlayerEndingMessage({
   function makePlayerEndingWords(): Pick<TerminalMessage, 'pillText' | 'infoColText'> {
     // Only compete reaches here: a coop player does not end on their own.
     if (reason === 'resource_exhausted') {
-      return { pillText: 'Out of guesses — waiting', infoColText: 'Waiting for others' }
+      return {
+        pillText: 'Out of guesses — waiting',
+        infoColText: 'Waiting for others',
+      }
     } else if (reason === 'conceded') {
-      return { pillText: 'Conceded — race continues', infoColText: 'You conceded' }
+      return {
+        pillText: 'Conceded — race continues',
+        infoColText: 'You conceded',
+      }
     }
 
     throw new Error(`BUG: wordiply has no words for a player who ended by ${reason}`)

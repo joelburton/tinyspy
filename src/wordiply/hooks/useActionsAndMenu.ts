@@ -4,8 +4,12 @@ import { useEffect } from 'react'
 import { useBindAction } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
+import {
+  useStandardGameActions,
+} from '@/common/game-page/useStandardGameActions'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { describeReveal } from '@/common/reveal/describeReveal'
@@ -61,7 +65,10 @@ export function useActionsAndMenu({
   // matter — the length score and the letter count — say how well you did
   // WITHOUT naming the word, so a table that wants to keep guessing at it can.
   // Local and reversible, so my looking doesn't end anyone else's think.
-  const { revealed: solutionShown, toggle: toggleSolution } = useSolutionReveal()
+  const {
+    revealed: solutionShown,
+    toggle: toggleSolution,
+  } = useSolutionReveal()
 
   // Reveal the best possible word — nothing is written and no peer is
   // affected. Inert until the game is over for everyone, so a racer who has
@@ -74,7 +81,11 @@ export function useActionsAndMenu({
       if (gd.me.stillPlaying && asker === 'button') return 'hidden'
       // "best solution" rather than the bare default: what this shows is the
       // best word that existed, which a winner never has to have found.
-      return describeReveal({ noun: 'best solution', revealed: solutionShown, isTerminal: gd.ended })
+      return describeReveal({
+        noun: 'best solution',
+        revealed: solutionShown,
+        isTerminal: gd.ended,
+      })
     },
     run: toggleSolution,
   })
@@ -114,7 +125,9 @@ export function useActionsAndMenu({
   const actNewGame = useBindAction('act-new-game', {
     terminal: gd.ended,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
-    describe: (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),
+    describe: (asker) => (asker === 'button' && !gd.ended
+      ? 'hidden'
+      : 'active'),
     run: createNewGame,
   })
 
@@ -149,22 +162,23 @@ export function useActionsAndMenu({
   // one an action made above, so a row's words, glyph, key and availability
   // come from the action rather than being typed a second time here.
   useEffect(function publishGameMenu() {
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
-        // Both exits, in reading order; each hides itself in the mode that
-        // isn't its own, so this list is the same in coop and compete.
-        exits: [actConcede, actStopGame],
-        extra: [
-          // The same three the ending's action row offers, in its order,
-          // reachable mid-game too — Reveal grayed until the game is over.
-          { items: [actReveal, actRestart, actNewGame] },
-          { items: [actPrintBoard] },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actReveal, actPrintBoard])
+      menu.setGameSections(
+        buildGameMenu({
+          menu,
+          // Both exits, in reading order; each hides itself in the mode that
+          // isn't its own, so this list is the same in coop and compete.
+          exits: [actConcede, actStopGame],
+          extra: [
+            // The same three the ending's action row offers, in its order,
+            // reachable mid-game too — Reveal grayed until the game is over.
+            { items: [actReveal, actRestart, actNewGame] },
+            { items: [actPrintBoard] },
+          ],
+        }),
+      )
+      return () => menu.setGameSections([])
+    },
+    [menu, actConcede, actStopGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   return {
     actions: {

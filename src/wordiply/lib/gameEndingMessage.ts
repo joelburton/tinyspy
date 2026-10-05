@@ -49,14 +49,21 @@ export function buildGameEndingMessage({
       // The team's scores, written with every coop ending.
       const { lengthScore, nLetters } = teamScores!
       if (gameEnding.reason === 'timeout') {
-        return { pillText: `Lost: out of time, ${lengthScore}%`, infoColText: `Length ${lengthScore}%` }
+        return {
+          pillText: `Lost: out of time, ${lengthScore}%`,
+          infoColText: `Length ${lengthScore}%`,
+        }
       }
       // The five words spent, or a Stop: the same report, in its own color.
-      return { pillText: `Ended: ${lengthScore}%, ${nLetters} letters`, infoColText: `Length ${lengthScore}%` }
+      return {
+        pillText: `Ended: ${lengthScore}%, ${nLetters} letters`,
+        infoColText: `Length ${lengthScore}%`,
+      }
     }
 
     // A Stop is the uniform neutral ending shared with the other games.
-    if (gameEnding.outcome === 'neutral') return buildGameEndedMessageNeutral(mode)
+    if (gameEnding.outcome === 'neutral') return buildGameEndedMessageNeutral(
+      mode)
 
     if (gameEnding.outcome === 'won') {
       // A won race has its winner (`ending.winner`, ranked first).
@@ -65,7 +72,11 @@ export function buildGameEndingMessage({
         return { pillText: `Won: ${lengthScore}%`, infoColText: 'You won!' }
       }
       // The pill names who beat me, the way every other message names someone.
-      return { pillText: `won at ${lengthScore}%`, infoColText: `${winner!.username} won`, actor: winner! }
+      return {
+        pillText: `won at ${lengthScore}%`,
+        infoColText: `${winner!.username} won`,
+        actor: winner!,
+      }
     }
 
     // Nobody scored, so nobody won: each names its cause, agreeing with the
@@ -73,12 +84,19 @@ export function buildGameEndingMessage({
     if (gameEnding.reason === 'conceded') {
       return { pillText: 'Lost: all conceded', infoColText: 'All conceded' }
     } else if (gameEnding.reason === 'timeout') {
-      return { pillText: 'Lost: out of time, nobody scored', infoColText: 'Out of time' }
+      return {
+        pillText: 'Lost: out of time, nobody scored',
+        infoColText: 'Out of time',
+      }
     } else if (gameEnding.reason === 'resource_exhausted') {
-      return { pillText: 'Lost: out of guesses, nobody scored', infoColText: 'Nobody scored' }
+      return {
+        pillText: 'Lost: out of guesses, nobody scored',
+        infoColText: 'Nobody scored',
+      }
     }
 
-    throw new Error(`BUG: wordiply has no words for a ${mode} game that ended by ${gameEnding.reason}`)
+    throw new Error(
+      `BUG: wordiply has no words for a ${mode} game that ended by ${gameEnding.reason}`)
   }
 
   return { ...makeGameEndingWords(), outcome: playerOutcome }

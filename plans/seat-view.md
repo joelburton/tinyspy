@@ -501,6 +501,17 @@ next open (todo.md → Someday).
   `_write_statuses`, `useBoard` and the phase and seat helpers went; the
   words and clues are stored lowercase (20261004000003); every RPC call sends
   `p_` names.
+- **wordiply — done 2026-10-04**, wordle's way: the board is on every player
+  (`board: {words}`, the team's accepted words in coop, a racer's own in
+  compete), the puzzle frozen at create, and a track's four numbers
+  (`nGuessesUsed`, and `lengthScore`, `nLetters`, `longestWordLen`, null until
+  the end) one helper's, `_make_json_track`, over a player or the team. The log
+  carries rejects (`valid`, `reason`, `tookTurn`), and a recorded reject is a
+  move that rebuilds the blobs. `len` is a permitted abbreviation; the two
+  length columns took it (20261004000004). The statuses, `games_state` and the
+  events mode arm went (plans/areas/wordiply.md → The convenience RLS);
+  `submit_guess` answers its result alone and sends `p_` names, which had been
+  broken since 2026-09-28. The unread frontend comparator went.
 - **boggle — done 2026-10-04**, the bee games' way without their shared
   folder: `boggle._make_json_found_counts` writes the six counts for the team
   and each player, and `_rebuild_data_cols` the puzzle (tiles `{id, letters}`,

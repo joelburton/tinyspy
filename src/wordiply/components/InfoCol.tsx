@@ -1,7 +1,10 @@
 // cs-unmet
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
+import {
+  InfoActionsRow,
+  type InfoActionsMessage,
+} from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -46,13 +49,19 @@ export function InfoCol({
   // Mid-race each player's guess count, or "out" once they have ended; once the
   // game has ended, how it went for them and their length score.
   function getGuessesOrScore(player: GPlayer) {
-    if (!gd.ended) return player.ending ? 'out' : `${player.nGuessesUsed}/${player.maxGuesses}`
-    const verb = player.outcome === 'won' ? 'Won' : player.conceded ? 'Conceded' : 'Lost'
+    if (!gd.ended) return player.ending
+      ? 'out'
+      : `${player.nGuessesUsed}/${player.maxGuesses}`
+    const verb = player.outcome === 'won' ? 'Won' : player.conceded
+      ? 'Conceded'
+      : 'Lost'
     return `${verb} · ${player.lengthScore}%`
   }
 
   // Once the race has ended, every rival's words are mine to see.
-  const rivals = gd.compete && gd.ended ? gd.players.filter((p) => p !== gd.me) : []
+  const rivals = gd.compete && gd.ended
+    ? gd.players.filter((p) => p !== gd.me)
+    : []
 
   return (
     <div className={shared.infoCol}>
@@ -60,7 +69,7 @@ export function InfoCol({
         {/* State — guesses only during play; score + letters once ended.
             Fixed min-height so the swap doesn't jump the rows below. */}
         <div className={styles.stateBlock}>
-          <StateLine data={gd.stateLineData} isGameEnded={gd.ended} />
+          <StateLine data={gd.stateLineData} isGameEnded={gd.ended}/>
         </div>
         {/* Whose-turn line — only for a turn-order game. An ADJACENT line:
             wordiply's state region is a bespoke stateBlock, so TurnStatusLine
@@ -87,11 +96,11 @@ export function InfoCol({
         {/* One row, one order, every action listed once, in the game menu's
             order (docs/playarea.md). Each action answers whether it shows. */}
         <InfoActionsRow message={actionRowMessage}>
-          <ActionButton action={actions.actReveal} show="icon" />
-          <ActionButton action={actions.actRestart} show="icon" />
-          <ActionButton action={actions.actNewGame} show="icon" />
-          <ActionButton action={actions.actConcede} show="icon" />
-          <ActionButton action={actions.actStopGame} show="icon" />
+          <ActionButton action={actions.actReveal} show="icon"/>
+          <ActionButton action={actions.actRestart} show="icon"/>
+          <ActionButton action={actions.actNewGame} show="icon"/>
+          <ActionButton action={actions.actConcede} show="icon"/>
+          <ActionButton action={actions.actStopGame} show="icon"/>
           <ActionButton
             action={actions.actBackToClub}
             show="icon"
@@ -100,7 +109,7 @@ export function InfoCol({
         </InfoActionsRow>
 
         {/* Setup — what was picked at create time. */}
-        <SetupDisclosure rows={gd.setupRows} />
+        <SetupDisclosure rows={gd.setupRows}/>
       </div>
 
       {/* The reveal — the longest possible word, shown only while this viewer
@@ -111,14 +120,15 @@ export function InfoCol({
       {solution !== null && (
         <div className={styles.reveal}>
           <span className={styles.revealLabel}>
-            Best possible word: <span className={styles.revealLen}>{gd.puzzle.maxWordLen}</span>
+            Best possible word: <span
+            className={styles.revealLen}>{gd.puzzle.maxWordLen}</span>
           </span>
-          <DefinableWord word={solution} className={styles.revealWord} />
+          <DefinableWord word={solution} className={styles.revealWord}/>
         </div>
       )}
 
       {/* Compete, once ended — each rival's words, withheld all race. */}
-      <OpponentReveal base={gd.puzzle.base} rivals={rivals} />
+      <OpponentReveal base={gd.puzzle.base} rivals={rivals}/>
 
       {/* Event log — LAST, per the canonical info-column order (docs/playarea.md).
           Shows rejects as well as accepted guesses: in coop it's the only way to

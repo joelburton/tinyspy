@@ -54,13 +54,9 @@ not a sum:
    same instant, so this always resolves: there are no co-winners.
 
 Only a player who didn't concede and scored is ranked; a race nobody scored
-in ranks nobody. The comparator is **authoritative in the RPC**
-(`wordiply._finish_compete`). `src/wordiply/lib/scoring.ts`
-carries a parallel `compareCompetitors` — a **parity reference** pinned to the
-server order by its Vitest, not wired to any live display (the FE reads the
-server-resolved ranking). It exists so a future
-client-side ordering has a ready, tested match; if that never lands, it stays as
-executable documentation of the tiebreak order.
+in ranks nobody. The comparator lives in the RPC alone
+(`wordiply._finish_compete`), and `winner_test` pins it; the page reads the
+ranking it wrote.
 
 ---
 
@@ -76,7 +72,7 @@ makes the build simpler or the FE UX better. Here it does both:
 
 - The edge fn ships the board's **legal matching-word list** (all clean
   dictionary words containing the base, in the legal band) alongside
-  `max_word_length` + `longest_words`. The FE validates a guess locally
+  `max_word_len` + `longest_words`. The FE validates a guess locally
   (contains the base? in the legal set? longer than the base?) and knows its
   length instantly — no per-guess round-trip.
 - The submit engine collapses into a **reuse of the shared
@@ -88,27 +84,26 @@ makes the build simpler or the FE UX better. Here it does both:
   base turns out pathological.
 
 **Shipping the data is not the same as showing it.** Scores and the longest word
-are a spoiler for the player's *own* experience, so the FE simply **doesn't
-render them until terminal** (next subsection). That's a pure display choice,
-not a security boundary — devtools would reveal it, and per the trust model
-that's fine.
+are a spoiler for the player's *own* experience. The scores are written to the
+page blobs only once the game has ended (null before), and the longest word,
+though `game_data`'s puzzle carries it from create, is drawn only at the end and
+only when asked for (next subsection). That's a display choice, not a security
+boundary — devtools would reveal it, and per the trust model that's fine.
 
 What every player sees from the start is the **base** — and nothing else about
-the answer. `max_word_length` is NOT shown at kickoff: every one of its render
-sites is terminal-gated (`InfoCol`'s `<LengthScoreBar>` and reveal, `PlayArea`'s
-`buildOver`, and the PDF's `reveal`), and mid-game the state block shows only `n
-/ 5 guesses`. Everything is club-member-readable and nothing is column-hidden —
-the secrecy here is a **display** choice, not a schema gate, which is the same
-point the subsection above makes about shipping `legal_words`.
+the answer. `puzzle.maxWordLen` is NOT shown at kickoff: its readers draw it
+only once the game has ended (`StateLine`'s `<LengthScoreBar>`, the reveal, the
+PDF's `reveal`), and mid-game the state line shows only `n / 5 guesses`.
+Everything is club-member-readable and nothing is column-hidden.
 
-### Live readout = word length only; scores revealed at terminal
+### Live readout = word length only; scores revealed at the end
 
 After each guess the player sees **only the length of that word** (a small badge
-on the guess row). The two aggregate readouts — **length score %** and **letter
+on the guess line). The two aggregate readouts — **length score %** and **letter
 count** — are shown **only at the end**. Mid-game the felt state is "I found a
-7-letter word"; the payoff ("that's 78% of the best") lands at terminal.
+7-letter word"; the payoff ("that's 78% of the best") lands when the game ends.
 
-The **longest possible word** goes one step further: even at terminal it waits
+The **longest possible word** goes one step further: even at the end it waits
 for the **Reveal best solution** button (`act-reveal`, one action carrying
 both faces — the action row and the menu twin place the SAME one — see [ui.md →
 Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). The
@@ -118,8 +113,8 @@ mine alone, and the same button takes it back — so one impatient player can't
 end everyone else's think.
 
 Compete mirrors this: mid-game an opponent surfaces only **guesses used
-(`n/5`)** — never a length score, never their words. The length-score reveal is
-terminal-only for everyone.
+(`n/5`)** — never a length score, never their words. The length scores arrive
+for everyone when the game ends.
 
 ### Substring containment, contiguous
 
@@ -149,75 +144,86 @@ It has a **`useHistoryViewer`** too, and what makes it worth having here is the
 rejects. Replaying an *accepted* word shows you the board you are already
 looking at — five rows, all visible at once, nothing hidden. But a reject is on
 no board at all, and opening its `#N` is the only way to see the table as it
-stood when that word was tried. So the builder
-([`lib/history.ts`](../../src/wordiply/lib/history.ts)) folds the rows
-**including** the rejects to find the one addressed, and fills a slot only per
-accepted word.
+stood when that word was tried. So the replay
+([`lib/history.ts`](../../src/wordiply/lib/history.ts) → `replayTurn`) finds
+the addressed row among **all** of them, rejects included, and fills a line
+only per accepted word. In compete it replays the author's own board.
 
 ---
 
 ## 3. Schema (`wordiply` schema)
 
-The migration is `supabase/migrations/20260713000000_wordiply.sql` (modeled on
-`20260712000000_wordwheel.sql`: schema + grants → tables → RLS → view →
-publication → RPCs).
+The shape is `supabase/migrations/20260713000000_wordiply.sql`, with
+`20260917000007_wordiply_events.sql` (the log) and
+`20261004000004_wordiply_len_columns.sql` (the two `len` columns); the behavior
+is `supabase/sql/wordiply.sql`.
 
 ### `wordiply.games`
 
 | column | type | notes |
 |---|---|---|
 | `game_id` | uuid PK → `common.games(id)` on delete cascade | |
-| `base` | text not null, check `^[a-z]{2,4}$` | **public** — the 2–4 letter fragment (NOT a word) |
-| `max_word_length` | int not null | **public** — the length-score denominator / bar target |
-| `longest_words` | jsonb not null | the actual longest matching word(s), capped (top 3); **public** but the FE only *renders* it at terminal |
-| `legal_words` | jsonb not null | the full clean legal matching-word list shipped to the FE for local validation (trusting-commit); club-member-readable |
+| `base` | text not null, check `^[a-z]{2,4}$` | the 2–4 letter fragment (NOT a word) |
+| `max_word_len` | int not null | the length-score denominator / bar target |
+| `longest_words` | jsonb not null | the actual longest matching word(s), capped (top 3) |
+| `legal_words` | jsonb not null | the full clean legal matching-word list, for the page to judge a word itself (trusting-commit) |
 
 The mode, the club and the start time are `common.games`'; the dictionary band
 only chose the words, and stays in `setup.difficulty`.
 
 **No hidden columns.** Because we don't care about cheating (trust model),
-nothing needs the column-grant + terminal-reveal machinery waffle / wordle /
-crosswords use. The `security_invoker` `games_state` view exposes every column
-— `max_word_length`, `longest_words`, `legal_words` — to club members from the
-start. The "longest word only at the end" rule is enforced in the **FE
-render**, not the schema (see §2); the scores are kept out of the statuses
-until the end.
+nothing needs the column-grant machinery waffle / wordle / crosswords use:
+every column is granted to club members. The "longest word only at the end"
+rule is the page's (see §2); the scores are null in the blobs until the end.
 
-### `wordiply.events` (the wordwheel `found_words` analog)
+### `wordiply.events` — the event log
 
 | column | type | notes |
 |---|---|---|
-| `id` | bigint generated always as identity PK | |
-| `game_id` | uuid → `wordiply.games(id)` on delete cascade | |
-| `user_id` | uuid | who guessed |
-| `word` | text not null | the full guessed word (lowercase) |
-| `length` | int not null | `char_length(word)` — stored so max/sum are trivial |
+| `id` | bigint generated always as identity PK | the order of play |
+| `game_id` | uuid → `wordiply.games(game_id)` on delete cascade | |
+| `user_id` | uuid | who submitted it |
+| `word` | text not null | the word, lowercase |
+| `len` | int not null | `char_length(word)` — stored so max/sum are trivial |
+| `valid` | boolean not null | it counted: it spent a guess and fills a board line |
+| `reason` | text | why it was refused — `missing_base` / `too_short` / `not_a_word`; null iff valid (a check pins the pair) |
 | `kind` | text not null, check `in ('guess')` | one value: every row is a submission |
 | `took_turn` | boolean not null | whether the submission cost the player their go — true on an accepted word and on a rules break (`too_short` / `missing_base`), false on a dictionary miss |
-| `created_at` | timestamptz default now() | doubles as the per-player finish time (5th row) |
+| `created_at` | timestamptz default now() | the last word's time breaks a compete tie |
 
 - Backstop unique `(game_id, user_id, word)`; **mode-aware dedup** is enforced
   in `submit_guess` (coop dedups across the whole team, compete per-user) — a
   partial index can't express the mode branch, so the RPC owns it (same as
   wordwheel).
 
-### RLS + realtime
+### RLS
 
-- `games_select` — club members, joined through `common.games`.
-- `events_select` — **mode + ending aware**: coop → all members see all rows;
-  compete → a player sees only their own rows **mid-game**, everyone's once
-  `common.games.ended_at` is set (the reveal).
-- **⚠ Realtime publication invariant (load-bearing — see the memory +
-  CLAUDE.md).** BOTH tables must be in `supabase_realtime`:
-  ```sql
-  alter publication supabase_realtime add table wordiply.games;
-  alter publication supabase_realtime add table wordiply.events;
-  ```
-  `useGame` subscribes to `events` (live guesses) **and** `games`; if either
-  is missing the updated Realtime image drops
-  the **whole** subscription and live updates silently die. Both memberships are
-  pinned by the central `supabase/tests/common/realtime_publication_test.sql`
-  (which `schema_test.sql` defers to).
+Both tables need only the membership gate (`games_select`, `events_select`).
+Who may see a rival's words mid-race is the page's rule — `makeGameData`'s
+seat rule over `game_data` — and nothing reads the tables from the client.
+Both stay in `supabase_realtime`, pinned centrally by
+`supabase/tests/common/realtime_publication_test.sql`.
+
+### The page blobs
+
+`wordiply._rebuild_data_cols` writes them at create, at Restart and at the end
+of every move — a recorded reject included, since it is in everyone's log —
+each assigned whole ([plans/seat-view.md](../../plans/seat-view.md) → The page
+is written, not assembled): `shell_data` through `common._make_json_shell_data`,
+and on top of the common part of every `game_data` this game's own. A track's
+four numbers — `nGuessesUsed`, and `lengthScore`, `nLetters`,
+`longestWordLen`, which are null until the game ends — are one helper's,
+`wordiply._make_json_track`, over one player's accepted words or the whole
+team's:
+
+| blob | wordiply's part |
+|---|---|
+| `game_data` | `puzzle: {base, maxWordLen, longestWords, legalWords}`, frozen at create; `team`, the team's track, null in compete; `events`, every submission `{id, userId, word, valid, reason, tookTurn, at}`, rejects included, in the order of play; on each player `maxGuesses` (5), their own track, and `board: {words}` — what this seat sees: the team's accepted words in coop, their own in compete |
+| `summary_data` | `team: {nGuessesUsed, lengthScore, nLetters}`, null in compete; `maxGuesses`; `winnerLengthScore`, compete's once the race is won, null in coop |
+
+**The client reads nothing from these tables.** The page is handed the blobs
+off `common.games` and re-reads them as the shell delivers each rewrite. The
+statuses (`game_status`, `player_status`, `clubpage_info`) are not written.
 
 ---
 
@@ -234,15 +240,15 @@ validated-guess RPC.
     optional **`setup.custom_base`** — its shape, plus the cross-check that
     `board.base` matches it ([§5b](#5b-a-player-chosen-base-setupcustom_base)).
     It is stripped from the club's saved default.
-  - Validates `board`: `base` 2–4 lowercase letters; `max_word_length ≥
+  - Validates `board`: `base` 2–4 lowercase letters; `max_word_len ≥
     base_len + 2` (headroom gate); `longest_words` **and** `legal_words`
     non-empty. Board content is taken at face value (the edge fn computed it
     under the caller's JWT), structure is sanity-checked here.
   - Inserts `common.games` (gametype `'wordiply_' || mode`) + `wordiply.games`;
-    writes the statuses (below). **Title = just the uppercased `<BASE>`**
+    writes the page blobs (§3). **Title = just the uppercased `<BASE>`**
     (e.g. `"AR"`) — deliberately NOT `"<BASE> · best <N>"`: the club-page title
     shows before/during play, and the longest-word length is secret until
-    terminal, so it must not leak there.
+    the end, so it must not leak there.
 
 - **`wordiply.submit_guess(p_game_id uuid, p_word text, p_fe_legal boolean
   default true) → jsonb`** — **trusting-commit** (the FE already validated
@@ -258,9 +264,8 @@ validated-guess RPC.
      ends `resource_exhausted` / `complete`, a win with the team ranked 1; a
      compete fifth word ends that racer (`resource_exhausted` / `complete`), and
      the race once nobody is left racing, **ranked by the formula**, the reason
-     the last racer's act. Then the statuses. Answers `{result: 'accepted',
-     length, guesses_used, terminal}` — `length` (the one live readout);
-     `length_score` / `letter_count` are added once the game has ended.
+     the last racer's act. Then the page blobs, and `{result: 'accepted'}` —
+     what the word did, the page reads from the blobs.
   - Because the FE validates locally, an *invalid* guess never reaches the
     server (it never consumes a line) — same retry-Wordiply-style behavior, now
     for free.
@@ -271,8 +276,8 @@ validated-guess RPC.
 
   | | | |
   |---|---|---|
-  | `{ result: 'accepted', length, … }` | `ok` | the guess landed and spent a line |
-  | `{ result: 'rejected', … }` | `ok` | a guard refused it, a `guesses` row was written, and a line may have been spent. A verdict on a move that happened |
+  | `{ result: 'accepted' }` | `ok` | the guess landed and spent a line |
+  | `{ result: 'rejected', reason }` | `ok` | a guard refused it, an `events` row was written, and the go may have been spent. A verdict on a move that happened |
   | `PN365` `<WORD> — already found` | `race` | records NOTHING, so it refuses. `useFoundWordSubmit` dedups locally first, so reaching this means that list was stale |
   | `PN486` "Game over" · `PN483` "Already conceded" · `PN366` "No guesses left" | `race` | the frontend's own gates losing to the subscription that feeds them |
   | `PN485` "That game was already deleted" | `race` | a friend deleted the game mid-call — the shared race (`common._raise_game_deleted`), asked before the membership gate |
@@ -298,9 +303,9 @@ validated-guess RPC.
     random 2–4 letter substrings of common source words (so a base always has
     children, and reads naturally).
   - **`wordiply.try_base(p_base, p_legal_band, p_min_children, p_max_children,
-    p_min_headroom) → table(max_word_length, longest_words, legal_words)`** —
+    p_min_headroom) → table(max_word_len, longest_words, legal_words)`** —
     returns the board bits IFF the base clears the gate (child count in
-    `[min,max]`, `max_word_length ≥ base_len + headroom`); ZERO rows otherwise
+    `[min,max]`, `max_word_len ≥ base_len + headroom`); ZERO rows otherwise
     (so a rejected base transfers nothing). The **max-children bound** is what
     throws out over-generous fragments (`in`/`an`/`ar` have tens of thousands of
     children).
@@ -319,31 +324,19 @@ validated-guess RPC.
   **`wordiply.replay_board(p_game_id)`** — same base word, wipe guesses,
   `common._reset_game`.
 
-### The statuses
+### The club card
 
-`wordiply._write_statuses` writes them at create, Restart, every accepted word
-and every ending. The two scores stay null until the game has ended.
-
-- `game_status` — `{}`: the base and the longest length are columns.
-- `player_status` — `guesses_used`, `length_score`, `letter_count`,
-  `player_ended_reason`: that player's track (the team's, on every coop row).
-- `clubpage_info` — `guesses_used`, `length_score`, `letter_count` (coop's;
-  null in compete), `winner_user_id`, `winner_length_score` (compete's).
-
-`summaryFor` (manifest) reads this for the club-page row, in the shared
-status-label vocabulary
-([docs/game-summary.md](../game-summary.md)). Mid-game, coop shows
-the shared budget — `Playing · 3/5 guesses` — while compete shows a bare
-`Playing`. (Each player's guess count is in `status.leaderboard` and on every
-player's opponent strip; the label just doesn't name one.)
-Terminal, coop (which has no win): `Ended (out of guesses) · 78% · 22 letters`
-when the five guesses were spent, `Ended · 78% · 22 letters` for a manual stop,
-and the one coop loss `Lost (out of time) · 78% · 22 letters`. Terminal,
-compete: `Won by alice · 78%` / `Won (co-winners) · 78%` (ties leave
-`winner_user_id` null, so the label counts the `won` flags); `Lost (all
-conceded)` when the race emptied out; `Lost (out of time) · nobody scored` when
-the clock ran out with no score to crown; and `Ended · no winner` for a manual
-compete stop.
+`summaryFor` (manifest) reads `summary_data` for the club-page row, in the
+shared status-label vocabulary ([docs/game-summary.md](../game-summary.md)).
+Mid-game, coop shows the shared budget — `Playing · 3/5 guesses` — while compete
+shows a bare `Playing` (each racer's count is on the opponent strip; the label
+names none). Ended, coop: `Ended (out of guesses) · 78% · 22 letters` when the
+five guesses were spent — a win, but coop's words never say "Won" —
+`Ended · 78% · 22 letters` for a Stop, and the one coop loss
+`Lost (out of time) · 78% · 22 letters`. Ended, compete: `Won by alice · 78%`;
+`Lost (all conceded)` when the race emptied out; `Lost (out of time) · nobody
+scored` or `Lost (out of guesses) · nobody scored` when nobody scored; and
+`Ended · no winner` for a Stop.
 
 ---
 
@@ -361,11 +354,11 @@ try-until-one-passes → `create_game` → `{id}`). Constants: `SOURCE_BAND=3`,
    of common source words, so they read naturally and always have children).
 4. For each candidate (skip a repeat of the previous base): `try_base(base,
    difficulty, CHILD_MIN, CHILD_MAX, MIN_HEADROOM)`. The **first non-empty
-   result wins** — try_base already returns the whole board (`max_word_length` +
+   result wins** — try_base already returns the whole board (`max_word_len` +
    `longest_words` + `legal_words`), so no extra query. The **`CHILD_MAX` bound
    is load-bearing**: it rejects over-generous fragments so the board is a real
    puzzle with a sane payload; word LENGTH is not capped.
-5. `board = { base, max_word_length, longest_words, legal_words }`; call
+5. `board = { base, max_word_len, longest_words, legal_words }`; call
    `wordiply.create_game(...)`; return `{ id }`. (No board found in `ATTEMPTS`
    tries → 500.)
 
@@ -447,7 +440,7 @@ stop *random* boards repeating.
 ### Not built, on purpose
 
 - **No live validity preview in the dialog.** It would have to show
-  `max_word_length`, which is exactly the number the game hides until terminal.
+  `max_word_len`, which is exactly the number the game hides until the end.
 - **No compete-fairness mechanic.** Whoever picks the base may have a word in
   mind; that is what a challenge *is*, and the friends-on-a-Zoom-call framing
   settles it.
@@ -462,9 +455,9 @@ stop *random* boards repeating.
 | | coop | compete |
 |---|---|---|
 | guesses | **5 shared** (the whole team fills the five lines together) | **5 per player** (each has their own five-line board) |
-| visibility | everyone sees every guess live (each row shows its length); **scores + longest word revealed at terminal** | opponents' **guesses + scores hidden** mid-game (an opponent shows only **guesses used `n/5`**); full reveal at terminal |
+| visibility | everyone sees every guess live (each line shows its length); **scores + longest word revealed at the end** | opponents' **guesses + scores hidden** mid-game (an opponent shows only **guesses used `n/5`**); full reveal at the end |
 | ends | after the team's 5th guess (a win) / timeout (a loss) / Stop | once every player has spent 5 or conceded / timeout / Stop |
-| terminal verdict | "Ended: **N%**, M letters" — outcome `neutral` (coop has no win, you just did as well as you did; the info column fills in the LengthScoreBar + longest word). The clock is the exception: "Lost: out of time, **N%**" | "Won: N%" (co-winners "Won: tied at N%"); a loser sees who won, with their identity dot — "● moth won at 78%" |
+| verdict | "Ended: **N%**, M letters" — the five words spent is a win, drawn green, but coop's words never say "Won": the team did as well as it did. A Stop reads the same, neutral; the clock is the one loss, "Lost: out of time, **N%**". No confetti | "Won: N%", with confetti; a loser sees who won, with their identity dot — "● moth won at 78%". A racer out while the others race on sees "Out of guesses — waiting" or "Conceded — race continues" |
 | players | `[1, 6]` (solo allowed) | `[2, 6]` |
 
 **Why coop = 5 _shared_ (not 5 each):** the FE board is a single five-row
@@ -487,115 +480,89 @@ answers are named in the server's vocabulary, which a rejected row carries in
 `reason`. The shared `useFoundWordSubmit` reports what it decided to `onAnswer`,
 and `answerOf` splits its one "not legal" into `missing_base` / `not_a_word`;
 the pill and the board's answer mark read that one call, the peer line reads
-`peerAnswerMessage`, and the log bar reads `eventToOutcome(row)` — the log
-writes its own words. No RPC carries an outcome or a message here: the frontend
+`peerAnswerMessage`, and the log bar reads `eventToOutcome(row)` — the log and
+the printout write their own words, `getRejectLabel`'s. No RPC carries an
+outcome or a message here: the frontend
 decides, once. A word the list does not know is a `warning` rather than a loss,
 because this game is asking you to try strange words. See [outcomes.md → One
 event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
-Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema,
-one folder (the sibling-manifest pattern — psychicnum is canonical; wordwheel
-follows it line-for-line).
+### The play surface
 
-- **`manifest.ts`** — `wordiplyCoopGame` / `wordiplyCompeteGame`, a single
-  `BRAND` const, shared lazy loaders (Help / PlayArea / SetupForm),
-  `startGameInClub` → `runEdgeFn('wordiply-build-board', …)`, `submitTimeout` /
-  `stopGame` via `makeRpcDispatcher`, per-mode `summaryFor`. Register both in the
-  games registry + add to the CLAUDE.md doc map.
-- **`db.ts`** — typed client on schema `wordiply`.
-- **`lib/setup.ts`** — `WordiplySetup = CoopTurnSetup & { timer, difficulty,
-  custom_base? }`: the intersected `CoopTurnSetup` carries the opt-in
-  turn-by-turn fields (`coop_style`, `first_turn_user_id`) documented in §4's
-  turn-order note. No `target_rank`, no base band. `wordiplySetupError` = the
-  difficulty band (1..6) **and** `customBaseError` (the 2–4 letter shape gate —
-  §5b). `cleanBase` normalizes a typed starter and is shared with the form so
-  the two can't drift. Both manifests default `difficulty 5`; the coop default
-  seeds `coop_style: 'free-for-all'`; **neither seeds `custom_base`** — blank
-  means random.
-- **`lib/scoring.ts`** — `lengthScore(longest, maxLen)`, `letterCount(lengths)`,
-  `compareCompetitors(a, b, timed)` (the comparator, **documented as "must match
-  `_finish_compete`"**).
-- **`components/SetupForm.tsx`** — one `<DictBandField>` ("Dictionary") + a
-  **"Starter (optional)"** `<SetupSection>` (the player-chosen base — §5b; its
-  summary carries the value, e.g. `Starter: MOTH`) + `<SetupTimerSection>` + the
-  shared `<SetupCoopStyleSection>` (the coop free-for-all vs turn-by-turn
-  picker, which also seeds `first_turn_user_id`). No rank picker, no base band.
-  The field is labeled **Starter**, not "base": the schema says `base` but every
-  player-facing string in this game says starter.
-- **`hooks/useGame.ts`** — subscribe to `wordiply.events` (+ `wordiply.games`
-  for the replay/terminal touch), fetch `games_state` + guesses; derive
-  per-track length score + letter count (or read `status.leaderboard`).
-- **Submit engine — reuse `useFoundWordSubmit`.** Because the legal list ships
-  to the FE, submit is the same **sync-lookup + optimistic + trusting-commit**
-  engine wordwheel uses — the lookup is membership in the shipped `legalWords`
-  Set (points = the word's **length**, so the hook's per-word value IS the
-  length), `send` calls the `submit_guess` RPC (and surfaces a server
-  `{ok:false}` as a release). `minWordLength = base.length + 1`; `answerOf`
-  distinguishes "must contain BASE" from "not a word". A rejected guess is
-  decided on the FE and then recorded through `recordReject` (§7b). **An
-  accepted word shows no result** (its answer has no words — the row already
-  shows the word + its length); only rejections show, as `result` messages in
-  the local slot.
-- **`components/PlayArea.tsx`** — shared; reads `game.mode`; wires `BoardCol` +
-  `InfoCol`, the submit hook, the terminal message (`buildOver`), the local
-  feedback slot's three standing conditions (the verdict, out of the race, whose
-  turn), and the coop peer-guess `useShowPeerFeedback`.
-- **`components/BoardCol.tsx` + the guess board**:
-  - **On-screen keyboard, no text box.** wordiply plays on **touch alone** —
-    input is the shared **`shared/onscreen-keyboard/GuessKeyboard`** (the
-    Wordle-style QWERTY + Enter/Backspace, extracted so wordle + wordiply share
-    one; wordle tints its keys from the shared `--wordle-*` palette, wordiply
-    uses neutral keys). A physical keyboard still works via `useCaptureKeys`
-    feeding the same `word` state — and the Enter and ⌫ CAPS are the two
-    actions that hook hands back, so a cap and its key can't disagree about
-    whether the move is available — and both go gray on an EMPTY entry, so Enter
-    there does nothing rather than asking for letters. `↑` recalls the last word
-    and `↓` clears the entry (`useArrowHistory`, the same two actions the
-    WordEntryInput games bind). The keyboard sits **below** the grid and
-    **doubles as the feedback area**: the local slot's top message above the
-    keys (a rejection, "you're out", whose turn it is, and at terminal the
-    verdict — [ui.md → Feedback pill](../ui.md#feedback-pill)). The keyboard
-    itself stays at terminal, wearing the disabled look it wears when it is not
-    your turn.
-  - **`<GuessBoard>`** — exactly **5 fixed-height rows** (a HARD
-    layout-stability rule; compact vertical rhythm so the keyboard fits on
-    mobile). Completed rows render the guess via `<DimmedBaseWord>` + a small
-    **length badge** (teal-on-white — the one live readout); the **active** row
-    shows the word **live as it's typed** (`<DimmedBaseWord word={typed}/>` + a
-    running length badge); remaining rows are empty placeholders with a
-    medium-dark dashed outline.
-  - **`<DimmedBaseWord base word>`** — splits `word` at the **first** occurrence
-    of `base`; renders `prefix + <span dim>base</span> + suffix`. No occurrence
-    yet (still typing) → nothing dimmed. Used by both completed rows and the
-    live active row — one component.
-  - The **base** is shown plainly above the grid (no "Starter" label).
-- **`components/InfoCol.tsx`** — canonical order (docs/playarea.md): **state** —
-  mid-game just **"guesses n/5"** (scores are terminal-only, §2); at terminal
-  the same slot fills in the **`<LengthScoreBar>`** (percent fill to
-  `max_word_length`, "best 7 / possible 9") + the **letter-count** stat. Then
-  **`<OpponentStrip>`** (compete; mid-game `metricLabel="Guesses"`, value = each
-  opponent's `n/5`; at terminal switch to length score %), then the **action
-  row** — ICON-ONLY: playing = both exits, each hiding itself in the mode that
-  isn't its own, + back-to-club; terminal = the outcome line + Restart / Reveal
-  / New game / primary Club — every one an `<ActionButton>` over an action;
-  a conceded compete player (the others race on) gets the `InfoActionsRow` "You
-  conceded" line + the below-board out-of-race message — then the
-  **`<SetupDisclosure>`** (difficulty band, timer), then the **asked-for
-  reveal** ("Best possible word: **HANGARS** (7)" — full-color, no card; it
-  grows the column when opened and gives the space back when closed, a blessed
-  exception to [ui.md → Layout stability](../ui.md#layout-stability)) and, in
-  compete, the **`<OpponentReveal>`** (`components/OpponentReveal.tsx`): each
-  opponent's actual guessed words, rendered **only at terminal** — all game long
-  a compete player sees opponents' guess *counts* only (the words are RLS-hidden
-  and never ship); when the RLS opens the rows at terminal, this is where the
-  words land. Self is excluded (my own words are already the board), coop never
-  renders it (one shared live board), and each row mirrors the board's look —
-  `<DimmedBaseWord>` + the plain teal length — so an opponent's row reads the
-  same as one of mine. There is **no `<WordList>`** (the board rows are the
-  words). **The info column is a FIXED width** (`--info-col-width` on `.layout`)
-  so it never shifts as the state readout changes.
-- **`components/Help.tsx`** — rules modal (shared by both manifests).
-- **`theme.css`** — wordiply palette (ships with the chunk).
+The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
+([plans/seat-view.md](../../plans/seat-view.md)):
+
+```
+<PlayAreaLoader {...PlayAreaLoaderProps}>   useGame: gd from the game_data blob
+  └── PlayArea                      the coordinator: draws no board, no control
+        ├── BoardCol                the starter, the board, the keyboard; owns the move
+        │     ├── Board             maxGuesses fixed-height lines; decides each one
+        │     │     └── BoardRow    one line — the word (base dimmed) and its length
+        │     ├── HistoryBanner ←   over the input area while a past row is open
+        │     ├── FeedbackPill ←    the local slot, above the keys
+        │     └── GuessKeyboard ←   the on-screen keys, below the board
+        ├── InfoSheet ←             off-canvas on a phone, a flex child on desktop
+        │     └── InfoCol           the readouts and the action row
+        │           ├── StateLine   guesses n/5; once ended, the score bar + letters
+        │           ├── TurnStatusLine ←   turn-by-turn coop only
+        │           ├── OpponentStrip ←    compete only: each racer's count, or "out"; once ended, their score
+        │           ├── InfoActionsRow ←   one row, every action, in the menu's order
+        │           ├── SetupDisclosure ←
+        │           ├── the best word, while revealed
+        │           ├── OpponentReveal     compete, once ended: each rival's words
+        │           └── GameEventLog       every submission, rejects included
+        └── CelebrationBlockingModal ←     my race win, as it lands; never in coop
+
+  ← belongs to common/ or shared/ ; everything else is this folder's
+```
+
+- **`useGame`** builds `gd` through `makeGameData`, a pure function of the blob
+  and who I am: the players with their links resolved, the seat rule (mid-race
+  in compete a rival's rows leave `gd.events` and their `board` is null), the
+  setup rows, and `stateLineData` — the team's track in coop, mine in compete.
+  It reads nothing and subscribes to nothing.
+- **`BoardCol` owns the move.** `useSubmitGuess` holds the shared
+  `useFoundWordSubmit` engine — a lookup in the shipped `legalWords` Set
+  (points = the word's length), the `submit_guess` call, what each answer
+  shows, `recordReject` for a refused word (§7b), and the answer mark on the
+  line the word was typed into; `useTypedGuess` types into it from either
+  keyboard (`useCaptureKeys`, the on-screen caps, `↑`/`↓` recall); and
+  `useMarkForeignGuesses` marks a teammate's word as it lands. One gate,
+  `isInteractive` — my move, on the live board — feeds the capture, the typing
+  line and the keyboard. **An accepted word shows no result** (its line already
+  shows the word and its length); only refusals show, in the local slot. The
+  keyboard stays once the game has ended, disabled.
+- **`Board` decides, `BoardRow` draws.** `Board` takes `grid`, `marks`,
+  `historyView` and `isInteractive`, works out each line's kind (landed — mine
+  held while its answer shows counts as one — typing, or empty) and which line
+  the answer is on, and `BoardRow` draws it. `DimmedBaseWord` dims the base at
+  its **first** occurrence, in the data's case; CSS draws the capitals.
+- **`PlayArea`** wires the ending messages (`useGetGameEndingMessage`,
+  `useGetPlayerEndingMessage`, from `lib/gameEndingMessage.ts` and
+  `lib/playerEndingMessage.ts`), the waiting line, the coop peer narration, the
+  history view (`useHistoryView`) and the commands (`useActionsAndMenu`, which
+  also publishes the menu and builds the printout from `gd`).
+- **`InfoCol`**: the best possible word shows only while this viewer has it
+  revealed, and grows the column when opened — a blessed exception to [ui.md →
+  Layout stability](../ui.md#layout-stability). There is **no `<WordList>`**
+  (the board lines are the words), and the info column is a FIXED width
+  (`--info-col-width` on `.layout`).
+- **`manifest.ts`** — the two sibling manifests, one `BRAND`, the shared lazy
+  loaders, `startGameInClub` → `runEdgeFn('wordiply-build-board', …)`, and each
+  mode's `summaryFor` over `summary_data` (§4 → The club card).
+- **`lib/setup.ts`** — `wordiplySetupError` (the band, and `customBaseError`'s
+  2–4 letter shape gate, §5b), `cleanBase` shared with the form, the two
+  defaults (neither seeds `custom_base` — blank means random). The setup pair
+  is `GSetupValues` / `GSetup` in `types.ts`, whose `CoopTurnSetup` carries the
+  opt-in turn-by-turn fields.
+- **`components/SetupForm.tsx`** — one `<DictBandField>` ("Dictionary"), a
+  **"Starter (optional)"** `<SetupSection>` (§5b; its summary carries the value,
+  e.g. `Starter: MOTH`), `<SetupTimerSection>` and the shared
+  `<SetupCoopStyleSection>`. The field says **Starter**, not "base": the schema
+  says `base` but every player-facing string in this game says starter.
+- **`lib/scoring.ts`** — `computeLengthScore`, the formula of
+  `wordiply._length_score`, for the test fixture alone: the page reads every
+  score from the blobs.
 
 ---
 
@@ -625,7 +592,7 @@ was a typo — and taxing a reach for a long word is backwards in a game whose
 whole incentive is reaching. **No reject spends budget** in either case: it can
 cost your go, never one of the five guesses.
 
-`submit_guess` takes **`fe_legal`** — the FE's dictionary verdict. Trusting it
+`submit_guess` takes **`p_fe_legal`** — the FE's dictionary verdict. Trusting it
 is no weaker than trusting its accepts, which trusting-commit already does; the
 server's own guards still run first and can reject a word the FE called legal.
 The shared `useFoundWordSubmit` supplies this through its optional
@@ -667,16 +634,17 @@ mostly one rule worth a test: **the reveal rules have to hold on paper.**
 Mid-game the page shows the guess count and nothing else — no length score, no
 letter count, no longest word — exactly as the screen does. The longest word
 goes further still: it prints only while the reveal toggle is open, so the paper
-carries the answer only if the page in front of the printer does. Dumping
-`status` would have leaked all three, so `model.test.ts` pins it.
+carries the answer only if the page in front of the printer does. The model
+reads `gd` — the events, the players' own scores, the state line's track — and
+`model.test.ts` pins the rule.
 
 What prints:
 
 | block | when |
 |---|---|
-| Header + one-line summary | always (guess count during play; scores at terminal) |
-| **Best possible word** | terminal only |
-| **Final scores** — per player, length score + letters, winner marked | compete at terminal only |
+| Header + one-line summary | always (guess count during play; scores once ended) |
+| **Best possible word** | while it is revealed on screen |
+| **Final scores** — per player, length score + letters, winner marked | compete once ended |
 | The event log — **rejects included**, each with its reason | always |
 
 Two details that fall out of the log carrying rejects:
@@ -693,39 +661,43 @@ Two details that fall out of the log carrying rejects:
 In **compete** the log is sorted **by player (self first), then by time** rather
 than interleaved chronologically — the tracks are parallel races, so a
 time-ordered mix reads as nonsense. The `who` column labels each block, so one
-table still does it. Mid-game compete needs no filter: RLS means you only *have*
-your own rows.
+table still does it. Mid-game compete needs no filter: the seat rule means
+`gd.events` holds only your own rows.
 
 ## 8. Tests
 
-**pgTAP** (`supabase/tests/wordiply/`, ported from the wordwheel suite against a
-fixture in `setup.psql`):
-- `schema_test` — both gametypes registered; tables exist with RLS enabled + the
-  `authenticated` SELECT grants; nothing is column-hidden — `games_state`
-  exposes `base` / `max_word_length` / `longest_words` /
-  `legal_words` (the terminal-only reveal is an FE choice, §2). The
-  realtime-publication memberships are guarded centrally in
-  `common/realtime_publication_test.sql`.
+**pgTAP** (`supabase/tests/wordiply/`, against a fixture board in `setup.psql`:
+base `ar`, longest possible 7):
+- `game_data_test` — the page blobs: a fresh coop game's `game_data` whole and
+  both modes' fresh `summary_data`; mid-game coop — a reject in the log beside
+  the accepted word, each player's own count, the team's, one board on every
+  seat with no reject on it, no score before the end; mid-game compete — each
+  racer's own count and board, the log carrying every racer's rows (the page
+  withholds, not the builder); the endings — the team's and each player's own
+  scores, the winner's length score on the summary, `shell_data` rewritten; a
+  Restart; a rebuild of every game without re-dating it.
+- `schema_test` — both gametypes registered; RLS enabled; every column granted
+  (nothing column-hidden); `games_state` gone. The realtime-publication
+  memberships are guarded centrally in `common/realtime_publication_test.sql`.
 - `create_game_test` — the coop + compete happy paths (rows, gametypes, the
-  statuses, title = just the uppercased base — no length leak); the
+  page blobs at zero, title = just the uppercased base — no length leak); the
   guards: an outsider (42501), an **invalid positional `mode` arg**,
   `setup.target_rank`, compete `< 2` players, difficulty outside 1..6, malformed
-  board (`base` not 2–4 lowercase letters, `max_word_length` below `base_len +
+  board (`base` not 2–4 lowercase letters, `max_word_len` below `base_len +
   2`, empty `longest_words` / empty `legal_words`), player count over 6.
 - `gameplay_test` — `submit_guess` trusting-commit: a valid guess →
-  `accepted` + one row + the statuses; the **free server guards**
-  (longer-than-base, contains-base, mode-aware dedup) reject **without inserting
-  or spending budget**; dictionary legality is trusted from the FE (guesses in
-  the test are synthetic non-words), so a non-word is a **Vitest** concern, not
-  a pgTAP one; the 5-guess budget — **coop shared vs compete per-user**.
-- `rls_test` — the compete `events_select` policy is a **game rule**, not just
-  privacy: mid-game a player reads only their OWN guess rows (opponents surface
-  as counts); everyone's open at terminal; coop shows all. Direct-INSERT setup
-  so the read policy is exercised in isolation.
+  `{result: 'accepted'}` alone + one row + the blobs; the **free server guards**
+  (longer-than-base, contains-base, mode-aware dedup) reject **without spending
+  budget**; dictionary legality is trusted from the FE (guesses in the test are
+  synthetic non-words), so a non-word is a **Vitest** concern, not a pgTAP one;
+  the 5-guess budget — **coop shared vs compete per-user**.
+- `rls_test` — a member reads every row of both tables in both modes, mid-game
+  or ended; an outsider reads none; direct inserts are refused. Direct-INSERT
+  setup so the read policy is exercised in isolation.
 - `try_base_test` — the board-build gate (wordiply's board-quality logic is SQL,
   not TS, so it's pinned here): `try_base` returns one board row iff the child
   count is in `[min, max]` (the **max** bound is the load-bearing one) and
-  `max_word_length ≥ base_len + headroom`, zero rows otherwise; plus
+  `max_word_len ≥ base_len + headroom`, zero rows otherwise; plus
   `candidate_bases`. Assertions are deliberately count-independent of the real
   dictionary.
 - `turn_order_test` — the opt-in turn-by-turn coop wiring: `create_game` seats
@@ -742,9 +714,6 @@ fixture in `setup.psql`):
 - `turn_order_test` also pins the **turn-cost split** (below): a structural
   reject ends the caller's go, a dictionary miss doesn't, and neither spends
   budget.
-- `statuses_test` — each status's exact key set at the start, mid-game and at
-  the end in both modes; the scores null until the end; a reject writes
-  nothing; a rebuild neither re-dates nor keeps a stale key.
 - `winner_test`'s last case is the **score-isolation regression** — rejects
   interleaved with accepted guesses, including one LONGER than every accepted
   word, which flips the compete winner if any `where valid` is missed. That's
@@ -754,22 +723,26 @@ fixture in `setup.psql`):
   has). Deliberately overlaps `terminal_test` §3's coop pass and adds what it
   doesn't reach: the **compete** branch (every player's ending, ranking and
   outcome cleared), `restart_count`, the shared clock zeroing, that the
-  end-only scores (`length_score` …) are null again in the statuses, and the non-player rejection pinned
-  to `42501`.
+  end-only scores are null again in the blobs, and the non-player rejection
+  pinned to `42501`.
 
-**Vitest** (`src/wordiply/`):
-- `setup.test` — `wordiplySetupError` (difficulty 1..6) + defaults.
-- `scoring.test` — `lengthScore`, `letterCount`, comparator ordering + every tie
-  tier.
-- `DimmedBaseWord.test` — splits at the **first** base occurrence; dims exactly
-  it; handles no-occurrence and a repeated base (`ana` in `banana` → only the
-  first dimmed).
-- `PlayArea.test` — renders **5 rows always** (layout stability); each completed
-  row shows its **length badge**; **scores stay hidden mid-game** (no
-  `<LengthScoreBar>` / letter-count until terminal — only per-row lengths); the
-  terminal reveal renders the bar + letter count, and names the longest word
-  only when asked; the compete terminal verdicts; the event log shows rejects
-  with their reason and keeps them out of the guesses-used count.
+**Vitest**, beside the code:
+
+| file | pins |
+|---|---|
+| `hooks/useGame.test` | `gd` from the blob — the links become players, rejects included in the log; each player's own track, the team's, the state line's pick; the scores arriving at the end; the seat rule mid-race and at its end; the memo on the blob |
+| `lib/answer.test` | every answer's words and outcome, the split of a miss by whether the base is in it, the color a logged row wears |
+| `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every ending's words and my outcome — coop's five words reading "Ended" in the win's color, the clock, a race won by me or by someone named, nobody scoring for each cause; a racer waiting or conceded |
+| `lib/history.test` | the replay: a line per accepted word up to the row, a reject showing the board without it, the author's own board in compete |
+| `lib/setup.test` · `lib/scoring.test` | the band and the starter's shape; the length-score formula |
+| `components/DimmedBaseWord.test` | the base dimmed at its **first** occurrence (`ana` in `banana`), nothing dimmed before it is typed, in the data's case |
+| `components/PlayArea.test` | the surface on the fixture: **5 lines always**; length-only during play; the end's score bar and the best word only when asked; every ending's verdict; confetti on my race win as it lands and never on coop's; the racer who is out (Back to club, Reveal grayed, the waiting line); the action row's order; the event log, a reject's `#N` replaying the board without it and a rival's replaying theirs; a teammate's word announced and mine not; the keys, submit and a recorded reject with `p_` names; New game, Stop, Concede, Restart and the menu |
+| `components/SetupForm.test` | the form's settings and the refusals under the fields they name |
+| `pdf/model.test` | the end-only rule on paper, the log with its rejects, compete's blocks by player, the scores block |
+
+Playwright, in `e2e/`: `wordiply` (a word lands, a reject is logged and stays
+off the board), `wordiply-mobile` (the board and keyboard fit, and the info
+sheet works, at phone sizes) and `wordiply-print` (a real PDF downloads).
 
 ---
 
@@ -787,15 +760,14 @@ fixture in `setup.psql`):
   wordiply validator (points = the word's length). No `<WordEntryArea>` /
   `<WordEntryInput>` (that needs a physical keyboard).
 - **Feedback:** `useFeedbackSlot` / `useShowPeerFeedback` / `<FeedbackPill>`.
-- **Info column:** `<OpponentStrip>`, `<SetupDisclosure>`, `<Stats>`-style
-  readout, `<InfoActionsRow>`, the standard actions (`act-stop-game` /
-  `act-concede` / `act-restart` / `act-new-game` / `act-back-to-club`), each
-  placed as an `<ActionButton>`. A `<LengthScoreBar>` is likely new (or a thin
-  reskin of wordwheel's `<RankBar>`, which is already "fill to a target
-  percent").
+- **Info column:** `<OpponentStrip>`, `<SetupDisclosure>`, `<TurnStatusLine>`,
+  `<InfoActionsRow>`, the standard actions (`act-stop-game` / `act-concede` /
+  `act-restart` from `useStandardGameActions`, plus the game's `act-new-game`
+  and the shell's `act-back-to-club`), each placed as an `<ActionButton>`.
+- **The ending:** `useShowEndingFeedback`, `useCelebration`,
+  `buildGameEndedMessageNeutral` for a race's Stop.
 - **RPC helpers:** `makeRpcDispatcher`, `runEdgeFn`.
-- **Not applicable:** `WordList` (the board rows are the words), PDF print
-  (candidate but deferred — see below).
+- **Not applicable:** `WordList` (the board lines are the words).
 
 ---
 
@@ -811,40 +783,39 @@ next to the thing it was chosen over. The chosen option is in **bold**.
 2. **Validation model** — **resolved: ship-list trusting-commit** (§2). Per the
    trust model we don't care about cheating, so the legal list ships to the FE
    (simpler build, reuses `useFoundWordSubmit`, no per-guess round-trip).
-   Scores + longest word are hidden until terminal as a *display* choice, not a
+   Scores + longest word are hidden until the end as a *display* choice, not a
    security one.
 3. **Letter-count tiebreak direction** — **resolved 2026-08-03: higher wins**
    (more/longer words = more wordplay). The alternative reading — lower =
    efficiency, "I got there with fewer letters" — loses because the game's whole
    scoring axis is *length*: the primary sort already rewards the longest single
    word, so rewarding brevity at the tiebreak would contradict the line above
-   it. Step 2 of `_finish_compete`'s comparator; changing it means the SQL
-   **and** `lib/scoring.ts`'s `compareCompetitors`, which must stay in lockstep.
+   it. Step 2 of `_finish_compete`'s comparator, the one place the order lives.
 4. **The last tiebreak** — **resolved 2026-09-27: the earlier last word**, in
    every game, timed or not. It always resolves — two words never land at the
    same instant — so there are no co-winners. The alternative, a seat-order
    tiebreak, breaks a tie on something arbitrary and invisible to the players.
-   Step 3 of the same comparator, same lockstep rule.
+   Step 3 of the same comparator.
 5. **Coop budget** — **5 shared** (team fills one board, §6) vs 5-per-player.
    The shared choice is what makes the single five-row board coherent.
 6. **Guess count** — **resolved 2026-08-03: fixed at 5**, a constant rather than
    a setup option. Five is the Guardian original's number and the board is built
-   around it (five rows, `MAX_GUESSES`); making it a knob would add a setup
+   around it (five lines, the builder's `maxGuesses`); making it a knob would add a setup
    field, a `create_game` validator branch, and a variable-height board for a
    variation nobody has asked for. Expose it if someone does.
 7. **Legal-band cleanliness** — **resolved 2026-08-03: exclude
    slang/slur/crude** (stricter than `candidate_words`' legal side) so a slur
-   can't come back as the "best possible word" at terminal. This is the one fork
+   can't come back as the "best possible word" at the end. This is the one fork
    where the alternative is actively worse: the reveal puts that word on screen,
    unprompted, in front of the whole club. A change here regenerates boards (a
    filter in the builder + import), not schema.
-8. **What ships to the FE** — **resolved: everything** (`legal_words`,
-   `longest_words`, `max_word_length` are all club-member-readable). The FE
-   gates *display* of scores + the longest word to terminal (§2); the data
-   itself isn't hidden.
+8. **What ships to the FE** — **resolved: everything** (`legalWords`,
+   `longestWords`, `maxWordLen` are in `game_data`'s puzzle from create). The
+   scores are null in the blobs until the end, and the page draws the longest
+   word only then, when asked (§2); the data itself isn't hidden.
 9. ~~**PDF print**~~ — **resolved 2026-08-02: shipped.** See
    [Printing the log (PDF)](#7c-printing-the-log-pdf) below.
 10. **Live readout** — **resolved: word length only during play**; length score
-    %, letter count, and the longest word appear only at terminal (§2). Compete
+    %, letter count, and the longest word appear only at the end (§2). Compete
     opponents show just guesses used mid-game.
 

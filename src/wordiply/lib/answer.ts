@@ -25,17 +25,32 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
     // No verb: the dot names who, the word is the news, the count is its
     // length. "played" earned no room in the header's ~26 phone characters.
     case 'accepted_peer':
-      return { outcome: 'won', text: `${answer.word.toUpperCase()} (${answer.word.length})` }
+      return {
+        outcome: 'won',
+        text: `${answer.word.toUpperCase()} (${answer.word.length})`,
+      }
 
     case 'already_found':
-      return { outcome: 'warning', text: `${answer.word.toUpperCase()} — already found` }
+      return {
+        outcome: 'warning',
+        text: `${answer.word.toUpperCase()} — already found`,
+      }
     case 'not_a_word':
-      return { outcome: 'warning', text: `${answer.word.toUpperCase()} — not a word` }
+      return {
+        outcome: 'warning',
+        text: `${answer.word.toUpperCase()} — not a word`,
+      }
 
     case 'too_short':
-      return { outcome: 'lost', text: `${answer.word.toUpperCase()} — too short` }
+      return {
+        outcome: 'lost',
+        text: `${answer.word.toUpperCase()} — too short`,
+      }
     case 'missing_base':
-      return { outcome: 'lost', text: `${answer.word.toUpperCase()} — must contain "${answer.base.toUpperCase()}"` }
+      return {
+        outcome: 'lost',
+        text: `${answer.word.toUpperCase()} — must contain "${answer.base.toUpperCase()}"`,
+      }
   }
 }
 
@@ -77,7 +92,11 @@ export function eventToOutcome(row: LoggedGuess): Outcome {
       return answerMessage({ answerType: 'too_short', word: row.word }).outcome
     // The row does not carry the base, and the color does not need it.
     case 'missing_base':
-      return answerMessage({ answerType: 'missing_base', word: row.word, base: '' }).outcome
+      return answerMessage({
+        answerType: 'missing_base',
+        word: row.word,
+        base: '',
+      }).outcome
     case 'not_a_word':
       return answerMessage({ answerType: 'not_a_word', word: row.word }).outcome
   }

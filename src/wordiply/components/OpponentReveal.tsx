@@ -17,7 +17,10 @@ import styles from './OpponentReveal.module.css'
  * the length as a plain teal number — so a rival's row reads the same as one
  * of mine.
  */
-export function OpponentReveal({ base, rivals }: { base: string; rivals: GPlayer[] }) {
+export function OpponentReveal({ base, rivals }: {
+  base: string;
+  rivals: GPlayer[]
+}) {
   if (rivals.length === 0) return null
   return (
     <section className={styles.reveal}>
@@ -35,8 +38,14 @@ export function OpponentReveal({ base, rivals }: { base: string; rivals: GPlayer
                 <ol className={styles.words}>
                   {words.map((word) => (
                     <li key={word} className={styles.word}>
-                      <DimmedBaseWord word={word} base={base} className={styles.wordText} />
-                      <span className={styles.badge} aria-label={`${word.length} letters`}>
+                      <DimmedBaseWord
+                        word={word}
+                        base={base}
+                        className={styles.wordText}
+                      />
+                      <span
+                        className={styles.badge}
+                        aria-label={`${word.length} letters`}>
                         {word.length}
                       </span>
                     </li>

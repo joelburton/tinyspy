@@ -57,7 +57,10 @@ export function Board({
   const held = historyView.isViewing ? null : marks.held
   const flash = historyView.isViewing ? null : marks.flash
   const heldIdx = held === null ? -1 : shownWords.length
-  const typingIdx = isInteractive ? shownWords.length + (held === null ? 0 : 1) : -1
+  const typingIdx =
+    isInteractive
+      ? shownWords.length + (held === null ? 0 : 1)
+      : -1
 
   // The line the answer is on. MY line wins: guessing a word again is answered
   // where I just typed it, not on the line it landed in four turns ago. Only a
@@ -67,22 +70,27 @@ export function Board({
     if (held !== null && flash.value.word === held.word) return heldIdx
     return shownWords.indexOf(flash.value.word)
   }
+
   const answerIdx = getAnswerIdx()
 
   return (
     // data-board: the stable handle a spec uses to ask what the BOARD holds,
     // since the event log beside it shows the same words.
     <ol
-      className={cls(shared.boardSeal, styles.board, historyView.isViewing && history.historyFrame)}
+      className={cls(shared.boardSeal,
+        styles.board,
+        historyView.isViewing && history.historyFrame)}
       data-board
     >
       {Array.from({ length: grid.maxGuesses }, (_, lineIdx) => {
         /** What kind of line this is. */
         function getKind(): ComponentProps<typeof BoardRow>['kind'] {
-          if (lineIdx < shownWords.length || lineIdx === heldIdx) return 'landed'
+          if (lineIdx < shownWords.length
+            || lineIdx === heldIdx) return 'landed'
           if (lineIdx === typingIdx) return 'typing'
           return 'empty'
         }
+
         /** What the line spells. */
         function getWord(): string {
           if (lineIdx < shownWords.length) return shownWords[lineIdx]!

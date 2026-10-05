@@ -359,6 +359,32 @@ codenamesduet converted alone (2026-10-04) and settled, beyond the games above:
   selecting would only copy fields, pass `gd`.
 - **A game's own words keep the data's case**: lowercase stored, capitals drawn.
 
+## What wordiply added
+
+wordiply converted alone (2026-10-04) and settled, beyond the games above:
+
+- **The board is the seat's view, on every player, in both modes** — wordle's
+  way, not codenamesduet's `team.board`. A shared coop board that every seat
+  sees the same goes on the player, so `gd.me.board` is always the board to
+  draw and no reader branches on mode; `team.board` is for a board whose
+  pieces carry per-seat facts the seat rule resolves.
+- **A teammate's move is marked from the board's side**
+  (`useMarkForeignGuesses` in `BoardCol`, connections' shape); `PlayArea`
+  only narrates it in the header. No converted `PlayArea` reaches into the
+  board.
+- **The typed word splits from its trip to the server**, as wordle's does,
+  even where the shared engine owns the word: `useSubmitGuess` (the engine,
+  the RPC, the answer mark) and `useTypedGuess` (both keyboards typing into
+  it).
+- **A game's words can say less than its outcome.** Coop's five words spent is
+  `won`, drawn green, but its pill and club card say "Ended"; only compete
+  says "Won", and only a race win throws confetti.
+- **An RPC's answer carries what a caller reads, and no more.** `submit_guess`
+  answers `{result}`; what the word did, the page reads from the blobs.
+- **A frontend copy of a server rule with no reader goes**, rather than being
+  kept in lockstep: wordiply's `compareCompetitors` had drifted from the
+  server's tiebreak.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

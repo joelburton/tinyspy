@@ -67,9 +67,9 @@ unless noted):
 - **The club card reads `row.status` and `row.play_state`**, the shape before
   common-tables; it moves onto `summary_data` at step 7. Its co-winner branch
   is dead: the earlier-last-word tiebreak always resolves.
-- **`todo.md`'s concede bug looks already fixed**: `wordiply.concede` locks
-  `wordiply.games` before `common._concede`. To confirm and drop, not part of
-  the conversion.
+- **`todo.md`'s concede bug was already fixed**: `wordiply.concede` locks
+  `wordiply.games` before `common._concede`, as `submit_guess` does, so a
+  concede and a fifth word serialize. Dropped from the todo at step 14.
 - **`todo.md`'s "coop's fifth word is a win" is half done**: the SQL ranks
   every player 1 and the outcome reads `won`; the club card's "Ended (out of
   guesses)" and the coop verdict still say the neutral end. The card and the
@@ -77,107 +77,6 @@ unless noted):
 - **docs/games/wordiply.md §3's events table is stale**: it lists `kind` and
   `length` but not `valid` / `reason`, and calls the table `guesses` in
   places. Step 14.
-
-## The `gd` and `summary_data` sketch — approved 2026-10-04
-
-Seat-view step 2. Step 6 moves it into `types.ts` as the shape comment, and
-this section goes then.
-
-```
-gd:
-  id
-  gametype
-  brand
-  club: {handle}
-  mode
-  coop
-  compete
-  oneBoard
-  title
-  setup
-  setupRows
-  puzzle:                                  # frozen at create
-    base
-    maxWordLen
-    longestWords
-    legalWords
-  team:                                    # null in compete
-    nGuessesUsed
-    lengthScore                            # null until the game ends
-    nLetters                               # null until the game ends
-    longestWordLen                         # null until the game ends
-  turns: {holder}
-  ending: {reason, detail, by, winner}
-  ended
-  outcome
-  events: [event, …]                       # every submission, rejects included; my rows only, mid-race
-  players: [player, …]                     # seat order
-  playersById
-  me
-  stateLineData: {nGuessesUsed, maxGuesses, lengthScore, nLetters, longestWordLen, maxWordLen}
-                                           # the team's in coop, mine in compete
-
-player:
-  the common player
-  maxGuesses                               # 5, the same on every player
-  nGuessesUsed                             # own, in every mode
-  lengthScore                              # own; null until the game ends
-  nLetters                                 # own; null until the game ends
-  longestWordLen                           # own; null until the game ends
-  board: {words}                           # what this seat sees: the team's words in coop, my own
-                                           # in compete; null for a rival mid-race
-
-event:
-  id
-  by
-  word
-  valid
-  reason                                   # missing_base / too_short / not_a_word; null when valid
-  tookTurn
-  at
-
-summary_data:
-  the common summary
-  team: {nGuessesUsed, lengthScore, nLetters}   # null in compete
-  maxGuesses
-  winnerLengthScore                        # compete, once won; null in coop
-```
-
-The rulings behind it (2026-10-04):
-
-- **The board is on the player in both modes, the wordle way** — `board` is
-  what this seat sees, so `gd.me.board` is always the board to draw and no
-  reader branches on mode to find it. codenamesduet's `team.board` differs
-  because Duet is coop only and its tiles carry per-seat facts (each key,
-  `guessableBy`, the arrows) that the seat rule resolves; wordiply's coop
-  board is the same five words for every seat.
-- **The puzzle is frozen at create**: `longestWords` and `maxWordLen` are
-  written whole and the page waits to show them; the scores are null until
-  the game ends, as the statuses wrote them.
-- **`len` is a permitted abbreviation** (docs/code-conventions.md): keys,
-  locals and columns say `len`, so `max_word_length` becomes `max_word_len`
-  and `events.length` becomes `len` at step 4. `lengthScore` keeps the long
-  form: it is a score, not a length.
-- **No `GTile`**: the unit is the word.
-- `letter_count` is `nLetters`; the event's `kind` (one value) and `length`
-  (the word's) leave the blob; `maxGuesses` is the builder's, and the
-  frontend's `MAX_GUESSES` goes.
-
-## The PlayArea pass — rulings (2026-10-04)
-
-Seat-view step 9. What Joel decided beyond the earlier games' shape:
-
-- **Coop's words never say "Won".** The five words spent is `won`, drawn
-  green, but the pill reads `Ended: 71%, 8 letters` and the club card
-  `Ended (out of guesses) · 71% · 8 letters`, as before the ruling; only
-  compete says "Won".
-- **A racer who has spent their five is told so**: `Out of guesses —
-  waiting` / `Waiting for others`, wordle's words, beside the conceder's
-  `Conceded — race continues` / `You conceded`.
-- **Confetti on a compete win, none on a coop win.**
-- **A teammate's word is marked from the board's side**
-  (`useMarkForeignGuesses` in `BoardCol`), as connections does; `PlayArea`
-  only narrates it in the header.
 
 ## Predicted test breaks
 

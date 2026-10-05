@@ -36,7 +36,10 @@ export function useMarkForeignGuesses({
     setSeenId(newestId)
     const isForeign = newest !== null && newest.by !== gd.me
     if (gd.coop && isForeign && !isViewingHistory) {
-      answerMark.show(newest.word, answerMessage({ answerType: 'accepted' }).outcome, true)
+      answerMark.show(
+        newest.word,
+        answerMessage({ answerType: 'accepted' }).outcome,
+        true)
     }
   }
 }
