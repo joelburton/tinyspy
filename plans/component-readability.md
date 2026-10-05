@@ -385,6 +385,31 @@ wordiply converted alone (2026-10-04) and settled, beyond the games above:
   kept in lockstep: wordiply's `compareCompetitors` had drifted from the
   server's tiebreak.
 
+## What waffle added
+
+waffle converted alone (2026-10-05) and settled, beyond the games above:
+
+- **A move with no action behind it is guarded by its own pending state.** A
+  tap and a drag swap without an action, so `pending` cannot cover them; the
+  swap still out (`useSubmitSwap`'s `pendingSwapTileIds`) is the one guard,
+  and `useSingleFlight` went.
+- **A move shown before its answer lasts until the log says it landed** — the
+  newest row of `gd.events` changing, one fact — rather than until the RPC
+  resolves, which beats the blob.
+- **A state the data cannot hold is a mark, not a fake value.** A tile whose
+  swap is out is unjudged; that is `inFlightTileIds` on the board, not a
+  `'blank'` color forced into `GTile`.
+- **Strings stay where a string is the thing.** The database stores a board as
+  25 characters; the page is handed tiles, and every reader — the board, the
+  answer words, the printer — reads tiles. No string form of a board is kept
+  on the frontend for convenience.
+- **An exposure goes when its reason does.** Coop held the solution mid-game
+  for a viewer that recolored past boards; once every swap stored its colors,
+  the solution waits for the end in both modes.
+- **A key shared by two deploy targets ships in one deploy.** `create_game`'s
+  `dealt` is read by SQL and written by the edge function; either alone breaks
+  starting a game.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

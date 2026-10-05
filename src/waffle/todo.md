@@ -54,3 +54,22 @@
 ## Maybe
 
 ## Won't do
+
+- **Coop does not hold the solution mid-game** (2026-10-05). It arrives in
+  `game_data` once the game ends, in both modes: every swap stores its own
+  colors, so nothing on the page needs it before then.
+- **The budget is not the puzzle's** (Joel, 2026-10-05: "maxSwaps isn't part of
+  the puzzle; it's the goal"). `maxSwaps` sits on every player, as wordle's
+  `maxGuesses` does; `parSwaps` is the deal's.
+- **A swap is two tiles, not four columns** (Joel, 2026-10-05: "swaps: [tile,
+  tile]"). An event's `swaps` holds the two cells, each with the letter it held
+  before.
+- **A coop player's count is their own** (2026-10-05). A coop swap counts for
+  the player who made it; the team's count is the sum.
+- **My win is celebrated in both modes** (2026-10-05). Confetti for every
+  teammate on a coop solve and for the winner of a race.
+- **Being out of a race wears my outcome** (2026-10-05). Out of swaps and a
+  concede read red, as the server wrote them; a solve waiting on the rest stays
+  neutral. The board takes the same band.
+- **The dealt board is `dealt`** (Joel, 2026-10-05: "rename"), from the
+  generator to `create_game`; "scramble" is only the generator's verb.

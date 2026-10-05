@@ -55,123 +55,42 @@ opponent strip), `winner_user_id` (the compete verdict), `max_swaps` /
 **A coop solve stamps every teammate:** yes — `submit_swap` sets `solved_at`
 on every coop player and ranks them all 1.
 
-**Coop's count is lock-step**, as wordle's was before plans/team-facts.md:
-`submit_swap` writes the team's `swaps_used` and board onto every coop
-`waffle.players` row. Making a player's count their own needs a data
-migration, as wordle's did (`20261002000001_wordle_players_own_counts.sql`).
-75 coop games locally, no compete.
+**Coop's count was lock-step**, as wordle's was before plans/team-facts.md:
+`submit_swap` wrote the team's `swaps_used` and board onto every coop
+`waffle.players` row. `20261005000000_waffle_players_own_counts.sql` rewrote
+each coop row from the player's own swaps, checking the sums against the old
+team count, and renamed the column `n_swaps_used`; all 75 local coop games
+matched. The board stays lock-step: it is one shared board.
 
 **Seen while listing** (each is fixed by the conversion, not before it,
 unless noted):
 
-- **The page cannot load today.** `useGame` asks `games_state` for `id, mode,
-  scramble` and `players_state` for `solved, solved_at`, none of which those
-  views have; and `submit_swap` is called with `target_game` / `pos_a` /
-  `pos_b` (in `PlayArea.tsx`, `db.ts`'s comment and the gallery) where it
-  takes `p_` names. The page reads the common layer's old shapes too
-  (`authSession`, `playState`, `status`).
-- **The club card reads `row.status` and `row.play_state`**; it moves onto
-  `summary_data` at step 7.
-- **`todo.md`'s "does coop still get the solution mid-game?"** is decided at
-  step 2: the builder decides when `puzzle.solution` is written.
+- **The page could not load.** `useGame` asked the two views for columns they
+  did not have, and `submit_swap` was called with `target_game` / `pos_a` /
+  `pos_b` where it takes `p_` names; the e2e fixture called `create_game` the
+  same way. All three send `p_` names now.
+- **The club card read `row.status` and `row.play_state`**; it reads
+  `summary_data` since step 7.
+- **`todo.md`'s "does coop still get the solution mid-game?"** was decided at
+  step 2: no (Won't do).
 - **`todo.md`'s "`create_game` accepts a one-player compete game"** is a real
   gap (no `< 2` check for compete). Not part of the conversion; its own fix.
-- **`todo.md`'s "collapse the action row"** is the InfoCol pass's, and its
-  "act-new-game active before load" goes with step 9, as wordiply's did.
-
-## The `gd` and `summary_data` sketch — approved 2026-10-05
-
-Seat-view step 2. Step 6 moves it into `types.ts` as the shape comment, and
-this section goes then.
-
-```
-gd:
-  …the common part
-  puzzle:                                  # frozen at create
-    dealtTiles                             # the scramble: [{id, letter}, …], the 21 cells by position
-    parSwaps
-    solution                               # [{id, letter}, …]; null until the game ends, in both modes
-  team: {nSwapsUsed}                       # null in compete
-  events: [event, …]                       # every swap; my rows only, mid-race
-  stateLineData: {nSwapsUsed, maxSwaps, parSwaps}   # the team's in coop, mine in compete
-
-player:
-  …the common player
-  maxSwaps                                 # the budget: the same on every player
-  nSwapsUsed                               # own, in every mode
-  board: {tiles}                           # what this seat sees; null for a rival mid-race
-
-tile:                                      # GTile
-  id                                       # the cell's position, as text: '0'…'24', holes left out
-  letter
-  color                                    # g / y / x
-
-event:
-  id
-  by
-  swaps: [{id, letter}, {id, letter}]      # the two cells, each with the letter it held before the swap
-  colors                                   # the board's colors after the swap
-  at
-
-summary_data:
-  …the common part
-  team: {nSwapsUsed}                       # null in compete
-  maxSwaps
-  band                                     # setup.difficulty
-  nWinnerSwaps                             # compete, once won; null in coop
-```
-
-The rulings behind it (2026-10-05):
-
-- **The solution arrives when the game ends, in both modes**, wordle's rule.
-  Coop had it mid-game only for a history viewer that recolored past boards;
-  each swap stores its own colors now.
-- **A coop player's count is their own** (plans/team-facts.md): a data
-  migration rewrites each coop row from the player's own swaps and renames
-  the column `n_swaps_used`, as wordle's did. The board stays lock-step: it
-  is one shared board.
-- **The board's unit is the tile** (`GTile`): a player picks single tiles.
-- **`maxSwaps` is the budget, not the puzzle** (Joel): on every player, as
-  wordle's `maxGuesses` is. `parSwaps` is the deal's.
-- **An event's swap is `swaps: [tile, tile]`** (Joel), each `{id, letter}`
-  with the letter that cell held before the swap; the event's `colors` is the
-  whole board's after it. `kind` and `tookTurn` (one value each) leave the
-  blob.
+- **`todo.md`'s "collapse the action row"** went with the InfoCol pass, and
+  its "act-new-game active before load" with step 9.
 
 ## Predicted test breaks
 
 - **Step 4 (2026-10-05), fixed at step 5:** every pgTAP assertion that read
   the statuses or the two views now reads the blobs, `game_data_test` pins
   them, and `statuses_test` went; `solution_hide_test` and `gameplay_test`
-  pin coop's solution waiting for the end, by the step-2 ruling.
-- **Steps 4–9:** the frontend reads the two views and the old common shapes,
-  so the page stays broken until `useGame` reads `game_data` and the PlayArea
-  pass moves its readers onto `gd`. `tsc -b` reports 77 errors in the folder
-  before the conversion's frontend steps.
-- **Step 6 (2026-10-05):** waffle joins `CONVERTED_GAMES` in
-  `src/guards/gameTypes.test.ts` once the last old shapes are gone:
-  `WafflePlayerState`, `EventRow` and `lib/history.ts`'s `HistorySnapshot`
-  with the PlayArea pass, which moves their readers onto `gd`.
-- **Step 7 (2026-10-05):** `useGame` returns `{gd}`, so `PlayArea` (and its
-  test, which mocks the old hook) does not compile until step 9. `Player` and
-  `WaffleGame` went; `WafflePlayerState` and `EventRow` stay in
-  `hooks/useGame.ts` for the components, `lib/history.ts` (which replays
-  25-letter strings) and the printer.
-- **Step 9 (2026-10-05):** the last old shapes went and waffle joined
-  `CONVERTED_GAMES`; the folder type-checks clean. `InfoCol` keeps its three
-  action-row branches for its own pass (step 12).
-- **Step 11 (2026-10-05):** `Board` draws `GTile`s through a `Tile` piece;
-  the 25-letter strings remain only where words are read off a board
-  (`InfoCol`'s answer words, the printer), through `makeBoardString` /
-  `makeColorString`.
-- **Step 12 (2026-10-05):** the answer words and the printer read tiles, so
-  the frontend's 25-letter strings and `lib/colors.ts` are gone. The action
-  row is one list. `docs/games/waffle.md` still names `lib/colors` and the old
-  shapes; step 14 rewrites it.
-- **Step 13 (2026-10-05):** `create_game`'s board key is `dealt` (was
-  `scramble`), so `waffle-build-board` and `supabase/sql/waffle.sql` must ship
-  in the same deploy: either one alone breaks starting a waffle game until the
-  other lands. `submit_swap`'s reply says `n_swaps_used` and `game_ended`.
+  pin coop's solution waiting for the end.
+- **Steps 4–9 (2026-10-05), fixed at step 9:** the frontend read the views
+  and the old common shapes until the PlayArea pass moved every reader onto
+  `gd`; `tsc -b` is clean in the folder, `PlayArea.test.tsx` runs on the
+  fixture, and waffle joined `CONVERTED_GAMES` at step 9.
+- **Step 13 (2026-10-05):** `create_game`'s board key is `dealt`, so
+  `waffle-build-board` and `supabase/sql/waffle.sql` ship in the same deploy:
+  either one alone breaks starting a waffle game until the other lands.
 
 ## Closing
 

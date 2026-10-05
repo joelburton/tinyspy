@@ -512,6 +512,19 @@ next open (todo.md → Someday).
   events mode arm went (plans/areas/wordiply.md → The convenience RLS);
   `submit_guess` answers its result alone and sends `p_` names, which had been
   broken since 2026-09-28. The unread frontend comparator went.
+- **waffle — done 2026-10-05**, wordle's way: every board is `{tiles}` of
+  `GTile`s on its player (coop's one board on every seat), the deal and the
+  solution are `{id, letter}` tiles in the puzzle, the solution null until the
+  end in both modes, and `maxSwaps` sits on the player. A coop player's count
+  is their own (20261005000000, the counts rewritten from the log with a sum
+  check, the column `n_swaps_used`), the team's their sum. An event's swap is
+  `swaps: [tile, tile]`, each with the letter it held before. The statuses,
+  both views, their definers and the events mode arm went
+  (plans/areas/waffle.md → The convenience RLS). The board draws tiles through
+  a `Tile` piece; the frontend's 25-letter strings and `lib/colors.ts` went.
+  `submit_swap` answers `n_swaps_used` / `game_ended` and the board key is
+  `dealt` from the generator to `create_game`; every RPC call sends `p_`
+  names, which had been broken since 2026-09-28.
 - **boggle — done 2026-10-04**, the bee games' way without their shared
   folder: `boggle._make_json_found_counts` writes the six counts for the team
   and each player, and `_rebuild_data_cols` the puzzle (tiles `{id, letters}`,
