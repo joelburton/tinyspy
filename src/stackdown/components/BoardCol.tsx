@@ -57,13 +57,24 @@ export function BoardCol({
   peerMark: Mark<GPeerWordMark> | null
 }) {
   const move = useWordMove(gd, localFeedbackSlot)
-  const word = move.currentWord.tileIds
 
-  // May I pick, take back or submit a tile right now? The move is mine, no
-  // word is in flight, and a past turn is not on screen (any key there leaves
-  // history). stackdown does not draft off-turn, so submitting asks what
-  // picking asks.
-  const isInteractive = gd.me.onTurn && !move.inFlight && !historyView.isViewing
+  // The board responds to me: the move is mine, on the live board (any key
+  // over a past turn leaves history instead). stackdown does not draft
+  // off-turn, so submitting asks what picking asks.
+  const isInteractive = gd.me.onTurn && !historyView.isViewing
+
+  // ─── Send the word ────────────────────────────────────────────
+  // A word is exactly five tiles, so that's the whole submit gate. The send is
+  // this action's run, so its `pending` is the word in flight.
+  const canSubmit = isInteractive && move.currentWord.tileIds.length === 5
+  const actSubmit = useBindAction('act-submit', {
+    describe: () => (canSubmit ? 'active' : 'disabled'),
+    run: () => move.submitWord(move.currentWord.tileIds),
+  })
+
+  // May I pick or take back a tile right now? The board responds to me, and no
+  // word is with the server.
+  const canPick = isInteractive && !actSubmit.pending
 
   // ─── The marks a live board wears ─────────────────────────────
   // All empty while a past turn is open: that board is a record, and nothing
@@ -99,11 +110,14 @@ export function BoardCol({
   const offTileIds = useMemo(() => {
     if (historyView.isViewing || gd.ended) return shownOffTileIds
     const off = new Set(shownOffTileIds)
-    for (const id of word) off.add(id)
+    for (const id of move.currentWord.tileIds) off.add(id)
     for (const id of move.currentWord.pendingRemoved) off.add(id)
     for (const id of heldTileIds) off.delete(id)
     return off
-  }, [historyView.isViewing, gd.ended, shownOffTileIds, word, move.currentWord.pendingRemoved, heldTileIds])
+  }, [
+    historyView.isViewing, gd.ended, shownOffTileIds, move.currentWord.tileIds,
+    move.currentWord.pendingRemoved, heldTileIds,
+  ])
 
   // Red ambiguous-tile flash — a typed letter matched more than one exposed tile;
   // the candidates outline red for a beat. Purely this column's input feedback.
@@ -117,18 +131,16 @@ export function BoardCol({
   // until you commit it with the Submit button or Enter, so a wrong fifth tile
   // is recoverable — the last tile is just another tile.
   function pickTile(tileId: string) {
-    if (!isInteractive) return
+    if (!canPick) return
     move.clearFlash() // starting a new word drops any lingering word flash
     localFeedbackSlot.dismiss() // …and the previous move's result (next-move-dismisses rule)
     move.currentWord.appendTile(tileId)
   }
 
-  // ─── The two explicit move controls ───────────────────────────
-  // A word is exactly five tiles, so that's the whole submit gate. Both
-  // predicates also drive the buttons' `disabled`, so the keyboard and the
-  // buttons can't disagree about what's possible right now.
-  const canSubmit = isInteractive && word.length === 5
-  const canDelete = isInteractive && word.length > 0
+  // ─── Take a tile back ─────────────────────────────────────────
+  // The predicate also drives the button's `disabled`, so the key and the
+  // button can't disagree about what's possible right now.
+  const canDelete = canPick && move.currentWord.tileIds.length > 0
 
   /** Return the most recent tile — the ⌫ button and physical Backspace share it. */
   function deleteLast() {
@@ -137,20 +149,15 @@ export function BoardCol({
     // same way (the WordEntryArea rule — it matters most on touch, where there is
     // no next keystroke to do it).
     localFeedbackSlot.dismiss()
-    move.currentWord.retractTo(word.length - 1)
+    move.currentWord.retractTo(move.currentWord.tileIds.length - 1)
   }
 
-  // ─── The board's three keys ───────────────────────────────────
-  // Each is ONE action behind both its control and its key. DISABLED rather
-  // than hidden where they don't apply: the ⌫ / Submit buttons keep their slot
-  // so the region never reflows (the reserve-the-slot rule, docs/ui.md). A
-  // control that stayed live over a frozen board would be lying about what it
-  // can do; `isInteractive` covers both the frozen board and the open past turn.
-  const actSubmit = useBindAction('act-submit', {
-    describe: () => (canSubmit ? 'active' : 'disabled'),
-    run: () => move.submitWord(word),
-  })
-
+  // ─── The board's other two keys ───────────────────────────────
+  // Each is ONE action behind both its control and its key, as Submit is.
+  // DISABLED rather than hidden where they don't apply: the ⌫ / Submit buttons
+  // keep their slot so the region never reflows (the reserve-the-slot rule,
+  // docs/ui.md). A control that stayed live over a frozen board would be lying
+  // about what it can do.
   const actDeleteLast = useBindAction('act-delete-last', {
     // A word here is picked-up TILES, so this returns the last one rather than
     // erasing a letter — the registry's name would say the wrong thing.
@@ -171,7 +178,7 @@ export function BoardCol({
   // pick for you. 0 matches is an error; >1 flashes the candidates and asks you
   // to click one. A pattern action, so it is handed whichever letter fired it.
   useBindAction('act-pick-tile', {
-    describe: () => (isInteractive ? 'active' : 'disabled'),
+    describe: () => (canPick ? 'active' : 'disabled'),
     run: (key) => {
       const letter = (key ?? '').toUpperCase()
       // Any handled keystroke is a "next move" — dismiss the previous result.
@@ -203,7 +210,7 @@ export function BoardCol({
       <Board
         tiles={gd.puzzle.tiles}
         offBoard={offTileIds}
-        active={isInteractive}
+        active={canPick}
         ambiguousTiles={historyView.isViewing ? NO_TILES : flashIds}
         historyLitTiles={historyView.litTileIds}
         isViewingHistory={historyView.isViewing}
@@ -234,8 +241,8 @@ export function BoardCol({
         <WordEntryRow className={styles.moveArea} actDelete={actDeleteLast} actSubmit={actSubmit}>
           <WordEntry
             tiles={gd.puzzle.tiles}
-            currentWord={word}
-            active={isInteractive && !move.isRefused}
+            currentWord={move.currentWord.tileIds}
+            active={canPick && !move.isRefused}
             onRetract={move.currentWord.retractTo}
             flash={move.flash}
             verdict={move.isRefused ? ANSWER_OUTCOME.invalid : null}

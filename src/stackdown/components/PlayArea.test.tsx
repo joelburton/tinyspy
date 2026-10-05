@@ -423,6 +423,17 @@ describe('stackdown PlayArea — the board keys', () => {
     )
   })
 
+  it('takes no pick while the word is with the server', async () => {
+    // An answer that never comes: the word stays in flight.
+    rpc.mockReturnValue(new Promise(() => {}))
+    render(<WithKeys {...makeCtx({ tiles: makeRow('CLEARM') })} />)
+    await typeLetters('clear')
+    await press({ key: 'Enter', code: 'Enter' })
+    expect(stateOf('act-pick-tile')).toBe('disabled')
+    await press({ key: 'm' })
+    expect(wordSlots()).toBe('CLEAR')
+  })
+
   it('an accepted word leaves the board before the next blob arrives', async () => {
     rpc.mockResolvedValue(okEnvelope({ result: 'accepted', word: 'clear' }, 'won'))
     render(<WithKeys {...makeCtx({ tiles: makeRow('CLEARM') })} />)

@@ -105,6 +105,15 @@ with their readers, so stackdown joins `CONVERTED_GAMES` once they have:
 
 Stackdown joined `CONVERTED_GAMES` at step 9.
 
+## The BoardCol pass
+
+Step 10 (2026-10-05): `isInteractive` is computed once, and `canPick` beside it
+adds the one in-flight guard, the Submit action's own `pending`; `useWordMove`
+keeps no flag of its own. The word is read through its group
+(`move.currentWord.tileIds`). My own word's flash holds tile ids, read against
+the puzzle's tiles, so nothing changes case in state. No `MobileStatusBar`
+(Joel, 2026-10-05: "no, it shouldn't get a mobilestatusbar").
+
 ## What the PlayArea pass changed that a player can see
 
 Step 9 (2026-10-05), each a consequence of reading `gd` rather than a ruling:

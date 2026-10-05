@@ -17,7 +17,7 @@ import styles from './WordEntry.module.css'
  * Five empty slots when nothing's selected, so the entry row keeps its
  * footprint and reads as "spell a 5-letter word here."
  *
- * When `flash` is set and no new word is in progress, those letters show
+ * When `flash` is set and no new word is in progress, its letters show
  * for a beat in the flash's outcome color — the one that answer wears
  * everywhere else — driven by the PlayArea's flash timer. The flash is
  * suppressed the
@@ -47,7 +47,7 @@ export function WordEntry({
   // The flash takes over the row only while nothing new is being spelled
   // (the moment a tile is picked, currentWord wins).
   const showFlash =
-    currentWord.length === 0 && !!flash && flash.letters.length > 0
+    currentWord.length === 0 && !!flash && flash.tileIds.length > 0
   /** The outcome the slots wear, from whichever half of the answer is showing. */
   const outcome = verdict ?? (showFlash ? flash.outcome : null)
   const answering = outcome !== null
@@ -55,11 +55,9 @@ export function WordEntry({
   return (
     <div className={styles.row} aria-label="Current word">
       {Array.from({ length: 5 }, (_, i) => {
-        // Flash mode renders letters directly; otherwise map the
-        // in-progress tile ids to their glyphs.
-        const letter = showFlash ? flash.letters[i] : currentWord[i] !== undefined
-          ? letterOf(currentWord[i])
-          : undefined
+        // The flashed word's tiles while it shows, else the word being built.
+        const tileId = showFlash ? flash.tileIds[i] : currentWord[i]
+        const letter = tileId === undefined ? undefined : letterOf(tileId)
         const filled = letter !== undefined
         return (
           <button

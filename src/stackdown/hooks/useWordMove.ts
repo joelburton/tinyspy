@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
@@ -14,7 +14,7 @@ import { useCurrentWord } from './useCurrentWord'
 
 /** What `submit_word` puts in `data`: `result` decides whether the tiles leave
  *  the board or come back. */
-type WordAnswer = { result: 'accepted' | 'invalid'; word: string }
+type WordAnswer = { result: 'accepted' | 'invalid' }
 
 /**
  * The move: the word being built (`useCurrentWord`) and its trip to the server,
@@ -26,8 +26,9 @@ type WordAnswer = { result: 'accepted' | 'invalid'; word: string }
  *     tiles off the board until the beat ends — then they come home wearing the
  *     attention flash (`returnedTileIds`), so the eye follows them.
  *
- * `inFlight` is the one guard: a word still with the server refuses another
- * until it answers.
+ * The send runs as the Submit action's `run`, so the action's own `pending` is
+ * the one in-flight guard: a word still with the server refuses another until
+ * it answers.
  */
 export function useWordMove(gd: GGameData, localFeedbackSlot: FeedbackSlot) {
   const onBoardIds = useMemo(
@@ -35,19 +36,15 @@ export function useWordMove(gd: GGameData, localFeedbackSlot: FeedbackSlot) {
     [gd.me.board.tiles],
   )
   const currentWord = useCurrentWord(onBoardIds)
-  const [inFlight, setInFlight] = useState(false)
 
   const [flash, showFlash, clearFlash] = useMark<GWordFlash>(WORD_ANSWER_MS)
   const [refusedWord, showRefusedWord] = useMark<string[]>(WORD_ANSWER_MS)
   const [returnedMark, flashReturned] = useMark<{ ids: string[] }>(ATTENTION_FLASH_MS)
 
   async function submitWord(tileIds: string[]): Promise<void> {
-    if (inFlight) return
-    setInFlight(true)
     const res = await runRpc<WordAnswer>(
       db.rpc('submit_word', { p_game_id: gd.id, p_tile_ids: tileIds.map(Number) }),
     )
-    setInFlight(false)
     if (res.type === 'not-ok') {
       // The tiles come back to the board: nothing was cleared. A coop
       // teammate taking your tiles mid-flight is the one refusal a player
@@ -60,7 +57,7 @@ export function useWordMove(gd: GGameData, localFeedbackSlot: FeedbackSlot) {
       // The tiles clearing is the answer, so no message — and the move dismisses
       // the last result.
       localFeedbackSlot.dismiss()
-      showFlash({ letters: [...res.data.word.toUpperCase()], outcome: ANSWER_OUTCOME.accepted })
+      showFlash({ tileIds, outcome: ANSWER_OUTCOME.accepted })
       return
     } else if (res.type === 'ok' && res.data.result === 'invalid' && res.message !== null) {
       // NOT A WORD — an `ok`, because the rules were applied and no tile moved.
@@ -83,7 +80,6 @@ export function useWordMove(gd: GGameData, localFeedbackSlot: FeedbackSlot) {
   return {
     currentWord,
     submitWord,
-    inFlight,
     flash: flash?.value ?? null,
     clearFlash,
     isRefused: refusedWord !== null,

@@ -308,15 +308,15 @@ export type GHistoryView = {
 /**
  * THIS player's answer, shown in the entry's slots for a beat once the word is
  * submitted — the outcome `lib/answer.ts` gave the submission, which is the one
- * the log row and the pill are wearing for it too. The letters are passed
- * rather than tile ids because an accepted word's tiles have already left the
- * board.
+ * the log row and the pill are wearing for it too. Its tiles are ids, read
+ * against the puzzle's tiles, so an accepted word still has its letters after
+ * they have left the board.
  *
  * A teammate's word is NOT shown here. The entry row is this player's
  * workspace, and their answer is marked where it happened — on the board tiles
  * their word used.
  */
-export type GWordFlash = { letters: string[]; outcome: Outcome }
+export type GWordFlash = { tileIds: string[]; outcome: Outcome }
 
 /**
  * stackdown's per-game setup — collected by the start-game dialog, persisted to
