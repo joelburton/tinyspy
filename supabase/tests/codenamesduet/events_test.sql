@@ -66,7 +66,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select submit_clue((select id from g1), 'TOOLS', 2);
 select is(
   pg_temp.event_of((select id from g1), 'clue', 1, 'A'),
-  '{"took_turn":false,"clue_word":"TOOLS","clue_count":2,"clue_from_ai":false,
+  '{"took_turn":false,"clue_word":"tools","clue_count":2,"clue_from_ai":false,
     "guess_position":null,"guess_result":null}'::jsonb,
   'a clue is logged with its word and count, not the AI''s unless said, and takes no turn'
 );
@@ -123,7 +123,7 @@ select isnt(
 
 select pg_temp.envelope_is(
   submit_clue((select id from g1), 'HAMMER', 1, true),
-  '{"type":"ok","data":{"result":"clued","clue_word":"HAMMER","clue_count":1,
+  '{"type":"ok","data":{"result":"clued","clue_word":"hammer","clue_count":1,
     "clue_from_ai":true,"turn_number":2,"seat":"B"}}'::jsonb,
   'submit_clue answers with the clue as stored, provenance included'
 );

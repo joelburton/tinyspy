@@ -45,10 +45,8 @@ describe('codenamesduet ClueStrip — input tagging', () => {
     const { container } = render(
       <ClueStrip
         gameId="g1"
-        isClueGiver
-        isGuessPhase={false}
+        strip="myClue"
         currentClue={null}
-        inSuddenDeath={false}
         partner={PARTNER}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
@@ -68,10 +66,8 @@ describe('codenamesduet ClueStrip — the count', () => {
     const { container } = render(
       <ClueStrip
         gameId="g1"
-        isClueGiver
-        isGuessPhase={false}
+        strip="myClue"
         currentClue={null}
-        inSuddenDeath={false}
         partner={PARTNER}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
@@ -93,10 +89,8 @@ describe('codenamesduet ClueStrip — a clue from the AI', () => {
     const { container } = render(
       <ClueStrip
         gameId="g1"
-        isClueGiver
-        isGuessPhase={false}
+        strip="myClue"
         currentClue={null}
-        inSuddenDeath={false}
         partner={PARTNER}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
@@ -108,7 +102,7 @@ describe('codenamesduet ClueStrip — a clue from the AI', () => {
 
   async function askTheAi(container: HTMLElement, word: HTMLInputElement) {
     fireEvent.click(container.querySelector('button[data-action="act-suggest-clue"]')!)
-    await waitFor(() => expect(word).toHaveValue('WAVE'))
+    await waitFor(() => expect(word).toHaveValue('wave'))
   }
 
   /** What the form sent `submit_clue` as `p_clue_from_ai`. */
@@ -153,10 +147,8 @@ describe('codenamesduet ClueStrip — what it shows', () => {
     render(
       <ClueStrip
         gameId="g1"
-        isClueGiver
-        isGuessPhase={false}
+        strip="myClue"
         currentClue={null}
-        inSuddenDeath={false}
         partner={PARTNER}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
@@ -166,8 +158,8 @@ describe('codenamesduet ClueStrip — what it shows', () => {
 
   // Sudden death wins over every other state: no clue form, no Pass — the
   // strip says what the phase is instead.
-  it('is the sudden-death notice in sudden death, whoever holds the clue seat', () => {
-    const container = draw({ inSuddenDeath: true })
+  it('is the sudden-death notice in sudden death', () => {
+    const container = draw({ strip: 'suddenDeath' })
     expect(container).toHaveTextContent('Sudden death.')
     expect(container.querySelector('form')).toBeNull()
   })

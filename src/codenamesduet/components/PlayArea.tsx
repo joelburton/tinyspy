@@ -7,7 +7,6 @@ import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingM
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
-import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useTabRing } from '@/common/keyboard/useTabRing'
@@ -100,10 +99,6 @@ function PlayArea({
   // pass) and InfoCol's Stop — and while it holds anything the pill takes the
   // clue strip's place.
   const localFeedbackSlot = useFeedbackSlot('local')
-  // Any key is the player's next move, so it dismisses a gesture-cleared
-  // message; a keystroke aimed at the clue field never reaches it (see
-  // `useDismissLocalFeedbackOnKey`).
-  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // The ending's message, for the pill and the info column. Duet is a team of
   // two, so the game's ending is both players' and there is none of a

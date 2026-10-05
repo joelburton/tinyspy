@@ -166,15 +166,15 @@ describe('GameEventLog — the clue-giver picker', () => {
       'bea',
     ])
     // Team is the shared game — both turns on show.
-    expect(screen.getByText('2 MINE')).toBeInTheDocument()
-    expect(screen.getByText('2 THEIRS')).toBeInTheDocument()
+    expect(screen.getByText('MINE')).toBeInTheDocument()
+    expect(screen.getByText('THEIRS')).toBeInTheDocument()
   })
 
   it('narrows to the turns that player CLUED', async () => {
     renderLog({ events })
     await pickFilter('bea')
-    expect(screen.queryByText('2 MINE')).not.toBeInTheDocument()
-    expect(screen.getByText('2 THEIRS')).toBeInTheDocument()
+    expect(screen.queryByText('MINE')).not.toBeInTheDocument()
+    expect(screen.getByText('THEIRS')).toBeInTheDocument()
   })
 
   it('says the log is empty (not hidden) when a player has clued nothing', async () => {

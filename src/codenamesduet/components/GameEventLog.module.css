@@ -15,6 +15,12 @@
   letter-spacing: 0.03em;
 }
 
+/* The clue's own word, inside `.clueWord`: stored lowercase, drawn in capitals.
+ * Its own class, so the "Sudden death:" lead-in keeps its case. */
+/* @@ */ .clueText {
+  text-transform: uppercase;
+}
+
 /* The mark after a clue given exactly as the AI suggested it. Its color is that
  * answer's outcome, read off the `OUTCOME_TO_VERDICT_CLASS` class it wears beside this one —
  * `--verdict-line`, the tier legible on the page; `--verdict-ink` is the white
@@ -33,6 +39,8 @@
 /* @@ */ .guessWord {
   font-weight: 700;
   letter-spacing: 0.03em;
+  /* The words are stored lowercase; the capitals are drawn. */
+  text-transform: uppercase;
 }
 /* @@ */ .guessWord_G {
   color: var(--codenamesduet-agent);

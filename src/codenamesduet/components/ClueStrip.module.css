@@ -34,6 +34,8 @@
 /* The active clue, inline — prominent but sized to sit on the control line. */
 /* @@ */ .clueDisplay {
   font-size: 1.2rem;
+  /* The clue is stored lowercase; the capitals are drawn. */
+  text-transform: uppercase;
 }
 
 /* "Waiting for <peer> to …" (muted by the global `.muted` beside it); the
@@ -75,6 +77,8 @@
 /* @@ */ .wordInput {
   flex: 0 1 14rem;
   min-width: 6rem;
+  /* Typed lowercase, as the clue is stored; drawn in capitals. */
+  text-transform: uppercase;
 }
 
 /* Submit — holds its width + stays one line in the no-wrap row, like the AI

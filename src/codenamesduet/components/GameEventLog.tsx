@@ -111,7 +111,7 @@ export function GameEventLog({ gd, historyView }: Props) {
         g.result === 'A' && styles.guessWord_A,
       )}
     >
-      {g.word.toUpperCase()}
+      {g.word}
     </span>
   )
 
@@ -172,7 +172,7 @@ export function GameEventLog({ gd, historyView }: Props) {
               />
               <td className={gameEventLog.main}>
                 <span className={styles.clueWord}>
-                  {clue.clueCount} {clue.clueWord.toUpperCase()}
+                  {clue.clueCount} <span className={styles.clueText}>{clue.clueWord}</span>
                 </span>
                 {clue.clueFromAi && (
                   // The clue is exactly the AI's suggestion — in that answer's

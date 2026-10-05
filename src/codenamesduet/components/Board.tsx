@@ -46,18 +46,17 @@ type Props = {
   // The board takes my guess right now (BoardCol's `isInteractive`). A past
   // turn open on top of it makes the tiles inert too.
   isInteractive: boolean
-  // The position whose guess is in flight — dimmed until the reply — or null.
-  // BoardCol's, which dispatches the guess.
-  inFlightPos: number | null
-  // A click on a clickable tile. BoardCol owns `submit_guess`; this component
-  // only reports the position.
-  onGuess: (position: number) => void
+  // The tile whose guess is in flight — dimmed until its reveal lands — or null.
+  inFlightTile: GTile | null
+  // A click on a clickable tile. BoardCol owns the guess; this component only
+  // reports the tile.
+  onGuess: (tile: GTile) => void
   // The keyboard's selection cursor — the cell to ring — or null when it is
   // not drawn (see `useBoardSelectionCursor`).
   cursor: Cell | null
-  // The word the keyboard has picked, waiting for Enter — its position, drawn
-  // with the picked border — or null.
-  picked: number | null
+  // The tile the keyboard has picked, waiting for Enter — drawn with the picked
+  // border — or null.
+  pickedTile: GTile | null
   // A past turn's board is open: `tiles` is then its board, the frame rings
   // the board, and clicks fall through to the viewer's own exit.
   isViewingHistory: boolean
@@ -91,10 +90,10 @@ export function Board({
   partner,
   showsPartnerKey,
   isInteractive,
-  inFlightPos,
+  inFlightTile,
   onGuess,
   cursor,
-  picked,
+  pickedTile,
   isViewingHistory,
   litTileIds,
   isWaitingForTurn,
@@ -183,7 +182,7 @@ export function Board({
 
           // Clickable while I am guessing and the builder says I may guess it.
           const clickable = isGuessing && t.guessable
-          const isInFlight = inFlightPos === position
+          const isInFlight = inFlightTile?.id === t.id
 
           return (
             <button
@@ -195,7 +194,7 @@ export function Board({
                 styles.overlayTile,
                 bgCls,
                 // The keyboard's pick, waiting for Enter, and its cursor.
-                picked === position && shared.picked,
+                pickedTile?.id === t.id && shared.picked,
                 cursor !== null && positionAt(cursor.x, cursor.y, BOARD_SHAPE.numCols) === position && shared.selectionCursor,
                 isInFlight && shared.dimInFlight,
                 flashing.has(position) && shared.attentionFlash,
@@ -204,7 +203,7 @@ export function Board({
                 litTileIds.has(t.id) && styles.historyTile,
               )}
               disabled={!clickable || isInFlight}
-              onClick={() => clickable && onGuess(position)}
+              onClick={() => clickable && onGuess(t)}
             >
               {/* My partner's key-card square — top-right, once the game is
                   over and I have asked to see it. */}

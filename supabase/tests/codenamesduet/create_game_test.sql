@@ -448,8 +448,9 @@ select is(
 -- rotated, so the first three cells are a stable handle you can match by
 -- glancing at the grid. Words are randomly drawn from the pool so we
 -- can't pin the exact words; assert the shape and that they're positions 0-2.
--- Three parts, two dashes, all uppercase. NOT `^[A-Z]+-[A-Z]+-[A-Z]+$`: the
--- pool holds multi-word entries ("BIG BANG", "ST.PATRICK"), so a per-part
+-- Three parts, two dashes, all uppercase: the words are stored lowercase and
+-- the title, drawn text, is in capitals. NOT `^[A-Z]+-[A-Z]+-[A-Z]+$`: the
+-- pool holds multi-word entries ("big bang", "st.patrick"), so a per-part
 -- letters-only pattern fails on whichever draw happens to include one.
 select ok(
   (select title = upper(title)
@@ -459,7 +460,7 @@ select ok(
 );
 select ok(
   (select title = (
-     select string_agg(w, '-' order by pos)
+     select upper(string_agg(w, '-' order by pos))
        from (select word as w, position as pos from codenamesduet.words
               where game_id = created.id
               order by position limit 3) first3)
@@ -473,7 +474,7 @@ select ok(
 -- where they happen to coincide.
 select ok(
   (select title <> (
-     select string_agg(w, '-' order by w)
+     select upper(string_agg(w, '-' order by w))
        from (select word as w from codenamesduet.words
               where game_id = created.id
               order by word limit 3) alpha)

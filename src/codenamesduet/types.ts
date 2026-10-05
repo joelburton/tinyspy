@@ -405,3 +405,15 @@ export type GHistoryView = {
   // The banner's text, or null when live.
   label: string | null
 }
+
+/**
+ * What the clue strip under the board shows — decided once, in `BoardCol`, so
+ * the strip draws it and decides nothing:
+ *
+ *   suddenDeath      the sudden-death notice: nobody clues
+ *   myClue           the clue form: I hold the clue seat, no clue yet
+ *   waitingForClue   waiting for my partner's clue
+ *   myGuess          the clue, and Pass: I am guessing from it
+ *   partnerGuessing  the clue, and my partner guessing from it
+ */
+export type GClueStrip = 'suddenDeath' | 'myClue' | 'waitingForClue' | 'myGuess' | 'partnerGuessing'

@@ -730,7 +730,8 @@ begin
   -- The 25 words are on the shared board every player sees, so naming the game
   -- after three of them leaks nothing; what IS secret is the key card (who's
   -- an agent, who's the assassin), and that never touches the title.
-  game_title := array_to_string(picked_words[1:3], '-');
+  -- The words are stored lowercase; the title is drawn text, in capitals.
+  game_title := upper(array_to_string(picked_words[1:3], '-'));
 
   -- The saved default strips first_clue_giver_user_id — who opens this round
   -- is a per-game decision, not a club preference. The dialog's auto-pick
@@ -923,7 +924,8 @@ begin
     clue_word, clue_count, clue_from_ai
   ) values (
     p_game_id, caller_id, 'clue', false, g.turn_number, caller_seat,
-    p_clue_word, p_clue_count, p_clue_from_ai
+    -- Stored lowercase, as the words are; the capitals are drawn.
+    lower(p_clue_word), p_clue_count, p_clue_from_ai
   )
   returning * into stored;
 

@@ -138,7 +138,7 @@ select is(
 select submit_clue((select id from g), 'WAVE', 2);
 select is(
   (select get_clue_context((select id from g)) -> 'data' -> 'previous_clues'),
-  '[{"clue_word": "WAVE", "clue_count": 2, "seat": "A", "turn_number": 1}]'::jsonb,
+  '[{"clue_word": "wave", "clue_count": 2, "seat": "A", "turn_number": 1}]'::jsonb,
   'previous_clues carries a clue given, as word, count, seat and turn'
 );
 

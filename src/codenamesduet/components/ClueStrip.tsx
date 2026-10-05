@@ -14,7 +14,7 @@ import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useOfferComponentKeyGroups } from '@/common/keyboard/offeredComponentKeyGroupsStore'
 import { db } from '../db'
-import type { GPlayer, GSuggestState, GTurns } from '../types'
+import type { GClueStrip, GPlayer, GSuggestState, GTurns } from '../types'
 
 /** A seat at the table, as the RPCs answer it. Seat A gives the first clue. */
 type Seat = 'A' | 'B'
@@ -51,14 +51,10 @@ type PassAnswer = {
 
 type ClueStripProps = {
   gameId: string
-  // I hold the clue seat this turn.
-  isClueGiver: boolean
-  // A clue is in for the current turn.
-  isGuessPhase: boolean
-  // The current turn's clue, if one is in.
+  // What the strip shows (BoardCol decides).
+  strip: GClueStrip
+  // This turn's clue, once it is in.
   currentClue: Clue | null
-  // The turn budget is spent.
-  inSuddenDeath: boolean
   // The other player, named in the waiting and guessing lines.
   partner: GPlayer
   // PlayArea's below-board slot: a refused clue or pass is shown into it as a
@@ -77,16 +73,14 @@ type SuggestedClue = {
 } | null
 
 /**
- * The codenamesduet clue UI, rendered in BoardCol's below-board slot. Which line
- * shows depends on who is looking and where in the turn we are:
+ * The codenamesduet clue UI, rendered in BoardCol's below-board slot. One line
+ * per `strip` (`GClueStrip`):
  *
- *   sudden death    → the "Sudden death" notice
- *   guess phase &&
- *     guesser       → "WORD · N" + the Pass button
- *     clue-giver    → "WORD · N" + "● <peer> guessing"
- *   clue phase &&
- *     clue-giver    → the clue form: count + word + Submit + AI
- *     guesser       → "Waiting for <peer> to give a clue…"
+ *   suddenDeath      → the "Sudden death" notice
+ *   myGuess          → "WORD · N" + the Pass button
+ *   partnerGuessing  → "WORD · N" + "● <partner> guessing"
+ *   myClue           → the clue form: count + word + Submit + AI
+ *   waitingForClue   → "Waiting for <partner> to give a clue…"
  *
  * Every state is exactly ONE line, so the fixed-height slot holds and the board
  * above never shifts (docs/ui.md → Layout stability). A refused submit or pass
@@ -96,15 +90,13 @@ type SuggestedClue = {
  */
 export function ClueStrip({
   gameId,
-  isClueGiver,
-  isGuessPhase,
+  strip,
   currentClue,
-  inSuddenDeath,
   partner,
   localFeedbackSlot,
   onSuggestionChange,
 }: ClueStripProps) {
-  if (inSuddenDeath) {
+  if (strip === 'suddenDeath') {
     return (
       <div className={cls(styles.clueStrip, styles.suddenDeath)}>
         <strong>Sudden death.</strong> No more clues — any non-green reveal loses.
@@ -112,19 +104,19 @@ export function ClueStrip({
     )
   }
 
-  if (isGuessPhase && currentClue) {
+  if ((strip === 'myGuess' || strip === 'partnerGuessing') && currentClue) {
     return (
       <div className={styles.clueStrip}>
         {/* No "Your clue:" label — the bold WORD · N beside the Pass button is
             self-evidently the clue, and the row is tight on a phone. */}
         <ClueDisplay clue={currentClue} />
-        {!isClueGiver && <PassButton gameId={gameId} localFeedbackSlot={localFeedbackSlot} />}
-        {isClueGiver && <PeerActivity peer={partner} activity="guessing" />}
+        {strip === 'myGuess' && <PassButton gameId={gameId} localFeedbackSlot={localFeedbackSlot} />}
+        {strip === 'partnerGuessing' && <PeerActivity peer={partner} activity="guessing" />}
       </div>
     )
   }
 
-  if (isClueGiver) {
+  if (strip === 'myClue') {
     return (
       <ClueForm
         gameId={gameId}
@@ -144,7 +136,7 @@ export function ClueStrip({
 function ClueDisplay({ clue }: { clue: Clue }) {
   return (
     <span className={styles.clueDisplay}>
-      <strong>{clue.word.toUpperCase()}</strong> · {clue.count}
+      <strong>{clue.word}</strong> · {clue.count}
     </span>
   )
 }
@@ -199,8 +191,9 @@ function PeerWaiting({
  * The server (`submit_clue`) judges the move — the right seat, no clue in yet,
  * the game running; this form checks only that both fields are filled.
  *
- * **Uppercase as typed.** Clues are shown in capitals ("BIRD · 3"), so the word
- * input uppercases on every change, and so does the AI's suggestion.
+ * **Lowercase in state, capitals on screen.** A clue is stored lowercase, as
+ * the board's words are, so the word input keeps what is typed lowercase, and
+ * so does the AI's suggestion; CSS draws both in capitals ("BIRD · 3").
  */
 function ClueForm({
   gameId,
@@ -299,12 +292,12 @@ function ClueForm({
       onSuggestionChange({ status: 'error', message: res.message })
     } else if (res.type === 'ok' && res.data?.result === 'suggested') {
       const s = res.data.suggestion
-      const upper = s.clue.toUpperCase()
-      setWord(upper)
+      const suggested = s.clue.toLowerCase()
+      setWord(suggested)
       setCount(String(s.count))
-      setAiClue({ word: upper.trim(), count: s.count })
-      console.log('[ClueHint] response = ready:', upper, s.count)
-      onSuggestionChange({ status: 'ready', word: upper, count: s.count, reasoning: s.reasoning })
+      setAiClue({ word: suggested.trim(), count: s.count })
+      console.log('[ClueHint] response = ready:', suggested, s.count)
+      onSuggestionChange({ status: 'ready', word: suggested, count: s.count, reasoning: s.reasoning })
     } else {
       reportUnhandled('codenamesduet-suggest-clue', res)
       onSuggestionChange(null)
@@ -354,7 +347,7 @@ function ClueForm({
           type="text"
           placeholder="word"
           value={word}
-          onChange={(e) => setWord(e.target.value.toUpperCase())}
+          onChange={(e) => setWord(e.target.value.toLowerCase())}
           disabled={eitherBusy}
           required
           className={styles.wordInput}

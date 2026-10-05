@@ -48,10 +48,10 @@ function props(over: Partial<ComponentProps<typeof Board>> = {}, viewer = 'u1', 
     partner: gd.partner,
     showsPartnerKey: false,
     isInteractive: true,
-    inFlightPos: null,
+    inFlightTile: null,
     onGuess: vi.fn(),
     cursor: null,
-    picked: null,
+    pickedTile: null,
     isViewingHistory: false,
     litTileIds: new Set<string>(),
     isWaitingForTurn: false,
@@ -158,7 +158,7 @@ describe('codenamesduet Board — the board marks', () => {
   const grid = (c: HTMLElement) => c.querySelector('[data-board] > div') as HTMLElement
 
   it('dims the tile whose guess is in flight, and no other', () => {
-    const c = drawWith({ inFlightPos: 3 })
+    const c = drawWith({ inFlightTile: props().tiles[3]! })
     const dimmed = [...c.querySelectorAll('button')].filter((b) => b.classList.contains(shared.dimInFlight))
     expect(dimmed.map((b) => b.textContent)).toEqual(['word3'])
   })

@@ -143,7 +143,7 @@ select set_config('request.jwt.claims', '', true);
 select is(
   pg_temp.gd() -> 'turns',
   jsonb_build_object('holder', (select bea from ids), 'num', 1,
-    'currClue', jsonb_build_object('word', 'ONE', 'count', 1, 'fromAi', false,
+    'currClue', jsonb_build_object('word', 'one', 'count', 1, 'fromAi', false,
                                    'userId', (select ada from ids))),
   'the clue is the turn''s while bea guesses, and the move is hers');
 
