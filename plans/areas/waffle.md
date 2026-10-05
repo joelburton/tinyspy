@@ -43,7 +43,7 @@ last column is what the conversion will do, filled in as it does it.
 | `players_state` view, with `_player_board_for`, `_player_colors_for` and `_board_visible` — each player's board and colors, null for a compete rival mid-race | `auth.uid()`, `ended_at` | **dropped** (2026-10-05): the blob carries every board, the seat rule to withhold a rival's mid-race; the column grant on `players.board` stays |
 | `games_select`, `players_select` — club-member reads | neither | **kept** (2026-10-05) |
 | `_write_statuses` — `game_status` {max_swaps, par_swaps}, `player_status` {swaps_used, player_ended_reason}, `clubpage_info` {swaps_used, max_swaps, band, winner_user_id, winner_swaps_count} | neither | **dropped** (2026-10-05): `_rebuild_data_cols` writes the blobs after every move |
-| the postgres-changes subscription on `games`, `players` and `events` (`useRealtimeRefetch` in `hooks/useGame.ts`), and its reads of the two views and `events` | — | the frontend's, at its conversion: the page reads `game_data` |
+| the postgres-changes subscription on `games`, `players` and `events` (`useRealtimeRefetch` in `hooks/useGame.ts`), and its reads of the two views and `events` | — | **gone** (2026-10-05): `useGame` is `makeGameData` over `game_data`, with no read and no subscription; its seat rule takes over the events arm |
 
 **The status keys the page shows:** the leaderboard's per-player swaps (the
 opponent strip), `winner_user_id` (the compete verdict), `max_swaps` /
@@ -149,10 +149,14 @@ The rulings behind it (2026-10-05):
   pass moves its readers onto `gd`. `tsc -b` reports 77 errors in the folder
   before the conversion's frontend steps.
 - **Step 6 (2026-10-05):** waffle joins `CONVERTED_GAMES` in
-  `src/guards/gameTypes.test.ts` once the last old shapes are gone: `Player`,
-  `WafflePlayerState`, `WaffleGame` and `EventRow` with `useGame` (step 7),
-  `lib/history.ts`'s `HistorySnapshot` with the pass that rewrites its
-  readers.
+  `src/guards/gameTypes.test.ts` once the last old shapes are gone:
+  `WafflePlayerState`, `EventRow` and `lib/history.ts`'s `HistorySnapshot`
+  with the PlayArea pass, which moves their readers onto `gd`.
+- **Step 7 (2026-10-05):** `useGame` returns `{gd}`, so `PlayArea` (and its
+  test, which mocks the old hook) does not compile until step 9. `Player` and
+  `WaffleGame` went; `WafflePlayerState` and `EventRow` stay in
+  `hooks/useGame.ts` for the components, `lib/history.ts` (which replays
+  25-letter strings) and the printer.
 
 ## Closing
 

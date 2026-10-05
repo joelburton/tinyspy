@@ -73,8 +73,6 @@ const KNOWN: string[] = [
   // → strands
   'src/strands/components/PlayArea.tsx › HintAnswer',
   'src/strands/pdf/model.ts › FoundEvent',
-  // → waffle
-  'src/waffle/manifest.ts › summaryFor',
 ]
 
 const ROOTS = ['src', 'supabase/functions', 'e2e', 'scripts']

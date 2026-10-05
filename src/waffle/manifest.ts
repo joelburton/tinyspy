@@ -2,13 +2,15 @@
 
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
-import type { SummaryData } from '@/common/manifest/summaryData'
 import { db } from './db'
-import { count, dictLabel, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/summary'
+import { count, dictLabel, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
 import { runEdgeFn } from '@/common/supabase/dbResult'
+import type { GameEndedReason } from '@/common/terminal/gameEnding'
 import { DEFAULT_WAFFLE_SETUP } from './lib/setup'
-import type { GSetup } from './types'
+import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -64,63 +66,69 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-/** One-line label for the ClubPage games list — pure + synchronous.
- *  The coop/compete mode is shown by the card's <ModeBadge>, so it's no
- *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
+/** Why a game ended with nobody winning. */
+const LOSS: Partial<Record<GameEndedReason, string>> = {
+  resource_exhausted: 'out of swaps',
+  timeout: 'out of time',
+  conceded: 'all conceded',
+}
+
 /**
- * waffle's summary. The DICT band rides on every row: a waffle at
- * "Universal" and one at "Expert" are barely the same game, so the band is the
- * single most useful thing about a game you're deciding whether to return to.
- *
- * Coop shows the swap budget; compete doesn't — each racer has their own board
- * and their own count, and this line is club-wide readable.
+ * Coop's club line. The DICT band rides on every row: a waffle at "Universal"
+ * and one at "Expert" are barely the same game, so the band is the single most
+ * useful thing about a game you're deciding whether to return to. Coop shows
+ * the swaps the team has left.
  */
-function summaryFor(mode: 'coop' | 'compete') {
-  return (row: SummaryData): string => {
-    const s = (row.status ?? {}) as {
-      winner_username?: string; reason?: string
-      // Coop only — compete never updates these (a live count leaks a racer's
-      // progress), so they're absent there rather than a permanent 0.
-      swaps_used?: number; max_swaps?: number
-      /** The WINNER's own count, written at terminal (see _maybe_finish_compete). */
-      winner_swaps?: number
-    }
-    const dict = dictLabel(setupNum(row.setup, 'difficulty'))
-    const left =
-      mode === 'coop' && s.max_swaps != null && s.swaps_used != null
-        ? count(s.max_swaps - s.swaps_used, 'swap left', 'swaps left')
-        : null
-    switch (row.play_state) {
-      case 'playing':
-        return statusLine(verdict('Playing'), left, dict)
-      case 'won':
-        return statusLine(verdict('Won'), left, dict)
-      case 'won_compete':
-        return statusLine(wonBy(s.winner_username), count(s.winner_swaps, 'swap', 'swaps'), dict)
-      case 'lost':
-        // Coop: the shared board ran out of swaps, or the clock beat it.
-        return statusLine(verdict('Lost', s.reason === 'timeout' ? 'out of time' : 'out of swaps'), dict)
-      case 'lost_compete':
-        // "all conceded" already says nobody won; the others need spelling out.
-        return s.reason === 'conceded'
-          ? verdict('Lost', 'all conceded')
-          : statusLine(verdict('Lost', COMPETE_LOSS[s.reason ?? ''] ?? null), 'no winner')
-      case 'ended':
-        // Manual end — neutral. No 'answer revealed' variant: revealing is a
-        // display decision on an already-ended game, and the club list
-        // describes the ENDING, not what the players have since looked at.
-        return statusLine(verdict('Ended', null), dict)
-      default:
-        return row.play_state
-    }
+function makeCoopLabel(summary: GSummaryData): string {
+  const dict = dictLabel(summary.band)
+  // Coop always has a team.
+  const left = count(summary.maxSwaps - summary.team!.nSwapsUsed, 'swap left', 'swaps left')
+  if (summary.ending === null) return statusLine(verdict('Playing'), left, dict)
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won':
+      return statusLine(verdict('Won'), left, dict)
+    case 'lost':
+      // The shared board ran out of swaps, or the clock beat it.
+      return statusLine(verdict('Lost', LOSS[summary.ending.reason] ?? null), dict)
+    // A Stop. No 'answer revealed' variant: revealing is a display decision on
+    // an already-ended game, and the club list describes the ENDING, not what
+    // the players have since looked at.
+    case 'neutral':
+      return statusLine(verdict('Ended'), dict)
+    default:
+      return outcome
   }
 }
 
-/** Why a compete race ended with nobody winning (waffle._maybe_finish_compete). */
-const COMPETE_LOSS: Record<string, string> = {
-  timeout: 'out of time',
-  exhausted: 'out of swaps',
-  conceded: 'all conceded',
+/**
+ * Compete's club line. No progress: each racer has their own board and their
+ * own count, and this line is club-wide readable. Once won, the winner and
+ * their count.
+ */
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
+  const dict = dictLabel(summary.band)
+  if (summary.ending === null) return statusLine(verdict('Playing'), dict)
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won': {
+      const winner = summary.ending.winner
+      const name = winner === null ? undefined : memberById(members, winner)?.username
+      return statusLine(wonBy(name), count(summary.nWinnerSwaps, 'swap', 'swaps'), dict)
+    }
+    case 'lost':
+      // "all conceded" already says nobody won; the others need spelling out.
+      return summary.ending.reason === 'conceded'
+        ? verdict('Lost', LOSS.conceded)
+        : statusLine(verdict('Lost', LOSS[summary.ending.reason] ?? null), 'no winner')
+    // A Stop.
+    case 'neutral':
+      return statusLine(verdict('Ended'), dict)
+    default:
+      return outcome
+  }
 }
 
 // Single source of truth for this game's user-facing brand name —
@@ -155,7 +163,7 @@ export const waffleCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: summaryFor('coop'),
+  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
 
   submitTimeout,
   stopGame,
@@ -189,7 +197,7 @@ export const waffleCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  summaryFor: summaryFor('compete'),
+  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
 
   submitTimeout,
   stopGame,

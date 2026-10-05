@@ -1,20 +1,14 @@
-// cs-fixed-outcome-fix
+// cs-unmet
 
-import { useState } from 'react'
-import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
-import type { Member } from '@/common/members/member'
-import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnvelope } from '@/common/supabase/envelope'
-import { db } from '../db'
-
-/** A waffle player. No fixed seats — every game_player can act. */
-export type Player = Member
+import { useMemo } from 'react'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import { makeSetupRows } from '../lib/setupRows'
+import type { GEvent, GGameData, GGameDataRaw, GPlayer } from '../types'
 
 /**
- * Per-player working state, projected from `waffle.players_state`.
- * `board` / `colors` are NULL for a compete opponent mid-game (the
- * view hides them until terminal); for your own row, and in coop,
- * they're always present.
+ * One player's row as the components read it before the page blobs. Nothing
+ * builds one any more; it goes with the PlayArea pass, which moves its readers
+ * onto `gd.players`.
  */
 export type WafflePlayerState = {
   user_id: string
@@ -26,153 +20,106 @@ export type WafflePlayerState = {
 }
 
 /**
- * The game header, projected from `waffle.games_state`. `solution`
- * visibility is mode-aware (see `waffle._solution_for`): COOP exposes it
- * during play (the turn-history viewer recomputes past boards' colors on
- * the FE, which needs the answer); COMPETE keeps it NULL until terminal.
- */
-export type WaffleGame = {
-  id: string
-  mode: 'coop' | 'compete'
-  scramble: string
-  par_swaps: number
-  max_swaps: number
-  solution: string | null
-}
-
-/**
- * One entry in the coop move log (`waffle.events`). Only coop games
- * write these, so the array is empty in compete. `letter_a`/`letter_b`
- * are the letters that sat on `pos_a`/`pos_b` before the swap.
+ * One row of `waffle.events` as the components, `lib/history.ts` and the
+ * printer read it before the page blobs. Nothing builds one any more; it goes
+ * with the PlayArea pass, which moves its readers onto `gd.events`.
  */
 export type EventRow = {
   user_id: string
-  /** The row's own id, and the order of play: the database hands them out in
-   *  the order the rows were written, which is what the read below orders by.
-   *  How many swaps a player has spent is `players.swaps_used`, not a count of
-   *  these. */
   id: number
   pos_a: number
   pos_b: number
   letter_a: string
   letter_b: string
-  /** The board's 25-char feedback AFTER this swap, written by `submit_swap`.
-   *  Stored rather than worked out here: coloring needs the solution, and
-   *  making the browser hold it is what this column exists to stop. */
   colors: string
 }
 
 /**
- * waffle's per-gametype data hook — the refetch-only realtime
- * pattern (Pattern A). Every move flows through `waffle.submit_swap`,
- * which writes `waffle.players` rows (in coop, every player's row);
- * those propagate to peers via the standard postgres-changes
- * subscription, and we refetch the views. Subscribes to the base
- * tables (Realtime watches tables, not views); reads the views (the
- * only path to the gated solution + visibility-aware board/colors).
+ * The seat rule: what a racer may not see yet. Mid-race in compete, a rival's
+ * swaps and board are their strategy — replaying a rival's swaps from the
+ * shared deal rebuilds their board, whose greens are correct letter positions
+ * — so their rows leave the log and their board is null; the game's end opens
+ * everything. Coop withholds nothing: one board, one team.
  */
-export function useGame(gameId: string): {
-  game: WaffleGame | null
-  players: WafflePlayerState[]
-  swaps: EventRow[]
-  loading: boolean
-  /** Set when a read FAILED, which is not the same as the game being absent.
-   *  The surface renders this instead of "Game not found." */
-  failure: NotOkEnvelope | null
-} {
-  const [game, setGame] = useState<WaffleGame | null>(null)
-  const [players, setPlayers] = useState<WafflePlayerState[]>([])
-  const [swaps, setSwaps] = useState<EventRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
+function maySeeRival(raw: GGameDataRaw): boolean {
+  return raw.coop || raw.ended
+}
 
-  useRealtimeRefetch({
-    tables: [
-      { schema: 'waffle', table: 'games', filter: `id=eq.${gameId}` },
-      { schema: 'waffle', table: 'players', filter: `game_id=eq.${gameId}` },
-      { schema: 'waffle', table: 'events', filter: `game_id=eq.${gameId}` },
-    ],
-    channelPrefix: 'waffle',
-    id: gameId,
-    load: async ({ isCurrent }) => {
-      const [gameRes, playersRes, swapsRes] = await Promise.all([
-        // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
-        // so this is 0 or 1 of them.
-        readRows(
-          db
-            .from('games_state')
-            .select('id, mode, scramble, par_swaps, max_swaps, solution')
-            .eq('id', gameId),
-        ),
-        readRows(
-          db
-            .from('players_state')
-            .select('user_id, board, swaps_used, solved, solved_at, colors')
-            .eq('game_id', gameId),
-        ),
-        // The move log (coop only; empty in compete). Read straight from
-        // the base table — it has no gated columns.
-        readRows(
-          db
-            .from('events')
-            .select('id, user_id, pos_a, pos_b, letter_a, letter_b, colors')
-            .eq('game_id', gameId)
-            .order('id', { ascending: true }),
-        ),
-      ])
-      if (!isCurrent()) return
+/**
+ * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
+ * reads what the surface would.
+ */
+export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
+  const seeRival = maySeeRival(raw)
+  const isMine = (id: string) => id === myId
 
-      // A read can only fail as a FAULT — `readRows` never authors anything
-      // else, and it has already logged the failure and raised the modal. What
-      // is left is the sentence BEHIND it, plus a line naming which of the reads
-      // it was: "something didn't load" is not a fact anyone can act on.
-      //
-      // One branch each rather than one combined test, because WHICH read failed
-      // is the only thing the player's sentence cannot say.
-      if (gameRes.type === 'not-ok') {
-        setFailure(gameRes)
-        setLoading(false)
-        return
-      }
-      if (playersRes.type === 'not-ok') {
-        setFailure(playersRes)
-        setLoading(false)
-        return
-      }
-      if (swapsRes.type === 'not-ok') {
-        setFailure(swapsRes)
-        setLoading(false)
-        return
-      }
-      // A load that worked clears a previous one's failure: this refetches on
-      // every realtime event, so an outage that ends should take its sentence
-      // with it rather than leaving the surface behind a stale explanation.
-      setFailure(null)
+  const players: GPlayer[] = raw.players.map((p) => ({
+    ...p,
+    board: seeRival || isMine(p.id) ? p.board : null,
+  }))
+  const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
-      // ZERO ROWS is the caller's to read: no game with that id, or one this
-      // club cannot see.
-      const row = gameRes.data[0]
-      if (!row) {
-        setGame(null)
-        setPlayers([])
-        setSwaps([])
-        setLoading(false)
-        return
-      }
+  // Links that cannot miss get a bare lookup; an ending's `by` may be null for
+  // a timeout.
+  const playerOf = (id: string | null) => (id === null ? null : playersById[id]!)
 
-      setGame({
-        id: row.id as string,
-        mode: row.mode as 'coop' | 'compete',
-        scramble: row.scramble as string,
-        par_swaps: row.par_swaps as number,
-        max_swaps: row.max_swaps as number,
-        solution: (row.solution as string | null) ?? null,
-      })
-      setPlayers(playersRes.data as WafflePlayerState[])
-      setSwaps(swapsRes.data as EventRow[])
-      setLoading(false)
+  // Every swap is a seated player's: a player's rows go with their profile
+  // (`on delete cascade`), so the lookup cannot miss.
+  const events: GEvent[] = raw.events
+    .filter((e) => seeRival || isMine(e.userId))
+    .map(({ userId, ...row }) => ({ ...row, by: playersById[userId]! }))
+
+  // The gate has checked that I am seated, and my own board is never withheld.
+  const me = playersById[myId] as GGameData['me']
+  // What the state line shows: the team's count where the game has one, else
+  // my own (plans/team-facts.md).
+  const teamOrMe = raw.team ?? me
+
+  const { turns, ending, ...rest } = raw
+  return {
+    ...rest,
+    setupRows: makeSetupRows(raw.setup, raw.mode, players, raw.puzzle.parSwaps),
+    turns: turns === null ? null : { holder: playersById[turns.holder]! },
+    ending: ending === null
+      ? null
+      : {
+        reason: ending.reason,
+        detail: ending.detail,
+        by: playerOf(ending.by),
+        winner: playerOf(ending.winner),
+      },
+    events,
+    players,
+    playersById,
+    me,
+    stateLineData: {
+      nSwapsUsed: teamOrMe.nSwapsUsed,
+      maxSwaps: me.maxSwaps,
+      parSwaps: raw.puzzle.parSwaps,
     },
-  })
+  }
+}
 
-  return { game, players, swaps, loading, failure }
+/**
+ * Per-gametype data hook for waffle (both modes share it): `gd`, built from
+ * the `game_data` blob the page was handed and who I am. No reads and no
+ * subscription: the page re-reads the blob on every move, and this is a pure
+ * function of it (plans/seat-view.md → The page is written, not assembled).
+ *
+ * A game whose builder has not written a blob yet cannot be drawn; the throw
+ * lands in `PlayAreaErrorBoundary`'s card.
+ *
+ * The cross-cutting machinery (presence, manual-pause, timer) lives on
+ * `useCommonGame` inside `GamePage` — see `src/common/game-page/useCommonGame.ts`.
+ */
+export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
+  const raw = ctx.gameData as GGameDataRaw | null
+  if (raw === null) {
+    throw new Error(
+      `waffle: game ${ctx.cg.id} has no game_data; run waffle._rebuild_data_cols_for_all()`)
+  }
+  const myId = ctx.auth.user.id
+  // Rebuilt when the page hands down a new blob, and not on every render.
+  const gd = useMemo(() => makeGameData(raw, myId), [raw, myId])
+  return { gd }
 }

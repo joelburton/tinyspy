@@ -207,25 +207,22 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       ['ended', { reason: 'manual' }, 'manual end'],
     ],
   },
+  // waffle._make_json_summary_data: `team` holds coop's swaps and is null in compete; the
+  // winner's count is compete's alone; the band is the setup's.
   waffle: {
-    playing: { swaps_used: 4, max_swaps: 12 },
-    setup: { difficulty: 3 },
-    shared: [
-      // No 'revealed' case: the mid-game give-up that wrote it is gone
-      // (2026-08-03) — revealing is a display decision on an already-ended
-      // game now, so the only reason a manual end can carry is 'manual'.
-      ['ended', { reason: 'manual' }, 'manual end'],
-    ],
+    live: { team: { nSwapsUsed: 4 }, maxSwaps: 12, band: 3, nWinnerSwaps: null },
     coop: [
-      ['won', { swaps_used: 9, max_swaps: 12 }, 'solved'],
-      ['lost', { reason: 'exhausted' }, 'out of swaps'],
-      ['lost', { reason: 'timeout' }, 'timeout'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: { nSwapsUsed: 9 }, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'solved'],
+      [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'exhausted' }, { team: { nSwapsUsed: 12 }, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'out of swaps'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nSwapsUsed: 5 }, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nSwapsUsed: 5 }, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'Stop'],
     ],
     compete: [
-      ['won_compete', { reason: 'solved', winner_swaps: 8, ...W }, 'someone won'],
-      ['lost_compete', { reason: 'exhausted' }, 'everyone out of swaps'],
-      ['lost_compete', { reason: 'timeout' }, 'timeout'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winner: 'u-alice' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: 8 }, 'someone won'],
+      [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'exhausted' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'everyone out of swaps'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'Stop'],
     ],
   },
   // wordle._make_json_summary_data: `team` holds the used count in coop and is null in compete
