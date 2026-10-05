@@ -25,7 +25,7 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
     // No verb: the dot names who, the word is the news, the count is its
     // length. "played" earned no room in the header's ~26 phone characters.
     case 'accepted_peer':
-      return { outcome: 'won', text: `${answer.word.toUpperCase()} (${answer.length})` }
+      return { outcome: 'won', text: `${answer.word.toUpperCase()} (${answer.word.length})` }
 
     case 'already_found':
       return { outcome: 'warning', text: `${answer.word.toUpperCase()} — already found` }
@@ -89,5 +89,21 @@ export function eventToOutcome(row: LoggedGuess): Outcome {
  * is not the viewer's own.
  */
 export function peerAnswerMessage(row: LoggedGuess): AnswerMessage {
-  return answerMessage({ answerType: 'accepted_peer', word: row.word, length: row.word.length })
+  return answerMessage({ answerType: 'accepted_peer', word: row.word })
+}
+
+/**
+ * What a rejected row says in the log and on the printout, in their terse
+ * voice. The pill that fired at submit time said more; this is the durable
+ * one-word record. A rejected row with no reason is the dictionary's refusal.
+ */
+export function getRejectLabel(reason: GEvent['reason']): string {
+  switch (reason ?? 'not_a_word') {
+    case 'missing_base':
+      return 'no base'
+    case 'too_short':
+      return 'too short'
+    case 'not_a_word':
+      return 'not a word'
+  }
 }

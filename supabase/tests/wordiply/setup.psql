@@ -34,7 +34,7 @@
 -- A guess of char-length L contributes:
 --   length_score(L) = round(100 * L / 7)   -- clamped to [0,100]
 -- so length_score(7)=100, (6)=86, (5)=71, (4)=57, (3)=43.
--- letter_count = the SUM of every guess's length (the whole track).
+-- n_letters = the SUM of every guess's length (the whole track).
 -- The winner_test builds its length-score / letter-count ties off these.
 
 create function pg_temp.wordiply_board()

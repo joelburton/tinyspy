@@ -425,10 +425,10 @@ select wordiply.submit_guess((select id from fifth_g), 'arxz');
 create temp table fifth_ret on commit drop as
 select wordiply.submit_guess((select id from fifth_g), 'arxw') as ret;
 
-select is(
-  (select (ret->'data'->>'terminal')::boolean from fifth_ret),
-  true,
-  'fifth word as last act: the answer reports the game ended'
+select isnt(
+  (select ended_at from common.games where id = (select id from fifth_g)),
+  null,
+  'fifth word as last act: the game has ended'
 );
 
 reset role;

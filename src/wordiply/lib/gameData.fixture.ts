@@ -7,7 +7,7 @@ import {
   type ZTest_PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
-import { lengthScore } from './scoring'
+import { computeLengthScore } from './scoring'
 import type { GEventRaw, GGameDataRaw, GPlayerRaw, GSetup, GTrack } from '../types'
 
 /**
@@ -118,7 +118,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     const longest = Math.max(0, ...lens)
     return {
       nGuessesUsed: lens.length,
-      lengthScore: ended ? lengthScore(longest, maxWordLen) : null,
+      lengthScore: ended ? computeLengthScore(longest, maxWordLen) : null,
       nLetters: ended ? lens.reduce((sum, n) => sum + n, 0) : null,
       longestWordLen: ended ? longest : null,
     }

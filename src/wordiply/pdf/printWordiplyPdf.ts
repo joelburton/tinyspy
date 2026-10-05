@@ -124,7 +124,7 @@ function drawScores(
     // The star rides BEFORE the name so the winner is findable by shape alone.
     doc.text(`${s.won ? '* ' : ''}${s.who}`, x, cy)
     doc.text(`${s.lengthScore}%`, scoreX, cy)
-    doc.text(String(s.letterCount), letterX, cy)
+    doc.text(String(s.nLetters), letterX, cy)
     cy += 12
   })
 

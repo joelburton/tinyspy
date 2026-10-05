@@ -7,7 +7,7 @@
 -- The ranking is LEXICOGRAPHIC (there is no scalar "final score"), over
 -- every player who didn't concede and scored:
 --   1. higher length_score  (length_score = round(100*longest/max))
---   2. tie → higher letter_count  (letter_count = sum of guess lengths)
+--   2. tie → higher n_letters  (n_letters = sum of guess lengths)
 --   3. still tied → the earlier last accepted word, timed or not
 -- Ranked 1 is `won`, ranked lower is `near`; a player left unranked lost.
 -- summary_data names the winner and their length score.
@@ -122,7 +122,7 @@ select is(
 );
 
 -- ============================================================
--- (2) Tiebreak: equal length_score → higher letter_count wins
+-- (2) Tiebreak: equal length_score → higher n_letters wins
 -- ============================================================
 -- Both longest 5 (score 71 tie). ada plays five 5-letter words (25 letters);
 -- bea plays one 5-letter + four 3-letter (17 letters). ada wins on letters.
@@ -157,14 +157,14 @@ reset role;
 select is(
   (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g2)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
-  'letter_count tiebreak: equal length_score → ada (more total letters) wins'
+  'n_letters tiebreak: equal length_score → ada (more total letters) wins'
 );
 
 -- ============================================================
--- (3) Tiebreak on the clock: equal length_score AND letter_count
+-- (3) Tiebreak on the clock: equal length_score AND n_letters
 -- ============================================================
 -- A TIMED game. Both play four identical-length guesses (5,4,4,4) → equal
--- length_score AND letter_count. We then set ada's guesses earlier than
+-- length_score AND n_letters. We then set ada's guesses earlier than
 -- bea's (now() is transaction-constant, so we control created_at directly),
 -- and fire submit_timeout — the earlier last word breaks the tie → ada wins.
 
@@ -185,7 +185,7 @@ select wordiply.submit_guess((select id from g3), 'arxx');
 select wordiply.submit_guess((select id from g3), 'arwx');
 select wordiply.submit_guess((select id from g3), 'arvx');
 
--- bea: identical lengths 5,4,4,4 → equal length_score + letter_count.
+-- bea: identical lengths 5,4,4,4 → equal length_score + n_letters.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select wordiply.submit_guess((select id from g3), 'arbbb');
 select wordiply.submit_guess((select id from g3), 'arbb');
@@ -209,7 +209,7 @@ reset role;
 select is(
   (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g3)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
-  'timed tiebreak: equal length_score AND letter_count → earlier finisher (ada) wins'
+  'timed tiebreak: equal length_score AND n_letters → earlier finisher (ada) wins'
 );
 
 select is(
@@ -232,7 +232,7 @@ select is(
 -- (4) Untimed tie: the earlier last word still decides
 -- ============================================================
 -- Untimed game; both play identical-length guess sets → equal length_score
--- AND letter_count. The earlier last word decides in every race, so there
+-- AND n_letters. The earlier last word decides in every race, so there
 -- are no co-winners. ada plays her five, her words are dated back, then
 -- bea's fifth — the last act — ends the race with ada first.
 
@@ -352,13 +352,13 @@ select is((select summary_data->'ending'->>'winner' from common.games where id =
 -- ============================================================
 -- The regression the `valid` column exists to avoid, and the one that would
 -- fail SILENTLY: a missed `where valid` anywhere in the ranking would let a
--- rejected word's length inflate longest / letter_count, or let a reject count
+-- rejected word's length inflate longest / n_letters, or let a reject count
 -- toward the five guesses. So interleave rejects — including one LONGER
 -- than every accepted word, which would flip the winner if it leaked.
 --
 -- bea's accepted longest is 5 (score 71); ada's is 4 (57). But ada throws in
 -- 'arzzzzz' (7 letters) which the FE says isn't a word: if it scored, ada
--- would win on length_score AND letter_count.
+-- would win on length_score AND n_letters.
 
 -- as_user BEFORE the create: a temp table is owned by whoever creates it, and
 -- the reads below run as ada/bea — create it as postgres and they are denied.

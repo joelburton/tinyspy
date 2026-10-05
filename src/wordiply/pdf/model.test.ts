@@ -144,8 +144,8 @@ describe('buildWordiplyPrintModel — compete', () => {
       outcome: 'won',
     })
     expect(m.scores).toEqual([
-      { who: 'me', lengthScore: 44, letterCount: 4, won: false },
-      { who: 'moth', lengthScore: 78, letterCount: 7, won: true },
+      { who: 'me', lengthScore: 44, nLetters: 4, won: false },
+      { who: 'moth', lengthScore: 78, nLetters: 7, won: true },
     ])
   })
 

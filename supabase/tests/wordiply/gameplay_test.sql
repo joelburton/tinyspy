@@ -75,9 +75,9 @@ select is(
 );
 
 select is(
-  (select (ret->'data'->>'len')::int from first_ret),
-  7,
-  'submit_guess: returns the guess length (the one live readout)'
+  (select ret->'data' from first_ret),
+  '{"result": "accepted"}'::jsonb,
+  'submit_guess: the answer is the result alone — what the word did, the page reads from the blobs'
 );
 -- No outcome and no message: the frontend says what a guess is worth
 -- (src/wordiply/lib/answer.ts, whose test names this folder).
@@ -87,9 +87,9 @@ select is((select ret->>'message' from first_ret), null::text,
   'submit_guess: an accepted guess carries no message');
 
 select is(
-  (select (ret->'data'->>'terminal')::boolean from first_ret),
-  false,
-  'submit_guess: not terminal after the first coop guess'
+  (select ended_at from common.games where id = (select id from g)),
+  null,
+  'submit_guess: the first coop guess leaves the game playing'
 );
 
 select is(
@@ -295,10 +295,10 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 create temp table fifth on commit drop as
 select wordiply.submit_guess((select id from term_g), 'arw') as ret;  -- 3
 
-select is(
-  (select (ret->'data'->>'terminal')::boolean from fifth),
-  true,
-  'coop: the 5th shared guess reports terminal=true'
+select isnt(
+  (select ended_at from common.games where id = (select id from term_g)),
+  null,
+  'coop: the 5th shared guess ends the game'
 );
 
 reset role;

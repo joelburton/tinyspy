@@ -290,7 +290,7 @@ export type GAnswer =
   // length the moment it lands, so a line would say it twice.
   | { answerType: 'accepted' }
   // A coop teammate's did, off the events log.
-  | { answerType: 'accepted_peer'; word: string; length: number }
+  | { answerType: 'accepted_peer'; word: string }
 
   // A word already guessed — by anyone in coop, by me in compete.
   | { answerType: 'already_found'; word: string }
@@ -383,15 +383,6 @@ export type GAnswerMark = {
   // Show an answer on its word's line — `isForeign` for a teammate's, which is
   // announced with the attention flash first.
   show: (word: string, outcome: Outcome, isForeign?: boolean) => void
-}
-
-/** One competitor's terminal totals, as `compareCompetitors` needs them. */
-export type GCompetitor = {
-  length_score: number
-  letter_count: number
-  /** ISO timestamp of this player's last guess, or null if they never
-   *  guessed. Only consulted when the game is `timed`. */
-  finished_at: string | null
 }
 
 /**

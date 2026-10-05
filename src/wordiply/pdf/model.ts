@@ -2,6 +2,7 @@
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
+import { getRejectLabel } from '../lib/answer'
 import type { GEvent, GGameData, GPlayer, GStateLineData } from '../types'
 
 /**
@@ -19,7 +20,7 @@ import type { GEvent, GGameData, GPlayer, GStateLineData } from '../types'
 export type PrintScore = {
   who: string
   lengthScore: number
-  letterCount: number
+  nLetters: number
   won: boolean
 }
 
@@ -40,13 +41,6 @@ export type WordiplyPrintModel = PrintHeader & {
   scores: PrintScore[]
 }
 
-/** The reject reasons, in the log's terse voice — same words as on screen. */
-const REJECT_LABEL: Record<NonNullable<GEvent['reason']>, string> = {
-  missing_base: 'no base',
-  too_short: 'too short',
-  not_a_word: 'not a word',
-}
-
 /**
  * A guess as one printed line. Accepted words carry their length; rejects carry
  * why instead.
@@ -60,7 +54,7 @@ const REJECT_LABEL: Record<NonNullable<GEvent['reason']>, string> = {
 const turnText = (e: GEvent): string =>
   e.valid
     ? `${e.word.toUpperCase()} (${e.word.length})`
-    : `${e.word.toUpperCase()} — ${REJECT_LABEL[e.reason ?? 'not_a_word']}`
+    : `${e.word.toUpperCase()} — ${getRejectLabel(e.reason)}`
 
 export function buildWordiplyPrintModel(o: {
   brand: string
@@ -124,7 +118,7 @@ export function buildWordiplyPrintModel(o: {
       ? o.players.map((p) => ({
           who: p.username,
           lengthScore: p.lengthScore!,
-          letterCount: p.nLetters!,
+          nLetters: p.nLetters!,
           won: p.outcome === 'won',
         }))
       : []

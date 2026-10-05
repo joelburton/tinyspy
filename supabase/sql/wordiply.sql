@@ -89,8 +89,8 @@ drop function if exists wordiply._length_score(int, int);
 -- wordiply._length_score — the length-bar percentage
 -- ============================================================
 -- round(100 * longest / max_len), clamped to [0, 100]; 0 for a degenerate
--- board with no length. The frontend's port (lib/scoring.ts) must match it
--- exactly.
+-- board with no length. The test fixture's copy (lib/scoring.ts →
+-- computeLengthScore) must match it exactly.
 create or replace function wordiply._length_score(p_longest int, p_max_len int)
 returns int
 language sql
@@ -245,13 +245,13 @@ drop function if exists wordiply._track_totals(uuid);
 -- landed. A track is the team's in coop (every row the same) and the player's
 -- own in compete. Rejects count for nothing.
 --
--- The ranking reads it, and submit_guess's answer.
+-- The compete ranking (`_finish_compete`) reads it.
 create or replace function wordiply._track_totals(p_game_id uuid)
 returns table(
   user_id uuid,
-  guesses_used int,
-  longest int,
-  letter_count int,
+  n_guesses_used int,
+  longest_word_len int,
+  n_letters int,
   length_score int,
   last_guess_at timestamptz
 )
@@ -746,8 +746,8 @@ drop function if exists wordiply._finish_compete(uuid, text, boolean);
 -- last word. Words land in separate transactions, each with its own time, so
 -- the last step resolves any tie in play. A
 -- race nobody scored in ranks nobody, a collective loss: nobody wins a game
--- nobody scored in. The frontend's compareCompetitors in lib/scoring.ts
--- must match this order.
+-- nobody scored in. The page reads the ranking this writes; winner_test pins
+-- the order.
 create or replace function wordiply._finish_compete(
   p_game_id uuid,
   p_reason text,
@@ -766,7 +766,7 @@ begin
     into v_rankings
     from (
       select t.user_id,
-             rank() over (order by t.length_score desc, t.letter_count desc,
+             rank() over (order by t.length_score desc, t.n_letters desc,
                                    t.last_guess_at) as ranking
         from wordiply._track_totals(p_game_id) t
         join common.game_players gp
@@ -854,9 +854,9 @@ drop function if exists wordiply.submit_guess(uuid, text, boolean);
 -- for a long word is backwards in a game whose whole incentive is reaching.
 -- No reject spends budget.
 --
--- The `ok` carries { result, len, guesses_used, terminal } for an
--- accepted word, with length_score and letter_count added once the game has
--- ended (scores are hidden until then), and { result, reason } for a reject.
+-- The `ok` is { result: 'accepted' } for an accepted word and { result,
+-- reason } for a reject; what the word did to the game, the page reads from
+-- the blobs.
 create or replace function wordiply.submit_guess(
   p_game_id  uuid,
   p_word     text,
@@ -876,9 +876,6 @@ declare
   track_count int;      -- words already on this track, before this one
   ins_len int;
   is_dup boolean;
-  out_terminal boolean;
-  v_mine record;
-  result jsonb;
   reject_reason text;   -- set iff this submission is being recorded as invalid
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
@@ -1014,26 +1011,7 @@ begin
 
   perform wordiply._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  -- The caller's track totals (coop: the team's; compete: their own).
-  select * into v_mine
-    from wordiply._track_totals(p_game_id) t
-   where t.user_id = caller_id;
-
-  out_terminal := (select ended_at from common.games where id = p_game_id) is not null;
-
-  result := jsonb_build_object(
-    'result', 'accepted',
-    'len', ins_len,
-    'guesses_used', v_mine.guesses_used,
-    'terminal', out_terminal
-  );
-  if out_terminal then
-    result := result || jsonb_build_object(
-      'length_score', v_mine.length_score,
-      'letter_count', v_mine.letter_count
-    );
-  end if;
-  return common._ok_envelope(result);
+  return common._ok_envelope(jsonb_build_object('result', 'accepted'));
 
 exception when others then
   get stacked diagnostics

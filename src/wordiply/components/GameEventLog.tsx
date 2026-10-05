@@ -3,7 +3,7 @@
 import { cls } from '@/common/utils/cls'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { EventLog, EventLogActor, EventLogNumber, EventLogOutcomeBar } from '@/common/event-log/EventLog'
-import { eventToOutcome } from '../lib/answer'
+import { eventToOutcome, getRejectLabel } from '../lib/answer'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import type { Member } from '@/common/members/member'
@@ -22,14 +22,6 @@ type Props = {
   /** The row open on the board: its `#N` wears the history-blue ring, and a
    *  `#N` click opens another. */
   historyView: GHistoryView
-}
-
-/** What each rejected row says, in the log's terse voice. The pill that fired
- *  at submit time said more; this is the durable one-word record. */
-const REJECT_LABEL: Record<NonNullable<GEvent['reason']>, string> = {
-  missing_base: 'no base',
-  too_short: 'too short',
-  not_a_word: 'not a word',
 }
 
 /**
@@ -77,29 +69,29 @@ export function GameEventLog({
 
   return (
     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}>
-      {shown.map((g, i) => (
-        <tr key={g.id} className={gameEventLog.divider}>
-          <EventLogOutcomeBar outcome={eventToOutcome(g)} />
+      {shown.map((guess, i) => (
+        <tr key={guess.id} className={gameEventLog.divider}>
+          <EventLogOutcomeBar outcome={eventToOutcome(guess)} />
           {/* The number counts the rows on show; the handle carries the row's
               own id. */}
           <EventLogNumber
             n={i + 1}
-            isOpenInHistory={historyView.viewedEventId === g.id}
-            onShowHistory={() => historyView.show(g.id, i + 1)}
+            isOpenInHistory={historyView.viewedEventId === guess.id}
+            onShowHistory={() => historyView.show(guess.id, i + 1)}
           />
           <td className={gameEventLog.main}>
-            {g.valid ? (
-              <DefinableWord word={g.word} />
+            {guess.valid ? (
+              <DefinableWord word={guess.word} />
             ) : (
               // Not definable: the word was just rejected as not-a-word (or
               // as breaking the rules), so a lookup would dead-end.
-              <span className={styles.rejected}>{g.word.toUpperCase()}</span>
+              <span className={styles.rejected}>{guess.word.toUpperCase()}</span>
             )}
           </td>
           <td className={cls(gameEventLog.muted, styles.outcome)}>
-            {g.valid ? g.word.length : REJECT_LABEL[g.reason ?? 'not_a_word']}
+            {guess.valid ? guess.word.length : getRejectLabel(guess.reason)}
           </td>
-          <EventLogActor actor={g.by} />
+          <EventLogActor actor={guess.by} />
         </tr>
       ))}
     </EventLog>

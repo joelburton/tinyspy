@@ -15,7 +15,7 @@ describe('answerMessage', () => {
   it('reads every answer', () => {
     // My own accepted guess says nothing: the board row is the answer.
     expect(answerMessage({ answerType: 'accepted' })).toEqual({ outcome: 'won', text: '' })
-    expect(answerMessage({ answerType: 'accepted_peer', word: 'arcade', length: 6 }))
+    expect(answerMessage({ answerType: 'accepted_peer', word: 'arcade' }))
       .toEqual({ outcome: 'won', text: 'ARCADE (6)' })
 
     expect(answerMessage({ answerType: 'already_found', word: 'arcade' }))
