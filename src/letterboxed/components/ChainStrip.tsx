@@ -22,31 +22,29 @@ import styles from './PlayArea.module.css'
  * doesn't shove the board down (docs/ui.md → layout stability).
  */
 export function ChainStrip({
-  chain,
+  words,
   onRemoveLast,
-  disabled,
+  canRemoveLast,
 }: {
-  chain: string[]
+  words: string[]
   onRemoveLast: () => void
-  // Terminal / conceded / not my turn: the × is inert.
-  disabled: boolean
+  // The last word may be taken back now; otherwise it carries no ×.
+  canRemoveLast: boolean
 }) {
   return (
     <ol className={styles.chain}>
-      {chain.length === 0 && <li className={styles.chainEmpty}>No words yet</li>}
-      {chain.map((w, i) => {
-        const isLast = i === chain.length - 1
+      {words.length === 0 && <li className={styles.chainEmpty}>No words yet</li>}
+      {words.map((w, i) => {
+        const hasRemove = canRemoveLast && i === words.length - 1
         return (
           <li
             key={`${w}-${i}`}
             // The tighter right padding belongs to the ×, NOT to being last:
-            // once the game is over the button is gone, and the pill has to sit
-            // like every other one. Same condition as the button below, so the
-            // two can't disagree.
-            className={cls(styles.chainWord, isLast && !disabled && styles.chainLast)}
+            // without the button the pill sits like every other one.
+            className={cls(styles.chainWord, hasRemove && styles.chainLast)}
           >
-            {w.toUpperCase()}
-            {isLast && !disabled && (
+            {w}
+            {hasRemove && (
               <button
                 type="button"
                 className={styles.chainRemove}

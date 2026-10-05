@@ -1,14 +1,15 @@
 // cs-fixed-outcome-fix
 
-import { useCallback, useMemo, type CSSProperties } from 'react'
+import { useMemo, type CSSProperties } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { useChainMove } from '../hooks/useChainMove'
+import { useTypedWord } from '../hooks/useTypedWord'
 import { Board } from './Board'
 import { ChainStrip } from './ChainStrip'
 import { TypedWord } from './TypedWord'
-import { canFollow, joinSides } from '../lib/board'
+import { joinSides } from '../lib/board'
 import {
   DESKTOP_ROW_BUDGET_REM,
   MOBILE_ROW_BUDGET_REM,
@@ -21,21 +22,17 @@ import styles from './PlayArea.module.css'
 import type { GGameData, GHistoryView } from '../types'
 
 /**
- * letterboxed's board column: the square, the word being built, and the two
- * chain-level actions.
+ * letterboxed's board column: the chain strip, the square, and the entry — and
+ * the move, which it builds and sends: the word being typed (`useTypedWord`,
+ * from the keyboard or the board) and its trips to the server
+ * (`useChainMove`).
  *
  * ── The locked first letter ──────────────────────────────────────────────────
  * Once the chain has a word, the next one MUST start with that word's last
  * letter, so the entry seeds itself with it and won't let you delete it. That
  * is how the source game behaves, and it turns the game's one non-obvious rule
  * into something you can't get wrong rather than something you get told off
- * for. Mechanically the state here is only the part the player typed
- * (`draft`); the value shown is `seed + draft`, derived every render, so
- * playing a word re-seeds the box with no effect and no stale state.
- *
- * BACKSPACE therefore stops at the seed instead of clearing it — the seed
- * isn't a character the player chose, it's the board telling them where to
- * start.
+ * for: BACKSPACE stops at the seed, which isn't a character the player chose.
  *
  * ── Taking a word back ───────────────────────────────────────────────────────
  * There is no Undo button and no Clear button: the last word in the chain
@@ -66,128 +63,81 @@ export function BoardCol({
   myTurnJustStarted: boolean
 }) {
   const move = useChainMove(gd, localFeedbackSlot)
-  const sides = joinSides(gd.puzzle.tiles)
-  const liveChain = gd.me.board.words
-  const isViewingHistory = historyView.isViewing
-  const word = move.word
-  const seed = word.slice(0, move.seedLength)
+  const entry = useTypedWord({ gd, sendWord: move.sendWord, onEdit: move.clearRefused })
 
-  // TWO different gates, and conflating them is a bug: a full chain freezes
-  // the ENTRY (there is no word to compose) but must leave the chain EDITABLE,
-  // because taking a word back is the only move left — so the × asks only
-  // whether the move is mine.
-  const entryDisabled = !gd.me.onTurn || move.isChainFull
+  // The board responds to me: the move is mine, on the live board. That is the
+  // ×'s gate. A full chain also freezes the entry — there is no word to
+  // compose — but must leave the × live, since taking a word back is then the
+  // only move left.
+  const isInteractive = gd.me.onTurn && !historyView.isViewing
+  const isEntryOpen = isInteractive && !move.isChainFull
 
-  const boardLetters = useMemo(() => new Set([...sides]), [sides])
+  // The word just refused, while it is still what is in the box: the board
+  // shakes its letters, keyed on the nonce so a second refusal shakes again.
+  const refusedNonce =
+    move.refused && move.refused.value.word === entry.word ? move.refused.nonce : null
 
-  // Only board letters may be typed. Anything else is swallowed by the capture
-  // hook rather than landing in the box and then being rejected on submit.
-  const charFor = useCallback(
-    (key: string) => {
-      const c = key.toLowerCase()
-      return c.length === 1 && boardLetters.has(c) ? c : null
-    },
-    [boardLetters],
-  )
-
-  // WordEntryArea hands back the whole intended value; this is the one gate it
-  // passes through, and it enforces two things:
-  //
-  //   1. Anything that no longer begins with the seed is an attempt to
-  //      backspace through the locked first letter — ignored.
-  //   2. An APPENDED letter that can't legally follow the one before it (same
-  //      side of the box) never enters the field at all. Letting it in and
-  //      rejecting it on submit would make the player type a word they can
-  //      already see is wrong; refusing the keystroke says so immediately.
-  //      Deletions are always allowed through.
-  function handleChange(next: string) {
-    if (!next.startsWith(seed)) return
-    if (next.length > word.length) {
-      const added = next[next.length - 1]
-      if (!canFollow(sides, next[next.length - 2], added)) return
+  // A board letter clicked is the next move, like a keystroke. It appends —
+  // unless it repeats the letter the word already ends on, which submits (see
+  // Board.tsx for why that is unambiguous).
+  function pickLetter(letter: string) {
+    localFeedbackSlot.dismiss()
+    if (entry.word.length > 0 && letter === entry.word.at(-1)) {
+      void entry.submit()
+      return
     }
-    move.editDraft(next.slice(seed.length))
+    entry.appendLetter(letter)
+  }
+
+  async function removeLastWord() {
+    if (await move.removeLast()) entry.clear()
   }
 
   // The chain strip's reserved rows, per breakpoint (which one applies is
-  // pure CSS — no JS breakpoint read; both vars ride along and the media
-  // query picks). Derived from the LIVE chain: most games never leave the
-  // base reservation, and when a long chain genuinely needs another row the
-  // board absorbs it through --avail-h (see lib/chainRows.ts for the deal).
-  //
-  // KEEP IT ON liveChain even though the strip now RENDERS the viewed chain.
-  // The two are different questions: what the strip shows, and how much room is
-  // held for it. Switching this to the shown chain looks like an obvious tidy-up
-  // and is a reflow bug — opening move #1 would shrink the strip, --avail-h
-  // would hand the space to the board, and the whole column would jump every
-  // time you reviewed an early turn (docs/ui.md → layout stability).
+  // pure CSS — both vars ride along and the media query picks). Sized from the
+  // LIVE chain, not the one shown: sizing from a past move's would shrink the
+  // strip whenever an early move is reviewed, and the whole column would jump
+  // (docs/ui.md → layout stability; lib/chainRows.ts for the deal).
   const chainRowsStyle = useMemo(
     () =>
       ({
         '--chain-rows-desktop': Math.min(
           4,
-          Math.max(2, estimateChainRows(liveChain, DESKTOP_ROW_BUDGET_REM)),
+          Math.max(2, estimateChainRows(gd.me.board.words, DESKTOP_ROW_BUDGET_REM)),
         ),
         '--chain-rows-mobile': Math.min(
           4,
-          Math.max(3, estimateChainRows(liveChain, MOBILE_ROW_BUDGET_REM)),
+          Math.max(3, estimateChainRows(gd.me.board.words, MOBILE_ROW_BUDGET_REM)),
         ),
       }) as CSSProperties,
-    [liveChain],
+    [gd.me.board.words],
   )
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)} style={chainRowsStyle}>
-      {/* NO MobileStatusBar, deliberately (docs/mobile.md's adoption rule: a
-          game needs the bar only if its core state is invisible once the info
-          column slides away). Here the board IS the letters readout — covered
-          letters fill green — and the chain strip is the words readout; the
-          one invisible number, words left under the cap, is restated by the
-          accepted-word result after every move. */}
+      {/* No MobileStatusBar, deliberately (docs/mobile.md's adoption rule). */}
 
-      {/* The chain strip and the board are ONE SNAPSHOT, so they share one
-          history outline rather than wearing one each.
-
-          They're a pair because they're two views of the same state: the strip
-          lists the words, the board shows which letters they covered and traces
-          the line between them. Framing only the board (the earlier shape) left
-          the strip live while the board rolled back, so the two disagreed and
-          showed a combination that never existed. One box also beats two here
-          on looks — `.historyFrame` is an outline with a 3px offset, so adjacent
-          frames would put two outlines a few pixels apart with the column
-          gap between them.
-
-          The wrapper re-declares the column's own flex + gap so inserting it
-          changes no spacing: the strip↔board gap is this gap, and the
-          wrapper↔entry gap is still the column's.
-
-          `.historyFrame` also makes the whole region click-through, so a click on
-          either falls to useHistoryViewer's click-anywhere-to-exit. */}
+      {/* The chain strip and the board are ONE SNAPSHOT — the words, and the
+          letters they covered — so they share one history frame, and a click
+          on either falls to the viewer's click-anywhere exit. */}
       <div
-        className={cls(styles.historyFramed, isViewingHistory && history.historyFrame)}
+        className={cls(styles.historyFramed, historyView.isViewing && history.historyFrame)}
       >
         {/* The chain reads ABOVE the board: it is the state, and it says what
-            letter the next word must start with. On a phone the info column is
-            off-canvas, so a per-turn readout can't live there.
-
-            `shownWords`, not `liveChain` — while a past move is open this is that
-            move's chain. Disabled then too, which is what takes the × off the
-            last pill: you can't take back a word from a snapshot, and the same
-            flag drops the pill's ×-shaped right padding so the row stays even.
-            (Row COUNT still comes from liveChain — see chainRowsStyle above.) */}
+            letter the next word must start with. */}
         <ChainStrip
-          chain={shownWords}
-          onRemoveLast={() => void move.removeLast()}
-          disabled={!gd.me.onTurn || isViewingHistory}
+          words={shownWords}
+          onRemoveLast={() => void removeLastWord()}
+          canRemoveLast={isInteractive}
         />
 
         <Board
-          sides={sides}
+          sides={joinSides(gd.puzzle.tiles)}
           chain={shownWords}
-          word={isViewingHistory ? '' : word}
-          onPick={move.pick}
-          disabled={entryDisabled || isViewingHistory}
-          shakeNonce={move.refused && move.refused.value.word === word ? move.refused.nonce : null}
+          word={historyView.isViewing ? '' : entry.word}
+          onPick={pickLetter}
+          disabled={!isEntryOpen}
+          shakeNonce={refusedNonce}
           myTurnJustStarted={myTurnJustStarted}
         />
       </div>
@@ -196,40 +146,38 @@ export function BoardCol({
           or the slot's top message — a word result, a hint, "Chain is full",
           the ending's verdict, whichever ranks highest — and its fixed
           min-height is what stops the board above from moving as those swap
-          (docs/ui.md → layout stability). An earlier version used a bare div
-          here and the whole column shifted every time a pill appeared. */}
+          (docs/ui.md → layout stability). */}
       <div
         className={cls(
           shared.moveAreaOrLocalFeedback,
           styles.entrySlot,
           // The banner is `inset: 0`, so its host must be positioned — but only
-          // while viewing, so a `position` this box doesn't otherwise want
-          // isn't sitting on it during play (historyViewer.module.css says so).
-          isViewingHistory && history.historyBannerHost,
+          // while viewing (historyViewer.module.css says why).
+          historyView.isViewing && history.historyBannerHost,
         )}
       >
-        {isViewingHistory && (
+        {historyView.isViewing && (
           <HistoryBanner label={historyView.label} actor={historyView.actor} onExit={historyView.exit} />
         )}
         <WordEntryArea
-          value={word}
-          onChange={handleChange}
-          onSubmit={() => void move.submit()}
+          value={entry.word}
+          onChange={entry.edit}
+          onSubmit={() => void entry.submit()}
           placeholder="Type or click letters"
           // Per-character rendering, so the carried-over first letter can say
           // it isn't yours to delete.
-          children={<TypedWord word={word} seedLength={seed.length} />}
+          children={<TypedWord word={entry.word} seedLength={entry.seed.length} />}
           localFeedbackSlot={localFeedbackSlot}
-          // Also hard-off while a past move is open: freezing capture lets the
+          // Off while a past move is open too: freezing capture lets the
           // viewer's `act-exit-history` consume the keystroke (back to live)
           // instead of editing the live draft behind the banner.
-          disabled={entryDisabled || isViewingHistory}
+          disabled={!isEntryOpen}
           busy={move.inFlight}
           onAnyKey={localFeedbackSlot.dismiss}
-          charFor={charFor}
+          charFor={entry.charFor}
           // No history here: a submitted word joins the chain rather than going
           // away, so there is nothing for ↑ to bring back — and ↓ could only
-          // clear back to the seed, which the gate above refuses anyway.
+          // clear back to the seed, which the entry refuses anyway.
           hasHistory={false}
         />
       </div>

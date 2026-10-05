@@ -18,7 +18,7 @@ export function TypedWord({ word, seedLength }: { word: string; seedLength: numb
     <>
       {Array.from(word).map((ch, i) => (
         <span key={i} className={i < seedLength ? styles.seedLetter : undefined}>
-          {ch.toUpperCase()}
+          {ch}
         </span>
       ))}
     </>

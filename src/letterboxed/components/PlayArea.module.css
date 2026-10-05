@@ -205,6 +205,8 @@
   padding: 0.25rem 0.75rem;
   font-size: 1.05rem;
   font-weight: 600;
+  /* The words are stored lowercase; the capitals are drawn. */
+  text-transform: uppercase;
   letter-spacing: 0.03em;
   line-height: 1.35;
 }

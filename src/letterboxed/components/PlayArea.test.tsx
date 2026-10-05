@@ -470,6 +470,19 @@ describe('letterboxed PlayArea — a refused word shakes its letters', () => {
     expect(shaking()).toEqual([])
   })
 
+  it('a letter on the same side as the one before it never enters the word', async () => {
+    // A and B share the top side, so B cannot follow A; D, on the next side,
+    // can. The board lights the word's letters, which is what is read back.
+    const inWord = () =>
+      [...document.querySelectorAll('div[class*="inWord"]')].map((n) => n.textContent).sort()
+    render(<WithKeys {...makeCtx()} />)
+    await key({ key: 'a' })
+    await key({ key: 'b' })
+    expect(inWord()).toEqual(['A'])
+    await key({ key: 'd' })
+    expect(inWord()).toEqual(['A', 'D'])
+  })
+
   it('a word the board accepts goes to the server under the RPC\'s own names', async () => {
     rpc.mockResolvedValue({
       data: {
