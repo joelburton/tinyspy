@@ -255,6 +255,329 @@ $$;
 
 revoke execute on function codenamesduet._write_statuses(uuid, boolean) from public;
 
+-- ============================================================
+-- The page blobs — what the page shows, written by this game's builder
+-- ============================================================
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- codenamesduet's own. `game_data` is the common part (supabase/sql/common.sql
+-- → The page blobs' common parts) with codenamesduet's facts on top; the
+-- pieces below build each part, so `select game_data from common.games` shows
+-- the page what it gets.
+--
+--   game_data, codenamesduet's part:
+--     puzzle: {tiles: [{id, word, key}, …]}
+--                                          the deal, which never changes: the 25
+--                                          words by position, each with both
+--                                          players' keys for it, {[userId]: G / N / A}
+--     team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}
+--                                          what the pair shares; board is the
+--                                          table as it stands:
+--       board: {tiles: [{id, revealed, guessableBy}, …]}
+--         revealed: {as, arrows}           what the tile shows (G / N / A) and the
+--                                          players to point an arrow at; null
+--                                          until anyone guesses it
+--         guessableBy                      the players who may still guess it
+--     turns: {holder, num, currClue}       the common turn, with the turn's number
+--                                          and its clue, {word, count, fromAi, userId},
+--                                          null until it is given
+--     events: [{id, userId, kind, turnNum, tookTurn, at, clueWord, clueCount,
+--               clueFromAi, tileId, result}, …]
+--                                          every clue, guess, pass and hint, in order
+--     players: [player, …]                 the common player, plus:
+--       clueGiver                          gives this turn's clue
+--       allAgentsFound                     every agent on this player's key is contacted
+--
+--   summary_data, codenamesduet's part (the common part names and dates the
+--   game and carries its ending):
+--     team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath}
+--
+-- It carries both keys: hiding my partner's until the game ends is the page's
+-- rule (`makeGameData`).
+
+-- The seat letter a player sits in, from the game row.
+create or replace function codenamesduet._seat_of(cg codenamesduet.games, p_user_id uuid)
+returns text
+language sql
+immutable
+as $$
+  select case p_user_id when cg.player_a_user_id then 'A'
+                        when cg.player_b_user_id then 'B' end;
+$$;
+
+revoke execute on function codenamesduet._seat_of(codenamesduet.games, uuid) from public;
+
+-- The deal: every word in position order, with both players' keys for it.
+create or replace function codenamesduet._make_json_puzzle(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'tiles', jsonb_agg(jsonb_build_object(
+               'id',   w.position::text,
+               'word', w.word,
+               'key',  jsonb_build_object(
+                         g.player_a_user_id::text, g.key_card_a -> w.position,
+                         g.player_b_user_id::text, g.key_card_b -> w.position))
+             order by w.position))
+    from codenamesduet.words w
+    join codenamesduet.games g on g.game_id = w.game_id
+   where w.game_id = p_game_id;
+$$;
+
+revoke execute on function codenamesduet._make_json_puzzle(uuid) from public;
+
+-- The table as it stands. A tile shows the agent or the assassin once either
+-- is contacted, for both players; short of that, a bystander once either
+-- player has turned it over. A live bystander points an arrow at each player
+-- who turned it over; a contacted tile points at nobody. A tile may still be
+-- guessed by a player until it is contacted or they have turned it over as a
+-- bystander (the Duet rule: it may be their partner's agent).
+create or replace function codenamesduet._make_json_board(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'tiles', jsonb_agg(jsonb_build_object(
+               'id', w.position::text,
+               'revealed',
+                 case when w.revealed_as is not null then
+                        jsonb_build_object('as', w.revealed_as, 'arrows', '[]'::jsonb)
+                      when w.neutral_a or w.neutral_b then
+                        jsonb_build_object('as', 'N', 'arrows', (
+                          select jsonb_agg(s.user_id order by s.seat)
+                            from (values ('A', g.player_a_user_id, w.neutral_a),
+                                         ('B', g.player_b_user_id, w.neutral_b))
+                                   as s(seat, user_id, neutraled)
+                           where s.neutraled))
+                 end,
+               'guessableBy', (
+                 select coalesce(jsonb_agg(s.user_id order by s.seat), '[]'::jsonb)
+                   from (values ('A', g.player_a_user_id, w.neutral_a),
+                                ('B', g.player_b_user_id, w.neutral_b))
+                          as s(seat, user_id, neutraled)
+                  where w.revealed_as is null and not s.neutraled))
+             order by w.position))
+    from codenamesduet.words w
+    join codenamesduet.games g on g.game_id = w.game_id
+   where w.game_id = p_game_id;
+$$;
+
+revoke execute on function codenamesduet._make_json_board(uuid) from public;
+
+-- What the pair shares. A turn is used once it is over, and also the turn the
+-- game ended on when anything was played in it (a win or the assassin ends a
+-- game without ending its turn); sudden death's turns are past the budget,
+-- so the count stops at it. Sudden death stays true once a game that reached
+-- it has ended.
+create or replace function codenamesduet._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'nFoundAgents', (select count(*) from codenamesduet.words
+                      where game_id = p_game_id and revealed_as = 'G'),
+    'nTurnsUsed',   least(
+                      g.turn_number - 1
+                      + case when cg.ended_at is not null and exists (
+                               select 1 from codenamesduet.events e
+                                where e.game_id = p_game_id
+                                  and e.turn_number = g.turn_number
+                                  and e.kind in ('clue', 'guess', 'pass'))
+                             then 1 else 0 end,
+                      g.max_turns),
+    'maxTurns',     g.max_turns,
+    'suddenDeath',  g.turn_number > g.max_turns)
+    from codenamesduet.games g
+    join common.games cg on cg.id = g.game_id
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function codenamesduet._make_json_team(uuid) from public;
+
+-- This turn's clue, or null until it is given.
+create or replace function codenamesduet._make_json_curr_clue(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select jsonb_build_object(
+           'word',   e.clue_word,
+           'count',  e.clue_count,
+           'fromAi', e.clue_from_ai,
+           'userId', e.user_id)
+    from codenamesduet.events e
+    join codenamesduet.games g on g.game_id = e.game_id
+   where e.game_id = p_game_id
+     and e.kind = 'clue'
+     and e.turn_number = g.turn_number;
+$$;
+
+revoke execute on function codenamesduet._make_json_curr_clue(uuid) from public;
+
+-- The log: every clue, guess, pass and hint, in the order of play.
+create or replace function codenamesduet._make_json_events(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',         e.id,
+           'userId',     e.user_id,
+           'kind',       e.kind,
+           'turnNum',    e.turn_number,
+           'tookTurn',   e.took_turn,
+           'at',         e.created_at,
+           'clueWord',   e.clue_word,
+           'clueCount',  e.clue_count,
+           'clueFromAi', e.clue_from_ai,
+           'tileId',     e.guess_position::text,
+           'result',     e.guess_result) order by e.id), '[]'::jsonb)
+    from codenamesduet.events e
+   where e.game_id = p_game_id;
+$$;
+
+revoke execute on function codenamesduet._make_json_events(uuid) from public;
+
+-- Every player as codenamesduet's game_data shows them: the common player,
+-- with whether they hold the clue seat and whether their agents are all found.
+create or replace function codenamesduet._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select jsonb_agg(
+           cp.player || jsonb_build_object(
+             'clueGiver',      codenamesduet._seat_of(g, cp.id) = g.current_clue_giver
+                                 is true,
+             'allAgentsFound', not codenamesduet._seat_has_agents_left(
+                                     p_game_id, codenamesduet._seat_of(g, cp.id)))
+           order by cp.ord)
+    from common._make_json_players(p_game_id) cp
+    join codenamesduet.games g on g.game_id = p_game_id;
+$$;
+
+revoke execute on function codenamesduet._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with codenamesduet's puzzle,
+-- team, turn, log and players on top.
+create or replace function codenamesduet._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'puzzle',  codenamesduet._make_json_puzzle(p_game_id),
+           'team',    codenamesduet._make_json_team(p_game_id)
+                        || jsonb_build_object('board', codenamesduet._make_json_board(p_game_id)),
+           'turns',   (common._make_json_game_data(p_game_id) -> 'turns')
+                        || jsonb_build_object(
+                             'num',      g.turn_number,
+                             'currClue', codenamesduet._make_json_curr_clue(p_game_id)),
+           'events',  codenamesduet._make_json_events(p_game_id),
+           'players', codenamesduet._make_json_players(p_game_id))
+    from codenamesduet.games g
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function codenamesduet._make_json_game_data(uuid) from public;
+
+-- The game summed up: the numbers a list of games shows for this one.
+create or replace function codenamesduet._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+    'team', codenamesduet._make_json_team(p_game_id));
+$$;
+
+revoke execute on function codenamesduet._make_json_summary_data(uuid, timestamptz) from public;
+
+-- ============================================================
+-- codenamesduet._rebuild_data_cols — one game's data columns, rebuilt
+-- ============================================================
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from codenamesduet's own tables,
+-- assigning each whole. Every RPC calls it after a move; it is also the repair
+-- for one game by hand. Every key is always present, null when it has no
+-- value; the shapes are drawn above.
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function codenamesduet._rebuild_data_cols(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+declare
+  v_status_changed_at timestamptz;
+begin
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
+
+  update common.games
+     set game_data = codenamesduet._make_json_game_data(p_game_id),
+         summary_data = codenamesduet._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function codenamesduet._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- codenamesduet._rebuild_data_cols_for_all — every codenamesduet game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every codenamesduet game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function codenamesduet._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype = 'codenamesduet'
+  loop
+    perform codenamesduet._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function codenamesduet._rebuild_data_cols_for_all() from public;
+
 drop function if exists codenamesduet._end_turn(uuid);
 
 -- ============================================================
@@ -525,6 +848,8 @@ begin
 
   perform codenamesduet._write_statuses(new_id, p_update_status_changed_at => true);
 
+  perform codenamesduet._rebuild_data_cols(new_id, p_update_status_changed_at => true);
+
   -- `result` NAMES the answer; `id` is the game to go to. REQUIRED, not
   -- decorative: it is the only thing a call site can filter the `ok` on, and
   -- without it the branch would match by merely being `ok` and would draw a
@@ -660,6 +985,8 @@ begin
   perform codenamesduet._point_turn(p_game_id);
 
   perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
+
+  perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; the rest is the clue as it was recorded, read
   -- back from the row that now exists rather than from the request — which is
@@ -925,6 +1252,8 @@ begin
 
     perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
 
+    perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
+
     turns_used := g.max_turns - codenamesduet._turns_remaining(g.max_turns, g.turn_number);
     return common._ok_envelope(
       jsonb_build_object(
@@ -944,6 +1273,7 @@ begin
     -- turn and dropped the game into sudden death).
     turn_state := codenamesduet._end_turn(p_game_id);
     perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
+    perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
     return common._ok_envelope(
       jsonb_build_object(
         'result', 'bystander',
@@ -968,6 +1298,8 @@ begin
   end if;
 
   perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
+
+  perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- The same turn keys the bystander answer carries, which is what lets a
   -- reader compare the two answers rather than the two shapes. In sudden
@@ -1087,6 +1419,8 @@ begin
 
   perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
 
+  perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
+
   return common._ok_envelope(jsonb_build_object(
     'result', 'passed',
     'turn_number', turn_state->'turn_number',
@@ -1152,6 +1486,8 @@ begin
   );
 
   perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
+
+  perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1225,6 +1561,8 @@ begin
   perform codenamesduet._point_turn(p_game_id);
 
   perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
+
+  perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -1276,6 +1614,8 @@ begin
    where game_id = p_game_id;
 
   perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
+
+  perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1502,6 +1842,8 @@ begin
   values (p_game_id, auth.uid(), 'hint', false, g.turn_number, caller_seat);
 
   perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
+
+  perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'logged'));
 
 exception when others then
