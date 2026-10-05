@@ -200,6 +200,31 @@ the RPC seam (`coordOf`). `HintBar`'s undefined `styles.hint` went, and its
 importer reads `adjacent` and the dimensions. Deleting them, with their
 tests, was not in the proposal.
 
+## The InfoCol pass
+
+Step 12 (2026-10-05, Joel took the recommendations: "commit and do it"): one
+action row, every action listed once in the menu's order — Concede, Stop, the
+bar, Reveal, Restart, New game, back-to-club — each answering whether its
+BUTTON shows: Reveal and New game once the game has ended, back-to-club
+always, filled once it has. The menu's end group took the same order. The
+line is the ending that applies to me. The state line is `StateLine`, drawing
+`gd.stateLineData` under the theme prompt. Help shows on my move. The strip
+reads "out" for any racer who has ended while the race runs on, and the
+verdict on their hints at the end. `.clue` and `.solutionWords` moved
+verbatim to `InfoCol.module.css` and `.hintsUsed` to `StateLine.module.css`,
+so `PlayArea.module.css` holds `.layout` alone. Two new tests, each verified
+by planting its bug: back-to-club in every phase, and "out" in the strip.
+
+## What the InfoCol pass changed that a player can see
+
+- **Back-to-club is in the row while I am out of a race**; it was missing.
+- **A rival who has solved reads "out"** in the strip mid-race; it read
+  "done on N". Their hint count comes back at the end with the verdict.
+- **Help hides while a teammate holds the turn** in turn-order coop.
+- **The ended row's buttons keep their order** (Reveal, Restart, New game,
+  back-to-club); the menu's end group now matches it (it was Restart, New
+  game, Reveal).
+
 ## What the PlayArea pass changed that a player can see
 
 Each a consequence of reading `gd` rather than a ruling:

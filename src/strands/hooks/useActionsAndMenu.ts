@@ -72,8 +72,13 @@ export function useActionsAndMenu({
     impliedBySolve,
   } = useSolutionReveal({ impliedBy: gd.me.solved })
   const actReveal = useBindAction('act-reveal', {
-    describe: () =>
-      describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal: gd.ended }),
+    describe: (asker) => {
+      // A BUTTON only once the game has ended, when there is an answer to
+      // show. The menu row keeps it all game, grayed, because it NAMES the
+      // glyph.
+      if (!gd.ended && asker === 'button') return 'hidden'
+      return describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal: gd.ended })
+    },
     run: toggleSolution,
   })
 
@@ -193,7 +198,8 @@ export function useActionsAndMenu({
         // isn't its own, so this list is the same in coop and compete.
         exits: [actConcede, actStopGame],
         extra: [
-          { items: [actRestart, actNewGame, actReveal] },
+          // The same three the action row offers after its bar, in its order.
+          { items: [actReveal, actRestart, actNewGame] },
           { items: [actPrintBoard] },
         ],
       }),

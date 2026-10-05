@@ -1,0 +1,22 @@
+/* cs-unmet */
+
+/* strands' info column: the theme prompt and the revealed words. The scaffold
+ * is the shared common/info-sheet/infoCol.module.css. */
+
+/* @@ */ .clue {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--page-text-color);
+}
+
+/* The revealed theme words (info column). A wrapping row rather than a
+   sentence: they're a LIST — spangram first, then the rest — and a phone's
+   column is narrow enough that eight of them need somewhere to break. The gap
+   is what separates them, so no punctuation has to. */
+/* @@ */ .solutionWords {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.5rem;
+}

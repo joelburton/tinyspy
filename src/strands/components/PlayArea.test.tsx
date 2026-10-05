@@ -174,6 +174,35 @@ describe('strands PlayArea — the three phases', () => {
     expect(control('act-concede')).toBeNull()
     expect(control('act-stop-game')).not.toBeNull()
   })
+
+  it('every phase keeps back-to-club in the action row — out of the race too', () => {
+    // One row lists every action once; each says whether it shows. The row
+    // that forked by phase dropped back-to-club while a race ran on without you.
+    const { unmount } = render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          players: [{ ...ME, solvedAt: SOLVED.at, ending: SOLVED, outcome: 'neutral' }, MOTH],
+        })}
+      />,
+    )
+    expect(control('act-back-to-club')).not.toBeNull()
+    unmount()
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(control('act-back-to-club')).not.toBeNull()
+  })
+
+  it('a rival who has ended reads "out" in the strip while the race runs on', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          players: [ME, { ...MOTH, solvedAt: SOLVED.at, ending: SOLVED, outcome: 'neutral' }],
+        })}
+      />,
+    )
+    expect(screen.getByText('out')).toBeInTheDocument()
+  })
 })
 
 /**

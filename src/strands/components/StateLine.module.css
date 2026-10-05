@@ -1,0 +1,9 @@
+/* cs-unmet */
+
+/* strands' state line, in the info column. */
+
+/* Hints-used, appended to the progress line. Muted because it's a footnote on
+ * the count, not a second stat competing with it. */
+/* @@ */ .hintsUsed {
+  color: var(--page-text-muted-color);
+}
