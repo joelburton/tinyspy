@@ -11,7 +11,7 @@ import { useSubmitGuess } from '../hooks/useSubmitGuess'
 import { useTypedGuess } from '../hooks/useTypedGuess'
 import { useMarkForeignGuesses } from '../hooks/useMarkForeignGuesses'
 import type { GGameData, GHistoryView } from '../types'
-import { GuessBoard } from './GuessBoard'
+import { Board } from './Board'
 import styles from './PlayArea.module.css'
 
 /**
@@ -48,22 +48,25 @@ export function BoardCol({
 
   const submission = useSubmitGuess({ gd, localFeedbackSlot })
   const entry = useTypedGuess({ submission, localFeedbackSlot, canType: isInteractive })
-  useMarkForeignGuesses({ gd, isViewingHistory: historyView.isViewing, answerMark: submission.answerMark })
+  useMarkForeignGuesses({
+    gd,
+    isViewingHistory: historyView.isViewing,
+    answerMark: submission.answerMark,
+  })
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <div className={styles.starterWord}>{gd.puzzle.base}</div>
 
-      <GuessBoard
-        base={gd.puzzle.base}
-        words={historyView.words ?? gd.me.board.words}
-        maxGuesses={gd.me.maxGuesses}
-        activeWord={submission.word}
-        showActive={isInteractive}
-        // The marks belong to the live board only.
-        held={historyView.isViewing ? null : submission.answerMark.held}
-        flash={historyView.isViewing ? null : submission.answerMark.flash}
-        isViewingHistory={historyView.isViewing}
+      <Board
+        grid={{ liveWords: gd.me.board.words, maxGuesses: gd.me.maxGuesses, base: gd.puzzle.base }}
+        marks={{
+          typedWord: submission.word,
+          held: submission.answerMark.held,
+          flash: submission.answerMark.flash,
+        }}
+        historyView={historyView}
+        isInteractive={isInteractive}
       />
 
       {/* The shared banner overlays the input area while a past row is open —

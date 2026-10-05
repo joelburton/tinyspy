@@ -1,10 +1,12 @@
 /* cs-unmet */
 
-/* The typed/guessed word. Uppercased for a tile-y look; the BASE portion
- * renders in a dimmer color so the player's added letters stand out. */
+/* The typed/guessed word. Drawn in capitals for a tile-y look (it is stored
+ * lowercase, as the word list is); the BASE portion renders in a dimmer color
+ * so the player's added letters stand out. */
 /* @@ */ .word {
   font-weight: 700;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--page-text-color);
 }
 

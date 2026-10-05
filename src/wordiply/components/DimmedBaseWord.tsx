@@ -27,16 +27,17 @@ export function DimmedBaseWord({
   base: string
   className?: string
 }) {
-  const upper = word.toUpperCase()
-  const at = base ? word.toLowerCase().indexOf(base.toLowerCase()) : -1
+  // The word and the base are both lowercase, as the word list is; the
+  // capitals are drawn by `.word`.
+  const at = base ? word.indexOf(base) : -1
 
   if (at < 0) {
-    return <span className={cls(styles.word, className)}>{upper}</span>
+    return <span className={cls(styles.word, className)}>{word}</span>
   }
 
-  const prefix = upper.slice(0, at)
-  const mid = upper.slice(at, at + base.length)
-  const suffix = upper.slice(at + base.length)
+  const prefix = word.slice(0, at)
+  const mid = word.slice(at, at + base.length)
+  const suffix = word.slice(at + base.length)
   return (
     <span className={cls(styles.word, className)}>
       {prefix}

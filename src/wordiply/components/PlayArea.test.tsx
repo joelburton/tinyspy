@@ -262,13 +262,13 @@ describe('wordiply PlayArea — the end-of-game reveal', () => {
       />,
     )
     // DimmedBaseWord fragments each word across spans, so read the section's
-    // textContent.
+    // textContent — in the data's case, since CSS draws the capitals.
     const section = screen.getByRole('heading', { name: /Opponents’ words/i }).closest('section')!
     expect(section.textContent).toContain('moth')
-    expect(section.textContent).toContain('STARS')
-    expect(section.textContent).toContain('CART')
+    expect(section.textContent).toContain('stars')
+    expect(section.textContent).toContain('cart')
     // My own word is on my board, not in the reveal.
-    expect(section.textContent).not.toContain('BAR')
+    expect(section.textContent).not.toContain('bar')
     expect(boardLengths()).toEqual(['3'])
   })
 })

@@ -39,7 +39,8 @@ test.describe('wordiply live updates', () => {
 
     // THE REALTIME PATH: the guess must appear on the board (the first <ol>) —
     // that row is driven by the guesses postgres-changes event, not a reload.
-    await expect(page.locator('ol').first()).toContainText('HANGARS', { timeout: 10000 })
+    // The board's text is the data's case; CSS draws its capitals.
+    await expect(page.locator('ol').first()).toContainText('hangars', { timeout: 10000 })
     // And the guess count advances (also derived from the realtime rows).
     await expect(page.getByText(/1 \/ 5 guesses/)).toBeVisible({ timeout: 10000 })
 
@@ -57,7 +58,7 @@ test.describe('wordiply live updates', () => {
     // Budget untouched — a reject costs no guess.
     await expect(page.getByText(/1 \/ 5 guesses/)).toBeVisible()
     // …and the board still shows only the accepted word.
-    await expect(page.locator('ol').first()).not.toContainText('ARQQQQQ')
+    await expect(page.locator('ol').first()).not.toContainText('arqqqqq')
 
     // The accepted guess is in the log too, with its length rather than a reason.
     await expect(log).toContainText('HANGARS')

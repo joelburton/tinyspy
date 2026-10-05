@@ -17,9 +17,10 @@ function dimmed(word: string, base: string): string | null {
 }
 
 describe('DimmedBaseWord', () => {
-  it('dims the base at its first occurrence (uppercased)', () => {
-    expect(dimmed('party', 'part')).toBe('PART')
-    expect(dimmed('depart', 'part')).toBe('PART')
+  // The text keeps the data's case; `.word` draws the capitals.
+  it('dims the base at its first occurrence', () => {
+    expect(dimmed('party', 'part')).toBe('part')
+    expect(dimmed('depart', 'part')).toBe('part')
   })
 
   it('dims ONLY the first occurrence when the base repeats', () => {
@@ -27,9 +28,9 @@ describe('DimmedBaseWord', () => {
     const { container } = render(<DimmedBaseWord word="banana" base="ana" />)
     const nested = Array.from(container.querySelectorAll('span span'))
     expect(nested).toHaveLength(1)
-    expect(nested[0].textContent).toBe('ANA')
+    expect(nested[0].textContent).toBe('ana')
     // Whole word still reads correctly.
-    expect(container.textContent).toBe('BANANA')
+    expect(container.textContent).toBe('banana')
   })
 
   it('dims nothing when the base does not (yet) appear', () => {
@@ -37,6 +38,6 @@ describe('DimmedBaseWord', () => {
     expect(dimmed('pa', 'part')).toBeNull()
     const { container } = render(<DimmedBaseWord word="pa" base="part" />)
     expect(container.querySelectorAll('span span')).toHaveLength(0)
-    expect(container.textContent).toBe('PA')
+    expect(container.textContent).toBe('pa')
   })
 })
