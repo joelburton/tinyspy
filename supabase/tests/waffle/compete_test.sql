@@ -9,7 +9,8 @@
 -- FEWEST swaps (tie-break: earliest solved_at — not exercised here since
 -- now() is constant within a test transaction).
 -- The game ends only once EVERY player is done (solved or out of
--- swaps). An opponent's board is hidden until the game ends.
+-- swaps). The blob carries every board; the page withholds a rival's until
+-- the game ends (useGame's seat rule).
 
 begin;
 
@@ -19,7 +20,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(30);
+select plan(29);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -84,45 +85,38 @@ select is(
   (select title from common.games where id = (select id from g)),
   'New compete',
   'compete: a solved leader does NOT leak their words into the title');
--- …and no swap counter on the club line either. The count is coop's alone for
--- the same leak reason, so in compete the key is always present and always
--- null.
+-- …and no team count on the summary either: the count is coop's alone for the
+-- same leak reason, so in compete `team` is always null.
 select is(
-  (select clubpage_info->'swaps_used' from common.games where id = (select id from g)),
+  (select summary_data->'team' from common.games where id = (select id from g)),
   'null'::jsonb,
-  'compete: swaps_used on the club line is null, not a count');
+  'compete: the summary carries no team count');
 
--- ── Opponent visibility mid-game (as ada) ───────────────────
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select ok(
-  (select board from waffle.players_state
-    where game_id = (select id from g)
-      and user_id = 'bea22222-2222-2222-2222-222222222222') is null,
-  'mid-game: an opponent''s board is hidden (NULL)');
+-- ── What the blob carries mid-race ──────────────────────────
+-- Every racer's board and count: what a racer may SEE of a rival is the hook's
+-- seat rule (src/waffle/hooks/useGame.ts), not the builder's, because a rival's
+-- board, colors or swaps would give away correct letter positions.
 select is(
-  (select swaps_used from waffle.players_state
-    where game_id = (select id from g)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  0, 'mid-game: an opponent''s swaps_used IS visible (the progress strip)');
-select ok(
-  (select board from waffle.players_state
-    where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111') is not null,
-  'a player always sees her own board');
+  (select jsonb_array_length(p->'board'->'tiles') || '/' || (p->>'nSwapsUsed')
+     from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from g))) p
+    where p->>'id' = 'bea22222-2222-2222-2222-222222222222'),
+  '21/0', 'mid-game: the blob carries a rival''s board and count — the hook withholds the board');
+select is(
+  (select p->'board'->'tiles'->0->>'letter'
+     from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from g))) p
+    where p->>'id' = 'ada11111-1111-1111-1111-111111111111'),
+  'a', 'ada''s board is her solved one');
 
--- The SWAP LOG has to agree with the board rule above, or the weaker one
--- decides: every compete player solves the same puzzle from the same scramble,
--- so replaying an opponent's swaps rebuilds their board — and their green tiles
--- are correct letter positions. A readable log would hand an honest player the
--- answer, which is why events_select gates on it. ada sees her own swap only.
+-- The policy on the log is the member gate: ada's one swap is all of it so far.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from waffle.events where game_id = (select id from g)),
   1::bigint,
-  'mid-game: a player sees only their OWN swaps');
+  'mid-game: the log holds ada''s one swap');
 select is(
   (select count(distinct user_id) from waffle.events where game_id = (select id from g)),
   1::bigint,
-  'mid-game: no opponent rows leak into the log');
+  'mid-game: bea has not swapped yet');
 
 -- A solved player is locked out of further swaps.
 select pg_temp.envelope_is(
@@ -164,17 +158,16 @@ select is(
 -- The WINNER's own count, named at the end — the number the club-list label
 -- prints ("Won by ada · 1 swap"). ada solved in one.
 select is(
-  (select (clubpage_info->>'winner_swaps_count')::int from common.games where id = (select id from g)),
-  1, 'the club line names the winner''s swap count');
+  (select (summary_data->>'nWinnerSwaps')::int from common.games where id = (select id from g)),
+  1, 'the summary names the winner''s swap count');
 
--- ── After the end: the opponent board is now revealed ───────
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+-- ── After the end: the rival's board, solved ────────────────
 select is(
-  (select board from waffle.players_state
-    where game_id = (select id from g)
-      and user_id = 'bea22222-2222-2222-2222-222222222222')::text,
-  'abcdef.g.hijklmn.o.pqrstu',
-  'after the end: the opponent board is revealed');
+  (select p->'board'->'tiles'->0->>'letter'
+     from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from g))) p
+    where p->>'id' = 'bea22222-2222-2222-2222-222222222222'),
+  'a',
+  'after the end: bea''s board, which the page now shows, is solved');
 
 -- ── The compete move log ────────────────────────────────────
 -- Compete logs swaps too. ada made 1, bea made 3 — four rows in ONE game-wide
@@ -185,13 +178,13 @@ select is(
   4::bigint,
   'compete logs every swap (ada 1 + bea 3)');
 
--- …and at the END both players' logs open up — the point of logging them, and
--- safe because the boards themselves are revealed by then anyway.
+-- …and a member reads both racers' swaps: the policy is the member gate, and
+-- the page opens a rival's log once the race has ended.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(distinct user_id) from waffle.events where game_id = (select id from g)),
   2::bigint,
-  'at the end: a player sees BOTH logs');
+  'at the end: the log holds both racers'' swaps');
 reset role;
 
 -- Four rows, four ids: two players' swaps share one sequence rather than each

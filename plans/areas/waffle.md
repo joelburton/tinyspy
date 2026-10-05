@@ -140,10 +140,10 @@ The rulings behind it (2026-10-05):
 
 ## Predicted test breaks
 
-- **Step 4 (2026-10-05), fixed at step 5:** every pgTAP assertion that reads
-  the statuses (`statuses_test`, `compete_test`, `replay_test`), the two
-  views (`boards_untouched_test`, `compete_test`, `gameplay_test`,
-  `solution_hide_test`) or the events mode arm.
+- **Step 4 (2026-10-05), fixed at step 5:** every pgTAP assertion that read
+  the statuses or the two views now reads the blobs, `game_data_test` pins
+  them, and `statuses_test` went; `solution_hide_test` and `gameplay_test`
+  pin coop's solution waiting for the end, by the step-2 ruling.
 - **Steps 4–9:** the frontend reads the two views and the old common shapes,
   so the page stays broken until `useGame` reads `game_data` and the PlayArea
   pass moves its readers onto `gd`.

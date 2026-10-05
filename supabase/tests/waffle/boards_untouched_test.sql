@@ -4,7 +4,7 @@
 -- Test: ending a waffle game leaves the players' boards alone
 -- ============================================================
 -- Seeing the answer is a DISPLAY decision, top to bottom: the solution
--- unshields at the end via the ordinary ended_at gate, the FE swaps what it
+-- arrives in game_data at the end, the FE swaps what it
 -- DRAWS when a player asks (locally — docs/ui.md → Terminal results), and
 -- `waffle.players.board` is never rewritten by any of it.
 --
@@ -71,11 +71,11 @@ select is(
      where game_id = (select id from g1) and final_ranking is null and outcome = 'neutral'),
   2::bigint, 'manual end → nobody won: every player unranked, neutral');
 
--- The solution is readable now (the ended_at gate lifted) — which is what
+-- The solution arrives in game_data now the game has ended — which is what
 -- makes the FE's local swap possible without any server round trip.
 select isnt(
-  (select solution from waffle.games_state where game_id = (select id from g1)),
-  null, 'ended → the solution unshields (ended_at gate)');
+  (select game_data->'puzzle'->'solution' from common.games where id = (select id from g1)),
+  'null'::jsonb, 'ended → the solution arrives in game_data');
 
 select * from finish();
 rollback;

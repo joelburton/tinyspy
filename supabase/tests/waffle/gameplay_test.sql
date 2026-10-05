@@ -95,13 +95,12 @@ select is(
   (select title from common.games where id = (select id from g1)),
   'EHMPU-IJKLM-QRSTU',
   'coop: the title reads the correct words so far');
--- Coop exposes the solution during play (the turn-history viewer recomputes past
--- boards' colors on the FE, which needs the answer; we don't gate this against
--- friends). Compete's mid-game hiding lives in solution_hide_test.
+-- The solution waits for the end in coop too (solution_hide_test has both
+-- modes): each swap stores its own colors, so nothing on the page needs it.
 select is(
-  (select solution from waffle.games_state where game_id = (select id from g1))::text,
-  'abcdef.g.hijklmn.o.pqrstu',
-  'coop exposes the solution while playing (turn-history needs it)');
+  (select game_data->'puzzle'->'solution' from common.games where id = (select id from g1)),
+  'null'::jsonb,
+  'coop: no solution in game_data while playing');
 
 -- Either player can swap (coop): bea undoes 2,3, then solves with 0,1.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -127,9 +126,9 @@ select is(
   2::bigint,
   'both players ranked 1, won, and solved');
 select is(
-  (select solution from waffle.games_state where game_id = (select id from g1))::text,
-  'abcdef.g.hijklmn.o.pqrstu',
-  'solution readable once the game has ended');
+  (select game_data->'puzzle'->'solution'->0 from common.games where id = (select id from g1)),
+  '{"id": "0", "letter": "a"}'::jsonb,
+  'the solution arrives in game_data once the game has ended');
 -- A solved board has all six words correct, so the title settles on the
 -- alphabetical first three of the puzzle itself.
 select is(

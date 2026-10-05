@@ -3,19 +3,16 @@
 -- ============================================================
 -- Test: waffle — solution visibility (`solution`)
 -- ============================================================
--- The answer key's visibility rule, per mode:
+-- The answer key's visibility rule, the same in both modes:
 --
 --   1. `waffle.games.solution` is column-grant-excluded — never selectable
---      directly by an authenticated player (the SECURITY DEFINER helper behind
---      `games_state` is the only path), in EITHER mode.
---   2. COOP exposes it during play: it's a collaborative solve and the
---      turn-history viewer recomputes past boards' colors on the FE (which needs
---      the answer). Per the trust model we don't gate this against friends.
---   3. COMPETE hides it mid-game (players race on independent boards, and each
---      colored swap row is stored, so nothing needs it there) and reveals it
---      once the game ends.
+--      directly by an authenticated player; `game_data` (`_make_json_puzzle`)
+--      is the only path, in EITHER mode.
+--   2. `game_data` carries it only once the game has ended — in coop too:
+--      each colored swap row is stored, so nothing on the page needs it
+--      mid-game.
 --
--- The mirror of wordle's target test, updated when coop turn-history landed.
+-- The mirror of wordle's target test.
 
 begin;
 
@@ -53,27 +50,28 @@ select throws_ok(
   'waffle.games.solution is column-excluded from authenticated'
 );
 
--- (2) COOP mid-game: games_state exposes the solution (turn-history needs it).
+-- (2) COOP mid-game: no solution in game_data.
 select is(
-  (select solution from waffle.games_state where game_id = (select id from gc))::text,
-  'abcdef.g.hijklmn.o.pqrstu',
-  'mid-game coop: games_state.solution is exposed'
+  (select game_data->'puzzle'->'solution' from common.games where id = (select id from gc)),
+  'null'::jsonb,
+  'mid-game coop: game_data carries no solution'
 );
 
--- (3) COMPETE mid-game: still hidden.
-select ok(
-  (select solution from waffle.games_state where game_id = (select id from gp)) is null,
-  'mid-game compete: games_state.solution is NULL'
+-- (3) COMPETE mid-game: no solution either.
+select is(
+  (select game_data->'puzzle'->'solution' from common.games where id = (select id from gp)),
+  'null'::jsonb,
+  'mid-game compete: game_data carries no solution'
 );
 
 -- ada solves the coop game (coop → the solve ends it); the compete game stays open.
 select waffle.submit_swap((select id from gc), 0, 1);
 
--- (4) An ended coop game: the answer key is (still) revealed.
+-- (4) An ended coop game: the answer key arrives.
 select is(
-  (select solution from waffle.games_state where game_id = (select id from gc))::text,
-  'abcdef.g.hijklmn.o.pqrstu',
-  'ended coop: games_state.solution is revealed'
+  (select game_data->'puzzle'->'solution'->0 from common.games where id = (select id from gc)),
+  '{"id": "0", "letter": "a"}'::jsonb,
+  'ended coop: game_data carries the solution'
 );
 
 select * from finish();

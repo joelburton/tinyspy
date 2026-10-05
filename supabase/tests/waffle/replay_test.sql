@@ -67,8 +67,8 @@ select is(
   (select restart_count from common.games where id = (select id from g1)),
   1, 'coop: replay → restart_count up by one');
 select is(
-  (select (clubpage_info->>'swaps_used')::int from common.games where id = (select id from g1)),
-  0, 'coop: replay → the club line''s swaps_used reset to 0');
+  (select (summary_data->'team'->>'nSwapsUsed')::int from common.games where id = (select id from g1)),
+  0, 'coop: replay → the summary''s team count reset to 0');
 select is(
   (select count(*) from waffle.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the swap log is cleared');
