@@ -262,6 +262,290 @@ $$;
 
 revoke execute on function stackdown._write_statuses(uuid, boolean) from public;
 
+-- ============================================================
+-- The page blobs — what the page shows, written by this game's builder
+-- ============================================================
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- stackdown's own, each builder bearing its column's name. `game_data` is the
+-- common part (supabase/sql/common.sql → The page blobs' common parts) with
+-- stackdown's facts on top; the pieces below build each part, so `select
+-- game_data from common.games` shows the page what it gets.
+--
+--   game_data, stackdown's part:
+--     puzzle: {tiles, nReqdWords, solution}
+--                                          the stack, frozen at create: all 30
+--                                          tiles, each {id, letter, x, y, z}, its
+--                                          id the tile number as text; the words
+--                                          to clear; the six words, null until
+--                                          the game ends
+--     team: {nFoundWords, nHintsUsed, nSpoilersUsed}
+--                                          the players' own counts, summed; null in
+--                                          compete (plans/team-facts.md)
+--     events: [{id, userId, kind, word, clue, tileIds, valid, tookTurn, at}, …]
+--                                          every row, every player's; `word` a
+--                                          played word or a spoiler's, `clue` a
+--                                          hint's; what a racer may see of a rival
+--                                          mid-race is the hook's rule
+--     players: [player, …]                 the common player, plus:
+--       nFoundWords, nHintsUsed, nSpoilersUsed
+--                                          this player's own, in every mode
+--       board: {tiles}                     this seat's stack, the tiles still on
+--                                          it: the shared one in coop, each
+--                                          racer's own in compete
+--
+--   summary_data, stackdown's part (the common part names and dates the game
+--   and carries its ending; the winner is `ending.winner`):
+--     team                                 the same group; null in compete
+--     nReqdWords
+--     band                                 the dictionary band, `setup.band`
+
+-- A stack's tiles, by tile number, leaving out any in `p_cleared_ids`: the
+-- whole stack when that is empty.
+create or replace function stackdown._make_json_tiles(p_tiles jsonb, p_cleared_ids int[])
+returns jsonb
+language sql
+immutable
+set search_path = stackdown, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',     t.id::text,
+           'letter', t.letter,
+           'x',      t.x,
+           'y',      t.y,
+           'z',      t.z) order by t.id), '[]'::jsonb)
+    from jsonb_to_recordset(p_tiles) as t(id int, x int, y int, z int, letter text)
+   where not (t.id = any(p_cleared_ids));
+$$;
+
+revoke execute on function stackdown._make_json_tiles(jsonb, int[]) from public;
+
+-- The tiles a seat has cleared: every valid word's in coop, where the stack is
+-- shared; the player's own in compete.
+create or replace function stackdown._cleared_tile_ids(p_game_id uuid, p_user_id uuid)
+returns int[]
+language sql
+stable
+set search_path = stackdown, common, public, extensions
+as $$
+  select coalesce(array_agg(t), '{}'::int[])
+    from stackdown.events e
+    join common.games cg on cg.id = e.game_id,
+         unnest(e.tile_ids) as t
+   where e.game_id = p_game_id and e.valid
+     and (cg.mode = 'coop' or e.user_id = p_user_id);
+$$;
+
+revoke execute on function stackdown._cleared_tile_ids(uuid, uuid) from public;
+
+-- The stack, the words to clear, and the six words once the game has ended
+-- (the column grant keeps them from any client read).
+create or replace function stackdown._make_json_puzzle(sg stackdown.games, p_ended boolean)
+returns jsonb
+language sql
+immutable
+set search_path = stackdown, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'tiles',      stackdown._make_json_tiles(sg.tiles, '{}'),
+    'nReqdWords', cardinality(sg.solution),
+    'solution',   case when p_ended then to_jsonb(sg.solution) end);
+$$;
+
+revoke execute on function stackdown._make_json_puzzle(stackdown.games, boolean) from public;
+
+-- The log: every row, in the order of play. A hint row keeps its clue in the
+-- `word` column; the blob names it `clue`.
+create or replace function stackdown._make_json_events(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = stackdown, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',       e.id,
+           'userId',   e.user_id,
+           'kind',     e.kind,
+           'word',     case when e.kind = 'hint' then null else e.word end,
+           'clue',     case when e.kind = 'hint' then e.word end,
+           'tileIds',  coalesce((select jsonb_agg(t::text order by o)
+                                   from unnest(e.tile_ids) with ordinality u(t, o)), '[]'::jsonb),
+           'valid',    e.valid,
+           'tookTurn', e.took_turn,
+           'at',       e.created_at) order by e.id), '[]'::jsonb)
+    from stackdown.events e
+   where e.game_id = p_game_id;
+$$;
+
+revoke execute on function stackdown._make_json_events(uuid) from public;
+
+-- One player's own counts: the words they cleared, the hints and spoilers they
+-- took. Over every player's rows when `p_user_id` is null — the team's.
+create or replace function stackdown._make_json_counts(p_game_id uuid, p_user_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = stackdown, common, public, extensions
+as $$
+  select jsonb_build_object(
+           'nFoundWords',   count(*) filter (where e.kind = 'word' and e.valid),
+           'nHintsUsed',    count(*) filter (where e.kind = 'hint'),
+           'nSpoilersUsed', count(*) filter (where e.kind = 'spoiler'))
+    from stackdown.events e
+   where e.game_id = p_game_id
+     and (p_user_id is null or e.user_id = p_user_id);
+$$;
+
+revoke execute on function stackdown._make_json_counts(uuid, uuid) from public;
+
+-- What the team shares: the players' own counts, summed. Null in compete, where
+-- there is no team (plans/team-facts.md).
+create or replace function stackdown._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = stackdown, common, public, extensions
+as $$
+  select case when cg.mode = 'coop' then stackdown._make_json_counts(p_game_id, null) end
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function stackdown._make_json_team(uuid) from public;
+
+-- Every player as stackdown's game_data shows them: the common player, with
+-- their own counts and this seat's stack.
+create or replace function stackdown._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = stackdown, common, public, extensions
+as $$
+  select jsonb_agg(
+           cp.player
+             || stackdown._make_json_counts(p_game_id, cp.id)
+             || jsonb_build_object('board', jsonb_build_object(
+                  'tiles', stackdown._make_json_tiles(
+                             sg.tiles, stackdown._cleared_tile_ids(p_game_id, cp.id))))
+           order by cp.ord)
+    from common._make_json_players(p_game_id) cp
+    join stackdown.games sg on sg.game_id = p_game_id;
+$$;
+
+revoke execute on function stackdown._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with stackdown's puzzle, team, log
+-- and players on top.
+create or replace function stackdown._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = stackdown, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'puzzle',  stackdown._make_json_puzzle(sg, cg.ended_at is not null),
+           'team',    stackdown._make_json_team(p_game_id),
+           'events',  stackdown._make_json_events(p_game_id),
+           'players', stackdown._make_json_players(p_game_id))
+    from stackdown.games sg
+    join common.games cg on cg.id = sg.game_id
+   where sg.game_id = p_game_id;
+$$;
+
+revoke execute on function stackdown._make_json_game_data(uuid) from public;
+
+-- The game summed up: the numbers a list of games shows for this one.
+create or replace function stackdown._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = stackdown, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+    'team',       stackdown._make_json_team(p_game_id),
+    'nReqdWords', cardinality(sg.solution),
+    'band',       coalesce((cg.setup->>'band')::int, 1))
+    from stackdown.games sg
+    join common.games cg on cg.id = sg.game_id
+   where sg.game_id = p_game_id;
+$$;
+
+revoke execute on function stackdown._make_json_summary_data(uuid, timestamptz) from public;
+
+-- ============================================================
+-- stackdown._rebuild_data_cols — one game's data columns, rebuilt
+-- ============================================================
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from stackdown's own tables,
+-- assigning each whole. Every RPC calls it after a move, after the coop title
+-- is rewritten, so the blobs carry the title the move left; it is also the
+-- repair for one game by hand. Every key is always present, null when it has
+-- no value; the shapes are drawn above.
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function stackdown._rebuild_data_cols(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = stackdown, common, public, extensions
+as $$
+declare
+  v_status_changed_at timestamptz;
+begin
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
+
+  update common.games
+     set game_data = stackdown._make_json_game_data(p_game_id),
+         summary_data = stackdown._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function stackdown._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- stackdown._rebuild_data_cols_for_all — every stackdown game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every stackdown game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function stackdown._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = stackdown, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('stackdown_coop', 'stackdown_compete')
+  loop
+    perform stackdown._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function stackdown._rebuild_data_cols_for_all() from public;
+
 drop function if exists stackdown.create_game(text, jsonb, uuid[], text);
 
 -- ============================================================
@@ -334,6 +618,7 @@ begin
   select new_id, uid from unnest(p_player_user_ids) uid;
 
   perform stackdown._write_statuses(new_id, p_update_status_changed_at => true);
+  perform stackdown._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The name is here even
   -- though this is the only `ok` — a call site cannot assert a case the payload
@@ -547,6 +832,7 @@ begin
   end if;
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return v_answer;
 
 exception when others then
@@ -641,6 +927,7 @@ begin
   end if;
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- A spoiler is RED. Its price is the whole hunt for this word — there is
   -- nothing left to find, so it reads as a loss and not as the amber caution a
@@ -760,6 +1047,7 @@ begin
   end if;
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- Amber: a hint is a nudge, neither good nor bad play (the spoiler beside it
   -- is red, because it ends the hunt rather than nudging it). No message — the
@@ -821,6 +1109,7 @@ begin
   );
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -861,6 +1150,7 @@ begin
   perform common._stop(p_game_id);
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -906,6 +1196,7 @@ begin
   perform common._concede(p_game_id);
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -983,6 +1274,7 @@ begin
   perform common._reset_game(p_game_id);
 
   perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

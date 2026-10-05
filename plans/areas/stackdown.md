@@ -29,6 +29,69 @@ owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to `todo.md` or
 `docs/games/stackdown.md` instead; a note here never stands in for either)*
 
+## The convenience RLS
+
+The policies and views the frontend leans on before the page blobs, listed
+before the game converts onto them (plans/seat-view.md → How a game converts,
+step 1: "each one is taken over or dropped by name"). Listed 2026-10-05; the
+last column is what the conversion will do, filled in as it does it.
+
+| what | mentioned | taken over or dropped |
+|---|---|---|
+| `events_select`'s mode arm — coop shows every member every row, a racer always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | |
+| `games_state` view, with `_solution_for` — the game row, the six words once the game has ended | `ended_at` | |
+| `games_select`, `players_select` — club-member reads | neither | |
+| `_write_statuses` — `game_status` {}, `player_status` {found_words_count, hints_count, spoilers_count, player_ended_reason}, `clubpage_info` {found_words_count, band, winner_user_id} | neither | |
+| the postgres-changes subscription on `games`, `players` and `events` (`useRealtimeRefetch` in `hooks/useGame.ts`), and its reads of `games_state`, `players` and `events` | — | |
+
+**The status keys the page shows:** none it can still read. `PlayArea.tsx`
+reads `status.winner_user_id` and `status.winner_username` (the compete
+verdict), and works out the found, hint and spoiler counts from the rows it
+reads; the club card (`manifest.ts` → `summaryFor`) reads `found_words_count`,
+`required_words_count`, `winner_username` and `reason` through the
+pre-common-tables `row.status` / `row.play_state`.
+
+**A coop solve stamps every teammate:** yes — `submit_word` sets `solved_at`
+on every coop player and ranks them all 1.
+
+**Coop's counts are already each player's own:** `submit_word` bumps the
+caller's `found_count` alone, in both modes. The board is the shared one: a
+coop word clears its tiles for everyone, read off every valid `events` row.
+
+**Seen while listing** (each is fixed by the conversion, not before it,
+unless noted):
+
+- **The page cannot load.** `useGame` asks `games_state` for `id`,
+  `club_handle`, `mode` and `created_at`, and `players` for `solved` /
+  `solved_at`, which 20260928000000 renamed or dropped; `PlayArea.tsx` calls
+  `submit_word`, `reveal_next_word` and `reveal_next_hint` with `target_game`
+  / `tile_ids` where they take `p_` names, and so does the gallery's
+  `submit_word`.
+- **`todo.md`'s "a compete win writes no `reason`"** is stale: `submit_word`'s
+  compete win ends `reached_goal` / `cleared`, as coop's does.
+- **`todo.md`'s "act-new-game active before load"** goes with the PlayArea
+  pass, and its "collapse the action row" with the InfoCol pass.
+- **No local stackdown game is compete** (9 coop), so the compete branches
+  have nothing to rebuild from locally; `game_data_test` will be their only
+  pin before e2e.
+
+## The rulings behind the shape
+
+The `gd` sketch, approved 2026-10-05 (step 2, Joel: "i'll take your recs"):
+
+- **A seat's board is its remaining tiles**, `board: {tiles}` — the shared
+  stack in coop, each racer's own in compete; the page works out which are
+  exposed from their places.
+- **A hint row's clue is `clue`**, not `word`; `word` is a played word's or a
+  spoiler's.
+- **Six words is the puzzle's**, `puzzle.nReqdWords`.
+- **The team carries all three counts**, `{nFoundWords, nHintsUsed,
+  nSpoilersUsed}`, the players' own summed; null in compete.
+- **An event's tiles are ids in the blob** (`tileIds`), made `GTile`s by
+  `gd` through `tilesById`; `for_word_index` stays out.
+- **The solution waits for the end**, and `players.found_count` becomes
+  `n_found_words` by a migration.
+
 ## Predicted test breaks
 
 *(the spec names, written when the area starts changing things)*
