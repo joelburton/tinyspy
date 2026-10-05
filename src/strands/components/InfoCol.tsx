@@ -38,7 +38,7 @@ export function InfoCol({
   endingMessage: TerminalMessage | null
   actions: GActions
   historyView: GHistoryView
-  // The hidden words, spangram first, while I have them revealed; else null.
+  // The puzzle words, spangram first, while I have them revealed; else null.
   // The board draws paths and never spells anything out, so without this the
   // reveal makes you read the words off the grid letter by letter.
   solution: GWord[] | null

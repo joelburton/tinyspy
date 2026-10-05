@@ -40,7 +40,7 @@ function makePoints(tiles: readonly GTile[]): string {
  *
  * **The paths are one SVG under the letters.** Diagonals rule out any
  * border/box-shadow trick, and found words persist — by endgame the board
- * carries every theme word's polyline plus the live trace — so this is a real
+ * carries every puzzle word's polyline plus the live trace — so this is a real
  * drawing layer, not a decoration. Discs are drawn in the same SVG as the lines
  * rather than as DOM elements, which is what guarantees a line always passes
  * UNDER its discs and both stay centered on the tile at any board size.

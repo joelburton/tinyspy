@@ -61,7 +61,7 @@ export function useActionsAndMenu({
   // the ask is LOCAL and reversible (`useSolutionReveal`), mine alone, so a
   // rival still looking keeps their board untouched while I look.
   //
-  // `impliedBy` is the exception: the hidden words TILE the board, so solving
+  // `impliedBy` is the exception: the puzzle words TILE the board, so solving
   // it traces every one — there are no unfound words left to draw. What the
   // reveal still adds is the info column's word list, which names them as
   // click-to-define text. MY solve, not the game's verdict: a coop solve stamps

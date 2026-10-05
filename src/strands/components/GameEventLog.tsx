@@ -55,7 +55,7 @@ const MARK: Record<GResult, typeof IconWordOk> = {
  * doesn't.
  *
  * A find needs no label: green bar + purple word IS "theme", green bar + gold
- * word IS "spangram", and the gold `near` bar IS "valid word". Spelling those
+ * word IS "spangram", and the gold `near` bar IS a hint word. Spelling those
  * out again cost the width that a long word needs on a phone, to repeat what
  * the row already showed.
  *

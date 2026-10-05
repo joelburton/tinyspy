@@ -17,17 +17,17 @@ import type {
   GWordRaw,
 } from '../types'
 
-/** setup.psql's board: one hidden word per row, row 4 the spangram, and each
+/** setup.psql's board: one puzzle word per row, row 4 the spangram, and each
  *  of rows 0–3 starting with a four-letter hint word ('zzqa' …). */
 export const ZTest_BOARD = ['zzqabc', 'zzqbde', 'zzqcfg', 'zzqdhi', 'zzqejk', 'zzqflm', 'zzqgno', 'zzqhpr']
 
 /** The ids of the first `n` tiles of row `r`, left to right: that row's
- *  hidden word at 6, its hint word at 4. */
+ *  puzzle word at 6, its hint word at 4. */
 export function ZTest_rowIds(r: number, n = 6): string[] {
   return Array.from({ length: n }, (_, c) => `${r},${c}`)
 }
 
-/** The hidden words, spangram first, as `strands._make_json_words` writes them. */
+/** The puzzle words, spangram first, as `strands._make_json_words` writes them. */
 export const ZTest_WORDS: GWordRaw[] = [4, 0, 1, 2, 3, 5, 6, 7].map((r) => ({
   word: ZTest_BOARD[r]!,
   tileIds: ZTest_rowIds(r),
@@ -112,7 +112,7 @@ export function ZTest_guess(
   }
 }
 
-/** Row `r`'s hidden word found: the spangram on row 4, a theme word elsewhere. */
+/** Row `r`'s puzzle word found: the spangram on row 4, a theme word elsewhere. */
 export function ZTest_find(id: number, userId: string, r: number): GEventRaw {
   return ZTest_guess(id, userId, ZTest_rowIds(r), r === 4 ? 'spangram' : 'theme')
 }

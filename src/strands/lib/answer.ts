@@ -16,7 +16,7 @@ import type { GAnswer, GResult } from '../types'
  * The readings, which are this game's rather than the vocabulary's:
  *
  *   - a **theme word** or the **spangram** is the goal: `won`.
- *   - a **valid non-theme word** is real progress — it moves the hint bar —
+ *   - a **hint word** is real progress — it moves the hint bar —
  *     but it is not the goal. `near` is exactly that. It says `hint earned`
  *     only when it filled the bar: the bar carries progress, and a line
  *     claiming a hint on every find would be wrong most of the time.

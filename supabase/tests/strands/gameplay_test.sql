@@ -65,14 +65,14 @@ select is((select (res -> 'data') - 'result' from spangram_res), '{"hint_points"
 create temp table hw on commit drop as
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) as res;
 select is((select res -> 'data' ->> 'result' from hw), 'hint_word',
-  'a dictionary word that is not a theme word earns a hint point');
+  'a dictionary word that is not a puzzle word earns a hint point');
 select is((select res -> 'outcome' from hw), 'null'::jsonb,
   'the envelope carries no outcome for a hint word either');
 
 -- ============================================================
 -- (4) THE ORDERING RULE — theme first, length second
 -- ============================================================
--- min_word_length 7 is longer than every 6-letter theme word in the fixture.
+-- min_word_length 7 is longer than every 6-letter puzzle word in the fixture.
 -- A length-first classifier would call them all "too_short". This is the
 -- regression that would only show up in a club that turned the knob up.
 
@@ -92,7 +92,7 @@ select is(
 select is(
   strands.submit_path((select id from strict_game), pg_temp.strands_prefix_path(1, 4)) -> 'data' ->> 'result',
   'too_short',
-  '…while a non-theme word under the same limit IS too short'
+  '…while a non-puzzle word under the same limit IS too short'
 );
 
 -- ============================================================
@@ -124,7 +124,7 @@ select is(
 -- ============================================================
 -- Joel's ruling: points earned while a hint sits unspent are LOST, and the
 -- player reads that off the full bar rather than being warned. So a fourth
--- valid word is still a valid word — logged, and honestly reported as
+-- hint word is still a hint word — logged, and honestly reported as
 -- 'hint_word' — it just doesn't move the bar.
 
 select is(
@@ -253,7 +253,7 @@ select is(
 -- ============================================================
 -- (20)–(23) REGRESSION: an equivalent trace of the same tiles
 -- ============================================================
--- The 2026-08-02 bug. A theme word with a repeated letter can sit on two
+-- The 2026-08-02 bug. A puzzle word with a repeated letter can sit on two
 -- interchangeable tiles, and then more than one legal trace covers the IDENTICAL
 -- cells and spells the IDENTICAL word. Comparing the stored coord ARRAY rejected
 -- one of them and scored it as an ordinary dictionary find — telling a player

@@ -9,7 +9,7 @@
 --   puzzle_for_date       the archive puzzle for a date, played or not
 --   create_game           starts a game on an archive puzzle
 --   submit_path           traces a word
---   spend_hint            cashes the hint bar for a ringed theme word
+--   spend_hint            cashes the hint bar for a ringed puzzle word
 --   concede               a racer drops out of a compete game
 --   stop_game             stops the game for everyone, with no result
 --   submit_timeout        ends the game when the countdown runs out
@@ -25,9 +25,9 @@
 --     carries it only once the game has ended. A dictionary lookup forces a
 --     server round trip anyway, so every trace is classified here: a theme
 --     word, the spangram, a hint word (which fills the hint bar), or a miss.
---   - A theme word is matched by the CELLS it covers and the word they spell,
+--   - A puzzle word is matched by the CELLS it covers and the word they spell,
 --     not by the ordered path (_path_key).
---   - The theme words tile the board exactly, so finding every one and using
+--   - The puzzle words tile the board exactly, so finding every one and using
 --     every cell are the same thing: solving. Coop solves together; in
 --     compete solving ends only your own race, and the solver with the fewest
 --     hints wins once nobody is left racing.
@@ -174,7 +174,7 @@ drop function if exists strands._write_statuses(uuid, boolean);
 --   game_data, strands' part:
 --     puzzle: {title, tiles, words}        frozen at create: the theme prompt;
 --                                          all 48 tiles, each {id, letter, row,
---                                          col}, row by row; the hidden words,
+--                                          col}, row by row; the puzzle words,
 --                                          each {word, tileIds, spangram},
 --                                          spangram first, null until the game
 --                                          ends
@@ -234,7 +234,7 @@ $$;
 
 revoke execute on function strands._make_json_tiles(text[]) from public;
 
--- The hidden words, spangram first.
+-- The puzzle words, spangram first.
 create or replace function strands._make_json_words(p_solution jsonb)
 returns jsonb
 language sql
@@ -256,7 +256,7 @@ $$;
 
 revoke execute on function strands._make_json_words(jsonb) from public;
 
--- The prompt, the tiles, and the hidden words once the game has ended (the
+-- The prompt, the tiles, and the puzzle words once the game has ended (the
 -- column grant keeps them from any client read).
 create or replace function strands._make_json_puzzle(sg strands.games, p_ended boolean)
 returns jsonb
@@ -315,7 +315,7 @@ $$;
 
 revoke execute on function strands._make_json_found_words(uuid, uuid) from public;
 
--- The theme words found: one player's own, or every player's when `p_user_id`
+-- The puzzle words found: one player's own, or every player's when `p_user_id`
 -- is null — the team's.
 create or replace function strands._count_found_words(p_game_id uuid, p_user_id uuid)
 returns int
@@ -631,7 +631,7 @@ drop function if exists strands.create_game(text, jsonb, uuid[], text);
 --   { puzzle_id: uuid,            -- which archived puzzle; absent = the next
 --                                 --   one none of the players has seen
 --     band: 1..6,                -- dictionary ceiling for HINT words
---     hint_cost: 1..10,          -- valid words per hint (NYT plays 3)
+--     hint_cost: 1..10,          -- hint words per hint (NYT plays 3)
 --     min_word_length: 3..8,     -- shortest word that can earn a point
 --     timer: <the common shape>,
 --     coop_style: 'free' | 'turns',
@@ -826,7 +826,7 @@ grant execute on function strands.create_game(text, jsonb, uuid[], text) to auth
 --   I[5,0] N[5,1] T[6,2] E[7,3] N[7,2] T[7,1] I[7,0] O[6,0] N[6,1]
 --
 -- — the same nine tiles, differing only in which N was touched first. Matching
--- the stored coord ARRAY would reject the first as "not a theme word". What
+-- the stored coord ARRAY would reject the first as "not a puzzle word". What
 -- identifies a find is WHICH TILES it consumes, and the word those tiles spell
 -- — never the order they were visited in.
 drop function if exists strands._path_key(jsonb);
@@ -842,9 +842,9 @@ $$;
 drop function if exists strands._consumed_keys(uuid, uuid);
 
 -- ============================================================
--- strands._consumed_keys — cells locked by found theme words
+-- strands._consumed_keys — cells locked by found puzzle words
 -- ============================================================
--- "r,c" keys for every cell a found theme word occupies. Those tiles are
+-- "r,c" keys for every cell a found puzzle word occupies. Those tiles are
 -- spent: they can't be traced again, which is coherent only because the hidden
 -- words tile the board exactly (48 cells, each once — asserted at import).
 --
@@ -1138,7 +1138,7 @@ begin
     into norm_path
     from unnest(rs, cs) with ordinality as t(r, c, ord);
 
-  -- ─── 1. A theme word? Matched by PLACEMENT + WORD ────────
+  -- ─── 1. A puzzle word? Matched by PLACEMENT + WORD ────────
   -- Two conditions, and both are needed:
   --
   --   the CELLS  — a find is identified by which tiles it consumes, compared
@@ -1147,7 +1147,7 @@ begin
   --   the WORD   — so that tracing those same tiles in an order spelling
   --                something else isn't a find.
   --
-  -- String alone would misclassify: theme words often appear in an ordinary
+  -- String alone would misclassify: puzzle words often appear in an ordinary
   -- dictionary too (in one sampled puzzle, all 8 did). Cells alone would accept
   -- a scramble. Together they're exact.
   if strands._path_key(g.solution->'spangram'->'coords') = strands._path_key(norm_path)
@@ -1163,7 +1163,7 @@ begin
     v_result := 'theme';
   end if;
 
-  -- ─── 2..4. Not a theme word: length, dedup, dictionary ───
+  -- ─── 2..4. Not a puzzle word: length, dedup, dictionary ───
   if not matched then
     if n < g.min_word_length then
       v_result := 'too_short';
@@ -1241,8 +1241,8 @@ begin
   v_total := jsonb_array_length(g.solution->'themeWords') + 1;
 
   -- ─── Solving ─────────────────────────────────────────────
-  -- "Every theme word found" and "every cell used" are the same statement,
-  -- because the hidden words tile the board exactly. Counting words is the
+  -- "Every puzzle word found" and "every cell used" are the same statement,
+  -- because the puzzle words tile the board exactly. Counting words is the
   -- cheaper half of that identity.
   if matched and v_found >= v_total then
     if v_mode = 'coop' then
@@ -1304,7 +1304,7 @@ drop function if exists strands.spend_hint(uuid);
 -- ============================================================
 -- strands.spend_hint — cash the bar for a revealed word
 -- ============================================================
--- Picks a RANDOM unfound theme word and publishes its COORDS (never its word:
+-- Picks a RANDOM unfound puzzle word and publishes its COORDS (never its word:
 -- a hint rings the tiles and leaves the player to work out the order).
 --
 -- Server-side by necessity, not preference: the coop hint pool is SHARED, so
@@ -1381,7 +1381,7 @@ begin
   if p_row.active_hint_coords is not null then
     raise exception 'A hint is already showing'
       using errcode = 'PN433', hint = 'race', column = '_',
-      detail = 'one theme word is already ringed';
+      detail = 'one puzzle word is already ringed';
   end if;
 
   -- A word already found is not worth revealing. WHOSE finds count is the
@@ -1404,9 +1404,9 @@ begin
   if coords is null then
     -- UNREACHABLE, so a fault rather than a refusal: a board with everything
     -- found has already ended, and the gate above catches that.
-    raise exception 'BUG: a hint with every theme word found'
+    raise exception 'BUG: a hint with every puzzle word found'
       using errcode = 'PN434', hint = 'fault', column = '_',
-      detail = 'every theme word is already found';
+      detail = 'every puzzle word is already found';
   end if;
 
   -- Coop shares the pool, so the emptied bar AND the reveal land on every row —
@@ -1612,7 +1612,7 @@ drop function if exists strands.submit_timeout(uuid);
 -- and answer the game-over race.
 --
 -- The clock is a LOSS in coop: the game had a REACHABLE END — find every
--- theme word — and the team didn't reach it. In compete it stops the race
+-- puzzle word — and the team didn't reach it. In compete it stops the race
 -- wherever it stands, and the ranking is applied to whoever HAD solved; a
 -- player mid-board simply didn't finish. Ended by whoever held the turn in
 -- turn-by-turn coop, else nobody.

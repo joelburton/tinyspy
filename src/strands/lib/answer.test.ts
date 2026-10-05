@@ -16,7 +16,7 @@ describe('answerMessage', () => {
       .toEqual({ outcome: 'won', text: 'PHARMACY — spangram' })
   })
 
-  it('a valid non-theme word is near, and says a hint only when it filled the bar', () => {
+  it('a hint word is near, and says a hint only when it filled the bar', () => {
     expect(answerMessage({ answerType: 'hint_word', word: 'trailer', filledBar: false }))
       .toEqual({ outcome: 'near', text: 'TRAILER — valid word' })
     expect(answerMessage({ answerType: 'hint_word', word: 'trailer', filledBar: true }))

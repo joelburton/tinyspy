@@ -69,7 +69,7 @@ describe('clickTile — consumed tiles', () => {
   const consumed = new Set(['0,1'])
 
   it('IGNORES a consumed tile rather than clearing the trace', () => {
-    // A found theme word's tiles are spent. Clicking one is neither a move nor
+    // A found puzzle word's tiles are spent. Clicking one is neither a move nor
     // a mistake, so wiping the player's in-progress trace would punish a
     // misclick — the trace comes back exactly as it was.
     expect(clicks([[0, 0], [0, 1]], consumed)).toEqual(['0,0'])

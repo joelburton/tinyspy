@@ -37,9 +37,9 @@ function makeNumberPrefix(n: number | null): string {
  * strands' turn-history replay: the board as it stood at a past submission.
  *
  * **A filter, not a reconstruction** — which is unusual, and comes straight from
- * the tiling invariant. strands' board only ever ACCUMULATES: a theme word is
+ * the tiling invariant. strands' board only ever ACCUMULATES: a puzzle word is
  * found once, its tiles lock, and nothing is ever removed or changed. So "the
- * board at turn N" is just "the theme words among the first N+1 rows", with no
+ * board at turn N" is just "the puzzle words among the first N+1 rows", with no
  * replay of intermediate states at all. Contrast waffle, which re-applies each
  * swap to the scramble, or stackdown, whose tiles vanish.
  *
@@ -79,7 +79,7 @@ export function makeHistorySnapshot(
 
 /** The banner's words for a turn. A hint has no word, by design — so the label
  *  names the ACT, and the ring on the board says the rest: "a word" rather
- *  than "a theme word", since which word it was is exactly what a hint
+ *  than "a puzzle word", since which word it was is exactly what a hint
  *  withholds. */
 function makeLabel(viewed: GEvent | undefined, n: number | null): string {
   if (!viewed) return ''

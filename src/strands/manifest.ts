@@ -14,7 +14,7 @@ import logoUrl from './logo.svg?url'
  * strands' registration with the shell.
  *
  * "strands" is the codename for our NYT-Strands-style word search: an 8×6 board
- * whose hidden words tile it exactly, plus a spangram that runs edge to edge and
+ * whose puzzle words tile it exactly, plus a spangram that runs edge to edge and
  * names the theme. The user-facing brand is **PaulPath** (the `BRAND` const
  * below); gametype / schema / folder are all `strands`.
  *

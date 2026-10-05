@@ -23,7 +23,7 @@
 --   6. `_rebuild_data_cols_for_all` rewrites every strands game without
 --      re-dating it
 --
--- The board is setup.psql's: one hidden word per row, row 4 the spangram, and
+-- The board is setup.psql's: one puzzle word per row, row 4 the spangram, and
 -- each of rows 0–3 starting with a four-letter hint word.
 -- ============================================================
 

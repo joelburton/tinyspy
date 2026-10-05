@@ -78,7 +78,7 @@ describe('isValidPath', () => {
 
   it('accepts a single cell — length is an acceptance rule, not a shape rule', () => {
     // A 2-cell trace still has to reach the server: only IT knows whether the
-    // path is a (possibly short) theme word, so "too short" can't be decided here.
+    // path is a (possibly short) puzzle word, so "too short" can't be decided here.
     expect(isValidPath([[4, 4]])).toBe(true)
   })
 
@@ -121,7 +121,7 @@ describe('consumedCells', () => {
     expect(consumedCells([]).size).toBe(0)
   })
 
-  it('finding every theme word consumes the WHOLE board', () => {
+  it('finding every puzzle word consumes the WHOLE board', () => {
     // The tiling invariant, restated as the win condition: theme words plus the
     // spangram cover all 48 cells exactly, so "all found" and "board consumed"
     // are the same statement — which is why nothing tracks them separately.

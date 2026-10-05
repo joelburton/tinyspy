@@ -40,7 +40,7 @@ export type GTile = {
   col: number
 }
 
-/** A hidden word, or a seat's find, as the blob carries it: its tiles as ids
+/** A puzzle word, or a seat's find, as the blob carries it: its tiles as ids
  *  in the order it is traced, and whether it is the spangram. */
 export type GWordRaw = {
   word: string
@@ -48,7 +48,7 @@ export type GWordRaw = {
   spangram: boolean
 }
 
-/** A hidden word, or a seat's find, as `gd` holds it: its tiles, in the order
+/** A puzzle word, or a seat's find, as `gd` holds it: its tiles, in the order
  *  it is traced. */
 export type GWord = Omit<GWordRaw, 'tileIds'> & {
   tiles: GTile[]
@@ -73,7 +73,7 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     title: string
     // All 48 tiles, row by row.
     tiles: GTile[]
-    // The hidden words, spangram first. Null until the game ends.
+    // The puzzle words, spangram first. Null until the game ends.
     words: GWordRaw[] | null
   }
   // What the team shares; null in compete, where there is no team.
@@ -127,10 +127,10 @@ export type GResult = 'theme' | 'spangram' | 'hint_word' | 'duplicate' | 'too_sh
  * so they are not here: the pill is their only surface.
  */
 export type GAnswer =
-  // A hidden word found; the spangram is the one that names the theme.
+  // A puzzle word found: a theme word, or the spangram, which names the theme.
   | { answerType: 'theme'; word: string }
   | { answerType: 'spangram'; word: string }
-  // A valid non-theme word: a point on the hint bar, and whether it filled it.
+  // A hint word: a point on the hint bar, and whether it filled it.
   | { answerType: 'hint_word'; word: string; filledBar: boolean }
   // Moves the rules turn away: a hint word already credited, or one shorter
   // than the setup's shortest.
@@ -403,9 +403,9 @@ export type GSetupValues = CoopTurnSetup & {
   // the field's copy says so out loud. Gated on difficulty alone (the
   // may-enter tier in docs/common.md).
   band: number
-  // Valid non-theme words needed per hint. NYT plays 3.
+  // Hint words needed per hint. NYT plays 3.
   hint_cost: number
-  // Shortest word that can earn a hint point. Does NOT gate theme words:
+  // Shortest word that can earn a hint point. Does NOT gate puzzle words:
   // those are matched first and unconditionally, so raising this never makes a
   // real answer unfindable.
   min_word_length: number

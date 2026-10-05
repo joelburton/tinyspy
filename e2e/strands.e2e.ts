@@ -211,7 +211,7 @@ test.describe('strands hint economy', () => {
 
     // The fixture sets hint_cost = 3 and nothing has been found, so the answer
     // is the whole cost. The count is literally words: the ledger adds exactly
-    // one point per valid non-theme word.
+    // one point per hint word.
     const hint = actionButton(page, 'act-hint')
     await expect(hint).toBeEnabled()
     await hint.click()

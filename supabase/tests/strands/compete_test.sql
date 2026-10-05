@@ -37,7 +37,7 @@ select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzle_id;
 select pg_temp.strands_hint_words();
 
--- hint_cost 1, so a single valid word buys a hint — the tests need to SPEND
+-- hint_cost 1, so a single hint word buys a hint — the tests need to SPEND
 -- hints cheaply, since spending is the thing being ranked.
 create temp table game on commit drop as
 select (strands.create_game(

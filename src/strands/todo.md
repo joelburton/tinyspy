@@ -4,18 +4,20 @@
 
 ## Soon
 
-- **"Theme word" means two different things; pick one and say it
-  everywhere.** The data and the code keep the spangram apart:
-  `solution->'themeWords'` holds everything but the spangram, which sits
-  beside it, and a trace answers `'theme'` or `'spangram'`. The prose
-  includes the spangram without saying so. `spend_hint`'s header and the
-  doc's hint economy say a hint rings "an unfound theme word", and the pool
-  it draws from includes the spangram; `submit_path`'s "every theme word
-  found" is `themeWords` plus one. Reading either one by the other's meaning
-  gets a count or a pool wrong, and this plan's own game card did just that
-  (`plans/game-cards.md` → strands). The fix: a nomenclature section in the
-  doc that settles whether "theme word" includes the spangram, and a name for
-  the other set; then every identifier, comment and doc line brought to it.
+- **The player-facing text, in the new words.** Code, comments and docs speak
+  puzzle word / theme word / spangram / hint word (docs/games/strands.md →
+  Naming the words, 2026-10-05); what a player reads was left for Joel's
+  wording:
+  - the hint tooltip "Reveal the tiles of one theme word" — it may ring the
+    spangram, so it says less than the truth;
+  - SetupForm: "Theme words always count, however short" (the spangram does
+    too) and "How many valid non-theme words buy one hint";
+  - Help: "belongs to exactly one hidden word" and "rings the letters of one
+    hidden word";
+  - the manifest's `shortDescription`: "Find the hidden words that fill the
+    board";
+  - "valid word" for a hint word: the pill (`WORD — valid word`), the history
+    banner, and the tooltip "Find N more valid words".
 
 - **A hint should reveal the spangram last.** `strands.spend_hint` picks the word
   to ring out of one pool — `solution->'themeWords' || jsonb_build_array(solution->'spangram')`

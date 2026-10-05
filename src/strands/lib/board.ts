@@ -100,12 +100,12 @@ export function isValidPath(path: readonly GCoord[]): boolean {
 }
 
 /**
- * The cells locked by already-found theme words.
+ * The cells locked by already-found puzzle words.
  *
- * Found theme words consume their tiles permanently — which is only coherent
- * because the hidden words **tile the board exactly** (verified across the
+ * Found puzzle words consume their tiles permanently — which is only coherent
+ * because the puzzle words **tile the board exactly** (verified across the
  * archive: 48 cells, each covered once). So "every cell consumed" is the same
- * statement as "every theme word found", and the shrinking pool of free cells
+ * statement as "every puzzle word found", and the shrinking pool of free cells
  * is what makes hint words scarcer as a game progresses.
  */
 export function consumedCells(found: ReadonlyArray<{ path: readonly GCoord[] }>): Set<string> {

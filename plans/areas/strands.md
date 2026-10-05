@@ -215,6 +215,21 @@ verbatim to `InfoCol.module.css` and `.hintsUsed` to `StateLine.module.css`,
 so `PlayArea.module.css` holds `.layout` alone. Two new tests, each verified
 by planting its bug: back-to-club in every phase, and "out" in the strip.
 
+## The words for the words
+
+2026-10-05, its own slice before the naming pass (Joel: "let's call 'hidden
+words' 'puzzle words' … hint word : non-puzzle word; spangram; theme word :
+puzzle word, not spangram; puzzle words : theme+[spangram]"). docs/games/strands.md
+gained "Naming the words". Every comment, doc line, test description and SQL
+fault string that meant all of them now says **puzzle word**; every "valid
+(non-theme) word" that meant a word earning a hint point says **hint word**;
+the narrow "theme word" stayed where it meant the narrow thing. No identifier
+needed to change: `themeWords`, `'theme'`, `'spangram'`, `hint_word` and
+`puzzle.words` already meant what the table says. What a player reads was
+left alone and listed in `todo.md` for Joel's wording; so was a sampled
+statistic in the doc ("33 of 148 sampled theme words"), which is about theme
+words in the narrow sense.
+
 ## What the InfoCol pass changed that a player can see
 
 - **Back-to-club is in the row while I am out of a race**; it was missing.

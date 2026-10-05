@@ -10,7 +10,7 @@
  * string in the whole economy. Pinning it costs three assertions.
  *
  * The count is literally words: `spend_hint`'s ledger adds exactly one point
- * per valid non-theme word (`hint_points + 1`, capped at the cost — see
+ * per hint word (`hint_points + 1`, capped at the cost — see
  * supabase/sql/strands.sql), so "words" here is the unit, not an approximation
  * of one.
  */

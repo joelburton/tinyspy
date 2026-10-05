@@ -47,7 +47,7 @@ function touch(a: GTile, b: GTile): boolean {
  *
  * Three cases, in the order they're checked:
  *
- *  1. **The tile is consumed** (part of a found theme word) — ignored. Those
+ *  1. **The tile is consumed** (part of a found puzzle word) — ignored. Those
  *     tiles are spent; a click on one is neither a move nor a mistake, so the
  *     trace is left exactly as it was rather than being cleared out from under
  *     the player.
@@ -121,7 +121,7 @@ type TypeResult =
  *    is a small field, so this is usually unique — which is what makes typing
  *    the rest of a word work.
  *
- * Consumed cells (spent on a found theme word) are excluded throughout, exactly
+ * Consumed cells (spent on a found puzzle word) are excluded throughout, exactly
  * as `clickTile` ignores clicks on them.
  *
  * Note what this deliberately does NOT do: an unmatched letter never restarts

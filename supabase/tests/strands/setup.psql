@@ -17,7 +17,7 @@
 --                                    common.words.
 --
 -- ─── The fixture board, and why it looks like that ──────────
--- Eight rows of six, where each ROW is one hidden word:
+-- Eight rows of six, where each ROW is one puzzle word:
 --
 --        col:  0 1 2 3 4 5
 --      row 0:  Z Z Q A B C     ZZQABC
@@ -30,9 +30,9 @@
 --      row 7:  Z Z Q H P R     ZZQHPR
 --
 -- Row-per-word is the cheapest shape that satisfies the invariant the whole
--- gametype rests on: the hidden words TILE the board exactly — 8 × 6 = 48
+-- gametype rests on: the puzzle words TILE the board exactly — 8 × 6 = 48
 -- cells, each covered once. A fixture that violated it would make the win
--- condition ("every theme word found" = "every cell consumed") untestable.
+-- condition ("every puzzle word found" = "every cell consumed") untestable.
 -- The spangram is a full row, so it genuinely spans edge to edge.
 --
 -- ─── Why the letters are nonsense ───────────────────────────
@@ -53,7 +53,7 @@ language sql immutable as $$
   select array['zzqabc','zzqbde','zzqcfg','zzqdhi','zzqejk','zzqflm','zzqgno','zzqhpr']
 $$;
 
--- The full-row path for row `r` — that row's theme word.
+-- The full-row path for row `r` — that row's puzzle word.
 create function pg_temp.strands_row_path(r int) returns jsonb
 language sql immutable as $$
   select jsonb_agg(jsonb_build_array(r, c) order by c) from generate_series(0, 5) c

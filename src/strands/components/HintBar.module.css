@@ -42,7 +42,7 @@
   transition: width 180ms ease-out;
 }
 
-/* A FULL bar is the only thing telling a player that further valid words are
+/* A FULL bar is the only thing telling a player that further hint words are
  * earning nothing (the cap is deliberate and unwarned), so the filled state is
  * visually distinct rather than merely 100% wide — a deeper green, still within
  * the same "this is going well" vocabulary. */

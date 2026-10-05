@@ -5,8 +5,8 @@
 -- ============================================================
 --
 -- The win condition is where the tiling invariant becomes a rule the code
--- relies on: "every theme word found" and "every cell consumed" are the same
--- statement, because the hidden words cover all 48 cells exactly. submit_path
+-- relies on: "every puzzle word found" and "every cell consumed" are the same
+-- statement, because the puzzle words cover all 48 cells exactly. submit_path
 -- counts words (the cheaper half of that identity), and test (2) checks the
 -- other half actually holds — every cell of the board is spent at the win.
 --

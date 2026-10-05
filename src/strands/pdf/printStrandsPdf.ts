@@ -37,7 +37,7 @@ import type { PrintTrack, PrintTurn, StrandsPrintModel } from './model'
  *                      as a different kind of mark rather than a paler one
  *
  * Letters print black throughout. Circling every found tile would ink most of
- * the page (the hidden words tile the board exactly, so a solved board is
+ * the page (the puzzle words tile the board exactly, so a solved board is
  * entirely covered); the connecting line alone says both which tiles and in
  * what order, which is more than the screen's discs manage on their own.
  *

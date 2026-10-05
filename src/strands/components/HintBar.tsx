@@ -8,7 +8,7 @@ import styles from './HintBar.module.css'
 type Props = {
   /** Points on the bar (0..cost). */
   points: number
-  /** Valid words per hint — the bar's denominator. */
+  /** Hint words per hint — the bar's denominator. */
   cost: number
   /** A hint is already on the board. */
   showing: boolean
@@ -20,7 +20,7 @@ type Props = {
 }
 
 /**
- * The hint economy, below the board: a bar that fills as valid non-theme words
+ * The hint economy, below the board: a bar that fills as hint words
  * are found, and the button that cashes it.
  *
  * **Below the board, not in the info column** — and that is a real placement

@@ -71,7 +71,7 @@ const MARK: Record<GResult, PrintTurn['mark']> = {
 }
 
 /** …and the note, only where the glyph doesn't already carry it. On screen the
- *  COLOR distinguishes a theme word from a valid one; on paper the glyph does,
+ *  COLOR distinguishes a theme word from a hint word; on paper the glyph does,
  *  so the same three rejections keep their reason and the finds stay bare. */
 const NOTE: Partial<Record<GResult, string>> = {
   duplicate: 'already found',
@@ -142,7 +142,7 @@ export function buildStrandsPrintModel({
   // Coop's track counts: the team's.
   nFoundWords: number
   nHintsUsed: number
-  // The hidden words while the solution is shown, else null.
+  // The puzzle words while the solution is shown, else null.
   solution: readonly GWord[] | null
 }): StrandsPrintModel {
   /** A racer's track; a rival's is only built once the game has ended, when

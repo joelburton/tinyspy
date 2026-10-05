@@ -42,7 +42,7 @@ select (strands.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
--- ── Dirty the game: two valid words, then cash the hint they buy ──
+-- ── Dirty the game: two hint words, then cash the hint they buy ──
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(0, 4));
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4));
 select strands.spend_hint((select id from game));

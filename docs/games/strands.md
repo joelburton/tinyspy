@@ -2,8 +2,8 @@
 
 A NYT-Strands-style word search: an 8×6 board of letters hiding a set of **theme
 words** plus a **spangram** — the one that runs edge to edge and names the
-theme. You trace a word by clicking its letters in order. Valid non-theme words
-earn hint points; enough of them buys a hint.
+theme. You trace a word by clicking its letters in order. **Hint words** — real
+words that aren't puzzle words — earn hint points; enough of them buys a hint.
 
 "strands" is the codename (as "codenamesduet" is for Codenames Duet). The
 user-facing brand is **PaulPath**, which lives only in the manifest's `BRAND`
@@ -14,6 +14,21 @@ mode branching at render time on `game.mode`. See [Compete](#8-compete).
 
 For the shared layer see [`common.md`](../common.md); for play-surface
 conventions [`playarea.md`](../playarea.md).
+
+### Naming the words
+
+Four words, used the same way in code, comments and docs (Joel, 2026-10-05):
+
+| term | means | in the data |
+|---|---|---|
+| **puzzle word** | any word the puzzle hides: the theme words and the spangram | `puzzle.words` in the blob; `result in ('theme', 'spangram')` |
+| **theme word** | a puzzle word that isn't the spangram | `solution.themeWords`; the `theme` result |
+| **spangram** | the puzzle word that runs edge to edge and names the theme | `solution.spangram`; the `spangram` result |
+| **hint word** | a real word that isn't a puzzle word: it puts a point on the hint bar | the `hint_word` result |
+
+A duplicate, a word shorter than the setup's shortest and a word the
+dictionary lacks are none of these; they keep their results' names. The word a
+spent hint rings is a puzzle word; nothing calls it a "hint word".
 
 ---
 
@@ -34,12 +49,12 @@ The rule lives once, in
 puzzle importer and the FE import it from there. The [oracle test](#the-oracle)
 pins it.
 
-### The hidden words tile the board exactly
+### The puzzle words tile the board exactly
 
 Theme words + spangram cover all 48 cells, each exactly once, with no overlap.
 Consequences the code leans on rather than re-deriving:
 
-- **Winning IS consuming the board.** "Every theme word found" and "every cell
+- **Winning IS consuming the board.** "Every puzzle word found" and "every cell
   used" are the same statement, so `submit_path` counts words (the cheaper half)
   and `terminal_test` checks the other half actually holds.
 - **Found tiles lock**, so the pool of remaining hint words shrinks as you
@@ -102,7 +117,7 @@ that break and watching the file fail to heal it.)
 
 A find is identified by *which tiles it consumes* and *what those tiles spell* —
 never by the order they were visited in. Both halves are needed: string alone
-misclassifies (in one sampled puzzle all 8 theme words also appear in NYT's own
+misclassifies (in one sampled puzzle all 8 puzzle words also appear in NYT's own
 solutions list), and cells alone would accept a scramble.
 
 The ordering half was a **bug**, fixed 2026-08-04. A word with a repeated letter
@@ -144,7 +159,7 @@ deploy).
 | `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `title` (the puzzle's theme clue), and the shielded `solution`. Only `(id, source_id, puzzle_date, title)` are granted to `authenticated` — enough for the setup dialog to name the puzzle it's offering, not enough to study tomorrow's board. The title is how a person recognizes a puzzle (it's the game's own title, and on screen from the first second), so withholding it would mostly mean starting one you'd already played. |
 | `games` | One playthrough, keyed `game_id`, its title in `puzzle_title`; the mode and the club are `common.games`'. Follows the [library-puzzle provenance rule](../common.md#library-puzzle-games-provenance-not-dependency): everything needed to play *and* identify the game is copied on, and `puzzle_id` is a soft FK (`on delete set null`), so the archive can be re-imported freely. Carries the three setup knobs, denormalized because they're immutable and read on every move. |
 | `players` | One row per player: the hint economy (`hint_points`, `hints_spent`, `active_hint_coords`); a solve is `common.game_players.solved_at`. The **same shape in both modes** — coop moves every row in lock-step (the pool is shared), compete moves only the actor's (see [Compete](#8-compete)). Mid-race a rival's private fields are nulled by `players_state`. |
-| `events` | The append-only log — **one table, not two**, and not two *kinds* of table either. `kind` discriminates a **guess** (a submitted path, carrying `word` + `result`) from a **hint** (a cashed token, carrying neither). Keyed by a `bigint identity`, read `order by id`. Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. `took_turn` is true for a trace that found something — `theme`, `spangram` or `hint_word` — and false for a duplicate, a too-short path, a word the dictionary lacks, and a hint. Only state that can't be derived lives as columns — on `players`, above. |
+| `events` | The append-only log — **one table, not two**, and not two *kinds* of table either. `kind` discriminates a **guess** (a submitted path, carrying `word` + `result`) from a **hint** (a cashed token, carrying neither). Keyed by a `bigint identity`, read `order by id`. Found puzzle words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. `took_turn` is true for a trace that found something — `theme`, `spangram` or `hint_word` — and false for a duplicate, a too-short path, a word the dictionary lacks, and a hint. Only state that can't be derived lives as columns — on `players`, above. |
 
 `solution` shape:
 
@@ -222,7 +237,7 @@ The ending is `common.games`' reason, detail and outcome
 
 | mode | when | reason / detail | ranked |
 |---|---|---|---|
-| coop | every theme word found | `reached_goal` / `solved` | everyone 1, won, all solved |
+| coop | every puzzle word found | `reached_goal` / `solved` | everyone 1, won, all solved |
 | coop | the clock | `timeout` | nobody — a loss |
 | compete | nobody left racing: the last solve | `reached_goal` / `solved` | every solver by fewest hints, then the earliest solve; ties share |
 | compete | nobody left racing: the last concession | `conceded` | the same |
@@ -242,7 +257,7 @@ where the clock is merely how a session stops.
 |---|---|
 | `create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)` | Copies the puzzle onto the row, writes the statuses, seats turn-order when `setup.coop_style = 'turns'`. Title is `"<date>: <title>"` — the puzzle's title is the prompt, not the answer, so it spoils nothing and tells two games apart far better than a bare date. |
 | `submit_path(p_game_id, p_path)` | The move RPC. See the order below. |
-| `spend_hint(p_game_id)` | Picks a **random** unfound theme word and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted', coords, hint_points: 0}` with outcome `warning` — a hint is neither good nor bad play. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the ended-game gate should already have caught. |
+| `spend_hint(p_game_id)` | Picks a **random** unfound puzzle word and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted', coords, hint_points: 0}` with outcome `warning` — a hint is neither good nor bad play. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the ended-game gate should already have caught. |
 | `stop_game` / `submit_timeout` / `replay_board` | The neutral manual stop, the clock, and the restart. |
 
 ### The one outcome decision (`lib/answer.ts`)
@@ -254,7 +269,7 @@ which is what a `kind: 'hint'` row is (it has no `result` column).
 | answer | outcome | why |
 |---|---|---|
 | `theme` · `spangram` | `won` | the thing you came for |
-| `hint_word` | `near` | a valid non-theme word moves the hint bar — real progress, not the goal |
+| `hint_word` | `near` | a hint word moves the hint bar — real progress, not the goal |
 | `duplicate` · `too_short` | `warning` | moves the rules turn away, with nothing happening |
 | `invalid` | `lost` | the one real miss |
 | `spent_hint` | `warning` | a hint, and a hint reads the same in every game |
@@ -278,7 +293,7 @@ outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 ### Classification order — a rule, not an implementation detail
 
-1. the path matches an unfound theme word's path → **theme** / **spangram**
+1. the path matches an unfound puzzle word's path → **theme** / **spangram**
 2. shorter than `min_word_length` → **too_short**
 3. already credited this game → **duplicate**
 4. in `common.words` at the setup band → **hint_word** (+1 point, capped)
@@ -329,8 +344,8 @@ The dictionary filter is the **may-enter tier** ([common.md](../common.md)):
 
 ## 5. The hint economy
 
-Distinct valid non-theme words fill a **bar**; at `hint_cost` (default 3) the
-Hint button activates. Spending rings one unfound theme word's tiles — **no
+Distinct hint words fill a **bar**; at `hint_cost` (default 3) the
+Hint button activates. Spending rings one unfound puzzle word's tiles — **no
 connecting line**, so the player still works out the order.
 
 - **The pool is shared in coop**, which forces the random pick server-side and
@@ -345,7 +360,7 @@ connecting line**, so the player still works out the order.
   click is a fair question, and a disabled button is the one response that can't
   answer it. The two states still read differently: the button only fills amber
   (`hintReady`) when a hint is actually there to cash. Words is the literal unit
-  — `spend_hint`'s ledger adds exactly one point per valid non-theme word — and
+  — `spend_hint`'s ledger adds exactly one point per hint word — and
   the singular ("1 more word needed") is unit-tested, since it's the state
   preceding every hint anyone ever earns.
 - **One hint at a time.** A second is refused while one is unsolved; the board
@@ -482,7 +497,7 @@ same SVG as the lines, which is what guarantees a line passes *under* its discs
 at any size.
 
 **Every log row leads with a verdict GLYPH** — trophy (spangram), star (theme
-word), check (valid word), X (rejected) — from the shared icon registry, named
+word), check (hint word), X (rejected) — from the shared icon registry, named
 for the verdict rather than for this game so another word game's log can reuse
 them. Two jobs: an eye running down the log sorts finds from misses without
 reading a word, and it is the NON-COLOR encoding of the same fact, which the PDF
@@ -493,7 +508,7 @@ and it tints with its word so the two can never disagree about a row.
 
 **Colors**, and each says one thing: purple = a found theme word, gold = the
 spangram, light purple = the live trace, gray = a word nobody found (drawn at
-the reveal). Green belongs to the hint bar; the `valid word` result is gold,
+the reveal). Green belongs to the hint bar; a hint word is gold,
 since it is progress rather than the goal. The event log uses *darker text
 variants* of purple and gold — a color tuned as a disc fill under white letters
 is not the same color that reads as 15px type on a white row.
@@ -538,11 +553,11 @@ Printing a board whose meaning is COLOR needs the encoding to move to **shape**
 Letters print black throughout, over a **white knock-out disc** on every traced
 cell — the mono equivalent of the on-screen colored disc, and the reason a
 connector doesn't run straight through the glyph it connects. Circling every
-found tile instead would ink most of the page: the hidden words tile the board
+found tile instead would ink most of the page: the puzzle words tile the board
 exactly, so a solved board is entirely covered.
 
 The log's verdict glyphs are the vector marks from `common/pdf/marks` (a filled
-square for a find, bigger for the spangram, ✓ for a valid word, ✗ for a
+square for a find, bigger for the spangram, ✓ for a hint word, ✗ for a
 rejection) — jsPDF's core fonts are WinAnsi, so a unicode star or trophy would
 not render at all. That non-color encoding is why the on-screen glyphs were
 added when they were.
@@ -558,9 +573,9 @@ Click any `#N` in the log to see the board as it stood at that submission
 (`useHistoryViewer` + `lib/history.ts`, the shared arrangement).
 
 **A filter, not a reconstruction** — which is unusual, and falls out of the
-tiling invariant. The board only ever ACCUMULATES: a theme word is found once,
+tiling invariant. The board only ever ACCUMULATES: a puzzle word is found once,
 its tiles lock, nothing is removed or changed. So "the board at turn N" is
-literally "the theme words among the first N+1 rows". waffle re-applies each
+literally "the puzzle words among the first N+1 rows". waffle re-applies each
 swap to its scramble; stackdown's tiles vanish; strands just slices.
 
 The boundary is **inclusive** — turn N shows the board *after* it, with the
@@ -621,7 +636,7 @@ The importer **updates on conflict** (`source_id`), so a re-fetch carrying a
 corrected puzzle refreshes its row in place — games in flight are untouched
 either way, since every game plays from its own frozen copy.
 
-NYT's `solutions` list (its own valid non-theme words) is deliberately **not**
+NYT's `solutions` list (its own list of hint words) is deliberately **not**
 imported: our hint words come from `common.words` at the chosen band, and that
 band is the difficulty lever.
 
@@ -675,7 +690,7 @@ Withheld until the game ends:
 | hidden | why |
 |---|---|
 | their found words | the `events` policy gains its compete arm — word counts are progress |
-| their hint **bar** | its fill proxies how many valid words they've found, so publishing it would leak sideways exactly what the events RLS hides |
+| their hint **bar** | its fill proxies how many hint words they've found, so publishing it would leak sideways exactly what the events RLS hides |
 | their revealed word | part of the answer |
 
 A solve (`common.game_players.solved_at`) **is** public: race status, not puzzle

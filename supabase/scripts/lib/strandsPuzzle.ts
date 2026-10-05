@@ -35,7 +35,7 @@ export type Feed = {
   spangram: string
   themeCoords: Record<string, GCoord[]>
   spangramCoords: GCoord[]
-  /** NYT's own valid-non-theme list. Deliberately NOT kept — see the fetcher. */
+  /** NYT's own list of hint words. Deliberately NOT kept — see the fetcher. */
   solutions?: string[]
 }
 
@@ -123,7 +123,7 @@ export function validatePuzzle(f: Feed, label: string): void {
   }
 
   if (seen.size !== CELLS) {
-    bad(`theme words cover ${seen.size}/${CELLS} cells — the board must tile exactly`)
+    bad(`puzzle words cover ${seen.size}/${CELLS} cells — the board must tile exactly`)
   }
 
   // The spangram must live up to its name: touching two OPPOSITE edges

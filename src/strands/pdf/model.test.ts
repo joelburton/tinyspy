@@ -119,7 +119,7 @@ describe('buildStrandsPrintModel — formatting', () => {
 
   it('a hint never reaches the printed BOARD — it revealed, it did not place', () => {
     const m = print({ events: [ZTest_find(1, 'u1', 0), ZTest_hint(2, 'u1', ZTest_rowIds(2))] })
-    // The hint's tiles are a theme word's; drawing them among the found words
+    // The hint's tiles are a puzzle word's; drawing them among the found words
     // would print an answer nobody found — the shield's whole concern.
     expect(m.tracks[0]!.words.map((w) => w.word)).toEqual(['zzqabc'])
   })
