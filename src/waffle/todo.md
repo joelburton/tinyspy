@@ -2,10 +2,6 @@
 
 ## Bugs
 
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
 - **`create_game` accepts a one-player compete game.** The compete manifest's
   `numberOfPlayers` is `[2, 6]` and its comment says the RPC also enforces it,
   but `waffle.create_game` has no `< 2` check for compete, so only the FE's
@@ -13,14 +9,6 @@
   (wordle's is `PN498`, a fault, since the app never sends it).
 
 ## Soon
-- **Does `waffle._solution_for` still hand coop the solution during play?**
-  Each swap row now stores its board's colors, so the turn-history viewer no
-  longer needs the answer to recolor a past board — the reason
-  `_solution_for`'s own comment gives for the coop branch, which also still
-  says compete writes no swap log. `PlayArea.tsx`'s comment above the swap
-  handler repeats the stale reason. Tightening the branch to terminal-only is
-  Joel's call, with its own pgTAP; either way the two comments are wrong today.
-
 - **Does a finished coop game still need to skip the title's swap check?**
   `_sync_title` names a coop game after its correct words only once
   `swaps_used > 0`, so a scramble's free words never title an untouched game —

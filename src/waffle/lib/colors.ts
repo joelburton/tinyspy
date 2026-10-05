@@ -3,7 +3,7 @@
 /**
  * waffle's green/yellow/gray feedback is the SERVER's, in full. Every colored
  * board the frontend draws was colored by `waffle._board_colors` — the live one
- * off `players_state`, and a past one off the swap row that stored it
+ * in the `game_data` blob, and a past one off the swap row that stored it
  * (`waffle.events.colors`). Nothing here recomputes any of it, and nothing here
  * holds the algorithm.
  *

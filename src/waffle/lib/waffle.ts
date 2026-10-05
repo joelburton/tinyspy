@@ -149,6 +149,23 @@ export function solvedWords(board: string, colors: string | null): (string | nul
 }
 
 /**
+ * A board's tiles as a 25-char board string, `.` at each hole — the shape
+ * `Board`, `solvedWords` and the printer read.
+ */
+export function makeBoardString(tiles: ReadonlyArray<{ id: string; letter: string }>): string {
+  const cells: string[] = Array.from({ length: CELLS }, () => HOLE)
+  for (const t of tiles) cells[Number(t.id)] = t.letter
+  return cells.join('')
+}
+
+/** A board's tile colors as a 25-char g/y/x string, `.` at each hole. */
+export function makeColorString(tiles: ReadonlyArray<{ id: string; color: string }>): string {
+  const cells: string[] = Array.from({ length: CELLS }, () => HOLE)
+  for (const t of tiles) cells[Number(t.id)] = t.color
+  return cells.join('')
+}
+
+/**
  * Structural validity of a board string: correct length, holes are
  * `.`, every filled cell is a single ASCII letter. Does NOT check
  * that the words are real — that's the generator's job.

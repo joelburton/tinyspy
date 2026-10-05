@@ -6,56 +6,69 @@
  * The judgment: a compete track must carry ONE player's board beside THAT
  * player's swaps. Printing a board next to a log that doesn't belong to it is
  * worse than printing nothing — it looks authoritative and is wrong. Plus the
- * solution, which is terminal-only on paper as on screen.
+ * solution, which is printed only once it is on screen, as on screen.
  */
 import { describe, expect, it } from 'vitest'
+import { makeGameData } from '../hooks/useGame'
+import {
+  ZTest_DEALT,
+  ZTest_SOLVED,
+  ZTest_makeGameDataRaw,
+  ZTest_swap,
+  type ZTest_GameDataFacts,
+} from '../lib/gameData.fixture'
 import { buildWafflePrintModel } from './model'
-import type { EventRow } from '../hooks/useGame'
 
-const MY_BOARD = 'badcef.g.hijklmn.o.pqrstu'
+const TWO = [
+  { id: 'u1', username: 'me', color: 'red' },
+  { id: 'u2', username: 'moth', color: 'blue' },
+]
+const ENDED: ZTest_GameDataFacts = {
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  outcome: 'neutral',
+}
 
-const swap = (over: Partial<EventRow> & Pick<EventRow, 'id' | 'pos_a' | 'pos_b'>): EventRow => ({
-  user_id: 'u1', letter_a: 'a', letter_b: 'b', colors: 'x'.repeat(25), ...over,
-})
-
-const board = (user_id: string, over: Partial<{ board: string | null; colors: string | null; swaps_used: number; solved: boolean }> = {}) => ({
-  user_id, board: MY_BOARD, colors: 'xxggg'.padEnd(25, 'g'), swaps_used: 2, solved: false, ...over,
-})
-
-const base = {
-  brand: 'Waffle', gameTitle: 'Board 1', date: '1 Jan 2026',
-  mode: 'compete' as const, isTerminal: false,
-  maxSwaps: 12, parSwaps: 7,
-  playerBoards: [board('u1'), board('u2')],
-  swaps: [] as EventRow[],
-  players: [{ user_id: 'u1', username: 'me' }, { user_id: 'u2', username: 'moth' }],
-  myId: 'u1',
-  solutionWords: ['ABCDE', 'FGHIJ'],
-  answerShown: false,
-  setupRows: [{ key: 'extra_swaps', label: 'Extra swaps', value: '5' }],
+/** The model for a game from its facts, as `useActionsAndMenu` builds it. */
+function makeModel(facts: ZTest_GameDataFacts = {}, answerShown = false) {
+  const gd = makeGameData(ZTest_makeGameDataRaw({ mode: 'compete', players: TWO, ...facts }), 'u1')
+  return buildWafflePrintModel({
+    brand: 'SyrupSwap', gameTitle: 'Board 1', date: '1 Jan 2026',
+    mode: gd.mode,
+    isGameEnded: gd.ended,
+    maxSwaps: gd.me.maxSwaps,
+    parSwaps: gd.puzzle.parSwaps,
+    players: gd.players,
+    team: gd.team,
+    events: gd.events,
+    myId: gd.me.id,
+    solution: gd.puzzle.solution,
+    answerShown,
+    setupRows: [{ key: 'extra_swaps', label: 'Extra swaps', value: '5' }],
+  })
 }
 
 describe('buildWafflePrintModel — the solution is a secret', () => {
-  it('withholds it mid-game, even when handed it', () => {
-    expect(buildWafflePrintModel({ ...base }).solutionWords).toBeNull()
+  it('has none to print mid-game', () => {
+    expect(makeModel({}, true).solutionWords).toBeNull()
   })
 
-  it('withholds it on a LOST game — terminal is not enough', () => {
+  it('withholds it on an ended game — ended is not enough', () => {
     // Same rule as wordle's: waffle hides the solution on a loss, and paper has
     // to hold the same line.
-    expect(buildWafflePrintModel({ ...base, isTerminal: true }).solutionWords).toBeNull()
+    expect(makeModel(ENDED).solutionWords).toBeNull()
   })
 
   it('prints it once the answer is legitimately shown (solved or revealed)', () => {
-    expect(
-      buildWafflePrintModel({ ...base, isTerminal: true, answerShown: true }).solutionWords,
-    ).toEqual(['ABCDE', 'FGHIJ'])
+    // 'abcdef.g.hijklmn.o.pqrstu': three across, then three down.
+    expect(makeModel(ENDED, true).solutionWords).toEqual(
+      ['abcde', 'ijklm', 'qrstu', 'afinq', 'cgkos', 'ehmpu'],
+    )
   })
 })
 
 describe('buildWafflePrintModel — the board', () => {
   it('prints holes as blank, letterless cells', () => {
-    const m = buildWafflePrintModel({ ...base })
+    const m = makeModel()
     // Holes are 6, 8, 16, 18 — not part of the puzzle, so no box and no letter.
     for (const h of [6, 8, 16, 18]) {
       expect(m.tracks[0].cells[h]).toEqual({ letter: '', state: 'blank', hole: true })
@@ -63,32 +76,31 @@ describe('buildWafflePrintModel — the board', () => {
   })
 
   it('keeps the 5×5 shape (holes included) so the waffle reads', () => {
-    expect(buildWafflePrintModel({ ...base }).tracks[0].cells).toHaveLength(25)
+    expect(makeModel().tracks[0].cells).toHaveLength(25)
   })
 })
 
 describe('buildWafflePrintModel — tracks', () => {
-  it('coop is ONE shared track whose log names each swapper', () => {
-    const m = buildWafflePrintModel({
-      ...base, mode: 'coop',
-      swaps: [swap({ user_id: 'u2', id: 1, pos_a: 0, pos_b: 1 })],
-    })
+  it('coop is ONE shared track whose log names each swapper, with the team’s count', () => {
+    const m = makeModel({ mode: 'coop', events: [ZTest_swap(1, 'u2', [2, 3], ZTest_DEALT, ZTest_DEALT)] })
     expect(m.tracks).toHaveLength(1)
     expect(m.tracks[0].who).toBe('Team')
     expect(m.tracks[0].turns[0].who).toBe('moth')
+    expect(m.tracks[0].turns[0].text).toBe('C (C1) <-> D (D1)')
+    expect(m.tracks[0].result).toBe('1/6 swaps used')
   })
 
   it('compete mid-game prints ONLY my board', () => {
-    expect(buildWafflePrintModel({ ...base }).tracks.map((t) => t.who)).toEqual(['You'])
+    expect(makeModel().tracks.map((t) => t.who)).toEqual(['You'])
   })
 
-  it('compete at terminal gives each player their OWN swaps, not the pooled log', () => {
-    const m = buildWafflePrintModel({
-      ...base, isTerminal: true,
-      swaps: [
-        swap({ user_id: 'u1', id: 1, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
-        swap({ user_id: 'u2', id: 1, pos_a: 4, pos_b: 5, letter_a: 'e', letter_b: 'f' }),
-        swap({ user_id: 'u1', id: 2, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
+  it('compete once ended gives each player their OWN swaps, not the pooled log', () => {
+    const m = makeModel({
+      ...ENDED,
+      events: [
+        ZTest_swap(1, 'u1', [0, 1], ZTest_DEALT, ZTest_DEALT),
+        ZTest_swap(2, 'u2', [4, 5], ZTest_DEALT, ZTest_DEALT),
+        ZTest_swap(3, 'u1', [2, 3], ZTest_DEALT, ZTest_DEALT),
       ],
     })
     expect(m.tracks.map((t) => t.who)).toEqual(['me (you)', 'moth'])
@@ -98,20 +110,15 @@ describe('buildWafflePrintModel — tracks', () => {
     expect(m.tracks[0].turns[0].who).toBe('')
   })
 
-  it('drops a player whose board the server withheld rather than printing an empty grid', () => {
-    const m = buildWafflePrintModel({
-      ...base, isTerminal: true,
-      playerBoards: [board('u1')], // u2's row absent
-    })
-    expect(m.tracks.map((t) => t.who)).toEqual(['me (you)'])
-  })
-
   it('reports each track’s own outcome', () => {
-    const m = buildWafflePrintModel({
-      ...base, isTerminal: true,
-      playerBoards: [board('u1', { solved: true, swaps_used: 7 }), board('u2', { swaps_used: 12 })],
+    const m = makeModel({
+      ...ENDED,
+      players: [
+        { ...TWO[0]!, nSwapsUsed: 1, solvedAt: '2026-01-01T00:00:00Z', board: ZTest_SOLVED },
+        { ...TWO[1]!, nSwapsUsed: 6 },
+      ],
     })
-    expect(m.tracks[0].result).toBe('Solved in 7 swaps')
-    expect(m.tracks[1].result).toBe('12/12 swaps used')
+    expect(m.tracks[0].result).toBe('Solved in 1 swap')
+    expect(m.tracks[1].result).toBe('6/6 swaps used')
   })
 })

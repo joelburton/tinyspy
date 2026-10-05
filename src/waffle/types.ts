@@ -14,6 +14,7 @@
  * `GEvent` / `GEventRaw` are the same pair, one level down.
  */
 
+import type { Action } from '@/common/actions/useBindAction'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -207,6 +208,58 @@ export type GBoard = {
 export type GEvent = Omit<GEventRaw, 'userId'> & {
   // Who swapped.
   by: GPlayer
+}
+
+/**
+ * Every command the page offers, bound (`hooks/useActionsAndMenu.ts`): the info
+ * column's action row places them and the game menu lists them.
+ */
+export type GActions = {
+  // Each key is spelled as its action's id (`act-reveal` → `actReveal`), so a
+  // grep for either finds every trace of the action
+  // (src/guards/actionIds.test.ts).
+  //
+  // Show the solution — or put it away again, bringing back the board the
+  // players finished with. A local display toggle, no RPC.
+  actReveal: Action
+  // Restart THIS board from scratch.
+  actRestart: Action
+  // Start a fresh follow-up game — same setup, new board and id.
+  actNewGame: Action
+  // Drop out of a race while the others play on — hidden in coop, and once
+  // you are out, when Stop takes its place.
+  actConcede: Action
+  // The whole table stops, with no result.
+  actStopGame: Action
+  // Print the board as it stands.
+  actPrintBoard: Action
+  // Leave for the club — the shell's own action, off `menu`.
+  actBackToClub: Action
+}
+
+/**
+ * The turn-history view (`hooks/useHistoryView.ts`): which past swap is open on
+ * the board, and that swap replayed.
+ */
+export type GHistoryView = {
+  // A past swap is open on the board (`viewedEventId` is set): the board takes
+  // no swap while it is.
+  isViewing: boolean
+  // The log row open on the board (`events.id`), or null when live.
+  viewedEventId: number | null
+  // Open a swap — the log's `#N` click, with the number it printed beside it.
+  show: (id: number, n: number | null) => void
+  // Back to the live board — the banner's ✕, or any click or key.
+  exit: () => void
+  // The board after the viewed swap, or null when live.
+  tiles: GTile[] | null
+  // The two tiles the viewed swap moved — ring them; empty when live.
+  litTileIds: ReadonlySet<string>
+  // The banner's words for the viewed swap, or null when live.
+  label: string | null
+  // Whose board is on screen, when it is not mine — only a compete game's end
+  // opens a rival's.
+  actor: GPlayer | undefined
 }
 
 /**

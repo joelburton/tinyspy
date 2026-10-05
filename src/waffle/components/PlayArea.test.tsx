@@ -1,72 +1,64 @@
 // cs-unmet
 
 /**
- * Render + concede tests for waffle's PlayArea: does the play surface mount
- * without throwing (coop / compete / terminal), and does the per-player concede
- * wiring behave — compete offers Concede (→ waffle.concede), coop offers Stop
- * (→ stop_game), a conceded opponent reads 'out', and after I concede the
- * locally-terminal look says "You conceded".
+ * waffle's play surface, mounted for real: does it render in coop, in compete
+ * and once the game has ended, and does each surface on it do what its
+ * docstring says — the action rows per mode and state, Concede and Stop, New
+ * game, Reveal and Hide, the celebration, the turn-history viewer, the swap in
+ * flight, the keys and the selection cursor.
  *
- * Why this exists: a one-line `render()` catches the "removed a prop that's still
- * referenced → blank page" class of runtime bug that `tsc --noEmit` can't (the
- * root tsconfig checks nothing; see memory project_typecheck_use_tsc_b). The
- * concede block guards the wiring that was previously wrong — the compete button
- * fired Stop instead of Concede.
+ * The smoke cases exist because a removed prop that was still referenced once
+ * shipped a BLANK PAGE — a runtime `ReferenceError` that no type check
+ * surfaces — and a one-line `render()` catches that class of bug instantly.
+ * Game logic is not here: the rules live in pgTAP (the RPCs).
  *
- * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; everything else — the grid, strips, action row — renders for real.
- * The keyboard's selection cursor is pinned here too, at the end.
+ * The surface is a pure function of the `game_data` blob the page hands it, so
+ * a test builds that blob from the game's facts (`ZTest_makeWaffleCtx`) and
+ * nothing is mocked but `db` and the edge-function transport; everything — the
+ * grid, strips, action row, dialogs — renders for real.
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
-import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
-import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import type { WaffleGame, WafflePlayerState, EventRow } from '../hooks/useGame'
+import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '@/common/faults/faultStore'
 import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
 import { edgeFnTransport } from '@/common/supabase/edgeFnTransport'
-import { PlayArea } from './PlayArea'
-import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '@/common/faults/faultStore'
+import {
+  ZTest_CONCEDED,
+  ZTest_DEALT,
+  ZTest_DEALT_COLORS,
+  ZTest_SOLVED,
+  ZTest_makeWaffleCtx,
+  ZTest_swap,
+  type ZTest_GameDataFacts,
+  type ZTest_PlayerFacts,
+} from '../lib/gameData.fixture'
+import type { GSetup } from '../types'
+import { PlayAreaLoader } from './PlayArea'
 
-type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
-
-// A mutable holder the mocked useGame returns each render — set per test before
-// render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory, so
-// the factory can close over it safely.
-const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
-vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
-// The terminal reveal is a COMMON RPC now (common.reveal_solution flips the one
-// shared `solution_revealed` flag), so it needs its own mock.
+// The common client is mocked so the reveal tests can assert that NOTHING is
+// written when the answer is shown.
 vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
-// PlayArea's "New game" calls the start-game edge function directly (the same
-// helper the manifest uses); mocked so no edge runtime is needed.
-// The TRANSPORT, not the seam. This used to mock `invokeStartGameEdgeFn` — the
-// helper PlayArea called — so when that helper's replacement started returning a
-// different shape, the test kept passing against a helper nothing used any more.
-// Mocking one layer down runs the real `runEdgeFn`, which is what reads the
-// envelope and raises the fault.
+// New game calls the board-building edge function. The TRANSPORT is mocked, not
+// the helper above it, so the real `runEdgeFn` reads the envelope and raises
+// the fault.
 vi.mock('@/common/supabase/edgeFnTransport', () => ({ edgeFnTransport: vi.fn() }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
+const startEdgeFn = edgeFnTransport as unknown as ReturnType<typeof vi.fn>
 
 /** What `waffle.submit_swap` answers on an accepted swap. `runRpc` reads the
- *  ENVELOPE out of `data`, so a mock resolving `{ error: null }` alone hands it
- *  a body it cannot read and the call site sees a fault.
- *
- *  `data.result` is the case the call site asserts, so a stub without it is an
- *  answer the chain cannot name and correctly screams at. Only `result` is
- *  needed here — nothing reads the rest (docs/envelopes.md → Choosing which `ok`
- *  branch). */
+ *  ENVELOPE out of `data`, and `data.result` is the case the call site asserts,
+ *  so a stub without it is an answer the chain cannot name. */
 const okEnvelope = {
   data: {
     type: 'ok', data: { result: 'swapped' }, outcome: null, severity: null,
@@ -74,111 +66,51 @@ const okEnvelope = {
   },
   error: null,
 }
-const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
-const startEdgeFn = edgeFnTransport as unknown as ReturnType<typeof vi.fn>
 
-// A 25-char board (holes at 6/8/16/18); the exact letters don't matter for these
-// mount-level tests — holes render as gaps regardless of what sits there.
-const BOARD = 'CRANE.O.TSLATEB.I.ROUNDS'.padEnd(25, 'X')
+const ME: ZTest_PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
+const MOTH: ZTest_PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
+const twoMembers = [ME, MOTH]
 
-const me: WafflePlayerState = {
-  user_id: 'u1', board: BOARD, colors: null, swaps_used: 0, solved: false, solved_at: null,
+const T = '2026-09-03T00:00:00Z'
+
+/** The solved board's colors: every filled cell green. */
+const ALL_GREEN = ZTest_SOLVED.colors
+
+/** The endings the tests reach for, each with the game's outcome beside it. */
+type Ending = Pick<ZTest_GameDataFacts, 'ending' | 'outcome'>
+const COOP_WON: Ending = {
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: null },
+  outcome: 'won',
 }
-const moth: WafflePlayerState = {
-  user_id: 'u2', board: BOARD, colors: null, swaps_used: 0, solved: false, solved_at: null,
+const COOP_LOST: Ending = {
+  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1', winner: null },
+  outcome: 'lost',
 }
+/** A race somebody won: the last racer's act was a solve. */
+const raceWonBy = (winner: string): Ending => ({
+  ending: { reason: 'reached_goal', detail: 'solved', by: winner, winner },
+  outcome: 'won',
+})
 
-/** All-green colors (holes stay '.'), so an in-flight tile dropping to the
- *  unjudged fill is visible in a test rather than inferred. */
-const ALL_GREEN = Array.from({ length: 25 }, (_, i) =>
-  [6, 8, 16, 18].includes(i) ? '.' : 'g',
-).join('')
+/** A player who solved and was ranked first — `won`, as `_end_game` writes it. */
+const won = (p: ZTest_PlayerFacts, nSwapsUsed?: number): ZTest_PlayerFacts =>
+  ({ ...p, outcome: 'won', finalRanking: 1, solvedAt: T, nSwapsUsed })
+/** A player beaten or out — `lost`. */
+const lost = (p: ZTest_PlayerFacts): ZTest_PlayerFacts => ({ ...p, outcome: 'lost' })
 
-/** The board with two cells' letters exchanged — what the server sends back
- *  after it accepts a swap. */
-function swapped(board: string, a: number, b: number): string {
-  const cells = board.split('')
-  ;[cells[a], cells[b]] = [cells[b], cells[a]]
-  return cells.join('')
-}
+/** The solo coop game's two endings, with its one player as the server wrote
+ *  them. A win is the solved board. */
+const SOLO_WON: ZTest_GameDataFacts = { ...COOP_WON, board: ZTest_SOLVED, players: [won(ME)] }
+const SOLO_LOST: ZTest_GameDataFacts = { ...COOP_LOST, players: [lost(ME)] }
 
-/** A logged swap — what the server records for every accepted move, and the
- *  CAUSE the attention flash reads (a re-deal deletes these). */
-function swapRow(posA: number, posB: number, id = 1, userId = 'u1'): EventRow {
-  return {
-    user_id: userId,
-    id,
-    pos_a: posA,
-    pos_b: posB,
-    letter_a: BOARD[posA],
-    letter_b: BOARD[posB],
-    // What the board scored after this swap. These tests are about the log and
-    // the flash, not the feedback, so one neutral string serves every row.
-    colors: 'x'.repeat(25),
-  }
-}
+/** A realistic setup blob — the info-column disclosure reads it (a `{}` here
+ *  would crash timerLabel, exactly the kind of render bug these tests guard). */
+const SETUP: GSetup = { difficulty: 2, extra_swaps: 5, timer: { kind: 'none' } }
 
-/** Two club members, for the compete strip / concede tests. */
-const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
-
-/** A loaded game-hook result; override the game header + players per test. */
-function loaded(
-  game: WaffleGame,
-  players: WafflePlayerState[] = [me],
-  swaps: EventRow[] = [],
-): GameHook {
-  return { game, players, swaps, loading: false, failure: null }
-}
-
-const coopGame: WaffleGame = {
-  id: 'g1', mode: 'coop', scramble: BOARD, par_swaps: 9, max_swaps: 14, solution: null,
-}
-const competeGame: WaffleGame = {
-  id: 'g1', mode: 'compete', scramble: BOARD, par_swaps: 9, max_swaps: 14, solution: null,
-}
-
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
- *  the page derives it (`whereIStand`), so a test sets up the facts and never
- *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [ZTest_gp('u1', 'me', 'red')],
-    isTerminal: false,
-    isTurnBased: false,
-    turnHolderId: null,
-    ...over,
-  }
-  return {
-    gameId: 'g1',
-    brand: 'SyrupSwap',
-    title: 'Test game',
-    playState: 'playing',
-    timer: { displaySeconds: 0, expired: false },
-    // A realistic setup blob — the info-column disclosure reads it (a `{}` here
-    // would crash timerLabel, exactly the kind of render bug these tests guard).
-    setup: { difficulty: 2, extra_swaps: 5, timer: { kind: 'none' } },
-    status: null,
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: ZTest_actionFixture('act-help'),
-      actChat: ZTest_actionFixture('act-open-chat'),
-      actBackToClub: ZTest_actionFixture('act-back-to-club'),
-    },
-    ...facts,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.isTerminal,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId: facts.turnHolderId,
-      draftsOffTurn: false,
-    }),
-  }
+/** A play surface's context: a waffle game, solo coop by default, built from
+ *  the facts the way the builder would build it. */
+function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
+  return ZTest_makeWaffleCtx({ setup: SETUP, ...facts })
 }
 
 /** What PlayArea handed `setGameSections`, as the ROWS the menu would draw. */
@@ -189,11 +121,10 @@ const menuItems = (ctx: PlayAreaLoaderProps) => {
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
- *  Only the tests whose subject is a keystroke need it — a bare `render` binds
- *  the actions but has nothing feeding them keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+ *  Only the tests whose subject is a keystroke need it. */
+function WithKeys(props: React.ComponentProps<typeof PlayAreaLoader>) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** A keystroke as the app-root listener sees it: from the body, with nothing
@@ -207,56 +138,46 @@ const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
 const getAction = (id: ActionId) => getActions().find((action) => action.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
- *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
- *  the host adds, so it is last in the DOM. */
+ *  share the modal's words; the modal's is the one the host adds, so it is last
+ *  in the DOM. */
 async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
   const buttons = await screen.findAllByRole('button', { name })
   await user.click(buttons[buttons.length - 1]!)
 }
 
+/** The board's tiles, in position order (holes are not tiles). */
+const boardTiles = () => within(screen.getByRole('grid')).getAllByRole('button')
+
 beforeEach(() => {
   ZTest_clearFaultMessages()
-  h.result = loaded(coopGame)
   rpc.mockReset()
   rpc.mockResolvedValue(okEnvelope)
-  // The reveal handler destructures `{ error }` off the awaited call, so the
-  // common spy has to resolve to a PostgREST-shaped result, not `undefined`.
   commonRpc.mockReset()
   commonRpc.mockResolvedValue({ error: null })
-  // The edge-fn mock too: its call COUNT would otherwise leak between tests
-  // (each New-game test sets its own resolved value, so clearing is safe).
   startEdgeFn.mockReset()
 })
 
 describe('waffle PlayArea — render smoke', () => {
-  it('renders the board in coop play', () => {
-    render(<PlayArea {...makeCtx()} />)
+  it('renders the board + a log row in coop play', () => {
+    render(<PlayAreaLoader {...makeCtx({
+      events: [ZTest_swap(1, 'u1', [2, 3], ZTest_DEALT, ZTest_DEALT_COLORS)],
+    })} />)
     expect(screen.getByRole('grid', { name: /waffle board/i })).toBeInTheDocument()
   })
 
   it('renders the board in compete play', () => {
-    h.result = loaded(competeGame, [me, moth])
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
     expect(screen.getByRole('grid', { name: /waffle board/i })).toBeInTheDocument()
   })
 
-  it('renders the coop win with the golf-style par verdict', () => {
-    // 11 swaps against par 9 → "Won: par +2", shown in BOTH terminal spots: the
-    // below-board verdict (pillText) and the info-column line (infoColText).
-    h.result = loaded(
-      { ...coopGame, solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join('') },
-      [{ ...me, swaps_used: 11, solved: true }],
-    )
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+  it('renders the coop win with the par verdict, in the pill and the info column', () => {
+    // 11 swaps against par 9 → "Won: par +2".
+    render(<PlayAreaLoader {...makeCtx({ ...SOLO_WON, parSwaps: 9, maxSwaps: 14, players: [won(ME, 11)] })} />)
     expect(screen.getAllByText('Won: par +2')).toHaveLength(2)
   })
 
   it('renders an even-par coop win as "Won: par!"', () => {
-    h.result = loaded(
-      { ...coopGame, solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join('') },
-      [{ ...me, swaps_used: 9, solved: true }],
-    )
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(<PlayAreaLoader {...makeCtx({ ...SOLO_WON, parSwaps: 9, maxSwaps: 14, players: [won(ME, 9)] })} />)
     expect(screen.getAllByText('Won: par!')).toHaveLength(2)
   })
 })
@@ -264,111 +185,80 @@ describe('waffle PlayArea — render smoke', () => {
 describe('waffle PlayArea — concede', () => {
   it('compete shows Concede and calls waffle.concede on click', async () => {
     const user = userEvent.setup()
-    h.result = loaded(competeGame, [me, moth])
     render(
       <>
-        <PlayArea {...makeCtx({ players: twoMembers })} />
+        <PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />
         <ConfirmationHost />
       </>,
     )
-    // The trigger and the modal's confirm share the name "Concede"; the confirm
-    // is the one the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: /concede/i }))
-    const confirms = await screen.findAllByRole('button', { name: /concede/i })
-    await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await answer(user, 'Concede')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
   })
 
   it('coop shows Stop (not Concede) and calls stop_game', async () => {
     const user = userEvent.setup()
-    h.result = loaded(coopGame)
     render(
       <>
-        <PlayArea {...makeCtx()} />
+        <PlayAreaLoader {...makeCtx()} />
         <ConfirmationHost />
       </>,
     )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    // The trigger and the modal's confirm share the name "Stop game" (the
-    // button's label is the full phrase, since icon-only buttons make the label
-    // the accessible name). The confirm is the one the dialog
-    // adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: 'Stop game' }))
-    const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
-    await user.click(confirms[confirms.length - 1])
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await answer(user, 'Stop game')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
-  it('marks a conceded opponent "out" in the strip', () => {
-    h.result = loaded(competeGame, [me, moth])
-    render(
-      <PlayArea
-        {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })] })}
-      />,
-    )
+  it('marks a conceded rival "out" in the strip', () => {
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />)
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
-  it('shows the "You conceded" locally-terminal look after I concede', () => {
-    h.result = loaded(competeGame, [me, moth])
-    render(
-      <PlayArea
-        {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')] })}
-      />,
-    )
-    // The bold action-row status (exact) — the below-board pill carries the
-    // shared "Conceded — race continues" variant.
+  it('shows my ending after I concede, in the action row and the pill, as a loss', () => {
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />)
+    // The server wrote `lost` for a concede, and the line wears it.
     expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(screen.getByText('Conceded — race continues')).toBeInTheDocument()
   })
 })
 
 /**
  * "New game" (menu): a FRESH game — new id, same setup/roster/mode — via the
- * same waffle-build-board edge function the manifest's startGameInClub uses,
- * then a jump into it (ctx.goToFollowUpGame). The pinned request body is the feature's
- * contract: the CURRENT game's setup verbatim, every ctx player, this mode.
+ * same waffle-build-board edge function the manifest's start uses, then a jump
+ * into it. The pinned request body is the feature's contract.
  */
 describe('waffle PlayArea — new game (menu)', () => {
   it('starts a fresh game with this game\'s setup + roster + mode, then navigates', async () => {
     const user = userEvent.setup()
     startEdgeFn.mockResolvedValue({ error: null, data: { type: 'ok', data: { result: 'created', id: 'fresh-game-id' } } })
-    h.result = loaded(coopGame, [me, moth])
     const ctx = makeCtx({ players: twoMembers })
     render(
       <>
-        <PlayArea {...ctx} />
+        <PlayAreaLoader {...ctx} />
         <ConfirmationHost />
       </>,
     )
 
     act(() => menuItems(ctx).find((r) => r.id === 'act-new-game')!.run())
-    // Mid-game, New game CONFIRMS first (NEW_GAME_CONFIRM) — an accidental `+`
-    // shouldn't shelve a game in progress. Nothing is created until we say yes.
+    // Mid-game, New game CONFIRMS first — an accidental `+` shouldn't shelve a
+    // game in progress. Nothing is created until we say yes.
     expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
     expect(startEdgeFn).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Start new game' }))
     await waitFor(() =>
-      expect(startEdgeFn).toHaveBeenCalledWith(
-        'waffle-build-board',
-        {
-          target_club: 'testclub',
-          setup: ctx.setup,
-          player_user_ids: ['u1', 'u2'],
-          mode: 'coop',
-        },
-      ),
+      expect(startEdgeFn).toHaveBeenCalledWith('waffle-build-board', {
+        target_club: 'testclub',
+        setup: SETUP,
+        player_user_ids: ['u1', 'u2'],
+        mode: 'coop',
+      }),
     )
     await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('fresh-game-id'))
   })
 
   it('shows a refusal in the server\'s own words, wearing the fault look, and does not navigate', async () => {
     const user = userEvent.setup()
-    // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form "no board could be
-    // built at that difficulty" is a validation you answer by changing a field.
-    // Here there is no field and no form — this setup already built a game once
-    // — so whatever comes back is a bug or an outage and wears the fault look
-    // whatever the server called it. The words are the server's either way; the
-    // frontend no longer rebuilds a sentence from a key.
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     startEdgeFn.mockResolvedValue({
       error: null,
@@ -379,15 +269,10 @@ describe('waffle PlayArea — new game (menu)', () => {
         dbcode: 'PN121',
       },
     })
-    // A live two-player game, like the happy-path test above: the below-board
-    // slot ranks the terminal verdict, out-of-race and whose-turn among what
-    // it shows, so a game that is over or waiting would put more in the slot
-    // than the message being asserted.
-    h.result = loaded(coopGame, [me, moth])
     const ctx = makeCtx({ players: twoMembers })
     render(
       <>
-        <PlayArea {...ctx} />
+        <PlayAreaLoader {...ctx} />
         <ConfirmationHost />
       </>,
     )
@@ -395,9 +280,8 @@ describe('waffle PlayArea — new game (menu)', () => {
     act(() => menuItems(ctx).find((r) => r.id === 'act-new-game')!.run())
     await user.click(await screen.findByRole('button', { name: 'Start new game' }))
 
-    // Faults route to the MODAL queue, never a slot (docs/ui.md → Faults), and
-    // the words are the SERVER's — the frontend no longer rebuilds a sentence
-    // from a key.
+    // Faults route to the MODAL queue, never a slot (docs/ui.md → Faults), in
+    // the server's words.
     await waitFor(() =>
       expect(ZTest_peekFaultMessages().map((f) => f.text)).toContain(
         'No board could be built at that difficulty.',
@@ -412,217 +296,184 @@ describe('waffle PlayArea — new game (menu)', () => {
 
 /**
  * The icon-only action rows (waffle's experiment — labels live in tooltips):
- * PLAYING = Stop/Concede + Back-to-club (via the shell's suspend-confirm flow,
- * NOT direct navigation); TERMINAL = Restart + Reveal solution + New game +
- * Back-to-club. The terminal Reveal writes only the shared display flag
- * (common.reveal_solution — no confirm, no game state: the solution is already
- * on every client post-terminal) and disables once the answer is showing.
+ * PLAYING = Stop/Concede + Back-to-club; ENDED = Restart + Reveal solution +
+ * New game + Back-to-club. Reveal is local: it writes nothing.
  */
 describe('waffle PlayArea — icon-only action rows', () => {
-  // A hole-correct solution (the pgTAP/e2e fixture shape): across words are
-  // ABCDE / IJKLM / QRSTU — what SolutionReveal shows once revealed.
-  const FIXTURE_SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
-
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
-    // ONE action for both rows now: it navigates directly at terminal and
-    // routes through the suspend-confirm flow mid-game, so the game no longer
-    // picks between two callbacks and no longer can pick wrong.
     const user = userEvent.setup()
-    h.result = loaded(coopGame)
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'Back to club' }))
     expect(ctx.menu.actBackToClub.run).toHaveBeenCalled()
   })
 
   it('the menu row is named "Reveal solution" mid-game too, inert but not renamed', () => {
-    // The row must not change its words as the game ends: falling through to
-    // the registry's bare "Reveal" while inert reads as a different command.
-    h.result = loaded(coopGame)
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
-
+    render(<PlayAreaLoader {...ctx} />)
     const reveal = menuItems(ctx).find((r) => r.id === 'act-reveal')
     expect(reveal?.label).toBe('Reveal solution')
     expect(reveal?.disabled).toBe(true)
   })
 
-  it('terminal "Reveal solution" swaps in the solution for me alone — no RPC', async () => {
-    commonRpc.mockClear()
+  it('an ended game\'s "Reveal solution" swaps in the solution for me alone — no RPC', async () => {
     const user = userEvent.setup()
-    h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
 
     // The loss keeps the answer hidden (em dashes)…
     expect(screen.queryByText('ABCDE')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
-    // …and the click draws it here and nowhere else: local state, no RPC, so
-    // no partner's grid is swapped out from under them.
+    // …and the click draws it, board and words, here and nowhere else.
     expect(screen.getByText('ABCDE')).toBeInTheDocument()
     expect(screen.getByText('QRSTU')).toBeInTheDocument()
+    expect(boardTiles()[0]).toHaveTextContent('A')
     expect(commonRpc).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
   })
 
   it('Hide brings back the board the players actually finished with', async () => {
     const user = userEvent.setup()
-    h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     await user.click(screen.getByRole('button', { name: 'Hide solution' }))
-    // The solution is gone from the grid AND from the info column's word list —
-    // waffle.players was never touched, so this is the board as they left it.
     expect(screen.queryByText('ABCDE')).not.toBeInTheDocument()
+    expect(boardTiles()[0]).toHaveTextContent('B')
     expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
   it('SOLVING it leaves the control with nothing to do', () => {
-    // A waffle win IS the solved grid, so the answer is already on screen and
-    // "reveal" would swap in an identical board. The control says so instead.
-    h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION }, [{ ...me, solved: true }])
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    // A waffle win IS the solved grid, so the answer is already on screen.
+    render(<PlayAreaLoader {...makeCtx(SOLO_WON)} />)
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
 
-  it('a terminal I did NOT solve still waits to be asked', () => {
-    // "Did I solve it", never "was the game won" — a compete racer who ran out
-    // of swaps must not be handed the grid.
-    h.result = loaded({ ...coopGame, mode: 'compete', solution: FIXTURE_SOLUTION }, [
-      { ...me, solved: false },
-    ])
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won_compete' })} />)
+  it('an ended race I did NOT solve still waits to be asked', () => {
+    // "Did I solve it", never "was the game won".
+    render(<PlayAreaLoader {...makeCtx({
+      mode: 'compete',
+      ...raceWonBy('u2'),
+      players: [lost(ME), won(MOTH)],
+    })} />)
     expect(screen.queryByText('ABCDE')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
-  it('terminal "New game" button starts the follow-up game', async () => {
+  it('an ended game\'s "New game" button starts the follow-up game', async () => {
     startEdgeFn.mockResolvedValue({ error: null, data: { type: 'ok', data: { result: 'created', id: 'next-game-id' } } })
     const user = userEvent.setup()
-    h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
-    render(<PlayArea {...ctx} />)
+    const ctx = makeCtx(SOLO_LOST)
+    render(<PlayAreaLoader {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'New game' }))
     await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
   })
 })
 
 /**
- * Terminal flow. No modal carries the verdict: it's in-page, the action row
- * gains a Restart button (the
- * menu's replay-board, unconfirmed at terminal), and a coop solve pops the
- * CelebrationBlockingModal — but ONLY at the moment of the win (the playState flip),
- * never when mounting an already-won game.
+ * The end. No modal carries the verdict: it's in-page, the action row gains a
+ * Restart button (unconfirmed once the game has ended), and MY win pops the
+ * celebration — but only at the moment it happens, never when mounting an
+ * already-won game.
  */
-describe('waffle PlayArea — terminal flow', () => {
-  const solvedCoop: WaffleGame = {
-    ...coopGame,
-    solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join(''),
-  }
-
-  it('shows Restart (left of Club) and no modal at terminal', () => {
-    h.result = loaded(solvedCoop)
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+describe('waffle PlayArea — the end', () => {
+  it('shows Restart (left of Club) and no modal', () => {
+    render(<PlayAreaLoader {...makeCtx(SOLO_WON)} />)
 
     const restart = screen.getByRole('button', { name: 'Restart' })
     const club = screen.getByRole('button', { name: /club/i })
-    // Restart precedes Back-to-Club in the row.
     expect(restart.compareDocumentPosition(club) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    // No stray "Game over" anywhere (that's the neutral manual-end copy, not a
-    // solve) — and no celebration either: mounting an already-won game is
-    // review, not a win.
-    expect(screen.queryByText('Game over')).not.toBeInTheDocument()
+    // Mounting an already-won game is review, not a win.
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('Restart at terminal calls replay_board WITHOUT confirming', async () => {
+  it('Restart calls replay_board WITHOUT confirming', async () => {
     const user = userEvent.setup()
-    h.result = loaded(solvedCoop)
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
-
+    render(<PlayAreaLoader {...makeCtx(SOLO_WON)} />)
     await user.click(screen.getByRole('button', { name: 'Restart' }))
     // No <ConfirmationHost/> is mounted, so a question would have been answered
     // "no" — the RPC firing proves none was asked.
-    expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
+    expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' })
   })
 
   it('pops the celebration when the coop win lands mid-session', () => {
-    h.result = loaded(solvedCoop)
-    const { rerender } = render(<PlayArea {...makeCtx()} />)
+    const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-
-    // The winning swap arrives: playState flips to won via the realtime refetch.
-    rerender(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    rerender(<PlayAreaLoader {...makeCtx(SOLO_WON)} />)
     expect(screen.getByRole('dialog', { name: 'Solved it! 🧇' })).toBeInTheDocument()
   })
 
-  it('does not celebrate a compete win', () => {
-    h.result = loaded(competeGame, [me, moth])
-    const ctx = { players: twoMembers, status: { winner_user_id: 'u1' } }
-    const { rerender } = render(<PlayArea {...makeCtx(ctx)} />)
-
-    rerender(
-      <PlayArea {...makeCtx({ ...ctx, isTerminal: true, playState: 'won_compete' })} />,
-    )
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  it('celebrates the race I won, at the moment it ends', () => {
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
+    rerender(<PlayAreaLoader {...makeCtx({
+      mode: 'compete',
+      ...raceWonBy('u1'),
+      players: [won(ME), lost(MOTH)],
+    })} />)
+    expect(screen.getByRole('dialog', { name: 'Solved it! 🧇' })).toBeInTheDocument()
     expect(screen.getByText('You won!')).toBeInTheDocument()
+  })
+
+  it('does not celebrate the race I lost', () => {
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
+    rerender(<PlayAreaLoader {...makeCtx({
+      mode: 'compete',
+      ...raceWonBy('u2'),
+      players: [lost(ME), won(MOTH)],
+    })} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByText('Opponent won')).toBeInTheDocument()
+  })
+
+  it('names an all-conceded race for what it was', () => {
+    render(<PlayAreaLoader {...makeCtx({
+      mode: 'compete',
+      ending: { reason: 'conceded', detail: 'conceded', by: 'u2', winner: null },
+      outcome: 'lost',
+      players: [{ ...ME, ...ZTest_CONCEDED }, { ...MOTH, ...ZTest_CONCEDED }],
+    })} />)
+    expect(screen.getByText('All conceded')).toBeInTheDocument()
   })
 })
 
 /**
- * Turn-history viewer (coop). Clicking a swap-log row replays that swap's board;
- * a keystroke / the ✕ returns to live. The snapshot + color logic is unit-tested
- * in lib/{history,colors}.test.ts; this proves the PlayArea wiring. Uses the
- * 21-distinct-letter reference board so cell 0's letter distinguishes the states.
+ * The turn-history viewer (coop). Clicking a swap-log row replays that swap's
+ * board; a keystroke or the ✕ returns to live. The replay itself is unit-tested
+ * in lib/history.test.ts; this proves the wiring. Cell 0's letter tells live
+ * from a past board.
  */
 describe('waffle PlayArea — turn-history viewer (coop)', () => {
-  const SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
-  const SCRAMBLE = 'badcef.g.hijklmn.o.pqrstu' // cells 0,1 and 2,3 swapped
-  const swapRow = (
-    over: Partial<EventRow> & Pick<EventRow, 'id' | 'pos_a' | 'pos_b'>,
-  ): EventRow => ({
-    user_id: 'u2',
-    letter_a: '?',
-    letter_b: '?',
-    colors: 'x'.repeat(25),
-    ...over,
-  })
-  // Solving sequence in log order: fix 2↔3 first, then 0↔1.
-  const swaps = [
-    swapRow({ id: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
-    swapRow({ id: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
-  ]
-  // A coop game whose live board is the solved arrangement (cell 0 = 'a').
-  const withHistory = (): GameHook =>
-    loaded({ ...coopGame, scramble: SCRAMBLE, solution: SOLUTION }, [{ ...me, board: SOLUTION }], swaps)
-
-  /** The first filled tile (cell 0) — its letter tells live ('A') from a snapshot. */
-  const cell0 = () => within(screen.getByRole('grid')).getAllByRole('button')[0]
+  // From the deal ('bacdef…'): moth swaps 2↔3, I swap 0↔1, moth swaps 2↔3
+  // back — the live board is the solution, cell 0 'a'.
+  const BADCEF = 'badcef.g.hijklmn.o.pqrstu'
+  const ABDCEF = 'abdcef.g.hijklmn.o.pqrstu'
+  const HISTORY: ZTest_GameDataFacts = {
+    players: twoMembers,
+    board: ZTest_SOLVED,
+    events: [
+      ZTest_swap(1, 'u2', [2, 3], ZTest_DEALT, ZTest_DEALT_COLORS),
+      ZTest_swap(2, 'u1', [0, 1], BADCEF, ZTest_DEALT_COLORS),
+      ZTest_swap(3, 'u2', [2, 3], ABDCEF, ALL_GREEN),
+    ],
+  }
 
   it('clicking a swap row replays that swap; the ✕ returns to live', async () => {
     const user = userEvent.setup()
-    h.result = withHistory()
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    render(<PlayAreaLoader {...makeCtx(HISTORY)} />)
+    expect(boardTiles()[0]).toHaveTextContent('A')
 
-    // Live: cell 0 is 'a'.
-    expect(cell0()).toHaveTextContent('A')
-
-    // View swap #1 → the board AFTER only the 2↔3 swap (cell 0 still 'b'); the
-    // banner shows the swap description.
+    // Swap #1: the board after only moth's 2↔3 — cell 0 still 'b'.
     await user.click(screen.getByText('#1', { exact: true, selector: 'span' }))
-    expect(screen.getByText('#1: D (C1) ↔ C (D1)')).toBeInTheDocument()
-    expect(cell0()).toHaveTextContent('B')
+    expect(screen.getByText('#1: C (C1) ↔ D (D1)')).toBeInTheDocument()
+    expect(boardTiles()[0]).toHaveTextContent('B')
 
-    // The ✕ returns to live.
     await user.click(screen.getByLabelText('Exit history'))
-    expect(cell0()).toHaveTextContent('A')
-    expect(screen.queryByText('#1: D (C1) ↔ C (D1)')).not.toBeInTheDocument()
+    expect(boardTiles()[0]).toHaveTextContent('A')
+    expect(screen.queryByText('#1: C (C1) ↔ D (D1)')).not.toBeInTheDocument()
   })
 
   it('a keystroke returns to live', async () => {
     const user = userEvent.setup()
-    h.result = withHistory()
-    render(<WithKeys {...makeCtx({ players: twoMembers })} />)
+    render(<WithKeys {...makeCtx(HISTORY)} />)
 
     await user.click(screen.getByText('#2', { exact: true, selector: 'span' }))
     expect(screen.getByLabelText('Exit history')).toBeInTheDocument()
@@ -633,13 +484,12 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
 })
 
 describe('waffle PlayArea — a swap in flight', () => {
-  // The production complaint this started from: a slow submit_swap (1–2s) with
-  // no feedback invites re-tapping the same two tiles, which queues the REVERSE
-  // swap. What it pins now is the whole sequence in plans/tile-feedback.md — the
-  // MOVE shows at once, its VERDICT does not, and the marks last until the
-  // server's board arrives rather than until the RPC promise resolves (the reply
-  // beats the refetch, so clearing on it would un-dim two colorless tiles).
-  it('shows the move at once, unjudged and dimmed, until the server board lands', async () => {
+  // A slow submit_swap with no feedback invites re-tapping the same two tiles,
+  // which queues the REVERSE swap. What this pins is the whole sequence in
+  // plans/tile-feedback.md — the MOVE shows at once, its VERDICT does not, and
+  // the marks last until the swap's row arrives in the blob rather than until
+  // the RPC promise resolves.
+  it('shows the move at once, unjudged and dimmed, until the swap\'s row lands', async () => {
     const user = userEvent.setup()
     let settle!: (v: typeof okEnvelope) => void
     rpc.mockImplementation((fn: string) =>
@@ -649,81 +499,65 @@ describe('waffle PlayArea — a swap in flight', () => {
           })
         : Promise.resolve({ error: null }),
     )
-    h.result = loaded(coopGame, [{ ...me, colors: ALL_GREEN }])
-    const { rerender } = render(<PlayArea {...makeCtx()} />)
+    const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
 
-    const tiles = within(screen.getByRole('grid')).getAllByRole('button')
-    await user.click(tiles[0])
-    await user.click(tiles[1])
-    expect(rpc).toHaveBeenCalledWith('submit_swap', expect.objectContaining({ pos_a: 0, pos_b: 1 }))
+    // The deal: 'b' then 'a', both yellow; cell 2 'c' green.
+    const tiles = boardTiles()
+    await user.click(tiles[0]!)
+    await user.click(tiles[1]!)
+    expect(rpc).toHaveBeenCalledWith('submit_swap', { p_game_id: 'g1', p_pos_a: 0, p_pos_b: 1 })
 
-    // The MOVE, immediately: the two letters have traded places. A board that
-    // didn't move reads as a swap that didn't happen.
-    expect(tiles[0]).toHaveTextContent(BOARD[1])
-    expect(tiles[1]).toHaveTextContent(BOARD[0])
-    // …but NOT its verdict: both cells drop their (now-stale) green for the
-    // unjudged fill, and dim to say they're with the server.
-    expect(tiles[0].className).toMatch(/inFlight/)
-    expect(tiles[0].className).toMatch(/dimInFlight/)
-    expect(tiles[1].className).toMatch(/dimInFlight/)
+    // The MOVE, immediately: the two letters have traded places.
+    expect(tiles[0]).toHaveTextContent('A')
+    expect(tiles[1]).toHaveTextContent('B')
+    // …but NOT its verdict: both cells drop their stale color for the unjudged
+    // fill, and dim to say they're with the server.
+    expect(tiles[0]!.className).toMatch(/inFlight/)
+    expect(tiles[0]!.className).toMatch(/dimInFlight/)
+    expect(tiles[1]!.className).toMatch(/dimInFlight/)
     // A tile nobody touched keeps its color.
-    expect(tiles[2].className).toMatch(/wordleGreen/)
+    expect(tiles[2]!.className).toMatch(/wordleGreen/)
 
-    // The did-I-misclick re-tap (same two tiles — the reverse swap) is dropped.
-    await user.click(tiles[0])
-    await user.click(tiles[1])
+    // The did-I-misclick re-tap (the reverse swap) is dropped.
+    await user.click(tiles[0]!)
+    await user.click(tiles[1]!)
     expect(rpc).toHaveBeenCalledTimes(1)
 
     // The RPC resolving is NOT the end of it — the colors haven't arrived yet.
     await act(async () => settle(okEnvelope))
-    expect(tiles[0].className).toMatch(/dimInFlight/)
+    expect(tiles[0]!.className).toMatch(/dimInFlight/)
 
-    // The server's board is what ends it: the dim lifts, the letters stay put
-    // (they were right all along), and the answered cells take the attention
-    // flash — the news is the verdict, which is the part I couldn't know.
-    h.result = loaded(
-      coopGame,
-      [{ ...me, board: swapped(BOARD, 0, 1), colors: ALL_GREEN, swaps_used: 1 }],
-      [swapRow(0, 1)],
-    )
-    rerender(<PlayArea {...makeCtx()} />)
-    expect(tiles[0].className).not.toMatch(/dimInFlight/)
-    expect(tiles[0]).toHaveTextContent(BOARD[1])
-    expect(tiles[0].className).toMatch(/attentionFlash/)
-    expect(tiles[2].className).not.toMatch(/attentionFlash/)
+    // The blob carrying the swap's row is what ends it: the dim lifts, the
+    // letters stay put, and the answered cells take the attention flash.
+    rerender(<PlayAreaLoader {...makeCtx({
+      board: ZTest_SOLVED,
+      events: [ZTest_swap(1, 'u1', [0, 1], ZTest_DEALT, ALL_GREEN)],
+    })} />)
+    expect(tiles[0]!.className).not.toMatch(/dimInFlight/)
+    expect(tiles[0]).toHaveTextContent('A')
+    expect(tiles[0]!.className).toMatch(/attentionFlash/)
+    expect(tiles[2]!.className).not.toMatch(/attentionFlash/)
 
     // …and input is open again.
-    await user.click(tiles[0])
-    await user.click(tiles[2])
+    await user.click(tiles[0]!)
+    await user.click(tiles[2]!)
     expect(rpc).toHaveBeenCalledTimes(2)
   })
 
-  // The bug this pins: a restart re-deals every cell, so a board DIFF sees
-  // twenty changes and lights the whole grid up at the one moment nothing has
-  // happened. The flash reads the CAUSE instead — the swap log, which `restart`
-  // deletes — so a re-dealt board says nothing. Same rule setgame learned the
-  // hard way; see common/board-marks/useChangeCause.
-  it('says nothing when the board is re-dealt rather than played', async () => {
-    rpc.mockResolvedValue(okEnvelope)
-    h.result = loaded(
-      coopGame,
-      [{ ...me, board: swapped(BOARD, 0, 1), colors: ALL_GREEN, swaps_used: 1 }],
-      [swapRow(0, 1)],
-    )
-    const { rerender } = render(<PlayArea {...makeCtx()} />)
-    const tiles = within(screen.getByRole('grid')).getAllByRole('button')
-
-    // A restart: a different board, and the log gone with it.
-    const fresh = 'SLATE.O.RCRANEB.I.ROUNDS'.padEnd(25, 'X')
-    h.result = loaded(coopGame, [{ ...me, board: fresh, colors: ALL_GREEN, swaps_used: 0 }], [])
-    rerender(<PlayArea {...makeCtx()} />)
-
-    expect(tiles.some((t) => /attentionFlash/.test(t.className))).toBe(false)
+  // A Restart re-deals every cell, so a board DIFF sees changes at the one
+  // moment nothing has been played. The flash reads the CAUSE instead — the
+  // swap count, which a Restart zeroes (common/board-marks/useChangeCause).
+  it('says nothing when the board is re-dealt rather than played', () => {
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({
+      board: ZTest_SOLVED,
+      events: [ZTest_swap(1, 'u1', [0, 1], ZTest_DEALT, ALL_GREEN)],
+    })} />)
+    rerender(<PlayAreaLoader {...makeCtx()} />)
+    expect(boardTiles().some((t) => /attentionFlash/.test(t.className))).toBe(false)
   })
 
   it('takes the letters back when the swap is refused', async () => {
     const user = userEvent.setup()
-    // A refusal arrives HTTP 200 as a not-ok envelope now, not as an `error`.
     rpc.mockResolvedValue({
       error: null,
       data: {
@@ -731,38 +565,32 @@ describe('waffle PlayArea — a swap in flight', () => {
         message: 'Game over', field: '_', meta: null, dbcode: 'PN486', detail: null,
       },
     })
-    h.result = loaded(coopGame, [{ ...me, colors: ALL_GREEN }])
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
 
-    const tiles = within(screen.getByRole('grid')).getAllByRole('button')
-    await user.click(tiles[0])
-    await user.click(tiles[1])
+    const tiles = boardTiles()
+    await user.click(tiles[0]!)
+    await user.click(tiles[1]!)
 
     // Optimism is about ACCEPTANCE, so a refusal is the price: the letters go
-    // back where they were, and the pill says why.
-    await waitFor(() => expect(tiles[0]).toHaveTextContent(BOARD[0]))
-    expect(tiles[1]).toHaveTextContent(BOARD[1])
-    expect(tiles[0].className).not.toMatch(/dimInFlight/)
+    // back where they were.
+    await waitFor(() => expect(tiles[0]).toHaveTextContent('B'))
+    expect(tiles[1]).toHaveTextContent('A')
+    expect(tiles[0]!.className).not.toMatch(/dimInFlight/)
   })
 })
 
 /**
  * The keys, through the app-root dispatcher. Each key is an action's, so
  * what these pin is the wiring: the chord reaches the action, the action asks
- * the registry's question mid-game and skips it at terminal, and the answer
- * runs the same call the button does.
+ * the registry's question mid-game and skips it once the game has ended, and
+ * the answer runs the same call the button does.
  */
 describe('waffle PlayArea — the keys', () => {
-  const SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
-
-  it('+ at terminal starts the next game with no question', async () => {
+  it('+ once the game has ended starts the next game with no question', async () => {
     startEdgeFn.mockResolvedValue({ error: null, data: { type: 'ok', data: { result: 'created', id: 'next-game-id' } } })
-    h.result = loaded({ ...coopGame, solution: SOLUTION })
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    const ctx = makeCtx(SOLO_LOST)
     render(<WithKeys {...ctx} />)
 
-    // No <ConfirmationHost/> is mounted, so a question would have been answered
-    // "no" — the call firing proves none was asked.
     press(PLUS)
     await waitFor(() =>
       expect(startEdgeFn).toHaveBeenCalledWith(
@@ -802,15 +630,14 @@ describe('waffle PlayArea — the keys', () => {
     expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
     await answer(user, 'Stop game')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
   it('⌥⌫ in compete asks to concede, and yes calls concede', async () => {
     const user = userEvent.setup()
-    h.result = loaded(competeGame, [me, moth])
     render(
       <>
-        <WithKeys {...makeCtx({ players: twoMembers })} />
+        <WithKeys {...makeCtx({ mode: 'compete', players: twoMembers })} />
         <ConfirmationHost />
       </>,
     )
@@ -818,19 +645,18 @@ describe('waffle PlayArea — the keys', () => {
     press(OPT_BACKSPACE)
     expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await answer(user, 'Concede')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
     expect(rpc).not.toHaveBeenCalledWith('stop_game', expect.anything())
   })
 
   describe('Restart mid-game', () => {
     // Keyless, so it is fired as the menu row would fire it: the action's run,
-    // which is where the registry's question is asked. (The terminal case,
-    // where it goes straight through, is under "terminal flow".)
+    // which is where the registry's question is asked.
     it('asks first, and Keep playing wipes nothing', async () => {
       const user = userEvent.setup()
       render(
         <>
-          <PlayArea {...makeCtx()} />
+          <PlayAreaLoader {...makeCtx()} />
           <ConfirmationHost />
         </>,
       )
@@ -846,14 +672,14 @@ describe('waffle PlayArea — the keys', () => {
       const user = userEvent.setup()
       render(
         <>
-          <PlayArea {...makeCtx()} />
+          <PlayAreaLoader {...makeCtx()} />
           <ConfirmationHost />
         </>,
       )
 
       act(() => getAction('act-restart').run())
       await answer(user, 'Restart')
-      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
     })
   })
 })
@@ -867,10 +693,7 @@ describe('waffle PlayArea — the keys', () => {
 describe('waffle PlayArea — the selection cursor', () => {
   const HOLES = [6, 8, 16, 18]
   /** The tile at a board position (holes are not tiles). */
-  const tileAt = (pos: number) => {
-    const tiles = within(screen.getByRole('grid')).getAllByRole('button')
-    return tiles[pos - HOLES.filter((h) => h < pos).length]!
-  }
+  const tileAt = (pos: number) => boardTiles()[pos - HOLES.filter((h) => h < pos).length]!
   const positions = Array.from({ length: 25 }, (_, p) => p).filter((p) => !HOLES.includes(p))
   const ringed = () => positions.filter((p) => /selectionCursor/.test(tileAt(p).className))
   const picked = () => positions.filter((p) => /picked/.test(tileAt(p).className))
@@ -904,7 +727,7 @@ describe('waffle PlayArea — the selection cursor', () => {
     expect(swapsSent()).toEqual([])
 
     await key('Enter')
-    expect(rpc).toHaveBeenCalledWith('submit_swap', expect.objectContaining({ pos_a: 0, pos_b: 1 }))
+    expect(rpc).toHaveBeenCalledWith('submit_swap', expect.objectContaining({ p_pos_a: 0, p_pos_b: 1 }))
     expect(picked()).toEqual([])
   })
 
@@ -942,7 +765,7 @@ describe('waffle PlayArea — the selection cursor', () => {
     await key('ArrowRight')
     await key(' ')
     await user.click(tileAt(2))
-    expect(rpc).toHaveBeenCalledWith('submit_swap', expect.objectContaining({ pos_a: 0, pos_b: 2 }))
+    expect(rpc).toHaveBeenCalledWith('submit_swap', expect.objectContaining({ p_pos_a: 0, p_pos_b: 2 }))
   })
 
   it('a tap with two keyboard picks starts over from the tapped tile, and hides the ring', async () => {
@@ -961,8 +784,8 @@ describe('waffle PlayArea — the selection cursor', () => {
     expect(ringed()).toEqual([3])
   })
 
-  // The swap stays in flight until the server's board arrives, which it never
-  // does here — so every way of making another swap is quiet.
+  // The swap stays in flight until its row arrives, which it never does here —
+  // so every way of making another swap is quiet.
   it('Space and Enter do nothing while a swap is in flight', async () => {
     render(<WithKeys {...makeCtx()} />)
     await key('ArrowRight')
@@ -982,15 +805,7 @@ describe('waffle PlayArea — the selection cursor', () => {
 
   it('a board I cannot play takes no ring and no keys', async () => {
     // A teammate holds the move.
-    render(
-      <WithKeys
-        {...makeCtx({
-          players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')],
-          isTurnBased: true,
-          turnHolderId: 'u2',
-        })}
-      />,
-    )
+    render(<WithKeys {...makeCtx({ players: twoMembers, turnHolderId: 'u2' })} />)
     await key('ArrowRight')
     await key(' ')
     expect(ringed()).toEqual([])

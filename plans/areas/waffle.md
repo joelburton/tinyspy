@@ -157,6 +157,11 @@ The rulings behind it (2026-10-05):
   `WaffleGame` went; `WafflePlayerState` and `EventRow` stay in
   `hooks/useGame.ts` for the components, `lib/history.ts` (which replays
   25-letter strings) and the printer.
+- **Step 9 (2026-10-05):** the last old shapes went and waffle joined
+  `CONVERTED_GAMES`; the folder type-checks clean. `Board` still draws two
+  25-letter strings: `BoardCol`'s `makeBoardStrings` turns the tiles into them
+  until the Board pass (step 11) gives `Board` the tiles. `InfoCol` keeps its
+  three action-row branches for its own pass (step 12).
 
 ## Closing
 

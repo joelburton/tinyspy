@@ -3,8 +3,8 @@
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import { getTileColor, type TileColor } from '@/shared/wordle-style/tileColor'
-import { coord, isHole } from '../lib/waffle'
-import type { EventRow } from '../hooks/useGame'
+import { boardWords, coord, isHole, makeBoardString, makeColorString } from '../lib/waffle'
+import type { GEvent, GLetterTile, GPlayer, GTeam } from '../types'
 
 /**
  * Build the waffle print model — the pure half, away from jsPDF.
@@ -46,81 +46,76 @@ function cellsOf(board: string, colors: string | null): PrintCell[] {
   }))
 }
 
+/**
+ * The print model for the board as the viewer may see it: each track one
+ * board and its own swaps, the solution only once it is legitimately on screen.
+ */
 export function buildWafflePrintModel(o: {
   brand: string
   gameTitle: string
   date: string
   mode: 'coop' | 'compete'
-  isTerminal: boolean
+  isGameEnded: boolean
   maxSwaps: number
   parSwaps: number
-  /** Per-player board + colors + progress. A compete opponent's board is null
-   *  mid-game (the server withholds it), which is why they get no track. */
-  playerBoards: {
-    user_id: string
-    board: string | null
-    colors: string | null
-    swaps_used: number
-    solved: boolean
-  }[]
-  /** Every swap the viewer can see. Compete mid-game: only their own. */
-  swaps: EventRow[]
-  players: { user_id: string; username: string }[]
+  // Each player as `gd` holds them: a compete rival's board is null mid-race
+  // (`useGame`'s seat rule), which is why they get no track then.
+  players: Pick<GPlayer, 'id' | 'username' | 'board' | 'nSwapsUsed' | 'solved'>[]
+  // Coop's shared count; null in compete.
+  team: GTeam | null
+  // Every swap the viewer can see (`gd.events`). Compete mid-game: only their
+  // own.
+  events: GEvent[]
   myId: string
-  /** The six words, from the gated view — null until the server releases them. */
-  solutionWords: string[] | null
-  /**
-   * Is the answer legitimately on screen? Solved or explicitly revealed — NOT
-   * merely terminal. waffle hides the solution on a loss for the same reason
-   * wordle does, and paper has to hold the same line.
-   */
+  // The solved board — null until the game ends.
+  solution: GLetterTile[] | null
+  // Is the answer legitimately on screen? Solved or explicitly revealed — NOT
+  // merely ended. waffle hides the solution on a loss for the same reason
+  // wordle does, and paper has to hold the same line.
   answerShown: boolean
   setupRows: SetupRow[]
 }): WafflePrintModel {
-  const nameOf = (id: string) => o.players.find((p) => p.user_id === id)?.username ?? 'someone'
-
-  const swapText = (s: EventRow) =>
-    `${s.letter_a.toUpperCase()} (${coord(s.pos_a)}) <-> ${s.letter_b.toUpperCase()} (${coord(s.pos_b)})`
+  const swapText = (e: GEvent) =>
+    e.swaps.map((s) => `${s.letter.toUpperCase()} (${coord(Number(s.id))})`).join(' <-> ')
 
   const track = (
     who: string,
-    p: { board: string | null; colors: string | null; swaps_used: number; solved: boolean },
-    swaps: EventRow[],
+    p: (typeof o.players)[number],
+    nSwapsUsed: number,
+    events: GEvent[],
     logNames: boolean,
   ): PrintTrack => ({
     who,
-    cells: p.board ? cellsOf(p.board, p.colors) : [],
-    turns: swaps.map((s, i) => ({
+    cells: p.board ? cellsOf(makeBoardString(p.board.tiles), makeColorString(p.board.tiles)) : [],
+    turns: events.map((e, i) => ({
       seq: i + 1,
       // Coop's one board is worked by everyone, so its log names who moved.
       // A compete track is one person's, so repeating their name every row
       // would be noise — the column heading already says whose it is.
-      who: logNames ? nameOf(s.user_id) : '',
-      text: swapText(s),
+      who: logNames ? e.by.username : '',
+      text: swapText(e),
     })),
     result: p.solved
-      ? `Solved in ${p.swaps_used} swap${p.swaps_used === 1 ? '' : 's'}`
-      : `${p.swaps_used}/${o.maxSwaps} swaps used`,
+      ? `Solved in ${nSwapsUsed} swap${nSwapsUsed === 1 ? '' : 's'}`
+      : `${nSwapsUsed}/${o.maxSwaps} swaps used`,
   })
 
-  // Coop is ONE shared board, so one track whose log names each swapper.
-  // Compete is one track per player — at terminal, when boards and logs both
-  // open. Mid-game the viewer has only their own of either.
+  // Coop is ONE shared board, so one track whose log names each swapper, and
+  // whose count is the team's. Compete is one track per player — once the game
+  // has ended, when boards and logs both open. Mid-game the viewer has only
+  // their own of either.
+  const me = o.players.find((p) => p.id === o.myId)!
   let tracks: PrintTrack[]
-  const byUser = new Map(o.playerBoards.map((p) => [p.user_id, p]))
   if (o.mode === 'coop') {
-    const p = o.playerBoards[0]
-    tracks = p ? [track('Team', p, o.swaps, true)] : []
-  } else if (o.isTerminal) {
-    tracks = o.players.flatMap((pl) => {
-      const p = byUser.get(pl.user_id)
-      if (!p) return []
-      const who = pl.user_id === o.myId ? `${pl.username} (you)` : pl.username
-      return [track(who, p, o.swaps.filter((s) => s.user_id === pl.user_id), false)]
+    tracks = [track('Team', me, o.team!.nSwapsUsed, o.events, true)]
+  } else if (o.isGameEnded) {
+    tracks = o.players.flatMap((p) => {
+      if (p.board === null) return []
+      const who = p.id === o.myId ? `${p.username} (you)` : p.username
+      return [track(who, p, p.nSwapsUsed, o.events.filter((e) => e.by.id === p.id), false)]
     })
   } else {
-    const p = byUser.get(o.myId)
-    tracks = p ? [track('You', p, o.swaps.filter((s) => s.user_id === o.myId), false)] : []
+    tracks = [track('You', me, me.nSwapsUsed, o.events.filter((e) => e.by.id === o.myId), false)]
   }
 
   return {
@@ -136,6 +131,6 @@ export function buildWafflePrintModel(o: {
     tracks,
     // The solution is the answer, printed under the same rule the screen uses:
     // solved or revealed. Terminal alone is NOT enough.
-    solutionWords: o.answerShown ? o.solutionWords : null,
+    solutionWords: o.answerShown && o.solution ? boardWords(makeBoardString(o.solution)) : null,
   }
 }

@@ -5,23 +5,21 @@ import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import type { Member } from '@/common/members/member'
 import { coord } from '../lib/waffle'
-import type { EventRow } from '../hooks/useGame'
+import type { GEvent, GHistoryView } from '../types'
 import styles from './GameEventLog.module.css'
 
 type Props = {
-  /** Every swap the viewer can see. Coop: the whole shared game. Compete: your
-   *  own during play, and (once terminal, when RLS opens) everyone's. */
-  swaps: EventRow[]
+  // Every swap the viewer can see (`gd.events`). Coop: the whole shared game.
+  // Compete: your own during play, and everyone's once the game has ended.
+  events: GEvent[]
   players: Member[]
   myId: string
   mode: 'coop' | 'compete'
-  /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
-  isTerminal: boolean
-  /** The swap currently open in the board viewer — the row's own id — or null. */
-  historyId: number | null
-  /** Open a swap in the board viewer (click a row) — the row's id, and the `#N`
-   *  this log printed beside it, which is what the banner shows back. */
-  onShowHistory: (id: number, n: number) => void
+  // Distinguishes a rival's withheld log from a genuinely empty one.
+  isGameEnded: boolean
+  // The swap open on the board: its `#N` wears the history-blue ring, and a
+  // `#N` click opens another.
+  historyView: GHistoryView
 }
 
 /**
@@ -36,7 +34,7 @@ type Props = {
  * **That is the whole of waffle's outcome decision**, which is why there is no
  * `lib/answer.ts` here as there is in most games: the game has one move kind,
  * `submit_swap` deliberately carries no outcome and no message (the colors reach
- * everyone together over realtime instead), and no pill reports a swap at all.
+ * everyone together in the next blob instead), and no pill reports a swap at all.
  * One move, one word, one reader (docs/outcomes.md → One event, one outcome).
  *
  * One `<tr>`, four real `<td>` columns (so they align down the log — never stacked
@@ -46,66 +44,59 @@ type Props = {
  * row's slack), and the swapper right-aligned in `<EventLogActor>`. `.divider`
  * draws the between-turns line.
  *
- * **Both modes** since 2026-08-02 (compete used to write no swaps at all). Whose
- * swaps show is picked by the shared `useEventLogPlayerPicker` — solo is your
- * handle, coop is "Team" plus each player, compete is "All" plus each player. In
- * compete an opponent's rows are RLS-hidden during play and open at terminal,
- * which is exactly what the picker's empty text says — and opening one of theirs
- * then rebuilds THEIR board from the shared scramble, which is the point of
- * having their swaps at all.
+ * **Both modes.** Whose swaps show is picked by the shared
+ * `useEventLogPlayerPicker` — solo is your handle, coop is "Team" plus each
+ * player, compete is "All" plus each player. In compete a rival's rows are
+ * withheld during play (`useGame`'s seat rule) and arrive once the game ends,
+ * which is what the picker's empty text says — and opening one of theirs then
+ * rebuilds THEIR board from the shared deal, which is the point of having
+ * their swaps at all.
  *
  * Stateless + presentational — the shared `<EventLog>` snaps to the latest row.
  */
 export function GameEventLog({
-  swaps,
+  events,
   players,
   myId,
   mode,
-  isTerminal,
-  historyId,
-  onShowHistory,
+  isGameEnded,
+  historyView,
 }: Props) {
-  const eventLogPicker = useEventLogPlayerPicker<EventRow>({
+  const eventLogPicker = useEventLogPlayerPicker<GEvent>({
     players,
     myId,
     mode,
-    isTerminal,
+    isTerminal: isGameEnded,
     label: 'Whose swaps to show',
     emptyLabel: 'No swaps yet.',
   })
-  const shown = eventLogPicker.filter(swaps)
-
-  const playerFor = (userId: string) =>
-    players.find((m) => m.user_id === userId)
+  const shown = eventLogPicker.filter(events)
 
   return (
     <EventLog heading="Swaps" picker={eventLogPicker} shown={shown}>
-      {shown.map((s, i) => {
-        const swapper = playerFor(s.user_id)
-        // The "#N" handle replays that swap on the board viewer, and the
-        // number IS that position — the row's place in the list being shown,
-        // which is what the handle addresses.
+      {shown.map((swap, i) => {
+        const [a, b] = swap.swaps
         return (
-          <tr key={s.id} className={gameEventLog.divider}>
+          <tr key={swap.id} className={gameEventLog.divider}>
             <EventLogOutcomeBar outcome="neutral" />
             {/* The number is the row's place in the list on show; the handle is
                 the row's own id, so filtering renumbers without ever changing
                 which swap is opened. */}
             <EventLogNumber
               n={i + 1}
-              isOpenInHistory={historyId === s.id}
-              onShowHistory={() => onShowHistory(s.id, i + 1)}
+              isOpenInHistory={historyView.viewedEventId === swap.id}
+              onShowHistory={() => historyView.show(swap.id, i + 1)}
             />
             <td className={gameEventLog.main}>
               <span className={styles.move}>
-                <span className={styles.letter}>{s.letter_a.toUpperCase()}</span>
-                <span className={styles.coord}>({coord(s.pos_a)})</span>
+                <span className={styles.letter}>{a.letter.toUpperCase()}</span>
+                <span className={styles.coord}>({coord(Number(a.id))})</span>
                 <span className={styles.arrow}>↔</span>
-                <span className={styles.letter}>{s.letter_b.toUpperCase()}</span>
-                <span className={styles.coord}>({coord(s.pos_b)})</span>
+                <span className={styles.letter}>{b.letter.toUpperCase()}</span>
+                <span className={styles.coord}>({coord(Number(b.id))})</span>
               </span>
             </td>
-            <EventLogActor actor={swapper} fallback="someone" />
+            <EventLogActor actor={swap.by} />
           </tr>
         )
       })}

@@ -6,35 +6,6 @@ import { makeSetupRows } from '../lib/setupRows'
 import type { GEvent, GGameData, GGameDataRaw, GPlayer } from '../types'
 
 /**
- * One player's row as the components read it before the page blobs. Nothing
- * builds one any more; it goes with the PlayArea pass, which moves its readers
- * onto `gd.players`.
- */
-export type WafflePlayerState = {
-  user_id: string
-  board: string | null
-  colors: string | null
-  swaps_used: number
-  solved: boolean
-  solved_at: string | null
-}
-
-/**
- * One row of `waffle.events` as the components, `lib/history.ts` and the
- * printer read it before the page blobs. Nothing builds one any more; it goes
- * with the PlayArea pass, which moves its readers onto `gd.events`.
- */
-export type EventRow = {
-  user_id: string
-  id: number
-  pos_a: number
-  pos_b: number
-  letter_a: string
-  letter_b: string
-  colors: string
-}
-
-/**
  * The seat rule: what a racer may not see yet. Mid-race in compete, a rival's
  * swaps and board are their strategy — replaying a rival's swaps from the
  * shared deal rebuilds their board, whose greens are correct letter positions

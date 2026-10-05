@@ -1,125 +1,110 @@
 // cs-fixed-outcome-fix
 
-import type { ReactNode } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
-import { Board } from './Board'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
-import type { Actor } from '@/common/members/member'
 import shared from '@/common/game-page/playArea.module.css'
+import { useSubmitSwap } from '../hooks/useSubmitSwap'
+import { makeBoardString, makeColorString, swapCells, unjudgeCells } from '../lib/waffle'
+import { Board } from './Board'
+import { StateLine } from './StateLine'
 import styles from './BoardCol.module.css'
+import type { GGameData, GHistoryView, GTile } from '../types'
+
+/**
+ * The tiles as the two 25-char strings `Board` draws — its letters and its
+ * colors — with a swap still out applied: its letters traded, its two cells
+ * unjudged. Board takes the tiles itself at its own pass, and this goes.
+ */
+function makeBoardStrings(
+  tiles: GTile[],
+  pendingSwap: readonly [number, number] | null,
+): { board: string; colors: string } {
+  const board = makeBoardString(tiles)
+  const colors = makeColorString(tiles)
+  if (pendingSwap === null) return { board, colors }
+  return {
+    board: swapCells(board, pendingSwap[0], pendingSwap[1]),
+    colors: unjudgeCells(colors, pendingSwap),
+  }
+}
 
 /**
  * waffle's board column — the square `Board` plus the below-board region (the
- * feedback pill + the turn-viewer banner). The move IS the board (tap two tiles to
- * swap), so there are no below-board input controls — `onSwap` is the one committed
- * action up. Like the other games' BoardCol, it does NOT own game state: PlayArea
- * hands it **the board to render** (the live board OR a historical snapshot) and
- * the viewed swap's label, which is what makes the turn-history viewer a
- * drop-in. See
- * docs/playarea.md.
+ * feedback pill + the turn-viewer banner). The move IS the board (tap two tiles
+ * to swap), so there are no below-board input controls; the swap is sent from
+ * here (`useSubmitSwap`). PlayArea hands it **the board to show** (the live
+ * board, the revealed solution, or a past swap's), which is what makes the
+ * turn-history viewer a drop-in. See docs/playarea.md.
  */
 export function BoardCol({
-  mobileStatus,
-  board,
-  colors,
-  isBoardInteractive,
-  historyLitTiles,
-  historyLabel,
-  historyActor,
-  onExitHistory,
-  onSwap,
-  pendingSwap,
-  isWaitingForTurn,
-  myTurnJustStarted,
-  gameOver,
-  moveCount,
+  gd,
+  shownTiles,
+  isLiveBoard,
+  historyView,
   localFeedbackSlot,
+  myTurnJustStarted,
 }: {
-  // ── Mobile-only status strip ──
-  // The core state readout (the `<StateLine>` the InfoCol also renders), shown
-  // above the board ONLY below the `--mobile` breakpoint — where the info
-  // column is off-canvas in the InfoSheet and would otherwise take a tap to
-  // read. Hidden by CSS on desktop; see `<MobileStatusBar>`.
-  mobileStatus: ReactNode
-
-  // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
-  // 25-char board string, holes '.'.
-  board: string
-  // 25-char g/y/x colors (server-computed live, FE-computed for a snapshot), or null.
-  colors: string | null
-  // The board responds to me (the page's `isBoardInteractive`); the history
-  // viewer blocks input on top of it.
-  isBoardInteractive: boolean
-  // The two tiles the viewed swap moved — ring them (undefined while live).
-  historyLitTiles: ReadonlySet<number> | undefined
-
-  // ── History viewer (its overlay lives in the below-board region) ──
-  // The viewed swap's description while inspecting history (drives the banner + the
-  // gray-blue frame), or null when live.
-  historyLabel: string | null
-  /** Whose board is on screen, when it is not the viewer's own. */
-  historyActor?: Actor | null
-  // Return to the live board (a board/banner click, or the ✕).
-  onExitHistory: () => void
-
-  // ── Move ──
-  // Swap the letters of two filled cells — the one committed action up.
-  onSwap: (a: number, b: number) => void
-  // The swap currently in flight (its two cells take the in-flight dim; input is
-  // gated), or null. See PlayArea's `pendingSwap`.
-  pendingSwap: readonly [number, number] | null
-  // A teammate holds the move, so the whole board dims.
-  isWaitingForTurn: boolean
-  // True for a beat at the moment the turn becomes mine — the board frame
-  // flashes yellow. Always false in a free-for-all game.
-  myTurnJustStarted: boolean
-  // The game is finished, and how it ended — the board's permanent band takes
-  // that outcome's gray. Null while it's live.
-  gameOver: EndOutcome | null
-  // Swaps recorded for the board on show — the CAUSE the attention flash reads,
-  // so a re-dealt or revealed board doesn't light up. See `<Board>`.
-  moveCount: number
-
-  // ── Below-board feedback ──
+  gd: GGameData
+  // The board to show — PlayArea picks it.
+  shownTiles: GTile[]
+  // The board shown is the live one, which a swap in flight is drawn on.
+  isLiveBoard: boolean
+  historyView: GHistoryView
   // PlayArea's below-board slot — a refused swap, "you're out", whose turn,
   // the verdict. Drawn in the reserved-height slot under the board.
   localFeedbackSlot: FeedbackSlot
+  // True for a beat at the moment the turn becomes mine — the board frame
+  // flashes yellow. Always false in a free-for-all game.
+  myTurnJustStarted: boolean
 }) {
-  const isViewingHistory = historyLabel !== null
+  const submission = useSubmitSwap({
+    gameId: gd.id,
+    newestEventId: gd.events.at(-1)?.id ?? null,
+    localFeedbackSlot,
+  })
+  // The swap still out belongs to the live board only.
+  const pendingSwap = isLiveBoard ? submission.pendingSwap : null
+  const { board, colors } = makeBoardStrings(shownTiles, pendingSwap)
 
   return (
-    // Exit-on-click is intrinsic to the viewer now (useHistoryViewer's document
-    // listener + the click-through `.historyFrame`), so the board column needs no click
-    // handler — a click anywhere returns to live.
+    // Exit-on-click is intrinsic to the viewer (useHistoryViewer's document
+    // listener + the click-through `.historyFrame`), so the board column needs
+    // no click handler — a click anywhere returns to live.
     <div className={shared.boardCol}>
       {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
           the live swaps/par readout, above the board. It's a fixed-height row,
           and waffle's square board sizes off `--avail-h` — so Board.module.css
           subtracts this row's height there too, or the square would overflow
           the viewport (the hard no-scroll invariant). */}
-      <MobileStatusBar>{mobileStatus}</MobileStatusBar>
+      <MobileStatusBar>
+        <StateLine data={gd.stateLineData} />
+      </MobileStatusBar>
       <Board
         board={board}
         colors={colors}
-        isBoardInteractive={isBoardInteractive}
-        isViewingHistory={isViewingHistory}
-        historyLitTiles={historyLitTiles}
-        onSwap={onSwap}
+        isBoardInteractive={gd.me.onTurn}
+        isViewingHistory={historyView.isViewing}
+        historyLitTiles={new Set([...historyView.litTileIds].map(Number))}
+        onSwap={submission.send}
         pendingSwap={pendingSwap}
-        isWaitingForTurn={isWaitingForTurn}
+        isWaitingForTurn={gd.me.waitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
-        gameOver={gameOver}
-        moveCount={moveCount}
+        // The finished board wears my ending's outcome — the same one the
+        // below-board verdict and the info column's line read.
+        gameOver={gd.ended ? gd.me.outcome : null}
+        // The swaps behind the board on show — the team's in coop, my own in
+        // compete. A Restart zeroes it, which is what tells the flash that a
+        // re-dealt board was not played into existence.
+        moveCount={gd.stateLineData.nSwapsUsed}
       />
 
       <div className={styles.belowBoard}>
         {/* While inspecting a past swap the shared banner overlays this region,
             naming the swap. */}
-        {isViewingHistory && (
-          <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
+        {historyView.isViewing && (
+          <HistoryBanner label={historyView.label} actor={historyView.actor} onExit={historyView.exit} />
         )}
         {/* No below-board move controls: waffle's input is swapping tiles on the
             board itself, so `.moveArea` is empty. */}

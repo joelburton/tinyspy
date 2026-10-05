@@ -1,270 +1,161 @@
 // cs-unmet
 
-import type { Member } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { Action } from '@/common/actions/useBindAction'
-import type { SetupRow } from '@/common/setup-form/types'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import type { GSetup } from '../types'
-import type { WafflePlayerState, EventRow } from '../hooks/useGame'
+import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
+import { allGreen } from '../lib/colors'
+import { makeBoardString, makeColorString, solvedWords } from '../lib/waffle'
 import { SolutionReveal } from './SolutionReveal'
 import { StateLine } from './StateLine'
 import { GameEventLog } from './GameEventLog'
-import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
+import type { GActions, GGameData, GHistoryView, GLetterTile, GPlayer } from '../types'
 
 /**
  * waffle's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): swap-state
  * readout → progressive answer reveal → OpponentStrip → action row → help → setup
- * disclosure → swap log. Every command is an ACTION the PlayArea handed down
- * (`actStopGame`, `actConcede`, …), so this column places buttons and decides
- * nothing about them; the history-viewer selection (`onShowHistory`) is the one
- * callback. Prop names match the other games' columns for the same idea (see
- * docs/playarea.md).
+ * disclosure → swap log. Every command is an ACTION the PlayArea handed down,
+ * so this column places buttons and decides nothing about them.
  */
 export function InfoCol({
-  // Props are grouped by the region they drive (mirroring the render order below), so
-  // "what is this prop for?" is answerable by eye; the `// ── … ──` headers on the type
-  // block below name each group. Names are shared with the other games' columns for the
-  // same idea — see docs/playarea.md.
-  isCompete,
-  over,
-  isPlayer,
-  isLocallyTerminal,
-  isConceded,
-  isTurnBased,
-  turnHolderId,
-  selfSolved,
-  swapsUsed,
-  maxSwaps,
-  remaining,
-  parSwaps,
-  players,
-  myId,
-  playerStates,
-  concededIds,
-  actStopGame,
-  actConcede,
-  actRestart,
-  actReveal,
-  actNewGame,
-  actBackToClub,
-  setupRows,
-  answerWords,
-  swaps,
-  historyId,
-  onShowHistory,
+  gd,
+  endingMessage,
+  actions,
+  historyView,
+  solution,
 }: {
-  // ── Mode + phase ──
-  isCompete: boolean
-  /** The terminal message when the game is over (drives the action row), else null. */
-  over: TerminalMessage | null
-  /** Am I a player in this game (gates the action row + help). */
-  isPlayer: boolean
-  // A turn-order game: render the shared TurnStatusLine, which names the
-  // holder of `turnHolderId`.
-  isTurnBased: boolean
-  turnHolderId: string | null
-  // The page's `isLocallyTerminal`: I can't act any more, but the game continues
-  // for others (compete: solved / out of swaps / conceded) — drives the
-  // terminal LOOK.
-  isLocallyTerminal: boolean
-  // I conceded (vs solved / out of swaps) — picks the out-of-the-race wording.
-  isConceded: boolean
-  // I solved my board — picks the out-of-the-race wording.
-  selfSolved: boolean
-
-  // ── State readout (the swap count line) ──
-  swapsUsed: number
-  maxSwaps: number
-  remaining: number
-  parSwaps: number
-
-  // ── Players (the OpponentStrip) ──
-  players: Member[]
-  myId: string
-  playerStates: WafflePlayerState[]
-  concededIds: Set<string>
-
-  // ── Action row (ICON-ONLY buttons — waffle's experiment; tooltips carry
-  //    the labels. Playing: Stop/Concede + back-to-club. Terminal: Restart +
-  //    Reveal + New game + back-to-club.) ──
-  /** The whole table stops, with no result. Hidden in a race that doesn't offer
-   *  it, so the pair can be placed unconditionally. */
-  actStopGame: Action
-  /** Drop out of a race; the others keep going. Hidden outside one, and once
-   *  you are out (solved, out of swaps, conceded), when Stop takes its place. */
-  actConcede: Action
-  /** Restart THIS board from scratch. */
-  actRestart: Action
-  /** Show the answer — or put it away again, bringing back the board the
-   *  players finished with. A local display toggle, no RPC (see PlayArea's
-   *  useSolutionReveal); it carries its own two faces, so this column places one
-   *  button either way. */
-  actReveal: Action
-  /** Start a fresh follow-up game — same setup, new board + id. Disables itself
-   *  while the create is in flight, so a slow network reads as "working". */
-  actNewGame: Action
-  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE action
-   *  for both rows: it navigates directly at terminal and routes through the
-   *  suspend-confirm flow mid-game. */
-  actBackToClub: Action
-
-  // ── Setup disclosure + answer reveal ──
-  setup: GSetup
-  /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
-  setupRows: SetupRow[]
-  /** The 6 answer words in `WORDS` order (3 across, 3 down): a solved word's letters,
-   *  or null for one still hidden. Revealed progressively throughout the game. */
-  answerWords: (string | null)[]
-
-  // ── Turn-history log (GameEventLog — both modes) ──
-  swaps: EventRow[]
-  /** The swap currently open in the board viewer, or null. */
-  historyId: number | null
-  /** Straight through to the log: opening a `#N` hands up the row's id and the
-   *  number the log printed beside it. */
-  onShowHistory: (id: number, n: number) => void
+  gd: GGameData
+  // The ending that applies to me — the game's once it has ended, else mine
+  // while the others race on — for the action row's line; null while I play.
+  endingMessage: TerminalMessage | null
+  actions: GActions
+  historyView: GHistoryView
+  // The solution while I have it revealed; null while it stays hidden.
+  solution: GLetterTile[] | null
 }) {
+  // The six words: all of them while the solution is revealed, else each word
+  // I have turned fully green on my own board — already on my screen, so
+  // showing it leaks nothing. The rest read as em dashes.
+  const answerWords = solution !== null
+    ? solvedWords(makeBoardString(solution), allGreen(makeBoardString(solution)))
+    : solvedWords(makeBoardString(gd.me.board.tiles), makeColorString(gd.me.board.tiles))
 
-  // The Stop / Concede button — error-toned (red), shared by the "playing" and the
-  // "locally terminal" action rows (you can bow out either way). compete CONCEDES
-  // ("I give up, you keep racing"); coop STOPS (a neutral mutual "we're done"). Two
-  // semantically distinct actions (docs/ui.md → Button iconography, Stop vs
-  // Concede), each placed as an `<ActionButton>` — and each hides itself in the
-  // mode that isn't its own, so both are placed and the row asks nothing. Once
-  // you are out of the race, Concede hides and Stop comes out in its place
-  // (useStandardGameActions): one flag either way.
-  // Icon-only (the waffle experiment): the styled tooltip carries the label.
+  // The action row's line: set whenever the game has ended or I have.
+  const endingLine = endingMessage === null
+    ? undefined
+    : { text: endingMessage.infoColText, outcome: endingMessage.outcome }
+
+  // A racer who dropped out reads "out"; everyone else shows their swaps, with
+  // ✓ for a solve and ✗ for a spent budget.
+  function getSwapsOrOut(player: GPlayer) {
+    if (player.conceded) return 'out'
+    const isOutOfSwaps = player.ending?.reason === 'resource_exhausted'
+    return (
+      <>
+        {player.nSwapsUsed}
+        {player.solved ? ' ✓' : isOutOfSwaps ? ' ✗' : ''}
+      </>
+    )
+  }
+
+  // The Stop / Concede button — error-toned (red), shared by the "playing" and
+  // the "out of the race" action rows. Each hides itself in the mode that isn't
+  // its own, so both are placed and the row asks nothing; once you are out of
+  // the race, Concede hides and Stop comes out in its place
+  // (useStandardGameActions). Icon-only (the waffle experiment): the styled
+  // tooltip carries the label.
   const exits = (
     <>
-      <ActionButton action={actConcede} show="icon" />
-      <ActionButton action={actStopGame} show="icon" />
+      <ActionButton action={actions.actConcede} show="icon" />
+      <ActionButton action={actions.actStopGame} show="icon" />
     </>
   )
 
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        {/* InfoCol order is FIXED (docs/playarea.md → Info-column readouts):
-            state → opponent strip → action row → help → setup disclosure → log. */}
-
-        {/* State — shown in both play and terminal. The SAME <StateLine> the
+        {/* State — shown in both play and the end. The SAME <StateLine> the
             mobile status bar renders above the board (they must never drift). */}
         <p className={shared.infoState}>
-          <StateLine
-            swapsUsed={swapsUsed}
-            maxSwaps={maxSwaps}
-            remaining={remaining}
-            parSwaps={parSwaps}
-          />
+          <StateLine data={gd.stateLineData} />
         </p>
         {/* Whose-turn line — only for a turn-order game. A separate line below
             the state readout; never replaces it. */}
-        {isTurnBased && (
+        {gd.turns !== null && (
           <TurnStatusLine
-            turnHolderId={turnHolderId}
-            players={players}
-            myId={myId}
-            isTerminal={over !== null}
+            turnHolder={gd.turns.holder}
+            isMyTurn={gd.me.onTurn}
+            isGameEnded={gd.ended}
           />
         )}
 
         {/* The answer, revealed progressively: a word shows once you've turned it
-            fully green; the rest read as em dashes. Part of the status readout (above
-            the action buttons), shown throughout the game. Leak-safe — every revealed
-            word is already on the caller's board (see `solvedWords`). */}
+            fully green; the rest read as em dashes. Shown throughout the game. */}
         <SolutionReveal words={answerWords} />
 
-        {/* Opponent strip (compete) — each player's swaps used + a ✓/✗ done mark. */}
-        {isCompete && (
+        {/* Opponent strip (compete) — each racer's swaps used + a ✓/✗ done mark. */}
+        {gd.compete && (
           <OpponentStrip
-            players={players}
-            myId={myId}
+            players={gd.players}
+            myId={gd.me.id}
             metricLabel="Swaps"
-            metricFor={(player) => {
-              // A conceded player is 'out' mid-game — they dropped out, so their
-              // swap count is moot (mirrors wordle's strip).
-              if (concededIds.has(player.user_id)) return 'out'
-              const ps = playerStates.find((p) => p.user_id === player.user_id)
-              const used = ps?.swaps_used ?? 0
-              const solved = ps?.solved ?? false
-              const out = !solved && used >= maxSwaps
-              return (
-                <>
-                  {used}
-                  {solved ? ' ✓' : out ? ' ✗' : ''}
-                </>
-              )
-            }}
+            metricFor={getSwapsOrOut}
           />
         )}
 
-        {/* Action row — four states, all ICON-ONLY (the waffle experiment;
-            tooltips carry the labels). TERMINAL: the bold outcome line +
-            Restart / Reveal / New game / back-to-club (primary). LOCALLY
-            TERMINAL (compete: solved / out of swaps, the rest race on): the
-            terminal LOOK — a bold status + Stop. PLAYING: Stop/Concede +
-            back-to-club (secondary, via the suspend-confirm flow). WATCHING
-            (not in the game): a bold note, no button. */}
-        {over ? (
-          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
+        {/* Action row — three states, all ICON-ONLY (the waffle experiment;
+            tooltips carry the labels). ENDED: the bold outcome line + Restart /
+            Reveal / New game / back-to-club (primary). OUT OF THE RACE (compete:
+            solved / out of swaps / conceded, the rest race on): my ending's line
+            + Reveal + Stop. PLAYING: Stop/Concede + back-to-club. */}
+        {gd.ended ? (
+          <InfoActionsRow message={endingLine}>
             {/* Stay-here options left of the leave option (Club): restart this
                 board, see the answer, or spin up the next game. */}
-            <ActionButton action={actRestart} show="icon" />
-            <ActionButton action={actReveal} show="icon" />
-            <ActionButton action={actNewGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" weight="primary" />
+            <ActionButton action={actions.actRestart} show="icon" />
+            <ActionButton action={actions.actReveal} show="icon" />
+            <ActionButton action={actions.actNewGame} show="icon" />
+            <ActionButton action={actions.actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : isLocallyTerminal ? (
-          <InfoActionsRow
-            message={{ text: isConceded ? 'You conceded' : selfSolved ? 'Solved — waiting' : 'Out of swaps', outcome: 'neutral' }}
-          >
+        ) : !gd.me.stillPlaying ? (
+          <InfoActionsRow message={endingLine}>
             {/* Reveal keeps its slot while the others race, but inert: the
-                solution opens only when the game is over for EVERYONE
-                (common.reveal_solution enforces the same rule server-side), so
-                a player who dropped out can't spoil a live race. Present
-                rather than absent so the row doesn't change shape when the
-                last racer finishes — the button is simply enabled then. */}
-            <ActionButton action={actReveal} show="icon" />
+                solution opens only when the game is over for EVERYONE, so a
+                player who dropped out can't spoil a live race. Present rather
+                than absent so the row doesn't change shape when the last racer
+                finishes — the button is simply enabled then. */}
+            <ActionButton action={actions.actReveal} show="icon" />
             {exits}
-          </InfoActionsRow>
-        ) : isPlayer ? (
-          <InfoActionsRow>
-            {exits}
-            <ActionButton action={actBackToClub} show="icon" />
           </InfoActionsRow>
         ) : (
-          <InfoActionsRow message={{ text: 'Watching — not in this game', outcome: 'neutral' }} />
+          <InfoActionsRow>
+            {exits}
+            <ActionButton action={actions.actBackToClub} show="icon" />
+          </InfoActionsRow>
         )}
 
-        {/* Help — shown ONLY while you can actually act on it (the locally-terminal /
-            watching states are carried loudly by the action row above). */}
-        {isPlayer && !over && !isLocallyTerminal && (
+        {/* Help — shown ONLY while you can actually act on it (being out of
+            the race is carried loudly by the action row above). */}
+        {!gd.ended && gd.me.stillPlaying && (
           <p className={shared.infoHelp}>Tap two tiles to swap them.</p>
         )}
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
-        <SetupDisclosure rows={setupRows} />
+        <SetupDisclosure rows={gd.setupRows} />
       </div>
 
-      {/* The swap log — BOTH modes since 2026-08-02 (compete used to write none).
-          Compete carries the shared "whose swaps?" picker: an opponent's rows are
-          RLS-hidden during play and open at terminal, which is what makes logging
-          them safe — replaying someone's swaps from the shared scramble would
-          otherwise rebuild their board. Rows are clickable to replay that swap. */}
+      {/* The swap log — both modes. Rows are clickable to replay that swap. */}
       <GameEventLog
-        swaps={swaps}
-        players={players}
-        myId={myId}
-        mode={isCompete ? 'compete' : 'coop'}
-        isTerminal={over !== null}
-        historyId={historyId}
-        onShowHistory={onShowHistory}
+        events={gd.events}
+        players={gd.players}
+        myId={gd.me.id}
+        mode={gd.mode}
+        isGameEnded={gd.ended}
+        historyView={historyView}
       />
     </div>
   )

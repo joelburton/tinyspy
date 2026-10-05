@@ -8,13 +8,10 @@ import { supabase } from '@/common/supabase/supabase'
  * Usage from inside `src/waffle/`:
  *
  *     import { db } from '../db'
- *     await db.from('games_state').select(...)
- *     await db.rpc('submit_swap', { target_game: id, pos_a, pos_b })
+ *     await db.rpc('submit_swap', { p_game_id: id, p_pos_a: a, p_pos_b: b })
  *
- * Same pattern as the other games. The FE reads `games_state` /
- * `players_state` (the security_invoker views), never the base
- * `waffle.games` / `waffle.players` tables — the views are the only
- * path to the gated `solution` (revealed post-terminal) and to the
- * board/colors (an opponent's board is hidden mid-compete).
+ * The page reads no table: what it draws is the `game_data` blob the RPCs
+ * rebuild after every move (plans/seat-view.md), so this handle is for the
+ * RPCs.
  */
 export const db = supabase.schema('waffle')
