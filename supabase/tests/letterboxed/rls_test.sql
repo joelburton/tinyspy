@@ -1,19 +1,16 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: letterboxed.events RLS — the three-arm select policy
+-- Test: letterboxed.events RLS — the club-member gate
 -- ============================================================
--- In compete the events table IS the private data: every row names a word,
--- and a rival reading your rows mid-race is reading your chain. The policy's
--- three OR arms (the wordwheel shape), each pinned here:
---   (1) mode='coop'          — one shared chain; the whole club reads the log
---                              (including a club member who isn't seated —
---                              "watching" is club-membership, not playerhood).
---   (2) user_id = auth.uid() — you always see your own moves.
---   (3) the game has ended   — the race is over; open to everyone so the
---                              end of the game can show how it was solved.
--- gameplay_test covers the players_state CHAIN mask; this file is about the
--- log rows themselves.
+-- The policy is the member gate alone: a club member reads every row of the
+-- log, in both modes, mid-race or not, and nobody outside the club reads any.
+-- Who may see a rival's rows mid-race is the hook's rule
+-- (src/letterboxed/hooks/useGame.ts), applied to `game_data`; nothing reads
+-- this table from the client. Pinned here:
+--   (1) coop: a teammate, and a member who isn't seated, read the log
+--   (2) compete mid-race: a racer reads both racers' rows
+--   (3) outside the club: nothing
 
 begin;
 
@@ -51,10 +48,10 @@ select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
   (select count(*)::int from letterboxed.events where game_id = (select id from gco)),
   1,
-  'coop: a club member who is not seated still reads the log (watching)'
+  'coop: a club member who is not seated still reads the log'
 );
 
--- ── (2) Compete mid-race: own rows only ─────────────────────
+-- ── (2) Compete mid-race: every row ─────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gcp on commit drop as
 select (letterboxed.create_game(
@@ -69,33 +66,29 @@ select letterboxed.submit_word((select id from gcp), 'adg');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select letterboxed.submit_word((select id from gcp), 'adg');
 
--- Two rows exist; each racer sees exactly their own.
-select is(
-  (select count(*)::int from letterboxed.events where game_id = (select id from gcp)),
-  1,
-  'compete mid-race: a racer sees only ONE of the two rows'
-);
-select is(
-  (select distinct user_id from letterboxed.events where game_id = (select id from gcp)),
-  'bea22222-2222-2222-2222-222222222222'::uuid,
-  '…and it is their own'
-);
-
--- ── (3) Ended: the log opens ────────────────────────────────
--- The manual stop is the cheapest ending to reach; the arm keys on
--- common.games.ended_at, not on HOW it ended.
-select letterboxed.stop_game((select id from gcp));
-
+-- Two rows exist, and a racer reads both: withholding the rival's is the hook's.
 select is(
   (select count(*)::int from letterboxed.events where game_id = (select id from gcp)),
   2,
-  'compete, once ended: both players'' rows are readable'
+  'compete mid-race: a racer reads both rows'
 );
-select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
+select is(
+  (select count(distinct user_id)::int from letterboxed.events where game_id = (select id from gcp)),
+  2,
+  '…their own and the rival''s'
+);
+
+-- ── (3) Outside the club: nothing ───────────────────────────
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
+select is(
+  (select count(*)::int from letterboxed.events where game_id = (select id from gco)),
+  0,
+  'a non-member reads none of a coop game''s log'
+);
 select is(
   (select count(*)::int from letterboxed.events where game_id = (select id from gcp)),
-  2,
-  '…by the whole club, seated or not'
+  0,
+  '…nor of a race''s'
 );
 
 select * from finish();

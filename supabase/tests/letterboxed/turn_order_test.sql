@@ -99,9 +99,7 @@ select is(
   'turns: an undo advances the pointer too — it costs the undoer''s turn'
 );
 select ok(
-  (select chain = '{}' from letterboxed.players_state
-    where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  pg_temp.lb_chain((select id from g), 'ada11111-1111-1111-1111-111111111111') = '{}',
   'turns: the undo really popped the word'
 );
 

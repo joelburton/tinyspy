@@ -16,6 +16,9 @@
 --                               positional RPC arg, NOT a setup field.
 --   pg_temp.lb_setup_turns()  — the same, plus coop_style='turns'.
 --   pg_temp.lb_setup_timed()  — the same, plus a countdown timer.
+--   pg_temp.lb_player(game, user) — one player as `game_data` shows them.
+--   pg_temp.lb_chain(game, user)  — that player's chain, off `game_data`:
+--                               the page's copy, which every move rebuilds.
 --
 -- ─── Why synthetic works here ────────────────────────────────
 -- letterboxed.submit_word never consults common.words. A word is
@@ -108,4 +111,21 @@ as $$
   select pg_temp.lb_setup()
       || jsonb_build_object('timer',
            jsonb_build_object('kind', 'countdown', 'seconds', 300));
+$$;
+
+-- ── Reading the page blob ───────────────────────────────────
+create function pg_temp.lb_player(game uuid, uid uuid)
+returns jsonb
+language sql
+as $$
+  select p from jsonb_array_elements(
+                  (select game_data -> 'players' from common.games where id = game)) p
+   where p ->> 'id' = uid::text;
+$$;
+
+create function pg_temp.lb_chain(game uuid, uid uuid)
+returns text[]
+language sql
+as $$
+  select array(select jsonb_array_elements_text(pg_temp.lb_player(game, uid) -> 'board' -> 'words'));
 $$;

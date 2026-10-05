@@ -14,7 +14,7 @@
 --   2. submit_timeout ranks NON-conceded players only (a drop-out
 --      forfeits, whatever they had covered — the wordiply ruling: their
 --      coverage still shows, but they can't win), and exact ties share a
---      rank: both ranked 1, and the club line names no sole winner.
+--      rank: both ranked 1, and the page blob shows both as won.
 
 begin;
 
@@ -102,22 +102,20 @@ select is(
   'the conceded leader does NOT win, despite the higher coverage'
 );
 
--- ada's own status still shows her coverage (8 > bea's 3) — which is exactly
+-- ada's own count still shows her coverage (8 > bea's 3) — which is exactly
 -- why a reader must go by the ranking, not by the best coverage.
 select is(
-  (select (player_status->>'letters_covered_count') || '/' || (player_status->>'player_ended_reason')
-     from common.game_players
-    where game_id = (select id from ga)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  (select (p->>'nCoveredLetters') || '/' || (p->'ending'->>'reason')
+     from (select pg_temp.lb_player((select id from ga), 'ada11111-1111-1111-1111-111111111111') p) x),
   '8/conceded',
   'the conceded player''s coverage still shows, beside her concession'
 );
 
 select is(
-  (select clubpage_info->>'winner_user_id' from common.games
+  (select summary_data->'ending'->>'winner' from common.games
     where id = (select id from ga)),
   'bea22222-2222-2222-2222-222222222222',
-  '…and the club line names the racer as the winner, not the best coverage'
+  '…and the summary names the racer as the winner, not the best coverage'
 );
 
 -- ============================================================
@@ -157,9 +155,11 @@ select is(
 );
 
 select is(
-  (select clubpage_info->'winner_user_id' from common.games where id = (select id from gb)),
-  'null'::jsonb,
-  'and the club line names no sole winner'
+  (select count(*)::int
+     from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from gb))) p
+    where p->>'outcome' = 'won'),
+  2,
+  'and the page blob shows both tied racers as won'
 );
 
 select * from finish();

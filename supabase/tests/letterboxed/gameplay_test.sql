@@ -12,15 +12,16 @@
 --
 -- Coverage:
 --   1. Coop happy path: a word appends, letters_covered is right, the
---      log records it, the club line keeps up.
+--      log records it, the page blob keeps up.
 --   2. The four rejections: not playable, wrong start letter, already in
 --      the chain, chain full at max_words.
 --   3. undo_word pops the last word and REFUNDS against the cap — the
 --      property that makes the cap a shape constraint, not a budget.
 --   4. clear_chain empties it and logs the fact.
 --   5. Covering all twelve wins the coop game outright.
---   6. Compete moves only the actor's chain, and a rival's chain is
---      hidden through players_state while their word count is not.
+--   6. Compete moves only the actor's chain; the page blob carries a
+--      rival's count and chain alike, and withholding the chain mid-race
+--      is the hook's rule.
 --   7. Each of the four moves, into a game a friend just deleted, is the
 --      shared race (PN485).
 
@@ -82,9 +83,7 @@ select is(
 );
 
 select ok(
-  (select chain = '{}' from letterboxed.players_state
-    where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  pg_temp.lb_chain((select id from g), 'ada11111-1111-1111-1111-111111111111') = '{}',
   'the chain starts empty'
 );
 
@@ -99,17 +98,13 @@ select pg_temp.envelope_is(
 -- gives the row this wrote the same word, and the log bar wears that.
 
 select is(
-  (select chain from letterboxed.players_state
-    where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  pg_temp.lb_chain((select id from g), 'ada11111-1111-1111-1111-111111111111'),
   array['adg'],
   'the word is on the chain'
 );
 
 select ok(
-  (select chain = array['adg'] from letterboxed.players_state
-    where game_id = (select id from g)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
+  pg_temp.lb_chain((select id from g), 'bea22222-2222-2222-2222-222222222222') = array['adg'],
   'COOP MOVES EVERY ROW IN LOCK-STEP — bea has ada''s word too'
 );
 
@@ -121,9 +116,9 @@ select is(
 );
 
 select is(
-  (select clubpage_info->>'letters_covered_count' from common.games where id = (select id from g)),
+  (select game_data->'team'->>'nCoveredLetters' from common.games where id = (select id from g)),
   '3',
-  'the builder mirrors coverage onto the club line'
+  'the builder writes the team''s coverage into the page blob'
 );
 
 -- ── 3. The rejections ───────────────────────────────────────
@@ -172,9 +167,7 @@ select pg_temp.envelope_is(
 select letterboxed.undo_word((select id from g));
 
 select is(
-  (select chain from letterboxed.players_state
-    where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  pg_temp.lb_chain((select id from g), 'ada11111-1111-1111-1111-111111111111'),
   array['adg'],
   'undo_word pops the last word'
 );
@@ -197,9 +190,7 @@ select pg_temp.envelope_is(
 );
 
 select ok(
-  (select chain = '{}' from letterboxed.players_state
-    where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  pg_temp.lb_chain((select id from g), 'ada11111-1111-1111-1111-111111111111') = '{}',
   'clear_chain empties the chain'
 );
 
@@ -247,10 +238,10 @@ select is(
   'and every teammate is ranked 1, won, and solved'
 );
 
--- The builder runs after the ending, from the chain, so the club line shows
--- the full twelve rather than the previous move's count.
+-- The builder runs after the ending, from the chain, so the blob shows the
+-- full twelve rather than the previous move's count.
 select is(
-  (select clubpage_info->>'letters_covered_count' from common.games where id = (select id from g)),
+  (select game_data->'team'->>'nCoveredLetters' from common.games where id = (select id from g)),
   '12',
   'the ending restates coverage rather than inheriting the last move''s'
 );
@@ -263,7 +254,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- Compete: chains are private, word counts are not
+-- Compete: each racer's chain is their own
 -- ============================================================
 
 create temp table gc on commit drop as
@@ -279,30 +270,24 @@ select (letterboxed.create_game(
 select letterboxed.submit_word((select id from gc), 'adg');
 
 select is(
-  (select word_count from letterboxed.players_state
-    where game_id = (select id from gc)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
+  (pg_temp.lb_player((select id from gc), 'bea22222-2222-2222-2222-222222222222') ->> 'nWordsUsed')::int,
   0,
   'COMPETE MOVES ONLY THE ACTOR''S ROW — bea''s chain is untouched'
 );
 
--- Now look at ada's row as bea: the count shows, the words do not.
+-- Now look at ada's row as bea: the blob carries both her count and her words.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
 select is(
-  (select word_count from letterboxed.players_state
-    where game_id = (select id from gc)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  (pg_temp.lb_player((select id from gc), 'ada11111-1111-1111-1111-111111111111') ->> 'nWordsUsed')::int,
   1,
-  'a rival''s WORD COUNT is public — the one number the race publishes'
+  'a rival''s WORD COUNT is in the blob — the number the race publishes'
 );
 
 select is(
-  (select chain from letterboxed.players_state
-    where game_id = (select id from gc)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  null,
-  'but a rival''s CHAIN is hidden mid-race'
+  pg_temp.lb_chain((select id from gc), 'ada11111-1111-1111-1111-111111111111'),
+  array['adg'],
+  'and so is a rival''s CHAIN: withholding it mid-race is the hook''s rule'
 );
 
 -- ============================================================

@@ -169,12 +169,16 @@ summary_data:
 
 ## Predicted test breaks
 
-- **Step 4 (2026-10-05), to be fixed at step 5:** every pgTAP assertion that
-  reads the statuses or `players_state` — `compete_test`, `gameplay_test`,
-  `rls_test`, `turn_order_test`, `concede_timeout_test`, `replay_test`,
-  `timeout_test` — and the whole of `statuses_test`, which goes.
-  `events.letters_covered` is `n_covered_letters` (20261005000001);
-  `gameplay_test`'s one read of it follows.
+- **Step 4 (2026-10-05), fixed at step 5:** every pgTAP assertion that read
+  the statuses or `players_state` now reads the blobs (`setup.psql`'s
+  `lb_player` / `lb_chain`), `game_data_test` pins them, and `statuses_test`
+  went. `rls_test` pins the member gate alone: a racer reads both racers'
+  rows, and a non-member none. `events.letters_covered` is
+  `n_covered_letters` (20261005000001).
+- **The summary's winner on a tied timeout:** the statuses named no sole
+  winner when two racers tied; `ending.winner` (common's) names the first by
+  seat, so a club card names one of the tied winners. Each tied player's
+  `outcome` is `won` in `game_data`.
 - **Steps 4–9:** the frontend reads the views and the old common shapes
   until the PlayArea pass moves every reader onto `gd`; it could not load
   before this began.

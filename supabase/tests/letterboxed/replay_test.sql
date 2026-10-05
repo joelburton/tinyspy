@@ -105,12 +105,12 @@ select is(
   0,
   '…and clears every player''s solve and result (_reset_game''s job)'
 );
--- The builder assigns the club line whole, so it states its own zeroes rather
+-- The builder assigns the blobs whole, so they state their own zeroes rather
 -- than inheriting the finished game's readouts.
 select is(
-  (select clubpage_info->>'letters_covered_count' from common.games where id = (select id from g)),
+  (select summary_data->'team'->>'nCoveredLetters' from common.games where id = (select id from g)),
   '0',
-  'the fresh club line states its own zero coverage'
+  'the fresh summary states its own zero coverage'
 );
 
 select * from finish();

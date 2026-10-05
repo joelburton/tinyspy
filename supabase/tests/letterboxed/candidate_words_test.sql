@@ -16,8 +16,9 @@
 --
 --   WHERE  band + board shape ONLY  → the accept list (may-enter)
 --   is_clean flag                   → the subset the hint may suggest
---                                     (must-reach), computed back out by
---                                     the games_state view
+--                                     (must-reach); the page blob carries
+--                                     the rest as `uncleanWords`
+--                                     (_make_json_unclean_words)
 --
 -- Unlike the other letterboxed tests this one CANNOT be synthetic: the
 -- whole subject is how real `common.words` rows are classified. It leans

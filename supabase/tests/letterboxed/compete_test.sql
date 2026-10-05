@@ -3,17 +3,17 @@
 -- ============================================================
 -- Test: letterboxed compete — first to cover the twelve wins
 -- ============================================================
--- The compete WIN path through submit_word (gameplay_test covers compete's
--- masking, concede_timeout_test its timeout; this file is the race actually
--- being won). Compete ends on the FIRST solve — the bar is "cover the twelve
--- within the cap", and being first past it is the whole race. Covers:
+-- The compete WIN path through submit_word (gameplay_test covers each
+-- racer's own chain, concede_timeout_test the timeout; this file is the race
+-- actually being won). Compete ends on the FIRST solve — the bar is "cover the
+-- twelve within the cap", and being first past it is the whole race. Covers:
 --   1. covering all twelve ends the game reached_goal / solved, won
---   2. the ending names the solver, and the club line carries the winner
---      and their chain's length (it renders on its own — no follow-up query)
+--   2. the ending names the solver, and the summary carries the winner and
+--      their chain's length (it renders on its own — no follow-up query)
 --   3. per-player results: the winner ranked 1 and solved, the rival
 --      unranked and lost
---   4. each racer's own status carries their chain's length
---   5. a rival's chain, hidden all race, is READABLE once it has ended
+--   4. each racer in the page blob carries their own chain's length
+--   5. the ended game's blob carries the winner's chain for the post-mortem
 --   6. no further moves once it is over
 
 begin;
@@ -61,10 +61,10 @@ select is(
   'the ending names the solver'
 );
 select is(
-  (select (clubpage_info->>'winner_user_id') || '/' || (clubpage_info->>'winner_words_count')
+  (select (summary_data->'ending'->>'winner') || '/' || (summary_data->>'nWinnerWords')
      from common.games where id = (select id from g)),
   'ada11111-1111-1111-1111-111111111111/2',
-  'the club line carries the winner and their chain length (no follow-up query)'
+  'the summary carries the winner and their chain length (no follow-up query)'
 );
 select is(
   (select final_ranking || '/' || outcome || '/' || (solved_at is not null)::text
@@ -82,22 +82,20 @@ select is(
   'the rival is unranked and lost'
 );
 select is(
-  (select array_agg(player_status->>'words_used' order by user_id) from common.game_players
-    where game_id = (select id from g)),
+  array[(pg_temp.lb_player((select id from g), 'ada11111-1111-1111-1111-111111111111') ->> 'nWordsUsed'),
+        (pg_temp.lb_player((select id from g), 'bea22222-2222-2222-2222-222222222222') ->> 'nWordsUsed')],
   array['2', '1'],
-  'each racer''s status carries their own chain length'
+  'each racer carries their own chain length'
 );
 
--- ── The race-privacy seal opens ─────────────────────────────
--- All race long bea saw NULL for ada's chain (gameplay_test pins that);
--- once the game ends the mask lifts so the post-mortem can show how it was won.
+-- ── The post-mortem ─────────────────────────────────────────
+-- Once the game ends, the hook stops withholding a rival's chain, so the
+-- blob must carry it for the post-mortem to show how it was won.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select chain from letterboxed.players_state
-    where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  pg_temp.lb_chain((select id from g), 'ada11111-1111-1111-1111-111111111111'),
   array['adgjbehk', 'kcfil'],
-  'a rival''s chain becomes readable once the race is over'
+  'the ended game''s blob carries the winner''s chain'
 );
 
 select pg_temp.envelope_is(

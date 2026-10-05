@@ -56,9 +56,9 @@ select is(
   'the ending names the clock as the cause'
 );
 select is(
-  (select clubpage_info->>'letters_covered_count' from common.games where id = (select id from g)),
+  (select summary_data->'team'->>'nCoveredLetters' from common.games where id = (select id from g)),
   '3',
-  'the club line restates the coverage the clock froze'
+  'the summary restates the coverage the clock froze'
 );
 select is(
   (select count(*)::int from common.game_players
