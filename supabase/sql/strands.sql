@@ -15,20 +15,28 @@
 --   submit_timeout        ends the game when the countdown runs out
 --   replay_board          the same puzzle again from scratch
 --
+-- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
+-- writes the page blobs onto `common.games` after every move (plans/seat-view.md
+-- → The page is written, not assembled) — `game_data`, `summary_data`, and
+-- `shell_data` through common — and the page reads those.
+--
 -- What is particular to strands (docs/games/strands.md has the rest):
---   - THE SHIELD. The solution is hidden: a column grant omits `solution`, and
---     `games_state` hands it back once the game has ended. A dictionary
---     lookup forces a server round trip anyway, so every trace is classified
---     here: a theme word, the spangram, a hint word (which fills the hint
---     bar), or a miss.
+--   - THE SHIELD. The solution is hidden by a column grant, and `game_data`
+--     carries it only once the game has ended. A dictionary lookup forces a
+--     server round trip anyway, so every trace is classified here: a theme
+--     word, the spangram, a hint word (which fills the hint bar), or a miss.
 --   - A theme word is matched by the CELLS it covers and the word they spell,
 --     not by the ordered path (_path_key).
 --   - The theme words tile the board exactly, so finding every one and using
 --     every cell are the same thing: solving. Coop solves together; in
 --     compete solving ends only your own race, and the solver with the fewest
 --     hints wins once nobody is left racing.
---   - A rival's hint bar, ringed hint and found words are hidden mid-race
---     (players_state, the events rule); their hint count is public.
+--   - Coop's hint bar and ringed hint are one pool, written onto every coop
+--     player's row in lock-step; the hints cashed are each player's own.
+--   - A rival's hint bar, ringed hint and found words stay hidden mid-race;
+--     their hint count is public. That is the hook's rule
+--     (src/strands/hooks/useGame.ts), not a policy's: the blob carries
+--     everything, the hook withholds.
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -76,8 +84,9 @@ grant insert, update, select on strands.puzzles to service_role;
 -- ============================================================
 -- strands.games
 -- ============================================================
--- Everything EXCEPT `solution`, which games_state re-exposes once the game has
--- ended. Revoke first — see the note on strands.puzzles above.
+-- Everything EXCEPT `solution`. `game_data` (`_make_json_puzzle`) is the only
+-- path a client has to it, and carries it only once the game has ended.
+-- Revoke first — see the note on strands.puzzles above.
 revoke select on strands.games from authenticated;
 grant select
   (game_id, puzzle_id, puzzle_date, board, puzzle_title,
@@ -99,17 +108,13 @@ create policy games_select on strands.games
 -- ============================================================
 -- strands.players
 -- ============================================================
--- What a rival may see mid-game on this table is exactly ONE number:
--- `hints_spent`. That is the compete ranking metric, so it makes the race
--- legible, and it says nothing about the PUZZLE. Withheld from opponents
--- mid-game, and handed back below where they're allowed:
---
---   hint_points        — the bar's fill is a proxy for how many valid words a
---                        rival has found
---   active_hint_coords — a rival's revealed word is part of the answer
+-- Any club member reads every column. What a racer may see of a rival
+-- mid-race — the hint count, and not the bar or the ringed hint — is the
+-- hook's rule (src/strands/hooks/useGame.ts), applied to `game_data`; nothing
+-- reads this table from the client. Revoke first — see the note on
+-- strands.puzzles above.
 revoke select on strands.players from authenticated;
-grant select (game_id, user_id, hints_spent)
-  on strands.players to authenticated;
+grant select on strands.players to authenticated;
 
 drop policy if exists players_select on strands.players;
 create policy players_select on strands.players
@@ -122,95 +127,12 @@ create policy players_select on strands.players
     )
   );
 
-drop view if exists strands.players_state;
-drop view if exists strands.games_state;
-drop view if exists strands.club_game_status;
-drop function if exists strands._hint_points_for(uuid, uuid);
-drop function if exists strands._active_hint_for(uuid, uuid);
-drop function if exists strands._player_state_visible(uuid, uuid);
-drop function if exists strands._solution_for(uuid);
-
--- ============================================================
--- strands._player_state_visible — may the caller see this player's bar?
--- ============================================================
--- Visible when the row is YOURS, when the game is COOP (the pool is shared
--- there — that's the whole mode), or once the game has ended. Definer, so it
--- reads past the column grant; the security_invoker view calls it as the
--- CALLER, so auth.uid() is the real one.
-create or replace function strands._player_state_visible(p_game_id uuid, p_user_id uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = strands, common, public, extensions
-as $$
-  select cg.mode = 'coop' or p_user_id = auth.uid() or cg.ended_at is not null
-    from common.games cg
-   where cg.id = p_game_id;
-$$;
-revoke execute on function strands._player_state_visible(uuid, uuid) from public;
-
--- ============================================================
--- strands._hint_points_for / _active_hint_for — the withheld columns
--- ============================================================
--- A player's hint bar and ringed hint, where _player_state_visible allows.
--- The security_invoker view calls these AS THE CALLER, so authenticated needs
--- EXECUTE — the definer body is what reads past the column grant.
-create or replace function strands._hint_points_for(p_game_id uuid, p_user_id uuid)
-returns int
-language sql
-stable
-security definer
-set search_path = strands, common, public, extensions
-as $$
-  select case when strands._player_state_visible(p_game_id, p_user_id) then sp.hint_points end
-    from strands.players sp
-   where sp.game_id = p_game_id and sp.user_id = p_user_id;
-$$;
-revoke execute on function strands._hint_points_for(uuid, uuid) from public;
-grant execute on function strands._hint_points_for(uuid, uuid) to authenticated;
-
-create or replace function strands._active_hint_for(p_game_id uuid, p_user_id uuid)
-returns jsonb
-language sql
-stable
-security definer
-set search_path = strands, common, public, extensions
-as $$
-  select case when strands._player_state_visible(p_game_id, p_user_id) then sp.active_hint_coords end
-    from strands.players sp
-   where sp.game_id = p_game_id and sp.user_id = p_user_id;
-$$;
-revoke execute on function strands._active_hint_for(uuid, uuid) from public;
-grant execute on function strands._active_hint_for(uuid, uuid) to authenticated;
-
-create view strands.players_state with (security_invoker = true) as
-  select sp.game_id,
-         sp.user_id,
-         sp.hints_spent,
-         strands._hint_points_for(sp.game_id, sp.user_id) as hint_points,
-         strands._active_hint_for(sp.game_id, sp.user_id) as active_hint_coords
-    from strands.players sp;
-
-grant select on strands.players_state to authenticated;
-
 -- ============================================================
 -- strands.events
 -- ============================================================
--- Mode-aware, in three OR branches under one club-membership gate — the shape
--- wordwheel/spellingbee use:
---
---   coop            everyone in the club sees every event: the log is the
---                   team's shared record of what has been tried, and hiding a
---                   peer's rejects would make it lie.
---   own rows        you always see your own (compete's board is yours).
---   the game ended  the post-game reveal, so the log can be compared.
---
--- The compete arm is what keeps a rival's finds private until the race is
--- over. HINT rows ride the same three branches: shared in coop, private in
--- compete until the end. The one thing this discloses that nothing else did
--- is the location of a hinted word NOBODY went on to find, visible at the end
--- before an opt-in solution reveal — a deliberate, narrow acceptance.
+-- The log: any club member sees every row. Who may see a rival's rows
+-- mid-race is the hook's rule (src/strands/hooks/useGame.ts), applied to
+-- `game_data`; nothing reads this table from the client.
 grant select on strands.events to authenticated;
 
 drop policy if exists events_select on strands.events;
@@ -221,77 +143,300 @@ create policy events_select on strands.events
       select 1 from common.games cg
        where cg.id = events.game_id
          and common._is_club_member(cg.club_handle)
-         and (
-           cg.mode = 'coop'
-           or events.user_id = (select auth.uid())
-           or cg.ended_at is not null
-         )
     )
   );
 
+-- The views the frontend read before the page blobs, their definers, and the
+-- statuses' writer; supabase/sql is re-applied, not diffed, so the drops stay.
+drop view if exists strands.players_state;
+drop view if exists strands.games_state;
+drop view if exists strands.club_game_status;
+drop function if exists strands._hint_points_for(uuid, uuid);
+drop function if exists strands._active_hint_for(uuid, uuid);
+drop function if exists strands._player_state_visible(uuid, uuid);
+drop function if exists strands._solution_for(uuid);
+drop function if exists strands._write_statuses(uuid, boolean);
+
 -- ============================================================
--- strands._solution_for — the answer, once the game has ended
+-- The page blobs — what the page shows, written by this game's builder
 -- ============================================================
--- Definer, so it can read the grant-hidden `solution`; the security_invoker
--- view below calls it as the CALLER. Gated on the game having ENDED, for
--- everyone — the guarantee that a compete racer who has already solved or
--- conceded can't pull the answer while the others are still tracing. Whether
--- a player is LOOKING at it is their own display decision (docs/ui.md →
--- Terminal results).
-create or replace function strands._solution_for(p_game_id uuid)
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- strands' own, each builder bearing its column's name. `game_data` is the
+-- common part (supabase/sql/common.sql → The page blobs' common parts) with
+-- strands' facts on top; the pieces below build each part, so `select
+-- game_data from common.games` shows the page what it gets.
+--
+-- A tile's id is its place, "r,c" — the key `_path_key` compares by — and
+-- every path in a blob is a list of tile ids, in the order it was traced.
+--
+--   game_data, strands' part:
+--     puzzle: {title, tiles, words}        frozen at create: the theme prompt;
+--                                          all 48 tiles, each {id, letter, row,
+--                                          col}, row by row; the hidden words,
+--                                          each {word, tileIds, spangram},
+--                                          spangram first, null until the game
+--                                          ends
+--     team: {nFoundWords, nHintsUsed, hintPoints}
+--                                          what the team shares: the words found,
+--                                          the players' hints summed, the one
+--                                          hint bar; null in compete
+--                                          (plans/team-facts.md)
+--     events: [{id, userId, kind, word, result, tileIds, tookTurn, at}, …]
+--                                          every row, every player's; a guess's
+--                                          trace, or a hint's ringed word; what a
+--                                          racer may see of a rival mid-race is
+--                                          the hook's rule
+--     players: [player, …]                 the common player, plus:
+--       nFoundWords, nHintsUsed            this player's own, in every mode
+--       hintPoints                         a racer's hint bar; null in coop,
+--                                          where the bar is the team's
+--       board: {words, hintTileIds}        this seat's found words, in the order
+--                                          found, and its ringed hint (null when
+--                                          none shows): the shared ones in coop,
+--                                          each racer's own in compete
+--
+--   summary_data, strands' part (the common part names and dates the game
+--   and carries its ending; the winner is `ending.winner`):
+--     team                                 the same group; null in compete
+--     nWinnerHints                         the hints the race was won on; null
+--                                          in coop, or with no winner
+
+-- A path's cells as tile ids, in the order given.
+create or replace function strands._make_json_tile_ids(p_coords jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = strands, common, public, extensions
+as $$
+  select coalesce(jsonb_agg((c->>0) || ',' || (c->>1) order by o), '[]'::jsonb)
+    from jsonb_array_elements(p_coords) with ordinality as x(c, o);
+$$;
+
+revoke execute on function strands._make_json_tile_ids(jsonb) from public;
+
+-- The board's 48 tiles, row by row.
+create or replace function strands._make_json_tiles(p_board text[])
+returns jsonb
+language sql
+immutable
+set search_path = strands, common, public, extensions
+as $$
+  select jsonb_agg(jsonb_build_object(
+           'id',     (r - 1) || ',' || (c - 1),
+           'letter', substr(p_board[r], c, 1),
+           'row',    r - 1,
+           'col',    c - 1) order by r, c)
+    from generate_series(1, cardinality(p_board)) r,
+         generate_series(1, length(p_board[1])) c;
+$$;
+
+revoke execute on function strands._make_json_tiles(text[]) from public;
+
+-- The hidden words, spangram first.
+create or replace function strands._make_json_words(p_solution jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = strands, common, public, extensions
+as $$
+  select jsonb_build_array(jsonb_build_object(
+           'word',     p_solution->'spangram'->>'word',
+           'tileIds',  strands._make_json_tile_ids(p_solution->'spangram'->'coords'),
+           'spangram', true))
+         || coalesce((
+           select jsonb_agg(jsonb_build_object(
+                    'word',     t->>'word',
+                    'tileIds',  strands._make_json_tile_ids(t->'coords'),
+                    'spangram', false) order by o)
+             from jsonb_array_elements(p_solution->'themeWords') with ordinality as x(t, o)),
+           '[]'::jsonb);
+$$;
+
+revoke execute on function strands._make_json_words(jsonb) from public;
+
+-- The prompt, the tiles, and the hidden words once the game has ended (the
+-- column grant keeps them from any client read).
+create or replace function strands._make_json_puzzle(sg strands.games, p_ended boolean)
+returns jsonb
+language sql
+immutable
+set search_path = strands, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'title', sg.puzzle_title,
+    'tiles', strands._make_json_tiles(sg.board),
+    'words', case when p_ended then strands._make_json_words(sg.solution) end);
+$$;
+
+revoke execute on function strands._make_json_puzzle(strands.games, boolean) from public;
+
+-- The log: every row, in the order of play.
+create or replace function strands._make_json_events(p_game_id uuid)
 returns jsonb
 language sql
 stable
-security definer
 set search_path = strands, common, public, extensions
 as $$
-  select case when cg.ended_at is not null then sg.solution end
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',       e.id,
+           'userId',   e.user_id,
+           'kind',     e.kind,
+           'word',     e.word,
+           'result',   e.result,
+           'tileIds',  strands._make_json_tile_ids(e.path),
+           'tookTurn', e.took_turn,
+           'at',       e.created_at) order by e.id), '[]'::jsonb)
+    from strands.events e
+   where e.game_id = p_game_id;
+$$;
+
+revoke execute on function strands._make_json_events(uuid) from public;
+
+-- The words a seat has found, in the order found: everyone's in coop, where
+-- the board is shared; the player's own in compete.
+create or replace function strands._make_json_found_words(p_game_id uuid, p_user_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = strands, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'word',     e.word,
+           'tileIds',  strands._make_json_tile_ids(e.path),
+           'spangram', e.result = 'spangram') order by e.id), '[]'::jsonb)
+    from strands.events e
+    join common.games cg on cg.id = e.game_id
+   where e.game_id = p_game_id
+     and e.result in ('theme', 'spangram')
+     and (cg.mode = 'coop' or e.user_id = p_user_id);
+$$;
+
+revoke execute on function strands._make_json_found_words(uuid, uuid) from public;
+
+-- The theme words found: one player's own, or every player's when `p_user_id`
+-- is null — the team's.
+create or replace function strands._count_found_words(p_game_id uuid, p_user_id uuid)
+returns int
+language sql
+stable
+set search_path = strands, common, public, extensions
+as $$
+  select count(*)::int
+    from strands.events e
+   where e.game_id = p_game_id
+     and e.result in ('theme', 'spangram')
+     and (p_user_id is null or e.user_id = p_user_id);
+$$;
+
+revoke execute on function strands._count_found_words(uuid, uuid) from public;
+
+-- What the team shares: the words found, the hints the players cashed, and
+-- the one hint bar, which every coop row carries alike. Null in compete,
+-- where there is no team (plans/team-facts.md).
+create or replace function strands._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = strands, common, public, extensions
+as $$
+  select case when cg.mode = 'coop' then jsonb_build_object(
+           'nFoundWords', strands._count_found_words(p_game_id, null),
+           'nHintsUsed',  (select sum(sp.n_hints_used)::int from strands.players sp
+                            where sp.game_id = p_game_id),
+           'hintPoints',  (select max(sp.hint_points) from strands.players sp
+                            where sp.game_id = p_game_id)) end
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function strands._make_json_team(uuid) from public;
+
+-- Every player as strands' game_data shows them: the common player, with their
+-- own counts, a racer's hint bar, and this seat's board.
+create or replace function strands._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = strands, common, public, extensions
+as $$
+  select jsonb_agg(
+           cp.player || jsonb_build_object(
+             'nFoundWords', strands._count_found_words(p_game_id, cp.id),
+             'nHintsUsed',  sp.n_hints_used,
+             'hintPoints',  case when cg.mode = 'compete' then sp.hint_points end,
+             'board',       jsonb_build_object(
+               'words',       strands._make_json_found_words(p_game_id, cp.id),
+               'hintTileIds', case when sp.active_hint_coords is not null
+                                   then strands._make_json_tile_ids(sp.active_hint_coords) end))
+           order by cp.ord)
+    from common._make_json_players(p_game_id) cp
+    join strands.players sp on sp.game_id = p_game_id and sp.user_id = cp.id
+    join common.games cg on cg.id = p_game_id;
+$$;
+
+revoke execute on function strands._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with strands' puzzle, team, log
+-- and players on top.
+create or replace function strands._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = strands, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'puzzle',  strands._make_json_puzzle(sg, cg.ended_at is not null),
+           'team',    strands._make_json_team(p_game_id),
+           'events',  strands._make_json_events(p_game_id),
+           'players', strands._make_json_players(p_game_id))
     from strands.games sg
     join common.games cg on cg.id = sg.game_id
    where sg.game_id = p_game_id;
 $$;
-revoke execute on function strands._solution_for(uuid) from public;
-grant execute on function strands._solution_for(uuid) to authenticated;
 
--- The FE reads `games_state`, never `games` — one place decides what a client
--- may see. `solution` is NULL for the whole game and fills in at the end.
-create view strands.games_state with (security_invoker = true) as
-  select sg.game_id,
-         sg.puzzle_id,
-         sg.puzzle_date,
-         sg.board,
-         sg.puzzle_title,
-         sg.min_word_length,
-         sg.hint_cost,
-         sg.band,
-         strands._solution_for(sg.game_id) as solution   -- NULL until the end
-    from strands.games sg;
+revoke execute on function strands._make_json_game_data(uuid) from public;
 
-grant select on strands.games_state to authenticated;
+-- The game summed up: the numbers a list of games shows for this one. A race's
+-- winners share a rank only on the same hints, so any one of them says it.
+create or replace function strands._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = strands, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+    'team',         strands._make_json_team(p_game_id),
+    'nWinnerHints', (select min(sp.n_hints_used)
+                       from strands.players sp
+                       join common.game_players gp
+                         on gp.game_id = sp.game_id and gp.user_id = sp.user_id
+                      where sp.game_id = p_game_id
+                        and cg.mode = 'compete'
+                        and gp.final_ranking = 1))
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function strands._make_json_summary_data(uuid, timestamptz) from public;
 
 -- ============================================================
--- strands._write_statuses — the page's copies of the game
+-- strands._rebuild_data_cols — one game's data columns, rebuilt
 -- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from strands' own tables, assigning each
--- whole (plans/common-tables.md → The statuses). Every key is always present,
--- null when it has no value:
---
---   game_status    { hint_cost } — the hint bar's size
---   player_status  { found_words_count, hint_points, hints_count,
---                    player_ended_reason }
---                  — that player's theme words found (the team's, in coop,
---                  where the board is shared), their hint bar, the hints they
---                  spent, and how they ended: solved, or conceded
---   clubpage_info  { found_words_count, winner_user_id, winner_hints_count }
---                  — the team's theme words found (coop; null in compete); a
---                  sole compete winner and the hints they solved on, once
---                  there is one
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from strands' own tables, assigning
+-- each whole. Every RPC calls it after a move; it is also the repair for one
+-- game by hand. Every key is always present, null when it has no value; the
+-- shapes are drawn above.
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,
 -- false from a rebuild (the pass over every game, a repair by hand), so a
 -- rebuild never re-dates a game.
-create or replace function strands._write_statuses(
+create or replace function strands._rebuild_data_cols(
   p_game_id uuid,
   p_update_status_changed_at boolean
 )
@@ -301,49 +446,52 @@ security definer
 set search_path = strands, common, public, extensions
 as $$
 declare
-  g strands.games%rowtype;
-  v_mode text;
-  v_winner uuid;
+  v_status_changed_at timestamptz;
 begin
-  select * into g from strands.games where game_id = p_game_id;
-  select mode into v_mode from common.games where id = p_game_id;
-
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'found_words_count', (select count(*) from strands.events e
-                                  where e.game_id = p_game_id
-                                    and e.result in ('theme', 'spangram')
-                                    and (v_mode = 'coop' or e.user_id = gp.user_id)),
-           'hint_points', sp.hint_points,
-           'hints_count', sp.hints_spent,
-           'player_ended_reason', gp.player_ended_reason)
-    from strands.players sp
-   where gp.game_id = p_game_id
-     and sp.game_id = gp.game_id
-     and sp.user_id = gp.user_id;
-
-  select min(user_id::text)::uuid into v_winner
-    from common.game_players
-   where game_id = p_game_id and final_ranking = 1
-  having count(*) = 1;
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
 
   update common.games
-     set game_status = jsonb_build_object('hint_cost', g.hint_cost),
-         clubpage_info = jsonb_build_object(
-           'found_words_count', case when v_mode = 'coop' then (
-             select count(*) from strands.events
-              where game_id = p_game_id and result in ('theme', 'spangram')) end,
-           'winner_user_id', case when v_mode = 'compete' then v_winner end,
-           'winner_hints_count', case when v_mode = 'compete' and v_winner is not null then (
-             select hints_spent from strands.players
-              where game_id = p_game_id and user_id = v_winner) end),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
+     set game_data = strands._make_json_game_data(p_game_id),
+         summary_data = strands._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
    where id = p_game_id;
 end;
 $$;
 
-revoke execute on function strands._write_statuses(uuid, boolean) from public;
+revoke execute on function strands._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- strands._rebuild_data_cols_for_all — every strands game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every strands game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function strands._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = strands, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('strands_coop', 'strands_compete')
+  loop
+    perform strands._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function strands._rebuild_data_cols_for_all() from public;
 
 drop function if exists strands.next_puzzle_for_club(uuid[]);
 
@@ -641,7 +789,7 @@ begin
   insert into strands.players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) as uid;
 
-  perform strands._write_statuses(new_id, p_update_status_changed_at => true);
+  perform strands._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on.
@@ -752,7 +900,7 @@ begin
     into v_rankings
     from (
       select gp.user_id,
-             rank() over (order by sp.hints_spent, gp.solved_at) as ranking
+             rank() over (order by sp.n_hints_used, gp.solved_at) as ranking
         from strands.players sp
         join common.game_players gp
           on gp.game_id = sp.game_id and gp.user_id = sp.user_id
@@ -815,9 +963,9 @@ drop function if exists strands.submit_path(uuid, jsonb);
 -- strands.submit_path — trace a word (THE move RPC)
 -- ============================================================
 -- Takes the traced path `p_path` ([[r,c], …]) and classifies it. The `ok`
--- carries { result, word, isSpangram, hint_points, hint_cost, words_found,
--- hint_cleared, terminal }, `result` ∈ theme | spangram | hint_word |
--- duplicate | too_short | invalid.
+-- carries { result, hint_points }, `result` ∈ theme | spangram | hint_word |
+-- duplicate | too_short | invalid, and `hint_points` the caller's bar after
+-- the move, which is how the frontend says a word filled it.
 --
 -- Note what is NOT returned: the word TOTAL. It's part of the answer — knowing
 -- a board holds six words is real information about a shielded puzzle — so the
@@ -860,13 +1008,10 @@ declare
   v_word         text;
   i              int;
   v_result       text;
-  is_spangram    boolean := false;
   matched        boolean := false;
   v_points       int;
   v_found        int;
   v_total        int;
-  hint_cleared   int := 0;
-  did_end        boolean := false;
   v_rankings     jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
@@ -980,7 +1125,8 @@ begin
     end if;
   end loop;
 
-  -- The word this path spells, read off the frozen board.
+  -- The word this path spells, read off the frozen board: lowercase, as the
+  -- board and the dictionary are stored.
   v_word := '';
   for i in 1..n loop
     v_word := v_word || substr(g.board[rs[i] + 1], cs[i] + 1, 1);
@@ -1007,7 +1153,6 @@ begin
   if strands._path_key(g.solution->'spangram'->'coords') = strands._path_key(norm_path)
      and g.solution->'spangram'->>'word' = v_word then
     matched := true;
-    is_spangram := true;
     v_result := 'spangram';
   elsif exists (
     select 1 from jsonb_array_elements(g.solution->'themeWords') tw
@@ -1038,7 +1183,7 @@ begin
       -- player CHOSE to type. No slur / crude / slang / dialect filter — we
       -- don't put those in front of you, and we don't stop you typing one.
       select 1 from common.words w
-       where w.word = lower(v_word)
+       where w.word = v_word
          and w.difficulty <= g.band
     ) then
       v_result := 'hint_word';
@@ -1084,7 +1229,6 @@ begin
      where sp.game_id = p_game_id
        and strands._path_key(sp.active_hint_coords) = strands._path_key(norm_path)
        and (v_mode = 'coop' or sp.user_id = caller_id);
-    get diagnostics hint_cleared = row_count;
   end if;
 
   -- Progress is the CALLER's in compete, the team's in coop — the same scope
@@ -1110,7 +1254,6 @@ begin
         p_is_no_result => false,
         p_final_rankings => v_rankings
       );
-      did_end := true;
     else
       -- Solving ends YOUR race, not THE race: a player still going could yet
       -- finish on fewer hints. A solver nothing is waiting for must not hold
@@ -1120,7 +1263,7 @@ begin
        where game_id = p_game_id and user_id = caller_id;
       -- `neutral`: fewer hints may yet beat it (`announce-when-ended`).
       perform common._set_player_ended(p_game_id, caller_id, 'reached_goal', 'solved', 'neutral');
-      did_end := strands._maybe_finish_compete(p_game_id, 'reached_goal', 'solved', caller_id);
+      perform strands._maybe_finish_compete(p_game_id, 'reached_goal', 'solved', caller_id);
     end if;
   elsif v_result in ('theme', 'spangram', 'hint_word') then
     -- Turn-order advances only on an ACCEPTED move. A rejected trace (too
@@ -1129,7 +1272,7 @@ begin
     perform common._advance_turn(p_game_id);
   end if;
 
-  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform strands._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- SIX `ok` answers, and three of them read like refusals without being one:
   -- `duplicate`, `too_short` and `invalid` are the game's rules applied to a
@@ -1138,29 +1281,10 @@ begin
   -- consulted first: strands ships no word list to the client, so the
   -- server's verdict is the first anyone knows.
   --
-  -- The outcome is the one the frontend's `ANSWER_OUTCOME` gives the same
-  -- result (src/strands/lib/answer.ts — one rule, two languages); `message`
-  -- stays null because the pill copy is the shared `WORD — body` format.
+  -- The case alone: what each result reads as, and its words, are the
+  -- frontend's (src/strands/lib/answer.ts).
   return common._ok_envelope(
-    jsonb_build_object(
-      'result', v_result,
-      'word', v_word,
-      'isSpangram', is_spangram,
-      'hint_points', v_points,
-      'hint_cost', g.hint_cost,
-      'words_found', v_found,
-      'hint_cleared', hint_cleared > 0,
-      'terminal', did_end
-    ),
-    case v_result
-      when 'duplicate'  then 'warning'
-      when 'too_short'  then 'warning'
-      when 'invalid'    then 'lost'
-      -- A valid non-theme word is `near`, not `won`: it moves the hint bar,
-      -- which is real progress, but the goal is the theme.
-      when 'hint_word'  then 'near'
-      else 'won'
-    end);
+    jsonb_build_object('result', v_result, 'hint_points', v_points));
 
 exception when others then
   get stacked diagnostics
@@ -1190,8 +1314,9 @@ drop function if exists strands.spend_hint(uuid);
 -- NOT turn-gated. Spending is a team decision about a team resource, not a
 -- move, so it neither requires nor consumes a turn in a turn-order game.
 --
--- `warning`, the word a hint wears everywhere: spending one is neither good nor
--- bad play (docs/outcomes.md).
+-- The `ok` carries `result` alone: the ring is on the board once the blobs
+-- are rebuilt, and what a spent hint reads as is the frontend's
+-- (src/strands/lib/answer.ts).
 create or replace function strands.spend_hint(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1284,12 +1409,13 @@ begin
       detail = 'every theme word is already found';
   end if;
 
-  -- Coop shares the pool, so the spend AND the reveal land on every row — one
-  -- token bought one hint for the team. Compete charges only the spender.
+  -- Coop shares the pool, so the emptied bar AND the reveal land on every row —
+  -- one token bought one hint for the team. Compete's pool is the spender's
+  -- alone. Either way the hint is counted to whoever cashed it.
   update strands.players sp
      set active_hint_coords = coords,
          hint_points = 0,
-         hints_spent = sp.hints_spent + 1
+         n_hints_used = sp.n_hints_used + (sp.user_id = caller_id)::int
    where sp.game_id = p_game_id
      and (v_mode = 'coop' or sp.user_id = caller_id);
 
@@ -1300,11 +1426,9 @@ begin
   insert into strands.events (game_id, user_id, kind, path, took_turn)
   values (p_game_id, caller_id, 'hint', coords, false);
 
-  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform strands._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  return common._ok_envelope(
-    jsonb_build_object('result', 'hinted', 'coords', coords, 'hint_points', 0),
-    'warning');
+  return common._ok_envelope(jsonb_build_object('result', 'hinted'));
 
 exception when others then
   get stacked diagnostics
@@ -1331,8 +1455,8 @@ drop function if exists strands.end_game(uuid);
 -- solver here — a race called off early didn't finish, and handing the trophy
 -- to whoever was ahead would reward stopping at the right moment.
 --
--- Ending unshields the solution but puts it on nobody's screen: each player
--- asks for it with their own RevealButton, a local display toggle.
+-- Ending puts the solution in `game_data` but on nobody's screen: each player
+-- asks for it with their own Reveal, a local display toggle.
 create or replace function strands.stop_game(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1352,7 +1476,7 @@ begin
 
   perform common._stop(p_game_id);
 
-  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform strands._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1401,7 +1525,7 @@ begin
   caller_id := common._concede(p_game_id);
   perform strands._maybe_finish_compete(p_game_id, 'conceded', 'conceded', caller_id);
 
-  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform strands._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -1425,8 +1549,8 @@ drop function if exists strands.replay_board(uuid);
 -- Same board, everything the players did wiped: the event log, the found
 -- words (which live IN that log), the hint bar, the spend count, any showing
 -- hint, and every solve. Callable mid-game or after the game ends — it's a
--- restart. The solution re-hides itself: _solution_for reads the ending,
--- which common._reset_game clears.
+-- restart. The solution leaves `game_data` again: the builder writes it only
+-- once the game has ended, and common._reset_game clears the ending.
 create or replace function strands.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1454,7 +1578,7 @@ begin
 
   update strands.players
      set hint_points = 0,
-         hints_spent = 0,
+         n_hints_used = 0,
          active_hint_coords = null
    where game_id = p_game_id;
 
@@ -1462,7 +1586,7 @@ begin
 
   perform common._reset_game(p_game_id);
 
-  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform strands._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -1525,7 +1649,7 @@ begin
     );
   end if;
 
-  perform strands._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform strands._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then

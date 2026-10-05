@@ -45,31 +45,29 @@ select (strands.create_game(
 -- ============================================================
 
 -- Each is captured once and asserted twice: `submit_path` is a move, so the
--- result and the outcome have to come out of the same call.
+-- result and the envelope's shape have to come out of the same call. The
+-- envelope carries the case alone — what each result reads as is
+-- src/strands/lib/answer.ts's, so `outcome` is null on every one.
 create temp table theme_res on commit drop as
 select strands.submit_path((select id from game), pg_temp.strands_row_path(0)) as res;
 select is((select res -> 'data' ->> 'result' from theme_res), 'theme',
   'a theme word''s exact path is accepted as "theme"');
-select is((select res ->> 'outcome' from theme_res), 'won',
-  'a theme word is the goal: won');
+select is((select res -> 'outcome' from theme_res), 'null'::jsonb,
+  'the envelope carries no outcome: lib/answer.ts says what a theme word reads as');
 
 create temp table spangram_res on commit drop as
 select strands.submit_path((select id from game), pg_temp.strands_row_path(4)) as res;
 select is((select res -> 'data' ->> 'result' from spangram_res), 'spangram',
   'the spangram''s path is accepted as "spangram", not merely "theme"');
-select is((select res ->> 'outcome' from spangram_res), 'won',
-  'the spangram is the goal too: won');
+select is((select (res -> 'data') - 'result' from spangram_res), '{"hint_points": 0}'::jsonb,
+  'beside the result, the envelope carries the caller''s hint bar and nothing else');
 
--- The OUTCOME rides with the result, and this one is the reason to assert it:
--- a valid non-theme word is `near`, not `won` — it moves the hint bar, which is
--- real progress, but the goal is the theme (ruled 2026-09-16).
--- src/strands/lib/answer.ts is the other language of this rule.
 create temp table hw on commit drop as
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) as res;
 select is((select res -> 'data' ->> 'result' from hw), 'hint_word',
   'a dictionary word that is not a theme word earns a hint point');
-select is((select res ->> 'outcome' from hw), 'near',
-  'a valid non-theme word is progress, not the goal');
+select is((select res -> 'outcome' from hw), 'null'::jsonb,
+  'the envelope carries no outcome for a hint word either');
 
 -- ============================================================
 -- (4) THE ORDERING RULE — theme first, length second
@@ -102,7 +100,7 @@ select is(
 -- ============================================================
 
 select is(
-  (select hint_points from strands.players_state
+  (select hint_points from strands.players
     where game_id = (select id from game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
@@ -136,7 +134,7 @@ select is(
 );
 
 select is(
-  (select hint_points from strands.players_state
+  (select hint_points from strands.players
     where game_id = (select id from game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   3,
@@ -151,8 +149,8 @@ create temp table dup_res on commit drop as
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) as res;
 select is((select res -> 'data' ->> 'result' from dup_res), 'duplicate',
   'a word already credited this game is a duplicate, not a fresh point');
-select is((select res ->> 'outcome' from dup_res), 'warning',
-  'a duplicate is a move the rules turn away: warning');
+select is((select res -> 'outcome' from dup_res), 'null'::jsonb,
+  'the envelope carries no outcome for a duplicate');
 
 -- ============================================================
 -- (11)–(12) Unknown words, and the may-enter tier
@@ -162,8 +160,8 @@ create temp table invalid_res on commit drop as
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(6, 4)) as res;
 select is((select res -> 'data' ->> 'result' from invalid_res), 'invalid',
   'a word not in the dictionary at this band is invalid');
-select is((select res ->> 'outcome' from invalid_res), 'lost',
-  'not a word is the one real miss: lost');
+select is((select res -> 'outcome' from invalid_res), 'null'::jsonb,
+  'the envelope carries no outcome for a miss');
 
 -- band 0 would be below every word; band 1 admits the fixture's difficulty-1
 -- words. A game at a LOWER band than the word's difficulty must reject it —

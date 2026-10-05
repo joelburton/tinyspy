@@ -12,7 +12,7 @@ import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { FORM_ERROR_KEYNAME } from '@/common/forms/formState'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
-import type { PuzzleAnswer, StrandsValues } from '../lib/setup'
+import type { GPuzzleAnswer, GSetupValues } from '../types'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
@@ -34,11 +34,11 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 export function SetupForm({
   brand, mode, members, myId, numberOfPlayers, values, set: setValue, errors, setError,
 }: SetupBodyProps) {
-  const s = values as StrandsValues
-  const set = setValue as SetupSetter<StrandsValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
-  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
+  const players = members.filter((m) => s.player_user_ids.has(m.id))
 
   return (
     <>
@@ -64,7 +64,7 @@ export function SetupForm({
       <SetupNextPuzzleSection
         errors={errors}
         brand={brand}
-        seenBy={players.map((p) => p.user_id)}
+        seenBy={players.map((p) => p.id)}
         // The empty cases are the SERVER's to word now, and each lands under
         // the field that is the way out of it: PN416 (this archive is spent for
         // these players) and PN417 (no puzzle that day) both name `puzzle_id`,
@@ -73,8 +73,8 @@ export function SetupForm({
         // The section has no third state, so a refusal still returns null — it
         // just no longer passes for an empty archive.
         load={async (seenBy) => {
-          const res = await runRpc<PuzzleAnswer>(
-            db.rpc('next_puzzle_for_club', { seen_by: seenBy }),
+          const res = await runRpc<GPuzzleAnswer>(
+            db.rpc('next_puzzle_for_club', { p_seen_by: seenBy }),
           )
           if (res.type === 'not-ok') {
             setError(res.field ?? FORM_ERROR_KEYNAME, res.message)
@@ -91,7 +91,7 @@ export function SetupForm({
           }
         }}
         loadByDate={async (date) => {
-          const res = await runRpc<PuzzleAnswer>(db.rpc('puzzle_for_date', { target_date: date }))
+          const res = await runRpc<GPuzzleAnswer>(db.rpc('puzzle_for_date', { p_date: date }))
           if (res.type === 'not-ok') {
             setError(res.field ?? FORM_ERROR_KEYNAME, res.message)
             return null

@@ -29,7 +29,7 @@
 
 import { readFile } from 'node:fs/promises'
 import { createClient } from '@supabase/supabase-js'
-import { rowAsFeed, validatePuzzle, type PuzzleRow } from './lib/strandsPuzzle'
+import { rowAsFeed, validatePuzzle, type Coord, type PuzzleRow } from './lib/strandsPuzzle'
 
 const ARCHIVE = 'supabase/data/strands-puzzles.jsonl'
 
@@ -37,6 +37,26 @@ const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY
   ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+
+/**
+ * An archive line as `strands.puzzles` stores it: the board and the words
+ * lowercase, as every word game stores its words (the capitals are drawn), and
+ * the clue in the `title` column. The archive keeps the feed's capitals, so
+ * the validator above reads it exactly as fetched.
+ */
+function toDbRow(r: PuzzleRow) {
+  const lowerWord = (w: { word: string; coords: Coord[] }) => ({ ...w, word: w.word.toLowerCase() })
+  return {
+    source_id: r.source_id,
+    puzzle_date: r.puzzle_date,
+    board: r.board.map((row) => row.toLowerCase()),
+    title: r.clue,
+    solution: {
+      spangram: lowerWord(r.solution.spangram),
+      themeWords: r.solution.themeWords.map(lowerWord),
+    },
+  }
+}
 
 async function main() {
   let raw: string
@@ -88,11 +108,12 @@ async function main() {
   // a corrected puzzle — games in flight are untouched either way, since every
   // game plays from its own frozen copy.
   const BATCH = 200
+  const dbRows = rows.map(toDbRow)
   let upserted = 0
-  for (let i = 0; i < rows.length; i += BATCH) {
+  for (let i = 0; i < dbRows.length; i += BATCH) {
     const { data, error } = await supabase
       .from('puzzles')
-      .upsert(rows.slice(i, i + BATCH), { onConflict: 'source_id' })
+      .upsert(dbRows.slice(i, i + BATCH), { onConflict: 'source_id' })
       .select('id')
     if (error) {
       console.error('upsert failed:', error.message)

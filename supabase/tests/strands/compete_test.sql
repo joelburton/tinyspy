@@ -14,7 +14,10 @@
 -- The privacy line is the other half. Opponents may see exactly one number
 -- mid-game — hints used — because it says how the race is going without saying
 -- anything about the puzzle. Word counts, the hint BAR (a proxy for words
--- found) and a rival's revealed word all stay hidden until the game ends.
+-- found) and a rival's revealed word all stay hidden until the game ends. That
+-- withholding is the hook's rule (src/strands/hooks/useGame.ts): the table and
+-- the blob carry every racer's facts, and this file pins that they do, and
+-- that the answer stays out of the blob until nobody is left racing.
 --
 -- Personas: ada + bea race; cade is a third racer where one is needed.
 
@@ -101,40 +104,36 @@ select is(
 );
 
 -- ============================================================
--- (7)–(9) THE PRIVACY LINE
+-- (7)–(9) WHAT THE BLOB CARRIES OF A RIVAL
 -- ============================================================
--- …and from INSIDE it, each racer sees only her own. That gap between the two
--- counts above and below IS the privacy line, which is why the god's-eye check
--- is worth doing first: "ada sees 1" only means something once you know there
--- were 2 to see.
+-- The policy is the member gate alone: ada reads bea's find too. Withholding
+-- it mid-race is the hook's rule, applied to game_data.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from strands.events
     where game_id = (select id from game) and result in ('theme','spangram')),
-  1::bigint,
-  'ada sees only her OWN find mid-game — bea''s is hidden by RLS'
+  2::bigint,
+  'the events policy is the member gate alone — withholding a rival''s rows is the hook''s'
 );
 
--- bea spent nothing yet, but the COUNTER is public — it's the ranking metric,
--- and it says nothing about the puzzle.
+-- bea's own count, and her own bar: compete's pool is each racer's.
 select is(
-  (select hints_spent from strands.players_state
-    where game_id = (select id from game)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  0,
-  'a rival''s HINTS USED is visible — that is the race, and it leaks no puzzle'
+  (select p->>'nHintsUsed' || '/' || (p->>'hintPoints') || '/' || jsonb_array_length(p->'board'->'words')
+     from common.games cg, jsonb_array_elements(cg.game_data->'players') p
+    where cg.id = (select id from game)
+      and p->>'id' = 'bea22222-2222-2222-2222-222222222222'),
+  '0/1/1',
+  'game_data carries a racer''s own hints used, hint bar and found words'
 );
 
--- …but the bar is not. Its fill is a proxy for how many valid words a rival has
--- found, so publishing it would leak sideways exactly what the guesses RLS
--- hides.
 select is(
-  (select hint_points from strands.players_state
-    where game_id = (select id from game)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  null,
-  'a rival''s hint BAR is hidden — it would proxy their word count'
+  (select p->>'nFoundWords'
+     from common.games cg, jsonb_array_elements(cg.game_data->'players') p
+    where cg.id = (select id from game)
+      and p->>'id' = 'ada11111-1111-1111-1111-111111111111'),
+  '1',
+  'and ada''s board is her own: bea''s find is not on it'
 );
 
 -- ============================================================
@@ -195,16 +194,16 @@ select pg_temp.envelope_is(
 -- on the game having ended (over for EVERYONE) and not on any per-player
 -- doneness — a finished racer with the solution on screen could just read it out.
 select is(
-  (select solution from strands.games_state where game_id = (select id from game)),
-  null,
-  'a SOLVED racer still cannot read the answer while a rival is tracing'
+  (select game_data->'puzzle'->'words' from common.games where id = (select id from game)),
+  'null'::jsonb,
+  'a SOLVED racer''s game_data still has no answer while a rival is tracing'
 );
 
-select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select is(
-  (select solution from strands.games_state where game_id = (select id from game)),
+select throws_ok(
+  format('select solution from strands.games where game_id = %L', (select id from game)),
+  '42501',
   null,
-  'and neither can the rival who is still going'
+  'and the column grant keeps the solution from any client read'
 );
 
 -- ── bea solves with FEWER hints, and takes it ──
@@ -219,10 +218,11 @@ select is(
   'the last racer finishing ends the game'
 );
 
-select isnt(
-  (select solution from strands.games_state where game_id = (select id from game)),
-  null,
-  'and NOW the answer unshields — nobody is left to spoil'
+select is(
+  (select jsonb_array_length(game_data->'puzzle'->'words') from common.games
+    where id = (select id from game)),
+  8,
+  'and NOW game_data carries the answer — nobody is left to spoil'
 );
 
 -- ============================================================
@@ -247,9 +247,9 @@ select is(
 );
 
 select is(
-  (select clubpage_info->>'winner_hints_count' from common.games where id = (select id from game)),
+  (select summary_data->>'nWinnerHints' from common.games where id = (select id from game)),
   '0',
-  'the club line names the winning hint count'
+  'the summary names the winning hint count'
 );
 
 -- ============================================================

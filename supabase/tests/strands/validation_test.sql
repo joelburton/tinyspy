@@ -89,7 +89,7 @@ select pg_temp.envelope_is(pg_temp.submit('[[0,0],[0,1.5]]'),
 -- And `too_short` is an OK: the frontend does not gate on min_word_length, so
 -- the server's verdict is the first anyone knows rather than a stale check.
 select pg_temp.envelope_is(pg_temp.submit('[[0,0],[0,1.0]]'),
-  '{"type":"ok","outcome":"warning","data":{"result":"too_short"}}'::jsonb,
+  '{"type":"ok","outcome":null,"data":{"result":"too_short"}}'::jsonb,
   'an integral 1.0 normalizes to 1 and the path classifies normally');
 
 -- ── Geometry ──

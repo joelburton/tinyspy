@@ -50,7 +50,7 @@
 
 create function pg_temp.strands_board() returns text[]
 language sql immutable as $$
-  select array['ZZQABC','ZZQBDE','ZZQCFG','ZZQDHI','ZZQEJK','ZZQFLM','ZZQGNO','ZZQHPR']
+  select array['zzqabc','zzqbde','zzqcfg','zzqdhi','zzqejk','zzqflm','zzqgno','zzqhpr']
 $$;
 
 -- The full-row path for row `r` — that row's theme word.
@@ -155,7 +155,7 @@ $$;
 -- then one word per row for rows 2–7. 4 + 8 + 36 = 48.
 create function pg_temp.strands_ambiguous_board() returns text[]
 language sql immutable as $$
-  select array['ABCDEF','ABGHIJ','KLMNOP','QRSTUV','WXYZAB','CDEFGH','IJKLMN','OPQRST']
+  select array['abcdef','abghij','klmnop','qrstuv','wxyzab','cdefgh','ijklmn','opqrst']
 $$;
 
 /** The canonical ABBA trace, and the equivalent one the old rule rejected. */
@@ -175,16 +175,16 @@ begin
     'Two ways round',
     jsonb_build_object(
       'spangram', jsonb_build_object(
-        'word', 'WXYZAB', 'coords', pg_temp.strands_row_path(4)),
+        'word', 'wxyzab', 'coords', pg_temp.strands_row_path(4)),
       'themeWords', jsonb_build_array(
-        jsonb_build_object('word', 'ABBA', 'coords', pg_temp.strands_abba_canonical()),
-        jsonb_build_object('word', 'CDEFJIHG',
+        jsonb_build_object('word', 'abba', 'coords', pg_temp.strands_abba_canonical()),
+        jsonb_build_object('word', 'cdefjihg',
           'coords', '[[0,2],[0,3],[0,4],[0,5],[1,5],[1,4],[1,3],[1,2]]'::jsonb),
-        jsonb_build_object('word', 'KLMNOP', 'coords', pg_temp.strands_row_path(2)),
-        jsonb_build_object('word', 'QRSTUV', 'coords', pg_temp.strands_row_path(3)),
-        jsonb_build_object('word', 'CDEFGH', 'coords', pg_temp.strands_row_path(5)),
-        jsonb_build_object('word', 'IJKLMN', 'coords', pg_temp.strands_row_path(6)),
-        jsonb_build_object('word', 'OPQRST', 'coords', pg_temp.strands_row_path(7))
+        jsonb_build_object('word', 'klmnop', 'coords', pg_temp.strands_row_path(2)),
+        jsonb_build_object('word', 'qrstuv', 'coords', pg_temp.strands_row_path(3)),
+        jsonb_build_object('word', 'cdefgh', 'coords', pg_temp.strands_row_path(5)),
+        jsonb_build_object('word', 'ijklmn', 'coords', pg_temp.strands_row_path(6)),
+        jsonb_build_object('word', 'opqrst', 'coords', pg_temp.strands_row_path(7))
       ))
   )
   returning id into new_id;

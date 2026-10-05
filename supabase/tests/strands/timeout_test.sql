@@ -57,7 +57,7 @@ select is(
   '…whose reason names the clock'
 );
 select is(
-  (select clubpage_info->>'found_words_count' from common.games where id = (select id from g_coop)),
+  (select summary_data->'team'->>'nFoundWords' from common.games where id = (select id from g_coop)),
   '1',
   '…and counts what was found (never out of how many)'
 );
@@ -77,14 +77,16 @@ select (strands.create_game(
 select strands.submit_path((select id from g_won), pg_temp.strands_row_path(r))
   from generate_series(0, 7) r;
 
--- bea found one word, hadn't finished, and mid-race sees none of ada's rows.
+-- bea found one word and hadn't finished; her board holds her own find alone.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select strands.submit_path((select id from g_won), pg_temp.strands_row_path(0));
 select is(
-  (select count(*) from strands.events
-    where game_id = (select id from g_won) and result in ('theme','spangram')),
-  1::bigint,
-  'mid-race, bea sees only her own find'
+  (select jsonb_array_length(p->'board'->'words')
+     from common.games cg, jsonb_array_elements(cg.game_data->'players') p
+    where cg.id = (select id from g_won)
+      and p->>'id' = 'bea22222-2222-2222-2222-222222222222'),
+  1,
+  'mid-race, bea''s board holds only her own find'
 );
 
 select strands.submit_timeout((select id from g_won));
@@ -103,13 +105,14 @@ select is(
   '…and it is the solver who takes it'
 );
 
--- The post-mortem flip: once the game ends the compete guesses open up.
+-- The log carries every racer's rows; once the game ends the hook shows them
+-- all, so the post-mortem can compare.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from strands.events
-    where game_id = (select id from g_won) and result in ('theme','spangram')),
+  (select count(*) from common.games cg, jsonb_array_elements(cg.game_data->'events') e
+    where cg.id = (select id from g_won) and e->>'result' in ('theme','spangram')),
   9::bigint,
-  'once ended, bea sees the whole log — ada''s 8 finds plus her own'
+  'game_data''s log holds the whole race — ada''s 8 finds plus bea''s'
 );
 
 -- ============================================================

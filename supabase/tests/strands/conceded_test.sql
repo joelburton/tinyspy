@@ -103,23 +103,22 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select strands.submit_path((select id from g_forfeit), pg_temp.strands_prefix_path(1, 4));
 select strands.spend_hint((select id from g_forfeit));
 
--- The revealed word is part of bea's answer: mid-race, a rival sees her
--- active_hint_coords as NULL even though the row itself carries them.
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  (select active_hint_coords from strands.players_state
-    where game_id = (select id from g_forfeit)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  null,
-  'a rival''s active hint is hidden mid-race'
-);
+-- The revealed word is bea's alone: compete's hint rings only the spender's
+-- board. (Hiding bea's ring from ada mid-race is the hook's rule.)
 reset role;
+select is(
+  (select string_agg(p->>'id' || '=' || (p->'board'->'hintTileIds' is not null and p->'board'->'hintTileIds' <> 'null'::jsonb)::text, ',' order by p->>'id')
+     from common.games cg, jsonb_array_elements(cg.game_data->'players') p
+    where cg.id = (select id from g_forfeit)),
+  'ada11111-1111-1111-1111-111111111111=false,bea22222-2222-2222-2222-222222222222=true',
+  'a racer''s hint rings her own board alone'
+);
 select isnt(
   (select active_hint_coords from strands.players
     where game_id = (select id from g_forfeit)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   null,
-  '…even though the row itself carries the coords (so the null above is the shield, not absence)'
+  '…and her row carries the coords the ring is built from'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -151,7 +150,7 @@ select is(
 );
 
 select is(
-  (select clubpage_info->>'winner_hints_count' from common.games where id = (select id from g_forfeit)),
+  (select summary_data->>'nWinnerHints' from common.games where id = (select id from g_forfeit)),
   '0',
   'and the winning hint count is ada''s 0'
 );

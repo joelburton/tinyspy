@@ -1333,7 +1333,7 @@ export async function createStrandsGame(
   const { data, error } = await admin
     .schema('strands')
     .from('puzzles')
-    .select('id, clue, solution')
+    .select('id, title, solution')
     .eq('puzzle_date', puzzleDate)
     .maybeSingle()
   if (error || !data) {
@@ -1343,7 +1343,7 @@ export async function createStrandsGame(
   }
   const row = data as {
     id: string
-    clue: string
+    title: string
     solution: {
       spangram: { word: string; coords: Array<[number, number]> }
       themeWords: Array<{ word: string; coords: Array<[number, number]> }>
@@ -1354,21 +1354,21 @@ export async function createStrandsGame(
   const res = await asUser(creator.session.access_token)
     .schema('strands')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: {
+      p_club_handle: club.handle,
+      p_setup: {
         puzzle_id: row.id,
         band: 5,
         hint_cost: 3,
         min_word_length: 4,
         timer: { kind: 'none' },
       },
-      player_user_ids: club.members.map((m) => m.userId),
-      mode,
+      p_player_user_ids: club.members.map((m) => m.userId),
+      p_mode: mode,
     })
   return {
     id: createdGameId(res, 'strands.create_game'),
     gametype: `strands_${mode}`,
-    clue: row.clue,
+    clue: row.title,
     words: [
       ...row.solution.themeWords.map((w) => ({ ...w, isSpangram: false })),
       { ...row.solution.spangram, isSpangram: true },

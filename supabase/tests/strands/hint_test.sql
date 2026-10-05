@@ -94,24 +94,26 @@ select e as envelope, e -> 'data' as payload
 
 select pg_temp.envelope_is(
   (select envelope from hint),
-  '{"type":"ok","outcome":"warning","data":{"result":"hinted","hint_points":0}}'::jsonb,
-  'spending answers ok/hinted, in the outcome a hint wears'
+  '{"type":"ok","outcome":null,"data":{"result":"hinted"}}'::jsonb,
+  'spending answers ok/hinted, with no outcome: lib/answer.ts says what a hint reads as'
 );
 
 select is(
-  (select jsonb_typeof(payload->'coords') from hint),
-  'array',
-  'spending returns the revealed word''s coordinates'
+  (select count(distinct p->'board'->'hintTileIds')::int || '/'
+          || max(jsonb_array_length(p->'board'->'hintTileIds'))
+     from common.games cg, jsonb_array_elements(cg.game_data->'players') p
+    where cg.id = (select id from game)),
+  '1/6',
+  'the ringed word lands on every coop seat''s board, as one word''s tile ids'
 );
 
--- The pool is SHARED, so the choice has to live on the game row where every
--- client reads the same value — not be re-rolled per caller.
+-- The pool is SHARED, so the choice has to be persisted where every client
+-- reads the same value — not be re-rolled per caller.
 select is(
-  (select active_hint_coords from strands.players_state
-    where game_id = (select id from game)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  (select payload->'coords' from hint),
-  'the SAME coords are persisted on the game — every coop player sees one hint'
+  (select count(distinct active_hint_coords)::int from strands.players
+    where game_id = (select id from game) and active_hint_coords is not null),
+  1,
+  'the SAME coords are persisted on every coop row — every player sees one hint'
 );
 
 -- A hint reveals WHERE, never WHAT. If the word ever rode along, the puzzle
@@ -123,19 +125,17 @@ select is(
 );
 
 select is(
-  (select hint_points from strands.players_state
-    where game_id = (select id from game)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  (select max(hint_points) from strands.players
+    where game_id = (select id from game)),
   0,
-  'spending empties the bar'
+  'spending empties the bar, on every coop row'
 );
 
 select is(
-  (select hints_spent from strands.players_state
-    where game_id = (select id from game)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  1,
-  'and counts the spend'
+  (select string_agg(n_hints_used::text, ',' order by user_id) from strands.players
+    where game_id = (select id from game)),
+  '1,0',
+  'and counts the spend to whoever cashed it alone'
 );
 
 -- ============================================================
@@ -168,7 +168,9 @@ select is(
 select is(
   (select path from strands.events
     where game_id = (select id from game) and kind = 'hint'),
-  (select payload->'coords' from hint),
+  (select active_hint_coords from strands.players
+    where game_id = (select id from game)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'carrying the revealed coords — and, per the CHECK, no word'
 );
 
@@ -212,22 +214,21 @@ select pg_temp.envelope_is(
 -- assuming: whatever it pointed at, tracing THAT path must clear it.
 
 create temp table hinted on commit drop as
-select active_hint_coords as coords from strands.players_state
+select active_hint_coords as coords from strands.players
  where game_id = (select id from game)
    and user_id = 'ada11111-1111-1111-1111-111111111111';
 
-select is(
-  strands.submit_path((select id from game), (select coords from hinted)) -> 'data' ->> 'hint_cleared',
-  'true',
-  'finding the hinted word reports that the hint was cleared'
+select ok(
+  strands.submit_path((select id from game), (select coords from hinted)) -> 'data' ->> 'result'
+    in ('theme', 'spangram'),
+  'tracing the hinted word finds it'
 );
 
 select is(
-  (select active_hint_coords from strands.players_state
-    where game_id = (select id from game)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  null,
-  'and the hint stops showing'
+  (select count(*) from strands.players
+    where game_id = (select id from game) and active_hint_coords is not null),
+  0::bigint,
+  'and the hint stops showing, for every coop player'
 );
 
 -- ============================================================

@@ -22,8 +22,8 @@ import type { Member } from '@/common/members/member'
 import type { FormErrors } from '@/common/forms/formState'
 
 const MEMBERS = [
-  { user_id: 'self', username: 'joel', color: 'red' },
-  { user_id: 'moth', username: 'moth', color: 'blue' },
+  { id: 'self', username: 'joel', color: 'red' },
+  { id: 'moth', username: 'moth', color: 'blue' },
 ] as Member[]
 
 function draw({ mode = 'coop' as 'coop' | 'compete', values = {}, errors = {} as FormErrors } = {}) {
@@ -39,7 +39,7 @@ function draw({ mode = 'coop' as 'coop' | 'compete', values = {}, errors = {} as
       numberOfPlayers={[1, 6]}
       values={{
         ...DEFAULT_STRANDS_SETUP_COOP,
-        player_user_ids: new Set(MEMBERS.map((m) => m.user_id)),
+        player_user_ids: new Set(MEMBERS.map((m) => m.id)),
         ...values,
       }}
       set={set}

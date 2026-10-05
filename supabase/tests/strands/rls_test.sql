@@ -9,11 +9,11 @@
 -- (which hands its board to the FE and says so), strands classifies server-side
 -- precisely so `solution` never leaves the database until the game is over.
 --
--- The mechanism is a COLUMN GRANT that omits `solution`, plus the SECURITY
--- DEFINER `_solution_for` helper surfaced through the `games_state` view and
--- gated on `common.games.ended_at`. Both halves are pinned here: a
--- future migration that re-grants the column, or a view edit that selects it
--- directly, has to fail a test rather than quietly ship.
+-- The mechanism is a COLUMN GRANT that omits `solution`, and a builder that
+-- writes the answer into `game_data` only once `common.games.ended_at` is set.
+-- Both halves are pinned here: a future migration that re-grants the column,
+-- or a builder edit that writes the words early, has to fail a test rather
+-- than quietly ship.
 --
 -- Also pinned: puzzles.solution is unreadable too. Browsing the archive is how
 -- the setup date-picker works, so the rows ARE visible — but a player who can
@@ -96,25 +96,25 @@ select lives_ok(
 );
 
 -- ============================================================
--- (5)–(7) games_state: the playable columns, without the answer
+-- (5)–(7) game_data: the playable puzzle, without the answer
 -- ============================================================
 
 select is(
-  (select solution from strands.games_state where game_id = (select id from game)),
-  null,
-  'games_state.solution is NULL during play'
+  (select game_data->'puzzle'->'words' from common.games where id = (select id from game)),
+  'null'::jsonb,
+  'game_data carries no words during play'
 );
 
 select is(
-  (select board from strands.games_state where game_id = (select id from game)),
+  (select board from strands.games where game_id = (select id from game)),
   pg_temp.strands_board(),
-  'games_state DOES expose the board — you can see the letters, not the answer'
+  'a player DOES read the board — you can see the letters, not the answer'
 );
 
 select is(
-  (select puzzle_title from strands.games_state where game_id = (select id from game)),
+  (select game_data->'puzzle'->>'title' from common.games where id = (select id from game)),
   'Rows of nonsense',
-  'games_state exposes the puzzle title — it is the prompt, not the answer'
+  'game_data carries the puzzle title — it is the prompt, not the answer'
 );
 
 -- ============================================================
@@ -131,18 +131,21 @@ update common.games
    set ended_at = now(), game_ended_reason = 'stopped',
        game_ended_reason_detail = 'stopped', game_ended_outcome = 'neutral'
  where id = (select id from game);
+select strands._rebuild_data_cols((select id from game), p_update_status_changed_at => false);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select isnt(
-  (select solution from strands.games_state where game_id = (select id from game)),
-  null,
-  'once the game has ended, games_state hands the answer over'
+select is(
+  (select jsonb_array_length(game_data->'puzzle'->'words') from common.games
+    where id = (select id from game)),
+  8,
+  'once the game has ended, game_data carries the answer'
 );
 
 select is(
-  (select solution->'spangram'->>'word' from strands.games_state where game_id = (select id from game)),
-  'ZZQEJK',
-  'and it is the real answer key, not a placeholder'
+  (select game_data->'puzzle'->'words'->0->>'word' from common.games
+    where id = (select id from game)),
+  'zzqejk',
+  'and it is the real answer key, spangram first'
 );
 
 reset role;
@@ -157,14 +160,14 @@ update common.games
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from strands.games_state where game_id = (select id from game)),
+  (select count(*) from strands.games where game_id = (select id from game)),
   1::bigint,
   'a fellow club member sees the game'
 );
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
-  (select count(*) from strands.games_state where game_id = (select id from game)),
+  (select count(*) from strands.games where game_id = (select id from game)),
   0::bigint,
   'an outsider sees no game at all (RLS on the base table)'
 );
@@ -182,7 +185,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ insert into strands.events (game_id, user_id, kind, word, path, result)
-            values (%L, %L, 'guess', 'ZZQA', '[[0,0]]'::jsonb, 'hint_word') $$,
+            values (%L, %L, 'guess', 'zzqa', '[[0,0]]'::jsonb, 'hint_word') $$,
          (select id from game), 'ada11111-1111-1111-1111-111111111111'),
   '42501',
   null,

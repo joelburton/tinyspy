@@ -54,13 +54,12 @@ select is(
   'seven of eight words found — still playing'
 );
 
-create temp table final on commit drop as
-select strands.submit_path((select id from game), pg_temp.strands_row_path(7)) -> 'data' as payload;
+select strands.submit_path((select id from game), pg_temp.strands_row_path(7));
 
 select is(
-  (select payload->>'terminal' from final),
+  (select game_data->>'ended' from common.games where id = (select id from game)),
   'true',
-  'the eighth word reports the game over'
+  'the eighth word ends the game, and game_data says so'
 );
 
 select is(
@@ -90,9 +89,9 @@ select is(
 -- ============================================================
 
 select isnt(
-  (select solution from strands.games_state where game_id = (select id from game)),
-  null,
-  'a win unshields the solution — the board is over for everyone'
+  (select game_data->'puzzle'->'words' from common.games where id = (select id from game)),
+  'null'::jsonb,
+  'a win puts the solution in game_data — the board is over for everyone'
 );
 
 select is(
@@ -140,9 +139,9 @@ select is(
 -- rule. What a stop does NOT do is put it on anybody's screen: that's the FE's
 -- local reveal toggle, tested in the PlayArea suite.
 select isnt(
-  (select solution from strands.games_state where game_id = (select id from game2)),
-  null,
-  'a manual stop unshields the solution as well — same ended_at gate'
+  (select game_data->'puzzle'->'words' from common.games where id = (select id from game2)),
+  'null'::jsonb,
+  'a manual stop puts the solution in game_data as well — same ended_at gate'
 );
 
 select pg_temp.envelope_is(
@@ -170,8 +169,8 @@ select is(
 );
 
 select is(
-  (select solution from strands.games_state where game_id = (select id from game)),
-  null,
+  (select game_data->'puzzle'->'words' from common.games where id = (select id from game)),
+  'null'::jsonb,
   'so the answer is a secret again — the point of running a board back'
 );
 

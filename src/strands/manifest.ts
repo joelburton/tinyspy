@@ -6,11 +6,8 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { count, verdict, statusLine } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import {
-  DEFAULT_STRANDS_SETUP_COMPETE,
-  DEFAULT_STRANDS_SETUP_COOP,
-  type StrandsSetup,
-} from './lib/setup'
+import { DEFAULT_STRANDS_SETUP_COMPETE, DEFAULT_STRANDS_SETUP_COOP } from './lib/setup'
+import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -22,7 +19,7 @@ import logoUrl from './logo.svg?url'
  * below); gametype / schema / folder are all `strands`.
  *
  * **Sibling pair**, one schema and one folder. The two share every component;
- * mode branches at render time on `game.mode` (read from `games_state`).
+ * mode branches at render time on `gd.mode`.
  *
  * The compete rules are worth stating here because they shape the UI: the
  * winner is whoever SOLVED using the fewest hints, earliest solve breaking a
@@ -56,10 +53,10 @@ function startGameInClub(mode: 'coop' | 'compete') {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: setup as StrandsSetup,
-        player_user_ids: playerUserIds,
-        mode,
+        p_club_handle: clubHandle,
+        p_setup: setup as GSetup,
+        p_player_user_ids: playerUserIds,
+        p_mode: mode,
       }),
     )
 }
@@ -67,54 +64,52 @@ function startGameInClub(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-type StatusBlob = Record<string, unknown>
-
 /**
- * The summary.
- *
- * The usual privacy rule here is about PEERS — "only say what every player
- * already sees" — and coop shares everything, so it doesn't bite. strands has a
- * second one though: the status blob must not leak the PUZZLE either, which is
- * why the progress is a bare count and not "n of N".
+ * COOP's club line: the team's progress as a bare count, never "n of N" — the
+ * total is part of the answer, and the line is readable by the whole club. The
+ * timer is the only loss: the team set a timer on a puzzle with a reachable end
+ * and didn't reach it (docs/states.md).
  */
-function coopLabel(row: { play_state: string; status?: unknown }): string {
-  const s = (row.status ?? {}) as StatusBlob
-  // A COUNT, never "of N". The total is part of the answer, and `status` is
-  // readable by the whole club — so the club page can say how far a game got
-  // without saying how far there was to go.
-  const progress = count((s.words_found as number | undefined) ?? 0, 'word')
-
-  if (row.play_state === 'playing') return statusLine(verdict('Playing'), progress)
-  if (row.play_state === 'won') return statusLine(verdict('Won'), progress)
-  // The clock is the only loss strands has: the team set a timer on a puzzle
-  // with a reachable end and didn't reach it (docs/states.md).
-  if (row.play_state === 'lost') return statusLine(verdict('Lost', 'out of time'), progress)
-  return statusLine(verdict('Ended'), progress)
+function makeCoopLabel(summary: GSummaryData): string {
+  // Coop always has a team.
+  const progress = count(summary.team!.nFoundWords, 'word')
+  if (summary.ending === null) return statusLine(verdict('Playing'), progress)
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won':
+      return statusLine(verdict('Won'), progress)
+    case 'lost':
+      return statusLine(verdict('Lost', 'out of time'), progress)
+    // A Stop.
+    case 'neutral':
+      return statusLine(verdict('Ended'), progress)
+    default:
+      return outcome
+  }
 }
 
 /**
- * Compete's label says **nothing** until the game is over.
- *
- * `status` is club-readable, so anything published mid-race — word counts,
- * who's ahead — would hand rivals what the guesses RLS is keeping private. And
- * a winner genuinely isn't known before the end: the fewest-hints ranking can
- * be overturned by anyone still playing.
+ * COMPETE's club line says **nothing** until the game is over: a rival's words
+ * are their race, and a winner genuinely isn't known before the end — the
+ * fewest-hints ranking can be overturned by anyone still playing. At the end it
+ * names the MARGIN, not the finish order: "won on 0 hints" is the contest.
  */
-function competeLabel(row: { play_state: string; status?: unknown }): string {
-  const s = (row.status ?? {}) as StatusBlob
-  if (row.play_state === 'playing') return verdict('Playing')
-  if (row.play_state === 'won_compete') {
-    const best = s.best_hints as number | undefined
-    // The margin, not the finish order: "won on 0 hints" is the actual contest.
-    return statusLine(verdict('Won'), best === undefined ? null : count(best, 'hint'))
+function makeCompeteLabel(summary: GSummaryData): string {
+  if (summary.ending === null) return verdict('Playing')
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won':
+      return statusLine(verdict('Won'), count(summary.nWinnerHints, 'hint'))
+    case 'lost':
+      return verdict('Lost', summary.ending.reason === 'timeout' ? 'out of time' : 'all conceded')
+    // A Stop.
+    case 'neutral':
+      return statusLine(verdict('Ended'), 'no winner')
+    default:
+      return outcome
   }
-  if (row.play_state === 'lost_compete') {
-    const why = s.reason as string | undefined
-    return statusLine(
-      verdict('Lost', why === 'timeout' ? 'out of time' : why === 'conceded' ? 'all conceded' : 'nobody solved it'),
-    )
-  }
-  return statusLine(verdict('Ended'), 'no winner')
 }
 
 export const strandsCoopGame: GameManifest = {
@@ -143,7 +138,7 @@ export const strandsCoopGame: GameManifest = {
 
   startGameInClub: startGameInClub('coop'),
 
-  summaryFor: coopLabel,
+  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
 
   submitTimeout,
   stopGame,
@@ -179,7 +174,7 @@ export const strandsCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClub('compete'),
 
-  summaryFor: competeLabel,
+  summaryFor: (data) => makeCompeteLabel(data as GSummaryData),
 
   submitTimeout,
   stopGame,

@@ -43,7 +43,8 @@ export type Solution = {
   themeWords: Array<{ word: string; coords: Coord[] }>
 }
 
-/** One JSONL line, and one row of `strands.puzzles`. */
+/** One JSONL line: the feed's puzzle, capitals and all. The importer makes it
+ *  a `strands.puzzles` row. */
 export type PuzzleRow = {
   source_id: string
   puzzle_date: string

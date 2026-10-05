@@ -1,17 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { GuessResult } from '../hooks/useGame'
-
-/**
- * What a turn was — the six verdicts a guess can carry, plus the one thing that
- * is not a guess at all.
- *
- * `spent_hint` has no `result` column: a hint row is `kind: 'hint'` with
- * `result: null`, so a row's answer is its result where it has one and this
- * where it does not.
- */
-export type Answer = GuessResult | 'spent_hint'
+import type { GAnswer } from '../types'
 
 /**
  * The outcome of every answer, in one place.
@@ -39,7 +29,7 @@ export type Answer = GuessResult | 'spent_hint'
  *     Not `neutral`: a hint does spend progress you banked, which is the
  *     opposite of earning it, but that is not a reason to say nothing happened.
  */
-export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
+export const ANSWER_OUTCOME: Record<GAnswer, Outcome> = {
   spangram: 'won',
   theme: 'won',
   hint_word: 'near',

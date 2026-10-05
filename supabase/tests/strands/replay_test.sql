@@ -49,11 +49,6 @@ select strands.spend_hint((select id from game));
 
 -- Preconditions — a replay that "passes" against an already-clean game would
 -- prove nothing, so the dirty state is asserted before it's wiped.
---
--- `reset role` for the reads: `hint_points` and `active_hint_coords` are NOT in
--- the column grant to `authenticated` (they're a rival's private state, reached
--- only through the players_state view), so asserting on the base table has to be
--- done as superuser. That the raw read is denied is the shield working.
 reset role;
 select isnt(
   (select count(*) from strands.events where game_id = (select id from game)),
@@ -61,7 +56,7 @@ select isnt(
   'precondition: the log has rows to clear'
 );
 select is(
-  (select hints_spent from strands.players
+  (select n_hints_used from strands.players
     where game_id = (select id from game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
@@ -92,7 +87,7 @@ select is(
 select is(
   (select count(*) from strands.players
     where game_id = (select id from game)
-      and (hint_points <> 0 or hints_spent <> 0 or active_hint_coords is not null)),
+      and (hint_points <> 0 or n_hints_used <> 0 or active_hint_coords is not null)),
   0::bigint,
   'replay zeroes the hint economy on EVERY player row, not just the caller''s'
 );

@@ -117,25 +117,23 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   // strands' coop loss is the clock alone: the roster's rule is "you lose if
   // the game had a reachable end and you didn't reach it", and finding every
   // theme word is exactly such an end (docs/states.md).
+  // strands._make_json_summary_data: `team` holds coop's words found — the
+  // TOTAL never reaches the summary, because a club-readable line announcing
+  // "this board holds 6 words" would leak part of a deliberately shielded
+  // puzzle. Compete's line says nothing mid-race; its end names the MARGIN,
+  // `nWinnerHints`, rather than the finish order.
   strands: {
-    // words_found ONLY — the TOTAL never reaches `status`, because a
-    // club-readable blob announcing "this board holds 6 words" would leak part
-    // of a deliberately shielded puzzle.
-    playing: { words_found: 2 },
-    shared: [['ended', { reason: 'manual', words_found: 2 }, 'manual end']],
+    live: { team: { nFoundWords: 2, nHintsUsed: 1, hintPoints: 1 }, nWinnerHints: null },
     coop: [
-      ['won', { reason: 'solved', words_found: 6 }, 'found them all'],
-      ['lost', { reason: 'timeout', words_found: 2 }, 'timeout'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: { nFoundWords: 8, nHintsUsed: 1, hintPoints: 0 }, nWinnerHints: null }, 'found them all'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nFoundWords: 2, nHintsUsed: 1, hintPoints: 1 }, nWinnerHints: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nFoundWords: 2, nHintsUsed: 1, hintPoints: 1 }, nWinnerHints: null }, 'Stop'],
     ],
-    // Compete publishes NOTHING mid-race — `status` is club-readable, so a
-    // count there would leak what the guesses RLS protects, and the
-    // fewest-hints winner isn't known until everyone stops. The terminal
-    // labels name the MARGIN rather than the finish order.
     compete: [
-      ['won_compete', { reason: 'solved', best_hints: 0 }, 'won on 0 hints'],
-      ['lost_compete', { reason: 'timeout' }, 'timeout'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
-      ['lost_compete', { reason: 'unsolved' }, 'nobody solved it'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winner: 'u-alice' }, { team: null, nWinnerHints: 0 }, 'won on 0 hints'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, nWinnerHints: null }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, nWinnerHints: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nWinnerHints: null }, 'Stop'],
     ],
   },
   // psychicnum._make_json_summary_data: `team` holds the found and used counts in coop and
