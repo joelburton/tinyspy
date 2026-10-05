@@ -32,7 +32,7 @@ test.describe('stackdown word entry', () => {
     page.locator('[class*="slot"][class*="filled"]')
   /** Board tiles that can still be picked up (buried ones are `disabled`). */
   const pickable = (page: import('@playwright/test').Page) =>
-    page.locator('button[class*="tile"]:not([disabled])')
+    page.locator('button[data-tile]:not([disabled])')
 
   test('the fifth tile completes the word without submitting it', async ({ browser }) => {
     const club = await createSoloClub('sdent')
@@ -43,7 +43,7 @@ test.describe('stackdown word entry', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('[class*="tile"]').first()).toBeVisible({ timeout: 15000 })
+    await expect(page.locator('[data-tile]').first()).toBeVisible({ timeout: 15000 })
     await settled(page)
 
     const submit = page.getByRole('button', { name: 'Submit' })
@@ -84,7 +84,7 @@ test.describe('stackdown word entry', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('[class*="tile"]').first()).toBeVisible({ timeout: 15000 })
+    await expect(page.locator('[data-tile]').first()).toBeVisible({ timeout: 15000 })
     await settled(page)
 
     for (let i = 0; i < 4; i++) await pickable(page).first().click()
@@ -113,7 +113,7 @@ test.describe('stackdown word entry', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('[class*="tile"]').first()).toBeVisible({ timeout: 15000 })
+    await expect(page.locator('[data-tile]').first()).toBeVisible({ timeout: 15000 })
     await settled(page)
 
     const pill = page.locator('[class*="localFeedback"]')

@@ -387,7 +387,7 @@ describe('stackdown PlayArea — the board keys', () => {
     render(<WithKeys {...makeCtx({ tiles: makeRow('RR') })} />)
     await press({ key: 'r' })
     expect(wordSlots()).toBe('')
-    expect(document.querySelectorAll('[class*="flash"]').length).toBe(2)
+    expect(document.querySelectorAll('[data-tile][class*="flash"]').length).toBe(2)
   })
 
   it('a letter no exposed tile bears is refused in the pill', async () => {

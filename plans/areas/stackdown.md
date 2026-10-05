@@ -114,6 +114,17 @@ keeps no flag of its own. The word is read through its group
 the puzzle's tiles, so nothing changes case in state. No `MobileStatusBar`
 (Joel, 2026-10-05: "no, it shouldn't get a mobilestatusbar").
 
+## The Board pass
+
+Step 11 (2026-10-05): the tile is its own piece, `Tile.tsx` with
+`Tile.module.css` (the tile rules moved out of `Board.module.css`, which keeps
+the canvas). Board decides each tile's placement, shade, letter corner and
+marks (`BoardMarks`: `ambiguousTileIds`, `litTileIds`, `attentionTileIds`,
+`answer`, `heldTileIds`), and whether a click lands; the tile draws them and
+hands itself up (`onPick(tile)`). `data-tile` is the id, and the e2e finds
+tiles by it. Every held set of tiles is ids and says so. No shuffle and no
+cursor here, so neither `useTileShuffle` nor `useTileCursor`.
+
 ## What the PlayArea pass changed that a player can see
 
 Step 9 (2026-10-05), each a consequence of reading `gd` rather than a ruling:

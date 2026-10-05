@@ -54,7 +54,7 @@ const TAPPED_BOARDS = [
   { name: 'strands', make: createStrandsGame, target: 'button[class*="tile"]' },
   { name: 'connections', make: createConnectionsGame, target: '[class*="tile"]' },
   { name: 'boggle', make: createBoggleGame, target: '[data-tile]' },
-  { name: 'stackdown', make: createStackdownGame, target: '[class*="tile"]' },
+  { name: 'stackdown', make: createStackdownGame, target: '[data-tile]' },
   { name: 'waffle', make: createWaffleGame, target: '[class*="tile"]' },
   { name: 'scrabble', make: createScrabbleGame, target: '[data-rack-tile]' },
 ] as const

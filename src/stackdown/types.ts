@@ -246,7 +246,7 @@ export type GEvent = Omit<GEventRaw, 'userId' | 'tileIds'> & {
 
 /** A teammate's word, marked on its tiles (`hooks/useShowTeammateMoves.ts`):
  *  the tiles' ids, and the answer it got. */
-export type GPeerWordMark = { ids: string[]; answer: GAnswer }
+export type GPeerWordMark = { tileIds: string[]; answer: GAnswer }
 
 /**
  * Every command the play surface binds (`hooks/useActionsAndMenu.ts`): the info

@@ -39,7 +39,7 @@ export function useWordMove(gd: GGameData, localFeedbackSlot: FeedbackSlot) {
 
   const [flash, showFlash, clearFlash] = useMark<GWordFlash>(WORD_ANSWER_MS)
   const [refusedWord, showRefusedWord] = useMark<string[]>(WORD_ANSWER_MS)
-  const [returnedMark, flashReturned] = useMark<{ ids: string[] }>(ATTENTION_FLASH_MS)
+  const [returnedMark, flashReturned] = useMark<{ tileIds: string[] }>(ATTENTION_FLASH_MS)
 
   async function submitWord(tileIds: string[]): Promise<void> {
     const res = await runRpc<WordAnswer>(
@@ -66,7 +66,7 @@ export function useWordMove(gd: GGameData, localFeedbackSlot: FeedbackSlot) {
       showRefusedWord(tileIds, {
         onEnd: () => {
           currentWord.clearWord()
-          flashReturned({ ids: tileIds })
+          flashReturned({ tileIds })
         },
       })
       localFeedbackSlot.show(FeedbackMessage.result(res.outcome, res.message))
@@ -83,6 +83,6 @@ export function useWordMove(gd: GGameData, localFeedbackSlot: FeedbackSlot) {
     flash: flash?.value ?? null,
     clearFlash,
     isRefused: refusedWord !== null,
-    returnedTileIds: returnedMark?.value.ids ?? [],
+    returnedTileIds: returnedMark?.value.tileIds ?? [],
   }
 }

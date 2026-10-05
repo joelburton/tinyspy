@@ -13,7 +13,7 @@ import { WordEntryRow } from '@/common/word-entry/WordEntryRow'
 import { exposedIds } from '../lib/board'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import { useWordMove } from '../hooks/useWordMove'
-import type { GGameData, GHistoryView, GPeerWordMark } from '../types'
+import type { GGameData, GHistoryView, GPeerWordMark, GTile } from '../types'
 import { Board } from './Board'
 import { WordEntry } from './WordEntry'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
@@ -84,24 +84,23 @@ export function BoardCol({
   // mark: the tiles the server has already taken stay drawn, and inert, until
   // the answer has been read. Otherwise the news and the change are one event —
   // the tiles you are being told about are already gone by the time you look.
-  const peerIds = peerMark?.value.ids
   const heldTileIds = useMemo(
     () => (!historyView.isViewing && peerMark?.value.answer === 'accepted'
-      ? new Set(peerIds)
+      ? new Set(peerMark.value.tileIds)
       : NO_TILES),
-    [historyView.isViewing, peerMark, peerIds],
+    [historyView.isViewing, peerMark],
   )
   // The attention flash: a teammate's word before its answer shows, and my own
   // refused tiles as they land back.
   const attentionTileIds = useMemo(() => {
     if (historyView.isViewing) return NO_TILES
-    const ids = new Set(move.returnedTileIds)
-    if (peerMark?.phase === 'attention') for (const id of peerIds!) ids.add(id)
-    return ids
-  }, [historyView.isViewing, move.returnedTileIds, peerMark, peerIds])
+    const tileIds = new Set(move.returnedTileIds)
+    if (peerMark?.phase === 'attention') for (const id of peerMark.value.tileIds) tileIds.add(id)
+    return tileIds
+  }, [historyView.isViewing, move.returnedTileIds, peerMark])
   // A teammate's answer, once the attention flash has handed the tiles back.
   const boardAnswer = !historyView.isViewing && peerMark?.phase === 'answer'
-    ? { ids: new Set(peerIds), outcome: ANSWER_OUTCOME[peerMark.value.answer] }
+    ? { tileIds: new Set(peerMark.value.tileIds), outcome: ANSWER_OUTCOME[peerMark.value.answer] }
     : null
 
   // The tiles not drawn: the stack to show's, and — live — the word being
@@ -121,20 +120,20 @@ export function BoardCol({
 
   // Red ambiguous-tile flash — a typed letter matched more than one exposed tile;
   // the candidates outline red for a beat. Purely this column's input feedback.
-  const [ambiguousMark, flashTiles] = useMark<{ ids: ReadonlySet<string> }>(
+  const [ambiguousMark, flashTiles] = useMark<{ tileIds: ReadonlySet<string> }>(
     AMBIGUOUS_PICK_FLASH_MS,
   )
-  const flashIds = ambiguousMark?.value.ids ?? NO_TILES
+  const ambiguousTileIds = ambiguousMark?.value.tileIds ?? NO_TILES
 
   // ─── Tile click → extend the word ─────────────────────────────
   // Filling the fifth slot deliberately does NOT submit: the word sits there
   // until you commit it with the Submit button or Enter, so a wrong fifth tile
   // is recoverable — the last tile is just another tile.
-  function pickTile(tileId: string) {
+  function pickTile(tile: GTile) {
     if (!canPick) return
     move.clearFlash() // starting a new word drops any lingering word flash
     localFeedbackSlot.dismiss() // …and the previous move's result (next-move-dismisses rule)
-    move.currentWord.appendTile(tileId)
+    move.currentWord.appendTile(tile.id)
   }
 
   // ─── Take a tile back ─────────────────────────────────────────
@@ -189,12 +188,12 @@ export function BoardCol({
       const exposed = exposedIds(gd.puzzle.tiles, offTileIds)
       const matches = gd.puzzle.tiles.filter((t) => exposed.has(t.id) && t.letter === letter)
       if (matches.length === 1) {
-        pickTile(matches[0]!.id)
+        pickTile(matches[0]!)
       } else if (matches.length === 0) {
         localFeedbackSlot.show(FeedbackMessage.result('lost', `No “${letter}” tile is on top`))
       } else {
         // Ambiguous — point out the candidates with a brief red outline.
-        flashTiles({ ids: new Set(matches.map((m) => m.id)) })
+        flashTiles({ tileIds: new Set(matches.map((m) => m.id)) })
         localFeedbackSlot.show(
           FeedbackMessage.result('warning', `${matches.length} “${letter}” tiles are on top — click one`),
         )
@@ -209,15 +208,17 @@ export function BoardCol({
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <Board
         tiles={gd.puzzle.tiles}
-        offBoard={offTileIds}
-        active={canPick}
-        ambiguousTiles={historyView.isViewing ? NO_TILES : flashIds}
-        historyLitTiles={historyView.litTileIds}
+        offTileIds={offTileIds}
+        isInteractive={canPick}
         isViewingHistory={historyView.isViewing}
-        onTileClick={pickTile}
-        attention={attentionTileIds}
-        answer={boardAnswer}
-        held={heldTileIds}
+        marks={{
+          ambiguousTileIds: historyView.isViewing ? NO_TILES : ambiguousTileIds,
+          litTileIds: historyView.litTileIds,
+          attentionTileIds,
+          answer: boardAnswer,
+          heldTileIds,
+        }}
+        onPick={pickTile}
       />
 
       <div className={styles.belowBoard}>

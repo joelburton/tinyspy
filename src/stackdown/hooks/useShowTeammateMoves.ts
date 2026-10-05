@@ -40,7 +40,7 @@ export function useShowTeammateMoves(
       // A word: ALSO mark its tiles on the board. Safe to fire here — the hook
       // calls messageFor exactly once per NEW row, inside its effect.
       const answer = answerOf(e)
-      showPeerMark({ ids: e.tiles.map((t) => t.id), answer }, { attention: true })
+      showPeerMark({ tileIds: e.tiles.map((t) => t.id), answer }, { attention: true })
       const word = e.word!.toUpperCase()
       // "tried X" (not "tried X — not a word"): the header fits ~26 chars on a
       // phone and ellipsizes silently, and the outcome already says it failed.

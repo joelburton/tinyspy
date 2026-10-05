@@ -5,6 +5,7 @@ import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { depthMap, exposedIds, letterCorner } from '../lib/board'
 import type { GTile } from '../types'
+import { Tile } from './Tile'
 import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './Board.module.css'
@@ -42,58 +43,56 @@ function depthColor(depth: number): string {
 
 const align = (c: number) => (c < 0 ? 'flex-start' : c > 0 ? 'flex-end' : 'center')
 
-/** Shared empty tile set — the live board rings nothing. */
-const NO_TILES: ReadonlySet<string> = new Set()
+/** What the live board is marking, by tile id. */
+type BoardMarks = {
+  // The tiles a typed letter matched more than one of: ringed red.
+  ambiguousTileIds: ReadonlySet<string>
+  // The word a viewed past turn played: ringed green. Empty while live.
+  litTileIds: ReadonlySet<string>
+  // Tiles taking the attention flash — "something happened here".
+  attentionTileIds: ReadonlySet<string>
+  // A teammate's answer on their tiles, once the attention flash has faded.
+  // The word is the caller's — `lib/answer.ts` decided it, and the board only
+  // paints it.
+  answer: { tileIds: ReadonlySet<string>; outcome: Outcome } | null
+  // Tiles the server has taken that are still drawn while their answer is
+  // read. They take no clicks.
+  heldTileIds: ReadonlySet<string>
+}
 
 /**
  * The stackdown board: the 30 lettered tiles drawn on their fixed grid,
- * stacked by layer. Only the tiles still on the board are painted (the
- * caller passes `offBoard` — the union of accepted-word tiles and the
- * tiles currently picked up into the word being built). Exposed tiles
- * are clickable; covered tiles are dimmed and inert.
+ * stacked by layer, each one a `<Tile>`. Only the tiles still on the board are
+ * painted (the caller passes `offTileIds` — the cleared tiles and the ones
+ * picked up into the word being built). Exposed tiles are clickable; covered
+ * tiles are dimmed and inert.
  *
- * Display logic is ported wholesale from the prototype: paint in
- * ascending z so higher tiles sit on top; shade by depth below the
- * frontier; tuck each letter into a corner the stack isn't covering.
+ * The board decides each tile's geometry, shade and marks: paint in ascending
+ * z so higher tiles sit on top; shade by depth below the frontier; tuck each
+ * letter into a corner the stack isn't covering.
  */
 export function Board({
   tiles,
-  offBoard,
-  active,
-  ambiguousTiles,
-  historyLitTiles = NO_TILES,
-  isViewingHistory = false,
-  onTileClick,
-  attention = NO_TILES,
-  answer = null,
-  held = NO_TILES,
+  offTileIds,
+  isInteractive,
+  isViewingHistory,
+  marks,
+  onPick,
 }: {
   tiles: GTile[]
-  offBoard: ReadonlySet<string>
-  active: boolean
-  // Tile ids to outline in red (a typed letter matched more than one).
-  ambiguousTiles: ReadonlySet<string>
-  // The word a viewed past turn played — ringed green. Omitted / empty while live.
-  historyLitTiles?: ReadonlySet<string>
-  // Draw the shared "viewing a past turn" frame around the whole board. Off
-  // during live play.
-  isViewingHistory?: boolean
-  onTileClick: (tileId: string) => void
-  // Tiles taking the attention flash — "something happened here".
-  attention?: ReadonlySet<string>
-  // A teammate's answer on their tiles, once the attention flash has faded:
-  // the outcome's own fill, and a refusal shakes. The word is the caller's —
-  // `lib/answer.ts` decided it, and the board only paints it.
-  answer?: { ids: ReadonlySet<string>; outcome: Outcome } | null
-  // Tiles the server has taken that are still being shown while their answer
-  // is read. They are drawn like any other tile and take no clicks.
-  held?: ReadonlySet<string>
+  offTileIds: ReadonlySet<string>
+  // The board takes moves: an exposed tile is clickable.
+  isInteractive: boolean
+  // Draw the shared "viewing a past turn" frame around the whole board.
+  isViewingHistory: boolean
+  marks: BoardMarks
+  onPick: (tile: GTile) => void
 }) {
   const present = useMemo(
-    () => tiles.filter((t) => !offBoard.has(t.id)).sort((a, b) => a.z - b.z),
-    [tiles, offBoard],
+    () => tiles.filter((t) => !offTileIds.has(t.id)).sort((a, b) => a.z - b.z),
+    [tiles, offTileIds],
   )
-  const exposed = useMemo(() => exposedIds(tiles, offBoard), [tiles, offBoard])
+  const exposed = useMemo(() => exposedIds(tiles, offTileIds), [tiles, offTileIds])
   const depths = useMemo(() => depthMap(present), [present])
 
   const maxX = Math.max(0, ...tiles.map((t) => t.x))
@@ -109,56 +108,31 @@ export function Board({
   return (
     <div className={cls(shared.boardSeal, styles.canvas, isViewingHistory && history.historyFrame)}>
       {present.map((t) => {
-        const isExp = exposed.has(t.id)
         const corner = letterCorner(t, present)
-        const isHeld = held.has(t.id)
-        const answered = answer?.ids.has(t.id) ?? false
         return (
-          <button
-            type="button"
+          <Tile
             key={t.id}
-            className={cls(
-              styles.tile,
-              ambiguousTiles.has(t.id) && styles.flash,
-              historyLitTiles.has(t.id) && styles.historyTile,
-              // The answer landing here: the attention flash first, then the
-              // outcome's color, and a refusal shakes once the color shows.
-              attention.has(t.id) && shared.attentionFlash,
-              // Motion is the refusal channel, not a second verdict: only a
-              // word that lost the turn shakes its tiles.
-              answered && answer?.outcome === 'lost' && shared.verdictShake,
-            )}
-            disabled={!isExp || !active || isHeld}
-            onClick={() => onTileClick(t.id)}
-            style={{
+            tile={t}
+            placement={{
               left: pct(PAD + t.x * STEP),
               top: pct(PAD + t.y * STEP),
-              width: pct(TILE),
-              height: pct(TILE),
-              zIndex: t.z,
-              // A tile wearing an answer takes that outcome's fill and its white
-              // ink, exactly as a word's slots do below the board — the same
-              // event, the same two colors, wherever you are sitting.
-              background:
-                answered && answer
-                  ? `var(--outcomes-${answer.outcome}-fill-color)`
-                  : depthColor(depths.get(t.id) ?? 0),
-              ...(answered ? { color: 'var(--ink-onDark-color)' } : {}),
-              cursor: isExp && active ? 'pointer' : 'default',
+              size: pct(TILE),
+              z: t.z,
+              fill: depthColor(depths.get(t.id) ?? 0),
               justifyContent: align(corner.cx),
               alignItems: align(corner.cy),
             }}
-          >
-            {/* The letter is LIFTED above the attention flash: that mark is an
-                absolutely-positioned overlay, and one of those paints over
-                in-flow text — so without this the flash hides the letter it is
-                pointing at (common/game-page/playArea.module.css). */}
-            <span className={styles.letter}>{t.letter}</span>
-          </button>
+            marks={{
+              isAmbiguous: marks.ambiguousTileIds.has(t.id),
+              isLit: marks.litTileIds.has(t.id),
+              hasAttention: marks.attentionTileIds.has(t.id),
+              answer: marks.answer?.tileIds.has(t.id) ? marks.answer.outcome : null,
+            }}
+            isPickable={exposed.has(t.id) && isInteractive && !marks.heldTileIds.has(t.id)}
+            onClick={onPick}
+          />
         )
       })}
     </div>
   )
 }
-
-export { TILE, STEP, PAD }
