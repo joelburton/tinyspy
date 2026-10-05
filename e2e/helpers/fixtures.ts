@@ -1113,16 +1113,16 @@ export async function createStackdownGame(
   const res = await asUser(creator.session.access_token)
     .schema('stackdown')
     .rpc('create_game', {
-      target_club: club.handle,
+      p_club_handle: club.handle,
       // `band` explicitly, even though create_game coalesces a missing one to 1:
       // the SETUP BLOB is what the setup rows read back, so leaving it out produced a
       // "Dictionary: undefined (—)" row on screen and on paper. The real dialog
       // always sends it (it's in DEFAULT_STACKDOWN_SETUP), so omitting it here
       // made the fixture build a game shape no player can create. Same board
       // selection either way — this only fixes what the game RECORDS.
-      setup: { timer: { kind: 'none' }, band: 1 },
-      player_user_ids: playerUserIds,
-      mode,
+      p_setup: { timer: { kind: 'none' }, band: 1 },
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
     })
   const id = createdGameId(res, 'stackdown.create_game')
 
@@ -1137,7 +1137,8 @@ export async function createStackdownGame(
   // trust in a whole suite.
   //
   // Non-destructive: this overwrites THIS GAME's row, never the shared library
-  // (the same move seedStackdownFirstWord makes, for the same reason).
+  // (the same move seedStackdownFirstWord makes, for the same reason). The page
+  // draws the `game_data` blob, so the pin rebuilds it from the row it wrote.
   execFileSync(
     'psql',
     [
@@ -1147,7 +1148,8 @@ export async function createStackdownGame(
       '-c',
       `update stackdown.games set tiles = '${JSON.stringify(tiles)}'::jsonb, ` +
         `solution = array['eagle','table','plans','apple','juice','lemon']::text[], ` +
-        `band = 1, board_id = null where id = '${id}';`,
+        `board_id = null where game_id = '${id}'; ` +
+        `select stackdown._rebuild_data_cols('${id}', p_update_status_changed_at => false);`,
     ],
     { stdio: 'pipe' },
   )
@@ -1186,8 +1188,8 @@ export async function seedStackdownFirstWord(member: E2EMember, gameId: string):
   const words = ['eagle', 'table', 'plans', 'apple', 'juice', 'lemon']
   const sql =
     `update stackdown.games set tiles = '${JSON.stringify(tiles)}'::jsonb, ` +
-    `solution = array[${words.map((w) => `'${w}'`).join(',')}]::text[], band = 1, board_id = null ` +
-    `where id = '${gameId}';`
+    `solution = array[${words.map((w) => `'${w}'`).join(',')}]::text[], board_id = null ` +
+    `where game_id = '${gameId}';`
   execFileSync(
     'psql',
     ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-v', 'ON_ERROR_STOP=1', '-c', sql],
@@ -1195,7 +1197,7 @@ export async function seedStackdownFirstWord(member: E2EMember, gameId: string):
   )
   const res = await asUser(member.session.access_token)
     .schema('stackdown')
-    .rpc('submit_word', { target_game: gameId, tile_ids: [19, 11, 15, 24, 10] })
+    .rpc('submit_word', { p_game_id: gameId, p_tile_ids: [19, 11, 15, 24, 10] })
   envelopeData(res, 'stackdown.submit_word(EAGLE)')
 }
 

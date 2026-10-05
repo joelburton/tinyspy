@@ -146,7 +146,7 @@ const CASES: Case[] = [
         write: async (m) => {
           const res = await asUser(m.session.access_token)
             .schema('stackdown')
-            .rpc('reveal_next_hint', { target_game: game.id })
+            .rpc('reveal_next_hint', { p_game_id: game.id })
           envelopeData(res, 'stackdown.reveal_next_hint')
         },
       }
