@@ -222,25 +222,38 @@ async function fetchPangrams(supabase: SupabaseClient): Promise<PangramRow[]> {
   return out
 }
 
-/** Looks up the most recent spellingbee.games row in the club.
+/** The letters of the club's most recent spellingbee game, as a mask.
  *  Returns null if the club has never played spellingbee. RLS makes
  *  this safe — a non-member would get no rows even without the
- *  caller-specified club_handle filter. */
+ *  caller-specified club_handle filter.
+ *
+ *  Two reads, because the club and the start time are on common.games
+ *  and the letters are on spellingbee.games, and PostgREST cannot join
+ *  across schemas. */
 async function fetchPreviousMask(
   supabase: SupabaseClient,
   clubHandle: string,
 ): Promise<bigint | null> {
-  const { data, error } = await supabase
+  const { data: previousGame, error: gameError } = await supabase
+    .schema('common')
+    .from('games')
+    .select('id')
+    .eq('club_handle', clubHandle)
+    .in('gametype', ['spellingbee_coop', 'spellingbee_compete'])
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (gameError) throw new Error(`fetchPreviousMask: ${gameError.message}`)
+  if (previousGame === null) return null
+
+  const { data: letters, error: lettersError } = await supabase
     .schema('spellingbee')
     .from('games')
     .select('outer_letters, center_letter')
-    .eq('club_handle', clubHandle)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error) throw new Error(`fetchPreviousMask: ${error.message}`)
-  if (data === null) return null
-  return letterMask(data.outer_letters + data.center_letter)
+    .eq('game_id', previousGame.id)
+    .single()
+  if (lettersError) throw new Error(`fetchPreviousMask: ${lettersError.message}`)
+  return letterMask(letters.outer_letters + letters.center_letter)
 }
 
 /** Fetches every legal word that uses only puzzle letters AND

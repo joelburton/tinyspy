@@ -148,21 +148,35 @@ const CUSTOM_CHILD_MAX = 1000
 
 /** The club's most-recent base, so we don't hand out the same starter
  *  twice running. Null if the club has never played wordiply. RLS makes
- *  this safe — a non-member gets no rows. */
+ *  this safe — a non-member gets no rows.
+ *
+ *  Two reads, because the club and the start time are on common.games and
+ *  the base is on wordiply.games, and PostgREST cannot join across
+ *  schemas. */
 async function fetchPreviousBase(
   supabase: SupabaseClient,
   clubHandle: string,
 ): Promise<string | null> {
-  const { data, error } = await supabase
+  const { data: previousGame, error: gameError } = await supabase
+    .schema('common')
+    .from('games')
+    .select('id')
+    .eq('club_handle', clubHandle)
+    .in('gametype', ['wordiply_coop', 'wordiply_compete'])
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (gameError) throw new Error(`fetchPreviousBase: ${gameError.message}`)
+  if (previousGame === null) return null
+
+  const { data: board, error: boardError } = await supabase
     .schema('wordiply')
     .from('games')
     .select('base')
-    .eq('club_handle', clubHandle)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error) throw new Error(`fetchPreviousBase: ${error.message}`)
-  return data === null ? null : (data.base as string)
+    .eq('game_id', previousGame.id)
+    .single()
+  if (boardError) throw new Error(`fetchPreviousBase: ${boardError.message}`)
+  return board.base as string
 }
 
 /** N candidate base fragments (random 2–4 letter substrings of common
