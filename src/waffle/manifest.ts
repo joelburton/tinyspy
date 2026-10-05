@@ -7,7 +7,8 @@ import { db } from './db'
 import { count, dictLabel, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
-import { DEFAULT_WAFFLE_SETUP, type WaffleSetup } from './lib/setup'
+import { DEFAULT_WAFFLE_SETUP } from './lib/setup'
+import type { GSetup } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -52,7 +53,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // nothing in between rewrites the payload.
     runEdgeFn<CreatedGame>('waffle-build-board', {
       target_club: clubHandle,
-      setup: setup as WaffleSetup,
+      setup: setup as GSetup,
       player_user_ids: playerUserIds,
       mode,
     })

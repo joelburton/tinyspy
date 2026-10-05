@@ -4,7 +4,7 @@ import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
-import type { WaffleSetup } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * waffle's setup rows — ONE array, rendered by the info column and the PDF
@@ -16,7 +16,7 @@ import type { WaffleSetup } from './setup'
  * read off the setup.
  */
 export function makeSetupRows(
-  setup: WaffleSetup,
+  setup: GSetup,
   mode: 'coop' | 'compete',
   players: Member[],
   parSwaps: number,

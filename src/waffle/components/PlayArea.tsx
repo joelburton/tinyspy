@@ -32,7 +32,7 @@ import { useGame } from '../hooks/useGame'
 import { historySnapshot } from '../lib/history'
 import { allGreen } from '../lib/colors'
 import { solvedWords, swapCells, unjudgeCells } from '../lib/waffle'
-import type { WaffleSetup } from '../lib/setup'
+import type { GSetup } from '../types'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
@@ -114,7 +114,7 @@ export function PlayArea({
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
   const setupRows = useMemo(
-    () => makeSetupRows(setup as unknown as WaffleSetup, game?.mode ?? 'coop', players, game?.par_swaps ?? 0),
+    () => makeSetupRows(setup as unknown as GSetup, game?.mode ?? 'coop', players, game?.par_swaps ?? 0),
     [setup, game, players],
   )
 
@@ -510,7 +510,7 @@ export function PlayArea({
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <p>Game not found.</p>
 
-  const waffleSetup = setup as WaffleSetup
+  const waffleSetup = setup as GSetup
 
   const isCompete = game.mode === 'compete'
 

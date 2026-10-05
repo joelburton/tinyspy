@@ -8,7 +8,7 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import type { Action } from '@/common/actions/useBindAction'
 import type { SetupRow } from '@/common/setup-form/types'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import type { WaffleSetup } from '../lib/setup'
+import type { GSetup } from '../types'
 import type { WafflePlayerState, EventRow } from '../hooks/useGame'
 import { SolutionReveal } from './SolutionReveal'
 import { StateLine } from './StateLine'
@@ -115,7 +115,7 @@ export function InfoCol({
   actBackToClub: Action
 
   // ── Setup disclosure + answer reveal ──
-  setup: WaffleSetup
+  setup: GSetup
   /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
   /** The 6 answer words in `WORDS` order (3 across, 3 down): a solved word's letters,

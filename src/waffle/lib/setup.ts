@@ -1,51 +1,9 @@
 // cs-unmet
 
-import type { TimerMode } from '@/common/manifest/types'
-import type { SetupOf } from '@/common/setup-form/types'
-import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
+import type { GSetup } from '../types'
 
-/**
- * waffle's per-game setup — collected by the start-game dialog,
- * persisted to `common.games.setup`, and validated server-side by
- * `waffle.create_game` (the authority for what's accepted).
- *
- * Lives in `lib/` rather than `manifest.ts` so the SetupForm body can
- * import the type without dragging the manifest into its lazy chunk.
- */
-export type WaffleValues = CoopTurnSetup & {
-  /**
-   * Vocabulary tier (1–6) — the recognizability band the six words are
-   * drawn from: a tier-N puzzle uses words of band ≤ N with its hardest
-   * word at exactly N. The board is generated on demand for the chosen
-   * band (the `waffle-build-board` edge function). The dialog offers the
-   * full 1–6 via the shared `DictBandField`.
-   */
-  difficulty: number
-  /**
-   * Slack added to the puzzle's par to get the swap budget
-   * (`max_swaps = par + extra_swaps`). Fewer extra swaps = harder.
-   * Server bounds it to 0..15; the form offers a friendly few.
-   */
-  extra_swaps: number
-  /**
-   * Timer mode. `none` / `countup` are purely informational; a
-   * `countdown` ends the game when it expires, via the shared
-   * `waffle.submit_timeout` RPC.
-   */
-  timer: TimerMode
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
-  player_user_ids: Set<string>
-}
-
-
-/** What is SENT and STORED — every value the form collects except the players
- *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupRows.ts` and `PlayArea` read back. */
-export type WaffleSetup = SetupOf<WaffleValues>
 /** Initial setup the manifest hands the dialog as `defaults`. */
-export const DEFAULT_WAFFLE_SETUP: WaffleSetup = {
+export const DEFAULT_WAFFLE_SETUP: GSetup = {
   difficulty: 2,
   extra_swaps: 5,
   timer: { kind: 'none' },

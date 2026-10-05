@@ -8,7 +8,8 @@ import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import { EXTRA_SWAP_OPTIONS, type WaffleValues } from '../lib/setup'
+import { EXTRA_SWAP_OPTIONS } from '../lib/setup'
+import type { GSetupValues } from '../types'
 
 /**
  * waffle's setup form, rendered inside the common SetupGameModal.
@@ -22,7 +23,7 @@ import { EXTRA_SWAP_OPTIONS, type WaffleValues } from '../lib/setup'
  * Plus the shared `SetupTimerSection`.
  *
  * Controlled component (state lives in the wrapper); the single
- * `value as WaffleSetup` cast is the boundary between the manifest's
+ * `values as GSetupValues` cast is the boundary between the manifest's
  * `unknown` setup and waffle's shape. Shared by both manifests (mode
  * doesn't change the form).
  *
@@ -33,8 +34,8 @@ import { EXTRA_SWAP_OPTIONS, type WaffleValues } from '../lib/setup'
 export function SetupForm({
   mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as WaffleValues
-  const set = setValue as SetupSetter<WaffleValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
   const players = members.filter((m) => s.player_user_ids.has(m.user_id))

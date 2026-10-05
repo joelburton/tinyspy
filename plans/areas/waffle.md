@@ -146,7 +146,13 @@ The rulings behind it (2026-10-05):
   pin coop's solution waiting for the end, by the step-2 ruling.
 - **Steps 4–9:** the frontend reads the two views and the old common shapes,
   so the page stays broken until `useGame` reads `game_data` and the PlayArea
-  pass moves its readers onto `gd`.
+  pass moves its readers onto `gd`. `tsc -b` reports 77 errors in the folder
+  before the conversion's frontend steps.
+- **Step 6 (2026-10-05):** waffle joins `CONVERTED_GAMES` in
+  `src/guards/gameTypes.test.ts` once the last old shapes are gone: `Player`,
+  `WafflePlayerState`, `WaffleGame` and `EventRow` with `useGame` (step 7),
+  `lib/history.ts`'s `HistorySnapshot` with the pass that rewrites its
+  readers.
 
 ## Closing
 
