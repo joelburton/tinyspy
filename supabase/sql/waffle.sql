@@ -14,19 +14,21 @@
 --   submit_timeout   ends the game when the countdown runs out
 --   replay_board     restarts the same board from its dealt state
 --
--- and two views: `games_state`, the game row with the solution when a player
--- may see it, and `players_state`, each player's board and its colors when
--- the caller may see them.
+-- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
+-- writes the page blobs onto `common.games` after every move (plans/seat-view.md
+-- → The page is written, not assembled) — `game_data`, `summary_data`, and
+-- `shell_data` through common — and the page reads those.
 --
 -- What is particular to waffle (docs/games/waffle.md has the rest):
 --   - The board is built outside SQL, by an edge function, and taken at face
 --     value; create_game checks only its structure.
---   - The solution is hidden by a column grant. Coop sees it during play (the
---     turn-history viewer recolors past boards from it); compete only once
---     the game has ended.
+--   - The solution is hidden by a column grant, and `game_data` carries it
+--     only once the game has ended, in both modes.
 --   - Each compete racer has a private board: another racer's board, colors
 --     and swaps stay hidden until the game ends, since any of them would give
---     away correct letter positions.
+--     away correct letter positions. That is the hook's rule
+--     (src/waffle/hooks/useGame.ts), not a policy's: the blob carries
+--     everything, the hook withholds.
 --   - Coop shares one board and one budget. A compete race plays out, ranked
 --     by fewest swaps, then earliest solve. A timeout ranks whoever had
 --     solved.
@@ -133,8 +135,9 @@ revoke execute on function waffle._board_colors(text, text) from public;
 
 -- Column-level grant: everything EXCEPT `solution`. The presence of
 -- any column grant flips the table from "all columns visible" to
--- "only granted columns," so we enumerate the safe ones. games_state
--- exposes the solution conditionally via a SECURITY DEFINER helper.
+-- "only granted columns," so we enumerate the safe ones. `game_data`
+-- (`_make_json_puzzle`) is the only path a client has to the solution, and it
+-- carries it only once the game has ended.
 grant select
   (game_id, board_at_setup, par_swaps, max_swaps)
   on waffle.games to authenticated;
@@ -151,16 +154,14 @@ create policy games_select on waffle.games
     )
   );
 
--- Column grant EXCLUDING `board`: in compete you race independently, so
--- an opponent's board (and the deductions it reveals) is hidden until
--- the game ends. players_state exposes the board conditionally via a
--- SECURITY DEFINER helper; swaps_used stays visible (the opponent-progress
--- strip). In coop the board is shared, so the helper shows it to everyone.
-grant select (game_id, user_id, swaps_used)
+-- Column grant EXCLUDING `board`: in compete you race independently, so an
+-- opponent's board (and the deductions it reveals) stays off any client read.
+-- The page reads every board from `game_data`, where the hook withholds a
+-- rival's mid-race.
+grant select (game_id, user_id, n_swaps_used)
   on waffle.players to authenticated;
--- Row visibility is club-member-wide (you can see that an opponent
--- row exists, with its swaps_used). The board column-hiding
--- above is what keeps the opponent's actual tiles private mid-compete.
+-- Row visibility is club-member-wide; nothing reads this table from the
+-- client.
 drop policy if exists players_select on waffle.players;
 create policy players_select on waffle.players
   for select to authenticated
@@ -172,20 +173,16 @@ create policy players_select on waffle.players
     )
   );
 
--- No hidden columns (coop board is shared), so the FE reads the table
--- directly rather than through a security_invoker view.
 grant select on waffle.events to authenticated;
--- The swap log: mode-aware, mirroring the board's own visibility.
---   coop    — one shared board, so the log is shared too.
---   compete — DURING PLAY you see only your own; once the game ends everyone's.
+-- The swap log: any club member sees every row. Who may see a rival's swaps
+-- mid-race is the hook's rule (src/waffle/hooks/useGame.ts), applied to
+-- `game_data`; nothing reads this table from the client.
 --
--- This is not politeness, and not anti-cheat either: every compete player
--- solves the SAME puzzle from the same dealt board, and a swap carries both
--- positions and both letters — so replaying an opponent's log reconstructs
--- their board exactly, and their green tiles ARE correct letter positions.
--- A club-wide log would hand the answer to an honest player just reading it.
--- Same reason `_board_visible` hides the board itself; these two must agree,
--- or the weaker one decides.
+-- That rule is load-bearing, not politeness: every compete player solves the
+-- SAME puzzle from the same dealt board, and a swap carries both positions and
+-- both letters — so replaying a rival's log reconstructs their board exactly,
+-- and their green tiles ARE correct letter positions. The hook withholds a
+-- rival's swaps and board together.
 drop policy if exists events_select on waffle.events;
 create policy events_select on waffle.events
   for select to authenticated
@@ -194,107 +191,19 @@ create policy events_select on waffle.events
       select 1 from common.games cg
        where cg.id = events.game_id
          and common._is_club_member(cg.club_handle)
-         and (cg.mode = 'coop' or events.user_id = (select auth.uid()) or cg.ended_at is not null)
     )
   );
 
+-- The two views the frontend read before the page blobs, and the definers they
+-- read the hidden columns through. supabase/sql is re-applied, not diffed, so
+-- the drops stay.
 drop view if exists waffle.games_state;
 drop view if exists waffle.players_state;
 drop function if exists waffle._solution_for(uuid);
 drop function if exists waffle._player_board_for(uuid, uuid);
 drop function if exists waffle._player_colors_for(uuid, uuid);
 drop function if exists waffle._board_visible(waffle.games, common.games, uuid);
-
--- ============================================================
--- waffle._solution_for
--- ============================================================
--- The solution when a player may see it: always in coop, and in compete
--- once the game has ended. A definer, so it can read the grant-hidden
--- column; the games_state view calls it as the caller.
---
--- COOP exposes it during play: it's a collaborative solve, and the
--- turn-history viewer recomputes each past board's colors on the FE, which
--- needs the answer (colors are a pure function of board+solution). Per the
--- trust model (server-authoritative for cleanliness, NOT anti-cheat) a
--- friend who peeks at the shared answer just spoils their own puzzle — not
--- worth gating against. COMPETE keeps it hidden until the end: players race
--- on independent boards.
-create or replace function waffle._solution_for(p_game_id uuid)
-returns text
-language sql
-stable
-security definer
-set search_path = waffle, common, public, extensions
-as $$
-  select case when cg.ended_at is not null or cg.mode = 'coop'
-              then wg.solution::text else null end
-    from waffle.games wg
-    join common.games cg on cg.id = wg.game_id
-   where wg.game_id = p_game_id;
-$$;
-
--- ============================================================
--- waffle._board_visible
--- ============================================================
--- Whether the caller may see one player's board: it's their own, or the
--- game is coop (one shared board), or the game has ended. The two board
--- helpers below both ask it, so they cannot disagree.
-create or replace function waffle._board_visible(cg common.games, row_user uuid)
-returns boolean
-language sql
-stable                         -- auth.uid() is stable
-as $$
-  select row_user = auth.uid() or cg.mode = 'coop' or cg.ended_at is not null;
-$$;
-revoke execute on function waffle._board_visible(common.games, uuid) from public;
-
--- ============================================================
--- waffle._player_board_for
--- ============================================================
--- One player's board, or null when the caller may not see it
--- (`_board_visible`) — how a compete opponent's tiles stay hidden
--- mid-game. A definer, so it can read the grant-hidden `board` column;
--- players_state calls it as the caller.
-create or replace function waffle._player_board_for(p_game_id uuid, row_user uuid)
-returns text
-language sql
-stable
-security definer
-set search_path = waffle, common, public, extensions
-as $$
-  select case when waffle._board_visible(cg, row_user)
-              then wp.board::text else null end
-    from waffle.players wp
-    join common.games cg on cg.id = wp.game_id
-   where wp.game_id = p_game_id and wp.user_id = row_user;
-$$;
-
--- ============================================================
--- waffle._player_colors_for
--- ============================================================
--- One player's board colored against the solution, under the same rule
--- as `_player_board_for`: the colors give away as much as the board.
-create or replace function waffle._player_colors_for(p_game_id uuid, row_user uuid)
-returns text
-language sql
-stable
-security definer
-set search_path = waffle, common, public, extensions
-as $$
-  select case when waffle._board_visible(cg, row_user)
-              then waffle._board_colors(wp.board, wg.solution) else null end
-    from waffle.players wp
-    join waffle.games wg on wg.game_id = wp.game_id
-    join common.games cg on cg.id = wp.game_id
-   where wp.game_id = p_game_id and wp.user_id = row_user;
-$$;
-
-revoke execute on function waffle._solution_for(uuid) from public;
-revoke execute on function waffle._player_board_for(uuid, uuid) from public;
-revoke execute on function waffle._player_colors_for(uuid, uuid) from public;
-grant execute on function waffle._solution_for(uuid) to authenticated;
-grant execute on function waffle._player_board_for(uuid, uuid) to authenticated;
-grant execute on function waffle._player_colors_for(uuid, uuid) to authenticated;
+drop function if exists waffle._board_visible(common.games, uuid);
 
 -- ============================================================
 -- waffle._word_slots
@@ -385,15 +294,19 @@ as $$
   update common.games cg
      set title = case
            when cg.mode = 'coop' then waffle._format_title(
-             -- Any players row will do: coop rows are kept in lock-step.
+             -- Any players row's board will do: coop boards are kept in
+             -- lock-step.
              --
-             -- The swaps_used gate keeps this a readout of what the players
-             -- have DONE. A dealt board can hand them a whole correct word for
-             -- free, and naming an untouched game after it would be a lie —
-             -- worse, a replayed board and a fresh board are in identical
-             -- state, so they must read identically. An ended game is exempt:
-             -- its board is final, whatever the players did to it.
-             (select case when wp.swaps_used > 0 or cg.ended_at is not null
+             -- The swap gate keeps this a readout of what the players have
+             -- DONE: the team's swaps, summed over every player's own. A dealt
+             -- board can hand them a whole correct word for free, and naming an
+             -- untouched game after it would be a lie — worse, a replayed board
+             -- and a fresh board are in identical state, so they must read
+             -- identically. An ended game is exempt: its board is final,
+             -- whatever the players did to it.
+             (select case when (select sum(n_swaps_used) from waffle.players
+                                 where game_id = p_game_id) > 0
+                            or cg.ended_at is not null
                           then waffle._correct_words(wp.board, wg.solution)
                           else '{}'::text[] end
                 from waffle.players wp
@@ -426,120 +339,9 @@ $$;
 
 revoke execute on function waffle._sync_title(uuid) from public;
 
--- ============================================================
--- waffle.games_state — the game row the frontend reads
--- ============================================================
--- The readable columns of waffle.games, plus the solution through
--- `_solution_for` (coop during play; compete once the game ends).
-create view waffle.games_state with (security_invoker = true) as
-  select wg.game_id,
-         wg.board_at_setup,
-         wg.par_swaps,
-         wg.max_swaps,
-         waffle._solution_for(wg.game_id) as solution
-    from waffle.games wg;
-
--- ============================================================
--- waffle.players_state — each player's row the frontend reads
--- ============================================================
--- The readable columns of waffle.players, plus the board and its colors
--- through the definer helpers — null for a compete opponent mid-game (the
--- column grant hides wp.board directly).
-create view waffle.players_state with (security_invoker = true) as
-  select wp.game_id,
-         wp.user_id,
-         wp.swaps_used,
-         waffle._player_board_for(wp.game_id, wp.user_id)  as board,
-         waffle._player_colors_for(wp.game_id, wp.user_id) as colors
-    from waffle.players wp;
-
-grant select on waffle.games_state to authenticated;
-grant select on waffle.players_state to authenticated;
-
--- ============================================================
--- waffle._write_statuses — the page's copies of the game
--- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from waffle's own tables, assigning each
--- whole (plans/common-tables.md → The statuses). Every key is always
--- present, null when it has no value:
---
---   game_status    { max_swaps, par_swaps }
---   player_status  { swaps_used, player_ended_reason }
---                  — in coop `swaps_used` is the team's, the same on every
---                  row
---   clubpage_info  { swaps_used, max_swaps, band,
---                    winner_user_id, winner_swaps_count }
---                  — `swaps_used` is coop's shared count and null in
---                  compete, whose summary shows no progress; the winner
---                  and their count are compete's, null until the end;
---                  `band` is the dictionary band the words come from
---                  (`setup.difficulty`), which the line names
---
--- `p_update_status_changed_at` is true from create, Restart and every move,
--- false from a rebuild (the pass over every game, a repair by hand), so a
--- rebuild never re-dates a game.
-create or replace function waffle._write_statuses(
-  p_game_id uuid,
-  p_update_status_changed_at boolean
-)
-returns void
-language plpgsql
-security definer
-set search_path = waffle, common, public, extensions
-as $$
-declare
-  v_mode text;
-  v_max_swaps int;
-  v_par_swaps int;
-  v_band int;
-  v_team_used int;
-  v_winner_id uuid;
-begin
-  select cg.mode, wg.max_swaps, wg.par_swaps, coalesce((cg.setup->>'difficulty')::int, 2)
-    into v_mode, v_max_swaps, v_par_swaps, v_band
-    from waffle.games wg
-    join common.games cg on cg.id = wg.game_id
-   where wg.game_id = p_game_id;
-
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'swaps_used', wp.swaps_used,
-           'player_ended_reason', gp.player_ended_reason)
-    from waffle.players wp
-   where gp.game_id = p_game_id
-     and wp.game_id = gp.game_id
-     and wp.user_id = gp.user_id;
-
-  if v_mode = 'coop' then
-    select max(swaps_used) into v_team_used
-      from waffle.players where game_id = p_game_id;
-  else
-    select user_id into v_winner_id
-      from common.game_players
-     where game_id = p_game_id and final_ranking = 1
-     order by solved_at
-     limit 1;
-  end if;
-
-  update common.games
-     set game_status = jsonb_build_object(
-           'max_swaps', v_max_swaps,
-           'par_swaps', v_par_swaps),
-         clubpage_info = jsonb_build_object(
-           'swaps_used', v_team_used,
-           'max_swaps', v_max_swaps,
-           'band', v_band,
-           'winner_user_id', v_winner_id,
-           'winner_swaps_count', (select swaps_used from waffle.players
-                                   where game_id = p_game_id and user_id = v_winner_id)),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
-   where id = p_game_id;
-end;
-$$;
-
-revoke execute on function waffle._write_statuses(uuid, boolean) from public;
+-- The statuses' writer, from before the page blobs; supabase/sql is
+-- re-applied, not diffed, so the drop stays.
+drop function if exists waffle._write_statuses(uuid, boolean);
 
 -- ============================================================
 -- The page blobs — what the page shows, written by this game's builder
@@ -646,7 +448,7 @@ stable
 set search_path = waffle, common, public, extensions
 as $$
   select case when cg.mode = 'coop' then jsonb_build_object(
-           'nSwapsUsed', (select sum(swaps_used) from waffle.players where game_id = p_game_id))
+           'nSwapsUsed', (select sum(n_swaps_used) from waffle.players where game_id = p_game_id))
          end
     from common.games cg
    where cg.id = p_game_id;
@@ -666,7 +468,7 @@ as $$
   select jsonb_agg(
            cp.player || jsonb_build_object(
              'maxSwaps',   wg.max_swaps,
-             'nSwapsUsed', wp.swaps_used,
+             'nSwapsUsed', wp.n_swaps_used,
              'board',      jsonb_build_object(
                              'tiles', waffle._make_json_tiles(
                                         wp.board, waffle._board_colors(wp.board, wg.solution))))
@@ -713,7 +515,7 @@ as $$
     'maxSwaps',     wg.max_swaps,
     'band',         coalesce((cg.setup->>'difficulty')::int, 2),
     'nWinnerSwaps', case when cg.mode = 'compete' then
-                      (select wp.swaps_used
+                      (select wp.n_swaps_used
                          from common.game_players gp
                          join waffle.players wp
                            on wp.game_id = gp.game_id and wp.user_id = gp.user_id
@@ -942,7 +744,6 @@ begin
   select new_id, uid, b_dealt
     from unnest(p_player_user_ids) uid;
 
-  perform waffle._write_statuses(new_id, p_update_status_changed_at => true);
   perform waffle._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It travels through
@@ -997,7 +798,7 @@ begin
     into v_rankings
     from (
       select gp.user_id,
-             rank() over (order by wp.swaps_used, gp.solved_at) as ranking
+             rank() over (order by wp.n_swaps_used, gp.solved_at) as ranking
         from waffle.players wp
         join common.game_players gp
           on gp.game_id = wp.game_id and gp.user_id = wp.user_id
@@ -1149,11 +950,15 @@ begin
       detail = 'cells 7/9/17/19 are holes and hold no tile';
   end if;
 
-  -- The caller's working board (coop rows are identical; compete is
-  -- the caller's own).
-  select board, swaps_used into cur_board, cur_swaps
+  -- The caller's working board (coop boards are identical; compete is the
+  -- caller's own), and the swaps already spent against the budget: the
+  -- team's, summed over every player's own, in coop; the caller's in compete.
+  select board into cur_board
     from waffle.players
    where game_id = p_game_id and user_id = caller_id;
+  select sum(n_swaps_used) into cur_swaps
+    from waffle.players
+   where game_id = p_game_id and (v_mode = 'coop' or user_id = caller_id);
   select solved_at is not null into cur_solved
     from common.game_players
    where game_id = p_game_id and user_id = caller_id;
@@ -1192,8 +997,7 @@ begin
   --
   -- A swap is the only move this game has and only an accepted one is written,
   -- so `took_turn` is a literal — the solving swap and the last one included.
-  -- The caller's own count lives on waffle.players.swaps_used, which is what
-  -- the budget strip reads.
+  -- The caller's own count lives on waffle.players.n_swaps_used.
   --
   -- `colors` is the board AFTER this swap. Stored rather than left to the
   -- reader because the only other way to know it is to replay the log against
@@ -1207,11 +1011,15 @@ begin
      waffle._board_colors(new_board, g_row.solution));
 
   if v_mode = 'coop' then
-    -- Lock-step: every player's row mirrors the shared board + count.
+    -- Lock-step board: every player's row mirrors the shared board. The count
+    -- is each player's own, so only the swapper's goes up; the team's is the
+    -- sum (`new_swaps`).
     update waffle.players
-       set board      = new_board,
-           swaps_used = new_swaps
+       set board = new_board
      where game_id = p_game_id;
+    update waffle.players
+       set n_swaps_used = n_swaps_used + 1
+     where game_id = p_game_id and user_id = caller_id;
 
     if did_solve then
       -- The team solves, so every teammate solved at this swap.
@@ -1241,8 +1049,8 @@ begin
   else
     -- Compete: apply the swap to the caller's own row only.
     update waffle.players
-       set board      = new_board,
-           swaps_used = new_swaps
+       set board        = new_board,
+           n_swaps_used = new_swaps
      where game_id = p_game_id and user_id = caller_id;
 
     -- Solved, or out of swaps: either way this racer has ended while the
@@ -1266,7 +1074,6 @@ begin
   -- race that just ended now reads the puzzle's words. Runs after the endings
   -- so it sees the settled `ended_at`.
   perform waffle._sync_title(p_game_id);
-  perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- No outcome and no message: an accepted swap shows the swapper NOTHING until
@@ -1338,7 +1145,6 @@ begin
   -- in which case the title becomes the puzzle's words.
   perform waffle._sync_title(p_game_id);
 
-  perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
@@ -1404,7 +1210,6 @@ begin
   -- The game is over either way — a compete title stops saying "New compete".
   perform waffle._sync_title(p_game_id);
 
-  perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -1453,7 +1258,6 @@ begin
   -- The game has ended, so a compete title stops saying "New compete".
   perform waffle._sync_title(p_game_id);
 
-  perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -1514,7 +1318,7 @@ begin
 
   update waffle.players
      set board = g_row.board_at_setup,
-         swaps_used = 0
+         n_swaps_used = 0
    where game_id = p_game_id;
 
   delete from waffle.events where game_id = p_game_id;
@@ -1526,7 +1330,6 @@ begin
   -- advertising words the players no longer have.
   perform waffle._sync_title(p_game_id);
 
-  perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 

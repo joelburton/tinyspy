@@ -79,9 +79,9 @@ select is(
   1::bigint,
   'a coop swap updates every player in lock-step (boards stay identical)');
 select is(
-  (select max(swaps_used) from waffle.players where game_id = (select id from g1)),
-  1,
-  'swaps_used incremented for all players');
+  (select array_agg(n_swaps_used order by user_id) from waffle.players where game_id = (select id from g1)),
+  array[1, 0],
+  'a coop swap counts as the swapper''s own: ada 1, bea 0 — the team''s is their sum');
 select is(
   (select ended_at from common.games where id = (select id from g1)),
   null,

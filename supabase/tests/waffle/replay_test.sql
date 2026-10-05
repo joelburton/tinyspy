@@ -76,7 +76,7 @@ select is(
   (select count(*) from waffle.players
      where game_id = (select id from g1)
        and board = 'bacdef.g.hijklmn.o.pqrstu'
-       and swaps_used = 0),
+       and n_swaps_used = 0),
   2::bigint, 'coop: replay → both players back to the dealt board');
 select is(
   (select count(*) from common.game_players
@@ -135,7 +135,7 @@ select is(
   (select count(*) from waffle.players
      where game_id = (select id from g2)
        and board = 'bacdef.g.hijklmn.o.pqrstu'
-       and swaps_used = 0),
+       and n_swaps_used = 0),
   2::bigint, 'compete: replay → every player back to the dealt board');
 select is(
   (select count(*) from common.game_players

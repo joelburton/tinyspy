@@ -38,11 +38,11 @@ last column is what the conversion will do, filled in as it does it.
 
 | what | mentioned | taken over or dropped |
 |---|---|---|
-| `events_select`'s mode arm — coop shows every member every row, a racer always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | to be **taken over** by `makeGameData`'s seat rule over `game_data`; the policy keeps the member gate alone |
-| `games_state` view, with `_solution_for` — the game row, the solution in coop always and in compete once ended | `ended_at` | to be **dropped**; the builder writes the solution into `game_data` when a player may see it, and the column grant on `solution` stays the real guard |
-| `players_state` view, with `_player_board_for`, `_player_colors_for` and `_board_visible` — each player's board and colors, null for a compete rival mid-race | `auth.uid()`, `ended_at` | to be **dropped**; the blob carries every board, and the seat rule withholds a rival's mid-race. The column grant on `players.board` stays |
-| `games_select`, `players_select` — club-member reads | neither | to be kept: a member reading a row for a page they can open |
-| `_write_statuses` — `game_status` {max_swaps, par_swaps}, `player_status` {swaps_used, player_ended_reason}, `clubpage_info` {swaps_used, max_swaps, band, winner_user_id, winner_swaps_count} | neither | to be **dropped**; `_rebuild_data_cols` writes the blobs |
+| `events_select`'s mode arm — coop shows every member every row, a racer always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | the arm is **dropped** (2026-10-05) and the policy keeps the member gate alone; to be **taken over** by `makeGameData`'s seat rule at step 7 |
+| `games_state` view, with `_solution_for` — the game row, the solution in coop always and in compete once ended | `ended_at` | **dropped** (2026-10-05): `game_data` carries the solution once the game ends, in both modes, and the column grant on `solution` stays the real guard |
+| `players_state` view, with `_player_board_for`, `_player_colors_for` and `_board_visible` — each player's board and colors, null for a compete rival mid-race | `auth.uid()`, `ended_at` | **dropped** (2026-10-05): the blob carries every board, the seat rule to withhold a rival's mid-race; the column grant on `players.board` stays |
+| `games_select`, `players_select` — club-member reads | neither | **kept** (2026-10-05) |
+| `_write_statuses` — `game_status` {max_swaps, par_swaps}, `player_status` {swaps_used, player_ended_reason}, `clubpage_info` {swaps_used, max_swaps, band, winner_user_id, winner_swaps_count} | neither | **dropped** (2026-10-05): `_rebuild_data_cols` writes the blobs after every move |
 | the postgres-changes subscription on `games`, `players` and `events` (`useRealtimeRefetch` in `hooks/useGame.ts`), and its reads of the two views and `events` | — | the frontend's, at its conversion: the page reads `game_data` |
 
 **The status keys the page shows:** the leaderboard's per-player swaps (the
@@ -140,7 +140,13 @@ The rulings behind it (2026-10-05):
 
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+- **Step 4 (2026-10-05), fixed at step 5:** every pgTAP assertion that reads
+  the statuses (`statuses_test`, `compete_test`, `replay_test`), the two
+  views (`boards_untouched_test`, `compete_test`, `gameplay_test`,
+  `solution_hide_test`) or the events mode arm.
+- **Steps 4–9:** the frontend reads the two views and the old common shapes,
+  so the page stays broken until `useGame` reads `game_data` and the PlayArea
+  pass moves its readers onto `gd`.
 
 ## Closing
 

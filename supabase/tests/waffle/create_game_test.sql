@@ -78,9 +78,9 @@ select is(
 );
 
 select is(
-  (select max(swaps_used) from waffle.players where game_id = (select id from g)),
+  (select max(n_swaps_used) from waffle.players where game_id = (select id from g)),
   0,
-  'swaps_used starts at 0'
+  'n_swaps_used starts at 0'
 );
 
 select is(

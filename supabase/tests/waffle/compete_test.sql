@@ -45,7 +45,7 @@ select is((select (res->'data'->>'terminal')::boolean from a_solve), false,
 
 reset role;
 select is(
-  (select swaps_used from waffle.players
+  (select n_swaps_used from waffle.players
     where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1, 'ada used 1 swap');
 select is(
@@ -73,7 +73,7 @@ select is(
   'compete: a racer still swapping has not ended'
 );
 select is(
-  (select swaps_used from waffle.players
+  (select n_swaps_used from waffle.players
     where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
   0, 'bea board untouched (independent boards in compete)');
 -- ada has SOLVED, but the club-list title must not say so: the words are the
