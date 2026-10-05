@@ -560,6 +560,322 @@ $$;
 
 revoke execute on function letterboxed._write_statuses(uuid, boolean) from public;
 
+-- ============================================================
+-- The page blobs — what the page shows, written by this game's builder
+-- ============================================================
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- letterboxed's own, each builder bearing its column's name. `game_data` is the
+-- common part (supabase/sql/common.sql → The page blobs' common parts) with
+-- letterboxed's facts on top; the pieces below build each part, so `select
+-- game_data from common.games` shows the page what it gets.
+--
+--   game_data, letterboxed's part:
+--     puzzle: {tiles, words, uncleanWords, nParWords, solution}
+--                                          the board, frozen at create; a tile is
+--                                          {id, letter, side}, its id the letter;
+--                                          `words` every word the board accepts,
+--                                          `uncleanWords` the few of them a hint may
+--                                          not offer; `solution` null until the game
+--                                          ends
+--     team: {nWordsUsed, nCoveredLetters}  the shared chain's; null in compete
+--                                          (plans/team-facts.md)
+--     events: [{id, userId, kind, word, nCoveredLetters, tookTurn, at}, …]
+--                                          every move and every hint or spoiler,
+--                                          every player's; what a racer may see of a
+--                                          rival mid-race is the hook's rule
+--     players: [player, …]                 the common player, plus:
+--       maxWords                           the cap, the same on every player
+--       nWordsUsed, nCoveredLetters        this racer's chain; compete only, since a
+--                                          coop chain is the team's
+--       nHintsUsed, nSpoilersUsed          this player's own, off the log
+--       board: {words}                     this seat's chain: the shared one in
+--                                          coop, each racer's own in compete
+--
+--   summary_data, letterboxed's part (the common part names and dates the game
+--   and carries its ending; the winner is `ending.winner`):
+--     team: {nWordsUsed, nCoveredLetters}  the same group; null in compete
+--     maxWords
+--     band                                 the dictionary band, `legal_band`
+--     nBestCoveredLetters                  compete's best chain so far; null in coop
+--     nWinnerWords                         compete's winner's chain, once a racer
+--                                          has solved; null otherwise
+--     nWinnerCoveredLetters                compete's winner's letters, on a solve or
+--                                          a timeout; null otherwise
+
+-- Par on every board this pipeline builds: the seeded pair (see create_game).
+create or replace function letterboxed._n_par_words()
+returns int
+language sql
+immutable
+as $$
+  select 2;
+$$;
+
+revoke execute on function letterboxed._n_par_words() from public;
+
+-- The box's twelve tiles, in side order: each letter is its own id, since a
+-- board never repeats one, and `side` is 0–3.
+create or replace function letterboxed._make_json_tiles(p_sides text)
+returns jsonb
+language sql
+immutable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select jsonb_agg(jsonb_build_object(
+           'id',     substr(p_sides, i, 1),
+           'letter', substr(p_sides, i, 1),
+           'side',   (i - 1) / 3) order by i)
+    from generate_series(1, 12) i;
+$$;
+
+revoke execute on function letterboxed._make_json_tiles(text) from public;
+
+-- The accepted words a hint may not offer: those that fail the must-reach
+-- filter (docs/word-list.md → Which words a game may use), or that the
+-- dictionary no longer holds. Read against `common.words` at every rebuild, so
+-- a word re-flagged in the editor leaves the hints on old boards too.
+create or replace function letterboxed._make_json_unclean_words(p_legal_words jsonb)
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(lw.word order by lw.ord), '[]'::jsonb)
+    from jsonb_array_elements_text(p_legal_words) with ordinality lw(word, ord)
+   where not exists (
+           select 1 from common.words w
+            where w.word = lw.word
+              and w.american and w.british
+              and w.crude = 0 and w.slur = 0 and not w.slang);
+$$;
+
+revoke execute on function letterboxed._make_json_unclean_words(jsonb) from public;
+
+-- The board: its tiles, its words, its par, and the seeded pair once the game
+-- has ended.
+create or replace function letterboxed._make_json_puzzle(lg letterboxed.games, p_ended boolean)
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'tiles',        letterboxed._make_json_tiles(lg.sides),
+    'words',        lg.legal_words,
+    'uncleanWords', letterboxed._make_json_unclean_words(lg.legal_words),
+    'nParWords',    letterboxed._n_par_words(),
+    'solution',     case when p_ended then to_jsonb(lg.solution) end);
+$$;
+
+revoke execute on function letterboxed._make_json_puzzle(letterboxed.games, boolean) from public;
+
+-- The log: every row, in the order of play.
+create or replace function letterboxed._make_json_events(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',              e.id,
+           'userId',          e.user_id,
+           'kind',            e.kind,
+           'word',            e.word,
+           'nCoveredLetters', e.letters_covered,
+           'tookTurn',        e.took_turn,
+           'at',              e.created_at) order by e.id), '[]'::jsonb)
+    from letterboxed.events e
+   where e.game_id = p_game_id;
+$$;
+
+revoke execute on function letterboxed._make_json_events(uuid) from public;
+
+-- What the team shares: the one chain, read off any coop row since every row
+-- holds it. Null in compete, where there is no team (plans/team-facts.md).
+create or replace function letterboxed._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select case when cg.mode = 'coop' then (
+           select jsonb_build_object(
+                    'nWordsUsed',      cardinality(lp.chain),
+                    'nCoveredLetters', letterboxed._covered(lp.chain))
+             from letterboxed.players lp
+            where lp.game_id = p_game_id
+            order by lp.user_id
+            limit 1)
+         end
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function letterboxed._make_json_team(uuid) from public;
+
+-- Every player as letterboxed's game_data shows them: the common player, with
+-- the cap, a racer's two counts, the hints and spoilers they took, and this
+-- seat's chain.
+create or replace function letterboxed._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select jsonb_agg(
+           cp.player
+             || jsonb_build_object(
+                  'maxWords',      lg.max_words,
+                  'nHintsUsed',    (select count(*) from letterboxed.events e
+                                     where e.game_id = p_game_id and e.user_id = cp.id
+                                       and e.kind = 'hint'),
+                  'nSpoilersUsed', (select count(*) from letterboxed.events e
+                                     where e.game_id = p_game_id and e.user_id = cp.id
+                                       and e.kind = 'spoiler'),
+                  'board',         jsonb_build_object('words', to_jsonb(lp.chain)))
+             || case when cg.mode = 'compete' then jsonb_build_object(
+                  'nWordsUsed',      cardinality(lp.chain),
+                  'nCoveredLetters', letterboxed._covered(lp.chain))
+                else '{}'::jsonb end
+           order by cp.ord)
+    from common._make_json_players(p_game_id) cp
+    join letterboxed.players lp on lp.game_id = p_game_id and lp.user_id = cp.id
+    join letterboxed.games lg on lg.game_id = p_game_id
+    join common.games cg on cg.id = p_game_id;
+$$;
+
+revoke execute on function letterboxed._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with letterboxed's puzzle, team,
+-- log and players on top.
+create or replace function letterboxed._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'puzzle',  letterboxed._make_json_puzzle(lg, cg.ended_at is not null),
+           'team',    letterboxed._make_json_team(p_game_id),
+           'events',  letterboxed._make_json_events(p_game_id),
+           'players', letterboxed._make_json_players(p_game_id))
+    from letterboxed.games lg
+    join common.games cg on cg.id = lg.game_id
+   where lg.game_id = p_game_id;
+$$;
+
+revoke execute on function letterboxed._make_json_game_data(uuid) from public;
+
+-- The game summed up: the numbers a list of games shows for this one. The
+-- winner is the one `ending.winner` names (common._make_json_ending), so a
+-- timeout's tied winners read the same racer in both.
+create or replace function letterboxed._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  with winner as (
+    select gp.solved_at, lp.chain
+      from common.game_players gp
+      join letterboxed.players lp on lp.game_id = gp.game_id and lp.user_id = gp.user_id
+      join common.games cg on cg.id = gp.game_id
+     where gp.game_id = p_game_id and gp.final_ranking = 1 and cg.mode = 'compete'
+     order by gp.turn_seat, gp.user_id
+     limit 1
+  )
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+    'team',                  letterboxed._make_json_team(p_game_id),
+    'maxWords',              lg.max_words,
+    'band',                  lg.legal_band,
+    'nBestCoveredLetters',   case when cg.mode = 'compete' then
+                               (select max(letterboxed._covered(lp.chain))
+                                  from letterboxed.players lp where lp.game_id = p_game_id)
+                             end,
+    'nWinnerWords',          (select cardinality(w.chain) from winner w where w.solved_at is not null),
+    'nWinnerCoveredLetters', (select letterboxed._covered(w.chain) from winner w))
+    from letterboxed.games lg
+    join common.games cg on cg.id = lg.game_id
+   where lg.game_id = p_game_id;
+$$;
+
+revoke execute on function letterboxed._make_json_summary_data(uuid, timestamptz) from public;
+
+-- ============================================================
+-- letterboxed._rebuild_data_cols — one game's data columns, rebuilt
+-- ============================================================
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from letterboxed's own tables,
+-- assigning each whole. Every RPC calls it after a move; it is also the repair
+-- for one game by hand. Every key is always present, null when it has no
+-- value, except a coop player's two chain counts, which are the team's; the
+-- shapes are drawn above.
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function letterboxed._rebuild_data_cols(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = letterboxed, common, public, extensions
+as $$
+declare
+  v_status_changed_at timestamptz;
+begin
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
+
+  update common.games
+     set game_data = letterboxed._make_json_game_data(p_game_id),
+         summary_data = letterboxed._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function letterboxed._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- letterboxed._rebuild_data_cols_for_all — every letterboxed game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every letterboxed game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function letterboxed._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = letterboxed, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('letterboxed_coop', 'letterboxed_compete')
+  loop
+    perform letterboxed._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function letterboxed._rebuild_data_cols_for_all() from public;
+
 drop function if exists letterboxed.create_game(text, jsonb, uuid[], text, jsonb);
 
 -- ============================================================
@@ -666,7 +982,7 @@ begin
   -- PAR = 2 on every board this pipeline builds (see above). Resolved here
   -- rather than stored as a `par` column, which would be a constant column;
   -- `max_words` is what every rule downstream actually reads.
-  s_max_words := 2 + s_extra_words;
+  s_max_words := letterboxed._n_par_words() + s_extra_words;
 
   s_legal_band := coalesce((p_setup->>'legal_band')::int, 5);
   if s_legal_band < 1 or s_legal_band > 6 then
@@ -811,6 +1127,7 @@ begin
   select new_id, uid from unnest(p_player_user_ids) uid;
 
   perform letterboxed._write_statuses(new_id, p_update_status_changed_at => true);
+  perform letterboxed._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on, and it reaches both — the edge function
@@ -1008,6 +1325,7 @@ begin
       p_final_rankings => v_rankings
     );
     perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
     -- `result` NAMES the ending; `accepted`, `letters_covered` and `solved`
     -- are the fields the frontend reads.
@@ -1020,6 +1338,7 @@ begin
   -- Still going: hand the turn on (no-op in a free-for-all game).
   perform common._advance_turn(p_game_id);
   perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
     jsonb_build_object('result', 'accepted',
@@ -1111,6 +1430,7 @@ begin
 
   perform common._advance_turn(p_game_id);
   perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
     jsonb_build_object('result', 'undone', 'word', v_popped,
@@ -1175,6 +1495,7 @@ begin
   values (p_game_id, caller_id, 'clear', null, 0, true);
 
   perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
     jsonb_build_object('result', 'cleared', 'letters_covered', 0), 'noted');
@@ -1264,6 +1585,7 @@ begin
           letterboxed._covered(v_chain), false);
 
   perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(jsonb_build_object(
     'result', 'logged',
@@ -1354,6 +1676,7 @@ begin
   );
 
   perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1402,6 +1725,7 @@ begin
   perform common._stop(p_game_id);
 
   perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1448,6 +1772,7 @@ begin
   perform common._concede(p_game_id);
 
   perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -1510,6 +1835,7 @@ begin
   perform common._reset_game(p_game_id);
 
   perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
