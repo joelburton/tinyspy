@@ -791,6 +791,47 @@ stripped.
 green (`docLinks` included); `gmake db-sql ENV=local` then `npm run test:db`,
 182 files, 2601 tests, PASS; `deno check` clean on the edge function. No e2e.
 
+## The convenience RLS
+
+The policies and views the frontend leans on before the page blobs, listed
+before the game converts onto them (plans/seat-view.md → How a game converts,
+step 1: "each one is taken over or dropped by name"). Listed 2026-10-04; the
+last column is what the conversion will do, filled in as it does it.
+
+| what | mentioned | taken over or dropped |
+|---|---|---|
+| `games_select` — a club member reads the game row, **both key cards included** (`key_card_a`, `key_card_b`) | neither | the policy is kept: a member reading a row for a page they can open. Hiding the partner's key until the end is the frontend's today; it is to be **taken over** by `makeGameData`'s seat rule over `game_data` |
+| `words_select` — a club member reads the 25 words and their reveal marks | neither | to be kept |
+| `events_select` — a club member reads every clue, guess, pass and hint | neither | to be kept |
+| `_write_statuses` — `game_status` {found_agents_count, turn_number, turns_remaining, max_turns}, `player_status` {} on each player, `clubpage_info` {found_agents_count, turns_remaining} | neither | to be **dropped**; `_rebuild_data_cols` writes the blobs |
+| the postgres-changes subscriptions — `codenamesduet.games` (`hooks/useGame.ts`), `words` and `events` (`hooks/useBoard.ts`) — and their reads of `games`, `words` and `events` | — | the frontend's, at its conversion: the page reads `game_data` |
+
+codenamesduet has no view, and `word_pool` has no policy at all (only
+security-definer RPCs read it).
+
+**The status keys the page shows:** none. The page reads no `game_status` key;
+it works the turn, the budget and the agents found out of `games`, `words` and
+`events`. The club card (`manifest.ts` → `summaryFor`) reads
+`found_agents_count`, `turns_remaining` and the ending's `reason`, through the
+pre-common-tables `row.status` / `row.play_state`.
+
+**A coop solve stamps every teammate:** yes. Duet is coop only, and a win sets
+`solved_at` on both players (`submit_guess`'s ending).
+
+**Seen while listing** (each is fixed by the conversion, not before it):
+
+- **The frontend's RPC calls send the old argument names** — `submit_guess`
+  {target_game, guess_position}, `submit_clue` {target_game, clue_word,
+  clue_count, clue_from_ai}, `pass_turn` {target_game}, and `create_game`
+  {target_club, setup, player_user_ids} in both `manifest.ts` and
+  `PlayArea.tsx`'s New game. Every RPC took `p_` names on 2026-09-28, so the
+  game cannot be started or played until they follow.
+- **The club card reads `row.status` and `row.play_state`**, the shape before
+  common-tables; it moves onto `summary_data` at step 7.
+- **`todo.md`'s turn-count bug** ("10/11 turns used" after an 11-turn win; "1/11"
+  after a two-move game) is the turns-used figure the state line will read
+  from `gd`; step 2's sketch decides where that number comes from.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it
