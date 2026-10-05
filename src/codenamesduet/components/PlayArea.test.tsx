@@ -689,3 +689,33 @@ describe('codenamesduet PlayArea — the selection cursor', () => {
     expect(getActions().find((b) => b.id === 'act-submit')?.describe('help').state).toBe('hidden')
   })
 })
+
+/**
+ * The info column's help line: on my move, and in sudden death for both of us
+ * while the game runs, since there the line is the changed rules.
+ */
+describe('codenamesduet PlayArea — the help line', () => {
+  const help = () => screen.queryByText(/Give clues for your agents/)
+  const suddenDeathHelp = () => screen.queryByText(/every reveal must be an agent/)
+
+  it('shows on my move', () => {
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(help()).toBeInTheDocument()
+  })
+
+  it('is gone while my partner writes the clue', () => {
+    render(<PlayAreaLoader {...makeCtx({ events: [] })} />)
+    expect(help()).not.toBeInTheDocument()
+  })
+
+  it('says the sudden-death rules to both of us', () => {
+    render(<PlayAreaLoader {...makeCtx(SUDDEN_DEATH)} />)
+    expect(suddenDeathHelp()).toBeInTheDocument()
+  })
+
+  it('is gone once the game is over', () => {
+    render(<PlayAreaLoader {...makeCtx(LOST)} />)
+    expect(help()).not.toBeInTheDocument()
+    expect(suddenDeathHelp()).not.toBeInTheDocument()
+  })
+})

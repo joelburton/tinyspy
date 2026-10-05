@@ -16,12 +16,3 @@ export function guessesOf(
     .filter((e) => e.kind === 'guess')
     .map((e) => ({ ...e, word: tilesById.get(e.tileId!)!.word }) as GGuessEvent)
 }
-
-/**
- * Whether a turn was played in sudden death: past the game's turn budget.
- * Every such turn holds no clue and at most one guess. Derived rather than
- * stored — the budget and the turn number already say it.
- */
-export function isSuddenDeathTurn(turnNum: number, maxTurns: number): boolean {
-  return turnNum > maxTurns
-}

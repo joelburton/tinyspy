@@ -35,6 +35,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { GameEventLog } from './GameEventLog'
 import { makeGameData } from '../hooks/useGame'
+import { cluesOf, guessesOf } from '../lib/events'
 import { ZTest_clue, ZTest_guess, ZTest_makeGameDataRaw } from '../lib/gameData.fixture'
 import type { GEventRaw, GHistoryView, GKey } from '../types'
 import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
@@ -77,7 +78,17 @@ function renderLog(o: { events: GEventRaw[]; turnNum?: number; ended?: boolean; 
     }),
     'ada',
   )
-  return render(<GameEventLog gd={gd} historyView={historyView(o.show)} />)
+  return render(
+    <GameEventLog
+      clues={cluesOf(gd.events)}
+      guesses={guessesOf(gd.events, gd.puzzle.tilesById)}
+      players={gd.players}
+      myId={gd.me.id}
+      turnNum={gd.turns.num}
+      isGameEnded={gd.ended}
+      historyView={historyView(o.show)}
+    />,
+  )
 }
 
 describe('GameEventLog', () => {

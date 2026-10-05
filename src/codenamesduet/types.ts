@@ -143,6 +143,8 @@ export type GEventRaw = {
   // A guess's: the tile and what it turned over as; null on every other kind.
   tileId: string | null
   result: GKey | null
+  // Its turn was past the budget: played in sudden death.
+  suddenDeath: boolean
 }
 
 /** One row of the log as `gd` holds it, by a player. */
@@ -260,6 +262,7 @@ export type GStateLineData = {
  *   clueFromAi
  *   tileId                                   # a guess's; null otherwise
  *   result                                   # G / N / A
+ *   suddenDeath                              # its turn was past the budget
  */
 
 /**

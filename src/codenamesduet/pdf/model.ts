@@ -3,7 +3,7 @@
 import type { PrintHeader } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import { TOTAL_AGENTS } from '../lib/agents'
-import { cluesOf, guessesOf, isSuddenDeathTurn } from '../lib/events'
+import { cluesOf, guessesOf } from '../lib/events'
 import type { GGameData, GGuessEvent, GKey, GTile } from '../types'
 
 /** A word's role on a key card. Renders as ✓ / – / ✗. */
@@ -129,7 +129,7 @@ export function buildCodenamesduetPrintModel(o: {
   // Sudden death has no clue, and each guess there is a turn of its own, made
   // by either player — so each prints as its own row, under its guesser.
   for (const g of guesses) {
-    if (!isSuddenDeathTurn(g.turnNum, gd.team.maxTurns)) continue
+    if (!g.suddenDeath) continue
     turns.push({
       seq: g.turnNum,
       who: g.by.username,

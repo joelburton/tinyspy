@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import { makeGameData } from '../hooks/useGame'
 import { ZTest_clue, ZTest_guess, ZTest_makeGameDataRaw } from './gameData.fixture'
-import { cluesOf, guessesOf, isSuddenDeathTurn } from './events'
+import { cluesOf, guessesOf } from './events'
 
 const gd = makeGameData(
   ZTest_makeGameDataRaw({
@@ -31,12 +31,5 @@ describe('cluesOf / guessesOf', () => {
       [3, 'word4'],
       [4, 'word9'],
     ])
-  })
-})
-
-describe('isSuddenDeathTurn', () => {
-  it('is a turn past the budget', () => {
-    expect(isSuddenDeathTurn(9, 9)).toBe(false)
-    expect(isSuddenDeathTurn(10, 9)).toBe(true)
   })
 })

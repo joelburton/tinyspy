@@ -75,16 +75,17 @@ export function replayTurn(
 
   const turnGuesses = guesses.filter((g) => g.turnNum === turnNum)
   const clue = cluesOf(events).find((c) => c.turnNum === turnNum) ?? null
+  const suddenDeath = events.find((e) => e.id === eventId)!.suddenDeath
   return {
     tiles,
     litTileIds: new Set(turnGuesses.map((g) => g.tileId)),
-    label: describe(clue, turnGuesses, n),
+    label: describe(suddenDeath ? null : clue, turnGuesses, n),
   }
 }
 
 /** "#3: 2 BREAD → STEEL, COFFEE" — the number the log printed, the clue given that
  *  turn, then the words guessed in order (name-free; the log row already shows who).
- *  A guess-less turn reads "…— passed". A turn with no clue is sudden death:
+ *  A guess-less turn reads "…— passed". A sudden-death turn has no clue:
  *  "#10: Sudden death → STEEL". */
 function describe(clue: GClueEvent | null, turnGuesses: GGuessEvent[], n: number | null): string {
   const cluePart = clue ? `${clue.clueCount} ${clue.clueWord.toUpperCase()}` : 'Sudden death'

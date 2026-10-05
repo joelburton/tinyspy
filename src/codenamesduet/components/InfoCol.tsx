@@ -3,11 +3,12 @@
 import { DotActor } from '@/common/members/ActorMention'
 import { cls } from '@/common/utils/cls'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
+import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { InfoDisclosure } from '@/common/info-sheet/InfoDisclosure'
 import type { GActions, GGameData, GHistoryView } from '../types'
+import { cluesOf, guessesOf } from '../lib/events'
 import { GameEventLog } from './GameEventLog'
 import { KeyCard } from './KeyCard'
 import { StateLine } from './StateLine'
@@ -44,6 +45,16 @@ export function InfoCol({
   const isMineFinished = isBannerShown && gd.me.allAgentsFound
   const isPartnerFinished = isBannerShown && gd.partner.allAgentsFound
 
+  // The help line is for my move: my turn on the shared pointer — and in
+  // sudden death, while the game runs, for both of us, since there the line is
+  // the changed rules and the pointer can name nobody.
+  const isHelpShown = gd.me.stillPlaying && (gd.me.onTurn || gd.team.suddenDeath)
+  const actionRowMessage: InfoActionsMessage | undefined = endingMessage
+    ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
+    : undefined
+  // My key card, in the puzzle's tile order.
+  const myKeys = gd.puzzle.tiles.map((t) => t.key[gd.me.id]!)
+
   return (
     <div className={shared.infoCol}>
       {/* The readouts, in the shared order (docs/playarea.md → Info-column
@@ -75,7 +86,7 @@ export function InfoCol({
             The only thing that varies here is the line — the verdict once the
             game is over. No divider, since nothing sits left of it: this game's
             hint, the AI, is on the clue form. */}
-        <InfoActionsRow message={endingMessage ? { text: endingMessage.infoColText, outcome: endingMessage.outcome } : undefined}>
+        <InfoActionsRow message={actionRowMessage}>
           <ActionButton action={actions.actReveal} show="icon" />
           <ActionButton action={actions.actRestart} show="icon" />
           <ActionButton action={actions.actNewGame} show="icon" />
@@ -84,11 +95,11 @@ export function InfoCol({
           <ActionButton action={actions.actBackToClub} show="icon" weight={gd.ended ? 'primary' : 'secondary'} />
         </InfoActionsRow>
 
-        {/* Help — one standing line during play; the per-phase guidance is below
-            the board and in the header pill. In sudden death the rules change,
-            and the red tag is what says so on a line that is otherwise skimmed
-            past as unchanged. */}
-        {!gd.ended && (
+        {/* Help — one line on my move; the per-phase guidance is below the
+            board and in the header pill. In sudden death the rules change, and
+            the red tag is what says so on a line that is otherwise skimmed past
+            as unchanged. */}
+        {isHelpShown && (
           <p className={shared.infoHelp}>
             {gd.team.suddenDeath ? (
               <>
@@ -106,12 +117,20 @@ export function InfoCol({
             line each; opening one grows the column, the allowed exception since
             it closes again. */}
         <InfoDisclosure title="Key card">
-          <KeyCard keys={gd.puzzle.tiles.map((t) => t.key[gd.me.id]!)} />
+          <KeyCard keys={myKeys} />
         </InfoDisclosure>
         <SetupDisclosure rows={gd.setupRows} />
       </div>
 
-      <GameEventLog gd={gd} historyView={historyView} />
+      <GameEventLog
+        clues={cluesOf(gd.events)}
+        guesses={guessesOf(gd.events, gd.puzzle.tilesById)}
+        players={gd.players}
+        myId={gd.me.id}
+        turnNum={gd.turns.num}
+        isGameEnded={gd.ended}
+        historyView={historyView}
+      />
     </div>
   )
 }

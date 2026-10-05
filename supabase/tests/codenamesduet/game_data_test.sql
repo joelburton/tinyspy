@@ -16,7 +16,8 @@
 --   3. A hint is logged and rebuilds the page, re-dating it
 --   4. The partner's bystander on the same tile points at both, and closes it
 --   5. The assassin ends the game, and the turn it ended on counts as used
---   6. Sudden death: the flag, and the used turns stop at the budget
+--   6. Sudden death: the flag, the used turns stop at the budget, and an event
+--      on a turn past the budget says so
 --   7. A Restart empties the board, the log and the turn
 --   8. `_rebuild_data_cols_for_all` rewrites every game without re-dating it
 --
@@ -29,7 +30,7 @@ set search_path = codenamesduet, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(30);
+select plan(31);
 
 -- The first board position that is `p_on_a` on seat A's key and `p_on_b` on
 -- seat B's.
@@ -193,8 +194,8 @@ select is(
   (pg_temp.gd() -> 'events' -> 2) - 'id' - 'at',
   jsonb_build_object('userId', (select bea from ids), 'kind', 'guess', 'turnNum', 1,
     'tookTurn', true, 'clueWord', null, 'clueCount', null, 'clueFromAi', null,
-    'tileId', (select bystander from pos)::text, 'result', 'N'),
-  'a guess carries its tile and its result');
+    'tileId', (select bystander from pos)::text, 'result', 'N', 'suddenDeath', false),
+  'a guess carries its tile and its result, and is no sudden-death turn');
 
 -- ============================================================
 -- (3) A hint is logged and rebuilds the page
@@ -272,6 +273,15 @@ select is(
   (select (game_data -> 'team') - 'board' from common.games where id = (select id from g where name = 'late')),
   '{"nFoundAgents": 0, "nTurnsUsed": 9, "maxTurns": 9, "suddenDeath": true}'::jsonb,
   'past the budget is sudden death, and the used turns stop at the budget');
+
+-- A guess on a turn past the budget, written by hand as submit_guess would.
+insert into codenamesduet.events (game_id, user_id, kind, took_turn, turn_number, seat, guess_position, guess_result)
+values ((select id from g where name = 'late'), (select ada from ids)::uuid, 'guess', true, 12, 'A', 3, 'G');
+select codenamesduet._rebuild_data_cols((select id from g where name = 'late'), p_update_status_changed_at => false);
+select is(
+  (select game_data -> 'events' -> 0 -> 'suddenDeath' from common.games where id = (select id from g where name = 'late')),
+  'true'::jsonb,
+  'an event on a turn past the budget is a sudden-death one');
 
 -- ============================================================
 -- (7) A Restart empties the board, the log and the turn

@@ -72,6 +72,8 @@ export function ZTest_clue(
   return {
     id, userId, kind: 'clue', turnNum, tookTurn: false, at: '2026-06-15T00:01:00Z',
     clueWord: word, clueCount: count, clueFromAi: fromAi, tileId: null, result: null,
+    // Written by `ZTest_makeGameDataRaw` from the turn and the budget.
+    suddenDeath: false,
   }
 }
 
@@ -88,6 +90,7 @@ export function ZTest_guess(
   return {
     id, userId, kind: 'guess', turnNum, tookTurn, at: '2026-06-15T00:02:00Z',
     clueWord: null, clueCount: null, clueFromAi: null, tileId: String(position), result,
+    suddenDeath: false,
   }
 }
 
@@ -226,7 +229,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       suddenDeath,
       board: { tiles },
     },
-    events,
+    // A row's turn past the budget was played in sudden death, as the builder writes it.
+    events: events.map((e) => ({ ...e, suddenDeath: e.turnNum > maxTurns })),
     players,
   }
 }

@@ -7,17 +7,26 @@ import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPic
 import { cls } from '@/common/utils/cls'
 import { IconAI } from '@/common/icons/icons'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
-import { cluesOf, guessesOf, isSuddenDeathTurn } from '../lib/events'
 import { answerMessage } from '../lib/answer'
 import { turnOutcome } from '../lib/turnOutcome'
-import type { GGameData, GGuessEvent, GHistoryView } from '../types'
+import type { GClueEvent, GGuessEvent, GHistoryView, GPlayer } from '../types'
 import styles from './GameEventLog.module.css'
 
 /** The outcome the AI mark wears. */
 const AI_CLUE_OUTCOME = answerMessage({ answerType: 'clue_ai' }).outcome
 
 type Props = {
-  gd: GGameData
+  // Every clue, and every guess with the word on its tile, in order.
+  clues: GClueEvent[]
+  guesses: GGuessEvent[]
+  // Both players, for the picker.
+  players: GPlayer[]
+  // The viewer, so the picker can order them first.
+  myId: string
+  // The turn being played: a guess-less turn reads "(clue given)" while it is
+  // this one and the game runs, and "(no guesses)" once it has ended.
+  turnNum: number
+  isGameEnded: boolean
   // A turn's `#N` opens it on the board, and wears the shared viewing ring
   // while it is open.
   historyView: GHistoryView
@@ -66,12 +75,18 @@ type Props = {
  * codenamesduet turn is TWO `<tr>`s — a whole-turn outline would draw a broken box
  * and a per-row hover would light only half of it (see `<EventLogNumber>`).
  */
-export function GameEventLog({ gd, historyView }: Props) {
-  const clues = cluesOf(gd.events)
-  const guesses = guessesOf(gd.events, gd.puzzle.tilesById)
+export function GameEventLog({
+  clues,
+  guesses,
+  players,
+  myId,
+  turnNum,
+  isGameEnded,
+  historyView,
+}: Props) {
   const eventLogPicker = useEventLogPlayerPicker({
-    players: gd.players,
-    myId: gd.me.id,
+    players,
+    myId,
     mode: 'coop',
     // Coop: every clue and guess is shared, so nothing is ever RLS-hidden and
     // the honest-hidden empty text can't apply.
@@ -88,6 +103,8 @@ export function GameEventLog({ gd, historyView }: Props) {
       ...guesses.map((g) => g.turnNum),
     ]),
   ).sort((a, b) => a - b)
+  // The turns played in sudden death, as the builder marked their guesses.
+  const suddenDeathTurns = new Set(guesses.filter((g) => g.suddenDeath).map((g) => g.turnNum))
 
   // Filtered by CLUE-GIVER (see the docstring), or for a sudden-death turn,
   // which has none, by its guesser — the person its actor column names. By hand
@@ -95,7 +112,7 @@ export function GameEventLog({ gd, historyView }: Props) {
   // turn number, not a row with a player.
   const shownTurns = turnNumbers.filter((t) => {
     if (eventLogPicker.showsEveryone) return true
-    if (isSuddenDeathTurn(t, gd.team.maxTurns)) {
+    if (suddenDeathTurns.has(t)) {
       return guesses.some((g) => g.turnNum === t && g.by.id === eventLogPicker.picked)
     }
     return clues.find((c) => c.turnNum === t)?.by.id === eventLogPicker.picked
@@ -128,7 +145,7 @@ export function GameEventLog({ gd, historyView }: Props) {
       {shownTurns.map((t, index) => {
         const n = index + 1
         const clue = clues.find((c) => c.turnNum === t)
-        const suddenDeath = isSuddenDeathTurn(t, gd.team.maxTurns)
+        const suddenDeath = suddenDeathTurns.has(t)
         const turnGuesses = guesses.filter((g) => g.turnNum === t)
 
         if (suddenDeath) {
@@ -155,7 +172,7 @@ export function GameEventLog({ gd, historyView }: Props) {
         // A guess-less turn is still "in progress" (clue given, guesser yet to
         // act) only while it's the current turn AND the game is live; otherwise
         // it ended empty (a pass). See the docstring.
-        const inProgress = turnGuesses.length === 0 && t === gd.turns.num && !gd.ended
+        const inProgress = turnGuesses.length === 0 && t === turnNum && !isGameEnded
         return (
           <Fragment key={t}>
             {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle (<EventLogNumber>) | count

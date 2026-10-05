@@ -231,8 +231,9 @@ drop function if exists codenamesduet._write_statuses(uuid, boolean);
 --                                          and its clue, {word, count, fromAi, userId},
 --                                          null until it is given
 --     events: [{id, userId, kind, turnNum, tookTurn, at, clueWord, clueCount,
---               clueFromAi, tileId, result}, …]
---                                          every clue, guess, pass and hint, in order
+--               clueFromAi, tileId, result, suddenDeath}, …]
+--                                          every clue, guess, pass and hint, in order;
+--                                          suddenDeath, its turn past the budget
 --     players: [player, …]                 the common player, plus:
 --       clueGiver                          gives this turn's clue
 --       allAgentsFound                     every agent on this player's key is contacted
@@ -371,7 +372,9 @@ $$;
 
 revoke execute on function codenamesduet._make_json_curr_clue(uuid) from public;
 
--- The log: every clue, guess, pass and hint, in the order of play.
+-- The log: every clue, guess, pass and hint, in the order of play. A row's
+-- turn past the budget was played in sudden death — the comparison
+-- `_make_json_team` and `submit_guess` make too.
 create or replace function codenamesduet._make_json_events(p_game_id uuid)
 returns jsonb
 language sql
@@ -389,8 +392,10 @@ as $$
            'clueCount',  e.clue_count,
            'clueFromAi', e.clue_from_ai,
            'tileId',     e.guess_position::text,
-           'result',     e.guess_result) order by e.id), '[]'::jsonb)
+           'result',     e.guess_result,
+           'suddenDeath', e.turn_number > g.max_turns) order by e.id), '[]'::jsonb)
     from codenamesduet.events e
+    join codenamesduet.games g on g.game_id = e.game_id
    where e.game_id = p_game_id;
 $$;
 
