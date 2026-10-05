@@ -851,11 +851,14 @@ gd:
   setup
   setupRows
   puzzle:
-    tiles: [{id, word}, …]                 # the 25, by position
+    tiles: [puzzleTile, …]                 # the 25 as dealt, by position
+    tilesById
   team
     nFoundAgents
     nTurnsUsed
+    maxTurns
     suddenDeath
+    board: {tiles, tilesById}              # the table as it stands
   turns
     holder                                 # null in sudden death with words on both sides
     num                                    # the turn being played, from 1
@@ -867,26 +870,31 @@ gd:
   players: [player, …]                     # seat order: A, then B
   playersById
   me
+  partner                                  # the other player; Duet always has two
   stateLineData: {nFoundAgents, nAgents, nTurnsUsed, maxTurns, suddenDeath}
 
 player:
   the common player                        # seat 0 is A, who gives the first clue
   clueGiver                                # gives this turn's clue
   allAgentsFound                           # every agent on this player's key is contacted
-  board: {tiles, tilesById}                # what this seat's tiles show
 
-tile:                                      # board.tiles[], in the puzzle's order
+puzzleTile:                                # GPuzzleTile: never changes
   id                                       # the position, as text
   word
-  key                                      # G / N / A on this player's key; null for my partner's until the end
-  revealed: [{by, as}, …]                  # every guess that turned it over, in order; as is G / N / A
-  guessable                                # may this player guess it
+  key: {[playerId]: G / N / A}             # each player's key for it; my partner's null until the end
+
+tile:                                      # GTile: team.board.tiles[], by position
+  id
+  puzzleTile                               # linked by id
+  revealed: {as, arrows}                   # GReveal: what it shows (G / N / A), and the Set of players
+                                           # to point an arrow at; null until anyone guesses it
+  guessable                                # may I guess it; the blob's guessableBy, for me
 
 event:
   id
   by
   kind                                     # clue / guess / pass / hint
-  turnNumber
+  turnNum
   tookTurn
   at
   clueWord                                 # a clue's; null otherwise
@@ -897,8 +905,7 @@ event:
 
 summary_data:
   the common summary
-  team: {nFoundAgents, nTurnsUsed, suddenDeath}
-  maxTurns
+  team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath}
 ```
 
 The rulings behind it (2026-10-04):
@@ -913,11 +920,31 @@ The rulings behind it (2026-10-04):
 - The turn is `turns`: its number is `turns.num` beside the common
   `turns.holder`, and this turn's clue is `turns.currClue`, written by the
   builder. `curr` joins the permitted abbreviations (Joel).
-- A tile's marks are one list, `revealed: [{by, as}]` — what it was revealed
-  as, and to whom. A bystander is a reveal like the others; it only locks the
-  word for the player who turned it over. Leah's bystander on "apple" is
-  `[{by: leah, as: N}]`; mine on the same word after it makes it
-  `[{by: leah, as: N}, {by: me, as: N}]`, out of play for both.
+- The puzzle is the deal and the board is what happened to it, so the keys
+  are the puzzle's: `puzzle.tiles` holds each tile's word and every player's
+  key for it, and there is no key card on the player — `KeyCard` maps
+  `puzzle.tiles` to one player's key itself. The board's tiles carry only
+  their own facts in the blob, `{id, revealed, guessableBy}`, and `makeGameData` links each
+  to its puzzle tile (Joel: "i'm trying to keep "puzzle" truthful, and keep
+  things logically divided").
+- A tile's reveal is one shown state, `as`, the same for both players, and
+  `arrows`, the Set of players to point an arrow at — what the board draws, so
+  the board needs no rule to draw it. The builder decides the arrows: a live
+  bystander points at whoever turned it over (one or both); a contacted agent
+  or the assassin has none, as today. Arrows there would be a builder change
+  alone, unseen by `gd` and the frontend. The board asks
+  `arrows.has(gd.me)` and `arrows.has(gd.partner)`; `gd.partner` is the other
+  player.
+- Whether a tile may be guessed is the builder's too: each blob tile carries
+  `guessableBy`, the players who may still guess it, and `makeGameData` makes
+  it my `guessable`. The reveal is for appearance, not for guessing (Joel:
+  "revealed.as is for appearance, not guessability"), so arrows on agents
+  stay a builder change that guessing never notices.
+- `maxTurns` is the team's, beside `nTurnsUsed`; an event's turn is
+  `turnNum`, as `turns.num` is. `num` joins the permitted abbreviations.
+- A guess's verdict is `result` on its event, as connections' is, and `as` on
+  the tile's reveal (Joel: "we'll keep result for events and "as" for the
+  tile reveal").
 
 ## Findings
 
