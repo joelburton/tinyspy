@@ -800,10 +800,10 @@ last column is what the conversion will do, filled in as it does it.
 
 | what | mentioned | taken over or dropped |
 |---|---|---|
-| `games_select` — a club member reads the game row, **both key cards included** (`key_card_a`, `key_card_b`) | neither | the policy is kept: a member reading a row for a page they can open. Hiding the partner's key until the end is the frontend's today; it is to be **taken over** by `makeGameData`'s seat rule over `game_data` |
-| `words_select` — a club member reads the 25 words and their reveal marks | neither | to be kept |
-| `events_select` — a club member reads every clue, guess, pass and hint | neither | to be kept |
-| `_write_statuses` — `game_status` {found_agents_count, turn_number, turns_remaining, max_turns}, `player_status` {} on each player, `clubpage_info` {found_agents_count, turns_remaining} | neither | to be **dropped**; `_rebuild_data_cols` writes the blobs |
+| `games_select` — a club member reads the game row, **both key cards included** (`key_card_a`, `key_card_b`) | neither | the policy is **kept** (2026-10-04): a member reading a row for a page they can open. Hiding the partner's key until the end is the frontend's today; it is to be **taken over** by `makeGameData`'s seat rule over `game_data` |
+| `words_select` — a club member reads the 25 words and their reveal marks | neither | **kept** (2026-10-04) |
+| `events_select` — a club member reads every clue, guess, pass and hint | neither | **kept** (2026-10-04) |
+| `_write_statuses` — `game_status` {found_agents_count, turn_number, turns_remaining, max_turns}, `player_status` {} on each player, `clubpage_info` {found_agents_count, turns_remaining} | neither | **dropped** (2026-10-04): `_rebuild_data_cols` writes the blobs after every move |
 | the postgres-changes subscriptions — `codenamesduet.games` (`hooks/useGame.ts`), `words` and `events` (`hooks/useBoard.ts`) — and their reads of `games`, `words` and `events` | — | the frontend's, at its conversion: the page reads `game_data` |
 
 codenamesduet has no view, and `word_pool` has no policy at all (only

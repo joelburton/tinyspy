@@ -198,62 +198,10 @@ $$;
 
 revoke execute on function codenamesduet._point_turn(uuid) from public;
 
--- ============================================================
--- codenamesduet._write_statuses — the page's copies of the game
--- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from codenamesduet's own tables, assigning
--- each whole (plans/common-tables.md → The statuses). Every key is always
--- present, null when it has no value:
---
---   game_status    { found_agents_count, turn_number, turns_remaining,
---                    max_turns }
---                  — the info column's agents found, the turn and the
---                  budget; turns_remaining 0 is sudden death (worked out,
---                  _turns_remaining)
---   player_status  {} — both players share everything; there is no strip
---   clubpage_info  { found_agents_count, turns_remaining }
---
--- `p_update_status_changed_at` is true from create, Restart and every move,
--- false from a rebuild (the pass over every game, a repair by hand), so a
--- rebuild never re-dates a game.
-create or replace function codenamesduet._write_statuses(
-  p_game_id uuid,
-  p_update_status_changed_at boolean
-)
-returns void
-language plpgsql
-security definer
-set search_path = codenamesduet, common, public, extensions
-as $$
-declare
-  g codenamesduet.games%rowtype;
-  v_found_agents int;
-begin
-  select * into g from codenamesduet.games where game_id = p_game_id;
-  select count(*) into v_found_agents from codenamesduet.words
-   where game_id = p_game_id and revealed_as = 'G';
-
-  update common.game_players
-     set player_status = '{}'::jsonb
-   where game_id = p_game_id;
-
-  update common.games
-     set game_status = jsonb_build_object(
-           'found_agents_count', v_found_agents,
-           'turn_number', g.turn_number,
-           'turns_remaining', codenamesduet._turns_remaining(g.max_turns, g.turn_number),
-           'max_turns', g.max_turns),
-         clubpage_info = jsonb_build_object(
-           'found_agents_count', v_found_agents,
-           'turns_remaining', codenamesduet._turns_remaining(g.max_turns, g.turn_number)),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
-   where id = p_game_id;
-end;
-$$;
-
-revoke execute on function codenamesduet._write_statuses(uuid, boolean) from public;
+-- The function that wrote the statuses; nothing reads codenamesduet's any
+-- more, so they are not written. The columns stay until a migration retires
+-- them for every game. supabase/sql is re-applied, not diffed.
+drop function if exists codenamesduet._write_statuses(uuid, boolean);
 
 -- ============================================================
 -- The page blobs — what the page shows, written by this game's builder
@@ -846,8 +794,6 @@ begin
   perform common._assign_turn_order(new_id, seat_a);
   perform codenamesduet._point_turn(new_id);
 
-  perform codenamesduet._write_statuses(new_id, p_update_status_changed_at => true);
-
   perform codenamesduet._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. REQUIRED, not
@@ -983,8 +929,6 @@ begin
 
   -- The clue is in, so the move is now the guesser's.
   perform codenamesduet._point_turn(p_game_id);
-
-  perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
 
   perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
@@ -1250,8 +1194,6 @@ begin
       p_final_rankings => coalesce(v_rankings, '{}'::jsonb)
     );
 
-    perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
-
     perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
     turns_used := g.max_turns - codenamesduet._turns_remaining(g.max_turns, g.turn_number);
@@ -1272,7 +1214,6 @@ begin
     -- left of the budget, and who clues next (nobody, if that spent the last
     -- turn and dropped the game into sudden death).
     turn_state := codenamesduet._end_turn(p_game_id);
-    perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
     perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
     return common._ok_envelope(
       jsonb_build_object(
@@ -1296,8 +1237,6 @@ begin
     returning * into g;
     perform codenamesduet._point_turn(p_game_id);
   end if;
-
-  perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
 
   perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
@@ -1417,8 +1356,6 @@ begin
   -- passing does.
   turn_state := codenamesduet._end_turn(p_game_id);
 
-  perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
-
   perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(jsonb_build_object(
@@ -1484,8 +1421,6 @@ begin
     p_is_no_result => false,
     p_final_rankings => '{}'::jsonb
   );
-
-  perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
 
   perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
@@ -1560,8 +1495,6 @@ begin
   -- Back to seat A, who owes the first clue.
   perform codenamesduet._point_turn(p_game_id);
 
-  perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
-
   perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
@@ -1612,8 +1545,6 @@ begin
   update codenamesduet.games
      set current_clue_giver = null
    where game_id = p_game_id;
-
-  perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
 
   perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
@@ -1819,8 +1750,8 @@ drop function if exists codenamesduet.log_hint(uuid);
 --
 -- The gate is `_require_clue_giver`, the same one `get_clue_context` asked a
 -- moment earlier; between the two the model was thinking, so a refusal here is
--- the same race arriving late. ONE `ok`. A hint spends no turn; it rewrites
--- the statuses like every move, which is how the partner's page hears of it.
+-- the same race arriving late. ONE `ok`. A hint spends no turn; it rebuilds
+-- the page blobs like every move, which is how the partner's page hears of it.
 create or replace function codenamesduet.log_hint(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1840,8 +1771,6 @@ begin
   -- just checked, and `auth.uid()` names them.
   insert into codenamesduet.events (game_id, user_id, kind, took_turn, turn_number, seat)
   values (p_game_id, auth.uid(), 'hint', false, g.turn_number, caller_seat);
-
-  perform codenamesduet._write_statuses(p_game_id, p_update_status_changed_at => true);
 
   perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'logged'));
