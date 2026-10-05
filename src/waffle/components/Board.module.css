@@ -97,6 +97,8 @@
   font-size: var(--letter-size);
   font-weight: 700;
   line-height: 1;
+  /* The letters are stored lowercase, as the word list is; capitals are drawn. */
+  text-transform: uppercase;
   /* Lifted into the tile's own stacking context, which the shared
    * `.attentionFlash` requires: its overlay is absolutely positioned,
    * and one of those sits above in-flow text by default — so without this the

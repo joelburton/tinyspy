@@ -49,9 +49,9 @@ type Props = {
   board: string
   // 25-char per-tile color codes (g/y/x/.), or null before load.
   colors: string | null
-  // The board responds to me (the page's `isBoardInteractive`). When false —
-  // or while a past swap is open — the tiles take no pick, drag or key.
-  isBoardInteractive: boolean
+  // The board is mine to work: the move is mine and the live board is on
+  // screen. When false the tiles take no pick, drag or key.
+  isInteractive: boolean
   // Draw the gray-blue "viewing a past turn" frame + suppress the
   // attention flash (the ringed cells mark what the viewed swap did instead).
   isViewingHistory?: boolean
@@ -65,7 +65,7 @@ type Props = {
   // or two, and the reflexive did-I-misclick re-tap of the same two tiles
   // would otherwise queue the REVERSE swap.
   pendingSwap?: readonly [number, number] | null
-  // A teammate holds the move (the page's `isWaitingForTurn`): dim the whole
+  // A teammate holds the move (`gd.me.waitingForTurn`): dim the whole
   // board, unless it is interactive. The dim on a board says "you cannot act
   // at all", the same verb the in-flight dim above uses on a tile — the
   // element it lands on says what is inactive.
@@ -74,11 +74,12 @@ type Props = {
   // frame yellow. The dim lifting is a state change; this is the event, and
   // you are by definition looking elsewhere when it happens.
   myTurnJustStarted?: boolean
-  // The game is finished, and how it ended — the board takes a band in that
-  // outcome's gray (neutral for a game that was simply ended). Null while it is
-  // still live. Permanent, unlike the two transient dims above: it says "this is
-  // a record, not a position".
-  gameOver?: EndOutcome | null
+  // How I came out, once I have ended — with the game, or before it while the
+  // others race on: the board takes a band in that outcome's gray (neutral for
+  // a game that was simply stopped). Null while I still play. Permanent,
+  // unlike the two transient dims above: it says "this is a record, not a
+  // position".
+  endingOutcome?: EndOutcome | null
   // How many swaps the server has recorded for the board on show (the replay
   // log's length — everyone's in coop, mine in compete). It is the CAUSE the
   // attention flash reads: a board that changed while this number stood still
@@ -105,19 +106,19 @@ type Props = {
 export function Board({
   board,
   colors,
-  isBoardInteractive,
+  isInteractive,
   isViewingHistory = false,
   historyLitTiles,
   onSwap,
   pendingSwap = null,
   isWaitingForTurn = false,
   myTurnJustStarted = false,
-  gameOver = null,
+  endingOutcome = null,
   moveCount,
 }: Props) {
-  // No pick, drag or key while the board is inert, or while a past swap is on
-  // screen — any click or key there leaves history.
-  const disabled = !isBoardInteractive || isViewingHistory
+  // No pick, drag or key while the board is inert — a past swap on screen is
+  // one such time: any click or key there leaves history.
+  const disabled = !isInteractive
   // The picked tiles, in pick order: one from a tap, up to two from the
   // keyboard.
   const [picks, setPicks] = useState<readonly number[]>([])
@@ -249,8 +250,8 @@ export function Board({
         className={cls(
           styles.grid,
           isViewingHistory && history.historyFrame,
-          isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
-          makeEndingFrameClasses(gameOver, isViewingHistory),
+          isWaitingForTurn && !isInteractive && shared.dimNotYourTurn,
+          makeEndingFrameClasses(endingOutcome, isViewingHistory),
           myTurnJustStarted && shared.yourTurnFlash,
         )}
         role="grid"
@@ -318,7 +319,7 @@ export function Board({
                 dragFrom.current = null
               }}
             >
-              <span className={styles.letter}>{letter.toUpperCase()}</span>
+              <span className={styles.letter}>{letter}</span>
             </button>
           )
         })}

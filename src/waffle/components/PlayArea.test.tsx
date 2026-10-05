@@ -221,6 +221,13 @@ describe('waffle PlayArea — concede', () => {
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     expect(screen.getByText('Conceded — race continues')).toBeInTheDocument()
   })
+
+  it('bands my board with my outcome once I am out, while the others race on', () => {
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
+    expect(screen.getByRole('grid').className).not.toMatch(/endingFrame/)
+    rerender(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />)
+    expect(screen.getByRole('grid').className).toMatch(/endingFrame_lost/)
+  })
 })
 
 /**
@@ -326,7 +333,7 @@ describe('waffle PlayArea — icon-only action rows', () => {
     // …and the click draws it, board and words, here and nowhere else.
     expect(screen.getByText('ABCDE')).toBeInTheDocument()
     expect(screen.getByText('QRSTU')).toBeInTheDocument()
-    expect(boardTiles()[0]).toHaveTextContent('A')
+    expect(boardTiles()[0]).toHaveTextContent('a')
     expect(commonRpc).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
   })
@@ -338,7 +345,7 @@ describe('waffle PlayArea — icon-only action rows', () => {
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     await user.click(screen.getByRole('button', { name: 'Hide solution' }))
     expect(screen.queryByText('ABCDE')).not.toBeInTheDocument()
-    expect(boardTiles()[0]).toHaveTextContent('B')
+    expect(boardTiles()[0]).toHaveTextContent('b')
     expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
@@ -459,15 +466,15 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
   it('clicking a swap row replays that swap; the ✕ returns to live', async () => {
     const user = userEvent.setup()
     render(<PlayAreaLoader {...makeCtx(HISTORY)} />)
-    expect(boardTiles()[0]).toHaveTextContent('A')
+    expect(boardTiles()[0]).toHaveTextContent('a')
 
     // Swap #1: the board after only moth's 2↔3 — cell 0 still 'b'.
     await user.click(screen.getByText('#1', { exact: true, selector: 'span' }))
     expect(screen.getByText('#1: C (C1) ↔ D (D1)')).toBeInTheDocument()
-    expect(boardTiles()[0]).toHaveTextContent('B')
+    expect(boardTiles()[0]).toHaveTextContent('b')
 
     await user.click(screen.getByLabelText('Exit history'))
-    expect(boardTiles()[0]).toHaveTextContent('A')
+    expect(boardTiles()[0]).toHaveTextContent('a')
     expect(screen.queryByText('#1: C (C1) ↔ D (D1)')).not.toBeInTheDocument()
   })
 
@@ -508,8 +515,8 @@ describe('waffle PlayArea — a swap in flight', () => {
     expect(rpc).toHaveBeenCalledWith('submit_swap', { p_game_id: 'g1', p_pos_a: 0, p_pos_b: 1 })
 
     // The MOVE, immediately: the two letters have traded places.
-    expect(tiles[0]).toHaveTextContent('A')
-    expect(tiles[1]).toHaveTextContent('B')
+    expect(tiles[0]).toHaveTextContent('a')
+    expect(tiles[1]).toHaveTextContent('b')
     // …but NOT its verdict: both cells drop their stale color for the unjudged
     // fill, and dim to say they're with the server.
     expect(tiles[0]!.className).toMatch(/inFlight/)
@@ -534,7 +541,7 @@ describe('waffle PlayArea — a swap in flight', () => {
       events: [ZTest_swap(1, 'u1', [0, 1], ZTest_DEALT, ALL_GREEN)],
     })} />)
     expect(tiles[0]!.className).not.toMatch(/dimInFlight/)
-    expect(tiles[0]).toHaveTextContent('A')
+    expect(tiles[0]).toHaveTextContent('a')
     expect(tiles[0]!.className).toMatch(/attentionFlash/)
     expect(tiles[2]!.className).not.toMatch(/attentionFlash/)
 
@@ -573,8 +580,8 @@ describe('waffle PlayArea — a swap in flight', () => {
 
     // Optimism is about ACCEPTANCE, so a refusal is the price: the letters go
     // back where they were.
-    await waitFor(() => expect(tiles[0]).toHaveTextContent('B'))
-    expect(tiles[1]).toHaveTextContent('A')
+    await waitFor(() => expect(tiles[0]).toHaveTextContent('b'))
+    expect(tiles[1]).toHaveTextContent('a')
     expect(tiles[0]!.className).not.toMatch(/dimInFlight/)
   })
 })

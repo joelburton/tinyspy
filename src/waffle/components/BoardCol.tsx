@@ -1,6 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
@@ -64,6 +65,12 @@ export function BoardCol({
     newestEventId: gd.events.at(-1)?.id ?? null,
     localFeedbackSlot,
   })
+  // Any key is the player's next move → dismiss a gesture-cleared message.
+  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
+
+  // The board is mine to work: the move is mine, and the live board is the one
+  // on screen — a click or key on a past one is the viewer's exit.
+  const isInteractive = gd.me.onTurn && !historyView.isViewing
   // The swap still out belongs to the live board only.
   const pendingSwap = isLiveBoard ? submission.pendingSwap : null
   const { board, colors } = makeBoardStrings(shownTiles, pendingSwap)
@@ -84,16 +91,17 @@ export function BoardCol({
       <Board
         board={board}
         colors={colors}
-        isBoardInteractive={gd.me.onTurn}
+        isInteractive={isInteractive}
         isViewingHistory={historyView.isViewing}
         historyLitTiles={new Set([...historyView.litTileIds].map(Number))}
         onSwap={submission.send}
         pendingSwap={pendingSwap}
         isWaitingForTurn={gd.me.waitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
-        // The finished board wears my ending's outcome — the same one the
-        // below-board verdict and the info column's line read.
-        gameOver={gd.ended ? gd.me.outcome : null}
+        // Bands the board once I have ended: with the game, or before it while
+        // the others race on — the outcome the below-board pill and the info
+        // column's line wear.
+        endingOutcome={gd.me.outcome}
         // The swaps behind the board on show — the team's in coop, my own in
         // compete. A Restart zeroes it, which is what tells the flash that a
         // re-dealt board was not played into existence.

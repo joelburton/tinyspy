@@ -7,7 +7,6 @@ import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingM
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
-import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
@@ -89,8 +88,6 @@ function PlayArea({
   const turnFlash = useTurnStartFlash(gd.me.onTurn)
 
   const localFeedbackSlot = useFeedbackSlot('local')
-  // Any key is the player's next move → dismiss a gesture-cleared message.
-  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // The endings' messages, for the pill and the info column: the game's once
   // it has ended, mine while I have ended and the others race on.

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
@@ -40,6 +39,11 @@ type SwapAnswer = {
  * cannot outlive its answer. The RPC resolving is NOT the end of it: the reply
  * beats the blob, and dropping it there would leave two colorless tiles sitting
  * undimmed until the board caught up.
+ *
+ * **The swap still out is the one in-flight guard.** A tap and a drag swap
+ * with no action behind them, so an action's `pending` cannot cover them;
+ * `<Board>` takes no swap of any kind while `pendingSwap` is set, and it is set
+ * from the moment of sending until the swap's row lands.
  */
 export function useSubmitSwap({
   gameId,
@@ -62,7 +66,7 @@ export function useSubmitSwap({
     atEventId: number | null
   } | null>(null)
 
-  async function doSwap(a: number, b: number) {
+  async function send(a: number, b: number) {
     setInFlight({ cells: [a, b], atEventId: newestEventId })
     const res = await runRpc<SwapAnswer>(
       db.rpc('submit_swap', { p_game_id: gameId, p_pos_a: a, p_pos_b: b }),
@@ -87,7 +91,6 @@ export function useSubmitSwap({
       return
     }
   }
-  const [send] = useSingleFlight(doSwap)
 
   const pendingSwap =
     inFlight !== null && inFlight.atEventId === newestEventId ? inFlight.cells : null

@@ -89,10 +89,10 @@ export function GameEventLog({
             />
             <td className={gameEventLog.main}>
               <span className={styles.move}>
-                <span className={styles.letter}>{a.letter.toUpperCase()}</span>
+                <span className={styles.letter}>{a.letter}</span>
                 <span className={styles.coord}>({coord(Number(a.id))})</span>
                 <span className={styles.arrow}>↔</span>
-                <span className={styles.letter}>{b.letter.toUpperCase()}</span>
+                <span className={styles.letter}>{b.letter}</span>
                 <span className={styles.coord}>({coord(Number(b.id))})</span>
               </span>
             </td>
