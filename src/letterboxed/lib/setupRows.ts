@@ -6,7 +6,7 @@ import { BOARD_KEY, makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/s
 import type { SetupRow } from '@/common/setup-form/types'
 import { PAR } from './board'
 import { formatSides } from './customBoard'
-import type { LetterboxedSetup } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * letterboxed's setup rows — ONE array, rendered by the info column and the
@@ -41,7 +41,7 @@ import type { LetterboxedSetup } from './setup'
  * how much slack you gave yourselves, and par here is the constant 2.
  */
 export function makeSetupRows(
-  setup: LetterboxedSetup,
+  setup: GSetup,
   mode: 'coop' | 'compete',
   players: Member[],
   sides: string,

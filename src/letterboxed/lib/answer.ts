@@ -1,17 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { Outcome } from '@/common/outcomes/outcomes'
-
-/**
- * What a turn was — the five things a `letterboxed.events` row can record, and
- * the row's own `kind` column is already the key, so nothing translates.
- *
- * The frontend's own refusal is deliberately absent. `rejectReason` turns a word
- * away before the RPC is called, nothing is written down, and the pill is its
- * only outcome surface (the board mark beside it is a shake, which carries no
- * word).
- */
-export type Answer = 'word' | 'undo' | 'clear' | 'hint' | 'spoiler'
+import type { GAnswer } from '../types'
 
 /**
  * The outcome of every answer, in one place.
@@ -39,7 +29,7 @@ export type Answer = 'word' | 'undo' | 'clear' | 'hint' | 'spoiler'
  *     something to find: `warning`, as a hint is in every game.
  *   - a spoiler IS the word. There is nothing left to find, so it is red.
  */
-export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
+export const ANSWER_OUTCOME: Record<GAnswer, Outcome> = {
   word: 'won',
   undo: 'noted',
   clear: 'noted',

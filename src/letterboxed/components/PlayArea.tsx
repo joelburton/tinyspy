@@ -18,7 +18,7 @@ import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { BOARD_SIZE, rejectReason, tailLetter } from '../lib/board'
 import { isSuggestion, suggest } from '../lib/solve'
-import type { LetterboxedSetup } from '../lib/setup'
+import type { GSetup } from '../types'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -114,7 +114,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // out to the browser.
   useTabRing([])
 
-  const letterboxedSetup = setup as LetterboxedSetup
+  const letterboxedSetup = setup as GSetup
 
   // The setup rows, built ONCE and handed to both consumers — the info column
   // renders them as <li>s, the print model prints the same array. Literally the

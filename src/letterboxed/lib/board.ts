@@ -131,7 +131,7 @@ const STOPS = [0.2, 0.5, 0.8]
 export const NODE_R = 7.2
 
 /** A letter's place on the square, plus the side it belongs to. */
-export type Node = { letter: string; x: number; y: number; side: number }
+type Node = { letter: string; x: number; y: number; side: number }
 
 /**
  * Lay the twelve letters out CLOCKWISE from the top-left: side 0 across the

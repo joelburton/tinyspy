@@ -25,7 +25,7 @@ import { BOARD_SIZE, SIDE_SIZE } from './board.ts'
  */
 
 /** A typed board that could be read, or the one-line reason it couldn't. */
-export type ParsedSides = { ok: true; sides: string } | { ok: false; error: string }
+type ParsedSides ={ ok: true; sides: string } | { ok: false; error: string }
 
 /**
  * Normalize typed input the way the server will read it: lowercased, stripped

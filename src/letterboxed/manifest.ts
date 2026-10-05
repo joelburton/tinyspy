@@ -11,8 +11,8 @@ import {
   DEFAULT_LETTERBOXED_SETUP_COMPETE,
   DEFAULT_LETTERBOXED_SETUP_COOP,
   letterboxedSetupError,
-  type LetterboxedSetup,
 } from './lib/setup'
+import type { GSetup } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -62,7 +62,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // _shared/startGame.ts).
     runEdgeFn<CreatedGame>('letterboxed-build-board', {
       target_club: clubHandle,
-      setup: setup as LetterboxedSetup,
+      setup: setup as GSetup,
       player_user_ids: playerUserIds,
       mode,
     })
@@ -173,7 +173,7 @@ export const letterboxedCoopGame: GameManifest = {
       'One shared chain. Each word starts with the last letter of the one before it, and no word may use two letters from the same side. Together, touch all twelve letters.',
     Component: setupFormLoader,
     defaults: DEFAULT_LETTERBOXED_SETUP_COOP,
-    validate: (setup) => letterboxedSetupError(setup as LetterboxedSetup),
+    validate: (setup) => letterboxedSetupError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('coop'),
@@ -208,7 +208,7 @@ export const letterboxedCompeteGame: GameManifest = {
       'Same twelve letters, a private chain each. First to touch all twelve within the word limit wins; until then you only see how far the others have got, not their words.',
     Component: setupFormLoader,
     defaults: DEFAULT_LETTERBOXED_SETUP_COMPETE,
-    validate: (setup) => letterboxedSetupError(setup as LetterboxedSetup),
+    validate: (setup) => letterboxedSetupError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('compete'),

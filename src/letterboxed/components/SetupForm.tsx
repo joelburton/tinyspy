@@ -11,7 +11,7 @@ import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { PAR } from '../lib/board'
 import { cleanSides, formatSides } from '../lib/customBoard'
-import type { LetterboxedValues } from '../lib/setup'
+import type { GSetupValues } from '../types'
 import { ManualBoardField } from '@/common/fields/ManualBoardField'
 import { SIDE_SIZE } from '../lib/board'
 
@@ -30,8 +30,8 @@ import { SIDE_SIZE } from '../lib/board'
 export function SetupForm({
   mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as LetterboxedValues
-  const set = setValue as SetupSetter<LetterboxedValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
   const players = members.filter((m) => s.player_user_ids.has(m.user_id))

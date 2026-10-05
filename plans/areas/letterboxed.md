@@ -88,9 +88,10 @@ unless noted):
   "act-new-game active before load" with step 9, and "collapse the action
   row" with the InfoCol pass.
 
-## The `gd` sketch
+## The rulings behind the shape
 
-Approved 2026-10-05 (step 2); moves into `types.ts` at step 6.
+The `gd` sketch, approved 2026-10-05 (step 2), is the comment in
+`src/letterboxed/types.ts` since step 6. The rulings behind it:
 
 - **The word list is two lists in the blob**, `words` (every word the board
   accepts) and `uncleanWords` (the few a hint may not offer, about 5%), so
@@ -105,67 +106,8 @@ Approved 2026-10-05 (step 2); moves into `types.ts` at step 6.
   history replay alike.
 - **`hints_used` becomes two counts off the events**, `nHintsUsed` and
   `nSpoilersUsed`.
-
-```
-gd:
-  id
-  gametype
-  brand
-  club: {handle}
-  mode
-  coop
-  compete
-  oneBoard
-  title
-  setup
-  setupRows
-  puzzle:                                  # frozen at create
-    tiles: [tile, …]                       # the box, in side order
-    words: [{word, clean}, …]              # the blob's words and uncleanWords, joined by makeGameData
-    nParWords
-    solution: [wordA, wordB]               # null until the game ends
-  team: {nWordsUsed, nCoveredLetters}      # the shared chain's; null in compete
-  turns: {holder}
-  ending: {reason, detail, by, winner}
-  ended
-  outcome
-  events: [event, …]                       # my rows only, mid-race
-  players: [player, …]
-  playersById
-  me
-  stateLineData: {nCoveredLetters, nWordsUsed, maxWords, nParWords}   # the team's in coop, mine in compete
-
-player:
-  the common player
-  maxWords                                 # the same on every player
-  nWordsUsed                               # compete only: this racer's chain
-  nCoveredLetters                          # compete only: this racer's chain
-  nHintsUsed                               # own
-  nSpoilersUsed                            # own
-  board: {words}                           # this seat's chain, the shared one in coop; null for a rival mid-race
-
-tile:                                      # GTile
-  id                                       # the letter
-  letter
-  side                                     # 0–3
-
-event:
-  id
-  by
-  kind                                     # word / undo / clear / hint / spoiler
-  word                                     # null for a clear
-  nCoveredLetters                          # after this event
-  tookTurn
-  at
-
-summary_data:
-  team                                     # as gd's
-  maxWords
-  band
-  nBestCoveredLetters                      # compete's best so far; null in coop
-  nWinnerWords                             # null until a racer solves
-  nWinnerCoveredLetters                    # compete's winner, on a solve or a timeout
-```
+- **`gd.puzzle.tilesById`** joins the sketch at step 6: step 7 builds
+  `tilesById` beside the tiles, as every game's `useGame` does.
 
 ## Predicted test breaks
 
@@ -181,7 +123,14 @@ summary_data:
   `outcome` is `won` in `game_data`.
 - **Steps 4–9:** the frontend reads the views and the old common shapes
   until the PlayArea pass moves every reader onto `gd`; it could not load
-  before this began.
+  before this began. `tsc -b` reports 61 errors in the folder at step 6, none
+  in `types.ts` or `lib/`.
+- **Step 6 (2026-10-05):** letterboxed joins `CONVERTED_GAMES` in
+  `src/guards/gameTypes.test.ts` once the last old shapes are gone: `Player`,
+  `LetterboxedGame`, `PlayerRow` and `EventRow` with `useGame` (step 7).
+  `lib/answer.ts`'s `Answer` is `GAnswer`; `Node`, `ParsedSides`,
+  `Suggestion` and `NoSuggestion` stopped being exported, each read only in
+  its own file.
 
 *(the spec names, written when the area starts changing things)*
 

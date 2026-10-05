@@ -24,7 +24,7 @@ import { BOARD_SIZE, tailLetter } from './board'
  */
 
 /** What the hint found. */
-export type Suggestion = {
+type Suggestion = {
   /** A word to play next, on a shortest path to finishing. */
   word: string
   /** How many of the twelve letters it newly covers. */
@@ -35,7 +35,7 @@ export type Suggestion = {
 }
 
 /** Why no suggestion could be made — the three are very different situations. */
-export type NoSuggestion =
+type NoSuggestion =
   /** Nothing at all can follow the current letter: the chain has dead-ended
    *  and the only move is taking a word back. */
   | { kind: 'stuck' }
