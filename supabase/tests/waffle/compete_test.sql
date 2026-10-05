@@ -41,8 +41,8 @@ select waffle.submit_swap((select id from g), 0, 1) as res;
 
 select is((select (res->'data'->>'solved')::boolean from a_solve), true,
   'ada solves on her first swap');
-select is((select (res->'data'->>'terminal')::boolean from a_solve), false,
-  'game is NOT terminal yet — bea is still playing');
+select is((select (res->'data'->>'game_ended')::boolean from a_solve), false,
+  'the game has NOT ended yet — bea is still playing');
 
 reset role;
 select is(
@@ -133,8 +133,8 @@ select waffle.submit_swap((select id from g), 2, 3);   -- 2, undo
 create temp table b_solve on commit drop as
 select waffle.submit_swap((select id from g), 0, 1) as res;   -- 3, solve → all done
 
-select is((select (res->'data'->>'terminal')::boolean from b_solve), true,
-  'once every player is done → terminal');
+select is((select (res->'data'->>'game_ended')::boolean from b_solve), true,
+  'once every player is done → the game has ended');
 
 reset role;
 -- The last racer's act is the game's reason: bea's solve.
@@ -218,7 +218,7 @@ select isnt(
 -- (b) A race nobody solves. The title must name what a PLAYER'S BOARD actually
 --     has, not the solution's six.
 --
---     Note this fixture's scramble is one swap from solved, so an untouched
+--     Note this fixture's deal is one swap from solved, so an untouched
 --     board already shows five correct words — those are the player's own
 --     greens, visible from move zero, so naming them leaks nothing. What must
 --     NOT appear is the sixth: the word only the solution has.

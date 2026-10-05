@@ -168,6 +168,10 @@ The rulings behind it (2026-10-05):
   the frontend's 25-letter strings and `lib/colors.ts` are gone. The action
   row is one list. `docs/games/waffle.md` still names `lib/colors` and the old
   shapes; step 14 rewrites it.
+- **Step 13 (2026-10-05):** `create_game`'s board key is `dealt` (was
+  `scramble`), so `waffle-build-board` and `supabase/sql/waffle.sql` must ship
+  in the same deploy: either one alone breaks starting a waffle game until the
+  other lands. `submit_swap`'s reply says `n_swaps_used` and `game_ended`.
 
 ## Closing
 

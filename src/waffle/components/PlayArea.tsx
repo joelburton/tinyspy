@@ -1,9 +1,13 @@
 // cs-fixed-outcome-fix
 
 import { cls } from '@/common/utils/cls'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
+import {
+  CelebrationBlockingModal,
+} from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
@@ -162,7 +166,10 @@ function PlayArea({
           carried in-page, by the below-board pill and the action row's line.
           My win's confetti — once, when it happens. */}
       {celebration.isOpen && (
-        <CelebrationBlockingModal title="Solved it! 🧇" onClose={celebration.close} />
+        <CelebrationBlockingModal
+          title="Solved it! 🧇"
+          onClose={celebration.close}
+        />
       )}
     </div>
   )

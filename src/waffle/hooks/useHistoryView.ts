@@ -11,12 +11,24 @@ import type { GGameData, GHistoryView } from '../types'
  * is not another `#N`, and any key. The replay is `lib/history.ts`'s.
  */
 export function useHistoryView(gd: GGameData): GHistoryView {
-  const { historyId, historyN, showHistory, exitHistory } = useHistoryViewer<number>()
+  const {
+    historyId,
+    historyN,
+    showHistory,
+    exitHistory,
+  } = useHistoryViewer<number>()
   const replayed =
     historyId === null
       ? null
-      : replaySwap(gd.puzzle.dealtTiles, gd.events, historyId, historyN, gd.compete)
-  const isSomeoneElsesBoard = gd.compete && replayed !== null && replayed.author !== gd.me
+      : replaySwap(
+        gd.puzzle.dealtTiles,
+        gd.events,
+        historyId,
+        historyN,
+        gd.compete,
+      )
+  const isSomeoneElsesBoard = gd.compete && replayed !== null &&
+    replayed.author !== gd.me
 
   return {
     isViewing: replayed !== null,

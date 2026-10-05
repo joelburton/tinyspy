@@ -7,7 +7,7 @@ import type { Cell, GameGallery } from '../types'
 /**
  * SyrupSwap (waffle) gallery states (docs/testing.md → The screenshot gallery).
  *
- * The fixture's scramble differs from its solution by ONE transposition (the
+ * The fixture's deal differs from its solution by ONE transposition (the
  * first two cells), with `par_swaps: 1` — so a win is a single `submit_swap` of
  * positions 0 and 1, and any OTHER swap is a wrong move that leaves the board
  * mid-game. That makes both terminal and mid-game states one RPC each.

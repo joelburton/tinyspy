@@ -2,7 +2,11 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
+import {
+  makeCoopRows,
+  makeRosterRow,
+  makeTimerRow,
+} from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import type { GSetup } from '../types'
 
@@ -24,11 +28,16 @@ export function makeSetupRows(
   return [
     makeRosterRow(players),
     ...makeCoopRows(setup, mode, players),
-    { key: 'difficulty', label: 'Dictionary', value: difficultyValue(setup.difficulty) },
+    {
+      key: 'difficulty',
+      label: 'Dictionary',
+      value: difficultyValue(setup.difficulty),
+    },
     {
       key: 'extra_swaps',
       label: 'Swaps',
-      value: `${parSwaps + setup.extra_swaps} (par ${parSwaps} + ${setup.extra_swaps} extra)`,
+      value: `${parSwaps +
+      setup.extra_swaps} (par ${parSwaps} + ${setup.extra_swaps} extra)`,
     },
     makeTimerRow(setup.timer),
   ]

@@ -607,7 +607,7 @@ drop function if exists waffle.create_game(text, jsonb, uuid[], text, jsonb);
 -- ============================================================
 -- Starts a game on `p_board`, the freshly-built puzzle from the
 -- waffle-build-board edge function:
---   { "solution": 25-char, "scramble": 25-char, "par_swaps": int }
+--   { "solution": 25-char, "dealt": 25-char, "par_swaps": int }
 -- We store it (the game is self-contained; the dealt board is
 -- `board_at_setup`) and seed one players row per player on the dealt board.
 -- Board CONTENT is taken at face value (we don't re-derive par in SQL —
@@ -674,13 +674,13 @@ begin
 
   -- ─── Validate the passed board (structure, not content) ──────
   b_solution := p_board->>'solution';
-  b_dealt    := p_board->>'scramble';
+  b_dealt    := p_board->>'dealt';
   b_par      := (p_board->>'par_swaps')::int;
   if b_solution is null or length(b_solution) <> 25
      or b_dealt is null or length(b_dealt) <> 25 then
     raise exception 'BUG: generated board was not a pair of 25-square grids'
       using errcode = 'PN106', hint = 'fault', column = '_',
-      detail = 'solution and scramble must both be 25-char strings';
+      detail = 'board.solution and board.dealt must both be 25-char strings';
   end if;
   if b_par is null or b_par < 1 then
     raise exception 'BUG: generated board arrived with a par of %', b_par
@@ -703,7 +703,7 @@ begin
         from regexp_split_to_table(b_dealt, '') c) then
     raise exception 'BUG: generated board could not be solved by swapping'
       using errcode = 'PN109', hint = 'fault', column = '_',
-      detail = 'scramble must be a permutation of solution';
+      detail = 'board.dealt must be a permutation of board.solution';
   end if;
 
   budget := b_par + s_extra;
@@ -900,7 +900,7 @@ declare
   new_board          char(25);
   new_swaps          int;
   did_solve          boolean;
-  out_terminal       boolean := false;
+  out_game_ended     boolean := false;
   v_rankings         jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
@@ -1033,14 +1033,14 @@ begin
         p_is_no_result => false,
         p_final_rankings => v_rankings
       );
-      out_terminal := true;
+      out_game_ended := true;
     elsif new_swaps >= g_row.max_swaps then
       perform common._end_game(
         p_game_id, 'resource_exhausted', 'exhausted', caller_id,
         p_is_no_result => false,
         p_final_rankings => '{}'::jsonb
       );
-      out_terminal := true;
+      out_game_ended := true;
     else
       -- Turn-order: an accepted coop swap that didn't end the game hands the
       -- turn to the next player (no-op for free-for-all).
@@ -1062,11 +1062,11 @@ begin
        where game_id = p_game_id and user_id = caller_id;
       -- `neutral`: fewer swaps may yet beat it (`announce-when-ended`).
       perform common._set_player_ended(p_game_id, caller_id, 'reached_goal', 'solved', 'neutral');
-      out_terminal := waffle._maybe_finish_compete(p_game_id, 'reached_goal', 'solved', caller_id);
+      out_game_ended := waffle._maybe_finish_compete(p_game_id, 'reached_goal', 'solved', caller_id);
     elsif new_swaps >= g_row.max_swaps then
       -- Eliminated: `lost` at once (`loses-by-move-budget`).
       perform common._set_player_ended(p_game_id, caller_id, 'resource_exhausted', 'exhausted', 'lost');
-      out_terminal := waffle._maybe_finish_compete(p_game_id, 'resource_exhausted', 'exhausted', caller_id);
+      out_game_ended := waffle._maybe_finish_compete(p_game_id, 'resource_exhausted', 'exhausted', caller_id);
     end if;
   end if;
 
@@ -1077,8 +1077,8 @@ begin
   perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- No outcome and no message: an accepted swap shows the swapper NOTHING until
-  -- the colors reach everyone together over the realtime refetch (see the
-  -- PlayArea comment on why the reply is deliberately ignored). The payload
+  -- the colors reach everyone together in the next game_data blob (see
+  -- `useSubmitSwap` on why the reply is deliberately ignored). The payload
   -- still travels — the fact is structural whether or not anyone reads it.
   --
   -- `result` NAMES the answer, and it is the one field the call site DOES read:
@@ -1086,11 +1086,11 @@ begin
   -- would match by being `ok` and would draw a second answer as this one.
   return common._ok_envelope(
     jsonb_build_object(
-      'result',     'swapped',
-      'colors',     waffle._board_colors(new_board, g_row.solution),
-      'swaps_used', new_swaps,
-      'solved',     did_solve,
-      'terminal',   out_terminal
+      'result',       'swapped',
+      'colors',       waffle._board_colors(new_board, g_row.solution),
+      'n_swaps_used', new_swaps,
+      'solved',       did_solve,
+      'game_ended',   out_game_ended
     ));
 
 exception when others then

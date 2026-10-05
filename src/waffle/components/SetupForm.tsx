@@ -4,7 +4,9 @@ import { DictBandField } from '@/common/fields/DictBandField'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'
 import { RadioRow } from '@/common/fields/RadioRow'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
-import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import {
+  SetupCoopStyleSection,
+} from '@/common/setup-form/SetupCoopStyleSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
@@ -46,7 +48,8 @@ export function SetupForm({
   // "Swap budget: Tight +3".
   const dictLabel = `Dictionary: ${difficultyValue(s.difficulty)}`
   const swapGloss =
-    EXTRA_SWAP_OPTIONS.find((opt) => opt.value === s.extra_swaps)?.label ?? 'Custom'
+    EXTRA_SWAP_OPTIONS.find((opt) =>
+      opt.value === s.extra_swaps)?.label ?? 'Custom'
   const swapLabel = `Swap budget: ${swapGloss} +${s.extra_swaps}`
 
   return (
@@ -67,8 +70,10 @@ export function SetupForm({
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
-        onChange={({ coopStyle, firstTurnUserId }) =>
-          { set('coop_style', coopStyle); set('first_turn_user_id', firstTurnUserId) }
+        onChange={({ coopStyle, firstTurnUserId }) => {
+          set('coop_style', coopStyle)
+          set('first_turn_user_id', firstTurnUserId)
+        }
         }
       />
       <SetupSection label={dictLabel}>

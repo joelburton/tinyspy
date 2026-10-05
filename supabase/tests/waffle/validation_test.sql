@@ -21,7 +21,7 @@
 --
 -- The two integrity guards (#6 holes, #7 rearrangement) are the point
 -- of the exercise — they're what stops a client claiming a "solution"
--- whose letters don't match the scramble, or holes in the wrong cells.
+-- whose letters don't match the dealt board, or holes in the wrong cells.
 
 begin;
 
@@ -74,7 +74,7 @@ select pg_temp.envelope_is(
   'difficulty outside 1..6 is rejected'
 );
 
--- ─── (4) board.solution / scramble must be 25 chars ───────────
+-- ─── (4) board.solution / dealt must be 25 chars ──────────────
 select pg_temp.envelope_is(
   waffle.create_game((select handle from club), pg_temp.waffle_setup(5),
     array['ada11111-1111-1111-1111-111111111111'::uuid],
@@ -103,13 +103,13 @@ select pg_temp.envelope_is(
     'coop', pg_temp.waffle_board() ||
       jsonb_build_object(
         'solution', 'abcdefghijklmnopqrstuvwxy',
-        'scramble', 'abcdefghijklmnopqrstuvwxy')),
+        'dealt',    'abcdefghijklmnopqrstuvwxy')),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN108",
     "message":"BUG: generated board had its holes in the wrong squares"}'::jsonb,
   'a solution without holes at the interior cells is rejected'
 );
 
--- ─── (7) board.scramble must be a rearrangement of solution ───
+-- ─── (7) board.dealt must be a rearrangement of solution ──────
 -- The integrity guard: same length + holes, but one letter swapped for
 -- a letter the solution doesn't contain, so the multisets differ and
 -- the puzzle wouldn't be solvable by swaps alone.
@@ -117,10 +117,10 @@ select pg_temp.envelope_is(
   waffle.create_game((select handle from club), pg_temp.waffle_setup(5),
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop', pg_temp.waffle_board() ||
-      '{"scramble": "zacdef.g.hijklmn.o.pqrstu"}'::jsonb),
+      '{"dealt": "zacdef.g.hijklmn.o.pqrstu"}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN109",
     "message":"BUG: generated board could not be solved by swapping"}'::jsonb,
-  'a scramble whose letters differ from the solution is rejected'
+  'a dealt board whose letters differ from the solution is rejected'
 );
 
 select * from finish();

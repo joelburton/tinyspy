@@ -42,16 +42,16 @@ Deno.test('minSwaps: handles duplicate letters optimally', () => {
 
 Deno.test('minSwaps: ignores holes on a full 25-char board', () => {
   const sol = 'abcdef.g.hijklmn.o.pqrstu'
-  const scr = 'bacdef.g.hijklmn.o.pqrstu' // cells 0,1 swapped
-  eq(minSwaps(scr, sol), 1, 'one transposition, holes untouched')
+  const dealt = 'bacdef.g.hijklmn.o.pqrstu' // cells 0,1 swapped
+  eq(minSwaps(dealt, sol), 1, 'one transposition, holes untouched')
 })
 
 Deno.test('minSwaps: par-overcount regression (real board solved in 6)', () => {
   // The board that exposed the greedy over-count: stored par was 10,
   // the true minimum is 6.
-  const scramble = 'rpekse.v.ciruyse.n.esassr'
+  const dealt = 'rpekse.v.ciruyse.n.esassr'
   const solution = 'reekse.v.icressu.n.sraspy'
-  eq(minSwaps(scramble, solution), 6, 'true minimum is 6')
+  eq(minSwaps(dealt, solution), 6, 'true minimum is 6')
 })
 
 Deno.test('minSwaps: never exceeds an explicit swap sequence', () => {

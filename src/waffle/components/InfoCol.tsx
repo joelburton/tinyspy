@@ -2,7 +2,10 @@
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
+import {
+  InfoActionsRow,
+  type InfoActionsMessage,
+} from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
@@ -11,7 +14,13 @@ import { SolutionReveal } from './SolutionReveal'
 import { StateLine } from './StateLine'
 import { GameEventLog } from './GameEventLog'
 import shared from '@/common/info-sheet/infoCol.module.css'
-import type { GActions, GGameData, GHistoryView, GLetterTile, GPlayer } from '../types'
+import type {
+  GActions,
+  GGameData,
+  GHistoryView,
+  GLetterTile,
+  GPlayer,
+} from '../types'
 
 /**
  * waffle's info column: the shared readouts in the fixed order
@@ -44,13 +53,16 @@ export function InfoCol({
   // The six words: all of them while the solution is revealed, else each word
   // I have turned fully green on my own board — already on my screen, so
   // showing it leaks nothing. The rest read as em dashes.
-  const answerWords = solution !== null ? boardWords(solution) : solvedWords(gd.me.board.tiles)
+  const answerWords = solution !== null
+    ? boardWords(solution)
+    : solvedWords(gd.me.board.tiles)
 
   // A racer who dropped out or ran out of swaps reads "out"; everyone else
   // shows their swaps, a solver waiting on the rest with a ✓.
   function getSwapsOrOut(player: GPlayer) {
     const endedReason = player.ending?.reason
-    if (endedReason === 'conceded' || endedReason === 'resource_exhausted') return 'out'
+    if (endedReason === 'conceded' || endedReason ===
+      'resource_exhausted') return 'out'
     return (
       <>
         {player.nSwapsUsed}
@@ -65,7 +77,7 @@ export function InfoCol({
         {/* The SAME <StateLine> the mobile status bar renders above the board
             (they must never drift). */}
         <p className={shared.infoState}>
-          <StateLine data={gd.stateLineData} />
+          <StateLine data={gd.stateLineData}/>
         </p>
         {gd.turns !== null && (
           <TurnStatusLine
@@ -77,7 +89,7 @@ export function InfoCol({
 
         {/* The answer, revealed progressively: a word shows once you've turned it
             fully green; the rest read as em dashes. Shown throughout the game. */}
-        <SolutionReveal words={answerWords} />
+        <SolutionReveal words={answerWords}/>
 
         {/* Each racer's swap COUNT, not their board, which is withheld until the
             game ends. */}
@@ -94,11 +106,11 @@ export function InfoCol({
             order (docs/playarea.md). Each action answers whether it shows.
             ICON-ONLY — waffle's experiment; the tooltips carry the labels. */}
         <InfoActionsRow message={actionRowMessage}>
-          <ActionButton action={actions.actReveal} show="icon" />
-          <ActionButton action={actions.actRestart} show="icon" />
-          <ActionButton action={actions.actNewGame} show="icon" />
-          <ActionButton action={actions.actConcede} show="icon" />
-          <ActionButton action={actions.actStopGame} show="icon" />
+          <ActionButton action={actions.actReveal} show="icon"/>
+          <ActionButton action={actions.actRestart} show="icon"/>
+          <ActionButton action={actions.actNewGame} show="icon"/>
+          <ActionButton action={actions.actConcede} show="icon"/>
+          <ActionButton action={actions.actStopGame} show="icon"/>
           {/* Filled once the game has ended: the weight is the placement's
               choice, not the action's (docs/ui.md → What a `<button>` is). */}
           <ActionButton
@@ -114,7 +126,7 @@ export function InfoCol({
           <p className={shared.infoHelp}>Tap two tiles to swap them.</p>
         )}
 
-        <SetupDisclosure rows={gd.setupRows} />
+        <SetupDisclosure rows={gd.setupRows}/>
       </div>
 
       <GameEventLog

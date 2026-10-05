@@ -163,7 +163,7 @@ serve(async (req) => {
         p_setup: setup,
         p_player_user_ids: playerUserIds,
         p_mode: mode,
-        p_board: { solution: board.solution, scramble: board.scramble, par_swaps: board.par },
+        p_board: { solution: board.solution, dealt: board.dealt, par_swaps: board.par },
       },
       'waffle-build-board',
     )

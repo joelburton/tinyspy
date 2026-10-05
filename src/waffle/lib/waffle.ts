@@ -56,7 +56,10 @@ export function swapTileLetters(tiles: readonly GTile[], aId: string, bId: strin
   const a = tiles.find((t) => t.id === aId)!
   const b = tiles.find((t) => t.id === bId)!
   return tiles.map((t) =>
-    t.id === aId ? { ...t, letter: b.letter } : t.id === bId ? { ...t, letter: a.letter } : t)
+    t.id === aId ? { ...t, letter: b.letter } : t.id === bId ? {
+      ...t,
+      letter: a.letter,
+    } : t)
 }
 
 /** True if `pos` is a filled, letter-bearing cell. */
@@ -130,7 +133,10 @@ export function boardWords(tiles: ReadonlyArray<Pick<GTile, 'id' | 'letter'>>): 
 export function solvedWords(tiles: readonly GTile[]): (string | null)[] {
   const colorById = new Map(tiles.map((t) => [t.id, t.color]))
   return WORDS.map((cells) =>
-    cells.every((c) => colorById.get(String(c)) === 'g') ? lettersAt(tiles, cells) : null,
+    cells.every((c) =>
+      colorById.get(String(c)) === 'g')
+      ? lettersAt(tiles, cells)
+      : null,
   )
 }
 

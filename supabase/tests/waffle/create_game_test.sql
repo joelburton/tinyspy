@@ -60,7 +60,7 @@ select is(
 select is(
   (select board_at_setup from waffle.games where game_id = (select id from g))::text,
   'bacdef.g.hijklmn.o.pqrstu',
-  'the board''s scramble is stored as board_at_setup'
+  'the dealt board is stored as board_at_setup'
 );
 
 select is(

@@ -1037,7 +1037,7 @@ export async function connectionsArchiveEdge(which: 'first' | 'last'): Promise<s
  * Start a waffle game (coop by default) on a fixed, deterministic board passed
  * straight to create_game (bypassing the waffle-build-board edge function). The
  * board is the pgTAP `waffle_board` fixture: solved `abcdef.g.hijklmn.o.pqrstu`
- * with the scramble one swap away (cells 0/1). Returns id + gametype.
+ * with the deal one swap away (cells 0/1). Returns id + gametype.
  */
 export async function createWaffleGame(
   club: E2EClub,
@@ -1051,13 +1051,13 @@ export async function createWaffleGame(
   const res = await asUser(creator.session.access_token)
     .schema('waffle')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: { difficulty: 2, extra_swaps: 5, timer },
-      player_user_ids: playerUserIds,
-      mode,
-      board: {
+      p_club_handle: club.handle,
+      p_setup: { difficulty: 2, extra_swaps: 5, timer },
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
+      p_board: {
         solution: 'abcdef.g.hijklmn.o.pqrstu',
-        scramble: 'bacdef.g.hijklmn.o.pqrstu',
+        dealt: 'bacdef.g.hijklmn.o.pqrstu',
         par_swaps: 1,
       },
     })

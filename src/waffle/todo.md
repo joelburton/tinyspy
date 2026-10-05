@@ -10,12 +10,12 @@
 
 ## Soon
 - **Does a finished coop game still need to skip the title's swap check?**
-  `_sync_title` names a coop game after its correct words only once
-  `swaps_used > 0`, so a scramble's free words never title an untouched game —
-  but a terminal game is exempt. The only reason ever given was the mid-game
-  `reveal_answer`, which wrote the solution without a swap and is gone. Today
-  the exemption lets a game ended untouched be titled after the scramble's
-  free words. Keep it (with a reason) or drop it: Joel's call, with a pgTAP
+  `_sync_title` names a coop game after its correct words only once the
+  team's `n_swaps_used` sum is above 0, so the deal's free words never title an
+  untouched game — but a game that has ended is exempt. The only reason ever
+  given was the mid-game `reveal_answer`, which wrote the solution without a
+  swap and is gone. Today the exemption lets a game ended untouched be titled
+  after the deal's free words. Keep it (with a reason) or drop it: Joel's call, with a pgTAP
   case in `gameplay_test.sql`.
 
 - **The below-board reserve is a hand-tuned constant.**

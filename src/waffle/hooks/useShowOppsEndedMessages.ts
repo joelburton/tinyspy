@@ -25,7 +25,9 @@ export function useShowOppsEndedMessages(
   // narration sees a new list only when someone's ending lands.
   const ended = useMemo(
     () => gd.players.filter((p) =>
-      p.ending?.reason === 'reached_goal' || p.ending?.reason === 'resource_exhausted'),
+      p.ending?.reason === 'reached_goal'
+      ||
+      p.ending?.reason === 'resource_exhausted'),
     [gd.players],
   )
   useShowPeerFeedback({

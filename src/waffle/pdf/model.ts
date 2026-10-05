@@ -31,7 +31,7 @@ export type PrintTrack = {
 
 export type WafflePrintModel = PrintHeader & {
   tracks: PrintTrack[]
-  /** The six answer words — terminal only, null while the game is live. */
+  /** The six answer words once they are on screen — null until then. */
   solutionWords: string[] | null
 }
 
@@ -132,7 +132,7 @@ export function buildWafflePrintModel(o: {
     mode: o.mode,
     tracks,
     // The solution is the answer, printed under the same rule the screen uses:
-    // solved or revealed. Terminal alone is NOT enough.
+    // solved or revealed. The game having ended is NOT enough.
     solutionWords: o.answerShown && o.solution ? boardWords(o.solution) : null,
   }
 }

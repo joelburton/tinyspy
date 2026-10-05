@@ -4,8 +4,12 @@ import { useEffect } from 'react'
 import { useBindAction } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
+import {
+  useStandardGameActions,
+} from '@/common/game-page/useStandardGameActions'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { describeReveal } from '@/common/reveal/describeReveal'
@@ -77,7 +81,12 @@ export function useActionsAndMenu({
       // grayed, because it NAMES the glyph (docs/ui.md → the menu is the
       // legend); a racer who is out sees the button inert until the race ends.
       if (gd.me.stillPlaying && asker === 'button') return 'hidden'
-      return describeReveal({ noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal: gd.ended })
+      return describeReveal({
+        noun: 'solution',
+        revealed: answerShown,
+        impliedBySolve,
+        isTerminal: gd.ended,
+      })
     },
     run: toggleAnswer,
   })
@@ -118,7 +127,9 @@ export function useActionsAndMenu({
   const actNewGame = useBindAction('act-new-game', {
     terminal: gd.ended,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
-    describe: (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),
+    describe: (asker) => (asker === 'button' && !gd.ended
+      ? 'hidden'
+      : 'active'),
     run: createNewGame,
   })
 
@@ -154,22 +165,23 @@ export function useActionsAndMenu({
   // one an action made above, so a row's words, glyph, key and availability
   // come from the action rather than being typed a second time here.
   useEffect(function publishGameMenu() {
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
-        // Both exits, in reading order; each hides itself in the mode that
-        // isn't its own, so this list is the same in coop and compete.
-        exits: [actConcede, actStopGame],
-        extra: [
-          // The same three the action row offers, in its order, reachable
-          // mid-game too — Reveal grayed until the game is over.
-          { items: [actReveal, actRestart, actNewGame] },
-          { items: [actPrintBoard] },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actReveal, actPrintBoard])
+      menu.setGameSections(
+        buildGameMenu({
+          menu,
+          // Both exits, in reading order; each hides itself in the mode that
+          // isn't its own, so this list is the same in coop and compete.
+          exits: [actConcede, actStopGame],
+          extra: [
+            // The same three the action row offers, in its order, reachable
+            // mid-game too — Reveal grayed until the game is over.
+            { items: [actReveal, actRestart, actNewGame] },
+            { items: [actPrintBoard] },
+          ],
+        }),
+      )
+      return () => menu.setGameSections([])
+    },
+    [menu, actConcede, actStopGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   return {
     actions: {

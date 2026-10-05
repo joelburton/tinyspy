@@ -23,7 +23,7 @@ test.describe('waffle replay board', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
-    // The scramble is `bacdef.g.hijklmn.o.pqrstu`; tiles are buttons labeled
+    // The deal is `bacdef.g.hijklmn.o.pqrstu`; tiles are buttons labeled
     // "<LETTER> (<color>)". Wait for the board, then make one swap (D↔E) — a
     // non-solving move that leaves the game in play and logs turn #1.
     await expect(page.getByRole('button', { name: /^B \(/ })).toBeVisible({ timeout: 15000 })
@@ -31,7 +31,7 @@ test.describe('waffle replay board', () => {
     await page.getByRole('button', { name: /^E \(/ }).click()
     await expect(page.getByText('#1', { exact: true })).toBeVisible({ timeout: 8000 })
 
-    // Replay → the event log clears (and the board resets to the scramble).
+    // Replay → the event log clears (and the board resets to the deal).
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Restart' }).click()
     // The styled ConfirmationBlockingModal (mid-game restart wipes the group's progress).
@@ -75,7 +75,7 @@ test.describe('waffle replay board', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
-    // The scramble swaps cells 0,1, so 'A' starts at position 1 (top-left tile is
+    // The deal swaps cells 0,1, so 'A' starts at position 1 (top-left tile is
     // "B (…)"), and the across word a0 reads as an em dash in the info list.
     await expect(page.getByRole('button', { name: /^B \(/ })).toBeVisible({ timeout: 15000 })
 

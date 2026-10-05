@@ -181,12 +181,12 @@ function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
-/** Scramble `solution` to an arrangement whose par lands in the band,
- *  keeping the corners + center green and total greens in 5–8; null if
- *  it can't within SCRAMBLE_TRIES. */
-function makeScramble(
+/** The dealt board: `solution` scrambled to an arrangement whose par lands
+ *  in the band, keeping the corners + center green and total greens in 5–8;
+ *  null if it can't within SCRAMBLE_TRIES. */
+function makeDealt(
   solution: string,
-): { scramble: string; par: number } | null {
+): { dealt: string; par: number } | null {
   for (let t = 0; t < SCRAMBLE_TRIES; t++) {
     const arr = solution.split('')
     const n = PAR_MIN + Math.floor(Math.random() * (PAR_MAX - PAR_MIN + 4))
@@ -197,23 +197,23 @@ function makeScramble(
       while (j === i) j = pick(SCRAMBLE_CELLS)
       ;[arr[i], arr[j]] = [arr[j], arr[i]]
     }
-    const scramble = arr.join('')
-    if (scramble === solution) continue
-    const greens = FILLED.filter((c) => scramble[c] === solution[c]).length
+    const dealt = arr.join('')
+    if (dealt === solution) continue
+    const greens = FILLED.filter((c) => dealt[c] === solution[c]).length
     if (greens < GREENS_MIN || greens > GREENS_MAX) continue
-    const par = minSwaps(scramble, solution)
-    if (par >= PAR_MIN && par <= PAR_MAX) return { scramble, par }
+    const par = minSwaps(dealt, solution)
+    if (par >= PAR_MIN && par <= PAR_MAX) return { dealt, par }
   }
   return null
 }
 
 // ─── Board fill ─────────────────────────────────────────────
 export type WordRow = { word: string; difficulty: number }
-export type GenBoard = { solution: string; scramble: string; par: number }
+export type GenBoard = { solution: string; dealt: string; par: number }
 
 /**
  * Build one valid waffle board at exactly band `band` from the
- * candidate words. Returns `{ solution, scramble, par }`, or null if it
+ * candidate words. Returns `{ solution, dealt, par }`, or null if it
  * can't within `maxAttempts`.
  *
  * The fill trick: fixing the 3 across words fixes the 3 down words'
@@ -256,9 +256,9 @@ export function buildWaffleBoard(
     if (Math.max(...ws.map((w) => diffOf.get(w)!)) !== band) continue
     const solution = assembleSolution(ws)
     if (maxLetterFrequency(solution) > MAX_LETTER_FREQ) continue
-    const sc = makeScramble(solution)
-    if (!sc) continue
-    return { solution, scramble: sc.scramble, par: sc.par }
+    const deal = makeDealt(solution)
+    if (!deal) continue
+    return { solution, dealt: deal.dealt, par: deal.par }
   }
   return null
 }

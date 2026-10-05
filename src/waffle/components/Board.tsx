@@ -7,7 +7,9 @@ import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { useBindAction } from '@/common/actions/useBindAction'
 import shared from '@/common/game-page/playArea.module.css'
-import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
+import {
+  makeEndingFrameClasses,
+} from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
 import { useTileCursor } from '../hooks/useTileCursor'
 import { CELLS } from '../lib/waffle'
@@ -52,10 +54,11 @@ function findChangedTileIds(before: BoardSnapshot, after: BoardSnapshot): Readon
   for (const t of after.tiles) {
     const was = beforeById.get(t.id)!
     if (t.letter !== was.letter) ids.add(t.id)
-    // My own swap: the letters already moved optimistically, so what just
-    // arrived is the color. If a tile that was in flight is no longer, the
+      // My own swap: the letters already moved optimistically, so what just
+      // arrived is the color. If a tile that was in flight is no longer, the
     // server has answered it.
-    else if (before.inFlightTileIds.has(t.id) && !after.inFlightTileIds.has(t.id)) ids.add(t.id)
+    else if (before.inFlightTileIds.has(t.id) &&
+      !after.inFlightTileIds.has(t.id)) ids.add(t.id)
   }
   return ids
 }
@@ -138,7 +141,8 @@ export function Board({
   // the flash then reads as a second, unexplained event.
   const flashingTileIds = useMoveAttention({
     content: { tiles, inFlightTileIds: marks.inFlightTileIds },
-    contentKey: `${tiles.map((t) => t.letter + t.color).join('')}|${[...marks.inFlightTileIds].join()}`,
+    contentKey: `${tiles.map((t) => t.letter +
+      t.color).join('')}|${[...marks.inFlightTileIds].join()}`,
     moveCount,
     // Quiet while viewing a past turn — the ringed tiles already mark what that
     // swap did, and a move landing live behind the viewer is not something to
@@ -170,7 +174,8 @@ export function Board({
   function dropOnTile(tile: GTile) {
     const fromId = dragFromTileId.current
     dragFromTileId.current = null
-    if (fromId === null || fromId === tile.id || !isInteractive || isSwapOut) return
+    if (fromId === null || fromId === tile.id || !isInteractive ||
+      isSwapOut) return
     onSwap(tilesById.get(fromId)!, tile)
     setPickedTileIds([])
   }
@@ -180,8 +185,10 @@ export function Board({
   // is refused, as connections refuses a fifth: un-pick one first.
   function togglePick(tile: GTile) {
     if (!isInteractive || isSwapOut) return
-    if (pickedTileIds.includes(tile.id)) setPickedTileIds(pickedTileIds.filter((id) => id !== tile.id))
-    else if (pickedTileIds.length < 2) setPickedTileIds([...pickedTileIds, tile.id])
+    if (pickedTileIds.includes(tile.id)) setPickedTileIds(pickedTileIds.filter((id) => id !==
+      tile.id))
+    else if (pickedTileIds.length <
+      2) setPickedTileIds([...pickedTileIds, tile.id])
   }
 
   const cursor = useTileCursor({ tiles, isInteractive, onToggle: togglePick })
@@ -192,7 +199,11 @@ export function Board({
   useBindAction('act-submit', {
     describe: () => {
       if (!isInteractive) return 'hidden'
-      return { state: pickedTileIds.length === 2 && !isSwapOut ? 'active' : 'disabled', label: 'Swap' }
+      return {
+        state: pickedTileIds.length === 2 && !isSwapOut
+          ? 'active'
+          : 'disabled', label: 'Swap',
+      }
     },
     run: () => {
       const [aId, bId] = pickedTileIds
@@ -235,7 +246,7 @@ export function Board({
           const tile = tilesById.get(String(pos))
           // A hole — an interior cell in no word — has no tile.
           if (tile === undefined) {
-            return <span key={pos} className={styles.hole} aria-hidden="true" />
+            return <span key={pos} className={styles.hole} aria-hidden="true"/>
           }
           return (
             <Tile

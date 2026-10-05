@@ -73,7 +73,7 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WafflePrintModel)
   y = drawTileLegend(doc, track.x, y) + 10
 
   // The answer words, repeated per column so a column stands alone if pages get
-  // separated. Terminal only — the model won't emit them earlier.
+  // separated. Only once on screen — the model won't emit them earlier.
   if (m.solutionWords?.length) {
     doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
     doc.text('Answer', track.x, y)

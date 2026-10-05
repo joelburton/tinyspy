@@ -16,9 +16,9 @@ import type { GTile } from '../types'
 type SwapAnswer = {
   result: 'swapped'
   colors: string
-  swaps_used: number
+  n_swaps_used: number
   solved: boolean
-  terminal: boolean
+  game_ended: boolean
 }
 
 /**
@@ -71,7 +71,8 @@ export function useSubmitSwap({
     setInFlight({ tileIds: [a.id, b.id], atEventId: newestEventId })
     // A tile's id is its position, which is what the RPC takes.
     const res = await runRpc<SwapAnswer>(
-      db.rpc('submit_swap', { p_game_id: gameId, p_pos_a: Number(a.id), p_pos_b: Number(b.id) }),
+      db.rpc('submit_swap',
+        { p_game_id: gameId, p_pos_a: Number(a.id), p_pos_b: Number(b.id) }),
     )
     if (res.type === 'not-ok') {
       // Refused (the turn moved, the game ended, you conceded). Optimism is
@@ -95,6 +96,8 @@ export function useSubmitSwap({
   }
 
   const pendingSwapTileIds =
-    inFlight !== null && inFlight.atEventId === newestEventId ? inFlight.tileIds : null
+    inFlight !== null && inFlight.atEventId === newestEventId
+      ? inFlight.tileIds
+      : null
   return { pendingSwapTileIds, send }
 }

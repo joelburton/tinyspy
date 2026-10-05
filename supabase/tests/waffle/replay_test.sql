@@ -32,7 +32,7 @@ select (waffle.create_game(
   pg_temp.waffle_board()
 )->'data'->>'id')::uuid as id;
 
--- Solve it: the fixture scramble is one swap (cells 0,1) from solved →
+-- Solve it: the fixture's deal is one swap (cells 0,1) from solved →
 -- coop win. Now there's a swap-log row, swaps_used=1, every player solved,
 -- and the game has ended — the full state a replay must undo.
 select waffle.submit_swap((select id from g1), 0, 1);

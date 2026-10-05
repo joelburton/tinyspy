@@ -66,7 +66,7 @@ select pg_temp.envelope_is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   waffle.submit_swap((select id from g1), 2, 3),
-  '{"type":"ok","outcome":null,"data":{"result":"swapped","solved":false,"terminal":false}}'::jsonb,
+  '{"type":"ok","outcome":null,"data":{"result":"swapped","solved":false,"game_ended":false}}'::jsonb,
   'an accepted swap names itself and carries no outcome'
 );
 -- `"outcome":null` is written out on purpose: `envelope_is` is containment, so
@@ -88,7 +88,7 @@ select is(
   'game still in progress after a non-solving swap');
 -- The club-list title becomes a progress readout: the correct words so far,
 -- alphabetical, capped at three. ada's swap of cells 2,3 broke the across
--- row (ABCDE) and the middle down (CGKOS); the scramble's own 0,1 swap
+-- row (ABCDE) and the middle down (CGKOS); the deal's own 0,1 swap
 -- already broke the first down (AFINQ). What's left correct: EHMPU (down
 -- col 4), IJKLM (across row 2), QRSTU (across row 4).
 select is(
@@ -110,8 +110,8 @@ select waffle.submit_swap((select id from g1), 0, 1) as res;   -- solve
 
 select is((select (res->'data'->>'solved')::boolean from win), true,
   'the solving swap reports solved');
-select is((select (res->'data'->>'terminal')::boolean from win), true,
-  'the solving swap reports terminal');
+select is((select (res->'data'->>'game_ended')::boolean from win), true,
+  'the solving swap reports the game ended');
 
 reset role;
 select is(
@@ -142,7 +142,7 @@ select is(
   (select count(*) from waffle.events where game_id = (select id from g1)),
   3::bigint,
   'every coop swap is logged');
--- First swap: ada exchanged cells 2,3, which held c,d in the scramble.
+-- First swap: ada exchanged cells 2,3, which held c,d in the deal.
 select row_eq(
   format($$ select user_id, kind, pos_a, pos_b, letter_a::text, letter_b::text, took_turn
               from waffle.events
@@ -174,8 +174,8 @@ select (waffle.create_game(
 create temp table lose on commit drop as
 select waffle.submit_swap((select id from g2), 2, 3) as res;
 
-select is((select (res->'data'->>'terminal')::boolean from lose), true,
-  'exhausting the budget → terminal');
+select is((select (res->'data'->>'game_ended')::boolean from lose), true,
+  'exhausting the budget → the game has ended');
 select is((select (res->'data'->>'solved')::boolean from lose), false,
   'not solved');
 

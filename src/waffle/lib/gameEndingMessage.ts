@@ -42,7 +42,8 @@ export function buildGameEndingMessage({
   function makeGameEndingWords(): Pick<TerminalMessage, 'pillText' | 'infoColText'> {
     // A Stop is the uniform neutral ending shared with the other games — the
     // shared message owns its words.
-    if (gameEnding.outcome === 'neutral') return buildGameEndedMessageNeutral(mode)
+    if (gameEnding.outcome === 'neutral') return buildGameEndedMessageNeutral(
+      mode)
 
     if (mode === 'coop') {
       // Coop cannot concede, so a loss is the clock or the swaps.
@@ -66,14 +67,23 @@ export function buildGameEndingMessage({
         if (playerOutcome === 'won') {
           return { pillText: 'Won: fewest swaps', infoColText: 'You won!' }
         } else if (playerOutcome === 'lost' || playerOutcome === 'near') {
-          return { pillText: 'Lost: beaten on swaps', infoColText: 'Opponent won' }
+          return {
+            pillText: 'Lost: beaten on swaps',
+            infoColText: 'Opponent won',
+          }
         }
-      // Otherwise nobody won. No `Lost:` prefix on any of these — nobody was
-      // beaten, the game just ran out.
+        // Otherwise nobody won. No `Lost:` prefix on any of these — nobody was
+        // beaten, the game just ran out.
       } else if (gameEnding.reason === 'timeout') {
-        return { pillText: 'Out of time — no winner', infoColText: 'Out of time' }
+        return {
+          pillText: 'Out of time — no winner',
+          infoColText: 'Out of time',
+        }
       } else if (gameEnding.reason === 'conceded') {
-        return { pillText: 'All conceded — no winner', infoColText: 'All conceded' }
+        return {
+          pillText: 'All conceded — no winner',
+          infoColText: 'All conceded',
+        }
       } else if (gameEnding.reason === 'resource_exhausted') {
         return { pillText: 'Nobody solved', infoColText: 'No winner' }
       }
@@ -81,7 +91,8 @@ export function buildGameEndingMessage({
 
     throw new Error(
       `BUG: waffle has no words for a ${mode} ending `
-        + `${gameEnding.outcome}/${gameEnding.reason} with player outcome ${playerOutcome}`,
+      +
+      `${gameEnding.outcome}/${gameEnding.reason} with player outcome ${playerOutcome}`,
     )
   }
 

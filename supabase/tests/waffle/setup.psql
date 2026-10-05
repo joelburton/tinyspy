@@ -9,7 +9,7 @@
 --
 -- Provides:
 --   - pg_temp.waffle_board() — a deterministic `board` jsonb in the
---     shape waffle.create_game accepts. The scramble is exactly ONE
+--     shape waffle.create_game accepts. The dealt board is exactly ONE
 --     swap (cells 0 and 1) away from solved, so a test can solve it
 --     with submit_swap(game, 0, 1). The solution uses 21 distinct
 --     letters (a..u) so there's no color/duplicate ambiguity, and its
@@ -31,7 +31,7 @@ language sql
 as $$
   select jsonb_build_object(
     'solution',  'abcdef.g.hijklmn.o.pqrstu',  -- solved
-    'scramble',  'bacdef.g.hijklmn.o.pqrstu',  -- cells 0,1 swapped → 1 swap away
+    'dealt',     'bacdef.g.hijklmn.o.pqrstu',  -- cells 0,1 swapped → 1 swap away
     'par_swaps', 1
   );
 $$;

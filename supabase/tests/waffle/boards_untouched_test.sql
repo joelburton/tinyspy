@@ -49,7 +49,7 @@ select is(
 select is(
   (select count(*) from waffle.players
      where game_id = (select id from g1) and board = 'bacdef.g.hijklmn.o.pqrstu'),
-  2::bigint, 'coop: precondition — both boards start as the scramble');
+  2::bigint, 'coop: precondition — both boards start as dealt');
 
 -- End it for everyone (the manual end any player can fire).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

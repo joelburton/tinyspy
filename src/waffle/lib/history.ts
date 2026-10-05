@@ -52,7 +52,9 @@ export function replaySwap(
 ): ReplayedSwap | null {
   const viewedEvent = events.find((e) => e.id === id)
   if (!viewedEvent) return null
-  const boardEvents = isCompete ? events.filter((e) => e.by === viewedEvent.by) : events
+  const boardEvents = isCompete
+    ? events.filter((e) => e.by === viewedEvent.by)
+    : events
 
   const letters = new Map(dealtTiles.map((t) => [t.id, t.letter]))
   for (const e of boardEvents.slice(0, boardEvents.indexOf(viewedEvent) + 1)) {
@@ -79,6 +81,7 @@ export function replaySwap(
  * letters-and-coords. Null `n` drops the number.
  */
 function describe(swap: GEvent, n: number | null): string {
-  const [a, b] = swap.swaps.map((s) => `${s.letter.toUpperCase()} (${coord(Number(s.id))})`)
+  const [a, b] = swap.swaps.map((s) => `${s.letter.toUpperCase()} (${coord(
+    Number(s.id))})`)
   return n === null ? `${a} ↔ ${b}` : `#${n}: ${a} ↔ ${b}`
 }

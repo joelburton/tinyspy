@@ -1,6 +1,9 @@
 // cs-unmet
 
-import type { EndOutcome, PlayerEndedReason } from '@/common/terminal/gameEnding'
+import type {
+  EndOutcome,
+  PlayerEndedReason,
+} from '@/common/terminal/gameEnding'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 
 /**
@@ -29,11 +32,17 @@ export function buildPlayerEndingMessage({
   function makePlayerEndingWords(): Pick<TerminalMessage, 'pillText' | 'infoColText'> {
     // Only compete reaches here: a coop player does not end on their own.
     if (reason === 'reached_goal') {
-      return { pillText: 'Solved — waiting on the rest', infoColText: 'Solved — waiting' }
+      return {
+        pillText: 'Solved — waiting on the rest',
+        infoColText: 'Solved — waiting',
+      }
     } else if (reason === 'resource_exhausted') {
       return { pillText: 'Out of swaps — waiting', infoColText: 'Out of swaps' }
     } else if (reason === 'conceded') {
-      return { pillText: 'Conceded — race continues', infoColText: 'You conceded' }
+      return {
+        pillText: 'Conceded — race continues',
+        infoColText: 'You conceded',
+      }
     }
 
     throw new Error(`BUG: waffle has no words for a player who ended by ${reason}`)

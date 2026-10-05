@@ -1,7 +1,9 @@
 // cs-unmet
 
 import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
-import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
+import {
+  useBoardSelectionCursor,
+} from '@/common/board-cursor/useBoardSelectionCursor'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import { BOARD_SHAPE } from '../lib/boardShape'
 import { GRID } from '../lib/waffle'
@@ -44,7 +46,11 @@ export function useTileCursor({
 
   const cell = selectionCursor.cell
   return {
-    cursorTileId: cell === null ? null : String(positionAt(cell.x, cell.y, GRID)),
-    moveToClicked: (tile) => selectionCursor.setTo(cellAt(Number(tile.id), GRID)),
+    cursorTileId: cell ===
+    null
+      ? null
+      : String(positionAt(cell.x, cell.y, GRID)),
+    moveToClicked: (tile) => selectionCursor.setTo(cellAt(Number(tile.id),
+      GRID)),
   }
 }

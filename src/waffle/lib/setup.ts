@@ -16,7 +16,10 @@ export const DEFAULT_WAFFLE_SETUP: GSetup = {
  * The extra-swap choices the form offers, with a difficulty gloss.
  * par is ~9–11, so these land the budget around 12–19.
  */
-export const EXTRA_SWAP_OPTIONS: ReadonlyArray<{ value: number; label: string }> = [
+export const EXTRA_SWAP_OPTIONS: ReadonlyArray<{
+  value: number;
+  label: string
+}> = [
   { value: 3, label: 'Tight' },
   { value: 5, label: 'Normal' },
   { value: 8, label: 'Relaxed' },

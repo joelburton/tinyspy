@@ -29,13 +29,13 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
       outcome === null || reason === null
         ? null
         : buildGameEndingMessage({
-            mode: gd.mode,
-            gameEnding: { outcome, reason },
-            // Written with the game's ending (`common._end_game` ranks every
-            // player), so it is set whenever the game's outcome is.
-            playerOutcome: playerOutcome!,
-            nSwapsOverPar,
-          }),
+          mode: gd.mode,
+          gameEnding: { outcome, reason },
+          // Written with the game's ending (`common._end_game` ranks every
+          // player), so it is set whenever the game's outcome is.
+          playerOutcome: playerOutcome!,
+          nSwapsOverPar,
+        }),
     [outcome, reason, gd.mode, playerOutcome, nSwapsOverPar],
   )
 }

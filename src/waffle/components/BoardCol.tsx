@@ -1,7 +1,9 @@
 // cs-fixed-outcome-fix
 
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
+import {
+  useDismissLocalFeedbackOnKey,
+} from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
@@ -72,7 +74,7 @@ export function BoardCol({
           subtracts this row's height there too, or the square would overflow
           the viewport (the hard no-scroll invariant). */}
       <MobileStatusBar>
-        <StateLine data={gd.stateLineData} />
+        <StateLine data={gd.stateLineData}/>
       </MobileStatusBar>
       <Board
         tiles={tiles}
@@ -98,17 +100,21 @@ export function BoardCol({
         {/* While inspecting a past swap the shared banner overlays this region,
             naming the swap. */}
         {historyView.isViewing && (
-          <HistoryBanner label={historyView.label} actor={historyView.actor} onExit={historyView.exit} />
+          <HistoryBanner
+            label={historyView.label}
+            actor={historyView.actor}
+            onExit={historyView.exit}
+          />
         )}
         {/* No below-board move controls: waffle's input is swapping tiles on the
             board itself, so `.moveArea` is empty. */}
-        <div className={styles.moveArea} />
+        <div className={styles.moveArea}/>
         {/* The LOCAL feedback slot — a reserved height keeps the top-anchored board
             from shifting as the pill (a refused swap / waiting / the verdict)
             appears/clears. The multi-line answer reveal is NOT here (it lives in the
             info column's `<SolutionReveal>` — it would overflow the viewport). */}
         <div className={shared.localFeedback}>
-          <FeedbackPill slot={localFeedbackSlot} />
+          <FeedbackPill slot={localFeedbackSlot}/>
         </div>
       </div>
     </div>

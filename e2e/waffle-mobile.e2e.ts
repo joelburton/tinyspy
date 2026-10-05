@@ -93,7 +93,7 @@ test.describe('waffle mobile', () => {
     const tileB = page.getByRole('button', { name: /^B / })
     expect(await tileA.getAttribute('draggable')).toBe('false')
 
-    // Tap B (picks up — the bold ring) then A (swap). The fixture scramble is
+    // Tap B (picks up — the bold ring) then A (swap). The fixture's deal is
     // "bacdef…" (B,A swapped vs the solution "abcdef…"), so swapping the first two
     // tiles restores A,B — and the swap lands in the log.
     await tileB.tap() // top-left cell holds 'B'
