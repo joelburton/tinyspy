@@ -94,12 +94,12 @@ The `gd` sketch, approved 2026-10-05 (step 2, Joel: "i'll take your recs"):
 
 ## Predicted test breaks
 
-- **Step 4 (2026-10-05), to be fixed at step 5:** every pgTAP assertion that
-  reads the statuses or `games_state` — `create_game_test`, `gameplay_test`,
-  `reveal_test`, `replay_test` — and the whole of `statuses_test`, which goes;
-  `compete_test` and `rls_test` pinned the events mode arm, which is gone.
-  `players.found_count` is `n_found_words` (20261005000003); the four tests
-  that read it by name follow.
+- **Step 4 (2026-10-05), fixed at step 5:** every pgTAP assertion that read
+  the statuses or `games_state` now reads the blobs, `game_data_test` pins
+  them, and `statuses_test` went. `compete_test` and `rls_test` pin the member
+  gate alone: the blob and the table carry a rival's rows, and withholding
+  them mid-race is the hook's. `players.found_count` is `n_found_words`
+  (20261005000003).
 - **Steps 4–9:** the frontend reads `games_state` and the old common shapes
   until the PlayArea pass moves every reader onto `gd`; it could not load
   before this began.

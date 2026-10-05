@@ -1,13 +1,13 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: stackdown compete — race to clear, opponent hidden mid-game
+-- Test: stackdown compete — race to clear
 -- ============================================================
 -- Compete: same starting board, played independently. The FIRST player to
 -- clear all six words wins immediately, ranked 1; everyone else is short of
--- the goal, unranked and lost. An opponent's submissions are
--- hidden mid-game (only the n_found_words tally is public) and revealed once
--- the game ends.
+-- the goal, unranked and lost. What a racer may see of a rival mid-race is
+-- the hook's rule over the page blob (src/stackdown/hooks/useGame.ts), so the
+-- blob carries a rival's rows; the shared club-list title never names them.
 
 begin;
 set search_path = stackdown, common, public, extensions;
@@ -34,11 +34,12 @@ select is(
 -- ── Mid-game visibility as bea ──────────────────────────────────────
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from stackdown.events
-    where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  0::bigint,
-  'mid-game: bea cannot see ada''s submissions (compete RLS hides them)');
+  (select count(*)::int
+     from jsonb_array_elements((select game_data->'events' from common.games
+                                 where id = (select id from g))) e
+    where e->>'userId' = 'ada11111-1111-1111-1111-111111111111'),
+  1,
+  'mid-game: the blob carries ada''s row — withholding it from bea is the hook''s rule');
 select is(
   (select n_found_words from stackdown.players
     where game_id = (select id from g)

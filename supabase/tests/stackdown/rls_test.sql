@@ -1,7 +1,7 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: stackdown RLS — club gating + the compete-mode submissions policy
+-- Test: stackdown RLS — the club-member gate
 -- ============================================================
 --
 -- stackdown shipped without an rls_test. The
@@ -10,10 +10,10 @@
 --
 --   games_select       club-member gate (both modes identical).
 --   players_select     club-member gate (n_found_words is a public tally).
---   events_select       the load-bearing mode-aware one (mirrors wordle.events):
---        (a) mode = 'coop'          — the whole log is club-readable (shared board)
---        (b) user_id = auth.uid()   — compete: own rows only, mid-game
---        (c) ended_at is not null   — compete: opponents' words reveal post-game
+--   events_select      club-member gate, in both modes, mid-race or not. Who
+--                      may see a rival's rows mid-race is the hook's rule
+--                      (src/stackdown/hooks/useGame.ts), applied to the page
+--                      blob; nothing reads this table from the client.
 --
 -- Direct-INSERT setup (as postgres) so the read policy is exercised on its own.
 -- Personas: ada + bea + cade in the club; dee is the outsider.
@@ -77,7 +77,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from stackdown.events where game_id = (select id from coop_game)),
   3::bigint,
-  'coop / ada (member): sees all 3 submissions (branch a: shared board)'
+  'coop / ada (member): sees all 3 submissions'
 );
 
 select is(
@@ -128,7 +128,7 @@ select throws_ok(
 );
 
 -- ============================================================
--- Compete mode: viewer sees ONLY their own submissions while playing (b)
+-- Compete mode: a racer reads every row, mid-race
 -- ============================================================
 
 reset role;
@@ -162,41 +162,28 @@ insert into stackdown.events (game_id, user_id, kind, word, tile_ids, valid, too
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from stackdown.events where game_id = (select id from compete_game)),
-  1::bigint,
-  'compete mid-game / ada: sees only her own submission (branch b)'
+  3::bigint,
+  'compete mid-game / ada: reads all 3 rows'
 );
 
 select is(
-  (select user_id from stackdown.events where game_id = (select id from compete_game)),
-  'ada11111-1111-1111-1111-111111111111'::uuid,
-  'compete mid-game / ada: the row she sees IS her own'
+  (select count(distinct user_id) from stackdown.events where game_id = (select id from compete_game)),
+  3::bigint,
+  'compete mid-game / ada: her own and both rivals'''
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select count(*) from stackdown.events where game_id = (select id from compete_game)),
-  1::bigint,
-  'compete mid-game / bea: sees only her own submission'
+  3::bigint,
+  'compete mid-game / bea: reads all 3 rows too'
 );
 
--- ============================================================
--- Compete mode + ended: branch (c) opens the reveal
--- ============================================================
-
-reset role;
-update common.games
-   set ended_at = now(),
-       game_ended_reason = 'reached_goal',
-       game_ended_reason_detail = 'cleared',
-       game_ended_by_user_id = 'bea22222-2222-2222-2222-222222222222',
-       game_ended_outcome = 'won'
- where id = (select id from compete_game);
-
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
   (select count(*) from stackdown.events where game_id = (select id from compete_game)),
-  3::bigint,
-  'compete once ended / ada: sees all 3 submissions (branch c: ended_at)'
+  0::bigint,
+  'compete / dee (outsider): none of a race''s rows'
 );
 
 -- ============================================================

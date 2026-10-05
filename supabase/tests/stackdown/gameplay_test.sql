@@ -106,8 +106,8 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select array_length(solution, 1) from stackdown.games_state where game_id = (select id from g)),
-  6, 'once ended: the solution (six words) is revealed');
+  (select jsonb_array_length(game_data->'puzzle'->'solution') from common.games where id = (select id from g)),
+  6, 'once ended: the solution (six words) is in the page blob');
 
 -- ── A word into a game a friend just deleted ──
 -- The delete takes the game's rows and every membership together, so this is

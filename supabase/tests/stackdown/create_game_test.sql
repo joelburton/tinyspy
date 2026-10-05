@@ -5,7 +5,7 @@
 -- ============================================================
 -- Claims a board from the library, copies its tiles (public) + solution
 -- (hidden), seeds one players row each, and starts the game. The solution
--- stays hidden via games_state until the game ends.
+-- stays out of the page blob until the game ends.
 
 begin;
 set search_path = stackdown, common, public, extensions;
@@ -57,12 +57,12 @@ select isnt(
   null,
   'board_id records which library board was claimed');
 
--- No band in setup → defaults to band 1 (the everyday set), and the club
--- line names it.
+-- No band in setup → defaults to band 1 (the everyday set), and the summary
+-- names it.
 select is(
-  (select (clubpage_info->>'band')::int from common.games where id = (select id from g)),
+  (select (summary_data->>'band')::int from common.games where id = (select id from g)),
   1,
-  'the word-difficulty band reaches the club line (defaults to 1)');
+  'the word-difficulty band reaches the summary (defaults to 1)');
 
 select is(
   (select count(*)::int from stackdown.players where game_id = (select id from g)),
@@ -89,11 +89,12 @@ select is(stackdown._found_title(array['a','b','c','d'], 3), 'A-B-C',
 select is(stackdown._found_title(array['a','b','c','d'], 4), 'A-B-C…',
   '_found_title: a fourth cleared word → capped at three, plus an ellipsis');
 
--- The solution is HIDDEN mid-game: games_state returns NULL.
+-- The solution is HIDDEN mid-game: the page blob carries none.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select ok(
-  (select solution from stackdown.games_state where game_id = (select id from g)) is null,
-  'mid-game: games_state.solution is NULL (hidden)');
+select is(
+  (select game_data->'puzzle'->'solution' from common.games where id = (select id from g)),
+  'null'::jsonb,
+  'mid-game: the page blob''s solution is null (hidden)');
 
 -- The raw solution column is not selectable by an authenticated player.
 select throws_ok(
@@ -118,9 +119,9 @@ select (stackdown.create_game(
 reset role;
 
 select is(
-  (select (clubpage_info->>'band')::int from common.games where id = (select id from g2)),
+  (select (summary_data->>'band')::int from common.games where id = (select id from g2)),
   2,
-  'create_game with band:2 names band 2 on the club line');
+  'create_game with band:2 names band 2 on the summary');
 select is(
   (select board_id from stackdown.games where game_id = (select id from g2)),
   (select id from stackdown.boards where band = 2),

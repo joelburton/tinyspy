@@ -77,8 +77,8 @@ select is(
   (select restart_count from common.games where id = (select id from g1)),
   1, 'coop: replay → restart_count up by one');
 select is(
-  (select (clubpage_info->>'found_words_count')::int from common.games where id = (select id from g1)),
-  0, 'coop: replay → the club line''s found_words_count reset to 0');
+  (select (summary_data->'team'->>'nFoundWords')::int from common.games where id = (select id from g1)),
+  0, 'coop: replay → the summary''s team count reset to 0');
 select is(
   (select title from common.games where id = (select id from g1)),
   'New game', 'coop: replay → the title stops advertising the solution');
