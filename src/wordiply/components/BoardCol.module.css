@@ -1,0 +1,54 @@
+/* cs-unmet */
+
+/* wordiply's board column: the column itself, the base above the grid, and the
+ * fixed input area below it. */
+
+/* The board column: stack the base, the five-row grid, and the on-screen
+ * keyboard, centered. The grid width matches the keyboard (~30rem) so they
+ * read as one unit; a ~20-letter word still fits at the grid's font size. */
+/* @@ */ .boardCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(var(--avail-w), 30rem);
+}
+
+/* The base (starter), shown plainly above the grid — no "Starter" label. */
+/* @@ */ .starterWord {
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  /* The base is stored lowercase, as the word list is; capitals are drawn. */
+  text-transform: uppercase;
+  color: var(--wordiply-accent);
+}
+
+/* The input area below the grid — the on-screen keyboard, which doubles as
+ * the feedback area (a soft-reject line above the keys; the terminal verdict
+ * replaces the keyboard). It CLAIMS the keyboard's full height (a fixed
+ * min-height ≈ the feedback line + the 3 key rows) so the grid above it does
+ * NOT shift when the keyboard gives way to the verdict at terminal. */
+/* @@ */ .inputArea {
+  width: 100%;
+  min-height: 12.8rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* The reserved line above the keyboard, for whichever pill is in it — a
+ * soft-reject while playing, the verdict once the game is over. One slot for
+ * both, because the keyboard below it is WITHDRAWN at terminal rather than
+ * removed, so there is no vacated area for a second slot to move into.
+ *
+ * The floor is about one pill's own height (a line of text plus its 0.3rem
+ * padding), which is what makes showing and hiding one not shift the keys —
+ * the same reserve a terminal pill lands in. */
+/* @@ */ .kbFeedback {
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

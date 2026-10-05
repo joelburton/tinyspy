@@ -78,6 +78,27 @@ unless noted):
   `length` but not `valid` / `reason`, and calls the table `guesses` in
   places. Step 14.
 
+## The backfill
+
+2026-10-05, the conversion's grown steps applied after the fact:
+
+- **The answers** already had the shape: `lib/answer.ts` says every answer,
+  every reader asks it, and the move envelopes carry no outcome.
+- **The stylesheet split.** `PlayArea.module.css` held three other
+  components' rules, each class with one reader; they moved verbatim to
+  `BoardCol`, `StateLine` and `InfoCol`'s own modules, and it keeps `.layout`.
+- **The section order**: PlayArea's local-slot header, its narration header
+  in the house words; BoardCol in its three sections.
+- **No narrower `Outcome`** anywhere.
+- **The cross-game names**: both pieces of state carry their comment; "timer"
+  / "timeout" not "clock". **Not here: "race" → "player" (N25).** wordiply is
+  a score-only contest, not a race game, so its 170-odd "race" / "racer" are
+  N25's, which is one sweep across every non-race compete game after the
+  backfill (Joel, 2026-10-05).
+- **The comment pass and the docstring marker**: history went (the logo's
+  retired token, "it read `near` until…", "nothing reads … any more"); a
+  Restart reason in `useMarkForeignGuesses` went; member notes are `//`.
+
 ## Predicted test breaks
 
 - **Step 4 (2026-10-04), fixed at step 5:** every pgTAP assertion that read

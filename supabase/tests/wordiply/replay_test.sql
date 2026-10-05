@@ -6,7 +6,7 @@
 -- The "Replay board" game-menu item / the ended game's RestartButton.
 -- Clears the events log (the game's only working state), and
 -- common._reset_game undoes the ending: ended_at and the reason pair, each
--- player's ending, ranking and outcome, the shared clock; restart_count goes
+-- player's ending, ranking and outcome, the shared timer; restart_count goes
 -- up. The page blobs are rebuilt at zero. The frozen board (base +
 -- max_word_len + the word lists) survives. Any game player may call it,
 -- mid-game or after the end; a non-player is rejected.
@@ -16,7 +16,7 @@
 -- guesses_used / base). This file is the dedicated replay suite every
 -- other replay game has, and carries what §3 doesn't reach — the COMPETE
 -- branch (a racer's ending and ranking undone), restart_count, the shared
--- clock, that the ended-only scores don't survive into the rebuilt
+-- timer, that the ended-only scores don't survive into the rebuilt
 -- blobs, and the non-player gate.
 --
 -- All guesses are synthetic strings that satisfy the two free rules
@@ -57,7 +57,7 @@ select isnt(
 select is(
   (select count(*) from wordiply.events where game_id = (select id from g1)),
   2::bigint, 'precondition — the two guesses were recorded');
--- Age the shared clock so the replay's clock-zeroing is observable.
+-- Age the shared timer so the replay's timer-zeroing is observable.
 update common.timers set ticks = 99 where game_id = (select id from g1);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -93,7 +93,7 @@ select is(
   'replay → the ended-only scores are null again, not carried forward');
 select is(
   (select ticks from common.timers where game_id = (select id from g1)),
-  0, 'replay → the shared clock is zeroed (a timed game restarts full)');
+  0, 'replay → the shared timer is zeroed (a timed game restarts full)');
 select is(
   (select base || ':' || max_word_len
      from wordiply.games where game_id = (select id from g1)),

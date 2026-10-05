@@ -25,19 +25,15 @@ export type PrintScore = {
 }
 
 export type WordiplyPrintModel = PrintHeader & {
-  /** The starter fragment every guess had to contain, uppercased. */
+  // The starter fragment every guess had to contain, uppercased.
   base: string
-  /** The event log — accepted AND rejected, in play order. */
+  // The event log — accepted AND rejected, in play order.
   turns: TurnRow[]
-  /**
-   * While the best possible word is revealed on screen (null otherwise): the
-   * word and its length — wordiply's headline reveal.
-   */
+  // While the best possible word is revealed on screen (null otherwise): the
+  // word and its length — wordiply's headline reveal.
   reveal: { word: string; length: number } | null
-  /**
-   * Compete once ended only (empty otherwise): every player's final scores.
-   * Coop has one shared result, which the header summary already carries.
-   */
+  // Compete once ended only (empty otherwise): every player's final scores.
+  // Coop has one shared result, which the header summary already carries.
   scores: PrintScore[]
 }
 
@@ -63,17 +59,17 @@ export function buildWordiplyPrintModel(o: {
   mode: 'coop' | 'compete'
   isGameEnded: boolean
   puzzle: GGameData['puzzle']
-  /** Is the best possible word on screen right now (the local reveal toggle)?
-   *  The paper carries the answer only if the page in front of the printer
-   *  does — printing it regardless would route around the Reveal button and
-   *  hand the word to a table still guessing at it. */
+  // Is the best possible word on screen right now (the local reveal toggle)?
+  // The paper carries the answer only if the page in front of the printer
+  // does — printing it regardless would route around the Reveal button and
+  // hand the word to a table still guessing at it.
   solutionShown: boolean
-  /** EVERY row the viewer may see — the log prints rejects too. */
+  // EVERY row the viewer may see — the log prints rejects too.
   events: GEvent[]
   players: GPlayer[]
   me: GPlayer
-  /** The header summary's numbers: the team's track in coop, mine in compete
-   *  (`gd.stateLineData`). Its scores are null until the end. */
+  // The header summary's numbers: the team's track in coop, mine in compete
+  // (`gd.stateLineData`). Its scores are null until the end.
   track: GStateLineData
   setupRows: SetupRow[]
 }): WordiplyPrintModel {

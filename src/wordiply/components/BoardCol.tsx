@@ -12,7 +12,7 @@ import { useTypedGuess } from '../hooks/useTypedGuess'
 import { useMarkForeignGuesses } from '../hooks/useMarkForeignGuesses'
 import type { GGameData, GHistoryView } from '../types'
 import { Board } from './Board'
-import styles from './PlayArea.module.css'
+import styles from './BoardCol.module.css'
 
 /**
  * wordiply's board column — the base (shown plainly), the guess board (with
@@ -36,16 +36,23 @@ export function BoardCol({
 }: {
   gd: GGameData
   historyView: GHistoryView
-  /** PlayArea's below-board slot, drawn above the keyboard. A key, on screen or
-   *  physical, is the player's next move, so it dismisses a gesture-cleared
-   *  message. */
+  // PlayArea's below-board slot, drawn above the keyboard. A key, on screen or
+  // physical, is the player's next move, so it dismisses a gesture-cleared
+  // message.
   localFeedbackSlot: FeedbackSlot
 }) {
+  // ─── Which board is on screen ─────────────────────────────────
+  // Live, or a past row's (PlayArea picks); everything that would write to the
+  // board answers to it.
+
   // The move is mine — not the game over, my five spent, conceded, or a
   // teammate's turn — and the live board is the one on screen: a key then is
   // the history viewer's exit, and must not also type.
   const isInteractive = gd.me.onTurn && !historyView.isViewing
 
+  // ─── The pending move ─────────────────────────────────────────
+  // The word being typed (`useTypedGuess`) and its trip to the server
+  // (`useSubmitGuess`), and a teammate's word marked on the board.
   const submission = useSubmitGuess({ gd, localFeedbackSlot })
   const entry = useTypedGuess({ submission, localFeedbackSlot, canType: isInteractive })
   useMarkForeignGuesses({
@@ -53,6 +60,8 @@ export function BoardCol({
     isViewingHistory: historyView.isViewing,
     answerMark: submission.answerMark,
   })
+
+  // ─── Render ───────────────────────────────────────────────────
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>

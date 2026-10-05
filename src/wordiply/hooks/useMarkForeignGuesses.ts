@@ -25,11 +25,13 @@ export function useMarkForeignGuesses({
   isViewingHistory: boolean
   answerMark: Pick<GAnswerMark, 'show'>
 }): void {
-  // Rows are appended with rising ids and only ever removed all at once (a
-  // Restart), so the newest accepted row's id is enough to say a word landed.
+  // Rows are appended with rising ids, so the newest accepted row's id is
+  // enough to say a word landed.
   const accepted = gd.events.filter((e) => e.valid)
   const newest = accepted.length > 0 ? accepted[accepted.length - 1]! : null
   const newestId = newest?.id ?? null
+  // The newest accepted row already marked: a newer one is a word that just
+  // landed.
   const [seenId, setSeenId] = useState(newestId)
 
   if (newestId !== seenId) {

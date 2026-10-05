@@ -2,7 +2,7 @@
 
 import type { GStateLineData } from '../types'
 import { LengthScoreBar } from './LengthScoreBar'
-import styles from './PlayArea.module.css'
+import styles from './StateLine.module.css'
 
 /**
  * wordiply's state line, drawn from `gd.stateLineData`: while playing, the

@@ -11,16 +11,16 @@ import type { GEvent, GHistoryView } from '../types'
 import styles from './GameEventLog.module.css'
 
 type Props = {
-  /** EVERY row the viewer can see (`gd.events`) — accepted AND rejected. This
-   *  is the one place rejects are shown. */
+  // EVERY row the viewer can see (`gd.events`) — accepted AND rejected. This
+  // is the one place rejects are shown.
   events: GEvent[]
   players: Member[]
   myId: string
   mode: 'coop' | 'compete'
-  /** Tells a rival's withheld log from a genuinely empty one. */
+  // Tells a rival's withheld log from a genuinely empty one.
   isGameEnded: boolean
-  /** The row open on the board: its `#N` wears the history-blue ring, and a
-   *  `#N` click opens another. */
+  // The row open on the board: its `#N` wears the history-blue ring, and a
+  // `#N` click opens another.
   historyView: GHistoryView
 }
 
@@ -38,9 +38,8 @@ type Props = {
  *     reject (a rules error, and in turn-by-turn coop it cost the caller their
  *     go); `warning` for a dictionary miss, which is not a bad move in this
  *     game — you are hunting for the longest word you can think of, and a miss
- *     is a miss (the list may be at fault, or it was a typo). It read `near`
- *     until 2026-09-15; the guess row and the pill say the same word, so all
- *     three had to agree on one outcome, and this is it.
+ *     is a miss (the list may be at fault, or it was a typo). The guess row
+ *     and the pill say the same word (`lib/answer.ts`).
  *   - **the word** — the row's headline, so it takes the slack-absorbing
  *     `gameEventLog.main` column. Definable only when it's a real word: looking up
  *     something the dictionary just rejected would be a dead end.

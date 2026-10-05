@@ -86,6 +86,8 @@ function PlayArea({
   // did as well as it did, and the score says how well.
   const celebration = useCelebration(gd.compete && gd.me.outcome === 'won')
 
+  // ─── The local slot ────────────────────────────────────
+  // Messages about ME: a refused word, the standing conditions, the ending.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // The endings' messages, for the pill and the info column: the game's once
@@ -104,7 +106,8 @@ function PlayArea({
     holder: gd.turns?.holder ?? null,
   })
 
-  // ─── What a PEER did, in the header slot ───────────────
+  // ─── Narration ─────────────────────────────────────────
+  // Messages about somebody ELSE, in the header slot.
 
   // A teammate's accepted word (coop), with its length — the one live readout.
   // My own land on the board instead, and the board marks a teammate's too

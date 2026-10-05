@@ -25,7 +25,7 @@ describe('wordiply buildGameEndingMessage', () => {
     })).toEqual({ pillText: 'Ended: 71%, 8 letters', infoColText: 'Length 71%', outcome: 'neutral' })
   })
 
-  it('coop: the clock is the one loss', () => {
+  it('coop: a timeout is the one loss', () => {
     expect(buildGameEndingMessage({
       ...coop,
       gameEnding: { outcome: 'lost', reason: 'timeout' },

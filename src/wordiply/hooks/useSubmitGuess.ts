@@ -69,6 +69,8 @@ export function useSubmitGuess({
   const legalWords = useMemo(() =>
     new Set(gd.puzzle.legalWords), [gd.puzzle.legalWords])
 
+  // My word, held in the next line until the server's row lands behind it
+  // (`GAnswerMark`).
   const [held, setHeld] = useState<GAnswerMark['held']>(null)
   // Always timed, for everyone: a mark that waits for your next move is a mark
   // still claiming something about a board you have moved on from.

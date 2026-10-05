@@ -37,10 +37,10 @@
   metric is ours.)
 - **A coop target.** Spending the five guesses ends coop as a win, whatever
   the score. A `target_score` (on the composite above, if it lands) would make
-  reaching it the win and arm the clock, the spellingbee pattern; spending the
+  reaching it the win and arm the timer, the spellingbee pattern; spending the
   guesses below it would then be a LOSS (`docs/win-lose.md` → Where a coop
   loss comes from) — the point of the feature, and a bigger change than arming
-  the clock.
+  the timer.
 
 ## Won't do
 

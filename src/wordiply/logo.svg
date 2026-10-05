@@ -6,9 +6,8 @@
      colors are inlined as literals since SVG files can't read CSS custom
      properties (nor may an XML comment contain a double hyphen, hence the bare
      token names): the fill #2f9e8f is theme.css's wordiply-accent, and the
-     stroke #1f7a6e is a darker teal that lives ONLY here — it was a
-     wordiply-accent-edge token, but this file was its only "reader" and a
-     comment isn't a reader, so keep the two in step by hand. -->
+     stroke #1f7a6e is a darker teal that lives ONLY here (no token: this file
+     would be its only reader), so keep the two in step by hand. -->
 <svg
    role="img"
    aria-label="WordWire"

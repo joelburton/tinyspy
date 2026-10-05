@@ -1,0 +1,45 @@
+/* cs-unmet */
+
+/* wordiply's info column: the state region's reserved height, and the reveal
+ * of the longest word at the end. */
+
+/* The info-column "state" region — reserved height so the mid-game
+ * "guesses n/5" ↔ terminal score-bar swap doesn't jump the rows below. */
+/* @@ */ .stateBlock {
+  min-height: 4.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* Terminal reveal — the longest possible word. NO card: it's critical
+ * information, so it reads as plain full-color text, not a boxed aside. */
+/* @@ */ .reveal {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/* @@ */ .revealLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--page-text-color);
+}
+
+/* The best-possible word, revealed at terminal. Click-to-define, so the pointer
+ * and the hover underline are `<DefinableWord>`'s; this is the word's own type,
+ * aligned left under its label. */
+/* @@ */ .revealWord {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--page-text-color);
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+/* @@ */ .revealLen {
+  color: var(--wordiply-accent);
+}

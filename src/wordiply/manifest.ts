@@ -92,7 +92,7 @@ const percent = (score: number | null) => (score === null ? null : `${score}%`)
  * the end, per the "length only during play" rule); once ended, the team's
  * length score and letter count. The five words spent is a win, but coop's
  * words never say "Won" — the team did as well as it did, and the score says
- * how well; the clock is the one loss.
+ * how well; a timeout is the one loss.
  */
 function makeCoopLabel(summary: GSummaryData): string {
   // Coop always has a team.

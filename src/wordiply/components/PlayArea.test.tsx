@@ -283,7 +283,7 @@ describe('wordiply PlayArea — the race\'s verdicts', () => {
     expect(screen.getByText('Lost: all conceded')).toBeInTheDocument()
   })
 
-  it('a nobody-scored timeout blames the clock', () => {
+  it('a nobody-scored timeout blames the timer', () => {
     render(<PlayAreaLoader {...makeCtx(raceLost('timeout'))} />)
     expect(screen.getByText('Lost: out of time, nobody scored')).toBeInTheDocument()
   })

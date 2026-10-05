@@ -15,7 +15,7 @@ import { OpponentReveal } from './OpponentReveal'
 import { StateLine } from './StateLine'
 import type { GActions, GGameData, GHistoryView, GPlayer } from '../types'
 import shared from '@/common/info-sheet/infoCol.module.css'
-import styles from './PlayArea.module.css'
+import styles from './InfoCol.module.css'
 
 /**
  * wordiply's info column — the canonical order (docs/playarea.md): state →

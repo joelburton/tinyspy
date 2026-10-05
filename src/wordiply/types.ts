@@ -236,38 +236,35 @@ export type GEvent = Omit<GEventRaw, 'userId'> & {
  *   - `difficulty` — the dictionary band the legal child words are drawn
  *     from (1..6). Higher = more obscure words count as legal guesses and
  *     can be the longest word. Both manifests default to 5.
- *   - `timer` — wall-clock mode (none / countup / countdown).
+ *   - `timer` — the timer's mode (none / countup / countdown).
  *   - `custom_base` — an OPTIONAL player-chosen starter (see below).
  */
 export type GSetupValues = CoopTurnSetup & {
   timer: TimerMode
-  /** Dictionary band for legal child words (1..6). */
+  // Dictionary band for legal child words (1..6).
   difficulty: number
-  /**
-   * An OPTIONAL player-chosen starter, 2–4 letters. Blank/absent means the
-   * usual random board — the edge function samples a fragment as it always
-   * has. Set it and the builder uses exactly these letters instead, which is
-   * how you hand a friend a challenge ("try wordiply with MOTH").
-   *
-   * Because YOU picked it, a custom base plays by a relaxed gate: the
-   * builder drops its child-count FLOOR (a random board wants ≥20 matching
-   * words; yours needs only 1) and raises the ceiling to 1000. What it does
-   * NOT drop is the headroom rule — the best possible word must still beat
-   * the base by ≥3 letters, because a MOTH board whose best answer is MOTHER
-   * isn't a game. See docs/games/wordiply.md → the base.
-   *
-   * Only the SHAPE is checked here (`customBaseError`); whether a base
-   * actually yields a board is a dictionary question the frontend can't
-   * answer without a round trip, so the edge function owns it and rejects at
-   * Start — the same deal boggle's generation constraints get.
-   *
-   * Not saved as the club's next default: `create_game` strips it before
-   * handing the setup to `common._create_game`. A one-off, not a baseline.
-   */
+  // An OPTIONAL player-chosen starter, 2–4 letters. Blank/absent means the
+  // usual random board — the edge function samples a fragment. Set it and the builder uses exactly these letters instead, which is
+  // how you hand a friend a challenge ("try wordiply with MOTH").
+  //
+  // Because YOU picked it, a custom base plays by a relaxed gate: the
+  // builder drops its child-count FLOOR (a random board wants ≥20 matching
+  // words; yours needs only 1) and raises the ceiling to 1000. What it does
+  // NOT drop is the headroom rule — the best possible word must still beat
+  // the base by ≥3 letters, because a MOTH board whose best answer is MOTHER
+  // isn't a game. See docs/games/wordiply.md → the base.
+  //
+  // Only the SHAPE is checked here (`customBaseError`); whether a base
+  // actually yields a board is a dictionary question the frontend can't
+  // answer without a round trip, so the edge function owns it and rejects at
+  // Start — the same deal boggle's generation constraints get.
+  //
+  // Not saved as the club's next default: `create_game` strips it before
+  // handing the setup to `common._create_game`. A one-off, not a baseline.
   custom_base?: string
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
+  // WHO IS PLAYING — a field like any other, and the only one that is not
+  // part of the setup blob: `create_game` takes it as its own argument and
+  // writes `common.game_players` rows from it.
   player_user_ids: Set<string>
 }
 

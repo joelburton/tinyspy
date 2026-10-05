@@ -682,7 +682,9 @@ type or map admitting only some outcomes** is fixed or its reason written
     log takes `events` and `historyView`; a label asks the rule, not the
     color.
 13. **The naming pass**: what the conversion left, and the game's names
-    checked against the ones plans/cross-game-consistency.md settled.
+    checked against the ones plans/cross-game-consistency.md settled — but
+    for N25's "race" → "player", which is one sweep after the backfill
+    (Joel, 2026-10-05).
 
 **E. Close each slice.**
 
@@ -708,9 +710,11 @@ Games converted before then carry only what their audit already did:
 
 - **psychicnum, wordle, connections, spellingbee, wordwheel** — closed
   audits; nothing owed.
-- **boggle, wordiply, codenamesduet** — the answers are done; the stylesheet
-  split, the section order, the comment and docstring passes and the names
-  are owed (codenamesduet's audit is open, so check its area file first).
+- **boggle, codenamesduet** — the answers are done; the stylesheet split, the
+  section order, the comment and docstring passes and the names are owed
+  (codenamesduet's audit is open, so check its area file first).
+- **wordiply** — backfilled 2026-10-05 (plans/areas/wordiply.md → The
+  backfill); N25's "race" → "player" is the later sweep's.
 - **waffle** — backfilled 2026-10-05 (plans/areas/waffle.md → The backfill).
 - **letterboxed** — backfilled 2026-10-05 (plans/areas/letterboxed.md → The
   backfill).

@@ -1,0 +1,22 @@
+/* cs-unmet */
+
+/* wordiply's state line: the guesses spent, and the letters stat. */
+
+/* @@ */ .guessCount {
+  font-size: 1.1rem;
+  color: var(--page-text-color);
+}
+
+/* @@ */ .guessCount strong {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+/* @@ */ .guessCountOf {
+  color: var(--page-text-muted-color);
+}
+
+/* @@ */ .letterStat {
+  font-size: 0.95rem;
+  color: var(--page-text-color);
+}
