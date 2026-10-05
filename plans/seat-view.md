@@ -525,6 +525,21 @@ next open (todo.md → Someday).
   `submit_swap` answers `n_swaps_used` / `game_ended` and the board key is
   `dealt` from the generator to `create_game`; every RPC call sends `p_`
   names, which had been broken since 2026-09-28.
+- **letterboxed — done 2026-10-05**, waffle's way: every seat's `board` is
+  `{words}`, its chain (coop's one chain on every seat), the box is twelve
+  `{id, letter, side}` tiles in the puzzle with the letter as id, and the
+  seeded pair is null until the end. Coop's two chain counts are `team`'s
+  alone — a coop player carries neither, a racer their own — while hints and
+  spoilers are counted per player off the log. The board's word list is
+  `words` from the edge function through the column (20261005000002) to the
+  blob, with `uncleanWords` beside it naming the few a hint may not offer;
+  `makeGameData` makes them `[{word, clean}]`. The statuses, both views,
+  their three definers and the events mode arm went (plans/areas/letterboxed.md
+  → The convenience RLS); the log's count is `n_covered_letters`
+  (20261005000001). The typed word splits from its trip to the server, the
+  board draws a `Tile` piece, one action row; the move RPCs answer their
+  `result` alone, and every RPC call sends `p_` names, which had been broken
+  since 2026-09-28.
 - **boggle — done 2026-10-04**, the bee games' way without their shared
   folder: `boggle._make_json_found_counts` writes the six counts for the team
   and each player, and `_rebuild_data_cols` the puzzle (tiles `{id, letters}`,

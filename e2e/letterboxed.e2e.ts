@@ -328,7 +328,8 @@ test.describe('letterboxed', () => {
     const pills = () =>
       page.evaluate(() =>
         [...document.querySelectorAll('li')]
-          .filter((e) => /^[A-Z]{3,}/.test(e.textContent ?? ''))
+          // The words are stored lowercase; the pills draw their capitals.
+          .filter((e) => /^[a-z]{3,}/.test(e.textContent ?? ''))
           .map((e) => {
             const c = getComputedStyle(e)
             return { l: c.paddingLeft, r: c.paddingRight, hasX: !!e.querySelector('button') }

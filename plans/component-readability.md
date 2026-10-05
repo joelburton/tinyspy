@@ -410,6 +410,31 @@ waffle converted alone (2026-10-05) and settled, beyond the games above:
   `dealt` is read by SQL and written by the edge function; either alone breaks
   starting a game.
 
+## What letterboxed added
+
+letterboxed converted alone (2026-10-05) and settled, beyond the games above:
+
+- **A count about the chain is the team's, not the player's.** Words used and
+  letters covered describe what the team built, not what anyone did, so in coop
+  they live on `team` alone and a coop player carries neither key; a racer
+  carries their own. What a player DID — a hint, a spoiler — is on every player
+  in both modes.
+- **A long list names its exceptions.** The board's words go in the blob once,
+  with the few a hint may not offer beside them (`uncleanWords`), rather than a
+  second list nearly as long; `makeGameData` puts it in the clearest shape for
+  the readers (`[{word, clean}]`).
+- **One name for one list, from the builder to the page.** The board's words
+  were `playable_words`, `legal_words` and `words` at three stops; they are
+  `words` at all of them.
+- **A function with no React in it is a `lib/` function**, even when only one
+  hook calls it (`askForHintOrSpoiler`).
+- **A tile's look and its click are two answers.** A letter that may not follow
+  the last one ignores a click but still looks pressable, so the tile takes
+  `isInteractive` and `isPickable` apart.
+- **A file the edge function loads takes plain shapes.** `lib/board.ts` is
+  reached through `customBoard.ts`, so its tile helpers take `{letter, side}`
+  rather than importing `GTile`.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

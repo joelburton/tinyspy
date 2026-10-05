@@ -18,18 +18,6 @@
 
 ## Soon
 
-- **A compete timeout nobody made progress in crowns everyone.** With every
-  chain empty, `submit_timeout`'s `won` check ties every player still in on
-  zero letters and zero words, and makes them all co-winners. Ruled: if
-  nobody covered a letter, the timeout is `timeout-no-winner`, as boggle,
-  wordiply and setgame already do.
-
-- **No ending of its own writes a `reason`.** Every ending writes one into
-  the status blob; letterboxed's solve, timeout and Stop say how the game
-  ended with their own flags (`solved`, `timed_out`, `stopped`) instead.
-  Only `common.concede` writes one here (`'conceded'`). The words wait for
-  the shared vocabulary (`plans/game-cards.md` → After the cards, step 7).
-
 - **The below-board reserve is a hand-tuned constant.**
   `components/PlayArea.module.css`'s `--avail-h` sizes the board as `100svh -
   var(--game-chrome-height) - 8rem`, where that last term stands for
@@ -65,3 +53,26 @@
 ## Maybe
 
 ## Won't do
+
+- **A coop player carries no chain counts** (Joel, 2026-10-05: "the
+  only-in-team is fine for coop; that makes it clearer"). Words used and
+  letters covered describe the shared chain, so in coop they are `team`'s
+  alone; a racer carries their own.
+- **The blob does not store the word list twice** (Joel, 2026-10-05: "i'm
+  trying to save the db from storing json that is twice as long as it needs
+  to be"). It carries `words` and the few `uncleanWords`; `makeGameData` makes
+  them `[{word, clean}]`.
+- **The board's words are `words` everywhere** (Joel, 2026-10-05: "let's call
+  it 'words' in all") — the edge function's board, the column, the blob.
+- **Hints and spoilers are counted apart** (Joel, 2026-10-05: "two counts"),
+  off the log, as `nHintsUsed` and `nSpoilersUsed`; `players.hints_used`
+  keeps counting both and nothing reads it.
+- **A tile's id is its letter** (Joel, 2026-10-05: "as letter"): the twelve
+  are distinct by rule.
+- **Covered letters are worked out from the words** (2026-10-05), on the
+  board and in the history replay alike; no tile carries a `covered` fact.
+- **The seeded pair waits for the end** (2026-10-05). It arrives in
+  `game_data` once the game ends, in both modes, and still only shows when a
+  player presses Reveal.
+- **The move RPCs answer their `result` alone** (2026-10-05): what a word, an
+  undo or a clear did, the page reads from the blobs.
