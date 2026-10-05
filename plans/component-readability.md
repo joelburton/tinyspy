@@ -435,6 +435,28 @@ letterboxed converted alone (2026-10-05) and settled, beyond the games above:
   reached through `customBoard.ts`, so its tile helpers take `{letter, side}`
   rather than importing `GTile`.
 
+## What stackdown added
+
+stackdown converted alone (2026-10-05), the first game to take the backfill —
+the answers, the comment pass and the section order — inside its conversion,
+and settled, beyond the games above:
+
+- **A word being built is read off the board the blob draws**, not kept in
+  step by hand: a word a teammate's clear took a tile from is empty, and an
+  accepted word's held tiles drop as the blob has them gone — two derivations,
+  no effect (`useCurrentWord`).
+- **The send is an action's `run`, so the action's `pending` is the in-flight
+  guard**, and the column's own gate (`canPick`) reads it rather than keeping
+  a flag.
+- **A flash holds ids, not letters**, when the tiles are on the puzzle: the
+  letters come off `tilesById` after the tiles have left the board, so nothing
+  changes case in state.
+- **A mark carries its answer, not a color**, when two readers need two things
+  from it: a teammate's word mark holds a `GAnswer`, which says both the color
+  the tiles wear and whether they are held.
+- **A keystroke the board turns away is not an answer.** It writes no row, so it
+  stays out of `GAnswer`, and its pill is its only surface.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

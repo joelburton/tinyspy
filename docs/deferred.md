@@ -19,4 +19,3 @@ How an area opens), and this file goes when the last one does.
 | crosswords | [docs/games/crosswords.md → Deferred](games/crosswords.md#9-deferred) |
 | letterboxed | [docs/games/letterboxed.md → Deferred](games/letterboxed.md#deferred) |
 | setgame | [docs/games/setgame.md → Deferred](games/setgame.md#deferred) |
-| stackdown | [docs/games/stackdown.md → Deferred](games/stackdown.md#7-deferred) |

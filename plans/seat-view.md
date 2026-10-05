@@ -540,6 +540,18 @@ next open (todo.md → Someday).
   board draws a `Tile` piece, one action row; the move RPCs answer their
   `result` alone, and every RPC call sends `p_` names, which had been broken
   since 2026-09-28.
+- **stackdown — done 2026-10-05**, letterboxed's way, with the backfill inside
+  it: every seat's `board` is `{tiles}`, the tiles still on its stack (coop's
+  one stack on every seat), the stack is 30 `{id, letter, x, y, z}` tiles in
+  the puzzle with the tile number as id, and the six words are null until the
+  end. Each player's three counts are their own, the team's their sum; an
+  event's tiles are ids in pick order, and a hint's text is `clue`. The
+  statuses, `games_state`, its definer and the events mode arm went
+  (plans/areas/stackdown.md → The convenience RLS); the count column is
+  `n_found_words` (20261005000003). The word being built is `useCurrentWord`,
+  read off the blob's stack; the board draws a `Tile` piece; one action row;
+  `lib/answer.ts` says every answer and the move envelopes carry no outcome;
+  every RPC call sends `p_` names.
 - **boggle — done 2026-10-04**, the bee games' way without their shared
   folder: `boggle._make_json_found_counts` writes the six counts for the team
   and each player, and `_rebuild_data_cols` the puzzle (tiles `{id, letters}`,

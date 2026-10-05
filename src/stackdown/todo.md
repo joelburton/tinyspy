@@ -2,22 +2,26 @@
 
 ## Bugs
 
-- `WordEntry.module.css` `.good` / `.bad` are read by nothing — the slots
-  take their colors elsewhere now. `cssClasses.test.ts` holds them in
-  `DEAD_CLASS_PENDING`.
 - **`create_game` accepts a one-player compete game.** The compete manifest's
-  `numberOfPlayers` is `[2, 6]` and its comment says "the RPC enforces it", but
-  `stackdown.create_game` has no `< 2` check for compete, so only the FE's
+  `numberOfPlayers` is `[2, 6]`, but `stackdown.create_game` has no `< 2` check for compete, so only the FE's
   hidden Start button stops it. Add the check the other compete games have
   (wordle's is `PN498`, a fault, since the app never sends it).
 
 ## Soon
 
-- **A compete win writes no `reason`.** Every ending writes one into the
-  status blob; `submit_word`'s compete win leaves it out, where coop's
-  writes `'cleared'`. The word — `'cleared'` here, `'solved'` in the other
-  games — waits for the shared vocabulary (`plans/game-cards.md` → After the
-  cards, step 7).
+- **My own refused word marks nothing on the board; a teammate's does.** A
+  teammate's refused word takes the attention flash on their tiles and then the
+  refusal's color; mine wears the refusal in the slots, and its tiles land back
+  with the attention flash but never the color. It may be right — my eye is on
+  the slots, and the slots carry the answer — but the mark's audience is
+  "everyone except the person who acted", the opposite of every other verdict.
+  Decide it in the tile-feedback pass (the roster's stackdown row).
+
+- **A board that takes no move paints nothing, on purpose.** A covered tile is
+  dimmed; a whole board that is not mine to touch — once the game has ended,
+  or while a past turn is open — is not, because both are states people sit and
+  study. Re-read it against the vocabulary's board-scope marks in the
+  tile-feedback pass: the game-over frame says the same without dimming.
 
 - **"Blank this while viewing history" is decided per mark.** `BoardCol`
   derives each of the three LIVE marks — a teammate's attention flash, their
@@ -100,3 +104,6 @@
   `stackdown.events`.
 
 ## Won't do
+
+- **A `MobileStatusBar`** (Joel, 2026-10-05: "no, it shouldn't get a
+  mobilestatusbar"). On a phone the stack on screen is the progress.
