@@ -163,29 +163,34 @@ The rulings behind it (2026-10-04):
   (the word's) leave the blob; `maxGuesses` is the builder's, and the
   frontend's `MAX_GUESSES` goes.
 
+## The PlayArea pass — rulings (2026-10-04)
+
+Seat-view step 9. What Joel decided beyond the earlier games' shape:
+
+- **Coop's words never say "Won".** The five words spent is `won`, drawn
+  green, but the pill reads `Ended: 71%, 8 letters` and the club card
+  `Ended (out of guesses) · 71% · 8 letters`, as before the ruling; only
+  compete says "Won".
+- **A racer who has spent their five is told so**: `Out of guesses —
+  waiting` / `Waiting for others`, wordle's words, beside the conceder's
+  `Conceded — race continues` / `You conceded`.
+- **Confetti on a compete win, none on a coop win.**
+- **A teammate's word is marked from the board's side**
+  (`useMarkForeignGuesses` in `BoardCol`), as connections does; `PlayArea`
+  only narrates it in the header.
+
 ## Predicted test breaks
 
 - **Step 4 (2026-10-04), fixed at step 5:** every pgTAP assertion that read
   the statuses now reads the blobs, `game_data_test` pins them, and
   `statuses_test` went; `schema_test` pins `games_state` gone and `rls_test`
   the member read.
-- **Steps 4–7:** the frontend reads `games_state` and the `events` columns
-  directly, so the page is broken until `useGame` reads `game_data`.
-- **Before the conversion, and until steps 7–12:** `tsc -b` reports 71
-  errors in the folder, and `PlayArea.test.tsx` cannot load. The game still
-  reads the common layer's old shapes (`GamePlayer`, `user_id`,
-  `authSession`, `whereIStand`, `summaryFor`'s `row.status`); each goes with
-  the step that rewrites its reader.
-- **Step 6 (2026-10-04):** wordiply joins `CONVERTED_GAMES` in
-  `src/guards/gameTypes.test.ts` once the last old shapes are gone:
-  `OpponentGuess` / `OpponentReveals` and `lib/history.ts`'s two with the
-  passes that rewrite their readers, and `EventRow` (below).
-- **Step 7 (2026-10-04):** `useGame` returns `{gd}`, so `PlayArea` (and its
-  test, which mocks the old hook) does not compile until step 9. `Player` and
-  `WordiplyGame` went; `EventRow` stays in `hooks/useGame.ts` for the
-  components and `pdf/model.ts`, which read it until the PlayArea pass moves
-  them onto `gd.events`. `lib/answer.ts` and `lib/history.ts` read `GEvent`
-  already.
+- **Steps 4–9 (2026-10-04), fixed at step 9:** the frontend read the old
+  shapes (`games_state`, the `events` columns, the common layer's
+  `GamePlayer` / `user_id` / `authSession` / `whereIStand`) until the
+  PlayArea pass moved every reader onto `gd`; `tsc -b` is clean in the
+  folder, `PlayArea.test.tsx` runs on the fixture, and wordiply joined
+  `CONVERTED_GAMES` at step 9, as codenamesduet did.
 
 ## Closing
 

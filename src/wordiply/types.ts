@@ -14,7 +14,11 @@
  * `GEvent` / `GEventRaw` are the same pair, one level down.
  */
 
+import type { Action } from '@/common/actions/useBindAction'
+import type { Mark } from '@/common/board-marks/useMark'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { Actor } from '@/common/members/member'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
@@ -296,6 +300,90 @@ export type GAnswer =
   | { answerType: 'missing_base'; word: string; base: string }
   // Contains the base, and is not a word.
   | { answerType: 'not_a_word'; word: string }
+
+/**
+ * Every command wordiply offers, bound once: the info column's action row
+ * places them, the menu lists them, and their keys fire them — all reading the
+ * same action, so the surfaces cannot drift.
+ */
+export type GActions = {
+  // Each key is spelled as its action's id (`act-reveal` → `actReveal`), so a
+  // grep for either finds every trace of the action
+  // (src/guards/actionIds.test.ts).
+  //
+  // Show the best possible word — or put it away again. A local display
+  // toggle, no RPC; it carries its own two faces.
+  actReveal: Action
+  // Restart THIS game — same base — from scratch.
+  actRestart: Action
+  // Start a fresh follow-up game — same setup, a new base and id. Disables
+  // itself while the create is in flight.
+  actNewGame: Action
+  // Drop out of a compete game while the others play on — hidden in coop, and
+  // once you are out, when Stop takes its place.
+  actConcede: Action
+  // Stop the game for the whole table — coop's exit; it hides itself in
+  // compete until you are out.
+  actStopGame: Action
+  // Print the log; the menu's alone, with no twin in the row.
+  actPrintBoard: Action
+  // Leave for the club page — the shell's own, off `PlayAreaLoaderProps.menu`,
+  // carried here so a surface that places the row has every action in one
+  // object.
+  actBackToClub: Action
+}
+
+/**
+ * The turn-history view: which past row of the log, if any, is open on the
+ * board, and the board as it stood then. Every field but the two callbacks is
+ * null (or undefined) while the live board is on screen.
+ */
+export type GHistoryView = {
+  // A past row is open on the board (`viewedEventId` is set). The entry row is
+  // not drawn and the marks are not shown.
+  isViewing: boolean
+  // The log row open on the board (`events.id`), or null when live.
+  viewedEventId: number | null
+  // Open a row — the log's `#N` click, with the number it printed beside it.
+  show: (id: number, n: number | null) => void
+  // Back to the live board — the banner's ✕, or any click or key.
+  exit: () => void
+  // The board's words as of that row, or null when live.
+  words: string[] | null
+  // The banner's text, or null when live.
+  label: string | null
+  // Whose board is on screen, when it is not mine — which only compete can
+  // be: coop is one shared board.
+  actor: Actor | undefined
+}
+
+/** A past row of the log, replayed. */
+export type GReplayedTurn = {
+  // The accepted words up to and including the row. A reject fills no line, so
+  // its replay is the board as it stood when it was tried.
+  words: string[]
+  // A short label for the viewer banner: what the row turned out to be.
+  label: string
+  // Who submitted it — whose board this is; null for an id not in the log.
+  author: GPlayer | null
+}
+
+/**
+ * The answer on the board's row for a word that has just been judged: mine as
+ * I submit it, a teammate's as it lands. `held` is my own word kept in the
+ * next line while its answer shows — the engine clears the entry on submit, so
+ * without it the word would vanish for a round trip.
+ */
+export type GAnswerMark = {
+  // My word, drawn in the next line. `awaitingRow`: it was accepted, and stays
+  // until the server's row lands behind it; a refused one goes with its mark.
+  held: { word: string; awaitingRow: boolean } | null
+  // The answer being shown on whichever line its word is in, for a beat.
+  flash: Mark<{ word: string; outcome: Outcome }> | null
+  // Show an answer on its word's line — `isForeign` for a teammate's, which is
+  // announced with the attention flash first.
+  show: (word: string, outcome: Outcome, isForeign?: boolean) => void
+}
 
 /** One competitor's terminal totals, as `compareCompetitors` needs them. */
 export type GCompetitor = {

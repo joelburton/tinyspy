@@ -2,22 +2,20 @@
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
-import type { EventRow } from '../hooks/useGame'
+import type { GEvent, GGameData, GPlayer, GStateLineData } from '../types'
 
 /**
  * Build the wordiply print model — the pure half of print-to-PDF, kept away
  * from jsPDF so the JUDGMENT can be tested without a renderer.
  *
- * The judgment is mostly one rule: **wordiply's terminal-only reveal has to
- * survive onto paper.** On screen a player sees only their guess count during
- * play — length score, letter count and the longest possible word appear at
- * terminal and not before (docs/games/wordiply.md §2). A printout is just
- * another view of the same game, so a mid-game print must withhold exactly the
- * same things. Dumping `status` would leak all three, which is why the shaping
- * lives here with a test rather than inline in a menu effect.
+ * The judgment is mostly one rule: **wordiply's end-only reveal has to survive
+ * onto paper.** On screen a player sees only their guess count during play —
+ * length score, letter count and the longest possible word appear at the end
+ * and not before (docs/games/wordiply.md §2). A printout is just another view
+ * of the same game, so a mid-game print must withhold exactly the same things.
  */
 
-/** One player's terminal result — the compete scores block. */
+/** One player's final result — the compete scores block. */
 export type PrintScore = {
   who: string
   lengthScore: number
@@ -31,19 +29,19 @@ export type WordiplyPrintModel = PrintHeader & {
   /** The event log — accepted AND rejected, in play order. */
   turns: TurnRow[]
   /**
-   * Terminal only (null during play). The longest word that was possible, and
-   * its length — wordiply's headline reveal.
+   * While the best possible word is revealed on screen (null otherwise): the
+   * word and its length — wordiply's headline reveal.
    */
   reveal: { word: string; length: number } | null
   /**
-   * Compete at terminal only (empty otherwise): every player's final scores.
+   * Compete once ended only (empty otherwise): every player's final scores.
    * Coop has one shared result, which the header summary already carries.
    */
   scores: PrintScore[]
 }
 
 /** The reject reasons, in the log's terse voice — same words as on screen. */
-const REJECT_LABEL: Record<NonNullable<EventRow['reason']>, string> = {
+const REJECT_LABEL: Record<NonNullable<GEvent['reason']>, string> = {
   missing_base: 'no base',
   too_short: 'too short',
   not_a_word: 'not a word',
@@ -59,89 +57,79 @@ const REJECT_LABEL: Record<NonNullable<EventRow['reason']>, string> = {
  * this reason. Here the text already says it (`— not a word`), so no mark is
  * needed; keep it that way rather than adding one.
  */
-const turnText = (g: EventRow): string =>
-  g.valid
-    ? `${g.word.toUpperCase()} (${g.length})`
-    : `${g.word.toUpperCase()} — ${REJECT_LABEL[g.reason ?? 'not_a_word']}`
+const turnText = (e: GEvent): string =>
+  e.valid
+    ? `${e.word.toUpperCase()} (${e.word.length})`
+    : `${e.word.toUpperCase()} — ${REJECT_LABEL[e.reason ?? 'not_a_word']}`
 
 export function buildWordiplyPrintModel(o: {
   brand: string
   gameTitle: string
   date: string
-  base: string
-  maxWordLength: number
-  /** The longest possible word, from the board — the game's solution. */
-  longestWord: string | null
+  mode: 'coop' | 'compete'
+  isGameEnded: boolean
+  puzzle: GGameData['puzzle']
   /** Is the best possible word on screen right now (the local reveal toggle)?
    *  The paper carries the answer only if the page in front of the printer
    *  does — printing it regardless would route around the Reveal button and
    *  hand the word to a table still guessing at it. */
-  solutionRevealed: boolean
-  mode: 'coop' | 'compete'
-  isTerminal: boolean
+  solutionShown: boolean
   /** EVERY row the viewer may see — the log prints rejects too. */
-  guesses: EventRow[]
-  players: { user_id: string; username: string }[]
-  myId: string
-  /** Accepted-guess count, the one live readout. */
-  guessesUsed: number
-  maxGuesses: number
-  /** Terminal totals for the header summary (coop: the team's; compete: mine). */
-  lengthScore: number
-  letterCount: number
-  /** Terminal compete only: per-player scores off `status.leaderboard`. */
-  leaderboard: { user_id: string; length_score?: number; letter_count?: number; won?: boolean }[]
+  events: GEvent[]
+  players: GPlayer[]
+  me: GPlayer
+  /** The header summary's numbers: the team's track in coop, mine in compete
+   *  (`gd.stateLineData`). Its scores are null until the end. */
+  track: GStateLineData
   setupRows: SetupRow[]
 }): WordiplyPrintModel {
-  const nameOf = (userId: string) =>
-    o.players.find((p) => p.user_id === userId)?.username ?? 'someone'
-
   // Compete tracks are PARALLEL races, not one shared sequence, so interleaving
-  // them chronologically would read as nonsense. Sorting by player (self first)
+  // them chronologically would read as nonsense. Sorting by player (me first)
   // then by time groups each player's run into a block while staying one table —
   // the `who` column labels them, so no new helper is needed. Coop IS one shared
   // sequence, so it stays in play order.
   const ordered =
     o.mode === 'compete'
-      ? [...o.guesses].sort((a, b) => {
-          if (a.user_id !== b.user_id) {
-            if (a.user_id === o.myId) return -1
-            if (b.user_id === o.myId) return 1
-            return nameOf(a.user_id).localeCompare(nameOf(b.user_id))
+      ? [...o.events].sort((a, b) => {
+          if (a.by !== b.by) {
+            if (a.by === o.me) return -1
+            if (b.by === o.me) return 1
+            return a.by.username.localeCompare(b.by.username)
           }
           return a.id - b.id
         })
-      : o.guesses
+      : o.events
 
-  // Numbered by LOG POSITION: a reject occupies no board row, and a printed
+  // Numbered by LOG POSITION: a reject occupies no board line, and a printed
   // wordiply has no board for the numbers to line up with anyway. So `#3`
   // means "the third thing that happened".
-  const turns: TurnRow[] = ordered.map((g, i) => ({
+  const turns: TurnRow[] = ordered.map((e, i) => ({
     seq: i + 1,
-    who: nameOf(g.user_id),
-    text: turnText(g),
+    who: e.by.username,
+    text: turnText(e),
   }))
 
-  // The terminal-only rule, in one place. Mid-game the summary is the guess
-  // count and nothing else; the reveal and the scores block don't render.
-  const summary = o.isTerminal
-    ? `Starter ${o.base.toUpperCase()} · Length score ${o.lengthScore}% · ` +
-      `${o.letterCount} letters across ${o.guessesUsed} guess${o.guessesUsed === 1 ? '' : 'es'}`
-    : `Starter ${o.base.toUpperCase()} · ${o.guessesUsed} / ${o.maxGuesses} guesses`
+  // The end-only rule, in one place. Mid-game the summary is the guess count
+  // and nothing else; the scores block doesn't render.
+  const base = o.puzzle.base.toUpperCase()
+  const nUsed = o.track.nGuessesUsed
+  const summary = o.isGameEnded
+    ? `Starter ${base} · Length score ${o.track.lengthScore}% · ` +
+      `${o.track.nLetters} letters across ${nUsed} guess${nUsed === 1 ? '' : 'es'}`
+    : `Starter ${base} · ${nUsed} / ${o.track.maxGuesses} guesses`
 
+  // A player's scores are written once the game has ended.
   const scores: PrintScore[] =
-    o.isTerminal && o.mode === 'compete'
-      ? o.players.map((p) => {
-          const row = o.leaderboard.find((e) => e.user_id === p.user_id)
-          return {
-            who: p.username,
-            lengthScore: row?.length_score ?? 0,
-            letterCount: row?.letter_count ?? 0,
-            won: row?.won ?? false,
-          }
-        })
+    o.isGameEnded && o.mode === 'compete'
+      ? o.players.map((p) => ({
+          who: p.username,
+          lengthScore: p.lengthScore!,
+          letterCount: p.nLetters!,
+          won: p.outcome === 'won',
+        }))
       : []
 
+  const bestWord = o.puzzle.longestWords[0] ?? null
   return {
     brand: o.brand,
     gameTitle: o.gameTitle,
@@ -149,11 +137,11 @@ export function buildWordiplyPrintModel(o: {
     summary,
     setupRows: o.setupRows,
     mode: o.mode,
-    base: o.base.toUpperCase(),
+    base,
     turns,
     reveal:
-      o.solutionRevealed && o.longestWord
-        ? { word: o.longestWord.toUpperCase(), length: o.maxWordLength }
+      o.solutionShown && bestWord
+        ? { word: bestWord.toUpperCase(), length: o.puzzle.maxWordLen }
         : null,
     scores,
   }

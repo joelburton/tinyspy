@@ -1,35 +1,32 @@
 // cs-fixed-outcome-fix
 
 import { cls } from '@/common/utils/cls'
-import { memberById } from '@/common/members/memberList'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { EventLog, EventLogActor, EventLogNumber, EventLogOutcomeBar } from '@/common/event-log/EventLog'
 import { eventToOutcome } from '../lib/answer'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import type { Member } from '@/common/members/member'
-import type { EventRow } from '../hooks/useGame'
+import type { GEvent, GHistoryView } from '../types'
 import styles from './GameEventLog.module.css'
 
 type Props = {
-  /** EVERY row the viewer can see — accepted AND rejected. This is the one
-   *  place rejects are shown; the board and the scores take `validGuesses`. */
-  guesses: EventRow[]
+  /** EVERY row the viewer can see (`gd.events`) — accepted AND rejected. This
+   *  is the one place rejects are shown. */
+  events: GEvent[]
   players: Member[]
   myId: string
   mode: 'coop' | 'compete'
-  /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
-  isTerminal: boolean
-  /** The row open in the board viewer, or null. */
-  historyId: number | null
-  /** Open a row in the board viewer — the row's id, and the `#N` this log
-   *  printed beside it, which is what the banner shows back. */
-  onShowHistory: (id: number, n: number) => void
+  /** Tells a rival's withheld log from a genuinely empty one. */
+  isGameEnded: boolean
+  /** The row open on the board: its `#N` wears the history-blue ring, and a
+   *  `#N` click opens another. */
+  historyView: GHistoryView
 }
 
 /** What each rejected row says, in the log's terse voice. The pill that fired
  *  at submit time said more; this is the durable one-word record. */
-const REJECT_LABEL: Record<NonNullable<EventRow['reason']>, string> = {
+const REJECT_LABEL: Record<NonNullable<GEvent['reason']>, string> = {
   missing_base: 'no base',
   too_short: 'too short',
   not_a_word: 'not a word',
@@ -66,17 +63,17 @@ const REJECT_LABEL: Record<NonNullable<EventRow['reason']>, string> = {
  * is the question the log exists to answer.
  */
 export function GameEventLog({
-  guesses, players, myId, mode, isTerminal, historyId, onShowHistory,
+  events, players, myId, mode, isGameEnded, historyView,
 }: Props) {
-  const eventLogPicker = useEventLogPlayerPicker<EventRow>({
+  const eventLogPicker = useEventLogPlayerPicker<GEvent>({
     players,
     myId,
     mode,
-    isTerminal,
+    isTerminal: isGameEnded,
     label: 'Whose guesses to show',
     emptyLabel: 'No guesses yet.',
   })
-  const shown = eventLogPicker.filter(guesses)
+  const shown = eventLogPicker.filter(events)
 
   return (
     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}>
@@ -87,8 +84,8 @@ export function GameEventLog({
               own id. */}
           <EventLogNumber
             n={i + 1}
-            isOpenInHistory={historyId === g.id}
-            onShowHistory={() => onShowHistory(g.id, i + 1)}
+            isOpenInHistory={historyView.viewedEventId === g.id}
+            onShowHistory={() => historyView.show(g.id, i + 1)}
           />
           <td className={gameEventLog.main}>
             {g.valid ? (
@@ -100,9 +97,9 @@ export function GameEventLog({
             )}
           </td>
           <td className={cls(gameEventLog.muted, styles.outcome)}>
-            {g.valid ? g.length : REJECT_LABEL[g.reason ?? 'not_a_word']}
+            {g.valid ? g.word.length : REJECT_LABEL[g.reason ?? 'not_a_word']}
           </td>
-          <EventLogActor actor={memberById(players, g.user_id)} />
+          <EventLogActor actor={g.by} />
         </tr>
       ))}
     </EventLog>

@@ -122,10 +122,3 @@
 /* @@ */ .revealLen {
   color: var(--wordiply-accent);
 }
-
-.loading,
-/* @@ */ .empty {
-  padding: 2rem;
-  text-align: center;
-  color: var(--page-text-muted-color);
-}

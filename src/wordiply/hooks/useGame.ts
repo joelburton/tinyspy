@@ -6,22 +6,6 @@ import { makeSetupRows } from '../lib/setupRows'
 import type { GEvent, GGameData, GGameDataRaw, GPlayer } from '../types'
 
 /**
- * One row of `wordiply.events`, as the components read it before the page
- * blobs. Nothing builds one any more; it goes with the PlayArea pass, which
- * moves its readers onto `gd.events`.
- */
-export type EventRow = {
-  id: number
-  game_id: string
-  user_id: string
-  word: string
-  length: number
-  valid: boolean
-  reason: 'missing_base' | 'too_short' | 'not_a_word' | null
-  created_at: string
-}
-
-/**
  * The seat rule: what a racer may not see yet. Mid-race in compete, a rival's
  * words are their strategy, so their rows leave the log and their board is
  * null; the game's end opens everything. Coop withholds nothing: one board,

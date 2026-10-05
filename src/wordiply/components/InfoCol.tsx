@@ -1,226 +1,142 @@
 // cs-unmet
 
-import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
-import { type GamePlayer } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
+import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { Action } from '@/common/actions/useBindAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import type { SetupRow } from '@/common/setup-form/types'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import { MAX_GUESSES } from './GuessBoard'
 import { LengthScoreBar } from './LengthScoreBar'
 import { GameEventLog } from './GameEventLog'
-import { OpponentReveal, type OpponentReveals } from './OpponentReveal'
-import type { EventRow } from '../hooks/useGame'
-import type { GSetup } from '../types'
+import { OpponentReveal } from './OpponentReveal'
+import type { GActions, GGameData, GHistoryView, GPlayer } from '../types'
 import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './PlayArea.module.css'
 
 /**
  * wordiply's info column — the canonical order (docs/playarea.md): state →
- * OpponentStrip (compete) → action row → setup disclosure → terminal
- * reveal. Every mutation is a named callback up; PlayArea owns the RPCs.
+ * whose turn → OpponentStrip (compete) → action row → setup disclosure → the
+ * revealed word → opponents' words → the event log. Every command is an action
+ * PlayArea hands down.
  *
- * The "state" region enforces the length-only rule: MID-GAME it shows just
- * "Guesses n/5"; at TERMINAL the same fixed-height slot fills in the
- * `<LengthScoreBar>` + the letter-count stat (scores are terminal-only).
- * The reveal beneath names the longest possible word.
+ * The "state" region keeps the length-only rule: MID-GAME it shows just
+ * "Guesses n/5"; once the game has ended the same fixed-height slot fills in
+ * the `<LengthScoreBar>` + the letter-count stat, the builder's scores.
  */
 export function InfoCol({
-  isCompete,
-  isTerminal,
-  solutionShown,
-  actReveal,
-  over,
-  isConceded,
-  isTurnBased,
-  turnHolderId,
-  // ── State ──
-  guessesUsed,
-  longest,
-  letters,
-  maxWordLength,
-  longestWord,
-  base,
-  opponentReveal,
-  // ── Opponent strip (compete) ──
-  players,
-  myId,
-  guessesByUser,
-  scoreByUser,
-  concededIds,
-  // ── Action row ──
-  actStopGame,
-  actConcede,
-  actRestart,
-  actNewGame,
-  actBackToClub,
-  // ── Setup disclosure ──
-  setupRows,
-  allGuesses,
-  historyId,
-  onShowHistory,
+  gd,
+  endingMessage,
+  actions,
+  historyView,
+  solution,
 }: {
-  isCompete: boolean
-  isTerminal: boolean
-  /** Is the best possible word on screen right now? False at every terminal
-   *  until THIS viewer presses Reveal (see the button). Also swaps that
-   *  button's face. */
-  solutionShown: boolean
-  /** Show the best possible word — or put it away again. A local display toggle
-   *  shared with the menu twin; nothing is written, no peer affected, and it
-   *  carries its own two faces. */
-  actReveal: Action
-  /** The terminal message when the game is over (drives the action row), else null. */
-  over: TerminalMessage | null
-  /** Compete: I conceded but the others race on — the terminal LOOK. */
-  isConceded: boolean
-  /** A turn-order game: render the shared TurnStatusLine, which names the
-   *  holder of `turnHolderId`. */
-  isTurnBased: boolean
-  turnHolderId: string | null
-
-  // ── State (the caller's / team's track) ──
-  guessesUsed: number
-  /** Longest guess so far (terminal LengthScoreBar numerator). */
-  longest: number
-  /** Sum of all guess lengths (terminal letter-count stat). */
-  letters: number
-  maxWordLength: number
-  /** The longest possible word — the terminal reveal. */
-  longestWord: string | null
-  /** The base fragment — for dimming it inside opponents' revealed words. */
-  base: string
-  /** Compete terminal: each opponent's revealed words (empty otherwise). */
-  opponentReveal: OpponentReveals
-
-  // ── Opponent strip (compete) ──
-  players: GamePlayer[]
-  myId: string
-  /** Each player's guesses used (the mid-game metric). */
-  guessesByUser: ReadonlyMap<string, number>
-  /** Each player's length score % (the terminal metric). */
-  scoreByUser: ReadonlyMap<string, number>
-  concededIds: Set<string>
-
-  // ── Action row ──
-  /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
-  actStopGame: Action
-  /** Drop out of a race while the others play on — hidden outside compete. */
-  actConcede: Action
-  /** Play this base again from scratch. */
-  actRestart: Action
-  /** Start a fresh follow-up game — same setup, new base + id. Disables itself
-   *  while the create is in flight. */
-  actNewGame: Action
-  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE action
-   *  for both rows: it navigates directly at terminal and routes through the
-   *  suspend-confirm flow mid-game. */
-  actBackToClub: Action
-
-  // ── Setup disclosure ──
-  setup: GSetup
-  /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
-  setupRows: SetupRow[]
-  /** EVERY row for the event log — rejects included. Distinct from the accepted
-   *  guesses the board + the readouts above are built from. */
-  allGuesses: EventRow[]
-  /** The row open in the board viewer, or null — the log rings its own `#N`. */
-  historyId: number | null
-  /** Straight through to the log: opening a `#N` hands up the row's id and the
-   *  number the log printed beside it. */
-  onShowHistory: (id: number, n: number) => void
+  gd: GGameData
+  // The ending that applies to me — the game's once it has ended, else mine
+  // while the others play on — for the action row's line; null while I play.
+  endingMessage: TerminalMessage | null
+  actions: GActions
+  historyView: GHistoryView
+  // The best possible word to DISPLAY, or null while it stays hidden.
+  solution: string | null
 }) {
+  const sld = gd.stateLineData
+  const actionRowMessage: InfoActionsMessage | undefined = endingMessage
+    ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
+    : undefined
+
+  // Mid-race each player's guess count, or "out" once they have ended; once the
+  // game has ended, how it went for them and their length score.
+  function getGuessesOrScore(player: GPlayer) {
+    if (!gd.ended) return player.ending ? 'out' : `${player.nGuessesUsed}/${player.maxGuesses}`
+    const verb = player.outcome === 'won' ? 'Won' : player.conceded ? 'Conceded' : 'Lost'
+    return `${verb} · ${player.lengthScore}%`
+  }
+
+  // Once the race has ended, every rival's words are mine to see.
+  const rivals = gd.compete && gd.ended ? gd.players.filter((p) => p !== gd.me) : []
+
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        {/* State — guesses only during play; score + letters at terminal.
-            Fixed min-height so the swap doesn't jump the rows below. */}
+        {/* State — guesses only during play; score + letters once ended.
+            Fixed min-height so the swap doesn't jump the rows below. The
+            scores are written with the ending. */}
         <div className={styles.stateBlock}>
-          {isTerminal ? (
+          {gd.ended ? (
             <>
-              <LengthScoreBar longest={longest} maxLen={maxWordLength} />
+              <LengthScoreBar
+                lengthScore={sld.lengthScore!}
+                longestWordLen={sld.longestWordLen!}
+                maxWordLen={sld.maxWordLen}
+              />
               <div className={styles.letterStat}>
-                <strong>{letters}</strong> letters across {guessesUsed} guess
-                {guessesUsed === 1 ? '' : 'es'}
+                <strong>{sld.nLetters}</strong> letters across {sld.nGuessesUsed} guess
+                {sld.nGuessesUsed === 1 ? '' : 'es'}
               </div>
             </>
           ) : (
             <div className={styles.guessCount}>
-              <strong>{guessesUsed}</strong>
-              <span className={styles.guessCountOf}> / {MAX_GUESSES} guesses</span>
+              <strong>{sld.nGuessesUsed}</strong>
+              <span className={styles.guessCountOf}> / {sld.maxGuesses} guesses</span>
             </div>
           )}
         </div>
-        {/* Whose-turn line — only for a turn-order game. An
-            ADJACENT line: wordiply's state region is a bespoke stateBlock (not the
-            shared .infoState), so TurnStatusLine sits beside it rather than replacing
-            it. Its presence is fixed at create-time, so it can't reflow. */}
-        {isTurnBased && (
+        {/* Whose-turn line — only for a turn-order game. An ADJACENT line:
+            wordiply's state region is a bespoke stateBlock, so TurnStatusLine
+            sits beside it rather than replacing it. */}
+        {gd.turns !== null && (
           <TurnStatusLine
-            turnHolderId={turnHolderId}
-            players={players}
-            myId={myId}
-            isTerminal={isTerminal}
+            turnHolder={gd.turns.holder}
+            isMyTurn={gd.me.onTurn}
+            isGameEnded={gd.ended}
           />
         )}
 
-        {/* Opponent strip (compete) — mid-game shows each opponent's guesses
-            used (never a score — scores are terminal-only); at terminal it
-            switches to the length score %. */}
-        {isCompete && (
+        {/* Opponent strip (compete) — mid-game each racer's guesses used
+            (never a score), once ended their length score. */}
+        {gd.compete && (
           <OpponentStrip
-            players={players}
-            myId={myId}
-            metricLabel={isTerminal ? 'Length' : 'Guesses'}
-            metricFor={(p) => {
-              if (!isTerminal) {
-                return concededIds.has(p.user_id) ? 'out' : `${guessesByUser.get(p.user_id) ?? 0}/${MAX_GUESSES}`
-              }
-              const member = players.find((m) => m.user_id === p.user_id)
-              return `${terminalOutcomeVerb(member)} · ${scoreByUser.get(p.user_id) ?? 0}%`
-            }}
+            players={gd.players}
+            myId={gd.me.id}
+            metricLabel={gd.ended ? 'Length' : 'Guesses'}
+            metricFor={getGuessesOrScore}
           />
         )}
 
-        {/* Action row — ICON-ONLY. TERMINAL: outcome line + Restart / Reveal /
-            New game / Club. CONCEDED (others race on): the terminal look + Stop.
-            PLAYING: Stop (coop) / Concede (compete) + back-to-club. */}
-        {over ? (
-          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
-            <ActionButton action={actRestart} show="icon" />
+        {/* Action row — ICON-ONLY. ENDED: outcome line + Restart / Reveal /
+            New game / Club. OUT OF THE RACE (others race on): my ending's line
+            + Stop. PLAYING: Stop (coop) / Concede (compete) + back-to-club. */}
+        {gd.ended ? (
+          <InfoActionsRow message={actionRowMessage}>
+            <ActionButton action={actions.actRestart} show="icon" />
             {/* The best possible word, hidden until asked for: a score you can
                 read without being told the answer is a puzzle you can keep
                 chewing on, so it waits for this button (and the same button
                 takes it back). */}
-            <ActionButton action={actReveal} show="icon" />
-            <ActionButton action={actNewGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" weight="primary" />
+            <ActionButton action={actions.actReveal} show="icon" />
+            <ActionButton action={actions.actNewGame} show="icon" />
+            <ActionButton action={actions.actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : isConceded ? (
-          <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
+        ) : actionRowMessage ? (
+          <InfoActionsRow message={actionRowMessage}>
             {/* Both exits are placed and each says whether it applies: out of
-                the race, Concede hides and Stop comes out in its place — one
-                flag, since anyone in a game may stop it for all. */}
-            <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actStopGame} show="icon" />
+                the race, Concede hides and Stop comes out in its place. */}
+            <ActionButton action={actions.actConcede} show="icon" />
+            <ActionButton action={actions.actStopGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
-            <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actStopGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" />
+            <ActionButton action={actions.actConcede} show="icon" />
+            <ActionButton action={actions.actStopGame} show="icon" />
+            <ActionButton action={actions.actBackToClub} show="icon" />
           </InfoActionsRow>
         )}
 
         {/* Setup — what was picked at create time. */}
-        <SetupDisclosure rows={setupRows} />
+        <SetupDisclosure rows={gd.setupRows} />
       </div>
 
       {/* The reveal — the longest possible word, shown only while this viewer
@@ -228,18 +144,17 @@ export function InfoCol({
           It grows the column when opened and gives the space back when closed
           (a blessed exception to docs/ui.md → Layout stability: the reflow IS
           the reveal, and only ever on the viewer's own click). */}
-      {solutionShown && longestWord && (
+      {solution !== null && (
         <div className={styles.reveal}>
           <span className={styles.revealLabel}>
-            Best possible word: <span className={styles.revealLen}>{maxWordLength}</span>
+            Best possible word: <span className={styles.revealLen}>{gd.puzzle.maxWordLen}</span>
           </span>
-          <DefinableWord word={longestWord} className={styles.revealWord} />
+          <DefinableWord word={solution} className={styles.revealWord} />
         </div>
       )}
 
-      {/* Compete terminal reveal — opponents' actual words, hidden all game.
-          Renders null in coop / mid-game (opponentReveal is empty). */}
-      {isTerminal && <OpponentReveal base={base} opponents={opponentReveal} />}
+      {/* Compete, once ended — each rival's words, withheld all race. */}
+      <OpponentReveal base={gd.puzzle.base} rivals={rivals} />
 
       {/* Event log — LAST, per the canonical info-column order (docs/playarea.md).
           Shows rejects as well as accepted guesses: in coop it's the only way to
@@ -247,13 +162,12 @@ export function InfoCol({
           a non-word. It scrolls inside its own box (the shared <EventLog>), so a
           growing log never moves anything above it. */}
       <GameEventLog
-        guesses={allGuesses}
-        players={players}
-        myId={myId}
-        mode={isCompete ? 'compete' : 'coop'}
-        isTerminal={isTerminal}
-        historyId={historyId}
-        onShowHistory={onShowHistory}
+        events={gd.events}
+        players={gd.players}
+        myId={gd.me.id}
+        mode={gd.mode}
+        isGameEnded={gd.ended}
+        historyView={historyView}
       />
     </div>
   )

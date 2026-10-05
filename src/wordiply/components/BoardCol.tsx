@@ -1,136 +1,117 @@
 // cs-fixed-outcome-fix
 
-import { useCallback, type Dispatch, type SetStateAction } from 'react'
+import { useCallback } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { GuessKeyboard } from '@/shared/onscreen-keyboard/GuessKeyboard'
 import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { useArrowHistory } from '@/common/word-entry/useArrowHistory'
-import { GuessBoard } from './GuessBoard'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
-import type { Outcome } from '@/common/outcomes/outcomes'
-import type { Mark } from '@/common/board-marks/useMark'
-import type { Actor } from '@/common/members/member'
+import { useSubmitGuess } from '../hooks/useSubmitGuess'
+import { useMarkForeignGuesses } from '../hooks/useMarkForeignGuesses'
+import type { GGameData, GHistoryView } from '../types'
+import { GuessBoard } from './GuessBoard'
 import styles from './PlayArea.module.css'
 
 /** A generous cap on a single guess (the longest possible words are ~30). */
 const MAX_LEN = 28
 
 /**
- * wordiply's board column — the base (shown plainly), the five-row
- * `<GuessBoard>` (with the word-in-progress live in the active row), and an
- * on-screen `<GuessKeyboard>` below it so the game needs NO physical
- * keyboard (a physical one still works via `useCaptureKeys`, feeding the
- * same word state).
+ * wordiply's board column — the base (shown plainly), the guess board (with
+ * the word-in-progress live in the active row), and an on-screen
+ * `<GuessKeyboard>` below it so the game needs NO physical keyboard (a
+ * physical one still works via `useCaptureKeys`, feeding the same word state).
+ *
+ * It owns the move (`useSubmitGuess`) and the answer marks on the board's
+ * lines, a teammate's included (`useMarkForeignGuesses`).
  *
  * The keyboard slot doubles as the feedback area: the local slot's top
  * message sits above the keys (a rejection, "you're out", whose turn it is —
  * an accepted guess shows nothing, the row already shows the word + its
- * length), and at terminal the keyboard goes and the same slot fills its
- * place with the verdict.
+ * length), and at the end the same slot carries the verdict.
  */
 export function BoardCol({
-  base,
-  guesses,
-  word,
-  onChange,
-  onSubmit,
+  gd,
+  historyView,
   localFeedbackSlot,
-  lastWord,
-  entryDisabled,
-  held,
-  flash,
-  isViewingHistory,
-  historyLabel,
-  historyActor,
-  onExitHistory,
 }: {
-  base: string
-  guesses: { word: string; length: number }[]
-  /** My own accepted word, drawn until the server's row lands — see
-   *  `<GuessBoard>`. */
-  held: { word: string; length: number; awaitingRow: boolean } | null
-  /** The answer being shown on the row that word is in, for a beat. */
-  flash: Mark<{ word: string; outcome: Outcome }> | null
-  word: string
-  onChange: Dispatch<SetStateAction<string>>
-  onSubmit: () => void
+  gd: GGameData
+  historyView: GHistoryView
   /** PlayArea's below-board slot, drawn above the keyboard. A key, on screen or
    *  physical, is the player's next move, so it dismisses a gesture-cleared
    *  message. */
   localFeedbackSlot: FeedbackSlot
-  /** The last submitted guess — ArrowUp recalls it (the next guess is often the
-   *  previous one with another letter). */
-  lastWord: string
-  /** Freeze input (terminal / conceded / out of guesses / not your turn) — the
-   *  keyboard stays on screen and wears the disabled look either way. */
-  entryDisabled: boolean
-  /** A past row is open in the viewer: the board wears the history frame and the
-   *  banner overlays the input area, which stays mounted underneath. */
-  isViewingHistory: boolean
-  historyLabel: string
-  /** Whose board is on screen, when it is not the viewer's own. */
-  historyActor?: Actor | null
-  onExitHistory: () => void
 }) {
+  const { entry, answerMark } = useSubmitGuess({ gd, localFeedbackSlot })
+  useMarkForeignGuesses({ gd, isViewingHistory: historyView.isViewing, answerMark })
+
+  // Input freezes whenever the move is not mine: the game over, my five
+  // guesses spent, conceded, or a teammate's turn.
+  const isEntryDisabled = !gd.me.onTurn
+
   // On-screen key → append/backspace (updater form, so it reads the latest
   // word); each edit dismisses a sticky reject.
+  const setWord = entry.setWord
   const typeLetter = useCallback(
     (ch: string) => {
       localFeedbackSlot.dismiss()
-      onChange((w) => (w.length < MAX_LEN ? w + ch.toLowerCase() : w))
+      setWord((w) => (w.length < MAX_LEN ? w + ch.toLowerCase() : w))
     },
-    [localFeedbackSlot, onChange],
+    [localFeedbackSlot, setWord],
   )
   // Physical keyboard (desktop convenience) drives the SAME word + submit — and
   // hands back the two actions the ⌫ and Enter caps below place, so a cap and
   // its key are one thing. (No `backspace` twin: `act-delete-last` already
   // dismisses the sticky reject on its way through.)
   const { actDeleteLast, actSubmit } = useCaptureKeys({
-    pendingText: word,
-    onChange,
-    onSubmit,
-    disabled: entryDisabled,
+    pendingText: entry.word,
+    onChange: entry.setWord,
+    onSubmit: entry.submit,
+    disabled: isEntryDisabled,
     onAnyKey: localFeedbackSlot.dismiss,
     charFor: asciiLetters(),
     maxLength: MAX_LEN,
   })
   // ArrowUp recalls the last guess, ArrowDown clears — handy here since the
-  // next guess is often the last one plus a letter (the shared history hook,
-  // the same one <WordEntryArea> uses).
-  useArrowHistory({ recall: lastWord, onChange, disabled: entryDisabled })
+  // next guess is often the last one plus a letter.
+  useArrowHistory({ recall: entry.lastWord, onChange: entry.setWord, disabled: isEntryDisabled })
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>
-      <div className={styles.starterWord}>{base.toUpperCase()}</div>
+      <div className={styles.starterWord}>{gd.puzzle.base.toUpperCase()}</div>
 
       <GuessBoard
-        base={base}
-        guesses={guesses}
-        activeWord={word}
+        base={gd.puzzle.base}
+        words={historyView.words ?? gd.me.board.words}
+        maxGuesses={gd.me.maxGuesses}
+        activeWord={entry.word}
         // Nothing is being typed into a past board — the live entry row would
         // otherwise draw over the moment being replayed.
-        showActive={!entryDisabled && !isViewingHistory}
-        held={isViewingHistory ? null : held}
-        flash={isViewingHistory ? null : flash}
-        isViewingHistory={isViewingHistory}
+        showActive={!isEntryDisabled && !historyView.isViewing}
+        held={historyView.isViewing ? null : answerMark.held}
+        flash={historyView.isViewing ? null : answerMark.flash}
+        isViewingHistory={historyView.isViewing}
       />
 
       {/* The shared banner overlays the input area while a past row is open —
           the keyboard and the pill stay mounted underneath, frozen to the eye
           (the viewer's click-away and keystroke exits do the rest). */}
-      <div className={cls(styles.inputArea, isViewingHistory && history.historyBannerHost)}>
-        {isViewingHistory && (
-          <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
+      <div className={cls(styles.inputArea, historyView.isViewing && history.historyBannerHost)}>
+        {historyView.isViewing && (
+          <HistoryBanner
+            label={historyView.label ?? ''}
+            actor={historyView.actor}
+            onExit={historyView.exit}
+          />
         )}
-        {/* One arrangement, played or finished: the keyboard stays at terminal,
-            disabled by `entryDisabled`. Never branch here and unmount it — the
-            column would rise by the ten-odd rem of cap rows at the frame a
-            player is reading their verdict (the pill's slot reserves 3.6rem
-            where the keyboard and its own slot take about 12.4rem). */}
+        {/* One arrangement, played or finished: the keyboard stays at the end,
+            disabled. Never branch here and unmount it — the column would rise
+            by the ten-odd rem of cap rows at the frame a player is reading
+            their verdict (the pill's slot reserves 3.6rem where the keyboard
+            and its own slot take about 12.4rem). */}
         <div className={styles.kbFeedback}>
           <FeedbackPill slot={localFeedbackSlot} />
         </div>
@@ -138,7 +119,7 @@ export function BoardCol({
           onKey={typeLetter}
           actSubmit={actSubmit}
           actDelete={actDeleteLast}
-          disabled={entryDisabled}
+          disabled={isEntryDisabled}
         />
       </div>
     </div>

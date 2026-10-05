@@ -33,7 +33,7 @@ async function play(
   for (const w of words) {
     const res = await asUser(member.session.access_token)
       .schema('wordiply')
-      .rpc('submit_guess', { target_game: gameId, word: w, fe_legal: true })
+      .rpc('submit_guess', { p_game_id: gameId, p_word: w, p_fe_legal: true })
     if (res.error) throw new Error(`wordiply.submit_guess(${w}): ${res.error.message}`)
   }
 }

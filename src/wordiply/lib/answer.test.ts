@@ -40,7 +40,7 @@ describe('answerOf', () => {
   })
 
   it('passes the other three through', () => {
-    const entry = { word: 'arcade', points: 6, isBonus: false }
+    const entry = { word: 'arcade', points: 6, bonus: false, pangram: false }
     expect(answerOf({ answer: 'accepted', word: 'arcade', entry }, 'arc')).toEqual({ answerType: 'accepted' })
     expect(answerOf({ answer: 'already_found', word: 'arcade', entry }, 'arc'))
       .toEqual({ answerType: 'already_found', word: 'arcade' })

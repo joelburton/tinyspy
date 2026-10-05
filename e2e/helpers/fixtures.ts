@@ -697,13 +697,13 @@ export async function createWordiplyGame(
   const res = await asUser(creator.session.access_token)
     .schema('wordiply')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: { timer: { kind: 'none' }, difficulty: 5 },
-      player_user_ids: playerUserIds,
-      mode,
-      board: {
+      p_club_handle: club.handle,
+      p_setup: { timer: { kind: 'none' }, difficulty: 5 },
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
+      p_board: {
         base: 'ar',
-        max_word_length: 7,
+        max_word_len: 7,
         longest_words: ['hangars'],
         legal_words: ['bar', 'car', 'arc', 'arts', 'cars', 'scar', 'stars', 'hangars'],
       },

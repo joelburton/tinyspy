@@ -2,50 +2,39 @@
 
 /**
  * Render + behavior tests for wordiply's PlayArea — the composition (the
- * five-row board, the length-only readout, the terminal reveal), which `tsc`
- * can't catch (a blank-page runtime error slips past it; see memory
- * project_typecheck_use_tsc_b). Deep game logic lives in pgTAP + the lib
- * Vitest suites; here we prove the tree mounts and the note-1 rules hold:
- * during play only the per-guess LENGTH shows (no score %, no letter count);
- * at terminal the score bar + longest-word reveal appear.
+ * five-line board, the length-only readout, the end-of-game reveal), which
+ * `tsc` can't catch (a blank-page runtime error slips past it). Deep game logic
+ * lives in pgTAP and the lib and hook suites; here we prove the tree mounts and
+ * the rules hold: during play only the per-word LENGTH shows (no score %, no
+ * letter count); once ended the score bar and, when asked, the best word.
  *
- * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; everything else renders real.
+ * The page is handed the `game_data` blob, which a test builds from the game's
+ * facts (`ZTest_makeWordiplyCtx`); only `db` and the edge-function call are
+ * mocked.
  */
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
-import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
-import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
-import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { runEdgeFn } from '@/common/supabase/dbResult'
-import type { WordiplyGame, EventRow } from '../hooks/useGame'
+import {
+  ZTest_CONCEDED,
+  ZTest_SPENT,
+  ZTest_guess,
+  ZTest_makeWordiplyCtx,
+  type ZTest_GameDataFacts,
+  type ZTest_PlayerFacts,
+} from '../lib/gameData.fixture'
+import type { GSetup } from '../types'
 import { db } from '../db'
-import { PlayArea } from './PlayArea'
+import { PlayAreaLoader } from './PlayArea'
 
-type GameHook = {
-  game: WordiplyGame | null
-  guesses: EventRow[]
-  loading: boolean
-  // The rows-arrived flag peer narration gates on; off unless a test is about
-  // a teammate's guess, so nothing else has to think about the seed.
-  rowsLoaded?: boolean
-}
-
-const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
-// The real hook derives validGuesses from guesses; mirror that here rather than
-// hand-listing it per fixture, so a test can't accidentally disagree with itself.
-vi.mock('../hooks/useGame', () => ({
-  useGame: () => ({ ...h.result, validGuesses: h.result.guesses.filter((g) => g.valid) }),
-}))
 vi.mock('../db', () => ({ db: { rpc: vi.fn().mockResolvedValue({ error: null }) } }))
 // Only `runEdgeFn` is stubbed — the create-game path. `runRpc` stays REAL so
 // the submit path exercises the envelope it actually receives; the `db.rpc`
@@ -55,86 +44,49 @@ vi.mock('@/common/supabase/dbResult', async (orig) => ({
   runEdgeFn: vi.fn(),
 }))
 
-/** A loaded game on base 'ar', longest possible 'hangars' (7). */
-function loadedGame(over: Partial<WordiplyGame> = {}): WordiplyGame {
+const SETUP: GSetup = { difficulty: 5, timer: { kind: 'none' } }
+const ME: ZTest_PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
+const MOTH: ZTest_PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
+
+/** A game on base 'ar', longest possible 'hangars' (7), viewed by me (u1). */
+function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
+  return ZTest_makeWordiplyCtx({ setup: SETUP, ...facts })
+}
+
+/** A coop game whose five words are spent: a win, every player ranked first. */
+function coopEnded(events: ZTest_GameDataFacts['events']): ZTest_GameDataFacts {
   return {
-    id: 'g1',
-    club_handle: 'c1',
-    mode: 'coop',
-    base: 'ar',
-    difficulty: 5,
-    max_word_length: 7,
-    longestWords: ['hangars'],
-    legalWords: ['bar', 'car', 'cart', 'stars', 'hangars'],
-    created_at: '2026-01-01T00:00:00Z',
-    ...over,
+    events,
+    players: [{ ...ME, outcome: 'won', finalRanking: 1 }],
+    ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u1', winner: 'u1' },
+    outcome: 'won',
   }
 }
 
-function guess(word: string, i: number, userId = 'u1'): EventRow {
+/** A race that ended with nobody scoring, for its reason. */
+function raceLost(reason: 'conceded' | 'timeout' | 'resource_exhausted'): ZTest_GameDataFacts {
   return {
-    id: i, game_id: 'g1', user_id: userId, word, length: word.length,
-    valid: true, reason: null,
-    created_at: `2026-01-01T00:0${i}:00Z`,
+    mode: 'compete',
+    players: [{ ...ME, outcome: 'lost' }, { ...MOTH, outcome: 'lost' }],
+    ending: { reason, detail: reason, by: null, winner: null },
+    outcome: 'lost',
   }
 }
 
-/** A REJECTED submission — in the event log, but off the board and off every
- *  score: a reject occupies no board row. */
-function reject(
-  word: string,
-  i: number,
-  reason: NonNullable<EventRow['reason']> = 'not_a_word',
-  userId = 'u1',
-): EventRow {
+/** A race moth won: their words and mine, both now on show. */
+function raceMothWon(events: ZTest_GameDataFacts['events']): ZTest_GameDataFacts {
   return {
-    id: i, game_id: 'g1', user_id: userId, word, length: word.length,
-    valid: false, reason,
-    created_at: `2026-01-01T00:0${i}:00Z`,
+    mode: 'compete',
+    events,
+    players: [{ ...ME, outcome: 'near', finalRanking: 2 }, { ...MOTH, outcome: 'won', finalRanking: 1 }],
+    ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u2', winner: 'u2' },
+    outcome: 'won',
   }
 }
 
-const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
-
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
- *  the page derives it (`whereIStand`), so a test sets up the facts and never
- *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [ZTest_gp('u1', 'me', 'red')],
-    isTerminal: false,
-    isTurnBased: false,
-    turnHolderId: null,
-    ...over,
-  }
-  return {
-    gameId: 'g1',
-    brand: 'WordWire',
-    playState: 'playing',
-    timer: { displaySeconds: 0, expired: false },
-    setup: { difficulty: 5, timer: { kind: 'none' } },
-    status: null,
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: ZTest_actionFixture('act-help'),
-      actChat: ZTest_actionFixture('act-open-chat'),
-      actBackToClub: ZTest_actionFixture('act-back-to-club'),
-    },
-    ...facts,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.isTerminal,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId: facts.turnHolderId,
-      draftsOffTurn: false,
-    }),
-  } as unknown as PlayAreaLoaderProps
+const STOPPED: ZTest_GameDataFacts = {
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  outcome: 'neutral',
 }
 
 /** The board is the first <ol> in the DOM (BoardCol renders before InfoCol). */
@@ -167,9 +119,9 @@ function menuItems(ctx: PlayAreaLoaderProps) {
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
  *  Only the tests whose subject is a keystroke need it — a bare `render` binds
  *  the actions but has nothing feeding them keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+function WithKeys(props: React.ComponentProps<typeof PlayAreaLoader>) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** A keystroke at the page, the way a player types with nothing focused.
@@ -194,8 +146,14 @@ const rowFor = (word: string) =>
     (li.textContent ?? '').toLowerCase().includes(word),
   ) as HTMLElement | undefined
 
+/** The lengths on the board's landed lines, in order. Asked of the BOARD, not
+ *  the page: the log shows the same words. */
+const boardLengths = () =>
+  within(document.querySelector('[data-board]') as HTMLElement)
+    .queryAllByLabelText(/letters$/)
+    .map((el) => el.textContent)
+
 beforeEach(() => {
-  h.result = { game: loadedGame(), guesses: [], loading: false }
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null })
   edgeFn.mockReset()
@@ -203,18 +161,19 @@ beforeEach(() => {
 
 describe('wordiply PlayArea — layout stability', () => {
   it('always renders exactly 5 guess rows (empty board)', () => {
-    const { container } = render(<PlayArea {...makeCtx()} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(boardRowCount(container)).toBe(5)
     // The base is shown plainly (no "Starter" label).
     expect(screen.getByText('AR', { exact: true })).toBeInTheDocument()
   })
 
   it('still renders 5 rows with some guesses landed, and a length badge per guess', () => {
-    h.result = { game: loadedGame(), guesses: [guess('bar', 1), guess('stars', 2)], loading: false }
-    const { container } = render(<PlayArea {...makeCtx()} />)
+    const { container } = render(
+      <PlayAreaLoader {...makeCtx({ events: [ZTest_guess(1, 'u1', 'bar'), ZTest_guess(2, 'u1', 'stars')] })} />,
+    )
     expect(boardRowCount(container)).toBe(5)
     // The one live readout — each guess's length badge. Queried by its aria
-    // label, not bare text: the event log now shows the same lengths in its own
+    // label, not bare text: the event log shows the same lengths in its own
     // column, so plain getByText('3') matches twice.
     expect(screen.getByLabelText('3 letters')).toBeInTheDocument() // bar
     expect(screen.getByLabelText('5 letters')).toBeInTheDocument() // stars
@@ -223,56 +182,29 @@ describe('wordiply PlayArea — layout stability', () => {
 
 describe('wordiply PlayArea — length-only during play', () => {
   it('shows guesses n/5 but NO score % or letter count mid-game', () => {
-    h.result = { game: loadedGame(), guesses: [guess('bar', 1)], loading: false }
-    render(<PlayArea {...makeCtx()} />)
-    // getAllBy: the event log's heading is "Guesses" too.
-    expect(screen.getAllByText(/guesses/i).length).toBeGreaterThan(0)
+    render(<PlayAreaLoader {...makeCtx({ events: [ZTest_guess(1, 'u1', 'bar')] })} />)
+    expect(screen.getByText(/\/ 5 guesses/)).toBeInTheDocument()
     // The score bar's anchor ("best N / possible M") + the reveal are absent.
     expect(screen.queryByText(/possible/i)).toBeNull()
     expect(screen.queryByText(/letters across/i)).toBeNull()
   })
 
   it('compete OpponentStrip shows Guesses (not a score) mid-game', () => {
-    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
-    render(
-      <PlayArea
-        {...makeCtx({
-          players: twoMembers,
-          status: { leaderboard: [{ user_id: 'u1', guesses_used: 1 }, { user_id: 'u2', guesses_used: 3 }] },
-        })}
-      />,
-    )
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, MOTH] })} />)
     expect(screen.getByText('Guesses:')).toBeInTheDocument()
   })
 })
 
-describe('wordiply PlayArea — terminal reveal', () => {
-  /** A finished coop game with both readouts in its status blob. */
-  const ended = () => {
-    h.result = {
-      game: loadedGame(),
-      guesses: [guess('bar', 1), guess('stars', 2)],
-      loading: false,
-    }
-    return makeCtx({
-      isTerminal: true,
-      playState: 'ended',
-      status: { reason: 'complete', length_score: 71, letter_count: 8 },
-    })
-  }
+describe('wordiply PlayArea — the end-of-game reveal', () => {
+  /** A coop game ended on 'bar' and 'stars': longest 5 of 7 → 71%, 8 letters. */
+  const ended = () => makeCtx(coopEnded([ZTest_guess(1, 'u1', 'bar'), ZTest_guess(2, 'u1', 'stars')]))
 
-  it('KEEPS the keyboard at terminal, disabled rather than removed', () => {
-    // It used to unmount here, swapping a 3.6rem verdict slot in for the
-    // keyboard and the slot above it — about 12.4rem of column, gone on the
-    // frame a player starts reading their verdict. Then it was withdrawn
-    // (invisible, box kept), which cost the player the record of their own
-    // game: the caps hold what every letter earned.
-    //
-    // Asserted through the container's own label, which is what the e2e and the
-    // wordle spec reach the caps by. BOTH halves are pinned: on screen, and its
+  it('KEEPS the keyboard once ended, disabled rather than removed', () => {
+    // Unmounting it would drop about 12.4rem of column on the frame a player
+    // starts reading their verdict. BOTH halves are pinned: on screen, and its
     // caps refusing input — asserting only the first would pass with the
     // disabling dropped entirely.
-    render(<PlayArea {...ended()} />)
+    render(<PlayAreaLoader {...ended()} />)
     const keyboard = screen.getByLabelText('Keyboard')
     expect(keyboard).toBeInTheDocument()
     for (const cap of within(keyboard).getAllByRole('button')) {
@@ -281,144 +213,142 @@ describe('wordiply PlayArea — terminal reveal', () => {
   })
 
   it('scores the game WITHOUT naming the best word', () => {
-    // The point of the change: the two readouts say how well you did, and the
-    // word itself waits to be asked for, so a table can keep guessing at it.
-    render(<PlayArea {...ended()} />)
-    // Score bar (longest 'stars'=5 of 7 → 71%) + its anchor are visible…
+    // The two readouts say how well you did, and the word itself waits to be
+    // asked for, so a table can keep guessing at it.
+    render(<PlayAreaLoader {...ended()} />)
     expect(screen.getByText('71%')).toBeInTheDocument()
     expect(screen.getByText(/possible 7/)).toBeInTheDocument()
-    // …and the word is not.
     expect(screen.queryByText(/Best possible word/)).not.toBeInTheDocument()
     expect(screen.queryByText('HANGARS')).not.toBeInTheDocument()
   })
 
+  it('coop\'s five words spent reads Ended with the scores, in the win\'s color', () => {
+    render(<PlayAreaLoader {...ended()} />)
+    expect(screen.getByText('Ended: 71%, 8 letters')).toBeInTheDocument()
+  })
+
   it('Reveal names the longest possible word, click-to-define, with no RPC', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...ended()} />)
+    render(<PlayAreaLoader {...ended()} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal best solution' }))
-    // The reveal names the longest possible word (label carries the length)…
     expect(screen.getByText(/Best possible word/)).toBeInTheDocument()
-    // …and it's click-to-define, selected by `data-word` — the handle every
-    // definable word carries.
+    // Click-to-define, selected by `data-word` — the handle every definable
+    // word carries.
     expect(document.querySelector('[data-word="hangars"]')).toHaveTextContent('HANGARS')
-    // Local state: no peer's board opened.
-    expect(db.rpc as unknown as ReturnType<typeof vi.fn>).not.toHaveBeenCalled()
+    // Local state: nothing was written.
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('the same button hides it again', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...ended()} />)
+    render(<PlayAreaLoader {...ended()} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal best solution' }))
     await user.click(screen.getByRole('button', { name: 'Hide best solution' }))
     expect(screen.queryByText(/Best possible word/)).not.toBeInTheDocument()
   })
 
-  it('compete terminal reveals opponents’ words but keeps my board to my own', () => {
-    // I (u1) played 'bar'; my opponent moth (u2) played 'stars' + 'cart'. At
-    // terminal the RLS opens moth's rows, so they arrive in `guesses`.
-    h.result = {
-      game: loadedGame({ mode: 'compete' }),
-      guesses: [guess('bar', 1, 'u1'), guess('stars', 1, 'u2'), guess('cart', 2, 'u2')],
-      loading: false,
-    }
+  it('a race once ended shows the rivals\' words but keeps my board to my own', () => {
+    // I (u1) played 'bar'; moth (u2) played 'stars' + 'cart'.
     render(
-      <PlayArea
-        {...makeCtx({
-          players: twoMembers,
-          isTerminal: true,
-          playState: 'won_compete',
-          status: {
-            winner_user_id: 'u2',
-            leaderboard: [
-              { user_id: 'u2', won: true, length_score: 71 },
-              { user_id: 'u1', won: false, length_score: 43 },
-            ],
-          },
-        })}
+      <PlayAreaLoader
+        {...makeCtx(raceMothWon([
+          ZTest_guess(1, 'u1', 'bar'),
+          ZTest_guess(2, 'u2', 'stars'),
+          ZTest_guess(3, 'u2', 'cart'),
+        ]))}
       />,
     )
-    // The opponent reveal section: moth + their two words (DimmedBaseWord
-    // fragments each word across spans, so read the section's textContent).
+    // DimmedBaseWord fragments each word across spans, so read the section's
+    // textContent.
     const section = screen.getByRole('heading', { name: /Opponents’ words/i }).closest('section')!
     expect(section.textContent).toContain('moth')
     expect(section.textContent).toContain('STARS')
     expect(section.textContent).toContain('CART')
-    // Self is excluded from the reveal — my own word never appears there (it's
-    // on my board instead).
+    // My own word is on my board, not in the reveal.
     expect(section.textContent).not.toContain('BAR')
+    expect(boardLengths()).toEqual(['3'])
   })
 })
 
 /**
- * The compete collective losses all land on play_state `lost_compete` and are
- * told apart only by `status.reason` — the two-places trap's third surface
- * (summaryFor and the report fixtures assert the club card; nothing else asserts
- * the in-game verdict). These pin buildOver to the terminals the server
- * actually writes: common.concede → 'lost_compete' + reason 'conceded',
- * wordiply._finish_compete's best_score=0 path → 'lost_compete' + 'timeout'
- * (the clock) or 'complete' (all guesses spent, nobody scored).
+ * The race's endings, each with its own words. The scores in them are the
+ * builder's, written with the ending.
  */
-describe('wordiply PlayArea — compete terminal verdicts', () => {
-  const competeCtx = (reason: string) =>
-    makeCtx({
-      players: twoMembers,
-      isTerminal: true,
-      playState: 'lost_compete',
-      status: { reason, leaderboard: [] },
-    })
-
-  beforeEach(() => {
-    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
-  })
-
-  it('all-conceded (outcome conceded) says so', () => {
-    render(<PlayArea {...competeCtx('conceded')} />)
+describe('wordiply PlayArea — the race\'s verdicts', () => {
+  it('all conceded says so', () => {
+    render(<PlayAreaLoader {...makeCtx(raceLost('conceded'))} />)
     expect(screen.getByText('Lost: all conceded')).toBeInTheDocument()
   })
 
-  it('nobody-scored timeout (outcome timeout) blames the clock', () => {
-    render(<PlayArea {...competeCtx('timeout')} />)
+  it('a nobody-scored timeout blames the clock', () => {
+    render(<PlayAreaLoader {...makeCtx(raceLost('timeout'))} />)
     expect(screen.getByText('Lost: out of time, nobody scored')).toBeInTheDocument()
   })
 
-  it('nobody-scored guess exhaustion (outcome complete) blames the guesses', () => {
-    render(<PlayArea {...competeCtx('complete')} />)
+  it('every guess spent with nobody scoring blames the guesses', () => {
+    render(<PlayAreaLoader {...makeCtx(raceLost('resource_exhausted'))} />)
     expect(screen.getByText('Lost: out of guesses, nobody scored')).toBeInTheDocument()
   })
 
-  it('manual end (ended + outcome manual) stays neutral', () => {
-    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
-    render(
-      <PlayArea
+  it('a Stop stays neutral', () => {
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, MOTH], ...STOPPED })} />)
+    expect(screen.getByText(/game ended/i)).toBeInTheDocument()
+  })
+
+  it('a loss names who won, at their score', () => {
+    render(<PlayAreaLoader {...makeCtx(raceMothWon([ZTest_guess(1, 'u2', 'stars')]))} />)
+    expect(screen.getByText('moth won')).toBeInTheDocument()
+    expect(screen.getByText(/won at 71%/)).toBeInTheDocument()
+  })
+
+  // The confetti is MY win, read off my own outcome, at the moment it lands —
+  // a page mounted into a game already won does not throw it.
+  it('celebrates the race I won, at the moment it ends, and the verdict is mine', () => {
+    const race: ZTest_GameDataFacts = { mode: 'compete', events: [ZTest_guess(1, 'u1', 'stars')], players: [ME, MOTH] }
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(race)} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    rerender(
+      <PlayAreaLoader
         {...makeCtx({
-          players: twoMembers,
-          isTerminal: true,
-          playState: 'ended',
-          status: { reason: 'manual', leaderboard: [] },
+          ...race,
+          players: [{ ...ME, outcome: 'won', finalRanking: 1 }, { ...MOTH, outcome: 'near', finalRanking: 2 }],
+          ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u1', winner: 'u1' },
+          outcome: 'won',
         })}
       />,
     )
-    expect(screen.getByText(/game ended/i)).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
+    expect(screen.getByText('Won: 71%')).toBeInTheDocument()
+  })
+
+  it('a coop win throws no confetti', () => {
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ events: [ZTest_guess(1, 'u1', 'stars')] })} />)
+    rerender(<PlayAreaLoader {...makeCtx(coopEnded([ZTest_guess(1, 'u1', 'stars')]))} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
 
-describe('wordiply PlayArea — a conceder keeps the one flag', () => {
-  it('shows "You conceded" with Stop for all, not a hidden Concede', () => {
+describe('wordiply PlayArea — a racer out while the race goes on', () => {
+  it('a conceder sees "You conceded", with Stop for all and no Concede', () => {
     // Conceding is closed to a player already out; stopping the game for all is
     // open to anyone in it, so the row's flag is Stop.
-    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
     render(
-      <PlayArea
-        {...makeCtx({
-          players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), twoMembers[1]],
-        })}
-      />,
+      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
     expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
+  })
+
+  it('a racer whose five are spent is told they are waiting', () => {
+    render(
+      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_SPENT }, MOTH] })} />,
+    )
+    expect(screen.getByText('Out of guesses — waiting')).toBeInTheDocument()
+    expect(screen.getByText('Waiting for others')).toBeInTheDocument()
   })
 })
 
@@ -430,12 +360,17 @@ describe('wordiply PlayArea — a conceder keeps the one flag', () => {
  */
 describe('wordiply PlayArea — event log', () => {
   it('shows accepted and rejected guesses together, with the reason', () => {
-    h.result = {
-      game: loadedGame(),
-      guesses: [guess('cart', 1), reject('arqqq', 2), reject('zzzz', 3, 'missing_base')],
-      loading: false,
-    }
-    render(<PlayArea {...makeCtx()} />)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          events: [
+            ZTest_guess(1, 'u1', 'cart'),
+            ZTest_guess(2, 'u1', 'arqqq', 'not_a_word'),
+            ZTest_guess(3, 'u1', 'zzzz', 'missing_base'),
+          ],
+        })}
+      />,
+    )
     expect(screen.getByText('CART')).toBeInTheDocument()
     expect(screen.getByText('ARQQQ')).toBeInTheDocument()
     expect(screen.getByText('not a word')).toBeInTheDocument()
@@ -443,88 +378,74 @@ describe('wordiply PlayArea — event log', () => {
   })
 
   it('keeps rejected guesses OUT of the guesses-used count', () => {
-    h.result = {
-      game: loadedGame(),
-      guesses: [guess('cart', 1), reject('arqqq', 2), reject('arwww', 3)],
-      loading: false,
-    }
-    render(<PlayArea {...makeCtx()} />)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          events: [
+            ZTest_guess(1, 'u1', 'cart'),
+            ZTest_guess(2, 'u1', 'arqqq', 'not_a_word'),
+            ZTest_guess(3, 'u1', 'arwww', 'not_a_word'),
+          ],
+        })}
+      />,
+    )
     // One accepted guess of five — the two rejects cost no budget.
     expect(screen.getByText('1')).toBeInTheDocument()
     expect(screen.getByText(/\/ 5 guesses/)).toBeInTheDocument()
   })
 
-  it('offers the whose-guesses picker, defaulting to me', () => {
-    h.result = { game: loadedGame(), guesses: [guess('cart', 1)], loading: false }
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
-    // Two players in COMPETE would list them; a coop pair is one shared "Team".
+  it('offers the whose-guesses picker', () => {
+    render(<PlayAreaLoader {...makeCtx({ players: [ME, MOTH], events: [ZTest_guess(1, 'u1', 'cart')] })} />)
     expect(screen.getByRole('button', { name: /whose guesses/i })).toBeInTheDocument()
   })
 
   it("opening a REJECT's #N shows the board without it — the one thing this viewer is for", async () => {
     const user = userEvent.setup()
-    h.result = {
-      game: loadedGame(),
-      // CART landed, ARQQQ was refused, MARTS landed after it.
-      guesses: [guess('cart', 1), reject('arqqq', 2), guess('marts', 3)],
-      loading: false,
-    }
-    render(<PlayArea {...makeCtx()} />)
-
-    // Asked of the BOARD, not the page: the log shows the same words. And by
-    // each row's length badge, because the board draws a word with its starter
-    // letters in a nested span (<DimmedBaseWord>), so plain text never matches.
-    const board = () => document.querySelector('[data-board]') as HTMLElement
-    const lengths = () =>
-      within(board())
-        .queryAllByLabelText(/letters$/)
-        .map((el) => el.textContent)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          // CART landed, ARQQQ was refused, MARTS landed after it.
+          events: [
+            ZTest_guess(1, 'u1', 'cart'),
+            ZTest_guess(2, 'u1', 'arqqq', 'not_a_word'),
+            ZTest_guess(3, 'u1', 'marts'),
+          ],
+        })}
+      />,
+    )
 
     // Live: CART (4) and MARTS (5) are both down.
-    expect(lengths()).toEqual(['4', '5'])
+    expect(boardLengths()).toEqual(['4', '5'])
 
     // The reject is row 2 of the log — the number counts the rows on show.
     await user.click(screen.getByText('#2'))
 
     // The board is the moment ARQQQ was tried: CART down, MARTS not yet.
-    expect(lengths()).toEqual(['4'])
+    expect(boardLengths()).toEqual(['4'])
     // …and the banner names what that row was.
     expect(screen.getByText('ARQQQ — not a word')).toBeInTheDocument()
   })
 
-  it("at a compete terminal, an opponent's #N replays THEIR board and the banner names them", async () => {
+  it("once a race has ended, a rival's #N replays THEIR board and the banner names them", async () => {
     const user = userEvent.setup()
-    h.result = {
-      game: loadedGame({ mode: 'compete' }),
-      // Two parallel boards: mine holds CART, moth's holds STARS then HANGARS.
-      guesses: [
-        guess('cart', 1, 'u1'),
-        guess('stars', 2, 'u2'),
-        guess('hangars', 3, 'u2'),
-      ],
-      loading: false,
-    }
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
-          players: twoMembers,
-          isTerminal: true,
-          playState: 'lost_compete',
-          status: { reason: 'complete', leaderboard: [] },
+          ...raceLost('resource_exhausted'),
+          // Two parallel boards: mine holds CART, moth's holds STARS then HANGARS.
+          events: [
+            ZTest_guess(1, 'u1', 'cart'),
+            ZTest_guess(2, 'u2', 'stars'),
+            ZTest_guess(3, 'u2', 'hangars'),
+          ],
         })}
       />,
     )
-    const board = () => document.querySelector('[data-board]') as HTMLElement
-    const lengths = () =>
-      within(board())
-        .queryAllByLabelText(/letters$/)
-        .map((el) => el.textContent)
 
-    // Live, the board is MINE — compete is parallel boards, and the picker
-    // defaults to my own rows for the same reason.
-    expect(lengths()).toEqual(['4'])
+    // Live, the board is MINE — compete is parallel boards.
+    expect(boardLengths()).toEqual(['4'])
 
-    // Switch the log to moth, whose rows the terminal has just opened up.
+    // Switch the log to moth.
     await user.click(screen.getByRole('button', { name: /whose guesses/i }))
     await user.click(screen.getByRole('button', { name: 'moth' }))
 
@@ -532,9 +453,9 @@ describe('wordiply PlayArea — event log', () => {
     await user.click(screen.getByText('#2'))
 
     // The board is moth's, folded from moth's own rows rather than mine.
-    expect(lengths()).toEqual(['5', '7'])
-    // The banner says whose, then what — "● moth: HANGARS — 7 letters". Read as
-    // one string because the actor and the label are siblings in one line.
+    expect(boardLengths()).toEqual(['5', '7'])
+    // The banner says whose, then what. Read as one string because the actor
+    // and the label are siblings in one line.
     const banner = document.querySelector('[data-history-banner]') as HTMLElement
     expect(banner.textContent).toContain('moth')
     expect(banner.textContent).toContain('HANGARS — 7 letters')
@@ -552,13 +473,12 @@ describe('wordiply PlayArea — whose word is announced', () => {
   it("announces a teammate's word: the flash first, then the answer's color", () => {
     vi.useFakeTimers()
     try {
-      h.result = { game: loadedGame(), guesses: [], loading: false, rowsLoaded: true }
-      const ctx = makeCtx({ players: twoMembers })
-      const { rerender } = render(<PlayArea {...ctx} />)
+      const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: [ME, MOTH] })} />)
 
-      // moth's word arrives over realtime, onto the shared coop board.
-      h.result = { ...h.result, guesses: [guess('stars', 1, 'u2')] }
-      act(() => rerender(<PlayArea {...ctx} />))
+      // moth's word arrives with the next blob, onto the shared coop board.
+      act(() =>
+        rerender(<PlayAreaLoader {...makeCtx({ players: [ME, MOTH], events: [ZTest_guess(1, 'u2', 'stars')] })} />),
+      )
 
       const row = rowFor('stars') as HTMLElement
       expect(row.className).toMatch(/attentionFlash/)
@@ -576,9 +496,7 @@ describe('wordiply PlayArea — whose word is announced', () => {
   it('answers my own word without announcing it', async () => {
     vi.useFakeTimers()
     try {
-      rpc.mockResolvedValue(
-        okEnvelope({ result: 'accepted', length: 3, guesses_used: 1, is_terminal: false }),
-      )
+      rpc.mockResolvedValue(okEnvelope({ result: 'accepted' }))
       render(<WithKeys {...makeCtx()} />)
       await press({ key: 'b' })
       await press({ key: 'a' })
@@ -624,19 +542,29 @@ describe('wordiply PlayArea — the entry keys', () => {
   })
 
   it('Enter submits a legal guess through submit_guess', async () => {
-    rpc.mockResolvedValue(
-      okEnvelope({ result: 'accepted', length: 3, guesses_used: 1, is_terminal: false }),
-    )
+    rpc.mockResolvedValue(okEnvelope({ result: 'accepted' }))
     render(<WithKeys {...makeCtx()} />)
     await press({ key: 'b' })
     await press({ key: 'a' })
     await press({ key: 'r' })
     await press({ key: 'Enter', code: 'Enter' })
     await waitFor(() =>
-      expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', word: 'bar' }),
+      expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_word: 'bar' }),
     )
     // The entry is consumed by the submit, so the row is empty again.
     expect(typedLength()).toBe('')
+  })
+
+  it('a word the list lacks is recorded as a reject', async () => {
+    rpc.mockResolvedValue(okEnvelope({ result: 'rejected', reason: 'not_a_word' }))
+    render(<WithKeys {...makeCtx()} />)
+    await press({ key: 'a' })
+    await press({ key: 'r' })
+    await press({ key: 'q' })
+    await press({ key: 'Enter', code: 'Enter' })
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_word: 'arq', p_fe_legal: false }),
+    )
   })
 
   it('Enter with nothing typed is disabled, and ⌫ too', async () => {
@@ -648,9 +576,7 @@ describe('wordiply PlayArea — the entry keys', () => {
   })
 
   it('↑ recalls the last entry and ↓ clears it', async () => {
-    rpc.mockResolvedValue(
-      okEnvelope({ result: 'accepted', length: 3, guesses_used: 1, is_terminal: false }),
-    )
+    rpc.mockResolvedValue(okEnvelope({ result: 'accepted' }))
     render(<WithKeys {...makeCtx()} />)
     // Nothing submitted yet: recall has nothing to bring back, and says so.
     expect(stateOf('act-recall-last')).toBe('disabled')
@@ -671,7 +597,7 @@ describe('wordiply PlayArea — the entry keys', () => {
   // teaches a game's keys rather than mirroring what is pressable this instant,
   // so the row stays in the list after the game ends. What it cannot do is act.
   it('a finished game takes no letters, and still lists the key', async () => {
-    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended', status: { reason: 'complete' } })} />)
+    render(<WithKeys {...makeCtx(STOPPED)} />)
     expect(stateOf('act-type-letter')).toBe('disabled')
     await press({ key: 'b' })
     expect(typedLength()).toBe('')
@@ -687,9 +613,9 @@ describe('wordiply PlayArea — the entry keys', () => {
 describe('wordiply PlayArea — new game, stop, concede and restart', () => {
   const created = { type: 'ok', data: { result: 'created', id: 'fresh-game-id' } }
 
-  it('+ at terminal starts the follow-up game with no question', async () => {
+  it('+ once ended starts the follow-up game with no question', async () => {
     edgeFn.mockResolvedValue(created)
-    const ctx = makeCtx({ isTerminal: true, playState: 'ended', status: { reason: 'complete' } })
+    const ctx = makeCtx(STOPPED)
     render(<WithKeys {...ctx} />)
     await press({ key: '+' })
     // No <ConfirmationHost/> is mounted, so a question would have been answered
@@ -697,7 +623,7 @@ describe('wordiply PlayArea — new game, stop, concede and restart', () => {
     await waitFor(() =>
       expect(edgeFn).toHaveBeenCalledWith('wordiply-build-board', {
         target_club: 'testclub',
-        setup: ctx.setup,
+        setup: SETUP,
         player_user_ids: ['u1'],
         mode: 'coop',
       }),
@@ -736,32 +662,31 @@ describe('wordiply PlayArea — new game, stop, concede and restart', () => {
     // one the dialog adds, so it's last in the DOM.
     const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
   it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
-    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
     render(
       <>
-        <WithKeys {...makeCtx({ players: twoMembers })} />
+        <WithKeys {...makeCtx({ mode: 'compete', players: [ME, MOTH] })} />
         <ConfirmationHost />
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
     expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
   })
 
-  it('Restart mid-game asks, and goes straight through at terminal', async () => {
+  it('Restart mid-game asks, and goes straight through once ended', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'replayed' }))
     const live = makeCtx()
     const { unmount } = render(
       <>
-        <PlayArea {...live} />
+        <PlayAreaLoader {...live} />
         <ConfirmationHost />
       </>,
     )
@@ -771,18 +696,17 @@ describe('wordiply PlayArea — new game, stop, concede and restart', () => {
     expect(rpc).not.toHaveBeenCalled()
     unmount()
 
-    const done = makeCtx({ isTerminal: true, playState: 'ended', status: { reason: 'complete' } })
-    render(<PlayArea {...done} />)
+    render(<PlayAreaLoader {...makeCtx(STOPPED)} />)
     // No host this time: the RPC firing proves no question was asked.
     await user.click(document.querySelector('button[data-action="act-restart"]')!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
   })
 })
 
 describe('wordiply PlayArea — the menu', () => {
   it('lists Help, Reveal, New game, the exit and Back to club', () => {
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     const rows = menuItems(ctx)
     for (const id of ['act-help', 'act-reveal', 'act-new-game', 'act-restart', 'act-stop-game', 'act-back-to-club']) {
       expect(rows.get(id), id).toBeDefined()
@@ -797,10 +721,17 @@ describe('wordiply PlayArea — the menu', () => {
   })
 
   it('a race lists Concede as the exit, not Stop game', () => {
-    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
-    const ctx = makeCtx({ players: twoMembers })
-    render(<PlayArea {...ctx} />)
+    const ctx = makeCtx({ mode: 'compete', players: [ME, MOTH] })
+    render(<PlayAreaLoader {...ctx} />)
     expect(menuItems(ctx).get('act-concede')?.hidden).toBe(false)
     expect(menuItems(ctx).get('act-stop-game')?.hidden).toBe(true)
+  })
+
+  it('New game has no button mid-game, and one once ended', () => {
+    const { unmount } = render(<PlayAreaLoader {...makeCtx()} />)
+    expect(document.querySelector('button[data-action="act-new-game"]')).toBeNull()
+    unmount()
+    render(<PlayAreaLoader {...makeCtx(STOPPED)} />)
+    expect(document.querySelector('button[data-action="act-new-game"]')).not.toBeNull()
   })
 })

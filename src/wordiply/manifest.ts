@@ -47,7 +47,7 @@ const helpLoader = lazy(() =>
 // PlayArea is shared — branches on `game.mode` for the compete-only
 // OpponentStrip + win-vs-loss verdict copy.
 const playAreaLoader = lazy(() =>
-  import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+  import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
 
 const setupFormLoader = lazy(() =>
@@ -90,8 +90,9 @@ const percent = (score: number | null) => (score === null ? null : `${score}%`)
 /**
  * Coop's club line. Mid-game it shows only the words used (the scores wait for
  * the end, per the "length only during play" rule); once ended, the team's
- * length score and letter count. The five words spent is a win; the clock is
- * the one loss.
+ * length score and letter count. The five words spent is a win, but coop's
+ * words never say "Won" — the team did as well as it did, and the score says
+ * how well; the clock is the one loss.
  */
 function makeCoopLabel(summary: GSummaryData): string {
   // Coop always has a team.
@@ -104,7 +105,7 @@ function makeCoopLabel(summary: GSummaryData): string {
   const outcome = summary.outcome!
   switch (outcome) {
     case 'won':
-      return statusLine(verdict('Won'), ...scores)
+      return statusLine(verdict('Ended', 'out of guesses'), ...scores)
     case 'lost':
       return statusLine(verdict('Lost', 'out of time'), ...scores)
     // A Stop (stop_game).

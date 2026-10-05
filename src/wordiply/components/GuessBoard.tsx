@@ -2,23 +2,17 @@
 
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
-import type { Outcome } from '@/common/outcomes/outcomes'
-import type { Mark } from '@/common/board-marks/useMark'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import history from '@/common/event-log/historyViewer.module.css'
+import type { GAnswerMark } from '../types'
 import { DimmedBaseWord } from './DimmedBaseWord'
 import styles from './GuessBoard.module.css'
 
-/** The fixed number of guesses per track (coop: shared; compete: per player). */
-export const MAX_GUESSES = 5
-
-type CompletedGuess = { word: string; length: number }
-
 /**
- * The five-row guess board — always exactly MAX_GUESSES fixed-height rows
- * (a HARD layout-stability rule; the board must never grow/shrink). The
- * word ENTRY is the on-screen keyboard BELOW the grid (in BoardCol), but
- * the word-in-progress appears LIVE in the next row as it's typed.
+ * The guess board — always exactly `maxGuesses` fixed-height rows (a HARD
+ * layout-stability rule; the board must never grow/shrink). The word ENTRY is
+ * the on-screen keyboard BELOW the grid (in BoardCol), but the
+ * word-in-progress appears LIVE in the next row as it's typed.
  *
  * Each row is one of:
  *   • completed — a landed guess (`<DimmedBaseWord>` + a length badge, the
@@ -29,7 +23,8 @@ type CompletedGuess = { word: string; length: number }
  */
 export function GuessBoard({
   base,
-  guesses,
+  words,
+  maxGuesses,
   activeWord,
   showActive,
   held = null,
@@ -37,7 +32,9 @@ export function GuessBoard({
   isViewingHistory = false,
 }: {
   base: string
-  guesses: CompletedGuess[]
+  // The landed words, in the order of play.
+  words: string[]
+  maxGuesses: number
   /** The word being typed — shown live in the active row. */
   activeWord: string
   /** Whether the active (in-progress) row is shown (playing + budget left). */
@@ -45,10 +42,10 @@ export function GuessBoard({
   /** My own just-accepted word, drawn as the next landed row until the server's
    *  own row takes its place. Without it the word vanishes for a round trip —
    *  the engine clears the box on submit. */
-  held?: { word: string; length: number; awaitingRow: boolean } | null
+  held?: GAnswerMark['held']
   /** The answer on whichever row its word is in, for a beat: a teammate's word
    *  is already a landed row, mine may still be the held one. */
-  flash?: Mark<{ word: string; outcome: Outcome }> | null
+  flash?: GAnswerMark['flash']
   /** A past row is open: the board wears the shared history frame and the rows
    *  drawn are that moment's, not the live ones. */
   isViewingHistory?: boolean
@@ -59,8 +56,8 @@ export function GuessBoard({
   // landed one.
   const onHeldRow = held !== null && flash !== null && flash.value.word === held.word
   const flashed =
-    flash && !onHeldRow ? guesses.findIndex((g) => g.word === flash.value.word) : -1
-  const activeIndex = showActive ? guesses.length + (held ? 1 : 0) : -1
+    flash && !onHeldRow ? words.indexOf(flash.value.word) : -1
+  const activeIndex = showActive ? words.length + (held ? 1 : 0) : -1
   /** The marks a row wears while it is the answered one. */
   const answerMarks = (a: NonNullable<typeof flash>) =>
     cls(
@@ -76,8 +73,8 @@ export function GuessBoard({
     // since the event log beside it shows the same words (the repo's
     // [data-board] / [data-cell] convention).
     <ol className={cls(shared.boardSeal, styles.board, isViewingHistory && history.historyFrame)} data-board>
-      {Array.from({ length: MAX_GUESSES }, (_, i) => {
-        if (held && i === guesses.length) {
+      {Array.from({ length: maxGuesses }, (_, i) => {
+        if (held && i === words.length) {
           return (
             <li
               key={`answer-${held.word}`}
@@ -92,14 +89,14 @@ export function GuessBoard({
               )}
             >
               <DimmedBaseWord word={held.word} base={base} className={styles.rowWord} />
-              <span className={styles.badge} aria-label={`${held.length} letters`}>
-                {held.length}
+              <span className={styles.badge} aria-label={`${held.word.length} letters`}>
+                {held.word.length}
               </span>
             </li>
           )
         }
-        const g = guesses[i]
-        if (g) {
+        const word = words[i]
+        if (word) {
           return (
             <li
               key={i}
@@ -109,9 +106,9 @@ export function GuessBoard({
                 flash && i === flashed && answerMarks(flash),
               )}
             >
-              <DimmedBaseWord word={g.word} base={base} className={styles.rowWord} />
-              <span className={styles.badge} aria-label={`${g.length} letters`}>
-                {g.length}
+              <DimmedBaseWord word={word} base={base} className={styles.rowWord} />
+              <span className={styles.badge} aria-label={`${word.length} letters`}>
+                {word.length}
               </span>
             </li>
           )

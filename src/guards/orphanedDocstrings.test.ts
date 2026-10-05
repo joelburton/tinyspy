@@ -75,8 +75,6 @@ const KNOWN: string[] = [
   'src/strands/pdf/model.ts › FoundEvent',
   // → waffle
   'src/waffle/manifest.ts › summaryFor',
-  // → wordiply
-  'src/wordiply/components/PlayArea.tsx › GuessResult',
 ]
 
 const ROOTS = ['src', 'supabase/functions', 'e2e', 'scripts']
