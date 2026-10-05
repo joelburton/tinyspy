@@ -50,7 +50,7 @@ describe('answerOf', () => {
 
 describe('eventToOutcome', () => {
   it('colors a logged row as its live answer did', () => {
-    const row = { word: 'arcade', length: 6 }
+    const row = { word: 'arcade' }
     expect(eventToOutcome({ ...row, valid: true, reason: null })).toBe('won')
     expect(eventToOutcome({ ...row, valid: false, reason: 'not_a_word' })).toBe('warning')
     expect(eventToOutcome({ ...row, valid: false, reason: 'too_short' })).toBe('lost')
@@ -62,7 +62,7 @@ describe('eventToOutcome', () => {
 
 describe('peerAnswerMessage', () => {
   it('reads a teammate\'s row as the accepted_peer answer', () => {
-    expect(peerAnswerMessage({ word: 'arcade', length: 6, valid: true, reason: null }))
+    expect(peerAnswerMessage({ word: 'arcade', valid: true, reason: null }))
       .toEqual({ outcome: 'won', text: 'ARCADE (6)' })
   })
 })

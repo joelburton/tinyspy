@@ -38,11 +38,11 @@ last column is what the conversion will do, filled in as it does it.
 
 | what | mentioned | taken over or dropped |
 |---|---|---|
-| `events_select`'s mode arm — coop shows every member every row, a player always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | the arm is **dropped** (2026-10-04) and the policy keeps the member gate alone; to be **taken over** by `makeGameData`'s seat rule over `game_data` at step 7 |
+| `events_select`'s mode arm — coop shows every member every row, a player always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | the arm is **dropped** and the policy keeps the member gate alone; **taken over** (2026-10-04) by `makeGameData`'s seat rule: mid-race in compete a rival's rows leave `gd.events` and their `board` is null |
 | `games_state` view — the game row, every column (`base`, `max_word_length`, `longest_words`, `legal_words`) | neither | **dropped** (2026-10-04): the page reads `game_data` |
 | `games_select` — a club member reads the board row | neither | **kept** (2026-10-04): a member reading a row for a page they can open |
 | `_write_statuses` — `game_status` {}, `player_status` {guesses_used, length_score, letter_count, player_ended_reason}, `clubpage_info` {guesses_used, length_score, letter_count, winner_user_id, winner_length_score}; the scores null until the game ends | `ended_at` (the scores wait for it) | **dropped** (2026-10-04): `_rebuild_data_cols` writes the blobs after every move, a reject included |
-| the postgres-changes subscription on `events` and `games` (`useRealtimeRefetch` in `hooks/useGame.ts`), and the one-shot read of `games_state` | — | the frontend's, at its conversion: the page reads `game_data` |
+| the postgres-changes subscription on `events` and `games` (`useRealtimeRefetch` in `hooks/useGame.ts`), and the one-shot read of `games_state` | — | **gone** (2026-10-04): `useGame` is `makeGameData` over `game_data`, with no read and no subscription |
 
 **The status keys the page shows:** the leaderboard's per-player
 `guesses_used` (the opponent strip mid-race), `length_score` (the strip at the
@@ -177,10 +177,15 @@ The rulings behind it (2026-10-04):
   `authSession`, `whereIStand`, `summaryFor`'s `row.status`); each goes with
   the step that rewrites its reader.
 - **Step 6 (2026-10-04):** wordiply joins `CONVERTED_GAMES` in
-  `src/guards/gameTypes.test.ts` once the last old shapes are gone: `Player`,
-  `WordiplyGame` and `EventRow` with `useGame` (step 7), `OpponentGuess` /
-  `OpponentReveals` and `lib/history.ts`'s two with the passes that rewrite
-  their readers.
+  `src/guards/gameTypes.test.ts` once the last old shapes are gone:
+  `OpponentGuess` / `OpponentReveals` and `lib/history.ts`'s two with the
+  passes that rewrite their readers, and `EventRow` (below).
+- **Step 7 (2026-10-04):** `useGame` returns `{gd}`, so `PlayArea` (and its
+  test, which mocks the old hook) does not compile until step 9. `Player` and
+  `WordiplyGame` went; `EventRow` stays in `hooks/useGame.ts` for the
+  components and `pdf/model.ts`, which read it until the PlayArea pass moves
+  them onto `gd.events`. `lib/answer.ts` and `lib/history.ts` read `GEvent`
+  already.
 
 ## Closing
 

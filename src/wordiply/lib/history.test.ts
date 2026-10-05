@@ -2,16 +2,14 @@
 
 import { describe, expect, it } from 'vitest'
 import { historySnapshot } from './history'
-import type { EventRow } from '../hooks/useGame'
+import type { GEvent } from '../types'
 
-const row = (o: Partial<EventRow> & Pick<EventRow, 'id' | 'word'>): EventRow => ({
-  game_id: 'g', user_id: 'u1', length: o.word.length, valid: true, reason: null,
-  created_at: '2026-01-01T00:00:00Z', ...o,
-})
+type Row = Pick<GEvent, 'id' | 'word' | 'valid' | 'reason'>
+const row = (o: Partial<Row> & Pick<Row, 'id' | 'word'>): Row => ({ valid: true, reason: null, ...o })
 
 // Two accepted words with a reject between them. The ids are what the viewer
 // addresses, and are deliberately not 0, 1, 2.
-const ROWS: EventRow[] = [
+const ROWS: Row[] = [
   row({ id: 11, word: 'hangars' }),
   row({ id: 12, word: 'arqq', valid: false, reason: 'not_a_word' }),
   row({ id: 13, word: 'arcs' }),

@@ -3,16 +3,17 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
+import { count, tally, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
 import { runEdgeFn } from '@/common/supabase/dbResult'
-import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import {
   DEFAULT_WORDIPLY_SETUP_COMPETE,
   DEFAULT_WORDIPLY_SETUP_COOP,
   wordiplySetupError,
 } from './lib/setup'
-import type { GSetup } from './types'
+import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -28,8 +29,8 @@ import logoUrl from './logo.svg?url'
  * length-only live readout, the compete length-score comparator).
  *
  * Both manifests share the same `PlayArea`, `SetupForm`, `Help`, `useGame`,
- * and CSS. The mode branches at render time on `game.mode` (read from
- * `wordiply.games_state.mode`). The sibling-manifest pattern's canonical
+ * and CSS. The mode branches at render time on `gd.mode`. The
+ * sibling-manifest pattern's canonical
  * write-up is in [`docs/common.md`](../../docs/common.md#the-sibling-manifest-pattern);
  * wordiply follows it.
  *
@@ -76,9 +77,6 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-type StatusBlob = Record<string, unknown>
-type LeaderRow = { user_id?: string; guesses_used?: number; length_score?: number; won?: boolean }
-
 /**
  * The single source of truth for this game's user-facing brand name. Both
  * sibling manifests set `name: BRAND`. The codename (`wordiply`) is
@@ -86,59 +84,66 @@ type LeaderRow = { user_id?: string; guesses_used?: number; length_score?: numbe
  */
 const BRAND = 'WordWire'
 
+/** The length score as the label prints it: `78%`. */
+const percent = (score: number | null) => (score === null ? null : `${score}%`)
+
 /**
- * MID-GAME the club-page label shows only guesses used (scores are
- * terminal-only, per the "length only during play" rule); TERMINAL it
- * shows the length score. Shared by both manifests' summaryFor via closures.
+ * Coop's club line. Mid-game it shows only the words used (the scores wait for
+ * the end, per the "length only during play" rule); once ended, the team's
+ * length score and letter count. The five words spent is a win; the clock is
+ * the one loss.
  */
-function coopLabel(row: { play_state: string; status?: unknown }): string {
-  const s = (row.status ?? {}) as StatusBlob
-  if (row.play_state === 'playing') {
-    return statusLine(verdict('Playing'), `${(s.guesses_used as number | undefined) ?? 0}/5 guesses`)
+function makeCoopLabel(summary: GSummaryData): string {
+  // Coop always has a team.
+  const team = summary.team!
+  if (summary.ending === null) {
+    return statusLine(verdict('Playing'), tally(team.nGuessesUsed, summary.maxGuesses, 'guesses'))
   }
-  const ls = `${(s.length_score as number | undefined) ?? 0}%`
-  const lc = count(s.letter_count as number | undefined, 'letter')
-  // Coop has no WIN — spending the five guesses ('complete') or stopping on
-  // purpose ('manual') are both a neutral score report. The clock is the one
-  // loss: the team set a timer and didn't finish inside it.
-  if (row.play_state === 'lost') {
-    return statusLine(verdict('Lost', 'out of time'), ls, lc)
+  const scores = [percent(team.lengthScore), count(team.nLetters, 'letter')]
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won':
+      return statusLine(verdict('Won'), ...scores)
+    case 'lost':
+      return statusLine(verdict('Lost', 'out of time'), ...scores)
+    // A Stop (stop_game).
+    case 'neutral':
+      return statusLine(verdict('Ended'), ...scores)
+    default:
+      return outcome
   }
-  return statusLine(verdict('Ended', COOP_END[(s.reason as string) ?? ''] ?? null), ls, lc)
 }
 
-/** How a coop game stopped, when it's worth naming (wordiply._finish_coop).
- *  'timeout' isn't here: the clock is a LOSS now, handled above. */
-const COOP_END: Record<string, string> = {
-  complete: 'out of guesses',
-}
-
-function competeLabel(row: { play_state: string; status?: unknown }): string {
-  const s = (row.status ?? {}) as StatusBlob
-  const leaderboard = readLeaderboard<LeaderRow>(s)
-  if (row.play_state === 'playing') return verdict('Playing')
-  if ((s.reason as string) === 'conceded') return verdict('Lost', 'all conceded')
-  if (row.play_state === 'won_compete') {
-    // Ties leave every tied player flagged won (winner_user_id is null), so
-    // count the winners rather than name one — they share the same score.
-    const winners = leaderboard.filter((e) => e.won)
-    const ls = `${winners[0]?.length_score ?? 0}%`
-    const name = s.winner_username as string | undefined
-    return winners.length > 1
-      ? statusLine(verdict('Won', 'co-winners'), ls)
-      : statusLine(wonBy(name), ls)
+/**
+ * Compete's club line. Mid-race it shows no progress: a race has no team, and
+ * the words are private until the end. Once won, the winner and their length
+ * score; a race nobody scored in is a collective loss, and the label says how
+ * it ended.
+ */
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
+  if (summary.ending === null) return verdict('Playing')
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won': {
+      const winner = summary.ending.winner
+      const name = winner === null ? undefined : memberById(members, winner)?.username
+      return statusLine(wonBy(name), percent(summary.winnerLengthScore))
+    }
+    case 'lost':
+      // "all conceded" already says nobody won; the others need spelling out.
+      return summary.ending.reason === 'conceded'
+        ? verdict('Lost', 'all conceded')
+        : statusLine(
+          verdict('Lost', summary.ending.reason === 'timeout' ? 'out of time' : 'out of guesses'),
+          'nobody scored')
+    // A Stop (stop_game).
+    case 'neutral':
+      return statusLine(verdict('Ended'), 'no winner')
+    default:
+      return outcome
   }
-  // NOBODY on the board: no score to crown, so the race is a collective loss
-  // (wordiply._finish_compete's best_score=0 path) — reached two ways, and the
-  // label names which: the clock ('timeout'), or the table spending all its
-  // guesses scoreless ('complete').
-  if (row.play_state === 'lost_compete') {
-    return statusLine(
-      verdict('Lost', (s.reason as string) === 'timeout' ? 'out of time' : 'out of guesses'),
-      'nobody scored')
-  }
-  // 'ended' is only the manual stop (_finish_compete's pick_winner=false path).
-  return statusLine(verdict('Ended'), 'no winner')
 }
 
 export const wordiplyCoopGame: GameManifest = {
@@ -171,7 +176,7 @@ export const wordiplyCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: (row) => coopLabel(row),
+  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
 
   submitTimeout,
   stopGame,
@@ -206,7 +211,7 @@ export const wordiplyCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  summaryFor: (row) => competeLabel(row),
+  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
 
   submitTimeout,
   stopGame,

@@ -373,21 +373,21 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       ['ended', { solved: false, stopped: true }, 'manual end'],
     ],
   },
-  // wordiply writes 'won_compete' only when a winner is picked; otherwise 'ended'.
+  // wordiply._make_json_summary_data: `team` holds coop's track, its scores null until the end,
+  // and is null in compete; the winner's length score is compete's alone.
   wordiply: {
-    playing: { guesses_used: 2, leaderboard: [{ guesses_used: 2 }, { guesses_used: 3 }] },
+    live: { team: { nGuessesUsed: 2, lengthScore: null, nLetters: null }, maxGuesses: 5, winnerLengthScore: null },
     coop: [
-      ['ended', { length_score: 60, letter_count: 14, reason: 'complete' }, 'guesses used'],
-      ['lost', { length_score: 60, letter_count: 14, reason: 'timeout' }, 'timeout'],
-      ['ended', { length_score: 60, letter_count: 14, reason: 'manual' }, 'manual end'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete' }, { team: { nGuessesUsed: 5, lengthScore: 60, nLetters: 14 }, maxGuesses: 5, winnerLengthScore: null }, 'five words spent'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nGuessesUsed: 3, lengthScore: 60, nLetters: 14 }, maxGuesses: 5, winnerLengthScore: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nGuessesUsed: 3, lengthScore: 60, nLetters: 14 }, maxGuesses: 5, winnerLengthScore: null }, 'Stop'],
     ],
     compete: [
-      ['won_compete', { leaderboard: [{ won: true, length_score: 60 }], ...W }, 'one winner'],
-      ['won_compete', { leaderboard: [{ won: true, length_score: 60 }, { won: true, length_score: 60 }] }, 'co-winners'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
-      ['lost_compete', { reason: 'timeout', leaderboard: [] }, 'timeout, nobody scored'],
-      ['lost_compete', { reason: 'complete', leaderboard: [] }, 'out of guesses, nobody scored'],
-      ['ended', { reason: 'manual' }, 'manual end'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete', winner: 'u-alice' }, { team: null, maxGuesses: 5, winnerLengthScore: 60 }, 'someone won'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxGuesses: 5, winnerLengthScore: null }, 'all conceded'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxGuesses: 5, winnerLengthScore: null }, 'timeout, nobody scored'],
+      [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'complete' }, { team: null, maxGuesses: 5, winnerLengthScore: null }, 'out of guesses, nobody scored'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxGuesses: 5, winnerLengthScore: null }, 'Stop'],
     ],
   },
 }

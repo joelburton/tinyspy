@@ -3,8 +3,7 @@
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
 import type { WordSubmitReport } from '@/shared/found-words/useFoundWordSubmit'
-import type { EventRow } from '../hooks/useGame'
-import type { GAnswer } from '../types'
+import type { GAnswer, GEvent } from '../types'
 
 /**
  * How an answer reads — **the one place this game decides that.** The pill,
@@ -63,8 +62,8 @@ export function answerOf(report: WordSubmitReport, base: string): GAnswer {
   }
 }
 
-/** The columns of a `wordiply.events` row that say what it WAS. */
-type LoggedGuess = Pick<EventRow, 'word' | 'length' | 'valid' | 'reason'>
+/** The fields of a logged row that say what it WAS. */
+type LoggedGuess = Pick<GEvent, 'word' | 'valid' | 'reason'>
 
 /**
  * What COLOR a logged row is — for the event log, which writes its own words
@@ -90,5 +89,5 @@ export function eventToOutcome(row: LoggedGuess): Outcome {
  * is not the viewer's own.
  */
 export function peerAnswerMessage(row: LoggedGuess): AnswerMessage {
-  return answerMessage({ answerType: 'accepted_peer', word: row.word, length: row.length })
+  return answerMessage({ answerType: 'accepted_peer', word: row.word, length: row.word.length })
 }

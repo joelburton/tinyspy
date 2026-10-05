@@ -20,7 +20,10 @@
  * Pure (no React / supabase) + unit-tested, parallel to the other games'
  * lib/history.
  */
-import type { EventRow } from '../hooks/useGame'
+import type { GEvent } from '../types'
+
+/** The fields of a logged row the replay reads. */
+type LoggedGuess = Pick<GEvent, 'id' | 'word' | 'valid' | 'reason'>
 
 /** A board row: the word and its length, which is what `<GuessBoard>` draws. */
 export interface HistoryGuess {
@@ -36,10 +39,10 @@ export interface HistorySnapshot {
 }
 
 /** What the banner says for one row, by what the row turned out to be. */
-function describe(row: EventRow | undefined): string {
+function describe(row: LoggedGuess | undefined): string {
   if (!row) return 'This guess'
   const word = row.word.toUpperCase()
-  if (row.valid) return `${word} — ${row.length} letters`
+  if (row.valid) return `${word} — ${row.word.length} letters`
   switch (row.reason) {
     case 'too_short':
       return `${word} — too short`
@@ -56,7 +59,7 @@ function describe(row: EventRow | undefined): string {
  * board — replays nothing.
  */
 export function historySnapshot(
-  rows: readonly EventRow[],
+  rows: readonly LoggedGuess[],
   id: number,
 ): HistorySnapshot {
   const index = rows.findIndex((r) => r.id === id)
@@ -67,7 +70,7 @@ export function historySnapshot(
         ? rows
           .slice(0, index + 1)
           .filter((r) => r.valid)
-          .map((r) => ({ word: r.word, length: r.length }))
+          .map((r) => ({ word: r.word, length: r.word.length }))
         : [],
     historyLabel: describe(row),
   }
