@@ -1,9 +1,10 @@
 // cs-blessed-codenamesduet
 
 /**
- * The board's per-tile marks and gates: the per-seat bystander lock (a word I
- * hit as a bystander is closed to me, and one my partner hit stays open — it
- * may be my agent), the two key-card squares and the two bystander triangles,
+ * The board's per-tile marks and gates: the bystander lock (a word I hit as a
+ * bystander is closed to me, and one my partner hit stays open — it may be my
+ * agent; the builder's `guessableBy`), the two key-card squares and the two
+ * bystander arrows,
  * and the shared board marks — the in-flight dim, the turn dim and flash, the
  * game-over frame, the attention flash and the shake.
  * The marks are found by their CSS-module class, read off the stylesheet.
@@ -15,73 +16,73 @@ import { Board } from './Board'
 import styles from './Board.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
-import type { Seat } from '../lib/phase'
+import { makeGameData } from '../hooks/useGame'
+import { ZTest_clue, ZTest_guess, ZTest_makeGameDataRaw, type ZTest_GameDataFacts } from '../lib/gameData.fixture'
+import type { GEventRaw, GKey } from '../types'
 
-// Position 0 was hit as a bystander by seat A, position 1 by seat B.
-const words = Array.from({ length: 25 }, (_, i) => ({
-  position: i,
-  word: i === 0 ? 'apple' : i === 1 ? 'berry' : `word${i}`,
-  revealed_as: null,
-  neutral_a: i === 0,
-  neutral_b: i === 1,
-}))
+const WORDS = Array.from({ length: 25 }, (_, i) => (i === 0 ? 'apple' : i === 1 ? 'berry' : `word${i}`))
+// Tiles 0 and 1 are bystanders on both keys, so each guess there is one.
+const KEY: GKey[] = [...'NNGGGGGGGGGAANNNNNNNNNNNN'] as GKey[]
+// I (u1) turned apple over as a bystander; my partner (u2) turned berry over.
+const BYSTANDERS: GEventRaw[] = [
+  ZTest_clue(1, 'u2', 1, 'x', 1),
+  ZTest_guess(2, 'u1', 1, 0, 'N'),
+  ZTest_clue(3, 'u1', 2, 'y', 1),
+  ZTest_guess(4, 'u2', 2, 1, 'N'),
+]
 
-function draw(mySeat: Seat) {
-  render(
-    <Board
-      words={words}
-      myKey={Array.from({ length: 25 }, () => 'N' as const)}
-      peerKey={null}
-      mySeat={mySeat}
-      isTerminal={false}
-      isBoardInteractive
-      inFlightPos={null}
-      onGuess={vi.fn()}
-      cursor={null}
-      picked={null}
-      isWaitingForTurn={false}
-      myTurnJustStarted={false}
-      moveCount={0}
-      terminalOutcome={null}
-    />,
+/** `gd` for a game on these facts, the bystanders above played, seen by `viewer`. */
+function gdOf(viewer = 'u1', over: ZTest_GameDataFacts = {}) {
+  return makeGameData(
+    ZTest_makeGameDataRaw({ words: WORDS, keyA: KEY, keyB: KEY, turnNum: 3, events: BYSTANDERS, ...over }),
+    viewer,
   )
 }
 
-/** The board with every prop settable; seat A, mid-game, my guess turn. */
+/** Board props for a game seen by `viewer`; my guess turn, mid-game. */
+function props(over: Partial<ComponentProps<typeof Board>> = {}, viewer = 'u1', facts: ZTest_GameDataFacts = {}) {
+  const gd = gdOf(viewer, facts)
+  return {
+    tiles: gd.team.board.tiles,
+    me: gd.me,
+    partner: gd.partner,
+    showsPartnerKey: false,
+    isInteractive: true,
+    inFlightPos: null,
+    onGuess: vi.fn(),
+    cursor: null,
+    picked: null,
+    isViewingHistory: false,
+    litTileIds: new Set<string>(),
+    isWaitingForTurn: false,
+    myTurnJustStarted: false,
+    moveCount: 2,
+    endingOutcome: null,
+    ...over,
+  }
+}
+
+function draw(viewer: string) {
+  render(<Board {...props({}, viewer)} />)
+}
+
+/** The board with every prop settable; me, mid-game, my guess turn. */
 function drawWith(over: Partial<ComponentProps<typeof Board>> = {}) {
-  return render(
-    <Board
-      words={words}
-      myKey={Array.from({ length: 25 }, () => 'N' as const)}
-      peerKey={null}
-      mySeat="A"
-      isTerminal={false}
-      isBoardInteractive
-      inFlightPos={null}
-      onGuess={vi.fn()}
-      cursor={null}
-      picked={null}
-      isWaitingForTurn={false}
-      myTurnJustStarted={false}
-      moveCount={0}
-      terminalOutcome={null}
-      {...over}
-    />,
-  ).container
+  return render(<Board {...props(over)} />).container
 }
 
 const tile = (container: HTMLElement, word: RegExp) =>
   [...container.querySelectorAll('button')].find((b) => word.test(b.textContent ?? ''))!
 
 describe('codenamesduet Board — the per-seat bystander lock', () => {
-  it('as seat A: my bystander is closed, my partner’s is open', () => {
-    draw('A')
+  it('my bystander is closed to me, my partner’s is open', () => {
+    draw('u1')
     expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /berry/i })).toBeEnabled()
   })
 
-  it('as seat B: the same, the other way round', () => {
-    draw('B')
+  it('the same, the other way round, for my partner', () => {
+    draw('u2')
     expect(screen.getByRole('button', { name: /berry/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /apple/i })).toBeEnabled()
   })
@@ -90,32 +91,37 @@ describe('codenamesduet Board — the per-seat bystander lock', () => {
 describe('codenamesduet Board — my key card', () => {
   // While I guess, my own card says nothing about my partner's clue.
   it('is hidden while I am the one guessing', () => {
-    expect(drawWith({ isBoardInteractive: true }).querySelectorAll(`.${styles.keyMine}`)).toHaveLength(0)
+    expect(drawWith({ isInteractive: true }).querySelectorAll(`.${styles.keyMine}`)).toHaveLength(0)
   })
 
   it('is shown the rest of the time — cluing, waiting, game over', () => {
-    expect(drawWith({ isBoardInteractive: false }).querySelectorAll(`.${styles.keyMine}`)).toHaveLength(25)
+    expect(drawWith({ isInteractive: false }).querySelectorAll(`.${styles.keyMine}`)).toHaveLength(25)
   })
 })
 
 describe('codenamesduet Board — my partner’s key card', () => {
-  const theirs = Array.from({ length: 25 }, () => 'G' as const)
+  const ENDED: ZTest_GameDataFacts = {
+    ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+    outcome: 'neutral',
+  }
+  const keySquares = (over: Partial<ComponentProps<typeof Board>>, facts: ZTest_GameDataFacts) =>
+    render(<Board {...props(over, 'u1', facts)} />).container.querySelectorAll(`.${styles.keyPeer}`)
 
   it('is shown once the game is over and I have asked to see it', () => {
-    expect(drawWith({ isTerminal: true, peerKey: theirs }).querySelectorAll(`.${styles.keyPeer}`)).toHaveLength(25)
+    expect(keySquares({ showsPartnerKey: true }, ENDED)).toHaveLength(25)
   })
 
-  it('is not shown mid-game, even when handed one', () => {
-    expect(drawWith({ isTerminal: false, peerKey: theirs }).querySelectorAll(`.${styles.keyPeer}`)).toHaveLength(0)
+  it('is not shown mid-game, even when asked for — gd does not hold it', () => {
+    expect(keySquares({ showsPartnerKey: true }, {})).toHaveLength(0)
   })
 
   it('is not shown at the end until I ask', () => {
-    expect(drawWith({ isTerminal: true, peerKey: null }).querySelectorAll(`.${styles.keyPeer}`)).toHaveLength(0)
+    expect(keySquares({ showsPartnerKey: false }, ENDED)).toHaveLength(0)
   })
 })
 
 describe('codenamesduet Board — the bystander triangles', () => {
-  // As seat A: apple is my bystander (neutral_a), berry my partner's (neutral_b).
+  // Apple is my bystander, berry my partner's.
   it('draws my partner’s above the word and mine below', () => {
     const container = drawWith()
     const berry = tile(container, /berry/)
@@ -134,9 +140,16 @@ describe('codenamesduet Board — the bystander triangles', () => {
     expect(apple.querySelector(`.${styles.triPeer}`)).toBeNull()
   })
 
-  it('drops both once the word is turned over', () => {
-    const turned = words.map((w) => (w.position < 2 ? { ...w, revealed_as: 'G' as const } : w))
-    const container = drawWith({ words: turned })
+  it('drops both once the word is contacted — the builder points it at nobody', () => {
+    const agentKey: GKey[] = [...'GGNNNNNNNNNAANNNNNNNNNNNN'] as GKey[]
+    const events = [
+      ...BYSTANDERS,
+      ZTest_clue(5, 'u2', 3, 'z', 2),
+      ZTest_guess(6, 'u1', 3, 0, 'G'),
+      ZTest_guess(7, 'u1', 3, 1, 'G'),
+    ]
+    const gd = makeGameData(ZTest_makeGameDataRaw({ words: WORDS, keyA: KEY, keyB: agentKey, turnNum: 3, events }), 'u1')
+    const container = drawWith({ tiles: gd.team.board.tiles })
     expect(container.querySelectorAll(`.${styles.triPeer}, .${styles.triMine}`)).toHaveLength(0)
   })
 })
@@ -151,7 +164,7 @@ describe('codenamesduet Board — the board marks', () => {
   })
 
   it('dims the board while my partner holds the move, and flashes its frame as it becomes mine', () => {
-    expect(grid(drawWith({ isWaitingForTurn: true, isBoardInteractive: false })).className).toMatch(shared.dimNotYourTurn)
+    expect(grid(drawWith({ isWaitingForTurn: true, isInteractive: false })).className).toMatch(shared.dimNotYourTurn)
     expect(grid(drawWith({ myTurnJustStarted: true })).className).toMatch(shared.yourTurnFlash)
     const live = grid(drawWith()).className
     expect(live).not.toMatch(shared.dimNotYourTurn)
@@ -159,54 +172,50 @@ describe('codenamesduet Board — the board marks', () => {
   })
 
   it('frames a finished board in its outcome, and gives the frame up to the history viewer', () => {
-    const won = grid(drawWith({ terminalOutcome: 'won' })).className
+    const won = grid(drawWith({ endingOutcome: 'won' })).className
     expect(won).toMatch(shared.endingFrame)
     expect(won).toMatch(shared.endingFrame_won)
-    expect(grid(drawWith({ terminalOutcome: 'lost' })).className).toMatch(shared.endingFrame_lost)
-    const ended = grid(drawWith({ terminalOutcome: 'neutral' })).className
+    expect(grid(drawWith({ endingOutcome: 'lost' })).className).toMatch(shared.endingFrame_lost)
+    const ended = grid(drawWith({ endingOutcome: 'neutral' })).className
     expect(ended).toMatch(shared.endingFrame)
     expect(ended).not.toMatch(shared.endingFrame_won)
-    expect(grid(drawWith({ terminalOutcome: 'won', isViewingHistory: true })).className).not.toMatch(shared.endingFrame)
+    expect(grid(drawWith({ endingOutcome: 'won', isViewingHistory: true })).className).not.toMatch(shared.endingFrame)
     expect(grid(drawWith()).className).not.toMatch(shared.endingFrame)
   })
 })
 
 describe('codenamesduet Board — attention and the shake', () => {
-  const props = (over: Partial<ComponentProps<typeof Board>> = {}) => ({
-    words, myKey: Array.from({ length: 25 }, () => 'N' as const), peerKey: null,
-    mySeat: 'A' as const, isTerminal: false, isBoardInteractive: true, inFlightPos: null,
-    onGuess: vi.fn(), cursor: null, picked: null, isWaitingForTurn: false, myTurnJustStarted: false, moveCount: 2,
-    terminalOutcome: null, ...over,
-  })
-  const turned = (p: number, as: 'G' | 'A') => words.map((w) => (w.position === p ? { ...w, revealed_as: as } : w))
+  const base = props()
+  // The board with tile `p` showing `as` — a reveal landing.
+  const turned = (tiles: typeof base.tiles, p: number, as: GKey) =>
+    tiles.map((t) => (Number(t.id) === p ? { ...t, revealed: { as, arrows: new Set<typeof base.me>() } } : t))
   const flashingWords = (c: HTMLElement) =>
     [...c.querySelectorAll('button')].filter((b) => b.classList.contains(shared.attentionFlash)).map((b) => b.textContent)
 
   afterEach(() => vi.useRealTimers())
 
   it('flashes the tile a guess turned over, on the move and not otherwise', () => {
-    const { container, rerender } = render(<Board {...props()} />)
-    rerender(<Board {...props({ words: turned(5, 'G'), moveCount: 3 })} />)
+    const { container, rerender } = render(<Board {...base} />)
+    rerender(<Board {...base} tiles={turned(base.tiles, 5, 'G')} moveCount={3} />)
     expect(flashingWords(container)).toEqual(['word5'])
   })
 
   it('does not flash a board that changed with no guess behind it', () => {
-    const { container, rerender } = render(<Board {...props()} />)
-    rerender(<Board {...props({ words: turned(5, 'G') })} />)
+    const { container, rerender } = render(<Board {...base} />)
+    rerender(<Board {...base} tiles={turned(base.tiles, 5, 'G')} />)
     expect(flashingWords(container)).toEqual([])
   })
 
   it('stays quiet while a past turn is open', () => {
-    const { container, rerender } = render(<Board {...props({ isViewingHistory: true })} />)
-    rerender(<Board {...props({ isViewingHistory: true, words: turned(5, 'G'), moveCount: 3 })} />)
+    const { container, rerender } = render(<Board {...base} isViewingHistory />)
+    rerender(<Board {...base} isViewingHistory tiles={turned(base.tiles, 5, 'G')} moveCount={3} />)
     expect(flashingWords(container)).toEqual([])
   })
 
   it('shakes an assassin or a bystander once the flash is done, never an agent', () => {
     vi.useFakeTimers()
-    const { container, rerender } = render(<Board {...props()} />)
-    const both = turned(5, 'G').map((w) => (w.position === 6 ? { ...w, revealed_as: 'A' as const } : w))
-    rerender(<Board {...props({ words: both, moveCount: 4 })} />)
+    const { container, rerender } = render(<Board {...base} />)
+    rerender(<Board {...base} tiles={turned(turned(base.tiles, 5, 'G'), 6, 'A')} moveCount={4} />)
     const shaking = () =>
       [...container.querySelectorAll('button')].filter((b) => b.classList.contains(shared.verdictShake)).map((b) => b.textContent)
     act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS - 1))

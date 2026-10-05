@@ -23,7 +23,7 @@
 -- per the "three or more" threshold in docs/testing.md.
 
 -- ─── find_position ─────────────────────────────────────
--- "Find the first board position whose label on seat `s`'s view
+-- "Find the first board position whose key on seat `s`'s view
 -- is `target`." The key card is random per-game; tests can't
 -- hardcode positions for a green / neutral / assassin reveal.
 --
@@ -35,8 +35,8 @@ language sql as $$
   from codenamesduet.games gm,
        jsonb_array_elements_text(
          case s when 'A' then gm.key_card_a else gm.key_card_b end
-       ) with ordinality as t(label, ord)
-  where gm.game_id = g and t.label = target
+       ) with ordinality as t(key, ord)
+  where gm.game_id = g and t.key = target
   limit 1;
 $$;
 
@@ -51,8 +51,8 @@ language sql as $$
   from codenamesduet.games gm,
        jsonb_array_elements_text(
          case s when 'A' then gm.key_card_a else gm.key_card_b end
-       ) with ordinality as t(label, ord)
-  where gm.game_id = g and t.label = target;
+       ) with ordinality as t(key, ord)
+  where gm.game_id = g and t.key = target;
 $$;
 
 -- ─── codenamesduet_setup ─────────────────────────────────────

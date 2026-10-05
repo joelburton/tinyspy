@@ -94,7 +94,7 @@ select pg_temp.envelope_is(
   'submit_clue rejects a second clue in the same turn'
 );
 
--- Bea guesses a green. The label is determined by *Ada's* view (the
+-- Bea guesses a green. The key is read from *Ada's* view (the
 -- clue-giver's view), which is the most subtle rule in Duet. We use
 -- find_position to pin down a cell that's 'G' on Ada's side.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

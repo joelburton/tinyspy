@@ -7,20 +7,10 @@
  */
 import { describe, expect, it } from 'vitest'
 import { turnOutcome } from './turnOutcome'
-import type { GuessEvent } from './events'
+import type { GKey } from '../types'
 
-/** A guess with just the field turnOutcome reads; the rest is filler. */
-const g = (guess_result: GuessEvent['guess_result']): GuessEvent => ({
-  kind: 'guess',
-  id: 1,
-  user_id: 'bea',
-  took_turn: false,
-  created_at: '2026-06-12T18:00:00Z',
-  turn_number: 1,
-  seat: 'B',
-  guess_position: 0,
-  guess_result,
-})
+/** A guess with just the field turnOutcome reads. */
+const g = (result: GKey) => ({ result })
 
 describe('turnOutcome', () => {
   it('is neutral when the turn was passed (no guesses)', () => {

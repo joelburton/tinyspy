@@ -4,7 +4,7 @@ import { cls } from '@/common/utils/cls'
 import type { GKey } from '../types'
 import styles from './KeyCard.module.css'
 
-/** Each label's cell class — total over the three, so a fourth fails to
+/** Each key's cell class — total over the three, so a fourth fails to
  *  compile until it has been given a color. */
 const CELL: Record<GKey, string> = {
   G: styles.agent,
@@ -21,15 +21,15 @@ const CELL: Record<GKey, string> = {
  * that.
  */
 export function KeyCard({
-  labels,
+  keys,
 }: {
-  // The 25 labels in board order (`words.position`), from the caller's own key.
-  labels: ReadonlyArray<GKey>
+  // The player's 25 keys, in the puzzle's tile order.
+  keys: ReadonlyArray<GKey>
 }) {
   return (
     <div className={styles.card} data-key-card>
-      {labels.map((label, position) => (
-        <span key={position} className={cls(styles.cell, CELL[label])} data-key-label={label} />
+      {keys.map((key, position) => (
+        <span key={position} className={cls(styles.cell, CELL[key])} data-key={key} />
       ))}
     </div>
   )

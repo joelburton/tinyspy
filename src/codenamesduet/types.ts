@@ -15,6 +15,7 @@
  * down.
  */
 
+import type { Action } from '@/common/actions/useBindAction'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -147,6 +148,23 @@ export type GEventRaw = {
 /** One row of the log as `gd` holds it, by a player. */
 export type GEvent = Omit<GEventRaw, 'userId'> & {
   by: GPlayer
+}
+
+/** A clue, its payload present (`lib/events.ts → cluesOf`). */
+export type GClueEvent = GEvent & {
+  kind: 'clue'
+  clueWord: string
+  clueCount: number
+  clueFromAi: boolean
+}
+
+/** A guess, its payload present, with the word on its tile
+ *  (`lib/events.ts → guessesOf`). */
+export type GGuessEvent = GEvent & {
+  kind: 'guess'
+  tileId: string
+  result: GKey
+  word: string
 }
 
 /** A player as codenamesduet's game_data shows them: the common player, with
@@ -358,3 +376,32 @@ export type GSuggestState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready'; word: string; count: number; reasoning: string }
+
+/** Every command codenamesduet offers, bound once (`hooks/useActionsAndMenu`). */
+export type GActions = {
+  actReveal: Action
+  actRestart: Action
+  actNewGame: Action
+  actConcede: Action
+  actStopGame: Action
+  actPrintBoard: Action
+  actBackToClub: Action
+}
+
+/** The turn-history viewer (`hooks/useHistoryView`). */
+export type GHistoryView = {
+  // A past turn is open on the board: the board goes inert under it.
+  isViewing: boolean
+  // The log row open on the board (`events.id`), or null when live.
+  viewedEventId: number | null
+  // Open a turn — the log's `#N` click, with the number it printed beside it.
+  show: (id: number, n: number | null) => void
+  // Back to the live board — the banner's ✕, or any click or key.
+  exit: () => void
+  // The viewed turn's board, or null when live.
+  tiles: GTile[] | null
+  // The tiles the viewed turn's guesses decided, to ring.
+  litTileIds: ReadonlySet<string>
+  // The banner's text, or null when live.
+  label: string | null
+}

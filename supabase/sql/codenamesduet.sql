@@ -964,9 +964,9 @@ drop function if exists codenamesduet.submit_guess(uuid, int);
 -- codenamesduet.submit_guess
 -- ============================================================
 -- The guesser turns a word over. Answers in an envelope whose `data` carries
--- the revealed label ('G' | 'N' | 'A') plus the board state the reveal
+-- the revealed key ('G' | 'N' | 'A') plus the board state the reveal
 -- produced. Handles all the Duet rules:
---   - whose key labels this reveal (the clue-giver's in ordinary play; the
+--   - whose key decides this reveal (the clue-giver's in ordinary play; the
 --     partner's in sudden death)
 --   - the assassin → lost (fatal_move / assassin)
 --   - a bystander in sudden death → lost (fatal_move / neutral)
@@ -999,7 +999,7 @@ declare
   caller_seat text;
   key_owner_seat text;
   key_card jsonb;
-  revealed_label text;
+  revealed_key text;
   green_total int;
   turns_used int;
   turn_state jsonb;
@@ -1047,12 +1047,12 @@ begin
       detail = 'caller matches neither player_a_user_id nor player_b_user_id';
   end if;
 
-  -- Whose key labels this reveal? Most subtle rule in Duet.
+  -- Whose key decides this reveal? Most subtle rule in Duet.
   --
   -- In ordinary play: the clue-giver's. A green agent on the clue-giver's side
   -- counts toward the 15; a neutral on their side ends the turn; an assassin
   -- on their side ends the game. The guesser's own key does NOT matter — the
-  -- guess is in response to the clue-giver's clue, so the clue-giver's labels
+  -- guess is in response to the clue-giver's clue, so the clue-giver's keys
   -- apply.
   --
   -- In sudden death: no clue-giver, but guesses are "from memory of past
@@ -1129,15 +1129,15 @@ begin
                 when 'B' then g.key_card_b
               end;
 
-  revealed_label := key_card ->> p_guess_position;
+  revealed_key := key_card ->> p_guess_position;
 
   -- Record the reveal on codenamesduet.words. Green (agent contacted) and
   -- assassin are GLOBAL — true for both players. A neutral only marks the
   -- guesser's own seat, so the partner can still guess the word.
-  if revealed_label = 'G' then
+  if revealed_key = 'G' then
     update codenamesduet.words set revealed_as = 'G'
       where game_id = p_game_id and position = p_guess_position;
-  elsif revealed_label = 'A' then
+  elsif revealed_key = 'A' then
     update codenamesduet.words set revealed_as = 'A'
       where game_id = p_game_id and position = p_guess_position;
   elsif caller_seat = 'A' then
@@ -1162,17 +1162,17 @@ begin
     game_id, user_id, kind, took_turn, turn_number, seat, guess_position, guess_result
   ) values (
     p_game_id, caller_id, 'guess',
-    (revealed_label = 'N' and not in_sudden_death)
-      or (revealed_label = 'G' and in_sudden_death and green_total < 15),
-    g.turn_number, caller_seat, p_guess_position, revealed_label
+    (revealed_key = 'N' and not in_sudden_death)
+      or (revealed_key = 'G' and in_sudden_death and green_total < 15),
+    g.turn_number, caller_seat, p_guess_position, revealed_key
   );
 
   -- Does this reveal end the game?
-  if revealed_label = 'A' then
+  if revealed_key = 'A' then
     end_outcome := 'lost'; end_reason := 'fatal_move'; end_detail := 'assassin';
-  elsif in_sudden_death and revealed_label <> 'G' then
+  elsif in_sudden_death and revealed_key <> 'G' then
     end_outcome := 'lost'; end_reason := 'fatal_move'; end_detail := 'neutral';
-  elsif revealed_label = 'G' and green_total >= 15 then
+  elsif revealed_key = 'G' and green_total >= 15 then
     end_outcome := 'won'; end_reason := 'reached_goal'; end_detail := 'solved';
   end if;
 
@@ -1201,7 +1201,7 @@ begin
       jsonb_build_object(
         'result', end_outcome,
         'reason', end_detail,
-        'revealed', revealed_label,
+        'revealed', revealed_key,
         'found_agents_count', green_total,
         'turns_used', turns_used
       )
@@ -1209,7 +1209,7 @@ begin
   end if;
 
   -- A bystander in ordinary play ends the turn.
-  if revealed_label <> 'G' then
+  if revealed_key <> 'G' then
     -- _end_turn hands back the turn state it wrote — the new number, what is
     -- left of the budget, and who clues next (nobody, if that spent the last
     -- turn and dropped the game into sudden death).
@@ -1218,7 +1218,7 @@ begin
     return common._ok_envelope(
       jsonb_build_object(
         'result', 'bystander',
-        'revealed', revealed_label,
+        'revealed', revealed_key,
         'found_agents_count', green_total,
         'turn_number', turn_state->'turn_number',
         'turns_remaining', turn_state->'turns_remaining',
@@ -1246,7 +1246,7 @@ begin
   return common._ok_envelope(
     jsonb_build_object(
       'result', 'agent',
-      'revealed', revealed_label,
+      'revealed', revealed_key,
       'found_agents_count', green_total,
       'turn_number', g.turn_number,
       'turns_remaining', codenamesduet._turns_remaining(g.max_turns, g.turn_number),
@@ -1677,7 +1677,7 @@ begin
                 end;
 
   -- Each of the three category lookups uses the caller's key (caller_key)
-  -- indexed by w.position; `->>` returns the label as text ('G' | 'N' | 'A').
+  -- indexed by w.position; `->>` returns the key as text ('G' | 'N' | 'A').
   select jsonb_build_object(
     'board', coalesce((
       select jsonb_agg(w.word order by w.position)

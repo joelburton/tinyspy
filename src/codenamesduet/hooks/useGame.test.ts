@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-codenamesduet
 
 /**
  * WHAT THE PLAYAREA BLOB BECOMES, AND WHAT A PLAYER MAY NOT SEE.

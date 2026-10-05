@@ -1,7 +1,7 @@
 // cs-blessed-codenamesduet
 
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { GuessEvent } from './events'
+import type { GGuessEvent } from '../types'
 
 /**
  * A codenamesduet turn = one clue + its 0..N guesses, rendered as ONE event-log
@@ -22,14 +22,14 @@ import type { GuessEvent } from './events'
  * an outcome, and it is the turn's, read off the key letters.
  */
 export function turnOutcome(
-  guesses: ReadonlyArray<GuessEvent>,
+  guesses: ReadonlyArray<Pick<GGuessEvent, 'result'>>,
   { suddenDeath = false }: { suddenDeath?: boolean } = {},
 ): Outcome {
   if (guesses.length === 0) return 'neutral'
-  if (suddenDeath) return guesses.every((g) => g.guess_result === 'G') ? 'won' : 'lost'
-  if (guesses.some((g) => g.guess_result === 'A')) return 'lost'
-  const hasAgent = guesses.some((g) => g.guess_result === 'G')
-  const hasNeutral = guesses.some((g) => g.guess_result === 'N')
+  if (suddenDeath) return guesses.every((g) => g.result === 'G') ? 'won' : 'lost'
+  if (guesses.some((g) => g.result === 'A')) return 'lost'
+  const hasAgent = guesses.some((g) => g.result === 'G')
+  const hasNeutral = guesses.some((g) => g.result === 'N')
   if (hasAgent && hasNeutral) return 'near'
   return hasAgent ? 'won' : 'lost'
 }

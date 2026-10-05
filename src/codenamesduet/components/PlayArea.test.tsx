@@ -1,20 +1,19 @@
 // cs-blessed-codenamesduet
 
 /**
- * Render + behavior tests for codenamesduet's play surface, mounted through the
- * loader: the guess in-flight guard, a refused guess in the local slot, the
- * tiles' input gate, what the bell is told, the board's turn dim and flash and
- * a guess's flash through the log, the finished-player banners, the
- * partner-key reveal, the action row and the menu, the header's lines about
- * the partner, the two role-specific controls, the commands through the
- * dispatcher, and the keyboard's selection cursor.
+ * Render + behavior tests for codenamesduet's play surface, built from the blob
+ * a test's facts would produce (`lib/gameData.fixture.ts`): the guess in-flight
+ * guard, a refused guess in the local slot, the tiles' input gate, what the
+ * bell is told, the board's turn dim and flash and a guess's flash through the
+ * log, the finished-player banners, the partner-key reveal, the action row and
+ * the menu, the header's lines about the partner, the two role-specific
+ * controls, the commands through the dispatcher, and the keyboard's selection
+ * cursor.
  *
- * `useGame` / `useBoard` / `db` are mocked; by default the game is "my turn to
- * guess" (I'm the guesser seat B; peer seat A gave the clue), so the tiles are
- * clickable.
+ * Only `db` is mocked. By default my partner (seat A) gave the clue and I (seat
+ * B) am guessing, so the tiles are clickable.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { ACTIONS } from '@/common/actions/registry'
 import { getActions } from '@/common/actions/actionsStore'
@@ -23,63 +22,18 @@ import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
-import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import shared from '@/common/game-page/playArea.module.css'
 import { db } from '../db'
+import {
+  ZTest_clue,
+  ZTest_guess,
+  ZTest_makeCodenamesduetCtx,
+  type ZTest_GameDataFacts,
+} from '../lib/gameData.fixture'
+import type { GEventRaw, GKey } from '../types'
+import boardStyles from './Board.module.css'
 import { PlayAreaLoader } from './PlayArea'
 
-// Whose turn it is, and whether the clue is in — mutable holders so a test can
-// seat me as the GUESSER (the default: peer A gave the clue, I'm B) or as the
-// CLUE-GIVER (I'm the giver and no clue is written yet).
-const g = vi.hoisted(() => {
-  const PEER_CLUE = {
-    kind: 'clue' as const, id: 1, user_id: 'peer', took_turn: false,
-    created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat: 'A' as const,
-    clue_word: 'fruit', clue_count: 2, clue_from_ai: false,
-  }
-  return {
-    PEER_CLUE,
-    game: { current_clue_giver: 'A', turn_number: 1, user_a_id: 'peer', user_b_id: 'me' },
-    events: [PEER_CLUE] as unknown[],
-    agentsDone: { mine: false, peer: false },
-    // Positions turned over as agents — the board a guess has changed.
-    agentsAt: [] as number[],
-    // Positions each seat hit as a bystander (I am seat B).
-    neutralA: [] as number[],
-    neutralB: [] as number[],
-  }
-})
-// The game row seats peer as A and me as B; the names come from the shell's
-// `players` (makeCtx's), as they do on the page.
-vi.mock('../hooks/useGame', () => ({
-  useGame: () => ({ game: g.game }),
-}))
-// The third argument is "show me the partner's key card" — the ONE thing the
-// terminal reveal does, since useBoard is what turns it into `peerKey`. Recorded
-// so the reveal tests can assert on it (the hook itself is mocked out).
-const peerKeyArgs = vi.hoisted(() => ({ calls: [] as boolean[] }))
-vi.mock('../hooks/useBoard', () => ({
-  // A full 5×5 board (the loader gates on `words.length >= 25`). Positions 0/1 are
-  // the tiles we click; the rest are filler. All unrevealed → all clickable.
-  useBoard: (_gameId: string, _userId: string, showPeerKey: boolean) => (
-    peerKeyArgs.calls.push(showPeerKey), {
-    words: Array.from({ length: 25 }, (_, i) => ({
-      position: i,
-      word: i === 0 ? 'apple' : i === 1 ? 'berry' : `word${i}`,
-      revealed_as: g.agentsAt.includes(i) ? 'G' : null,
-      neutral_a: g.neutralA.includes(i),
-      neutral_b: g.neutralB.includes(i),
-    })),
-    events: g.events,
-    myKey: Array.from({ length: 25 }, () => 'N'),
-    peerKey: null,
-    myAgentsDone: g.agentsDone.mine,
-    peerAgentsDone: g.agentsDone.peer,
-    loading: false,
-  }
-  ),
-}))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 // Watched so a test can say this surface rings no bell of its own: the page
 // rings on the shared pointer.
@@ -88,10 +42,60 @@ vi.mock('@/common/sounds/useTurnBell', () => ({ useTurnBell: turnBell }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
-/** Seat me as the clue-giver with the clue still to write. */
-function asClueGiver() {
-  g.game = { current_clue_giver: 'B', turn_number: 1, user_a_id: 'peer', user_b_id: 'me' }
-  g.events = []
+/** My partner sits at A and opens; I (`u1`, the viewer) sit at B. */
+const PLAYERS: ZTest_GameDataFacts['players'] = [
+  { id: 'u2', username: 'peer', color: 'blue' },
+  { id: 'u1', username: 'me', color: 'red' },
+]
+const WORDS = Array.from({ length: 25 }, (_, i) => (i === 0 ? 'apple' : i === 1 ? 'berry' : `word${i}`))
+// One agent each, so a test can find all of a player's agents with one guess:
+// my partner's at 23, mine at 24. Everything else is a bystander on both keys.
+const KEY_PEER: GKey[] = Array.from({ length: 25 }, (_, i) => (i === 23 ? 'G' : 'N'))
+const KEY_ME: GKey[] = Array.from({ length: 25 }, (_, i) => (i === 24 ? 'G' : 'N'))
+/** My partner's clue for turn 1. */
+const PEER_CLUE = ZTest_clue(1, 'u2', 1, 'fruit', 2)
+
+/** A hint event, as the blob carries it. */
+const hint = (id: number, userId: string): GEventRaw => ({
+  ...ZTest_clue(id, userId, 1, 'x', 0),
+  kind: 'hint',
+  clueWord: null,
+  clueCount: null,
+  clueFromAi: null,
+})
+
+/** The game's facts; my partner's clue is in and I guess, unless said otherwise. */
+const facts = (over: ZTest_GameDataFacts = {}): ZTest_GameDataFacts => ({
+  players: PLAYERS,
+  words: WORDS,
+  keyA: KEY_PEER,
+  keyB: KEY_ME,
+  turnNum: 1,
+  clueSeat: 'A',
+  events: [PEER_CLUE],
+  ...over,
+})
+
+/** I hold the clue seat, with the clue still to write. */
+const AS_CLUE_GIVER: ZTest_GameDataFacts = { clueSeat: 'B', events: [] }
+/** The budget spent: nobody clues, and either of us may guess. */
+const SUDDEN_DEATH: ZTest_GameDataFacts = { turnNum: 10, clueSeat: null, events: [] }
+/** The assassin ended the game. */
+const LOST: ZTest_GameDataFacts = {
+  ending: { reason: 'fatal_move', detail: 'assassin', by: 'u2', winner: null },
+  outcome: 'lost',
+  clueSeat: null,
+}
+/** The pair found every agent. */
+const WON: ZTest_GameDataFacts = {
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: null },
+  outcome: 'won',
+  clueSeat: null,
+}
+
+/** The props `<GamePage>` hands the surface, from the game's facts. */
+function makeCtx(over: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
+  return ZTest_makeCodenamesduetCtx(facts(over))
 }
 
 /** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what the
@@ -131,83 +135,7 @@ function menuItems(ctx: PlayAreaLoaderProps) {
   return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
 }
 
-/** Who the server's shared turn pointer names for the fixture's game state —
- *  `codenamesduet._point_turn`'s rule, so a test that sets up a state gets the
- *  pointer the server would write for it: the clue-giver until the clue is in,
- *  then the guesser; in sudden death the one player with words left, or
- *  nobody when both have them. */
-function pointerFor(playState: string): string | null {
-  const seatUser = (seat: string | null) =>
-    seat === 'A' ? g.game.user_a_id : seat === 'B' ? g.game.user_b_id : null
-  if (playState === 'playing') {
-    const hasClue = (g.events as { kind: string; turn_number: number }[])
-      .some((e) => e.kind === 'clue' && e.turn_number === g.game.turn_number)
-    const giver = g.game.current_clue_giver as string | null
-    return seatUser(hasClue ? (giver === 'A' ? 'B' : 'A') : giver)
-  }
-  if (playState === 'sudden_death') {
-    // I guess off my partner's key, so I have words while their agents are not
-    // all found — and they while mine are not.
-    const meHasWords = !g.agentsDone.peer
-    const peerHasWords = !g.agentsDone.mine
-    if (meHasWords && peerHasWords) return null
-    return meHasWords ? 'me' : peerHasWords ? 'peer' : null
-  }
-  return null
-}
-
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster, `isTerminal`, a turn order, and the pointer the server would write
- *  for the fixture's game state — exactly as the page derives it
- *  (`whereIStand`), unless a test sets `turnHolderId` itself. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'me' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [
-      { user_id: 'me', username: 'me', color: 'red' },
-      { user_id: 'peer', username: 'peer', color: 'blue' },
-    ] as PlayAreaLoaderProps['players'],
-    playState: 'playing',
-    isTerminal: false,
-    isTurnBased: true,
-    ...over,
-  }
-  const turnHolderId = 'turnHolderId' in over ? (over.turnHolderId ?? null) : pointerFor(facts.playState)
-  return {
-    gameId: 'g1',
-    brand: 'TinySpy',
-    timer: { displaySeconds: 0, expired: false },
-    setup: { turns: 9, timer: { kind: 'none' } },
-    status: null,
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: ZTest_actionFixture('act-help'),
-      actChat: ZTest_actionFixture('act-open-chat'),
-      actBackToClub: ZTest_actionFixture('act-back-to-club'),
-    },
-    ...facts,
-    turnHolderId,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.isTerminal,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId,
-      draftsOffTurn: false,
-    }),
-  } as unknown as PlayAreaLoaderProps
-}
-
 beforeEach(() => {
-  g.game = { current_clue_giver: 'A', turn_number: 1, user_a_id: 'peer', user_b_id: 'me' }
-  g.events = [g.PEER_CLUE]
-  g.agentsDone = { mine: false, peer: false }
-  g.agentsAt = []
-  g.neutralA = []
-  g.neutralB = []
   rpc.mockReset()
   // Never resolves → the first guess stays "in flight" so we can test the guard.
   rpc.mockReturnValue(new Promise(() => {}))
@@ -226,11 +154,11 @@ describe('codenamesduet PlayArea — guess in-flight guard', () => {
     fireEvent.click(apple) // guess in flight (rpc never resolves)
     fireEvent.click(berry) // a DIFFERENT tile — not disabled, but the ref must block it
     expect(rpc).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess_position: 0 })
+    expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_guess_position: 0 })
   })
 
-  // The reply and the reveal are two events: the reveal comes by realtime, a
-  // beat after `submit_guess` answers. Until it lands the guess is still out.
+  // The reply and the reveal are two events: the reveal comes in the next blob,
+  // a beat after `submit_guess` answers. Until it lands the guess is still out.
   it('holds the guess in flight after the reply, until its reveal lands', async () => {
     rpc.mockReturnValue(Promise.resolve(okEnvelope({ result: 'agent' })))
     const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
@@ -244,8 +172,7 @@ describe('codenamesduet PlayArea — guess in-flight guard', () => {
     expect(rpc).toHaveBeenCalledTimes(1)
 
     // The reveal lands.
-    g.agentsAt = [0]
-    rerender(<PlayAreaLoader {...makeCtx()} />)
+    rerender(<PlayAreaLoader {...makeCtx({ events: [PEER_CLUE, ZTest_guess(2, 'u1', 1, 0, 'G')] })} />)
     expect(apple()).not.toHaveClass(shared.dimInFlight)
   })
 })
@@ -272,16 +199,16 @@ describe('codenamesduet PlayArea — a refused guess', () => {
 
 /**
  * The tiles' input gate, by its observable effect — clickable during my guess
- * turn, blocked at terminal — so a flip that inverts the gate fails here.
+ * turn, blocked at the end — so a flip that inverts the gate fails here.
  */
 describe('codenamesduet PlayArea — input gating', () => {
   it('tiles are clickable during my guess turn', () => {
-    render(<PlayAreaLoader {...makeCtx()} />) // playing, my turn, clue given → gate open
+    render(<PlayAreaLoader {...makeCtx()} />)
     expect(screen.getByRole('button', { name: /apple/i })).toBeEnabled()
   })
 
-  it('tiles are blocked at terminal', () => {
-    render(<PlayAreaLoader {...makeCtx({ playState: 'won', isTerminal: true })} />)
+  it('tiles are blocked once the game is over', () => {
+    render(<PlayAreaLoader {...makeCtx(WON)} />)
     expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
   })
 
@@ -291,9 +218,8 @@ describe('codenamesduet PlayArea — input gating', () => {
     expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
   })
 
-  it('in sudden death, tiles are open to either seat — the one holding the clue too', () => {
-    asClueGiver()
-    render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
+  it('in sudden death, tiles are open to either player — the last clue-giver too', () => {
+    render(<PlayAreaLoader {...makeCtx({ ...SUDDEN_DEATH, ...AS_CLUE_GIVER, clueSeat: null })} />)
     expect(screen.getByRole('button', { name: /apple/i })).toBeEnabled()
   })
 })
@@ -301,22 +227,18 @@ describe('codenamesduet PlayArea — input gating', () => {
 /**
  * The turn is the shared pointer's: the server points it at whoever must act
  * now, so the page rings the bell for this game as for every other, and this
- * surface rings none of its own. Whose turn each state is, is the server's
- * `_point_turn` (codenamesduet/turn_pointer_test.sql) and `derivePhase`'s.
+ * surface rings none of its own.
  */
 describe('codenamesduet PlayArea — the turn', () => {
   it('rings no bell of its own — the page rings on the shared pointer', () => {
-    asClueGiver()
-    render(<PlayAreaLoader {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx(AS_CLUE_GIVER)} />)
     expect(turnBell).not.toHaveBeenCalled()
   })
 
   it('in sudden death, the player with no words left has an inert, dimmed board', () => {
     // My partner's agents are all found: a guess reads their key, so I have
     // nothing to guess, and the pointer names my partner.
-    g.agentsDone = { mine: false, peer: true }
-    g.game = { ...g.game, current_clue_giver: null as unknown as string }
-    render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
+    render(<PlayAreaLoader {...makeCtx({ ...SUDDEN_DEATH, events: [ZTest_guess(1, 'u1', 9, 23, 'G')] })} />)
     expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
     const grid = document.querySelector('[data-board] > div') as HTMLElement
     expect(grid.className).toMatch(/dimNotYourTurn/)
@@ -324,55 +246,43 @@ describe('codenamesduet PlayArea — the turn', () => {
 })
 
 /**
- * The board's turn dim and game-over frame, as PlayArea decides them: dimmed
- * only while my partner holds the move — not while I write the clue, since the
- * clue is written from the board — and never in sudden death or at the end.
+ * The board's turn dim and game-over frame: dimmed only while my partner holds
+ * the move — not while I write the clue, since the clue is written from the
+ * board — and never in sudden death or at the end.
  */
 describe('codenamesduet PlayArea — the board marks', () => {
   const grid = () => document.querySelector('[data-board] > div') as HTMLElement
 
   it('dims the board while my partner writes the clue, not while I guess', () => {
-    g.events = []
-    const view = render(<PlayAreaLoader {...makeCtx()} />) // peer A holds the clue seat
+    const view = render(<PlayAreaLoader {...makeCtx({ events: [] })} />)
     expect(grid().className).toMatch(/dimNotYourTurn/)
-    g.events = [g.PEER_CLUE]
     view.rerender(<PlayAreaLoader {...makeCtx()} />)
     expect(grid().className).not.toMatch(/dimNotYourTurn/)
   })
 
   it('flashes the frame as the clue arrives for me to guess from', () => {
-    g.events = []
-    const view = render(<PlayAreaLoader {...makeCtx()} />)
+    const view = render(<PlayAreaLoader {...makeCtx({ events: [] })} />)
     expect(grid().className).not.toMatch(/yourTurnFlash/)
-    g.events = [g.PEER_CLUE]
     view.rerender(<PlayAreaLoader {...makeCtx()} />)
     expect(grid().className).toMatch(/yourTurnFlash/)
   })
 
   it('flashes the tile a guess turned over, reading the guess log', () => {
     const view = render(<PlayAreaLoader {...makeCtx()} />)
-    g.agentsAt = [1]
-    g.events = [
-      g.PEER_CLUE,
-      { kind: 'guess', id: 2, user_id: 'me', took_turn: false, created_at: '2026-01-01T00:00:01Z',
-        turn_number: 1, seat: 'B', guess_position: 1, guess_result: 'G' },
-    ]
-    view.rerender(<PlayAreaLoader {...makeCtx()} />)
+    view.rerender(<PlayAreaLoader {...makeCtx({ events: [PEER_CLUE, ZTest_guess(2, 'u1', 1, 1, 'G')] })} />)
     expect(screen.getByRole('button', { name: /berry/i }).className).toMatch(/attentionFlash/)
     expect(screen.getByRole('button', { name: /apple/i }).className).not.toMatch(/attentionFlash/)
   })
 
   it('does not dim the board while I write the clue', () => {
-    asClueGiver()
-    render(<PlayAreaLoader {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx(AS_CLUE_GIVER)} />)
     expect(grid().className).not.toMatch(/dimNotYourTurn/)
   })
 
   it('dims nothing in sudden death, and frames the finished board in its outcome', () => {
-    g.events = []
-    const view = render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
+    const view = render(<PlayAreaLoader {...makeCtx(SUDDEN_DEATH)} />)
     expect(grid().className).not.toMatch(/dimNotYourTurn/)
-    view.rerender(<PlayAreaLoader {...makeCtx({ playState: 'lost', status: { reason: 'assassin' }, isTerminal: true })} />)
+    view.rerender(<PlayAreaLoader {...makeCtx(LOST)} />)
     expect(grid().className).not.toMatch(/dimNotYourTurn/)
     expect(grid().className).toMatch(/endingFrame_lost/)
   })
@@ -384,59 +294,49 @@ describe('codenamesduet PlayArea — the board marks', () => {
  */
 describe('codenamesduet PlayArea — the finished-player banner', () => {
   it('tells me my partner now gives every clue, when my agents are all found', () => {
-    g.agentsDone = { mine: true, peer: false }
-    render(<PlayAreaLoader {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx({ events: [PEER_CLUE, ZTest_guess(2, 'u2', 1, 24, 'G')] })} />)
     expect(screen.getByText(/gives every remaining\s+clue — your agents are all found/)).toBeInTheDocument()
     expect(screen.queryByText(/has no agents left/)).not.toBeInTheDocument()
   })
 
   it('tells me I now give every clue, when my partner’s are', () => {
-    g.agentsDone = { mine: false, peer: true }
-    render(<PlayAreaLoader {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx({ events: [PEER_CLUE, ZTest_guess(2, 'u1', 1, 23, 'G')] })} />)
     expect(screen.getByText(/has no agents left — you\s+give every remaining clue/)).toBeInTheDocument()
     expect(screen.queryByText(/your agents are all found/)).not.toBeInTheDocument()
   })
 
   it('says nothing in sudden death, where nobody clues', () => {
-    g.agentsDone = { mine: true, peer: true }
-    render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
+    render(<PlayAreaLoader {...makeCtx({ ...SUDDEN_DEATH, events: [ZTest_guess(1, 'u1', 9, 23, 'G'), ZTest_guess(2, 'u2', 9, 24, 'G')] })} />)
     expect(screen.queryByText(/your agents are all found/)).not.toBeInTheDocument()
     expect(screen.queryByText(/has no agents left/)).not.toBeInTheDocument()
   })
 })
 
 /**
- * The terminal partner-key reveal: nothing opens the card automatically, a win
+ * The partner-key reveal: nothing opens the card automatically, a win
  * included, and the ask is LOCAL — it opens only on my screen.
- *
- * `useBoard`'s third argument IS the reveal (it's what produces `peerKey`), so
- * that's what these assert on — the hook itself is mocked.
  */
-describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
-  const lastPeerKeyArg = () => peerKeyArgs.calls.at(-1)
+describe('codenamesduet PlayArea — the partner-key reveal', () => {
+  const partnerSquares = () => document.querySelectorAll(`.${boardStyles.keyPeer}`).length
 
-  beforeEach(() => {
-    peerKeyArgs.calls.length = 0
-  })
-
-  it('keeps the card covered at a terminal until I ask — a win included', () => {
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
-    expect(lastPeerKeyArg()).toBe(false)
+  it('keeps the card covered once the game is over until I ask — a win included', () => {
+    render(<PlayAreaLoader {...makeCtx(WON)} />)
+    expect(partnerSquares()).toBe(0)
     // By WHICH action it is — the words are the next tests' subject, not this one's.
     expect(control('act-reveal')).toBeEnabled()
   })
 
   it('Reveal opens it for me alone, and Hide covers it again', async () => {
     const user = userEvent.setup()
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost', status: { reason: 'assassin' } })} />)
+    render(<PlayAreaLoader {...makeCtx(LOST)} />)
 
     await user.click(screen.getByRole('button', { name: "Reveal key cards" }))
-    expect(lastPeerKeyArg()).toBe(true)
+    expect(partnerSquares()).toBe(25)
     // Local state: no RPC, so the partner's own card stays covered.
     expect(rpc).not.toHaveBeenCalled()
 
     await user.click(screen.getByRole('button', { name: "Hide key cards" }))
-    expect(lastPeerKeyArg()).toBe(false)
+    expect(partnerSquares()).toBe(0)
   })
 
   it('the menu twin is the same toggle, and inert mid-game', async () => {
@@ -446,11 +346,11 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
     expect(menuItems(live).get('act-reveal')?.disabled).toBe(true)
     unmount()
 
-    const done = makeCtx({ isTerminal: true, playState: 'lost', status: { reason: 'assassin' } })
+    const done = makeCtx(LOST)
     render(<PlayAreaLoader {...done} />)
     expect(menuItems(done).get('act-reveal')?.label).toBe("Reveal key cards")
     act(() => menuItems(done).get('act-reveal')!.run())
-    expect(lastPeerKeyArg()).toBe(true)
+    expect(partnerSquares()).toBe(25)
     await waitFor(() => expect(menuItems(done).get('act-reveal')?.label).toBe("Hide key cards"))
   })
 })
@@ -466,7 +366,7 @@ describe('codenamesduet PlayArea — the action row', () => {
   const ROW = ['act-reveal', 'act-restart', 'act-new-game', 'act-concede', 'act-stop-game', 'act-back-to-club']
   const buttons = () => ROW.filter((id) => control(id) !== null)
 
-  it('while the game runs: Stop and Back to club — the rest are the menu\u2019s', () => {
+  it('while the game runs: Stop and Back to club — the rest are the menu’s', () => {
     const live = makeCtx()
     render(<PlayAreaLoader {...live} />)
     expect(buttons()).toEqual(['act-stop-game', 'act-back-to-club'])
@@ -476,11 +376,11 @@ describe('codenamesduet PlayArea — the action row', () => {
   })
 
   it('at the end: Reveal, Restart, New game and Back to club — Stop is gone', () => {
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost', status: { reason: 'assassin' } })} />)
+    render(<PlayAreaLoader {...makeCtx(LOST)} />)
     expect(buttons()).toEqual(['act-reveal', 'act-restart', 'act-new-game', 'act-back-to-club'])
   })
 
-  it('the menu lists them in the row\u2019s order', () => {
+  it('the menu lists them in the row’s order', () => {
     const live = makeCtx()
     render(<PlayAreaLoader {...live} />)
     const ids = [...menuItems(live).keys()]
@@ -498,7 +398,7 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
     ctx.globalFeedbackSlot.peek().map((entry) => entry.message.text)
 
   it('says what the partner is doing now', () => {
-    const ctx = makeCtx() // peer A gave the clue; I guess
+    const ctx = makeCtx() // my partner gave the clue; I guess
     render(<PlayAreaLoader {...ctx} />)
     expect(texts(ctx)).toContain('waiting for you')
   })
@@ -508,43 +408,33 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     expect(texts(ctx)).toContain('waiting for you')
 
-    const over: PlayAreaLoaderProps = { ...ctx, playState: 'lost', status: { reason: 'turns' }, isTerminal: true }
+    const over = { ...makeCtx(LOST), globalFeedbackSlot: ctx.globalFeedbackSlot }
     rerender(<PlayAreaLoader {...over} />)
     expect(texts(over)).not.toContain('waiting for you')
   })
 
   it('says nothing about the turn once the game is over', () => {
-    const ctx = makeCtx({ playState: 'lost', status: { reason: 'turns' }, isTerminal: true })
+    const ctx = makeCtx(LOST)
     render(<PlayAreaLoader {...ctx} />)
     expect(texts(ctx)).not.toContain('waiting for you')
   })
 
   it('narrates a partner’s hint as it lands, and not the ones already there on load', () => {
-    const ctx = makeCtx()
-    const hint = (id: number) => ({
-      kind: 'hint' as const, id, user_id: 'peer', took_turn: false,
-      created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat: 'A' as const,
-    })
-    g.events = [g.PEER_CLUE, hint(2)]
+    const ctx = makeCtx({ events: [PEER_CLUE, hint(2, 'u2')] })
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     expect(texts(ctx)).not.toContain('got hint')
 
-    g.events = [g.PEER_CLUE, hint(2), hint(3)]
-    rerender(<PlayAreaLoader {...ctx} />)
+    const next = { ...makeCtx({ events: [PEER_CLUE, hint(2, 'u2'), hint(3, 'u2')] }), globalFeedbackSlot: ctx.globalFeedbackSlot }
+    rerender(<PlayAreaLoader {...next} />)
     expect(texts(ctx)).toContain('got hint')
-    g.events = [g.PEER_CLUE]
   })
 
   it('does not narrate a hint of MINE, however it lands', () => {
     const ctx = makeCtx()
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
-    g.events = [g.PEER_CLUE, {
-      kind: 'hint' as const, id: 2, user_id: 'me', took_turn: false,
-      created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat: 'B' as const,
-    }]
-    rerender(<PlayAreaLoader {...ctx} />)
+    const next = { ...makeCtx({ events: [PEER_CLUE, hint(2, 'u1')] }), globalFeedbackSlot: ctx.globalFeedbackSlot }
+    rerender(<PlayAreaLoader {...next} />)
     expect(texts(ctx)).not.toContain('got hint')
-    g.events = [g.PEER_CLUE]
   })
 })
 
@@ -575,8 +465,7 @@ describe('codenamesduet PlayArea — the guesser’s Pass and the giver’s AI',
     expect(getActions().some((b) => b.id === 'act-suggest-clue')).toBe(false)
     unmount()
 
-    asClueGiver()
-    render(<PlayAreaLoader {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx(AS_CLUE_GIVER)} />)
     expect(control('act-suggest-clue')).toBeEnabled()
     // The giver has no guesses to stop.
     expect(control('act-end-turn')).toBeNull()
@@ -590,13 +479,13 @@ describe('codenamesduet PlayArea — the guesser’s Pass and the giver’s AI',
  * was asked rather than skipped. Duet is coop-only, so `⌥⌫` is always Stop.
  */
 describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () => {
-  it('+ at terminal samples the next board with no question', async () => {
+  it('+ once the game is over samples the next board with no question', async () => {
     rpc.mockImplementation((name: string) =>
       name === 'create_game'
         ? Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
         : new Promise(() => {}),
     )
-    const ctx = makeCtx({ isTerminal: true, playState: 'won' })
+    const ctx = makeCtx(WON)
     render(<WithKeys {...ctx} />)
     await press({ key: '+' })
     // No <ConfirmationHost/> is mounted, so a question would have been answered
@@ -604,9 +493,9 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
     // The next board is for this game's two players, on this game's setup.
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('create_game', expect.objectContaining({
-        target_club: 'testclub',
-        player_user_ids: ['me', 'peer'],
-        setup: expect.objectContaining({ turns: 9 }),
+        p_club_handle: 'testclub',
+        p_player_user_ids: ['u2', 'u1'],
+        p_setup: expect.objectContaining({ turns: 9 }),
       })),
     )
     await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
@@ -642,10 +531,10 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
     // one the dialog adds, so it's last in the DOM.
     const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
-  it('Restart mid-game asks, and goes straight through at terminal', async () => {
+  it('Restart mid-game asks, and goes straight through once the game is over', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'replayed' }))
     const live = makeCtx()
@@ -662,9 +551,9 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
     unmount()
 
     // No host this time: the RPC firing proves no question was asked.
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost', status: { reason: 'assassin' } })} />)
+    render(<PlayAreaLoader {...makeCtx(LOST)} />)
     await user.click(control('act-restart')!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
   })
 })
 
@@ -672,7 +561,7 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
  * The keyboard's selection cursor. The board is five across, positions row by
  * row: `apple` is 0, `berry` 1, and the rest `word<N>`. Arrows move the ring,
  * Space PICKS the word under it, and Enter guesses the pick — where a click
- * guesses at once. I am the guesser (seat B) unless a test says otherwise.
+ * guesses at once. I am the guesser unless a test says otherwise.
  */
 describe('codenamesduet PlayArea — the selection cursor', () => {
   const wordAt = (p: number) => (p === 0 ? 'apple' : p === 1 ? 'berry' : `word${p}`)
@@ -684,7 +573,7 @@ describe('codenamesduet PlayArea — the selection cursor', () => {
   const picked = () => boardTiles().filter((t) => /picked/.test(t.className)).map((t) => t.textContent)
   const key = (k: string) => press({ key: k })
   const guessed = (p: number) =>
-    expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess_position: p })
+    expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_guess_position: p })
 
   it('is hidden until an arrow; the first arrow rings the first word, the next moves it', async () => {
     render(<WithKeys {...makeCtx()} />)
@@ -736,13 +625,21 @@ describe('codenamesduet PlayArea — the selection cursor', () => {
     expect(picked()).toEqual([])
   })
 
-  // A revealed word, and a bystander I hit, can't be guessed — by a click or
+  // A contacted word, and a bystander I hit, can't be guessed — by a click or
   // by Space. A bystander only my partner hit may be my agent, so it can.
   it('Space passes over what a click could not guess', async () => {
-    g.agentsAt = [0]
-    g.neutralB = [1]
-    g.neutralA = [2]
-    render(<WithKeys {...makeCtx()} />)
+    render(
+      <WithKeys
+        {...makeCtx({
+          events: [
+            PEER_CLUE,
+            ZTest_guess(2, 'u2', 1, 0, 'G'),
+            ZTest_guess(3, 'u1', 1, 1, 'N'),
+            ZTest_guess(4, 'u2', 1, 2, 'N'),
+          ],
+        })}
+      />,
+    )
     await key('ArrowRight')
     await key(' ')
     expect(picked()).toEqual([])
@@ -777,14 +674,12 @@ describe('codenamesduet PlayArea — the selection cursor', () => {
     expect(picked()).toEqual(['apple'])
 
     // My partner's guess turns it over (sudden death lets both of us guess).
-    g.agentsAt = [0]
-    rerender(<WithKeys {...ctx} />)
+    rerender(<WithKeys {...{ ...makeCtx({ events: [PEER_CLUE, ZTest_guess(2, 'u2', 1, 0, 'G')] }), menu: ctx.menu }} />)
     expect(picked()).toEqual([])
   })
 
   it('the clue-giver gets no ring and no keys, and no Guess in the key list', async () => {
-    asClueGiver()
-    render(<WithKeys {...makeCtx()} />)
+    render(<WithKeys {...makeCtx(AS_CLUE_GIVER)} />)
     await key('ArrowRight')
     await key(' ')
     await key('Enter')

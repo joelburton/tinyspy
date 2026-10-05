@@ -78,7 +78,7 @@ select is(
   pg_temp.event_of((select id from g1), 'guess', 1, 'B'),
   jsonb_build_object('took_turn', false, 'clue_word', null, 'clue_count', null,
     'clue_from_ai', null, 'guess_position', (select a_agent from cells), 'guess_result', 'G'),
-  'an agent is logged with its tile and label, and takes no turn — the turn goes on'
+  'an agent is logged with its tile and key, and takes no turn — the turn goes on'
 );
 
 -- ─── The hint: only the clue-giver may ask ───

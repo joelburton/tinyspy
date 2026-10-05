@@ -14,10 +14,13 @@ import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useOfferComponentKeyGroups } from '@/common/keyboard/offeredComponentKeyGroupsStore'
 import { db } from '../db'
-import type { Seat } from '../lib/phase'
-import type { ClueEvent } from '../lib/events'
-import type { Player } from '../lib/seats'
-import type { GSuggestState } from '../types'
+import type { GPlayer, GSuggestState, GTurns } from '../types'
+
+/** A seat at the table, as the RPCs answer it. Seat A gives the first clue. */
+type Seat = 'A' | 'B'
+
+/** This turn's clue, once it is in. */
+type Clue = NonNullable<GTurns['currClue']>
 import styles from './ClueStrip.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -48,17 +51,16 @@ type PassAnswer = {
 
 type ClueStripProps = {
   gameId: string
-  // My seat is `games.current_clue_giver`.
+  // I hold the clue seat this turn.
   isClueGiver: boolean
   // A clue is in for the current turn.
   isGuessPhase: boolean
   // The current turn's clue, if one is in.
-  currentClue: ClueEvent | null
+  currentClue: Clue | null
   // The turn budget is spent.
   inSuddenDeath: boolean
-  // The other seated player, named in the waiting and guessing lines; the
-  // lines fall back to "your partner".
-  peer: Player | undefined
+  // The other player, named in the waiting and guessing lines.
+  partner: GPlayer
   // PlayArea's below-board slot: a refused clue or pass is shown into it as a
   // not-ok rather than inline, so the row's height never changes.
   localFeedbackSlot: FeedbackSlot
@@ -98,7 +100,7 @@ export function ClueStrip({
   isGuessPhase,
   currentClue,
   inSuddenDeath,
-  peer,
+  partner,
   localFeedbackSlot,
   onSuggestionChange,
 }: ClueStripProps) {
@@ -117,7 +119,7 @@ export function ClueStrip({
             self-evidently the clue, and the row is tight on a phone. */}
         <ClueDisplay clue={currentClue} />
         {!isClueGiver && <PassButton gameId={gameId} localFeedbackSlot={localFeedbackSlot} />}
-        {isClueGiver && <PeerActivity peer={peer} activity="guessing" />}
+        {isClueGiver && <PeerActivity peer={partner} activity="guessing" />}
       </div>
     )
   }
@@ -133,16 +135,16 @@ export function ClueStrip({
   }
   return (
     <div className={styles.clueStrip}>
-      <PeerWaiting peer={peer} action="give a clue" />
+      <PeerWaiting peer={partner} action="give a clue" />
     </div>
   )
 }
 
 /** The active clue, inline: "WORD · N" (the word bold + prominent). */
-function ClueDisplay({ clue }: { clue: ClueEvent }) {
+function ClueDisplay({ clue }: { clue: Clue }) {
   return (
     <span className={styles.clueDisplay}>
-      <strong>{clue.clue_word.toUpperCase()}</strong> · {clue.clue_count}
+      <strong>{clue.word.toUpperCase()}</strong> · {clue.count}
     </span>
   )
 }
@@ -157,7 +159,7 @@ function PeerActivity({
   peer,
   activity,
 }: {
-  peer: Player | undefined
+  peer: GPlayer
   activity: string
 }) {
   return (
@@ -176,7 +178,7 @@ function PeerWaiting({
   peer,
   action,
 }: {
-  peer: Player | undefined
+  peer: GPlayer
   action: string
 }) {
   return (
@@ -241,10 +243,10 @@ function ClueForm({
     const clueWord = word.trim()
     const clueCount = parseInt(count, 10)
     const res = await runRpc<ClueAnswer>(db.rpc('submit_clue', {
-      target_game: gameId,
-      clue_word: clueWord,
-      clue_count: clueCount,
-      clue_from_ai: aiClue !== null && clueWord === aiClue.word && clueCount === aiClue.count,
+      p_game_id: gameId,
+      p_clue_word: clueWord,
+      p_clue_count: clueCount,
+      p_clue_from_ai: aiClue !== null && clueWord === aiClue.word && clueCount === aiClue.count,
     }))
     setBusy(false)
     // Every refusal but the seatless fault is a RACE (orange), because this
@@ -400,7 +402,7 @@ function PassButton({
   const actEndTurn = useBindAction('act-end-turn', {
     describe: () => ({ state: 'active', label: 'Pass & End Turn' }),
     run: async () => {
-      const res = await runRpc<PassAnswer>(db.rpc('pass_turn', { target_game: gameId }))
+      const res = await runRpc<PassAnswer>(db.rpc('pass_turn', { p_game_id: gameId }))
       if (res.type === 'not-ok') {
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return

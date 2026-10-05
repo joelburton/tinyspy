@@ -105,8 +105,8 @@ test.describe('codenamesduet event log', () => {
     const words = await asAlice.from('words').select('position, word').eq('game_id', game.id)
     const keyA = keys.data!.key_card_a as string[]
     const keyB = keys.data!.key_card_b as string[]
-    const agentOfBob = keyB.findIndex((label, p) => label === 'G' && keyA[p] !== 'A')
-    const bystanderOfAlice = keyA.findIndex((label, p) => label === 'N' && p !== agentOfBob)
+    const agentOfBob = keyB.findIndex((key, p) => key === 'G' && keyA[p] !== 'A')
+    const bystanderOfAlice = keyA.findIndex((key, p) => key === 'N' && p !== agentOfBob)
     const wordAt = (p: number) => words.data!.find((w) => w.position === p)!.word.toUpperCase()
 
     const { pageAlice, pageBob, close } = await openBoth(browser, club, game.id)

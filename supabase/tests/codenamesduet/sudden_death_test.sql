@@ -21,7 +21,7 @@
 --   5. an assassin loses it, fatal_move / 'assassin', as it does in ordinary
 --      play
 --
--- For the reveal label, sudden death uses the *partner's* view
+-- For the revealed key, sudden death uses the *partner's* view
 -- (the seat opposite the guesser). So when ada guesses, we
 -- look up positions on bea's key view to find a "green for ada
 -- to hit" or "neutral for ada to hit".

@@ -21,8 +21,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
 import { ClueStrip } from './ClueStrip'
+import { makeGameData } from '../hooks/useGame'
+import { ZTest_makeGameDataRaw } from '../lib/gameData.fixture'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+
+/** My partner, named in the waiting and guessing lines. */
+const PARTNER = makeGameData(ZTest_makeGameDataRaw(), 'u1').partner
 // The two envelope readers the form calls: the AI answers with one suggestion,
 // and a submitted clue lands. `db.rpc` is still called with the arguments, which
 // is what these cases read.
@@ -44,7 +49,7 @@ describe('codenamesduet ClueStrip — input tagging', () => {
         isGuessPhase={false}
         currentClue={null}
         inSuddenDeath={false}
-        peer={undefined}
+        partner={PARTNER}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
       />,
@@ -67,7 +72,7 @@ describe('codenamesduet ClueStrip — the count', () => {
         isGuessPhase={false}
         currentClue={null}
         inSuddenDeath={false}
-        peer={undefined}
+        partner={PARTNER}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
       />,
@@ -92,7 +97,7 @@ describe('codenamesduet ClueStrip — a clue from the AI', () => {
         isGuessPhase={false}
         currentClue={null}
         inSuddenDeath={false}
-        peer={undefined}
+        partner={PARTNER}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
       />,
@@ -106,11 +111,11 @@ describe('codenamesduet ClueStrip — a clue from the AI', () => {
     await waitFor(() => expect(word).toHaveValue('WAVE'))
   }
 
-  /** What the form sent `submit_clue` as `clue_from_ai`. */
+  /** What the form sent `submit_clue` as `p_clue_from_ai`. */
   async function submitted(container: HTMLElement) {
     fireEvent.submit(container.querySelector('form')!)
     await waitFor(() => expect(db.rpc).toHaveBeenCalledWith('submit_clue', expect.anything()))
-    return (vi.mocked(db.rpc).mock.calls.at(-1)![1] as { clue_from_ai: boolean }).clue_from_ai
+    return (vi.mocked(db.rpc).mock.calls.at(-1)![1] as { p_clue_from_ai: boolean }).p_clue_from_ai
   }
 
   beforeEach(() => vi.mocked(db.rpc).mockClear())
@@ -152,7 +157,7 @@ describe('codenamesduet ClueStrip — what it shows', () => {
         isGuessPhase={false}
         currentClue={null}
         inSuddenDeath={false}
-        peer={undefined}
+        partner={PARTNER}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
         {...over}

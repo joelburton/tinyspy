@@ -524,8 +524,8 @@ select is(
   (
     with joint as (
       select
-        (g.key_card_a ->> w.position) as a_label,
-        (g.key_card_b ->> w.position) as b_label,
+        (g.key_card_a ->> w.position) as a_key,
+        (g.key_card_b ->> w.position) as b_key,
         count(*) as n
       from codenamesduet.words w
       join codenamesduet.games g on g.game_id = w.game_id
@@ -535,8 +535,8 @@ select is(
     -- Sort by explicit columns so the array order is deterministic.
     -- (`order by 1` inside array_agg parses as ORDER BY the constant
     -- integer 1 — a no-op. Explicit columns are the only reliable form.)
-    select array_agg(format('%s%s:%s', a_label, b_label, n)
-                     order by a_label, b_label)
+    select array_agg(format('%s%s:%s', a_key, b_key, n)
+                     order by a_key, b_key)
     from joint
   ),
   array[

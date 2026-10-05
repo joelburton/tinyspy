@@ -1063,7 +1063,7 @@ verb too — `makeRosterRow`, `makeCoopRows`, `makeCenterLettersRow`,
   merges now).
 - codenamesduet `Board.module.css` (says the shared `.tile` sets
   `container-type`; `.tileFace` does, and hover is a shadow and a lift) and
-  `lib/terminal.ts` (says a long verdict wraps; it truncates).
+  `lib/endingMessage.ts` (says a long verdict wraps; it truncates).
 - spellingbee `Letter.module.css` ("black edge"; the rule uses
   `--tile-spent-edge-color`).
 - codenamesduet `db.ts` points to docs/code-conventions.md for

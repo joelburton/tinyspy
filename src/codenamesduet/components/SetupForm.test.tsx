@@ -19,9 +19,9 @@ import type { FormErrors } from '@/common/forms/formState'
 // Three club members, two of them selected by default: the third is who a
 // club-wide picker would wrongly offer.
 const MEMBERS = [
-  { user_id: 'self', username: 'joel', color: 'red' },
-  { user_id: 'moth', username: 'moth', color: 'blue' },
-  { user_id: 'dee', username: 'dee', color: 'green' },
+  { id: 'self', username: 'joel', color: 'red' },
+  { id: 'moth', username: 'moth', color: 'blue' },
+  { id: 'dee', username: 'dee', color: 'green' },
 ] as Member[]
 
 function draw({ values = {}, errors = {} as FormErrors } = {}) {

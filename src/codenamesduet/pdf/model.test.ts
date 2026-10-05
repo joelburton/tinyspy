@@ -4,197 +4,162 @@
  * Tests for the codenamesduet print model.
  *
  * The renderer is smoke-tested by `e2e/codenamesduet-print.e2e.ts`. What's
- * pinned here is the judgment, and the load-bearing item is the **peer's key**:
- * it's the secret the whole game rests on, so paper must not carry it a moment
- * before the screen does.
+ * pinned here is the judgment, and the load-bearing item is the **partner's
+ * key**: it's the secret the whole game rests on, so paper must not carry it a
+ * moment before the screen does.
+ *
+ * Built on the fixture, so `gd` is what the page would hold: me (`u1`, seat A,
+ * agents at 0–8, the assassin at 9) and leah (`u2`, seat B).
  */
 
 import { describe, expect, it } from 'vitest'
+import { makeGameData } from '../hooks/useGame'
+import {
+  ZTest_clue,
+  ZTest_guess,
+  ZTest_makeGameDataRaw,
+  type ZTest_GameDataFacts,
+} from '../lib/gameData.fixture'
 import { buildCodenamesduetPrintModel } from './model'
-import type { WordRow } from '../hooks/useBoard'
-import type { ClueEvent, WordedGuess } from '../lib/events'
 
-const word = (position: number, over: Partial<WordRow> = {}): WordRow => ({
-  position,
-  word: `W${position}`,
-  revealed_as: null,
-  neutral_a: false,
-  neutral_b: false,
-  ...over,
-})
-
-/** A clue event; the log reads its word, count, seat and turn. */
-const clue = (seat: 'A' | 'B', clue_word: string, clue_count: number): ClueEvent => ({
-  kind: 'clue', id: 1, user_id: 'u', took_turn: false,
-  created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat, clue_word, clue_count, clue_from_ai: false,
-})
-
-/** A guess on turn 1; `id` is the order it was made in. */
-const guess = (id: number, word: string): WordedGuess => ({
-  kind: 'guess', id, user_id: 'u', took_turn: false,
-  created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat: 'B',
-  guess_position: id, guess_result: 'G', word,
-})
-
-/** 25 plain words, so a test only has to describe the ones it cares about. */
-const board = (over: Record<number, Partial<WordRow>> = {}): WordRow[] =>
-  Array.from({ length: 25 }, (_, i) => word(i, over[i] ?? {}))
-
-const key = (over: Record<number, 'G' | 'N' | 'A'> = {}) =>
-  Array.from({ length: 25 }, (_, i) => over[i] ?? 'N') as ('G' | 'N' | 'A')[]
-
-const base = {
-  brand: 'Duet',
-  gameTitle: 'Board 1',
-  date: '1 Jan 2026',
-  words: board(),
-  myKey: key({ 0: 'G', 1: 'A' }),
-  peerKey: key({ 0: 'A', 2: 'G' }),
-  mySeat: 'A' as const,
-  isTerminal: false,
-  clues: [] as ClueEvent[],
-  guesses: [] as WordedGuess[],
-  nameForSeat: (s: 'A' | 'B') => (s === 'A' ? 'me' : 'moth'),
-  greenFound: 3,
-  totalAgents: 15,
-  turnNumber: 4,
-  turnBudget: 9,
-  mode: 'coop' as const,
-  setupRows: [{ key: 'turns', label: 'Turns', value: '9' }],
+const ENDED: ZTest_GameDataFacts = {
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  outcome: 'neutral',
 }
 
-describe('buildCodenamesduetPrintModel — the peer key is a secret', () => {
-  it('withholds it mid-game, even when handed one', () => {
-    // useBoard already gates it on revealPeer; this is the second lock, so a
-    // refactor there can't quietly put the partner's card on paper.
-    const m = buildCodenamesduetPrintModel({ ...base })
+/** The model of a game from these facts, seen by `viewer`. */
+function modelOf(facts: ZTest_GameDataFacts = {}, partnerKeyShown = false, viewer = 'u1') {
+  return buildCodenamesduetPrintModel({
+    date: '1 Jan 2026',
+    gd: makeGameData(ZTest_makeGameDataRaw(facts), viewer),
+    partnerKeyShown,
+  })
+}
+
+describe('buildCodenamesduetPrintModel — the partner key is a secret', () => {
+  it('withholds it mid-game, even when asked for', () => {
+    const m = modelOf({}, true)
     expect(m.showsBothKeys).toBe(false)
     expect(m.tiles.every((c) => c.peer === null)).toBe(true)
   })
 
-  it('prints it at terminal', () => {
-    const m = buildCodenamesduetPrintModel({ ...base, isTerminal: true })
+  it('prints it once the game has ended and I asked to see it', () => {
+    const m = modelOf(ENDED, true)
     expect(m.showsBothKeys).toBe(true)
-    expect(m.tiles[0].peer).toBe('assassin')
-    expect(m.tiles[2].peer).toBe('agent')
+    expect(m.tiles[15]!.peer).toBe('assassin')
+    expect(m.tiles[10]!.peer).toBe('agent')
+  })
+
+  it('keeps it back at the end until I ask', () => {
+    expect(modelOf(ENDED, false).showsBothKeys).toBe(false)
   })
 
   it('still shows MY key mid-game — that is the point of the printout', () => {
-    const m = buildCodenamesduetPrintModel({ ...base })
-    expect(m.tiles[0].mine).toBe('agent')
-    expect(m.tiles[1].mine).toBe('assassin')
+    const m = modelOf()
+    expect(m.tiles[0]!.mine).toBe('agent')
+    expect(m.tiles[9]!.mine).toBe('assassin')
   })
 })
 
 describe('buildCodenamesduetPrintModel — what happened on a tile', () => {
-  it('maps the global reveals', () => {
-    const m = buildCodenamesduetPrintModel({
-      ...base,
-      words: board({ 0: { revealed_as: 'G' }, 1: { revealed_as: 'A' } }),
-    })
-    expect(m.tiles[0].revealed).toBe('agent')
-    expect(m.tiles[1].revealed).toBe('assassin')
-  })
+  const facts: ZTest_GameDataFacts = {
+    turnNum: 2,
+    events: [
+      ZTest_clue(1, 'u1', 1, 'ocean', 2),
+      ZTest_guess(2, 'u2', 1, 0, 'G'),
+      ZTest_guess(3, 'u2', 1, 20, 'N'),
+    ],
+  }
 
-  it('treats a bystander burned by EITHER seat as revealing a neutral', () => {
-    // A neutral isn't a global reveal — it's per-seat — so what the cell
-    // revealed is derived from the two burn flags rather than revealed_as.
-    const m = buildCodenamesduetPrintModel({
-      ...base,
-      words: board({ 3: { neutral_a: true }, 4: { neutral_b: true } }),
-    })
-    expect(m.tiles[3].revealed).toBe('neutral')
-    expect(m.tiles[4].revealed).toBe('neutral')
+  it('maps what a tile shows', () => {
+    const m = modelOf(facts)
+    expect(m.tiles[0]!.revealed).toBe('agent')
+    expect(m.tiles[20]!.revealed).toBe('neutral')
   })
 
   it('leaves an untouched word revealing nothing', () => {
-    expect(buildCodenamesduetPrintModel({ ...base }).tiles[5].revealed).toBeNull()
+    expect(modelOf(facts).tiles[5]!.revealed).toBeNull()
   })
 })
 
 describe('buildCodenamesduetPrintModel — the bystander triangles', () => {
-  it('keeps mine and my partner’s apart, from MY seat', () => {
+  const facts: ZTest_GameDataFacts = {
+    turnNum: 3,
+    clueSeat: 'A',
+    events: [
+      ZTest_clue(1, 'u2', 1, 'x', 1),
+      ZTest_guess(2, 'u1', 1, 20, 'N'),
+      ZTest_clue(3, 'u1', 2, 'y', 1),
+      ZTest_guess(4, 'u2', 2, 21, 'N'),
+    ],
+  }
+
+  it('keeps mine and my partner’s apart', () => {
     // The asymmetry is the point: a word my partner burned is still mine to
-    // guess; one I burned is locked to me. Seat A here.
-    const m = buildCodenamesduetPrintModel({
-      ...base,
-      words: board({ 6: { neutral_a: true }, 7: { neutral_b: true } }),
-    })
-    expect([m.tiles[6].burnedByMe, m.tiles[6].burnedByPeer]).toEqual([true, false])
-    expect([m.tiles[7].burnedByMe, m.tiles[7].burnedByPeer]).toEqual([false, true])
+    // guess; one I burned is locked to me.
+    const m = modelOf(facts)
+    expect([m.tiles[20]!.burnedByMe, m.tiles[20]!.burnedByPeer]).toEqual([true, false])
+    expect([m.tiles[21]!.burnedByMe, m.tiles[21]!.burnedByPeer]).toEqual([false, true])
   })
 
-  it('flips with the seat', () => {
-    const m = buildCodenamesduetPrintModel({
-      ...base,
-      mySeat: 'B',
-      words: board({ 6: { neutral_a: true } }),
-    })
-    expect([m.tiles[6].burnedByMe, m.tiles[6].burnedByPeer]).toEqual([false, true])
+  it('flips with who is looking', () => {
+    const m = modelOf(facts, false, 'u2')
+    expect([m.tiles[20]!.burnedByMe, m.tiles[20]!.burnedByPeer]).toEqual([false, true])
   })
 })
 
 describe('buildCodenamesduetPrintModel — the clue log', () => {
   it('reads a turn as its clue plus what the clue actually got', () => {
-    const m = buildCodenamesduetPrintModel({
-      ...base,
-      clues: [clue('A', 'ocean', 2)],
-      guesses: [guess(1, 'salt'), guess(2, 'wave')],
+    const m = modelOf({
+      events: [ZTest_clue(1, 'u1', 1, 'ocean', 2), ZTest_guess(2, 'u2', 1, 0, 'G'), ZTest_guess(3, 'u2', 1, 1, 'G')],
     })
-    // Guesses in the order given — the events arrive in the order they were made.
     // '»', not '→': jsPDF's core fonts are WinAnsi, which has the guillemet but
     // not the arrow (U+2192 printed as `!'`). Verified by rendering.
-    expect(m.turns[0].text).toBe('OCEAN 2 » SALT, WAVE')
-    expect(m.turns[0].who).toBe('me')
-    expect(m.turns[0].seq).toBe(1)
+    expect(m.turns[0]).toEqual({ seq: 1, who: 'me', text: 'OCEAN 2 » WORD0, WORD1' })
   })
 
   it('shows a clue that got nothing as just the clue', () => {
-    const m = buildCodenamesduetPrintModel({
-      ...base,
-      clues: [clue('B', 'ocean', 2)],
-    })
-    expect(m.turns[0].text).toBe('OCEAN 2')
-    expect(m.turns[0].who).toBe('moth')
+    const m = modelOf({ clueSeat: 'B', events: [ZTest_clue(1, 'u2', 1, 'ocean', 2)] })
+    expect(m.turns[0]).toEqual({ seq: 1, who: 'leah', text: 'OCEAN 2' })
   })
 
   it('prints each sudden-death guess as its own row, after the clues, under its guesser', () => {
-    const past = (id: number, turn: number, seat: 'A' | 'B', word: string) =>
-      ({ ...guess(id, word), turn_number: turn, seat })
-    const m = buildCodenamesduetPrintModel({
-      ...base,
-      clues: [clue('A', 'ocean', 2)],
-      guesses: [past(2, 10, 'A', 'steel'), past(3, 11, 'B', 'coffee')],
+    const m = modelOf({
+      turnNum: 12,
+      clueSeat: null,
+      events: [ZTest_clue(1, 'u1', 1, 'ocean', 2), ZTest_guess(2, 'u1', 10, 2, 'G'), ZTest_guess(3, 'u2', 11, 3, 'G')],
     })
     expect(m.turns.slice(1)).toEqual([
-      { seq: 10, who: 'me', text: 'SUDDEN DEATH » STEEL' },
-      { seq: 11, who: 'moth', text: 'SUDDEN DEATH » COFFEE' },
+      { seq: 10, who: 'me', text: 'SUDDEN DEATH » WORD2' },
+      { seq: 11, who: 'leah', text: 'SUDDEN DEATH » WORD3' },
     ])
   })
 })
 
 describe('buildCodenamesduetPrintModel — summary', () => {
-  it('mirrors the on-screen readout: the turns SPENT, during turn 4', () => {
-    expect(buildCodenamesduetPrintModel({ ...base }).summary).toBe(
+  // Three agents found in the first three turns, during turn 4.
+  const PLAYED = [
+    ZTest_guess(1, 'u2', 1, 0, 'G'),
+    ZTest_guess(2, 'u2', 2, 1, 'G'),
+    ZTest_guess(3, 'u2', 3, 2, 'G'),
+  ]
+
+  it('mirrors the on-screen readout: the turns used, during turn 4', () => {
+    expect(modelOf({ turnNum: 4, events: PLAYED }).summary).toBe('3/15 agents contacted · 3/9 turns spent')
+  })
+
+  it('counts the turn a game ended on', () => {
+    expect(modelOf({ turnNum: 3, events: PLAYED, ...ENDED }).summary).toBe(
       '3/15 agents contacted · 3/9 turns spent',
     )
   })
 
-  it('says sudden death once the budget is gone, as the screen does', () => {
-    expect(buildCodenamesduetPrintModel({ ...base, turnNumber: 11 }).summary).toBe(
+  it('says sudden death once the budget is gone, and still after such a game has ended', () => {
+    expect(modelOf({ turnNum: 11, clueSeat: null, events: PLAYED }).summary).toBe(
       '3/15 agents contacted · sudden death',
     )
-  })
-
-  it('still says sudden death after such a game has ended, never "10/9"', () => {
-    expect(buildCodenamesduetPrintModel({ ...base, turnNumber: 11, isTerminal: true }).summary).toBe(
+    expect(modelOf({ turnNum: 11, clueSeat: null, events: PLAYED, ...ENDED }).summary).toBe(
       '3/15 agents contacted · sudden death',
-    )
-  })
-
-  it('counts the last ordinary turn as spent-but-one, not as sudden death', () => {
-    expect(buildCodenamesduetPrintModel({ ...base, turnNumber: 9 }).summary).toBe(
-      '3/15 agents contacted · 8/9 turns spent',
     )
   })
 })

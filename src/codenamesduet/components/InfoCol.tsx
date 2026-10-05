@@ -5,14 +5,9 @@ import { cls } from '@/common/utils/cls'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { Action } from '@/common/actions/useBindAction'
-import type { SetupRow } from '@/common/setup-form/types'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { InfoDisclosure } from '@/common/info-sheet/InfoDisclosure'
-import type { GSetup } from '../types'
-import type { ClueEvent, WordedGuess } from '../lib/events'
-import type { GKey } from '../types'
-import type { Player } from '../lib/seats'
+import type { GActions, GGameData, GHistoryView } from '../types'
 import { GameEventLog } from './GameEventLog'
 import { KeyCard } from './KeyCard'
 import { StateLine } from './StateLine'
@@ -25,100 +20,30 @@ import styles from './InfoCol.module.css'
  * readouts): the state line → the finished-player banners → the action row →
  * help → the key-card and setup disclosures → the event log. There is no
  * opponent strip: the partner's status rides the header pill. Every command
- * arrives as an action this column places; the one callback up is
- * `onShowHistory`. Prop names are the other games' for the same idea.
+ * arrives as an action this column places.
  */
 export function InfoCol({
-  // ── Mode + phase ──
-  terminalMessage,
-  inSuddenDeath,
-  // ── State readout ──
-  greenFound,
-  turnNumber,
-  // ── Finished-player banners ──
-  viewerFinished,
-  peerFinished,
-  peer,
-  // ── Action row ──
-  actReveal,
-  actRestart,
-  actNewGame,
-  actConcede,
-  actStopGame,
-  actBackToClub,
-  // ── Key card + setup disclosures ──
-  myKey,
-  setup,
-  setupRows,
-  // ── Turn-history log ──
-  clues,
-  guesses,
-  players,
-  myId,
-  isTerminal,
-  historyId,
-  onShowHistory,
+  gd,
+  endingMessage,
+  actions,
+  historyView,
 }: {
-  // ── Mode + phase ──
-  // The verdict once the game is over — the action row's line — else null.
-  terminalMessage: TerminalMessage | null
-  // Turn budget spent: the help line swaps to the sudden-death rules.
-  inSuddenDeath: boolean
-
-  // ── State readout (agents found + the turn counter) ──
-  // Green agents contacted, out of `TOTAL_AGENTS`.
-  greenFound: number
-  // The current turn (`games.turn_number`); paired with `setup.turns`.
-  turnNumber: number
-
-  // ── Finished-player banners (Duet's finished-seat hand-off, shown to BOTH) ──
-  // I have found all my agents → my partner gives every remaining clue.
-  viewerFinished: boolean
-  // My partner has found all theirs → I give every remaining clue now.
-  peerFinished: boolean
-  // The other seated player — named in the banners.
-  peer: Player | undefined
-
-  // ── Action row — every action, in the row's order; each one's own
-  //    `describe` decides whether its button is there ──
-  // Show the partner's key card, or cover it again — a local display toggle.
-  // A button only at the end.
-  actReveal: Action
-  // Run this board back — same words, same key cards. A button only at the end;
-  // the menu and its key all game.
-  actRestart: Action
-  // A fresh game with this setup and roster, on a new board. A button only at
-  // the end; the menu and `+` all game.
-  actNewGame: Action
-  // Placed as every game's row places it, and never drawn: duet is coop, so it
-  // hides itself.
-  actConcede: Action
-  // Stop the game for the whole table. Gone at the end.
-  actStopGame: Action
-  // Leave for the club — the shell's own action, off `ctx.menu`.
-  actBackToClub: Action
-
-  // ── Key card + setup disclosures ──
-  // My key card, in board order.
-  myKey: GKey[]
-  // Read for its turn budget.
-  setup: GSetup
-  // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
-  setupRows: SetupRow[]
-
-  // ── Turn-history log (GameEventLog) ──
-  clues: ClueEvent[]
-  guesses: WordedGuess[]
-  players: Player[]
-  // The viewer — the log's player picker orders them first.
-  myId: string
-  isTerminal: boolean
-  // The event whose turn is open in the board viewer, or null.
-  historyId: number | null
-  // Straight through to the log, which addresses a turn by an event id — its
-  // clue, or a sudden-death guess — and hands back the `#N` it printed.
-  onShowHistory: (eventId: number, n: number) => void
+  gd: GGameData
+  // The ending's verdict once the game is over — the action row's line — else null.
+  endingMessage: TerminalMessage | null
+  actions: GActions
+  // The event log's `#N` opens a turn in it, and wears the ring while open.
+  historyView: GHistoryView
 }) {
+  // Duet's finished-player rule (enforced in `_end_turn`): once a player's
+  // agents are all contacted they give no more clues, and their partner takes
+  // every remaining turn. Both players are told, so the lopsided turn flow does
+  // not read as a bug. Only in normal play — nobody clues in sudden death, and
+  // nothing is owed once the game is over.
+  const isBannerShown = !gd.ended && !gd.team.suddenDeath
+  const isMineFinished = isBannerShown && gd.me.allAgentsFound
+  const isPartnerFinished = isBannerShown && gd.partner.allAgentsFound
+
   return (
     <div className={shared.infoCol}>
       {/* The readouts, in the shared order (docs/playarea.md → Info-column
@@ -127,24 +52,20 @@ export function InfoCol({
       <div className={shared.noShrinkRow}>
         {/* The same `<StateLine>` the phone's status bar renders above the board. */}
         <p className={shared.infoState}>
-          <StateLine
-            greenFound={greenFound}
-            turnNumber={turnNumber}
-            turnBudget={setup.turns}
-          />
+          <StateLine data={gd.stateLineData} />
         </p>
 
         {/* Duet's finished-player rule, told to BOTH players so the lopsided turn
             flow does not read as a bug. */}
-        {viewerFinished && (
+        {isMineFinished && (
           <div className={cls(styles.finishedNote, styles.viewerFinished)}>
-            <DotActor actor={peer} fallback="Your partner" /> gives every remaining
+            <DotActor actor={gd.partner} fallback="Your partner" /> gives every remaining
             clue — your agents are all found.
           </div>
         )}
-        {peerFinished && (
+        {isPartnerFinished && (
           <div className={cls(styles.finishedNote, styles.peerFinished)}>
-            <DotActor actor={peer} fallback="Your partner" /> has no agents left — you
+            <DotActor actor={gd.partner} fallback="Your partner" /> has no agents left — you
             give every remaining clue.
           </div>
         )}
@@ -154,22 +75,22 @@ export function InfoCol({
             The only thing that varies here is the line — the verdict once the
             game is over. No divider, since nothing sits left of it: this game's
             hint, the AI, is on the clue form. */}
-        <InfoActionsRow message={terminalMessage ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome } : undefined}>
-          <ActionButton action={actReveal} show="icon" />
-          <ActionButton action={actRestart} show="icon" />
-          <ActionButton action={actNewGame} show="icon" />
-          <ActionButton action={actConcede} show="icon" />
-          <ActionButton action={actStopGame} show="icon" />
-          <ActionButton action={actBackToClub} show="icon" weight={terminalMessage ? 'primary' : 'secondary'} />
+        <InfoActionsRow message={endingMessage ? { text: endingMessage.infoColText, outcome: endingMessage.outcome } : undefined}>
+          <ActionButton action={actions.actReveal} show="icon" />
+          <ActionButton action={actions.actRestart} show="icon" />
+          <ActionButton action={actions.actNewGame} show="icon" />
+          <ActionButton action={actions.actConcede} show="icon" />
+          <ActionButton action={actions.actStopGame} show="icon" />
+          <ActionButton action={actions.actBackToClub} show="icon" weight={gd.ended ? 'primary' : 'secondary'} />
         </InfoActionsRow>
 
         {/* Help — one standing line during play; the per-phase guidance is below
             the board and in the header pill. In sudden death the rules change,
             and the red tag is what says so on a line that is otherwise skimmed
             past as unchanged. */}
-        {!terminalMessage && (
+        {!gd.ended && (
           <p className={shared.infoHelp}>
-            {inSuddenDeath ? (
+            {gd.team.suddenDeath ? (
               <>
                 <strong className={styles.suddenDeathTag}>SUDDEN DEATH:</strong> no clues
                 left — every reveal must be an agent. One non-green guess (a bystander or
@@ -185,22 +106,12 @@ export function InfoCol({
             line each; opening one grows the column, the allowed exception since
             it closes again. */}
         <InfoDisclosure title="Key card">
-          <KeyCard labels={myKey} />
+          <KeyCard keys={gd.puzzle.tiles.map((t) => t.key[gd.me.id]!)} />
         </InfoDisclosure>
-        <SetupDisclosure rows={setupRows} />
+        <SetupDisclosure rows={gd.setupRows} />
       </div>
 
-      <GameEventLog
-        clues={clues}
-        guesses={guesses}
-        players={players}
-        myId={myId}
-        turnNumber={turnNumber}
-        isTerminal={isTerminal}
-        turnBudget={setup.turns}
-        historyId={historyId}
-        onShowHistory={onShowHistory}
-      />
+      <GameEventLog gd={gd} historyView={historyView} />
     </div>
   )
 }

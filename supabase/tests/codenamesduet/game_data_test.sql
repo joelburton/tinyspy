@@ -20,7 +20,7 @@
 --   7. A Restart empties the board, the log and the turn
 --   8. `_rebuild_data_cols_for_all` rewrites every game without re-dating it
 --
--- Every key card is random, so a tile is found by its labels on both keys
+-- Every key card is random, so a tile is found by its letter on both keys
 -- (`cell`).
 -- ============================================================
 
@@ -31,14 +31,14 @@ set search_path = codenamesduet, common, public, extensions;
 
 select plan(30);
 
--- The first board position labeled `p_on_a` on seat A's key and `p_on_b` on
+-- The first board position that is `p_on_a` on seat A's key and `p_on_b` on
 -- seat B's.
 create function pg_temp.cell(p_game_id uuid, p_on_a text, p_on_b text) returns int
 language sql as $$
   select (ord - 1)::int
     from codenamesduet.games gm,
-         jsonb_array_elements_text(gm.key_card_a) with ordinality as a(label, ord)
-   where gm.game_id = p_game_id and a.label = p_on_a
+         jsonb_array_elements_text(gm.key_card_a) with ordinality as a(key, ord)
+   where gm.game_id = p_game_id and a.key = p_on_a
      and gm.key_card_b ->> (ord - 1)::int = p_on_b
    limit 1
 $$;

@@ -7,42 +7,20 @@ import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPic
 import { cls } from '@/common/utils/cls'
 import { IconAI } from '@/common/icons/icons'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
-import { isSuddenDeathTurn, type ClueEvent, type WordedGuess } from '../lib/events'
+import { cluesOf, guessesOf, isSuddenDeathTurn } from '../lib/events'
 import { answerMessage } from '../lib/answer'
-import type { Player } from '../lib/seats'
 import { turnOutcome } from '../lib/turnOutcome'
+import type { GGameData, GGuessEvent, GHistoryView } from '../types'
 import styles from './GameEventLog.module.css'
 
 /** The outcome the AI mark wears. */
 const AI_CLUE_OUTCOME = answerMessage({ answerType: 'clue_ai' }).outcome
 
 type Props = {
-  clues: ClueEvent[]
-  // Every guess, in any order — grouped by turn below. A word can appear twice,
-  // once per seat, which is why this is the guess log, not per-word board state.
-  guesses: WordedGuess[]
-  // Both seated players, with usernames + profile colors — used to resolve a
-  // row's seat letter ('A'/'B') back to the person.
-  players: Player[]
-  // The viewer, so the picker can order them first.
-  myId: string
-  // The game's current turn number (`games.turn_number`). Lets a guess-less
-  // turn read "(clue given)" while it's still live vs "(no guesses)" once it
-  // has ended.
-  turnNumber: number
-  // Whether the game has ended. A guess-less *current* turn at terminal is no
-  // longer in progress, so it reads "(no guesses)", not "(clue given)".
-  isTerminal: boolean
-  // The game's turn budget (`setup.turns`): a turn past it is sudden death.
-  turnBudget: number
-  // The event whose turn is open in the board viewer — a turn's clue, or a
-  // sudden-death guess — or null when live. Its `#N` handle wears the shared
-  // viewing ring.
-  historyId: number | null
-  // Open a turn in the board viewer — click (or Enter/Space) its `#N`. Hands up
-  // the handle's event id and the number this log printed, which is what the
-  // banner shows back.
-  onShowHistory: (eventId: number, n: number) => void
+  gd: GGameData
+  // A turn's `#N` opens it on the board, and wears the shared viewing ring
+  // while it is open.
+  historyView: GHistoryView
 }
 
 /**
@@ -56,7 +34,7 @@ type Props = {
  * answers "which clues did I give?", not "which words did I guess". That's the
  * useful question, since a duet turn is one clue and the guesses that answered it.
  *
- * The rows are GROUPED by `turn_number` and LINKED by event id, like every other
+ * The rows are GROUPED by turn and LINKED by event id, like every other
  * game's log: a turn's handle is its clue's id — the row that exists as soon as
  * the turn does and never changes as guesses land — and a sudden-death row's is
  * its guess's. The `#N` it prints is the turn's place in what is shown, so
@@ -73,7 +51,7 @@ type Props = {
  * between-turns line (so there's no line *within* a turn). A guess-less turn reads
  * **"(clue given)"** while it's the current, still-live turn (the guesser hasn't
  * acted yet) and **"(no guesses)"** once it has ended empty (the guesser passed) —
- * distinguished by `turnNumber` + `isTerminal`, since both look identical in the
+ * distinguished by the turn being played and the game's end, since both look identical in the
  * data (a clue, no guess rows). All grouping is client-side (the data set is
  * tiny); the shared `<EventLog>` snaps to the latest row.
  *
@@ -83,25 +61,17 @@ type Props = {
  * game's rule there: an agent is `won`, anything else `lost`.
  *
  * **Turn-history:** the turn's `#N` handle (the shared `<EventLogNumber>`) opens that
- * turn on the board (PlayArea's `useHistoryViewer`) and rings itself in the history
+ * turn on the board (`useHistoryView`) and rings itself in the history
  * blue while open. The click + marker live on the number, not the row, precisely because a
  * codenamesduet turn is TWO `<tr>`s — a whole-turn outline would draw a broken box
  * and a per-row hover would light only half of it (see `<EventLogNumber>`).
  */
-export function GameEventLog({
-  clues,
-  guesses,
-  players,
-  myId,
-  turnNumber,
-  isTerminal,
-  turnBudget,
-  historyId,
-  onShowHistory,
-}: Props) {
+export function GameEventLog({ gd, historyView }: Props) {
+  const clues = cluesOf(gd.events)
+  const guesses = guessesOf(gd.events, gd.puzzle.tilesById)
   const eventLogPicker = useEventLogPlayerPicker({
-    players,
-    myId,
+    players: gd.players,
+    myId: gd.me.id,
     mode: 'coop',
     // Coop: every clue and guess is shared, so nothing is ever RLS-hidden and
     // the honest-hidden empty text can't apply.
@@ -109,43 +79,36 @@ export function GameEventLog({
     label: 'Whose clues to show',
     emptyLabel: 'No clues yet.',
   })
-  // seat letter → Player, so each clue row resolves to its clue-giver's
-  // identity. Both seats are always populated.
-  const playerBySeat = new Map<string, Player>(
-    players.map((p) => [p.seat, p] as const),
-  )
-
   // Turns may exist in the clue list, the guess list, or both. Union + sort
   // ascending so the oldest turn is at the top; the shared EventLog auto-snaps to
   // the latest.
   const turnNumbers = Array.from(
     new Set([
-      ...clues.map((c) => c.turn_number),
-      ...guesses.map((g) => g.turn_number),
+      ...clues.map((c) => c.turnNum),
+      ...guesses.map((g) => g.turnNum),
     ]),
   ).sort((a, b) => a - b)
 
   // Filtered by CLUE-GIVER (see the docstring), or for a sudden-death turn,
   // which has none, by its guesser — the person its actor column names. By hand
   // rather than through `eventLogPicker.filter`, because the log's unit is a
-  // turn number, not a row with a `user_id`.
+  // turn number, not a row with a player.
   const shownTurns = turnNumbers.filter((t) => {
     if (eventLogPicker.showsEveryone) return true
-    if (isSuddenDeathTurn(t, turnBudget)) {
-      return guesses.some((g) => g.turn_number === t && g.user_id === eventLogPicker.picked)
+    if (isSuddenDeathTurn(t, gd.team.maxTurns)) {
+      return guesses.some((g) => g.turnNum === t && g.by.id === eventLogPicker.picked)
     }
-    const seat = clues.find((c) => c.turn_number === t)?.seat
-    return playerBySeat.get(seat ?? '')?.user_id === eventLogPicker.picked
+    return clues.find((c) => c.turnNum === t)?.by.id === eventLogPicker.picked
   })
 
   // The word of a guess, in the key-card color of what it turned over.
-  const guessWord = (g: WordedGuess) => (
+  const guessWord = (g: GGuessEvent) => (
     <span
       className={cls(
         styles.guessWord,
-        g.guess_result === 'G' && styles.guessWord_G,
-        g.guess_result === 'N' && styles.guessWord_N,
-        g.guess_result === 'A' && styles.guessWord_A,
+        g.result === 'G' && styles.guessWord_G,
+        g.result === 'N' && styles.guessWord_N,
+        g.result === 'A' && styles.guessWord_A,
       )}
     >
       {g.word.toUpperCase()}
@@ -164,9 +127,9 @@ export function GameEventLog({
     >
       {shownTurns.map((t, index) => {
         const n = index + 1
-        const clue = clues.find((c) => c.turn_number === t)
-        const suddenDeath = isSuddenDeathTurn(t, turnBudget)
-        const turnGuesses = guesses.filter((g) => g.turn_number === t)
+        const clue = clues.find((c) => c.turnNum === t)
+        const suddenDeath = isSuddenDeathTurn(t, gd.team.maxTurns)
+        const turnGuesses = guesses.filter((g) => g.turnNum === t)
 
         if (suddenDeath) {
           // One row per sudden-death turn — one guess, made by either player.
@@ -177,13 +140,13 @@ export function GameEventLog({
               <EventLogOutcomeBar outcome={turnOutcome(turnGuesses, { suddenDeath })} />
               <EventLogNumber
                 n={n}
-                isOpenInHistory={historyId === g.id}
-                onShowHistory={() => onShowHistory(g.id, n)}
+                isOpenInHistory={historyView.viewedEventId === g.id}
+                onShowHistory={() => historyView.show(g.id, n)}
               />
               <td className={gameEventLog.main}>
                 <span className={styles.clueWord}>Sudden death:</span> {guessWord(g)}
               </td>
-              <EventLogActor actor={playerBySeat.get(g.seat)} fallback={g.seat} />
+              <EventLogActor actor={g.by} />
             </tr>
           )
         }
@@ -192,7 +155,7 @@ export function GameEventLog({
         // A guess-less turn is still "in progress" (clue given, guesser yet to
         // act) only while it's the current turn AND the game is live; otherwise
         // it ended empty (a pass). See the docstring.
-        const inProgress = turnGuesses.length === 0 && t === turnNumber && !isTerminal
+        const inProgress = turnGuesses.length === 0 && t === gd.turns.num && !gd.ended
         return (
           <Fragment key={t}>
             {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle (<EventLogNumber>) | count
@@ -204,14 +167,14 @@ export function GameEventLog({
               <EventLogOutcomeBar outcome={turnOutcome(turnGuesses)} rowSpan={2} />
               <EventLogNumber
                 n={n}
-                isOpenInHistory={historyId === clue.id}
-                onShowHistory={() => onShowHistory(clue.id, n)}
+                isOpenInHistory={historyView.viewedEventId === clue.id}
+                onShowHistory={() => historyView.show(clue.id, n)}
               />
               <td className={gameEventLog.main}>
                 <span className={styles.clueWord}>
-                  {clue.clue_count} {clue.clue_word.toUpperCase()}
+                  {clue.clueCount} {clue.clueWord.toUpperCase()}
                 </span>
-                {clue.clue_from_ai && (
+                {clue.clueFromAi && (
                   // The clue is exactly the AI's suggestion — in that answer's
                   // outcome, which `lib/answer.ts` decides. A clue the giver
                   // edited, or thought of alone, wears nothing.
@@ -223,7 +186,7 @@ export function GameEventLog({
                   </span>
                 )}
               </td>
-              <EventLogActor actor={playerBySeat.get(clue.seat)} fallback={clue.seat} />
+              <EventLogActor actor={clue.by} />
             </tr>
             {/* Row 2: the turn's guesses, spanning the three content columns
                 (#, clue, clue-giver) beneath the clue line. No divider class — the

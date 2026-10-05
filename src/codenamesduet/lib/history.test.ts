@@ -1,96 +1,71 @@
 // cs-blessed-codenamesduet
 
 /**
- * Unit test for the codenamesduet turn-history snapshot (lib/history.ts). Pure —
+ * Unit test for the codenamesduet turn-history replay (lib/history.ts). Pure —
  * no DOM, no supabase. Covers the three things the replay has to get right:
  *   1. INCLUSIVE folding — viewing turn N reflects every guess with turn ≤ N, and
  *      NOT any later turn's guesses.
- *   2. The per-seat neutral rule — a neutral sets only the guesser's own
- *      `neutral_a` / `neutral_b`, never the global `revealed_as`.
- *   3. `historyLitTiles` — exactly the positions guessed DURING the viewed turn.
+ *   2. The builder's rule — a bystander shows `N` and points at its guesser; a
+ *      contacted agent or the assassin points at nobody.
+ *   3. The lit tiles — exactly those guessed DURING the viewed turn.
  */
 import { describe, expect, it } from 'vitest'
-import { historySnapshot } from './history'
-import type { WordRow } from './history'
-import type { ClueEvent, WordedGuess } from './events'
+import { makeGameData } from '../hooks/useGame'
+import { ZTest_clue, ZTest_guess, ZTest_makeGameDataRaw } from './gameData.fixture'
+import { replayTurn } from './history'
+import type { GEventRaw, GTile } from '../types'
 
-// A tiny fixed board — positions 0..4 with placeholder words. Reveal state starts
-// clean; the snapshot recomputes it from the guess log.
-const WORDS: WordRow[] = [
-  { position: 0, word: 'ALPHA', revealed_as: null, neutral_a: false, neutral_b: false },
-  { position: 1, word: 'BRAVO', revealed_as: null, neutral_a: false, neutral_b: false },
-  { position: 2, word: 'CIDER', revealed_as: null, neutral_a: false, neutral_b: false },
-  { position: 3, word: 'DELTA', revealed_as: null, neutral_a: false, neutral_b: false },
-  { position: 4, word: 'EAGLE', revealed_as: null, neutral_a: false, neutral_b: false },
+// Turn 1: ada clues BREAD; bea contacts tile 0. Turn 2: bea clues; ada turns
+// over tile 1 as a bystander. Turn 3: ada clues WAIT; bea passes. Turn 10:
+// sudden death, ada guesses tile 2.
+const EVENTS: GEventRaw[] = [
+  ZTest_clue(1, 'u1', 1, 'bread', 2),
+  ZTest_guess(2, 'u2', 1, 0, 'G'),
+  ZTest_clue(3, 'u2', 2, 'x', 1),
+  ZTest_guess(4, 'u1', 2, 1, 'N'),
+  ZTest_clue(5, 'u1', 3, 'wait', 1),
+  { ...ZTest_clue(6, 'u2', 3, 'x', 0), kind: 'pass', tookTurn: true, clueWord: null, clueCount: null, clueFromAi: null },
+  ZTest_guess(7, 'u1', 10, 2, 'A'),
 ]
+const gd = makeGameData(ZTest_makeGameDataRaw({ events: EVENTS, turnNum: 11, clueSeat: null }), 'u1')
+const replay = (eventId: number, n: number | null) => replayTurn(gd.events, gd.puzzle.tiles, eventId, n)!
+const tileOf = (tiles: GTile[], id: string) => tiles.find((t) => t.id === id)!
 
-function guess(o: Partial<WordedGuess>): WordedGuess {
-  return {
-    kind: 'guess', id: 1, user_id: 'bea', took_turn: false,
-    created_at: '2026-06-12T18:00:00Z', turn_number: 1, seat: 'B',
-    guess_position: 0, guess_result: 'G', word: 'ALPHA', ...o,
-  }
-}
-
-/** The clue a turn was given, for the banner's label. */
-function clue(clue_word: string, clue_count: number): ClueEvent {
-  return {
-    kind: 'clue', id: 1, user_id: 'ada', took_turn: false,
-    created_at: '2026-06-12T18:00:00Z', turn_number: 1, seat: 'A',
-    clue_word, clue_count, clue_from_ai: false,
-  }
-}
-
-const at = (words: WordRow[], pos: number) => words.find((w) => w.position === pos)!
-
-describe('historySnapshot', () => {
-  // Turn 1: B contacts ALPHA (green). Turn 2: A neutrals BRAVO. Turn 3: B hits
-  // the assassin on CIDER.
-  const guesses: WordedGuess[] = [
-    guess({ id: 1, guess_position: 0, guess_result: 'G', seat: 'B', turn_number: 1 }),
-    guess({ id: 2, guess_position: 1, guess_result: 'N', seat: 'A', turn_number: 2 }),
-    guess({ id: 3, guess_position: 2, guess_result: 'A', seat: 'B', turn_number: 3 }),
-  ]
-
+describe('replayTurn', () => {
   it('folds only guesses up to and including the viewed turn (inclusive)', () => {
-    const snap = historySnapshot(WORDS, guesses, clue('x', 1), 2, 2)
-    // Turn 1's green is in; turn 2's own neutral is in (inclusive); turn 3's
-    // assassin is NOT yet.
-    expect(at(snap.words, 0).revealed_as).toBe('G')
-    expect(at(snap.words, 1).neutral_a).toBe(true)
-    expect(at(snap.words, 2).revealed_as).toBeNull()
+    const { tiles } = replay(3, 2)
+    expect(tileOf(tiles, '0')).toMatchObject({ revealed: { as: 'G' } })
+    expect(tileOf(tiles, '1')).toMatchObject({ revealed: { as: 'N' } })
+    expect(tileOf(tiles, '2')).toMatchObject({ revealed: null })
   })
 
-  it('keeps a neutral per-seat — never global, only the guesser side', () => {
-    const snap = historySnapshot(WORDS, guesses, null, 2, 2)
-    const bravo = at(snap.words, 1)
-    expect(bravo.revealed_as).toBeNull() // a neutral is not a global reveal
-    expect(bravo.neutral_a).toBe(true) // seat A guessed it as a bystander
-    expect(bravo.neutral_b).toBe(false) // …seat B's direction stays open
+  it('points a bystander at its guesser, and a contacted tile at nobody', () => {
+    const { tiles } = replay(3, 2)
+    expect([...tileOf(tiles, '1').revealed!.arrows]).toEqual([gd.me])
+    expect(tileOf(tiles, '0')).toMatchObject({ revealed: { arrows: new Set() } })
   })
 
-  it('lights exactly the positions decided during the viewed turn', () => {
-    expect([...historySnapshot(WORDS, guesses, null, 1, 1).historyLitTiles]).toEqual([0])
-    expect([...historySnapshot(WORDS, guesses, null, 2, 2).historyLitTiles]).toEqual([1])
-    // Nothing decided on a turn with no guesses in the log.
-    expect(historySnapshot(WORDS, guesses, null, 9, 9).historyLitTiles.size).toBe(0)
+  it('lights exactly the tiles decided during the viewed turn', () => {
+    expect([...replay(1, 1).litTileIds]).toEqual(['0'])
+    expect([...replay(3, 2).litTileIds]).toEqual(['1'])
+    expect(replay(5, 3).litTileIds.size).toBe(0)
   })
 
   it('describes the turn name-free: clue then guessed words, or "passed"', () => {
-    expect(historySnapshot(WORDS, guesses, clue('bread', 2), 1, 1).historyLabel).toBe(
-      '#1: 2 BREAD → ALPHA',
-    )
-    expect(historySnapshot(WORDS, guesses, clue('wait', 1), 5, 5).historyLabel).toBe(
-      '#5: 1 WAIT — passed',
-    )
+    expect(replay(1, 1).label).toBe('#1: 2 BREAD → WORD0')
+    expect(replay(5, 3).label).toBe('#3: 1 WAIT — passed')
   })
 
   it('shows back the number the log printed, which a filter can make differ from the turn', () => {
-    expect(historySnapshot(WORDS, guesses, clue('bread', 2), 1, 4).historyLabel).toBe('#4: 2 BREAD → ALPHA')
-    expect(historySnapshot(WORDS, guesses, clue('bread', 2), 1, null).historyLabel).toBe('2 BREAD → ALPHA')
+    expect(replay(1, 4).label).toBe('#4: 2 BREAD → WORD0')
+    expect(replay(1, null).label).toBe('2 BREAD → WORD0')
   })
 
   it('labels a turn with no clue as sudden death', () => {
-    expect(historySnapshot(WORDS, guesses, null, 3, 3).historyLabel).toBe('#3: Sudden death → ALPHA')
+    expect(replay(7, 4).label).toBe('#4: Sudden death → WORD2')
+  })
+
+  it('is null for an id the log does not hold', () => {
+    expect(replayTurn(gd.events, gd.puzzle.tiles, 99, 1)).toBeNull()
   })
 })

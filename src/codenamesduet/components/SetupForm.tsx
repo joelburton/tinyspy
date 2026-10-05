@@ -36,22 +36,22 @@ export function SetupForm({
 
   // The selected players, not the whole club: the first clue-giver must be one
   // of them, or `create_game` refuses the setup.
-  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
+  const players = members.filter((m) => s.player_user_ids.has(m.id))
 
   // Re-seed to the first selected player whenever the current pick isn't one:
   // the initial empty string, or a chosen player since unticked. Converges, as
   // `SetupCoopStyleSection`'s first-player seeding does.
   useEffect(function seedFirstClueGiver() {
-    const stillSelected = players.some((p) => p.user_id === s.first_clue_giver_user_id)
+    const stillSelected = players.some((p) => p.id === s.first_clue_giver_user_id)
     if (!stillSelected && players.length > 0) {
-      set('first_clue_giver_user_id', players[0].user_id)
+      set('first_clue_giver_user_id', players[0].id)
     }
   }, [players, s.first_clue_giver_user_id, set])
 
   // The summary says WHO, not which uuid. The `?? '—'` covers the render
   // before the seeding effect above has picked one; no user sees it.
   const firstClueGiverName =
-    players.find((p) => p.user_id === s.first_clue_giver_user_id)?.username ?? '—'
+    players.find((p) => p.id === s.first_clue_giver_user_id)?.username ?? '—'
 
   return (
     <>
@@ -79,7 +79,7 @@ export function SetupForm({
           help="The first clue-giver is seated as A; the other player opens as the guesser."
           name="first_clue_giver_user_id"
           error={errors.first_clue_giver_user_id}
-          options={players.map((p) => ({ value: p.user_id, label: p.username }))}
+          options={players.map((p) => ({ value: p.id, label: p.username }))}
           value={s.first_clue_giver_user_id}
           onChange={(id) => set('first_clue_giver_user_id', id)}
         />

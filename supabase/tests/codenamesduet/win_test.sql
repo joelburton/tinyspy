@@ -76,7 +76,7 @@ end $$;
 -- view is green — i.e., the 5 N/G + 1 A/G cells from the rulebook
 -- table. That's exactly 6 positions.
 --
--- Per Duet's "clue-giver's view labels the reveal" rule, when Bea
+-- Per Duet's "the clue-giver's key decides the reveal" rule, when Bea
 -- gives a clue and Ada guesses, the reveal uses Bea's view —
 -- which is 'G' for all 6 of these cells.
 --
@@ -96,15 +96,15 @@ begin
   -- Positions where Ada's view != G but Bea's view = G, read off
   -- the two key columns on codenamesduet.games (key_card_a, key_card_b).
   with a as (
-    select t.label as la, t.ord
+    select t.key as la, t.ord
     from codenamesduet.games g,
-         jsonb_array_elements_text(g.key_card_a) with ordinality as t(label, ord)
+         jsonb_array_elements_text(g.key_card_a) with ordinality as t(key, ord)
     where g.game_id = (select id from g)
   ),
   b as (
-    select t.label as lb, t.ord
+    select t.key as lb, t.ord
     from codenamesduet.games g,
-         jsonb_array_elements_text(g.key_card_b) with ordinality as t(label, ord)
+         jsonb_array_elements_text(g.key_card_b) with ordinality as t(key, ord)
     where g.game_id = (select id from g)
   )
   select array_agg((a.ord - 1)::int order by a.ord)
@@ -139,11 +139,11 @@ select pg_temp.envelope_is(
     (select id from g),
     (select (a.ord - 1)::int
      from codenamesduet.games g,
-          jsonb_array_elements_text(g.key_card_a) with ordinality as a(label, ord),
-          jsonb_array_elements_text(g.key_card_b) with ordinality as b(label, ord)
+          jsonb_array_elements_text(g.key_card_a) with ordinality as a(key, ord),
+          jsonb_array_elements_text(g.key_card_b) with ordinality as b(key, ord)
      where g.game_id = (select id from g)
        and a.ord = b.ord
-       and a.label <> 'G' and b.label = 'G'
+       and a.key <> 'G' and b.key = 'G'
        and not exists (
          select 1 from codenamesduet.words w
          where w.game_id = (select id from g)

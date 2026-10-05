@@ -66,7 +66,7 @@ rulebook](https://filemanager.czechgames.com/storage/files/codenames-duet/rules/
 without its mission and campaign modes.
 
 Twenty-five words on a 5×5 board, and one **key card** with two sides, A and
-B. Each side labels every word an **agent**, a **bystander** or an
+B. Each side gives every word a key: an **agent**, a **bystander** or an
 **assassin**, and the two sides are dealt from one fixed joint table:
 
 | A \ B | agent | bystander | assassin |
@@ -112,7 +112,7 @@ and anything but an agent loses.
 | term | what it means |
 |---|---|
 | **key card** · **side** · **seat** | the two sides are `key_card_a` and `key_card_b`; a player's seat, A or B, says which side is theirs. The first clue-giver is seated as A |
-| **agent** · **bystander** · **assassin** | the three labels, stored as `G`, `N` and `A`. The code's `neutral` is a bystander, and the rulebook's "green" is an agent |
+| **agent** · **bystander** · **assassin** | the three keys, stored as `G`, `N` and `A`. The code's `neutral` is a bystander, and the rulebook's "green" is an agent |
 | **contacted** | an agent turned over; the same for both players |
 | **clue-giver** · **guesser** | who holds the clue this turn, `current_clue_giver` — nobody, in sudden death — and the other seat |
 | **turn budget** | `max_turns`, copied from `setup.turns` at create. The turns left are worked out, `greatest(max_turns − turn_number + 1, 0)` (`_turns_remaining`), never stored. Distinct from the wall-clock timer, which is an optional setup of its own |
@@ -261,7 +261,7 @@ police their own clues, as they would at a table.
 
 ### `codenamesduet.submit_guess(p_game_id, p_guess_position)`
 
-The guesser's move, and the one that decides the game. The label a word turns
+The guesser's move, and the one that decides the game. The key a word turns
 over as is read from the CLUE-GIVER's key in ordinary play — the guess answers
 their clue — and in sudden death, when nobody clues, from the partner's key,
 since the clues being remembered were theirs. It refuses a guess from the
@@ -297,7 +297,7 @@ in this game:
   so nobody holds the seat.
 
 The two that end the game are named for its outcome, and carry the ending's
-detail as `reason`, the label turned over, the agents found and the turns
+detail as `reason`, the key turned over, the agents found and the turns
 used (`max_turns` minus the turns left):
 
 - `{ "result": "won", "reason": "solved", "revealed": "G", "found_agents_count": …, "turns_used": … }`
@@ -455,10 +455,9 @@ describes: a loader that gates on the three ways a game can fail to load, then
 `GamePage` mounts the loader and owns everything above it — members, the timer,
 the play state, pause, chat — and unmounts this surface on pause. `Help` and
 `SetupForm` are the shell's to mount, from the menu and the start-game dialog.
-`useGame` reads the game row; the loader seats its two players from the
-profiles `GamePage` already holds (`lib/seats.ts`). `useBoard` reads the
-words, the events and the key cards, and hands back the partner's card only
-when the player has asked to see it.
+`useGame` builds `gd` from the `game_data` blob the page was handed
+(`makeGameData`); it reads nothing and subscribes to nothing, and my
+partner's key is not in it until the game ends.
 
 What is codenamesduet's own:
 
@@ -470,9 +469,9 @@ What is codenamesduet's own:
   shown except while I am guessing, since my own card says nothing about my
   partner's clue; my partner's top-right, once the game is over and I have
   asked. A bystander hit from one side is a triangle pointing at the player who
-  hit it: my partner's above the word, mine below. The phase decides which
-  tiles take a click (`lib/phase.ts`), and a word I hit as a bystander stays
-  locked to me alone — `isGuessable`, which the keyboard's Space asks too.
+  hit it: my partner's above the word, mine below — the tile's `arrows`, which
+  the builder decides. A word I hit as a bystander stays locked to me alone —
+  the tile's `guessable`, the builder's too, which the keyboard's Space asks.
 - **The keyboard's selection cursor** (`useBoardSelectionCursor`, the shape
   `lib/boardShape.ts`) is the guesser's alone: the clue-giver's form is real
   text fields. Its pick wears the shared selected border and drops by itself
@@ -496,8 +495,8 @@ What is codenamesduet's own:
 - **The partner in the header.** `PlayArea` holds a line saying what the
   partner is doing, in `lib/answer.ts`'s words — richer than the shell's
   whose-turn line, which this game does not draw.
-- **Who may move, and on what** is `lib/phase.ts`'s `derivePhase`: the page's
-  `isMyTurn`, except in sudden death with words on both sides; the board takes
+- **Who may move, and on what** is `BoardCol`'s `isInteractive`: my turn on the
+  shared pointer, or in sudden death with words on both sides either of us; the board takes
   a guess only when the move is mine and it is a guess — the clue-giver holds
   the turn too, but their move is the clue form. The bell is the page's, on
   the shared pointer.
@@ -511,7 +510,7 @@ What is codenamesduet's own:
   sudden death, one row per guess. Its bar is the turn's outcome
   (`lib/turnOutcome.ts`), and its number opens that turn on the board
   (`lib/history.ts`). The picker filters by who gave the clue.
-- **The terminal** is the pill and the row's line (`lib/terminal.ts`). Reveal
+- **The ending** is the pill and the row's line (`lib/endingMessage.ts`). Reveal
   uncovers the partner's card for this player alone, and Hide covers it again.
 - **The club label** (`manifest.ts`) is the play state, the agents found and,
   mid-game, the turns left.
@@ -523,7 +522,7 @@ What is codenamesduet's own:
 
 pgTAP, in `supabase/tests/codenamesduet/`. `setup.psql` gives every file
 `pg_temp.find_position` and `find_position_set` (the key card is random, so a
-test finds a position by its label), `pg_temp.codenamesduet_setup()` and
+test finds a position by its key), `pg_temp.codenamesduet_setup()` and
 `pg_temp.codenamesduet_players()`:
 
 | file | pins |

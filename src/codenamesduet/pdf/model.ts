@@ -1,11 +1,10 @@
 // cs-blessed-codenamesduet
 
-import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
+import type { PrintHeader } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
-import type { GKey } from '../types'
-import type { Seat } from '../lib/phase'
-import type { WordRow } from '../hooks/useBoard'
-import { isSuddenDeathTurn, type ClueEvent, type WordedGuess } from '../lib/events'
+import { TOTAL_AGENTS } from '../lib/agents'
+import { cluesOf, guessesOf, isSuddenDeathTurn } from '../lib/events'
+import type { GGameData, GGuessEvent, GKey, GTile } from '../types'
 
 /** A word's role on a key card. Renders as ✓ / – / ✗. */
 export type KeyRole = 'agent' | 'neutral' | 'assassin'
@@ -17,9 +16,9 @@ export type PrintTile = {
   // which is this game's key-card vocabulary and not the app's outcome one: a
   // bystander is neither a good move nor a bad one, it is a bystander.
   revealed: KeyRole | null
-  // My key's label. Always present: the print exists to be thought about.
+  // My key. Always present: the print exists to be thought about.
   mine: KeyRole
-  // The partner's label — terminal only, null during play.
+  // The partner's key — once the game has ended only, null during play.
   peer: KeyRole | null
   // I burned this as a bystander (locked to me, still open to my partner).
   burnedByMe: boolean
@@ -38,12 +37,9 @@ export type CodenamesduetPrintModel = PrintHeader & {
 
 const ROLE_OF: Record<GKey, KeyRole> = { G: 'agent', N: 'neutral', A: 'assassin' }
 
-/** The global reveal: 'G' contacted an agent, 'A' hit the assassin. A bystander
- *  is NOT global (it's per-seat), so it's derived from the two burn flags. */
-function revealedOf(w: WordRow): KeyRole | null {
-  if (w.revealed_as === 'G') return 'agent'
-  if (w.revealed_as === 'A') return 'assassin'
-  return w.neutral_a || w.neutral_b ? 'neutral' : null
+/** What a tile shows, as a role: the same for both players (`GTile.revealed`). */
+function revealedOf(tile: GTile): KeyRole | null {
+  return tile.revealed === null ? null : ROLE_OF[tile.revealed.as]
 }
 
 /**
@@ -69,66 +65,56 @@ function revealedOf(w: WordRow): KeyRole | null {
  * paper, so it isn't decoration.
  */
 export function buildCodenamesduetPrintModel(o: {
-  brand: string
-  gameTitle: string
   date: string
-  words: WordRow[]
-  // The caller's key — 25 labels, indexed by board position.
-  myKey: GKey[]
-  // The partner's key: null until the player presses Reveal, which only a
-  // finished game offers — so a print of an unrevealed game carries no peer
-  // column.
-  peerKey: GKey[] | null
-  mySeat: Seat | undefined
-  isTerminal: boolean
-  clues: ClueEvent[]
-  guesses: WordedGuess[]
-  // Seat → the human's name, for the log's clue-giver column.
-  nameForSeat: (seat: Seat) => string
-  greenFound: number
-  totalAgents: number
-  turnNumber: number
-  turnBudget: number
-  setupRows: SetupRow[]
-  mode: 'coop' | 'compete'
+  // The game as the page holds it: my partner's key is already null on every
+  // tile until the game has ended (the seat rule, `makeGameData`).
+  gd: GGameData
+  // I asked to see my partner's key — which only a finished game offers — so a
+  // print of an unrevealed game carries no peer column.
+  partnerKeyShown: boolean
 }): CodenamesduetPrintModel {
-  // The peer's key is a SECRET while the game is live, and post-game it's held
-  // back until someone presses Reveal (`useBoard` gates it on the loader's
-  // reveal) — so `o.peerKey` is already null in both cases and a printout
-  // can't spoil the post-mortem either. This terminal check is the second
-  // lock: a printer that asked for the key regardless would be one refactor
-  // away from putting the answer on paper mid-game.
-  const peerKey = o.isTerminal ? o.peerKey : null
+  const { gd } = o
+  // The partner's key is a SECRET while the game is live — `gd` holds it as
+  // null until then — and post-game it's held back until someone presses
+  // Reveal. This ended check is the second lock: a printer that asked for the
+  // key regardless would be one refactor away from putting the answer on paper
+  // mid-game.
+  const showsPartnerKey = gd.ended && o.partnerKeyShown
 
-  const tiles: PrintTile[] = [...o.words]
-    .sort((a, b) => a.position - b.position)
-    .map((w) => ({
-      word: w.word,
-      revealed: revealedOf(w),
-      mine: ROLE_OF[o.myKey[w.position]],
-      peer: peerKey ? ROLE_OF[peerKey[w.position]] : null,
-      // Which seat burned it decides who it's still open to, so the two flags
-      // aren't interchangeable — see the triangles note above.
-      burnedByMe: o.mySeat === 'A' ? w.neutral_a : o.mySeat === 'B' ? w.neutral_b : false,
-      burnedByPeer: o.mySeat === 'A' ? w.neutral_b : o.mySeat === 'B' ? w.neutral_a : false,
-    }))
+  const tiles: PrintTile[] = gd.team.board.tiles.map((t) => {
+    const partnerKey = showsPartnerKey ? t.puzzleTile.key[gd.partner.id] : null
+    return {
+      word: t.puzzleTile.word,
+      revealed: revealedOf(t),
+      mine: ROLE_OF[t.puzzleTile.key[gd.me.id]!],
+      peer: partnerKey ? ROLE_OF[partnerKey] : null,
+      // Who burned it decides who it's still open to, so the two flags aren't
+      // interchangeable — see the triangles note above. They are the board's
+      // arrows: a bystander points at whoever turned it over.
+      burnedByMe: t.revealed?.arrows.has(gd.me) ?? false,
+      burnedByPeer: t.revealed?.arrows.has(gd.partner) ?? false,
+    }
+  })
+
+  const clues = cluesOf(gd.events)
+  const guesses = guessesOf(gd.events, gd.puzzle.tilesById)
 
   // One row per TURN: the clue, then the words it actually produced. That's how
   // the game reads — a clue is only meaningful through what it got.
-  const byTurn = new Map<number, WordedGuess[]>()
-  for (const g of o.guesses) {
-    const rows = byTurn.get(g.turn_number) ?? []
+  const byTurn = new Map<number, GGuessEvent[]>()
+  for (const g of guesses) {
+    const rows = byTurn.get(g.turnNum) ?? []
     rows.push(g)
-    byTurn.set(g.turn_number, rows)
+    byTurn.set(g.turnNum, rows)
   }
   // Both lists arrive in the order things happened, and keep it.
-  const turns: TurnRow[] = o.clues
+  const turns: TurnRow[] = clues
     .map((c) => {
-      const got = (byTurn.get(c.turn_number) ?? [])
+      const got = (byTurn.get(c.turnNum) ?? [])
         .map((g) => g.word.toUpperCase())
       return {
-        seq: c.turn_number,
-        who: o.nameForSeat(c.seat),
+        seq: c.turnNum,
+        who: c.by.username,
         // The clue leads; it's the part that can't be reconstructed from the
         // board, and drawEventLog truncates the tail.
         //
@@ -136,36 +122,34 @@ export function buildCodenamesduetPrintModel(o: {
         // are WinAnsi, which HAS the guillemet but not the arrow (U+2192
         // prints as `!'`). It's the closest real character to an arrow the
         // encoding offers.
-        text: `${c.clue_word.toUpperCase()} ${c.clue_count}${got.length ? ` » ${got.join(', ')}` : ''}`,
+        text: `${c.clueWord.toUpperCase()} ${c.clueCount}${got.length ? ` » ${got.join(', ')}` : ''}`,
       }
     })
 
   // Sudden death has no clue, and each guess there is a turn of its own, made
   // by either player — so each prints as its own row, under its guesser.
-  for (const g of o.guesses) {
-    if (!isSuddenDeathTurn(g.turn_number, o.turnBudget)) continue
+  for (const g of guesses) {
+    if (!isSuddenDeathTurn(g.turnNum, gd.team.maxTurns)) continue
     turns.push({
-      seq: g.turn_number,
-      who: o.nameForSeat(g.seat),
+      seq: g.turnNum,
+      who: g.by.username,
       text: `SUDDEN DEATH » ${g.word.toUpperCase()}`,
     })
   }
 
   return {
-    brand: o.brand,
-    gameTitle: o.gameTitle,
+    brand: gd.brand,
+    gameTitle: gd.title,
     date: o.date,
-    // What the on-screen `StateLine` says, by the same rule: turns spent, or
+    // What the on-screen `StateLine` says, from the same data: turns used, or
     // sudden death once the budget is gone — still, after such a game ends.
     summary:
-      `${o.greenFound}/${o.totalAgents} agents contacted · ` +
-      (isSuddenDeathTurn(o.turnNumber, o.turnBudget)
-        ? 'sudden death'
-        : `${Math.max(0, o.turnNumber - 1)}/${o.turnBudget} turns spent`),
-    setupRows: o.setupRows,
-    mode: o.mode,
+      `${gd.team.nFoundAgents}/${TOTAL_AGENTS} agents contacted · ` +
+      (gd.team.suddenDeath ? 'sudden death' : `${gd.team.nTurnsUsed}/${gd.team.maxTurns} turns spent`),
+    setupRows: gd.setupRows,
+    mode: gd.mode,
     tiles,
-    showsBothKeys: peerKey !== null,
+    showsBothKeys: showsPartnerKey,
     turns,
   }
 }

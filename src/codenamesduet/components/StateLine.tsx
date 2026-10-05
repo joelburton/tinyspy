@@ -1,46 +1,29 @@
 // cs-blessed-codenamesduet
 
-import { isSuddenDeathTurn } from '../lib/events'
-import { TOTAL_AGENTS } from '../lib/agents'
+import type { GStateLineData } from '../types'
 
 /**
  * codenamesduet's live-state readout — "3/15 agents · 3/9 turns spent", or
  * "3/15 agents · sudden death" once the turn budget is spent, and still after
- * a game that reached sudden death has ended (`isSuddenDeathTurn`).
+ * a game that reached sudden death has ended.
  *
- * Rendered in two places that must not drift — the info column's state line
- * and the phone's `<MobileStatusBar>` above the board — so it is one
- * component. Bare inline content: each caller supplies the wrapper and its
- * text style.
+ * Drawn from `gd.stateLineData`, decided once in `makeGameData`. Rendered in
+ * two places that must not drift — the info column's state line and the
+ * phone's `<MobileStatusBar>` above the board — so it is one component. Bare
+ * inline content: each caller supplies the wrapper and its text style.
  *
- * **The turn counter reports turns SPENT**, one less than the turn you are on:
- * the agents beside it are a tally of things done, so the turns are too.
- * `turn_number` starts at 1, so spent starts at 0, and the last thing shown
- * before sudden death is "9/10 turns spent" while the tenth is being played.
+ * **The turn counter reports turns SPENT** — the turns over, and the one the
+ * game ended on — since the agents beside it are a tally of things done too.
  */
-export function StateLine({
-  greenFound,
-  turnNumber,
-  turnBudget,
-}: {
-  // Green agents contacted, out of `TOTAL_AGENTS`.
-  greenFound: number
-  // The current turn (`games.turn_number`, 1-based) — the raw column; this
-  // component renders it as turns spent.
-  turnNumber: number
-  // The game's turn budget (`setup.turns`).
-  turnBudget: number
-}) {
+export function StateLine({ data }: { data: GStateLineData }) {
   return (
     <>
-      <strong>{greenFound}</strong>/{TOTAL_AGENTS} agents ·{' '}
-      {isSuddenDeathTurn(turnNumber, turnBudget) ? (
+      <strong>{data.nFoundAgents}</strong>/{data.nAgents} agents ·{' '}
+      {data.suddenDeath ? (
         'sudden death'
       ) : (
         <>
-          {/* `max(0, …)` guards a turn_number of 0, which the schema's
-              `default 1` rules out. */}
-          <strong>{Math.max(0, turnNumber - 1)}</strong>/{turnBudget} turns spent
+          <strong>{data.nTurnsUsed}</strong>/{data.maxTurns} turns spent
         </>
       )}
     </>

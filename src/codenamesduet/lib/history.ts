@@ -1,111 +1,94 @@
 // cs-blessed-codenamesduet
 
 /**
- * codenamesduet — the turn-history replay. Given the fixed 25 board words, the
- * append-only guess log, and a turn's clue, reconstruct what the board looked like
- * at the END of any past turn plus which cells that turn decided — so the play
- * surface can hand `<Board>` a historical board the same way it hands it the live one.
+ * codenamesduet — the turn-history replay. Given the dealt tiles and the log,
+ * rebuild the table as it stood at the END of a past turn, and which tiles that
+ * turn decided — so the play surface hands `<Board>` a past board the same way
+ * it hands it the live one.
  *
  * ADD-style replay: a guess only ever ADDS a reveal, so a past board is the
- * fixed words with every guess up to that turn folded onto them. The reveal alphabet
- * is codenamesduet's denormalized board state — the GLOBAL `revealed_as` ('G' agent
- * contacted / 'A' assassin) plus the PER-SEAT `neutral_a` / `neutral_b` marks (a
- * bystander on one seat's key may be the other's agent, so a neutral only locks the
- * guesser's direction — the Duet per-direction rule; see the folder's doc.md →
- * Game rules).
+ * dealt tiles with every guess up to that turn folded on, by the builder's own
+ * rule (supabase/sql/codenamesduet.sql → `_make_json_board`): an agent or the
+ * assassin shows for both and points at nobody; a bystander shows `N` and
+ * points at whoever turned it over.
  *
- * **Folded by `turn_number`.** duet's log lists TURNS — a clue plus however many
- * guesses answered it, or in sudden death a single guess with no clue — and the
- * table holds at most one clue per turn (a partial unique index on
- * `kind = 'clue'`). The log LINKS a turn by an event id, as every game does;
- * the caller resolves that id to its turn before asking for the snapshot.
- *
- * **The boundary is INCLUSIVE**: viewing turn N shows the board AFTER turn N's
- * guesses, with those cells ringed — "this is what turn N did" (a green/neutral
- * reveal IS the event, so we show it, then light it).
+ * **Folded by turn.** The log lists TURNS — a clue and the guesses that
+ * answered it, or in sudden death a single guess — and LINKS a turn by an event
+ * id, as every game does. **The boundary is INCLUSIVE**: viewing turn N shows
+ * the board AFTER turn N's guesses, with those tiles ringed.
  *
  * Pure (no React / supabase) + unit-tested.
  */
-import type { Database } from '@/types/db'
-import type { ClueEvent, WordedGuess } from './events'
 
-/**
- * One of the board's 25 words, with its reveal state. `revealed_as` is the
- * GLOBAL reveal ('G' agent contacted / 'A' assassin / null still in play);
- * `neutral_a` / `neutral_b` record which seat hit this word as a bystander.
- */
-export type WordRow = Pick<
-  Database['codenamesduet']['Tables']['words']['Row'],
-  'position' | 'word' | 'revealed_as' | 'neutral_a' | 'neutral_b'
->
+import { cluesOf, guessesOf } from './events'
+import type { GClueEvent, GEvent, GGuessEvent, GPlayer, GPuzzleTile, GTile } from '../types'
 
 /** One past turn, ready for the board and the viewer banner. */
-interface HistorySnapshot {
-  // The 25 board words with reveal state as of the END of the viewed turn — feed
-  // straight to `<Board words>`.
-  words: WordRow[]
-  // The board positions this turn's guesses decided — ring these in the history
-  // blue ("added this turn"). Empty for a passed (guess-less) turn.
-  historyLitTiles: Set<number>
-  // A short, name-free turn label for the viewer banner (the log row shows *who*).
-  historyLabel: string
+type ReplayedTurn = {
+  // The table as of the END of the viewed turn; nothing on it is guessable.
+  tiles: GTile[]
+  // The tiles this turn's guesses decided — ringed in the history blue.
+  litTileIds: ReadonlySet<string>
+  // A short, name-free label for the viewer banner (the log row shows who).
+  label: string
 }
 
 /**
- * Reconstruct the board + lit tiles + historyLabel for `turnNumber`. Folds every
- * guess with `turn_number <= turnNumber` onto the fixed words (INCLUSIVE), and
- * collects this turn's own guessed positions as the lit tiles.
+ * Replay the turn of event `eventId`: the table after it, its own tiles lit,
+ * and its label. Null for an id the log does not hold.
  */
-export function historySnapshot(
-  words: WordRow[],
-  guesses: ReadonlyArray<WordedGuess>,
-  clue: ClueEvent | null,
-  turnNumber: number,
+export function replayTurn(
+  events: ReadonlyArray<GEvent>,
+  puzzleTiles: ReadonlyArray<GPuzzleTile>,
+  eventId: number,
   // The `#N` the log printed for the turn, so the banner shows back the number
   // that was clicked; null for an opening that came from no numbered row.
   n: number | null,
-): HistorySnapshot {
-  const revealedAs = new Map<number, 'G' | 'A'>()
-  const neutralA = new Set<number>()
-  const neutralB = new Set<number>()
-  const historyLitTiles = new Set<number>()
+): ReplayedTurn | null {
+  const turnNum = events.find((e) => e.id === eventId)?.turnNum
+  if (turnNum === undefined) return null
+  const tilesById = new Map(puzzleTiles.map((t) => [t.id, t]))
+  const guesses = guessesOf(events, tilesById).filter((g) => g.turnNum <= turnNum)
 
+  const shown = new Map<string, 'G' | 'A'>()
+  const bystanderBy = new Map<string, Set<GPlayer>>()
   for (const g of guesses) {
-    if (g.turn_number > turnNumber) continue
-    if (g.turn_number === turnNumber) historyLitTiles.add(g.guess_position)
-    // A green / assassin reveal is GLOBAL + permanent; a neutral marks only the
-    // guesser's own seat (the Duet per-direction rule — the partner can still
-    // contact the word as their agent).
-    if (g.guess_result === 'G') revealedAs.set(g.guess_position, 'G')
-    else if (g.guess_result === 'A') revealedAs.set(g.guess_position, 'A')
-    else if (g.seat === 'A') neutralA.add(g.guess_position)
-    else neutralB.add(g.guess_position)
+    if (g.result === 'N') {
+      const by = bystanderBy.get(g.tileId) ?? new Set<GPlayer>()
+      by.add(g.by)
+      bystanderBy.set(g.tileId, by)
+    } else shown.set(g.tileId, g.result)
   }
 
-  const snapWords = words.map((w) => ({
-    ...w,
-    revealed_as: revealedAs.get(w.position) ?? null,
-    neutral_a: neutralA.has(w.position),
-    neutral_b: neutralB.has(w.position),
-  }))
+  const tiles: GTile[] = puzzleTiles.map((puzzleTile) => {
+    const contacted = shown.get(puzzleTile.id)
+    const arrows = bystanderBy.get(puzzleTile.id)
+    return {
+      id: puzzleTile.id,
+      puzzleTile,
+      revealed: contacted !== undefined
+        ? { as: contacted, arrows: new Set<GPlayer>() }
+        : arrows !== undefined ? { as: 'N', arrows } : null,
+      guessable: false,
+    }
+  })
 
-  return { words: snapWords, historyLitTiles, historyLabel: describe(clue, guesses, turnNumber, n) }
+  const turnGuesses = guesses.filter((g) => g.turnNum === turnNum)
+  const clue = cluesOf(events).find((c) => c.turnNum === turnNum) ?? null
+  return {
+    tiles,
+    litTileIds: new Set(turnGuesses.map((g) => g.tileId)),
+    label: describe(clue, turnGuesses, n),
+  }
 }
 
 /** "#3: 2 BREAD → STEEL, COFFEE" — the number the log printed, the clue given that
  *  turn, then the words guessed in order (name-free; the log row already shows who).
  *  A guess-less turn reads "…— passed". A turn with no clue is sudden death:
  *  "#10: Sudden death → STEEL". */
-function describe(
-  clue: ClueEvent | null,
-  guesses: ReadonlyArray<WordedGuess>,
-  turnNumber: number,
-  n: number | null,
-): string {
-  const cluePart = clue ? `${clue.clue_count} ${clue.clue_word.toUpperCase()}` : 'Sudden death'
-  const guessed = guesses
-    .filter((g) => g.turn_number === turnNumber)
-    .map((g) => g.word.toUpperCase())
+function describe(clue: GClueEvent | null, turnGuesses: GGuessEvent[], n: number | null): string {
+  const cluePart = clue ? `${clue.clueCount} ${clue.clueWord.toUpperCase()}` : 'Sudden death'
+  const guessed = turnGuesses.map((g) => g.word.toUpperCase())
   const head = n === null ? cluePart : `#${n}: ${cluePart}`
   if (guessed.length === 0) return `${head} — passed`
   return `${head} → ${guessed.join(', ')}`

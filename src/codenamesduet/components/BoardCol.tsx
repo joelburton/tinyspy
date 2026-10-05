@@ -1,6 +1,6 @@
 // cs-blessed-codenamesduet
 
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback, useState } from 'react'
 import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
@@ -10,12 +10,8 @@ import { useWatchAndGetTopFeedbackMsg } from '@/common/feedback/useFeedbackSlot'
 import { runRpc } from '@/common/supabase/dbResult'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
+import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { db } from '../db'
-import type { WordRow } from '../hooks/useBoard'
-import type { ClueEvent } from '../lib/events'
-import type { Player } from '../lib/seats'
-import type { GKey } from '../types'
-import { isGuessable, type Seat } from '../lib/phase'
 import { BOARD_SHAPE } from '../lib/boardShape'
 import { useBindAction } from '@/common/actions/useBindAction'
 import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
@@ -23,7 +19,8 @@ import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelection
 import type { Cell } from '@/common/board-cursor/stepCell'
 import { Board } from './Board'
 import { ClueStrip } from './ClueStrip'
-import type { GSuggestState } from '../types'
+import { StateLine } from './StateLine'
+import type { GGameData, GHistoryView, GSuggestState, GTile } from '../types'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
@@ -35,7 +32,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * named for the play_state they set and carry its reason, and the two that
  * leave it running are named for what was turned over.
  *
- * `revealed` is the key-card label the guess hit ('G' | 'N' | 'A'), one field
+ * `revealed` is the key the guess hit ('G' | 'N' | 'A'), one field
  * among the board facts the reveal produced.
  */
 type GuessAnswer =
@@ -47,7 +44,7 @@ type GuessAnswer =
       turns_remaining: number
       // Null once a bystander drops the game into sudden death, and for every
       // agent turned over there: nobody clues in sudden death.
-      clue_giver: Seat | null
+      clue_giver: 'A' | 'B' | null
       play_state: 'playing' | 'sudden_death'
     }
   | {
@@ -62,100 +59,63 @@ type GuessAnswer =
 /**
  * codenamesduet's board column — the 5×5 `Board`, and under it the fixed-height
  * below-board slot: the `ClueStrip` during play, or the local slot's top message
- * (a not-ok, the terminal verdict), with the turn viewer's banner over either.
+ * (a not-ok, the ending's verdict), with the turn viewer's banner over either.
  *
  * A two-input game: a guess is a tile click — or the keyboard's pick and Enter
  * (`useBoardSelectionCursor`) — and this column owns `submit_guess` with the
  * pending tile it marks; a clue is the `ClueStrip` form, which owns
  * `submit_clue`, `pass_turn` and the AI suggestion. Neither owns game state —
- * the reveal arrives by Realtime, and PlayArea hands this column the board to
- * render, live or a viewed turn's snapshot. Not-oks show into PlayArea's local
- * slot, the one InfoCol's Stop shows into too. See docs/playarea.md.
+ * the reveal arrives in the next blob, and PlayArea hands this column the board
+ * to render, live or a viewed turn's. Not-oks show into PlayArea's local slot,
+ * the one InfoCol's Stop shows into too. See docs/playarea.md.
  */
 export function BoardCol({
-  // ── Mobile-only status strip (above the board) ──
-  mobileStatus,
-  // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
-  words,
-  myKey,
-  peerKey,
-  mySeat,
-  isTerminal,
-  isBoardInteractive,
-  historyLitTiles,
-  // ── Board marks ──
-  isWaitingForTurn,
-  myTurnJustStarted,
-  moveCount,
-  terminalOutcome,
-  // ── History viewer (its overlay lives in the below-board region) ──
-  historyLabel,
-  onExitHistory,
-  // ── Guess dispatch (this column owns submit_guess) ──
-  gameId,
+  gd,
+  tiles,
+  historyView,
+  partnerKeyShown,
+  endingOutcome,
   localFeedbackSlot,
-  // ── Clue strip (the clue-giver's below-board form) ──
-  isClueGiver,
-  isGuessPhase,
-  currentClue,
-  inSuddenDeath,
-  peer,
   onSuggestionChange,
 }: {
-  // ── Mobile-only status strip ──
-  // The `<StateLine>` the InfoCol also renders, shown above the board only on a
-  // phone; see `<MobileStatusBar>`.
-  mobileStatus: ReactNode
-
-  // ── Board to render ──
-  // The 25 board words — the live board OR a snapshot's reveal state (PlayArea picks).
-  words: WordRow[]
-  // The caller's own key view.
-  myKey: GKey[]
-  // The partner's key view — null until the caller chooses to see it.
-  peerKey: GKey[] | null
-  // The caller's seat.
-  mySeat: Seat
-  isTerminal: boolean
-  // The board takes my guess — this game's `isBoardInteractive`, derived in
-  // PlayArea (`derivePhase`). A past turn open blocks it on top.
-  isBoardInteractive: boolean
-  // The positions the viewed turn decided — ringed (undefined while live).
-  historyLitTiles: ReadonlySet<number> | undefined
-
-  // ── Board marks ── straight through to `<Board>`; see its props.
-  isWaitingForTurn: boolean
-  myTurnJustStarted: boolean
-  moveCount: number
-  terminalOutcome: EndOutcome | null
-
-  // The viewed turn's description while inspecting history (drives the banner), or
-  // null when live.
-  historyLabel: string | null
-  // Return to the live board (the banner click / ✕).
-  onExitHistory: () => void
-
-  // ── Guess dispatch ──
-  gameId: string
+  gd: GGameData
+  // The board to draw — the live one or a viewed turn's (PlayArea picks).
+  tiles: GTile[]
+  historyView: GHistoryView
+  // I asked to see my partner's key; the board draws it once the game has ended.
+  partnerKeyShown: boolean
+  // The ending's outcome, for the game-over frame's color; null while playing.
+  endingOutcome: EndOutcome | null
   // PlayArea's below-board slot. This column and the clue strip show their
   // not-oks into it (a rejected guess / clue / pass), and while it holds
-  // anything — a not-ok, the terminal verdict — the pill takes the clue
+  // anything — a not-ok, the ending's verdict — the pill takes the clue
   // strip's place. A tile click is the player's next move, so it dismisses a
   // gesture-cleared message.
   localFeedbackSlot: FeedbackSlot
-
-  // ── Clue strip ──
-  isClueGiver: boolean
-  isGuessPhase: boolean
-  currentClue: ClueEvent | null
-  inSuddenDeath: boolean
-  peer: Player | undefined
   // Open / update / close the AI clue-suggestion dialog; its state is PlayArea's.
   onSuggestionChange: (state: GSuggestState | null) => void
 }) {
-  // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
-  // conventions: one prop says so, and the flag is derived, never passed).
-  const isViewingHistory = historyLabel !== null
+  const gameId = gd.id
+  const suddenDeath = gd.team.suddenDeath
+  // The move is mine: the server's pointer names me — or, in sudden death with
+  // words on both sides, it names nobody and the rulebook lets either of us
+  // guess, which one pointer cannot say.
+  const isMyMove = gd.me.onTurn || (suddenDeath && gd.turns.holder === null && gd.me.stillPlaying)
+  // The board takes my guess: the move is mine and it is a guess — the clue is
+  // in, or it is sudden death. The clue-giver holds the move too, but their
+  // move is the clue form, not the board.
+  const isInteractive = isMyMove && (suddenDeath || gd.turns.currClue !== null)
+  // Still playing, and the move is my partner's.
+  const isWaitingForTurn = gd.me.stillPlaying && !isMyMove
+  // The board frame flashes the moment the turn arrives — the same arrival the
+  // page's bell rings on (the shared pointer), so the two land together.
+  const myTurnJustStarted = useTurnStartFlash(gd.me.onTurn)
+  // Guesses the server has recorded — the cause the attention flash reads.
+  const moveCount = gd.events.filter((e) => e.kind === 'guess').length
+
+  const isViewingHistory = historyView.isViewing
+  // May I guess this tile now: the live board's answer, never a past turn's.
+  const isGuessable = (position: number) => gd.team.board.tiles[position]?.guessable ?? false
 
   // The guess move — a board click. The reveal arrives by realtime, so there is
   // no optimistic state; the only own-move feedback is a not-ok, shown into the
@@ -166,8 +126,7 @@ export function BoardCol({
   const [submittedPos, setSubmittedPos] = useState<number | null>(null)
   // Its reveal is on the board. Every accepted guess writes the tile — an agent,
   // the assassin, or my own bystander mark — so it stops being guessable for me.
-  const submittedWord = submittedPos === null ? undefined : words[submittedPos]
-  const submittedLanded = submittedWord !== undefined && !isGuessable(submittedWord, mySeat)
+  const submittedLanded = submittedPos !== null && !isGuessable(submittedPos)
   // The tile with the server, which Board dims and disables; null when nothing
   // is out. Held until the REVEAL lands rather than until the RPC resolves: the
   // reply and the reveal are two separate events, and releasing at the first
@@ -183,12 +142,12 @@ export function BoardCol({
       localFeedbackSlot.dismiss() // a click is the next move
       setSubmittedPos(position)
       const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
-        target_game: gameId,
-        guess_position: position,
+        p_game_id: gameId,
+        p_guess_position: position,
       }))
       // Four answers, and every one of them says nothing here: each is a
-      // REVEAL, and the reveal arrives via Realtime → useBoard
-      // refetches → the tile re-renders in its result color. No optimistic
+      // REVEAL, and the reveal arrives in the next blob → the tile
+      // re-renders in its result color. No optimistic
       // update, no flash, and a pill would only repeat the board.
       //
       // The refusals are the opposite — nothing on the board changes, so this
@@ -205,7 +164,7 @@ export function BoardCol({
       } else if (res.type === 'ok' && res.data.result === 'bystander') {
         return
       } else if (res.type === 'ok' && res.data.result === 'won') {
-        // The terminal verdict is PlayArea's: it reads the new play_state and
+        // The ending's verdict is PlayArea's: it reads the ending off `gd` and
         // shows the verdict into the slot (and pops the celebration). Saying
         // it here as well would say it twice.
         return
@@ -235,25 +194,20 @@ export function BoardCol({
   // pointer's aim is its confirmation — but an arrow can land a cell off, and a
   // guess can be the assassin, so the keyboard confirms with a second key.
 
-  // May I guess right now? The phase's answer, and never over a past turn.
-  const canGuess = isBoardInteractive && !isViewingHistory
+  // May I guess right now? Never over a past turn.
+  const canGuess = isInteractive && !isViewingHistory
 
   // The word the keyboard has picked — a board position — shown only while it
   // can still be guessed: a turn that ends, or a partner who turns it over in
   // sudden death, takes the pick away without anything having to clear it.
   const [pickedAt, setPickedAt] = useState<number | null>(null)
-  const pickedWord = pickedAt === null ? undefined : words[pickedAt]
-  const picked =
-    canGuess && pickedAt !== null && pickedWord !== undefined && isGuessable(pickedWord, mySeat)
-      ? pickedAt
-      : null
+  const picked = canGuess && pickedAt !== null && isGuessable(pickedAt) ? pickedAt : null
 
   // Space toggles, so a second press un-picks and a press elsewhere moves the
   // pick. A word the click couldn't guess can't be picked either.
   function toggleAt(cell: Cell) {
     const position = positionAt(cell.x, cell.y, BOARD_SHAPE.numCols)
-    const word = words[position]
-    if (word === undefined || !isGuessable(word, mySeat)) return
+    if (!isGuessable(position)) return
     localFeedbackSlot.dismiss() // a pick is the next move
     setPickedAt(picked === position ? null : position)
   }
@@ -305,24 +259,25 @@ export function BoardCol({
   return (
     <div className={shared.boardCol}>
       {/* The live readout above the board, on a phone only; see `MobileStatusBar`. */}
-      <MobileStatusBar>{mobileStatus}</MobileStatusBar>
+      <MobileStatusBar>
+        <StateLine data={gd.stateLineData} />
+      </MobileStatusBar>
       <Board
-        words={words}
-        myKey={myKey}
-        peerKey={peerKey}
-        mySeat={mySeat}
-        isTerminal={isTerminal}
-        isBoardInteractive={isBoardInteractive}
+        tiles={tiles}
+        me={gd.me}
+        partner={gd.partner}
+        showsPartnerKey={gd.ended && partnerKeyShown}
+        isInteractive={isInteractive}
         inFlightPos={isViewingHistory ? null : inFlightPos}
         onGuess={handleTileClick}
         cursor={cursor}
         picked={picked}
         isViewingHistory={isViewingHistory}
-        historyLitTiles={historyLitTiles}
+        litTileIds={historyView.litTileIds}
         isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
         moveCount={moveCount}
-        terminalOutcome={terminalOutcome}
+        endingOutcome={endingOutcome}
       />
       {/* The below-board slot (docs/playarea.md → Board sizing). Two states in
           one fixed-height slot, so the board above never shifts as they swap:
@@ -334,7 +289,7 @@ export function BoardCol({
               open — the ClueStrip / pill stays mounted underneath, so an in-progress
               clue survives. */}
           {isViewingHistory && (
-            <HistoryBanner label={historyLabel} onExit={onExitHistory} />
+            <HistoryBanner label={historyView.label} onExit={historyView.exit} />
           )}
           {top !== null ? (
             <div className={shared.localFeedback}>
@@ -344,11 +299,11 @@ export function BoardCol({
             <div className={styles.moveArea}>
               <ClueStrip
                 gameId={gameId}
-                isClueGiver={isClueGiver}
-                isGuessPhase={isGuessPhase}
-                currentClue={currentClue}
-                inSuddenDeath={inSuddenDeath}
-                peer={peer}
+                isClueGiver={gd.me.clueGiver}
+                isGuessPhase={gd.turns.currClue !== null}
+                currentClue={gd.turns.currClue}
+                inSuddenDeath={suddenDeath}
+                partner={gd.partner}
                 // Its not-oks go into the same slot.
                 localFeedbackSlot={localFeedbackSlot}
                 onSuggestionChange={onSuggestionChange}
