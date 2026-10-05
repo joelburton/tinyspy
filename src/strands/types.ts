@@ -301,6 +301,27 @@ export type GEvent = GEventKind & Omit<GEventRaw, 'userId' | 'tileIds' | keyof G
 }
 
 /**
+ * The word being traced (`hooks/useTrace.ts`): the tiles in the order they
+ * were picked, and the ways to change them. Held as tile ids, handed out as the
+ * live tiles.
+ */
+export type GTrace = {
+  // The tiles traced, in order; empty when nothing is. A teammate's find that
+  // takes one of them empties it, since the trace would run through tiles no
+  // longer mine to use.
+  tiles: GTile[]
+  // The tiles spent on my board's finds: they take no trace.
+  consumedTileIds: ReadonlySet<string>
+  // A click's rule (`lib/trace.ts` → clickTile): extend, back up, or start over.
+  click: (tile: GTile) => void
+  // Add a tile a typed letter resolved to.
+  extend: (tile: GTile) => void
+  // Take back the last tile.
+  dropLast: () => void
+  clear: () => void
+}
+
+/**
  * The turn-history view (`hooks/useHistoryView.ts`): which past turn is open
  * on the board, and the board as it stood then.
  */

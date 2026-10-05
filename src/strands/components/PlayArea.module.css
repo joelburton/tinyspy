@@ -37,55 +37,13 @@
 /* @@ */   --board-frame: 2.05rem;
   /* The below-board stack: the echo/pill slot (2.5rem) + the hint row (2.25rem)
    * + two 0.75rem column gaps, plus ~1rem of breathing room. Keep in sync with
-   * `.echoSlot` and HintBar.module.css. */
+   * BoardCol.module.css's `.echoSlot` and HintBar.module.css. */
 /* @@ */   --avail-h: calc(100svh - var(--game-chrome-height) - 8.25rem);
 /* @@ */   --board-h: min(
     calc(var(--avail-h) - var(--board-frame)),
     calc(8 * var(--max-tile-size)),
     calc((var(--avail-w) - var(--board-frame)) * 8 / 6)
   );
-}
-
-/* The echo/verdict slot. ONE fixed-height row shared by the word-in-progress
- * and the outcome pill: you are either building a word or reading what the last
- * one did, never both. Fixed height because it empties between traces, and a
- * collapsing slot would bounce the board on every submission (docs/ui.md →
- * Layout stability, and the no-reflow rule). */
-/* @@ */ .echoSlot {
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-/* The traced word, echoed as text. Sized to read as the WORD YOU ARE BUILDING —
- * the thing your attention is on while tracing — rather than as a caption under
- * the board; at 1.15rem it was smaller than the verdict pill that replaces it in
- * the same slot, which had the emphasis backwards. Letter-spaced for the same
- * reason: it is a word being assembled, not a label.
- *
- * Stays inside `.echoSlot`'s 2.5rem (1.75rem × ~1.2 line-height ≈ 2.1rem), so
- * the below-board reserve in `.layout` is unaffected. */
-/* The traced word inside the shared row. Overrides only what strands wants
- * differently from the other games' entry inputs: the theme color (the word IS the
- * thread you're drawing on the board, so it wears the board's ink) and the size
- * it already read at. `--wordEntryInput-font-size` rather than a raw `font-size`
- * because the shared caret's height tracks that variable — setting the property
- * directly would leave the caret at the default size beside a bigger word. */
-/* @@ */ .echo {
-/* @@ */   --wordEntryInput-font-size: 1.75rem;
-  letter-spacing: 0.08em;
-  /* The traced word is built from lowercase letters; it is drawn in capitals. */
-  text-transform: uppercase;
-  color: var(--strands-theme);
-}
-
-/* The row spans the slot, so the WordEntryInput between the buttons flex-fills
- * exactly as it does in every other game. Without this the row hugs its content
- * (the slot centers it) and the buttons crowd a one-letter word. */
-/* @@ */ .wordEntryRow {
-  width: 100%;
 }
 
 /* @@ */ .clue {

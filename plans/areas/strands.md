@@ -133,7 +133,7 @@ joins `CONVERTED_GAMES` once they have:
 
 - `lib/board.ts`'s `Coord` and `Board`, which the importer shares
   (`supabase/scripts/lib/strandsPuzzle.ts`).
-- `lib/trace.ts`'s `Trace`, `TraceResult`, `TypeResult`.
+- ~~`lib/trace.ts`'s `Trace`, `TraceResult`, `TypeResult`~~ — gone at step 10.
 - `lib/history.ts`'s `FoundPath`, `HistoryRow`, `HistorySnapshot`, and
   `components/Board.tsx`'s `FoundPath`.
 
@@ -159,6 +159,21 @@ print model read `gd`; the printer draws the capitals. The board's letters,
 the traced word and the log's words take their capitals in CSS.
 `PlayArea.test.tsx` builds its blob from the fixture, mocking only `db`; its
 loading case went with the loading.
+
+## The BoardCol pass
+
+Step 10 (2026-10-05, Joel took the recommendations: "commit and do it"):
+BoardCol is in its three sections — which board is on screen, the pending
+move, render. `isInteractive` is computed once and `canPick` beside it adds
+the one in-flight guard, the Submit action's own `pending`; the `busy` flag
+went, and `act-hint` asks the same `pending`. The trace is `hooks/useTrace.ts`
+(`GTrace`): held as tile ids, handed out as tiles, with the teammate's-find
+clear derived as before; `lib/trace.ts`'s `clickTile` and `typeLetter` take
+and give tiles, and `clearTrace` went with no caller. The ambiguous flash
+holds tiles. The board's letters stay live over a past turn, since a click
+there is how the board goes back to live. `.echoSlot`, `.echo` and
+`.wordEntryRow` moved verbatim to `BoardCol.module.css`. No
+`MobileStatusBar`.
 
 ## What the PlayArea pass changed that a player can see
 

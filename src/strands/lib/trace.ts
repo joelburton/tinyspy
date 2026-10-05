@@ -30,25 +30,22 @@
  * produce the same actions.
  */
 
-import { adjacent, coordKey, letterAt, type Board, type Coord } from './board'
+import type { GTile } from '../types'
+import { adjacent, coordOf } from './board'
 
-/** The tiles currently selected, in the order they were clicked. */
-export type Trace = readonly Coord[]
-
-/** What a click did — the trace that should replace the current one.
- *
- *  A click NEVER submits. Re-clicking the last tile would be a misclick
- *  magnet: the last tile is the one your cursor is already on and the one
- *  you're most likely to hit while reaching for the next letter, so a slip
- *  would send a half-built word. Submitting is Enter or the Submit button,
- *  both of which are deliberate. */
-export type TraceResult = {
-  /** The trace after the click. */
-  trace: Trace
+/** Do two tiles touch — on a side or a corner? */
+function touch(a: GTile, b: GTile): boolean {
+  return adjacent(coordOf(a), coordOf(b))
 }
 
 /**
- * Apply one tile click. Four cases, in the order they're checked:
+ * Apply one tile click to the trace — the tiles selected, in the order they
+ * were clicked — and hand back the trace that replaces it. A click NEVER
+ * submits: re-clicking the last tile would be a misclick magnet, since it is
+ * the tile your cursor is already on. Submitting is Enter or the Submit button,
+ * both deliberate.
+ *
+ * Three cases, in the order they're checked:
  *
  *  1. **The tile is consumed** (part of a found theme word) — ignored. Those
  *     tiles are spent; a click on one is neither a move nor a mistake, so the
@@ -76,43 +73,38 @@ export type TraceResult = {
  * worse trade than losing a selection that costs one click to rebuild.
  */
 export function clickTile(
-  trace: Trace,
-  at: Coord,
-  consumed: ReadonlySet<string>,
-): TraceResult {
-  if (consumed.has(coordKey(at))) return { trace }
+  trace: readonly GTile[],
+  tile: GTile,
+  consumedTileIds: ReadonlySet<string>,
+): readonly GTile[] {
+  if (consumedTileIds.has(tile.id)) return trace
 
   // No last-tile branch above this: the last tile is found by the same
   // `findIndex` as any other selected tile, and truncates to the prefix
   // before it.
-  const seen = trace.findIndex((c) => coordKey(c) === coordKey(at))
-  if (seen >= 0) return { trace: trace.slice(0, seen) }
+  const seen = trace.findIndex((t) => t.id === tile.id)
+  if (seen >= 0) return trace.slice(0, seen)
 
   const last = trace[trace.length - 1]
-  if (last && adjacent(last, at)) return { trace: [...trace, at] }
+  if (last && touch(last, tile)) return [...trace, tile]
 
-  return { trace: [at] }
-}
-
-/** Abandon the current trace (the Escape / click-away path). */
-export function clearTrace(): TraceResult {
-  return { trace: [] }
+  return [tile]
 }
 
 /**
  * What a typed letter resolved to. Three outcomes, because a keystroke can name
- * a cell, name nothing, or name several:
+ * a tile, name nothing, or name several:
  *
- *  - `extend` — exactly one cell qualified; `at` is it, and the caller appends.
- *  - `none` — no cell qualified. Almost always a player mistake ("there's no D
+ *  - `extend` — exactly one tile qualified; `tile` is it, and the caller appends.
+ *  - `none` — no tile qualified. Almost always a player mistake ("there's no D
  *    next to that letter"), so the caller SAYS so; it is not a silent no-op.
  *  - `ambiguous` — several qualified, and only a click can choose between them.
  *    `candidates` is every one, for the caller to mark on the board.
  */
-export type TypeResult =
-  | { kind: 'extend'; at: Coord }
+type TypeResult =
+  | { kind: 'extend'; tile: GTile }
   | { kind: 'none' }
-  | { kind: 'ambiguous'; candidates: Coord[] }
+  | { kind: 'ambiguous'; candidates: GTile[] }
 
 /**
  * Resolve a typed letter against the board — the keyboard twin of `clickTile`.
@@ -138,31 +130,22 @@ export type TypeResult =
  * one would be a guess at the player's intent.
  */
 export function typeLetter(
-  trace: Trace,
+  trace: readonly GTile[],
   letter: string,
-  board: Board,
-  consumed: ReadonlySet<string>,
+  tiles: readonly GTile[],
+  consumedTileIds: ReadonlySet<string>,
 ): TypeResult {
-  const want = letter.toUpperCase()
+  // The key may come with Shift held; the letters are stored lowercase.
+  const want = letter.toLowerCase()
   const last = trace[trace.length - 1]
-  const inTrace = new Set(trace.map(coordKey))
+  const inTrace = new Set(trace.map((t) => t.id))
 
-  const candidates: Coord[] = []
-  for (let r = 0; r < board.length; r++) {
-    for (let c = 0; c < board[r].length; c++) {
-      const at: Coord = [r, c]
-      const key = coordKey(at)
-      if (consumed.has(key)) continue
-      if (letterAt(board, at).toUpperCase() !== want) continue
-      if (last) {
-        if (inTrace.has(key)) continue
-        if (!adjacent(last, at)) continue
-      }
-      candidates.push(at)
-    }
-  }
+  const candidates = tiles.filter((t) =>
+    !consumedTileIds.has(t.id)
+    && t.letter === want
+    && (!last || (!inTrace.has(t.id) && touch(last, t))))
 
   if (candidates.length === 0) return { kind: 'none' }
-  if (candidates.length === 1) return { kind: 'extend', at: candidates[0] }
+  if (candidates.length === 1) return { kind: 'extend', tile: candidates[0]! }
   return { kind: 'ambiguous', candidates }
 }
