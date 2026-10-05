@@ -832,6 +832,93 @@ pre-common-tables `row.status` / `row.play_state`.
   after a two-move game) is the turns-used figure the state line will read
   from `gd`; step 2's sketch decides where that number comes from.
 
+## The `gd` and `summary_data` sketch — proposed 2026-10-04
+
+Seat-view step 2. Step 6 moves it into `types.ts` as the shape comment, and
+this section goes then.
+
+```
+gd:
+  id
+  gametype
+  brand
+  club: {handle}
+  mode
+  coop
+  compete
+  oneBoard
+  title
+  setup
+  setupRows
+  puzzle:
+    tiles: [{id, word}, …]                 # the 25, by position
+  team
+    nFoundAgents
+    nTurnsUsed
+    suddenDeath
+  turns
+    holder                                 # null in sudden death with words on both sides
+    num                                    # the turn being played, from 1
+    currClue: {word, count, fromAi, by}    # given until the guessing ends; null while it is being written
+  ending: {reason, detail, by, winner}
+  ended
+  outcome
+  events: [event, …]                       # every clue, guess, pass and hint, in order
+  players: [player, …]                     # seat order: A, then B
+  playersById
+  me
+  stateLineData: {nFoundAgents, nAgents, nTurnsUsed, maxTurns, suddenDeath}
+
+player:
+  the common player                        # seat 0 is A, who gives the first clue
+  clueGiver                                # gives this turn's clue
+  allAgentsFound                           # every agent on this player's key is contacted
+  board: {tiles, tilesById}                # what this seat's tiles show
+
+tile:                                      # board.tiles[], in the puzzle's order
+  id                                       # the position, as text
+  word
+  key                                      # G / N / A on this player's key; null for my partner's until the end
+  revealed: [{by, as}, …]                  # every guess that turned it over, in order; as is G / N / A
+  guessable                                # may this player guess it
+
+event:
+  id
+  by
+  kind                                     # clue / guess / pass / hint
+  turnNumber
+  tookTurn
+  at
+  clueWord                                 # a clue's; null otherwise
+  clueCount
+  clueFromAi
+  tileId                                   # a guess's; null otherwise
+  result                                   # G / N / A
+
+summary_data:
+  the common summary
+  team: {nFoundAgents, nTurnsUsed, suddenDeath}
+  maxTurns
+```
+
+The rulings behind it (2026-10-04):
+
+- The key keeps its letters, `G` / `N` / `A` (Joel: "keep gna").
+- `nTurnsUsed` counts the turn the game ended on, when anything was played in
+  it: while playing it is `turn_number − 1`, and once ended it adds the ending
+  turn — "11/11" after an 11-turn win, "2/11" after the assassin on turn 2.
+  This is `todo.md`'s turn-count bug, fixed at the builder.
+- What the pair shares is the team's: Duet's team is fixed — two players,
+  always coop — so "team facts should be in that" (Joel).
+- The turn is `turns`: its number is `turns.num` beside the common
+  `turns.holder`, and this turn's clue is `turns.currClue`, written by the
+  builder. `curr` joins the permitted abbreviations (Joel).
+- A tile's marks are one list, `revealed: [{by, as}]` — what it was revealed
+  as, and to whom. A bystander is a reveal like the others; it only locks the
+  word for the player who turned it over. Leah's bystander on "apple" is
+  `[{by: leah, as: N}]`; mine on the same word after it makes it
+  `[{by: leah, as: N}, {by: me, as: N}]`, out of play for both.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it
