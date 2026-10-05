@@ -125,6 +125,17 @@ hands itself up (`onPick(tile)`). `data-tile` is the id, and the e2e finds
 tiles by it. Every held set of tiles is ids and says so. No shuffle and no
 cursor here, so neither `useTileShuffle` nor `useTileCursor`.
 
+## The InfoCol pass
+
+Step 12 (2026-10-05): one action row, every action listed once in the menu's
+order; each answers whether its BUTTON shows — the hint rungs only while I can
+still play (the menu row grays instead), Reveal and New game once I can't, and
+back-to-club always, filled at the end. The state line is `StateLine`, drawing
+`gd.stateLineData`. Help shows on my move. The strip reads "out" for any racer
+who has ended — which, since only a concede ends a stackdown player, now holds
+after the game ends too, where a conceder's count used to come back. The six
+words' capitals are drawn by CSS.
+
 ## What the PlayArea pass changed that a player can see
 
 Step 9 (2026-10-05), each a consequence of reading `gd` rather than a ruling:

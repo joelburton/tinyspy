@@ -12,3 +12,8 @@
   line-height: 1.6;
   letter-spacing: 0.03em;
 }
+
+/* The six words, as stored (lowercase); their capitals are drawn here. */
+/* @@ */ .revealWords {
+  text-transform: uppercase;
+}

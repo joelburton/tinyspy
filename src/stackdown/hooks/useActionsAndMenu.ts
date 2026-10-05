@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import { useBindAction, type ActionState } from '@/common/actions/useBindAction'
+import { useBindAction, type ActionAsker, type ActionState } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
@@ -54,21 +54,28 @@ export function useActionsAndMenu({
     localFeedbackSlot,
   })
 
-  // The hint ladder's two rungs, in both modes. Grayed rather than dropped once
-  // you can't ask: the menu row is what NAMES those glyphs (docs/ui.md → the
-  // menu is the legend), and a disabled row still teaches the lightbulb and the
-  // bare eye. The labels say which word each acts on, which the icon-only
-  // buttons have no room for.
-  /** Whether a rung of the ladder can be taken now. */
-  function describeRung(): ActionState {
-    return gd.me.stillPlaying ? 'active' : 'disabled'
+  // The hint ladder's two rungs, in both modes. Once you can't ask, the BUTTON
+  // goes — there is no word left for you to find — but the menu row only
+  // grays: it is what NAMES those glyphs (docs/ui.md → the menu is the legend),
+  // and a disabled row still teaches the lightbulb and the bare eye. The labels
+  // say which word each acts on, which the icon-only buttons have no room for.
+  /** Whether a rung of the ladder can be taken now, for whoever is asking. */
+  function describeRung(asker: ActionAsker): ActionState {
+    if (gd.me.stillPlaying) return 'active'
+    return asker === 'button' ? 'hidden' : 'disabled'
   }
   const actHint = useBindAction('act-hint', {
-    describe: () => ({ state: describeRung(), label: 'Hint for next word' }),
+    describe: (asker) => {
+      const state = describeRung(asker)
+      return state === 'hidden' ? state : { state, label: 'Hint for next word' }
+    },
     run: () => askForHintOrSpoiler(gd, localFeedbackSlot, 'hint'),
   })
   const actSpoiler = useBindAction('act-spoiler', {
-    describe: () => ({ state: describeRung(), label: 'Cheat for next word' }),
+    describe: (asker) => {
+      const state = describeRung(asker)
+      return state === 'hidden' ? state : { state, label: 'Cheat for next word' }
+    },
     run: () => askForHintOrSpoiler(gd, localFeedbackSlot, 'spoiler'),
   })
 
@@ -88,8 +95,14 @@ export function useActionsAndMenu({
     impliedBySolve,
   } = useSolutionReveal({ impliedBy: gd.me.solved })
   const actReveal = useBindAction('act-reveal', {
-    describe: () =>
-      describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal: gd.ended }),
+    describe: (asker) => {
+      // No BUTTON while you can still play. The menu row keeps it all game,
+      // grayed, because it NAMES the glyph; a conceder keeps the button, inert
+      // until the race is over for everyone, so the row doesn't change shape
+      // when the last racer finishes.
+      if (gd.me.stillPlaying && asker === 'button') return 'hidden'
+      return describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal: gd.ended })
+    },
     run: toggleSolution,
   })
 
@@ -127,7 +140,8 @@ export function useActionsAndMenu({
   // board.
   const actNewGame = useBindAction('act-new-game', {
     terminal: gd.ended,
-    describe: () => 'active',
+    // Reachable all game from the menu and `+`, but a BUTTON only at the end.
+    describe: (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
@@ -171,7 +185,8 @@ export function useActionsAndMenu({
         exits: [actConcede, actStopGame],
         extra: [
           { items: [actHint, actSpoiler] },
-          { items: [actRestart, actNewGame, actReveal] },
+          // The same three the action row offers after its bar, in its order.
+          { items: [actReveal, actRestart, actNewGame] },
           { items: [actPrintBoard] },
         ],
       }),

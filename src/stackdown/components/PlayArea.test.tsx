@@ -175,6 +175,37 @@ describe('stackdown PlayArea — concede', () => {
   })
 })
 
+describe('stackdown PlayArea — one action row, each action answering for itself', () => {
+  /** The actions the info column's row draws, by id. */
+  const rowButtons = () =>
+    [...document.querySelectorAll('button[data-action]')].map((b) => b.getAttribute('data-action'))
+
+  it('mid-game: the hint ladder and the exits, none of the end\'s buttons', () => {
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(rowButtons()).toEqual(
+      expect.arrayContaining(['act-hint', 'act-spoiler', 'act-stop-game', 'act-back-to-club']))
+    expect(rowButtons()).not.toContain('act-reveal')
+    expect(rowButtons()).not.toContain('act-restart')
+    expect(rowButtons()).not.toContain('act-new-game')
+  })
+
+  it('at the end: the end\'s buttons, and no hint left to take', () => {
+    render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
+    expect(rowButtons()).toEqual(
+      expect.arrayContaining(['act-reveal', 'act-restart', 'act-new-game', 'act-back-to-club']))
+    expect(rowButtons()).not.toContain('act-hint')
+    expect(rowButtons()).not.toContain('act-spoiler')
+  })
+
+  it('out of a race still running: Reveal waits, inert, and the cheats are gone', () => {
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />)
+    expect(rowButtons()).toEqual(
+      expect.arrayContaining(['act-reveal', 'act-stop-game', 'act-back-to-club']))
+    expect(rowButtons()).not.toContain('act-hint')
+    expect(document.querySelector('button[data-action="act-reveal"]')).toBeDisabled()
+  })
+})
+
 describe('stackdown PlayArea — hint', () => {
   it('surfaces the clue when the next word has a hint', async () => {
     const user = userEvent.setup()
@@ -298,7 +329,7 @@ describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
 describe('stackdown PlayArea — the solution reveal', () => {
   it('hides the words at an ending NOBODY cleared', () => {
     render(<PlayAreaLoader {...makeCtx(STOPPED)} />)
-    expect(screen.queryByText(/EAGLE/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/eagle/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
@@ -312,7 +343,7 @@ describe('stackdown PlayArea — the solution reveal', () => {
         })}
       />,
     )
-    expect(screen.getByText(/EAGLE/)).toBeInTheDocument()
+    expect(screen.getByText(/eagle/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
 
@@ -321,7 +352,7 @@ describe('stackdown PlayArea — the solution reveal', () => {
     render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
-    expect(screen.getByText(/EAGLE/)).toBeInTheDocument()
+    expect(screen.getByText(/eagle/)).toBeInTheDocument()
     // The absent RPC is the assertion: no peer's board opened.
     expect(rpc).not.toHaveBeenCalled()
   })
@@ -332,7 +363,7 @@ describe('stackdown PlayArea — the solution reveal', () => {
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     await user.click(screen.getByRole('button', { name: 'Hide solution' }))
-    expect(screen.queryByText(/EAGLE/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/eagle/)).not.toBeInTheDocument()
   })
 
   it('the menu twin is the same toggle and flips its label along with it', async () => {
@@ -341,7 +372,7 @@ describe('stackdown PlayArea — the solution reveal', () => {
 
     expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
     act(() => menuItems(ctx).get('act-reveal')!.run())
-    expect(screen.getByText(/EAGLE/)).toBeInTheDocument()
+    expect(screen.getByText(/eagle/)).toBeInTheDocument()
     await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide solution'))
   })
 
@@ -358,14 +389,14 @@ describe('stackdown PlayArea — the solution reveal', () => {
     const { rerender } = render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
-    expect(screen.getByText(/EAGLE/)).toBeInTheDocument()
+    expect(screen.getByText(/eagle/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Restart' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
     // The same stack and the same six words — and nothing on the server
     // remembers the reveal, so the re-hide is local and explicit.
     rerender(<PlayAreaLoader {...makeCtx()} />)
-    expect(screen.queryByText(/EAGLE/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/eagle/)).not.toBeInTheDocument()
   })
 })
 
