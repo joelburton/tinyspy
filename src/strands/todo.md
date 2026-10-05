@@ -2,11 +2,6 @@
 
 ## Bugs
 
-- `HintBar.tsx` reads `styles.hint` and the module defines only
-  `.hintReady`, so the Hint button's base class resolves to `undefined` and
-  `cls()` drops it. Found by `cssClasses.test.ts`, whose `MEMBER_PENDING`
-  holds it until then.
-
 ## Soon
 
 - **"Theme word" means two different things; pick one and say it

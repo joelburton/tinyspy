@@ -29,7 +29,7 @@
 
 import { readFile } from 'node:fs/promises'
 import { createClient } from '@supabase/supabase-js'
-import { rowAsFeed, validatePuzzle, type Coord, type PuzzleRow } from './lib/strandsPuzzle'
+import { rowAsFeed, validatePuzzle, type GCoord, type PuzzleRow } from './lib/strandsPuzzle'
 
 const ARCHIVE = 'supabase/data/strands-puzzles.jsonl'
 
@@ -45,7 +45,7 @@ const SUPABASE_SERVICE_ROLE_KEY =
  * the validator above reads it exactly as fetched.
  */
 function toDbRow(r: PuzzleRow) {
-  const lowerWord = (w: { word: string; coords: Coord[] }) => ({ ...w, word: w.word.toLowerCase() })
+  const lowerWord = (w: { word: string; coords: GCoord[] }) => ({ ...w, word: w.word.toLowerCase() })
   return {
     source_id: r.source_id,
     puzzle_date: r.puzzle_date,

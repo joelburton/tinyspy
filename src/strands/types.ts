@@ -23,6 +23,13 @@ import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
 import type { SetupOf, SetupRow } from '@/common/setup-form/types'
 
 /**
+ * A board cell, `[row, col]`, 0-based — the shape the feed, the stored
+ * solutions and `submit_path`'s path all speak. The frontend holds tiles; a
+ * cell is what a tile turns into at the RPC seam, and what the importer reads.
+ */
+export type GCoord = [row: number, col: number]
+
+/**
  * One letter of the board: its place as its id ("r,c", the key the server's
  * `_path_key` compares by), the letter on it, and its row and column, 0-based.
  */

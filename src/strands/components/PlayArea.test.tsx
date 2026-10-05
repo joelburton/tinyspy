@@ -122,7 +122,7 @@ beforeEach(() => {
 describe('strands PlayArea — the three phases', () => {
   it('renders the 48-cell board and the theme prompt while playing', () => {
     render(<PlayAreaLoader {...makeCtx()} />)
-    expect(document.querySelectorAll('[data-cell]')).toHaveLength(48)
+    expect(document.querySelectorAll('[data-tile]')).toHaveLength(48)
     // The prompt is shown from the first second — never a spoiler. (Twice
     // over: the below-board pill and the info column's own line.)
     expect(screen.getAllByText(/Rows of nonsense/).length).toBeGreaterThan(0)
@@ -461,12 +461,12 @@ describe('strands PlayArea — the selection cursor', () => {
   }
   /** The traced cells, in board order. */
   const traced = () =>
-    [...document.querySelectorAll('[data-cell]')]
+    [...document.querySelectorAll('[data-tile]')]
       .filter((b) => /tileTrace/.test(b.className))
-      .map((b) => b.getAttribute('data-cell'))
+      .map((b) => b.getAttribute('data-tile'))
   /** Where the trace ends. */
   const traceEnd = () =>
-    [...document.querySelectorAll('[data-cell]')].find((b) => /tileLast/.test(b.className))?.getAttribute('data-cell') ?? null
+    [...document.querySelectorAll('[data-tile]')].find((b) => /tileLast/.test(b.className))?.getAttribute('data-tile') ?? null
   const key = (k: string) => press({ key: k })
   const keys = async (...ks: string[]) => {
     for (const k of ks) await key(k)
@@ -541,7 +541,7 @@ describe('strands PlayArea — the selection cursor', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await key('ArrowRight')
-    await user.click(document.querySelector('[data-cell="2,3"]')!)
+    await user.click(document.querySelector('[data-tile="2,3"]')!)
     expect(traced()).toEqual(['2,3'])
     expect(ringAt()).toBeNull()
 

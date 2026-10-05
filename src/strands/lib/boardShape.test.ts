@@ -2,7 +2,8 @@
 
 import { describe, expect, it } from 'vitest'
 import { ZTest_cellsOf, ZTest_unreachableFrom } from '@/common/board-cursor/reachability.fixture'
-import { BOARD_SHAPE, cellAt, coordAt } from './boardShape'
+import { ZTest_makeTiles } from './gameData.fixture'
+import { BOARD_SHAPE, cellOf, tileIdAt } from './boardShape'
 
 describe('BOARD_SHAPE', () => {
   it('is six across and eight down, a cell for each of the 48 letters', () => {
@@ -10,11 +11,12 @@ describe('BOARD_SHAPE', () => {
     expect(ZTest_cellsOf(BOARD_SHAPE)).toHaveLength(48)
   })
 
-  // The board names a cell [row, col]; the cursor names it { x, y }.
-  it('converts a board coordinate to a cursor cell and back', () => {
-    expect(cellAt([2, 5])).toEqual({ x: 5, y: 2 })
-    expect(coordAt({ x: 5, y: 2 })).toEqual([2, 5])
-    for (const cell of ZTest_cellsOf(BOARD_SHAPE)) expect(cellAt(coordAt(cell))).toEqual(cell)
+  // A tile names its place "r,c"; the cursor names it { x, y }.
+  it('turns a tile into its cursor cell, and a cell into its tile\'s id', () => {
+    const tiles = ZTest_makeTiles()
+    expect(cellOf(tiles.find((t) => t.id === '2,5')!)).toEqual({ x: 5, y: 2 })
+    expect(tileIdAt({ x: 5, y: 2 })).toBe('2,5')
+    for (const t of tiles) expect(tileIdAt(cellOf(t))).toBe(t.id)
   })
 
   // The reachability invariant: the keyboard cursor can get from every letter to

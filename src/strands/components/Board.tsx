@@ -1,44 +1,31 @@
 // cs-unmet
 
-import { COLS, ROWS, coordKey, letterAt, type Board as BoardLetters, type Coord } from '../lib/board'
+import { COLS, ROWS } from '../lib/board'
 import { cls } from '@/common/utils/cls'
 import type { Cell } from '@/common/board-cursor/stepCell'
+import type { GBoard, GTile, GWord } from '../types'
+import { Tile } from './Tile'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
-/** A found word, as the board needs it: where it runs, and which color. */
-export type FoundPath = { path: Coord[]; isSpangram: boolean }
+/** What the board marks that its words don't say, by tile id. */
+type BoardMarks = {
+  // The tiles a viewed past turn traced, ringed — so a rejected word's route
+  // is visible even though it changed nothing. Empty while live.
+  litTileIds: ReadonlySet<string>
+  // The tiles a typed letter matched when it matched MORE THAN ONE — ringed
+  // red for a beat, meaning "several of these; click the one you meant".
+  ambiguousTileIds: ReadonlySet<string>
+}
 
-type Props = {
-  board: BoardLetters
-  // Found theme words + the spangram. These PERSIST — discs and lines both.
-  found: FoundPath[]
-  // The trace being built right now, in click order.
-  trace: readonly Coord[]
-  // Words NOBODY found, drawn only once the solution is revealed: gray, so the
-  // post-game board shows what was missed without competing with what was
-  // found. Empty during play.
-  missed?: Coord[][]
-  // A spent hint's cells: ringed, and deliberately NOT connected — the player
-  // still has to work out the order. Null when no hint is showing.
-  hintCoords: Coord[] | null
-  // Tile click. The reducer decides what it means; the board just reports it.
-  onTileClick: (at: Coord) => void
-  // The keyboard's selection cursor — the cell to ring in the cursor blue — or
-  // null when it is not drawn (see `useBoardSelectionCursor`).
-  cursor?: Cell | null
-  // Frozen at terminal (and while a peer's turn is pending in a turn game).
-  disabled?: boolean
-  // Replaying a past turn: the board wears the shared history frame.
-  isViewingHistory?: boolean
-  // The cells the viewed turn traced — ringed, so a rejected word's route is
-  // visible even though it changed nothing.
-  historyLitTiles?: Coord[]
-  // Cells a typed letter matched when it matched MORE THAN ONE — ringed red for
-  // a beat, meaning "several of these; click the one you meant". Empty at rest;
-  // the flash timer lives in the column that feeds this.
-  ambiguous?: Coord[]
+/** A tile's center in the drawing layer's cell units. */
+const cx = (t: GTile) => t.col + 0.5
+const cy = (t: GTile) => t.row + 0.5
+
+/** A path as an SVG `points` list, through each tile's center. */
+function makePoints(tiles: readonly GTile[]): string {
+  return tiles.map((t) => `${cx(t)},${cy(t)}`).join(' ')
 }
 
 /**
@@ -47,7 +34,7 @@ type Props = {
  * **Bare letters, no tiles.** A deliberate departure from the tile-and-warm-ramp
  * vocabulary the other grid games share (ui.md → Interactive tile states):
  * waffle, wordle and boggle all draw boxes, and strands draws none. A disc only
- * exists once a cell is selected or found, so the resting board is a field of
+ * exists once a tile is traced or found, so the resting board is a field of
  * letters. "Tile" remains the word for a cell (naming.md — "any selectable thing
  * on a board"); it just declines the border.
  *
@@ -56,41 +43,55 @@ type Props = {
  * carries every theme word's polyline plus the live trace — so this is a real
  * drawing layer, not a decoration. Discs are drawn in the same SVG as the lines
  * rather than as DOM elements, which is what guarantees a line always passes
- * UNDER its discs and both stay centered on the cell at any board size.
+ * UNDER its discs and both stay centered on the tile at any board size.
  *
- * The SVG works in **cell units** (`viewBox="0 0 6 8"`), so a cell center is
+ * The SVG works in **cell units** (`viewBox="0 0 6 8"`), so a tile's center is
  * exactly `(col + 0.5, row + 0.5)` and every radius/width below is a fraction of
  * a cell. No pixel maths, no resize observer: the board scales with its box and
  * the geometry follows for free.
+ *
+ * Board decides which marks each letter wears; the letter itself is a `<Tile>`.
  */
 export function Board({
+  tiles,
   board,
-  found,
-  missed = [],
-  trace,
-  hintCoords,
-  onTileClick,
-  cursor = null,
-  disabled,
+  missedWords,
+  traceTiles,
+  marks,
+  cursor,
+  isDisabled,
   isViewingHistory,
-  historyLitTiles = [],
-  ambiguous = [],
-}: Props) {
-  const traceKeys = new Set(trace.map(coordKey))
-  const lastKey = trace.length ? coordKey(trace[trace.length - 1]) : null
-  const hintKeys = new Set((hintCoords ?? []).map(coordKey))
-
-  const foundKind = new Map<string, 'theme' | 'spangram'>()
-  for (const f of found) {
-    for (const c of f.path) foundKind.set(coordKey(c), f.isSpangram ? 'spangram' : 'theme')
+  onPick,
+}: {
+  // All 48, row by row.
+  tiles: GTile[]
+  // The board to show: its found words — which PERSIST, discs and lines both —
+  // and its ringed hint, drawn as rings and deliberately NOT connected: the
+  // player still has to work out the order.
+  board: GBoard
+  // Words NOBODY found, drawn only while the solution is shown: gray, so the
+  // ended board shows what was missed without competing with what was found.
+  missedWords: GWord[]
+  // The trace being built right now, in pick order.
+  traceTiles: GTile[]
+  marks: BoardMarks
+  // The keyboard's selection cursor — the cell to ring in the cursor blue — or
+  // null when it is not drawn (see `useBoardSelectionCursor`).
+  cursor: Cell | null
+  // The letters take no clicks.
+  isDisabled: boolean
+  // Replaying a past turn: the board wears the shared history frame.
+  isViewingHistory: boolean
+  onPick: (tile: GTile) => void
+}) {
+  const lastTile = traceTiles[traceTiles.length - 1]
+  const tracedIds = new Set(traceTiles.map((t) => t.id))
+  const hintIds = new Set((board.hintTiles ?? []).map((t) => t.id))
+  const missedIds = new Set(missedWords.flatMap((w) => w.tiles.map((t) => t.id)))
+  const foundKinds = new Map<string, 'theme' | 'spangram'>()
+  for (const w of board.words) {
+    for (const t of w.tiles) foundKinds.set(t.id, w.spangram ? 'spangram' : 'theme')
   }
-  const missedKeys = new Set(missed.flat().map(coordKey))
-
-  /** Cell center in viewBox units. */
-  const cx = (c: number) => c + 0.5
-  const cy = (r: number) => r + 0.5
-  const points = (path: readonly Coord[]) =>
-    path.map(([r, c]) => `${cx(c)},${cy(r)}`).join(' ')
 
   return (
     <div className={cls(shared.boardSeal, styles.board, isViewingHistory && history.historyFrame)} data-board>
@@ -103,100 +104,70 @@ export function Board({
         aria-hidden="true"
       >
         {/* Missed words first, so a found path always draws over them. */}
-        {missed.map((path) => (
+        {missedWords.map((w) => (
           <polyline
-            key={`m${coordKey(path[0])}`}
+            key={`m${w.tiles[0]!.id}`}
             className={cls(styles.line, styles.lineMissed)}
-            points={points(path)}
+            points={makePoints(w.tiles)}
           />
         ))}
-        {found.map((f) => (
+        {board.words.map((w) => (
           <polyline
-            key={coordKey(f.path[0])}
-            className={cls(styles.line, f.isSpangram ? styles.lineSpangram : styles.lineTheme)}
-            points={points(f.path)}
+            key={w.tiles[0]!.id}
+            className={cls(styles.line, w.spangram ? styles.lineSpangram : styles.lineTheme)}
+            points={makePoints(w.tiles)}
           />
         ))}
-        {trace.length > 1 && (
-          <polyline className={cls(styles.line, styles.lineTrace)} points={points(trace)} />
+        {traceTiles.length > 1 && (
+          <polyline className={cls(styles.line, styles.lineTrace)} points={makePoints(traceTiles)} />
         )}
 
-        {missed.flat().map((c) => (
-          <circle key={`md${coordKey(c)}`} className={styles.discMissed} cx={cx(c[1])} cy={cy(c[0])} r={0.38} />
+        {missedWords.flatMap((w) => w.tiles).map((t) => (
+          <circle key={`md${t.id}`} className={styles.discMissed} cx={cx(t)} cy={cy(t)} r={0.38} />
         ))}
-        {found.map((f) =>
-          f.path.map((c) => (
+        {board.words.map((w) =>
+          w.tiles.map((t) => (
             <circle
-              key={`f${coordKey(c)}`}
-              className={f.isSpangram ? styles.discSpangram : styles.discTheme}
-              cx={cx(c[1])}
-              cy={cy(c[0])}
+              key={`f${t.id}`}
+              className={w.spangram ? styles.discSpangram : styles.discTheme}
+              cx={cx(t)}
+              cy={cy(t)}
               r={0.38}
             />
           )),
         )}
-        {trace.map((c) => (
-          <circle
-            key={`t${coordKey(c)}`}
-            className={styles.discTrace}
-            cx={cx(c[1])}
-            cy={cy(c[0])}
-            r={0.38}
-          />
+        {traceTiles.map((t) => (
+          <circle key={`t${t.id}`} className={styles.discTrace} cx={cx(t)} cy={cy(t)} r={0.38} />
         ))}
 
         {/* The most recent tile wears a second ring: it marks where the trace
             currently ENDS, which is what tells you which neighbors are live and
             what Backspace will take. "You are here" is all it says: re-clicking
-            it takes the letter back, like any other selected tile. */}
-        {trace.length > 0 && (
-          <circle
-            className={styles.ringLast}
-            cx={cx(trace[trace.length - 1][1])}
-            cy={cy(trace[trace.length - 1][0])}
-            r={0.47}
-          />
+            it takes the letter back, like any other traced tile. */}
+        {lastTile && (
+          <circle className={styles.ringLast} cx={cx(lastTile)} cy={cy(lastTile)} r={0.47} />
         )}
 
         {/* The viewed turn's route. Same ring vocabulary as a hint — "these
-            cells, no claim about order" — in the history blue. */}
-        {historyLitTiles.map((c) => (
-          <circle
-            key={`v${coordKey(c)}`}
-            className={styles.ringHistory}
-            cx={cx(c[1])}
-            cy={cy(c[0])}
-            r={0.44}
-          />
+            tiles, no claim about order" — in the history blue. */}
+        {tiles.filter((t) => marks.litTileIds.has(t.id)).map((t) => (
+          <circle key={`v${t.id}`} className={styles.ringHistory} cx={cx(t)} cy={cy(t)} r={0.44} />
         ))}
 
-        {/* A hint rings its cells and draws NO line — the reveal says where the
+        {/* A hint rings its tiles and draws NO line — the reveal says where the
             word is, never what order it runs in. */}
-        {(hintCoords ?? []).map((c) => (
-          <circle
-            key={`h${coordKey(c)}`}
-            className={styles.ringHint}
-            cx={cx(c[1])}
-            cy={cy(c[0])}
-            r={0.42}
-          />
+        {(board.hintTiles ?? []).map((t) => (
+          <circle key={`h${t.id}`} className={styles.ringHint} cx={cx(t)} cy={cy(t)} r={0.42} />
         ))}
 
-        {/* A typed letter that matched SEVERAL cells: ring them all, red, for a
-            beat. A ring rather than a box because this board has no boxes — the
-            deliberate absence of tile borders is the point of its look (see the
-            module header), and rings are already its vocabulary for "this cell,
-            no claim about order" (hints, the viewed turn). Red because it's the
-            one thing on this board that means "your input didn't land". Drawn
-            LAST so it sits over a hint ring on the same cell. */}
-        {ambiguous.map((c) => (
-          <circle
-            key={`a${coordKey(c)}`}
-            className={styles.ringAmbiguous}
-            cx={cx(c[1])}
-            cy={cy(c[0])}
-            r={0.44}
-          />
+        {/* A typed letter that matched SEVERAL tiles: ring them all, red, for a
+            beat. A ring rather than a box because this board has no boxes, and
+            rings are already its vocabulary for "this tile, no claim about
+            order". Red because it's the one thing on this board that means
+            "your input didn't land". Drawn LAST so it sits over a hint ring on
+            the same tile. */}
+        {tiles.filter((t) => marks.ambiguousTileIds.has(t.id)).map((t) => (
+          <circle key={`a${t.id}`} className={styles.ringAmbiguous} cx={cx(t)} cy={cy(t)} r={0.44} />
         ))}
 
         {/* The keyboard's selection cursor: where the arrows are pointing. The
@@ -204,44 +175,27 @@ export function Board({
             rings, and at the cell's edge — outside every other ring — so it and
             the trace's end both show on the same letter. */}
         {cursor !== null && (
-          <circle
-            className={styles.ringCursor}
-            cx={cx(cursor.x)}
-            cy={cy(cursor.y)}
-            r={0.52}
-          />
+          <circle className={styles.ringCursor} cx={cursor.x + 0.5} cy={cursor.y + 0.5} r={0.52} />
         )}
       </svg>
 
       {/* The letters, on top and click-bearing. */}
       <div className={styles.grid}>
-        {Array.from({ length: ROWS }, (_, r) =>
-          Array.from({ length: COLS }, (_, c) => {
-            const key = coordKey([r, c])
-            const kind = foundKind.get(key)
-            return (
-              <button
-                key={key}
-                type="button"
-                className={cls(
-                  styles.tile,
-                  kind === 'spangram' && styles.tileSpangram,
-                  kind === 'theme' && styles.tileTheme,
-                  traceKeys.has(key) && styles.tileTrace,
-                  key === lastKey && styles.tileLast,
-                  missedKeys.has(key) && styles.tileMissed,
-                  hintKeys.has(key) && styles.tileHinted,
-                )}
-                onClick={() => onTileClick([r, c])}
-                disabled={disabled}
-                data-cell={key}
-                aria-label={letterAt(board, [r, c])}
-              >
-                {letterAt(board, [r, c])}
-              </button>
-            )
-          }),
-        )}
+        {tiles.map((t) => (
+          <Tile
+            key={t.id}
+            tile={t}
+            marks={{
+              found: foundKinds.get(t.id) ?? null,
+              isTraced: tracedIds.has(t.id),
+              isLast: t.id === lastTile?.id,
+              isMissed: missedIds.has(t.id),
+              isHinted: hintIds.has(t.id),
+            }}
+            isDisabled={isDisabled}
+            onPick={onPick}
+          />
+        ))}
       </div>
     </div>
   )

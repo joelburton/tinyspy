@@ -27,11 +27,11 @@ import { actionButton } from './helpers/actions'
 
 /** Click a run of cells, then submit by pressing Enter. */
 async function trace(page: Page, coords: Array<[number, number]>) {
-  for (const [r, c] of coords) await page.locator(`[data-cell="${r},${c}"]`).click()
+  for (const [r, c] of coords) await page.locator(`[data-tile="${r},${c}"]`).click()
   await page.keyboard.press('Enter')
 }
 
-const cell = (page: Page, [r, c]: [number, number]) => page.locator(`[data-cell="${r},${c}"]`)
+const cell = (page: Page, [r, c]: [number, number]) => page.locator(`[data-tile="${r},${c}"]`)
 
 test.describe('strands play loop', () => {
   test('trace a theme word and the spangram; wrong words are logged, not lost', async ({ browser }) => {

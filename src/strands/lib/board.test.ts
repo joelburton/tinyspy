@@ -10,15 +10,15 @@ import {
   isValidPath,
   samePath,
   wordFromPath,
-  type Coord,
 } from './board'
+import type { GCoord } from '../types'
 import { FIXTURES } from './oracle.fixture'
 
 const BOARD = FIXTURES[0].board
 
 describe('adjacent', () => {
   it('accepts all eight neighbors', () => {
-    const around: Coord[] = [
+    const around: GCoord[] = [
       [2, 2], [2, 3], [2, 4],
       [3, 2], /*  */ [3, 4],
       [4, 2], [4, 3], [4, 4],
@@ -46,13 +46,13 @@ describe('adjacent', () => {
 
 describe('inBounds', () => {
   it('accepts the corners of an 8×6 board', () => {
-    for (const c of [[0, 0], [0, 5], [7, 0], [7, 5]] as Coord[]) expect(inBounds(c)).toBe(true)
+    for (const c of [[0, 0], [0, 5], [7, 0], [7, 5]] as GCoord[]) expect(inBounds(c)).toBe(true)
   })
 
   it('rejects off-board and non-integer coords', () => {
     // [3,7] is the shape a [row,col] → [col,row] flip produces, which is
     // exactly how the importer catches a feed change.
-    for (const c of [[-1, 0], [8, 0], [0, 6], [3, 7], [1.5, 2]] as Coord[]) {
+    for (const c of [[-1, 0], [8, 0], [0, 6], [3, 7], [1.5, 2]] as GCoord[]) {
       expect(inBounds(c)).toBe(false)
     }
   })
@@ -70,7 +70,7 @@ describe('wordFromPath', () => {
 })
 
 describe('isValidPath', () => {
-  const P: Coord[] = [[0, 0], [0, 1], [1, 2]]
+  const P: GCoord[] = [[0, 0], [0, 1], [1, 2]]
 
   it('accepts a contiguous non-repeating path, diagonals included', () => {
     expect(isValidPath(P)).toBe(true)
@@ -101,7 +101,7 @@ describe('isValidPath', () => {
 
 describe('samePath', () => {
   it('is order-sensitive — a reversed trace is a different path', () => {
-    const a: Coord[] = [[0, 0], [0, 1]]
+    const a: GCoord[] = [[0, 0], [0, 1]]
     expect(samePath(a, [[0, 0], [0, 1]])).toBe(true)
     expect(samePath(a, [[0, 1], [0, 0]])).toBe(false)
     expect(samePath(a, [[0, 0]])).toBe(false)

@@ -25,7 +25,7 @@ test.describe('strands — print board', () => {
 
     // Find one word first, so the renderer draws a path rather than a bare grid.
     const theme = game.words.find((w) => !w.isSpangram)!
-    for (const [r, c] of theme.coords) await page.locator(`[data-cell="${r},${c}"]`).click()
+    for (const [r, c] of theme.coords) await page.locator(`[data-tile="${r},${c}"]`).click()
     await page.keyboard.press('Enter')
     await expect(page.getByText(`${theme.word} — theme`)).toBeVisible({ timeout: 10_000 })
 

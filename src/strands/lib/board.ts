@@ -16,13 +16,10 @@
  * uses that order, so there is one convention and no adapters.
  */
 
-import type { GTile } from '../types'
-
-/** A board cell, `[row, col]`, 0-based. */
-export type Coord = [row: number, col: number]
+import type { GCoord, GTile } from '../types'
 
 /** The board: 8 strings of 6 letters, one per row, as the feed ships them. */
-export type Board = readonly string[]
+type Board = readonly string[]
 
 export const ROWS = 8
 export const COLS = 6
@@ -37,20 +34,20 @@ export const CELLS = ROWS * COLS
  * rule would reject most genuine answers rather than a few exotic ones. The
  * oracle test replays NYT's own word lists through it.
  */
-export function adjacent([r1, c1]: Coord, [r2, c2]: Coord): boolean {
+export function adjacent([r1, c1]: GCoord, [r2, c2]: GCoord): boolean {
   const dr = Math.abs(r1 - r2)
   const dc = Math.abs(c1 - c2)
   return (dr | dc) !== 0 && dr <= 1 && dc <= 1
 }
 
 /** Is this coordinate on the board? */
-export function inBounds([r, c]: Coord): boolean {
+export function inBounds([r, c]: GCoord): boolean {
   return Number.isInteger(r) && Number.isInteger(c) && r >= 0 && r < ROWS && c >= 0 && c < COLS
 }
 
 /** The letter at a cell. Callers hold in-bounds coords (the tracer only ever
  *  produces them); an out-of-bounds read is a bug, not a case to handle. */
-export function letterAt(board: Board, [r, c]: Coord): string {
+export function letterAt(board: Board, [r, c]: GCoord): string {
   return board[r][c]
 }
 
@@ -59,28 +56,22 @@ export function letterAt(board: Board, [r, c]: Coord): string {
  * than `r * COLS + c` so a key is readable in a debugger and in test failure
  * output — the board is 48 cells, so the packing saves nothing that matters.
  */
-export function coordKey([r, c]: Coord): string {
+export function coordKey([r, c]: GCoord): string {
   return `${r},${c}`
 }
 
 /** A tile's cell. */
-export function coordOf(tile: GTile): Coord {
+export function coordOf(tile: GTile): GCoord {
   return [tile.row, tile.col]
 }
 
-/** The board's rows of letters, read off its tiles (which come row by row). */
-export function makeLetterRows(tiles: readonly GTile[]): string[] {
-  return Array.from({ length: ROWS }, (_, r) =>
-    tiles.slice(r * COLS, (r + 1) * COLS).map((t) => t.letter).join(''))
-}
-
 /** The word a path spells. */
-export function wordFromPath(board: Board, path: readonly Coord[]): string {
+export function wordFromPath(board: Board, path: readonly GCoord[]): string {
   return path.map((c) => letterAt(board, c)).join('')
 }
 
 /** Do two paths visit the same cells in the same order? */
-export function samePath(a: readonly Coord[], b: readonly Coord[]): boolean {
+export function samePath(a: readonly GCoord[], b: readonly GCoord[]): boolean {
   return a.length === b.length && a.every(([r, c], i) => r === b[i][0] && c === b[i][1])
 }
 
@@ -95,7 +86,7 @@ export function samePath(a: readonly Coord[], b: readonly Coord[]): boolean {
  * A single cell is structurally valid (it is trivially contiguous); length
  * rules belong to acceptance, not to shape.
  */
-export function isValidPath(path: readonly Coord[]): boolean {
+export function isValidPath(path: readonly GCoord[]): boolean {
   if (path.length === 0) return false
   const seen = new Set<string>()
   for (const [i, cell] of path.entries()) {
@@ -117,7 +108,7 @@ export function isValidPath(path: readonly Coord[]): boolean {
  * statement as "every theme word found", and the shrinking pool of free cells
  * is what makes hint words scarcer as a game progresses.
  */
-export function consumedCells(found: ReadonlyArray<{ path: readonly Coord[] }>): Set<string> {
+export function consumedCells(found: ReadonlyArray<{ path: readonly GCoord[] }>): Set<string> {
   const out = new Set<string>()
   for (const f of found) for (const cell of f.path) out.add(coordKey(cell))
   return out

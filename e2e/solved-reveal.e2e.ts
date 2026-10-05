@@ -110,7 +110,7 @@ test('strands: a coop win names the words unasked', async ({ browser }) => {
   // Trace every hidden word — the theme words and the spangram tile the board
   // exactly, so finding them all IS the win.
   for (const w of game.words) {
-    for (const [r, c] of w.coords) await page.locator(`[data-cell="${r},${c}"]`).click()
+    for (const [r, c] of w.coords) await page.locator(`[data-tile="${r},${c}"]`).click()
     await page.keyboard.press('Enter')
     await page.waitForTimeout(120)
   }

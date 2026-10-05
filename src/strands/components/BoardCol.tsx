@@ -1,6 +1,6 @@
 // cs-fixed-outcome-fix
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
@@ -18,8 +18,8 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import { answerMessage } from '../lib/answer'
-import { coordKey, coordOf, makeLetterRows, type Coord } from '../lib/board'
-import { BOARD_SHAPE, cellAt, coordAt } from '../lib/boardShape'
+import { coordOf } from '../lib/board'
+import { BOARD_SHAPE, cellOf, tileIdAt } from '../lib/boardShape'
 import { hintShortfallText } from '../lib/hintCopy'
 import { typeLetter } from '../lib/trace'
 import { useTrace } from '../hooks/useTrace'
@@ -30,20 +30,18 @@ import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './BoardCol.module.css'
 
-/** No tiles — the resting value of the ambiguous-letter mark, reused so a
- *  render without one passes a stable empty list. */
+/** No tiles — the resting value of the ambiguous-letter mark and of a past
+ *  turn's trace, reused so a render passes a stable empty list. */
 const NO_TILES: GTile[] = []
+
+/** No tile ids — the live board's lit tiles, for the same identity reason. */
+const NO_TILE_IDS: ReadonlySet<string> = new Set()
 
 /** What `submit_path` answers: the verdict, and my hint bar after the move. */
 type SubmitAnswer = { result: GResult; hint_points: number }
 
 /** What `spend_hint` answers: one `ok`, and the ring lands with the blobs. */
 type HintAnswer = { result: 'hinted' }
-
-/** A word as the coordinate-based `<Board>` draws it. */
-function toFoundPath(w: GWord) {
-  return { path: w.tiles.map(coordOf), isSpangram: w.spangram }
-}
 
 /**
  * strands' board column: the grid, the word-entry-row / pill slot, and the
@@ -105,7 +103,7 @@ export function BoardCol({
     describe: () => (canSubmit ? 'active' : 'disabled'),
     run: () => {
       // The cursor goes to the word's last letter, and hides.
-      setCursorTo(cellAt(coordOf(trace.tiles[trace.tiles.length - 1]!)))
+      setCursorTo(cellOf(trace.tiles[trace.tiles.length - 1]!))
       return submitTrace(trace.tiles)
     },
   })
@@ -180,14 +178,14 @@ export function BoardCol({
   const { cell: cursor, setTo: setCursorTo } = useBoardSelectionCursor({
     shape: BOARD_SHAPE,
     enabled: canPick,
-    onToggle: (cell) => pickTile(gd.puzzle.tilesById[coordKey(coordAt(cell))]!),
+    onToggle: (cell) => pickTile(gd.puzzle.tilesById[tileIdAt(cell)]!),
   })
 
   /** A click on a letter: the cursor moves there, hidden, and the click does
    *  its move. */
-  function clickAt(at: Coord) {
-    setCursorTo(cellAt(at))
-    pickTile(gd.puzzle.tilesById[coordKey(at)]!)
+  function clickTile(tile: GTile) {
+    setCursorTo(cellOf(tile))
+    pickTile(tile)
   }
 
   // Take a tile back — the ⌫ button and Backspace, one action. DISABLED rather
@@ -221,7 +219,7 @@ export function BoardCol({
         clearAmbiguous()
         trace.extend(r.tile)
         // The cursor goes with the typed letter, and hides.
-        setCursorTo(cellAt(coordOf(r.tile)))
+        setCursorTo(cellOf(r.tile))
       } else if (r.kind === 'ambiguous') {
         // No message here on purpose: that row IS the entry area, so a pill
         // would hide the word being built to say something the board says
@@ -303,31 +301,38 @@ export function BoardCol({
 
   // ─── Render ───────────────────────────────────────────────────
 
-  const letters = makeLetterRows(gd.puzzle.tiles)
   const topMessage = useWatchAndGetTopFeedbackMsg(localFeedbackSlot)
+
+  // The marks a live board wears are all empty while a past turn is open: that
+  // board is a record, and nothing is happening on it.
+  const litTileIds = useMemo(
+    () => (historyView.isViewing ? new Set(historyView.litTiles.map((t) => t.id)) : NO_TILE_IDS),
+    [historyView.isViewing, historyView.litTiles],
+  )
+  const ambiguousTileIds = useMemo(
+    () => (historyView.isViewing ? NO_TILE_IDS : new Set(ambiguousTiles.map((t) => t.id))),
+    [historyView.isViewing, ambiguousTiles],
+  )
 
   return (
     <div className={shared.boardCol}>
       <Board
-        board={letters}
-        found={shownBoard.words.map(toFoundPath)}
+        tiles={gd.puzzle.tiles}
+        // Live, my board and its ringed hint; replaying, the board as the
+        // viewed turn left it, and the hint that turn spent.
+        board={shownBoard}
         // The missed-word reveal is a game-end artifact — drawing it on a past
         // turn's board would mix the endgame's gray lines into a board that
         // hadn't reached it.
-        missed={historyView.isViewing ? [] : missedWords.map((w) => w.tiles.map(coordOf))}
-        trace={historyView.isViewing ? [] : trace.tiles.map(coordOf)}
-        // A hint rings its tiles with no connecting line — it never gave you
-        // the order. Live, it's the ringed hint on my board; replaying, the
-        // hint the viewed turn spent.
-        hintCoords={shownBoard.hintTiles?.map(coordOf) ?? null}
-        onTileClick={clickAt}
+        missedWords={historyView.isViewing ? [] : missedWords}
+        traceTiles={historyView.isViewing ? NO_TILES : trace.tiles}
+        marks={{ litTileIds, ambiguousTileIds }}
         cursor={cursor}
         // Not `!canPick`: over a past turn the letters stay live, because a
         // click there is how the board goes back to the live one.
-        disabled={!gd.me.onTurn || actSubmit.pending}
+        isDisabled={!gd.me.onTurn || actSubmit.pending}
         isViewingHistory={historyView.isViewing}
-        historyLitTiles={historyView.litTiles.map(coordOf)}
-        ambiguous={historyView.isViewing ? [] : ambiguousTiles.map(coordOf)}
+        onPick={clickTile}
       />
 
       {/* While replaying, the banner takes the entry/pill slot: what you want

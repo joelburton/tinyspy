@@ -101,7 +101,7 @@ test.describe('strands mobile', () => {
      *  in the trace. On a phone the Submit button is the only route, since
      *  there's no Enter key, which is most of why the button exists. */
     const trace = async (cs: ReadonlyArray<readonly [number, number]>) => {
-      for (const [r, c] of cs) await page.locator(`[data-cell="${r},${c}"]`).tap()
+      for (const [r, c] of cs) await page.locator(`[data-tile="${r},${c}"]`).tap()
       await page.getByRole('button', { name: 'Submit' }).tap()
       await page.waitForTimeout(80)
     }

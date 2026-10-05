@@ -30,7 +30,7 @@ import { boardReady } from './helpers/ready'
  * shared move row.
  */
 
-const cell = (page: Page, [r, c]: [number, number]) => page.locator(`[data-cell="${r},${c}"]`)
+const cell = (page: Page, [r, c]: [number, number]) => page.locator(`[data-tile="${r},${c}"]`)
 /** The traced word, as the WordEntryInput renders it. */
 const entry = (page: Page) => page.getByTestId('entry-value')
 /** Cells ringed red because a typed letter matched more than one of them. */

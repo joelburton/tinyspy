@@ -202,12 +202,7 @@ for (const f of CODE_FILES) {
  * names the area that will clear it — a scoped pass never edits another game's
  * code, so finding these is where this guard's job ends.
  */
-const MEMBER_PENDING: string[] = [
-  // `styles.hint` — HintBar.module.css defines `.hintReady` and no `.hint`, so
-  // the button's base class has been `undefined` for as long as the file has
-  // read that way. → the `strands` area.
-  'src/strands/components/HintBar.tsx',
-]
+const MEMBER_PENDING: string[] = []
 
 const DEAD_CLASS_PENDING: string[] = [
   // `.breakdown` + three siblings — the per-player breakdown they styled was

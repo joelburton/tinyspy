@@ -131,11 +131,14 @@ setup pair (`GSetupValues`, `GSetup`), `GPuzzleAnswer` and `GAnswer` moved
 in. The other exports are old shapes that go with their readers, so strands
 joins `CONVERTED_GAMES` once they have:
 
-- `lib/board.ts`'s `Coord` and `Board`, which the importer shares
-  (`supabase/scripts/lib/strandsPuzzle.ts`).
+- ~~`lib/board.ts`'s `Coord` and `Board`~~ — at step 11 `Coord` moved in as
+  `GCoord`, which the importer reads from `types.ts`, and `Board` stopped
+  being exported.
 - ~~`lib/trace.ts`'s `Trace`, `TraceResult`, `TypeResult`~~ — gone at step 10.
-- `lib/history.ts`'s `FoundPath`, `HistoryRow`, `HistorySnapshot`, and
-  `components/Board.tsx`'s `FoundPath`.
+- ~~`lib/history.ts`'s `FoundPath`, `HistoryRow`, `HistorySnapshot`, and
+  `components/Board.tsx`'s `FoundPath`~~ — gone at steps 9 and 11.
+
+Strands joined `CONVERTED_GAMES` at step 11.
 
 ## The PlayArea pass
 
@@ -174,6 +177,28 @@ holds tiles. The board's letters stay live over a past turn, since a click
 there is how the board goes back to live. `.echoSlot`, `.echo` and
 `.wordEntryRow` moved verbatim to `BoardCol.module.css`. No
 `MobileStatusBar`.
+
+## The Board pass
+
+Step 11 (2026-10-05, Joel took the recommendations: "commit and do it"): the
+letter is its own piece, `Tile.tsx` with `Tile.module.css` (the tile rules
+moved verbatim out of `Board.module.css`, which keeps the board, the drawing
+layer and the grid). Board takes tiles — `tiles`, the `GBoard` to show,
+`missedWords`, `traceTiles` and `BoardMarks` (`litTileIds`,
+`ambiguousTileIds`) — draws the paths, discs and rings in its SVG, and
+decides each letter's marks; the tile draws them and hands itself up
+(`onPick(tile)`). `data-tile` is the id: `PlayArea.test.tsx` and the strands
+e2e specs find tiles by it. The cursor stays `useBoardSelectionCursor` over
+the fixed grid, its cell and a tile's id one step apart (`cellOf`,
+`tileIdAt`); no `useTileShuffle`. The frontend's coordinates are gone but at
+the RPC seam (`coordOf`). `HintBar`'s undefined `styles.hint` went, and its
+`cssClasses` pending line with it.
+
+**Left alone, for Joel:** `lib/board.ts` still holds `letterAt`,
+`coordKey`, `wordFromPath`, `samePath`, `isValidPath`, `consumedCells` and
+`inBounds`, which no source file reads any more — only `board.test.ts`. The
+importer reads `adjacent` and the dimensions. Deleting them, with their
+tests, was not in the proposal.
 
 ## What the PlayArea pass changed that a player can see
 

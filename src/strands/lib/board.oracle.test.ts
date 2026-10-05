@@ -24,7 +24,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { adjacent, COLS, ROWS, type Board, type Coord } from './board'
+import { adjacent, COLS, ROWS } from './board'
+import type { GCoord } from '../types'
 import { FIXTURES } from './oracle.fixture'
 
 /**
@@ -37,11 +38,11 @@ import { FIXTURES } from './oracle.fixture'
  * search.
  */
 function canTrace(
-  board: Board,
+  board: readonly string[],
   word: string,
-  isAdjacent: (a: Coord, b: Coord) => boolean = adjacent,
+  isAdjacent: (a: GCoord, b: GCoord) => boolean = adjacent,
 ): boolean {
-  const walk = (i: number, at: Coord, used: Set<string>): boolean => {
+  const walk = (i: number, at: GCoord, used: Set<string>): boolean => {
     if (i === word.length) return true
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
@@ -82,7 +83,7 @@ describe.each(FIXTURES)('oracle — NYT $date', (f) => {
   })
 
   it('4-WAY adjacency would break the great majority — the rule is load-bearing', () => {
-    const orthogonalOnly = ([r1, c1]: Coord, [r2, c2]: Coord) =>
+    const orthogonalOnly = ([r1, c1]: GCoord, [r2, c2]: GCoord) =>
       Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1
     const traceable = f.solutions.filter((w) => canTrace(f.board, w, orthogonalOnly))
     // Not merely "some fail" — most do. Stated as a ratio so the assertion says
@@ -93,9 +94,9 @@ describe.each(FIXTURES)('oracle — NYT $date', (f) => {
 
 describe('oracle — the theme placements agree with the stored coords', () => {
   it.each(FIXTURES)('$date: every stored path is contiguous and spells its word', (f) => {
-    const entries: Array<[string, Coord[]]> = [
+    const entries: Array<[string, GCoord[]]> = [
       [f.spangram, f.spangramCoords],
-      ...f.themeWords.map((w) => [w, f.themeCoords[w]] as [string, Coord[]]),
+      ...f.themeWords.map((w) => [w, f.themeCoords[w]] as [string, GCoord[]]),
     ]
     for (const [word, coords] of entries) {
       expect(coords).toHaveLength(word.length)

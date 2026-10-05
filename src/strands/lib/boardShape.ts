@@ -1,7 +1,8 @@
 // cs-unmet
 
 import type { BoardShape, Cell } from '@/common/board-cursor/stepCell'
-import { COLS, ROWS, type Coord } from './board'
+import type { GTile } from '../types'
+import { COLS, ROWS } from './board'
 
 /**
  * The shape of the board, for the keyboard's selection cursor: every cell of
@@ -11,8 +12,8 @@ import { COLS, ROWS, type Coord } from './board'
  */
 export const BOARD_SHAPE: BoardShape = { numCols: COLS, numRows: ROWS, exists: () => true }
 
-/** The board's `[row, col]` for a cursor cell. */
-export const coordAt = (cell: Cell): Coord => [cell.y, cell.x]
+/** The cursor cell a tile sits in. */
+export const cellOf = (tile: GTile): Cell => ({ x: tile.col, y: tile.row })
 
-/** The cursor cell for a board `[row, col]`. */
-export const cellAt = ([row, col]: Coord): Cell => ({ x: col, y: row })
+/** The id of the tile in a cursor cell — its place, "r,c". */
+export const tileIdAt = (cell: Cell): string => `${cell.y},${cell.x}`

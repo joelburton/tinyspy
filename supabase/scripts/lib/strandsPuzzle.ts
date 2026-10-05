@@ -19,8 +19,10 @@
  * from scripts and edge functions — see import-crosswords-puzzles.ts and
  * boggle-build-board.)
  */
-export { adjacent, CELLS, COLS, ROWS, type Coord } from '../../../src/strands/lib/board'
-import { adjacent, CELLS, COLS, ROWS, type Coord } from '../../../src/strands/lib/board'
+export { adjacent, CELLS, COLS, ROWS } from '../../../src/strands/lib/board'
+export type { GCoord } from '../../../src/strands/types'
+import { adjacent, CELLS, COLS, ROWS } from '../../../src/strands/lib/board'
+import type { GCoord } from '../../../src/strands/types'
 
 /** The upstream record, narrowed to the fields we keep. */
 export type Feed = {
@@ -31,16 +33,16 @@ export type Feed = {
   startingBoard: string[]
   themeWords: string[]
   spangram: string
-  themeCoords: Record<string, Coord[]>
-  spangramCoords: Coord[]
+  themeCoords: Record<string, GCoord[]>
+  spangramCoords: GCoord[]
   /** NYT's own valid-non-theme list. Deliberately NOT kept — see the fetcher. */
   solutions?: string[]
 }
 
 /** The answer key, as stored in `strands.puzzles.solution`. */
 export type Solution = {
-  spangram: { word: string; coords: Coord[] }
-  themeWords: Array<{ word: string; coords: Coord[] }>
+  spangram: { word: string; coords: GCoord[] }
+  themeWords: Array<{ word: string; coords: GCoord[] }>
 }
 
 /** One JSONL line: the feed's puzzle, capitals and all. The importer makes it
@@ -93,7 +95,7 @@ export function validatePuzzle(f: Feed, label: string): void {
   if (!Array.isArray(f.themeWords) || f.themeWords.length === 0) bad('missing themeWords')
   if (typeof f.clue !== 'string') bad('missing clue')
 
-  const entries: Array<{ word: string; coords: Coord[] }> = [
+  const entries: Array<{ word: string; coords: GCoord[] }> = [
     { word: f.spangram, coords: f.spangramCoords },
     ...f.themeWords.map((w) => ({ word: w, coords: f.themeCoords?.[w] })),
   ]

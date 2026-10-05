@@ -65,7 +65,7 @@ export function HintBar({ points, cost, showing, actHint }: Props) {
       <ActionButton
         action={actHint}
         show="both"
-        className={cls(styles.hint, full && !showing && styles.hintReady)}
+        className={cls(full && !showing && styles.hintReady)}
         // A hint already on the board blocks a second one, and an UNFILLED bar
         // deliberately does NOT: clicking early is a question — "how many
         // more?" — and a dead button refuses to answer, so the run says the
