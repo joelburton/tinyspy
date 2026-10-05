@@ -541,6 +541,263 @@ $$;
 
 revoke execute on function waffle._write_statuses(uuid, boolean) from public;
 
+-- ============================================================
+-- The page blobs — what the page shows, written by this game's builder
+-- ============================================================
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- waffle's own, each builder bearing its column's name. `game_data` is the
+-- common part (supabase/sql/common.sql → The page blobs' common parts) with
+-- waffle's facts on top; the pieces below build each part, so `select
+-- game_data from common.games` shows the page what it gets.
+--
+--   game_data, waffle's part:
+--     puzzle: {dealtTiles, parSwaps, solution}
+--                                          the deal, frozen at create; a tile here
+--                                          is {id, letter}, its id the cell's
+--                                          position as text, the holes left out;
+--                                          `solution` null until the game ends
+--     team: {nSwapsUsed}                   the swaps summed over every player's own;
+--                                          null in compete (plans/team-facts.md)
+--     events: [{id, userId, swaps, colors, at}, …]
+--                                          every swap, every player's; `swaps` the two
+--                                          cells, each {id, letter} with the letter it
+--                                          held before, `colors` the board's after;
+--                                          what a racer may see of a rival mid-race is
+--                                          the hook's rule
+--     players: [player, …]                 the common player, plus:
+--       maxSwaps                           the budget, the same on every player
+--       nSwapsUsed                         this player's own, in every mode
+--       board: {tiles}                     what this seat sees, each tile
+--                                          {id, letter, color}: one shared board in
+--                                          coop, each racer's own in compete
+--
+--   summary_data, waffle's part (the common part names and dates the game and
+--   carries its ending; the winner is `ending.winner`):
+--     team: {nSwapsUsed}                   the same group; null in compete
+--     maxSwaps
+--     band                                 the dictionary band, `setup.difficulty`
+--     nWinnerSwaps                         compete's, once the race is won; null in coop
+
+-- A board's 21 tiles, by position: the cell's id, its letter, and — given the
+-- board's colors — its color. The holes ('.') are left out.
+create or replace function waffle._make_json_tiles(p_board text, p_colors text)
+returns jsonb
+language sql
+immutable
+set search_path = waffle, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(
+           jsonb_build_object('id', (i - 1)::text, 'letter', substr(p_board, i, 1))
+             || case when p_colors is null then '{}'::jsonb
+                     else jsonb_build_object('color', substr(p_colors, i, 1)) end
+           order by i), '[]'::jsonb)
+    from generate_series(1, 25) i
+   where substr(p_board, i, 1) <> '.';
+$$;
+
+revoke execute on function waffle._make_json_tiles(text, text) from public;
+
+-- The deal: its tiles as dealt, its par, and the solution once the game has
+-- ended (wordle's rule; the column grant keeps it from any client read).
+create or replace function waffle._make_json_puzzle(wg waffle.games, p_ended boolean)
+returns jsonb
+language sql
+immutable
+set search_path = waffle, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'dealtTiles', waffle._make_json_tiles(wg.board_at_setup, null),
+    'parSwaps',   wg.par_swaps,
+    'solution',   case when p_ended then waffle._make_json_tiles(wg.solution, null) end);
+$$;
+
+revoke execute on function waffle._make_json_puzzle(waffle.games, boolean) from public;
+
+-- The log: every swap, in the order of play.
+create or replace function waffle._make_json_events(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = waffle, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',     e.id,
+           'userId', e.user_id,
+           'swaps',  jsonb_build_array(
+                       jsonb_build_object('id', e.pos_a::text, 'letter', e.letter_a),
+                       jsonb_build_object('id', e.pos_b::text, 'letter', e.letter_b)),
+           'colors', e.colors,
+           'at',     e.created_at) order by e.id), '[]'::jsonb)
+    from waffle.events e
+   where e.game_id = p_game_id;
+$$;
+
+revoke execute on function waffle._make_json_events(uuid) from public;
+
+-- What the team shares: the swaps summed over every row. Each row holds its
+-- player's own count, so the sum counts every swap once. Null in compete,
+-- where there is no team (plans/team-facts.md).
+create or replace function waffle._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = waffle, common, public, extensions
+as $$
+  select case when cg.mode = 'coop' then jsonb_build_object(
+           'nSwapsUsed', (select sum(swaps_used) from waffle.players where game_id = p_game_id))
+         end
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function waffle._make_json_team(uuid) from public;
+
+-- Every player as waffle's game_data shows them: the common player, with the
+-- budget, their own count and this seat's board, colored against the
+-- solution.
+create or replace function waffle._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = waffle, common, public, extensions
+as $$
+  select jsonb_agg(
+           cp.player || jsonb_build_object(
+             'maxSwaps',   wg.max_swaps,
+             'nSwapsUsed', wp.swaps_used,
+             'board',      jsonb_build_object(
+                             'tiles', waffle._make_json_tiles(
+                                        wp.board, waffle._board_colors(wp.board, wg.solution))))
+           order by cp.ord)
+    from common._make_json_players(p_game_id) cp
+    join waffle.players wp on wp.game_id = p_game_id and wp.user_id = cp.id
+    join waffle.games wg on wg.game_id = p_game_id;
+$$;
+
+revoke execute on function waffle._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with waffle's puzzle, team, log
+-- and players on top.
+create or replace function waffle._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = waffle, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'puzzle',  waffle._make_json_puzzle(wg, cg.ended_at is not null),
+           'team',    waffle._make_json_team(p_game_id),
+           'events',  waffle._make_json_events(p_game_id),
+           'players', waffle._make_json_players(p_game_id))
+    from waffle.games wg
+    join common.games cg on cg.id = wg.game_id
+   where wg.game_id = p_game_id;
+$$;
+
+revoke execute on function waffle._make_json_game_data(uuid) from public;
+
+-- The game summed up: the numbers a list of games shows for this one.
+create or replace function waffle._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = waffle, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+    'team',         waffle._make_json_team(p_game_id),
+    'maxSwaps',     wg.max_swaps,
+    'band',         coalesce((cg.setup->>'difficulty')::int, 2),
+    'nWinnerSwaps', case when cg.mode = 'compete' then
+                      (select wp.swaps_used
+                         from common.game_players gp
+                         join waffle.players wp
+                           on wp.game_id = gp.game_id and wp.user_id = gp.user_id
+                        where gp.game_id = p_game_id and gp.final_ranking = 1
+                        order by gp.solved_at
+                        limit 1)
+                    end)
+    from waffle.games wg
+    join common.games cg on cg.id = wg.game_id
+   where wg.game_id = p_game_id;
+$$;
+
+revoke execute on function waffle._make_json_summary_data(uuid, timestamptz) from public;
+
+-- ============================================================
+-- waffle._rebuild_data_cols — one game's data columns, rebuilt
+-- ============================================================
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from waffle's own tables, assigning
+-- each whole. Every RPC calls it after a move, after `_sync_title`, so the
+-- blobs carry the title the move left; it is also the repair for one game by
+-- hand. Every key is always present, null when it has no value; the shapes
+-- are drawn above.
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function waffle._rebuild_data_cols(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+declare
+  v_status_changed_at timestamptz;
+begin
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
+
+  update common.games
+     set game_data = waffle._make_json_game_data(p_game_id),
+         summary_data = waffle._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function waffle._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- waffle._rebuild_data_cols_for_all — every waffle game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every waffle game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function waffle._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('waffle_coop', 'waffle_compete')
+  loop
+    perform waffle._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function waffle._rebuild_data_cols_for_all() from public;
+
 drop function if exists waffle.create_game(text, jsonb, uuid[], text, jsonb);
 
 -- ============================================================
@@ -686,6 +943,7 @@ begin
     from unnest(p_player_user_ids) uid;
 
   perform waffle._write_statuses(new_id, p_update_status_changed_at => true);
+  perform waffle._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It travels through
   -- `waffle-build-board` untouched — `invokeCreateGame` forwards this envelope
@@ -1009,6 +1267,7 @@ begin
   -- so it sees the settled `ended_at`.
   perform waffle._sync_title(p_game_id);
   perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- No outcome and no message: an accepted swap shows the swapper NOTHING until
   -- the colors reach everyone together over the realtime refetch (see the
@@ -1080,6 +1339,7 @@ begin
   perform waffle._sync_title(p_game_id);
 
   perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -1145,6 +1405,7 @@ begin
   perform waffle._sync_title(p_game_id);
 
   perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1193,6 +1454,7 @@ begin
   perform waffle._sync_title(p_game_id);
 
   perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1265,6 +1527,7 @@ begin
   perform waffle._sync_title(p_game_id);
 
   perform waffle._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform waffle._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
