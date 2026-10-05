@@ -46,7 +46,7 @@ type Family = {
  * An ending case names the outcome and reason, and the winner where the summary names one;
  * `ending.by` is always alice.
  */
-type EndingCase = { outcome: EndOutcome; reason: GameEndedReason; winner?: string }
+type EndingCase = { outcome: EndOutcome; reason: GameEndedReason; detail?: string; winner?: string }
 type GameEndingCase = [ending: EndingCase, summary: Record<string, unknown>, note: string]
 type GameEndingFamily = {
   /** The mid-game `summary_data`, every key present as the builder writes it. */
@@ -104,16 +104,16 @@ const BEE_CASES: GameEndingFamily = {
 const CASES: Record<string, Family | GameEndingFamily> = {
   // No siblings — one manifest, one vocabulary.
   codenamesduet: {
-    playing: { found_agents_count: 12, turns_remaining: 5 },
+    live: { team: { nFoundAgents: 12, nTurnsUsed: 4, maxTurns: 9, suddenDeath: false } },
     shared: [
-      ['sudden_death', { found_agents_count: 12 }, 'sudden death'],
-      ['won', { found_agents_count: 15, reason: 'solved' }, 'won'],
-      ['lost', { found_agents_count: 12, reason: 'assassin' }, 'assassin'],
-      ['lost', { found_agents_count: 12, reason: 'turns' }, 'out of turns'],
-      ['lost', { found_agents_count: 12, reason: 'timeout' }, 'timeout'],
-      ['ended', { found_agents_count: 12, reason: 'manual' }, 'manual end'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: { nFoundAgents: 15, nTurnsUsed: 7, maxTurns: 9, suddenDeath: false } }, 'won'],
+      [{ outcome: 'lost', reason: 'fatal_move', detail: 'assassin' }, { team: { nFoundAgents: 12, nTurnsUsed: 5, maxTurns: 9, suddenDeath: false } }, 'assassin'],
+      [{ outcome: 'lost', reason: 'fatal_move', detail: 'neutral' }, { team: { nFoundAgents: 12, nTurnsUsed: 9, maxTurns: 9, suddenDeath: true } }, 'a bystander in sudden death'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nFoundAgents: 12, nTurnsUsed: 5, maxTurns: 9, suddenDeath: false } }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nFoundAgents: 12, nTurnsUsed: 5, maxTurns: 9, suddenDeath: false } }, 'Stop'],
     ],
   },
+
   // strands' coop loss is the clock alone: the roster's rule is "you lose if
   // the game had a reachable end and you didn't reach it", and finding every
   // theme word is exactly such an end (docs/states.md).
@@ -412,7 +412,7 @@ const makeSummaryData = (
   statusChangedAt: '2026-09-01T00:00:00Z',
   ended: ending !== null,
   outcome: ending?.outcome ?? null,
-  ending: ending && { reason: ending.reason, detail: ending.reason, by: 'u-alice', winner: ending.winner ?? null },
+  ending: ending && { reason: ending.reason, detail: ending.detail ?? ending.reason, by: 'u-alice', winner: ending.winner ?? null },
   ...own,
 })
 

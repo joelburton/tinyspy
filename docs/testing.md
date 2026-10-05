@@ -271,12 +271,12 @@ Config in `vite.config.ts`.
 | [`src/common/session/useAuthSession.test.ts`](../src/common/session/useAuthSession.test.ts) | The session hook's state transitions (loading → session → null) | Mocks `supabase.auth.onAuthStateChange`, drives it manually via `act`, asserts on the hook's returned state via `renderHook`. The canonical "test a Supabase-hook in isolation" pattern. |
 | [`src/common/routing/router.test.ts`](../src/common/routing/router.test.ts) | The hand-rolled router (`navigate`, `usePath`) | Uses jsdom's `window.location` and `window.history` directly. No mocking required — just drive the History API and assert. |
 | [`src/codenamesduet/lib/phase.test.ts`](../src/codenamesduet/lib/phase.test.ts) | Pure phase derivation | No DOM, no mocking, no hooks — just `expect(phase(...)).toBe(...)`. The kind of test that's free to write and free to keep. |
-| [`src/codenamesduet/hooks/useBoard.test.ts`](../src/codenamesduet/hooks/useBoard.test.ts) | The board hook's data flow | Mocks the Supabase client at module level, drives the hook through fetch/realtime updates. |
+| [`src/psychicnum/hooks/useGame.test.ts`](../src/psychicnum/hooks/useGame.test.ts) | A game's `gd`, built from its blob | No mocking: `makeGameData` is a pure function, handed a blob the fixture (`lib/gameData.fixture.ts`) builds from facts, the way the SQL builder would. |
 | [`src/codenamesduet/components/GameEventLog.test.tsx`](../src/codenamesduet/components/GameEventLog.test.tsx) | A component rendering its props | Renders the component, asserts on text and structure. No store, no mock — just the input → output. |
 
 The pattern is: **mock at the lowest layer that lets you write the test
-simply**. For `useAuthSession`, that's the Supabase auth API. For `useBoard`, it's
-the Supabase client. For a pure function, it's nothing.
+simply**. For `useAuthSession`, that's the Supabase auth API. For a pure
+function, `makeGameData` included, it's nothing.
 
 **A shared test double lives beside the module it stands in for, as
 `<name>.fake.ts`** — `realtime/channel.fake.ts` (a channel you drive through

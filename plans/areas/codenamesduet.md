@@ -949,11 +949,14 @@ The rulings behind it (2026-10-04):
 ## Owed by the conversion
 
 - **codenamesduet joins `CONVERTED_GAMES` at the end of step 12**, not step 6
-  (2026-10-04). Ten old shapes are still exported outside `types.ts` —
-  `GameRow`, `WordRow`, `EventsRow`, `DuetEvent` (step 7), `ClueEvent`,
-  `GuessEvent`, `WordedGuess`, `Seat`, `PhaseInputs`, `Player` (the component
-  passes) — and each goes in the step that replaces it, rather than being
-  renamed under a `G` only to be deleted.
+  (2026-10-04). Old shapes are still exported outside `types.ts`, and each
+  goes in the step that replaces it, rather than being renamed under a `G`
+  only to be deleted. Step 7 took `GameRow` with `useGame` and `useBoard`;
+  what is left goes with the component passes: `WordRow` (now in
+  `lib/history.ts`, with the history view), `EventsRow`, `DuetEvent`,
+  `ClueEvent`, `GuessEvent`, `WordedGuess` (`lib/events.ts`, whose
+  `toDuetEvent` has only its test as a reader since `useBoard` went), `Seat`,
+  `PhaseInputs` and `Player`.
 
 ## Findings
 

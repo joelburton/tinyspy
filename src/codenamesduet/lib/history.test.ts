@@ -11,7 +11,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { historySnapshot } from './history'
-import type { WordRow } from '../hooks/useBoard'
+import type { WordRow } from './history'
 import type { ClueEvent, WordedGuess } from './events'
 
 // A tiny fixed board — positions 0..4 with placeholder words. Reveal state starts

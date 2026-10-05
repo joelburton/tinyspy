@@ -7,7 +7,7 @@ import { db } from './db'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { count, verdict, statusLine, tally } from '@/common/manifest/summary'
 import { DEFAULT_CODENAMESDUET_SETUP } from './lib/setup'
-import type { GSetup } from './types'
+import type { GSetup, GSummaryData } from './types'
 import { TOTAL_AGENTS } from './lib/agents'
 import logoUrl from './logo.svg?url'
 
@@ -94,60 +94,62 @@ export const codenamesduetGame: GameManifest = {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     return runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: setup as GSetup,
-        player_user_ids: playerUserIds,
+        p_club_handle: clubHandle,
+        p_setup: setup as GSetup,
+        p_player_user_ids: playerUserIds,
       }),
     )
   },
 
-  // Render the per-row label from a common.games row. The verdict is
-  // the play state's own (STATUS_LABEL, below), and a loss's cause is the
-  // reason's (LOSS_CAUSE); the status adds the agent tally and, mid-game, the
-  // turns left. A play state missing from the map renders as its raw name.
-  summaryFor: (row) => {
-    const st = (row.status ?? {}) as { found_agents_count?: number; turns_remaining?: number; reason?: string }
-    // The agent tally is the useful "should I come back to this?" fact, so it
-    // rides on every line. Mid-game the turn budget rides too.
-    const agents = tally(st.found_agents_count, TOTAL_AGENTS, 'agents')
-    const label = row.play_state === 'lost'
-      ? verdict('Lost', LOSS_CAUSE[st.reason ?? ''])
-      : STATUS_LABEL[row.play_state]
-    if (!label) return row.play_state
-    return row.play_state === 'playing'
-      ? statusLine(label, count(st.turns_remaining, 'turn left', 'turns left'), agents)
-      : statusLine(label, agents)
-  },
+  // The club card's label, from `summary_data`: the verdict, a loss's cause,
+  // and the agent tally on every line; mid-game the turns left ride too, and
+  // sudden death leads in their place.
+  summaryFor: (data) => makeLabel(data as GSummaryData),
 
   // Called by common's GamePage when its countdown timer hits 0.
-  // submit_timeout writes play_state 'lost' + common.games.status.reason
-  // 'timeout' (distinct from 'turns', the Duet rulebook's turns-spent
-  // ending) — the play_state carries the verdict, the reason names the
-  // cause. Idempotent, so peers racing to
-  // fire it is fine. stop_game is the irreversible in-game "Stop game" button.
+  // submit_timeout ends the game lost, reason 'timeout' (distinct from a
+  // bystander in sudden death, the Duet rulebook's turns-spent ending).
+  // Idempotent, so peers racing to fire it is fine. stop_game is the
+  // irreversible in-game "Stop game" button.
   // Both are the shared one-arg dispatchers (see common/manifest/manifestRpcs).
   submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
   stopGame: makeRpcDispatcher(db, 'stop_game'),
 }
 
-// Per-play-state display strings codenamesduet owns — the common
-// ClubPage renders these verbatim. Other games define their own.
-const STATUS_LABEL: Record<string, string> = {
-  playing: verdict('Playing'),
-  // The one lead outside summary.ts's four words, by decision: sudden death
-  // is the thing to scan a club list for.
-  sudden_death: 'Sudden death',
-  won: verdict('Won'),
-  // Manual end (codenamesduet.stop_game): the friends stopped on purpose.
-  // Neutral phrasing — not a loss.
-  ended: verdict('Ended'),
-}
-
-// A loss's cause, per `status.reason`, in the words the status line shows.
+// A loss's cause, per the ending's detail, in the words the club card shows.
 const LOSS_CAUSE: Record<string, string> = {
   assassin: 'assassin',
-  // "turns", not "tokens": the rulebook's physical timer-tokens are just
-  // the turn budget, and "tokens" doesn't help a player who never holds one.
-  turns: 'out of turns',
+  // A bystander in sudden death. "turns", not "tokens": the rulebook's
+  // physical timer-tokens are just the turn budget, and "tokens" doesn't help a
+  // player who never holds one.
+  neutral: 'out of turns',
   timeout: 'out of time',
+}
+
+/** The club card's label for one game (see `summaryFor`). */
+function makeLabel(summary: GSummaryData): string {
+  const team = summary.team
+  // The agent tally is the useful "should I come back to this?" fact, so it
+  // rides on every line.
+  const agents = tally(team.nFoundAgents, TOTAL_AGENTS, 'agents')
+  if (summary.ending === null) {
+    // The one lead outside summary.ts's four words, by decision: sudden death
+    // is the thing to scan a club list for.
+    if (team.suddenDeath) return statusLine('Sudden death', agents)
+    const turnsLeft = team.maxTurns - team.nTurnsUsed
+    return statusLine(verdict('Playing'), count(turnsLeft, 'turn left', 'turns left'), agents)
+  }
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won':
+      return statusLine(verdict('Won'), agents)
+    case 'lost':
+      return statusLine(verdict('Lost', LOSS_CAUSE[summary.ending.detail]), agents)
+    case 'neutral':
+      // The friends stopped on purpose: neutral phrasing, not a loss.
+      return statusLine(verdict('Ended'), agents)
+    default:
+      return outcome
+  }
 }

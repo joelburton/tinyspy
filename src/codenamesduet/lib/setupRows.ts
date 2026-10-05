@@ -18,7 +18,7 @@ export function makeSetupRows(
   _mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {
-  const first = players.find((p) => p.user_id === setup.first_clue_giver_user_id)
+  const first = players.find((p) => p.id === setup.first_clue_giver_user_id)
   return [
     makeRosterRow(players),
     { key: 'turns', label: 'Turns', value: String(setup.turns) },

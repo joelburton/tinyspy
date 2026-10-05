@@ -1,94 +1,111 @@
-// cs-blessed-codenamesduet
+// cs-unmet
 
-import { useState } from 'react'
-import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
-import { db } from '../db'
-import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnvelope } from '@/common/supabase/envelope'
-import type { Database } from '@/types/db'
-
-/**
- * The `codenamesduet.games` row as the play surface reads it: the turn
- * pointer and the two seats. The key cards are `useBoard`'s to read.
- *
- * Narrower than the generated row (code-conventions.md → "Avoid SELECT *"): a
- * new column is listed here AND in `useGame`'s select().
- */
-export type GameRow = Pick<
-  Database['codenamesduet']['Tables']['games']['Row'],
-  | 'turn_number'
-  | 'current_clue_giver'
-  | 'user_a_id'
-  | 'user_b_id'
->
+import { useMemo } from 'react'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import { TOTAL_AGENTS } from '../lib/agents'
+import { makeSetupRows } from '../lib/setupRows'
+import type { GEvent, GGameData, GGameDataRaw, GPlayer, GPuzzleTile, GTile } from '../types'
 
 /**
- * Subscribes to a single game's row.
+ * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
+ * reads what the surface would.
  *
- * Returns:
- *  - `game`: the `games` row (`GameRow`); null once the load finds no row.
- *    The play state is `common.games`', and arrives via PlayAreaLoaderProps
- *  - `loading`: true until the first load completes
- *  - `failure`: the envelope behind a failed read, for the loader to render
- *
- * Realtime: drives off `useRealtimeRefetch` — full refetch on
- * any `codenamesduet.games` event, plus on every SUBSCRIBED status.
- *
- * The seated players are not read here: the loader seats the row's two ids
- * from the profiles `PlayAreaLoaderProps` already holds (`lib/seats.ts`). `useBoard`
- * reads the words and the events on a channel of its own; the loader runs
- * both. Two hooks rather than one so each refetches only on its own tables:
- * an agent found mid-turn moves the board and the log but not the turn.
+ * The seat rule: my partner's key is theirs until the game ends — the rulebook
+ * keeps the two cards apart, and seeing theirs would hand me every agent I am
+ * hunting — so it is null on every puzzle tile until then. Everything else on
+ * the table is public to both.
  */
-export function useGame(gameId: string) {
-  const [game, setGame] = useState<GameRow | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
+export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
+  const players: GPlayer[] = raw.players
+  const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
+  // Links that cannot miss get a bare lookup: every id the builder writes is a
+  // seated player's. An ending's `by` may be null for a timeout.
+  const playerOf = (id: string) => playersById[id]!
+  const maybePlayerOf = (id: string | null) => (id === null ? null : playerOf(id))
 
-  useRealtimeRefetch({
-    tables: { schema: 'codenamesduet', table: 'games', filter: `id=eq.${gameId}` },
-    channelPrefix: 'codenamesduet:game',
-    id: gameId,
-    load: async ({ isCurrent }) => {
-      // No `.single()`: it treats zero rows as an ERROR, so a game this pair
-      // cannot see arrived looking exactly like a broken connection. `readRows`
-      // hands back rows, and `id` is the PK, so this is 0 or 1 of them.
-      const gameRes = await readRows(
-        db
-          .from('games')
-          .select('turn_number, current_clue_giver, user_a_id, user_b_id')
-          .eq('id', gameId),
-      )
-      if (!isCurrent()) return
+  // The gate has checked that I am seated, and Duet always seats two.
+  const me = playerOf(myId)
+  const partner = players.find((p) => p.id !== myId)!
 
-      // A read can only fail as a FAULT — `readRows` never authors anything
-      // else, and it has already logged the failure and raised the modal. What
-      // is left is the sentence BEHIND it, for the loader to render.
-      if (gameRes.type === 'not-ok') {
-        setFailure(gameRes)
-        setLoading(false)
-        return
-      }
-      // A load that worked clears a previous one's failure: this refetches on
-      // every realtime event, so an outage that ends should take its sentence
-      // with it rather than leaving the surface behind a stale explanation.
-      // Cleared HERE, before the not-found return below, so a game deleted
-      // during the outage reads as "not found" rather than as the outage.
-      setFailure(null)
+  const puzzleTiles: GPuzzleTile[] = raw.puzzle.tiles.map((t) => ({
+    ...t,
+    key: raw.ended ? t.key : { ...t.key, [partner.id]: null },
+  }))
+  const puzzleTilesById = new Map(puzzleTiles.map((t) => [t.id, t]))
 
-      if (!gameRes.data[0]) {
-        // Explicit null on not-found — without this, a server-side
-        // delete leaves the previously-loaded game state in place and
-        // the surface keeps rendering it.
-        setGame(null)
-        setLoading(false)
-        return
-      }
+  const boardTiles: GTile[] = raw.team.board.tiles.map((t) => ({
+    id: t.id,
+    puzzleTile: puzzleTilesById.get(t.id)!,
+    revealed: t.revealed === null
+      ? null
+      : { as: t.revealed.as, arrows: new Set(t.revealed.arrows.map(playerOf)) },
+    guessable: t.guessableBy.includes(myId),
+  }))
 
-      setGame(gameRes.data[0])
-      setLoading(false)
+  const events: GEvent[] = raw.events.map(({ userId, ...row }) => ({ ...row, by: playerOf(userId) }))
+
+  const { turns, ending, ...rest } = raw
+  return {
+    ...rest,
+    setupRows: makeSetupRows(raw.setup, raw.mode, players),
+    puzzle: { tiles: puzzleTiles, tilesById: puzzleTilesById },
+    team: {
+      ...raw.team,
+      board: { tiles: boardTiles, tilesById: new Map(boardTiles.map((t) => [t.id, t])) },
     },
-  })
+    turns: {
+      holder: maybePlayerOf(turns.holder),
+      num: turns.num,
+      currClue: turns.currClue === null
+        ? null
+        : {
+          word: turns.currClue.word,
+          count: turns.currClue.count,
+          fromAi: turns.currClue.fromAi,
+          by: playerOf(turns.currClue.userId),
+        },
+    },
+    events,
+    ending: ending === null
+      ? null
+      : {
+        reason: ending.reason,
+        detail: ending.detail,
+        by: maybePlayerOf(ending.by),
+        winner: maybePlayerOf(ending.winner),
+      },
+    players,
+    playersById,
+    me,
+    partner,
+    stateLineData: {
+      nFoundAgents: raw.team.nFoundAgents,
+      nAgents: TOTAL_AGENTS,
+      nTurnsUsed: raw.team.nTurnsUsed,
+      maxTurns: raw.team.maxTurns,
+      suddenDeath: raw.team.suddenDeath,
+    },
+  }
+}
 
-  return { game, loading, failure }
+/**
+ * Per-gametype data hook for codenamesduet: `gd`, built from the `game_data`
+ * blob the page was handed and who I am. No reads and no subscription: the
+ * page re-reads the blob on every move, and `makeGameData` is a pure function
+ * of it (plans/seat-view.md → The page is written, not assembled).
+ *
+ * A game whose builder has not written a blob yet cannot be drawn; the throw
+ * lands in `PlayAreaErrorBoundary`'s card.
+ */
+export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
+  const raw = ctx.gameData as GGameDataRaw | null
+  if (raw === null) {
+    throw new Error(
+      `codenamesduet: game ${ctx.cg.id} has no game_data; run codenamesduet._rebuild_data_cols_for_all()`,
+    )
+  }
+  const myId = ctx.auth.user.id
+  // Rebuilt when the page hands down a new blob, and not on every render.
+  const gd = useMemo(() => makeGameData(raw, myId), [raw, myId])
+  return { gd }
 }

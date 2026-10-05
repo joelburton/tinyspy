@@ -26,8 +26,18 @@
  *
  * Pure (no React / supabase) + unit-tested.
  */
-import type { WordRow } from '../hooks/useBoard'
+import type { Database } from '@/types/db'
 import type { ClueEvent, WordedGuess } from './events'
+
+/**
+ * One of the board's 25 words, with its reveal state. `revealed_as` is the
+ * GLOBAL reveal ('G' agent contacted / 'A' assassin / null still in play);
+ * `neutral_a` / `neutral_b` record which seat hit this word as a bystander.
+ */
+export type WordRow = Pick<
+  Database['codenamesduet']['Tables']['words']['Row'],
+  'position' | 'word' | 'revealed_as' | 'neutral_a' | 'neutral_b'
+>
 
 /** One past turn, ready for the board and the viewer banner. */
 interface HistorySnapshot {
