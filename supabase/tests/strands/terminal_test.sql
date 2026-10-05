@@ -89,7 +89,7 @@ select is(
 -- ============================================================
 
 select isnt(
-  (select game_data->'puzzle'->'words' from common.games where id = (select id from game)),
+  (select game_data->'puzzle'->'puzzleWords' from common.games where id = (select id from game)),
   'null'::jsonb,
   'a win puts the solution in game_data — the board is over for everyone'
 );
@@ -139,7 +139,7 @@ select is(
 -- rule. What a stop does NOT do is put it on anybody's screen: that's the FE's
 -- local reveal toggle, tested in the PlayArea suite.
 select isnt(
-  (select game_data->'puzzle'->'words' from common.games where id = (select id from game2)),
+  (select game_data->'puzzle'->'puzzleWords' from common.games where id = (select id from game2)),
   'null'::jsonb,
   'a manual stop puts the solution in game_data as well — same ended_at gate'
 );
@@ -169,7 +169,7 @@ select is(
 );
 
 select is(
-  (select game_data->'puzzle'->'words' from common.games where id = (select id from game)),
+  (select game_data->'puzzle'->'puzzleWords' from common.games where id = (select id from game)),
   'null'::jsonb,
   'so the answer is a secret again — the point of running a board back'
 );

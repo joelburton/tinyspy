@@ -23,8 +23,8 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *     none of the selected players has played, in any club. The date picker
  *     this replaced offered 884 identical-looking dates, and its besetting
  *     problem was starting one you'd already done — first patched by showing
- *     the clue under the input, then solved properly by removing the choice.
- *     The clue survives as the label on that line, which is the right place
+ *     the title under the input, then solved properly by removing the choice.
+ *     The title survives as the label on that line, which is the right place
  *     for it: it's how a person recognizes a strands puzzle.
  *   - **Hint dictionary** — the band a word must reach to earn a hint point.
  *   - **Words per hint** / **Shortest word**.

@@ -3,7 +3,7 @@
 import { COLS, ROWS } from '../lib/board'
 import { cls } from '@/common/utils/cls'
 import type { Cell } from '@/common/board-cursor/stepCell'
-import type { GBoard, GTile, GWord } from '../types'
+import type { GBoard, GTile, GPuzzleWord } from '../types'
 import { Tile } from './Tile'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
@@ -55,7 +55,7 @@ function makePoints(tiles: readonly GTile[]): string {
 export function Board({
   tiles,
   board,
-  missedWords,
+  missedPuzzleWords,
   traceTiles,
   marks,
   cursor,
@@ -71,7 +71,7 @@ export function Board({
   board: GBoard
   // Words NOBODY found, drawn only while the solution is shown: gray, so the
   // ended board shows what was missed without competing with what was found.
-  missedWords: GWord[]
+  missedPuzzleWords: GPuzzleWord[]
   // The trace being built right now, in pick order.
   traceTiles: GTile[]
   marks: BoardMarks
@@ -87,9 +87,9 @@ export function Board({
   const lastTile = traceTiles[traceTiles.length - 1]
   const tracedIds = new Set(traceTiles.map((t) => t.id))
   const hintIds = new Set((board.hintTiles ?? []).map((t) => t.id))
-  const missedIds = new Set(missedWords.flatMap((w) => w.tiles.map((t) => t.id)))
+  const missedIds = new Set(missedPuzzleWords.flatMap((w) => w.tiles.map((t) => t.id)))
   const foundKinds = new Map<string, 'theme' | 'spangram'>()
-  for (const w of board.words) {
+  for (const w of board.foundPuzzleWords) {
     for (const t of w.tiles) foundKinds.set(t.id, w.spangram ? 'spangram' : 'theme')
   }
 
@@ -104,14 +104,14 @@ export function Board({
         aria-hidden="true"
       >
         {/* Missed words first, so a found path always draws over them. */}
-        {missedWords.map((w) => (
+        {missedPuzzleWords.map((w) => (
           <polyline
             key={`m${w.tiles[0]!.id}`}
             className={cls(styles.line, styles.lineMissed)}
             points={makePoints(w.tiles)}
           />
         ))}
-        {board.words.map((w) => (
+        {board.foundPuzzleWords.map((w) => (
           <polyline
             key={w.tiles[0]!.id}
             className={cls(styles.line, w.spangram ? styles.lineSpangram : styles.lineTheme)}
@@ -122,10 +122,10 @@ export function Board({
           <polyline className={cls(styles.line, styles.lineTrace)} points={makePoints(traceTiles)} />
         )}
 
-        {missedWords.flatMap((w) => w.tiles).map((t) => (
+        {missedPuzzleWords.flatMap((w) => w.tiles).map((t) => (
           <circle key={`md${t.id}`} className={styles.discMissed} cx={cx(t)} cy={cy(t)} r={0.38} />
         ))}
-        {board.words.map((w) =>
+        {board.foundPuzzleWords.map((w) =>
           w.tiles.map((t) => (
             <circle
               key={`f${t.id}`}

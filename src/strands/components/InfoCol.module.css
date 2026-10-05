@@ -1,9 +1,9 @@
 /* cs-unmet */
 
-/* strands' info column: the theme prompt and the revealed words. The scaffold
+/* strands' info column: the puzzle's title and the revealed words. The scaffold
  * is the shared common/info-sheet/infoCol.module.css. */
 
-/* @@ */ .clue {
+/* @@ */ .title {
   margin: 0 0 0.5rem;
   font-size: 1.05rem;
   font-weight: 600;

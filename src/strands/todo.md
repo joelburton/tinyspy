@@ -13,7 +13,8 @@
   - SetupForm: "Theme words always count, however short" (the spangram does
     too) and "How many valid non-theme words buy one hint";
   - Help: "belongs to exactly one hidden word" and "rings the letters of one
-    hidden word";
+    hidden word"; and "The clue at the top of the info column is the theme" —
+    the code calls it the puzzle's title (2026-10-05);
   - the manifest's `shortDescription`: "Find the hidden words that fill the
     board";
   - "valid word" for a hint word: the pill (`WORD — valid word`), the history

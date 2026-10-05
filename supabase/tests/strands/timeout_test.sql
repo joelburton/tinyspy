@@ -57,7 +57,7 @@ select is(
   '…whose reason names the clock'
 );
 select is(
-  (select summary_data->'team'->>'nFoundWords' from common.games where id = (select id from g_coop)),
+  (select summary_data->'team'->>'nFoundPuzzleWords' from common.games where id = (select id from g_coop)),
   '1',
   '…and counts what was found (never out of how many)'
 );
@@ -81,7 +81,7 @@ select strands.submit_path((select id from g_won), pg_temp.strands_row_path(r))
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select strands.submit_path((select id from g_won), pg_temp.strands_row_path(0));
 select is(
-  (select jsonb_array_length(p->'board'->'words')
+  (select jsonb_array_length(p->'board'->'foundPuzzleWords')
      from common.games cg, jsonb_array_elements(cg.game_data->'players') p
     where cg.id = (select id from g_won)
       and p->>'id' = 'bea22222-2222-2222-2222-222222222222'),

@@ -11,7 +11,7 @@
  * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder
  * wrote it (ids), and `GGameData` is what `useGame` makes of it for the
  * surface (players and tiles, the seat rule applied). `GPlayer` /
- * `GPlayerRaw`, `GEvent` / `GEventRaw` and `GWord` / `GWordRaw` are the same
+ * `GPlayerRaw`, `GEvent` / `GEventRaw` and `GPuzzleWord` / `GPuzzleWordRaw` are the same
  * pair, one level down.
  */
 
@@ -42,7 +42,7 @@ export type GTile = {
 
 /** A puzzle word, or a seat's find, as the blob carries it: its tiles as ids
  *  in the order it is traced, and whether it is the spangram. */
-export type GWordRaw = {
+export type GPuzzleWordRaw = {
   word: string
   tileIds: string[]
   spangram: boolean
@@ -50,7 +50,7 @@ export type GWordRaw = {
 
 /** A puzzle word, or a seat's find, as `gd` holds it: its tiles, in the order
  *  it is traced. */
-export type GWord = Omit<GWordRaw, 'tileIds'> & {
+export type GPuzzleWord = Omit<GPuzzleWordRaw, 'tileIds'> & {
   tiles: GTile[]
 }
 
@@ -74,7 +74,7 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     // All 48 tiles, row by row.
     tiles: GTile[]
     // The puzzle words, spangram first. Null until the game ends.
-    words: GWordRaw[] | null
+    puzzleWords: GPuzzleWordRaw[] | null
   }
   // What the team shares; null in compete, where there is no team.
   team: GTeam | null
@@ -88,7 +88,7 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
  * hints the players cashed, summed, and the one hint bar.
  */
 export type GTeam = {
-  nFoundWords: number
+  nFoundPuzzleWords: number
   nHintsUsed: number
   hintPoints: number
 }
@@ -99,7 +99,7 @@ export type GTeam = {
  * it and picks nothing. Never the word total: that is part of the answer.
  */
 export type GStateLineData = {
-  nFoundWords: number
+  nFoundPuzzleWords: number
   nHintsUsed: number
 }
 
@@ -165,7 +165,7 @@ export type GEventRaw = GEventKind & {
 /** A seat's board as the blob carries it: its found words, in the order
  *  found, and its ringed hint, null when none shows. */
 export type GBoardRaw = {
-  words: GWordRaw[]
+  foundPuzzleWords: GPuzzleWordRaw[]
   hintTileIds: string[] | null
 }
 
@@ -173,7 +173,7 @@ export type GBoardRaw = {
  *  own counts, a racer's bar, and this seat's board. */
 export type GPlayerRaw = PlayerRaw & {
   // This player's own, in every mode; the team's are `team`'s.
-  nFoundWords: number
+  nFoundPuzzleWords: number
   nHintsUsed: number
   // A racer's hint bar; null in coop, where the bar is the team's.
   hintPoints: number | null
@@ -202,8 +202,8 @@ export type GPlayerRaw = PlayerRaw & {
  *     title                                  # the theme prompt
  *     tiles: [tile, …]                       # all 48, row by row
  *     tilesById
- *     words: [word, …]                       # spangram first; null until the game ends
- *   team: {nFoundWords, nHintsUsed, hintPoints}   # null in compete
+ *     puzzleWords: [puzzleWord, …]           # spangram first; null until the game ends
+ *   team: {nFoundPuzzleWords, nHintsUsed, hintPoints}   # null in compete
  *   turns: {holder}                          # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
  *   ended
@@ -212,15 +212,15 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                     # seat order
  *   playersById
  *   me                                       # same object as playersById[auth.user.id]
- *   stateLineData: {nFoundWords, nHintsUsed}      # the team's in coop, mine in compete
+ *   stateLineData: {nFoundPuzzleWords, nHintsUsed}      # the team's in coop, mine in compete
  *   hintBarData: {hintPoints, hintCost}           # the team's in coop, mine in compete
  *
  * player:
  *   the common player
- *   nFoundWords                              # own; null for a rival mid-race
+ *   nFoundPuzzleWords                              # own; null for a rival mid-race
  *   nHintsUsed                               # own: the hints this player cashed
  *   hintPoints                               # a racer's bar; null in coop, and for a rival mid-race
- *   board: {words, hintTiles}                # this seat's finds and ringed hint, the shared ones in coop; null for a rival mid-race
+ *   board: {foundPuzzleWords, hintTiles}     # this seat's finds and ringed hint, the shared ones in coop; null for a rival mid-race
  *
  * tile:                                      # GTile
  *   id                                       # "r,c"
@@ -228,7 +228,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   row
  *   col
  *
- * word:                                      # GWord, in puzzle.words and board.words
+ * puzzleWord:                                # GPuzzleWord, in puzzle.puzzleWords and board.foundPuzzleWords
  *   word
  *   tiles: [tile, …]                         # in trace order
  *   spangram
@@ -257,7 +257,7 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'even
     tiles: GTile[]
     // The same tiles, keyed by id.
     tilesById: Record<string, GTile>
-    words: GWord[] | null
+    puzzleWords: GPuzzleWord[] | null
   }
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
@@ -277,7 +277,7 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'even
   playersById: Record<string, GPlayer>
   // My entry in `playersById`: the same object. My own board and count are
   // always mine to see.
-  me: GPlayer & { board: GBoard; nFoundWords: number }
+  me: GPlayer & { board: GBoard; nFoundPuzzleWords: number }
   // What the state line shows: the team's counts in coop, my own in compete.
   stateLineData: GStateLineData
   // What the hint bar shows: the team's bar in coop, my own in compete.
@@ -286,15 +286,15 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'even
 
 /** One player of this game, as `gd` holds them: the blob's player, with their
  *  found-word count, bar and board withheld — null — for a rival mid-race. */
-export type GPlayer = Omit<GPlayerRaw, 'nFoundWords' | 'board'> & {
-  nFoundWords: number | null
+export type GPlayer = Omit<GPlayerRaw, 'nFoundPuzzleWords' | 'board'> & {
+  nFoundPuzzleWords: number | null
   board: GBoard | null
 }
 
 /** What one seat sees: its found words, in the order found, and its ringed
  *  hint, null when none shows. */
 export type GBoard = {
-  words: GWord[]
+  foundPuzzleWords: GPuzzleWord[]
   hintTiles: GTile[] | null
 }
 

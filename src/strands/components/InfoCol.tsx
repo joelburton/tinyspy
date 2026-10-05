@@ -8,7 +8,7 @@ import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { cls } from '@/common/utils/cls'
-import type { GActions, GGameData, GHistoryView, GPlayer, GWord } from '../types'
+import type { GActions, GGameData, GHistoryView, GPlayer, GPuzzleWord } from '../types'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -30,7 +30,7 @@ export function InfoCol({
   endingMessage,
   actions,
   historyView,
-  solution,
+  puzzleWords,
 }: {
   gd: GGameData
   // The ending that applies to me — the game's once it has ended, else mine
@@ -41,7 +41,7 @@ export function InfoCol({
   // The puzzle words, spangram first, while I have them revealed; else null.
   // The board draws paths and never spells anything out, so without this the
   // reveal makes you read the words off the grid letter by letter.
-  solution: GWord[] | null
+  puzzleWords: GPuzzleWord[] | null
 }) {
   const actionRowMessage: InfoActionsMessage | undefined = endingMessage
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
@@ -68,7 +68,7 @@ export function InfoCol({
 
         {/* Quoted: the prompt is the puzzle's own words, not ours, and unquoted
             it reads as a heading the app wrote. */}
-        <p className={styles.clue}>“{gd.puzzle.title}”</p>
+        <p className={styles.title}>“{gd.puzzle.title}”</p>
         <p className={shared.infoState}>
           <StateLine data={gd.stateLineData} />
         </p>
@@ -134,10 +134,10 @@ export function InfoCol({
             click-to-define. Comes and goes with the board's gray lines — one
             toggle, one secret (a blessed exception to docs/ui.md → Layout
             stability). */}
-        {solution && (
+        {puzzleWords && (
           <p className={cls(shared.terminalExtra, styles.solutionWords)}>
             <span className="muted">Words:</span>{' '}
-            {solution.map((w) => (
+            {puzzleWords.map((w) => (
               <DefinableWord key={w.word} word={w.word} />
             ))}
           </p>

@@ -13,7 +13,7 @@ import styles from './StateLine.module.css'
 export function StateLine({ data }: { data: GStateLineData }) {
   return (
     <>
-      {data.nFoundWords} {data.nFoundWords === 1 ? 'word' : 'words'}
+      {data.nFoundPuzzleWords} {data.nFoundPuzzleWords === 1 ? 'word' : 'words'}
       {data.nHintsUsed > 0 && (
         <span className={styles.hintsUsed}>
           {' '}· {data.nHintsUsed} hint{data.nHintsUsed === 1 ? '' : 's'} used

@@ -23,7 +23,7 @@ import logoUrl from './logo.svg?url'
  *
  * The compete rules are worth stating here because they shape the UI: the
  * winner is whoever SOLVED using the fewest hints, earliest solve breaking a
- * tie — so the race does NOT end on first solve, a solver goes locally terminal
+ * tie — so the race does NOT end on first solve, a solver ends their own race
  * while the others play on, and the club label can't crown anyone until it's
  * over. Opponents see one number mid-game (hints used) and nothing about the
  * puzzle.
@@ -72,7 +72,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
  */
 function makeCoopLabel(summary: GSummaryData): string {
   // Coop always has a team.
-  const progress = count(summary.team!.nFoundWords, 'word')
+  const progress = count(summary.team!.nFoundPuzzleWords, 'word')
   if (summary.ending === null) return statusLine(verdict('Playing'), progress)
   // Written with the ending.
   const outcome = summary.outcome!

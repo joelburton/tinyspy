@@ -110,14 +110,14 @@ describe('strands makeGameData — the puzzle', () => {
   })
 
   it('no words mid-game', () => {
-    expect(makeGameData(ZTest_makeGameDataRaw(), 'u1').puzzle.words).toBeNull()
+    expect(makeGameData(ZTest_makeGameDataRaw(), 'u1').puzzle.puzzleWords).toBeNull()
   })
 
   it('hands the words over once the game has ended, spangram first, as tiles', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ ...STOPPED }), 'u1')
-    expect(gd.puzzle.words).toHaveLength(8)
-    expect(gd.puzzle.words![0]).toMatchObject({ word: 'zzqejk', spangram: true })
-    expect(gd.puzzle.words![0]!.tiles[0]).toBe(gd.puzzle.tilesById['4,0'])
+    expect(gd.puzzle.puzzleWords).toHaveLength(8)
+    expect(gd.puzzle.puzzleWords![0]).toMatchObject({ word: 'zzqejk', spangram: true })
+    expect(gd.puzzle.puzzleWords![0]!.tiles[0]).toBe(gd.puzzle.tilesById['4,0'])
   })
 })
 
@@ -129,10 +129,10 @@ describe('strands makeGameData — coop: one board, one bar', () => {
 
   it('each player\'s counts are their own, and the team sums them', () => {
     const gd = coop()
-    expect([gd.me.nFoundWords, gd.me.nHintsUsed]).toEqual([1, 0])
+    expect([gd.me.nFoundPuzzleWords, gd.me.nHintsUsed]).toEqual([1, 0])
     const moth = gd.playersById.u2!
-    expect([moth.nFoundWords, moth.nHintsUsed]).toEqual([0, 1])
-    expect(gd.team).toEqual({ nFoundWords: 1, nHintsUsed: 1, hintPoints: 1 })
+    expect([moth.nFoundPuzzleWords, moth.nHintsUsed]).toEqual([0, 1])
+    expect(gd.team).toEqual({ nFoundPuzzleWords: 1, nHintsUsed: 1, hintPoints: 1 })
   })
 
   it('the bar is the team\'s: no player carries one', () => {
@@ -142,12 +142,12 @@ describe('strands makeGameData — coop: one board, one bar', () => {
   })
 
   it('the state line shows the team\'s counts', () => {
-    expect(coop().stateLineData).toEqual({ nFoundWords: 1, nHintsUsed: 1 })
+    expect(coop().stateLineData).toEqual({ nFoundPuzzleWords: 1, nHintsUsed: 1 })
   })
 
   it('one board — the finds and the ring — on every seat', () => {
     const gd = coop()
-    expect(gd.me.board.words.map((w) => w.word)).toEqual(['zzqabc'])
+    expect(gd.me.board.foundPuzzleWords.map((w) => w.word)).toEqual(['zzqabc'])
     expect(gd.me.board.hintTiles?.map((t) => t.id)).toEqual(ZTest_rowIds(2))
     expect(gd.playersById.u2!.board).toEqual(gd.me.board)
   })
@@ -175,7 +175,7 @@ describe('strands makeGameData — the seat rule', () => {
     const moth = gd.playersById.u2!
     expect(moth.board).toBeNull()
     expect(moth.hintPoints).toBeNull()
-    expect(moth.nFoundWords).toBeNull()
+    expect(moth.nFoundPuzzleWords).toBeNull()
   })
 
   it('a rival\'s hints used stay visible mid-race — the race publishes them', () => {
@@ -184,9 +184,9 @@ describe('strands makeGameData — the seat rule', () => {
 
   it('my own board, bar and count are always mine to see', () => {
     const gd = makeGameData(race(), 'u1')
-    expect(gd.me.board.words.map((w) => w.word)).toEqual(['zzqabc'])
+    expect(gd.me.board.foundPuzzleWords.map((w) => w.word)).toEqual(['zzqabc'])
     expect(gd.me.board.hintTiles).toBeNull()
-    expect(gd.me.nFoundWords).toBe(1)
+    expect(gd.me.nFoundPuzzleWords).toBe(1)
     expect(gd.hintBarData).toEqual({ hintPoints: 1, hintCost: 3 })
   })
 
@@ -194,15 +194,15 @@ describe('strands makeGameData — the seat rule', () => {
     const gd = makeGameData(race({ ...STOPPED }), 'u1')
     expect(gd.events.map((e) => e.id)).toEqual([1, 2, 3, 4])
     const moth = gd.playersById.u2!
-    expect(moth.board?.words).toHaveLength(2)
+    expect(moth.board?.foundPuzzleWords).toHaveLength(2)
     expect(moth.board?.hintTiles?.map((t) => t.id)).toEqual(ZTest_rowIds(3))
-    expect([moth.nFoundWords, moth.hintPoints]).toEqual([2, 2])
+    expect([moth.nFoundPuzzleWords, moth.hintPoints]).toEqual([2, 2])
   })
 
   it('a race has no team, so the state line shows my own counts', () => {
     const gd = makeGameData(race(), 'u1')
     expect(gd.team).toBeNull()
-    expect(gd.stateLineData).toEqual({ nFoundWords: 1, nHintsUsed: 0 })
+    expect(gd.stateLineData).toEqual({ nFoundPuzzleWords: 1, nHintsUsed: 0 })
   })
 
   it('a conceder is still a player, with their ending', () => {

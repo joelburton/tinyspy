@@ -24,7 +24,7 @@ import { startGameRow } from './helpers/clubPage'
  *
  * Locators scope to the Puzzle section on purpose. The setup dialog is a
  * draggable window, not a `role="dialog"`, AND a strands game's TITLE is
- * `<date>: <clue>` — the same shape as the preview line — so an unscoped
+ * `<date>: <title>` — the same shape as the preview line — so an unscoped
  * match happily finds the club-page game row behind the dialog and reports a
  * stale date.
  */
@@ -223,20 +223,20 @@ test.describe('puzzle pickers', () => {
       await openPuzzle(page)
       await expect(nextUpLine(page)).toBeVisible({ timeout: 15000 })
     }
-    // 2025-06-15's clue is the fixtures' own reference puzzle; asserting on the
-    // CLUE rather than the date matters, because the not-found sentence names
+    // 2025-06-15's title is the fixtures' own reference puzzle; asserting on the
+    // TITLE rather than the date matters, because the not-found sentence names
     // the date too ("No PaulPath puzzle for 2025-06-15") and would match a
     // looser check while showing the opposite of what's meant.
-    const CLUE = "Here's to him!"
+    const TITLE = "Here's to him!"
 
     await open()
-    await expect(nextUpLine(page)).not.toContainText(CLUE)
+    await expect(nextUpLine(page)).not.toContainText(TITLE)
 
     // The setup form's date box carries no caption — the section's summary is
     // the caption — so it is reached by its form name. (The crosswords NYT
     // picker above is a different control and does have an aria-label.)
     await page.locator('input[name="puzzle_id"]').fill('2025-06-15')
-    await expect(nextUpLine(page)).toContainText(CLUE, { timeout: 10000 })
+    await expect(nextUpLine(page)).toContainText(TITLE, { timeout: 10000 })
 
     // A date the archive doesn't have says so rather than silently ignoring it.
     await page.locator('input[name="puzzle_id"]').fill('1999-01-01')
@@ -244,10 +244,10 @@ test.describe('puzzle pickers', () => {
 
     // Clearing hands the choice back to the server.
     await page.locator('input[name="puzzle_id"]').fill('')
-    await expect(nextUpLine(page)).not.toContainText(CLUE, { timeout: 10000 })
+    await expect(nextUpLine(page)).not.toContainText(TITLE, { timeout: 10000 })
 
     await page.locator('input[name="puzzle_id"]').fill('2025-06-15')
-    await expect(nextUpLine(page)).toContainText(CLUE, { timeout: 10000 })
+    await expect(nextUpLine(page)).toContainText(TITLE, { timeout: 10000 })
     await page.getByRole('button', { name: 'Start' }).click()
     await expect(page).toHaveURL(/\/g\/strands_coop\//, { timeout: 20000 })
     const firstUrl = page.url()
@@ -257,7 +257,7 @@ test.describe('puzzle pickers', () => {
     await page.goto(`/c/${club.handle}`)
     await open()
     await page.locator('input[name="puzzle_id"]').fill('2025-06-15')
-    await expect(nextUpLine(page)).toContainText(CLUE, { timeout: 10000 })
+    await expect(nextUpLine(page)).toContainText(TITLE, { timeout: 10000 })
     await page.getByRole('button', { name: 'Start' }).click()
     await expect(page).toHaveURL(/\/g\/strands_coop\//, { timeout: 20000 })
     expect(page.url()).not.toBe(firstUrl)

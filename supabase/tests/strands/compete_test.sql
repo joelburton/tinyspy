@@ -119,7 +119,7 @@ select is(
 
 -- bea's own count, and her own bar: compete's pool is each racer's.
 select is(
-  (select p->>'nHintsUsed' || '/' || (p->>'hintPoints') || '/' || jsonb_array_length(p->'board'->'words')
+  (select p->>'nHintsUsed' || '/' || (p->>'hintPoints') || '/' || jsonb_array_length(p->'board'->'foundPuzzleWords')
      from common.games cg, jsonb_array_elements(cg.game_data->'players') p
     where cg.id = (select id from game)
       and p->>'id' = 'bea22222-2222-2222-2222-222222222222'),
@@ -128,7 +128,7 @@ select is(
 );
 
 select is(
-  (select p->>'nFoundWords'
+  (select p->>'nFoundPuzzleWords'
      from common.games cg, jsonb_array_elements(cg.game_data->'players') p
     where cg.id = (select id from game)
       and p->>'id' = 'ada11111-1111-1111-1111-111111111111'),
@@ -194,7 +194,7 @@ select pg_temp.envelope_is(
 -- on the game having ended (over for EVERYONE) and not on any per-player
 -- doneness — a finished racer with the solution on screen could just read it out.
 select is(
-  (select game_data->'puzzle'->'words' from common.games where id = (select id from game)),
+  (select game_data->'puzzle'->'puzzleWords' from common.games where id = (select id from game)),
   'null'::jsonb,
   'a SOLVED racer''s game_data still has no answer while a rival is tracing'
 );
@@ -219,7 +219,7 @@ select is(
 );
 
 select is(
-  (select jsonb_array_length(game_data->'puzzle'->'words') from common.games
+  (select jsonb_array_length(game_data->'puzzle'->'puzzleWords') from common.games
     where id = (select id from game)),
   8,
   'and NOW game_data carries the answer — nobody is left to spoil'

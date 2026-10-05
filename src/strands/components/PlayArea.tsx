@@ -113,11 +113,11 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
   // The words my board did not find, while I have the solution shown: gray
   // lines on the board, beside the words the info column names. The words
   // arrive once the game has ended, so mid-game this is empty by construction.
-  const missedWords = useMemo(() => {
-    if (!solutionShown || gd.puzzle.words === null) return []
-    const found = new Set(gd.me.board.words.map((w) => w.word))
-    return gd.puzzle.words.filter((w) => !found.has(w.word))
-  }, [solutionShown, gd.puzzle.words, gd.me.board.words])
+  const missedPuzzleWords = useMemo(() => {
+    if (!solutionShown || gd.puzzle.puzzleWords === null) return []
+    const foundSpellings = new Set(gd.me.board.foundPuzzleWords.map((w) => w.word))
+    return gd.puzzle.puzzleWords.filter((w) => !foundSpellings.has(w.word))
+  }, [solutionShown, gd.puzzle.puzzleWords, gd.me.board.foundPuzzleWords])
 
   // The board to show: a past turn's while one is open, else the live one.
   const shownBoard = historyView.board ?? gd.me.board
@@ -130,7 +130,7 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
       <BoardCol
         gd={gd}
         shownBoard={shownBoard}
-        missedWords={missedWords}
+        missedPuzzleWords={missedPuzzleWords}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
       />
@@ -142,7 +142,7 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
           endingMessage={endingMessage}
           actions={actions}
           historyView={historyView}
-          solution={solutionShown ? gd.puzzle.words : null}
+          puzzleWords={solutionShown ? gd.puzzle.puzzleWords : null}
         />
       </InfoSheet>
 
@@ -156,7 +156,7 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
           body={
             gd.compete
               ? `Solved on ${gd.me.nHintsUsed} hint${gd.me.nHintsUsed === 1 ? '' : 's'}.`
-              : `Every word on the board — ${gd.stateLineData.nFoundWords} of them.`
+              : `Every word on the board — ${gd.stateLineData.nFoundPuzzleWords} of them.`
           }
           onClose={celebration.close}
         />

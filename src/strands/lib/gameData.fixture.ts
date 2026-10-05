@@ -14,7 +14,7 @@ import type {
   GResult,
   GSetup,
   GTile,
-  GWordRaw,
+  GPuzzleWordRaw,
 } from '../types'
 
 /** setup.psql's board: one puzzle word per row, row 4 the spangram, and each
@@ -27,8 +27,8 @@ export function ZTest_rowIds(r: number, n = 6): string[] {
   return Array.from({ length: n }, (_, c) => `${r},${c}`)
 }
 
-/** The puzzle words, spangram first, as `strands._make_json_words` writes them. */
-export const ZTest_WORDS: GWordRaw[] = [4, 0, 1, 2, 3, 5, 6, 7].map((r) => ({
+/** The puzzle words, spangram first, as `strands._make_json_puzzle_words` writes them. */
+export const ZTest_PUZZLE_WORDS: GPuzzleWordRaw[] = [4, 0, 1, 2, 3, 5, 6, 7].map((r) => ({
   word: ZTest_BOARD[r]!,
   tileIds: ZTest_rowIds(r),
   spangram: r === 4,
@@ -151,7 +151,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const turnBased = turnHolderId !== undefined
 
   const isFind = (e: GEventRaw) => e.result === 'theme' || e.result === 'spangram'
-  const wordsOf = (rows: GEventRaw[]): GWordRaw[] =>
+  const makeFoundPuzzleWords = (rows: GEventRaw[]): GPuzzleWordRaw[] =>
     rows.filter(isFind).map((e) => ({ word: e.word!, tileIds: e.tileIds, spangram: e.result === 'spangram' }))
 
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
@@ -173,11 +173,11 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       stillPlaying,
       onTurn,
       waitingForTurn: stillPlaying && !onTurn,
-      nFoundWords: rows.filter(isFind).length,
+      nFoundPuzzleWords: rows.filter(isFind).length,
       nHintsUsed: rows.filter((e) => e.kind === 'hint').length,
       hintPoints: coop ? null : (p.hintPoints ?? 0),
       board: {
-        words: wordsOf(coop ? events : rows),
+        foundPuzzleWords: makeFoundPuzzleWords(coop ? events : rows),
         hintTileIds: coop ? hintTileIds : (p.hintTileIds ?? null),
       },
     }
@@ -201,11 +201,11 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     puzzle: {
       title: puzzleTitle,
       tiles: ZTest_makeTiles(board),
-      words: ended ? ZTest_WORDS : null,
+      puzzleWords: ended ? ZTest_PUZZLE_WORDS : null,
     },
     team: coop
       ? {
-        nFoundWords: events.filter(isFind).length,
+        nFoundPuzzleWords: events.filter(isFind).length,
         nHintsUsed: players.reduce((n, p) => n + p.nHintsUsed, 0),
         hintPoints,
       }

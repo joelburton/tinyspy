@@ -44,8 +44,8 @@ test.describe('strands play loop', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
-    // The clue is the PROMPT, not the answer — on screen from the first second.
-    await expect(page.getByText(`“${game.clue}”`).first()).toBeVisible()
+    // The puzzle's title is the PROMPT, not the answer — on screen from the first second.
+    await expect(page.getByText(`“${game.title}”`).first()).toBeVisible()
 
     const theme = game.words.find((w) => !w.isSpangram)!
     const spangram = game.words.find((w) => w.isSpangram)!
@@ -84,16 +84,16 @@ test.describe('strands play loop', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
-    // Three tiles along the top row: the echo tracks the trace as it grows.
+    // Three tiles along the top row: the traced word tracks the trace as it grows.
     await cell(page, [0, 0]).click()
     await cell(page, [0, 1]).click()
     await cell(page, [0, 2]).click()
-    const echo = page.locator('[class*="echo"]').first()
-    await expect(echo).toHaveText(/^.{3}$/)
+    const entryWord = page.locator('[class*="entryWord"]').first()
+    await expect(entryWord).toHaveText(/^.{3}$/)
 
     // Backspace drops the LAST tile only — a misclick costs one key, not the word.
     await page.keyboard.press('Backspace')
-    await expect(echo).toHaveText(/^.{2}$/)
+    await expect(entryWord).toHaveText(/^.{2}$/)
 
     // Two letters is under min_word_length (4) and isn't a theme path.
     await page.keyboard.press('Enter')
@@ -142,7 +142,7 @@ test.describe('strands play loop', () => {
 
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
-    await expect(page.getByText(`“${game.clue}”`).first()).toBeVisible()
+    await expect(page.getByText(`“${game.title}”`).first()).toBeVisible()
 
     // THE SHIELD: every games_state row delivered so far carried a null
     // solution. The column grant is pinned server-side by rls_test; this is the

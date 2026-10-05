@@ -25,9 +25,9 @@
   /* A FIXED info column, like wordle / connections / waffle. strands does NOT
    * compose the shared `.responsiveInfoCol` — that one is for the three
    * WORD-LIST games (spellingbee / wordwheel / boggle), whose multi-column list
-   * genuinely wants 22–53rem. strands' info column holds a clue, a progress
-   * line and an event log, and handing it 53rem just strands the board in a
-   * corner. The scaffold has no default on purpose, so declaring it is
+   * genuinely wants 22–53rem. strands' info column holds the puzzle's title, a
+   * progress line and an event log, and handing it 53rem just strands the board
+   * in a corner. The scaffold has no default on purpose, so declaring it is
    * mandatory: leave it out and --avail-w is invalid at computed-value time,
    * which silently collapses the board to zero height rather than erroring. */
 /* @@ */   --info-col-width: 22rem;
@@ -35,9 +35,9 @@
   /* The board's own chrome: 0.9rem padding a side + a 2px border a side. Keep
    * in sync with `.board` in Board.module.css — they describe one box. */
 /* @@ */   --board-frame: 2.05rem;
-  /* The below-board stack: the echo/pill slot (2.5rem) + the hint row (2.25rem)
+  /* The below-board stack: the entry/pill slot (2.5rem) + the hint row (2.25rem)
    * + two 0.75rem column gaps, plus ~1rem of breathing room. Keep in sync with
-   * BoardCol.module.css's `.echoSlot` and HintBar.module.css. */
+   * BoardCol.module.css's `.entrySlot` and HintBar.module.css. */
 /* @@ */   --avail-h: calc(100svh - var(--game-chrome-height) - 8.25rem);
 /* @@ */   --board-h: min(
     calc(var(--avail-h) - var(--board-frame)),

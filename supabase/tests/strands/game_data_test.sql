@@ -79,7 +79,7 @@ create function pg_temp.own_keys(player jsonb) returns jsonb language sql as
                     - 'finalRanking' - 'solvedAt' - 'conceded' - 'solved' - 'stillPlaying'
                     - 'onTurn' - 'waitingForTurn' - 'board')
             || jsonb_build_object(
-                 'nBoardWords', jsonb_array_length(player -> 'board' -> 'words'),
+                 'nBoardPuzzleWords', jsonb_array_length(player -> 'board' -> 'foundPuzzleWords'),
                  'nHintTiles',  jsonb_array_length(nullif(player -> 'board' -> 'hintTileIds', 'null'::jsonb))) $$;
 
 -- ─── (1) A fresh game ───
@@ -89,16 +89,16 @@ select is(
      'first',  gd -> 'puzzle' -> 'tiles' -> 0,
      'last',   gd -> 'puzzle' -> 'tiles' -> 47,
      'title',  gd -> 'puzzle' -> 'title',
-     'words',  gd -> 'puzzle' -> 'words')
+     'puzzleWords', gd -> 'puzzle' -> 'puzzleWords')
      from (select pg_temp.game_data(pg_temp.coop()) gd) x),
   '{"nTiles": 48, "first": {"id": "0,0", "letter": "z", "row": 0, "col": 0},
     "last": {"id": "7,5", "letter": "r", "row": 7, "col": 5},
-    "title": "Rows of nonsense", "words": null}'::jsonb,
-  'the puzzle: the board as 48 tiles row by row, the title, no words mid-game'
+    "title": "Rows of nonsense", "puzzleWords": null}'::jsonb,
+  'the puzzle: the board as 48 tiles row by row, the title, no puzzle words mid-game'
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',
-  '{"nFoundWords": 0, "nHintsUsed": 0, "hintPoints": 0}'::jsonb,
+  '{"nFoundPuzzleWords": 0, "nHintsUsed": 0, "hintPoints": 0}'::jsonb,
   'coop: a team with nothing found or cashed, and an empty bar'
 );
 select is(
@@ -115,14 +115,14 @@ select is(
   jsonb_build_array(
     pg_temp.own_keys(pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111')),
     pg_temp.own_keys(pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111'))),
-  '[{"nFoundWords": 0, "nHintsUsed": 0, "hintPoints": null, "nBoardWords": 0, "nHintTiles": null},
-    {"nFoundWords": 0, "nHintsUsed": 0, "hintPoints": 0, "nBoardWords": 0, "nHintTiles": null}]'::jsonb,
+  '[{"nFoundPuzzleWords": 0, "nHintsUsed": 0, "hintPoints": null, "nBoardPuzzleWords": 0, "nHintTiles": null},
+    {"nFoundPuzzleWords": 0, "nHintsUsed": 0, "hintPoints": 0, "nBoardPuzzleWords": 0, "nHintTiles": null}]'::jsonb,
   'a fresh player: nothing found, no ring; a bar of their own only in compete'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"nFoundWords": 0, "nHintsUsed": 0, "hintPoints": 0}, "nWinnerHints": null}'::jsonb,
+    || '{"team": {"nFoundPuzzleWords": 0, "nHintsUsed": 0, "hintPoints": 0}, "nWinnerHints": null}'::jsonb,
   'coop: a fresh summary'
 );
 select is(
@@ -165,15 +165,15 @@ select is(
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',
-  '{"nFoundWords": 1, "nHintsUsed": 1, "hintPoints": 0}'::jsonb,
+  '{"nFoundPuzzleWords": 1, "nHintsUsed": 1, "hintPoints": 0}'::jsonb,
   'coop: the team''s words and hints, and the one bar, emptied by the spend'
 );
 select is(
   jsonb_build_array(
     pg_temp.own_keys(pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111')),
     pg_temp.own_keys(pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222'))),
-  '[{"nFoundWords": 1, "nHintsUsed": 0, "hintPoints": null, "nBoardWords": 1, "nHintTiles": 6},
-    {"nFoundWords": 0, "nHintsUsed": 1, "hintPoints": null, "nBoardWords": 1, "nHintTiles": 6}]'::jsonb,
+  '[{"nFoundPuzzleWords": 1, "nHintsUsed": 0, "hintPoints": null, "nBoardPuzzleWords": 1, "nHintTiles": 6},
+    {"nFoundPuzzleWords": 0, "nHintsUsed": 1, "hintPoints": null, "nBoardPuzzleWords": 1, "nHintTiles": 6}]'::jsonb,
   'coop: each player''s own counts; the shared board and its ring on both seats'
 );
 select is(
@@ -194,8 +194,8 @@ select is(
   jsonb_build_array(
     pg_temp.own_keys(pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111')),
     pg_temp.own_keys(pg_temp.player(pg_temp.compete(), 'bea22222-2222-2222-2222-222222222222'))),
-  '[{"nFoundWords": 1, "nHintsUsed": 0, "hintPoints": 1, "nBoardWords": 1, "nHintTiles": null},
-    {"nFoundWords": 0, "nHintsUsed": 0, "hintPoints": 0, "nBoardWords": 0, "nHintTiles": null}]'::jsonb,
+  '[{"nFoundPuzzleWords": 1, "nHintsUsed": 0, "hintPoints": 1, "nBoardPuzzleWords": 1, "nHintTiles": null},
+    {"nFoundPuzzleWords": 0, "nHintsUsed": 0, "hintPoints": 0, "nBoardPuzzleWords": 0, "nHintTiles": null}]'::jsonb,
   'compete: each racer''s counts, bar and board are their own'
 );
 select is(
@@ -221,7 +221,7 @@ select is(
      'n',      jsonb_array_length(w),
      'first',  w -> 0,
      'second', (w -> 1) - 'tileIds')
-     from (select pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'words' w) x),
+     from (select pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'puzzleWords' w) x),
   '{"n": 8,
     "first": {"word": "zzqejk", "spangram": true,
               "tileIds": ["4,0", "4,1", "4,2", "4,3", "4,4", "4,5"]},
@@ -231,14 +231,14 @@ select is(
 select is(
   (select jsonb_agg(jsonb_build_array(p -> 'solved', p -> 'outcome') order by p ->> 'id')
      from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p)
-    || jsonb_build_array(pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'nFoundWords'),
+    || jsonb_build_array(pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'nFoundPuzzleWords'),
   '[[true, "won"], [true, "won"], 8]'::jsonb,
   'coop solved: the solve stamps every teammate, and the team found all eight'
 );
 select is(
   (select jsonb_agg(w -> 'spangram' order by o)
      from jsonb_array_elements(pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111')
-                                 -> 'board' -> 'words') with ordinality x(w, o)),
+                                 -> 'board' -> 'foundPuzzleWords') with ordinality x(w, o)),
   '[false, false, false, false, true, false, false, false]'::jsonb,
   'a seat''s found words are in the order found, the spangram flagged'
 );
@@ -273,11 +273,11 @@ select is(
   jsonb_build_object(
     'team',   pg_temp.game_data(pg_temp.coop()) -> 'team',
     'events', pg_temp.game_data(pg_temp.coop()) -> 'events',
-    'words',  pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'words',
+    'puzzleWords', pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'puzzleWords',
     'ada',    pg_temp.own_keys(pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111'))),
-  '{"team": {"nFoundWords": 0, "nHintsUsed": 0, "hintPoints": 0}, "events": [], "words": null,
-    "ada": {"nFoundWords": 0, "nHintsUsed": 0, "hintPoints": null, "nBoardWords": 0, "nHintTiles": null}}'::jsonb,
-  'after a Restart: an empty board, no log, nothing found or cashed, no words'
+  '{"team": {"nFoundPuzzleWords": 0, "nHintsUsed": 0, "hintPoints": 0}, "events": [], "puzzleWords": null,
+    "ada": {"nFoundPuzzleWords": 0, "nHintsUsed": 0, "hintPoints": null, "nBoardPuzzleWords": 0, "nHintTiles": null}}'::jsonb,
+  'after a Restart: an empty board, no log, nothing found or cashed, no puzzle words'
 );
 
 -- ─── (6) _rebuild_data_cols_for_all ───

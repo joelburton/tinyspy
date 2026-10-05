@@ -59,7 +59,7 @@ export function printStrandsPdf(m: StrandsPrintModel): void {
   const pd = newPrintDoc()
   const { doc } = pd
 
-  // The clue rides IN the header's summary rather than on a line of its own.
+  // The puzzle's title rides IN the header's summary rather than on a line of its own.
   // It's already in the game title too, but that gets truncated to clear the
   // date — and a separate line would both duplicate it and collide with the
   // summary, which sits only 20pt above where the tracks begin.
@@ -113,7 +113,7 @@ function drawBoard(
   const cy = (r: number) => top + (r + 0.5) * cell
 
   // ── Paths first ──
-  for (const w of t.words) {
+  for (const w of t.puzzleWords) {
     if (w.tiles.length < 2) continue
     doc.setDrawColor(DARK_GRAY)
     doc.setLineWidth(w.spangram ? SPANGRAM_W : LINE_W)
@@ -132,7 +132,7 @@ function drawBoard(
 
   // ── Knock out the letters' backgrounds ──
   doc.setFillColor(255, 255, 255)
-  for (const w of t.words) {
+  for (const w of t.puzzleWords) {
     for (const tile of w.tiles) {
       doc.circle(cx(tile.col), cy(tile.row), cell * 0.3, 'F')
     }

@@ -172,16 +172,16 @@ drop function if exists strands._write_statuses(uuid, boolean);
 -- every path in a blob is a list of tile ids, in the order it was traced.
 --
 --   game_data, strands' part:
---     puzzle: {title, tiles, words}        frozen at create: the theme prompt;
+--     puzzle: {title, tiles, puzzleWords}  frozen at create: the theme prompt;
 --                                          all 48 tiles, each {id, letter, row,
 --                                          col}, row by row; the puzzle words,
 --                                          each {word, tileIds, spangram},
 --                                          spangram first, null until the game
 --                                          ends
---     team: {nFoundWords, nHintsUsed, hintPoints}
---                                          what the team shares: the words found,
---                                          the players' hints summed, the one
---                                          hint bar; null in compete
+--     team: {nFoundPuzzleWords, nHintsUsed, hintPoints}
+--                                          what the team shares: the puzzle words
+--                                          found, the players' hints summed, the
+--                                          one hint bar; null in compete
 --                                          (plans/team-facts.md)
 --     events: [{id, userId, kind, word, result, tileIds, tookTurn, at}, …]
 --                                          every row, every player's; a guess's
@@ -189,19 +189,26 @@ drop function if exists strands._write_statuses(uuid, boolean);
 --                                          racer may see of a rival mid-race is
 --                                          the hook's rule
 --     players: [player, …]                 the common player, plus:
---       nFoundWords, nHintsUsed            this player's own, in every mode
+--       nFoundPuzzleWords, nHintsUsed      this player's own, in every mode
 --       hintPoints                         a racer's hint bar; null in coop,
 --                                          where the bar is the team's
---       board: {words, hintTileIds}        this seat's found words, in the order
---                                          found, and its ringed hint (null when
---                                          none shows): the shared ones in coop,
---                                          each racer's own in compete
+--       board: {foundPuzzleWords, hintTileIds}
+--                                          this seat's found puzzle words, in the
+--                                          order found, and its ringed hint (null
+--                                          when none shows): the shared ones in
+--                                          coop, each racer's own in compete
 --
 --   summary_data, strands' part (the common part names and dates the game
 --   and carries its ending; the winner is `ending.winner`):
 --     team                                 the same group; null in compete
 --     nWinnerHints                         the hints the race was won on; null
 --                                          in coop, or with no winner
+
+-- The builders' names before the words were named (docs/games/strands.md →
+-- Naming the words); supabase/sql is re-applied, not diffed, so the drops stay.
+drop function if exists strands._make_json_words(jsonb);
+drop function if exists strands._make_json_found_words(uuid, uuid);
+drop function if exists strands._count_found_words(uuid, uuid);
 
 -- A path's cells as tile ids, in the order given.
 create or replace function strands._make_json_tile_ids(p_coords jsonb)
@@ -235,7 +242,7 @@ $$;
 revoke execute on function strands._make_json_tiles(text[]) from public;
 
 -- The puzzle words, spangram first.
-create or replace function strands._make_json_words(p_solution jsonb)
+create or replace function strands._make_json_puzzle_words(p_solution jsonb)
 returns jsonb
 language sql
 immutable
@@ -254,7 +261,7 @@ as $$
            '[]'::jsonb);
 $$;
 
-revoke execute on function strands._make_json_words(jsonb) from public;
+revoke execute on function strands._make_json_puzzle_words(jsonb) from public;
 
 -- The prompt, the tiles, and the puzzle words once the game has ended (the
 -- column grant keeps them from any client read).
@@ -267,7 +274,7 @@ as $$
   select jsonb_build_object(
     'title', sg.puzzle_title,
     'tiles', strands._make_json_tiles(sg.board),
-    'words', case when p_ended then strands._make_json_words(sg.solution) end);
+    'puzzleWords', case when p_ended then strands._make_json_puzzle_words(sg.solution) end);
 $$;
 
 revoke execute on function strands._make_json_puzzle(strands.games, boolean) from public;
@@ -296,7 +303,7 @@ revoke execute on function strands._make_json_events(uuid) from public;
 
 -- The words a seat has found, in the order found: everyone's in coop, where
 -- the board is shared; the player's own in compete.
-create or replace function strands._make_json_found_words(p_game_id uuid, p_user_id uuid)
+create or replace function strands._make_json_found_puzzle_words(p_game_id uuid, p_user_id uuid)
 returns jsonb
 language sql
 stable
@@ -313,11 +320,11 @@ as $$
      and (cg.mode = 'coop' or e.user_id = p_user_id);
 $$;
 
-revoke execute on function strands._make_json_found_words(uuid, uuid) from public;
+revoke execute on function strands._make_json_found_puzzle_words(uuid, uuid) from public;
 
 -- The puzzle words found: one player's own, or every player's when `p_user_id`
 -- is null — the team's.
-create or replace function strands._count_found_words(p_game_id uuid, p_user_id uuid)
+create or replace function strands._count_found_puzzle_words(p_game_id uuid, p_user_id uuid)
 returns int
 language sql
 stable
@@ -330,7 +337,7 @@ as $$
      and (p_user_id is null or e.user_id = p_user_id);
 $$;
 
-revoke execute on function strands._count_found_words(uuid, uuid) from public;
+revoke execute on function strands._count_found_puzzle_words(uuid, uuid) from public;
 
 -- What the team shares: the words found, the hints the players cashed, and
 -- the one hint bar, which every coop row carries alike. Null in compete,
@@ -342,7 +349,7 @@ stable
 set search_path = strands, common, public, extensions
 as $$
   select case when cg.mode = 'coop' then jsonb_build_object(
-           'nFoundWords', strands._count_found_words(p_game_id, null),
+           'nFoundPuzzleWords', strands._count_found_puzzle_words(p_game_id, null),
            'nHintsUsed',  (select sum(sp.n_hints_used)::int from strands.players sp
                             where sp.game_id = p_game_id),
            'hintPoints',  (select max(sp.hint_points) from strands.players sp
@@ -363,11 +370,11 @@ set search_path = strands, common, public, extensions
 as $$
   select jsonb_agg(
            cp.player || jsonb_build_object(
-             'nFoundWords', strands._count_found_words(p_game_id, cp.id),
+             'nFoundPuzzleWords', strands._count_found_puzzle_words(p_game_id, cp.id),
              'nHintsUsed',  sp.n_hints_used,
              'hintPoints',  case when cg.mode = 'compete' then sp.hint_points end,
              'board',       jsonb_build_object(
-               'words',       strands._make_json_found_words(p_game_id, cp.id),
+               'foundPuzzleWords', strands._make_json_found_puzzle_words(p_game_id, cp.id),
                'hintTileIds', case when sp.active_hint_coords is not null
                                    then strands._make_json_tile_ids(sp.active_hint_coords) end))
            order by cp.ord)

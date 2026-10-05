@@ -30,24 +30,24 @@ const { events } = makeGameData(
   'u1',
 )
 
-const words = (id: number) => makeHistorySnapshot(events, id, 1).board.words.map((w) => w.word)
+const foundPuzzleWordsAt = (id: number) => makeHistorySnapshot(events, id, 1).board.foundPuzzleWords.map((w) => w.word)
 
 describe('makeHistorySnapshot', () => {
   it('is a filter: the board at turn N is the theme finds among rows 0..N', () => {
-    expect(words(11)).toEqual(['zzqabc'])
+    expect(foundPuzzleWordsAt(11)).toEqual(['zzqabc'])
     // Rejects and hint words never reach the board.
-    expect(words(13)).toEqual(['zzqabc'])
+    expect(foundPuzzleWordsAt(13)).toEqual(['zzqabc'])
   })
 
   it('the boundary is INCLUSIVE: viewing a find shows that find placed', () => {
-    expect(words(14)).toEqual(['zzqabc', 'zzqejk'])
-    expect(makeHistorySnapshot(events, 14, 4).board.words[1]!.spangram).toBe(true)
+    expect(foundPuzzleWordsAt(14)).toEqual(['zzqabc', 'zzqejk'])
+    expect(makeHistorySnapshot(events, 14, 4).board.foundPuzzleWords[1]!.spangram).toBe(true)
   })
 
   it('lights the viewed turn even when it changed nothing', () => {
     // A rejected word's tiles are exactly what reviewing it wants to see.
     expect(makeHistorySnapshot(events, 12, 2).litTiles.map((t) => t.id)).toEqual(['1,0', '1,1'])
-    expect(words(12)).toEqual(['zzqabc'])
+    expect(foundPuzzleWordsAt(12)).toEqual(['zzqabc'])
   })
 
   it('describes the turn in the log wording, numbered by what it was GIVEN', () => {
@@ -75,7 +75,7 @@ describe('makeHistorySnapshot', () => {
 
     it('leaves the board exactly as the finds before it left it', () => {
       // A hint reveals; it never places. So turn 6's board is turn 5's board.
-      expect(words(16)).toEqual(words(15))
+      expect(foundPuzzleWordsAt(16)).toEqual(foundPuzzleWordsAt(15))
     })
 
     it('carries no hint ring on a guess turn', () => {
@@ -86,7 +86,7 @@ describe('makeHistorySnapshot', () => {
   it('an id these rows do not hold replays nothing', () => {
     const snap = makeHistorySnapshot(events, 99, 1)
     expect(snap.litTiles).toEqual([])
-    expect(snap.board).toEqual({ words: [], hintTiles: null })
+    expect(snap.board).toEqual({ foundPuzzleWords: [], hintTiles: null })
     expect(snap.label).toBe('')
   })
 })

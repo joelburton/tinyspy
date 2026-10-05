@@ -67,7 +67,7 @@ export function makeHistorySnapshot(
 
   return {
     board: {
-      words: upTo
+      foundPuzzleWords: upTo
         .filter((e) => e.result === 'theme' || e.result === 'spangram')
         .map((e) => ({ word: e.word!, tiles: e.tiles, spangram: e.result === 'spangram' })),
       hintTiles: viewed?.kind === 'hint' ? viewed.tiles : null,

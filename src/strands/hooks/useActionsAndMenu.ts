@@ -159,7 +159,7 @@ export function useActionsAndMenu({
   const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
-      const { nFoundWords } = gd.stateLineData
+      const { nFoundPuzzleWords } = gd.stateLineData
       printStrandsPdf(
         buildStrandsPrintModel({
           header: {
@@ -168,7 +168,7 @@ export function useActionsAndMenu({
             date: new Date().toLocaleDateString(),
             // The prompt leads, then the count. The prompt is in the title too,
             // but that truncates to clear the date — this line doesn't.
-            summary: `“${gd.puzzle.title}” · ${nFoundWords} word${nFoundWords === 1 ? '' : 's'}`,
+            summary: `“${gd.puzzle.title}” · ${nFoundPuzzleWords} word${nFoundPuzzleWords === 1 ? '' : 's'}`,
             mode: gd.mode,
             setupRows: gd.setupRows,
           },
@@ -178,9 +178,9 @@ export function useActionsAndMenu({
           players: gd.players,
           me: gd.me,
           events: gd.events,
-          nFoundWords,
+          nFoundPuzzleWords,
           nHintsUsed: gd.stateLineData.nHintsUsed,
-          solution: solutionShown ? gd.puzzle.words : null,
+          puzzleWords: solutionShown ? gd.puzzle.puzzleWords : null,
         }),
       )
     },

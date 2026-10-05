@@ -26,7 +26,7 @@ export function buildGameEndingMessage({
   mode,
   gameEnding,
   playerOutcome,
-  nFoundWords,
+  nFoundPuzzleWords,
   winnerNames,
   iSolved,
   nMyHints,
@@ -39,7 +39,7 @@ export function buildGameEndingMessage({
   // How I came out, written with the game's ending.
   playerOutcome: EndOutcome
   // The words found — the team's in coop.
-  nFoundWords: number
+  nFoundPuzzleWords: number
   // Every winner's name, joined with " + " (a tie shares the win).
   winnerNames: string
   iSolved: boolean
@@ -57,7 +57,7 @@ export function buildGameEndingMessage({
       if (gameEnding.outcome === 'won') {
         return { pillText: 'Won: every word found', infoColText: 'You found them all!' }
       }
-      return { pillText: `Lost: out of time — ${nFoundWords} found`, infoColText: 'Out of time' }
+      return { pillText: `Lost: out of time — ${nFoundPuzzleWords} found`, infoColText: 'Out of time' }
     }
 
     if (gameEnding.outcome === 'won' && playerOutcome === 'won') {

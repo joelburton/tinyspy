@@ -123,11 +123,11 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   // puzzle. Compete's line says nothing mid-race; its end names the MARGIN,
   // `nWinnerHints`, rather than the finish order.
   strands: {
-    live: { team: { nFoundWords: 2, nHintsUsed: 1, hintPoints: 1 }, nWinnerHints: null },
+    live: { team: { nFoundPuzzleWords: 2, nHintsUsed: 1, hintPoints: 1 }, nWinnerHints: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: { nFoundWords: 8, nHintsUsed: 1, hintPoints: 0 }, nWinnerHints: null }, 'found them all'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: { nFoundWords: 2, nHintsUsed: 1, hintPoints: 1 }, nWinnerHints: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nFoundWords: 2, nHintsUsed: 1, hintPoints: 1 }, nWinnerHints: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: { nFoundPuzzleWords: 8, nHintsUsed: 1, hintPoints: 0 }, nWinnerHints: null }, 'found them all'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nFoundPuzzleWords: 2, nHintsUsed: 1, hintPoints: 1 }, nWinnerHints: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nFoundPuzzleWords: 2, nHintsUsed: 1, hintPoints: 1 }, nWinnerHints: null }, 'Stop'],
     ],
     compete: [
       [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winner: 'u-alice' }, { team: null, nWinnerHints: 0 }, 'won on 0 hints'],

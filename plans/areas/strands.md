@@ -230,6 +230,28 @@ left alone and listed in `todo.md` for Joel's wording; so was a sampled
 statistic in the doc ("33 of 148 sampled theme words"), which is about theme
 words in the narrow sense.
 
+## The naming pass
+
+Step 13 (2026-10-05, Joel took the recommendations: "commit and do it"):
+"clue" is the puzzle's **title** wherever it meant the theme prompt — the
+info column's `.title` class, the comments, and the e2e helper's `title`
+key and its readers (`strands.e2e.ts`, `puzzle-pickers.e2e.ts`); Help's
+"The clue at the top…" is player copy and waits in `todo.md`. "echo" is the
+**entry**: `.entrySlot` and `.entryWord`, and the spec's locator. The
+manifest's "locally terminal" is "ends their own race". N25 ("race" →
+"player") waits for its one sweep.
+
+The words' names reached the identifiers too (Joel: "i should be able to read
+the code and variables and props to understand which category of 'word' is
+this"): the blob's `puzzle.puzzleWords`, a seat's `board.foundPuzzleWords`,
+`nFoundPuzzleWords` on the player, the team, the state line and the summary;
+`GPuzzleWord` / `GPuzzleWordRaw`, `missedPuzzleWords`, InfoCol's and the
+print model's `puzzleWords` (they were `solution`), `PrintPuzzleWord`, and the
+SQL builders `_make_json_puzzle_words`, `_make_json_found_puzzle_words` and
+`_count_found_puzzle_words` (the old names dropped by name). `HintBar` takes
+`hintPoints` / `hintCost`. A bare `word` is the word a trace spelled; the doc's
+"Naming the words" says so.
+
 ## What the InfoCol pass changed that a player can see
 
 - **Back-to-club is in the row while I am out of a race**; it was missing.

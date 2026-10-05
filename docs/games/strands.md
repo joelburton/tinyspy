@@ -21,7 +21,7 @@ Four words, used the same way in code, comments and docs (Joel, 2026-10-05):
 
 | term | means | in the data |
 |---|---|---|
-| **puzzle word** | any word the puzzle hides: the theme words and the spangram | `puzzle.words` in the blob; `result in ('theme', 'spangram')` |
+| **puzzle word** | any word the puzzle hides: the theme words and the spangram | `puzzle.puzzleWords` in the blob; `result in ('theme', 'spangram')` |
 | **theme word** | a puzzle word that isn't the spangram | `solution.themeWords`; the `theme` result |
 | **spangram** | the puzzle word that runs edge to edge and names the theme | `solution.spangram`; the `spangram` result |
 | **hint word** | a real word that isn't a puzzle word: it puts a point on the hint bar | the `hint_word` result |
@@ -29,6 +29,13 @@ Four words, used the same way in code, comments and docs (Joel, 2026-10-05):
 A duplicate, a word shorter than the setup's shortest and a word the
 dictionary lacks are none of these; they keep their results' names. The word a
 spent hint rings is a puzzle word; nothing calls it a "hint word".
+
+Names in the code say which kind they hold: `puzzleWords`,
+`foundPuzzleWords`, `nFoundPuzzleWords`, `missedPuzzleWords`, `GPuzzleWord`.
+A bare `word` is the word a trace spelled, whatever it turned out to be
+(`event.word`, `answer.word`). `hintPoints` is the hint bar — it caps at the
+hint cost and empties when a hint is cashed — and not a count of hint words,
+which nothing on the page shows.
 
 ---
 

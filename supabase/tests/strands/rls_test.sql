@@ -100,7 +100,7 @@ select lives_ok(
 -- ============================================================
 
 select is(
-  (select game_data->'puzzle'->'words' from common.games where id = (select id from game)),
+  (select game_data->'puzzle'->'puzzleWords' from common.games where id = (select id from game)),
   'null'::jsonb,
   'game_data carries no words during play'
 );
@@ -135,14 +135,14 @@ select strands._rebuild_data_cols((select id from game), p_update_status_changed
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select jsonb_array_length(game_data->'puzzle'->'words') from common.games
+  (select jsonb_array_length(game_data->'puzzle'->'puzzleWords') from common.games
     where id = (select id from game)),
   8,
   'once the game has ended, game_data carries the answer'
 );
 
 select is(
-  (select game_data->'puzzle'->'words'->0->>'word' from common.games
+  (select game_data->'puzzle'->'puzzleWords'->0->>'word' from common.games
     where id = (select id from game)),
   'zzqejk',
   'and it is the real answer key, spangram first'

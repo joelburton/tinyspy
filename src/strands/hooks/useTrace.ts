@@ -23,8 +23,8 @@ export function useTrace(gd: GGameData): GTrace {
   const [pickedTileIds, setPickedTileIds] = useState<readonly string[]>(NO_TILE_IDS)
 
   const consumedTileIds = useMemo(
-    () => new Set(gd.me.board.words.flatMap((w) => w.tiles.map((t) => t.id))),
-    [gd.me.board.words],
+    () => new Set(gd.me.board.foundPuzzleWords.flatMap((w) => w.tiles.map((t) => t.id))),
+    [gd.me.board.foundPuzzleWords],
   )
   const tileIds = pickedTileIds.some((id) => consumedTileIds.has(id)) ? NO_TILE_IDS : pickedTileIds
   const tiles = useMemo(

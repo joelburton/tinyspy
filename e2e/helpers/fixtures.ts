@@ -1326,7 +1326,7 @@ export async function createStrandsGame(
 ): Promise<{
   id: string
   gametype: string
-  clue: string
+  title: string
   /** Every hidden word, first the theme words then the spangram. */
   words: Array<{ word: string; coords: Array<[number, number]>; isSpangram: boolean }>
 }> {
@@ -1368,7 +1368,7 @@ export async function createStrandsGame(
   return {
     id: createdGameId(res, 'strands.create_game'),
     gametype: `strands_${mode}`,
-    clue: row.title,
+    title: row.title,
     words: [
       ...row.solution.themeWords.map((w) => ({ ...w, isSpangram: false })),
       { ...row.solution.spangram, isSpangram: true },

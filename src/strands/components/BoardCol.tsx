@@ -23,7 +23,7 @@ import { BOARD_SHAPE, cellOf, tileIdAt } from '../lib/boardShape'
 import { hintShortfallText } from '../lib/hintCopy'
 import { typeLetter } from '../lib/trace'
 import { useTrace } from '../hooks/useTrace'
-import type { GBoard, GGameData, GHistoryView, GResult, GTile, GWord } from '../types'
+import type { GBoard, GGameData, GHistoryView, GResult, GTile, GPuzzleWord } from '../types'
 import { Board } from './Board'
 import { HintBar } from './HintBar'
 import history from '@/common/event-log/historyViewer.module.css'
@@ -65,7 +65,7 @@ type HintAnswer = { result: 'hinted' }
 export function BoardCol({
   gd,
   shownBoard,
-  missedWords,
+  missedPuzzleWords,
   historyView,
   localFeedbackSlot,
 }: {
@@ -74,7 +74,7 @@ export function BoardCol({
   // viewer is open, the live one otherwise.
   shownBoard: GBoard
   // The words my board did not find, while the solution is shown; else empty.
-  missedWords: GWord[]
+  missedPuzzleWords: GPuzzleWord[]
   historyView: GHistoryView
   // PlayArea's below-board slot. While it holds a message — a move's result,
   // the theme prompt, whose turn, the verdict — the pill takes the word-entry
@@ -324,7 +324,7 @@ export function BoardCol({
         // The missed-word reveal is a game-end artifact — drawing it on a past
         // turn's board would mix the endgame's gray lines into a board that
         // hadn't reached it.
-        missedWords={historyView.isViewing ? [] : missedWords}
+        missedPuzzleWords={historyView.isViewing ? [] : missedPuzzleWords}
         traceTiles={historyView.isViewing ? NO_TILES : trace.tiles}
         marks={{ litTileIds, ambiguousTileIds }}
         cursor={cursor}
@@ -339,7 +339,7 @@ export function BoardCol({
           there is "which turn am I looking at". `bannerHost` only WHILE
           VIEWING — the banner is `position: absolute; inset: 0` and needs a
           positioning context. */}
-      <div className={cls(styles.echoSlot, historyView.isViewing && history.historyBannerHost)}>
+      <div className={cls(styles.entrySlot, historyView.isViewing && history.historyBannerHost)}>
         {historyView.isViewing ? (
           <HistoryBanner label={historyView.label!} actor={historyView.actor} onExit={historyView.exit} />
         ) : topMessage !== null ? (
@@ -350,14 +350,14 @@ export function BoardCol({
              DERIVED from the trace, so `value`/`onChange` run backwards. On a
              phone the Submit button is the ONLY way to send a word. */
           <WordEntryRow className={styles.wordEntryRow} actDelete={actDropLastCell} actSubmit={actSubmit}>
-            <WordEntryInput value={trace.tiles.map((t) => t.letter).join('')} className={styles.echo} />
+            <WordEntryInput value={trace.tiles.map((t) => t.letter).join('')} className={styles.entryWord} />
           </WordEntryRow>
         )}
       </div>
 
       <HintBar
-        points={gd.hintBarData.hintPoints}
-        cost={gd.hintBarData.hintCost}
+        hintPoints={gd.hintBarData.hintPoints}
+        hintCost={gd.hintBarData.hintCost}
         showing={hintShowing}
         actHint={actHint}
       />

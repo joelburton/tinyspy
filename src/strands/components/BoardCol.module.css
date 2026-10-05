@@ -3,12 +3,12 @@
 /* strands' board column: the slot below the board that holds the word-entry
  * row or the pill. The board's own size is PlayArea.module.css's `.layout`. */
 
-/* The echo/verdict slot. ONE fixed-height row shared by the word-in-progress
+/* The entry/pill slot. ONE fixed-height row shared by the word-in-progress
  * and the outcome pill: you are either building a word or reading what the last
  * one did, never both. Fixed height because it empties between traces, and a
  * collapsing slot would bounce the board on every submission (docs/ui.md →
  * Layout stability, and the no-reflow rule). */
-/* @@ */ .echoSlot {
+/* @@ */ .entrySlot {
   min-height: 2.5rem;
   display: flex;
   align-items: center;
@@ -16,13 +16,13 @@
   width: 100%;
 }
 
-/* The traced word, echoed as text. Sized to read as the WORD YOU ARE BUILDING —
+/* The traced word, shown as text. Sized to read as the WORD YOU ARE BUILDING —
  * the thing your attention is on while tracing — rather than as a caption under
  * the board; at 1.15rem it was smaller than the verdict pill that replaces it in
  * the same slot, which had the emphasis backwards. Letter-spaced for the same
  * reason: it is a word being assembled, not a label.
  *
- * Stays inside `.echoSlot`'s 2.5rem (1.75rem × ~1.2 line-height ≈ 2.1rem), so
+ * Stays inside `.entrySlot`'s 2.5rem (1.75rem × ~1.2 line-height ≈ 2.1rem), so
  * the below-board reserve in `.layout` is unaffected. */
 /* The traced word inside the shared row. Overrides only what strands wants
  * differently from the other games' entry inputs: the theme color (the word IS the
@@ -30,7 +30,7 @@
  * it already read at. `--wordEntryInput-font-size` rather than a raw `font-size`
  * because the shared caret's height tracks that variable — setting the property
  * directly would leave the caret at the default size beside a bigger word. */
-/* @@ */ .echo {
+/* @@ */ .entryWord {
 /* @@ */   --wordEntryInput-font-size: 1.75rem;
   letter-spacing: 0.08em;
   /* The traced word is built from lowercase letters; it is drawn in capitals. */

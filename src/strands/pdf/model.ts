@@ -1,7 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { PrintHeader } from '@/common/pdf/frame'
-import type { GEvent, GPlayer, GResult, GTile, GWord } from '../types'
+import type { GEvent, GPlayer, GResult, GTile, GPuzzleWord } from '../types'
 
 /**
  * Build the strands print model — the pure half, away from jsPDF so the
@@ -15,7 +15,7 @@ import type { GEvent, GPlayer, GResult, GTile, GWord } from '../types'
  */
 
 /** One found word on a printed board. */
-export type PrintWord = {
+export type PrintPuzzleWord = {
   word: string
   // Its tiles, in trace order.
   tiles: GTile[]
@@ -47,7 +47,7 @@ export type PrintTurn = {
  */
 export type PrintTrack = {
   who: string | null
-  words: PrintWord[]
+  puzzleWords: PrintPuzzleWord[]
   turns: PrintTurn[]
   // "6 words · 1 hint" — the line under the column's heading.
   summary: string
@@ -90,8 +90,8 @@ function makeTurns(events: readonly GEvent[]): PrintTurn[] {
   )
 }
 
-function makeSummary(nFoundWords: number, nHintsUsed: number): string {
-  const w = `${nFoundWords} word${nFoundWords === 1 ? '' : 's'}`
+function makeSummary(nFoundPuzzleWords: number, nHintsUsed: number): string {
+  const w = `${nFoundPuzzleWords} word${nFoundPuzzleWords === 1 ? '' : 's'}`
   return nHintsUsed > 0 ? `${w} · ${nHintsUsed} hint${nHintsUsed === 1 ? '' : 's'}` : w
 }
 
@@ -100,13 +100,13 @@ function makeSummary(nFoundWords: number, nHintsUsed: number): string {
  * not find. `solution` is null until the game ends and while the reveal is off,
  * so "don't print the answer early" needs no separate rule here.
  */
-function makeWords(found: readonly GWord[], solution: readonly GWord[] | null): PrintWord[] {
-  const words: PrintWord[] = found.map((w) => ({ ...w, missed: false }))
-  if (solution) {
+function makePuzzleWords(found: readonly GPuzzleWord[], puzzleWords: readonly GPuzzleWord[] | null): PrintPuzzleWord[] {
+  const printed: PrintPuzzleWord[] = found.map((w) => ({ ...w, missed: false }))
+  if (puzzleWords) {
     const got = new Set(found.map((w) => w.word))
-    for (const w of solution) if (!got.has(w.word)) words.push({ ...w, missed: true })
+    for (const w of puzzleWords) if (!got.has(w.word)) printed.push({ ...w, missed: true })
   }
-  return words
+  return printed
 }
 
 /**
@@ -127,9 +127,9 @@ export function buildStrandsPrintModel({
   players,
   me,
   events,
-  nFoundWords,
+  nFoundPuzzleWords,
   nHintsUsed,
-  solution,
+  puzzleWords,
 }: {
   header: PrintHeader
   tiles: GTile[]
@@ -140,26 +140,26 @@ export function buildStrandsPrintModel({
   // Every row I may see.
   events: readonly GEvent[]
   // Coop's track counts: the team's.
-  nFoundWords: number
+  nFoundPuzzleWords: number
   nHintsUsed: number
   // The puzzle words while the solution is shown, else null.
-  solution: readonly GWord[] | null
+  puzzleWords: readonly GPuzzleWord[] | null
 }): StrandsPrintModel {
   /** A racer's track; a rival's is only built once the game has ended, when
    *  `gd` holds their board. */
   const makeRacerTrack = (p: GPlayer): PrintTrack => ({
     who: p.username,
-    words: makeWords(p.board!.words, solution),
+    puzzleWords: makePuzzleWords(p.board!.foundPuzzleWords, puzzleWords),
     turns: makeTurns(events.filter((e) => e.by === p)),
-    summary: makeSummary(p.nFoundWords!, p.nHintsUsed),
+    summary: makeSummary(p.nFoundPuzzleWords!, p.nHintsUsed),
   })
 
   const tracks: PrintTrack[] = mode === 'coop'
     ? [{
       who: null,
-      words: makeWords(me.board.words, solution),
+      puzzleWords: makePuzzleWords(me.board.foundPuzzleWords, puzzleWords),
       turns: makeTurns(events),
-      summary: makeSummary(nFoundWords, nHintsUsed),
+      summary: makeSummary(nFoundPuzzleWords, nHintsUsed),
     }]
     : (ended ? players : [me]).map(makeRacerTrack)
 

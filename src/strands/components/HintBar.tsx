@@ -6,10 +6,10 @@ import type { Action } from '@/common/actions/useBindAction'
 import styles from './HintBar.module.css'
 
 type Props = {
-  /** Points on the bar (0..cost). */
-  points: number
+  /** Points on the bar (0..hintCost). */
+  hintPoints: number
   /** Hint words per hint — the bar's denominator. */
-  cost: number
+  hintCost: number
   /** A hint is already on the board. */
   showing: boolean
   /** Cash a hint. It carries its own reason in its bubble — "A hint is already
@@ -30,7 +30,7 @@ type Props = {
  * loop the game runs on.
  *
  * **The full bar is the only signal that further points are being lost.** Per
- * Joel's ruling the counter caps at `cost`, so words found while a hint sits
+ * Joel's ruling the counter caps at `hintCost`, so hint words found while a hint sits
  * unspent earn nothing — and nothing warns about it, deliberately. That makes
  * the filled state load-bearing, which is why it gets its own styling rather
  * than just being "100% wide".
@@ -40,18 +40,18 @@ type Props = {
  * never states the remaining count, so an early click is a fair question — and
  * a disabled button is the one response that can't answer it.
  */
-export function HintBar({ points, cost, showing, actHint }: Props) {
-  const full = points >= cost
-  const pct = Math.min(100, Math.round((points / Math.max(1, cost)) * 100))
+export function HintBar({ hintPoints, hintCost, showing, actHint }: Props) {
+  const full = hintPoints >= hintCost
+  const pct = Math.min(100, Math.round((hintPoints / Math.max(1, hintCost)) * 100))
 
   return (
     <div className={styles.row}>
       <div
         className={styles.track}
         role="meter"
-        aria-valuenow={points}
+        aria-valuenow={hintPoints}
         aria-valuemin={0}
-        aria-valuemax={cost}
+        aria-valuemax={hintCost}
         aria-label="Progress to the next hint"
       >
         <div

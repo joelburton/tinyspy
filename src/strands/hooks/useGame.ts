@@ -13,8 +13,8 @@ import type {
   GPlayer,
   GStateLineData,
   GTile,
-  GWord,
-  GWordRaw,
+  GPuzzleWord,
+  GPuzzleWordRaw,
 } from '../types'
 
 /**
@@ -38,9 +38,12 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const tilesById = Object.fromEntries(raw.puzzle.tiles.map((t) => [t.id, t]))
   // Every id in the blob is one of the puzzle's tiles.
   const tilesOf = (ids: readonly string[]): GTile[] => ids.map((id) => tilesById[id]!)
-  const wordOf = ({ tileIds, ...word }: GWordRaw): GWord => ({ ...word, tiles: tilesOf(tileIds) })
+  const makePuzzleWord = ({ tileIds, ...puzzleWord }: GPuzzleWordRaw): GPuzzleWord => ({
+    ...puzzleWord,
+    tiles: tilesOf(tileIds),
+  })
   const boardOf = (board: GBoardRaw): GBoard => ({
-    words: board.words.map(wordOf),
+    foundPuzzleWords: board.foundPuzzleWords.map(makePuzzleWord),
     hintTiles: board.hintTileIds === null ? null : tilesOf(board.hintTileIds),
   })
 
@@ -48,7 +51,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     const mayShow = seeRival || isMine(p.id)
     return {
       ...p,
-      nFoundWords: mayShow ? p.nFoundWords : null,
+      nFoundPuzzleWords: mayShow ? p.nFoundPuzzleWords : null,
       hintPoints: mayShow ? p.hintPoints : null,
       board: mayShow ? boardOf(p.board) : null,
     }
@@ -77,8 +80,8 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // What the state line and the hint bar show: the team's where the game has a
   // team, else my own (plans/team-facts.md).
   const stateLineData: GStateLineData = raw.team === null
-    ? { nFoundWords: me.nFoundWords, nHintsUsed: me.nHintsUsed }
-    : { nFoundWords: raw.team.nFoundWords, nHintsUsed: raw.team.nHintsUsed }
+    ? { nFoundPuzzleWords: me.nFoundPuzzleWords, nHintsUsed: me.nHintsUsed }
+    : { nFoundPuzzleWords: raw.team.nFoundPuzzleWords, nHintsUsed: raw.team.nHintsUsed }
   const hintBarData: GHintBarData = {
     // A racer's bar is their own; coop's is the team's.
     hintPoints: raw.team === null ? me.hintPoints! : raw.team.hintPoints,
@@ -92,7 +95,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       title: raw.puzzle.title,
       tiles: raw.puzzle.tiles,
       tilesById,
-      words: raw.puzzle.words === null ? null : raw.puzzle.words.map(wordOf),
+      puzzleWords: raw.puzzle.puzzleWords === null ? null : raw.puzzle.puzzleWords.map(makePuzzleWord),
     },
     setupRows: makeSetupRows(raw.setup, raw.mode, players),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },

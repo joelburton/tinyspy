@@ -37,22 +37,22 @@ function print(facts: ZTest_GameDataFacts, solutionShown = false) {
     players: gd.players,
     me: gd.me,
     events: gd.events,
-    nFoundWords: gd.stateLineData.nFoundWords,
+    nFoundPuzzleWords: gd.stateLineData.nFoundPuzzleWords,
     nHintsUsed: gd.stateLineData.nHintsUsed,
-    solution: solutionShown ? gd.puzzle.words : null,
+    puzzleWords: solutionShown ? gd.puzzle.puzzleWords : null,
   })
 }
 
 describe('buildStrandsPrintModel — the shield holds on paper', () => {
   it('prints NO missed words while the solution is hidden', () => {
     const m = print({ events: [ZTest_find(1, 'u1', 0)], ...STOPPED })
-    expect(m.tracks[0]!.words.map((w) => w.word)).toEqual(['zzqabc'])
-    expect(m.tracks[0]!.words.some((w) => w.missed)).toBe(false)
+    expect(m.tracks[0]!.puzzleWords.map((w) => w.word)).toEqual(['zzqabc'])
+    expect(m.tracks[0]!.puzzleWords.some((w) => w.missed)).toBe(false)
   })
 
   it('prints the missed words while the solution is shown', () => {
     const m = print({ events: [ZTest_find(1, 'u1', 0)], ...STOPPED }, true)
-    expect(m.tracks[0]!.words.filter((w) => w.missed)).toHaveLength(7)
+    expect(m.tracks[0]!.puzzleWords.filter((w) => w.missed)).toHaveLength(7)
   })
 
   it('compete prints ONLY my track mid-game', () => {
@@ -67,8 +67,8 @@ describe('buildStrandsPrintModel — the shield holds on paper', () => {
     expect(m.tracks.map((t) => t.who)).toEqual(['ada', 'bea'])
     // Each column holds that player's OWN find — the whole reason compete
     // prints in tracks rather than one merged log.
-    expect(m.tracks[0]!.words.map((w) => w.word)).toEqual(['zzqabc'])
-    expect(m.tracks[1]!.words.map((w) => w.word)).toEqual(['zzqejk'])
+    expect(m.tracks[0]!.puzzleWords.map((w) => w.word)).toEqual(['zzqabc'])
+    expect(m.tracks[1]!.puzzleWords.map((w) => w.word)).toEqual(['zzqejk'])
   })
 })
 
@@ -121,6 +121,6 @@ describe('buildStrandsPrintModel — formatting', () => {
     const m = print({ events: [ZTest_find(1, 'u1', 0), ZTest_hint(2, 'u1', ZTest_rowIds(2))] })
     // The hint's tiles are a puzzle word's; drawing them among the found words
     // would print an answer nobody found — the shield's whole concern.
-    expect(m.tracks[0]!.words.map((w) => w.word)).toEqual(['zzqabc'])
+    expect(m.tracks[0]!.puzzleWords.map((w) => w.word)).toEqual(['zzqabc'])
   })
 })

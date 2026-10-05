@@ -21,7 +21,7 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
   const outcome = gd.outcome
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome
-  const nFoundWords = gd.stateLineData.nFoundWords
+  const nFoundPuzzleWords = gd.stateLineData.nFoundPuzzleWords
   // Every winner: the race's ranking lets a tie share the win.
   const winners = gd.players.filter((p) => p.outcome === 'won')
   const winnerNames = winners.map((p) => p.username).join(' + ')
@@ -39,12 +39,12 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
           // Written with the game's ending (`common._end_game` ranks every
           // player), so it is set whenever the game's outcome is.
           playerOutcome: playerOutcome!,
-          nFoundWords,
+          nFoundPuzzleWords,
           winnerNames,
           iSolved,
           nMyHints,
           nWinnerHints,
         }),
-    [outcome, reason, gd.mode, playerOutcome, nFoundWords, winnerNames, iSolved, nMyHints, nWinnerHints],
+    [outcome, reason, gd.mode, playerOutcome, nFoundPuzzleWords, winnerNames, iSolved, nMyHints, nWinnerHints],
   )
 }
