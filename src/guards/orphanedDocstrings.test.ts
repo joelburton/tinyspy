@@ -65,9 +65,6 @@ const KNOWN: string[] = [
   'src/guards/callSiteShape.test.ts › it',
   'src/guards/cssTokens.test.ts › describe',
   'src/guards/dbCallShape.test.ts › BUILDER',
-  // → strands
-  'src/strands/components/PlayArea.tsx › HintAnswer',
-  'src/strands/pdf/model.ts › FoundEvent',
 ]
 
 const ROOTS = ['src', 'supabase/functions', 'e2e', 'scripts']

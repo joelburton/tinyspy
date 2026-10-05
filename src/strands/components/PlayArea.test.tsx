@@ -5,18 +5,19 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
-import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
-import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { getActions } from '@/common/actions/actionsStore'
-import { KeyList } from '@/common/actions/KeyList'
-import type { EventRow, StrandsGame, StrandsPlayer } from '../hooks/useGame'
 import { db } from '../db'
-import { PlayArea } from './PlayArea'
+import {
+  ZTest_guess,
+  ZTest_makeStrandsCtx,
+  ZTest_rowIds,
+  type ZTest_GameDataFacts,
+  type ZTest_PlayerFacts,
+} from '../lib/gameData.fixture'
+import { PlayAreaLoader } from './PlayArea'
 
 /**
  * strands' PLAY SURFACE — the mounted tree, which is the one layer its other
@@ -25,124 +26,45 @@ import { PlayArea } from './PlayArea'
  * The rest of strands is unusually well covered *below* this: `lib/board`,
  * `lib/board.oracle` (the solver against the real archive), `lib/trace`,
  * `lib/history`, `lib/hintCopy` and the print model are pure functions with
- * their own files, and eleven pgTAP files own the rules. What none of them see
- * is the WIRING — which control renders in which state, and what each is
- * handed. That gap let a reveal bug ship on 2026-08-16: strands' coop branch
- * never writes `strands.players.solved`, so keying the auto-reveal on that bit
- * left a table that had just solved the puzzle pressing Reveal to see words
- * they'd traced themselves.
+ * their own files, and the pgTAP files own the rules. What none of them see is
+ * the WIRING — which control renders in which state, and what each is handed.
+ * That gap let a reveal bug ship on 2026-08-16, when a table that had just
+ * solved the puzzle had to press Reveal to see words they'd traced themselves.
  *
  * So these are deliberately about STATE → CONTROLS, not about game logic:
- * playing vs locally-done vs terminal, the reveal's three faces, and the
+ * playing vs out of the race vs ended, the reveal's three faces, and the
  * keyboard's selection cursor.
  *
- * `useGame` (realtime + supabase) and `db` are mocked; the board, info column
- * and event log all render for real.
+ * The surface is a pure function of the `game_data` blob the page hands it, so
+ * a test builds that blob from the game's facts (`ZTest_makeStrandsCtx`) and
+ * nothing is mocked but `db`; the board, info column and event log all render
+ * for real.
  */
 
-type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
+vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
 
-const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
-vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
-vi.mock('../db', () => ({ db: { rpc: vi.fn().mockResolvedValue({ error: null }) } }))
+const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
-/** An 8×6 board — the real shape, so the grid renders 48 cells like the game. */
-const BOARD = ['ABCDEF', 'GHIJKL', 'MNOPQR', 'STUVWX', 'YZABCD', 'EFGHIJ', 'KLMNOP', 'QRSTUV']
+/** An 8×6 board of letters that mostly appear once, so a typed letter names a
+ *  cell: `a` sits at 0,0 and again at 4,2; `w` once, at 3,4, beside `x`. */
+const BOARD = ['abcdef', 'ghijkl', 'mnopqr', 'stuvwx', 'yzabcd', 'efghij', 'klmnop', 'qrstuv']
 
-const SOLUTION = {
-  spangram: { word: 'SPANGRAM', coords: [[0, 0], [0, 1]] as Array<[number, number]> },
-  themeWords: [
-    { word: 'ALPHA', coords: [[1, 0], [1, 1]] as Array<[number, number]> },
-    { word: 'BRAVO', coords: [[2, 0], [2, 1]] as Array<[number, number]> },
-  ],
+const ME: ZTest_PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
+const MOTH: ZTest_PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
+const SOLVED = { at: '2026-06-01T00:00:00Z', reason: 'reached_goal', detail: 'solved' } as const
+
+/** A play surface's context: a solo coop game in play on BOARD, built from the
+ *  facts the way the builder would build it. */
+function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
+  return ZTest_makeStrandsCtx({ board: BOARD, ...facts })
 }
 
-function loadedGame(over: Partial<StrandsGame> = {}): StrandsGame {
-  return {
-    id: 'g1',
-    club_handle: 'c1',
-    mode: 'coop',
-    puzzle_date: '2026-06-01',
-    board: BOARD,
-    clue: 'Rows of nonsense',
-    hint_cost: 3,
-    min_word_length: 4,
-    band: 5,
-    // The server hands the solution over at is_terminal; whether it's DRAWN is
-    // the FE's own choice, which is what most of these test.
-    solution: null,
-    ...over,
-  }
-}
-
-function player(over: Partial<StrandsPlayer> = {}): StrandsPlayer {
-  return {
-    game_id: 'g1',
-    user_id: 'u1',
-    hints_spent: 0,
-    solved: false,
-    solved_at: null,
-    hint_points: 0,
-    active_hint_coords: null,
-    ...over,
-  }
-}
-
-function loaded(over: Partial<GameHook> = {}): GameHook {
-  const me = over.me ?? player()
-  return {
-    game: loadedGame(),
-    players: [me],
-    me,
-    events: [],
-    found: [],
-    loading: false,
-    rowsLoaded: true,
-    failure: null,
-    ...over,
-  }
-}
-
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
- *  the page derives it (`whereIStand`), so a test sets up the facts and never
- *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [ZTest_gp('u1', 'me', 'red')],
-    isTerminal: false,
-    isTurnBased: false,
-    turnHolderId: null,
-    ...over,
-  }
-  return {
-    gameId: 'g1',
-    brand: 'PaulPath',
-    title: 'Test game',
-    playState: 'playing',
-    timer: { displaySeconds: 0, expired: false },
-    setup: { puzzle_id: 'p1', hint_cost: 3, timer: { kind: 'none' } },
-    status: null,
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: ZTest_actionFixture('act-help'),
-      actChat: ZTest_actionFixture('act-open-chat'),
-      actBackToClub: ZTest_actionFixture('act-back-to-club'),
-    },
-    ...facts,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.isTerminal,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId: facts.turnHolderId,
-      draftsOffTurn: false,
-    }),
-  } as unknown as PlayAreaLoaderProps
+/** A game that has ended with nobody winning: a Stop. */
+const STOPPED: ZTest_GameDataFacts = {
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  outcome: 'neutral',
+  players: [{ ...ME, outcome: 'neutral' }],
 }
 
 /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would draw
@@ -153,8 +75,6 @@ function menuItems(ctx: PlayAreaLoaderProps) {
   const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
   return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
 }
-
-const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
 /** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what the
  *  call sites branch on, so a stub without it is an answer they scream at. */
@@ -169,9 +89,9 @@ const okEnvelope = (data: unknown) => ({
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
  *  Only the tests whose subject is a keystroke need it — a bare `render` binds
  *  the actions but has nothing feeding them keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+function WithKeys(props: React.ComponentProps<typeof PlayAreaLoader>) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** A keystroke at the page, the way a player types with nothing focused.
@@ -195,44 +115,46 @@ const tracedCells = () => document.querySelectorAll('circle[class*="discTrace"]'
 const ambiguousRings = () => document.querySelectorAll('circle[class*="ringAmbiguous"]').length
 
 beforeEach(() => {
-  h.result = loaded()
   rpc.mockReset()
-  rpc.mockResolvedValue({ error: null })
+  rpc.mockResolvedValue({ error: null, data: null })
 })
 
 describe('strands PlayArea — the three phases', () => {
-  it('renders the 48-cell board and the clue while playing', () => {
-    render(<PlayArea {...makeCtx()} />)
+  it('renders the 48-cell board and the theme prompt while playing', () => {
+    render(<PlayAreaLoader {...makeCtx()} />)
     expect(document.querySelectorAll('[data-cell]')).toHaveLength(48)
-    // The clue is the prompt, shown from the first second — never a spoiler.
-    // (Twice over: the below-board pill and the info column's own line.)
+    // The prompt is shown from the first second — never a spoiler. (Twice
+    // over: the below-board pill and the info column's own line.)
     expect(screen.getAllByText(/Rows of nonsense/).length).toBeGreaterThan(0)
-    // Nothing terminal: no Reveal control at all mid-game.
+    // Nothing ended: no Reveal control at all mid-game.
     expect(control('act-reveal')).toBeNull()
   })
 
-  it('a terminal shows the terminal row; the menu reveal wakes with it', () => {
+  it('an ended game shows the ending row; the menu reveal wakes with it', () => {
     const live = makeCtx()
-    const { unmount } = render(<PlayArea {...live} />)
-    // Mid-game the menu row exists but is inert — the solution isn't even on
-    // this client yet (strands._solution_for gates on is_terminal).
+    const { unmount } = render(<PlayAreaLoader {...live} />)
+    // Mid-game the menu row exists but is inert — the solution isn't even in
+    // the blob yet.
     expect(menuItems(live).get('act-reveal')?.disabled).toBe(true)
     unmount()
 
-    h.result = loaded({ game: loadedGame({ solution: SOLUTION }) })
-    const done = makeCtx({ isTerminal: true, playState: 'ended' })
-    render(<PlayArea {...done} />)
+    const done = makeCtx(STOPPED)
+    render(<PlayAreaLoader {...done} />)
     expect(menuItems(done).get('act-reveal')?.disabled).toBe(false)
     expect(control('act-reveal')).toBeEnabled()
   })
 
-  it('compete: a solved player waits with the terminal LOOK while the race runs', () => {
+  it('compete: a solved player waits with the ending LOOK while the race runs', () => {
     // strands deliberately doesn't end on first solve — the winner is whoever
-    // solved on the fewest hints — so a solver goes LOCALLY terminal.
-    const me = player({ solved: true })
-    h.result = loaded({ game: loadedGame({ mode: 'compete' }), me, players: [me] })
-    const solver = ZTest_gp('u1', 'me', 'red', { locally_terminal: true })
-    render(<PlayArea {...makeCtx({ players: [solver], isTerminal: false, playState: 'playing' })} />)
+    // solved on the fewest hints — so a solver's own race ends alone.
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          players: [{ ...ME, solvedAt: SOLVED.at, ending: SOLVED, outcome: 'neutral' }, MOTH],
+        })}
+      />,
+    )
     expect(screen.getByText('You solved it — waiting')).toBeInTheDocument()
     // …and cannot pull the answer while a rival is still tracing.
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
@@ -241,10 +163,14 @@ describe('strands PlayArea — the three phases', () => {
   it('compete: a racer who is out still has the one flag — Stop for all', () => {
     // Conceding is closed to a player already out; stopping the game for all is
     // open to anyone in it, so the row's flag is Stop.
-    const me = player({ solved: true })
-    h.result = loaded({ game: loadedGame({ mode: 'compete' }), me, players: [me] })
-    const solver = ZTest_gp('u1', 'me', 'red', { locally_terminal: true })
-    render(<PlayArea {...makeCtx({ players: [solver], isTerminal: false, playState: 'playing' })} />)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          players: [{ ...ME, solvedAt: SOLVED.at, ending: SOLVED, outcome: 'neutral' }, MOTH],
+        })}
+      />,
+    )
     expect(control('act-concede')).toBeNull()
     expect(control('act-stop-game')).not.toBeNull()
   })
@@ -255,45 +181,56 @@ describe('strands PlayArea — the three phases', () => {
  * is the half a consumed board can't give you: strands draws PATHS and never
  * spells anything out.
  */
-describe('strands PlayArea — the terminal reveal', () => {
-  const finished = (over: Partial<GameHook> = {}) => {
-    h.result = loaded({ game: loadedGame({ solution: SOLUTION }), ...over })
-  }
-
-  it('a terminal nobody solved keeps the words hidden until asked', async () => {
+describe('strands PlayArea — the reveal at the end', () => {
+  it('an ending nobody solved keeps the words hidden until asked', async () => {
     const user = userEvent.setup()
-    finished()
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    render(<PlayAreaLoader {...makeCtx(STOPPED)} />)
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     // Spangram FIRST — it's the word that names the theme.
     const line = screen.getByText('Words:').closest('p')!
-    expect(line.textContent).toMatch(/Words:\s*SPANGRAM\s*ALPHA\s*BRAVO/)
+    expect(line.textContent).toMatch(/Words:\s*ZZQEJK\s*ZZQABC\s*ZZQBDE/)
 
     // …and the same button takes it back off.
     await user.click(screen.getByRole('button', { name: 'Hide solution' }))
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
   })
 
-  /**
-   * The 2026-08-16 bug, in the game where it bit hardest. strands' coop branch
-   * ends the game directly and never writes `strands.players.solved` — so a
-   * per-player predicate reads FALSE for the very table that just solved it.
-   * `solvedByMe` asks the GAME in coop for exactly this reason.
-   */
+  /** The 2026-08-16 bug: a coop solve stamps every teammate, so a table that
+   *  just solved the puzzle sees the words unasked. */
   it('a COOP WIN names the words unasked, and the control says it is done', () => {
-    finished({ me: player({ solved: false }) }) // ← coop never sets it
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          ending: { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u1' },
+          outcome: 'won',
+          players: [
+            { ...ME, solvedAt: SOLVED.at, outcome: 'won', finalRanking: 1 },
+            { ...MOTH, solvedAt: SOLVED.at, outcome: 'won', finalRanking: 1 },
+          ],
+        })}
+      />,
+    )
     expect(screen.getByText('Words:')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
 
   it('compete: the RACE being won is not my solve', () => {
-    // `won_compete` means SOMEONE won. A player who never solved must still ask.
-    const me = player({ solved: false })
-    finished({ game: loadedGame({ mode: 'compete', solution: SOLUTION }), me, players: [me] })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won_compete' })} />)
+    // SOMEONE won. A player who never solved must still ask.
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          ending: { reason: 'conceded', detail: 'conceded', by: 'u1', winner: 'u2' },
+          outcome: 'won',
+          players: [
+            { ...ME, outcome: 'lost' },
+            { ...MOTH, solvedAt: SOLVED.at, outcome: 'won', finalRanking: 1 },
+          ],
+        })}
+      />,
+    )
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
@@ -301,17 +238,26 @@ describe('strands PlayArea — the terminal reveal', () => {
   it('compete: solving but LOSING on hints still counts as my solve', () => {
     // The race doesn't end on first solve, so the player who solved and was
     // out-hinted still consumed their board — they're looking at the answer.
-    const me = player({ solved: true, hints_spent: 3 })
-    finished({ game: loadedGame({ mode: 'compete', solution: SOLUTION }), me, players: [me] })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won_compete' })} />)
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          ending: { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u2' },
+          outcome: 'won',
+          players: [
+            { ...ME, solvedAt: SOLVED.at, outcome: 'near', finalRanking: 2 },
+            { ...MOTH, solvedAt: SOLVED.at, outcome: 'won', finalRanking: 1 },
+          ],
+        })}
+      />,
+    )
     expect(screen.getByText('Words:')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
 
   it('the menu twin tracks the button through all three faces', async () => {
-    const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
-    finished()
-    render(<PlayArea {...ctx} />)
+    const ctx = makeCtx(STOPPED)
+    render(<PlayAreaLoader {...ctx} />)
     expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
 
     act(() => menuItems(ctx).get('act-reveal')!.run())
@@ -325,21 +271,18 @@ describe('strands PlayArea — the Hint button says where the economy stands', (
   const hintButton = () => screen.getByRole('button', { name: 'Hint' })
 
   it('unearned: live, and the bubble counts the words still to find', () => {
-    h.result = loaded({ me: player({ hint_points: 1 }) })
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx({ hintPoints: 1 })} />)
     expect(hintButton().hasAttribute('disabled')).toBe(false)
     expect(hintButton().dataset.tooltip).toBe('Find 2 more valid words')
   })
 
   it('earned: the bubble says what cashing it does', () => {
-    h.result = loaded({ me: player({ hint_points: 3 }) })
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx({ hintPoints: 3 })} />)
     expect(hintButton().dataset.tooltip).toBe('Reveal the tiles of one theme word')
   })
 
   it('a hint already on the board: gray, and the bubble says so', () => {
-    h.result = loaded({ me: player({ hint_points: 0, active_hint_coords: [[1, 0]] }) })
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx({ hintTileIds: ZTest_rowIds(1) })} />)
     expect(hintButton().hasAttribute('disabled')).toBe(true)
     expect(hintButton().dataset.tooltip).toBe('A hint is already showing')
   })
@@ -354,8 +297,6 @@ describe('strands PlayArea — a letter extends the trace', () => {
   it('a letter that names one cell extends the trace; its neighbor extends it again', async () => {
     render(<WithKeys {...makeCtx()} />)
     expect(tracedCells()).toBe(0)
-    // W sits once on the board (row 3, col 4), so the first letter is not a
-    // choice among 48 cells.
     await press({ key: 'w' })
     expect(tracedCells()).toBe(1)
     // X is its right-hand neighbor and appears nowhere else.
@@ -367,17 +308,13 @@ describe('strands PlayArea — a letter extends the trace', () => {
   })
 
   // The board's answer to "several cells bear that letter": red rings on the
-  // candidates, and no pill — the rings ARE the message, so if they stop being
-  // drawn the player is told nothing at all.
+  // candidates, and no pill — the rings ARE the message.
   it('rings every candidate when a letter is ambiguous, and drops them on the next resolving key', async () => {
     render(<WithKeys {...makeCtx()} />)
-    // A sits at (0,0) and (4,2) on this board, so it names no single cell.
     await press({ key: 'a' })
     expect(ambiguousRings()).toBe(2)
     expect(tracedCells()).toBe(0) // …and nothing was traced
 
-    // W names one cell, so it resolves — and the rings from the last key stop
-    // pointing at a choice that has been made.
     await press({ key: 'w' })
     expect(ambiguousRings()).toBe(0)
     expect(tracedCells()).toBe(1)
@@ -385,12 +322,7 @@ describe('strands PlayArea — a letter extends the trace', () => {
 
   it('is gray while a past turn is open — the press belongs to the viewer', async () => {
     const user = userEvent.setup()
-    const turn: EventRow = {
-      kind: 'guess', id: 1, game_id: 'g1', user_id: 'u1', word: 'ALPHA',
-      path: [[1, 0], [1, 1]], result: 'theme', created_at: '2026-06-01T00:00:00Z',
-    }
-    h.result = loaded({ events: [turn], found: [] })
-    render(<WithKeys {...makeCtx()} />)
+    render(<WithKeys {...makeCtx({ events: [ZTest_guess(1, 'u1', ['1,0', '1,1'], 'theme', BOARD)] })} />)
     expect(stateOf('act-extend-trace')).toBe('active')
 
     // The "#N" handle, by its text rather than a tooltip's wording.
@@ -411,15 +343,14 @@ describe('strands PlayArea — + and ⌥⌫ through the dispatcher', () => {
   /** New game is the NEXT puzzle: a preview read, then the create. */
   const nextPuzzleThenCreate = () =>
     rpc.mockImplementation((name: string) => {
-      if (name === 'next_puzzle_for_club') return Promise.resolve(okEnvelope({ result: 'found', puzzle_id: 'p2' }))
+      if (name === 'next_puzzle_for_club') return Promise.resolve(okEnvelope({ result: 'found', puzzle: { id: 'p2' } }))
       if (name === 'create_game') return Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
       return Promise.resolve({ error: null })
     })
 
-  it('+ at terminal starts the next puzzle with no question', async () => {
+  it('+ at the end starts the next puzzle with no question', async () => {
     nextPuzzleThenCreate()
-    h.result = loaded({ game: loadedGame({ solution: SOLUTION }) })
-    const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
+    const ctx = makeCtx(STOPPED)
     render(<WithKeys {...ctx} />)
     await press({ key: '+' })
     // No <ConfirmationHost/> is mounted, so a question would have been answered
@@ -427,10 +358,10 @@ describe('strands PlayArea — + and ⌥⌫ through the dispatcher', () => {
     // absent: the server picks.
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('create_game', {
-        target_club: 'testclub',
-        setup: { hint_cost: 3, timer: { kind: 'none' } },
-        player_user_ids: ['u1'],
-        mode: 'coop',
+        p_club_handle: 'testclub',
+        p_setup: { band: 5, hint_cost: 3, min_word_length: 4, timer: { kind: 'none' }, coop_style: 'free-for-all' },
+        p_player_user_ids: ['u1'],
+        p_mode: 'coop',
       }),
     )
     await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
@@ -467,33 +398,31 @@ describe('strands PlayArea — + and ⌥⌫ through the dispatcher', () => {
     // one the dialog adds, so it's last in the DOM.
     const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
   it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
-    const me = player()
-    h.result = loaded({ game: loadedGame({ mode: 'compete' }), me, players: [me, player({ user_id: 'u2' })] })
     render(
       <>
-        <WithKeys {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')] })} />
+        <WithKeys {...makeCtx({ mode: 'compete', players: [ME, MOTH] })} />
         <ConfirmationHost />
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
     expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
   })
 
-  it('Restart mid-game asks, and goes straight through at terminal', async () => {
+  it('Restart mid-game asks, and goes straight through at the end', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'replayed' }))
     const live = makeCtx()
     const { unmount } = render(
       <>
-        <PlayArea {...live} />
+        <PlayAreaLoader {...live} />
         <ConfirmationHost />
       </>,
     )
@@ -504,47 +433,23 @@ describe('strands PlayArea — + and ⌥⌫ through the dispatcher', () => {
     unmount()
 
     // No host this time: the RPC firing proves no question was asked.
-    h.result = loaded({ game: loadedGame({ solution: SOLUTION }) })
-    const done = makeCtx({ isTerminal: true, playState: 'ended' })
-    render(<PlayArea {...done} />)
+    const done = makeCtx(STOPPED)
+    render(<PlayAreaLoader {...done} />)
     act(() => menuItems(done).get('act-restart')!.run())
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
-  })
-})
-
-describe('strands PlayArea — before the game has loaded', () => {
-  // An action joins the stack on the FIRST render, before the loading guard
-  // has anything to show, and its `describe` can be read right then: the key
-  // list asks every live action when Help opens, and the dispatcher asks ⌫
-  // and Enter's on any press. So nothing a `describe` names may be derived
-  // below the guards — `isLocallyDone` and `waiting` once were, and a keypress
-  // on a loading page threw.
-  it('every action can describe itself while the page is still loading', () => {
-    h.result = loaded({ loading: true, game: null, me: null })
-    render(
-      <>
-        <PlayArea {...makeCtx()} />
-        <KeyList />
-      </>,
-    )
-    expect(screen.getByText('Loading…')).toBeInTheDocument()
-    for (const action of getActions()) expect(() => action.describe('button')).not.toThrow()
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
   })
 })
 
 /**
  * The keyboard's selection cursor. Cells are `row,col`; the board's rows are
- * `ABCDEF`, `GHIJKL`, … so `A` sits at 0,0 and again at 4,2. Arrows move the
+ * `abcdef`, `ghijkl`, … so `a` sits at 0,0 and again at 4,2. Arrows move the
  * ring, Space is a CLICK on the ringed letter, and a typed letter or a
  * submitted word moves the cursor to the trace's end and hides it.
  */
 describe('strands PlayArea — the selection cursor', () => {
   beforeEach(() => {
-    h.result = loaded()
     rpc.mockReset()
-    rpc.mockResolvedValue(okEnvelope({
-      result: 'invalid', word: 'AB', hint_points: 0, hint_cost: 3, words_found: 0, terminal: false,
-    }))
+    rpc.mockResolvedValue(okEnvelope({ result: 'invalid', hint_points: 0 }))
   })
 
   /** Where the ring is DRAWN, as `row,col`, or null when it isn't — read off
@@ -610,7 +515,7 @@ describe('strands PlayArea — the selection cursor', () => {
   it('a typed letter moves the cursor onto it and hides it; the next arrow shows it there', async () => {
     render(<WithKeys {...makeCtx()} />)
     await keys('ArrowRight', ' ')
-    // From A at 0,0 the only neighboring H is 1,1.
+    // From a at 0,0 the only neighboring h is 1,1.
     await key('h')
     expect(traced()).toEqual(['0,0', '1,1'])
     expect(ringAt()).toBeNull()
@@ -650,7 +555,7 @@ describe('strands PlayArea — the selection cursor', () => {
     expect(ringAt()).toBe('2,1')
 
     await key('Enter')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('submit_path', expect.objectContaining({ path: [[0, 0], [0, 1]] })))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('submit_path', { p_game_id: 'g1', p_path: [[0, 0], [0, 1]] }))
     expect(ringAt()).toBeNull()
 
     await key('ArrowRight')
@@ -659,17 +564,21 @@ describe('strands PlayArea — the selection cursor', () => {
 
   it('a board I cannot play takes no ring and no keys', async () => {
     // A teammate holds the move.
-    render(
-      <WithKeys
-        {...makeCtx({
-          players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')],
-          isTurnBased: true,
-          turnHolderId: 'u2',
-        })}
-      />,
-    )
+    render(<WithKeys {...makeCtx({ players: [ME, MOTH], turnHolderId: 'u2' })} />)
     await keys('ArrowRight', ' ')
     expect(ringAt()).toBeNull()
     expect(traced()).toEqual([])
+  })
+})
+
+describe('strands PlayArea — a move\'s answer', () => {
+  it('says the word in the shared format, its capitals put on', async () => {
+    rpc.mockResolvedValue(okEnvelope({ result: 'hint_word', hint_points: 3 }))
+    render(<WithKeys {...makeCtx()} />)
+    await press({ key: 'w' })
+    await press({ key: 'x' })
+    await press({ key: 'Enter' })
+    // The bar is full at 3 of 3, so the word earned a hint.
+    expect(await screen.findByText('WX — hint earned')).toBeInTheDocument()
   })
 })

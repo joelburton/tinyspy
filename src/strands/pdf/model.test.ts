@@ -9,176 +9,118 @@
  * summaries) is formatting, and gets one case each.
  */
 import { describe, expect, it } from 'vitest'
-import { buildPrintModel } from './model'
-import type { EventRow, GuessResult, StrandsPlayer, StrandsSolution } from '../hooks/useGame'
-import type { Member } from '@/common/members/member'
+import { buildStrandsPrintModel } from './model'
+import {
+  ZTest_find,
+  ZTest_guess,
+  ZTest_hint,
+  ZTest_makeGameDataRaw,
+  ZTest_rowIds,
+  type ZTest_GameDataFacts,
+} from '../lib/gameData.fixture'
+import { makeGameData } from '../hooks/useGame'
 
-const ADA = 'ada'
-const BEA = 'bea'
-const players = [
-  { user_id: ADA, username: 'ada', color: 'red' },
-  { user_id: BEA, username: 'bea', color: 'blue' },
-] as unknown as Member[]
+const TWO = [
+  { id: 'u1', username: 'ada', color: 'red' },
+  { id: 'u2', username: 'bea', color: 'blue' },
+]
+const STOPPED = { ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null }, outcome: 'neutral' } as const
 
-const state = (user_id: string, hints_spent: number): StrandsPlayer => ({
-  game_id: 'g', user_id, hints_spent, solved: false, solved_at: null,
-  hint_points: 0, active_hint_coords: null,
-})
-
-let n = 0
-const guess = (user_id: string, word: string, result: GuessResult): EventRow => ({
-  kind: 'guess',
-  id: n++, game_id: 'g', user_id, word, path: [[0, 0], [0, 1]],
-  result, created_at: '2026-01-01',
-})
-
-/** A spent hint — no word, no verdict, but coords like every other row. */
-const hint = (user_id: string): EventRow => ({
-  kind: 'hint',
-  id: n++, game_id: 'g', user_id, word: null, path: [[7, 0], [7, 1]],
-  result: null, created_at: '2026-01-01',
-})
-
-const SOLUTION: StrandsSolution = {
-  spangram: { word: 'SPAN', coords: [[4, 0], [4, 1]] },
-  themeWords: [
-    { word: 'FOUND', coords: [[0, 0], [0, 1]] },
-    { word: 'MISSED', coords: [[7, 0], [7, 1]] },
-  ],
+/** The model for these facts, as Print builds it, the solution shown or not. */
+function print(facts: ZTest_GameDataFacts, solutionShown = false) {
+  const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, ...facts }), 'u1')
+  return buildStrandsPrintModel({
+    header: { mode: gd.mode, brand: 'PaulPath', gameTitle: 't', date: 'd', summary: 's', setupRows: [] },
+    tiles: gd.puzzle.tiles,
+    mode: gd.mode,
+    ended: gd.ended,
+    players: gd.players,
+    me: gd.me,
+    events: gd.events,
+    nFoundWords: gd.stateLineData.nFoundWords,
+    nHintsUsed: gd.stateLineData.nHintsUsed,
+    solution: solutionShown ? gd.puzzle.words : null,
+  })
 }
 
-const base = {
-  header: { mode: 'coop' as const, brand: 'PaulPath', gameTitle: 't', date: 'd', summary: 's', setupRows: [] },
-  board: ['ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF'],
-  players,
-  myId: ADA,
-}
-
-describe('buildPrintModel — the shield holds on paper', () => {
+describe('buildStrandsPrintModel — the shield holds on paper', () => {
   it('prints NO missed words while the solution is hidden', () => {
-    const m = buildPrintModel({
-      ...base, mode: 'coop', isTerminal: false,
-      events: [guess(ADA, 'FOUND', 'theme')],
-      playerStates: [state(ADA, 0)],
-      solution: null,
-    })
-    expect(m.tracks[0].words.map((w) => w.word)).toEqual(['FOUND'])
-    expect(m.tracks[0].words.some((w) => w.missed)).toBe(false)
+    const m = print({ events: [ZTest_find(1, 'u1', 0)], ...STOPPED })
+    expect(m.tracks[0]!.words.map((w) => w.word)).toEqual(['zzqabc'])
+    expect(m.tracks[0]!.words.some((w) => w.missed)).toBe(false)
   })
 
-  it('prints the missed words once the solution is revealed', () => {
-    const m = buildPrintModel({
-      ...base, mode: 'coop', isTerminal: true,
-      events: [guess(ADA, 'FOUND', 'theme')],
-      playerStates: [state(ADA, 0)],
-      solution: SOLUTION,
-    })
-    const missed = m.tracks[0].words.filter((w) => w.missed).map((w) => w.word)
-    expect(missed.sort()).toEqual(['MISSED', 'SPAN'])
+  it('prints the missed words while the solution is shown', () => {
+    const m = print({ events: [ZTest_find(1, 'u1', 0)], ...STOPPED }, true)
+    expect(m.tracks[0]!.words.filter((w) => w.missed)).toHaveLength(7)
   })
 
-  it('compete prints ONLY the caller\'s track mid-game', () => {
-    // Not a display choice: RLS hasn't handed over anyone else's guesses, so a
-    // rival's column would be an empty grid claiming they'd found nothing.
-    const m = buildPrintModel({
-      ...base, mode: 'compete', isTerminal: false,
-      events: [guess(ADA, 'FOUND', 'theme')],
-      playerStates: [state(ADA, 1), state(BEA, 0)],
-      solution: null,
-    })
-    expect(m.tracks).toHaveLength(1)
-    expect(m.tracks[0].who).toBe('ada')
+  it('compete prints ONLY my track mid-game', () => {
+    // `gd` holds no rival's board yet, so a rival's column would be an empty
+    // grid claiming they'd found nothing.
+    const m = print({ mode: 'compete', events: [ZTest_find(1, 'u1', 0), ZTest_find(2, 'u2', 4)] })
+    expect(m.tracks.map((t) => t.who)).toEqual(['ada'])
   })
 
-  it('compete prints EVERY player at terminal, each with their own words', () => {
-    const m = buildPrintModel({
-      ...base, mode: 'compete', isTerminal: true,
-      events: [guess(ADA, 'FOUND', 'theme'), guess(BEA, 'SPAN', 'spangram')],
-      playerStates: [state(ADA, 1), state(BEA, 0)],
-      solution: SOLUTION,
-    })
+  it('compete prints EVERY player once ended, each with their own words', () => {
+    const m = print({ mode: 'compete', events: [ZTest_find(1, 'u1', 0), ZTest_find(2, 'u2', 4)], ...STOPPED })
     expect(m.tracks.map((t) => t.who)).toEqual(['ada', 'bea'])
     // Each column holds that player's OWN find — the whole reason compete
     // prints in tracks rather than one merged log.
-    expect(m.tracks[0].words.filter((w) => !w.missed).map((w) => w.word)).toEqual(['FOUND'])
-    expect(m.tracks[1].words.filter((w) => !w.missed).map((w) => w.word)).toEqual(['SPAN'])
+    expect(m.tracks[0]!.words.map((w) => w.word)).toEqual(['zzqabc'])
+    expect(m.tracks[1]!.words.map((w) => w.word)).toEqual(['zzqejk'])
   })
 })
 
-describe('buildPrintModel — formatting', () => {
-  it('coop is ONE unnamed track: the board is the team\'s', () => {
-    const m = buildPrintModel({
-      ...base, mode: 'coop', isTerminal: false,
-      events: [guess(ADA, 'FOUND', 'theme'), guess(BEA, 'ADAPT', 'hint_word')],
-      playerStates: [state(ADA, 2), state(BEA, 2)],
-      solution: null,
+describe('buildStrandsPrintModel — formatting', () => {
+  it('coop is ONE unnamed track: the board and the log are the team\'s', () => {
+    const m = print({
+      events: [ZTest_find(1, 'u1', 0), ZTest_guess(2, 'u2', ZTest_rowIds(1, 4), 'hint_word'), ZTest_hint(3, 'u2', ZTest_rowIds(2))],
     })
     expect(m.tracks).toHaveLength(1)
-    expect(m.tracks[0].who).toBeNull()
-    // Both players' rows, because the log is the team's too.
-    expect(m.tracks[0].turns).toHaveLength(2)
-    // The shared pool means any row's spend IS the team's.
-    expect(m.tracks[0].summary).toBe('1 word · 2 hints')
+    expect(m.tracks[0]!.who).toBeNull()
+    expect(m.tracks[0]!.turns).toHaveLength(3)
+    expect(m.tracks[0]!.summary).toBe('1 word · 1 hint')
   })
 
   it('marks each verdict, and notes only what the glyph cannot say', () => {
-    const m = buildPrintModel({
-      ...base, mode: 'coop', isTerminal: false,
+    const m = print({
       events: [
-        guess(ADA, 'SPAN', 'spangram'),
-        guess(ADA, 'FOUND', 'theme'),
-        guess(ADA, 'ADAPT', 'hint_word'),
-        guess(ADA, 'ZZ', 'too_short'),
+        ZTest_find(1, 'u1', 4),
+        ZTest_find(2, 'u1', 0),
+        ZTest_guess(3, 'u1', ZTest_rowIds(1, 4), 'hint_word'),
+        ZTest_guess(4, 'u1', ZTest_rowIds(1, 2), 'too_short'),
       ],
-      playerStates: [state(ADA, 0)],
-      solution: null,
     })
-    expect(m.tracks[0].turns.map((t) => [t.mark, t.note])).toEqual([
-      ['best', ''],
-      ['find', ''],
-      ['ok', ''],
+    expect(m.tracks[0]!.turns.map((t) => [t.word, t.mark, t.note])).toEqual([
+      ['ZZQEJK', 'best', ''],
+      ['ZZQABC', 'find', ''],
+      ['ZZQB', 'ok', ''],
       // Every rejection shares one glyph, so the note is the only thing saying
       // WHICH rejection it was.
-      ['no', 'too short'],
+      ['ZZ', 'no', 'too short'],
     ])
   })
 
   it('omits the hint count when none were spent', () => {
-    const m = buildPrintModel({
-      ...base, mode: 'coop', isTerminal: false,
-      events: [guess(ADA, 'FOUND', 'theme')],
-      playerStates: [state(ADA, 0)],
-      solution: null,
-    })
-    expect(m.tracks[0].summary).toBe('1 word')
+    expect(print({ events: [ZTest_find(1, 'u1', 0)] }).tracks[0]!.summary).toBe('1 word')
   })
 
   it('prints a spent hint as its own row, in sequence, with no word', () => {
-    const m = buildPrintModel({
-      ...base, mode: 'coop', isTerminal: false,
-      events: [guess(ADA, 'FOUND', 'theme'), hint(ADA), guess(ADA, 'SPAN', 'spangram')],
-      playerStates: [state(ADA, 1)],
-      solution: null,
-    })
+    const m = print({ events: [ZTest_find(1, 'u1', 0), ZTest_hint(2, 'u1', ZTest_rowIds(2)), ZTest_find(3, 'u1', 4)] })
     // Position matters: the printed log keeps the same numbering as the screen,
     // so the two can be read side by side.
-    expect(m.tracks[0].turns.map((t) => [t.seq, t.word, t.mark])).toEqual([
-      [1, 'FOUND', 'find'],
+    expect(m.tracks[0]!.turns.map((t) => [t.seq, t.word, t.mark])).toEqual([
+      [1, 'ZZQABC', 'find'],
       [2, 'Hint used', 'hint'],
-      [3, 'SPAN', 'best'],
+      [3, 'ZZQEJK', 'best'],
     ])
   })
 
   it('a hint never reaches the printed BOARD — it revealed, it did not place', () => {
-    const m = buildPrintModel({
-      ...base, mode: 'coop', isTerminal: false,
-      events: [guess(ADA, 'FOUND', 'theme'), hint(ADA)],
-      playerStates: [state(ADA, 1)],
-      solution: null,
-    })
-    // The hint's coords are a theme word's cells; drawing them among the found
-    // words would print an answer nobody found — the shield's whole concern.
-    expect(m.tracks[0].words.map((w) => w.word)).toEqual(['FOUND'])
-    expect(m.tracks[0].summary).toBe('1 word · 1 hint')
+    const m = print({ events: [ZTest_find(1, 'u1', 0), ZTest_hint(2, 'u1', ZTest_rowIds(2))] })
+    // The hint's tiles are a theme word's; drawing them among the found words
+    // would print an answer nobody found — the shield's whole concern.
+    expect(m.tracks[0]!.words.map((w) => w.word)).toEqual(['zzqabc'])
   })
 })

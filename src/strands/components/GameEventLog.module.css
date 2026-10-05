@@ -20,9 +20,11 @@
   color: var(--page-text-muted-color);
 }
 
+/* The words are stored lowercase; the log draws them in capitals. */
 /* @@ */ .word {
   font-weight: 600;
   letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 /* Found words carry their board hue into the log, so scanning it reads the same

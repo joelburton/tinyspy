@@ -137,6 +137,38 @@ joins `CONVERTED_GAMES` once they have:
 - `lib/history.ts`'s `FoundPath`, `HistoryRow`, `HistorySnapshot`, and
   `components/Board.tsx`'s `FoundPath`.
 
+## The PlayArea pass
+
+Step 9 (2026-10-05, Joel took the recommendations: "commit and do it"):
+`PlayAreaLoader` builds `gd` and draws `PlayArea`, the coordinator, in its
+sections — page hooks, the local slot, the turn-history view, the commands,
+render; no Narration, since strands narrates nobody's move. Its hooks:
+`useActionsAndMenu` (Stop, Concede, Restart, Reveal, New game with the
+spent-archive notice, Print, and the menu), `useGetGameEndingMessage` /
+`useGetPlayerEndingMessage` over `lib/gameEndingMessage.ts` /
+`lib/playerEndingMessage.ts` (`buildOver`'s words), and `useHistoryView`
+over `lib/history.ts`, now a fold over `GEvent`s that hands back a `GBoard`.
+PlayArea picks `shownBoard` and the reveal's `missedWords`. The move — the
+trace, submit, typed letters, the cursor, the ambiguous flash, `act-hint` and
+the theme prompt — moved, as it was, into `BoardCol`, which still feeds the
+coordinate-based `Board` (`coordOf`, `makeLetterRows`) until the Board pass.
+`GAnswer` is the roster of seven answers; `lib/answer.ts` says each as `{
+outcome, text }` (`answerMessage`) and reads a row's (`answerOf`,
+`eventToOutcome`); `ANSWER_OUTCOME` went. `InfoCol`, `GameEventLog` and the
+print model read `gd`; the printer draws the capitals. The board's letters,
+the traced word and the log's words take their capitals in CSS.
+`PlayArea.test.tsx` builds its blob from the fixture, mocking only `db`; its
+loading case went with the loading.
+
+## What the PlayArea pass changed that a player can see
+
+Each a consequence of reading `gd` rather than a ruling:
+
+- **An ending line wears my outcome, as the server wrote it.** A conceder's
+  out-of-race line is `lost` (it was `neutral`); a racer who solved but lost
+  on hints reads `near` at the end (it was `lost`).
+- **"Game not found." and "Loading…" are gone** with the reads.
+
 ## Predicted test breaks
 
 - **Steps 3–4 (2026-10-05), fixed at step 5:** every pgTAP assertion that

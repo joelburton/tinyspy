@@ -46,12 +46,6 @@
   );
 }
 
-/* @@ */ .loading,
-/* @@ */ .empty {
-  padding: 2rem;
-  color: var(--page-text-muted-color);
-}
-
 /* The echo/verdict slot. ONE fixed-height row shared by the word-in-progress
  * and the outcome pill: you are either building a word or reading what the last
  * one did, never both. Fixed height because it empties between traces, and a
@@ -82,6 +76,8 @@
 /* @@ */ .echo {
 /* @@ */   --wordEntryInput-font-size: 1.75rem;
   letter-spacing: 0.08em;
+  /* The traced word is built from lowercase letters; it is drawn in capitals. */
+  text-transform: uppercase;
   color: var(--strands-theme);
 }
 

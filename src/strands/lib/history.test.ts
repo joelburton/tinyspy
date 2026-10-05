@@ -1,89 +1,92 @@
 // cs-unmet
 
 import { describe, it, expect } from 'vitest'
-import { historySnapshot, type HistoryRow } from './history'
+import { makeHistorySnapshot } from './history'
+import {
+  ZTest_find,
+  ZTest_guess,
+  ZTest_hint,
+  ZTest_makeGameDataRaw,
+  ZTest_rowIds,
+} from './gameData.fixture'
+import { makeGameData } from '../hooks/useGame'
 
 // A six-turn session with every interesting row kind: a find, a reject, a
 // hint word, the spangram, a duplicate — and a SPENT HINT, which is the one
-// row that isn't a guess. Paths are minimal — the filter never inspects them,
-// it only carries them through.
-// The ids are what the viewer addresses, and are deliberately not 0..5 — a
-// builder that still indexed would pass these by accident.
-const ROWS: readonly HistoryRow[] = [
-  { id: 11, kind: 'guess', word: 'apple', path: [[0, 0], [0, 1]], result: 'theme' },
-  { id: 12, kind: 'guess', word: 'zq', path: [[1, 0], [1, 1]], result: 'too_short' },
-  { id: 13, kind: 'guess', word: 'plane', path: [[2, 0], [2, 1]], result: 'hint_word' },
-  { id: 14, kind: 'guess', word: 'spanner', path: [[3, 0], [3, 1]], result: 'spangram' },
-  { id: 15, kind: 'guess', word: 'apple', path: [[0, 0], [0, 1]], result: 'duplicate' },
-  { id: 16, kind: 'hint', word: null, path: [[4, 0], [4, 1]], result: null },
-]
+// row that isn't a guess. The ids are what the viewer addresses, and are
+// deliberately not 0..5 — a builder that still indexed would pass these by
+// accident.
+const { events } = makeGameData(
+  ZTest_makeGameDataRaw({
+    events: [
+      ZTest_find(11, 'u1', 0),
+      ZTest_guess(12, 'u1', ZTest_rowIds(1, 2), 'too_short'),
+      ZTest_guess(13, 'u1', ZTest_rowIds(2, 4), 'hint_word'),
+      ZTest_find(14, 'u1', 4),
+      ZTest_guess(15, 'u1', ZTest_rowIds(2, 4), 'duplicate'),
+      ZTest_hint(16, 'u1', ZTest_rowIds(5)),
+    ],
+  }),
+  'u1',
+)
 
-describe('historySnapshot', () => {
+const words = (id: number) => makeHistorySnapshot(events, id, 1).board.words.map((w) => w.word)
+
+describe('makeHistorySnapshot', () => {
   it('is a filter: the board at turn N is the theme finds among rows 0..N', () => {
-    expect(historySnapshot(ROWS, 11, 1).found).toEqual([
-      { path: [[0, 0], [0, 1]], isSpangram: false },
-    ])
+    expect(words(11)).toEqual(['zzqabc'])
     // Rejects and hint words never reach the board.
-    expect(historySnapshot(ROWS, 13, 3).found).toEqual(historySnapshot(ROWS, 11, 1).found)
+    expect(words(13)).toEqual(['zzqabc'])
   })
 
   it('the boundary is INCLUSIVE: viewing a find shows that find placed', () => {
-    expect(historySnapshot(ROWS, 14, 4).found).toHaveLength(2)
-    expect(historySnapshot(ROWS, 14, 4).found[1]).toEqual({
-      path: [[3, 0], [3, 1]],
-      isSpangram: true,
-    })
+    expect(words(14)).toEqual(['zzqabc', 'zzqejk'])
+    expect(makeHistorySnapshot(events, 14, 4).board.words[1]!.spangram).toBe(true)
   })
 
   it('lights the viewed turn even when it changed nothing', () => {
-    // A rejected word's cells are exactly what reviewing it wants to see.
-    expect(historySnapshot(ROWS, 12, 2).historyLitTiles).toEqual([[1, 0], [1, 1]])
-    expect(historySnapshot(ROWS, 12, 2).found).toHaveLength(1)
+    // A rejected word's tiles are exactly what reviewing it wants to see.
+    expect(makeHistorySnapshot(events, 12, 2).litTiles.map((t) => t.id)).toEqual(['1,0', '1,1'])
+    expect(words(12)).toEqual(['zzqabc'])
   })
 
   it('describes the turn in the log wording, numbered by what it was GIVEN', () => {
-    expect(historySnapshot(ROWS, 11, 1).historyLabel).toBe('#1 APPLE — theme word')
-    expect(historySnapshot(ROWS, 12, 2).historyLabel).toBe('#2 ZQ — too short')
-    expect(historySnapshot(ROWS, 14, 4).historyLabel).toBe('#4 SPANNER — spangram')
-    expect(historySnapshot(ROWS, 15, 5).historyLabel).toBe('#5 APPLE — already found')
+    expect(makeHistorySnapshot(events, 11, 1).label).toBe('#1 ZZQABC — theme word')
+    expect(makeHistorySnapshot(events, 12, 2).label).toBe('#2 ZZ — too short')
+    expect(makeHistorySnapshot(events, 14, 4).label).toBe('#4 ZZQEJK — spangram')
+    expect(makeHistorySnapshot(events, 15, 5).label).toBe('#5 ZZQC — already found')
     // The number is the LOG's, not this list's: filtered to one player, row 15
     // printed as "#2", and the banner echoes what the reader clicked.
-    expect(historySnapshot(ROWS, 15, 2).historyLabel).toBe('#2 APPLE — already found')
+    expect(makeHistorySnapshot(events, 15, 2).label).toBe('#2 ZZQC — already found')
     // No number at all when the opening carried none.
-    expect(historySnapshot(ROWS, 15, null).historyLabel).toBe('APPLE — already found')
+    expect(makeHistorySnapshot(events, 15, null).label).toBe('ZZQC — already found')
   })
 
   describe('a spent hint', () => {
-    it('re-rings its revealed cells as a HINT, not as a traced route', () => {
-      const snap = historySnapshot(ROWS, 16, 6)
-      // The distinction the separate field exists for: replaying a hint as a
-      // `historyLitTiles` would draw it as a connected trace, showing an order the
-      // hint deliberately never gave.
-      expect(snap.hintCoords).toEqual([[4, 0], [4, 1]])
-      expect(snap.historyLitTiles).toEqual([])
+    it('re-rings its revealed tiles as a HINT, not as a traced route', () => {
+      const snap = makeHistorySnapshot(events, 16, 6)
+      expect(snap.board.hintTiles?.map((t) => t.id)).toEqual(ZTest_rowIds(5))
+      expect(snap.litTiles).toEqual([])
     })
 
     it('names the act without naming the word', () => {
-      expect(historySnapshot(ROWS, 16, 6).historyLabel).toBe('#6 Hint — a word was revealed')
+      expect(makeHistorySnapshot(events, 16, 6).label).toBe('#6 Hint — a word was revealed')
     })
 
     it('leaves the board exactly as the finds before it left it', () => {
       // A hint reveals; it never places. So turn 6's board is turn 5's board.
-      expect(historySnapshot(ROWS, 16, 6).found).toEqual(historySnapshot(ROWS, 15, 5).found)
+      expect(words(16)).toEqual(words(15))
     })
 
-    it('carries no hintCoords on a guess turn', () => {
-      expect(historySnapshot(ROWS, 11, 1).hintCoords).toBeNull()
+    it('carries no hint ring on a guess turn', () => {
+      expect(makeHistorySnapshot(events, 11, 1).board.hintTiles).toBeNull()
     })
   })
 
   it('an id these rows do not hold replays nothing', () => {
-    // A compete opponent's trace, against your own board: nothing of theirs is
-    // here, so nothing is folded rather than everything.
-    const snap = historySnapshot(ROWS, 99, 1)
-    expect(snap.historyLitTiles).toEqual([])
-    expect(snap.hintCoords).toBeNull()
-    expect(snap.historyLabel).toBe('')
-    expect(snap.found).toHaveLength(0)
+    const snap = makeHistorySnapshot(events, 99, 1)
+    expect(snap.litTiles).toEqual([])
+    expect(snap.board).toEqual({ words: [], hintTiles: null })
+    expect(snap.label).toBe('')
   })
 })

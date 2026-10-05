@@ -20,56 +20,43 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { GameEventLog } from './GameEventLog'
-import type { EventRow, GuessResult } from '../hooks/useGame'
-import type { Member } from '@/common/members/member'
+import { makeGameData } from '../hooks/useGame'
+import { ZTest_find, ZTest_hint, ZTest_makeGameDataRaw, ZTest_rowIds } from '../lib/gameData.fixture'
+import type { GEventRaw, GHistoryView } from '../types'
 
-const ADA = 'ada'
-const PLAYERS = [
-  { user_id: ADA, username: 'ada', color: 'red' },
-] as unknown as Member[]
-
-let n = 0
-const guess = (word: string, result: GuessResult): EventRow => ({
-  kind: 'guess',
-  id: n++, game_id: 'g', user_id: ADA, word, path: [[0, 0]],
-  result, created_at: '2026-01-01',
-})
-
-const hint = (): EventRow => ({
-  kind: 'hint',
-  id: n++, game_id: 'g', user_id: ADA, word: null, path: [[1, 0], [1, 1]],
-  result: null, created_at: '2026-01-01',
-})
-
-function renderLog(events: EventRow[], onShowHistory = vi.fn()) {
+/** The log's rows and players, as `gd` hands them over. */
+function renderLog(rows: GEventRaw[], show = vi.fn()) {
+  const gd = makeGameData(ZTest_makeGameDataRaw({ events: rows }), 'u1')
+  const historyView = {
+    isViewing: false, viewedEventId: null, show, exit: vi.fn(),
+    board: null, litTiles: [], label: null, actor: undefined,
+  } satisfies GHistoryView
   render(
     <GameEventLog
-      events={events}
-      players={PLAYERS}
-      myId={ADA}
+      events={gd.events}
+      players={gd.players}
+      myId="u1"
       mode="coop"
-      isTerminal={false}
-      historyId={null}
-      onShowHistory={onShowHistory}
+      isGameEnded={false}
+      historyView={historyView}
     />,
   )
-  return { onShowHistory }
+  return { show }
 }
 
 describe('GameEventLog — a spent hint', () => {
   it('renders as its own row, saying what happened without naming a word', () => {
-    renderLog([guess('APPLE', 'theme'), hint()])
+    renderLog([ZTest_find(1, 'u1', 0), ZTest_hint(2, 'u1', ZTest_rowIds(2))])
     expect(screen.getByText('Hint used')).toBeInTheDocument()
     // The word slot is the one thing a hint cannot fill — and the row must not
     // borrow a neighboring word to fill it.
-    expect(screen.getAllByText(/APPLE/)).toHaveLength(1)
+    expect(screen.getAllByText(/zzqabc/)).toHaveLength(1)
   })
 
   it('takes an ordinary numbered position in the sequence', () => {
-    // Load-bearing, not cosmetic: the history viewer addresses a turn by its
-    // POSITION in these rows, so a hint that skipped a number (or rendered as an
-    // un-numbered interstitial) would slide every later turn's replay by one.
-    renderLog([guess('APPLE', 'theme'), hint(), guess('SPAN', 'spangram')])
+    // Load-bearing, not cosmetic: a hint that skipped a number (or rendered as
+    // an un-numbered interstitial) would misnumber every later turn.
+    renderLog([ZTest_find(1, 'u1', 0), ZTest_hint(2, 'u1', ZTest_rowIds(2)), ZTest_find(3, 'u1', 4)])
     const rows = screen.getAllByRole('row')
     expect(rows).toHaveLength(3)
     expect(within(rows[0]).getByText('#1')).toBeInTheDocument()
@@ -79,15 +66,14 @@ describe('GameEventLog — a spent hint', () => {
   })
 
   it('is a live history handle, like every other turn', () => {
-    // A hint turn is worth replaying — that is what its stored coords are FOR.
-    const rows_ = [guess('APPLE', 'theme'), hint()]
-    const { onShowHistory } = renderLog(rows_)
+    // A hint turn is worth replaying — that is what its stored tiles are FOR.
+    const { show } = renderLog([ZTest_find(1, 'u1', 0), ZTest_hint(7, 'u1', ZTest_rowIds(2))])
     const rows = screen.getAllByRole('row')
-    within(rows[1]).getByText('#2').click()
+    within(rows[1]!).getByText('#2').click()
     // The NUMBER is the row's place in the list on show; the HANDLE is its own
     // id. #2 is the hint, and what it opens is the hint's row — and the number
     // rides along, because the banner shows back what was clicked.
-    expect(onShowHistory).toHaveBeenCalledWith(rows_[1].id, 2)
+    expect(show).toHaveBeenCalledWith(7, 2)
   })
 
   it('still counts as a turn for the empty state', () => {

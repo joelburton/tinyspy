@@ -15,6 +15,7 @@
  * pair, one level down.
  */
 
+import type { Action } from '@/common/actions/useBindAction'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -108,11 +109,30 @@ export type GHintBarData = {
 export type GResult = 'theme' | 'spangram' | 'hint_word' | 'duplicate' | 'too_short' | 'invalid'
 
 /**
- * Every answer strands gives about a move: a guess's verdict, or a spent hint,
- * which a hint row is (it has no `result`). `lib/answer.ts` says what each one
- * reads as (docs/outcomes.md → How a game does it).
+ * Every answer strands gives about a move — the whole roster of what this game
+ * tells anybody. `lib/answer.ts` says what each one reads as
+ * (docs/outcomes.md → How a game does it). The words are `submit_path`'s
+ * `result`s, and a hint row's `kind`.
+ *
+ * No teammate's line: strands narrates nobody's move — a teammate's find lands
+ * on the board, and their row in the log. The frontend's own refusals (a typed
+ * letter that matches nothing, a hint asked of an unfilled bar) write no row,
+ * so they are not here: the pill is their only surface.
  */
-export type GAnswer = GResult | 'spent_hint'
+export type GAnswer =
+  // A hidden word found; the spangram is the one that names the theme.
+  | { answerType: 'theme'; word: string }
+  | { answerType: 'spangram'; word: string }
+  // A valid non-theme word: a point on the hint bar, and whether it filled it.
+  | { answerType: 'hint_word'; word: string; filledBar: boolean }
+  // Moves the rules turn away: a hint word already credited, or one shorter
+  // than the setup's shortest.
+  | { answerType: 'duplicate'; word: string }
+  | { answerType: 'too_short'; word: string }
+  // Not in the dictionary at the setup's band.
+  | { answerType: 'invalid'; word: string }
+  // A cashed hint, which rings a word's tiles and says no word.
+  | { answerType: 'hint' }
 
 /** What a log row is: a guess, with its word and verdict, or a cashed hint,
  *  which says no word and has no verdict. Discriminated, so `word` reads as a
@@ -278,6 +298,62 @@ export type GEvent = GEventKind & Omit<GEventRaw, 'userId' | 'tileIds' | keyof G
   by: GPlayer
   // A guess's trace, in the order traced; a hint's ringed word.
   tiles: GTile[]
+}
+
+/**
+ * The turn-history view (`hooks/useHistoryView.ts`): which past turn is open
+ * on the board, and the board as it stood then.
+ */
+export type GHistoryView = {
+  // A past turn is open on the board (`viewedEventId` is set): the board and
+  // the entry take no move while it is.
+  isViewing: boolean
+  // The log row open on the board (`events.id`), or null when live.
+  viewedEventId: number | null
+  // Open a turn — the log's `#N` click, with the number it printed beside it.
+  show: (id: number, n: number | null) => void
+  // Back to the live board — the banner's ✕, or any click or key.
+  exit: () => void
+  // The board as it stood after the viewed turn — its finds, and the word a
+  // viewed hint rang — or null when live.
+  board: GBoard | null
+  // The viewed guess's trace, ringed; empty when live or on a hint turn.
+  litTiles: GTile[]
+  // The banner's words for the viewed turn, or null when live.
+  label: string | null
+  // Whose board is on screen, when it is not mine — only a compete game's end
+  // opens a rival's.
+  actor: GPlayer | undefined
+}
+
+/**
+ * Every command the play surface binds (`hooks/useActionsAndMenu.ts`): the info
+ * column's action row places them and the menu lists them, so a button, its menu
+ * row and its key cannot drift apart. The hint bar's `act-hint` and the
+ * entry's two keys are the board column's own.
+ */
+export type GActions = {
+  // Each key is spelled as its action's id (`act-reveal` → `actReveal`), so a
+  // grep for either finds every trace of the action
+  // (src/guards/actionIds.test.ts).
+  //
+  // Show the unfound words — or put them away again. A local display toggle, no
+  // RPC.
+  actReveal: Action
+  // Restart THIS puzzle from scratch — same board, everything the players did
+  // wiped.
+  actRestart: Action
+  // Start the next puzzle nobody at the table has played.
+  actNewGame: Action
+  // Drop out of a race while the others play on — hidden in coop, and once
+  // you are out, when Stop takes its place.
+  actConcede: Action
+  // The whole table stops, with no result.
+  actStopGame: Action
+  // Print the board as it stands.
+  actPrintBoard: Action
+  // Leave for the club — the shell's own action, off `menu`.
+  actBackToClub: Action
 }
 
 /**

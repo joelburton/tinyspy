@@ -14,6 +14,7 @@ import {
 import { drawInTracks, type Track } from '@/common/pdf/columns'
 import { drawCheck, drawCross } from '@/common/pdf/marks'
 import { COLS, ROWS } from '../lib/board'
+import type { GTile } from '../types'
 import type { PrintTrack, PrintTurn, StrandsPrintModel } from './model'
 
 /**
@@ -86,7 +87,7 @@ function drawTrack(doc: jsPDF, m: StrandsPrintModel, t: PrintTrack, track: Track
   doc.text(t.summary, track.x, y)
   y += 10
 
-  y = drawBoard(doc, m.board, t, track, y) + 16
+  y = drawBoard(doc, m.tiles, t, track, y) + 16
   return drawLog(doc, t.turns, track, y)
 }
 
@@ -102,7 +103,7 @@ function drawTrack(doc: jsPDF, m: StrandsPrintModel, t: PrintTrack, track: Track
  */
 function drawBoard(
   doc: jsPDF,
-  board: string[],
+  tiles: GTile[],
   t: PrintTrack,
   track: Track,
   top: number,
@@ -113,18 +114,17 @@ function drawBoard(
 
   // ── Paths first ──
   for (const w of t.words) {
-    if (w.coords.length < 2) continue
-    // doc.setDrawColor(w.missed ? MEDIUM_GRAY : DARK_GRAY)
+    if (w.tiles.length < 2) continue
     doc.setDrawColor(DARK_GRAY)
-    doc.setLineWidth(w.isSpangram ? SPANGRAM_W : LINE_W)
+    doc.setLineWidth(w.spangram ? SPANGRAM_W : LINE_W)
     // A dash pattern is the missed encoding. Reset it after, or every later
     // stroke on the page inherits it — jsPDF's line-dash is document state, not
     // a per-call argument.
     if (w.missed) doc.setLineDashPattern(MISSED_DASH, 0)
-    for (let i = 1; i < w.coords.length; i++) {
-      const [r0, c0] = w.coords[i - 1]
-      const [r1, c1] = w.coords[i]
-      doc.line(cx(c0), cy(r0), cx(c1), cy(r1))
+    for (let i = 1; i < w.tiles.length; i++) {
+      const from = w.tiles[i - 1]!
+      const to = w.tiles[i]!
+      doc.line(cx(from.col), cy(from.row), cx(to.col), cy(to.row))
     }
     if (w.missed) doc.setLineDashPattern([], 0)
   }
@@ -133,17 +133,16 @@ function drawBoard(
   // ── Knock out the letters' backgrounds ──
   doc.setFillColor(255, 255, 255)
   for (const w of t.words) {
-    for (const [r, c] of w.coords) {
-      doc.circle(cx(c), cy(r), cell * 0.3, 'F')
+    for (const tile of w.tiles) {
+      doc.circle(cx(tile.col), cy(tile.row), cell * 0.3, 'F')
     }
   }
 
-  // ── Letters on top ──
+  // ── Letters on top ── in capitals, put on here: the letters are stored
+  // lowercase, and paper has no `text-transform`.
   doc.setFont('helvetica', 'bold').setFontSize(Math.min(11, cell * 0.62)).setTextColor(BLACK)
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      doc.text(board[r][c], cx(c), cy(r) + cell * 0.18, { align: 'center' })
-    }
+  for (const tile of tiles) {
+    doc.text(tile.letter.toUpperCase(), cx(tile.col), cy(tile.row) + cell * 0.18, { align: 'center' })
   }
 
   return top + ROWS * cell

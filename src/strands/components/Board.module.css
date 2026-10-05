@@ -188,6 +188,8 @@
    * width puts a letter at roughly half a cell — the cell is 1/6 of the width,
    * so this reads as a full-size letter rather than a label. */
   font-size: clamp(1rem, 9cqw, 2.75rem);
+  /* The letters are stored lowercase; the board draws them in capitals. */
+  text-transform: uppercase;
   color: var(--page-text-color);
   cursor: pointer;
   user-select: none;

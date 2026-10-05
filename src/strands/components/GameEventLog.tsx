@@ -3,7 +3,6 @@
 import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import { memberById } from '@/common/members/memberList'
 import {
   IconBestFind,
   IconHint,
@@ -12,23 +11,22 @@ import {
   IconWordOk,
 } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
-import { ANSWER_OUTCOME } from '../lib/answer'
+import { eventToOutcome } from '../lib/answer'
 import type { Member } from '@/common/members/member'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
-import type { EventRow, GuessResult } from '../hooks/useGame'
+import type { GEvent, GHistoryView, GResult } from '../types'
 import styles from './GameEventLog.module.css'
 
 type Props = {
-  events: EventRow[]
+  // Every turn I may see. Coop: the whole shared game. Compete: my own while
+  // the race is on, and everyone's once it has ended.
+  events: GEvent[]
   players: Member[]
   myId: string
   mode: 'coop' | 'compete'
-  isTerminal: boolean
-  /** The turn open in the board viewer — the row's own id — or null when live. */
-  historyId: number | null
-  /** Open a turn on the board — the row's id, and the `#N` this log printed
-   *  beside it, which is what the banner shows back. */
-  onShowHistory: (id: number, n: number) => void
+  // Distinguishes a rival's withheld log from a genuinely empty one.
+  isGameEnded: boolean
+  historyView: GHistoryView
 }
 
 /**
@@ -43,7 +41,7 @@ type Props = {
  * ladder rather than three unrelated symbols. All three rejects share the X:
  * the glyph says "this missed" and the label beside it says which miss.
  */
-const MARK: Record<GuessResult, typeof IconWordOk> = {
+const MARK: Record<GResult, typeof IconWordOk> = {
   spangram: IconBestFind,
   theme: IconThemeFind,
   hint_word: IconWordOk,
@@ -65,7 +63,7 @@ const MARK: Record<GuessResult, typeof IconWordOk> = {
  * amber for the two the rules turn away, red for the one real miss — so the
  * label is what says WHY: too short, already counted, or not a word at all.
  */
-const BODY: Partial<Record<GuessResult, string>> = {
+const BODY: Partial<Record<GResult, string>> = {
   duplicate: 'already found',
   too_short: 'too short',
   invalid: 'not a word',
@@ -88,8 +86,7 @@ const BODY: Partial<Record<GuessResult, string>> = {
  *
  * **Coop shows everyone's rows.** Joel's ruling: a peer sees your word when you
  * submit it, so there is no per-player split to make here. Compete's rows are
- * scoped to your own mid-race by the mode-aware RLS arm (and open up at
- * terminal — which is why PlayArea filters `historyRows` explicitly).
+ * my own mid-race, by `useGame`'s seat rule, and open up once the game ends.
  *
  * A row's `#N` is the turn-history handle (shared `EventLogNumber`), offered on
  * every row under every filter.
@@ -99,32 +96,28 @@ export function GameEventLog({
   players,
   myId,
   mode,
-  isTerminal,
-  historyId,
-  onShowHistory,
+  isGameEnded,
+  historyView,
 }: Props) {
   // The whose-turns dropdown, its default, the aggregate label, the row filter
   // and the honest empty line all come from the shared hook — every event-log
   // game carries it, on one vocabulary. The labels say "turns", not "words":
   // a spent hint is a row here and isn't one.
-  const eventLogPicker = useEventLogPlayerPicker<EventRow>({
+  const eventLogPicker = useEventLogPlayerPicker<GEvent>({
     players,
     myId,
     mode,
-    isTerminal,
+    isTerminal: isGameEnded,
     label: 'Whose turns to show',
     emptyLabel: 'No turns yet.',
   })
   const shown = eventLogPicker.filter(events)
 
-  // The number counts the rows on show; the handle carries the row's own id, so
-  // filtering the log renumbers it without ever changing which event it opens.
-
   // Click-to-define. Only words the DICTIONARY accepted are looked up: a theme
   // word can be a phrase ("FATHERSDAY") and a reject isn't a word at all, so
   // offering the affordance there would promise a definition that can't exist.
-  const definable = (e: EventRow) => e.result === 'hint_word' || e.result === 'duplicate'
-  const wordClass = (e: EventRow) =>
+  const definable = (e: GEvent) => e.result === 'hint_word' || e.result === 'duplicate'
+  const wordClass = (e: GEvent) =>
     cls(
       styles.word,
       e.result === 'spangram' && styles.spangram,
@@ -136,15 +129,15 @@ export function GameEventLog({
       {shown.map((row, i) => (
         <tr key={row.id} className={gameEventLog.divider}>
           {/* The bar's word is `lib/answer.ts`'s — the log names none of its own,
-              so it cannot disagree with the pill that reported the same turn. A
-              hint row has no `result` column, which is what `spent_hint` is. */}
-          <EventLogOutcomeBar
-            outcome={ANSWER_OUTCOME[row.kind === 'hint' ? 'spent_hint' : row.result]}
-          />
+              so it cannot disagree with the pill that reported the same turn. */}
+          <EventLogOutcomeBar outcome={eventToOutcome(row)} />
+          {/* The number counts the rows on show — a filter renumbers them —
+              while the handle is the row's own id, so it always opens the row
+              its number sits beside. */}
           <EventLogNumber
             n={i + 1}
-            isOpenInHistory={historyId === row.id}
-            onShowHistory={() => onShowHistory(row.id, i + 1)}
+            isOpenInHistory={historyView.viewedEventId === row.id}
+            onShowHistory={() => historyView.show(row.id, i + 1)}
           />
           <td className={gameEventLog.main}>
             {/* Fixed-width slot, so every word starts at the same x no
@@ -173,7 +166,7 @@ export function GameEventLog({
                 {definable(row) ? (
                   <DefinableWord word={row.word} className={wordClass(row)} />
                 ) : (
-                  <span className={wordClass(row)}>{row.word.toUpperCase()}</span>
+                  <span className={wordClass(row)}>{row.word}</span>
                 )}
                 {BODY[row.result] && (
                   <span className={gameEventLog.muted}> — {BODY[row.result]}</span>
@@ -181,7 +174,7 @@ export function GameEventLog({
               </>
             )}
           </td>
-          <EventLogActor actor={memberById(players, row.user_id)} />
+          <EventLogActor actor={row.by} />
         </tr>
       ))}
     </EventLog>

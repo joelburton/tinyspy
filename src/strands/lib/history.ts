@@ -1,44 +1,25 @@
 // cs-fixed-outcome-fix
 
-import type { Coord } from './board'
+import type { GBoard, GEvent, GResult, GTile } from '../types'
 
-/** The shape `<Board>` needs for a found word — mirrors `FoundPath`. */
-export type FoundPath = { path: Coord[]; isSpangram: boolean }
-
-/** The minimum a row needs for the replay: what it was, and where. Mirrors
- *  `EventRow` — a guess carries a word + verdict, a hint carries neither. */
-export type HistoryRow =
-  | {
-    /** The row's own id — what the viewer addresses. */
-    id: number
-    kind: 'guess'
-    word: string
-    path: Coord[]
-    result: 'theme' | 'spangram' | 'hint_word' | 'duplicate' | 'too_short' | 'invalid'
-  }
-  | { id: number; kind: 'hint'; word: null; path: Coord[]; result: null }
-
-export type HistorySnapshot = {
-  /** The theme words found as of the viewed turn — feed to `<Board found>`. */
-  found: FoundPath[]
-  /** The cells the viewed submission traced, ringed on the board. Empty on a
-   *  hint turn: a hint traced nothing, and its cells go to `hintCoords`. */
-  historyLitTiles: Coord[]
-  /**
-   * A hint turn's revealed cells, or null on a guess turn. Kept SEPARATE from
-   * `historyLitTiles` so the board can re-draw the hint with its own vocabulary —
-   * rings, deliberately unconnected — rather than as a traced route. That
-   * distinction is the whole reason a hint's coords are stored: replaying it as
-   * a trace would show an order the hint never gave you.
-   */
-  hintCoords: Coord[] | null
-  /** The banner line: what that turn was. */
-  historyLabel: string
+/** A past turn, replayed: the board as it stood after it, and its words. */
+type HistorySnapshot = {
+  // The words found as of the viewed turn, and — on a hint turn — the word it
+  // rang. A hint's tiles go here rather than to `litTiles` so the board
+  // re-draws them in its own vocabulary — rings, deliberately unconnected —
+  // rather than as a traced route: replaying a hint as a trace would show an
+  // order the hint never gave you.
+  board: GBoard
+  // The tiles the viewed guess traced, ringed on the board; empty on a hint
+  // turn, which traced nothing.
+  litTiles: GTile[]
+  // The banner line: what that turn was.
+  label: string
 }
 
 /** What the banner says about a turn, matching the log's own wording so the two
  *  surfaces can't describe the same row differently. */
-const BODY: Record<Exclude<HistoryRow['result'], null>, string> = {
+const BODY: Record<GResult, string> = {
   spangram: 'spangram',
   theme: 'theme word',
   hint_word: 'valid word',
@@ -48,7 +29,7 @@ const BODY: Record<Exclude<HistoryRow['result'], null>, string> = {
 }
 
 /** The label's leading "#N " — empty when the opening carried no log number. */
-function numbered(n: number | null): string {
+function makeNumberPrefix(n: number | null): string {
   return n === null ? '' : `#${n} `
 }
 
@@ -68,36 +49,40 @@ function numbered(n: number | null): string {
  * exactly what you want to see when reviewing why it failed, and they'd be
  * invisible under an exclusive boundary.
  *
- * Addressed by the ROW'S ID, resolved against `rows` — the board's own
+ * Addressed by the ROW'S ID, resolved against `events` — the board's own
  * sequence. The number the log prints counts what the log is SHOWING, which a
- * filter changes; `rows` does not, so the two are separate lookups. `n` is that
- * printed number, handed down so the banner echoes what the reader clicked; null
- * drops it from the label. An id these rows do not hold replays nothing.
+ * filter changes; `events` does not, so the two are separate lookups. `n` is
+ * that printed number, handed down so the banner echoes what the reader
+ * clicked; null drops it from the label. An id these rows do not hold replays
+ * nothing.
  */
-export function historySnapshot(
-  rows: readonly HistoryRow[],
+export function makeHistorySnapshot(
+  events: readonly GEvent[],
   id: number,
   n: number | null,
 ): HistorySnapshot {
-  const index = rows.findIndex((r) => r.id === id)
-  const upTo = index >= 0 ? rows.slice(0, index + 1) : []
-  const viewed = index >= 0 ? rows[index] : undefined
-  const isHint = viewed?.kind === 'hint'
+  const index = events.findIndex((e) => e.id === id)
+  const upTo = index >= 0 ? events.slice(0, index + 1) : []
+  const viewed = index >= 0 ? events[index] : undefined
 
   return {
-    found: upTo
-      .filter((r) => r.result === 'theme' || r.result === 'spangram')
-      .map((r) => ({ path: r.path, isSpangram: r.result === 'spangram' })),
-    // A hint's cells go to `hintCoords`, never `historyLitTiles` — see HistorySnapshot.
-    historyLitTiles: isHint ? [] : (viewed?.path ?? []),
-    hintCoords: isHint ? viewed.path : null,
-    historyLabel: !viewed
-      ? ''
-      : viewed.kind === 'hint'
-        // No word, by design — so the banner names the ACT, and the ring on the
-        // board says the rest. "a word" rather than "a theme word": which word
-        // it was is exactly what a hint withholds.
-        ? `${numbered(n)}Hint — a word was revealed`
-        : `${numbered(n)}${viewed.word.toUpperCase()} — ${BODY[viewed.result]}`,
+    board: {
+      words: upTo
+        .filter((e) => e.result === 'theme' || e.result === 'spangram')
+        .map((e) => ({ word: e.word!, tiles: e.tiles, spangram: e.result === 'spangram' })),
+      hintTiles: viewed?.kind === 'hint' ? viewed.tiles : null,
+    },
+    litTiles: viewed?.kind === 'guess' ? viewed.tiles : [],
+    label: makeLabel(viewed, n),
   }
+}
+
+/** The banner's words for a turn. A hint has no word, by design — so the label
+ *  names the ACT, and the ring on the board says the rest: "a word" rather
+ *  than "a theme word", since which word it was is exactly what a hint
+ *  withholds. */
+function makeLabel(viewed: GEvent | undefined, n: number | null): string {
+  if (!viewed) return ''
+  if (viewed.kind === 'hint') return `${makeNumberPrefix(n)}Hint — a word was revealed`
+  return `${makeNumberPrefix(n)}${viewed.word.toUpperCase()} — ${BODY[viewed.result]}`
 }

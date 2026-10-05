@@ -16,6 +16,8 @@
  * uses that order, so there is one convention and no adapters.
  */
 
+import type { GTile } from '../types'
+
 /** A board cell, `[row, col]`, 0-based. */
 export type Coord = [row: number, col: number]
 
@@ -59,6 +61,17 @@ export function letterAt(board: Board, [r, c]: Coord): string {
  */
 export function coordKey([r, c]: Coord): string {
   return `${r},${c}`
+}
+
+/** A tile's cell. */
+export function coordOf(tile: GTile): Coord {
+  return [tile.row, tile.col]
+}
+
+/** The board's rows of letters, read off its tiles (which come row by row). */
+export function makeLetterRows(tiles: readonly GTile[]): string[] {
+  return Array.from({ length: ROWS }, (_, r) =>
+    tiles.slice(r * COLS, (r + 1) * COLS).map((t) => t.letter).join(''))
 }
 
 /** The word a path spells. */

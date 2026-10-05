@@ -35,7 +35,7 @@ import logoUrl from './logo.svg?url'
 
 const helpLoader = lazy(() => import('./components/Help').then((m) => ({ default: m.Help })))
 const playAreaLoader = lazy(() =>
-  import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+  import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
 const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),

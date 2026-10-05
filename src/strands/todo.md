@@ -6,15 +6,6 @@
   `.hintReady`, so the Hint button's base class resolves to `undefined` and
   `cls()` drops it. Found by `cssClasses.test.ts`, whose `MEMBER_PENDING`
   holds it until then.
-- The under-board clue pill in `PlayArea.tsx` passes `variant: 'outline'`, a
-  property the feedback message type does not have; it is silently dropped
-  and the rendering is unaffected (the pill derives outline from the mode).
-  Delete the property. It believed a docstring on the pill component that is
-  itself wrong (`src/common/feedback/todo.md`).
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
 
 ## Soon
 
@@ -98,26 +89,6 @@
   what the menu drops at draw time — so "not in the menu" asserts `?.hidden
   === true`, not `toBeUndefined()`.
 
-- **The pill should read `res.outcome`, not `ANSWER_OUTCOME`.** `resultFor` in
-  `PlayArea.tsx` builds the move's pill from `ANSWER_OUTCOME[r.result]`, the
-  table the LOG BAR reads. The rule is `docs/outcomes.md` → How a game does it:
-  anything reading a row indexes the table, and *"the PILL reads the RPC's
-  envelope instead — `res.outcome`, never a literal"*. stackdown, letterboxed,
-  connections, psychicnum and wordle all do. (The bee family and wordiply index
-  their tables, but their envelopes carry no outcome at all, so they are not
-  exceptions.)
-
-  Nothing is wrong on screen: both halves are pinned — `gameplay_test.sql`
-  asserts the envelope's outcome, `lib/answer.test.ts` asserts the table — and
-  they agree. What is wrong is that the comment beside the line says *"the
-  outcome travels in the envelope"* while the line does not use it.
-
-  The change is small: `resultFor(r: SubmitResult, outcome: Outcome)` with `say`
-  closing over the argument, and the `ok` branch gaining the `&& res.outcome
-  !== null` narrowing its five siblings already have (the `else` already screams
-  through `reportUnhandled`). `ANSWER_OUTCOME` keeps its readers — the log bar,
-  and `spent_hint`, which shows no pill.
-
 ## Someday
 
 ## Maybe
@@ -131,3 +102,8 @@
   changes.
 
 ## Won't do
+
+- **The pill reading `res.outcome`.** Overtaken 2026-10-05 by the conversion:
+  the move envelopes carry no outcome, and `lib/answer.ts`'s `answerMessage`
+  is what the pill and the log bar both read (plans/seat-view.md → How a game
+  converts, step 9).
