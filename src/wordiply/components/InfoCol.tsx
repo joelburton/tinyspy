@@ -7,9 +7,9 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import { LengthScoreBar } from './LengthScoreBar'
 import { GameEventLog } from './GameEventLog'
 import { OpponentReveal } from './OpponentReveal'
+import { StateLine } from './StateLine'
 import type { GActions, GGameData, GHistoryView, GPlayer } from '../types'
 import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './PlayArea.module.css'
@@ -20,9 +20,8 @@ import styles from './PlayArea.module.css'
  * revealed word → opponents' words → the event log. Every command is an action
  * PlayArea hands down.
  *
- * The "state" region keeps the length-only rule: MID-GAME it shows just
- * "Guesses n/5"; once the game has ended the same fixed-height slot fills in
- * the `<LengthScoreBar>` + the letter-count stat, the builder's scores.
+ * The state region keeps the length-only rule (`StateLine`): mid-game just the
+ * guesses used; once the game has ended, the builder's scores.
  */
 export function InfoCol({
   gd,
@@ -40,7 +39,6 @@ export function InfoCol({
   // The best possible word to DISPLAY, or null while it stays hidden.
   solution: string | null
 }) {
-  const sld = gd.stateLineData
   const actionRowMessage: InfoActionsMessage | undefined = endingMessage
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
@@ -60,27 +58,9 @@ export function InfoCol({
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
         {/* State — guesses only during play; score + letters once ended.
-            Fixed min-height so the swap doesn't jump the rows below. The
-            scores are written with the ending. */}
+            Fixed min-height so the swap doesn't jump the rows below. */}
         <div className={styles.stateBlock}>
-          {gd.ended ? (
-            <>
-              <LengthScoreBar
-                lengthScore={sld.lengthScore!}
-                longestWordLen={sld.longestWordLen!}
-                maxWordLen={sld.maxWordLen}
-              />
-              <div className={styles.letterStat}>
-                <strong>{sld.nLetters}</strong> letters across {sld.nGuessesUsed} guess
-                {sld.nGuessesUsed === 1 ? '' : 'es'}
-              </div>
-            </>
-          ) : (
-            <div className={styles.guessCount}>
-              <strong>{sld.nGuessesUsed}</strong>
-              <span className={styles.guessCountOf}> / {sld.maxGuesses} guesses</span>
-            </div>
-          )}
+          <StateLine data={gd.stateLineData} isGameEnded={gd.ended} />
         </div>
         {/* Whose-turn line — only for a turn-order game. An ADJACENT line:
             wordiply's state region is a bespoke stateBlock, so TurnStatusLine
@@ -104,36 +84,20 @@ export function InfoCol({
           />
         )}
 
-        {/* Action row — ICON-ONLY. ENDED: outcome line + Restart / Reveal /
-            New game / Club. OUT OF THE RACE (others race on): my ending's line
-            + Stop. PLAYING: Stop (coop) / Concede (compete) + back-to-club. */}
-        {gd.ended ? (
-          <InfoActionsRow message={actionRowMessage}>
-            <ActionButton action={actions.actRestart} show="icon" />
-            {/* The best possible word, hidden until asked for: a score you can
-                read without being told the answer is a puzzle you can keep
-                chewing on, so it waits for this button (and the same button
-                takes it back). */}
-            <ActionButton action={actions.actReveal} show="icon" />
-            <ActionButton action={actions.actNewGame} show="icon" />
-            <ActionButton action={actions.actBackToClub} show="icon" weight="primary" />
-          </InfoActionsRow>
-        ) : actionRowMessage ? (
-          <InfoActionsRow message={actionRowMessage}>
-            {/* Both exits are placed and each says whether it applies: out of
-                the race, Concede hides and Stop comes out in its place. */}
-            <ActionButton action={actions.actConcede} show="icon" />
-            <ActionButton action={actions.actStopGame} show="icon" />
-          </InfoActionsRow>
-        ) : (
-          <InfoActionsRow>
-            {/* Both exits are placed; each hides itself in the mode that isn't
-                its own, so this row asks nothing about coop vs compete. */}
-            <ActionButton action={actions.actConcede} show="icon" />
-            <ActionButton action={actions.actStopGame} show="icon" />
-            <ActionButton action={actions.actBackToClub} show="icon" />
-          </InfoActionsRow>
-        )}
+        {/* One row, one order, every action listed once, in the game menu's
+            order (docs/playarea.md). Each action answers whether it shows. */}
+        <InfoActionsRow message={actionRowMessage}>
+          <ActionButton action={actions.actReveal} show="icon" />
+          <ActionButton action={actions.actRestart} show="icon" />
+          <ActionButton action={actions.actNewGame} show="icon" />
+          <ActionButton action={actions.actConcede} show="icon" />
+          <ActionButton action={actions.actStopGame} show="icon" />
+          <ActionButton
+            action={actions.actBackToClub}
+            show="icon"
+            weight={gd.ended ? 'primary' : 'secondary'}
+          />
+        </InfoActionsRow>
 
         {/* Setup — what was picked at create time. */}
         <SetupDisclosure rows={gd.setupRows} />

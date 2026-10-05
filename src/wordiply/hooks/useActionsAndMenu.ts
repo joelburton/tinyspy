@@ -67,9 +67,15 @@ export function useActionsAndMenu({
   // affected. Inert until the game is over for everyone, so a racer who has
   // ended can't spoil the race.
   const actReveal = useBindAction('act-reveal', {
-    // "best solution" rather than the bare default: what this shows is the
-    // best word that existed, which a winner never has to have found.
-    describe: () => describeReveal({ noun: 'best solution', revealed: solutionShown, isTerminal: gd.ended }),
+    describe: (asker) => {
+      // No BUTTON while you can still play. The menu row keeps it all game,
+      // grayed, because it NAMES the glyph (docs/ui.md → the menu is the
+      // legend).
+      if (gd.me.stillPlaying && asker === 'button') return 'hidden'
+      // "best solution" rather than the bare default: what this shows is the
+      // best word that existed, which a winner never has to have found.
+      return describeReveal({ noun: 'best solution', revealed: solutionShown, isTerminal: gd.ended })
+    },
     run: toggleSolution,
   })
 
@@ -150,7 +156,9 @@ export function useActionsAndMenu({
         // isn't its own, so this list is the same in coop and compete.
         exits: [actConcede, actStopGame],
         extra: [
-          { items: [actRestart, actNewGame, actReveal] },
+          // The same three the ending's action row offers, in its order,
+          // reachable mid-game too — Reveal grayed until the game is over.
+          { items: [actReveal, actRestart, actNewGame] },
           { items: [actPrintBoard] },
         ],
       }),

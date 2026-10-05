@@ -344,6 +344,15 @@ describe('wordiply PlayArea — a racer out while the race goes on', () => {
     expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
   })
 
+  it('a racer who is out can still go back to the club, and sees Reveal grayed', () => {
+    render(
+      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_SPENT }, MOTH] })} />,
+    )
+    expect(document.querySelector('button[data-action="act-back-to-club"]')).not.toBeNull()
+    // The best word waits for the race's end, so a racer still racing keeps it.
+    expect(document.querySelector('button[data-action="act-reveal"]')).toBeDisabled()
+  })
+
   it('a racer whose five are spent is told they are waiting', () => {
     render(
       <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_SPENT }, MOTH] })} />,
@@ -726,6 +735,21 @@ describe('wordiply PlayArea — the menu', () => {
     render(<PlayAreaLoader {...ctx} />)
     expect(menuItems(ctx).get('act-concede')?.hidden).toBe(false)
     expect(menuItems(ctx).get('act-stop-game')?.hidden).toBe(true)
+  })
+
+  it('while I play the row is the exit and Back to club; Reveal has no button', () => {
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(document.querySelector('button[data-action="act-reveal"]')).toBeNull()
+    expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
+    expect(document.querySelector('button[data-action="act-back-to-club"]')).not.toBeNull()
+  })
+
+  it('once ended, the row reads Reveal, Restart, New game, then Back to club', () => {
+    render(<PlayAreaLoader {...makeCtx(STOPPED)} />)
+    const ids = [...document.querySelectorAll('button[data-action]')]
+      .map((b) => b.getAttribute('data-action'))
+      .filter((id) => ['act-reveal', 'act-restart', 'act-new-game', 'act-back-to-club'].includes(id!))
+    expect(ids).toEqual(['act-reveal', 'act-restart', 'act-new-game', 'act-back-to-club'])
   })
 
   it('New game has no button mid-game, and one once ended', () => {
