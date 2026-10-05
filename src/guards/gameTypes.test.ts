@@ -30,7 +30,7 @@ import { describe, expect, it } from 'vitest'
  */
 
 /** The games converted onto the page blobs, whose `types.ts` is under the rule. */
-const CONVERTED_GAMES = ['psychicnum', 'wordle', 'connections', 'spellingbee', 'wordwheel', 'boggle', 'codenamesduet', 'wordiply', 'waffle', 'letterboxed']
+const CONVERTED_GAMES = ['psychicnum', 'wordle', 'connections', 'spellingbee', 'wordwheel', 'boggle', 'codenamesduet', 'wordiply', 'waffle', 'letterboxed', 'stackdown']
 
 function sourceFiles(folder: string): string[] {
   return execFileSync('git', ['ls-files', folder], { encoding: 'utf8' })

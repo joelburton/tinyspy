@@ -55,7 +55,7 @@ export const stackdownGallery: GameGallery = {
       for (const tileIds of SEQUENCES.slice(1)) {
         const res = await asUser(club.members[0].session.access_token)
           .schema('stackdown')
-          .rpc('submit_word', { target_game: id, tile_ids: tileIds })
+          .rpc('submit_word', { p_game_id: id, p_tile_ids: tileIds })
         if (res.error) throw new Error(`stackdown.submit_word: ${res.error.message}`)
       }
     }

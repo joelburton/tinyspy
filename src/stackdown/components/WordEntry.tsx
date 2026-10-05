@@ -4,8 +4,7 @@ import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { Tile } from '../lib/board'
-import type { GWordFlash } from '../types'
+import type { GTile, GWordFlash } from '../types'
 import styles from './WordEntry.module.css'
 
 /**
@@ -33,8 +32,8 @@ export function WordEntry({
   flash,
   verdict = null,
 }: {
-  tiles: Tile[]
-  currentWord: number[]
+  tiles: GTile[]
+  currentWord: string[]
   active: boolean
   onRetract: (index: number) => void
   flash?: GWordFlash | null
@@ -43,7 +42,7 @@ export function WordEntry({
    *  same idea, for a word the buffer has already let go of. */
   verdict?: Outcome | null
 }) {
-  const letterOf = (id: number) => tiles.find((t) => t.id === id)?.letter ?? '?'
+  const letterOf = (id: string) => tiles.find((t) => t.id === id)?.letter ?? '?'
 
   // The flash takes over the row only while nothing new is being spelled
   // (the moment a tile is picked, currentWord wins).

@@ -4,7 +4,7 @@
  * stackdown — the board geometry + stacking logic, ported verbatim
  * from the prototype's `core.ts` / `main.tsx` (the throwaway tool that
  * pinned the rules down). Pure functions, no React, no supabase — the
- * Board component and the useGame hook both lean on these.
+ * board, the board column and the printout all lean on these.
  *
  * The mental model: 30 lettered tiles sit on a fixed grid, some raised
  * onto higher layers so they overlap (and hide) the tiles below. A tile
@@ -18,19 +18,7 @@
  * See docs/games/stackdown.md for the full rules and the covering rule.
  */
 
-/** One tile on the board. `tiles` jsonb on `stackdown.games` is an
- *  array of these (the public, non-spoiler half of a board). */
-export interface Tile {
-  id: number
-  /** column, integer grid coordinate */
-  x: number
-  /** row, integer grid coordinate */
-  y: number
-  /** layer; 0 = base. Higher tiles draw on top and cover lower ones. */
-  z: number
-  /** single uppercase A–Z */
-  letter: string
-}
+import type { GTile } from '../types'
 
 /**
  * A covers B iff A is on a higher layer AND within one grid cell of B
@@ -38,7 +26,7 @@ export interface Tile {
  * raised tile bleeds over the eight cells around its footprint, hiding
  * whatever sits under that bleed.
  */
-export function covers(a: Tile, b: Tile): boolean {
+export function covers(a: GTile, b: GTile): boolean {
   return a.z > b.z && Math.abs(a.x - b.x) <= 1 && Math.abs(a.y - b.y) <= 1
 }
 
@@ -49,7 +37,7 @@ export function covers(a: Tile, b: Tile): boolean {
  * While playing: the tiles spent on accepted words, plus the ones currently
  * picked up into the word being built.
  *
- * At terminal it turns on whether the stack came DOWN:
+ * Once the game has ended it turns on whether the stack came DOWN:
  *   - **cleared** → nothing is off. Every tile goes back, because a cleared
  *     board would otherwise be blank and the finished stack is the thing worth
  *     reviewing.
@@ -58,7 +46,7 @@ export function covers(a: Tile, b: Tile): boolean {
  *     "Lost: stack not cleared", which claims they got nowhere; where they
  *     actually stopped is the whole record of how it went.
  *
- * `currentWord` is deliberately ignored at terminal: those tiles were picked up
+ * `currentWord` is deliberately ignored once ended: those tiles were picked up
  * but never spent, so they're still on the stack.
  *
  * Lives here, not in the PlayArea, because compete prints one board PER PLAYER
@@ -67,13 +55,13 @@ export function covers(a: Tile, b: Tile): boolean {
  * agreeing only by hand.
  */
 export function offBoardIds(
-  tiles: Tile[],
-  removed: Iterable<number>,
-  currentWord: Iterable<number>,
-  isTerminal: boolean,
-): Set<number> {
-  const off = new Set<number>(removed)
-  if (isTerminal) return off.size >= tiles.length ? new Set<number>() : off
+  tiles: GTile[],
+  cleared: Iterable<string>,
+  currentWord: Iterable<string>,
+  ended: boolean,
+): Set<string> {
+  const off = new Set<string>(cleared)
+  if (ended) return off.size >= tiles.length ? new Set<string>() : off
   for (const id of currentWord) off.add(id)
   return off
 }
@@ -84,7 +72,7 @@ export function offBoardIds(
  * that remain, none covers it. Mirrors `stackdown._is_exposed` on the
  * server — the FE uses it to gate clicks and dim un-clickable tiles.
  */
-export function exposedIds(tiles: Tile[], removed: Set<number>): Set<number> {
+export function exposedIds(tiles: GTile[], removed: ReadonlySet<string>): Set<string> {
   const rem = tiles.filter((t) => !removed.has(t.id))
   return new Set(
     rem
@@ -101,12 +89,12 @@ export function exposedIds(tiles: Tile[], removed: Set<number>): Set<number> {
  * Covering is a DAG (a tile only covers strictly-lower layers), so the
  * recursion terminates. Drives the depth shading in <Board>.
  */
-export function depthMap(tiles: Tile[]): Map<number, number> {
-  const coverers = new Map<number, Tile[]>(
+export function depthMap(tiles: GTile[]): Map<string, number> {
+  const coverers = new Map<string, GTile[]>(
     tiles.map((b) => [b.id, tiles.filter((a) => a.id !== b.id && covers(a, b))]),
   )
-  const depth = new Map<number, number>()
-  const calc = (t: Tile): number => {
+  const depth = new Map<string, number>()
+  const calc = (t: GTile): number => {
     const cached = depth.get(t.id)
     if (cached !== undefined) return cached
     const cov = coverers.get(t.id)!
@@ -129,7 +117,7 @@ export function depthMap(tiles: Tile[]): Map<number, number> {
  * Returns the corner as a pair of signs in [-1, 0, 1]: cx/cy of 0 means
  * center on that axis, -1 means the low side, 1 the high side.
  */
-export function letterCorner(tile: Tile, present: Tile[]): { cx: number; cy: number } {
+export function letterCorner(tile: GTile, present: GTile[]): { cx: number; cy: number } {
   const covered = new Set(
     present
       .filter((a) => a.id !== tile.id && covers(a, tile))

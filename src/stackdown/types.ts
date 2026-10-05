@@ -14,6 +14,7 @@
  * `GEvent` / `GEventRaw` are the same pair, one level down.
  */
 
+import type { Action } from '@/common/actions/useBindAction'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -241,6 +242,67 @@ export type GEvent = Omit<GEventRaw, 'userId' | 'tileIds'> & {
   by: GPlayer
   // A played word's five tiles, in pick order; empty otherwise.
   tiles: GTile[]
+}
+
+/** A teammate's word, marked on its tiles (`hooks/useShowTeammateMoves.ts`):
+ *  the tiles' ids, and the answer it got. */
+export type GPeerWordMark = { ids: string[]; answer: GAnswer }
+
+/**
+ * Every command the play surface binds (`hooks/useActionsAndMenu.ts`): the info
+ * column's action row places them and the menu lists them, so a button, its menu
+ * row and its key cannot drift apart.
+ */
+export type GActions = {
+  // Each key is spelled as its action's id (`act-reveal` → `actReveal`), so a
+  // grep for either finds every trace of the action
+  // (src/guards/actionIds.test.ts).
+  //
+  // The two rungs of the hint ladder: a hint gives the next word's clue, a
+  // spoiler hands the word over.
+  actHint: Action
+  actSpoiler: Action
+  // Show the six words — or put them away again. A local display toggle, no
+  // RPC.
+  actReveal: Action
+  // Restart THIS stack from scratch — same tiles, same solution.
+  actRestart: Action
+  // Start a fresh follow-up game — same setup, a newly claimed board.
+  actNewGame: Action
+  // Drop out of a race while the others play on — hidden in coop, and once
+  // you are out, when Stop takes its place.
+  actConcede: Action
+  // The whole table stops, with no result.
+  actStopGame: Action
+  // Print the board as it stands.
+  actPrintBoard: Action
+  // Leave for the club — the shell's own action, off `menu`.
+  actBackToClub: Action
+}
+
+/**
+ * The turn-history view (`hooks/useHistoryView.ts`): which past turn is open
+ * on the board, and the board as it stood then.
+ */
+export type GHistoryView = {
+  // A past turn is open on the board (`viewedEventId` is set): the board and
+  // the entry take no move while it is.
+  isViewing: boolean
+  // The log row open on the board (`events.id`), or null when live.
+  viewedEventId: number | null
+  // Open a turn — the log's `#N` click, with the number it printed beside it.
+  show: (id: number, n: number | null) => void
+  // Back to the live board — the banner's ✕, or any click or key.
+  exit: () => void
+  // The tiles off the board when the viewed turn was played, or null when live.
+  offTileIds: ReadonlySet<string> | null
+  // The viewed turn's own word, ringed green; empty unless it cleared one.
+  litTileIds: ReadonlySet<string>
+  // The banner's words for the viewed turn, or null when live.
+  label: string | null
+  // Whose stack is on screen, when it is not mine — only a compete game's end
+  // opens a rival's.
+  actor: GPlayer | undefined
 }
 
 /**

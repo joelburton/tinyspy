@@ -3,7 +3,8 @@
 import { useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import { depthMap, exposedIds, letterCorner, type Tile } from '../lib/board'
+import { depthMap, exposedIds, letterCorner } from '../lib/board'
+import type { GTile } from '../types'
 import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './Board.module.css'
@@ -42,7 +43,7 @@ function depthColor(depth: number): string {
 const align = (c: number) => (c < 0 ? 'flex-start' : c > 0 ? 'flex-end' : 'center')
 
 /** Shared empty tile set — the live board rings nothing. */
-const NO_TILES: ReadonlySet<number> = new Set()
+const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
  * The stackdown board: the 30 lettered tiles drawn on their fixed grid,
@@ -67,26 +68,26 @@ export function Board({
   answer = null,
   held = NO_TILES,
 }: {
-  tiles: Tile[]
-  offBoard: Set<number>
+  tiles: GTile[]
+  offBoard: ReadonlySet<string>
   active: boolean
   // Tile ids to outline in red (a typed letter matched more than one).
-  ambiguousTiles: ReadonlySet<number>
+  ambiguousTiles: ReadonlySet<string>
   // The word a viewed past turn played — ringed green. Omitted / empty while live.
-  historyLitTiles?: ReadonlySet<number>
+  historyLitTiles?: ReadonlySet<string>
   // Draw the shared "viewing a past turn" frame around the whole board. Off
   // during live play.
   isViewingHistory?: boolean
-  onTileClick: (tileId: number) => void
+  onTileClick: (tileId: string) => void
   // Tiles taking the attention flash — "something happened here".
-  attention?: ReadonlySet<number>
+  attention?: ReadonlySet<string>
   // A teammate's answer on their tiles, once the attention flash has faded:
   // the outcome's own fill, and a refusal shakes. The word is the caller's —
   // `lib/answer.ts` decided it, and the board only paints it.
-  answer?: { ids: ReadonlySet<number>; outcome: Outcome } | null
+  answer?: { ids: ReadonlySet<string>; outcome: Outcome } | null
   // Tiles the server has taken that are still being shown while their answer
   // is read. They are drawn like any other tile and take no clicks.
-  held?: ReadonlySet<number>
+  held?: ReadonlySet<string>
 }) {
   const present = useMemo(
     () => tiles.filter((t) => !offBoard.has(t.id)).sort((a, b) => a.z - b.z),

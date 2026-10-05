@@ -1,7 +1,8 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { covers, depthMap, exposedIds, letterCorner, type Tile } from './board'
+import type { GTile } from '../types'
+import { covers, depthMap, exposedIds, letterCorner } from './board'
 
 /**
  * A minimal two-layer fixture: four base tiles at the corners of a
@@ -13,11 +14,11 @@ import { covers, depthMap, exposedIds, letterCorner, type Tile } from './board'
  *              E(1,1) z=1
  *         C(0,2)   D(2,2)
  */
-const A: Tile = { id: 0, x: 0, y: 0, z: 0, letter: 'A' }
-const B: Tile = { id: 1, x: 2, y: 0, z: 0, letter: 'B' }
-const C: Tile = { id: 2, x: 0, y: 2, z: 0, letter: 'C' }
-const D: Tile = { id: 3, x: 2, y: 2, z: 0, letter: 'D' }
-const E: Tile = { id: 4, x: 1, y: 1, z: 1, letter: 'E' }
+const A: GTile = { id: '0', x: 0, y: 0, z: 0, letter: 'A' }
+const B: GTile = { id: '1', x: 2, y: 0, z: 0, letter: 'B' }
+const C: GTile = { id: '2', x: 0, y: 2, z: 0, letter: 'C' }
+const D: GTile = { id: '3', x: 2, y: 2, z: 0, letter: 'D' }
+const E: GTile = { id: '4', x: 1, y: 1, z: 1, letter: 'E' }
 const board = [A, B, C, D, E]
 
 describe('covers', () => {
@@ -29,7 +30,7 @@ describe('covers', () => {
     // Same layer never covers (needs strictly higher z).
     expect(covers(A, B)).toBe(false)
     // A hypothetical higher tile two cells away misses the footprint.
-    const far: Tile = { id: 9, x: 4, y: 0, z: 1, letter: 'Z' }
+    const far: GTile = { id: '9', x: 4, y: 0, z: 1, letter: 'Z' }
     expect(covers(far, A)).toBe(false)
   })
 })

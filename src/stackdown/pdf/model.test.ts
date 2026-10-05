@@ -10,169 +10,160 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { makeGameData } from '../hooks/useGame'
+import {
+  ZTest_hint,
+  ZTest_makeGameDataRaw,
+  ZTest_SOLUTION,
+  ZTest_spoiler,
+  ZTest_word,
+  ZTest_WORD_TILES,
+  type ZTest_GameDataFacts,
+} from '../lib/gameData.fixture'
 import { buildStackdownPrintModel } from './model'
-import type { Tile } from '../lib/board'
-import type { EventRow } from '../hooks/useGame'
 
-const tile = (id: number, x: number, y: number, z = 0, letter = 'A'): Tile => ({ id, x, y, z, letter })
+const TWO = [
+  { id: 'u1', username: 'me', color: 'red' },
+  { id: 'u2', username: 'moth', color: 'blue' },
+]
+const STOPPED: ZTest_GameDataFacts = {
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  outcome: 'neutral',
+}
 
-const sub = (over: Partial<EventRow> = {}): EventRow => ({
-  user_id: 'u1',
-  id: 1,
-  kind: 'word',
-  word: 'stack',
-  tile_ids: [1, 2, 3, 4, 5],
-  valid: true,
-  created_at: '2026-01-01T00:00:00Z',
-  ...over,
-})
-
-const base = {
-  brand: 'Stackdown',
-  gameTitle: 'Board 12',
-  date: '1 Jan 2026',
-  // Six tiles: enough that clearing a five-tile word leaves one behind, which
-  // is what distinguishes "stopped part-way" from "cleared".
-  allTiles: [tile(1, 0, 0), tile(2, 1, 0), tile(3, 2, 0), tile(4, 3, 0), tile(5, 4, 0), tile(6, 5, 0)],
-  currentWord: [] as number[],
-  solution: null as string[] | null,
-  submissions: [] as EventRow[],
-  players: [
-    { user_id: 'u1', username: 'me' },
-    { user_id: 'u2', username: 'moth' },
-  ],
-  myId: 'u1',
-  mode: 'coop' as const,
-  isTerminal: false,
-  found: 2,
-  target: 6,
-  setupRows: [{ key: 'difficulty', label: 'Difficulty', value: 'Standard' }],
+/** The model the menu's Print would build, for these facts as `u1` sees them,
+ *  the solution on screen or not. */
+function printFrom(facts: ZTest_GameDataFacts, solutionShown = true) {
+  const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, ...facts }), 'u1')
+  return buildStackdownPrintModel({
+    brand: gd.brand,
+    gameTitle: gd.title,
+    date: '1 Jan 2026',
+    mode: gd.mode,
+    ended: gd.ended,
+    tiles: gd.puzzle.tiles,
+    players: gd.players,
+    me: gd.me,
+    events: gd.events,
+    solution: solutionShown ? gd.puzzle.solution : null,
+    nFoundWords: gd.stateLineData.nFoundWords,
+    nReqdWords: gd.puzzle.nReqdWords,
+    setupRows: gd.setupRows,
+  })
 }
 
 describe('buildStackdownPrintModel — the hidden solution', () => {
-  it('withholds the six words mid-game, even if handed them', () => {
-    // The server already gates `solution` behind is_terminal; this is the
-    // second lock, so a schema change can't quietly put them on paper.
-    const m = buildStackdownPrintModel({ ...base, solution: ['stack', 'crane'] })
-    expect(m.solution).toBeNull()
+  it('has no six words mid-game', () => {
+    expect(printFrom({}).solution).toBeNull()
   })
 
-  it('reveals them at terminal, in clearing order', () => {
-    const m = buildStackdownPrintModel({
-      ...base,
-      isTerminal: true,
-      solution: ['stack', 'crane', 'blunt', 'dowry', 'fjord', 'gamut'],
-    })
-    expect(m.solution).toEqual(['stack', 'crane', 'blunt', 'dowry', 'fjord', 'gamut'])
+  it('prints them once the game has ended, in clearing order, while they are on screen', () => {
+    expect(printFrom(STOPPED).solution).toEqual(ZTest_SOLUTION)
   })
 
-  it('stays null at terminal when the server still sent none', () => {
-    const m = buildStackdownPrintModel({ ...base, isTerminal: true, solution: null })
-    expect(m.solution).toBeNull()
+  it('withholds them once ended while they are put away', () => {
+    expect(printFrom(STOPPED, false).solution).toBeNull()
   })
 })
 
 describe('buildStackdownPrintModel — the log', () => {
-  it('distinguishes the three kinds in TEXT, so B&W keeps them apart', () => {
-    const m = buildStackdownPrintModel({
-      ...base,
-      submissions: [
-        sub({ word: 'stack' }),
-        sub({ id: 2, word: 'qqqq', valid: false }),
-        sub({ id: 3, kind: 'hint', word: 'a pile of things', tile_ids: null, valid: null }),
-        sub({ id: 4, kind: 'spoiler', word: 'crane', tile_ids: null, valid: null }),
+  it('distinguishes the kinds in TEXT, so B&W keeps them apart', () => {
+    const m = printFrom({
+      events: [
+        ZTest_word(1, 'u1', 'eagle'),
+        ZTest_word(2, 'u1', 'ebatl', ['10', '5', '11', '6', '2']),
+        ZTest_hint(3, 'u1', 'something to eat off'),
+        ZTest_spoiler(4, 'u1', 'table'),
       ],
     })
-    expect(m.tracks[0].turns.map((t) => t.text)).toEqual([
-      'STACK',
-      'QQQQ — not a word',
-      'Hint: a pile of things',
-      'Spoiler: CRANE',
+    expect(m.tracks[0]!.turns.map((t) => t.text)).toEqual([
+      'EAGLE',
+      'EBATL — not a word',
+      'Hint: something to eat off',
+      'Spoiler: TABLE',
     ])
   })
 
   it("names the player on coop's shared log", () => {
-    const m = buildStackdownPrintModel({
-      ...base,
-      submissions: [sub(), sub({ id: 2, user_id: 'u2' })],
-    })
-    expect(m.tracks[0].turns.map((t) => t.who)).toEqual(['me', 'moth'])
+    const m = printFrom({ events: [ZTest_word(1, 'u1', 'eagle'), ZTest_word(2, 'u2', 'table')] })
+    expect(m.tracks[0]!.turns.map((t) => t.who)).toEqual(['me', 'moth'])
   })
 })
 
 describe('buildStackdownPrintModel — one track per board', () => {
-  const subs = [
-    sub({ id: 1, user_id: 'u1', word: 'stack' }),
-    sub({ id: 2, user_id: 'u2', word: 'crane' }),
-  ]
+  const events = [ZTest_word(1, 'u1', 'eagle'), ZTest_word(2, 'u2', 'table')]
 
   it('coop is ONE shared stack, however many players', () => {
-    const m = buildStackdownPrintModel({ ...base, submissions: subs })
-    expect(m.tracks.map((t) => t.who)).toEqual(['Team'])
+    expect(printFrom({ events }).tracks.map((t) => t.who)).toEqual(['Team'])
   })
 
-  it('compete at terminal gives every player their own board and log', () => {
-    // The bug this replaces: one board and one MERGED log, so a two-player race
-    // printed as though one person had played alone.
-    const m = buildStackdownPrintModel({
-      ...base, mode: 'compete', isTerminal: true, submissions: subs,
-    })
+  it('compete once ended gives every player their own board and log', () => {
+    const m = printFrom({ mode: 'compete', events, ...STOPPED })
     expect(m.tracks.map((t) => t.who)).toEqual(['me (you)', 'moth'])
-    expect(m.tracks.map((t) => t.turns.map((r) => r.text))).toEqual([['STACK'], ['CRANE']])
+    expect(m.tracks.map((t) => t.turns.map((r) => r.text))).toEqual([['EAGLE'], ['TABLE']])
     // A compete column's log doesn't name anybody — the heading already did.
     expect(m.tracks.flatMap((t) => t.turns.map((r) => r.who))).toEqual(['', ''])
   })
 
-  it('compete MID-GAME shows only the viewer — RLS hides the rest', () => {
-    // A column built from rows the viewer can't see would draw a full untouched
-    // stack, which reads as "they've cleared nothing" rather than "not yet visible".
-    const m = buildStackdownPrintModel({ ...base, mode: 'compete', submissions: subs })
+  it('compete MID-RACE shows only me — a rival is withheld', () => {
+    // A column built from rows I can't see would draw a full untouched stack,
+    // which reads as "they've cleared nothing" rather than "not yet visible".
+    const m = printFrom({ mode: 'compete', events })
     expect(m.tracks.map((t) => t.who)).toEqual(['You'])
-    expect(m.tracks[0].turns.map((r) => r.text)).toEqual(['STACK'])
+    expect(m.tracks[0]!.turns.map((r) => r.text)).toEqual(['EAGLE'])
   })
 
   it('each compete board reflects only ITS OWN cleared tiles', () => {
-    const m = buildStackdownPrintModel({
-      ...base,
-      mode: 'compete',
-      isTerminal: true,
-      submissions: [sub({ id: 1, user_id: 'u1', tile_ids: [1, 2, 3, 4, 5] })],
-    })
-    // u1 spent five of the six; u2 played nothing, so their stack is untouched.
-    expect(m.tracks[0].tiles.map((t) => t.id)).toEqual([6])
-    expect(m.tracks[1].tiles.map((t) => t.id)).toEqual([1, 2, 3, 4, 5, 6])
+    const m = printFrom({ mode: 'compete', events: [ZTest_word(1, 'u1', 'eagle')], ...STOPPED })
+    const eagle = new Set(ZTest_WORD_TILES.eagle)
+    expect(m.tracks[0]!.tiles).toHaveLength(25)
+    expect(m.tracks[0]!.tiles.some((t) => eagle.has(t.id))).toBe(false)
+    // moth played nothing, so their stack is untouched.
+    expect(m.tracks[1]!.tiles).toHaveLength(30)
   })
 
   it('restores a CLEARED board, and leaves an uncleared one where it stopped', () => {
-    const all = [tile(1, 0, 0), tile(2, 1, 0), tile(3, 2, 0), tile(4, 3, 0), tile(5, 4, 0)]
-    const cleared = buildStackdownPrintModel({
-      ...base, allTiles: all, isTerminal: true,
-      submissions: [sub({ tile_ids: [1, 2, 3, 4, 5] })],
+    const all = ZTest_SOLUTION.map((w, i) => ZTest_word(i + 1, 'u1', w))
+    const cleared = printFrom({
+      events: all,
+      ending: { reason: 'reached_goal', detail: 'cleared', by: 'u1', winner: null },
+      outcome: 'won',
     })
     // Every tile gone => put them all back; a blank page is nothing to review.
-    expect(cleared.tracks[0].tiles).toHaveLength(5)
+    expect(cleared.tracks[0]!.tiles).toHaveLength(30)
 
-    const stopped = buildStackdownPrintModel({
-      ...base, allTiles: all, isTerminal: true,
-      submissions: [sub({ tile_ids: [1, 2] })],
-    })
-    expect(stopped.tracks[0].tiles.map((t) => t.id)).toEqual([3, 4, 5])
+    const stopped = printFrom({ events: all.slice(0, 2), ...STOPPED })
+    expect(stopped.tracks[0]!.tiles).toHaveLength(20)
   })
 })
 
 describe('buildStackdownPrintModel — summary', () => {
   it('reports words cleared and stack remaining', () => {
-    const m = buildStackdownPrintModel({ ...base })
-    expect(m.summary).toBe('2/6 words cleared · 6 tiles left')
+    expect(printFrom({ events: [ZTest_word(1, 'u1', 'eagle')] }).summary)
+      .toBe('1/6 words cleared · 25 tiles left')
   })
 
   it('says "1 tile", not "1 tiles"', () => {
-    const m = buildStackdownPrintModel({ ...base, allTiles: [tile(1, 0, 0)] })
+    // No real stack stops at one tile — words clear five — so the board is
+    // handed in directly.
+    const gd = makeGameData(ZTest_makeGameDataRaw(), 'u1')
+    const m = buildStackdownPrintModel({
+      ...{ brand: gd.brand, gameTitle: gd.title, date: '1 Jan 2026', mode: gd.mode },
+      ended: false,
+      tiles: gd.puzzle.tiles,
+      players: gd.players,
+      me: { ...gd.me, board: { tiles: gd.puzzle.tiles.slice(0, 1) } },
+      events: [],
+      solution: null,
+      nFoundWords: 0,
+      nReqdWords: 6,
+      setupRows: gd.setupRows,
+    })
     expect(m.summary).toContain('1 tile left')
   })
 
   it('drops the tile count in compete — several boards, no single number', () => {
-    const m = buildStackdownPrintModel({ ...base, mode: 'compete' })
-    expect(m.summary).toBe('2/6 words cleared')
+    expect(printFrom({ mode: 'compete', events: [ZTest_word(1, 'u1', 'eagle')] }).summary)
+      .toBe('1/6 words cleared')
   })
 })

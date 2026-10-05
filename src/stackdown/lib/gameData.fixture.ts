@@ -56,6 +56,9 @@ export type ZTest_PlayerFacts = {
 export type ZTest_GameDataFacts = {
   id?: string
   mode?: 'coop' | 'compete'
+  // The whole stack; setup.psql's unless said. A component test hands in a few
+  // tiles of its own, so a letter names one tile.
+  tiles?: GTile[]
   title?: string
   clubHandle?: string
   setup?: GSetup
@@ -82,10 +85,16 @@ export function ZTest_makeTiles(): GTile[] {
 
 const at = (id: number) => `2026-01-01T00:00:${String(id).padStart(2, '0')}Z`
 
-/** A played word: one of the six clears its tiles; any other word is refused,
- *  and its tiles are the ones said (EAGLE's unless said). Either takes a turn. */
-export function ZTest_word(id: number, userId: string, word: string, tileIds?: string[]): GEventRaw {
-  const valid = word in ZTest_WORD_TILES
+/** A played word, which takes a turn. One of the six clears its own tiles; any
+ *  other word is refused, and its tiles are the ones said (EAGLE's unless said).
+ *  On a test's own tiles, say the tiles and the verdict both. */
+export function ZTest_word(
+  id: number,
+  userId: string,
+  word: string,
+  tileIds?: string[],
+  valid: boolean = word in ZTest_WORD_TILES,
+): GEventRaw {
   return {
     id, userId, kind: 'word', word, clue: null,
     tileIds: tileIds ?? ZTest_WORD_TILES[word] ?? ZTest_WORD_TILES.eagle!,
@@ -117,6 +126,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     title = 'New game',
     clubHandle = 'testclub',
     setup = { band: 1, timer: { kind: 'none' } },
+    tiles = ZTest_makeTiles(),
     events = [],
     players: playerFacts = [{ id: 'u1', username: 'me', color: 'red' }],
     turnHolderId,
@@ -126,7 +136,6 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const ended = ending !== null
   const coop = mode === 'coop'
   const turnBased = turnHolderId !== undefined
-  const tiles = ZTest_makeTiles()
 
   const rowsOf = (p: ZTest_PlayerFacts) => events.filter((e) => e.userId === p.id)
   // The tiles off a seat's stack: every valid word's in coop, the racer's own

@@ -3,106 +3,78 @@
 import { useCallback, useState } from 'react'
 
 /**
- * The in-progress word's mutations — a small local reducer action set.
- * The word is **private to the player building it** in both modes:
- * selections are never broadcast, so teammates can try words
- * independently rather than taking turns on one shared word. What's
- * shared is the completed result — every submission (found word, bad
- * word, hint/word request) is a `stackdown.events` row, and an accepted
- * word's tiles leave the shared coop board.
+ * The word this player is building, tile by tile — private to them in both
+ * modes: selections are never broadcast, so teammates try words independently
+ * rather than taking turns on one shared word. What's shared is the result,
+ * when it reaches the server.
  *
- *   - append  — a tile was picked up onto the end of the word.
- *   - retract — a tile in the word was clicked, returning it AND every
- *     tile after it to the board (slice to `index`).
- *   - clear   — the word was emptied, tiles RETURNED to the board (an
- *     invalid submit, or an abandoned word).
- *   - commit  — an ACCEPTED word: the word is emptied but its tiles
- *     STAY off the board. Carries the tile ids so they're held removed
- *     optimistically (`pendingRemoved`) until the blob that has them
- *     cleared arrives — without this the submitter's grid would briefly
- *     flash the tiles back on between the clear and the new blob.
- *     `clear` and `commit` differ only in this hold.
+ * Two things are read off my stack as the blob has it (`onBoardIds`) rather
+ * than kept in step by hand:
+ *
+ *   - **A word a teammate's clear has taken a tile from is empty.** Their
+ *     accepted word may claim a tile I was still building with — I can't see
+ *     their picks — and a word with a tile no longer on the board can't be
+ *     played.
+ *   - **An accepted word's tiles stay off the board** (`pendingRemoved`) from
+ *     the moment the server says "accepted" until the blob that has them
+ *     cleared arrives, so they don't blink back on in between. A held tile
+ *     drops out of the hold as soon as the blob has it gone.
+ *
+ * `appendTile` returns the resulting word, or null when the click is a no-op
+ * (the word is full, or the tile is already in it).
  */
-type WordEvent =
-  | { type: 'append'; tileId: number }
-  | { type: 'retract'; index: number }
-  | { type: 'clear' }
-  | { type: 'commit'; tileIds: number[] }
-
-/**
- * The word this player is building, tile by tile — the board column's live
- * state, which nothing else reads. `appendTile` returns the resulting word so
- * the caller can fire the submit when it reaches five letters.
- */
-export function useCurrentWord(): {
-  currentWord: number[]
-  pendingRemoved: number[]
-  appendTile: (tileId: number) => number[] | null
+export function useCurrentWord(onBoardIds: ReadonlySet<string>): {
+  // The word's tiles, in pick order.
+  tileIds: string[]
+  pendingRemoved: string[]
+  appendTile: (tileId: string) => string[] | null
   retractTo: (index: number) => void
   clearWord: () => void
-  commitWord: (tileIds: number[]) => void
+  commitWord: (tileIds: string[]) => void
 } {
-  const [currentWord, setCurrentWord] = useState<number[]>([])
-  // Optimistic removed tiles: an accepted word's tiles are held here from the
-  // instant the server says "accepted" until the blob with them cleared
-  // arrives — so the tiles don't blink back onto the board during the
-  // round-trip.
-  const [pendingRemoved, setPendingRemoved] = useState<number[]>([])
+  const [picked, setPicked] = useState<string[]>([])
+  const [held, setHeld] = useState<string[]>([])
 
-  // Apply a word event to the local in-progress word. Idempotent (append
-  // skips a tile already in the word, retract/clear are slice/empty,
-  // commit's pendingRemoved is deduped into a Set downstream) — handy
-  // since the PlayArea can re-fire on rapid clicks.
-  const applyWordEvent = useCallback((event: WordEvent) => {
-    if (event.type === 'commit') {
-      setPendingRemoved((prev) => [...prev, ...event.tileIds])
-      setCurrentWord((prev) => (prev.length === 0 ? prev : []))
-      return
-    }
-    setCurrentWord((prev) => {
-      if (event.type === 'clear') return prev.length === 0 ? prev : []
-      if (event.type === 'retract') {
-        return event.index >= prev.length ? prev : prev.slice(0, event.index)
-      }
-      // append
-      if (prev.includes(event.tileId) || prev.length >= 5) return prev
-      return [...prev, event.tileId]
-    })
-  }, [])
+  /** The word as it stands on the board now: empty once any tile has left it. */
+  const wordOn = useCallback(
+    (ids: string[]) => (ids.every((id) => onBoardIds.has(id)) ? ids : []),
+    [onBoardIds],
+  )
+  const word = wordOn(picked)
+  const pendingRemoved = held.filter((id) => onBoardIds.has(id))
 
-  // Local tile click: pick the tile up onto the end of the word. Returns
-  // the resulting word so the PlayArea can submit when it hits five.
-  // Returns null when the word is already full or the tile's already in
-  // it (the click is a no-op).
+  // Pick a tile up onto the end of the word.
   const appendTile = useCallback(
-    (tileId: number): number[] | null => {
-      if (currentWord.length >= 5 || currentWord.includes(tileId)) return null
-      applyWordEvent({ type: 'append', tileId })
-      return [...currentWord, tileId]
+    (tileId: string): string[] | null => {
+      if (word.length >= 5 || word.includes(tileId)) return null
+      setPicked((prev) => {
+        const now = wordOn(prev)
+        return now.length >= 5 || now.includes(tileId) ? now : [...now, tileId]
+      })
+      return [...word, tileId]
     },
-    [applyWordEvent, currentWord],
+    [word, wordOn],
   )
 
-  // Local click on a tile already in the word: return it AND every tile
-  // after it to the board (the word is an order, so you can't pull one
-  // from the middle without invalidating the rest).
+  // Return a slot's tile AND every tile after it: the word is an order, so
+  // one can't come out of the middle and leave the rest standing.
   const retractTo = useCallback(
-    (index: number) => applyWordEvent({ type: 'retract', index }),
-    [applyWordEvent],
+    (index: number) => setPicked((prev) => wordOn(prev).slice(0, index)),
+    [wordOn],
   )
 
-  const clearWord = useCallback(
-    () => applyWordEvent({ type: 'clear' }),
-    [applyWordEvent],
-  )
+  // Empty the word, its tiles RETURNED to the board.
+  const clearWord = useCallback(() => setPicked([]), [])
 
-  // Commit an ACCEPTED word: empty it and hold its tiles removed
-  // optimistically. (Teammates never had these tiles selected, so they just
-  // see them leave the board with the next blob — no flash to guard against.)
+  // An ACCEPTED word: empty it, but hold its tiles off the board until the
+  // blob has them gone.
   const commitWord = useCallback(
-    (tileIds: number[]) => applyWordEvent({ type: 'commit', tileIds }),
-    [applyWordEvent],
+    (tileIds: string[]) => {
+      setHeld((prev) => [...prev.filter((id) => onBoardIds.has(id)), ...tileIds])
+      setPicked([])
+    },
+    [onBoardIds],
   )
 
-  return { currentWord, pendingRemoved, appendTile, retractTo, clearWord, commitWord }
+  return { tileIds: word, pendingRemoved, appendTile, retractTo, clearWord, commitWord }
 }

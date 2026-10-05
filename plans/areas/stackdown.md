@@ -100,9 +100,22 @@ setup pair (`GSetupValues`, `GSetup`), `GAnswer` and `GWordFlash` moved in, and
 with their readers, so stackdown joins `CONVERTED_GAMES` once they have:
 
 - ~~`useGame.ts`'s `PlayerRow`, `EventRow`, `StackdownGame`~~ — gone at step 7.
-- `lib/history.ts`'s `Submission` — when the replay folds `GEvent`s.
-- `lib/board.ts`'s `Tile` (a numeric id) — when Board, BoardCol, WordEntry and
-  the printer take `GTile`.
+- ~~`lib/history.ts`'s `Submission`~~ — gone at step 9.
+- ~~`lib/board.ts`'s `Tile` (a numeric id)~~ — gone at step 9.
+
+Stackdown joined `CONVERTED_GAMES` at step 9.
+
+## What the PlayArea pass changed that a player can see
+
+Step 9 (2026-10-05), each a consequence of reading `gd` rather than a ruling:
+
+- **A compete winner gets the confetti too.** It fires on MY `outcome` being
+  `won`, as letterboxed's does; it fired on coop's `won` play state alone.
+- **The printout leaves the word being built on the board.** The print model
+  takes the stack as the blob has it; it took the picked-up tiles off too.
+- **A conceder's line wears their outcome** (`lost`), from the player-ending
+  message; it was `neutral`.
+- **"Watching — not in this game"** is gone with spectating.
 
 ## Predicted test breaks
 
@@ -124,9 +137,11 @@ with their readers, so stackdown joins `CONVERTED_GAMES` once they have:
 - **Step 8 (2026-10-05):** `lib/gameData.fixture.ts` builds the blob from
   facts on setup.psql's stack, as the builder would; `hooks/useGame.test.ts`
   pins the links, the counts, the stacks and the seat rule.
-- **Steps 4–9:** the frontend reads `games_state` and the old common shapes
-  until the PlayArea pass moves every reader onto `gd`; it could not load
-  before this began.
+- **Step 9 (2026-10-05):** every reader is on `gd`, and stackdown has no type
+  errors; its vitests run on the fixture, nothing mocked but `db`. Tile ids are
+  the blob's text everywhere in the frontend, and `submit_word` gets them back
+  as numbers. The gallery helper sends `p_` names. Not run: the e2e, which
+  waits for the asking.
 
 ## Closing
 

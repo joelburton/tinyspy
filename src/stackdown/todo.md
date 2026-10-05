@@ -5,10 +5,6 @@
 - `WordEntry.module.css` `.good` / `.bad` are read by nothing — the slots
   take their colors elsewhere now. `cssClasses.test.ts` holds them in
   `DEAD_CLASS_PENDING`.
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
 - **`create_game` accepts a one-player compete game.** The compete manifest's
   `numberOfPlayers` is `[2, 6]` and its comment says "the RPC enforces it", but
   `stackdown.create_game` has no `< 2` check for compete, so only the FE's
@@ -23,40 +19,15 @@
   games — waits for the shared vocabulary (`plans/game-cards.md` → After the
   cards, step 7).
 
-- **"Blank this while viewing history" is decided three times at the call
-  site.** `PlayArea` hands `BoardCol` three LIVE marks already emptied for the
-  viewer:
-
-  ```tsx
-  attentionTiles={historySnap ? NO_TILES : attentionTiles}
-  boardAnswer={historySnap ? null : boardAnswer}
-  heldTiles={historySnap ? NO_TILES : heldTileIds}
-  ```
-
-  None of the three is about history — they are a teammate's attention flash,
-  their played word wearing its outcome, and tiles the server has taken that are
-  still drawn so the answer can be read. What the ternary says is that history
-  WINS over them, since a live mark on a historical board would be a lie.
-
-  The catch is that `BoardCol` already knows: eleven lines into its body it
-  derives `const isViewingHistory = historyLabel != null`. So a FOURTH live mark
-  added later has to remember the ternary, and nothing catches it if it does not
-  — the mark simply paints over a past board. Either the column blanks them (one
-  decision, but it then silently ignores props it was handed) or the caller keeps
-  doing it explicitly and something has to make that rule visible. Found
-  2026-09-16 by Joel, reading the history-names sweep. **scrabble has the same
-  block** (`hover`, `greenCells`, `redCells`, blanked on `isViewingHistory` at
-  the call site), so this is one shape and not one game's.
-
-  **connections does not, and its answer is better than either option above.**
-  It passes every live mark to its `Board` ungated and instead hands the MARK
-  HOOK `quiet: isViewingHistory` — so the mark never fires while a past turn is
-  open, rather than firing and being blanked on the way down. One decision, at
-  the source, with the reason beside it ("a live band landing behind the viewer
-  is not something to point at on a board nobody is reading"). The two props it
-  does gate, `interactive` and `ownerByTile`, are gated because they are about
-  what the board ACCEPTS, not what it shows. Start from that shape when deciding
-  this.
+- **"Blank this while viewing history" is decided per mark.** `BoardCol`
+  derives each of the three LIVE marks — a teammate's attention flash, their
+  word wearing its outcome, and tiles held so the answer can be read — and each
+  derivation checks `historyView.isViewing` on its own. A fourth live mark added
+  later has to remember the same check, and nothing catches it if it does not.
+  **scrabble has the same shape.** connections' answer is better: it hands the
+  MARK HOOK `quiet: isViewingHistory`, so the mark never fires while a past turn
+  is open rather than firing and being blanked on the way down. Start from that
+  shape when deciding this.
 
 - **The below-board reserve is a hand-tuned constant.**
   `components/PlayArea.module.css`'s `--avail-h` sizes the board as `100svh -
@@ -160,22 +131,11 @@
 
 ## Someday
 
-- `PlayArea.tsx` returns its own `<p>Loading game…</p>` while the read is
-  pending, where `src/common/loading`'s `<Loading>` is the word every page
-  shows for that moment. Swap it in, or say why this surface's is different.
-
 ## Maybe
 
 - **Should compete charge for the hint and the spoiler, or ban them?** Today
   a compete player can take a clue for the next word, or the word itself,
   free; both hand over progress toward the win. Both are recorded in
   `stackdown.events`.
-- **A board of other than six words.** Every board is six words, and the
-  front end writes the 6 in: the info column's "/ 6 words cleared", the print
-  model's target (`SOLUTION_WORDS` in `PlayArea.tsx`), and the summary's
-  "3/6 words". The server already reads the length of `solution`. A board
-  with a different count would need the front end to get it from the game's
-  own reads — `games_state` could expose `array_length(solution, 1)` without
-  revealing the words — never from a status.
 
 ## Won't do

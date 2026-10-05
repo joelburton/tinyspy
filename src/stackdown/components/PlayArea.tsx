@@ -1,760 +1,160 @@
 // cs-fixed-outcome-fix
 
-import { runRpc } from '@/common/supabase/dbResult'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
-import { buildStackdownPrintModel } from '../pdf/model'
-import { printStackdownPdf } from '../pdf/printStackdownPdf'
-import { buildGameMenu } from '@/common/menu/gameMenu'
-import { makeSetupRows } from '../lib/setupRows'
-import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBindAction } from '@/common/actions/useBindAction'
-import { describeReveal } from '@/common/reveal/describeReveal'
-import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
-import { solvedByMe } from '@/common/reveal/describeReveal'
-import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { db } from '../db'
-import { historySnapshot } from '../lib/history'
-import { offBoardIds } from '../lib/board'
-import { ANSWER_OUTCOME, answerOf } from '../lib/answer'
-import { useGame } from '../hooks/useGame'
-import type { GAnswer, GSetup, GWordFlash } from '../types'
-import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
-import { useMark } from '@/common/board-marks/useMark'
-import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
-import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import type { Actor } from '@/common/members/member'
-import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
-import { memberById } from '@/common/members/memberList'
+import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
+import { InfoSheet } from '@/common/info-sheet/InfoSheet'
+import { offBoardIds } from '../lib/board'
+import { useGame } from '../hooks/useGame'
+import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
+import { useHistoryView } from '../hooks/useHistoryView'
+import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
+import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useShowTeammateMoves } from '../hooks/useShowTeammateMoves'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
-import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import styles from './PlayArea.module.css'
+import type { GGameData } from '../types'
+
 import '../theme.css'
-import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-
-/** Empty tile set — while live, the board rings nothing (the green ring is the viewer's). */
-const NO_TILES: ReadonlySet<number> = new Set()
-
-/** What `stackdown.submit_word` puts in `data`. The structural fact travels even
- *  where the server also wrote the sentence: `result` decides whether the tiles
- *  leave the board or come back, and has nothing to do with the words. */
-type WordAnswer = {
-  result: 'accepted' | 'invalid'
-  word: string
-  terminal: boolean
-}
-
-/** What the two cheats put in `data`. Each has exactly one `ok` answer today,
- *  and `result` names it anyway: a call site may not take an `ok` branch by
- *  merely matching `ok` (docs/envelopes.md → Choosing which `ok` branch), or a
- *  second answer added to either RPC would be drawn as this one, silently. */
-type SpoilerAnswer = { result: 'spoiler'; word: string }
-type HintAnswer = { result: 'hint'; hint: string }
 
 /**
- * stackdown's play surface, shared by the coop and compete manifests, on the
- * shared two-column scaffold (docs/playarea.md → PlayArea layout).
- * PlayArea is the **coordinator**: it holds the game data (`useGame`), the server
- * mutations (submit / reveal / hint / stop / concede RPCs), and the cross-column
- * coordination state (the turn-history `historyId`, the local + word-slot
- * feedback), and wires two presentational columns:
- *
- *   - **`<BoardCol>`** — the stacked-tile board + the live input engine (tile
- *     clicks / keyboard word-building) + the below-board region. Takes the board to
- *     render (live OR a historical snapshot) + `isBoardInteractive`; emits the completed word
- *     up (`onSubmitWord`) and "back to live" (`onExitHistory`).
- *   - **`<InfoCol>`** — the state readout, OpponentStrip, action row, setup
- *     disclosure, terminal words reveal, and the GameEventLog log. Every command
- *     arrives as an action it places; the one callback up is `onShowHistory`.
- *
- * The load-bearing seam: BoardCol owns *editing*; PlayArea hands it *the board to
- * show*. That's what makes turn-history a drop-in (see docs/playarea.md).
- *
- * Clicking an exposed tile picks it onto the word; the fifth tile auto-submits via
- * `stackdown.submit_word`. Accepted words remove their tiles (the board updates via
- * the realtime refetch in useGame); invalid attempts are logged and their tiles
- * returned. The word being built is **private** to each player in both modes. Coop
- * renders the SHARED stack + log; compete renders the caller's own copy + an
- * OpponentStrip (first to clear all six wins). Mode is read from `game.mode`.
+ * The manifest's component: builds `gd` from the blob the page was handed and
+ * draws the surface.
  */
-/** Every stackdown board is exactly six words (docs/games/stackdown.md). The
- *  info column prints the same six; named here so the print model and the
- *  readout can't disagree. */
-const SOLUTION_WORDS = 6
+export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
+  const { gd } = useGame(ctx)
+  return (
+    <PlayArea
+      gd={gd}
+      globalFeedbackSlot={ctx.globalFeedbackSlot}
+      goToFollowUpGame={ctx.goToFollowUpGame}
+      menu={ctx.menu}
+    />
+  )
+}
 
-export function PlayArea({
-  authSession,
-  gameId,
-  players,
-  playState,
-  isTerminal,
-  isPlayer,
-  isConceded,
-  isLocallyTerminal,
-  isStillPlaying,
-  isBoardInteractive,
-  timer,
-  setup,
-  status,
+type PlayAreaProps = Pick<
+  PlayAreaLoaderProps,
+  'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
+> & {
+  gd: GGameData
+}
+
+/**
+ * stackdown's play surface, shared by the coop and compete manifests — the
+ * coordinator. It holds no board and draws no control of its own:
+ * `<BoardCol>` takes the stack, the entry and the move, `<InfoCol>` the
+ * readouts and the action row, and this component decides what each of them
+ * is handed — the stack to show above all: a past turn's, or the live one.
+ *
+ * Both manifests mount it, and the mode (`gd.mode`) is what differs: coop is
+ * ONE shared stack, compete my own copy plus an opponent strip of the one
+ * number a race publishes — words cleared (a rival's words and stack are
+ * withheld until the end).
+ *
+ * Above it, `<GamePage>` owns members, the timer, the ending, pause and chat,
+ * and unmounts this surface on pause — every piece of state below goes with it.
+ */
+function PlayArea({
+  gd,
   globalFeedbackSlot,
-  clubHandle,
   goToFollowUpGame,
   menu,
-  brand,
-  title,
-}: PlayAreaLoaderProps) {
+}: PlayAreaProps) {
+  // ─── Page hooks ────────────────────────────────────────
+
   // The board is worked by clicks and typing, so Tab has nowhere to go here —
   // and an empty ring is what keeps it from walking out to the browser.
   useTabRing([])
-  const {
-    game,
-    players: playerStates,
-    submissions,
-    removedTileIds,
-    currentWord,
-    appendTile,
-    retractTo,
-    clearWord,
-    commitWord,
-    loading,
-    failure,
-  } = useGame(gameId)
-  const stackdownSetup = setup as unknown as GSetup
 
-  // The setup rows, built ONCE and handed to both consumers — the info column
-  // renders it as <li>s, the print model prints the same array object
-  // (common/setup-form/doc.md → Setup rows).
-  const setupRows = useMemo(
-    () => makeSetupRows(stackdownSetup, game?.mode ?? 'coop', players),
-    [stackdownSetup, game, players],
-  )
-  const [submitting, setSubmitting] = useState(false)
-
-  // ─── Turn-history viewer ──────────────────────────────────────
-  // The shared coordination state (docs/playarea.md): which log
-  // row is open on the board. Identified by the row's POSITION in the log, not its
-  // seq (stackdown's seq is per-user — see lib/history). When set, PlayArea feeds
-  // BoardCol that turn's historical snapshot and its label; BoardCol shows the
-  // viewing frame + banner and freezes input, and any keystroke / board click / ✕
-  // exits.
-  const { historyId, showHistory, exitHistory } = useHistoryViewer()
-
-  // ─── The local feedback slot (the below-board pill) ──────────────
-  // The player's OWN move results — a rejected word, a keystroke that matched
-  // no exposed tile (or too many), a hint's answer, a not-ok, the verdict —
-  // show as the `<FeedbackPill>` in BoardCol's below-board slot (docs/ui.md →
-  // Feedback pill). Peer narration goes to the GLOBAL header instead
-  // (useShowPeerFeedback). The slot lives in PlayArea because it has triggers
-  // in BOTH columns (the keyboard input engine in BoardCol; the reveal/hint
-  // cheats in InfoCol) plus the terminal verdict — so the coordinator owns it
-  // and both columns show into it.
-  const localFeedbackSlot = useFeedbackSlot('local')
-
-  // ─── Coop-win celebration ──────────────────────────────
-  // Confetti at the MOMENT the team clears the stack — the sixth word flips
-  // playState to 'won' on every connected client via the realtime refetch, so
-  // the whole group celebrates together; opening an already-won game stays
-  // quiet (useCelebration never pops on mount). Gated on playState ALONE:
-  // it's coop-only by the states vocabulary (compete writes 'won_compete'),
-  // and unlike anything from `useGame` it's correct from the very first render
-  // (GamePage has already waited for the common.games row).
-  const celebration = useCelebration(playState === 'won')
-
-  // ─── Word-slot flash (the WordEntry green/red beat) ─────────────
-  // A word flashes in the entry row for a beat, then clears — or sooner, when the
-  // player starts a new word (BoardCol's tile click clears it). The source is the
-  // player's OWN just-accepted word (green "good move"): a teammate's word is
-  // marked on THEIR TILES instead (`markPeerWord` below), never in this entry
-  // row. The state lives here and is passed down to BoardCol (which renders it
-  // via WordEntry).
-  const [flash, showFlash, clearFlash] = useMark<GWordFlash>(WORD_ANSWER_MS)
-  // ─── A teammate's word, marked where it happened ───────────────
-  // On the BOARD, on their tiles — not in this player's entry row, which is
-  // their own workspace. Two beats in the order every board uses: the attention
-  // flash says WHERE, and once it has faded the answer's own color says WHAT.
-  //
-  // An accepted word's tiles are HELD on the board for the whole sequence
-  // instead of leaving the moment the row lands. Otherwise the news and the
-  // change are one event — the tiles you are being told about are already gone
-  // by the time you look. They are inert while held (`heldTileIds` below), so
-  // nobody can pick up a tile the server has already taken.
-  // The mark carries the ANSWER, not a color: whether the word was accepted is a
-  // fact two different things downstream need — the outcome the tiles wear, and
-  // whether the tiles are being held at all (only an accepted word takes them).
-  const [peerMark, showPeerMark] = useMark<{ ids: number[]; answer: GAnswer }>(WORD_ANSWER_MS)
-  const markPeerWord = useCallback(
-    (tileIds: number[], answer: GAnswer) => {
-      if (tileIds.length === 0) return
-      showPeerMark({ ids: tileIds, answer }, { attention: true })
-    },
-    [showPeerMark],
-  )
-
-  // My own refused word's tiles, marked as they land back on the board — the
-  // answer was read in the slots, and this is where the letters went.
-  const [returnedMark, flashReturned] = useMark<{ ids: number[] }>(ATTENTION_FLASH_MS)
-
-  // The word this player just had refused, still in the slots and wearing the
-  // answer; its tiles are off the board until the beat ends. The answer only —
-  // no announcement, since the player is looking at the word they just typed —
-  // and the sequence's end is where the tiles go home (`onEnd`, at the raise).
-  const [refusedWord, showRefusedWord] = useMark<number[]>(WORD_ANSWER_MS)
-
-  // ─── Derived (null-safe; real values after the loading guard) ──
-  const self = playerStates.find((p) => p.user_id === authSession.user.id)
-  const isCompete = game?.mode === 'compete'
-  const mySolved = self?.solved ?? false
-
-  // Where I stand comes from the page (docs/win-lose.md → Where a player
-  // stands). A conceder drops out of the compete race: they can't play, they
-  // see the "You conceded" look, and they read as "out" in every peer's
-  // OpponentStrip while the others race on — stackdown has no elimination, so
-  // conceding is its only way out mid-game (a compete solve ends the race).
-  // Coop never concedes (it uses the neutral whole-table Stop).
-  const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
-
-  // ─── Submit a completed (5-tile) word ─────────────────────────
-  // Each player builds their own word locally (selections aren't shared), so whoever
-  // lays the fifth tile submits their own word — there's no shared word to
-  // double-submit. BoardCol emits the completed word here.
-  const submit = useCallback(
-    async (tileIds: number[]) => {
-      setSubmitting(true)
-      const res = await runRpc<WordAnswer>(
-        db.rpc('submit_word', { target_game: gameId, tile_ids: tileIds }),
-      )
-      setSubmitting(false)
-      if (res.type === 'not-ok') {
-        // The tiles come back to the board: nothing was cleared. A coop
-        // teammate taking your tiles mid-flight is the one refusal a player
-        // realistically meets here, and it isn't their mistake.
-        clearWord()
-        localFeedbackSlot.show(FeedbackMessage.notOk(res))
-        return
-      } else if (res.type === 'ok' && res.data.result === 'accepted') {
-        // Empty the word and hold its tiles removed optimistically on THIS client so
-        // the grid doesn't flash them back on before the valid submission lands via
-        // realtime. Teammates just see the tiles leave once, on their own refetch.
-        commitWord(tileIds)
-        // Flash the just-spelled word green in the entry row (the ring is the
-        // own-accepted signal; no message needed — and the move dismisses the
-        // last result).
-        localFeedbackSlot.dismiss()
-        showFlash({
-          letters: [...res.data.word.toUpperCase()],
-          outcome: ANSWER_OUTCOME.accepted,
-        })
-        return
-      } else if (res.type === 'ok' && res.data.result === 'invalid' && res.message !== null) {
-        // NOT A WORD — an `ok`, because the rules were applied and no tile
-        // moved: the five tiles go straight back onto the board. The server
-        // wrote the sentence, and named the word in it, because by the time it
-        // is read `clearWord` has taken the word off the screen — so the
-        // sentence is half of what this case promises, and the branch says so.
-        // The answer shows in the SLOTS, where the eye already is, and the five
-        // tiles stay off the board while it does — coming back only once the
-        // beat ends, wearing the attention flash so the eye follows them home.
-        showRefusedWord(tileIds, {
-          onEnd: () => {
-            clearWord()
-            flashReturned({ ids: tileIds })
-          },
-        })
-        localFeedbackSlot.show(FeedbackMessage.result(res.outcome, res.message))
-        return
-      } else {
-        reportUnhandled('submit_word', res)
-        return
-      }
-    },
-    [gameId, clearWord, commitWord, showFlash, showRefusedWord, localFeedbackSlot, flashReturned],
-  )
-
-  // ─── Spoiler: the next word (a CHEAT — see stackdown.reveal_next_word) ──
-  // Hands over the next solution word the caller still has to clear — the way out
-  // for a stuck player.
-  // Named `spoilNext`, not `revealNext`: "reveal" on this page now means the WHOLE
-  // solution at game-over (the red boxed-eye button below).
-  // Surfaced in the LOCAL feedback slot (the player's own request) as a `hint`,
-  // which leaves only by its × — it lingers while they hunt for the tiles.
-  const spoilNext = useCallback(async () => {
-    const res = await runRpc<SpoilerAnswer>(db.rpc('reveal_next_word', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'spoiler' && res.outcome !== null) {
-      // The server sends no sentence — the word IS the answer, and only the
-      // surface knows it belongs in a "Next word:" line rather than, say, a
-      // PDF. What it does send is how that reads, so the outcome is the other
-      // half of this case's promise and the branch asserts it too.
-      localFeedbackSlot.show(
-        FeedbackMessage.hint(res.outcome, `Next word: ${res.data.word.toUpperCase()}`),
-      )
-      return
-    } else {
-      reportUnhandled('reveal_next_word', res)
-      return
-    }
-  }, [gameId, localFeedbackSlot])
-
-
-  // ─── Reveal hint (the next word's HINT — a nudge, not the word) ──
-  // A softer reveal than "Reveal word": shows the curated hint for the next solution
-  // word (common.words.hint, a clue that hides the word). The word never reaches the
-  // client — reveal_next_hint returns only the hint text. There is no "no hint for
-  // this word" answer: every word a stackdown board can hold carries one, so the
-  // server treats a missing hint as a fault and says so (see its comment).
-  const revealHint = useCallback(async () => {
-    const res = await runRpc<HintAnswer>(db.rpc('reveal_next_hint', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'hint' && res.outcome !== null) {
-      localFeedbackSlot.show(FeedbackMessage.hint(res.outcome, `Hint: ${res.data.hint}`))
-      return
-    } else {
-      reportUnhandled('reveal_next_hint', res)
-      return
-    }
-  }, [gameId, localFeedbackSlot])
-
-  // ─── Terminal solution reveal ────────────────────────────────────
-  // The six words are NOT shown just because the game ended — not even on a
-  // win: `replay_board` re-runs this very stack with the same solution (see its
-  // RPC comment), so an answer left on screen would make Restart theater,
-  // shuffling tiles you already know.
-  //
-  // The ask is LOCAL and reversible (useSolutionReveal): mine alone, so a
-  // teammate can keep working the stack out in their head while I look, and the
-  // same control puts it away again. The words themselves are on every client
-  // once the game is terminal (stackdown._solution_for), so this is purely
-  // what's drawn.
-  //
-  // `impliedBy: mySolved` is the exception: you can only finish a stackdown by
-  // playing all six words, so a solver has already SEEN every one of them —
-  // the info-column list just gathers them in one place, click-to-define. MY
-  // solve, not the game's verdict: compete's loser cleared nothing.
-  const {
-    revealed: solutionShown,
-    toggle: toggleSolution,
-    impliedBySolve,
-  } = useSolutionReveal({
-    impliedBy: solvedByMe({ isCompete, playState, mine: mySolved }),
-  })
-
-  // ─── The commands, bound ───────────────────────────────
-  // The byte-identical shared handlers (useStandardGameActions). Stop is coop's
-  // neutral whole-table stop (confirmed through the styled modal); Concede is
-  // compete's per-player drop-out; Replay restarts THIS stack — same tiles, same
-  // solution, everything the players did wiped. stackdown's own bits are the
-  // replay sentence and the post-replay cleanup (leave the turn-history view,
-  // dismiss the last result, re-hide a revealed solution).
-  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
-    db,
-    gameId,
-    isTerminal,
-    mode: isCompete ? 'compete' : 'coop',
-    isLocallyTerminal,
-    localFeedbackSlot,
-  })
-
-  // ─── The hint ladder ─────────────────────────────────────────
-  // Two rungs, both grayed rather than dropped once you can't ask: the row is
-  // what NAMES those glyphs (docs/ui.md → the menu is the legend), and a
-  // disabled row still teaches the lightbulb and the bare eye. The labels say
-  // which word each acts on, which the icon-only buttons have no room for.
-  const actHint = useBindAction('act-hint', {
-    describe: () => ({
-      state: isStillPlaying ? 'active' : 'disabled',
-      label: 'Hint for next word',
-    }),
-    run: revealHint,
-  })
-  const actSpoiler = useBindAction('act-spoiler', {
-    describe: () => ({
-      state: isStillPlaying ? 'active' : 'disabled',
-      label: 'Cheat for next word',
-    }),
-    run: spoilNext,
-  })
-
-  // Reveal the six words — the same toggle wearing the same two faces in the
-  // menu and in the terminal row, so a player who dismissed the row can still
-  // reach it. Inert mid-game: there is nothing to reveal until the server
-  // unshields, and nothing left to show once solving has put them all up.
-  const actReveal = useBindAction('act-reveal', {
-    describe: () =>
-      describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal }),
-    run: toggleSolution,
-  })
-
-  // New game — a FRESH game (new id, a newly claimed board) with THIS game's
-  // setup + roster + mode, in the same club. stackdown's create_game claims a
-  // random board from the pre-generated library, so this is a direct RPC — no
-  // edge function — mirroring the manifest's startGameInClub. Non-destructive
-  // (common._create_game un-currents this game into the club list), so no
-  // confirm; the creator jumps in via ctx.goToFollowUpGame, peers arrive via the
-  // game-invitation toast.
-  //
-  // A plain function, rebuilt every render: the action below reads it at click
-  // time, so `setup` and `players` are whatever the last realtime refetch left,
-  // and the action's own identity doesn't move when they do.
-  const gameMode = game?.mode
-  const createNewGame = async () => {
-    if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const res = await runRpc<CreatedGame>(
-      db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: setup as GSetup,
-        player_user_ids: players.map((p) => p.user_id),
-        mode: gameMode,
-      }),
-    )
-    if (res.type === 'not-ok') {
-      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
-      // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the slot as it reads, over
-      // the verdict, until its × is pressed. Shown even for a fault whose
-      // modal has already fired centrally — the modal escalates, it does not
-      // replace (docs/envelopes.md), so dismissing it must not leave the board
-      // silent about why the game didn't start.
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToFollowUpGame(res.data.id)
-      return
-    } else {
-      reportUnhandled('create_game', res)
-      return
-    }
-  }
-
-  // New game — its `+`, its menu row and its terminal button, from one action.
-  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
-  // create_game clears the club's current-view flag, so it stays resumable — the
-  // copy says shelved, not ended) and goes straight through at terminal, where
-  // there is nothing to interrupt. The shared run's single flight is what stops a
-  // second press claiming a second board.
-  const actNewGame = useBindAction('act-new-game', {
-    terminal: isTerminal,
-    describe: () => 'active',
-    run: createNewGame,
-  })
-
-  // ─── Header menu ──────────────────────────────────────────────
-  // Mobile (docs/mobile.md → The info-sheet recipe): below the breakpoint the board
-  // fills the screen and the info column moves into an off-canvas <InfoSheet>,
-  // reached by the header's page switch. stackdown needs no board
-  // divergence — its square board is min(--avail-w, --avail-h, 620px), so it
-  // fits a phone on its own; the input is tile taps (no keyboard).
+  // On a phone the board fills the screen and the info column moves into an
+  // off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
   const infoSheet = useInfoSheet()
 
-  // Words cleared. Coop counts the shared valid submissions; compete reads the
-  // caller's public tally (found_count is authoritative there). Hoisted with
-  // shownTiles below, for the same reason — the print model needs it.
-  const foundCount = isCompete
-    ? self?.found_count ?? 0
-    : submissions.filter((s) => s.valid).length
+  // Confetti the moment the win is MINE, as the server ranked it — every
+  // teammate's on a coop clear, the clearer's in a race. It is shown only when
+  // it happens.
+  const celebration = useCelebration(gd.me.outcome === 'won')
 
-  // Which tiles are OFF the board, from the shared rule in `lib/board.ts` — the
-  // same one each compete print track applies to its own player. Hoisted above
-  // the early return because the print model is built in a hook (the menu
-  // effect), which can't sit below one.
-  //
-  // `removedTileIds` is per-viewer (coop shares every submission, compete shows
-  // you your own), so "cleared" here means the board THIS viewer was working on.
-  // A teammate's accepted word is HELD on the board for the length of its mark:
-  // the tiles the server has already taken stay drawn, and inert, until the
-  // answer has been read. Nothing else delays a removal.
-  const heldTileIds = useMemo(
-    () => (peerMark?.value.answer === 'accepted' ? new Set(peerMark.value.ids) : new Set<number>()),
-    [peerMark],
-  )
-  const offBoard = useMemo(() => {
-    if (!game) return new Set<number>()
-    const off = offBoardIds(game.tiles, removedTileIds, currentWord, isTerminal)
-    for (const id of heldTileIds) off.delete(id)
-    return off
-  }, [game, isTerminal, removedTileIds, currentWord, heldTileIds])
+  // The below-board slot: word results, the hint ladder, the standing
+  // conditions, the ending.
+  const localFeedbackSlot = useFeedbackSlot('local')
 
-  /** Tiles taking the attention flash: a teammate's word before its answer
-   *  shows, and my own refused tiles as they land back. */
-  const attentionTiles = useMemo(() => {
-    const ids = new Set<number>(returnedMark?.value.ids ?? [])
-    if (peerMark?.phase === 'attention') for (const id of peerMark.value.ids) ids.add(id)
-    return ids
-  }, [returnedMark, peerMark])
-
-  /** A teammate's answer, once the attention flash has handed the tiles back. */
-  const boardAnswer = useMemo(
-    () =>
-      peerMark?.phase === 'answer'
-        ? { ids: new Set(peerMark.value.ids), outcome: ANSWER_OUTCOME[peerMark.value.answer] }
-        : null,
-    [peerMark],
-  )
-
-  // Feeds the print model only; `game?.mode` is null until loaded.
-  const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
-
-  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). RLS already scopes
-  // the submissions to what the viewer may see, the SERVER withholds `solution`
-  // until terminal, and `solutionShown` withholds it until this viewer asks — so
-  // a printout carries the answer only if the page in front of them does, and
-  // can't spoil a stack they're about to run back.
-  const actPrintBoard = useBindAction('act-print-board', {
-    describe: () => (game ? 'active' : 'hidden'),
-    run: () => {
-      if (!game) return
-      printStackdownPdf(
-        buildStackdownPrintModel({
-          brand,
-          gameTitle: title,
-          date: new Date().toLocaleDateString(),
-          // The WHOLE stack: compete prints a board per player and each has
-          // cleared a different set, so the model works out what's still down
-          // per track rather than taking the viewer's board for everyone's.
-          allTiles: game.tiles,
-          currentWord,
-          solution: solutionShown ? game.solution : null,
-          submissions,
-          players,
-          myId: authSession.user.id,
-          mode: menuMode,
-          isTerminal,
-          found: foundCount,
-          target: SOLUTION_WORDS,
-          setupRows,
-        }),
-      )
-    },
-  })
-
-  // The FULL stackdown menu. `buildGameMenu` supplies the framing (Help + chat
-  // above, Back to club below); the middle is this game's own rows, each one an
-  // action it already made — so a row's words, glyph, key and availability come
-  // from the action rather than being typed here a second time. The hint rungs
-  // and Reveal are the menu twins of the info column's buttons: the row is what
-  // NAMES those glyphs, which is why they gray rather than drop.
-  useEffect(function publishGameMenu() {
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
-        // Both exits, in reading order; each hides itself in the mode that isn't
-        // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actStopGame],
-        extra: [
-          { items: [actHint, actSpoiler] },
-          { items: [actRestart, actNewGame, actReveal] },
-          { items: [actPrintBoard] },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, actConcede, actStopGame, actHint, actSpoiler, actRestart, actNewGame, actReveal, actPrintBoard])
-
-  // ─── Coop: narrate teammates' moves ───────────────────────────
-  // The player who DIDN'T make a move otherwise saw nothing but the log quietly
-  // growing. Surface each teammate submission as a `peer` message in the
-  // GLOBAL header (with their identity disc), and mark their played word on
-  // THEIR TILES (`markPeerWord`). Called unconditionally before the early
-  // returns; the hook no-ops off coop and until loaded.
-  useShowPeerFeedback({
-    enabled: game?.mode === 'coop',
-    items: submissions,
-    keyOf: (s) => String(s.id),
-    messageFor: (s) => {
-      if (s.user_id === authSession.user.id) return null // own → the local slot / flash
-      const member = memberById(players, s.user_id)
-      if (s.kind === 'hint')
-        return FeedbackMessage.peer(member, ANSWER_OUTCOME.hint, 'revealed a hint')
-      if (s.kind === 'spoiler')
-        return FeedbackMessage.peer(member, ANSWER_OUTCOME.spoiler, 'took a spoiler')
-      // kind === 'word': ALSO mark their tiles on the board (an ambient cue, not
-      // the message). Safe to fire here — the hook calls messageFor exactly once
-      // per NEW peer submission, mirroring the one message.
-      const word = (s.word ?? '').toUpperCase()
-      const answer = answerOf(s)
-      markPeerWord(s.tile_ids ?? [], answer)
-      // "tried X" (not "tried X — not a word"): the header fits ~26 chars on a
-      // phone and ellipsizes silently, and the outcome already says it failed.
-      return FeedbackMessage.peer(
-        member,
-        ANSWER_OUTCOME[answer],
-        answer === 'accepted' ? `found ${word}` : `tried ${word}`,
-      )
-    },
-    globalFeedbackSlot,
-  })
-
-  // ─── The two standing conditions of the local slot ───
-  // Each is an effect on a primitive edge that shows on true and retracts in
-  // its cleanup — the slot draws whichever ranks highest. Above the early
-  // returns because effects must be.
-
-  // The terminal message, memoized on primitives so the verdict effect sees
-  // one object per outcome. The compete winner is `status.winner_user_id`,
-  // with `status.winner_username` the handle cached at finish time (a rename
-  // is rare enough that a stale name beats a follow-up query); the roster row
-  // is read for the identity DOT, falling back to the cached name.
-  const winnerId = (status?.winner_user_id as string | undefined) ?? null
-  const selfWon = winnerId === authSession.user.id
-  const winnerRow = players.find((p) => p.user_id === winnerId)
-  const winnerName = winnerRow?.username ?? (status?.winner_username as string | undefined)
-  const winnerColor = winnerRow?.color
-  const timerExpired = timer.expired
-  const over = useMemo(
-    () =>
-      isTerminal && gameMode
-        ? buildOver({
-            mode: gameMode,
-            playState,
-            timerExpired,
-            selfWon,
-            winner: winnerName === undefined ? undefined : { username: winnerName, color: winnerColor ?? '' },
-          })
-        : null,
-    [isTerminal, gameMode, playState, timerExpired, selfWon, winnerName, winnerColor],
-  )
+  // The endings' messages, for the pill and the info column: the game's once
+  // it has ended, mine while I have conceded and the others race on.
+  const gameEndingMessage = useGetGameEndingMessage(gd)
+  const playerEndingMessage = useGetPlayerEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage: over,
-    playerEndingMessage: null,
+    gameEndingMessage,
+    playerEndingMessage,
   })
 
-  // Out of the race while the others play on — stackdown's only locally-
-  // terminal state is conceding (there's no elimination here: you can't run
-  // out of tiles). It matches the other games' below-board treatment, so a
-  // conceder sees the drop-out in the slot they've been reading all game, not
-  // only in the info column.
-  useEffect(function showOutOfRace() {
-    if (isTerminal || !isLocallyTerminal) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
+  // A teammate's move, in the header slot and on their tiles (coop).
+  const peerMark = useShowTeammateMoves(gd, globalFeedbackSlot)
 
-  if (loading) return <p>Loading game…</p>
-  // A failed read is NOT a missing game. Both leave `game` null, and saying
-  // "Game not found." about a dead connection is a confident wrong answer —
-  // this is what remains once the fault modal is dismissed.
-  if (failure) return <EnvelopeErrorPage envelope={failure} />
-  if (!game) return <p>Game not found.</p>
+  // ─── The turn-history view ─────────────────────────────
+  // Which past turn, if any, is open on the board, and its stack replayed.
+  const historyView = useHistoryView(gd)
 
-  // The words-cleared count for the info-column state line. Coop is the shared total
-  // (every valid submission is visible); compete reads the caller's own public tally
-  // (submissions are RLS-scoped to the caller, so its valid count matches, but
-  // found_count is the authoritative number).
+  // ─── The commands, and the menu that lists them ────────
+  // Every command this game offers: the info column's action row places them,
+  // the menu lists them, and the reveal's state comes back for the info column.
+  const { actions, solutionShown } = useActionsAndMenu({
+    gd,
+    localFeedbackSlot,
+    goToFollowUpGame,
+    menu,
+  })
 
-  // Cheat tallies for the status line. Counted off the caller's visible submissions —
-  // coop = the shared team total, compete = the caller's own (RLS already scopes the
-  // list), matching how foundCount reads per mode.
-  const hintCount = submissions.filter((s) => s.kind === 'hint').length
-  const spoilerCount = submissions.filter((s) => s.kind === 'spoiler').length
+  // ─── Render ────────────────────────────────────────────
 
-  // The submission log. Compete RLS opens every player's submissions once the game is
-  // terminal, but the log should keep showing just the caller's own — the same list
-  // as during play — so it doesn't swap to an everyone's-words view at game over
-  // (mirrors wordle's guess list). Coop is the shared board, so it shows everyone's.
-  const logWords = isCompete
-    ? submissions.filter((s) => s.user_id === authSession.user.id)
-    : submissions
+  // The tiles off the live board, by the rule the printout shares: once the
+  // game has ended a cleared stack comes back for review, and an uncleared one
+  // stays where it stopped.
+  const liveOffTileIds = useMemo(() => {
+    const onBoard = new Set(gd.me.board.tiles.map((t) => t.id))
+    const cleared = gd.puzzle.tiles.filter((t) => !onBoard.has(t.id)).map((t) => t.id)
+    return offBoardIds(gd.puzzle.tiles, cleared, [], gd.ended)
+  }, [gd.me.board.tiles, gd.puzzle.tiles, gd.ended])
 
-  // Turn viewer: the historical board for the row being viewed (or null when live).
-  // `historyId` is the row's own id, resolved against the rows being folded below.
-  // Works at terminal too (reviewing the finished stack).
-  //
-  // WHOSE board it replays is the row's own author's. Mid-game compete that is
-  // always me — RLS shows me nothing else — but at TERMINAL every player's rows
-  // arrive, and a `#N` on one of theirs replays THEIR stack. Coop is one shared
-  // board, so the filter is a no-op there.
-  const historyRow = historyId !== null ? submissions.find((s) => s.id === historyId) : undefined
-  const historyRows =
-    isCompete && historyRow
-      ? submissions.filter((s) => s.user_id === historyRow.user_id)
-      : logWords
-  const historySnap = historyId !== null ? historySnapshot(historyRows, historyId) : null
-  // Named only when the board on screen is not the viewer's own — which only
-  // compete can be. Coop is one shared board.
-  const historyActor =
-    isCompete && historyRow && historyRow.user_id !== authSession.user.id
-      ? memberById(players, historyRow.user_id)
-      : undefined
+  // The stack to show: a past turn's while one is open, else the live one.
+  const shownOffTileIds = historyView.offTileIds ?? liveOffTileIds
+
+  // The ending that applies to me: the game's once it has ended, else mine.
+  const endingMessage = gameEndingMessage ?? playerEndingMessage
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
-        tiles={game.tiles}
-        offBoard={historySnap ? historySnap.offBoard : offBoard}
-        historyLitTiles={historySnap ? historySnap.historyLitTiles : NO_TILES}
-        isBoardInteractive={isBoardInteractive}
-        submitting={submitting}
-        historyLabel={historySnap ? historySnap.historyLabel : null}
-        historyActor={historyActor}
-        onExitHistory={exitHistory}
-        currentWord={currentWord}
-        appendTile={appendTile}
-        retractTo={retractTo}
-        onSubmitWord={submit}
-        // While viewing a past turn, BoardCol's overlay banner covers the
-        // slot's region with the turn's description.
+        gd={gd}
+        shownOffTileIds={shownOffTileIds}
+        historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
-        flash={flash?.value ?? null}
-        clearFlash={clearFlash}
-        // The marks a live board wears. All three are empty while viewing a past
-        // turn: that board is a record, and nothing is happening on it.
-        attentionTiles={historySnap ? NO_TILES : attentionTiles}
-        boardAnswer={historySnap ? null : boardAnswer}
-        heldTiles={historySnap ? NO_TILES : heldTileIds}
-        refusedWord={refusedWord !== null}
+        peerMark={peerMark}
       />
 
-      {/* Info column — off-canvas sheet on mobile, flex child on desktop.
-          Props grouped to match InfoCol's own grouping (mode+phase → state readout →
-          players → action row → setup+reveal → log). */}
+      {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
-          setupRows={setupRows}
-        isCompete={isCompete}
-        isTerminal={isTerminal}
-        over={over}
-        isPlayer={isPlayer}
-        isLocallyTerminal={isLocallyTerminal}
-        foundCount={foundCount}
-        hintCount={hintCount}
-        spoilerCount={spoilerCount}
-        players={players}
-        myId={authSession.user.id}
-        playerStates={playerStates}
-        concededIds={concededIds}
-        actHint={actHint}
-        actSpoiler={actSpoiler}
-        actStopGame={actStopGame}
-        actConcede={actConcede}
-        actRestart={actRestart}
-        actNewGame={actNewGame}
-        actBackToClub={menu.actBackToClub}
-        setup={setup as unknown as GSetup}
-        solution={solutionShown ? game.solution : null}
-        actReveal={actReveal}
-        submissions={logWords}
-        historyId={historyId}
-        onShowHistory={showHistory}
+          gd={gd}
+          endingMessage={endingMessage}
+          actions={actions}
+          historyView={historyView}
+          solution={solutionShown ? gd.puzzle.solution : null}
         />
       </InfoSheet>
 
-      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
-          in-page by the below-board slot + the info-column outcome line, and a coop
-          clear gets the celebration instead — once, when it happens. */}
+      {/* No modal for the verdict (docs/ui.md → Terminal results): it is
+          carried in-page, by the below-board pill and the action row's line.
+          My win's confetti — once, when it happens. */}
       {celebration.isOpen && (
         <CelebrationBlockingModal
           title="Stack cleared! 🎉"
@@ -764,63 +164,4 @@ export function PlayArea({
       )}
     </div>
   )
-}
-
-/** The terminal message (the shared `TerminalMessage`), mode- and (compete)
- *  self-aware. `outcome` + `pillText` are the below-board verdict; `outcome`
- *  + `infoColText` the short bold line in the info-column action row (the
- *  outcome picks its `outcome_<outcome>` color — incl. neutral for a manual
- *  end).
- *
- *  Verdicts lead with the outcome word (`Won:` / `Lost:`) and carry no trailing
- *  period: the pill is a one-line, ellipsizing row (~48 chars on a phone), so
- *  it's a LABEL, not prose. */
-function buildOver({
-  mode,
-  playState,
-  timerExpired,
-  selfWon,
-  winner,
-}: {
-  mode: 'coop' | 'compete'
-  playState: string
-  timerExpired: boolean
-  selfWon: boolean
-  /** The compete winner as name + color — the roster row when we have it,
-   *  else the handle cached in `status` at finish time. */
-  winner: Actor | undefined
-}): TerminalMessage {
-  // Manual end (stackdown.stop_game) → the shared neutral message (no winner).
-  if (playState === 'ended') return buildGameEndedMessageNeutral(mode)
-  if (mode === 'coop') {
-    if (playState === 'won') {
-      return { pillText: 'Won: stack cleared', infoColText: 'Cleared!', outcome: 'won' }
-    }
-    return {
-      pillText: timerExpired ? 'Lost: out of time' : 'Lost: stack not cleared',
-      infoColText: timerExpired ? 'Out of time' : 'Not cleared',
-      outcome: 'lost',
-    }
-  }
-  // compete — a race to clear, so a loss names WHO beat you: the winner rides
-  // as `actor`, and the pill draws the mention the way every other message
-  // names someone.
-  if (playState === 'won_compete') {
-    if (selfWon) {
-      return { pillText: 'Won: cleared it first', infoColText: 'You won!', outcome: 'won' }
-    }
-    return {
-      pillText: 'cleared it first',
-      infoColText: `${winner?.username ?? 'a player'} won`,
-      outcome: 'lost',
-      actor: winner,
-    }
-  }
-  // lost_compete — nobody cleared, or time ran out. No `Lost:` prefix: nobody was
-  // beaten, the stack just outlasted everyone.
-  return {
-    pillText: timerExpired ? 'Out of time — no winner' : 'Nobody cleared it',
-    infoColText: timerExpired ? 'Out of time' : 'No winner',
-    outcome: 'lost',
-  }
 }

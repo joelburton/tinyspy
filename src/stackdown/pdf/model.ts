@@ -2,8 +2,8 @@
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
-import { offBoardIds, type Tile } from '../lib/board'
-import type { EventRow } from '../hooks/useGame'
+import { offBoardIds } from '../lib/board'
+import type { GBoard, GEvent, GPlayer, GTile } from '../types'
 
 /**
  * Build the stackdown print model — the pure half, away from jsPDF so the
@@ -11,10 +11,9 @@ import type { EventRow } from '../hooks/useGame'
  * use).
  *
  * The judgment worth testing here is the **hidden solution**. stackdown's six
- * words are gated server-side (`games_state` returns `solution` as null until
- * the row is terminal), so paper can't leak them even by accident — but the
- * model still has to not *ask* for them mid-game and not draw an empty reveal
- * block. The log's own vocabulary carries the second half of it: a `reveal`
+ * words stay out of the page blob until the game has ended, so paper can't leak
+ * them even by accident — but the model still has to not *ask* for them
+ * mid-game and not draw an empty reveal block. The log's own vocabulary carries the second half of it: a `reveal`
  * request is a logged cheat, and it prints as one.
  */
 
@@ -33,7 +32,7 @@ export type PrintTrack = {
   /** Column heading — "Team", or a player's name. */
   who: string
   /** The tiles still on THIS board. Empty once it's cleared. */
-  tiles: Tile[]
+  tiles: GTile[]
   /** Words cleared on this board, as a line under it. */
   result: string
   turns: PrintTurn[]
@@ -41,93 +40,86 @@ export type PrintTrack = {
 
 export type StackdownPrintModel = PrintHeader & {
   tracks: PrintTrack[]
-  /** The six words, in clearing order. Terminal only; null during play. */
+  /** The six words, in clearing order. Once ended only; null during play. */
   solution: string[] | null
 }
 
 /**
- * One submission as a printed line.
+ * One turn as a printed line.
  *
  * The three kinds have to stay distinguishable in **black and white**, where the
  * on-screen outcome bar's green/red is one gray. So the text carries it: a valid
  * word stands alone, an invalid one is tagged, and a cheat request is named. No
  * drawn marks needed — same reasoning as wordiply's log.
  */
-function turnText(s: EventRow): string {
-  if (s.kind === 'hint') return `Hint: ${s.word ?? '—'}`
-  if (s.kind === 'spoiler') return `Spoiler: ${(s.word ?? '').toUpperCase()}`
-  const word = (s.word ?? '').toUpperCase()
-  return s.valid ? word : `${word} — not a word`
+function makeTurnText(e: GEvent): string {
+  if (e.kind === 'hint') return `Hint: ${e.clue}`
+  const word = e.word!.toUpperCase()
+  if (e.kind === 'spoiler') return `Spoiler: ${word}`
+  return e.valid ? word : `${word} — not a word`
 }
 
 export function buildStackdownPrintModel(o: {
   brand: string
   gameTitle: string
   date: string
-  /** The WHOLE stack — every tile the board started with. Which of them are
-   *  still down is worked out per track, since compete's players each cleared a
-   *  different set. */
-  allTiles: Tile[]
-  /** The viewer's picked-up-but-not-yet-submitted tiles. Theirs alone; nobody
-   *  else's in-progress word is visible, and it doesn't survive terminal. */
-  currentWord: number[]
-  /** From `games_state`: the six words, or null while the game is live. */
-  solution: string[] | null
-  submissions: EventRow[]
-  players: { user_id: string; username: string }[]
-  myId: string
   mode: 'coop' | 'compete'
-  isTerminal: boolean
-  /** Words cleared so far, and the target (six). */
-  found: number
-  target: number
+  ended: boolean
+  /** The WHOLE stack — every tile the board started with. */
+  tiles: GTile[]
+  /** Every player, each with the stack their seat sees — null for a rival
+   *  mid-race, whose board is withheld. */
+  players: GPlayer[]
+  me: GPlayer & { board: GBoard }
+  /** The turns I may see: everyone's in coop, mine alone mid-race. */
+  events: GEvent[]
+  /** The six words, in clearing order, while they are on screen; else null. */
+  solution: string[] | null
+  /** Words cleared — the team's in coop, mine in compete — and the six to clear. */
+  nFoundWords: number
+  nReqdWords: number
   setupRows: SetupRow[]
 }): StackdownPrintModel {
-  const nameOf = (userId: string) =>
-    o.players.find((p) => p.user_id === userId)?.username ?? 'someone'
-
-  /** One column: whose it is, which submissions built it, and whether the log
-   *  needs to name the player (coop's shared board does; a compete column
-   *  doesn't — its heading already says whose it is). */
-  const track = (who: string, rows: EventRow[], logNames: boolean): PrintTrack => {
-    const removed = new Set<number>()
-    for (const s of rows) {
-      if (s.kind === 'word' && s.valid && s.tile_ids) for (const id of s.tile_ids) removed.add(id)
-    }
-    const cleared = rows.filter((s) => s.kind === 'word' && s.valid).length
+  /** One column: whose it is, the stack their seat sees, the turns that built
+   *  it, and whether the log names the player (coop's shared board does; a
+   *  compete column doesn't — its heading already says whose it is). */
+  const makeTrack = (who: string, board: GBoard, events: GEvent[], logNames: boolean): PrintTrack => {
+    const onBoard = new Set(board.tiles.map((t) => t.id))
+    const cleared = o.tiles.filter((t) => !onBoard.has(t.id)).map((t) => t.id)
     // The SAME rule the screen uses, applied per board: a cleared stack comes
     // back for review, an uncleared one stays where it stopped.
-    const off = offBoardIds(o.allTiles, removed, logNames ? o.currentWord : [], o.isTerminal)
+    const off = offBoardIds(o.tiles, cleared, [], o.ended)
     return {
       who,
-      tiles: o.allTiles.filter((t) => !off.has(t.id)),
-      result: `${cleared}/${o.target} words cleared`,
-      turns: rows.map((s, i) => ({
+      tiles: o.tiles.filter((t) => !off.has(t.id)),
+      result: `${events.filter((e) => e.kind === 'word' && e.valid).length}/${o.nReqdWords} words cleared`,
+      turns: events.map((e, i) => ({
         seq: i + 1,
-        who: logNames ? nameOf(s.user_id) : '',
-        text: turnText(s),
+        who: logNames ? e.by.username : '',
+        text: makeTurnText(e),
       })),
     }
   }
 
   // Coop is ONE shared stack, so one track whose log names each player. Compete
-  // gives each player their own — but only at TERMINAL, when RLS opens
-  // everybody's submissions. Mid-game the viewer holds nobody else's, and a
-  // column built from no rows would show a full untouched stack, which reads as
-  // "they've cleared nothing" rather than "you can't see this yet".
+  // gives each player their own — but only once the game has ended, when every
+  // racer's board and rows open. Mid-race I hold nobody else's, so mine is the
+  // only column.
   let tracks: PrintTrack[]
   if (o.mode === 'coop') {
-    tracks = [track('Team', o.submissions, true)]
-  } else if (o.isTerminal) {
-    tracks = o.players.map((pl) =>
-      track(
-        pl.user_id === o.myId ? `${pl.username} (you)` : pl.username,
-        o.submissions.filter((s) => s.user_id === pl.user_id),
+    tracks = [makeTrack('Team', o.me.board, o.events, true)]
+  } else if (o.ended) {
+    tracks = o.players.map((p) =>
+      makeTrack(
+        p === o.me ? `${p.username} (you)` : p.username,
+        // Every board is open once the game has ended.
+        p.board!,
+        o.events.filter((e) => e.by === p),
         false,
       ),
     )
   } else {
-    tracks = [track('You', o.submissions.filter((s) => s.user_id === o.myId), false)]
+    tracks = [makeTrack('You', o.me.board, o.events.filter((e) => e.by === o.me), false)]
   }
 
   const shown = tracks[0]?.tiles.length ?? 0
@@ -139,14 +131,14 @@ export function buildStackdownPrintModel(o: {
     // several boards, so only the shared coop stack reports one.
     summary:
       o.mode === 'coop'
-        ? `${o.found}/${o.target} words cleared · ${shown} tile${shown === 1 ? '' : 's'} left`
-        : `${o.found}/${o.target} words cleared`,
+        ? `${o.nFoundWords}/${o.nReqdWords} words cleared · ${shown} tile${shown === 1 ? '' : 's'} left`
+        : `${o.nFoundWords}/${o.nReqdWords} words cleared`,
     setupRows: o.setupRows,
     mode: o.mode,
     tracks,
-    // Never reach for the solution before terminal. The server already withholds
-    // it (games_state gates on is_terminal), so this is belt-and-braces — but a
-    // printer that ASKED for it would be one schema change away from leaking it.
-    solution: o.isTerminal ? o.solution : null,
+    // Never reach for the solution before the end. The blob already withholds
+    // it, so this is belt-and-braces — but a printer that ASKED for it would be
+    // one change away from leaking it.
+    solution: o.ended ? o.solution : null,
   }
 }

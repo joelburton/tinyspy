@@ -1,16 +1,12 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import type { Member } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { Action } from '@/common/actions/useBindAction'
-import type { SetupRow } from '@/common/setup-form/types'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import type { GSetup } from '../types'
-import type { PlayerRow, EventRow } from '../hooks/useGame'
+import type { GActions, GGameData, GHistoryView, GPlayer } from '../types'
 import { GameEventLog } from './GameEventLog'
 import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './InfoCol.module.css'
@@ -19,115 +15,41 @@ import styles from './InfoCol.module.css'
  * stackdown's info column — near-zero state, just an arrangement of the shared
  * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
  * state readout → OpponentStrip → action row → help → setup disclosure → terminal
- * words reveal → GameEventLog log. Every mutation is a named callback up
- * (`onShowHistory`); every COMMAND arrives as an action this column places. PlayArea owns the
- * RPCs and the coordination state. See docs/playarea.md.
+ * words reveal → GameEventLog log. Every command arrives as an action this
+ * column places, and the log opens a past turn through `historyView`; PlayArea
+ * owns the coordination. See docs/playarea.md.
  */
 export function InfoCol({
-  // Props are grouped by the region they drive (mirroring the render order below),
-  // so "what is this prop for?" is answerable by eye. Names are shared verbatim with
-  // the other games' columns for the same idea — see docs/playarea.md.
-  isCompete,
-  isTerminal,
-  over,
-  isPlayer,
-  isLocallyTerminal,
-  foundCount,
-  hintCount,
-  spoilerCount,
-  players,
-  myId,
-  playerStates,
-  concededIds,
-  actHint,
-  actSpoiler,
-  actStopGame,
-  actConcede,
-  actRestart,
-  actNewGame,
-  actBackToClub,
-  setupRows,
+  gd,
+  endingMessage,
+  actions,
+  historyView,
   solution,
-  actReveal,
-  submissions,
-  historyId,
-  onShowHistory,
 }: {
-  // ── Mode + phase (read by several regions below) ──
-  /** compete shows the OpponentStrip + Concede; coop shows Stop. */
-  isCompete: boolean
-  isTerminal: boolean
-  /** The terminal message when the game is over (drives the action row + words reveal), else null. */
-  over: TerminalMessage | null
-  /** Am I a player in this game (gates the cheats + the "click tiles" help). */
-  isPlayer: boolean
-  /** I conceded but the others race on — a terminal LOOK without ending the game
-   *  (the page's `isLocallyTerminal`; in this game only by conceding). */
-  isLocallyTerminal: boolean
-
-  // ── State readout (the count line at the top) ──
-  /** Words cleared, out of six. */
-  foundCount: number
-  /** Cheat tallies shown beneath the count. */
-  hintCount: number
-  /** How many times a player took the "just tell me the next word" spoiler —
-   *  a `kind = 'spoiler'` row. "Reveal" is the other thing: the whole solution
-   *  at game-over. */
-  spoilerCount: number
-
-  // ── Players (the OpponentStrip + the log's identity discs) ──
-  /** The roster (identity + per-player concede flags). */
-  players: Member[]
-  myId: string
-  /** Public per-player tallies (found_count / solved); `self` is derived from these. */
-  playerStates: PlayerRow[]
-  /** Who has conceded (drives the OpponentStrip "out" mid-game). */
-  concededIds: Set<string>
-
-  // ── Action row (cheats + Stop/Concede, back-to-club at terminal) ──
-  /** The two rungs of the hint ladder — a hint toward the next word, or the
-   *  word itself. Both carry their own "which word" wording. */
-  actHint: Action
-  /** Mid-game cheat: hand over the next word (the amber bare eye). Named for
-   *  what it does to a LIVE game — distinct from `actReveal` below, which opens
-   *  the whole solution once the game is over. */
-  actSpoiler: Action
-  /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
-  actStopGame: Action
-  /** Drop out of a race while the others play on — hidden outside compete. */
-  actConcede: Action
-  /** Restart THIS stack — same tiles, same solution — from scratch. */
-  actRestart: Action
-  /** Start a fresh follow-up game — same setup + roster, a newly claimed board.
-   *  Disables itself while the create is in flight. */
-  actNewGame: Action
-  /** Leave for the club — the shell's own action, off `ctx.menu`. */
-  actBackToClub: Action
-
-  // ── Setup disclosure + terminal words reveal ──
-  setup: GSetup
-  /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
-  setupRows: SetupRow[]
-  /** The six solution words — non-null ONLY while THIS viewer is looking at
-   *  them. Hidden by default at a terminal this viewer did not solve, so Restart
-   *  (same stack, same solution) stays a genuine second try; a viewer who played
-   *  all six starts looking at them. */
+  gd: GGameData
+  // The ending that applies to me — the game's once it has ended, else mine
+  // while the others race on — or null while I play.
+  endingMessage: TerminalMessage | null
+  actions: GActions
+  historyView: GHistoryView
+  // The six words while I have them revealed, else null.
   solution: string[] | null
-  /** Show the words — or put them away again. A local display toggle shared with
-   *  the menu twin; nothing is written and no peer is affected, and it carries
-   *  its own faces, the inert "solution already shown" included. */
-  actReveal: Action
-
-  // ── Turn-history log (GameEventLog) ──
-  /** Every row the log renders and the viewer replays. */
-  submissions: EventRow[]
-  /** The log row currently open in the board viewer, or null. */
-  historyId: number | null
-  /** Straight through to the log: opening a `#N` hands up the row's id and the
-   *  number the log printed beside it. */
-  onShowHistory: (id: number, n: number) => void
 }) {
-  const self = playerStates.find((p) => p.user_id === myId)
+  const sld = gd.stateLineData
+
+  /** A racer's cell in the strip: the one number a race publishes, a ✓ once
+   *  they have cleared the stack — or "out" mid-race, once they have conceded.
+   *  Once the game has ended the count stays, so the final board shows how far
+   *  each racer got. */
+  function getFoundOrOut(player: GPlayer) {
+    if (!gd.ended && player.conceded) return 'out'
+    return (
+      <>
+        {player.nFoundWords}
+        {player.solved ? ' ✓' : ''}
+      </>
+    )
+  }
 
   return (
     <div className={shared.infoCol}>
@@ -139,107 +61,87 @@ export function InfoCol({
             spoilers used). Always shown (even at 0) so using one doesn't shift
             the rows below. */}
         <p className={shared.infoState}>
-          <strong>{foundCount}</strong> / 6 words cleared
+          <strong>{sld.nFoundWords}</strong> / {sld.nReqdWords} words cleared
           <br />
-          <strong>{hintCount}</strong> hint{hintCount === 1 ? '' : 's'} ·{' '}
-          <strong>{spoilerCount}</strong> spoiler{spoilerCount === 1 ? '' : 's'} used
+          <strong>{sld.nHintsUsed}</strong> hint{sld.nHintsUsed === 1 ? '' : 's'} ·{' '}
+          <strong>{sld.nSpoilersUsed}</strong> spoiler{sld.nSpoilersUsed === 1 ? '' : 's'} used
         </p>
 
         {/* Opponent strip (compete) — each player's found-word count, identity
             on a leading disc; a ✓ marks a player who's cleared the board. */}
-        {isCompete && (
+        {gd.compete && (
           <OpponentStrip
-            players={players}
-            myId={myId}
+            players={gd.players}
+            myId={gd.me.id}
             metricLabel="Found"
-            metricFor={(player, isSelf) => {
-              // Mid-game a conceder reads as "out" (dropped from the race). At
-              // terminal we keep the found/✓ tally so the final board still
-              // shows how far each player got before it ended.
-              if (!isTerminal && concededIds.has(player.user_id)) return 'out'
-              const ps = playerStates.find((p) => p.user_id === player.user_id)
-              const found = isSelf ? self?.found_count ?? 0 : ps?.found_count ?? 0
-              return (
-                <>
-                  {found}
-                  {ps?.solved ? ' ✓' : ''}
-                </>
-              )
-            }}
+            metricFor={getFoundOrOut}
           />
         )}
 
         {/* Action row — Reveal hint / Reveal word cheats + Stop/Concede during
             play; at terminal the bold outcome line + a compact back-to-club
             button. */}
-        {over ? (
-          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
+        {gd.ended ? (
+          <InfoActionsRow message={{ text: endingMessage!.infoColText, outcome: endingMessage!.outcome }}>
             {/* Stay-here options left of the leave option (Club): run this stack
                 back, or claim the next one. */}
             {/* Reveal first: it's the one that acts on THIS finished game.
                 Restart / New game are both "move on", and they leave. */}
-            <ActionButton action={actReveal} show="icon" />
-            <ActionButton action={actRestart} show="icon" />
-            <ActionButton action={actNewGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" weight="primary" />
+            <ActionButton action={actions.actReveal} show="icon" />
+            <ActionButton action={actions.actRestart} show="icon" />
+            <ActionButton action={actions.actNewGame} show="icon" />
+            <ActionButton action={actions.actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : isLocallyTerminal ? (
-          // I conceded; the others race on. Terminal LOOK (a status line + the
-          // one flag) so the drop-out reads loudly.
-          <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
+        ) : endingMessage ? (
+          // I conceded; the others race on. The ending's LOOK (a status line +
+          // the one flag) so the drop-out reads loudly.
+          <InfoActionsRow message={{ text: endingMessage.infoColText, outcome: endingMessage.outcome }}>
             {/* Reveal keeps its slot while the others race, but inert: the
-                words don't even reach this client until the game is over for
-                EVERYONE (stackdown._solution_for gates on is_terminal), so a
-                player who dropped out can't spoil a live race. Present rather
+                words aren't in the blob until the game is over for EVERYONE,
+                so a player who dropped out can't spoil a live race. Present rather
                 than absent so the row doesn't change shape when the last racer
                 finishes — the button is simply enabled then. */}
-            <ActionButton action={actReveal} show="icon" />
+            <ActionButton action={actions.actReveal} show="icon" />
             {/* Both exits are placed and each says whether it applies: out of
                 the race, Concede hides and Stop comes out in its place — one
                 flag, since anyone in a game may stop it for all. */}
-            <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actStopGame} show="icon" />
+            <ActionButton action={actions.actConcede} show="icon" />
+            <ActionButton action={actions.actStopGame} show="icon" />
           </InfoActionsRow>
-        ) : isPlayer ? (
+        ) : (
           <InfoActionsRow>
             {/* Cheats: both in the roster's `caution` tone (amber).
                 Icon-only like the rest of the row; `tooltip` (the styled hover
                 bubble) carries the full "what it does" copy, richer than the
                 name the glyph would take from `label` alone. */}
-            <ActionButton action={actHint} show="icon" />
+            <ActionButton action={actions.actHint} show="icon" />
             {/* The bare eye, not the boxed one: this hands over ONE word of a
                 live game. The boxed-eye Reveal is reserved for the whole
                 solution at game-over (see the icon registry). */}
-            <ActionButton action={actSpoiler} show="icon" />
+            <ActionButton action={actions.actSpoiler} show="icon" />
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
-            <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actStopGame} show="icon" />
+            <ActionButton action={actions.actConcede} show="icon" />
+            <ActionButton action={actions.actStopGame} show="icon" />
           </InfoActionsRow>
-        ) : null}
+        )}
 
         {/* Help — only while the player can act on it (never silently swapped).
             Hidden once conceded: the "click tiles" prompt would contradict the
             now-disabled entry. */}
-        {!over && isPlayer && !isLocallyTerminal && (
+        {gd.me.stillPlaying && (
           <p className={shared.infoHelp}>
             Click exposed tiles — or type a letter — to spell a word.{' '}
             <kbd>Enter</kbd> submits; <kbd>Backspace</kbd> takes one back.
           </p>
         )}
-        {/* Watching someone else's game (rare by design — "no spectators", see
-            CLAUDE.md). Given the terminal LOOK rather than a muted help line:
-            being unable to act is terminal for you, so it reads as a state, not
-            as advice. Matches waffle. */}
-        {!over && !isPlayer && <InfoActionsRow message={{ text: 'Watching — not in this game', outcome: 'neutral' }} />}
-
         {/* The six solution words — an info-column region allowed to grow when
             the viewer opens it and to give the space back when they close it
             again (a blessed exception to docs/ui.md → Layout stability: the
             reflow IS the reveal, and only ever fires on the viewer's own
             click). ABOVE the setup disclosure per the canonical order (the
             reveal is the payoff; the Setup options list is bookkeeping). */}
-        {over && solution && (
+        {gd.ended && solution && (
           <div className={cls(shared.terminalExtra, styles.reveal)}>
             <span className="muted">The words were</span>{' '}
             <strong>{solution.map((w) => w.toUpperCase()).join(' · ')}</strong>
@@ -247,17 +149,16 @@ export function InfoCol({
         )}
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
-        <SetupDisclosure rows={setupRows} />
+        <SetupDisclosure rows={gd.setupRows} />
       </div>
 
       <GameEventLog
-        submissions={submissions}
-        players={players}
-        myId={myId}
-        mode={isCompete ? 'compete' : 'coop'}
-        isTerminal={isTerminal}
-        historyId={historyId}
-        onShowHistory={onShowHistory}
+        events={gd.events}
+        players={gd.players}
+        myId={gd.me.id}
+        mode={gd.mode}
+        isGameEnded={gd.ended}
+        historyView={historyView}
       />
     </div>
   )

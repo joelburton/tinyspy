@@ -1,139 +1,68 @@
 // cs-unmet
 
 /**
- * Render + behavior tests for stackdown's PlayArea, focused on the per-player
- * **concede** flow (compete's drop-out, beside coop's whole-table Stop).
+ * Render + behavior tests for stackdown's PlayArea: the concede flow beside
+ * coop's Stop, the hint ladder, the turn-history viewer, the game menu, the
+ * ending's solution reveal, the board's keys and a teammate's word on the board.
  *
- * Why this exists: concede branches the action row, the OpponentStrip metric,
- * and the "locally terminal" look by mode + per-player flag — glue a `tsc` pass
- * wouldn't catch (the root tsconfig checks nothing — see memory
- * project_typecheck_use_tsc_b). These prove the tree mounts in each mode AND
- * that the concede wiring is right: compete shows Concede and calls
- * `stackdown.concede`, coop shows Stop and calls `stop_game`, a conceded opponent
- * reads "out" in the strip, and my own concede flips to the "You conceded" look.
- *
- * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; the board, entry row, opponent strip, and log all render real.
+ * The surface is a pure function of the `game_data` blob the page hands it, so
+ * a test builds that blob from the game's facts (`ZTest_makeStackdownCtx`) and
+ * nothing is mocked but `db`; the board, the entry row, the opponent strip and
+ * the log all render real. A move that lands is shown by handing the page the
+ * next blob, the way the page re-reads it.
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
-import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
-import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import type { StackdownGame, PlayerRow, EventRow } from '../hooks/useGame'
-import type { Tile } from '../lib/board'
 import { ATTENTION_FADE_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { db } from '../db'
-import { PlayArea } from './PlayArea'
+import {
+  ZTest_CONCEDED,
+  ZTest_hint,
+  ZTest_makeStackdownCtx,
+  ZTest_word,
+  type ZTest_GameDataFacts,
+  type ZTest_PlayerFacts,
+} from '../lib/gameData.fixture'
+import type { GTile } from '../types'
+import { PlayAreaLoader } from './PlayArea'
 
-// The mocked useGame's full return shape — a mutable holder set per test before
-// render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.
-type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
-
-const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
-vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
-/** A tiny 3-tile board — enough for the tree to render; the concede tests don't
- *  interact with the tiles. */
-const tiles: Tile[] = [
-  { id: 1, x: 0, y: 0, z: 0, letter: 'C' },
-  { id: 2, x: 1, y: 0, z: 0, letter: 'A' },
-  { id: 3, x: 2, y: 0, z: 0, letter: 'T' },
-]
+const ME: ZTest_PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
+const MOTH: ZTest_PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
+const TWO = [ME, MOTH]
 
-/** A loaded game; override the mode per test. */
-function loadedGame(over: Partial<StackdownGame> = {}): StackdownGame {
-  return {
-    id: 'g1',
-    club_handle: 'c1',
-    mode: 'coop',
-    tiles,
-    created_at: '2026-01-01T00:00:00Z',
-    solution: null,
-    ...over,
-  }
+/** Tiles in a row on one layer, each lettered and numbered from 1. */
+function makeRow(letters: string, z = 0): GTile[] {
+  return [...letters].map((letter, i) => ({ id: String(i + 1), letter, x: i * 2, y: 0, z }))
 }
 
-/** The full useGame hook return, with `players` (the public per-player tally) and
- *  the local-word actions stubbed. */
-function loaded(game: StackdownGame, players: PlayerRow[] = []): GameHook {
-  return {
-    game,
-    players,
-    submissions: [],
-    removedTileIds: new Set<number>(),
-    currentWord: [],
-    appendTile: vi.fn(() => null),
-    retractTo: vi.fn(),
-    clearWord: vi.fn(),
-    commitWord: vi.fn(),
-    loading: false,
-    failure: null,
-  }
+/** A play surface's context: a solo coop game in play on setup.psql's stack,
+ *  built from the facts the way the builder would build it. */
+function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
+  return ZTest_makeStackdownCtx(facts)
 }
 
-/** The public per-player tally row (stackdown.players). */
-function playerRow(user_id: string, over: Partial<PlayerRow> = {}): PlayerRow {
-  return { user_id, found_count: 0, solved: false, solved_at: null, ...over }
+/** A game that has ended with nobody winning: a Stop. */
+const STOPPED: ZTest_GameDataFacts = {
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  outcome: 'neutral',
+  players: [{ ...ME, outcome: 'neutral' }],
 }
-
-/** The "#N" handle in the log row holding `cell` — by its marker, never by its
- *  wording (the shared `<EventLogNumber>` sets `data-history-handle`). */
-const handleIn = (cell: HTMLElement) =>
-  within(cell.closest('tr')!).getByText(/^#\d+$/)
-
-const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
-const twoRows = [playerRow('u1'), playerRow('u2')]
-
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
- *  the page derives it (`whereIStand`), so a test sets up the facts and never
- *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [ZTest_gp('u1', 'me', 'red')],
-    isTerminal: false,
-    isTurnBased: false,
-    turnHolderId: null,
-    ...over,
-  }
-  return {
-    gameId: 'g1',
-    brand: 'StackDown',
-    playState: 'playing',
-    timer: { displaySeconds: 0, expired: false },
-    setup: { timer: { kind: 'none' } },
-    status: null,
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: ZTest_actionFixture('act-help'),
-      actChat: ZTest_actionFixture('act-open-chat'),
-      actBackToClub: ZTest_actionFixture('act-back-to-club'),
-    },
-    ...facts,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.isTerminal,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId: facts.turnHolderId,
-      draftsOffTurn: false,
-    }),
-  } as unknown as PlayAreaLoaderProps
+/** A solo coop game the clock beat. */
+const SOLO_LOST: ZTest_GameDataFacts = {
+  ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+  outcome: 'lost',
+  players: [{ ...ME, outcome: 'lost' }],
 }
 
 /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would draw
@@ -148,9 +77,9 @@ function menuItems(ctx: PlayAreaLoaderProps) {
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
  *  Any test that TYPES needs it: the board's tile keys are actions, and a
  *  bare `render` binds them with nothing feeding them keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+function WithKeys(props: React.ComponentProps<typeof PlayAreaLoader>) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** A keystroke at the page, the way a player types with nothing focused.
@@ -161,12 +90,17 @@ const press = (init: KeyboardEventInit) =>
     fireEvent.keyDown(document.body, init)
   })
 
+/** Type each letter as its own keystroke. */
+async function typeLetters(letters: string) {
+  for (const key of letters) await press({ key })
+}
+
 /** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what the
  *  call sites branch on, so a stub without it is an answer they scream at. */
-const okEnvelope = (data: unknown) => ({
+const okEnvelope = (data: unknown, outcome: string | null = null, message: string | null = null) => ({
   data: {
-    type: 'ok', data, outcome: null, severity: null,
-    message: null, field: null, meta: null, dbcode: null, detail: null,
+    type: 'ok', data, outcome, severity: null,
+    message, field: null, meta: null, dbcode: null, detail: null,
   },
   error: null,
 })
@@ -177,8 +111,19 @@ const stateOf = (id: string) => getActions().find((b) => b.id === id)?.describe(
 /** The five word slots, as the letters they hold. */
 const wordSlots = () => screen.getByLabelText('Current word').textContent ?? ''
 
+/** The board's tile bearing this letter — the slot row's letters are inside
+ *  `Current word`, so a tile is the one outside it. */
+const tileFor = (letter: string) =>
+  screen.queryAllByText(letter)
+    .map((el) => el.parentElement as HTMLElement)
+    .find((el) => !el.closest('[aria-label="Current word"]'))
+
+/** The "#N" handle in the log row holding `cell` — by its marker, never by its
+ *  wording. */
+const handleIn = (cell: HTMLElement) =>
+  within(cell.closest('tr')!).getByText(/^#\d+$/)
+
 beforeEach(() => {
-  h.result = loaded(loadedGame(), [playerRow('u1')])
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null, data: null })
 })
@@ -186,10 +131,9 @@ beforeEach(() => {
 describe('stackdown PlayArea — concede', () => {
   it('compete shows Concede and calls stackdown.concede on click', async () => {
     const user = userEvent.setup()
-    h.result = loaded(loadedGame({ mode: 'compete' }), twoRows)
     render(
       <>
-        <PlayArea {...makeCtx({ players: twoMembers })} />
+        <PlayAreaLoader {...makeCtx({ mode: 'compete', players: TWO })} />
         <ConfirmationHost />
       </>,
     )
@@ -198,48 +142,31 @@ describe('stackdown PlayArea — concede', () => {
     await user.click(screen.getByRole('button', { name: /concede/i }))
     const confirms = await screen.findAllByRole('button', { name: /concede/i })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
   })
 
   it('coop shows Stop (not Concede) and calls stop_game', async () => {
     const user = userEvent.setup()
     render(
       <>
-        <PlayArea {...makeCtx()} />
+        <PlayAreaLoader {...makeCtx()} />
         <ConfirmationHost />
       </>,
     )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    // The trigger and the modal's confirm share the name "Stop game" (an
-    // icon-only button's label is its accessible name). The confirm is the one
-    // the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: 'Stop game' }))
     const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
-    await user.click(confirms[confirms.length - 1])
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
   it('marks a conceded opponent "out" in the strip (mid-game)', () => {
-    h.result = loaded(loadedGame({ mode: 'compete' }), twoRows)
-    render(
-      <PlayArea
-        {...makeCtx({
-          players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })],
-        })}
-      />,
-    )
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />)
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
-  it('shows the "You conceded" locally-terminal look after I concede', () => {
-    h.result = loaded(loadedGame({ mode: 'compete' }), twoRows)
-    render(
-      <PlayArea
-        {...makeCtx({
-          players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')],
-        })}
-      />,
-    )
+  it('shows the "You conceded" look after I concede', () => {
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />)
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     // The one flag: conceding is spent, and stopping the game for all is open to
     // anyone in it, so Stop takes Concede's place.
@@ -248,35 +175,22 @@ describe('stackdown PlayArea — concede', () => {
   })
 })
 
-/** An envelope carrying a hint. `runRpc` reads the envelope out of `data`, so a
- *  mock resolving the bare hint string hands it a body it can't read and the
- *  call site sees a fault. */
-function hintEnvelope(hint: string) {
-  return {
-    data: {
-      type: 'ok', data: { result: 'hint', hint }, outcome: 'warning', severity: null,
-      message: null, field: null, meta: null, dbcode: null, detail: null,
-    },
-    error: null,
-  }
-}
-
 describe('stackdown PlayArea — hint', () => {
   it('surfaces the clue when the next word has a hint', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
-    rpc.mockResolvedValueOnce(hintEnvelope('a fruit'))
+    render(<PlayAreaLoader {...makeCtx()} />)
+    rpc.mockResolvedValueOnce(okEnvelope({ result: 'hint', hint: 'a fruit' }, 'warning'))
     await user.click(screen.getByRole('button', { name: 'Hint for next word' }))
-    expect(rpc).toHaveBeenCalledWith('reveal_next_hint', { target_game: 'g1' })
+    expect(rpc).toHaveBeenCalledWith('reveal_next_hint', { p_game_id: 'g1' })
     expect(await screen.findByText('Hint: a fruit')).toBeInTheDocument()
   })
 
   it("a not-ok answer shows the server's sentence, not a hint line", async () => {
-    // The hint button's refusal path. There is no "no hint for this word"
-    // answer any more — a hintless word is a fault the server shouts about —
-    // so what a player can actually meet here is the game ending mid-request.
+    // There is no "no hint for this word" answer — a hintless word is a fault
+    // the server shouts about — so what a player can actually meet here is the
+    // game ending mid-request.
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
     rpc.mockResolvedValueOnce({
       data: {
         type: 'not-ok', data: null, outcome: null, severity: 'race',
@@ -291,59 +205,38 @@ describe('stackdown PlayArea — hint', () => {
 })
 
 /**
- * Turn-history viewer (docs/playarea.md). Clicking a
- * log row replays that turn's board; a keystroke / click returns to live. These
- * prove the cross-column seam is wired right — the snapshot logic itself is
- * unit-tested in lib/history.test.ts. Eight uniquely-lettered tiles so we can
- * probe a single cleared tile by its letter (L is in the cleared word CLEAR, not
- * in the remaining M/O/T).
+ * Turn-history viewer (docs/playarea.md). Clicking a log row replays that
+ * turn's board; a keystroke / click returns to live. These prove the
+ * cross-column seam is wired right — the replay itself is unit-tested in
+ * lib/history.test.ts. Eight uniquely-lettered tiles so a single cleared tile
+ * can be probed by its letter (L is in the cleared word CLEAR, not in the
+ * remaining M/O/T).
  */
 describe('stackdown PlayArea — turn-history viewer', () => {
-  const historyTiles: Tile[] = [
-    { id: 1, x: 0, y: 0, z: 0, letter: 'C' },
-    { id: 2, x: 1, y: 0, z: 0, letter: 'L' },
-    { id: 3, x: 2, y: 0, z: 0, letter: 'E' },
-    { id: 4, x: 3, y: 0, z: 0, letter: 'A' },
-    { id: 5, x: 4, y: 0, z: 0, letter: 'R' },
-    { id: 6, x: 5, y: 0, z: 0, letter: 'M' },
-    { id: 7, x: 6, y: 0, z: 0, letter: 'O' },
-    { id: 8, x: 7, y: 0, z: 0, letter: 'T' },
-  ]
-  // A valid word cleared tiles 1..5 (CLEAR), then a hint was requested. Coop, so
-  // the log shows both, in id order (the word, then the hint).
-  const submissions: EventRow[] = [
-    { user_id: 'u2', id: 2, kind: 'word', word: 'clear', tile_ids: [1, 2, 3, 4, 5], valid: true, created_at: '2026-01-01T00:00:01Z' },
-    { user_id: 'u1', id: 3, kind: 'hint', word: 'a fruit', tile_ids: null, valid: null, created_at: '2026-01-01T00:00:02Z' },
-  ]
-
-  /** A loaded coop hook whose board is the 8-tile fixture with CLEAR's tiles
-   *  already off the live board. */
-  function historyHook(): GameHook {
-    return {
-      ...loaded(loadedGame({ mode: 'coop', tiles: historyTiles }), twoRows),
-      submissions,
-      removedTileIds: new Set([1, 2, 3, 4, 5]),
-    }
+  // moth cleared CLEAR, then I asked for a hint.
+  const facts: ZTest_GameDataFacts = {
+    tiles: makeRow('CLEARMOT'),
+    players: TWO,
+    events: [
+      ZTest_word(2, 'u2', 'clear', ['1', '2', '3', '4', '5'], true),
+      ZTest_hint(3, 'u1', 'a fruit'),
+    ],
   }
 
-  // The keystroke half needs the dispatcher: exiting the viewer is the hook's own
-  // action now, and the board's tile keys go DISABLED while a turn is open
-  // so the press falls through to it.
+  // The keystroke half needs the dispatcher: exiting the viewer is the hook's
+  // own action, and the board's tile keys go DISABLED while a turn is open so
+  // the press falls through to it.
   it('clicking a word row replays that turn; a keystroke returns to live', async () => {
     const user = userEvent.setup()
-    h.result = historyHook()
-    render(<WithKeys {...makeCtx({ players: twoMembers })} />)
+    render(<WithKeys {...makeCtx(facts)} />)
 
     // Live: CLEAR's tiles are off the board (L is one of them).
     expect(screen.queryByText('L')).not.toBeInTheDocument()
 
-    // Open the viewer via the turn's "#N" handle (the click target is the number,
-    // not the row). Found by its marker rather than its words: the row also holds
-    // a definable word, and matching on wording breaks when the wording changes.
     await user.click(handleIn(screen.getByText('CLEAR')))
 
-    // Viewing turn 0: the viewer banner shows the description, and CLEAR's
-    // tiles are back on the historical board (nothing was cleared before it).
+    // Viewing it: the banner says what it did, and CLEAR's tiles are back on
+    // the board (nothing was cleared before it).
     expect(screen.getByText('Cleared CLEAR')).toBeInTheDocument()
     expect(screen.getByText('L')).toBeInTheDocument()
 
@@ -355,14 +248,13 @@ describe('stackdown PlayArea — turn-history viewer', () => {
 
   it('viewing a later (hint) turn shows the board AS OF that turn — earlier word already cleared', async () => {
     const user = userEvent.setup()
-    h.result = historyHook()
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    render(<PlayAreaLoader {...makeCtx(facts)} />)
 
     await user.click(handleIn(screen.getByText('Hint: a fruit')))
 
-    // The hint's description now also appears in the banner (2 = log row + banner).
+    // The hint's description now also appears in the banner (log row + banner).
     expect(screen.getAllByText('Hint: a fruit')).toHaveLength(2)
-    // A hint cleared nothing, and CLEAR (before it) had — so the historical board
+    // A hint cleared nothing, and CLEAR (before it) had — so the board then
     // still has CLEAR's tiles OFF (strictly-before boundary).
     expect(screen.queryByText('L')).not.toBeInTheDocument()
   })
@@ -374,7 +266,7 @@ describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
   // the legend) — a row without its glyph would teach nothing.
   it('offers Hint + Spoiler rows carrying their glyphs, wired to the same RPCs', async () => {
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     const items = menuItems(ctx)
     expect(items.get('act-hint')?.label).toBe('Hint for next word')
     expect(items.get('act-hint')?.icon).toBeTruthy()
@@ -382,14 +274,14 @@ describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
     expect(items.get('act-spoiler')?.icon).toBeTruthy()
 
     items.get('act-hint')?.run()
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('reveal_next_hint', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('reveal_next_hint', { p_game_id: 'g1' }))
     items.get('act-spoiler')?.run()
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('reveal_next_word', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('reveal_next_word', { p_game_id: 'g1' }))
   })
 
-  it('grays the pair at terminal — disabled, never dropped, so the glyph still reads', () => {
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
-    render(<PlayArea {...ctx} />)
+  it('grays the pair once the game has ended — disabled, never dropped, so the glyph still reads', () => {
+    const ctx = makeCtx(SOLO_LOST)
+    render(<PlayAreaLoader {...ctx} />)
     const items = menuItems(ctx)
     expect(items.get('act-hint')?.disabled).toBe(true)
     expect(items.get('act-spoiler')?.disabled).toBe(true)
@@ -397,180 +289,150 @@ describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
 })
 
 /**
- * The terminal solution reveal — the six words, and the fact that seeing them
+ * The ending's solution reveal — the six words, and the fact that seeing them
  * is a LOCAL, reversible choice (useSolutionReveal). Nothing autoreveals to a
  * player who did not clear the stack: `replay_board` runs this very stack back
  * with the same solution, so an answer left in front of them would make Restart
  * theater. The player who DID clear it starts looking at the words.
  */
-describe('stackdown PlayArea — the terminal solution reveal', () => {
-  /** A finished game whose six words have reached this client (the server
-   *  unshields `solution` at is_terminal — stackdown._solution_for). */
-  const solved = () =>
-    loaded(loadedGame({ solution: ['clamp', 'trick', 'shove', 'plaid', 'gruff', 'wince'] }), [
-      playerRow('u1'),
-    ])
-
-  it('hides the words at a terminal NOBODY solved', () => {
-    h.result = solved()
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
-    expect(screen.queryByText(/CLAMP/)).not.toBeInTheDocument()
+describe('stackdown PlayArea — the solution reveal', () => {
+  it('hides the words at an ending NOBODY cleared', () => {
+    render(<PlayAreaLoader {...makeCtx(STOPPED)} />)
+    expect(screen.queryByText(/EAGLE/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
   it('a coop WIN shows them unasked — the stack was cleared, so you saw all six', () => {
-    // The coop half of `solvedByMe`, and the case a per-player bit gets wrong:
-    // stackdown writes `players.solved` only in COMPETE, so a per-player bit
-    // would read false here and leave the solver pressing Reveal for words
-    // they'd just played.
-    h.result = solved()
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
-    expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          ending: { reason: 'reached_goal', detail: 'cleared', by: 'u1', winner: null },
+          outcome: 'won',
+          players: [{ ...ME, outcome: 'won', finalRanking: 1, solvedAt: '2026-09-03T00:00:00Z' }],
+        })}
+      />,
+    )
+    expect(screen.getByText(/EAGLE/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
 
   it('Reveal shows them for me alone — no RPC, nothing written', async () => {
     const user = userEvent.setup()
-    h.result = solved()
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
-    expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
+    expect(screen.getByText(/EAGLE/)).toBeInTheDocument()
     // The absent RPC is the assertion: no peer's board opened.
     expect(rpc).not.toHaveBeenCalled()
   })
 
   it('the same button hides them again, restoring the column as the game ended', async () => {
     const user = userEvent.setup()
-    h.result = solved()
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     await user.click(screen.getByRole('button', { name: 'Hide solution' }))
-    expect(screen.queryByText(/CLAMP/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/EAGLE/)).not.toBeInTheDocument()
   })
 
   it('the menu twin is the same toggle and flips its label along with it', async () => {
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
-    h.result = solved()
-    render(<PlayArea {...ctx} />)
+    const ctx = makeCtx(SOLO_LOST)
+    render(<PlayAreaLoader {...ctx} />)
 
     expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
     act(() => menuItems(ctx).get('act-reveal')!.run())
-    expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
+    expect(screen.getByText(/EAGLE/)).toBeInTheDocument()
     await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide solution'))
   })
 
   it('the menu twin is inert before the game is over for everyone', () => {
-    const ctx = makeCtx({ isTerminal: false, playState: 'playing' })
-    render(<PlayArea {...ctx} />)
-    // Nothing to show: the words don't reach this client until is_terminal, so
-    // a player who dropped out can't spoil a race still running.
+    const ctx = makeCtx()
+    render(<PlayAreaLoader {...ctx} />)
+    // Nothing to show: the words aren't in the blob until the game ends, so a
+    // player who dropped out can't spoil a race still running.
     expect(menuItems(ctx).get('act-reveal')?.disabled).toBe(true)
   })
 
   it('a Restart puts the words away again', async () => {
     const user = userEvent.setup()
-    h.result = solved()
-    const { rerender } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
-    expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
+    expect(screen.getByText(/EAGLE/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Restart' }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
     // The same stack and the same six words — and nothing on the server
-    // remembers the reveal now, so the re-hide is local and explicit.
-    h.result = loaded(loadedGame(), [playerRow('u1')])
-    rerender(<PlayArea {...makeCtx()} />)
-    expect(screen.queryByText(/CLAMP/)).not.toBeInTheDocument()
+    // remembers the reveal, so the re-hide is local and explicit.
+    rerender(<PlayAreaLoader {...makeCtx()} />)
+    expect(screen.queryByText(/EAGLE/)).not.toBeInTheDocument()
   })
 })
 
-/**
- * The board's three keys, through the dispatcher. The word itself lives in
- * `useGame` (mocked), so what a key DOES is asserted on the hook's stubs —
- * `appendTile` / `retractTo` — and the word growing is shown by handing the
- * hook's answer back on a rerender, the way the realtime refetch would.
- */
+/** The board's three keys, through the dispatcher, on five exposed,
+ *  uniquely-lettered tiles, so a letter names exactly one. */
 describe('stackdown PlayArea — the board keys', () => {
-  /** Five exposed, uniquely-lettered tiles, so a letter names exactly one. */
-  const five: Tile[] = [
-    { id: 1, x: 0, y: 0, z: 0, letter: 'C' },
-    { id: 2, x: 1, y: 0, z: 0, letter: 'L' },
-    { id: 3, x: 2, y: 0, z: 0, letter: 'E' },
-    { id: 4, x: 3, y: 0, z: 0, letter: 'A' },
-    { id: 5, x: 4, y: 0, z: 0, letter: 'R' },
-  ]
+  const FIVE: ZTest_GameDataFacts = { tiles: makeRow('CLEAR') }
 
   it('a letter picks the exposed tile bearing it, and the word grows', async () => {
-    h.result = loaded(loadedGame({ tiles: five }), [playerRow('u1')])
-    const { rerender } = render(<WithKeys {...makeCtx()} />)
+    render(<WithKeys {...makeCtx(FIVE)} />)
     expect(wordSlots()).toBe('')
-
     await press({ key: 'a' })
-    expect(h.result.appendTile).toHaveBeenCalledWith(4)
-
-    // The hook answers with the tile in the word; the slot draws it.
-    h.result = { ...h.result, currentWord: [4] }
-    rerender(<WithKeys {...makeCtx()} />)
     expect(wordSlots()).toBe('A')
   })
 
   // Two exposed tiles bear the letter, so the board cannot pick for you. It
-  // rings the candidates and says nothing in the pill — the rings ARE the
-  // question, which is why a mark that stops drawing leaves the player with a
-  // keystroke that silently did nothing.
-  it('rings both candidates when a letter is ambiguous, and asks nothing in the pill', async () => {
-    const twoRs: Tile[] = [
-      { id: 1, x: 0, y: 0, z: 0, letter: 'R' },
-      { id: 2, x: 2, y: 0, z: 0, letter: 'R' },
-    ]
-    h.result = loaded(loadedGame({ tiles: twoRs }), [playerRow('u1')])
-    render(<WithKeys {...makeCtx()} />)
-
+  // rings the candidates — the rings ARE the question.
+  it('rings both candidates when a letter is ambiguous, and picks neither', async () => {
+    render(<WithKeys {...makeCtx({ tiles: makeRow('RR') })} />)
     await press({ key: 'r' })
-    expect(h.result.appendTile).not.toHaveBeenCalled()
+    expect(wordSlots()).toBe('')
     expect(document.querySelectorAll('[class*="flash"]').length).toBe(2)
   })
 
   it('a letter no exposed tile bears is refused in the pill', async () => {
-    h.result = loaded(loadedGame({ tiles: five }), [playerRow('u1')])
-    render(<WithKeys {...makeCtx()} />)
+    render(<WithKeys {...makeCtx(FIVE)} />)
     await press({ key: 'z' })
-    expect(h.result.appendTile).not.toHaveBeenCalled()
+    expect(wordSlots()).toBe('')
     expect(screen.getByText('No “Z” tile is on top')).toBeInTheDocument()
   })
 
   it('⌫ returns the last tile, and is gray with nothing picked up', async () => {
-    h.result = loaded(loadedGame({ tiles: five }), [playerRow('u1')])
-    const { rerender } = render(<WithKeys {...makeCtx()} />)
+    render(<WithKeys {...makeCtx(FIVE)} />)
     expect(stateOf('act-delete-last')).toBe('disabled')
-    await press({ key: 'Backspace', code: 'Backspace' })
-    expect(h.result.retractTo).not.toHaveBeenCalled()
 
-    h.result = { ...h.result, currentWord: [1, 2] }
-    rerender(<WithKeys {...makeCtx()} />)
+    await typeLetters('cl')
     expect(stateOf('act-delete-last')).toBe('active')
     await press({ key: 'Backspace', code: 'Backspace' })
-    expect(h.result.retractTo).toHaveBeenCalledWith(1)
+    expect(wordSlots()).toBe('C')
   })
 
   it('Enter submits five tiles, and is gray with fewer', async () => {
-    rpc.mockResolvedValue(okEnvelope({ result: 'accepted', word: 'clear' }))
-    h.result = { ...loaded(loadedGame({ tiles: five }), [playerRow('u1')]), currentWord: [1, 2] }
-    const { rerender } = render(<WithKeys {...makeCtx()} />)
+    rpc.mockResolvedValue(okEnvelope({ result: 'accepted', word: 'clear' }, 'won'))
+    render(<WithKeys {...makeCtx(FIVE)} />)
+    await typeLetters('cl')
     expect(stateOf('act-submit')).toBe('disabled')
     await press({ key: 'Enter', code: 'Enter' })
     expect(rpc).not.toHaveBeenCalled()
 
-    h.result = { ...h.result, currentWord: [1, 2, 3, 4, 5] }
-    rerender(<WithKeys {...makeCtx()} />)
+    await typeLetters('ear')
     expect(stateOf('act-submit')).toBe('active')
     await press({ key: 'Enter', code: 'Enter' })
     await waitFor(() =>
-      expect(rpc).toHaveBeenCalledWith('submit_word', { target_game: 'g1', tile_ids: [1, 2, 3, 4, 5] }),
+      expect(rpc).toHaveBeenCalledWith('submit_word', { p_game_id: 'g1', p_tile_ids: [1, 2, 3, 4, 5] }),
     )
+  })
+
+  it('an accepted word leaves the board before the next blob arrives', async () => {
+    rpc.mockResolvedValue(okEnvelope({ result: 'accepted', word: 'clear' }, 'won'))
+    render(<WithKeys {...makeCtx({ tiles: makeRow('CLEARM') })} />)
+    await typeLetters('clear')
+    await press({ key: 'Enter', code: 'Enter' })
+    await waitFor(() => expect(wordSlots()).toBe('CLEAR'))
+    // The slots flash the word; the board holds its tiles off while the blob
+    // that has them cleared is on its way.
+    expect(tileFor('L')).toBeUndefined()
+    expect(tileFor('M')).toBeDefined()
   })
 
   it('a refused word answers in the slots, holds its tiles off the board, then sends them home flashing', async () => {
@@ -578,16 +440,9 @@ describe('stackdown PlayArea — the board keys', () => {
     try {
       // NOT A WORD: an `ok` whose data says `invalid`, with the outcome and the
       // sentence on the envelope — no tile moved, so nothing was cleared.
-      rpc.mockResolvedValue({
-        data: {
-          type: 'ok', data: { result: 'invalid' }, outcome: 'lost', severity: null,
-          message: 'CLEAR is not a word', field: null, meta: null, dbcode: null, detail: null,
-        },
-        error: null,
-      })
-      h.result = { ...loaded(loadedGame({ tiles: five }), [playerRow('u1')]), currentWord: [1, 2, 3, 4, 5] }
-      const ctx = makeCtx()
-      const { rerender } = render(<WithKeys {...ctx} />)
+      rpc.mockResolvedValue(okEnvelope({ result: 'invalid', word: 'clear' }, 'lost', 'Not a word: CLEAR'))
+      render(<WithKeys {...makeCtx(FIVE)} />)
+      await typeLetters('clear')
       await press({ key: 'Enter', code: 'Enter' })
       // Let the answer arrive: the mock resolves in microtasks, not on a timer.
       await act(async () => {
@@ -596,33 +451,47 @@ describe('stackdown PlayArea — the board keys', () => {
 
       // The answer, where the eye already is: the slots wear the refusal and
       // shake. The word is still in them — its tiles are NOT back on the board.
-      const slotC = screen.getByText('C')
+      const slotC = within(screen.getByLabelText('Current word')).getByText('C')
       expect(slotC.className).toMatch(/verdictLost/)
       expect(slotC.className).toMatch(/verdictShake/)
-      expect(h.result.clearWord).not.toHaveBeenCalled()
+      expect(tileFor('C')).toBeUndefined()
 
       // Held for the whole answer beat, and not a moment less.
       act(() => vi.advanceTimersByTime(WORD_ANSWER_MS - 1))
-      expect(h.result.clearWord).not.toHaveBeenCalled()
+      expect(tileFor('C')).toBeUndefined()
       act(() => vi.advanceTimersByTime(1))
-      expect(h.result.clearWord).toHaveBeenCalledTimes(1)
 
-      // The word is cleared (the hook's answer, handed back as a refetch would),
-      // and the tiles land back on the board wearing the attention flash — the
-      // eye follows them home — with the slots' verdict gone.
-      h.result = { ...h.result, currentWord: [] }
-      act(() => rerender(<WithKeys {...ctx} />))
-      const tileC = screen.getByText('C').parentElement as HTMLElement
-      expect(tileC.className).toMatch(/attentionFlash/)
+      // The word is cleared, and the tiles land back on the board wearing the
+      // attention flash — the eye follows them home — with the slots' verdict
+      // gone.
+      expect(wordSlots()).toBe('')
+      expect(tileFor('C')!.className).toMatch(/attentionFlash/)
       expect(screen.getByLabelText('Current word').innerHTML).not.toMatch(/verdictLost/)
     } finally {
       vi.useRealTimers()
     }
   })
 
+  it('a word a teammate\'s clear took a tile from is gone', async () => {
+    const { rerender } = render(<WithKeys {...makeCtx({ tiles: makeRow('CLEARM'), players: TWO })} />)
+    await typeLetters('cm')
+    expect(wordSlots()).toBe('CM')
+
+    // moth's CLEAR lands, and with it the C I was building with.
+    rerender(
+      <WithKeys
+        {...makeCtx({
+          tiles: makeRow('CLEARM'),
+          players: TWO,
+          events: [ZTest_word(1, 'u2', 'clear', ['1', '2', '3', '4', '5'], true)],
+        })}
+      />,
+    )
+    expect(wordSlots()).toBe('')
+  })
+
   it('the result clears on any key, even one nothing binds', async () => {
-    h.result = loaded(loadedGame({ tiles: five }), [playerRow('u1')])
-    render(<WithKeys {...makeCtx()} />)
+    render(<WithKeys {...makeCtx(FIVE)} />)
     await press({ key: 'z' })
     expect(screen.getByText('No “Z” tile is on top')).toBeInTheDocument()
 
@@ -640,23 +509,23 @@ describe('stackdown PlayArea — the board keys', () => {
  * was asked rather than skipped.
  */
 describe('stackdown PlayArea — + and ⌥⌫ through the dispatcher', () => {
-  it('+ at terminal claims the next board with no question', async () => {
+  it('+ once ended claims the next board with no question', async () => {
     rpc.mockImplementation((name: string) =>
       name === 'create_game'
         ? Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
         : Promise.resolve({ error: null, data: null }),
     )
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    const ctx = makeCtx(SOLO_LOST)
     render(<WithKeys {...ctx} />)
     await press({ key: '+' })
     // No <ConfirmationHost/> is mounted, so a question would have been answered
     // "no" — the RPC firing proves none was asked.
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('create_game', {
-        target_club: 'testclub',
-        setup: ctx.setup,
-        player_user_ids: ['u1'],
-        mode: 'coop',
+        p_club_handle: 'testclub',
+        p_setup: { band: 1, timer: { kind: 'none' } },
+        p_player_user_ids: ['u1'],
+        p_mode: 'coop',
       }),
     )
     await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
@@ -688,27 +557,24 @@ describe('stackdown PlayArea — + and ⌥⌫ through the dispatcher', () => {
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
     expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
-    // The trigger and the modal's confirm share the name; the confirm is the
-    // one the dialog adds, so it's last in the DOM.
     const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
   it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
-    h.result = loaded(loadedGame({ mode: 'compete' }), twoRows)
     render(
       <>
-        <WithKeys {...makeCtx({ players: twoMembers })} />
+        <WithKeys {...makeCtx({ mode: 'compete', players: TWO })} />
         <ConfirmationHost />
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
     expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
   })
 
   it('Restart mid-game asks before wiping the stack', async () => {
@@ -716,7 +582,7 @@ describe('stackdown PlayArea — + and ⌥⌫ through the dispatcher', () => {
     const ctx = makeCtx()
     render(
       <>
-        <PlayArea {...ctx} />
+        <PlayAreaLoader {...ctx} />
         <ConfirmationHost />
       </>,
     )
@@ -736,48 +602,24 @@ describe('stackdown PlayArea — + and ⌥⌫ through the dispatcher', () => {
 describe('stackdown PlayArea — a teammate’s word on the board', () => {
   /** Five tiles in a row on the upper layer, with one buried under the first of
    *  them: clearing the five is what makes the sixth reachable. */
-  const stacked: Tile[] = [
-    { id: 1, x: 0, y: 0, z: 1, letter: 'C' },
-    { id: 2, x: 2, y: 0, z: 1, letter: 'L' },
-    { id: 3, x: 4, y: 0, z: 1, letter: 'E' },
-    { id: 4, x: 6, y: 0, z: 1, letter: 'A' },
-    { id: 5, x: 8, y: 0, z: 1, letter: 'R' },
-    { id: 6, x: 0, y: 0, z: 0, letter: 'Z' },
-  ]
-  const peerWord: EventRow = {
-    user_id: 'u2',
-    id: 1,
-    kind: 'word',
-    word: 'clear',
-    tile_ids: [1, 2, 3, 4, 5],
-    valid: true,
-    created_at: '2026-01-01T00:00:01Z',
-  }
-  const tileFor = (letter: string) => screen.getByText(letter).parentElement as HTMLElement
+  const stacked: GTile[] = [...makeRow('CLEAR', 1), { id: '6', letter: 'Z', x: 0, y: 0, z: 0 }]
+  const peerWord = ZTest_word(1, 'u2', 'clear', ['1', '2', '3', '4', '5'], true)
 
   it('marks their tiles, holds them while the answer shows, then lets them go', () => {
     vi.useFakeTimers()
     try {
-      h.result = loaded(loadedGame({ mode: 'coop', tiles: stacked }), twoRows)
-      const ctx = makeCtx({ players: twoMembers })
-      const { rerender } = render(<PlayArea {...ctx} />)
-      // Z is buried under C, so it is not even drawn as reachable yet.
-      expect(tileFor('C').className).not.toMatch(/attentionFlash/)
+      const { rerender } = render(<PlayAreaLoader {...makeCtx({ tiles: stacked, players: TWO })} />)
+      expect(tileFor('C')!.className).not.toMatch(/attentionFlash/)
 
       // moth's word lands: the row arrives and its tiles are gone server-side.
-      h.result = {
-        ...loaded(loadedGame({ mode: 'coop', tiles: stacked }), twoRows),
-        submissions: [peerWord],
-        removedTileIds: new Set([1, 2, 3, 4, 5]),
-      }
-      act(() => rerender(<PlayArea {...ctx} />))
+      act(() => rerender(<PlayAreaLoader {...makeCtx({ tiles: stacked, players: TWO, events: [peerWord] })} />))
 
       // Beat one: the tiles are still on the board, wearing the attention flash.
-      expect(tileFor('C').className).toMatch(/attentionFlash/)
+      expect(tileFor('C')!.className).toMatch(/attentionFlash/)
 
       // Beat three: the hold ends and the five leave.
       act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS + WORD_ANSWER_MS + 10))
-      expect(screen.queryByText('C')).toBeNull()
+      expect(tileFor('C')).toBeUndefined()
     } finally {
       vi.useRealTimers()
     }
@@ -785,39 +627,22 @@ describe('stackdown PlayArea — a teammate’s word on the board', () => {
 })
 
 describe('stackdown PlayArea — a teammate’s refused word', () => {
-  const row: Tile[] = [
-    { id: 1, x: 0, y: 0, z: 1, letter: 'C' },
-    { id: 2, x: 2, y: 0, z: 1, letter: 'L' },
-    { id: 3, x: 4, y: 0, z: 1, letter: 'E' },
-    { id: 4, x: 6, y: 0, z: 1, letter: 'A' },
-    { id: 5, x: 8, y: 0, z: 1, letter: 'R' },
-  ]
+  const row = makeRow('CLEAR', 1)
 
   it('marks their tiles on the board: attention first, then the answer', () => {
     vi.useFakeTimers()
     try {
-      h.result = loaded(loadedGame({ mode: 'coop', tiles: row }), twoRows)
-      const ctx = makeCtx({ players: twoMembers })
-      const { rerender } = render(<PlayArea {...ctx} />)
+      const { rerender } = render(<PlayAreaLoader {...makeCtx({ tiles: row, players: TWO })} />)
 
       // moth tried a word and was refused: the row lands, nothing was cleared.
-      h.result = {
-        ...loaded(loadedGame({ mode: 'coop', tiles: row }), twoRows),
-        submissions: [{
-          user_id: 'u2', id: 1, kind: 'word', word: 'clear',
-          tile_ids: [1, 2, 3, 4, 5], valid: false,
-          created_at: '2026-01-01T00:00:01Z',
-        }],
-      }
-      act(() => rerender(<PlayArea {...ctx} />))
-      expect((screen.getByText('C').parentElement as HTMLElement).className).toMatch(
-        /attentionFlash/,
-      )
+      const refused = ZTest_word(1, 'u2', 'clear', ['1', '2', '3', '4', '5'], false)
+      act(() => rerender(<PlayAreaLoader {...makeCtx({ tiles: row, players: TWO, events: [refused] })} />))
+      expect(tileFor('C')!.className).toMatch(/attentionFlash/)
 
       // Once the flash has faded, the answer: the tiles keep their place (nothing
       // was cleared) and wear the refusal — which shakes.
       act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS + 10))
-      const tile = screen.getByText('C').parentElement as HTMLElement
+      const tile = tileFor('C')!
       expect(tile.className).toMatch(/verdictShake/)
       expect(tile.getAttribute('style')).toMatch(/outcomes-lost-fill-color/)
     } finally {

@@ -3,7 +3,8 @@
 import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, drawSetupBelow, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
 import { drawInTracks, type Track } from '@/common/pdf/columns'
-import { letterCorner, type Tile } from '../lib/board'
+import { letterCorner } from '../lib/board'
+import type { GTile } from '../types'
 import type { PrintTrack, StackdownPrintModel } from './model'
 
 /**
@@ -106,7 +107,7 @@ function drawWordList(doc: jsPDF, t: PrintTrack, track: Track, y: number): numbe
  * ones — the white fill IS the occlusion, which is how a printed mahjong board
  * reads as stacked at all. Returns the y below the block.
  */
-function drawStack(doc: jsPDF, tiles: Tile[], x0: number, y0: number, colW: number): number {
+function drawStack(doc: jsPDF, tiles: GTile[], x0: number, y0: number, colW: number): number {
   const maxX = Math.max(0, ...tiles.map((t) => t.x))
   const maxY = Math.max(0, ...tiles.map((t) => t.y))
 
