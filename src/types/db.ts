@@ -1929,12 +1929,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "events_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 },"games": {
@@ -1958,13 +1952,13 @@ isOneToOne: false
                   ]
                 },"players": {
                   Row: {
-                    "found_count": number,"game_id": string,"user_id": string
+                    "game_id": string,"n_found_words": number,"user_id": string
                   }
                   Insert: {
-                    "found_count"?: number,"game_id": string,"user_id": string
+                    "game_id": string,"n_found_words"?: number,"user_id": string
                   }
                   Update: {
-                    "found_count"?: number,"game_id"?: string,"user_id"?: string
+                    "game_id"?: string,"n_found_words"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1973,47 +1967,55 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 }
           }
           Views: {
-            "games_state": {
-                  Row: {
-                    "game_id": string | null,"solution": (string)[] | null,"tiles": Json | null
-                  }
-                  Insert: {
-                           "game_id"?: string | null,"solution"?: never,"tiles"?: Json | null
-                         }
-                        Update: {
-                           "game_id"?: string | null,"solution"?: never,"tiles"?: Json | null
-                         }
-                        Relationships: [
-                    
-                  ]
-                }
+            [_ in never]: never
           }
           Functions: {
-            "_found_title":
+            "_cleared_tile_ids":
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: (number)[]
+                           },
+"_found_title":
 { Args: { "n": number,"solution": (string)[] }; Returns: string
                            },
 "_is_exposed":
 { Args: { "gone": (number)[],"tid": number,"tiles": Json }; Returns: boolean
                            },
-"_solution_for":
-{ Args: { "p_game_id": string }; Returns: (string)[]
+"_make_json_counts":
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
+                           },
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_puzzle":
+{ Args: { "p_ended": boolean,"sg": Database["stackdown"]['Tables']["games"]['Row'] }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_tiles":
+{ Args: { "p_cleared_ids": (number)[],"p_tiles": Json }; Returns: Json
+                           },
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+                           },
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "_word":
 { Args: { "ids": (number)[],"tiles": Json }; Returns: string
-                           },
-"_write_statuses":
-{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
                            },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json

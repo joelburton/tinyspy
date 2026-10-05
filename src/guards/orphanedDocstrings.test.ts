@@ -67,7 +67,6 @@ const KNOWN: string[] = [
   'src/guards/dbCallShape.test.ts › BUILDER',
   // → stackdown
   'src/stackdown/components/PlayArea.tsx › SOLUTION_WORDS',
-  'src/stackdown/manifest.ts › summaryFor',
   // → strands
   'src/strands/components/PlayArea.tsx › HintAnswer',
   'src/strands/pdf/model.ts › FoundEvent',

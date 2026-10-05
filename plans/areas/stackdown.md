@@ -42,7 +42,7 @@ last column is what the conversion will do, filled in as it does it.
 | `games_state` view, with `_solution_for` — the game row, the six words once the game has ended | `ended_at` | **dropped** (2026-10-05): `game_data` carries the six words once the game ends, and the column grant on `solution` stays the real guard |
 | `games_select`, `players_select` — club-member reads | neither | **kept** (2026-10-05) |
 | `_write_statuses` — `game_status` {}, `player_status` {found_words_count, hints_count, spoilers_count, player_ended_reason}, `clubpage_info` {found_words_count, band, winner_user_id} | neither | **dropped** (2026-10-05): `_rebuild_data_cols` writes the blobs after every move |
-| the postgres-changes subscription on `games`, `players` and `events` (`useRealtimeRefetch` in `hooks/useGame.ts`), and its reads of `games_state`, `players` and `events` | — | |
+| the postgres-changes subscription on `games`, `players` and `events` (`useRealtimeRefetch` in `hooks/useGame.ts`), and its reads of `games_state`, `players` and `events` | — | **gone** (2026-10-05): `useGame` is `makeGameData` over `game_data`, with no read and no subscription; its seat rule takes over the events arm |
 
 **The status keys the page shows:** none it can still read. `PlayArea.tsx`
 reads `status.winner_user_id` and `status.winner_username` (the compete
@@ -99,7 +99,7 @@ setup pair (`GSetupValues`, `GSetup`), `GAnswer` and `GWordFlash` moved in, and
 `HistorySnapshot` stopped being exported. Five exports are old shapes that go
 with their readers, so stackdown joins `CONVERTED_GAMES` once they have:
 
-- `useGame.ts`'s `PlayerRow`, `EventRow`, `StackdownGame` — step 7.
+- ~~`useGame.ts`'s `PlayerRow`, `EventRow`, `StackdownGame`~~ — gone at step 7.
 - `lib/history.ts`'s `Submission` — when the replay folds `GEvent`s.
 - `lib/board.ts`'s `Tile` (a numeric id) — when Board, BoardCol, WordEntry and
   the printer take `GTile`.
@@ -112,6 +112,15 @@ with their readers, so stackdown joins `CONVERTED_GAMES` once they have:
   gate alone: the blob and the table carry a rival's rows, and withholding
   them mid-race is the hook's. `players.found_count` is `n_found_words`
   (20261005000003).
+- **Step 7 (2026-10-05):** the old `useGame`'s shapes went; their readers
+  (`PlayArea`, `GameEventLog`, `InfoCol`, `pdf/model.ts`) fail to compile
+  until the component passes move them onto `gd`. The club card reads
+  `summary_data`, and its labels read as they did (`npm run
+  report:summaries`). The word being built moved, as it was, into
+  `hooks/useCurrentWord.ts`; the two things the old read did to it on every
+  refetch — dropping the optimistic hold on tiles the server has confirmed,
+  and emptying a word a teammate's clear has taken a tile from — are owed to
+  the PlayArea pass, where the hook will be handed the cleared tiles.
 - **Steps 4–9:** the frontend reads `games_state` and the old common shapes
   until the PlayArea pass moves every reader onto `gd`; it could not load
   before this began.

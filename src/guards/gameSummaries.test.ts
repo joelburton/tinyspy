@@ -244,20 +244,22 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'Stop'],
     ],
   },
+  // stackdown._make_json_summary_data: `team` holds coop's three counts and is null in compete,
+  // whose line names no count; the band is the setup's.
   stackdown: {
-    playing: { found_words_count: 3, required_words_count: 6 },
-    setup: { band: 3 },
-    shared: [['ended', { reason: 'manual', found_words_count: 3, required_words_count: 6 }, 'manual end']],
+    live: { team: { nFoundWords: 3, nHintsUsed: 1, nSpoilersUsed: 0 }, nReqdWords: 6, band: 3 },
     coop: [
-      ['won', { reason: 'cleared', found_words_count: 6, required_words_count: 6 }, 'cleared'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared' }, { team: { nFoundWords: 6, nHintsUsed: 1, nSpoilersUsed: 0 }, nReqdWords: 6, band: 3 }, 'cleared'],
       // The clock is stackdown's ONLY loss — no move budget, and every board
       // is guaranteed clearable.
-      ['lost', { reason: 'timeout', found_words_count: 3, required_words_count: 6 }, 'timeout'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nFoundWords: 3, nHintsUsed: 1, nSpoilersUsed: 0 }, nReqdWords: 6, band: 3 }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nFoundWords: 3, nHintsUsed: 1, nSpoilersUsed: 0 }, nReqdWords: 6, band: 3 }, 'Stop'],
     ],
     compete: [
-      ['won_compete', W, 'someone won'],
-      ['lost_compete', { reason: 'timeout' }, 'timeout'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared', winner: 'u-alice' }, { team: null, nReqdWords: 6, band: 3 }, 'first to clear'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, nReqdWords: 6, band: 3 }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, nReqdWords: 6, band: 3 }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nReqdWords: 6, band: 3 }, 'Stop'],
     ],
   },
   scrabble: {

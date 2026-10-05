@@ -3,12 +3,13 @@
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
-import type { SummaryData } from '@/common/manifest/summaryData'
 import { db } from './db'
-import { dictLabel, verdict, setupNum, statusLine, tally, wonBy } from '@/common/manifest/summary'
+import { dictLabel, verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
 import { DEFAULT_STACKDOWN_SETUP } from './lib/setup'
-import type { GSetup } from './types'
+import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -43,10 +44,10 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: setup as GSetup,
-        player_user_ids: playerUserIds,
-        mode,
+        p_club_handle: clubHandle,
+        p_setup: setup as GSetup,
+        p_player_user_ids: playerUserIds,
+        p_mode: mode,
       }),
     )
 }
@@ -56,48 +57,56 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-/** One-line label for the ClubPage games list — pure + synchronous.
- *  The coop/compete mode is shown by the card's <ModeBadge>, so it's no
- *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
 /**
- * stackdown's summary. The dict band rides on every row — the
- * words a stack is built from change the game's difficulty completely.
- *
- * Coop shows the word count (one shared board, so it's everyone's); compete
- * doesn't — each racer's found words are hidden from the others, and this
- * line is club-wide readable.
- *
- * Only ONE loss exists in either mode: the clock. There's no move budget, and
- * the board invariant guarantees every stack is clearable.
+ * COOP's club line: the team's progress through the six words, and the
+ * dictionary band — the words a stack is built from change its difficulty
+ * completely. The clock is the only loss: there is no move budget, and every
+ * board is clearable.
  */
-function summaryFor(mode: 'coop' | 'compete') {
-  return (row: SummaryData): string => {
-    const s = (row.status ?? {}) as {
-      winner_username?: string; reason?: string
-      found_words_count?: number; required_words_count?: number
+function makeCoopLabel(summary: GSummaryData): string {
+  // Coop always has a team.
+  const found = tally(summary.team!.nFoundWords, summary.nReqdWords, 'words')
+  const dict = dictLabel(summary.band)
+  if (summary.ending === null) return statusLine(verdict('Playing'), found, dict)
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won':
+      return statusLine(verdict('Won'), dict)
+    case 'lost':
+      return statusLine(verdict('Lost', summary.ending.reason === 'timeout' ? 'out of time' : null), found, dict)
+    // A Stop.
+    case 'neutral':
+      return statusLine(verdict('Ended'), found, dict)
+    default:
+      return outcome
+  }
+}
+
+/**
+ * COMPETE's club line names no count: each racer's words are hidden from the
+ * others, and the line is club-wide readable. The first to clear wins; the
+ * clock, or the last racer conceding, ends it with no winner.
+ */
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
+  const dict = dictLabel(summary.band)
+  if (summary.ending === null) return statusLine(verdict('Playing'), dict)
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won': {
+      const winner = summary.ending.winner
+      return statusLine(wonBy(winner === null ? undefined : memberById(members, winner)?.username), dict)
     }
-    const dict = dictLabel(setupNum(row.setup, 'band'))
-    const found = mode === 'coop' ? tally(s.found_words_count, s.required_words_count, 'words') : null
-    switch (row.play_state) {
-      case 'playing':
-        return statusLine(verdict('Playing'), found, dict)
-      case 'won':
-        return statusLine(verdict('Won'), dict)
-      case 'won_compete':
-        return statusLine(wonBy(s.winner_username), dict)
-      case 'lost':
-        // Coop only — the clock beat a team that hadn't cleared the stack.
-        return statusLine(verdict('Lost', 'out of time'), found, dict)
-      case 'lost_compete':
-        // The clock, or the last racer conceding (common.concede).
-        return s.reason === 'conceded'
-          ? verdict('Lost', 'all conceded')
-          : statusLine(verdict('Lost', 'out of time'), 'no winner')
-      case 'ended':
-        return statusLine(verdict('Ended'), found, dict)
-      default:
-        return row.play_state
-    }
+    case 'lost':
+      return summary.ending.reason === 'conceded'
+        ? verdict('Lost', 'all conceded')
+        : statusLine(verdict('Lost', 'out of time'), 'no winner')
+    // A Stop.
+    case 'neutral':
+      return statusLine(verdict('Ended'), dict)
+    default:
+      return outcome
   }
 }
 
@@ -134,7 +143,7 @@ export const stackdownCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: summaryFor('coop'),
+  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
 
   submitTimeout,
   stopGame,
@@ -168,7 +177,7 @@ export const stackdownCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  summaryFor: summaryFor('compete'),
+  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
 
   submitTimeout,
   stopGame,
