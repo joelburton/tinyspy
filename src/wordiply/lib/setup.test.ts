@@ -7,10 +7,10 @@ import {
   wordiplySetupError,
   DEFAULT_WORDIPLY_SETUP_COOP,
   DEFAULT_WORDIPLY_SETUP_COMPETE,
-  type WordiplySetup,
 } from './setup'
+import type { GSetup } from '../types'
 
-const base: WordiplySetup = DEFAULT_WORDIPLY_SETUP_COOP
+const base: GSetup = DEFAULT_WORDIPLY_SETUP_COOP
 
 /** Both of wordiply's frontend refusals name the control they are about, so
  *  the key is asserted with the words: a message under the wrong box reads as

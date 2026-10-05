@@ -6,7 +6,8 @@ import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import { cleanBase, type WordiplyValues } from '../lib/setup'
+import { cleanBase } from '../lib/setup'
+import type { GSetupValues } from '../types'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import { ManualBoardField } from '@/common/fields/ManualBoardField'
 
@@ -26,8 +27,8 @@ import { ManualBoardField } from '@/common/fields/ManualBoardField'
 export function SetupForm({
   mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as WordiplyValues
-  const set = setValue as SetupSetter<WordiplyValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
   const players = members.filter((m) => s.player_user_ids.has(m.user_id))

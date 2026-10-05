@@ -16,7 +16,7 @@ import { LengthScoreBar } from './LengthScoreBar'
 import { GameEventLog } from './GameEventLog'
 import { OpponentReveal, type OpponentReveals } from './OpponentReveal'
 import type { EventRow } from '../hooks/useGame'
-import type { WordiplySetup } from '../lib/setup'
+import type { GSetup } from '../types'
 import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './PlayArea.module.css'
 
@@ -123,7 +123,7 @@ export function InfoCol({
   actBackToClub: Action
 
   // ── Setup disclosure ──
-  setup: WordiplySetup
+  setup: GSetup
   /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
   /** EVERY row for the event log — rejects included. Distinct from the accepted

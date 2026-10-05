@@ -171,6 +171,16 @@ The rulings behind it (2026-10-04):
   the member read.
 - **Steps 4–7:** the frontend reads `games_state` and the `events` columns
   directly, so the page is broken until `useGame` reads `game_data`.
+- **Before the conversion, and until steps 7–12:** `tsc -b` reports 71
+  errors in the folder, and `PlayArea.test.tsx` cannot load. The game still
+  reads the common layer's old shapes (`GamePlayer`, `user_id`,
+  `authSession`, `whereIStand`, `summaryFor`'s `row.status`); each goes with
+  the step that rewrites its reader.
+- **Step 6 (2026-10-04):** wordiply joins `CONVERTED_GAMES` in
+  `src/guards/gameTypes.test.ts` once the last old shapes are gone: `Player`,
+  `WordiplyGame` and `EventRow` with `useGame` (step 7), `OpponentGuess` /
+  `OpponentReveals` and `lib/history.ts`'s two with the passes that rewrite
+  their readers.
 
 ## Closing
 

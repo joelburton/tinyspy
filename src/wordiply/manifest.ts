@@ -11,8 +11,8 @@ import {
   DEFAULT_WORDIPLY_SETUP_COMPETE,
   DEFAULT_WORDIPLY_SETUP_COOP,
   wordiplySetupError,
-  type WordiplySetup,
 } from './lib/setup'
+import type { GSetup } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -65,7 +65,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // direct create_game returns, relayed untouched (see _shared/startGame.ts).
     runEdgeFn<CreatedGame>('wordiply-build-board', {
       target_club: clubHandle,
-      setup: setup as WordiplySetup,
+      setup: setup as GSetup,
       player_user_ids: playerUserIds,
       mode,
     })
@@ -166,7 +166,7 @@ export const wordiplyCoopGame: GameManifest = {
       'Everyone in the club shares five guesses. Each guess must contain the starter and be longer than it; together you\'re hunting the longest word.',
     Component: setupFormLoader,
     defaults: DEFAULT_WORDIPLY_SETUP_COOP,
-    validate: (setup) => wordiplySetupError(setup as WordiplySetup),
+    validate: (setup) => wordiplySetupError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('coop'),
@@ -201,7 +201,7 @@ export const wordiplyCompeteGame: GameManifest = {
       'Each player gets their own five guesses off the same starter. The longest word wins; until the end you only see how many guesses each other has spent, not the words.',
     Component: setupFormLoader,
     defaults: DEFAULT_WORDIPLY_SETUP_COMPETE,
-    validate: (setup) => wordiplySetupError(setup as WordiplySetup),
+    validate: (setup) => wordiplySetupError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('compete'),

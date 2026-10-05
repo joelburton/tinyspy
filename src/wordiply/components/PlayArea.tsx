@@ -23,7 +23,7 @@ import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoun
 import { useMark } from '@/common/board-marks/useMark'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { lengthScore } from '../lib/scoring'
-import type { WordiplySetup } from '../lib/setup'
+import type { GSetup } from '../types'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { MAX_GUESSES } from './GuessBoard'
@@ -95,7 +95,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // out to the browser.
   useTabRing([])
 
-  const wordiplySetup = setup as WordiplySetup
+  const wordiplySetup = setup as GSetup
 
   // The setup rows, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object

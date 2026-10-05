@@ -4,31 +4,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
 import type { WordSubmitReport } from '@/shared/found-words/useFoundWordSubmit'
 import type { EventRow } from '../hooks/useGame'
-
-/**
- * Everything that can be SAID about a guess in this game, as a closed set — and
- * **read as a list, it is the whole roster of what this game tells anybody.**
- * The names are the SERVER's, which its rejected rows carry in `reason`, so a
- * logged row and a live answer are read through one function.
- *
- * "_peer" versions are answers that come from subscriptions and are for peer
- * feedback. `word` is lowercase, as the engine and the rows carry it.
- */
-export type Answer =
-  // My guess counted. It says nothing: the board row shows the word and its
-  // length the moment it lands, so a line would say it twice.
-  | { answerType: 'accepted' }
-  // A coop teammate's did, off the events log.
-  | { answerType: 'accepted_peer'; word: string; length: number }
-
-  // A word already guessed — by anyone in coop, by me in compete.
-  | { answerType: 'already_found'; word: string }
-  // Not longer than the base.
-  | { answerType: 'too_short'; word: string }
-  // Does not contain the base.
-  | { answerType: 'missing_base'; word: string; base: string }
-  // Contains the base, and is not a word.
-  | { answerType: 'not_a_word'; word: string }
+import type { GAnswer } from '../types'
 
 /**
  * How an answer reads — **the one place this game decides that.** The pill,
@@ -43,7 +19,7 @@ export type Answer =
  *   - too short, and a word without the base in it, are RULES. Breaking one
  *     costs a turn like any other move, so it reads like a move that lost.
  */
-export function answerMessage(answer: Answer): AnswerMessage {
+export function answerMessage(answer: GAnswer): AnswerMessage {
   switch (answer.answerType) {
     case 'accepted':
       return { outcome: 'won', text: '' }
@@ -71,7 +47,7 @@ export function answerMessage(answer: Answer): AnswerMessage {
  *
  * `base` is empty until the game has loaded.
  */
-export function answerOf(report: WordSubmitReport, base: string): Answer {
+export function answerOf(report: WordSubmitReport, base: string): GAnswer {
   const word = report.word
   switch (report.answer) {
     case 'accepted':

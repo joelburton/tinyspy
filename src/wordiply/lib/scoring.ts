@@ -11,6 +11,8 @@
  * ordering render without another round-trip.
  */
 
+import type { GCompetitor } from '../types'
+
 /**
  * The length-bar percentage: `round(100 * longest / maxLen)`, clamped to
  * [0, 100]. `longest` is the longest guess (in a track); `maxLen` is the
@@ -27,14 +29,6 @@ export function letterCount(lengths: readonly number[]): number {
   return lengths.reduce((sum, n) => sum + n, 0)
 }
 
-/** One competitor's terminal totals, as the comparator needs them. */
-export type Competitor = {
-  length_score: number
-  letter_count: number
-  /** ISO timestamp of this player's last guess, or null if they never
-   *  guessed. Only consulted when the game is `timed`. */
-  finished_at: string | null
-}
 
 /**
  * The lexicographic comparator — returns <0 when `a` ranks ABOVE `b` (so
@@ -50,7 +44,7 @@ export type Competitor = {
  *   3. still tied AND the game is timed → earlier finish wins
  *   4. still tied → equal (co-leaders)
  */
-export function compareCompetitors(a: Competitor, b: Competitor, timed: boolean): number {
+export function compareCompetitors(a: GCompetitor, b: GCompetitor, timed: boolean): number {
   if (a.length_score !== b.length_score) return b.length_score - a.length_score
   if (a.letter_count !== b.letter_count) return b.letter_count - a.letter_count
   if (timed && a.finished_at && b.finished_at) {

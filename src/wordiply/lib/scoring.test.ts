@@ -1,7 +1,8 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { lengthScore, letterCount, compareCompetitors, type Competitor } from './scoring'
+import { lengthScore, letterCount, compareCompetitors } from './scoring'
+import type { GCompetitor } from '../types'
 
 describe('lengthScore', () => {
   it('is round(100 * longest / maxLen)', () => {
@@ -26,7 +27,7 @@ describe('letterCount', () => {
 })
 
 describe('compareCompetitors (leader-first, matches _finish_compete)', () => {
-  const c = (length_score: number, letter_count: number, finished_at: string | null): Competitor => ({
+  const c = (length_score: number, letter_count: number, finished_at: string | null): GCompetitor => ({
     length_score,
     letter_count,
     finished_at,
