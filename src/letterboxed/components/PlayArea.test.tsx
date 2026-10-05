@@ -1,50 +1,48 @@
 // cs-unmet
 
 /**
- * Component tests for letterboxed's PlayArea — the GAME MENU it publishes.
+ * Component tests for letterboxed's PlayArea — the GAME MENU it publishes, the
+ * hint ladder's answers, a refused move, and the keys.
  *
- * Why this file exists: letterboxed's info column is icon-only (docs/ui.md →
+ * Why the menu matters: letterboxed's info column is icon-only (docs/ui.md →
  * Button iconography), and three of its glyphs — the hint lightbulb, the
- * spoiler's bare eye, the terminal boxed eye — are named NOWHERE ELSE on a
+ * spoiler's bare eye, the boxed eye at the end — are named NOWHERE ELSE on a
  * touch device, because the menu is the legend. That makes the menu's contents
  * a real contract, not chrome: a row silently dropped takes a glyph's only
  * explanation with it. These pin it, plus the one mode rule that goes the other
  * way (compete has no hint ladder at all, so naming it there would teach a lie).
  *
- * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; everything else renders for real.
+ * The surface is a pure function of the `game_data` blob the page hands it, so
+ * a test builds that blob from the game's facts (`ZTest_makeLetterboxedCtx`)
+ * and nothing is mocked but `db` and the edge function; everything else renders
+ * for real.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
-import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
-import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import type { LetterboxedGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
-import { PlayArea } from './PlayArea'
 import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '@/common/faults/faultStore'
+import {
+  ZTest_CONCEDED,
+  ZTest_makeLetterboxedCtx,
+  type ZTest_GameDataFacts,
+  type ZTest_PlayerFacts,
+} from '../lib/gameData.fixture'
+import { PlayAreaLoader } from './PlayArea'
 
-type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
-
-// A mutable holder the mocked useGame returns each render — set per test before
-// render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.
-const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
-vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
-// PlayArea's "New game" calls the letterboxed-build-board edge function
-// directly; mocked so no edge runtime is needed. Only `runEdgeFn` is stubbed —
-// `runRpc` stays REAL so the undo tests below exercise the envelope it
-// actually receives; the `db.rpc` mock above is what feeds it.
+// "New game" calls the letterboxed-build-board edge function directly; mocked
+// so no edge runtime is needed. Only `runEdgeFn` is stubbed — `runRpc` stays
+// REAL so the undo tests below exercise the envelope it actually receives; the
+// `db.rpc` mock above is what feeds it.
 vi.mock('@/common/supabase/dbResult', async (orig) => ({
   ...(await orig<typeof import('@/common/supabase/dbResult')>()),
   runEdgeFn: vi.fn(),
@@ -53,89 +51,30 @@ vi.mock('@/common/supabase/dbResult', async (orig) => ({
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 const startEdgeFn = runEdgeFn as unknown as ReturnType<typeof vi.fn>
 
-/** Twelve letters, three to a side (lib/board.ts's side order). */
-const SIDES = 'abcdefghijkl'
-
-const myRow: PlayerRow = {
-  game_id: 'g1',
-  user_id: 'u1',
-  chain: [],
-  word_count: 0,
-  letters_covered: 0,
-  hints_used: 0,
-  solved: false,
-  solved_at: null,
-}
+const ME: ZTest_PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
+const MOTH: ZTest_PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
 
 /**
- * A loaded board header. The two word lists are the two TIERS
- * (docs/word-list.md → Which words a game may use): `playableWords` is what a
- * player may TYPE (band only), `cleanWords` is what the hint may SUGGEST.
- * They're equal unless a test says otherwise, so only the tests about the
- * asymmetry have to think about it.
+ * A play surface's context: a solo coop game in play, built from the facts
+ * the way the builder would build it. The board accepts two words, both clean,
+ * unless a test says otherwise — the two TIERS (docs/word-list.md → Which words
+ * a game may use) differ only in the tests about the asymmetry.
  */
-function loadedGame(over: Partial<LetterboxedGame> = {}): LetterboxedGame {
-  const playableWords = over.playableWords ?? ['bad', 'dig']
-  return {
-    id: 'g1',
-    club_handle: 'testclub',
-    mode: 'coop',
-    sides: SIDES,
-    playableWords,
-    cleanWords: playableWords,
-    solution: ['bad', 'dig'],
-    max_words: 5,
-    ...over,
-  } as LetterboxedGame
+function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
+  return ZTest_makeLetterboxedCtx({ words: ['bad', 'dig'], uncleanWords: [], ...facts })
 }
 
-function loaded(game: LetterboxedGame): GameHook {
-  return {
-    game, playerRows: [myRow], myRow, events: [], loading: false, rowsLoaded: true,
-    failure: null,
-  }
+/** The solo coop game's two endings, with its one player as the server wrote
+ *  them. */
+const SOLO_LOST: ZTest_GameDataFacts = {
+  ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+  outcome: 'lost',
+  players: [{ ...ME, outcome: 'lost' }],
 }
-
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
- *  the page derives it (`whereIStand`), so a test sets up the facts and never
- *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [ZTest_gp('u1', 'me', 'red')],
-    isTerminal: false,
-    isTurnBased: false,
-    turnHolderId: null,
-    ...over,
-  }
-  return {
-    gameId: 'g1',
-    playState: 'playing',
-    timer: { displaySeconds: 0, expired: false },
-    setup: { extra_words: 3, difficulty: 3, timer: { kind: 'none' } },
-    status: null,
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: ZTest_actionFixture('act-help'),
-      actChat: ZTest_actionFixture('act-open-chat'),
-      actBackToClub: ZTest_actionFixture('act-back-to-club'),
-    },
-    brand: 'SnakeBox',
-    title: 'New game',
-    ...facts,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.isTerminal,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId: facts.turnHolderId,
-      draftsOffTurn: false,
-    }),
-  } as unknown as PlayAreaLoaderProps
+const SOLO_WON: ZTest_GameDataFacts = {
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+  outcome: 'won',
+  players: [{ ...ME, outcome: 'won', finalRanking: 1, solvedAt: '2026-09-03T00:00:00Z' }],
 }
 
 /** Flatten what PlayArea handed `menu.setGameSections` into id → ROW — what the
@@ -150,9 +89,9 @@ function menuItems(ctx: PlayAreaLoaderProps) {
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
  *  Only the tests whose subject is a keystroke need it — a bare `render` binds
  *  the actions but has nothing feeding them keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+function WithKeys(props: React.ComponentProps<typeof PlayAreaLoader>) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** A keystroke as the app-root listener sees it: from the body, with nothing
@@ -173,11 +112,8 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.click(buttons[buttons.length - 1]!)
 }
 
-const twoMembers = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
-
 beforeEach(() => {
   ZTest_clearFaultMessages()
-  h.result = loaded(loadedGame())
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null, data: null })
   startEdgeFn.mockReset()
@@ -187,15 +123,9 @@ describe('letterboxed PlayArea — a conceder keeps the one flag', () => {
   it('shows "You conceded" with Stop for all, not a hidden Concede', () => {
     // Conceding is spent; stopping the game for all is open to anyone in it, so
     // Stop takes Concede's place in the row.
-    h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
-      <PlayArea
-        {...makeCtx({
-          players: [
-            ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }),
-            ZTest_gp('u2', 'moth', 'blue'),
-          ],
-        })}
+      <PlayAreaLoader
+        {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })}
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
@@ -207,7 +137,7 @@ describe('letterboxed PlayArea — a conceder keeps the one flag', () => {
 describe('letterboxed PlayArea — the game menu is the icon legend', () => {
   it('coop names both rungs of the hint ladder, each with its glyph', () => {
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     const items = menuItems(ctx)
     expect(items.get('act-hint')?.label).toBe('Hint')
     expect(items.get('act-hint')?.icon).toBeTruthy()
@@ -219,34 +149,33 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
     // The rows are still HANDED to the menu; each says it is hidden, and the
     // menu drops a hidden row when it draws. That is the same answer the info
     // column's buttons read, which is what keeps the two from disagreeing.
-    h.result = loaded(loadedGame({ mode: 'compete' }))
-    const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    const ctx = makeCtx({ mode: 'compete', players: [ME, MOTH] })
+    render(<PlayAreaLoader {...ctx} />)
     const items = menuItems(ctx)
     expect(items.get('act-hint')?.hidden).toBe(true)
     expect(items.get('act-spoiler')?.hidden).toBe(true)
   })
 
-  it('names the terminal Reveal solution — grayed while the game is live', () => {
+  it('names the Reveal solution — grayed while the game is live', () => {
     const live = makeCtx()
-    render(<PlayArea {...live} />)
+    render(<PlayAreaLoader {...live} />)
     const reveal = menuItems(live).get('act-reveal')
     expect(reveal?.label).toBe('Reveal solution')
     expect(reveal?.icon).toBeTruthy()
     // Present-but-disabled, not absent: a grayed row still teaches its glyph.
-    // Terminal-only, so a player who dropped out can't spoil a live race.
+    // End-only, so a player who dropped out can't spoil a live race.
     expect(reveal?.disabled).toBe(true)
 
-    const done = makeCtx({ isTerminal: true, playState: 'lost' })
-    render(<PlayArea {...done} />)
+    const done = makeCtx(SOLO_LOST)
+    render(<PlayAreaLoader {...done} />)
     expect(menuItems(done).get('act-reveal')?.disabled).toBe(false)
   })
 
   it('the Reveal row is a local toggle — no RPC, and its label flips', async () => {
     const commonDb = (await import('@/common/supabase/db')).db as unknown as { rpc: ReturnType<typeof vi.fn> }
     commonDb.rpc.mockClear()
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
-    render(<PlayArea {...ctx} />)
+    const ctx = makeCtx(SOLO_LOST)
+    render(<PlayAreaLoader {...ctx} />)
 
     act(() => menuItems(ctx).get('act-reveal')!.run())
     // The seeded pair is on screen for ME. No RPC: no peer's board opened.
@@ -260,79 +189,64 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
   })
 
   it('never reveals on its own — a WIN leaves the pair closed', () => {
-    // The reason letterboxed had a whole _end_game wrapper: a win here is
-    // covering the twelve letters with SOME chain, not producing the seeded
-    // pair, so winning must not hand it over.
-    const ctx = makeCtx({ isTerminal: true, playState: 'won' })
-    render(<PlayArea {...ctx} />)
+    // A win here is covering the twelve letters with SOME chain, not producing
+    // the seeded pair, so winning must not hand it over.
+    const ctx = makeCtx(SOLO_WON)
+    render(<PlayAreaLoader {...ctx} />)
     expect(screen.queryByText('Solvable in two')).not.toBeInTheDocument()
     expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
   })
 })
 
 /**
- * The three REFUSALS the hint search can answer with (lib/solve.ts's
- * NoSuggestion). Each names a different wall, and the pill is the only place
- * that distinction reaches the player — so these pin both the branch and the
- * copy. Short copy is load-bearing here, not taste: the pill is `nowrap` +
- * ellipsis in a reserved-height slot, so a long sentence truncates mid-word.
+ * The three REFUSALS the hint search can answer with (lib/solve.ts). Each names
+ * a different wall, and the pill is the only place that distinction reaches the
+ * player — so these pin both the branch and the copy. Short copy is
+ * load-bearing here, not taste: the pill is `nowrap` + ellipsis in a
+ * reserved-height slot, so a long sentence truncates mid-word.
  *
  * Fired through the game menu's Hint row rather than the button, which also
  * proves the row is wired to the same handler.
  */
 describe('letterboxed PlayArea — why there is no hint', () => {
-  /** Take the hint via the menu row and read back the pill it wrote. `act` so
-   *  the feedback state lands before the assertion — the row's onClick is a
-   *  plain handler call, not a React-dispatched event. */
-  function askHint(ctx: PlayAreaLoaderProps) {
-    act(() => menuItems(ctx).get('act-hint')?.run())
+  /** Take the hint via the menu row and read back the pill it wrote. */
+  async function askHint(ctx: PlayAreaLoaderProps) {
+    await act(async () => menuItems(ctx).get('act-hint')?.run())
   }
 
-  it('stuck: names the letter nothing follows', () => {
+  it('stuck: names the letter nothing follows', async () => {
     // Tail is D; the board has no D-word at all, so there is no legal move.
-    h.result = loaded(loadedGame({ playableWords: ['bad', 'cab'], max_words: 5 }))
-    h.result.myRow = { ...myRow, chain: ['bad'] }
-    h.result.playerRows = [h.result.myRow]
-    const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
-    askHint(ctx)
+    const ctx = makeCtx({ words: ['bad', 'cab'], chain: ['bad'] })
+    render(<PlayAreaLoader {...ctx} />)
+    await askHint(ctx)
     expect(screen.getByText('No word starts with D')).toBeInTheDocument()
   })
 
-  it('stuck on a letter I already spent: says "no OTHER word"', () => {
+  it('stuck on a letter I already spent: says "no OTHER word"', async () => {
     // DAB → BAD leaves the tail back on D, and DAB was the board's only D-word.
     // The player can see a D-word in their own chain, so the bare "No word
     // starts with D" would read as a bug rather than as a rule.
-    h.result = loaded(loadedGame({ playableWords: ['dab', 'bad'], max_words: 5 }))
-    h.result.myRow = { ...myRow, chain: ['dab', 'bad'] }
-    h.result.playerRows = [h.result.myRow]
-    const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
-    askHint(ctx)
+    const ctx = makeCtx({ words: ['dab', 'bad'], chain: ['dab', 'bad'] })
+    render(<PlayAreaLoader {...ctx} />)
+    await askHint(ctx)
     expect(screen.getByText('No other word starts with D')).toBeInTheDocument()
   })
 
-  it('off par: a finish exists, but it is longer than the room left', () => {
+  it('off par: a finish exists, but it is longer than the room left', async () => {
     // ABC played, cap 2 ⇒ one word left; the shortest finish is two
     // (CDEFGH then HIJKL), so pointing at CDEFGH would walk into the cap.
-    h.result = loaded(loadedGame({ playableWords: ['abc', 'cdefgh', 'hijkl'], max_words: 2 }))
-    h.result.myRow = { ...myRow, chain: ['abc'] }
-    h.result.playerRows = [h.result.myRow]
-    const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
-    askHint(ctx)
+    const ctx = makeCtx({ words: ['abc', 'cdefgh', 'hijkl'], maxWords: 2, chain: ['abc'] })
+    render(<PlayAreaLoader {...ctx} />)
+    await askHint(ctx)
     expect(screen.getByText('Best solution needs 2 words')).toBeInTheDocument()
   })
 
-  it('unreachable: words follow, but no route ever covers the board', () => {
+  it('unreachable: words follow, but no route ever covers the board', async () => {
     // CBA follows ABC and then dead-ends back at a played word — the frontier
     // empties with every letter past C still uncovered. The cap is irrelevant.
-    h.result = loaded(loadedGame({ playableWords: ['abc', 'cba'], max_words: 9 }))
-    h.result.myRow = { ...myRow, chain: ['abc'] }
-    h.result.playerRows = [h.result.myRow]
-    const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
-    askHint(ctx)
+    const ctx = makeCtx({ words: ['abc', 'cba'], maxWords: 9, chain: ['abc'] })
+    render(<PlayAreaLoader {...ctx} />)
+    await askHint(ctx)
     expect(screen.getByText('No winning path from here')).toBeInTheDocument()
   })
 })
@@ -345,46 +259,32 @@ describe('letterboxed PlayArea — why there is no hint', () => {
  * typing one" (docs/word-list.md → Which words a game may use).
  */
 describe('letterboxed PlayArea — the accept list is wider than the hint list', () => {
-  function askHint(ctx: PlayAreaLoaderProps) {
-    act(() => menuItems(ctx).get('act-hint')?.run())
-  }
-
-  it('a word only the ACCEPT list has is never handed over by the SPOILER', () => {
+  it('a word only the ACCEPT list has is never handed over by the SPOILER', async () => {
     // Asserted through the spoiler, not the hint: a hint prints a prefix, so it
     // would hide a leak behind "6 letters starting with CDE". The spoiler prints
     // the word — the surface where handing over a slur would actually show.
     // CDEFGHIJKL is a ONE-WORD FINISH from here — the search's ideal answer,
-    // and the only one. It's in the accept list and not the clean list, so the
-    // spoiler must refuse rather than hand it over.
-    h.result = loaded(loadedGame({
-      playableWords: ['abc', 'cdefghijkl'],
-      cleanWords: ['abc'],
-      max_words: 5,
-    }))
-    h.result.myRow = { ...myRow, chain: ['abc'] }
-    h.result.playerRows = [h.result.myRow]
-    const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
-    act(() => menuItems(ctx).get('act-spoiler')?.run())
+    // and the only one. It's accepted but not clean, so the spoiler must refuse
+    // rather than hand it over.
+    const ctx = makeCtx({
+      words: ['abc', 'cdefghijkl'],
+      uncleanWords: ['cdefghijkl'],
+      chain: ['abc'],
+    })
+    render(<PlayAreaLoader {...ctx} />)
+    await act(async () => menuItems(ctx).get('act-spoiler')?.run())
     expect(screen.queryByText('CDEFGHIJKL'), 'the spoiler handed over an unclean word').toBeNull()
     // ...and says so, rather than silently doing nothing.
     expect(screen.getByText('No winning path from here')).toBeInTheDocument()
   })
 
-  it('"no word starts with C" is judged on the ACCEPT list, so it cannot lie', () => {
+  it('"no word starts with C" is judged on the ACCEPT list, so it cannot lie', async () => {
     // The clean search sees nothing after C and would say "stuck" — but CDEFGH
     // is right there, playable. Claiming no C-word exists would be false about
     // the RULES, so the honest answer is that there's no route to offer.
-    h.result = loaded(loadedGame({
-      playableWords: ['abc', 'cdefgh'],
-      cleanWords: ['abc'],
-      max_words: 5,
-    }))
-    h.result.myRow = { ...myRow, chain: ['abc'] }
-    h.result.playerRows = [h.result.myRow]
-    const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
-    askHint(ctx)
+    const ctx = makeCtx({ words: ['abc', 'cdefgh'], uncleanWords: ['cdefgh'], chain: ['abc'] })
+    render(<PlayAreaLoader {...ctx} />)
+    await act(async () => menuItems(ctx).get('act-hint')?.run())
     expect(screen.queryByText('No word starts with C')).toBeNull()
     expect(screen.getByText('No winning path from here')).toBeInTheDocument()
   })
@@ -399,16 +299,11 @@ describe('letterboxed PlayArea — the accept list is wider than the hint list',
  * past `rejectReason` first — a different test's job.
  */
 describe('letterboxed PlayArea — a refused undo, and who wrote the words', () => {
-  /** Take back the last word and have the server refuse it. Undo is used
-   *  rather than Reveal because it's reachable MID-GAME, where nothing else
-   *  is in the slot beside what we're asserting. */
+  /** Take back the last word and have the server refuse it. */
   async function undoAnswering(reply: unknown) {
     rpc.mockResolvedValue(reply)
-    h.result = loaded(loadedGame())
-    h.result.myRow = { ...myRow, chain: ['bad'] }
-    h.result.playerRows = [h.result.myRow]
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx({ chain: ['bad'] })} />)
     await user.click(screen.getByRole('button', { name: 'Take back BAD' }))
   }
 
@@ -425,10 +320,14 @@ describe('letterboxed PlayArea — a refused undo, and who wrote the words', () 
     }
   }
 
+  it('sends the undo with the RPC\'s own argument name', async () => {
+    await undoAnswering(refusal({}))
+    expect(rpc).toHaveBeenCalledWith('undo_word', { p_game_id: 'g1' })
+  })
+
   it('shows the sentence the SERVER wrote', async () => {
-    // The whole inversion this system made: the words come from the raise, at
-    // the site that knows the condition, and the frontend renders them without
-    // a lookup table in between.
+    // The words come from the raise, at the site that knows the condition, and
+    // the frontend renders them without a lookup table in between.
     await undoAnswering(refusal({}))
     expect(screen.getByText('Game over')).toBeInTheDocument()
   })
@@ -465,48 +364,39 @@ describe('letterboxed PlayArea — a refused undo, and who wrote the words', () 
 })
 
 /**
- * The empty-clean-list fallback, added after a real e2e failure.
+ * The no-clean-word fallback, added after a real e2e failure.
  *
- * `clean_words` is DERIVED — games_state joins the board's words against
- * common.words — so it empties wholesale whenever those words aren't in the
- * dictionary: a synthetic test board, or a database whose word import never
- * ran. The hint then had nothing to search and told the player "No words to
- * play" about a board full of words.
+ * Whether a word is clean is DERIVED — the builder joins the board's words
+ * against common.words — so every word comes back unclean whenever those words
+ * aren't in the dictionary: a synthetic test board, or a database whose word
+ * import never ran. The hint then had nothing to search and told the player
+ * "No words to play" about a board full of words.
  */
-describe('letterboxed PlayArea — the hint corpus when clean_words is empty', () => {
-  it('falls back to the accept list rather than claiming the board is empty', () => {
-    h.result = loaded(loadedGame({
-      playableWords: ['bad', 'dig', 'gab'],
-      cleanWords: [],            // the broken derivation
-      max_words: 5,
-    }))
-    const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
-    act(() => menuItems(ctx).get('act-hint')?.run())
+describe('letterboxed PlayArea — the hint corpus when no word is clean', () => {
+  it('falls back to every word rather than claiming the board is empty', async () => {
+    const ctx = makeCtx({ words: ['bad', 'dig', 'gab'], uncleanWords: ['bad', 'dig', 'gab'] })
+    render(<PlayAreaLoader {...ctx} />)
+    await act(async () => menuItems(ctx).get('act-hint')?.run())
     // Something is offered — the exact word doesn't matter, only that the
     // search ran against a non-empty corpus.
     expect(screen.queryByText('No words to play')).toBeNull()
   })
 
-  it('still prefers the clean list when it has anything in it', () => {
-    // The purity guarantee is untouched in every normal case: only a WHOLLY
-    // empty clean list triggers the fallback, never a merely smaller one.
-    h.result = loaded(loadedGame({
-      playableWords: ['bad', 'dig', 'gab'],
-      cleanWords: ['bad'],
-      max_words: 5,
-    }))
-    h.result.myRow = { ...myRow, chain: ['bad'] }
-    h.result.playerRows = [h.result.myRow]
-    const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
-    act(() => menuItems(ctx).get('act-hint')?.run())
-    // Tail is D. 'dig' is in the accept list and NOT in the clean list, so a
-    // fallback would have SUGGESTED it. Instead we get the unreachable line —
-    // which proves both mechanisms at once: the search ran on the clean list
-    // (no suggestion), and the stuck test still consulted the ACCEPT list, so
-    // it refused to claim "No word starts with D" while `dig` sits there
-    // playable.
+  it('still prefers the clean words when there are any', async () => {
+    // The purity guarantee is untouched in every normal case: only NO clean
+    // word at all triggers the fallback, never merely fewer.
+    const ctx = makeCtx({
+      words: ['bad', 'dig', 'gab'],
+      uncleanWords: ['dig', 'gab'],
+      chain: ['bad'],
+    })
+    render(<PlayAreaLoader {...ctx} />)
+    await act(async () => menuItems(ctx).get('act-hint')?.run())
+    // Tail is D. 'dig' is accepted and NOT clean, so a fallback would have
+    // SUGGESTED it. Instead we get the unreachable line — which proves both
+    // mechanisms at once: the search ran on the clean words (no suggestion),
+    // and the stuck test still consulted every word, so it refused to claim
+    // "No word starts with D" while `dig` sits there playable.
     expect(screen.getByText('No winning path from here')).toBeInTheDocument()
   })
 })
@@ -528,8 +418,7 @@ describe('letterboxed PlayArea — a refused word shakes its letters', () => {
     [...document.querySelectorAll('div[class*="node"]')].find((n) => n.textContent === letter)
 
   /** One keystroke, AWAITED — an action's run is single-flight, so two keys
-   *  fired in one tick would land one. The file's bare `press` is for the
-   *  single presses elsewhere. */
+   *  fired in one tick would land one. */
   const key = (init: KeyboardEventInit) =>
     act(async () => {
       fireEvent.keyDown(document.body, init)
@@ -562,11 +451,10 @@ describe('letterboxed PlayArea — a refused word shakes its letters', () => {
   })
 
   it('does not come back when the draft passes through the refused word again', async () => {
-    // The lesson recorded in the mark's own docstring, and the reason the mark
-    // is ENDED by the edit rather than merely hidden by a text comparison: a
-    // refused ADG shook again on the way back from ADGJ, because typing past a
-    // refused word and back makes the text match a second time. The mark is
-    // about the word AS SUBMITTED, so the first edit is what kills it.
+    // The mark is ENDED by the edit rather than merely hidden by a text
+    // comparison: a refused ADG would otherwise shake again on the way back
+    // from ADGJ, because typing past a refused word and back makes the text
+    // match a second time.
     render(<WithKeys {...makeCtx()} />)
     await typeADG()
     await key({ key: 'Enter', code: 'Enter' })
@@ -581,12 +469,27 @@ describe('letterboxed PlayArea — a refused word shakes its letters', () => {
     await key({ key: 'Backspace', code: 'Backspace' })
     expect(shaking()).toEqual([])
   })
+
+  it('a word the board accepts goes to the server under the RPC\'s own names', async () => {
+    rpc.mockResolvedValue({
+      data: {
+        type: 'ok', data: { result: 'accepted', accepted: true, letters_covered: 3, solved: false },
+        outcome: 'won', severity: null, message: null, field: null, meta: null,
+        dbcode: null, detail: null,
+      },
+      error: null,
+    })
+    render(<WithKeys {...makeCtx({ words: ['adg'] })} />)
+    await typeADG()
+    await key({ key: 'Enter', code: 'Enter' })
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('submit_word', { p_game_id: 'g1', p_word: 'adg' }))
+  })
 })
 
 /**
  * The keys, through the app-root dispatcher. Each key is an action's, so
  * what these pin is the wiring: the chord reaches the action, the action asks
- * the registry's question mid-game and skips it at terminal, and the answer
+ * the registry's question mid-game and skips it at the end, and the answer
  * runs the same call the button does.
  */
 describe('letterboxed PlayArea — the keys', () => {
@@ -600,9 +503,9 @@ describe('letterboxed PlayArea — the keys', () => {
     expect(getAction('act-clear-entry').describe('help').state).toBe('hidden')
   })
 
-  it('+ at terminal starts the next game with no question', async () => {
+  it('+ at the end starts the next game with no question', async () => {
     startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
-    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    const ctx = makeCtx(SOLO_LOST)
     render(<WithKeys {...ctx} />)
 
     // No <ConfirmationHost/> is mounted, so a question would have been answered
@@ -646,15 +549,14 @@ describe('letterboxed PlayArea — the keys', () => {
     expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
     await answer(user, 'Stop game')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
   it('⌥⌫ in compete asks to concede, and yes calls concede', async () => {
     const user = userEvent.setup()
-    h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
       <>
-        <WithKeys {...makeCtx({ players: twoMembers })} />
+        <WithKeys {...makeCtx({ mode: 'compete', players: [ME, MOTH] })} />
         <ConfirmationHost />
       </>,
     )
@@ -662,7 +564,7 @@ describe('letterboxed PlayArea — the keys', () => {
     press(OPT_BACKSPACE)
     expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await answer(user, 'Concede')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
     expect(rpc).not.toHaveBeenCalledWith('stop_game', expect.anything())
   })
 
@@ -673,7 +575,7 @@ describe('letterboxed PlayArea — the keys', () => {
       const user = userEvent.setup()
       render(
         <>
-          <PlayArea {...makeCtx()} />
+          <PlayAreaLoader {...makeCtx()} />
           <ConfirmationHost />
         </>,
       )
@@ -689,24 +591,24 @@ describe('letterboxed PlayArea — the keys', () => {
       const user = userEvent.setup()
       render(
         <>
-          <PlayArea {...makeCtx()} />
+          <PlayAreaLoader {...makeCtx()} />
           <ConfirmationHost />
         </>,
       )
 
       act(() => getAction('act-restart').run())
       await answer(user, 'Restart')
-      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
     })
 
-    it('at terminal the button goes straight through', async () => {
+    it('at the end the button goes straight through', async () => {
       const user = userEvent.setup()
-      render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+      render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
 
       await user.click(screen.getByRole('button', { name: 'Restart' }))
       // No <ConfirmationHost/> is mounted, so a question would have been
       // answered "no" — the RPC firing proves none was asked.
-      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
     })
   })
 })

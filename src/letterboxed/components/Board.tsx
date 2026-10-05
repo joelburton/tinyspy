@@ -34,6 +34,7 @@ export function Board({
   onPick,
   disabled,
   shakeNonce = null,
+  myTurnJustStarted,
 }: {
   // Twelve letters in side order.
   sides: string
@@ -50,6 +51,8 @@ export function Board({
   // nonce — the letters are keyed on it, so refusing the same word twice shakes
   // twice (a CSS animation only restarts on a new element).
   shakeNonce?: number | null
+  // True for a beat at the moment the turn becomes mine: the frame flashes.
+  myTurnJustStarted: boolean
 }) {
   const nodes = useMemo(() => layout(sides), [sides])
   const covered = useMemo(() => coveredLetters(chain), [chain])
@@ -83,7 +86,14 @@ export function Board({
     // be hand-translated into SVG idioms and re-scaled by hand. The two layers
     // cannot drift: both are addressed in the same 0-100 coordinates, the SVG
     // through its viewBox and the letters as percentages.
-    <div className={cls(shared.boardSeal, styles.board, play.board)}>
+    <div
+      className={cls(
+        shared.boardSeal,
+        styles.board,
+        play.board,
+        myTurnJustStarted && shared.yourTurnFlash,
+      )}
+    >
       <svg className={styles.lines} viewBox="0 0 100 100" role="presentation">
         <rect
           className={styles.box}

@@ -133,6 +133,15 @@ The `gd` sketch, approved 2026-10-05 (step 2), is the comment in
   `pdf/model.ts`) fail to compile until the component passes move them onto
   `gd`. The club card reads `summary_data`, and its labels read as they did
   (`npm run report:summaries`).
+- **Step 9 (2026-10-05), the PlayArea pass:** every reader is on `gd`;
+  `tsc -b` is clean in the folder, `PlayArea.test.tsx` runs on the fixture,
+  and letterboxed joined `CONVERTED_GAMES`. What changed that a player sees:
+  a coop Stop takes the shared neutral message (the old "Lost: stopped at
+  N/12 · Called it" went with the `lost` it no longer is); a conceder's line
+  wears the `lost` the server wrote, where it had been `neutral`; turn-order
+  coop gets the turn flash and bell every converted game has; and every RPC
+  call sends `p_` names, broken since 2026-09-28. The frontend's unused
+  `clear_chain` path went; the RPC stays.
   `lib/answer.ts`'s `Answer` is `GAnswer`; `Node`, `ParsedSides`,
   `Suggestion` and `NoSuggestion` stopped being exported, each read only in
   its own file.

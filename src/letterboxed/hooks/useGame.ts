@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
+import { joinSides } from '../lib/board'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GEvent, GGameData, GGameDataRaw, GPlayer, GStateLineData, GWord } from '../types'
 
@@ -49,9 +50,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const uncleanWords = new Set(raw.puzzle.uncleanWords)
   const words: GWord[] = raw.puzzle.words.map((word) => ({ word, clean: !uncleanWords.has(word) }))
 
-  // The box as the setup rows print it: the twelve letters in side order.
-  const sides = raw.puzzle.tiles.map((t) => t.letter).join('')
-
   // The gate has checked that I am seated, and my own chain is never withheld.
   const me = playersById[myId] as GGameData['me']
   // What the state line shows: the team's chain where the game has one, else
@@ -73,7 +71,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       nParWords: raw.puzzle.nParWords,
       solution: raw.puzzle.solution,
     },
-    setupRows: makeSetupRows(raw.setup, raw.mode, players, sides),
+    setupRows: makeSetupRows(raw.setup, raw.mode, players, joinSides(raw.puzzle.tiles)),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
     ending: ending === null
       ? null

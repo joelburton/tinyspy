@@ -3,15 +3,15 @@
 import { supabase } from '@/common/supabase/supabase'
 
 /**
- * letterboxed-schema-scoped supabase client. Imported by every letterboxed
- * query (`.from('games_state')`, `.from('players_state')`, `.from('events')`)
- * and RPC call (`.rpc('submit_word', …)`) so the schema is applied uniformly
- * without each call site repeating it.
+ * Pre-bound DB handle for the `letterboxed` Postgres schema.
  *
- * `games_state` hides nothing: the board's whole playable word list ships to
- * the FE from game start (it is what the local hint search will run over), and
- * so does the seeded two-word solution — the FE simply declines to RENDER the
- * solution until terminal. The one thing that IS gated is a compete rival's
- * CHAIN, and that lives behind `players_state` rather than here.
+ * Usage from inside `src/letterboxed/`:
+ *
+ *     import { db } from '../db'
+ *     await db.rpc('submit_word', { p_game_id: id, p_word: word })
+ *
+ * The page reads no table: what it draws is the `game_data` blob the RPCs
+ * rebuild after every move (plans/seat-view.md), so this handle is for the
+ * RPCs.
  */
 export const db = supabase.schema('letterboxed')

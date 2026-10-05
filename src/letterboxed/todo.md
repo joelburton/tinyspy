@@ -5,10 +5,6 @@
 - Two `font-weight: 650` (`Board.module.css`, `PlayArea.module.css`). A
   weight must be a multiple of 100 (docs/tokens.md → The non-color
   vocabularies); both are bugs to fix, not values to keep.
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
 - **The board's word list can be silently cut short.**
   `letterboxed.candidate_words` returns a set with no order and no bound, and
   `letterboxed-build-board` calls it through PostgREST (`index.ts:158`,
@@ -105,16 +101,7 @@
   imports `mulberry32`. The exported `shuffle` also has its own case in
   `board_test.ts` (permutes without mutating), which is pinned beside the
   util now and goes with it.
-- **`LeaderRow` is declared twice and the two copies disagree.** The
-  `manifest.ts` copy has `user_id?` optional and no `won`; the `PlayArea.tsx`
-  copy requires `user_id` and carries `won?` with a docstring about
-  co-winners on a timeout. One of them is wrong about what the server
-  writes, and reading `letterboxed.submit_word` is what settles it.
 
-  The read itself is done (2026-09-21): both sites call
-  `readLeaderboard<LeaderRow>(…)` from `common/game-page/`, so the
-  hand-written cast is gone and the field being present but not an array is
-  caught. Only the row is open.
 ## Someday
 
 ## Maybe

@@ -2,13 +2,11 @@
 
 import { describe, expect, it } from 'vitest'
 import { historyChainAt, historyLabelAt } from './history'
-import type { EventRow } from '../hooks/useGame'
+import { ZTest_event } from './gameData.fixture'
+import type { GAnswer } from '../types'
 
 let n = 0
-const ev = (kind: EventRow['kind'], word: string | null): EventRow => ({
-  id: ++n, game_id: 'g', user_id: 'u', kind, word, letters_covered: 0,
-  created_at: '2026-08-05T00:00:00Z',
-})
+const ev = (kind: GAnswer, word: string | null) => ZTest_event(++n, 'u', kind, word, 0)
 
 describe('historyChainAt', () => {
   it('replays plays in order, inclusive of the viewed move', () => {

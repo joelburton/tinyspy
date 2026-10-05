@@ -34,7 +34,7 @@ export function SetupForm({
   const set = setValue as SetupSetter<GSetupValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
-  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
+  const players = members.filter((m) => s.player_user_ids.has(m.id))
 
   // WHAT YOU TYPED, kept separately from what gets stored. The field shows your
   // text verbatim — dashes, dots, spaces and all — because you should be able

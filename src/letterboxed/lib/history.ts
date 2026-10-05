@@ -1,6 +1,9 @@
 // cs-unmet
 
-import type { EventRow } from '../hooks/useGame'
+import type { GEventRaw } from '../types'
+
+/** What the replay reads off a log row: which row, what kind, which word. */
+type HistoryRow = Pick<GEventRaw, 'id' | 'kind' | 'word'>
 
 /**
  * letterboxed — the turn-history replay.
@@ -30,7 +33,7 @@ import type { EventRow } from '../hooks/useGame'
  * number the log prints is a position in what is shown, which a filter moves;
  * this is not.
  */
-export function historyChainAt(events: readonly EventRow[], id: number): string[] {
+export function historyChainAt(events: readonly HistoryRow[], id: number): string[] {
   const index = events.findIndex((e) => e.id === id)
   const chain: string[] = []
   for (let i = 0; i <= index && i < events.length; i++) {
@@ -43,7 +46,7 @@ export function historyChainAt(events: readonly EventRow[], id: number): string[
 }
 
 /** The one-line "what this move was" for the viewer's banner. */
-export function historyLabelAt(events: readonly EventRow[], id: number): string | null {
+export function historyLabelAt(events: readonly HistoryRow[], id: number): string | null {
   const e = events.find((x) => x.id === id)
   if (!e) return null
   const word = e.word?.toUpperCase() ?? ''

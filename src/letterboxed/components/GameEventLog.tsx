@@ -1,14 +1,13 @@
 // cs-fixed-outcome-fix
 
-import type { GamePlayer } from '@/common/members/member'
+import type { Member } from '@/common/members/member'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
-import { memberById } from '@/common/members/memberList'
 import { BOARD_SIZE } from '../lib/board'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import { hintPrefix } from '../lib/hintOrSpoiler'
-import type { EventRow } from '../hooks/useGame'
+import type { GEvent, GHistoryView } from '../types'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import styles from './PlayArea.module.css'
 
@@ -33,41 +32,36 @@ import styles from './PlayArea.module.css'
  * **Whose moves** are shown comes from the shared `useEventLogPlayerPicker`, on
  * the same vocabulary as every other event-log game: solo is your handle, coop
  * is "Team" plus each player, compete is "All" plus each player and defaults to
- * your own. In compete an opponent's rows are empty during play (RLS hides
- * them) and fill in once the game ends.
+ * your own. In compete an opponent's rows are withheld during play (`useGame`'s
+ * seat rule) and fill in once the game ends.
  */
 export function GameEventLog({
   events,
   players,
   myId,
   mode,
-  isTerminal,
-  historyId,
-  onShowHistory,
+  isGameEnded,
+  historyView,
 }: {
-  events: EventRow[]
-  players: GamePlayer[]
+  events: GEvent[]
+  players: Member[]
   myId: string
   mode: 'coop' | 'compete'
-  isTerminal: boolean
-  /** The move open in the board viewer, or null when live. */
-  historyId: number | null
-  /** Open a move on the board (click its `#N`) — the row's id, and the `#N` this
-   *  log printed beside it, which is what the banner shows back. */
-  onShowHistory: (id: number, n: number) => void
+  isGameEnded: boolean
+  historyView: GHistoryView
 }) {
-  const eventLogPicker = useEventLogPlayerPicker<EventRow>({
+  const eventLogPicker = useEventLogPlayerPicker<GEvent>({
     players,
     myId,
     mode,
-    isTerminal,
+    isTerminal: isGameEnded,
     label: 'Whose moves to show',
     emptyLabel: 'No moves yet.',
   })
   const shown = eventLogPicker.filter(events)
 
-  // The viewer addresses a row by its own id, and PlayArea folds the rows of
-  // whoever wrote it, resolving that id against them. The list the log shows and
+  // The viewer addresses a row by its own id, and `useHistoryView` folds the
+  // rows of whoever wrote it, resolving that id against them. The list the log shows and
   // the list the board replays need not match, so every handle is live.
 
   return (
@@ -80,18 +74,18 @@ export function GameEventLog({
               somebody else's onto your board. */}
           <EventLogNumber
             n={i + 1}
-            isOpenInHistory={historyId === e.id}
-            onShowHistory={() => onShowHistory(e.id, i + 1)}
+            isOpenInHistory={historyView.viewedEventId === e.id}
+            onShowHistory={() => historyView.show(e.id, i + 1)}
           />
           <td className={gameEventLog.main}>
             <Move event={e} />
           </td>
           <td className={gameEventLog.other}>
             <span className={gameEventLog.muted}>
-              {e.letters_covered}/{BOARD_SIZE}
+              {e.nCoveredLetters}/{BOARD_SIZE}
             </span>
           </td>
-          <EventLogActor actor={memberById(players, e.user_id)} />
+          <EventLogActor actor={e.by} />
         </tr>
       ))}
     </EventLog>
@@ -109,7 +103,7 @@ export function GameEventLog({
  * letters (`hintPrefix`, the same vocabulary the pills used), the spoiler's
  * whole word.
  */
-function Move({ event }: { event: EventRow }) {
+function Move({ event }: { event: GEvent }) {
   const word = event.word ? <DefinableWord word={event.word} /> : null
 
   switch (event.kind) {

@@ -43,7 +43,7 @@ const helpLoader = lazy(() =>
 // PlayArea is shared — branches on `gd.mode` for the compete-only
 // OpponentStrip + win-vs-loss verdict copy.
 const playAreaLoader = lazy(() =>
-  import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+  import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
 
 const setupFormLoader = lazy(() =>

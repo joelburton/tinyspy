@@ -84,12 +84,6 @@
   min-width: 0;
 }
 
-.loading,
-/* @@ */ .empty {
-  padding: 2rem;
-  color: var(--page-text-muted-color);
-}
-
 /* The reserved height lives on the shared `.moveAreaOrLocalFeedback` this
  * composes with; all that's left here is pinning the WIDTH to the board so a
  * long typed word can't widen the column and shift the centered board. */

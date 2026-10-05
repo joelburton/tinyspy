@@ -1,899 +1,170 @@
 // cs-fixed-outcome-fix
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useMark } from '@/common/board-marks/useMark'
-import { NO_TIMER } from '@/common/board-marks/feedbackTiming'
 import { cls } from '@/common/utils/cls'
-import type { CreatedGame } from '@/common/manifest/gameManifest'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { readLeaderboard } from '@/common/game-page/readLeaderboard'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
-import { db } from '../db'
-import { useGame } from '../hooks/useGame'
-import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
+import {
+  CelebrationBlockingModal,
+} from '@/common/terminal/CelebrationBlockingModal'
+import { useCelebration } from '@/common/terminal/useCelebration'
+import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
-import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { BOARD_SIZE, rejectReason, tailLetter } from '../lib/board'
-import { isSuggestion, suggest } from '../lib/solve'
-import type { GSetup } from '../types'
+import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
+import { InfoSheet } from '@/common/info-sheet/InfoSheet'
+import { useGame } from '../hooks/useGame'
+import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
+import { useHistoryView } from '../hooks/useHistoryView'
+import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
+import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useShowTeammateMoves } from '../hooks/useShowTeammateMoves'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
-import { buildGameMenu } from '@/common/menu/gameMenu'
-import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
-import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
-import { memberById } from '@/common/members/memberList'
-import { useCelebration } from '@/common/terminal/useCelebration'
-import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
-import { historyChainAt, historyLabelAt } from '../lib/history'
-import { makeSetupRows } from '../lib/setupRows'
-import { ANSWER_OUTCOME } from '../lib/answer'
-import { hintOrSpoilerPillText } from '../lib/hintOrSpoiler'
-import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useBindAction } from '@/common/actions/useBindAction'
-import { describeReveal } from '@/common/reveal/describeReveal'
-import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
-import { buildLetterboxedPrintModel } from '../pdf/model'
-import { printLetterboxedPdf } from '../pdf/printLetterboxedPdf'
-import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import shared from '@/common/game-page/playArea.module.css'
-import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import styles from './PlayArea.module.css'
+import type { GGameData } from '../types'
 
 import '../theme.css'
-import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
-/** A row of `status.leaderboard` (compete). */
-type LeaderRow = {
-  user_id: string
-  username?: string
-  words_used?: number
-  letters_covered?: number
-  /** Only on a timed-out race: the server's per-row verdict. Ties are
-   *  co-winners (every tied row flagged), so "did I win" is my own row's
-   *  flag — never `leaderboard[0]`, whose order among tied rows is
-   *  arbitrary. The solve-path win writes `winner_id` instead. */
-  won?: boolean
+/**
+ * The manifest's component: builds `gd` from the blob the page was handed and
+ * draws the surface.
+ */
+export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
+  const { gd } = useGame(ctx)
+  return (
+    <PlayArea
+      gd={gd}
+      globalFeedbackSlot={ctx.globalFeedbackSlot}
+      goToFollowUpGame={ctx.goToFollowUpGame}
+      menu={ctx.menu}
+    />
+  )
+}
+
+type PlayAreaProps = Pick<
+  PlayAreaLoaderProps,
+  'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'
+> & {
+  gd: GGameData
 }
 
 /**
- * letterboxed's play surface — shared between the coop and compete manifests.
- * Mode is read off `game.mode` (denormalized on `letterboxed.games_state`).
+ * letterboxed's play surface, shared by the coop and compete manifests — the
+ * coordinator. It holds no board and draws no control of its own:
+ * `<BoardCol>` takes the square, the entry and the move, `<InfoCol>` the
+ * readouts and the action row, and this component decides what each of them
+ * is handed — the chain to show above all: a past move's, or the live one.
  *
- * Per-mode rendering:
- *   - **Coop**: ONE chain, shared. Every player's `players_state` row holds
- *     the same words (the server keeps them in lock-step), so the board simply
- *     renders "my" row and everyone sees the same thing.
- *   - **Compete**: each player builds their own chain on the same board.
- *     Rivals' words are hidden until terminal; the OpponentStrip publishes
- *     only the two numbers a race may reveal — letters covered and words used.
+ * Both manifests mount it, and the mode (`gd.mode`) is what differs: coop is
+ * ONE shared chain, compete my own chain plus an opponent strip of the two
+ * numbers a race may publish — letters covered and words used (a rival's words
+ * are withheld until the end).
  *
- * Move entry is deliberately NOT `useFoundWordSubmit`: that hook models a
- * found-words game (dedup against a growing set, points per word). Here a
- * submission is a chain APPEND whose legality depends on the word before it,
- * so the validation lives in `lib/board.ts` and the commit is a plain RPC.
+ * Above it, `<GamePage>` owns members, the timer, the ending, pause and chat,
+ * and unmounts this surface on pause — every piece of state below goes with it.
  */
-/**
- * What `submit_word` answers. TWO `ok`s — the word landed, or it landed and
- * covered the twelve. `accepted`, `letters_covered` and `solved` are the
- * fields this RPC has always returned; `result` is what names the case.
- */
-type WordAnswer = {
-  result: 'accepted' | 'solved'
-  accepted: true
-  letters_covered: number
-  solved: boolean
-}
+function PlayArea({
+  gd,
+  globalFeedbackSlot,
+  goToFollowUpGame,
+  menu,
+}: PlayAreaProps) {
+  // ─── Page hooks ────────────────────────────────────────
 
-/** What `undo_word` and `clear_chain` answer — one `ok` each, and the pair
- *  shares a call site, so it shares a type. */
-type ChainAnswer =
-  | { result: 'undone'; word: string; letters_covered: number }
-  | { result: 'cleared'; letters_covered: 0 }
-
-/** What `log_hint_or_spoiler` answers: one `ok`, echoing the row it wrote. */
-type RungAnswer = {
-  result: 'logged'
-  kind: 'hint' | 'spoiler'
-  word: string
-}
-
-export function PlayArea(ctx: PlayAreaLoaderProps) {
-  const {
-    gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, authSession, status,
-    isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
-    setup, clubHandle, goToFollowUpGame, menu, brand, globalFeedbackSlot, title,
-  } = ctx
-  const { game, playerRows, myRow, events, loading, rowsLoaded, failure } = useGame(gameId, authSession.user.id)
-
-  // The entry is typed at the window rather than into an input, so nothing here
-  // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
-  // out to the browser.
+  // The entry is typed at the window rather than into an input, so nothing
+  // here takes focus and Tab has nowhere to go; an empty ring keeps it from
+  // walking out to the browser.
   useTabRing([])
 
-  const letterboxedSetup = setup as GSetup
-
-  // The setup rows, built ONCE and handed to both consumers — the info column
-  // renders them as <li>s, the print model prints the same array. Literally the
-  // same object, which is a stronger guarantee than "both call the same
-  // function" (common/setup-form/doc.md → Setup rows). Empty until the game row lands; the
-  // print effect below is guarded on `game` anyway, and the info column doesn't
-  // render until after the loading return.
-  const setupRows = useMemo(
-    () => (game ? makeSetupRows(letterboxedSetup, game.mode, players, game.sides) : []),
-    [letterboxedSetup, game, players],
-  )
-
+  // On a phone the board fills the screen and the info column moves into an
+  // off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
   const infoSheet = useInfoSheet()
-  // The below-board slot: word results, the two rungs, Stop / Concede's not-oks, and
-  // the four standing conditions further down.
+
+  // Confetti the moment the win is MINE, as the server ranked it — every
+  // teammate's on a coop solve, the solver's in a race, each tied racer's on a
+  // timeout. It is shown only when it happens.
+  const celebration = useCelebration(gd.me.outcome === 'won')
+
+  // The board frame flashes and the bell rings the moment the move becomes
+  // mine (turn-order coop; never in a free-for-all, where it always is).
+  const turnFlash = useTurnStartFlash(gd.me.onTurn)
+
+  // The below-board slot: word results, the hint ladder, the standing
+  // conditions, the ending.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  const leaderboard = useMemo(() => readLeaderboard<LeaderRow>(status), [status])
-
-  // Confetti at the MOMENT the board is covered. Gated ONLY on the common.games
-  // row, which GamePage has already awaited — anything that arrives later would
-  // flip false→true after mount and celebrate at someone merely reviewing a
-  // finished game (useCelebration's rule 1). A solve names its winner_id; a
-  // timed-out race has co-winners instead, flagged per leaderboard row.
-  const celebration = useCelebration(
-    playState === 'won' ||
-      (playState === 'won_compete' &&
-        (status?.winner_id === authSession.user.id ||
-          leaderboard.some((e) => e.won && e.user_id === authSession.user.id))),
-  )
-
-  // Only the letters the player typed/clicked. The mandatory first letter is
-  // DERIVED from the chain each render (see BoardCol), so playing a word
-  // re-seeds the entry without an effect and without stale state.
-  const [draft, setDraft] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  // Turn-history viewer, addressed by the row's own id — the board folds the
-  // chain of whoever wrote that row, which is a different list from the one the
-  // log is showing.
-  // BoardCol freezes the entry's capture while viewing, so the viewer's own
-  // any-key action has the keys to itself: any keystroke returns to the live
-  // board instead of typing behind the banner (the hook binds
-  // `act-exit-history`; see `useHistoryViewer`).
-  const { historyId, isViewingHistory, showHistory, exitHistory } = useHistoryViewer<number>()
-  const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
-
-  const chain = useMemo(() => myRow?.chain ?? [], [myRow])
-  const lettersCovered = myRow?.letters_covered ?? 0
-  const playable = useMemo(() => new Set(game?.playableWords ?? []), [game?.playableWords])
-
-  const sides = game?.sides ?? ''
-  const maxWords = game?.max_words ?? 5
-
-  /** The word this player just had refused. `NO_TIMER`, because nothing on a
-   *  clock ends it: it stands until the next action, which is any edit to what
-   *  is in the box. The mark's `nonce` is what the board keys its letters on —
-   *  refusing the same word twice has to shake twice, and a CSS animation only
-   *  restarts on a new element.
-   *
-   *  It is about the word AS SUBMITTED, so the next edit ends it — which is why
-   *  `editDraft` below clears it rather than the board comparing text. Comparing
-   *  text was the first version and it was wrong in a way worth remembering: a
-   *  refused ABD shook again on the way to ABDE, because typing toward a longer
-   *  word passes through the refused one and the match came back. */
-  const [refused, showRefused, clearRefused] = useMark<{ word: string }>(NO_TIMER)
-  /** Every path that changes what is in the box goes through here, so a refusal
-   *  cannot outlive the word it was about. */
-  const editDraft = useCallback(
-    (next: string) => {
-      clearRefused()
-      setDraft(next)
-    },
-    [clearRefused],
-  )
-
-  // ─── Move entry ────────────────────────────────────────
-  const submit = useCallback(async () => {
-    if (!game || busy) return
-    const word = (tailLetter(chain) ?? '') + draft
-    const bad = rejectReason(word, { sides, chain, playable, maxWords })
-    if (bad) {
-      localFeedbackSlot.show(FeedbackMessage.result('lost', bad))
-      // …and the path says no on the board, where the word is drawn. Nothing
-      // left this client — a word the frontend can refuse never reaches the
-      // server — so there is no peer half to this mark.
-      showRefused({ word })
-      return
-    }
-    setBusy(true)
-    const res = await runRpc<WordAnswer>(
-      db.rpc('submit_word', { target_game: gameId, submitted: word }),
-    )
-    setBusy(false)
-    // `rejectReason` above has already refused every shape the FRONTEND can
-    // judge alone, in these same words. What still reaches the server is the
-    // shared chain moving under you — coop is free-for-all, so a teammate's
-    // word can fill the cap, take your word, or change the tail between the
-    // local check and this call — plus the game ending, a concede landing, the
-    // turn moving. Races, all of them, and the draft stays put: the word was
-    // not taken, and it may well be legal again next second.
-    if (res.type === 'not-ok') {
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'accepted' && res.outcome !== null) {
-      // The next word's first letter comes from the chain, which the realtime
-      // refetch is about to update — so clearing the draft is all that's needed.
-      setDraft('')
-      clearRefused()
-      // The accepted-word result restates the cap: with no mobile status bar
-      // the board shows WHICH letters are covered and the strip shows the
-      // words, but "how many words are left" has no ambient home on a phone,
-      // so every accepted word says it. A cap-filling word says nothing: the
-      // chain-full note (below) is what the player needs to read then.
-      const wordsLeft = maxWords - (chain.length + 1)
-      if (wordsLeft > 0) {
-        // The server sends no sentence — the words-left count is this surface's,
-        // and only it knows there is no mobile status bar to carry it. What the
-        // server does send is how the move reads, so the outcome is the other
-        // half of this case's promise and the branch asserts it.
-        localFeedbackSlot.show(
-          FeedbackMessage.result(
-            res.outcome,
-            `${word.toUpperCase()} — ${wordsLeft} ${wordsLeft === 1 ? 'word' : 'words'} left`,
-          ),
-        )
-      } else {
-        localFeedbackSlot.dismiss()
-      }
-      return
-    } else if (res.type === 'ok' && res.data.result === 'solved') {
-      // The terminal verdict is about to arrive on the play_state, so this
-      // says nothing and only hands the entry back.
-      setDraft('')
-      clearRefused()
-      localFeedbackSlot.dismiss()
-      return
-    } else {
-      reportUnhandled('submit_word', res)
-      return
-    }
-  }, [
-    game, busy, chain, draft, sides, playable, maxWords, gameId, localFeedbackSlot,
-    showRefused, clearRefused,
-  ])
-
-  // A board click appends — unless it lands on the letter the word already
-  // ends with, which submits (see Board.tsx for why that is unambiguous).
-  const pick = useCallback(
-    (letter: string) => {
-      localFeedbackSlot.dismiss() // a click is the next move, like a keystroke
-      clearRefused() // …and so is no longer the word that was refused
-      const word = (tailLetter(chain) ?? '') + draft
-      if (word.length > 0 && letter === word[word.length - 1]) {
-        void submit()
-        return
-      }
-      setDraft((d) => d + letter)
-    },
-    [chain, draft, submit, localFeedbackSlot, clearRefused],
-  )
-
-  const runChainRpc = useCallback(
-    async (fn: 'undo_word' | 'clear_chain') => {
-      setBusy(true)
-      const res = await runRpc<ChainAnswer>(db.rpc(fn, { target_game: gameId }))
-      setBusy(false)
-      if (res.type === 'not-ok') {
-        localFeedbackSlot.show(FeedbackMessage.notOk(res))
-        return
-      } else if (res.type === 'ok' && res.data.result === 'undone') {
-        // The shortened chain arrives by subscription and the strip redraws
-        // itself; all this owes the player is the entry back — taking a word
-        // back is a move, so it dismisses the last result like a keystroke.
-        setDraft('')
-        clearRefused()
-        localFeedbackSlot.dismiss()
-        return
-      } else if (res.type === 'ok' && res.data.result === 'cleared') {
-        setDraft('')
-        clearRefused()
-        localFeedbackSlot.dismiss()
-        return
-      } else {
-        reportUnhandled(fn, res)
-        return
-      }
-    },
-    [gameId, localFeedbackSlot, clearRefused],
-  )
-  // The chain strip's × on the last word. `clear_chain` still exists
-  // server-side but has no surface: clicking × repeatedly reaches the empty
-  // chain, so a bulk clear would be a second way to do the same thing.
-  const removeLast = useCallback(() => void runChainRpc('undo_word'), [runChainRpc])
-
-  // ─── The hint ladder (coop only) ───────────────────────
-  // The search runs HERE, over the board's shipped word list — see lib/solve.ts
-  // for why that list ships at all. The server is told only that a rung was
-  // taken, so the event log agrees with what happened.
-  //
-  // Two buttons, two rungs of the shared hint ladder (docs/ui.md → button
-  // iconography): HINT describes the word, SPOILER hands it over. Both are
-  // coop-only — in compete, "first past the bar wins" would make either a win
-  // button, and the server refuses them there too.
-  const askForHintOrSpoiler = useCallback(
-    async (kind: 'hint' | 'spoiler') => {
-      if (!game) return
-      // `cleanWords`, NOT `playableWords` — the accept list carries crude,
-      // slur, slang and dialect words because the PLAYER may type them, and a
-      // hint is the game speaking (docs/word-list.md → the word list's filter
-      // rule). Searching the accept list would let a spoiler answer "the word
-      // is BITCH", which is precisely the asymmetry the two tiers exist for.
-      //
-      // ...UNLESS the clean list is EMPTY, which is not a board — it's a broken
-      // derivation. `clean_words` is computed by joining the board's words
-      // against `common.words` (games_state), so it empties wholesale when
-      // those words aren't in the dictionary at all: a synthetic test fixture,
-      // or a dictionary that was never imported. Refusing to hint then tells
-      // the player "No words to play" about a board full of words, which is a
-      // lie with no remedy. Falling back to the accept list keeps the feature
-      // honest; the purity guarantee is worth less than truthfulness in a state
-      // where nothing is clean because nothing is known.
-      //
-      // This does NOT cover a single word going missing (a dictionary deletion
-      // shrinking a live board's corpus by one). That case still silently
-      // narrows the search — see docs/games/letterboxed.md.
-      //
-      // The room left under the cap rides along so the search can refuse to
-      // point down a road the cap cuts off (the offPar answer below).
-      const corpus = game.cleanWords.length > 0 ? game.cleanWords : game.playableWords
-      const r = suggest(corpus, sides, chain, maxWords - chain.length)
-
-      if (!isSuggestion(r)) {
-        // All three are DIAGNOSIS ONLY — none of them ends in "take a word
-        // back" any more. The remedy is the same in every case, the chain
-        // strip's × is right there, and the pill is `nowrap` + ellipsis inside
-        // a reserved-height slot, so a sentence that doesn't fit is a sentence
-        // nobody reads: the off-par one used to run 74 characters and
-        // truncated mid-word even on desktop. Spend the characters on WHICH
-        // wall you hit, not on the shared way out. A `hint` like the answer
-        // it stands in for: the player asked, maybe mid-word, and the reply
-        // holds the slot until they have read it and pressed ×.
-        const tail = tailLetter(chain as string[])
-        // Did I already SPEND a word starting with the tail letter? `suggest`
-        // excludes words already in the chain (the server refuses a repeat), so
-        // there are two ways to be stuck on G and they deserve different
-        // sentences: the board never had a G-word, or it had one and I've used
-        // it. The second is the crueller one — the player can see a G-word right
-        // there in their own chain — so the message says "other" and stops it
-        // reading as a bug. A chain word starting with G means an earlier word
-        // ended in G, which is ordinary play, not a corner case.
-        const spentTail = tail !== null && chain.some((w) => w.startsWith(tail))
-        // `suggest` searched the CLEAN list, so its "stuck" means "no word I'd
-        // offer follows the tail" — which is not the same as "no legal move",
-        // now that the accept list is wider. Re-ask that question against the
-        // accept list, because "No word starts with G" is a claim about the
-        // RULES and would be a lie if a crude or dialect G-word is sitting
-        // there playable. When one is, the honest answer is the unreachable
-        // line: there's a move, just no route the hint can name.
-        const stuck =
-          r.kind === 'stuck' &&
-          !(tail !== null &&
-            game.playableWords.some((w) => w.startsWith(tail) && !chain.includes(w)))
-        localFeedbackSlot.show(
-          FeedbackMessage.hint(
-            'warning',
-            stuck
-              // Naming the letter is the whole message: "no word starts with G"
-              // is something the player can act on and remember, where "dead
-              // end" only said that something was wrong. A null tail means an
-              // empty chain, where `stuck` can't fire (with no tail every word
-              // is an opener) — the fallback is for the type, not for a state
-              // that happens.
-              ? tail
-                ? `No ${spentTail ? 'other ' : ''}word starts with ${tail.toUpperCase()}`
-                : 'No words to play'
-              : r.kind === 'offPar'
-                // The one case carrying a number, and the reason it exists: the
-                // board IS solvable, just not in the words left under the cap.
-                ? `Best solution needs ${r.wordsToFinish} ${r.wordsToFinish === 1 ? 'word' : 'words'}`
-                : 'No winning path from here',
-          ),
-        )
-        return
-      }
-
-      // A `hint` leaves only by its ×, like every hint: it sits in the
-      // entry's slot until the player has read it, and a keystroke can't take
-      // it away by accident (docs/ui.md → Feedback pill).
-      //
-      // A failed log is shown, not swallowed: the event log keeps the hint's
-      // CONTENT ("Hint: 8 letters: ADG") only when the write SUCCEEDS, so a
-      // not-ok goes up over the hint. Nothing is lost by that: the four
-      // answers below are one race that only fires once the game is over (a
-      // hint has nothing left to be for) and three faults that mean a broken
-      // client, so no player is holding a hint they could still have used
-      // (Joel, 2026-09-01).
-      localFeedbackSlot.show(
-        FeedbackMessage.hint(ANSWER_OUTCOME[kind], hintOrSpoilerPillText(kind, r.word)),
-      )
-      const res = await runRpc<RungAnswer>(
-        db.rpc('log_hint_or_spoiler', { target_game: gameId, word_shown: r.word, kind }),
-      )
-      if (res.type === 'not-ok') {
-        localFeedbackSlot.show(FeedbackMessage.notOk(res))
-        return
-      } else if (res.type === 'ok' && res.data.result === 'logged') {
-        // The hint's row arrives in the event log by subscription. The hint
-        // above stands, which is the whole of what a successful log owes anyone.
-        return
-      } else {
-        reportUnhandled('log_hint_or_spoiler', res)
-        return
-      }
-    },
-    [game, sides, chain, maxWords, gameId, localFeedbackSlot],
-  )
-  const takeHint = useCallback(() => void askForHintOrSpoiler('hint'), [askForHintOrSpoiler])
-  const takeSpoiler = useCallback(
-    () => void askForHintOrSpoiler('spoiler'),
-    [askForHintOrSpoiler],
-  )
-
-  // Reveal the seeded pair — LOCAL and reversible (useSolutionReveal), and
-  // never automatic: a letterboxed win is covering the twelve letters with ANY
-  // chain inside the cap, so the pair is a different, usually much shorter
-  // answer the players never saw. It's precisely what the button exists to hand
-  // over, and my asking for it doesn't hand it to anyone else. Terminal-only
-  // (the gate below), so a player who dropped out can't spoil a live race.
-  const { revealed: solutionShown, toggle: toggleSolution } =
-    useSolutionReveal()
-
-  // ─── The commands, bound ───────────────────────────────
-  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
-    db,
-    gameId,
-    isTerminal,
-    mode: game?.mode === 'compete' ? 'compete' : 'coop',
-    isLocallyTerminal,
-    localFeedbackSlot,
-  })
-
-  // A plain function, rebuilt every render: the action below reads it at click
-  // time, so `setup` and `players` are whatever the last realtime refetch left,
-  // and the action's own identity doesn't move when they do.
-  const gameMode = game?.mode
-  const createNewGame = async () => {
-    if (!gameMode) return
-    const res = await runEdgeFn<CreatedGame>(
-      'letterboxed-build-board',
-      { target_club: clubHandle, setup, player_user_ids: players.map((p) => p.user_id), mode: gameMode },
-    )
-    if (res.type === 'not-ok') {
-      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
-      // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the slot as it reads, over
-      // the verdict, until its × is pressed. Shown even for a fault whose
-      // modal has already fired centrally — the modal escalates, it does not
-      // replace (docs/envelopes.md), so dismissing it must not leave the board
-      // silent about why the game didn't start. FOUR of the answers here are
-      // form-validations rather than faults — PN214/PN215 (the letters have
-      // no solution), PN216/PN217 (the dictionary does not reach it) — and the
-      // message wears whatever outcome arrived.
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToFollowUpGame(res.data.id)
-      return
-    } else {
-      reportUnhandled('letterboxed-build-board', res)
-      return
-    }
-  }
-
-  // New game — its `+`, its menu row and its terminal button, from one action.
-  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game
-  // rather than ending it) and goes straight through at terminal. The shared
-  // run's single flight is what covers all three triggers at once, which a
-  // `disabled` button could not.
-  const actNewGame = useBindAction('act-new-game', {
-    terminal: isTerminal,
-    describe: () => 'active',
-    run: createNewGame,
-  })
-
-  // ─── The hint ladder ───────────────────────────────────
-  // Two rungs, COOP ONLY: in a race "first past the bar wins" would make either
-  // one a win button, and the server refuses them there too. Hiding rather than
-  // disabling is deliberate — a control that named a glyph the surface never
-  // shows would teach a lie (crosswords drops its Reveal submenu in compete for
-  // the same reason). Both go inert at terminal: there is no word left to find.
-  const actHint = useBindAction('act-hint', {
-    describe: () => {
-      if (game?.mode === 'compete') return 'hidden'
-      return isTerminal ? 'disabled' : 'active'
-    },
-    run: takeHint,
-  })
-  const actSpoiler = useBindAction('act-spoiler', {
-    describe: () => {
-      if (game?.mode === 'compete') return 'hidden'
-      return { state: isTerminal ? 'disabled' : 'active', label: 'Show the word' }
-    },
-    run: takeSpoiler,
-  })
-
-  // Reveal the seeded pair — the same toggle wearing the same two faces in the
-  // menu and in the terminal row, so a player who scrolled past the row can
-  // still reach it. Inert until the game is over for EVERYONE.
-  const actReveal = useBindAction('act-reveal', {
-    describe: () => describeReveal({ noun: 'solution', revealed: solutionShown, isTerminal }),
-    run: toggleSolution,
-  })
-
-  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). What it may SHOW
-  // is decided in pdf/model.ts — notably that the solution prints only once the
-  // players have revealed it on screen, which has to hold on paper too.
-  const actPrintBoard = useBindAction('act-print-board', {
-    describe: () => (game ? 'active' : 'hidden'),
-    run: () => {
-      if (!game) return
-      printLetterboxedPdf(
-        buildLetterboxedPrintModel({
-          brand,
-          gameTitle: title,
-          date: new Date().toLocaleDateString(),
-          sides: game.sides,
-          mode: game.mode,
-          solution: game.solution,
-          solutionRevealed: solutionShown,
-          players,
-          playerRows,
-          events,
-          myId: authSession.user.id,
-          summary: `${lettersCovered}/${BOARD_SIZE} letters · ${chain.length}/${maxWords} words`,
-          setupRows,
-        }),
-      )
-    },
-  })
-
-  // The FULL letterboxed menu. `buildGameMenu` supplies the framing (Help + chat
-  // above, Back to club below); the middle is this game's own rows, each one an
-  // action it already made — so a row's words, glyph, key and availability come
-  // from the action rather than being typed here a second time. The hint ladder
-  // hides itself in compete, which is why this list is the same in both modes.
-  // The effect re-runs only when the SHAPE changes, hence every dep is stable.
-  useEffect(function publishGameMenu() {
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
-        // Both exits, in reading order; each hides itself in the mode that isn't
-        // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actStopGame],
-        extra: [
-          { items: [actHint, actSpoiler] },
-          { items: [actRestart, actNewGame, actReveal] },
-          { items: [actPrintBoard] },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, actConcede, actStopGame, actHint, actSpoiler, actRestart, actNewGame, actReveal, actPrintBoard])
-
-  // ─── Coop peer narration (global header) ───────────────
-  // In coop the chain is shared, so a teammate's word changes MY board; say so.
-  useShowPeerFeedback({
-    enabled: game?.mode === 'coop',
-    ready: rowsLoaded,
-    items: events,
-    keyOf: (e) => String(e.id),
-    messageFor: (e) => {
-      if (e.user_id === authSession.user.id) return null
-      const member = memberById(players, e.user_id)
-      // A peer's hint is TWO messages (Joel's spec, 2026-08-05): the header names
-      // the ACT ("● joel got a hint"), and the CONTENT — the same hint the
-      // requester saw — lands in the local slot, so a hint one player asks
-      // for is a hint the whole team has. Showing into the local slot from
-      // here is sound: messageFor runs once per NEW event inside the hook's
-      // effect (the seen-set), never during render.
-      if (e.kind === 'hint' || e.kind === 'spoiler') {
-        if (e.word)
-          localFeedbackSlot.show(
-            FeedbackMessage.hint(ANSWER_OUTCOME[e.kind], hintOrSpoilerPillText(e.kind, e.word)),
-          )
-        return FeedbackMessage.peer(
-          member,
-          ANSWER_OUTCOME[e.kind],
-          e.kind === 'hint' ? 'got a hint' : 'revealed a word',
-        )
-      }
-      const what =
-        e.kind === 'word'
-          ? `${e.word?.toUpperCase() ?? ''} (${e.letters_covered}/${BOARD_SIZE})`
-          : e.kind === 'undo'
-            ? // Named, not "the last word": the peers' boards just lost it, so
-              // say WHICH word came off (the log's "took back GJB" agrees).
-              `undid ${e.word?.toUpperCase() ?? 'the last word'}`
-            : 'cleared the chain'
-      return FeedbackMessage.peer(member, ANSWER_OUTCOME[e.kind], what)
-    },
-    globalFeedbackSlot,
-  })
-
-  // ─── The four standing conditions of the local slot ───
-  // Each is an effect on a primitive edge that shows on true and retracts in
-  // its cleanup — the slot draws whichever ranks highest. Above the early
-  // returns because effects must be.
-
-  // The terminal message, memoized on primitives so the verdict effect sees
-  // one object per outcome. `leaderboard` is already memoized on the status.
-  const isCompete = game?.mode === 'compete'
-  const timedOut = status?.timed_out === true
-  const statusOutcome = (status?.reason as string | undefined) ?? null
-  const winnerId = (status?.winner_id as string | undefined) ?? null
-  const over = useMemo(
-    () =>
-      isTerminal && gameMode
-        ? buildOver({
-            mode: gameMode,
-            playState,
-            timedOut,
-            statusOutcome,
-            winnerId,
-            leaderboard,
-            myId: authSession.user.id,
-            lettersCovered,
-            wordsUsed: chain.length,
-          })
-        : null,
-    [isTerminal, gameMode, playState, timedOut, statusOutcome, winnerId, leaderboard,
-     authSession.user.id, lettersCovered, chain.length],
-  )
+  // The endings' messages, for the pill and the info column: the game's once
+  // it has ended, mine while I have conceded and the others race on.
+  const gameEndingMessage = useGetGameEndingMessage(gd)
+  const playerEndingMessage = useGetPlayerEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage: over,
-    playerEndingMessage: null,
+    gameEndingMessage,
+    playerEndingMessage,
   })
-
-  // Out of the race while the others play on (compete only; the page's
-  // `isLocallyTerminal` — in this game only by conceding).
-  useEffect(function showOutOfRace() {
-    if (isTerminal || !isLocallyTerminal) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
   // A teammate holds the move (turn-order coop; never in a free-for-all).
   useShowWaitingMessage({
     slot: localFeedbackSlot,
-    isWaiting: isWaitingForTurn,
-    holder: players.find((p) => p.user_id === turnHolderId),
+    isWaiting: gd.me.waitingForTurn,
+    holder: gd.turns?.holder ?? null,
   })
 
-  // The cap is spent and the board isn't covered. There is no legal move left
-  // but taking a word back, so the board and the entry both go inert rather
-  // than letting a player compose a sixth word only to be refused it — and
-  // the slot says so in the entry's place.
-  const chainFull = chain.length >= maxWords && lettersCovered < BOARD_SIZE
-  useEffect(function showChainFull() {
-    if (!chainFull) return
-    const id = localFeedbackSlot.show(FeedbackMessage.note('Chain is full — remove a word'))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, chainFull])
+  // A teammate's move, in the header slot (coop).
+  useShowTeammateMoves(gd, globalFeedbackSlot, localFeedbackSlot)
 
-  if (loading) return <div className={styles.loading}>Loading…</div>
-  // A failed read is NOT a missing game. Both leave `game` null, and saying
-  // "Game not found." about a dead connection is a confident wrong answer —
-  // this is what remains once the fault modal is dismissed.
-  if (failure) return <EnvelopeErrorPage envelope={failure} />
-  if (!game) return <div className={styles.empty}>Game not found.</div>
+  // ─── The turn-history view ─────────────────────────────
+  // Which past move, if any, is open on the board, and its chain replayed.
+  const historyView = useHistoryView(gd)
 
-  // The rows the BOARD's viewer replays: the shared chain's events in coop, my
-  // own in compete — the wordle shape. The log shows whatever its picker is
-  // filtered to, and the two lists need not match: a handle carries the row's
-  // own id, which this list either holds or does not. (An earlier version had
-  // the log hand its rows UP through a state-setting effect; the fresh array
-  // re-fired it every render and hit React's update-depth limit.)
-  const boardRows =
-    game.mode === 'compete' ? events.filter((e) => e.user_id === authSession.user.id) : events
+  // ─── The commands, and the menu that lists them ────────
+  // Every command this game offers: the info column's action row places them,
+  // the menu lists them, and the reveal's state comes back for the info column.
+  const { actions, solutionShown } = useActionsAndMenu({
+    gd,
+    localFeedbackSlot,
+    goToFollowUpGame,
+    menu,
+  })
 
-  // WHOSE chain the viewer replays is the row's own author's. Mid-game compete
-  // that is always me — RLS shows me nothing else — but at TERMINAL every
-  // player's rows arrive, and a `#N` on one of theirs replays THEIR chain. Coop
-  // is one shared chain, so the filter is a no-op there.
-  const historyRow = historyId !== null ? events.find((e) => e.id === historyId) : undefined
-  const historyRows =
-    game.mode === 'compete' && historyRow
-      ? events.filter((e) => e.user_id === historyRow.user_id)
-      : boardRows
+  // ─── Render ────────────────────────────────────────────
 
-  // The chain the BOARD shows: a past move's while viewing, the live one
-  // otherwise. Folding rather than reconstructing — see lib/history.ts.
-  const shownChain = isViewingHistory && historyId !== null ? historyChainAt(historyRows, historyId) : chain
-  const historyLabel =
-    isViewingHistory && historyId !== null ? historyLabelAt(historyRows, historyId) : null
-  // Named only when the chain on screen is not the viewer's own — which only
-  // compete can be. Coop is one shared chain.
-  const historyActor =
-    game.mode === 'compete' && historyRow && historyRow.user_id !== authSession.user.id
-      ? memberById(players, historyRow.user_id)
-      : undefined
+  // The chain to show: a past move's while one is open, else the live one.
+  const shownWords = historyView.words ?? gd.me.board.words
 
-  // TWO different gates, and conflating them is a bug: a full chain freezes the
-  // ENTRY (there is no word to compose) but must leave the chain EDITABLE,
-  // because taking a word back is the only move left. Passing the entry's gate
-  // to the chain strip hid the × exactly when it was needed. Taking a word back
-  // is a move sent to the server, so it asks `isMyTurn`; typing asks the board.
-  const entryDisabled = !isBoardInteractive || chainFull
-
-  const wordsByUser = new Map(
-    playerRows.map((r) => [r.user_id, r.word_count]),
-  )
-  const coveredByUser = new Map(
-    playerRows.map((r) => [r.user_id, r.letters_covered]),
-  )
+  // The ending that applies to me: the game's once it has ended, else mine.
+  const endingMessage = gameEndingMessage ?? playerEndingMessage
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
-        sides={sides}
-        chain={shownChain}
-        liveChain={chain}
-        historyLabel={historyLabel}
-        historyActor={historyActor}
-        onExitHistory={exitHistory}
-        draft={draft}
-        onDraftChange={editDraft}
-        refused={refused}
-        onSubmit={() => void submit()}
-        onPick={pick}
-        onRemoveLast={removeLast}
-        // The slot the entry row draws in its place: a word result, a hint,
-        // "you're out", whose turn it is, the full chain, the verdict.
+        gd={gd}
+        shownWords={shownWords}
+        historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
-        entryDisabled={entryDisabled}
-        isMyTurn={isMyTurn}
-        busy={busy}
+        myTurnJustStarted={turnFlash}
       />
 
+      {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
-          over={over}
-          isTerminal={isTerminal}
-          isLocallyTerminal={isLocallyTerminal}
-          isTurnBased={isTurnBased}
-          turnHolderId={turnHolderId}
-          chain={chain}
-          maxWords={maxWords}
-          lettersCovered={lettersCovered}
-          solution={game.solution}
-          events={events}
-          players={players}
-          myId={authSession.user.id}
-          isCompete={isCompete}
-          wordsByUser={wordsByUser}
-          coveredByUser={coveredByUser}
-          concededIds={concededIds}
-          setupRows={setupRows}
-          actHint={actHint}
-          actSpoiler={actSpoiler}
-          actReveal={actReveal}
-          solutionShown={solutionShown}
-          actStopGame={actStopGame}
-          actConcede={actConcede}
-          actRestart={actRestart}
-          actNewGame={actNewGame}
-          actBackToClub={menu.actBackToClub}
-          historyId={historyId}
-          onShowHistory={showHistory}
+          gd={gd}
+          endingMessage={endingMessage}
+          actions={actions}
+          historyView={historyView}
+          solution={solutionShown ? gd.puzzle.solution : null}
         />
       </InfoSheet>
-      {/* No modal at terminal (docs/ui.md → Terminal results) — the result is
-          in the below-board slot and the info column, so a modal would just
-          interrupt. */}
-      {/* Confetti at the MOMENT the board is covered — coop's win, and compete's
-          for whoever got there first. useCelebration never pops on mount, so
-          reopening a finished game doesn't re-celebrate. */}
+
+      {/* No modal for the verdict (docs/ui.md → Terminal results): it is
+          carried in-page, by the below-board pill and the action row's line.
+          My win's confetti — once, when it happens. */}
       {celebration.isOpen && (
         <CelebrationBlockingModal title="All twelve! 🐍" onClose={celebration.close} />
       )}
     </div>
   )
-}
-
-/**
- * Maps the terminal play_state to the shared `TerminalMessage`.
- *
- * Coop wins by covering all twelve inside the cap; its losses are the clock
- * and the group calling it. Compete's win is FIRST past that same bar, which
- * is why the race ends on a solve rather than continuing — there is no
- * "fewest" left to improve on. A timed-out race still resolves, on the most
- * letters covered, so a clock expiry produces a result rather than crowning
- * nobody.
- */
-function buildOver({
-  mode,
-  playState,
-  timedOut,
-  statusOutcome,
-  winnerId,
-  leaderboard,
-  myId,
-  lettersCovered,
-  wordsUsed,
-}: {
-  mode: 'coop' | 'compete'
-  playState: string
-  /** `status.timed_out` — the clock ended it. */
-  timedOut: boolean
-  /** `status.reason`, or null when the status carries none. */
-  statusOutcome: string | null
-  /** `status.winner_id` — the solve-path winner, or null. */
-  winnerId: string | null
-  leaderboard: LeaderRow[]
-  myId: string
-  lettersCovered: number
-  wordsUsed: number
-}): TerminalMessage {
-  if (mode === 'coop') {
-    if (playState === 'won') {
-      return {
-        outcome: 'won',
-        pillText: `Won: all twelve in ${wordsUsed} ${wordsUsed === 1 ? 'word' : 'words'}`,
-        infoColText: 'All letters used!',
-      }
-    }
-    if (playState === 'lost') {
-      return timedOut
-        ? { outcome: 'lost', pillText: `Lost: out of time at ${lettersCovered}/12`, infoColText: 'Out of time' }
-        : { outcome: 'lost', pillText: `Lost: stopped at ${lettersCovered}/12`, infoColText: 'Called it' }
-    }
-    return buildGameEndedMessageNeutral('coop')
-  }
-
-  // Compete.
-  if (playState === 'won_compete') {
-    if (winnerId === myId) {
-      return {
-        outcome: 'won',
-        pillText: `Won: all twelve in ${wordsUsed} ${wordsUsed === 1 ? 'word' : 'words'}`,
-        infoColText: 'You got there first!',
-      }
-    }
-    // A timeout resolves on coverage instead of a solve, so the verdict comes
-    // off the leaderboard's per-row `won` flags rather than from a winner_id.
-    // Exact ties are CO-winners (the server flags every tied row), so read my
-    // own row — leaderboard[0] would tell one tied winner they lost.
-    if (timedOut) {
-      const winners = leaderboard.filter((e) => e.won)
-      const iWon = winners.some((e) => e.user_id === myId)
-      const covered = winners[0]?.letters_covered ?? 0
-      if (iWon) {
-        return {
-          outcome: 'won',
-          pillText:
-            winners.length > 1
-              ? `Won: tied at most letters (${covered}/12)`
-              : `Won: most letters (${covered}/12)`,
-          infoColText: 'Most letters when time ran out',
-        }
-      }
-      const names = winners.map((e) => e.username ?? 'a player').join(' & ')
-      return {
-        outcome: 'lost',
-        pillText: `Lost: ${names || 'a player'} covered more`,
-        infoColText: 'Out of time',
-      }
-    }
-    const name = leaderboard.find((e) => e.user_id === winnerId)?.username
-    return {
-      outcome: 'lost',
-      pillText: `Lost: ${name ?? 'a player'} got there first`,
-      infoColText: 'Beaten to it',
-    }
-  }
-  if (playState === 'lost_compete') {
-    return statusOutcome === 'conceded'
-      ? { outcome: 'lost', pillText: 'Lost: everyone conceded', infoColText: 'Everyone dropped out' }
-      : { outcome: 'lost', pillText: 'Lost: nobody covered the board', infoColText: 'Nobody finished' }
-  }
-  return buildGameEndedMessageNeutral('compete')
 }

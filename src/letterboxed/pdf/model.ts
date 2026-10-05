@@ -3,8 +3,7 @@
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import { BOARD_SIZE, coveredLetters } from '../lib/board'
-import type { EventRow, PlayerRow } from '../hooks/useGame'
-import type { GamePlayer } from '@/common/members/member'
+import type { GEvent, GPlayer } from '../types'
 
 /**
  * Build the letterboxed print model — the pure half, away from jsPDF so the
@@ -13,10 +12,10 @@ import type { GamePlayer } from '@/common/members/member'
  * Two judgments live here.
  *
  * **The solution is not printed unless it has already been revealed on screen.**
- * The FE holds the seeded pair from game start, and the terminal Reveal button
+ * The page is handed the seeded pair once the game ends, and the Reveal button
  * is what opens it (`hides_solution` on the gametype). Printing it regardless
  * would route around that gate — a player could take the answer off a game they
- * had deliberately left covered, and hand it to someone still playing.
+ * had deliberately left covered, and hand it to a friend about to replay it.
  *
  * **Compete gets one track per player**, because each builds a DIFFERENT chain
  * on the same twelve letters. A single merged log would interleave chains that
@@ -47,11 +46,11 @@ export type LetterboxedPrintModel = PrintHeader & {
 }
 
 /** What a move row says on paper. Mirrors the on-screen log's vocabulary. */
-function describe(e: EventRow): string {
+function describe(e: GEvent): string {
   const word = e.word?.toUpperCase() ?? ''
   switch (e.kind) {
     case 'word':
-      return `${word} (${e.letters_covered}/${BOARD_SIZE})`
+      return `${word} (${e.nCoveredLetters}/${BOARD_SIZE})`
     case 'undo':
       return `took back ${word}`
     case 'clear':
@@ -69,13 +68,14 @@ export function buildLetterboxedPrintModel(o: {
   date: string
   sides: string
   mode: 'coop' | 'compete'
-  solution: string[]
-  /** The shared reveal flag — the ONLY thing that lets the solution print. */
+  /** The seeded pair; null until the game ends. */
+  solution: string[] | null
+  /** The reveal flag — the ONLY thing that lets the solution print. */
   solutionRevealed: boolean
-  players: GamePlayer[]
-  playerRows: PlayerRow[]
-  events: EventRow[]
-  myId: string
+  /** Every player, each with the chain this seat may see (null for a rival
+   *  mid-race). */
+  players: GPlayer[]
+  events: GEvent[]
   /** The on-screen status line, repeated under the title. */
   summary: string
   setupRows: SetupRow[]
@@ -89,13 +89,13 @@ export function buildLetterboxedPrintModel(o: {
     mode: o.mode,
   }
 
-  const trackFor = (who: string, chain: string[], rows: EventRow[]): PrintTrack => ({
+  const trackFor = (who: string, chain: string[], rows: GEvent[]): PrintTrack => ({
     who,
     chain,
     covered: [...coveredLetters(chain)],
     turns: rows.map((e, i) => ({
       seq: i + 1,
-      who: o.players.find((p) => p.user_id === e.user_id)?.username ?? '—',
+      who: e.by.username,
       text: describe(e),
     })),
     result: `${coveredLetters(chain).size}/${BOARD_SIZE} letters · ${chain.length} ${
@@ -106,7 +106,8 @@ export function buildLetterboxedPrintModel(o: {
   // Coop is ONE chain the whole table shares, so the column is about the board
   // rather than a person — hence "Team", the same word wordle's coop track uses.
   if (o.mode === 'coop') {
-    const chain = o.playerRows[0]?.chain ?? []
+    // Every seat holds the one shared chain.
+    const chain = o.players[0]!.board!.words
     return {
       ...header,
       sides: o.sides,
@@ -116,15 +117,14 @@ export function buildLetterboxedPrintModel(o: {
   }
 
   // Compete: one track per player whose chain we can actually see. A rival's
-  // chain is null mid-race (players_state masks it), so their column would be a
+  // chain is null mid-race (`useGame`'s seat rule), so their column would be a
   // blank board — printing yours alone is the honest thing during play, and at
-  // terminal the mask opens and everyone gets a column.
+  // the end everyone gets a column.
   const tracks = o.players
     .map((p) => {
-      const row = o.playerRows.find((r) => r.user_id === p.user_id)
-      if (!row?.chain) return null
-      const mine = o.events.filter((e) => e.user_id === p.user_id)
-      return trackFor(p.username, row.chain, mine)
+      if (p.board === null) return null
+      const theirs = o.events.filter((e) => e.by === p)
+      return trackFor(p.username, p.board.words, theirs)
     })
     .filter((t): t is PrintTrack => t !== null)
 

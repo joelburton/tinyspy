@@ -51,6 +51,9 @@ export type ZTest_GameDataFacts = {
   clubHandle?: string
   setup?: GSetup
   maxWords?: number
+  // Every word the board accepts, and the ones a hint may not offer.
+  words?: string[]
+  uncleanWords?: string[]
   // The shared coop chain; a compete racer's is on their own facts.
   chain?: string[]
   // The whole log — every player's rows, as the blob carries it.
@@ -115,6 +118,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     clubHandle = 'testclub',
     setup = { extra_words: 3, legal_band: 5, timer: { kind: 'none' } },
     maxWords = 5,
+    words = ZTest_WORDS,
+    uncleanWords = ZTest_UNCLEAN_WORDS,
     chain: sharedChain = [],
     events = [],
     players: playerFacts = [{ id: 'u1', username: 'me', color: 'red' }],
@@ -172,8 +177,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     outcome,
     puzzle: {
       tiles: ZTest_makeTiles(),
-      words: ZTest_WORDS,
-      uncleanWords: ZTest_UNCLEAN_WORDS,
+      words,
+      uncleanWords,
       nParWords: 2,
       solution: ended ? ZTest_SOLUTION : null,
     },

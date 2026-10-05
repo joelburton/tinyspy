@@ -58,8 +58,6 @@ const KNOWN: string[] = [
   'src/crosswords/manifest.ts › coopLabel',
   // → e2e
   'e2e/gallery/index.ts › renderViewer',
-  // → letterboxed
-  'src/letterboxed/components/PlayArea.tsx › WordAnswer',
   // → scrabble
   'src/scrabble/components/BoardCol.tsx › PlayAnswer',
   'src/scrabble/manifest.ts › summaryFor',

@@ -2,57 +2,47 @@
 
 import { describe, expect, it } from 'vitest'
 import { buildLetterboxedPrintModel } from './model'
-import type { EventRow, PlayerRow } from '../hooks/useGame'
-import type { GamePlayer } from '@/common/members/member'
+import { makeGameData } from '../hooks/useGame'
+import {
+  ZTest_event,
+  ZTest_makeGameDataRaw,
+  type ZTest_GameDataFacts,
+} from '../lib/gameData.fixture'
 
-const ALICE = 'a1111111-1111-1111-1111-111111111111'
-const BEA = 'b2222222-2222-2222-2222-222222222222'
+const TWO = [
+  { id: 'u1', username: 'alice' },
+  { id: 'u2', username: 'bea' },
+]
 
-const player = (user_id: string, username: string): GamePlayer =>
-  ({ user_id, username, color: 'blue', conceded: false, result: null }) as unknown as GamePlayer
-
-const row = (user_id: string, chain: string[] | null): PlayerRow => ({
-  game_id: 'g',
-  user_id,
-  chain,
-  word_count: chain?.length ?? 0,
-  letters_covered: new Set((chain ?? []).join('')).size,
-  hints_used: 0,
-  solved: false,
-  solved_at: null,
-})
-
-let seq = 0
-const ev = (user_id: string, kind: EventRow['kind'], word: string | null): EventRow => ({
-  id: ++seq,
-  game_id: 'g',
-  user_id,
-  kind,
-  word,
-  letters_covered: 3,
-  created_at: '2026-08-05T00:00:00Z',
-})
-
-const base = {
-  brand: 'SnakeBox',
-  gameTitle: 'ABC-DEF-GHI-JKL',
-  date: '5 Aug 2026',
-  sides: 'abcdefghijkl',
-  solution: ['adgjbehk', 'kcfil'],
-  myId: ALICE,
-  summary: '3/12 letters · 1/5 words',
-  setupRows: [{ key: 'legal_band', label: 'Dictionary', value: '5 (Obscure)' }],
+/** The model as the print action builds it, from `gd` as alice sees it. */
+function buildModelFor(facts: ZTest_GameDataFacts, solutionRevealed = false) {
+  const gd = makeGameData(ZTest_makeGameDataRaw(facts), 'u1')
+  return buildLetterboxedPrintModel({
+    brand: 'SnakeBox',
+    gameTitle: 'ABC-DEF-GHI-JKL',
+    date: '5 Aug 2026',
+    sides: 'abcdefghijkl',
+    mode: gd.mode,
+    solution: gd.puzzle.solution,
+    solutionRevealed,
+    players: gd.players,
+    events: gd.events,
+    summary: '3/12 letters · 1/5 words',
+    setupRows: [{ key: 'legal_band', label: 'Dictionary', value: '5 (Obscure)' }],
+  })
 }
+
+const STOPPED = {
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  outcome: 'neutral',
+} as const
 
 describe('buildLetterboxedPrintModel', () => {
   it('coop prints ONE track, for the board rather than a person', () => {
-    const m = buildLetterboxedPrintModel({
-      ...base,
-      mode: 'coop',
-      solutionRevealed: false,
-      players: [player(ALICE, 'alice'), player(BEA, 'bea')],
-      playerRows: [row(ALICE, ['adg']), row(BEA, ['adg'])],
-      events: [ev(ALICE, 'word', 'adg')],
+    const m = buildModelFor({
+      players: TWO,
+      chain: ['adg'],
+      events: [ZTest_event(1, 'u1', 'word', 'adg', 3)],
     })
     expect(m.tracks).toHaveLength(1)
     expect(m.tracks[0].who).toBe('Team')
@@ -60,68 +50,50 @@ describe('buildLetterboxedPrintModel', () => {
   })
 
   it('compete prints one track per player, each with only their own moves', () => {
-    const m = buildLetterboxedPrintModel({
-      ...base,
+    const m = buildModelFor({
       mode: 'compete',
-      solutionRevealed: false,
-      players: [player(ALICE, 'alice'), player(BEA, 'bea')],
-      playerRows: [row(ALICE, ['adg']), row(BEA, ['gjb', 'beh'])],
-      events: [ev(ALICE, 'word', 'adg'), ev(BEA, 'word', 'gjb'), ev(BEA, 'word', 'beh')],
+      players: [{ ...TWO[0]!, chain: ['adg'] }, { ...TWO[1]!, chain: ['gjb', 'beh'] }],
+      events: [
+        ZTest_event(1, 'u1', 'word', 'adg', 3),
+        ZTest_event(2, 'u2', 'word', 'gjb', 3),
+        ZTest_event(3, 'u2', 'word', 'beh', 5),
+      ],
+      ...STOPPED,
     })
     expect(m.tracks.map((t) => t.who)).toEqual(['alice', 'bea'])
     expect(m.tracks[0].turns).toHaveLength(1)
     expect(m.tracks[1].turns).toHaveLength(2)
   })
 
-  it('omits a compete rival whose chain is still masked', () => {
-    // Mid-race players_state nulls a rival's chain, so their column would be a
+  it('omits a compete rival whose chain is still withheld', () => {
+    // Mid-race the seat rule nulls a rival's chain, so their column would be a
     // blank board — printing only what the viewer may see is the honest thing.
-    const m = buildLetterboxedPrintModel({
-      ...base,
+    const m = buildModelFor({
       mode: 'compete',
-      solutionRevealed: false,
-      players: [player(ALICE, 'alice'), player(BEA, 'bea')],
-      playerRows: [row(ALICE, ['adg']), row(BEA, null)],
-      events: [ev(ALICE, 'word', 'adg')],
+      players: [{ ...TWO[0]!, chain: ['adg'] }, { ...TWO[1]!, chain: ['gjb'] }],
+      events: [ZTest_event(1, 'u1', 'word', 'adg', 3)],
     })
     expect(m.tracks.map((t) => t.who)).toEqual(['alice'])
   })
 
   it('DOES NOT print the solution until it has been revealed on screen', () => {
-    const args = {
-      ...base,
-      mode: 'coop' as const,
-      players: [player(ALICE, 'alice')],
-      playerRows: [row(ALICE, ['adg'])],
-      events: [],
-    }
-    expect(buildLetterboxedPrintModel({ ...args, solutionRevealed: false }).solution).toBeNull()
-    expect(buildLetterboxedPrintModel({ ...args, solutionRevealed: true }).solution).toEqual([
-      'adgjbehk',
-      'kcfil',
-    ])
+    const facts = { chain: ['adg'], ...STOPPED }
+    expect(buildModelFor(facts, false).solution).toBeNull()
+    expect(buildModelFor(facts, true).solution).toEqual(['adgjbehk', 'kcfil'])
   })
 
   it('marks exactly the letters the chain covered', () => {
-    const m = buildLetterboxedPrintModel({
-      ...base,
-      mode: 'coop',
-      solutionRevealed: false,
-      players: [player(ALICE, 'alice')],
-      playerRows: [row(ALICE, ['adg', 'gjb'])],
-      events: [],
-    })
+    const m = buildModelFor({ chain: ['adg', 'gjb'] })
     expect([...m.tracks[0].covered].sort()).toEqual(['a', 'b', 'd', 'g', 'j'])
   })
 
   it('keeps retreats, hints and spoilers in the printed log', () => {
-    const m = buildLetterboxedPrintModel({
-      ...base,
-      mode: 'coop',
-      solutionRevealed: false,
-      players: [player(ALICE, 'alice')],
-      playerRows: [row(ALICE, [])],
-      events: [ev(ALICE, 'undo', 'adg'), ev(ALICE, 'hint', 'kcfil'), ev(ALICE, 'spoiler', 'kcfil')],
+    const m = buildModelFor({
+      events: [
+        ZTest_event(1, 'u1', 'undo', 'adg', 0),
+        ZTest_event(2, 'u1', 'hint', 'kcfil', 0),
+        ZTest_event(3, 'u1', 'spoiler', 'kcfil', 0),
+      ],
     })
     expect(m.tracks[0].turns.map((t) => t.text)).toEqual([
       'took back ADG',

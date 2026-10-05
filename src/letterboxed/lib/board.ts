@@ -33,6 +33,13 @@ export const MIN_WORD_LEN = 3
  */
 export const PAR = 2
 
+/** The box's tiles as the `sides` string everything here reads: their letters,
+ *  in side order. Takes the tile's shape rather than `GTile`, because the
+ *  board-building edge function loads this file and cannot load `types.ts`. */
+export function joinSides(tiles: readonly { letter: string }[]): string {
+  return tiles.map((t) => t.letter).join('')
+}
+
 /** Which side (0..3) each letter sits on. */
 export function sideOf(sides: string): Map<string, number> {
   return new Map([...sides].map((c, i) => [c, Math.floor(i / SIDE_SIZE)]))
@@ -67,7 +74,7 @@ export function coveredLetters(chain: string[]): Set<string> {
  * The letter the NEXT word must start with — the last letter of the chain's
  * last word, or null when the chain is empty and anything may open.
  */
-export function tailLetter(chain: string[]): string | null {
+export function tailLetter(chain: readonly string[]): string | null {
   const last = chain[chain.length - 1]
   return last ? last[last.length - 1] : null
 }
