@@ -6,7 +6,7 @@
 -- Compete: same starting board, played independently. The FIRST player to
 -- clear all six words wins immediately, ranked 1; everyone else is short of
 -- the goal, unranked and lost. An opponent's submissions are
--- hidden mid-game (only the found_count tally is public) and revealed once
+-- hidden mid-game (only the n_found_words tally is public) and revealed once
 -- the game ends.
 
 begin;
@@ -40,11 +40,11 @@ select is(
   0::bigint,
   'mid-game: bea cannot see ada''s submissions (compete RLS hides them)');
 select is(
-  (select found_count from stackdown.players
+  (select n_found_words from stackdown.players
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
-  'mid-game: ada''s found_count IS visible to bea (the public tally)');
+  'mid-game: ada''s n_found_words IS visible to bea (the public tally)');
 -- The title must NOT leak ada's cleared word into the shared club list:
 -- compete keeps the create-time "New game" no matter how far ahead a racer is.
 select is(

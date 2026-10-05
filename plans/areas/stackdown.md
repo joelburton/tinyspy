@@ -38,10 +38,10 @@ last column is what the conversion will do, filled in as it does it.
 
 | what | mentioned | taken over or dropped |
 |---|---|---|
-| `events_select`'s mode arm — coop shows every member every row, a racer always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | |
-| `games_state` view, with `_solution_for` — the game row, the six words once the game has ended | `ended_at` | |
-| `games_select`, `players_select` — club-member reads | neither | |
-| `_write_statuses` — `game_status` {}, `player_status` {found_words_count, hints_count, spoilers_count, player_ended_reason}, `clubpage_info` {found_words_count, band, winner_user_id} | neither | |
+| `events_select`'s mode arm — coop shows every member every row, a racer always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | the arm is **dropped** (2026-10-05) and the policy keeps the member gate alone; to be **taken over** by `makeGameData`'s seat rule at step 7 |
+| `games_state` view, with `_solution_for` — the game row, the six words once the game has ended | `ended_at` | **dropped** (2026-10-05): `game_data` carries the six words once the game ends, and the column grant on `solution` stays the real guard |
+| `games_select`, `players_select` — club-member reads | neither | **kept** (2026-10-05) |
+| `_write_statuses` — `game_status` {}, `player_status` {found_words_count, hints_count, spoilers_count, player_ended_reason}, `clubpage_info` {found_words_count, band, winner_user_id} | neither | **dropped** (2026-10-05): `_rebuild_data_cols` writes the blobs after every move |
 | the postgres-changes subscription on `games`, `players` and `events` (`useRealtimeRefetch` in `hooks/useGame.ts`), and its reads of `games_state`, `players` and `events` | — | |
 
 **The status keys the page shows:** none it can still read. `PlayArea.tsx`
@@ -94,7 +94,15 @@ The `gd` sketch, approved 2026-10-05 (step 2, Joel: "i'll take your recs"):
 
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+- **Step 4 (2026-10-05), to be fixed at step 5:** every pgTAP assertion that
+  reads the statuses or `games_state` — `create_game_test`, `gameplay_test`,
+  `reveal_test`, `replay_test` — and the whole of `statuses_test`, which goes;
+  `compete_test` and `rls_test` pinned the events mode arm, which is gone.
+  `players.found_count` is `n_found_words` (20261005000003); the four tests
+  that read it by name follow.
+- **Steps 4–9:** the frontend reads `games_state` and the old common shapes
+  until the PlayArea pass moves every reader onto `gd`; it could not load
+  before this began.
 
 ## Closing
 

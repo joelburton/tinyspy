@@ -38,7 +38,7 @@ select (stackdown.create_game(
   'coop')->'data'->>'id')::uuid as id;
 
 -- Play the six words in order → coop win. Now there are six submissions, a
--- rewritten title, found_count 6, every player solved, and an ended game: the
+-- rewritten title, n_found_words 6, every player solved, and an ended game: the
 -- full state a replay must undo. (A hint is taken too, so the cheat log is
 -- exercised.)
 select stackdown.reveal_next_hint((select id from g1));
@@ -88,7 +88,7 @@ select is(
 select is(
   (select count(*) from stackdown.players
      where game_id = (select id from g1)
-       and found_count = 0),
+       and n_found_words = 0),
   2::bigint, 'coop: replay → both players zeroed');
 select is(
   (select count(*) from common.game_players

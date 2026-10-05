@@ -47,10 +47,10 @@ select is(
     where game_id = (select id from g) and not valid),
   1, 'the invalid attempt is logged (valid = false)');
 select is(
-  (select found_count from stackdown.players
+  (select n_found_words from stackdown.players
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  0, 'an invalid attempt does not advance found_count');
+  0, 'an invalid attempt does not advance n_found_words');
 -- …but it DID spend a go. stackdown has no rotation to read this rule off, so
 -- the column is the only place it is written: a good word and a bad word both
 -- cost the submitter a turn, and the record of turns is wanted whether or not

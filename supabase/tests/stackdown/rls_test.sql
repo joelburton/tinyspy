@@ -9,7 +9,7 @@
 -- ROW-visibility policies, which had no test:
 --
 --   games_select       club-member gate (both modes identical).
---   players_select     club-member gate (found_count is a public tally).
+--   players_select     club-member gate (n_found_words is a public tally).
 --   events_select       the load-bearing mode-aware one (mirrors wordle.events):
 --        (a) mode = 'coop'          — the whole log is club-readable (shared board)
 --        (b) user_id = auth.uid()   — compete: own rows only, mid-game
@@ -59,7 +59,7 @@ values (
   '[]'::jsonb, array['eagle','table','plans','apple','juice','lemon']
 );
 
-insert into stackdown.players (game_id, user_id, found_count) values
+insert into stackdown.players (game_id, user_id, n_found_words) values
   ((select id from coop_game), 'ada11111-1111-1111-1111-111111111111', 1),
   ((select id from coop_game), 'bea22222-2222-2222-2222-222222222222', 1),
   ((select id from coop_game), 'cade3333-3333-3333-3333-333333333333', 1);

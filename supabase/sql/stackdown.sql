@@ -16,16 +16,22 @@
 --   submit_timeout    ends the game when the countdown runs out
 --   replay_board      restarts the same stack from scratch
 --
--- and the view `games_state`, the game row with the six words once it has
--- ended.
+-- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
+-- writes the page blobs onto `common.games` after every move (plans/seat-view.md
+-- → The page is written, not assembled) — `game_data`, `summary_data`, and
+-- `shell_data` through common — and the page reads those.
 --
 -- What is particular to stackdown (docs/games/stackdown.md has the rest):
 --   - Boards come from a pre-generated library, one per difficulty band, and
 --     each board spells exactly its six solution words, in order: nothing
 --     else is ever exposed, so submit_word checks against the next solution
 --     word rather than a dictionary.
---   - The solution is hidden by a column grant, and games_state hands it
---     over only once the game has ended.
+--   - The solution is hidden by a column grant, and `game_data` carries it
+--     only once the game has ended.
+--   - Each compete racer clears their own copy of the stack: a rival's words
+--     and stack stay hidden until the race ends. That is the hook's rule
+--     (src/stackdown/hooks/useGame.ts), not a policy's: the blob carries
+--     everything, the hook withholds.
 --   - The server checks every tile was exposed when it was picked.
 --   - A compete race ends when decided: the first to clear all six wins, and
 --     the others are short of the goal and unranked.
@@ -39,8 +45,9 @@
 grant usage on schema stackdown to authenticated;
 
 -- Column grant: everything EXCEPT `solution` (its presence flips the table
--- to "only granted columns"). games_state reveals the solution once the game
--- ends.
+-- to "only granted columns"). `game_data` (`_make_json_puzzle`) is the only
+-- path a client has to the solution, and it carries it only once the game has
+-- ended.
 grant select (game_id, tiles, board_id)
   on stackdown.games to authenticated;
 drop policy if exists games_select on stackdown.games;
@@ -54,7 +61,7 @@ create policy games_select on stackdown.games
     )
   );
 
-grant select (game_id, user_id, found_count)
+grant select (game_id, user_id, n_found_words)
   on stackdown.players to authenticated;
 drop policy if exists players_select on stackdown.players;
 create policy players_select on stackdown.players
@@ -68,9 +75,9 @@ create policy players_select on stackdown.players
   );
 
 grant select on stackdown.events to authenticated;
--- Coop: the whole log is club-readable (shared board). Compete: own rows
--- only, until the game has ended (then opponents' words reveal). Mirrors
--- wordle.events' mode-aware policy.
+-- The log: any club member sees every row. Who may see a rival's rows
+-- mid-race is the hook's rule (src/stackdown/hooks/useGame.ts), applied to
+-- `game_data`; nothing reads this table from the client.
 drop policy if exists events_select on stackdown.events;
 create policy events_select on stackdown.events
   for select to authenticated
@@ -79,7 +86,6 @@ create policy events_select on stackdown.events
       select 1 from common.games cg
        where cg.id = events.game_id
          and common._is_club_member(cg.club_handle)
-         and (cg.mode = 'coop' or events.user_id = (select auth.uid()) or cg.ended_at is not null)
     )
   );
 
@@ -135,7 +141,7 @@ revoke execute on function stackdown._word(jsonb, integer[]) from public;
 -- ellipsis. A zero-word game is just "New game" (the create-time title).
 --
 -- Compete deliberately does NOT call this: its found words are hidden from
--- the opponent (only found_count is public — same board, same hidden
+-- the opponent (only their count is public — same board, same hidden
 -- solution, raced independently), so putting them in the shared club-list
 -- title would hand a trailing racer the next words. Compete keeps "New game".
 create or replace function stackdown._found_title(solution text[], n int)
@@ -151,116 +157,11 @@ as $$
 $$;
 revoke execute on function stackdown._found_title(text[], integer) from public;
 
+-- The view the frontend read before the page blobs, its definer, and the
+-- statuses' writer; supabase/sql is re-applied, not diffed, so the drops stay.
 drop view if exists stackdown.games_state;
 drop function if exists stackdown._solution_for(uuid);
-
--- ============================================================
--- stackdown._solution_for
--- ============================================================
--- The six words once the game has ended (the end reveal), null while it is
--- played. A definer, so it can read the grant-hidden column; games_state
--- calls it as the caller.
-create or replace function stackdown._solution_for(p_game_id uuid)
-returns text[]
-language sql
-stable
-security definer
-set search_path = stackdown, common, public, extensions
-as $$
-  select case when cg.ended_at is not null then sg.solution else null end
-    from stackdown.games sg
-    join common.games cg on cg.id = sg.game_id
-   where sg.game_id = p_game_id;
-$$;
-revoke execute on function stackdown._solution_for(uuid) from public;
-grant execute on function stackdown._solution_for(uuid) to authenticated;
-
--- ============================================================
--- stackdown.games_state — the game row the frontend reads
--- ============================================================
--- The readable columns of stackdown.games, plus the six words through
--- `_solution_for`, so they arrive the moment the game ends.
-create view stackdown.games_state with (security_invoker = true) as
-  select sg.game_id,
-         sg.tiles,
-         stackdown._solution_for(sg.game_id) as solution   -- NULL until the game ends
-    from stackdown.games sg;
-grant select on stackdown.games_state to authenticated;
-
--- ============================================================
--- stackdown._write_statuses — the page's copies of the game
--- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from stackdown's own tables, assigning
--- each whole (plans/common-tables.md → The statuses). Every key is always
--- present, null when it has no value:
---
---   game_status    { } — the page shows no table-fact the game keeps; the
---                  six words to clear is a constant of every board
---   player_status  { found_words_count, hints_count, spoilers_count,
---                    player_ended_reason }
---                  — each player's own; in coop the page sums them for the
---                  team
---   clubpage_info  { found_words_count, band, winner_user_id }
---                  — `found_words_count` is coop's team count and null in
---                  compete, whose summary shows no progress; the winner is
---                  compete's, null until the end; `band` is the setup's
---
--- `p_update_status_changed_at` is true from create, Restart and every move,
--- false from a rebuild (the pass over every game, a repair by hand), so a
--- rebuild never re-dates a game.
-create or replace function stackdown._write_statuses(
-  p_game_id uuid,
-  p_update_status_changed_at boolean
-)
-returns void
-language plpgsql
-security definer
-set search_path = stackdown, common, public, extensions
-as $$
-declare
-  v_mode text;
-  v_band int;
-begin
-  select cg.mode, coalesce((cg.setup->>'band')::int, 1)
-    into v_mode, v_band
-    from stackdown.games sg
-    join common.games cg on cg.id = sg.game_id
-   where sg.game_id = p_game_id;
-
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'found_words_count', sp.found_count,
-           'hints_count', (select count(*) from stackdown.events e
-                            where e.game_id = p_game_id and e.user_id = gp.user_id
-                              and e.kind = 'hint'),
-           'spoilers_count', (select count(*) from stackdown.events e
-                               where e.game_id = p_game_id and e.user_id = gp.user_id
-                                 and e.kind = 'spoiler'),
-           'player_ended_reason', gp.player_ended_reason)
-    from stackdown.players sp
-   where gp.game_id = p_game_id
-     and sp.game_id = gp.game_id
-     and sp.user_id = gp.user_id;
-
-  update common.games
-     set game_status = '{}'::jsonb,
-         clubpage_info = jsonb_build_object(
-           'found_words_count', case when v_mode = 'coop' then (
-             select count(*) from stackdown.events
-              where game_id = p_game_id and valid) end,
-           'band', v_band,
-           'winner_user_id', case when v_mode = 'compete' then (
-             select user_id from common.game_players
-              where game_id = p_game_id and final_ranking = 1
-              limit 1) end),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
-   where id = p_game_id;
-end;
-$$;
-
-revoke execute on function stackdown._write_statuses(uuid, boolean) from public;
+drop function if exists stackdown._write_statuses(uuid, boolean);
 
 -- ============================================================
 -- The page blobs — what the page shows, written by this game's builder
@@ -617,7 +518,6 @@ begin
   insert into stackdown.players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) uid;
 
-  perform stackdown._write_statuses(new_id, p_update_status_changed_at => true);
   perform stackdown._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The name is here even
@@ -784,15 +684,15 @@ begin
   else
     -- ─── Accepted: remove tiles (implicitly, via the valid row), advance ──
     update stackdown.players
-       set found_count = found_count + 1
+       set n_found_words = n_found_words + 1
      where game_id = p_game_id and user_id = caller_id
-     returning found_count into new_found;
+     returning n_found_words into new_found;
 
     if v_mode = 'coop' then
       select count(*) into team_found
         from stackdown.events where game_id = p_game_id and valid;
       -- Surface the cleared words as the club-list title. They're shared and
-      -- already shown in the FoundWords panel, so this reveals nothing new.
+      -- already shown in the turn log, so this reveals nothing new.
       -- Runs on every valid coop word, including the sixth — leaving the
       -- final title in place when the game ends below.
       update common.games
@@ -831,7 +731,6 @@ begin
       jsonb_build_object('result', 'accepted', 'word', w, 'terminal', out_terminal), 'won');
   end if;
 
-  perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return v_answer;
 
@@ -926,7 +825,6 @@ begin
     values (p_game_id, caller_id, 'spoiler', cleared, next_word, true);
   end if;
 
-  perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- A spoiler is RED. Its price is the whole hunt for this word — there is
@@ -1046,7 +944,6 @@ begin
     values (p_game_id, caller_id, 'hint', cleared, hint_text, false);
   end if;
 
-  perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- Amber: a hint is a nudge, neither good nor bad play (the spoiler beside it
@@ -1108,7 +1005,6 @@ begin
     p_final_rankings => '{}'::jsonb
   );
 
-  perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -1149,7 +1045,6 @@ begin
 
   perform common._stop(p_game_id);
 
-  perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -1195,7 +1090,6 @@ begin
 
   perform common._concede(p_game_id);
 
-  perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
@@ -1235,9 +1129,9 @@ drop function if exists stackdown.replay_board(uuid);
 --     spoil the board it just reset.
 --
 -- Then the common-layer reset (common._reset_game: the ending, each
--- player's ending, solve and result) and the statuses. The solution
--- re-hides on its own — games_state gates it on common.games.ended_at,
--- which reset_game clears.
+-- player's ending, solve and result) and the page blobs. The solution
+-- re-hides on its own — the builder writes it only once the game has
+-- ended, which `_reset_game` undoes.
 create or replace function stackdown.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1264,7 +1158,7 @@ begin
   perform common._require_game_player(p_game_id);
 
   update stackdown.players
-     set found_count = 0
+     set n_found_words = 0
    where game_id = p_game_id;
 
   delete from stackdown.events where game_id = p_game_id;
@@ -1273,7 +1167,6 @@ begin
 
   perform common._reset_game(p_game_id);
 
-  perform stackdown._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
