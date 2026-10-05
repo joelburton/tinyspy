@@ -44,6 +44,16 @@ export function BoardCol({
   // flashes yellow. Always false in a free-for-all game.
   myTurnJustStarted: boolean
 }) {
+  // ─── Which board is on screen ─────────────────────────────────
+  // Live, or a past swap's (PlayArea picks); everything that would write to the
+  // board answers to it.
+
+  // The board is mine to work: the move is mine, and the live board is the one
+  // on screen — a click or key on a past one is the viewer's exit.
+  const isInteractive = gd.me.onTurn && !historyView.isViewing
+
+  // ─── The pending move ─────────────────────────────────────────
+  // The swap and its trip to the server (`useSubmitSwap`).
   const submission = useSubmitSwap({
     gameId: gd.id,
     newestEventId: gd.events.at(-1)?.id ?? null,
@@ -53,9 +63,8 @@ export function BoardCol({
   // Any key is the player's next move → dismiss a gesture-cleared message.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  // The board is mine to work: the move is mine, and the live board is the one
-  // on screen — a click or key on a past one is the viewer's exit.
-  const isInteractive = gd.me.onTurn && !historyView.isViewing
+  // ─── Render ───────────────────────────────────────────────────
+
   // The swap still out belongs to the live board only: its letters have
   // already traded places there.
   const pendingSwapTileIds = isLiveBoard ? submission.pendingSwapTileIds : null
@@ -90,8 +99,8 @@ export function BoardCol({
         historyView={historyView}
         isInteractive={isInteractive}
         // The swaps behind the board on show — the team's in coop, my own in
-        // compete. A Restart zeroes it, which is what tells the flash that a
-        // re-dealt board was not played into existence.
+        // compete. The reveal leaves it alone, which is what tells the flash
+        // that the board swapped in was not played into existence.
         moveCount={gd.stateLineData.nSwapsUsed}
         onSwap={submission.send}
       />

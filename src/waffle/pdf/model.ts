@@ -22,16 +22,16 @@ export type PrintCell = { letter: string; state: TileColor; hole: boolean }
 /** One player's page-column: their board and their swaps. */
 export type PrintTrack = {
   who: string
-  /** 25 cells, row-major (holes included, so the 5×5 shape is preserved). */
+  // 25 cells, row-major (holes included, so the 5×5 shape is preserved).
   cells: PrintCell[]
   turns: TurnRow[]
-  /** Their outcome line ("Solved in 7 swaps" / "12/12 swaps used"). */
+  // Their outcome line ("Solved in 7 swaps" / "12/12 swaps used").
   result: string
 }
 
 export type WafflePrintModel = PrintHeader & {
   tracks: PrintTrack[]
-  /** The six answer words once they are on screen — null until then. */
+  // The six answer words once they are on screen — null until then.
   solutionWords: string[] | null
 }
 

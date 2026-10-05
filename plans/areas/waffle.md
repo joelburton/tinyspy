@@ -78,6 +78,32 @@ unless noted):
 - **`todo.md`'s "collapse the action row"** went with the InfoCol pass, and
   its "act-new-game active before load" with step 9.
 
+## The backfill
+
+2026-10-05, the conversion's grown steps applied after the fact:
+
+- **The answers.** waffle had no `lib/answer.ts`, on the reasoning that it has
+  one move kind — but a rival solving and a rival out of swaps are answers too,
+  and `useShowOppsEndedMessages` wrote their outcome and words itself (Joel:
+  "i suspect all games need one"). `GAnswer` is the three — `swapped_peer`,
+  `solved_peer`, `out_of_swaps_peer` — and `lib/answer.ts` says each; the log
+  bar and the header line ask it. My own swap is not one: it says nothing.
+  `submit_swap` already carried no outcome. docs/outcomes.md's "waffle
+  deliberately has no answer file" became the rule that every game has one.
+- **The stylesheet split** already held: each module is its component's alone,
+  and every class in it is read there.
+- **The section order**: PlayArea gained its local-slot and narration headers;
+  BoardCol is in its three sections.
+- **No narrower `Outcome`** anywhere.
+- **The cross-game names**: the in-flight swap's state carries its comment;
+  "timer" / "timeout" not "clock"; "pick" not "select" (the "selection cursor"
+  keeps its settled name).
+- **The comment pass and the docstring marker**: history went (the retired
+  `<EventLogItem>`, the library waffle "used to ship"); three comments that
+  defended against a Restart, which remounts the surface, lost that reasoning
+  (the move count stays: the reveal is what it tells apart); member notes are
+  `//`. The doc's answers section is the table.
+
 ## Predicted test breaks
 
 - **Step 4 (2026-10-05), fixed at step 5:** every pgTAP assertion that read

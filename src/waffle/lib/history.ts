@@ -36,8 +36,7 @@ type ReplayedSwap = {
 /**
  * Replay the swap with this `id`: its author's swaps (every swap, in coop) up
  * to and including it, applied to the deal, colored by the row's own colors.
- * Null when the id names no row in the log — a Restart emptied it while the
- * row was open — so the live board shows.
+ * Null when the id names no row in the log, so the live board shows.
  *
  * `n` is the `#N` the log was printing on the clicked row: the log's numbering
  * follows its filter, so it is passed in rather than counted here. Null drops

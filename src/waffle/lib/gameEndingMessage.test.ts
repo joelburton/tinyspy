@@ -39,7 +39,7 @@ describe('coop', () => {
       .toEqual(message('Won: par +2', 'Won: par +2', 'won'))
   })
 
-  it('a loss names the clock or the swaps', () => {
+  it('a loss names the timeout or the swaps', () => {
     expect(build('coop', 'lost', 'resource_exhausted', 'lost'))
       .toEqual(message('Lost: out of swaps', 'Out of swaps', 'lost'))
     expect(build('coop', 'lost', 'timeout', 'lost'))

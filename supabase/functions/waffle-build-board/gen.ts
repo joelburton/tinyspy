@@ -6,8 +6,8 @@
  * scramble. No IO, no Deno/Node specifics, so it's importable by both
  * the edge function (index.ts) and the `deno test` in gen_test.ts.
  *
- * This is the single home of the generation logic now that waffle
- * builds boards on demand (no pre-generated puzzle library). The FE
+ * This is the single home of the generation logic: waffle builds boards
+ * on demand, with no pre-generated puzzle library. The FE
  * keeps its own copy of the *geometry* constants in
  * src/waffle/lib/waffle.ts for rendering — those are invariant (the
  * board's shape), so the small duplication carries no drift risk; the

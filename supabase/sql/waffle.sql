@@ -773,7 +773,7 @@ drop function if exists waffle._finish_compete(uuid, text, text, uuid);
 -- ============================================================
 -- The ONE place a race's ending is ranked. Two callers pass the act that
 -- ended it — _maybe_finish_compete the last racer's (a solve, a spent
--- budget, a concession), submit_timeout the clock — and neither ranks
+-- budget, a concession), submit_timeout the timer — and neither ranks
 -- anything itself.
 --
 -- The ranking (docs/win-lose.md → final-ranking): every player who solved,
@@ -917,7 +917,7 @@ begin
   select ended_at, mode into v_ended_at, v_mode
     from common.games where id = p_game_id;
   if v_ended_at is not null then
-    -- A race: a teammate ended it, or the clock ran out, while this swap was
+    -- A race: a teammate ended it, or the timer ran out, while this swap was
     -- in flight.
     perform common._raise_game_over();
   end if;

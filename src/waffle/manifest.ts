@@ -90,7 +90,7 @@ function makeCoopLabel(summary: GSummaryData): string {
     case 'won':
       return statusLine(verdict('Won'), left, dict)
     case 'lost':
-      // The shared board ran out of swaps, or the clock beat it.
+      // The shared board ran out of swaps, or the timer beat it.
       return statusLine(verdict('Lost', LOSS[summary.ending.reason] ?? null), dict)
     // A Stop. No 'answer revealed' variant: revealing is a display decision on
     // an already-ended game, and the club list describes the ENDING, not what

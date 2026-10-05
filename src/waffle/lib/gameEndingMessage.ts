@@ -28,7 +28,7 @@ export function buildGameEndingMessage({
   nSwapsOverPar,
 }: {
   mode: 'coop' | 'compete'
-  // How the game ended. The reason is the act that ended it — the clock
+  // How the game ended. The reason is the act that ended it — the timer
   // (`timeout`), every player dropping out (`conceded`), the last swaps spent
   // (`resource_exhausted`), a solve (`reached_goal`) — and the club-list label
   // reads the same one.
@@ -46,7 +46,7 @@ export function buildGameEndingMessage({
       mode)
 
     if (mode === 'coop') {
-      // Coop cannot concede, so a loss is the clock or the swaps.
+      // Coop cannot concede, so a loss is the timer or the swaps.
       if (gameEnding.outcome === 'won') {
         // Prefixed `Won:` like every other verdict — the par figure alone reads
         // as a score. Under par cannot happen; it is said honestly if it does.

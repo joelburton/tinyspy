@@ -404,16 +404,22 @@ Two details the formula is careful about:
 
 ## Frontend (`src/waffle/`)
 
-### The one outcome decision — and why there is no `lib/answer.ts`
+### The answers (`lib/answer.ts`)
 
-waffle has one move kind. `submit_swap` deliberately carries no outcome and no
-message (the colors reach everyone together in the next blob), no pill reports
-a swap at all, and the log's bar is `neutral` on every row — the word for a turn
-that counted and that nothing adjudicates. One move, one word, one reader, so
-there is no table; the decision is stated where it is made, in
-`GameEventLog.tsx`. The g/y/x tile colors are the board's own vocabulary, not
-outcomes. See [outcomes.md → One event, one
-outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
+waffle's answers about a move are three (`GAnswer`), and `answerMessage(answer)`
+says how each reads:
+
+| answer | outcome | words |
+|---|---|---|
+| `swapped_peer` | neutral | none: a swap in the log — anyone's — counted, and nothing judges it |
+| `solved_peer` | won | "solved it", a rival's, in the header (compete) |
+| `out_of_swaps_peer` | warning | "out of swaps", likewise |
+
+My own swap is not one: it says nothing, the board's tile colors being the news
+— the g/y/x colors are the board's own vocabulary, not outcomes. `submit_swap`
+carries no outcome and no message (the colors reach everyone together in the
+next blob), pinned in `gameplay_test.sql`; `lib/answer.test.ts` pins the words
+([outcomes.md → How a game does it](../outcomes.md#how-a-game-does-it)).
 
 ### The play surface
 

@@ -121,9 +121,8 @@ export function Board({
   // was working in.
   //
   // A MOVE has to be what changed the board, which the swap count says and the
-  // board itself cannot — a restart re-deals every cell, and the reveal swaps
-  // the whole solution in. Both differ from the previous board in twenty places
-  // and neither is news (`useMoveAttention`, and the reason it is shared:
+  // board itself cannot — the reveal swaps the whole solution in, differing
+  // from the previous board in twenty places, and is not news (`useMoveAttention`, and the reason it is shared:
   // setgame learned it the hard way).
   //
   // Given a move, TWO kinds of tile qualify, which is the audience rule made

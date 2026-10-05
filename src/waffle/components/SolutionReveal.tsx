@@ -32,7 +32,7 @@ function WordGroup({
   words,
 }: {
   heading: string
-  /** A solved word's letters, or `null` for one still hidden (an em dash). */
+  // A solved word's letters, or `null` for one still hidden (an em dash).
   words: (string | null)[]
 }) {
   return (

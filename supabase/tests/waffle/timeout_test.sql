@@ -68,7 +68,7 @@ select (waffle.create_game(
   pg_temp.waffle_board()
 )->'data'->>'id')::uuid as id;
 
--- ada solves; bea never does; then the clock runs out.
+-- ada solves; bea never does; then the timer runs out.
 select waffle.submit_swap((select id from g2), 0, 1);
 select waffle.submit_timeout((select id from g2));
 

@@ -47,7 +47,7 @@
  * history color — the same gray-blue as the board frame around them and the #N
  * handle in the log, so all three parts of "you are looking at this past turn"
  * are one mark rather than three. Drawn with `outline` (order-independent, and
- * the channel is free while viewing: you cannot select, and nothing can be in
+ * the channel is free while viewing: you cannot pick, and nothing can be in
  * flight); `position: relative` + a z-index lift it so the ring paints over
  * neighboring tiles rather than under. */
 /* @@ */ .historyTile {

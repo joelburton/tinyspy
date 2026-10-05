@@ -4,6 +4,7 @@ import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/c
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import type { Member } from '@/common/members/member'
+import { eventToOutcome } from '../lib/answer'
 import { coord } from '../lib/waffle'
 import type { GEvent, GHistoryView } from '../types'
 import styles from './GameEventLog.module.css'
@@ -25,17 +26,9 @@ type Props = {
 /**
  * waffle's event log — the shared swap history rendered with the common
  * `<EventLog>` table (same chrome psychicnum / connections / codenamesduet use).
- * waffle renders its OWN `<tr>` rows (the shared layer no longer owns row shape;
- * `<EventLogItem>` is retired — docs/playarea.md → Event log), composing the
- * shared `<EventLogOutcomeBar>` + content classes. A swap has no win/lose verdict,
- * so every row's outcome bar is `neutral` — the word for a turn that counted and
- * that nothing adjudicates.
- *
- * **That is the whole of waffle's outcome decision**, which is why there is no
- * `lib/answer.ts` here as there is in most games: the game has one move kind,
- * `submit_swap` deliberately carries no outcome and no message (the colors reach
- * everyone together in the next blob instead), and no pill reports a swap at all.
- * One move, one word, one reader (docs/outcomes.md → One event, one outcome).
+ * waffle renders its OWN `<tr>` rows (docs/playarea.md → Event log), composing the
+ * shared `<EventLogOutcomeBar>` + content classes. Every row is a swap, and
+ * its bar's color is `lib/answer.ts`'s.
  *
  * One `<tr>`, four real `<td>` columns (so they align down the log — never stacked
  * divs, which throw away the column alignment the table exists for): the outcome
@@ -78,7 +71,7 @@ export function GameEventLog({
         const [a, b] = swap.swaps
         return (
           <tr key={swap.id} className={gameEventLog.divider}>
-            <EventLogOutcomeBar outcome="neutral" />
+            <EventLogOutcomeBar outcome={eventToOutcome()} />
             {/* The number is the row's place in the list on show; the handle is
                 the row's own id, so filtering renumbers without ever changing
                 which swap is opened. */}

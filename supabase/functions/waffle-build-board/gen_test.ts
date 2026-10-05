@@ -6,8 +6,7 @@
  * Covers `minSwaps` — the exact max-cycle par calculation. It's the one
  * subtle algorithm in the generator (a greedy version over-counted par
  * for duplicate-letter boards — see the regression case below), so it
- * keeps automated coverage now that it lives in the edge function
- * rather than under Vitest. Dependency-free (no std import) so it runs
+ * keeps automated coverage here, beside the edge function that runs it. Dependency-free (no std import) so it runs
  * offline.
  */
 

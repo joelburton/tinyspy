@@ -711,7 +711,7 @@ Games converted before then carry only what their audit already did:
 - **boggle, wordiply, codenamesduet** — the answers are done; the stylesheet
   split, the section order, the comment and docstring passes and the names
   are owed (codenamesduet's audit is open, so check its area file first).
-- **waffle** — all of it is owed, the answers included.
+- **waffle** — backfilled 2026-10-05 (plans/areas/waffle.md → The backfill).
 - **letterboxed** — backfilled 2026-10-05 (plans/areas/letterboxed.md → The
   backfill).
 - **stackdown** — backfilled 2026-10-05 (plans/areas/stackdown.md → The

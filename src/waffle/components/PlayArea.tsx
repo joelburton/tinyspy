@@ -91,6 +91,8 @@ function PlayArea({
   // never in a free-for-all, where the move is always mine).
   const turnFlash = useTurnStartFlash(gd.me.onTurn)
 
+  // ─── The local slot ────────────────────────────────────
+  // Messages about ME: a refused swap, the standing conditions, the ending.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // The endings' messages, for the pill and the info column: the game's once
@@ -109,7 +111,9 @@ function PlayArea({
     holder: gd.turns?.holder ?? null,
   })
 
-  // A rival solved or ran out of swaps (compete), in the header slot.
+  // ─── Narration ─────────────────────────────────────────
+  // Messages about somebody ELSE: a rival solved or ran out of swaps
+  // (compete), in the header slot.
   useShowOppsEndedMessages(gd, globalFeedbackSlot)
 
   // ─── The turn-history view ─────────────────────────────

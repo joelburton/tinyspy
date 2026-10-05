@@ -239,9 +239,10 @@ that the four games sharing `useFoundWordSubmit` converted together, since the
 engine's shape changed under all of them; the rule that the outcome is decided
 once has not changed.
 
-**waffle deliberately has no answer file, and that is not an oversight.** It has
-one move kind whose bar is always `neutral`. One move, one word, one reader: a
-file of its own would be ceremony. codenamesduet has one, but no answer about a
+**Every game has one, even with a single move kind.** waffle's swap is always
+`neutral` and says nothing, but a rival solving and a rival running out of swaps
+are answers too, and a header line that wrote its own outcome and words would be
+the drift this file exists to stop. codenamesduet has one, but no answer about a
 guess of its own: a guess is one tile, it answers with a reveal, and the board
 says it — so a guess's outcome is worn only by its TURN, folded in
 `lib/turnOutcome.ts`.

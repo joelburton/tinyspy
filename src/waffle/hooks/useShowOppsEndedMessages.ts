@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
+import { answerMessage } from '../lib/answer'
 import type { GGameData } from '../types'
 
 /**
@@ -13,9 +14,8 @@ import type { GGameData } from '../types'
  * (`useGame`'s seat rule), so their ending is what this mode can narrate. Coop
  * says nothing here: the swap log already shows every move.
  *
- * A solve wears `won` and running out `warning`: the outcome follows the event,
- * not my stake in it (docs/ui.md → Feedback pill). My own ending is never
- * announced here; the ending's messages cover it.
+ * How each reads is `lib/answer.ts`'s. My own ending is never announced here;
+ * the ending's messages cover it.
  */
 export function useShowOppsEndedMessages(
   gd: GGameData,
@@ -36,9 +36,10 @@ export function useShowOppsEndedMessages(
     keyOf: (p) => p.id,
     messageFor: (p) => {
       if (p === gd.me) return null
-      return p.ending!.reason === 'reached_goal'
-        ? FeedbackMessage.peerMilestone(p, 'won', 'solved it')
-        : FeedbackMessage.peerMilestone(p, 'warning', 'out of swaps')
+      const { outcome, text } = answerMessage({
+        answerType: p.ending!.reason === 'reached_goal' ? 'solved_peer' : 'out_of_swaps_peer',
+      })
+      return FeedbackMessage.peerMilestone(p, outcome, text)
     },
     globalFeedbackSlot,
   })

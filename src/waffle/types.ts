@@ -86,6 +86,23 @@ export type GStateLineData = {
   parSwaps: number
 }
 
+/**
+ * Every answer waffle gives about a move — the whole roster of what this game
+ * tells anybody. `lib/answer.ts` says what each one reads as
+ * (docs/outcomes.md → How a game does it).
+ *
+ * My own swap is not here: it says nothing, the board's tile colors being the
+ * news, and nothing reads it. A refused swap is the server's `not-ok`, which
+ * reads as its severity says.
+ */
+export type GAnswer =
+  // A swap in the log — anyone's — which counted and which nothing judges.
+  | { answerType: 'swapped_peer' }
+  // A rival solved the waffle (compete).
+  | { answerType: 'solved_peer' }
+  // A rival ran out of swaps without solving it (compete).
+  | { answerType: 'out_of_swaps_peer' }
+
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
  *  player (`GEvent`). */
 export type GEventRaw = {

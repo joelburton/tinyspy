@@ -62,6 +62,8 @@ export function useSubmitSwap({
   // Swap the letters of two tiles.
   send: (a: GTile, b: GTile) => void
 } {
+  // The swap still with the server: its two tile ids, and the newest log row
+  // when it went out, so the next row landing is what clears it.
   const [inFlight, setInFlight] = useState<{
     tileIds: readonly [string, string]
     atEventId: number | null

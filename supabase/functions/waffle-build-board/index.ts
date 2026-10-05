@@ -4,11 +4,10 @@
  * waffle-build-board — Edge Function that generates a fresh waffle
  * (waffle) board and creates the game in one round-trip.
  *
- * Why edge (not pre-generated): waffle used to ship a committed library
- * of ~100 puzzles per band. Adding word-filter options (dialect, slang,
- * …) would multiply that library combinatorially — a filter is baked
- * into each puzzle, so you can't filter a pre-generated board after the
- * fact. Generating on demand applies whatever filters the player chose
+ * Why edge (not pre-generated): a committed library of puzzles per band
+ * would multiply combinatorially with the word-filter options (dialect,
+ * slang, …) — a filter is baked into each puzzle, so you can't filter a
+ * pre-generated board after the fact. Generating on demand applies whatever filters the player chose
  * for free, over a continuous space, and is fast (a board builds in a
  * few ms). Same pattern as spellingbee-build-board.
  *
