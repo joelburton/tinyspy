@@ -114,7 +114,7 @@ type Seed = { letters: string; word_a: string; word_b: string; difficulty: numbe
 
 type Board = {
   sides: string
-  playable_words: string[]
+  words: string[]
   solution: [string, string]
 }
 
@@ -159,7 +159,7 @@ async function attemptBoard(
   if (candErr) throw new Error(`candidate_words failed: ${candErr.message}`)
 
   // candidate_words gates on band + board shape only; purity rides along as
-  // `is_clean` (docs/word-list.md → Which words a game may use). `playable_words`
+  // `is_clean` (docs/word-list.md → Which words a game may use). `words`
   // is therefore the ACCEPT list — everything a player may legally type here —
   // while the clean subset is what the board is JUDGED on below.
   const candRowsTyped = (candRows as Array<{ word: string; is_clean: boolean }> | null) ?? []
@@ -188,7 +188,7 @@ async function attemptBoard(
     `${FN} board: sides=${sides} seed=${seed.word_a}/${seed.word_b} ` +
       `band=${seed.difficulty} playable=${playable.length} clean=${cleanPlayable.length}`,
   )
-  return { sides, playable_words: playable, solution: [seed.word_a, seed.word_b] }
+  return { sides, words: playable, solution: [seed.word_a, seed.word_b] }
 }
 
 /**
@@ -210,7 +210,7 @@ type CustomReject =
  *
  * The one thing that is still checked is the one the game cannot do without: a
  * KNOWN TWO-WORD SOLUTION. `letterboxed.games.solution` is not nullable, and
- * the terminal reveal, the PDF and create_game's winnability invariant all read
+ * the end-of-game reveal, the PDF and create_game's winnability invariant all read
  * it. So this recovers the pair rather than trusting-and-storing-nothing —
  * which is why a custom board needs no special case anywhere downstream.
  *
@@ -251,7 +251,7 @@ async function buildCustomBoard(
   }
 
   // The seeded pair must be LEGAL in the game being built, or the guaranteed
-  // solution isn't in playable_words and create_game rejects the board. The
+  // solution isn't in the board's words and create_game rejects the board. The
   // random path avoids this by asking pick_seed for `least(legal_band, 2)`; a
   // custom board doesn't get to choose its seed, so it reports instead.
   if (seed.difficulty > legalBand) {
@@ -287,7 +287,7 @@ async function buildCustomBoard(
     `${FN} custom board: sides=${sides} seed=${seed.word_a}/${seed.word_b} ` +
       `band=${seed.difficulty} playable=${playable.length}`,
   )
-  return { sides, playable_words: playable, solution: [seed.word_a, seed.word_b] }
+  return { sides, words: playable, solution: [seed.word_a, seed.word_b] }
 }
 
 serve(async (req: Request) => {

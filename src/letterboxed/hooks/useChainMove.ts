@@ -13,17 +13,13 @@ import type { GGameData } from '../types'
 
 /**
  * What `submit_word` answers. TWO `ok`s — the word landed, or it landed and
- * covered the twelve. `result` names the case.
+ * covered the twelve — and the `result` that names the case is all there is:
+ * what the word did, the page reads from the blobs.
  */
-type WordAnswer = {
-  result: 'accepted' | 'solved'
-  accepted: true
-  letters_covered: number
-  solved: boolean
-}
+type WordAnswer = { result: 'accepted' | 'solved' }
 
-/** What `undo_word` answers: one `ok`, naming the word taken back. */
-type UndoAnswer = { result: 'undone'; word: string; letters_covered: number }
+/** What `undo_word` answers: one `ok`, its result alone. */
+type UndoAnswer = { result: 'undone' }
 
 /**
  * The move's trips to the server: a word appended to my chain, or the chain's

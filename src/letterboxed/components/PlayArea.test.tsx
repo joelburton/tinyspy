@@ -510,7 +510,7 @@ describe('letterboxed PlayArea — a refused word shakes its letters', () => {
   it('a word the board accepts goes to the server under the RPC\'s own names', async () => {
     rpc.mockResolvedValue({
       data: {
-        type: 'ok', data: { result: 'accepted', accepted: true, letters_covered: 3, solved: false },
+        type: 'ok', data: { result: 'accepted' },
         outcome: 'won', severity: null, message: null, field: null, meta: null,
         dbcode: null, detail: null,
       },

@@ -11,7 +11,7 @@
 -- letter of the chain's last word.
 --
 -- Coverage:
---   1. Coop happy path: a word appends, letters_covered is right, the
+--   1. Coop happy path: a word appends, its coverage is right, the
 --      log records it, the page blob keeps up.
 --   2. The four rejections: not playable, wrong start letter, already in
 --      the chain, chain full at max_words.
@@ -90,9 +90,8 @@ select ok(
 -- ── 2. A word appends ───────────────────────────────────────
 select pg_temp.envelope_is(
   letterboxed.submit_word((select id from g), 'adg'),
-  '{"type":"ok","outcome":"won","data":{"result":"accepted",
-    "accepted":true,"letters_covered":3,"solved":false}}'::jsonb,
-  'submit_word reports the letters the chain now covers'
+  '{"type":"ok","outcome":"won","data":{"result":"accepted"}}'::jsonb,
+  'submit_word answers that the word landed'
 );
 -- The `won` above is the half of the rule SQL owns; src/letterboxed/lib/answer.ts
 -- gives the row this wrote the same word, and the log bar wears that.
@@ -123,13 +122,13 @@ select is(
 
 -- ── 3. The rejections ───────────────────────────────────────
 -- A FAULT: the board and the dictionary are fixed, and the frontend holds
--- `legal_words` and checks against it first, so a word this board cannot
+-- the board's `words` and checks against them first, so a word this board cannot
 -- play did not come from our board.
 select pg_temp.envelope_is(
   letterboxed.submit_word((select id from g), 'zzz'),
   '{"type":"not-ok","severity":"fault","dbcode":"PN403",
     "message":"BUG: a word this board cannot play"}'::jsonb,
-  'a word outside legal_words is refused'
+  'a word outside the board''s words is refused'
 );
 
 -- A RACE, where the two above are faults: coop's chain is SHARED and
@@ -152,7 +151,7 @@ select pg_temp.envelope_is(
 -- 'gjb' legally follows 'adg'; replaying 'adg' does not.
 select pg_temp.envelope_is(
   letterboxed.submit_word((select id from g), 'gjb'),
-  '{"type":"ok","data":{"result":"accepted","solved":false}}'::jsonb,
+  '{"type":"ok","data":{"result":"accepted"}}'::jsonb,
   'a word starting with the tail letter is accepted'
 );
 
@@ -215,11 +214,12 @@ select is(
 select letterboxed.submit_word((select id from g), 'adgjbehk');
 
 -- Captured once and asserted twice: the SOLVING word is a second `won`
--- envelope, and until it was pinned only `data.solved` was.
+-- envelope, and its answer is its result alone — what the word did, the page
+-- reads from the blobs.
 create temp table solve_res on commit drop as
 select letterboxed.submit_word((select id from g), 'kcfil') as res;
-select is((select res->'data'->>'solved' from solve_res), 'true',
-  'covering all twelve letters solves the board');
+select is((select res->'data' from solve_res), '{"result": "solved"}'::jsonb,
+  'covering all twelve letters answers solved, and nothing more');
 select is((select res->>'outcome' from solve_res), 'won',
   'the solving word is won, like every accepted word');
 
@@ -328,8 +328,8 @@ select pg_temp.envelope_is(
 -- wrote — one rule, two languages, a test in each.
 select pg_temp.envelope_is(
   letterboxed.undo_word((select id from gt)),
-  '{"type":"ok","outcome":"noted","data":{"result":"undone","word":"gjb"}}'::jsonb,
-  'undo answers with the word it took back, as news'
+  '{"type":"ok","outcome":"noted","data":{"result":"undone"}}'::jsonb,
+  'undo answers that the word came off, as news'
 );
 select pg_temp.envelope_is(
   letterboxed.submit_word((select id from gt), 'gjb'),

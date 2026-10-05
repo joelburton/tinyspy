@@ -22,8 +22,8 @@
 --
 -- ─── Why synthetic works here ────────────────────────────────
 -- letterboxed.submit_word never consults common.words. A word is
--- playable iff it appears in the board's `playable_words` list (stored
--- as `legal_words`), which the board builder computed once. So a fixture
+-- playable iff it appears in the board's `words` list, which the board
+-- builder computed once. So a fixture
 -- only has to put its
 -- test words in that list, and they need not be real words — the same
 -- move wordiply's fixture makes, for the same reason.
@@ -50,7 +50,7 @@
 -- what create_game's winnability check verifies.
 
 -- ── The board ───────────────────────────────────────────────
--- playable_words carries the seven crafted words the tests submit, plus
+-- words carries the seven crafted words the tests submit, plus
 -- filler to clear create_game's >= 150 richness floor. The filler is
 -- generated ('qaa', 'qab', …) rather than written out: it exists only
 -- to satisfy the gate, and no test ever submits one.
@@ -61,7 +61,7 @@ as $$
   select jsonb_build_object(
     'sides', 'abcdefghijkl',
     'solution', jsonb_build_array('adgjbehk', 'kcfil'),
-    'playable_words',
+    'words',
       jsonb_build_array(
         'adgjbehk',  -- the solution's first word (covers 8, ends k)
         'kcfil',     -- the solution's second word (covers the other 4)

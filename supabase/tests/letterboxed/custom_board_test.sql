@@ -174,7 +174,7 @@ as $$
   select jsonb_build_object(
     'sides', 'abcdefghijkl',
     'solution', jsonb_build_array('adgjbehk', 'kcfil'),
-    'playable_words', jsonb_build_array('adgjbehk', 'kcfil')
+    'words', jsonb_build_array('adgjbehk', 'kcfil')
   );
 $$;
 

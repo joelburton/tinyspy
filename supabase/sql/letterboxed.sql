@@ -60,7 +60,7 @@ grant select on letterboxed.seeds to authenticated;
 -- client: the page reads the board from `game_data`. Explicit column list per
 -- docs/code-conventions.md → "Avoid SELECT *".
 grant select
-  (game_id, sides, legal_words, solution, max_words, legal_band)
+  (game_id, sides, words, solution, max_words, legal_band)
   on letterboxed.games to authenticated;
 
 -- COLUMN-LEVEL GRANT, and `chain` is deliberately absent. In compete a
@@ -174,7 +174,7 @@ drop function if exists letterboxed.candidate_words(bigint, int);
 -- Words with a DOUBLED LETTER are excluded here too. They can never be
 -- legal on any board (a repeated letter is trivially same-side), and
 -- dropping them in SQL keeps the builder from shipping them into a
--- board's legal words by omission. (The builder's isPlayable would
+-- board's words by omission. (The builder's isPlayable would
 -- reject them anyway — a letter shares a side with itself — so this is
 -- deliberate belt-and-braces, not the load-bearing check.)
 --
@@ -259,7 +259,7 @@ drop function if exists letterboxed.pick_seed(int);
 --
 -- WHY p_max_band EXISTS even though the importer already caps seeds at
 -- band 2: the seeded pair has to be LEGAL in the game being built, or
--- the guaranteed two-word solution isn't in the board's legal words and
+-- the guaranteed two-word solution isn't in the board's words and
 -- create_game's winnability check rejects the board. So the builder
 -- passes least(legal_band, 2) — a game played at legal_band 1 draws
 -- only from band-1 seeds (222k of them, still ample).
@@ -296,7 +296,7 @@ drop function if exists letterboxed.seed_for(text);
 -- lookup.
 --
 -- THE POINT OF THE LOOKUP is not to police the player — it is to get
--- `solution`, which letterboxed.games requires and which the terminal
+-- `solution`, which letterboxed.games requires and which the end-of-game
 -- reveal, the PDF and create_game's winnability check all read. A custom
 -- board that found its pair is indistinguishable from a rolled one
 -- everywhere downstream: par is still 2, the reveal still works.
@@ -410,14 +410,17 @@ revoke execute on function letterboxed._make_json_tiles(text) from public;
 -- filter (docs/word-list.md → Which words a game may use), or that the
 -- dictionary no longer holds. Read against `common.words` at every rebuild, so
 -- a word re-flagged in the editor leaves the hints on old boards too.
-create or replace function letterboxed._make_json_unclean_words(p_legal_words jsonb)
+--
+-- Dropped first: a parameter's name cannot change in place.
+drop function if exists letterboxed._make_json_unclean_words(jsonb);
+create or replace function letterboxed._make_json_unclean_words(p_words jsonb)
 returns jsonb
 language sql
 stable
 set search_path = letterboxed, common, public, extensions
 as $$
   select coalesce(jsonb_agg(lw.word order by lw.ord), '[]'::jsonb)
-    from jsonb_array_elements_text(p_legal_words) with ordinality lw(word, ord)
+    from jsonb_array_elements_text(p_words) with ordinality lw(word, ord)
    where not exists (
            select 1 from common.words w
             where w.word = lw.word
@@ -437,8 +440,8 @@ set search_path = letterboxed, common, public, extensions
 as $$
   select jsonb_build_object(
     'tiles',        letterboxed._make_json_tiles(lg.sides),
-    'words',        lg.legal_words,
-    'uncleanWords', letterboxed._make_json_unclean_words(lg.legal_words),
+    'words',        lg.words,
+    'uncleanWords', letterboxed._make_json_unclean_words(lg.words),
     'nParWords',    letterboxed._n_par_words(),
     'solution',     case when p_ended then to_jsonb(lg.solution) end);
 $$;
@@ -685,7 +688,7 @@ drop function if exists letterboxed.create_game(text, jsonb, uuid[], text, jsonb
 --
 -- `p_board` comes from the letterboxed-build-board edge function:
 --   { "sides": 12 letters in side order,
---     "playable_words": [ … ],   stored as `legal_words`
+--     "words": [ … ],   every word that can be played on the board
 --     "solution": [word_a, word_b] }
 --
 -- The board validation below is unusually thorough, and on purpose: it
@@ -798,12 +801,12 @@ begin
       detail = 'board.sides must equal setup.custom_sides exactly';
   end if;
 
-  if jsonb_typeof(p_board->'playable_words') <> 'array' then
+  if jsonb_typeof(p_board->'words') <> 'array' then
     raise exception 'BUG: generated board arrived with no word list'
       using errcode = 'PN205', hint = 'fault', column = '_',
-      detail = 'board.playable_words must be a jsonb array';
+      detail = 'board.words must be a jsonb array';
   end if;
-  b_words := p_board->'playable_words';
+  b_words := p_board->'words';
   -- The richness floor. A board with too few findable words is a
   -- miserable puzzle rather than a hard one; the builder re-rolls
   -- instead of shipping it, and this is the server-side catch. The
@@ -821,7 +824,7 @@ begin
     raise exception 'BUG: generated board had only % words to find',
       jsonb_array_length(b_words)
       using errcode = 'PN206', hint = 'fault', column = '_',
-      detail = 'board.playable_words must hold >= 150; the edge function''s gate must agree';
+      detail = 'board.words must hold >= 150; the edge function''s gate must agree';
   end if;
 
   -- ─── The winnability invariant ───────────────────────────
@@ -839,7 +842,7 @@ begin
   if not (b_words ? sol_a) or not (b_words ? sol_b) then
     raise exception 'BUG: generated board''s solution uses words it does not allow'
       using errcode = 'PN208', hint = 'fault', column = '_',
-      detail = 'both solution words must appear in playable_words';
+      detail = 'both solution words must appear in board.words';
   end if;
   if right(sol_a, 1) <> left(sol_b, 1) then
     raise exception 'BUG: generated board''s solution does not chain: ''%'' ends in % and ''%'' starts with %',
@@ -891,7 +894,7 @@ begin
   end if;
 
   insert into letterboxed.games (
-    game_id, sides, legal_words, solution, max_words, legal_band
+    game_id, sides, words, solution, max_words, legal_band
   )
   values (
     new_id, b_sides, b_words, b_solution, s_max_words, s_legal_band
@@ -1029,12 +1032,12 @@ begin
   end if;
 
   -- One membership test covers the dictionary, the board's letters AND
-  -- the same-side rule: legal_words is exactly the set of words that
+  -- the same-side rule: `words` is exactly the set of words that
   -- satisfy all three, computed once when the board was built.
-  if not (g.legal_words ? v_word) then
+  if not (g.words ? v_word) then
     raise exception 'BUG: a word this board cannot play'
       using errcode = 'PN403', hint = 'fault', column = '_',
-      detail = format('%L is absent from legal_words (dictionary, letters or side rule)', v_word);
+      detail = format('%L is absent from the board''s words (dictionary, letters or side rule)', v_word);
   end if;
 
   -- In coop every row holds the same chain, so the caller's own row is
@@ -1099,22 +1102,16 @@ begin
     );
     perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-    -- `result` NAMES the ending; `accepted`, `letters_covered` and `solved`
-    -- are the fields the frontend reads.
-    return common._ok_envelope(
-      jsonb_build_object('result', 'solved',
-                         'accepted', true, 'letters_covered', 12, 'solved', true),
-      'won');
+    -- `result` NAMES the ending, and is all the answer carries: what the
+    -- word did, the page reads from the blobs.
+    return common._ok_envelope(jsonb_build_object('result', 'solved'), 'won');
   end if;
 
   -- Still going: hand the turn on (no-op in a free-for-all game).
   perform common._advance_turn(p_game_id);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  return common._ok_envelope(
-    jsonb_build_object('result', 'accepted',
-                       'accepted', true, 'letters_covered', v_covered, 'solved', false),
-    'won');
+  return common._ok_envelope(jsonb_build_object('result', 'accepted'), 'won');
 
 exception when others then
   get stacked diagnostics
@@ -1202,10 +1199,7 @@ begin
   perform common._advance_turn(p_game_id);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  return common._ok_envelope(
-    jsonb_build_object('result', 'undone', 'word', v_popped,
-                       'letters_covered', v_covered),
-    'noted');
+  return common._ok_envelope(jsonb_build_object('result', 'undone'), 'noted');
 
 exception when others then
   get stacked diagnostics
@@ -1266,8 +1260,7 @@ begin
 
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  return common._ok_envelope(
-    jsonb_build_object('result', 'cleared', 'letters_covered', 0), 'noted');
+  return common._ok_envelope(jsonb_build_object('result', 'cleared'), 'noted');
 
 exception when others then
   get stacked diagnostics
@@ -1289,7 +1282,7 @@ drop function if exists letterboxed.log_hint_or_spoiler(uuid, text, text);
 -- ============================================================
 -- letterboxed.log_hint_or_spoiler — record that a rung was taken
 -- ============================================================
--- The suggestion itself is computed ON THE FE: it holds the legal words,
+-- The suggestion itself is computed ON THE FE: it holds the board's words,
 -- so a breadth-first search over (letters-used, tail-letter) finds a
 -- word on a shortest path to covering all twelve in ~40 lines of
 -- TypeScript. The server's only job is to remember that a hint or a

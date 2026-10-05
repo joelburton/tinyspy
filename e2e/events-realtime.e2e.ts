@@ -121,9 +121,9 @@ const CASES: Case[] = [
           const res = await asUser(m.session.access_token)
             .schema('letterboxed')
             .rpc('log_hint_or_spoiler', {
-              target_game: game.id,
-              word_shown: 'adgjbehk', // the fixture board's first solution word
-              kind: 'hint',
+              p_game_id: game.id,
+              p_word_shown: 'adgjbehk', // the fixture board's first solution word
+              p_kind: 'hint',
             })
           envelopeData(res, 'letterboxed.log_hint_or_spoiler')
         },

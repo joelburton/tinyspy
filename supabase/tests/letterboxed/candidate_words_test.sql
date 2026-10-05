@@ -6,7 +6,7 @@
 --
 -- The bug this guards (2026-08-10, found in play): candidate_words applied
 -- the must-reach purity filter in its WHERE clause, so the board's
--- `legal_words` was clean — and since that list is also the ACCEPT list
+-- word list was clean — and since that list is also the ACCEPT list
 -- (submit_word is one `?` membership test against it, and the FE's
 -- rejectReason reads the same array), typing BITCH was refused. BITCH is
 -- band 1 with `slur = 1`: a legal word the player CHOSE to type, which is

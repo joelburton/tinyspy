@@ -147,6 +147,14 @@ The `gd` sketch, approved 2026-10-05 (step 2), is the comment in
   spec reads is the stored lowercase; `letterboxed.e2e.ts` and
   `letterboxed-print.e2e.ts` expect it (`/^adg/`, `'g'`), and every board
   locator in them and in `tap-targets.e2e.ts` is `[data-tile]`.
+- **Step 13 (2026-10-05):** the board's word list is `words` from the edge
+  function through `create_game`'s board and the column (20261005000002) to
+  the blob, so `letterboxed-build-board` and `supabase/sql/letterboxed.sql`
+  ship in the same deploy: either one alone breaks starting a letterboxed
+  game until the other lands. Every e2e call to a letterboxed RPC sends `p_`
+  names. `submit_word`, `undo_word` and `clear_chain` answer their `result`
+  alone (wordiply's ruling): what the move did, the page reads from the
+  blobs.
   `lib/answer.ts`'s `Answer` is `GAnswer`; `Node`, `ParsedSides`,
   `Suggestion` and `NoSuggestion` stopped being exported, each read only in
   its own file.

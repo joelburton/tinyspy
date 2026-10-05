@@ -732,9 +732,10 @@ export async function createLetterboxedGame(
 ): Promise<{ id: string; gametype: string }> {
   const creator = club.members[0]
   // `zq` prefix, not `q`: these must be words the DICTIONARY DOES NOT HAVE.
-  // That's what makes the board synthetic, and the hint search reads
-  // `clean_words` — playable_words joined against common.words — so a single
-  // real word in here stops the board being synthetic at all. `qat` used to
+  // That's what makes the board synthetic, and whether the hint search may
+  // offer a word comes from joining the board's words against common.words
+  // (`uncleanWords` in the page blob) — so a single real word in here stops
+  // the board being synthetic at all. `qat` used to
   // sneak in from the old `q` prefix and left the fixture with a one-word clean
   // list: too small to hint from, too big to trip the empty-list fallback, so
   // the hint spec failed with "No words to play" on a board of 207 words.
@@ -744,14 +745,14 @@ export async function createLetterboxedGame(
   const res = await asUser(creator.session.access_token)
     .schema('letterboxed')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: { timer: { kind: 'none' }, extra_words: extraWords, legal_band: 5 },
-      player_user_ids: playerUserIds,
-      mode,
-      board: {
+      p_club_handle: club.handle,
+      p_setup: { timer: { kind: 'none' }, extra_words: extraWords, legal_band: 5 },
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
+      p_board: {
         sides: 'abcdefghijkl',
         solution: ['adgjbehk', 'kcfil'],
-        playable_words: ['adgjbehk', 'kcfil', 'adg', 'gjb', 'beh', 'kcf', 'ila', ...filler],
+        words: ['adgjbehk', 'kcfil', 'adg', 'gjb', 'beh', 'kcf', 'ila', ...filler],
       },
     })
   return { id: createdGameId(res, 'letterboxed.create_game'), gametype: `letterboxed_${mode}` }

@@ -1,6 +1,5 @@
 // cs-na
 
-
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
@@ -289,8 +288,38 @@ isOneToOne: false
             "_end_turn":
 { Args: { "p_game_id": string }; Returns: Json
                            },
+"_make_json_board":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_curr_clue":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_puzzle":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_point_turn":
 { Args: { "p_game_id": string }; Returns: undefined
+                           },
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+                           },
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "_require_clue_giver":
 { Args: { "p_game_id": string }; Returns: string
@@ -298,11 +327,11 @@ isOneToOne: false
 "_seat_has_agents_left":
 { Args: { "p_game_id": string,"p_seat": string }; Returns: boolean
                            },
+"_seat_of":
+{ Args: { "cg": Database["codenamesduet"]['Tables']["games"]['Row'],"p_user_id": string }; Returns: string
+                           },
 "_turns_remaining":
 { Args: { "p_max_turns": number,"p_turn_number": number }; Returns: number
-                           },
-"_write_statuses":
-{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
                            },
 "create_game":
 { Args: { "p_club_handle": string,"p_player_user_ids": (string)[],"p_setup": Json }; Returns: Json
@@ -1097,13 +1126,13 @@ isOneToOne: false
           Tables: {
             "events": {
                   Row: {
-                    "created_at": string,"game_id": string,"id": number,"kind": string,"letters_covered": number,"took_turn": boolean,"user_id": string,"word": string | null
+                    "created_at": string,"game_id": string,"id": number,"kind": string,"n_covered_letters": number,"took_turn": boolean,"user_id": string,"word": string | null
                   }
                   Insert: {
-                    "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"letters_covered": number,"took_turn"?: boolean,"user_id": string,"word"?: string | null
+                    "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"n_covered_letters": number,"took_turn"?: boolean,"user_id": string,"word"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"letters_covered"?: number,"took_turn"?: boolean,"user_id"?: string,"word"?: string | null
+                    "created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"n_covered_letters"?: number,"took_turn"?: boolean,"user_id"?: string,"word"?: string | null
                   }
                   Relationships: [
                     {
@@ -1112,23 +1141,17 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "events_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 },"games": {
                   Row: {
-                    "game_id": string,"legal_band": number,"legal_words": NonNullable<Json>,"max_words": number,"sides": string,"solution": (string)[]
+                    "game_id": string,"legal_band": number,"max_words": number,"sides": string,"solution": (string)[],"words": NonNullable<Json>
                   }
                   Insert: {
-                    "game_id": string,"legal_band": number,"legal_words": NonNullable<Json>,"max_words": number,"sides": string,"solution": (string)[]
+                    "game_id": string,"legal_band": number,"max_words": number,"sides": string,"solution": (string)[],"words": NonNullable<Json>
                   }
                   Update: {
-                    "game_id"?: string,"legal_band"?: number,"legal_words"?: NonNullable<Json>,"max_words"?: number,"sides"?: string,"solution"?: (string)[]
+                    "game_id"?: string,"legal_band"?: number,"max_words"?: number,"sides"?: string,"solution"?: (string)[],"words"?: NonNullable<Json>
                   }
                   Relationships: [
                     
@@ -1150,12 +1173,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 },"seeds": {
@@ -1174,64 +1191,47 @@ isOneToOne: false
                 }
           }
           Views: {
-            "games_state": {
-                  Row: {
-                    "clean_words": Json | null,"game_id": string | null,"legal_band": number | null,"legal_words": Json | null,"max_words": number | null,"sides": string | null,"solution": (string)[] | null
-                  }
-                  Insert: {
-                           "clean_words"?: never,"game_id"?: string | null,"legal_band"?: number | null,"legal_words"?: Json | null,"max_words"?: number | null,"sides"?: string | null,"solution"?: (string)[] | null
-                         }
-                        Update: {
-                           "clean_words"?: never,"game_id"?: string | null,"legal_band"?: number | null,"legal_words"?: Json | null,"max_words"?: number | null,"sides"?: string | null,"solution"?: (string)[] | null
-                         }
-                        Relationships: [
-                    
-                  ]
-                },"players_state": {
-                  Row: {
-                    "chain": (string)[] | null,"game_id": string | null,"hints_used": number | null,"letters_covered": number | null,"user_id": string | null,"word_count": number | null
-                  }
-                  Insert: {
-                           "chain"?: never,"game_id"?: string | null,"hints_used"?: number | null,"letters_covered"?: never,"user_id"?: string | null,"word_count"?: never
-                         }
-                        Update: {
-                           "chain"?: never,"game_id"?: string | null,"hints_used"?: number | null,"letters_covered"?: never,"user_id"?: string | null,"word_count"?: never
-                         }
-                        Relationships: [
-                    {
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games"
-      referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
-    }
-                  ]
-                }
+            [_ in never]: never
           }
           Functions: {
-            "_chain_for":
-{ Args: { "p_game_id": string,"p_user_id": string }; Returns: (string)[]
-                           },
-"_covered":
+            "_covered":
 { Args: { "p_chain": (string)[] }; Returns: number
                            },
-"_covered_for":
-{ Args: { "p_game_id": string,"p_user_id": string }; Returns: number
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_puzzle":
+{ Args: { "lg": Database["letterboxed"]['Tables']["games"]['Row'],"p_ended": boolean }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_tiles":
+{ Args: { "p_sides": string }; Returns: Json
+                           },
+"_make_json_unclean_words":
+{ Args: { "p_words": Json }; Returns: Json
+                           },
+"_n_par_words":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+                           },
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "_require_chain_move":
 { Args: { "p_game_id": string }; Returns: string
-                           },
-"_word_count_for":
-{ Args: { "p_game_id": string,"p_user_id": string }; Returns: number
-                           },
-"_write_statuses":
-{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
                            },
 "candidate_words":
 { Args: { "p_board_mask": number,"p_max_band": number }; Returns: {
@@ -2260,12 +2260,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "events_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 },"games": {
@@ -2283,13 +2277,13 @@ isOneToOne: false
                   ]
                 },"players": {
                   Row: {
-                    "board": string,"game_id": string,"swaps_used": number,"user_id": string
+                    "board": string,"game_id": string,"n_swaps_used": number,"user_id": string
                   }
                   Insert: {
-                    "board": string,"game_id": string,"swaps_used"?: number,"user_id": string
+                    "board": string,"game_id": string,"n_swaps_used"?: number,"user_id": string
                   }
                   Update: {
-                    "board"?: string,"game_id"?: string,"swaps_used"?: number,"user_id"?: string
+                    "board"?: string,"game_id"?: string,"n_swaps_used"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -2298,63 +2292,16 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 }
           }
           Views: {
-            "games_state": {
-                  Row: {
-                    "board_at_setup": string | null,"game_id": string | null,"max_swaps": number | null,"par_swaps": number | null,"solution": string | null
-                  }
-                  Insert: {
-                           "board_at_setup"?: string | null,"game_id"?: string | null,"max_swaps"?: number | null,"par_swaps"?: number | null,"solution"?: never
-                         }
-                        Update: {
-                           "board_at_setup"?: string | null,"game_id"?: string | null,"max_swaps"?: number | null,"par_swaps"?: number | null,"solution"?: never
-                         }
-                        Relationships: [
-                    
-                  ]
-                },"players_state": {
-                  Row: {
-                    "board": string | null,"colors": string | null,"game_id": string | null,"swaps_used": number | null,"user_id": string | null
-                  }
-                  Insert: {
-                           "board"?: never,"colors"?: never,"game_id"?: string | null,"swaps_used"?: number | null,"user_id"?: string | null
-                         }
-                        Update: {
-                           "board"?: never,"colors"?: never,"game_id"?: string | null,"swaps_used"?: number | null,"user_id"?: string | null
-                         }
-                        Relationships: [
-                    {
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games"
-      referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
-    }
-                  ]
-                }
+            [_ in never]: never
           }
           Functions: {
             "_board_colors":
 { Args: { "board": string,"solution": string }; Returns: string
-                           },
-"_board_visible":
-{ Args: { "cg": Database["common"]['Tables']["games"]['Row'],"row_user": string }; Returns: boolean
                            },
 "_color_rank":
 { Args: { "c": string }; Returns: number
@@ -2368,17 +2315,35 @@ isOneToOne: false
 "_format_title":
 { Args: { "placeholder": string,"words": (string)[] }; Returns: string
                            },
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_puzzle":
+{ Args: { "p_ended": boolean,"wg": Database["waffle"]['Tables']["games"]['Row'] }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_tiles":
+{ Args: { "p_board": string,"p_colors": string }; Returns: Json
+                           },
 "_maybe_finish_compete":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_reason": string,"p_reason_detail": string }; Returns: boolean
                            },
-"_player_board_for":
-{ Args: { "p_game_id": string,"row_user": string }; Returns: string
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
                            },
-"_player_colors_for":
-{ Args: { "p_game_id": string,"row_user": string }; Returns: string
-                           },
-"_solution_for":
-{ Args: { "p_game_id": string }; Returns: string
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "_sync_title":
 { Args: { "p_game_id": string }; Returns: undefined
@@ -2387,9 +2352,6 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "start1": number,"stride": number
             }[]
-                           },
-"_write_statuses":
-{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
                            },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2420,13 +2382,13 @@ isOneToOne: false
           Tables: {
             "events": {
                   Row: {
-                    "created_at": string,"game_id": string,"id": number,"kind": string,"length": number,"reason": string | null,"took_turn": boolean,"user_id": string,"valid": boolean,"word": string
+                    "created_at": string,"game_id": string,"id": number,"kind": string,"len": number,"reason": string | null,"took_turn": boolean,"user_id": string,"valid": boolean,"word": string
                   }
                   Insert: {
-                    "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"length": number,"reason"?: string | null,"took_turn"?: boolean,"user_id": string,"valid"?: boolean,"word": string
+                    "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"len": number,"reason"?: string | null,"took_turn"?: boolean,"user_id": string,"valid"?: boolean,"word": string
                   }
                   Update: {
-                    "created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"length"?: number,"reason"?: string | null,"took_turn"?: boolean,"user_id"?: string,"valid"?: boolean,"word"?: string
+                    "created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"len"?: number,"reason"?: string | null,"took_turn"?: boolean,"user_id"?: string,"valid"?: boolean,"word"?: string
                   }
                   Relationships: [
                     {
@@ -2435,23 +2397,17 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "events_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 },"games": {
                   Row: {
-                    "base": string,"game_id": string,"legal_words": NonNullable<Json>,"longest_words": NonNullable<Json>,"max_word_length": number
+                    "base": string,"game_id": string,"legal_words": NonNullable<Json>,"longest_words": NonNullable<Json>,"max_word_len": number,"_make_json_puzzle": Json | null
                   }
                   Insert: {
-                    "base": string,"game_id": string,"legal_words": NonNullable<Json>,"longest_words": NonNullable<Json>,"max_word_length": number
+                    "base": string,"game_id": string,"legal_words": NonNullable<Json>,"longest_words": NonNullable<Json>,"max_word_len": number
                   }
                   Update: {
-                    "base"?: string,"game_id"?: string,"legal_words"?: NonNullable<Json>,"longest_words"?: NonNullable<Json>,"max_word_length"?: number
+                    "base"?: string,"game_id"?: string,"legal_words"?: NonNullable<Json>,"longest_words"?: NonNullable<Json>,"max_word_len"?: number
                   }
                   Relationships: [
                     
@@ -2459,20 +2415,7 @@ isOneToOne: false
                 }
           }
           Views: {
-            "games_state": {
-                  Row: {
-                    "base": string | null,"game_id": string | null,"legal_words": Json | null,"longest_words": Json | null,"max_word_length": number | null
-                  }
-                  Insert: {
-                           "base"?: string | null,"game_id"?: string | null,"legal_words"?: Json | null,"longest_words"?: Json | null,"max_word_length"?: number | null
-                         }
-                        Update: {
-                           "base"?: string | null,"game_id"?: string | null,"legal_words"?: Json | null,"longest_words"?: Json | null,"max_word_length"?: number | null
-                         }
-                        Relationships: [
-                    
-                  ]
-                }
+            [_ in never]: never
           }
           Functions: {
             "_finish_compete":
@@ -2481,16 +2424,43 @@ isOneToOne: false
 "_length_score":
 { Args: { "p_longest": number,"p_max_len": number }; Returns: number
                            },
+"_make_json_board":
+{ Args: { "p_game_id": string,"p_mode": string,"p_user_id": string }; Returns: Json
+                           },
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_puzzle":
+{ Args: { "g": Database["wordiply"]['Tables']["games"]['Row'] }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_track":
+{ Args: { "p_ended": boolean,"p_game_id": string,"p_user_id": string }; Returns: Json
+                           },
 "_maybe_finish_compete":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_reason": string,"p_reason_detail": string }; Returns: boolean
                            },
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+                           },
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "_track_totals":
 { Args: { "p_game_id": string }; Returns: {
-              "guesses_used": number,"last_guess_at": string,"length_score": number,"letter_count": number,"longest": number,"user_id": string
+              "last_guess_at": string,"length_score": number,"longest_word_len": number,"n_guesses_used": number,"n_letters": number,"user_id": string
             }[]
-                           },
-"_write_statuses":
-{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
                            },
 "candidate_bases":
 { Args: { "p_n": number,"p_source_band": number }; Returns: {
@@ -2522,7 +2492,7 @@ isOneToOne: false
                            },
 "try_base":
 { Args: { "p_base": string,"p_legal_band": number,"p_max_children": number,"p_min_children": number,"p_min_headroom": number }; Returns: {
-              "legal_words": Json,"longest_words": Json,"max_word_length": number
+              "legal_words": Json,"longest_words": Json,"max_word_len": number
             }[]
                            }
           }

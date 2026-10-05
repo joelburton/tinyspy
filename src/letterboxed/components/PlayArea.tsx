@@ -163,7 +163,10 @@ function PlayArea({
           carried in-page, by the below-board pill and the action row's line.
           My win's confetti — once, when it happens. */}
       {celebration.isOpen && (
-        <CelebrationBlockingModal title="All twelve! 🐍" onClose={celebration.close} />
+        <CelebrationBlockingModal
+          title="All twelve! 🐍"
+          onClose={celebration.close}
+        />
       )}
     </div>
   )

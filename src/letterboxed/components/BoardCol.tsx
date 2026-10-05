@@ -62,7 +62,11 @@ export function BoardCol({
   myTurnJustStarted: boolean
 }) {
   const move = useChainMove(gd, localFeedbackSlot)
-  const entry = useTypedWord({ gd, sendWord: move.sendWord, onEdit: move.clearRefused })
+  const entry = useTypedWord({
+    gd,
+    sendWord: move.sendWord,
+    onEdit: move.clearRefused,
+  })
 
   // The board responds to me: the move is mine, on the live board. That is the
   // ×'s gate. A full chain also freezes the entry — there is no word to
@@ -74,7 +78,9 @@ export function BoardCol({
   // The word just refused, while it is still what is in the box: the board
   // shakes its letters, keyed on the nonce so a second refusal shakes again.
   const refusedNonce =
-    move.refused && move.refused.value.word === entry.word ? move.refused.nonce : null
+    move.refused && move.refused.value.word === entry.word
+      ? move.refused.nonce
+      : null
 
   // A board letter clicked is the next move, like a keystroke. It appends —
   // unless it repeats the letter the word already ends on, which submits (see
@@ -103,25 +109,29 @@ export function BoardCol({
       ({
         '--chain-rows-desktop': Math.min(
           4,
-          Math.max(2, estimateChainRows(gd.me.board.words, DESKTOP_ROW_BUDGET_REM)),
+          Math.max(2,
+            estimateChainRows(gd.me.board.words, DESKTOP_ROW_BUDGET_REM)),
         ),
         '--chain-rows-mobile': Math.min(
           4,
-          Math.max(3, estimateChainRows(gd.me.board.words, MOBILE_ROW_BUDGET_REM)),
+          Math.max(3,
+            estimateChainRows(gd.me.board.words, MOBILE_ROW_BUDGET_REM)),
         ),
       }) as CSSProperties,
     [gd.me.board.words],
   )
 
   return (
-    <div className={cls(shared.boardCol, styles.boardCol)} style={chainRowsStyle}>
+    <div className={cls(shared.boardCol, styles.boardCol)}
+         style={chainRowsStyle}>
       {/* No MobileStatusBar, deliberately (docs/mobile.md's adoption rule). */}
 
       {/* The chain strip and the board are ONE SNAPSHOT — the words, and the
           letters they covered — so they share one history frame, and a click
           on either falls to the viewer's click-anywhere exit. */}
       <div
-        className={cls(styles.historyFramed, historyView.isViewing && history.historyFrame)}
+        className={cls(styles.historyFramed,
+          historyView.isViewing && history.historyFrame)}
       >
         {/* The chain reads ABOVE the board: it is the state, and it says what
             letter the next word must start with. */}
@@ -156,7 +166,8 @@ export function BoardCol({
         )}
       >
         {historyView.isViewing && (
-          <HistoryBanner label={historyView.label} actor={historyView.actor} onExit={historyView.exit} />
+          <HistoryBanner label={historyView.label} actor={historyView.actor}
+                         onExit={historyView.exit}/>
         )}
         <WordEntryArea
           value={entry.word}
@@ -165,7 +176,8 @@ export function BoardCol({
           placeholder="Type or click letters"
           // Per-character rendering, so the carried-over first letter can say
           // it isn't yours to delete.
-          children={<TypedWord word={entry.word} seedLength={entry.seed.length} />}
+          children={<TypedWord word={entry.word}
+                               seedLength={entry.seed.length}/>}
           localFeedbackSlot={localFeedbackSlot}
           // Off while a past move is open too: freezing capture lets the
           // viewer's `act-exit-history` consume the keystroke (back to live)
