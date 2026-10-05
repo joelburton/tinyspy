@@ -21,7 +21,7 @@ import type { Cell, GameGallery } from '../types'
 async function swap(member: E2EMember, gameId: string, a: number, b: number): Promise<void> {
   const res = await asUser(member.session.access_token)
     .schema('waffle')
-    .rpc('submit_swap', { target_game: gameId, pos_a: a, pos_b: b })
+    .rpc('submit_swap', { p_game_id: gameId, p_pos_a: a, p_pos_b: b })
   if (res.error) throw new Error(`waffle.submit_swap(${a},${b}): ${res.error.message}`)
 }
 

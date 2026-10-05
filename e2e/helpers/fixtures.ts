@@ -838,7 +838,7 @@ export async function seedWaffleSwap(
 ): Promise<void> {
   const res = await asUser(member.session.access_token)
     .schema('waffle')
-    .rpc('submit_swap', { target_game: gameId, pos_a: posA, pos_b: posB })
+    .rpc('submit_swap', { p_game_id: gameId, p_pos_a: posA, p_pos_b: posB })
   envelopeData(res, `waffle.submit_swap(${posA},${posB})`)
 }
 
