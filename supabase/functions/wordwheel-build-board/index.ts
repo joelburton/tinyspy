@@ -246,10 +246,10 @@ async function fetchCandidateWords(
     .schema('wordwheel')
     .rpc('candidate_words', {
       // bigint → string for the JSON wire; Postgres parses back to bigint.
-      puzzle_mask: puzzleMask.toString(),
-      center_bit: centerBit.toString(),
-      required_band: requiredBand,
-      legal_band: legalBand,
+      p_puzzle_mask: puzzleMask.toString(),
+      p_center_bit: centerBit.toString(),
+      p_required_band: requiredBand,
+      p_legal_band: legalBand,
     })
   if (error) throw new Error(`fetchCandidateWords: ${error.message}`)
   // The RPC returns (word, letter_mask, is_required). letter_mask is dropped —
@@ -476,7 +476,7 @@ serve(async (req) => {
     return await invokeCreateGame(
       supabase,
       'wordwheel',
-      { target_club: targetClub, setup, player_user_ids: playerUserIds, mode, board },
+      { p_club_handle: targetClub, p_setup: setup, p_player_user_ids: playerUserIds, p_mode: mode, p_board: board },
       'wordwheel-build-board',
     )
   } catch (e) {

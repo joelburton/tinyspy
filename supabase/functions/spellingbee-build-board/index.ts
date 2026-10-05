@@ -262,11 +262,11 @@ async function fetchCandidateWords(
     .rpc('candidate_words', {
       // bigint → string for the JSON wire; Postgres parses back
       // to bigint on the column-type match.
-      puzzle_mask: puzzleMask.toString(),
-      center_bit: centerBit.toString(),
+      p_puzzle_mask: puzzleMask.toString(),
+      p_center_bit: centerBit.toString(),
       // The per-game word bands (default to the classic 3 / 5).
-      required_band: requiredBand,
-      legal_band: legalBand,
+      p_required_band: requiredBand,
+      p_legal_band: legalBand,
     })
   if (error) throw new Error(`fetchCandidateWords: ${error.message}`)
   return ((data ?? []) as Array<{
@@ -443,7 +443,7 @@ serve(async (req) => {
     return await invokeCreateGame(
       supabase,
       'spellingbee',
-      { target_club: targetClub, setup, player_user_ids: playerUserIds, mode, board },
+      { p_club_handle: targetClub, p_setup: setup, p_player_user_ids: playerUserIds, p_mode: mode, p_board: board },
       'spellingbee-build-board',
     )
   } catch (e) {

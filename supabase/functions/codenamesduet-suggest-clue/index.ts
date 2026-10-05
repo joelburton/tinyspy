@@ -98,7 +98,7 @@ serve(async (req) => {
     // `.schema('codenamesduet')` is required — the RPC lives in that schema, and
     // supabase-js defaults to `public`, where it doesn't exist.
     const res = await runRpc<ClueContext>(
-      supabase.schema('codenamesduet').rpc('get_clue_context', { target_game: gameId }),
+      supabase.schema('codenamesduet').rpc('get_clue_context', { p_game_id: gameId }),
       'get_clue_context',
     )
     // **The RPC's own refusals, relayed untouched** — not your turn, not a
@@ -253,7 +253,7 @@ serve(async (req) => {
     // write a log row, and the player has already paid for the suggestion, so
     // they get it; the failure is logged here, where someone can look.
     const logged = await runRpc<{ result: 'logged' }>(
-      supabase.schema('codenamesduet').rpc('log_hint', { target_game: gameId }),
+      supabase.schema('codenamesduet').rpc('log_hint', { p_game_id: gameId }),
       'log_hint',
     )
     if (logged.type === 'not-ok' && logged.severity === 'race') return json(logged)

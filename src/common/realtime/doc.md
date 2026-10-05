@@ -139,7 +139,7 @@ and re-reads the rows.
 | `<topic> — event UPDATE common.games` | a delivered row change, with the payload's `errors` when set |
 | `<topic> — broadcast "manualPause"` | a delivered broadcast |
 | `<topic> — refetch #3 (event)` | `useRealtimeRefetch` reloaded, and why: `mount` / `subscribed` / `attached` / `event` |
-| `game:<id> — load #2: ended_at=null updated_at=… players=2` | what `useCommonGame`'s load saw |
+| `game:<id> — load #2 (attached): ended=false players=2` | what `useCommonGame`'s load saw, and why, in the same four causes |
 | `<topic> — unsubscribing` / `teardown ok` | a deliberate leave, so it is not mistaken for a channel gone quiet |
 | `<topic> — teardown timed out` / `teardown FAILED` | a leave that did not complete; a timed-out one is what wedges a re-join of the same name |
 | `socket — heartbeat timeout` / `disconnected` | the socket itself is in trouble (routine pulses are not logged) |

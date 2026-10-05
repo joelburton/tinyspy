@@ -76,7 +76,7 @@ serve(async (req: Request): Promise<Response> => {
     // `.schema('scrabble')` is required — supabase-js defaults to `public`.
     const supabase = callerClient(authHeader)
     const res = await runRpc<SuggestContext>(
-      supabase.schema('scrabble').rpc('get_suggest_context', { target_game: gameId }),
+      supabase.schema('scrabble').rpc('get_suggest_context', { p_game_id: gameId }),
       'get_suggest_context',
     )
     // Its own refusals relay untouched — the game ended, this is a compete

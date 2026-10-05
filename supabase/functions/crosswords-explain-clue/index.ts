@@ -72,7 +72,7 @@ serve(async (req) => {
     )
     // No `.single()`: the RPC answers with one envelope, not a row.
     const res = await runRpc<RevealedWord>(
-      supabase.schema('crosswords').rpc('reveal_solved_word', { target_game: gameId, p_cells: cells }),
+      supabase.schema('crosswords').rpc('reveal_solved_word', { p_game_id: gameId, p_cells: cells }),
       'reveal_solved_word',
     )
     // Its own refusals relay untouched; `runRpc` folds "it never ran" and "it

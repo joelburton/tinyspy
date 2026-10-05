@@ -132,7 +132,7 @@ async function attemptBoard(
 
   const { data: seedRows, error: seedErr } = await supabase
     .schema('letterboxed')
-    .rpc('pick_seed', { max_band: seedBand })
+    .rpc('pick_seed', { p_max_band: seedBand })
   if (seedErr) throw new Error(`pick_seed failed: ${seedErr.message}`)
 
   const seed = ((seedRows as Seed[] | null) ?? [])[0]
@@ -155,7 +155,7 @@ async function attemptBoard(
 
   const { data: candRows, error: candErr } = await supabase
     .schema('letterboxed')
-    .rpc('candidate_words', { board_mask: letterMask(seed.letters), max_band: legalBand })
+    .rpc('candidate_words', { p_board_mask: letterMask(seed.letters), p_max_band: legalBand })
   if (candErr) throw new Error(`candidate_words failed: ${candErr.message}`)
 
   // candidate_words gates on band + board shape only; purity rides along as
@@ -241,7 +241,7 @@ async function buildCustomBoard(
 
   const { data: seedRows, error: seedErr } = await supabase
     .schema('letterboxed')
-    .rpc('seed_for', { board_letters: sorted })
+    .rpc('seed_for', { p_board_letters: sorted })
   if (seedErr) throw new Error(`seed_for failed: ${seedErr.message}`)
 
   const seed = ((seedRows as Seed[] | null) ?? [])[0]
@@ -263,7 +263,7 @@ async function buildCustomBoard(
 
   const { data: candRows, error: candErr } = await supabase
     .schema('letterboxed')
-    .rpc('candidate_words', { board_mask: letterMask(sides), max_band: legalBand })
+    .rpc('candidate_words', { p_board_mask: letterMask(sides), p_max_band: legalBand })
   if (candErr) throw new Error(`candidate_words failed: ${candErr.message}`)
 
   // The ACCEPT list, exactly as the random path builds it — band-gated only,
@@ -398,11 +398,11 @@ serve(async (req: Request) => {
     supabase,
     'letterboxed',
     {
-      target_club: targetClub,
-      setup,
-      player_user_ids: playerUserIds,
-      mode,
-      board,
+      p_club_handle: targetClub,
+      p_setup: setup,
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
+      p_board: board,
     },
     FN,
   )

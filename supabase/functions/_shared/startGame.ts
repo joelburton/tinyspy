@@ -138,11 +138,11 @@ export async function invokeCreateGame(
   supabase: SupabaseClient,
   schema: string,
   args: {
-    target_club: string
-    setup: unknown
-    player_user_ids: string[]
-    mode: string
-    board: unknown
+    p_club_handle: string
+    p_setup: unknown
+    p_player_user_ids: string[]
+    p_mode: string
+    p_board: unknown
   },
   fnName?: string,
 ): Promise<Response> {

@@ -159,11 +159,11 @@ serve(async (req) => {
       supabase,
       'waffle',
       {
-        target_club: targetClub,
-        setup,
-        player_user_ids: playerUserIds,
-        mode,
-        board: { solution: board.solution, scramble: board.scramble, par_swaps: board.par },
+        p_club_handle: targetClub,
+        p_setup: setup,
+        p_player_user_ids: playerUserIds,
+        p_mode: mode,
+        p_board: { solution: board.solution, scramble: board.scramble, par_swaps: board.par },
       },
       'waffle-build-board',
     )

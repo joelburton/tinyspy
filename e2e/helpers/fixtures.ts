@@ -385,8 +385,8 @@ export async function createBoggleGame(
   const res = await asUser(creator.session.access_token)
     .schema('boggle')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: {
+      p_club_handle: club.handle,
+      p_setup: {
         ...(winPercent !== undefined ? { win_percent: winPercent } : {}),
         timer: { kind: 'none' },
         dice_set: '4',
@@ -395,9 +395,9 @@ export async function createBoggleGame(
         min_word_length: 3,
         scoring_ladder: 'basic',
       },
-      player_user_ids: playerUserIds,
-      mode,
-      board: {
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
+      p_board: {
         board: boardStr,
         n: 4,
         required_words: [{ word: 'cat', points: 1 }],

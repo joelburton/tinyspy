@@ -192,11 +192,11 @@ serve(async (req) => {
   // that is not an envelope, and the envelope itself. All three come back as one,
   // so the relay below is the same line whichever happened.
   const res = await runRpc(caller.schema('crosswords').rpc('create_game', {
-    target_club,
-    setup: { timer: setup?.timer ?? { kind: 'none' } },
-    player_user_ids,
-    mode,
-    board,
+    p_club_handle: target_club,
+    p_setup: { timer: setup?.timer ?? { kind: 'none' } },
+    p_player_user_ids: player_user_ids,
+    p_mode: mode,
+    p_board: board,
   }), 'create_game')
   return json(res)
 })

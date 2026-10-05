@@ -50,7 +50,7 @@ type RpcReply = {
  * checked `Envelope<T>` — never a raw body:
  *
  *     const res = await runRpc<ClueContext>(
- *       db.schema('codenamesduet').rpc('get_clue_context', { target_game }),
+ *       db.schema('codenamesduet').rpc('get_clue_context', { p_game_id: gameId }),
  *       'get_clue_context',
  *     )
  *     if (res.type === 'not-ok') return json(res)   // relay the not-ok

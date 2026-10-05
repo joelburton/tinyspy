@@ -173,7 +173,7 @@ async function fetchCandidateBases(
 ): Promise<string[]> {
   const { data, error } = await supabase
     .schema('wordiply')
-    .rpc('candidate_bases', { source_band: SOURCE_BAND, n })
+    .rpc('candidate_bases', { p_source_band: SOURCE_BAND, p_n: n })
   if (error) throw new Error(`fetchCandidateBases: ${error.message}`)
   return ((data ?? []) as Array<{ base: string }>).map((r) => r.base)
 }
@@ -192,11 +192,11 @@ async function tryBase(
   const { data, error } = await supabase
     .schema('wordiply')
     .rpc('try_base', {
-      base,
-      legal_band: legalBand,
-      min_children: minChildren,
-      max_children: maxChildren,
-      min_headroom: MIN_HEADROOM,
+      p_base: base,
+      p_legal_band: legalBand,
+      p_min_children: minChildren,
+      p_max_children: maxChildren,
+      p_min_headroom: MIN_HEADROOM,
     })
   if (error) throw new Error(`tryBase(${base}): ${error.message}`)
   const rows = (data ?? []) as Array<{
@@ -227,7 +227,7 @@ async function countMatchingWords(
 ): Promise<number> {
   const { count, error } = await supabase
     .schema('wordiply')
-    .rpc('matching_words', { base, legal_band: legalBand }, { count: 'exact', head: true })
+    .rpc('matching_words', { p_base: base, p_legal_band: legalBand }, { count: 'exact', head: true })
   if (error) throw new Error(`countMatchingWords(${base}): ${error.message}`)
   return count ?? 0
 }
@@ -344,7 +344,7 @@ serve(async (req) => {
     return await invokeCreateGame(
       supabase,
       'wordiply',
-      { target_club: targetClub, setup, player_user_ids: playerUserIds, mode, board },
+      { p_club_handle: targetClub, p_setup: setup, p_player_user_ids: playerUserIds, p_mode: mode, p_board: board },
       'wordiply-build-board',
     )
   } catch (e) {

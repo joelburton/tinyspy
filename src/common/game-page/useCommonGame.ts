@@ -132,7 +132,9 @@ export function useCommonGame(
     // back. Same fix as useRealtimeRefetch's.
     let generation = 0
 
-    async function load() {
+    // `cause` is diagnostics-only, as useRealtimeRefetch's: it pairs each read
+    // in the console with what provoked it.
+    async function load(cause: 'mount' | 'subscribed' | 'attached' | 'event') {
       // Already dead on arrival: the cleanup releases the channel without
       // awaiting it, so an event can still call this just after unmount.
       if (!mounted) return
@@ -145,7 +147,7 @@ export function useCommonGame(
         // refetch saw a game still in progress".
         rtLog(
           `game:${gameId}`,
-          `load #${myGen}: ended=${read.shell.ended} players=${read.shell.players.length}`,
+          `load #${myGen} (${cause}): ended=${read.shell.ended} players=${read.shell.players.length}`,
         )
         clubHandleRef.current = read.shell.club.handle
       }
@@ -174,7 +176,7 @@ export function useCommonGame(
           table: 'games',
           filter: `id=eq.${gameId}`,
         },
-        load,
+        () => load('event'),
       )
 
       // A peer's manual pause; see `useManualPause`.
@@ -192,7 +194,7 @@ export function useCommonGame(
       // Re-read once the change feed is really attached: a write landing
       // between the join and the attach is otherwise lost (postgresAttached.ts).
       onPostgresAttached(ch, function reloadOnAttach() {
-        void load()
+        void load('attached')
         setResubscribeCount((n) => n + 1)
       })
 
@@ -207,7 +209,7 @@ export function useCommonGame(
 
       ch.subscribe(function loadAndAssertCurrentView(status) {
         if (status === 'SUBSCRIBED') {
-          load()
+          load('subscribed')
           setResubscribeCount((n) => n + 1)
           ch.track({ user_id: auth.user.id })
           // On every join, reconnects included: a member who reconnects
@@ -225,7 +227,7 @@ export function useCommonGame(
       void pending.then(joinRoom)
     } else joinRoom()
 
-    load()
+    load('mount')
 
     return function leaveGameRoom() {
       mounted = false

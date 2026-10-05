@@ -611,6 +611,7 @@ before trusting a green run. The full set:
 | `deployLists` | `supabase/config.toml`, `supabase/deploy/env.sh`, `Makefile` vs the registry |
 | `edgeFnErrorKeys` | every `json({ error: … })` in `supabase/functions/` carries an error key (none remain: functions answer envelopes) |
 | `edgeFunctionImports` | every module an edge function reaches resolves under Deno — no `@/` alias, no extensionless import, no bare package name |
+| `edgeFunctionRpcArgs` | every argument an edge function passes `.rpc(…)`, and `invokeCreateGame`'s, is a parameter of the SQL function it calls |
 | `raiseCodes` | every `PN`/`PA` raise in `supabase/sql/` — unique, hinted, outcome read back |
 | `dbCallShape` | `runRpc` takes an RPC, `readRows` takes a query — never crossed |
 | `dbCallWrapped` | every `.rpc(` / `.from(` in `src/` reaches a wrapper at all |

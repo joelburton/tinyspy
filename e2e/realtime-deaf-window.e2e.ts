@@ -11,12 +11,12 @@ import { signIn } from './helpers/session'
  * refetch (postgresAttached.ts) that closes the deaf window
  * (src/common/realtime/doc.md):
  *
- *   1. A DETERMINISTIC wiring guard: plain page load, assert the factory's
- *      cause-tagged `refetch #N (attached)` console line appears after the
- *      data channel's `system ok`. No docker, no timing games — if someone
- *      unwires the attach refetch, this goes red on every run. (The room's
- *      half of the wiring is pinned at the unit level in
- *      useCommonGame.test.ts → "deaf-window closer".)
+ *   1. A DETERMINISTIC wiring guard: plain page load, assert the game room
+ *      logs its cause-tagged `load #N (attached)` re-read. A converted game's
+ *      page is drawn from the room's read, so the room is its data channel.
+ *      No docker, no timing games — if someone unwires the attach re-read,
+ *      this goes red on every run. (The same wiring is pinned at the unit
+ *      level in useCommonGame.test.ts → "deaf-window closer".)
  *   2. The ENGINEERED end-to-end scenario below — lands a terminal write
  *      inside a real deaf window and asserts the verdict still arrives.
  *      Written first as a `test.fail`-pinned repro that reliably
@@ -50,7 +50,7 @@ import { signIn } from './helpers/session'
  *     (`game:<id>`, carrying common.games — losing a common.games UPDATE is
  *     the shape of every observed real failure) lands inside the window.
  *   - after the room's SUBSCRIBED (+300ms so its load()'s read provably
- *     completed first — the console `load #N: play_state=playing` line is
+ *     completed first — the console `load #N (subscribed): ended=false` line is
  *     the receipt), end the game server-side via the real stop_game RPC.
  *   - the honesty check reads the page's own `[rt]` console lines
  *     (realtimeDiag.ts): the room's `system ok` must NOT have arrived yet,
@@ -71,7 +71,7 @@ import { signIn } from './helpers/session'
  * lines in the output are the diagnosis trail for why.
  */
 
-test('every data channel refetches once its postgres_changes attach is confirmed', async ({
+test('the game room re-reads once its postgres_changes attach is confirmed', async ({
   browser,
 }) => {
   const club = await createSoloClub('rtattach')
@@ -88,18 +88,18 @@ test('every data channel refetches once its postgres_changes attach is confirmed
 
   await page.goto(`/g/${game.gametype}/${game.id}`)
 
-  // The factory logs each refetch with its cause; `(attached)` is the one
-  // fired by onPostgresAttached when the server's `system ok` confirms the
-  // WAL-poller attachment. On a warm tenant that's milliseconds after
-  // subscribe — 15s is pure safety margin, not an expected wait.
-  const dataChannel = `wordwheel:${game.id}`
+  // The room logs each read with its cause; `(attached)` is the one fired by
+  // onPostgresAttached when the server's `system ok` confirms the WAL-poller
+  // attachment. On a warm tenant that's milliseconds after subscribe — 15s
+  // is pure safety margin, not an expected wait.
+  const room = `game:${game.id}`
   const attached = () =>
-    rtLines.some((l) => l.includes(dataChannel) && l.includes('(attached)'))
+    rtLines.some((l) => l.includes(room) && l.includes('(attached)'))
   const deadline = Date.now() + 15_000
   while (!attached() && Date.now() < deadline) await page.waitForTimeout(100)
   expect(
     attached(),
-    `no "(attached)" refetch for ${dataChannel} — is the onPostgresAttached wiring gone?\n` +
+    `no "(attached)" re-read for ${room} — is the onPostgresAttached wiring gone?\n` +
       rtLines.join('\n'),
   ).toBe(true)
 
@@ -238,14 +238,14 @@ async function tryOnce(browser: Browser, club: E2EClub): Promise<'hit' | string>
     // still in progress. Console over a UI wait on purpose: every ms spent
     // here before the commit eats into the window.
     await page.waitForTimeout(300)
-    expect(roomLines('play_state=playing').length).toBeGreaterThan(0)
+    expect(roomLines('ended=false').length).toBeGreaterThan(0)
 
     // Stop the game server-side — the same RPC the Stop-game button calls.
-    // This writes common.games (play_state='ended', is_terminal=true): the
-    // exact row the room channel watches.
+    // This ends the game on common.games: the exact row the room channel
+    // watches.
     const res = await asUser(member.session.access_token)
       .schema('wordwheel')
-      .rpc('stop_game', { target_game: game.id })
+      .rpc('stop_game', { p_game_id: game.id })
     expect(res.error).toBeNull()
 
     // Honesty check: the room's `system ok` must NOT have arrived yet — the

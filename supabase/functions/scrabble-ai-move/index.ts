@@ -46,7 +46,7 @@ type AiContext =
   | { result: 'done'; done: true }
   | {
       result: 'context'
-      seat: number
+      user_id: string
       board: Cell[]
       rack: string[]
       dict_2: number
@@ -104,7 +104,7 @@ serve(async (req: Request): Promise<Response> => {
     // than buried in a detail.
     for (let i = 0; i < MAX_AI_MOVES; i++) {
       const ctxRes = await runRpc<AiContext>(
-        db.rpc('get_ai_context', { target_game: gameId }), 'get_ai_context',
+        db.rpc('get_ai_context', { p_game_id: gameId }), 'get_ai_context',
       )
       // Its own refusals relay untouched; `runRpc` folds "it never ran" and "it
       // answered something unreadable" into the same branch.
@@ -119,33 +119,34 @@ serve(async (req: Request): Promise<Response> => {
 
       const knobs = LEVELS[ctx.ai_level] ?? LEVELS.best
       const bands: Bands = { dict2: ctx.dict_2, dict3plus: ctx.dict_3plus }
-      // Deterministic per board state (version+seat) — reproducible, and two
-      // concurrent drivers compute the same move, so a duplicate is harmless.
-      const rng = mulberry32((((ctx.version * 31 + ctx.seat) >>> 0) ^ 0x9e3779b9) >>> 0)
+      // Deterministic per board state — one player moves at each version — so
+      // it is reproducible, and two concurrent drivers compute the same move,
+      // which makes a duplicate harmless.
+      const rng = mulberry32(((ctx.version >>> 0) ^ 0x9e3779b9) >>> 0)
       const choice = choosePlay(ctx.board, ctx.rack, trie, bands, knobs, rng)
 
       let res: Envelope<MoveAnswer>
       if (choice.kind === 'word') {
         res = await runRpc<MoveAnswer>(db.rpc('ai_play_word', {
-          target_game: gameId,
-          p_seat: ctx.seat,
-          base_version: ctx.version,
-          placements: choice.placements,
-          words: choice.words.map((w) => w.word),
-          score: choice.score,
+          p_game_id: gameId,
+          p_user_id: ctx.user_id,
+          p_base_version: ctx.version,
+          p_placements: choice.placements,
+          p_words: choice.words.map((w) => w.word),
+          p_score: choice.score,
         }), 'ai_play_word')
-        log.push({ seat: ctx.seat, words: choice.words.map((w) => w.word), score: choice.score })
+        log.push({ userId: ctx.user_id, words: choice.words.map((w) => w.word), score: choice.score })
       } else if (ctx.bag_count >= 7) {
         // No playable word but the bag can afford a swap — dump the whole rack.
         res = await runRpc<MoveAnswer>(db.rpc('ai_exchange_tiles', {
-          target_game: gameId, p_seat: ctx.seat, base_version: ctx.version, rack_tiles: choice.tiles,
+          p_game_id: gameId, p_user_id: ctx.user_id, p_base_version: ctx.version, p_rack_tiles: choice.tiles,
         }), 'ai_exchange_tiles')
-        log.push({ seat: ctx.seat, exchange: choice.tiles.length })
+        log.push({ userId: ctx.user_id, exchange: choice.tiles.length })
       } else {
         res = await runRpc<MoveAnswer>(db.rpc('ai_pass_turn', {
-          target_game: gameId, p_seat: ctx.seat, base_version: ctx.version,
+          p_game_id: gameId, p_user_id: ctx.user_id, p_base_version: ctx.version,
         }), 'ai_pass_turn')
-        log.push({ seat: ctx.seat, pass: true })
+        log.push({ userId: ctx.user_id, pass: true })
       }
 
       // ANOTHER DRIVER MOVED FIRST — the board version this move was built on

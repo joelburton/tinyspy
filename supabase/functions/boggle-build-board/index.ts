@@ -205,11 +205,11 @@ serve(async (req: Request): Promise<Response> => {
       supabase,
       'boggle',
       {
-        target_club: targetClub,
-        setup,
-        player_user_ids: playerUserIds,
-        mode,
-        board: {
+        p_club_handle: targetClub,
+        p_setup: setup,
+        p_player_user_ids: playerUserIds,
+        p_mode: mode,
+        p_board: {
           board: board.board,
           n: board.n,
           required_words: board.requiredWords,
