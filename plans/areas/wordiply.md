@@ -38,10 +38,10 @@ last column is what the conversion will do, filled in as it does it.
 
 | what | mentioned | taken over or dropped |
 |---|---|---|
-| `events_select`'s mode arm — coop shows every member every row, a player always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | to be **taken over** by `makeGameData`'s seat rule over `game_data`; the policy keeps the member gate alone |
-| `games_state` view — the game row, every column (`base`, `max_word_length`, `longest_words`, `legal_words`) | neither | to be **dropped**: the page reads `game_data` |
-| `games_select` — a club member reads the board row | neither | to be kept: a member reading a row for a page they can open |
-| `_write_statuses` — `game_status` {}, `player_status` {guesses_used, length_score, letter_count, player_ended_reason}, `clubpage_info` {guesses_used, length_score, letter_count, winner_user_id, winner_length_score}; the scores null until the game ends | `ended_at` (the scores wait for it) | to be **dropped**; `_rebuild_data_cols` writes the blobs |
+| `events_select`'s mode arm — coop shows every member every row, a player always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | the arm is **dropped** (2026-10-04) and the policy keeps the member gate alone; to be **taken over** by `makeGameData`'s seat rule over `game_data` at step 7 |
+| `games_state` view — the game row, every column (`base`, `max_word_length`, `longest_words`, `legal_words`) | neither | **dropped** (2026-10-04): the page reads `game_data` |
+| `games_select` — a club member reads the board row | neither | **kept** (2026-10-04): a member reading a row for a page they can open |
+| `_write_statuses` — `game_status` {}, `player_status` {guesses_used, length_score, letter_count, player_ended_reason}, `clubpage_info` {guesses_used, length_score, letter_count, winner_user_id, winner_length_score}; the scores null until the game ends | `ended_at` (the scores wait for it) | **dropped** (2026-10-04): `_rebuild_data_cols` writes the blobs after every move, a reject included |
 | the postgres-changes subscription on `events` and `games` (`useRealtimeRefetch` in `hooks/useGame.ts`), and the one-shot read of `games_state` | — | the frontend's, at its conversion: the page reads `game_data` |
 
 **The status keys the page shows:** the leaderboard's per-player
@@ -165,7 +165,13 @@ The rulings behind it (2026-10-04):
 
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+- **Step 4 (2026-10-04), fixed at step 5:** every pgTAP assertion that reads
+  the statuses (`create_game_test`, `gameplay_test`, `replay_test`,
+  `terminal_test`, `winner_test`, `statuses_test`), `games_state`
+  (`schema_test`, `rls_test`) or the events mode arm (`rls_test`,
+  `gameplay_test` 30).
+- **Steps 4–7:** the frontend reads `games_state` and the `events` columns
+  directly, so the page is broken until `useGame` reads `game_data`.
 
 ## Closing
 

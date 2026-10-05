@@ -14,7 +14,7 @@
 --   2. wordiply.games + wordiply.events exist with RLS ENABLED and the
 --      authenticated SELECT grants the FE needs.
 --   3. Nothing is hidden: the games_state view exposes base /
---      max_word_length / longest_words / legal_words (showing the scores
+--      max_word_len / longest_words / legal_words (showing the scores
 --      only once the game has ended is an FE display choice, not a server
 --      gate).
 --
@@ -88,7 +88,7 @@ with ins as (
 insert into common_g (id) select id from ins;
 
 insert into wordiply.games
-  (game_id, base, max_word_length, longest_words, legal_words)
+  (game_id, base, max_word_len, longest_words, legal_words)
 values (
   (select id from common_g),
   'ar',
@@ -98,7 +98,7 @@ values (
 );
 
 -- A guess row so the events grant is exercised too.
-insert into wordiply.events (game_id, user_id, kind, word, length, took_turn)
+insert into wordiply.events (game_id, user_id, kind, word, len, took_turn)
 values (
   (select id from common_g),
   'ada11111-1111-1111-1111-111111111111',
@@ -140,9 +140,9 @@ select is(
 );
 
 select is(
-  (select max_word_length from wordiply.games_state where game_id = (select id from common_g)),
+  (select max_word_len from wordiply.games_state where game_id = (select id from common_g)),
   7,
-  'games_state.max_word_length is exposed'
+  'games_state.max_word_len is exposed'
 );
 
 select is(

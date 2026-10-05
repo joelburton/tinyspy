@@ -13,7 +13,7 @@
 -- clubpage_info names the winner and their length score.
 --
 -- All guesses are synthetic strings containing 'ar', longer than the base
--- (trusting-commit — no dictionary). With max_word_length 7:
+-- (trusting-commit — no dictionary). With max_word_len 7:
 --   length_score(7)=100, (5)=71, (4)=57, (3)=43.
 --
 -- Ending note: a compete game ends the instant nobody is left racing — every

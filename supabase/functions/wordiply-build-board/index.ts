@@ -22,14 +22,14 @@
  *      letter substrings of common source words — fragments that appear in
  *      ≥1 real word by construction, so they always have children.
  *   2. For each candidate, wordiply.try_base(base, legal_band, min, max,
- *      headroom) returns the board bits (max_word_length + longest_words +
+ *      headroom) returns the board bits (max_word_len + longest_words +
  *      the full legal_words list) IFF it clears the gate:
  *        • child count within [CHILD_MIN, CHILD_MAX] — the max bound throws
  *          out over-generous fragments ('in'/'an'/'ar' have tens of
  *          thousands of children → a non-puzzle + a huge payload). Word
  *          LENGTH is deliberately NOT capped: a long best word like
  *          'compartmentalizations' is a legitimate target.
- *        • max_word_length ≥ base length + MIN_HEADROOM — something to reach
+ *        • max_word_len ≥ base length + MIN_HEADROOM — something to reach
  *          for.
  *      The first candidate that passes wins (its try_base call already
  *      returned the whole board, so no extra query).
@@ -96,7 +96,7 @@ type Setup = {
 /** The board payload handed to wordiply.create_game. */
 type Board = {
   base: string
-  max_word_length: number
+  max_word_len: number
   /** Up to 3 words at the max length — revealed at terminal. */
   longest_words: string[]
   /** The full clean legal matching-word list, shipped to the FE. */
@@ -188,7 +188,7 @@ async function tryBase(
   legalBand: number,
   minChildren = CHILD_MIN,
   maxChildren = CHILD_MAX,
-): Promise<{ max_word_length: number; longest_words: string[]; legal_words: string[] } | null> {
+): Promise<{ max_word_len: number; longest_words: string[]; legal_words: string[] } | null> {
   const { data, error } = await supabase
     .schema('wordiply')
     .rpc('try_base', {
@@ -200,7 +200,7 @@ async function tryBase(
     })
   if (error) throw new Error(`tryBase(${base}): ${error.message}`)
   const rows = (data ?? []) as Array<{
-    max_word_length: number
+    max_word_len: number
     longest_words: string[]
     legal_words: string[]
   }>
@@ -295,7 +295,7 @@ serve(async (req) => {
       }
       board = {
         base: customBase,
-        max_word_length: bits.max_word_length,
+        max_word_len: bits.max_word_len,
         longest_words: bits.longest_words,
         legal_words: bits.legal_words,
       }
@@ -315,7 +315,7 @@ serve(async (req) => {
         if (bits) {
           board = {
             base,
-            max_word_length: bits.max_word_length,
+            max_word_len: bits.max_word_len,
             longest_words: bits.longest_words,
             legal_words: bits.legal_words,
           }
@@ -337,7 +337,7 @@ serve(async (req) => {
       }
     }
     console.log(
-      `board: base=${board.base} max_word_length=${board.max_word_length}`
+      `board: base=${board.base} max_word_len=${board.max_word_len}`
       + ` legal_words=${board.legal_words.length} longest=${board.longest_words[0]}`,
     )
 

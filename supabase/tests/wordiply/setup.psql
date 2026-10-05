@@ -11,7 +11,7 @@
 --   pg_temp.wordiply_board()          — a SYNTHETIC `board` jsonb (the
 --                                     shape wordiply.create_game accepts).
 --                                     Deterministic, NO dictionary
---                                     dependence: base 'ar', max_word_length
+--                                     dependence: base 'ar', max_word_len
 --                                     7, a longest word 'hangars', and a
 --                                     small legal_words list.
 --   pg_temp.wordiply_setup()          — a default coop/compete `setup`
@@ -30,7 +30,7 @@
 -- validates against the shipped list; the server trusts it). That lets
 -- these fixtures be fully deterministic and independent of common.words.
 --
--- ─── The scoring the tests count on (max_word_length = 7) ────
+-- ─── The scoring the tests count on (max_word_len = 7) ────
 -- A guess of char-length L contributes:
 --   length_score(L) = round(100 * L / 7)   -- clamped to [0,100]
 -- so length_score(7)=100, (6)=86, (5)=71, (4)=57, (3)=43.
@@ -43,10 +43,10 @@ language sql
 as $$
   select jsonb_build_object(
     'base',            'ar',
-    'max_word_length', 7,
+    'max_word_len', 7,
     -- The longest legal word(s) — stored, revealed by the FE only once
     -- the game has ended. 'hangars' is 7 letters and contains 'ar' (its own length is what
-    -- max_word_length asserts). Synthetic-as-far-as-the-server-cares.
+    -- max_word_len asserts). Synthetic-as-far-as-the-server-cares.
     'longest_words',   jsonb_build_array('hangars'),
     -- The full shipped legal list. Every entry contains 'ar'. Never
     -- re-validated server-side (trusting-commit), so its exact membership is

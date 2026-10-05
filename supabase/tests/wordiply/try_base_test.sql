@@ -14,7 +14,7 @@
 --   returns ONE board row iff
 --     • child count ∈ [min_children, max_children]   (the max bound is the
 --       load-bearing one — it throws out over-generous fragments like 'ar')
---     • max_word_length ≥ len(base) + min_headroom
+--     • max_word_len ≥ len(base) + min_headroom
 --   and ZERO rows otherwise.
 --
 -- Assertions are deliberately COUNT-INDEPENDENT: they use bounds far from
@@ -39,8 +39,8 @@ select is(
   'try_base: a base clearing every bound returns exactly one board row');
 
 select ok(
-  (select max_word_length from board) >= 3,
-  'try_base: max_word_length ≥ len(base)+headroom (2+1) for the passing board');
+  (select max_word_len from board) >= 3,
+  'try_base: max_word_len ≥ len(base)+headroom (2+1) for the passing board');
 
 select ok(
   (select jsonb_array_length(legal_words) from board) > 0,

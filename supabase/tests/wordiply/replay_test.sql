@@ -8,7 +8,7 @@
 -- common._reset_game undoes the ending: ended_at and the reason pair, each
 -- player's ending, ranking and outcome, the shared clock; restart_count goes
 -- up. The statuses are rewritten at zero. The frozen board (base +
--- max_word_length + the word lists) survives. Any game player may call it,
+-- max_word_len + the word lists) survives. Any game player may call it,
 -- mid-game or after the end; a non-player is rejected.
 --
 -- OVERLAP WITH terminal_test §3, on purpose: that file replays a coop
@@ -95,7 +95,7 @@ select is(
   (select ticks from common.timers where game_id = (select id from g1)),
   0, 'replay → the shared clock is zeroed (a timed game restarts full)');
 select is(
-  (select base || ':' || max_word_length
+  (select base || ':' || max_word_len
      from wordiply.games where game_id = (select id from g1)),
   'ar:7', 'replay → the frozen board survives (same base, run it back)');
 

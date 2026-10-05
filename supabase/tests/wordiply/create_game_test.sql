@@ -16,13 +16,13 @@
 --   4. mode arg validation: invalid value;
 --      setup.target_rank rejected; compete with <2 players.
 --   5. Difficulty band validation: below 1 / above 6 rejected.
---   6. Board validation: base not 2–4 lowercase; max_word_length below
+--   6. Board validation: base not 2–4 lowercase; max_word_len below
 --      base_len+2; empty longest_words; empty legal_words.
 --   7. Player-count upper bound: 7+ entries rejected.
 --   8. setup.custom_base: its shape, the builder honoring it, and its
 --      stripping from the club's saved default.
 --
--- Fixture board (pg_temp.wordiply_board): base 'ar', max_word_length 7.
+-- Fixture board (pg_temp.wordiply_board): base 'ar', max_word_len 7.
 
 begin;
 
@@ -117,9 +117,9 @@ select is(
 );
 
 select is(
-  (select max_word_length from wordiply.games where game_id = (select id from g)),
+  (select max_word_len from wordiply.games where game_id = (select id from g)),
   7,
-  'wordiply.games.max_word_length carries the board''s longest length'
+  'wordiply.games.max_word_len carries the board''s longest length'
 );
 
 select is(
@@ -286,15 +286,15 @@ select pg_temp.envelope_is(
   'rejects board.base that is not 2–4 lowercase ASCII letters'
 );
 
--- max_word_length below base_len + 2 (base 'ar' → floor 4; 3 is too low).
+-- max_word_len below base_len + 2 (base 'ar' → floor 4; 3 is too low).
 select pg_temp.envelope_is(
   wordiply.create_game((select handle from club), pg_temp.wordiply_setup(),
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
-    pg_temp.wordiply_board() || '{"max_word_length": 3}'::jsonb),
+    pg_temp.wordiply_board() || '{"max_word_len": 3}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN128",
     "message":"BUG: generated board left no room to grow the starter (longest word 3)"}'::jsonb,
-  'rejects board.max_word_length below base length + 2 (no headroom)'
+  'rejects board.max_word_len below base length + 2 (no headroom)'
 );
 
 -- empty longest_words.

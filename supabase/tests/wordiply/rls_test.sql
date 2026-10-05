@@ -56,7 +56,7 @@ with ins as (
 insert into coop_game (id) select id from ins;
 
 insert into wordiply.games
-  (game_id, base, max_word_length, longest_words, legal_words)
+  (game_id, base, max_word_len, longest_words, legal_words)
 values (
   (select id from coop_game),
   'ar', 7,
@@ -64,7 +64,7 @@ values (
 );
 
 -- One guess per player. Branch (a) (coop) means each member sees ALL three.
-insert into wordiply.events (game_id, user_id, kind, word, length, took_turn) values
+insert into wordiply.events (game_id, user_id, kind, word, len, took_turn) values
   ((select id from coop_game), 'ada11111-1111-1111-1111-111111111111', 'guess', 'bar', 3, true),
   ((select id from coop_game), 'bea22222-2222-2222-2222-222222222222', 'guess', 'cars', 4, true),
   ((select id from coop_game), 'cade3333-3333-3333-3333-333333333333', 'guess', 'arcs', 4, true);
@@ -120,7 +120,7 @@ select is(
 
 select throws_ok(
   format(
-    $$ insert into wordiply.events (game_id, user_id, kind, word, length, took_turn)
+    $$ insert into wordiply.events (game_id, user_id, kind, word, len, took_turn)
        values (%L::uuid, 'dee44444-4444-4444-4444-444444444444', 'guess', 'sneak', 5, true) $$,
     (select id from coop_game)
   ),
@@ -132,7 +132,7 @@ select throws_ok(
 select throws_ok(
   format(
     $$ insert into wordiply.games
-         (game_id, base, max_word_length, longest_words, legal_words)
+         (game_id, base, max_word_len, longest_words, legal_words)
        values (%L::uuid, 'ar', 7, '["hangars"]'::jsonb, '["bar"]'::jsonb) $$,
     (select id from coop_game)
   ),
@@ -163,14 +163,14 @@ with ins as (
 insert into compete_game (id) select id from ins;
 
 insert into wordiply.games
-  (game_id, base, max_word_length, longest_words, legal_words)
+  (game_id, base, max_word_len, longest_words, legal_words)
 values (
   (select id from compete_game),
   'ar', 7,
   '["hangars"]'::jsonb, '["bar","car","arc","hangars"]'::jsonb
 );
 
-insert into wordiply.events (game_id, user_id, kind, word, length, took_turn) values
+insert into wordiply.events (game_id, user_id, kind, word, len, took_turn) values
   ((select id from compete_game), 'ada11111-1111-1111-1111-111111111111', 'guess', 'bar', 3, true),
   ((select id from compete_game), 'bea22222-2222-2222-2222-222222222222', 'guess', 'cars', 4, true),
   ((select id from compete_game), 'cade3333-3333-3333-3333-333333333333', 'guess', 'arcs', 4, true);

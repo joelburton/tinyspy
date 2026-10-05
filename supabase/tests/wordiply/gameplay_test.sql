@@ -75,7 +75,7 @@ select is(
 );
 
 select is(
-  (select (ret->'data'->>'length')::int from first_ret),
+  (select (ret->'data'->>'len')::int from first_ret),
   7,
   'submit_guess: returns the guess length (the one live readout)'
 );
@@ -206,7 +206,7 @@ select pg_temp.envelope_is(
 -- 6th must be refused.
 
 reset role;
-insert into wordiply.events (game_id, user_id, kind, word, length, took_turn)
+insert into wordiply.events (game_id, user_id, kind, word, len, took_turn)
 select (select id from g),
        'ada11111-1111-1111-1111-111111111111'::uuid,
        'guess', w, char_length(w), true
