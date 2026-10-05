@@ -173,6 +173,8 @@ game's area, consult both.
 | [plans/team-facts.md](plans/team-facts.md) | **Decided, not started.** `gd.team` holds what the team shares, null when there is no team; a player's keys are their own in every mode; a loose copy of a path is spelled `group_leaf` |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
 | [plans/DO-NOT-READ-grouped-values.md](plans/DO-NOT-READ-grouped-values.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: grouping what hooks return and props carry into named objects |
+| [plans/DO-NOT-READ-smaller-payload.md](plans/DO-NOT-READ-smaller-payload.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: splitting what never changes out of `game_data` so a move doesn't resend it |
+| [plans/DO-NOT-READ-crosswords.md](plans/DO-NOT-READ-crosswords.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: crosswords on the page blobs — a compact grid, my own letters overlaid, the flash found by comparing |
 
 ## Audience — friends, not strangers
 
