@@ -17,7 +17,9 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
   const outcome = gd.outcome
   const detail = gd.ending?.detail ?? null
   return useMemo(
-    () => (outcome === null || detail === null ? null : buildGameEndingMessage({ outcome, detail })),
+    () => (outcome === null || detail === null
+      ? null
+      : buildGameEndingMessage({ outcome, detail })),
     [outcome, detail],
   )
 }

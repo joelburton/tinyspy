@@ -28,24 +28,24 @@ describe('answerMessage', () => {
 })
 
 describe('turnAnswer', () => {
-  const live = { inSuddenDeath: false, isTerminal: false }
+  const live = { suddenDeath: false, isGameEnded: false }
 
   it('before the clue: my partner writes it, or waits for mine', () => {
-    expect(turnAnswer({ ...live, isGuessPhase: false, isClueGiver: false }))
+    expect(turnAnswer({ ...live, isClueIn: false, isClueGiver: false }))
       .toEqual({ answerType: 'writing_clue_peer' })
-    expect(turnAnswer({ ...live, isGuessPhase: false, isClueGiver: true }))
+    expect(turnAnswer({ ...live, isClueIn: false, isClueGiver: true }))
       .toEqual({ answerType: 'waiting_for_clue_peer' })
   })
 
   it('after the clue: my partner guesses from mine, or waits for my guesses', () => {
-    expect(turnAnswer({ ...live, isGuessPhase: true, isClueGiver: true }))
+    expect(turnAnswer({ ...live, isClueIn: true, isClueGiver: true }))
       .toEqual({ answerType: 'guessing_peer' })
-    expect(turnAnswer({ ...live, isGuessPhase: true, isClueGiver: false }))
+    expect(turnAnswer({ ...live, isClueIn: true, isClueGiver: false }))
       .toEqual({ answerType: 'waiting_for_you_peer' })
   })
 
   it('says nothing in sudden death, or once the game is over', () => {
-    expect(turnAnswer({ isGuessPhase: false, isClueGiver: false, inSuddenDeath: true, isTerminal: false })).toBeNull()
-    expect(turnAnswer({ isGuessPhase: true, isClueGiver: true, inSuddenDeath: false, isTerminal: true })).toBeNull()
+    expect(turnAnswer({ isClueIn: false, isClueGiver: false, suddenDeath: true, isGameEnded: false })).toBeNull()
+    expect(turnAnswer({ isClueIn: true, isClueGiver: true, suddenDeath: false, isGameEnded: true })).toBeNull()
   })
 })

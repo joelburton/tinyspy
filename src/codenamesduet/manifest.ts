@@ -109,7 +109,7 @@ export const codenamesduetGame: GameManifest = {
   // Called by common's GamePage when its countdown timer hits 0.
   // submit_timeout ends the game lost, reason 'timeout' (distinct from a
   // bystander in sudden death, the Duet rulebook's turns-spent ending).
-  // Idempotent, so peers racing to fire it is fine. stop_game is the
+  // Idempotent, so both players racing to fire it is fine. stop_game is the
   // irreversible in-game "Stop game" button.
   // Both are the shared one-arg dispatchers (see common/manifest/manifestRpcs).
   submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),

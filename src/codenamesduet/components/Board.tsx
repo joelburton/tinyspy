@@ -4,7 +4,9 @@ import { cls } from '@/common/utils/cls'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { positionAt } from '@/common/board-cursor/boardPosition'
 import shared from '@/common/game-page/playArea.module.css'
-import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
+import {
+  makeEndingFrameClasses,
+} from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
 import { BOARD_SHAPE } from '../lib/boardShape'
 import { useDecidedTileMarks } from '../hooks/useDecidedTileMarks'
@@ -85,7 +87,9 @@ export function Board({
     isViewingHistory: historyView.isViewing,
   })
   const cursorPosition =
-    tileCursor.cell === null ? null : positionAt(tileCursor.cell.x, tileCursor.cell.y, BOARD_SHAPE.numCols)
+    tileCursor.cell === null
+      ? null
+      : positionAt(tileCursor.cell.x, tileCursor.cell.y, BOARD_SHAPE.numCols)
 
   return (
     // data-board: the e2e handle for the layout-stability test, which measures
@@ -111,7 +115,8 @@ export function Board({
             // My key-card square, except while I am the one guessing: my own
             // key says nothing about my partner's clue.
             myKey={isGuessing ? null : tile.puzzleTile.key[me.id]!}
-            partnerKey={showsPartnerKey ? tile.puzzleTile.key[partner.id] ?? null : null}
+            partnerKey={showsPartnerKey ? tile.puzzleTile.key[partner.id] ??
+              null : null}
             // The builder decides who a tile points at; the board only says
             // which way each arrow faces.
             arrowToMe={tile.revealed?.arrows.has(me) ?? false}

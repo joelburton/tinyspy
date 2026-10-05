@@ -21,7 +21,14 @@
  */
 
 import { cluesOf, guessesOf } from './events'
-import type { GClueEvent, GEvent, GGuessEvent, GPlayer, GPuzzleTile, GTile } from '../types'
+import type {
+  GClueEvent,
+  GEvent,
+  GGuessEvent,
+  GPlayer,
+  GPuzzleTile,
+  GTile,
+} from '../types'
 
 /** One past turn, ready for the board and the viewer banner. */
 type ReplayedTurn = {
@@ -48,7 +55,8 @@ export function replayTurn(
   const turnNum = events.find((e) => e.id === eventId)?.turnNum
   if (turnNum === undefined) return null
   const tilesById = new Map(puzzleTiles.map((t) => [t.id, t]))
-  const guesses = guessesOf(events, tilesById).filter((g) => g.turnNum <= turnNum)
+  const guesses = guessesOf(events, tilesById).filter((g) => g.turnNum <=
+    turnNum)
 
   const shown = new Map<string, 'G' | 'A'>()
   const bystanderBy = new Map<string, Set<GPlayer>>()
@@ -87,8 +95,11 @@ export function replayTurn(
  *  turn, then the words guessed in order (name-free; the log row already shows who).
  *  A guess-less turn reads "…— passed". A sudden-death turn has no clue:
  *  "#10: Sudden death → STEEL". */
+
 function describe(clue: GClueEvent | null, turnGuesses: GGuessEvent[], n: number | null): string {
-  const cluePart = clue ? `${clue.clueCount} ${clue.clueWord.toUpperCase()}` : 'Sudden death'
+  const cluePart = clue
+    ? `${clue.clueCount} ${clue.clueWord.toUpperCase()}`
+    : 'Sudden death'
   const guessed = turnGuesses.map((g) => g.word.toUpperCase())
   const head = n === null ? cluePart : `#${n}: ${cluePart}`
   if (guessed.length === 0) return `${head} — passed`

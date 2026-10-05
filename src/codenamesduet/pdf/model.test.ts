@@ -40,14 +40,14 @@ describe('buildCodenamesduetPrintModel — the partner key is a secret', () => {
   it('withholds it mid-game, even when asked for', () => {
     const m = modelOf({}, true)
     expect(m.showsBothKeys).toBe(false)
-    expect(m.tiles.every((c) => c.peer === null)).toBe(true)
+    expect(m.tiles.every((c) => c.partner === null)).toBe(true)
   })
 
   it('prints it once the game has ended and I asked to see it', () => {
     const m = modelOf(ENDED, true)
     expect(m.showsBothKeys).toBe(true)
-    expect(m.tiles[15]!.peer).toBe('assassin')
-    expect(m.tiles[10]!.peer).toBe('agent')
+    expect(m.tiles[15]!.partner).toBe('assassin')
+    expect(m.tiles[10]!.partner).toBe('agent')
   })
 
   it('keeps it back at the end until I ask', () => {
@@ -98,13 +98,13 @@ describe('buildCodenamesduetPrintModel — the bystander triangles', () => {
     // The asymmetry is the point: a word my partner burned is still mine to
     // guess; one I burned is locked to me.
     const m = modelOf(facts)
-    expect([m.tiles[20]!.burnedByMe, m.tiles[20]!.burnedByPeer]).toEqual([true, false])
-    expect([m.tiles[21]!.burnedByMe, m.tiles[21]!.burnedByPeer]).toEqual([false, true])
+    expect([m.tiles[20]!.burnedByMe, m.tiles[20]!.burnedByPartner]).toEqual([true, false])
+    expect([m.tiles[21]!.burnedByMe, m.tiles[21]!.burnedByPartner]).toEqual([false, true])
   })
 
   it('flips with who is looking', () => {
     const m = modelOf(facts, false, 'u2')
-    expect([m.tiles[20]!.burnedByMe, m.tiles[20]!.burnedByPeer]).toEqual([false, true])
+    expect([m.tiles[20]!.burnedByMe, m.tiles[20]!.burnedByPartner]).toEqual([false, true])
   })
 })
 

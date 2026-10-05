@@ -74,7 +74,9 @@ export function Tile({
         shared.tileFace,
         shared.tile,
         styles.overlayTile,
-        tile.revealed === null ? styles.bgWhite : styles[FILL[tile.revealed.as]],
+        tile.revealed === null
+          ? styles.bgWhite
+          : styles[FILL[tile.revealed.as]],
         marks.isPicked && shared.picked,
         marks.isUnderCursor && shared.selectionCursor,
         marks.isInFlight && shared.dimInFlight,
@@ -86,16 +88,28 @@ export function Tile({
       onClick={onClick}
     >
       {partnerKey !== null && (
-        <span className={cls(styles.keySquare, styles.keyPeer, styles[KEY_SQUARE[partnerKey]])} aria-hidden />
+        <span className={cls(styles.keySquare,
+          styles.keyPartner,
+          styles[KEY_SQUARE[partnerKey]])} aria-hidden/>
       )}
-      {arrowToPartner && <span className={cls(styles.triangle, styles.triPeer)} aria-hidden />}
+      {arrowToPartner &&
+          <span className={cls(styles.triangle, styles.triPartner)}
+                aria-hidden/>}
       {/* --len drives the shared .tileWord auto-fit font heuristic. */}
-      <span className={shared.tileWord} style={{ ['--len' as string]: tile.puzzleTile.word.length }}>
+      <span
+        className={shared.tileWord}
+        style={{ ['--len' as string]: tile.puzzleTile.word.length }}
+      >
         {tile.puzzleTile.word}
       </span>
-      {arrowToMe && <span className={cls(styles.triangle, styles.triMine)} aria-hidden />}
+      {arrowToMe &&
+          <span className={cls(styles.triangle, styles.triMine)} aria-hidden/>}
       {myKey !== null && (
-        <span className={cls(styles.keySquare, styles.keyMine, styles[KEY_SQUARE[myKey]])} aria-hidden />
+        <span
+          className={cls(styles.keySquare,
+            styles.keyMine,
+            styles[KEY_SQUARE[myKey]])} aria-hidden
+        />
       )}
     </button>
   )

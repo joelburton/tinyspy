@@ -38,8 +38,8 @@
   text-transform: uppercase;
 }
 
-/* "Waiting for <peer> to …" (muted by the global `.muted` beside it); the
- * <ActorDot> inside carries the peer's identity disc. */
+/* "Waiting for <partner> to …" (muted by the global `.muted` beside it); the
+ * <ActorDot> inside carries the partner's identity disc. */
 /* @@ */ .waiting {
   display: inline-flex;
   align-items: center;

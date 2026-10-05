@@ -29,7 +29,11 @@ export function KeyCard({
   return (
     <div className={styles.card} data-key-card>
       {keys.map((key, position) => (
-        <span key={position} className={cls(styles.cell, CELL[key])} data-key={key} />
+        <span
+          key={position}
+          className={cls(styles.cell, CELL[key])}
+          data-key={key}
+        />
       ))}
     </div>
   )

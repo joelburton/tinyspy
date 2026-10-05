@@ -12,7 +12,9 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import { useBindAction } from '@/common/actions/useBindAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { useOfferComponentKeyGroups } from '@/common/keyboard/offeredComponentKeyGroupsStore'
+import {
+  useOfferComponentKeyGroups,
+} from '@/common/keyboard/offeredComponentKeyGroupsStore'
 import { db } from '../db'
 import type { GClueStrip, GPlayer, GSuggestState, GTurns } from '../types'
 
@@ -99,7 +101,8 @@ export function ClueStrip({
   if (strip === 'suddenDeath') {
     return (
       <div className={cls(styles.clueStrip, styles.suddenDeath)}>
-        <strong>Sudden death.</strong> No more clues — any non-green reveal loses.
+        <strong>Sudden death.</strong> No more clues — any non-green reveal
+        loses.
       </div>
     )
   }
@@ -109,9 +112,11 @@ export function ClueStrip({
       <div className={styles.clueStrip}>
         {/* No "Your clue:" label — the bold WORD · N beside the Pass button is
             self-evidently the clue, and the row is tight on a phone. */}
-        <ClueDisplay clue={currentClue} />
-        {strip === 'myGuess' && <PassButton gameId={gameId} localFeedbackSlot={localFeedbackSlot} />}
-        {strip === 'partnerGuessing' && <PeerActivity peer={partner} activity="guessing" />}
+        <ClueDisplay clue={currentClue}/>
+        {strip === 'myGuess' &&
+            <PassButton gameId={gameId} localFeedbackSlot={localFeedbackSlot}/>}
+        {strip === 'partnerGuessing' &&
+            <PartnerActivity partner={partner} activity="guessing"/>}
       </div>
     )
   }
@@ -127,7 +132,7 @@ export function ClueStrip({
   }
   return (
     <div className={styles.clueStrip}>
-      <PeerWaiting peer={partner} action="give a clue" />
+      <PartnerWaiting partner={partner} action="give a clue"/>
     </div>
   )
 }
@@ -141,43 +146,44 @@ function ClueDisplay({ clue }: { clue: Clue }) {
   )
 }
 
-/** "● moth guessing" — the peer as a `<DotActor>` (colored disc + name), then
+/** "● moth guessing" — the partner as a `<DotActor>` (colored disc + name), then
  *  what they are doing. Telegraphic, because it shares the below-board row
  *  with the clue display and the Pass button, where a sentence crowds a phone.
  *  Falls back to "Your partner". The header says the same on purpose: this
  *  strip is where the player is looking, and it stays when the header is
  *  holding a chat line. */
-function PeerActivity({
-  peer,
+function PartnerActivity({
+  partner,
   activity,
 }: {
-  peer: GPlayer
+  partner: GPlayer
   activity: string
 }) {
   return (
     <span className={cls('muted', styles.waiting)}>
       {/* show="auto": on a phone the name drops to just the dot ("● guessing") so
           a long username can't overflow this tight below-board row. */}
-      <DotActor actor={peer} fallback="Your partner" show="auto" /> {activity}
+      <DotActor actor={partner} fallback="Your partner" show="auto"/> {activity}
     </span>
   )
 }
 
-/** "Waiting for <peer> to <action>…" — the peer as an `<ActorDot>` (name +
+/** "Waiting for <partner> to <action>…" — the partner as an `<ActorDot>` (name +
  *  colored disc); falls back to "your partner". A sentence, because this state
  *  owns the whole below-board row and has the room. */
-function PeerWaiting({
-  peer,
+function PartnerWaiting({
+  partner,
   action,
 }: {
-  peer: GPlayer
+  partner: GPlayer
   action: string
 }) {
   return (
     <span className={cls('muted', styles.waiting)}>
       {/* show="auto": on a phone the name drops to just the dot ("Waiting for ● to
           give a clue…") so a long username can't overflow this tight row. */}
-      Waiting for <ActorDot actor={peer} fallback="your partner" show="auto" /> to {action}…
+      Waiting for <ActorDot actor={partner} fallback="your partner"
+                            show="auto"/> to {action}…
     </span>
   )
 }
@@ -216,7 +222,8 @@ function ClueForm({
   // The last clue the AI filled in, as filled in. A clue submitted exactly as
   // this — word and count unedited — is logged as the AI's; editing either makes
   // it the giver's own.
-  const [aiClue, setAiClue] = useState<{ word: string; count: number } | null>(null)
+  const [aiClue, setAiClue] = useState<{ word: string; count: number } | null>(
+    null)
   // On a phone the below-board row is tight, so the Submit + AI buttons go
   // icon-only (label → aria-label/title). Desktop/tablet keep the labels.
   const isPhone = useIsPhone()
@@ -239,7 +246,8 @@ function ClueForm({
       p_game_id: gameId,
       p_clue_word: clueWord,
       p_clue_count: clueCount,
-      p_clue_from_ai: aiClue !== null && clueWord === aiClue.word && clueCount === aiClue.count,
+      p_clue_from_ai: aiClue !== null && clueWord === aiClue.word &&
+        clueCount === aiClue.count,
     }))
     setBusy(false)
     // Every refusal but the seatless fault is a RACE (orange), because this
@@ -275,7 +283,8 @@ function ClueForm({
     console.log('[ClueHint] button clicked → open dialog (loading)')
     setSuggesting(true)
     onSuggestionChange({ status: 'loading' })
-    const res = await runEdgeFn<SuggestedClue>('codenamesduet-suggest-clue', { gameId })
+    const res = await runEdgeFn<SuggestedClue>('codenamesduet-suggest-clue',
+      { gameId })
     setSuggesting(false)
 
     if (res.type === 'not-ok' && res.severity === 'fault') {
@@ -297,7 +306,12 @@ function ClueForm({
       setCount(String(s.count))
       setAiClue({ word: suggested.trim(), count: s.count })
       console.log('[ClueHint] response = ready:', suggested, s.count)
-      onSuggestionChange({ status: 'ready', word: suggested, count: s.count, reasoning: s.reasoning })
+      onSuggestionChange({
+        status: 'ready',
+        word: suggested,
+        count: s.count,
+        reasoning: s.reasoning,
+      })
     } else {
       reportUnhandled('codenamesduet-suggest-clue', res)
       onSuggestionChange(null)
@@ -320,7 +334,7 @@ function ClueForm({
 
   return (
     <form className={styles.clueForm} onSubmit={onSubmit}>
-      {/* No "Clue for <peer>" label — the inputs (a count + a word + the send
+      {/* No "Clue for <partner>" label — the inputs (a count + a word + the send
           arrow) make it obvious you're composing a clue, and the header pill
           already says whose turn it is. */}
       <div className={styles.clueLine}>
@@ -395,7 +409,8 @@ function PassButton({
   const actEndTurn = useBindAction('act-end-turn', {
     describe: () => ({ state: 'active', label: 'Pass & End Turn' }),
     run: async () => {
-      const res = await runRpc<PassAnswer>(db.rpc('pass_turn', { p_game_id: gameId }))
+      const res = await runRpc<PassAnswer>(db.rpc('pass_turn',
+        { p_game_id: gameId }))
       if (res.type === 'not-ok') {
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
@@ -409,5 +424,6 @@ function PassButton({
       }
     },
   })
-  return <ActionButton action={actEndTurn} show={isPhone ? 'icon' : 'both'} weight="primary" />
+  return <ActionButton action={actEndTurn} show={isPhone ? 'icon' : 'both'}
+                       weight="primary"/>
 }

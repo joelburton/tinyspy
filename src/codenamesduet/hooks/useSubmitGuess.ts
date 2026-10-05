@@ -17,23 +17,23 @@ import type { GTile } from '../types'
  */
 type GuessAnswer =
   | {
-      result: 'agent' | 'bystander'
-      revealed: 'G' | 'N'
-      found_agents_count: number
-      turn_number: number
-      turns_remaining: number
-      // Null once a bystander drops the game into sudden death, and for every
-      // agent turned over there: nobody clues in sudden death.
-      clue_giver: 'A' | 'B' | null
-      play_state: 'playing' | 'sudden_death'
-    }
+  result: 'agent' | 'bystander'
+  revealed: 'G' | 'N'
+  found_agents_count: number
+  turn_number: number
+  turns_remaining: number
+  // Null once a bystander drops the game into sudden death, and for every
+  // agent turned over there: nobody clues in sudden death.
+  clue_giver: 'A' | 'B' | null
+  play_state: 'playing' | 'sudden_death'
+}
   | {
-      result: 'won' | 'lost'
-      reason: 'solved' | 'assassin' | 'turns'
-      revealed: 'G' | 'N' | 'A'
-      found_agents_count: number
-      turns_used: number
-    }
+  result: 'won' | 'lost'
+  reason: 'solved' | 'assassin' | 'turns'
+  revealed: 'G' | 'N' | 'A'
+  found_agents_count: number
+  turns_used: number
+}
 
 /**
  * Sending a guess, and the tile still out with the server.
@@ -79,7 +79,8 @@ export function useSubmitGuess({
   // A sent tile names a tile on the live table, so the lookup cannot miss.
   const sentTile = sentTileId === null ? null : tilesById.get(sentTileId)!
   // Still out until its reveal makes it no longer mine to guess.
-  const inFlightTile = sentTile !== null && sentTile.guessable && !isViewingHistory ? sentTile : null
+  const inFlightTile = sentTile !== null && sentTile.guessable &&
+  !isViewingHistory ? sentTile : null
 
   async function submitGuess(tile: GTile) {
     localFeedbackSlot.dismiss() // a guess is the next move

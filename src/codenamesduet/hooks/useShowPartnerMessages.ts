@@ -23,26 +23,30 @@ export function useShowPartnerMessages(gd: GGameData, globalFeedbackSlot: Feedba
   // Derived to primitives so a reload's fresh `partner` object does not re-show
   // the line.
   const partnerAnswer = turnAnswer({
-    isGuessPhase: gd.turns.currClue !== null,
+    isClueIn: gd.turns.currClue !== null,
     isClueGiver: gd.me.clueGiver,
-    inSuddenDeath: gd.team.suddenDeath,
-    isTerminal: gd.ended,
+    suddenDeath: gd.team.suddenDeath,
+    isGameEnded: gd.ended,
   })
-  const partnerMessage = partnerAnswer === null ? null : answerMessage(partnerAnswer)
+  const partnerMessage = partnerAnswer === null ? null : answerMessage(
+    partnerAnswer)
   const partnerText = partnerMessage?.text ?? null
   const partnerOutcome = partnerMessage?.outcome ?? null
   const partnerName = gd.partner.username
   const partnerColor = gd.partner.color
 
   useEffect(function showPartnerStatus() {
-    if (partnerText === null || partnerOutcome === null) return
-    const id = globalFeedbackSlot.show(
-      FeedbackMessage.peerStatus({ username: partnerName, color: partnerColor }, partnerText, {
-        outcome: partnerOutcome,
-      }),
-    )
-    return () => globalFeedbackSlot.retract(id)
-  }, [globalFeedbackSlot, partnerText, partnerOutcome, partnerName, partnerColor])
+      if (partnerText === null || partnerOutcome === null) return
+      const id = globalFeedbackSlot.show(
+        FeedbackMessage.peerStatus({ username: partnerName, color: partnerColor },
+          partnerText,
+          {
+            outcome: partnerOutcome,
+          }),
+      )
+      return () => globalFeedbackSlot.retract(id)
+    },
+    [globalFeedbackSlot, partnerText, partnerOutcome, partnerName, partnerColor])
 
   useShowPeerFeedback({
     enabled: true,

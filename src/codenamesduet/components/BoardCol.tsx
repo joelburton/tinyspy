@@ -4,7 +4,9 @@ import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useWatchAndGetTopFeedbackMsg } from '@/common/feedback/useFeedbackSlot'
-import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
+import {
+  useDismissLocalFeedbackOnKey,
+} from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
@@ -18,7 +20,13 @@ import { Board } from './Board'
 import { ClueStrip } from './ClueStrip'
 import { StateLine } from './StateLine'
 import styles from './BoardCol.module.css'
-import type { GClueStrip, GGameData, GHistoryView, GSuggestState, GTile } from '../types'
+import type {
+  GClueStrip,
+  GGameData,
+  GHistoryView,
+  GSuggestState,
+  GTile,
+} from '../types'
 
 /**
  * codenamesduet's board column — the 5×5 `Board`, and under it the fixed-height
@@ -62,7 +70,8 @@ export function BoardCol({
   // The move is mine: the server's pointer names me — or, in sudden death with
   // words on both sides, it names nobody and the rulebook lets either of us
   // guess, which one pointer cannot say.
-  const isMyMove = gd.me.onTurn || (suddenDeath && gd.turns.holder === null && gd.me.stillPlaying)
+  const isMyMove = gd.me.onTurn ||
+    (suddenDeath && gd.turns.holder === null && gd.me.stillPlaying)
   // The board takes my guess: the move is mine and it is a guess — the clue is
   // in, or it is sudden death. The clue-giver holds the move too, but their
   // move is the clue form, not the board.
@@ -121,7 +130,7 @@ export function BoardCol({
     <div className={shared.boardCol}>
       {/* The live readout above the board, on a phone only; see `MobileStatusBar`. */}
       <MobileStatusBar>
-        <StateLine data={gd.stateLineData} />
+        <StateLine data={gd.stateLineData}/>
       </MobileStatusBar>
       <Board
         tiles={tiles}
@@ -146,16 +155,17 @@ export function BoardCol({
           the slot's pill when it holds anything — a not-ok, the verdict — else
           the ClueStrip. */}
       <div className={styles.belowBoard}>
-        <div className={cls(shared.moveAreaOrLocalFeedback, historyView.isViewing && history.historyBannerHost)}>
+        <div className={cls(shared.moveAreaOrLocalFeedback,
+          historyView.isViewing && history.historyBannerHost)}>
           {/* The shared banner overlays this below-board slot while a past turn is
               open — the ClueStrip / pill stays mounted underneath, so an in-progress
               clue survives. */}
           {historyView.isViewing && (
-            <HistoryBanner label={historyView.label} onExit={historyView.exit} />
+            <HistoryBanner label={historyView.label} onExit={historyView.exit}/>
           )}
           {top !== null ? (
             <div className={shared.localFeedback}>
-              <FeedbackPill slot={localFeedbackSlot} />
+              <FeedbackPill slot={localFeedbackSlot}/>
             </div>
           ) : (
             <div className={styles.moveArea}>

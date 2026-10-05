@@ -7,7 +7,7 @@ import styles from './CodenamesduetAISuggestCompanion.module.css'
 /**
  * The AI clue suggestion — Claude's picked clue and its reasoning, for the
  * clue-giver who asked for one. The requester's OWN helper output rather than a
- * peer event, and the reasoning runs long, so it gets a floating panel instead
+ * partner event, and the reasoning runs long, so it gets a floating panel instead
  * of the header pill. Opens straight away while Claude thinks (`loading`) so the
  * few-second wait is obvious, then shows the clue + reasoning (`ready`, also
  * filled into the form inputs) or the sentence of a refusal or a declined
@@ -23,7 +23,8 @@ export function CodenamesduetAISuggestCompanion({
   state: GSuggestState
   onClose: () => void
 }) {
-  console.log('[ClueHint] CodenamesduetAISuggestCompanion rendering — status:', state.status)
+  console.log('[ClueHint] CodenamesduetAISuggestCompanion rendering — status:',
+    state.status)
   return (
     <Companion
       // Companions remember where you put them, and this one earns it: the giver

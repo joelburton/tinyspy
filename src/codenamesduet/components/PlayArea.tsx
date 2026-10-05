@@ -2,8 +2,12 @@
 
 import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
+import {
+  CelebrationBlockingModal,
+} from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
@@ -16,7 +20,9 @@ import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { useShowPartnerMessages } from '../hooks/useShowPartnerMessages'
-import { CodenamesduetAISuggestCompanion } from './CodenamesduetAISuggestCompanion'
+import {
+  CodenamesduetAISuggestCompanion,
+} from './CodenamesduetAISuggestCompanion'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
@@ -40,7 +46,9 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   )
 }
 
-type PlayAreaProps = Pick<PlayAreaLoaderProps, 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'> & {
+type PlayAreaProps =
+  Pick<PlayAreaLoaderProps, 'globalFeedbackSlot' | 'goToFollowUpGame' | 'menu'>
+  & {
   gd: GGameData
 }
 
@@ -89,7 +97,8 @@ function PlayArea({
   // The AI clue-suggestion dialog's state — held here, not in the clue form, so
   // its panel renders at the layout's level (see the render). The form drives
   // it through `onSuggestionChange`.
-  const [clueSuggestion, setClueSuggestion] = useState<GSuggestState | null>(null)
+  const [clueSuggestion, setClueSuggestion] = useState<GSuggestState | null>(
+    null)
   console.log('[ClueHint] PlayArea render — clueSuggestion:', clueSuggestion)
 
   // ─── The local slot, and what stands in it ─────────────

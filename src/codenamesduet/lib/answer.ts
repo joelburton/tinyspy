@@ -34,9 +34,9 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
 }
 
 /**
- * Which of the four turn answers holds now, from the phase `derivePhase`
- * computes — the latest move alone cannot say it, because after a bystander or
- * a pass the finished-player rule decides who clues next.
+ * Which of the four turn answers holds now, from the turn as `gd` holds it —
+ * the latest move alone cannot say it, because after a bystander or a pass the
+ * finished-player rule decides who clues next.
  *
  * `null` while there is nothing to say about the partner: the game is over, or
  * in sudden death, where nobody clues and either player may guess. Sudden death
@@ -44,13 +44,13 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
  * line for the rest of the game; the clue strip carries it instead.
  */
 export function turnAnswer(phase: {
-  isGuessPhase: boolean
+  isClueIn: boolean
   isClueGiver: boolean
-  inSuddenDeath: boolean
-  isTerminal: boolean
+  suddenDeath: boolean
+  isGameEnded: boolean
 }): GAnswer | null {
-  if (phase.isTerminal || phase.inSuddenDeath) return null
-  if (!phase.isGuessPhase) {
+  if (phase.isGameEnded || phase.suddenDeath) return null
+  if (!phase.isClueIn) {
     return { answerType: phase.isClueGiver ? 'waiting_for_clue_peer' : 'writing_clue_peer' }
   }
   return { answerType: phase.isClueGiver ? 'guessing_peer' : 'waiting_for_you_peer' }

@@ -4,8 +4,12 @@ import { useEffect } from 'react'
 import { useBindAction } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
+import {
+  useStandardGameActions,
+} from '@/common/game-page/useStandardGameActions'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { describeReveal } from '@/common/reveal/describeReveal'
@@ -36,7 +40,10 @@ export function useActionsAndMenu({
   gd: GGameData
   // Where a refused command says so.
   localFeedbackSlot: FeedbackSlot
-} & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): { actions: GActions; partnerKeyShown: boolean } {
+} & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): {
+  actions: GActions;
+  partnerKeyShown: boolean
+} {
   // Stop / Restart — the shared pair. Duet is coop-only, so Concede hides itself
   // and only Stop is ever placed. Restart is a MULLIGAN: `replay_board` deals
   // the same board and key cards again (a blind board is New game, below), and
@@ -63,7 +70,11 @@ export function useActionsAndMenu({
       // No BUTTON while the game runs; the menu row keeps it all game, grayed,
       // because the menu is where its glyph is taught.
       if (!gd.ended && asker === 'button') return 'hidden'
-      return describeReveal({ noun: 'key cards', revealed: partnerKeyReveal.revealed, isTerminal: gd.ended })
+      return describeReveal({
+        noun: 'key cards',
+        revealed: partnerKeyReveal.revealed,
+        isTerminal: gd.ended,
+      })
     },
     run: partnerKeyReveal.toggle,
   })
@@ -102,7 +113,9 @@ export function useActionsAndMenu({
   const actNewGame = useBindAction('act-new-game', {
     terminal: gd.ended,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
-    describe: (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),
+    describe: (asker) => (asker === 'button' && !gd.ended
+      ? 'hidden'
+      : 'active'),
     run: createNewGame,
   })
 
@@ -129,20 +142,21 @@ export function useActionsAndMenu({
   // than being typed a second time here. The game is coop-only, so Concede
   // hides itself and the exits list draws as Stop alone.
   useEffect(function publishGameMenu() {
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
-        exits: [actConcede, actStopGame],
-        extra: [
-          // The same actions the info column's row offers, in its order,
-          // reachable mid-game too.
-          { items: [actReveal, actRestart, actNewGame] },
-          { items: [actPrintBoard] },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, actConcede, actStopGame, actReveal, actRestart, actNewGame, actPrintBoard])
+      menu.setGameSections(
+        buildGameMenu({
+          menu,
+          exits: [actConcede, actStopGame],
+          extra: [
+            // The same actions the info column's row offers, in its order,
+            // reachable mid-game too.
+            { items: [actReveal, actRestart, actNewGame] },
+            { items: [actPrintBoard] },
+          ],
+        }),
+      )
+      return () => menu.setGameSections([])
+    },
+    [menu, actConcede, actStopGame, actReveal, actRestart, actNewGame, actPrintBoard])
 
   return {
     actions: {

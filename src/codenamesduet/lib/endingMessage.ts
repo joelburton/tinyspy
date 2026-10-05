@@ -1,7 +1,10 @@
 // cs-unmet
 
 import type { EndOutcome } from '@/common/terminal/gameEnding'
-import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import {
+  buildGameEndedMessageNeutral,
+  type TerminalMessage,
+} from '@/common/terminal/terminalMessage'
 
 /**
  * The ending's message for codenamesduet: `pillText` + `outcome` are the
@@ -30,11 +33,23 @@ export function buildGameEndingMessage({
     case 'lost':
       switch (detail) {
         case 'assassin':
-          return { pillText: 'Lost: assassin', infoColText: 'Assassin revealed', outcome: 'lost' }
+          return {
+            pillText: 'Lost: assassin',
+            infoColText: 'Assassin revealed',
+            outcome: 'lost',
+          }
         case 'neutral':
-          return { pillText: 'Lost: out of turns', infoColText: 'Out of turns', outcome: 'lost' }
+          return {
+            pillText: 'Lost: out of turns',
+            infoColText: 'Out of turns',
+            outcome: 'lost',
+          }
         case 'timeout':
-          return { pillText: 'Lost: out of time', infoColText: 'Out of time', outcome: 'lost' }
+          return {
+            pillText: 'Lost: out of time',
+            infoColText: 'Out of time',
+            outcome: 'lost',
+          }
         // A loss whose cause nobody wrote a case for is still a loss.
         default:
           return { pillText: 'Lost', infoColText: 'Lost', outcome: 'lost' }
@@ -45,6 +60,10 @@ export function buildGameEndingMessage({
     // An ending nobody wrote a case for says so, neutrally and with its raw
     // name, rather than claiming a win or a loss it cannot know.
     default:
-      return { pillText: `Game over: ${outcome}`, infoColText: 'Game over', outcome: 'neutral' }
+      return {
+        pillText: `Game over: ${outcome}`,
+        infoColText: 'Game over',
+        outcome: 'neutral',
+      }
   }
 }

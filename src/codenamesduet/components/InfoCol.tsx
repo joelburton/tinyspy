@@ -3,7 +3,10 @@
 import { DotActor } from '@/common/members/ActorMention'
 import { cls } from '@/common/utils/cls'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
+import {
+  InfoActionsRow,
+  type InfoActionsMessage,
+} from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { InfoDisclosure } from '@/common/info-sheet/InfoDisclosure'
@@ -48,7 +51,8 @@ export function InfoCol({
   // The help line is for my move: my turn on the shared pointer — and in
   // sudden death, while the game runs, for both of us, since there the line is
   // the changed rules and the pointer can name nobody.
-  const isHelpShown = gd.me.stillPlaying && (gd.me.onTurn || gd.team.suddenDeath)
+  const isHelpShown = gd.me.stillPlaying &&
+    (gd.me.onTurn || gd.team.suddenDeath)
   const actionRowMessage: InfoActionsMessage | undefined = endingMessage
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
@@ -63,20 +67,22 @@ export function InfoCol({
       <div className={shared.noShrinkRow}>
         {/* The same `<StateLine>` the phone's status bar renders above the board. */}
         <p className={shared.infoState}>
-          <StateLine data={gd.stateLineData} />
+          <StateLine data={gd.stateLineData}/>
         </p>
 
         {/* Duet's finished-player rule, told to BOTH players so the lopsided turn
             flow does not read as a bug. */}
         {isMineFinished && (
-          <div className={cls(styles.finishedNote, styles.viewerFinished)}>
-            <DotActor actor={gd.partner} fallback="Your partner" /> gives every remaining
+          <div className={cls(styles.finishedNote, styles.mineFinished)}>
+            <DotActor actor={gd.partner} fallback="Your partner"/> gives every
+            remaining
             clue — your agents are all found.
           </div>
         )}
         {isPartnerFinished && (
-          <div className={cls(styles.finishedNote, styles.peerFinished)}>
-            <DotActor actor={gd.partner} fallback="Your partner" /> has no agents left — you
+          <div className={cls(styles.finishedNote, styles.partnerFinished)}>
+            <DotActor actor={gd.partner} fallback="Your partner"/> has no agents
+            left — you
             give every remaining clue.
           </div>
         )}
@@ -87,12 +93,15 @@ export function InfoCol({
             game is over. No divider, since nothing sits left of it: this game's
             hint, the AI, is on the clue form. */}
         <InfoActionsRow message={actionRowMessage}>
-          <ActionButton action={actions.actReveal} show="icon" />
-          <ActionButton action={actions.actRestart} show="icon" />
-          <ActionButton action={actions.actNewGame} show="icon" />
-          <ActionButton action={actions.actConcede} show="icon" />
-          <ActionButton action={actions.actStopGame} show="icon" />
-          <ActionButton action={actions.actBackToClub} show="icon" weight={gd.ended ? 'primary' : 'secondary'} />
+          <ActionButton action={actions.actReveal} show="icon"/>
+          <ActionButton action={actions.actRestart} show="icon"/>
+          <ActionButton action={actions.actNewGame} show="icon"/>
+          <ActionButton action={actions.actConcede} show="icon"/>
+          <ActionButton action={actions.actStopGame} show="icon"/>
+          <ActionButton
+            action={actions.actBackToClub} show="icon"
+            weight={gd.ended ? 'primary' : 'secondary'}
+          />
         </InfoActionsRow>
 
         {/* Help — one line on my move; the per-phase guidance is below the
@@ -103,8 +112,10 @@ export function InfoCol({
           <p className={shared.infoHelp}>
             {gd.team.suddenDeath ? (
               <>
-                <strong className={styles.suddenDeathTag}>SUDDEN DEATH:</strong> no clues
-                left — every reveal must be an agent. One non-green guess (a bystander or
+                <strong className={styles.suddenDeathTag}>SUDDEN
+                  DEATH:</strong> no clues
+                left — every reveal must be an agent. One non-green guess (a
+                bystander or
                 the assassin) ends the game.
               </>
             ) : (
@@ -117,9 +128,9 @@ export function InfoCol({
             line each; opening one grows the column, the allowed exception since
             it closes again. */}
         <InfoDisclosure title="Key card">
-          <KeyCard keys={myKeys} />
+          <KeyCard keys={myKeys}/>
         </InfoDisclosure>
-        <SetupDisclosure rows={gd.setupRows} />
+        <SetupDisclosure rows={gd.setupRows}/>
       </div>
 
       <GameEventLog

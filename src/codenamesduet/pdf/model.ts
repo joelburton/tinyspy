@@ -19,11 +19,11 @@ export type PrintTile = {
   // My key. Always present: the print exists to be thought about.
   mine: KeyRole
   // The partner's key — once the game has ended only, null during play.
-  peer: KeyRole | null
+  partner: KeyRole | null
   // I burned this as a bystander (locked to me, still open to my partner).
   burnedByMe: boolean
   // My partner burned it (still open to ME — the Duet asymmetry).
-  burnedByPeer: boolean
+  burnedByPartner: boolean
 }
 
 /** What the renderer draws: the frame's header, the 25 tiles, and the clue log. */
@@ -53,7 +53,7 @@ function revealedOf(tile: GTile): KeyRole | null {
  *   1. **what happened** — the word was contacted as an agent, hit the
  *      assassin, or someone burned it as a bystander. Global, public.
  *   2. **my key** — what the word is on MY card. The thing I give clues from.
- *   3. **the peer's key** — secret until the game ends, then the other half of
+ *   3. **the partner's key** — secret until the game ends, then the other half of
  *      the story.
  *
  * Each becomes a `KeyRole` ('agent' | 'neutral' | 'assassin'), which the renderer
@@ -70,7 +70,7 @@ export function buildCodenamesduetPrintModel(o: {
   // tile until the game has ended (the seat rule, `makeGameData`).
   gd: GGameData
   // I asked to see my partner's key — which only a finished game offers — so a
-  // print of an unrevealed game carries no peer column.
+  // print of an unrevealed game carries no partner column.
   partnerKeyShown: boolean
 }): CodenamesduetPrintModel {
   const { gd } = o
@@ -87,12 +87,12 @@ export function buildCodenamesduetPrintModel(o: {
       word: t.puzzleTile.word,
       revealed: revealedOf(t),
       mine: ROLE_OF[t.puzzleTile.key[gd.me.id]!],
-      peer: partnerKey ? ROLE_OF[partnerKey] : null,
+      partner: partnerKey ? ROLE_OF[partnerKey] : null,
       // Who burned it decides who it's still open to, so the two flags aren't
       // interchangeable — see the triangles note above. They are the board's
       // arrows: a bystander points at whoever turned it over.
       burnedByMe: t.revealed?.arrows.has(gd.me) ?? false,
-      burnedByPeer: t.revealed?.arrows.has(gd.partner) ?? false,
+      burnedByPartner: t.revealed?.arrows.has(gd.partner) ?? false,
     }
   })
 

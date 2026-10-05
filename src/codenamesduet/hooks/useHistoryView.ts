@@ -17,9 +17,17 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * turn never shifts under you.
  */
 export function useHistoryView(gd: GGameData): GHistoryView {
-  const { historyId, historyN, showHistory, exitHistory } = useHistoryViewer<number>()
+  const {
+    historyId,
+    historyN,
+    showHistory,
+    exitHistory,
+  } = useHistoryViewer<number>()
   const replayed =
-    historyId === null ? null : replayTurn(gd.events, gd.puzzle.tiles, historyId, historyN)
+    historyId === null ? null : replayTurn(gd.events,
+      gd.puzzle.tiles,
+      historyId,
+      historyN)
   return {
     isViewing: historyId !== null,
     viewedEventId: historyId,

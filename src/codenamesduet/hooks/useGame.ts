@@ -1,10 +1,19 @@
 // cs-blessed-codenamesduet
 
 import { useMemo } from 'react'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
 import { TOTAL_AGENTS } from '../lib/agents'
 import { makeSetupRows } from '../lib/setupRows'
-import type { GEvent, GGameData, GGameDataRaw, GPlayer, GPuzzleTile, GTile } from '../types'
+import type {
+  GEvent,
+  GGameData,
+  GGameDataRaw,
+  GPlayer,
+  GPuzzleTile,
+  GTile,
+} from '../types'
 
 /**
  * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
@@ -21,7 +30,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // Links that cannot miss get a bare lookup: every id the builder writes is a
   // seated player's. An ending's `by` may be null for a timeout.
   const playerOf = (id: string) => playersById[id]!
-  const maybePlayerOf = (id: string | null) => (id === null ? null : playerOf(id))
+  const maybePlayerOf = (id: string | null) => (id === null
+    ? null
+    : playerOf(id))
 
   // The gate has checked that I am seated, and Duet always seats two.
   const me = playerOf(myId)
@@ -42,7 +53,10 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     guessable: t.guessableBy.includes(myId),
   }))
 
-  const events: GEvent[] = raw.events.map(({ userId, ...row }) => ({ ...row, by: playerOf(userId) }))
+  const events: GEvent[] = raw.events.map(({ userId, ...row }) => ({
+    ...row,
+    by: playerOf(userId),
+  }))
 
   const { turns, ending, ...rest } = raw
   return {
@@ -51,7 +65,10 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     puzzle: { tiles: puzzleTiles, tilesById: puzzleTilesById },
     team: {
       ...raw.team,
-      board: { tiles: boardTiles, tilesById: new Map(boardTiles.map((t) => [t.id, t])) },
+      board: {
+        tiles: boardTiles,
+        tilesById: new Map(boardTiles.map((t) => [t.id, t])),
+      },
     },
     turns: {
       holder: maybePlayerOf(turns.holder),

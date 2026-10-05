@@ -26,7 +26,9 @@ export function turnOutcome(
   { suddenDeath = false }: { suddenDeath?: boolean } = {},
 ): Outcome {
   if (guesses.length === 0) return 'neutral'
-  if (suddenDeath) return guesses.every((g) => g.result === 'G') ? 'won' : 'lost'
+  if (suddenDeath) return guesses.every((g) => g.result === 'G')
+    ? 'won'
+    : 'lost'
   if (guesses.some((g) => g.result === 'A')) return 'lost'
   const hasAgent = guesses.some((g) => g.result === 'G')
   const hasNeutral = guesses.some((g) => g.result === 'N')

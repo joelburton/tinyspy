@@ -122,13 +122,13 @@ function drawTile(doc: jsPDF, c: PrintTile, x: number, y: number, w: number, h: 
   // My key, bottom-left — the same corner the screen uses.
   drawInset(doc, c.mine, x + 3, y + h - INSET - 3)
   // The partner's, top-right. Only present once the game is over.
-  if (c.peer) drawInset(doc, c.peer, x + w - INSET - 3, y + 3)
+  if (c.partner) drawInset(doc, c.partner, x + w - INSET - 3, y + 3)
 
   // Bystander triangles: mine BELOW the word (pointing down, toward me), my
   // partner's ABOVE (pointing up, toward them) — matching the screen's
   // orientation so the two read the same way.
   if (c.burnedByMe) triangle(doc, x + w / 2, y + h - 5, 4, 'down')
-  if (c.burnedByPeer) triangle(doc, x + w / 2, y + 5, 4, 'up')
+  if (c.burnedByPartner) triangle(doc, x + w / 2, y + 5, 4, 'up')
 }
 
 /** A keycard inset: a small bordered box carrying its mark. */

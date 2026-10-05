@@ -129,7 +129,7 @@ describe('codenamesduet Board — my partner’s key card', () => {
     outcome: 'neutral',
   }
   const keySquares = (over: Over, facts: ZTest_GameDataFacts) =>
-    render(<Board {...props(over, 'u1', facts)} />).container.querySelectorAll(`.${styles.keyPeer}`)
+    render(<Board {...props(over, 'u1', facts)} />).container.querySelectorAll(`.${styles.keyPartner}`)
 
   it('is shown once the game is over and I have asked to see it', () => {
     expect(keySquares({ showsPartnerKey: true }, ENDED)).toHaveLength(25)
@@ -150,18 +150,18 @@ describe('codenamesduet Board — the bystander triangles', () => {
     const container = drawWith()
     const berry = tile(container, /berry/)
     const apple = tile(container, /apple/)
-    const peerTri = berry.querySelector(`.${styles.triPeer}`)!
+    const partnerTri = berry.querySelector(`.${styles.triPartner}`)!
     const myTri = apple.querySelector(`.${styles.triMine}`)!
-    expect(peerTri).not.toBeNull()
+    expect(partnerTri).not.toBeNull()
     expect(myTri).not.toBeNull()
     // Above = before the word in the tile; below = after it.
     const berryWord = [...berry.querySelectorAll('span')].find((s) => s.textContent === 'berry')!
     const appleWord = [...apple.querySelectorAll('span')].find((s) => s.textContent === 'apple')!
-    expect(peerTri.compareDocumentPosition(berryWord) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(partnerTri.compareDocumentPosition(berryWord) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(myTri.compareDocumentPosition(appleWord) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
     // Each tile carries only its own triangle.
     expect(berry.querySelector(`.${styles.triMine}`)).toBeNull()
-    expect(apple.querySelector(`.${styles.triPeer}`)).toBeNull()
+    expect(apple.querySelector(`.${styles.triPartner}`)).toBeNull()
   })
 
   it('drops both once the word is contacted — the builder points it at nobody', () => {
@@ -174,7 +174,7 @@ describe('codenamesduet Board — the bystander triangles', () => {
     ]
     const gd = makeGameData(ZTest_makeGameDataRaw({ words: WORDS, keyA: KEY, keyB: agentKey, turnNum: 3, events }), 'u1')
     const container = drawWith({ tiles: gd.team.board.tiles })
-    expect(container.querySelectorAll(`.${styles.triPeer}, .${styles.triMine}`)).toHaveLength(0)
+    expect(container.querySelectorAll(`.${styles.triPartner}, .${styles.triMine}`)).toHaveLength(0)
   })
 })
 

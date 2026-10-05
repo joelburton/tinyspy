@@ -3,16 +3,23 @@
 import { useEffect } from 'react'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { useMark } from '@/common/board-marks/useMark'
-import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
+import {
+  ATTENTION_FADE_MS,
+  VERDICT_SHAKE_MS,
+} from '@/common/board-marks/feedbackTiming'
 import type { GTile } from '../types'
 
 /** Empty id set — the resting value of the head-shake, so a board with
  *  nothing shaking hands the same object down every render. */
 const NO_IDS: ReadonlySet<string> = new Set()
 
+
 /** What a tile shows, as one comparable string: its `as` and who it points at. */
-const revealKey = (t: GTile) =>
-  t.revealed === null ? '-' : `${t.revealed.as}${[...t.revealed.arrows].map((p) => p.id).sort().join('+')}`
+function revealKey(t: GTile) {
+  return t.revealed === null
+    ? '-'
+    : `${t.revealed.as}${[...t.revealed.arrows].map((p) => p.id).sort().join('+')}`
+}
 
 /**
  * The marks on the tiles a guess just turned over: the attention flash on each,
@@ -52,10 +59,12 @@ export function useDecidedTileMarks({
     moveCount,
     quiet: isViewingHistory,
     changed: (before, now) =>
-      new Set(now.filter((t, i) => revealKey(t) !== revealKey(before[i] ?? t)).map((t) => t.id)),
+      new Set(now.filter((t, i) => revealKey(t) !==
+        revealKey(before[i] ?? t)).map((t) => t.id)),
   })
 
-  const [shakeMark, shakeWrongTiles] = useMark<{ ids: ReadonlySet<string> }>(VERDICT_SHAKE_MS)
+  const [shakeMark, shakeWrongTiles] = useMark<{ ids: ReadonlySet<string> }>(
+    VERDICT_SHAKE_MS)
   const wrongIdsKey = tiles
     .filter((t) => flashingIds.has(t.id) && t.revealed?.as !== 'G')
     .map((t) => t.id)

@@ -28,7 +28,11 @@ export function useBoardColActions({
   useBindAction('act-submit', {
     describe: () => {
       if (!canGuess) return 'hidden'
-      return { state: pickedTile !== null && !isGuessOut ? 'active' : 'disabled', label: 'Guess' }
+      return {
+        state: pickedTile !== null && !isGuessOut
+          ? 'active'
+          : 'disabled', label: 'Guess',
+      }
     },
     run: () => {
       if (pickedTile === null) return

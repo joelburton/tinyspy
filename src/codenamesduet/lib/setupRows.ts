@@ -22,7 +22,11 @@ export function makeSetupRows(
   return [
     makeRosterRow(players),
     { key: 'turns', label: 'Turns', value: String(setup.turns) },
-    { key: 'first_clue_giver_user_id', label: 'First clue', value: first?.username ?? '—' },
+    {
+      key: 'first_clue_giver_user_id',
+      label: 'First clue',
+      value: first?.username ?? '—',
+    },
     makeTimerRow(setup.timer),
   ]
 }

@@ -44,16 +44,16 @@ const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
 /** My partner sits at A and opens; I (`u1`, the viewer) sit at B. */
 const PLAYERS: ZTest_GameDataFacts['players'] = [
-  { id: 'u2', username: 'peer', color: 'blue' },
+  { id: 'u2', username: 'leah', color: 'blue' },
   { id: 'u1', username: 'me', color: 'red' },
 ]
 const WORDS = Array.from({ length: 25 }, (_, i) => (i === 0 ? 'apple' : i === 1 ? 'berry' : `word${i}`))
 // One agent each, so a test can find all of a player's agents with one guess:
 // my partner's at 23, mine at 24. Everything else is a bystander on both keys.
-const KEY_PEER: GKey[] = Array.from({ length: 25 }, (_, i) => (i === 23 ? 'G' : 'N'))
+const KEY_PARTNER: GKey[] = Array.from({ length: 25 }, (_, i) => (i === 23 ? 'G' : 'N'))
 const KEY_ME: GKey[] = Array.from({ length: 25 }, (_, i) => (i === 24 ? 'G' : 'N'))
 /** My partner's clue for turn 1. */
-const PEER_CLUE = ZTest_clue(1, 'u2', 1, 'fruit', 2)
+const PARTNER_CLUE = ZTest_clue(1, 'u2', 1, 'fruit', 2)
 
 /** A hint event, as the blob carries it. */
 const hint = (id: number, userId: string): GEventRaw => ({
@@ -68,11 +68,11 @@ const hint = (id: number, userId: string): GEventRaw => ({
 const facts = (over: ZTest_GameDataFacts = {}): ZTest_GameDataFacts => ({
   players: PLAYERS,
   words: WORDS,
-  keyA: KEY_PEER,
+  keyA: KEY_PARTNER,
   keyB: KEY_ME,
   turnNum: 1,
   clueSeat: 'A',
-  events: [PEER_CLUE],
+  events: [PARTNER_CLUE],
   ...over,
 })
 
@@ -172,7 +172,7 @@ describe('codenamesduet PlayArea — guess in-flight guard', () => {
     expect(rpc).toHaveBeenCalledTimes(1)
 
     // The reveal lands.
-    rerender(<PlayAreaLoader {...makeCtx({ events: [PEER_CLUE, ZTest_guess(2, 'u1', 1, 0, 'G')] })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ events: [PARTNER_CLUE, ZTest_guess(2, 'u1', 1, 0, 'G')] })} />)
     expect(apple()).not.toHaveClass(shared.dimInFlight)
   })
 })
@@ -269,7 +269,7 @@ describe('codenamesduet PlayArea — the board marks', () => {
 
   it('flashes the tile a guess turned over, reading the guess log', () => {
     const view = render(<PlayAreaLoader {...makeCtx()} />)
-    view.rerender(<PlayAreaLoader {...makeCtx({ events: [PEER_CLUE, ZTest_guess(2, 'u1', 1, 1, 'G')] })} />)
+    view.rerender(<PlayAreaLoader {...makeCtx({ events: [PARTNER_CLUE, ZTest_guess(2, 'u1', 1, 1, 'G')] })} />)
     expect(screen.getByRole('button', { name: /berry/i }).className).toMatch(/attentionFlash/)
     expect(screen.getByRole('button', { name: /apple/i }).className).not.toMatch(/attentionFlash/)
   })
@@ -294,13 +294,13 @@ describe('codenamesduet PlayArea — the board marks', () => {
  */
 describe('codenamesduet PlayArea — the finished-player banner', () => {
   it('tells me my partner now gives every clue, when my agents are all found', () => {
-    render(<PlayAreaLoader {...makeCtx({ events: [PEER_CLUE, ZTest_guess(2, 'u2', 1, 24, 'G')] })} />)
+    render(<PlayAreaLoader {...makeCtx({ events: [PARTNER_CLUE, ZTest_guess(2, 'u2', 1, 24, 'G')] })} />)
     expect(screen.getByText(/gives every remaining\s+clue — your agents are all found/)).toBeInTheDocument()
     expect(screen.queryByText(/has no agents left/)).not.toBeInTheDocument()
   })
 
   it('tells me I now give every clue, when my partner’s are', () => {
-    render(<PlayAreaLoader {...makeCtx({ events: [PEER_CLUE, ZTest_guess(2, 'u1', 1, 23, 'G')] })} />)
+    render(<PlayAreaLoader {...makeCtx({ events: [PARTNER_CLUE, ZTest_guess(2, 'u1', 1, 23, 'G')] })} />)
     expect(screen.getByText(/has no agents left — you\s+give every remaining clue/)).toBeInTheDocument()
     expect(screen.queryByText(/your agents are all found/)).not.toBeInTheDocument()
   })
@@ -317,7 +317,7 @@ describe('codenamesduet PlayArea — the finished-player banner', () => {
  * included, and the ask is LOCAL — it opens only on my screen.
  */
 describe('codenamesduet PlayArea — the partner-key reveal', () => {
-  const partnerSquares = () => document.querySelectorAll(`.${tileStyles.keyPeer}`).length
+  const partnerSquares = () => document.querySelectorAll(`.${tileStyles.keyPartner}`).length
 
   it('keeps the card covered once the game is over until I ask — a win included', () => {
     render(<PlayAreaLoader {...makeCtx(WON)} />)
@@ -420,11 +420,11 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
   })
 
   it('narrates a partner’s hint as it lands, and not the ones already there on load', () => {
-    const ctx = makeCtx({ events: [PEER_CLUE, hint(2, 'u2')] })
+    const ctx = makeCtx({ events: [PARTNER_CLUE, hint(2, 'u2')] })
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     expect(texts(ctx)).not.toContain('got hint')
 
-    const next = { ...makeCtx({ events: [PEER_CLUE, hint(2, 'u2'), hint(3, 'u2')] }), globalFeedbackSlot: ctx.globalFeedbackSlot }
+    const next = { ...makeCtx({ events: [PARTNER_CLUE, hint(2, 'u2'), hint(3, 'u2')] }), globalFeedbackSlot: ctx.globalFeedbackSlot }
     rerender(<PlayAreaLoader {...next} />)
     expect(texts(ctx)).toContain('got hint')
   })
@@ -432,7 +432,7 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
   it('does not narrate a hint of MINE, however it lands', () => {
     const ctx = makeCtx()
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
-    const next = { ...makeCtx({ events: [PEER_CLUE, hint(2, 'u1')] }), globalFeedbackSlot: ctx.globalFeedbackSlot }
+    const next = { ...makeCtx({ events: [PARTNER_CLUE, hint(2, 'u1')] }), globalFeedbackSlot: ctx.globalFeedbackSlot }
     rerender(<PlayAreaLoader {...next} />)
     expect(texts(ctx)).not.toContain('got hint')
   })
@@ -632,7 +632,7 @@ describe('codenamesduet PlayArea — the selection cursor', () => {
       <WithKeys
         {...makeCtx({
           events: [
-            PEER_CLUE,
+            PARTNER_CLUE,
             ZTest_guess(2, 'u2', 1, 0, 'G'),
             ZTest_guess(3, 'u1', 1, 1, 'N'),
             ZTest_guess(4, 'u2', 1, 2, 'N'),
@@ -674,7 +674,7 @@ describe('codenamesduet PlayArea — the selection cursor', () => {
     expect(picked()).toEqual(['apple'])
 
     // My partner's guess turns it over (sudden death lets both of us guess).
-    rerender(<WithKeys {...{ ...makeCtx({ events: [PEER_CLUE, ZTest_guess(2, 'u2', 1, 0, 'G')] }), menu: ctx.menu }} />)
+    rerender(<WithKeys {...{ ...makeCtx({ events: [PARTNER_CLUE, ZTest_guess(2, 'u2', 1, 0, 'G')] }), menu: ctx.menu }} />)
     expect(picked()).toEqual([])
   })
 
