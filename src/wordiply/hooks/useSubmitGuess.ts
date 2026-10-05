@@ -51,13 +51,12 @@ export function useSubmitGuess({
   // Where a refusal and the server's not-ok are shown.
   localFeedbackSlot: FeedbackSlot
 }): {
-  entry: {
-    word: string
-    setWord: Dispatch<SetStateAction<string>>
-    // The last submitted word, which ArrowUp recalls.
-    lastWord: string
-    submit: () => void
-  }
+  // The word being typed, which `useTypedGuess` types into.
+  word: string
+  setWord: Dispatch<SetStateAction<string>>
+  // The last submitted word, which ArrowUp recalls.
+  lastWord: string
+  submit: () => void
   answerMark: GAnswerMark
 } {
   const base = gd.puzzle.base
@@ -142,8 +141,5 @@ export function useSubmitGuess({
     },
   })
 
-  return {
-    entry: { word, setWord, lastWord, submit },
-    answerMark: { held, flash, show: showAnswer },
-  }
+  return { word, setWord, lastWord, submit, answerMark: { held, flash, show: showAnswer } }
 }

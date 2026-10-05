@@ -163,8 +163,9 @@ describe('wordiply PlayArea — layout stability', () => {
   it('always renders exactly 5 guess rows (empty board)', () => {
     const { container } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(boardRowCount(container)).toBe(5)
-    // The base is shown plainly (no "Starter" label).
-    expect(screen.getByText('AR', { exact: true })).toBeInTheDocument()
+    // The base is shown plainly (no "Starter" label), in the data's case; CSS
+    // draws its capitals.
+    expect(screen.getByText('ar', { exact: true })).toBeInTheDocument()
   })
 
   it('still renders 5 rows with some guesses landed, and a length badge per guess', () => {
