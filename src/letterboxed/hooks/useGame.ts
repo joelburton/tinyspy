@@ -1,241 +1,116 @@
-// cs-fixed-outcome-fix
+// cs-unmet
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
-import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnvelope } from '@/common/supabase/envelope'
-import { db } from '../db'
-import type { Member } from '@/common/members/member'
-
-/**
- * One player in a letterboxed game. Any club member who joined may play, so
- * Player is a straight re-export of Member (the per-game vocabulary
- * convention — naming.md → player).
- */
-export type Player = Member
+import { useMemo } from 'react'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
+import { makeSetupRows } from '../lib/setupRows'
+import type { GEvent, GGameData, GGameDataRaw, GPlayer, GStateLineData, GWord } from '../types'
 
 /**
- * The board header, projected from `letterboxed.games_state`. Immutable for
- * the life of the game (play state lives on common.games), so it loads once —
- * which matters here because `playableWords` can be a few thousand entries and
- * has no business being re-downloaded on every move.
+ * The seat rule: what a racer may not see yet. Mid-race in compete, a rival's
+ * words are their strategy, so their rows leave the log and their chain is
+ * null; how many words they have played and how much of the board they have
+ * covered stay, the two numbers a race publishes. The game's end opens
+ * everything. Coop withholds nothing: one chain, one team.
  */
-export type LetterboxedGame = {
-  id: string
-  club_handle: string
-  /** Denormalized from `letterboxed.games.mode`; drives the compete
-   *  OpponentStrip + the win-vs-loss verdict branching. */
-  mode: 'coop' | 'compete'
-  /** Twelve letters in SIDE ORDER — positions 0-2 are one side, 3-5 the next,
-   *  and so on. See lib/board.ts. */
-  sides: string
-  /** The ACCEPT list: every word a player may type on this board. Band-gated
-   *  only — crude / slur / slang / dialect words are all in here, because the
-   *  player chose to type them (docs/word-list.md → Which words a game may use).
-   *  Shipped so the FE can reject a bad word instantly. */
-  playableWords: string[]
-  /** The must-reach SUBSET of `playableWords` — what the hint search is allowed
-   *  to suggest, since a hint puts a word on screen. Computed by the
-   *  games_state view, so it tracks later dictionary edits without the board
-   *  being rebuilt. Never used to reject a move; that's `playableWords`. */
-  cleanWords: string[]
-  /** The seeded two-word solution. Shipped from the start, RENDERED only at
-   *  terminal — the board's own word list would give it away anyway, so
-   *  hiding it server-side would guard nothing. */
-  solution: string[]
-  /** The chain-length cap. */
-  max_words: number
-  legal_band: number
-  created_at: string
+function maySeeRival(raw: GGameDataRaw): boolean {
+  return raw.coop || raw.ended
 }
 
 /**
- * One row of `letterboxed.players_state`. The chain is per-player in compete
- * and lock-stepped across players in coop, so "my row" is always the right one
- * to read — the view handles the difference.
+ * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
+ * reads what the surface would.
  */
-export type PlayerRow = {
-  game_id: string
-  user_id: string
-  /** NULL for a compete rival mid-race; the view masks it. */
-  chain: string[] | null
-  /** Always visible — the numbers a race is allowed to publish. */
-  word_count: number
-  letters_covered: number
-  hints_used: number
-  solved: boolean
-  solved_at: string | null
-}
+export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
+  const seeRival = maySeeRival(raw)
+  const isMine = (id: string) => id === myId
 
-/** One row of `letterboxed.events` — the event log, retreats included. */
-export type EventRow = {
-  id: number
-  game_id: string
-  user_id: string
-  kind: 'word' | 'undo' | 'clear' | 'hint' | 'spoiler'
-  word: string | null
-  letters_covered: number
-  created_at: string
-}
+  const players: GPlayer[] = raw.players.map((p) => ({
+    ...p,
+    board: seeRival || isMine(p.id) ? p.board : null,
+  }))
+  const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
-/**
- * letterboxed's per-gametype data hook. Two data lifecycles, the shape
- * wordwheel/boggle/wordiply use:
- *
- *   - **The header loads ONCE.** `letterboxed.games` is immutable during play,
- *     and it carries the big payload (the playable word list), so it must not
- *     re-fetch per move.
- *   - **players + events refetch on realtime events.** Every move rewrites a
- *     players row and appends an events row; both are published, so a peer's
- *     move wakes this hook — including replay_board, whose players UPDATE is
- *     what tells everyone the board restarted (its events DELETEs alone would
- *     not: postgres_changes filters don't reliably match deletes).
- *
- * `myId` comes from the caller (GamePage already holds the session) — the
- * strands shape. players_state masks a rival's chain to null, and "my row" is
- * the one whose chain is authoritative, so the id picks it out.
- */
-export function useGame(gameId: string, myId: string): {
-  game: LetterboxedGame | null
-  /** Every visible player row, including rivals' (chain masked). */
-  playerRows: PlayerRow[]
-  /** The caller's own row — the chain the board renders. */
-  myRow: PlayerRow | null
-  /** The event log, oldest first. */
-  events: EventRow[]
-  loading: boolean
-  /** True once the move rows have loaded at least once — distinct from
-   *  `loading` (which flips on the HEADER fetch). Peer narration gates on this
-   *  so a rejoin doesn't replay the backlog as a burst of pills. */
-  rowsLoaded: boolean
-  /** Set when a read FAILED, which is not the same as the game being absent.
-   *  The surface renders this instead of "Game not found." */
-  failure: NotOkEnvelope | null
-} {
-  const [game, setGame] = useState<LetterboxedGame | null>(null)
-  const [playerRows, setPlayerRows] = useState<PlayerRow[]>([])
-  const [events, setEvents] = useState<EventRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [rowsLoaded, setRowsLoaded] = useState(false)
-  // TWO failure slots, because the two lifecycles below fail differently. The
-  // header is fetched once and never retried, so its failure is permanent; the
-  // rows refetch on every event, so their failure should clear the moment one
-  // works. One shared slot would let a successful refetch erase a header
-  // failure that is still true.
-  const [headerFailure, setHeaderFailure] = useState<NotOkEnvelope | null>(null)
-  const [rowsFailure, setRowsFailure] = useState<NotOkEnvelope | null>(null)
+  // Links that cannot miss get a bare lookup; an ending's `by` may be null for
+  // a timeout.
+  const playerOf = (id: string | null) => (id === null
+    ? null
+    : playersById[id]!)
 
-  // The immutable header — fetched once per game. `loading` gates the PlayArea
-  // render, so it flips here.
-  useEffect(() => {
-    let mounted = true
-    void (async () => {
-      // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK, so
-      // this is 0 or 1 of them.
-      const res = await readRows(
-        db
-          .from('games_state')
-          .select('id, club_handle, mode, sides, playable_words, clean_words, solution, max_words, legal_band, created_at')
-          .eq('id', gameId),
-      )
-      if (!mounted) return
+  // Every row is a seated player's: a player's rows go with their profile
+  // (`on delete cascade`), so the lookup cannot miss.
+  const events: GEvent[] = raw.events
+    .filter((e) => seeRival || isMine(e.userId))
+    .map(({ userId, ...row }) => ({ ...row, by: playersById[userId]! }))
 
-      // A read can only fail as a FAULT — `readRows` never authors anything
-      // else, and it has already logged the failure and raised the modal. What
-      // is left is the sentence BEHIND it, plus a line naming which read it was.
-      if (res.type === 'not-ok') {
-        setHeaderFailure(res)
-        setLoading(false)
-        return
-      }
-      // ZERO ROWS is the caller's to read: no game with that id, or one this
-      // club cannot see.
-      const data = res.data[0]
-      if (data) {
-        setGame({
-          id: data.id as string,
-          club_handle: data.club_handle as string,
-          mode: data.mode as 'coop' | 'compete',
-          sides: data.sides as string,
-          playableWords: (data.playable_words as string[]) ?? [],
-          cleanWords: (data.clean_words as string[]) ?? [],
-          solution: (data.solution as string[]) ?? [],
-          max_words: data.max_words as number,
-          legal_band: data.legal_band as number,
-          created_at: data.created_at as string,
-        })
-      }
-      setLoading(false)
-    })()
-    return () => {
-      mounted = false
-    }
-  }, [gameId])
+  // The blob names the few words a hint may not offer; every word carries
+  // its own flag here.
+  const uncleanWords = new Set(raw.puzzle.uncleanWords)
+  const words: GWord[] = raw.puzzle.words.map((word) => ({ word, clean: !uncleanWords.has(word) }))
 
-  const load = useCallback(
-    async ({ isCurrent }: { isCurrent: () => boolean }) => {
-      const [playersRes, eventsRes] = await Promise.all([
-        readRows(
-          db
-            .from('players_state')
-            .select('game_id, user_id, chain, word_count, letters_covered, hints_used, solved, solved_at')
-            .eq('game_id', gameId),
-        ),
-        readRows(
-          db
-            .from('events')
-            .select('id, game_id, user_id, kind, word, letters_covered, created_at')
-            .eq('game_id', gameId)
-            .order('id', { ascending: true }),
-        ),
-      ])
-      if (!isCurrent()) return
-      // One branch each rather than one combined test, because WHICH read failed
-      // is the only thing the player's sentence cannot say.
-      if (playersRes.type === 'not-ok') {
-        setRowsFailure(playersRes)
-        return
-      }
-      if (eventsRes.type === 'not-ok') {
-        setRowsFailure(eventsRes)
-        return
-      }
-      // A load that worked clears a previous one's failure: this refetches on
-      // every realtime event, so an outage that ends should take its sentence
-      // with it rather than leaving the surface behind a stale explanation.
-      setRowsFailure(null)
-      setPlayerRows(playersRes.data as PlayerRow[])
-      setEvents(eventsRes.data as EventRow[])
-      setRowsLoaded(true)
-    },
-    [gameId],
-  )
+  // The box as the setup rows print it: the twelve letters in side order.
+  const sides = raw.puzzle.tiles.map((t) => t.letter).join('')
 
-  useRealtimeRefetch({
-    tables: [
-      { schema: 'letterboxed', table: 'players', filter: `game_id=eq.${gameId}` },
-      { schema: 'letterboxed', table: 'events', filter: `game_id=eq.${gameId}` },
-      // The games row never changes mid-play, so this action is quiet today —
-      // kept so any future write to it wakes clients rather than silently not.
-      // It obliges games' membership in the publication (the central
-      // realtime_publication_test pins all three: one unpublished bound table
-      // kills the WHOLE channel).
-      { schema: 'letterboxed', table: 'games', filter: `id=eq.${gameId}` },
-    ],
-    channelPrefix: 'letterboxed',
-    id: gameId,
-    load,
-  })
-
-  const myRow = useMemo(
-    () => playerRows.find((r) => r.user_id === myId) ?? null,
-    [playerRows, myId],
-  )
-
-  // The header's wins: it can never be retried, so once it has failed the board
-  // is not coming back however well the rows are loading.
-  return {
-    game, playerRows, myRow, events, loading, rowsLoaded,
-    failure: headerFailure ?? rowsFailure,
+  // The gate has checked that I am seated, and my own chain is never withheld.
+  const me = playersById[myId] as GGameData['me']
+  // What the state line shows: the team's chain where the game has one, else
+  // my own (plans/team-facts.md). A racer always carries their two counts.
+  const stateLineData: GStateLineData = {
+    nCoveredLetters: raw.team?.nCoveredLetters ?? me.nCoveredLetters!,
+    nWordsUsed: raw.team?.nWordsUsed ?? me.nWordsUsed!,
+    maxWords: me.maxWords,
+    nParWords: raw.puzzle.nParWords,
   }
+
+  const { turns, ending, ...rest } = raw
+  return {
+    ...rest,
+    puzzle: {
+      tiles: raw.puzzle.tiles,
+      tilesById: Object.fromEntries(raw.puzzle.tiles.map((t) => [t.id, t])),
+      words,
+      nParWords: raw.puzzle.nParWords,
+      solution: raw.puzzle.solution,
+    },
+    setupRows: makeSetupRows(raw.setup, raw.mode, players, sides),
+    turns: turns === null ? null : { holder: playersById[turns.holder]! },
+    ending: ending === null
+      ? null
+      : {
+        reason: ending.reason,
+        detail: ending.detail,
+        by: playerOf(ending.by),
+        winner: playerOf(ending.winner),
+      },
+    events,
+    players,
+    playersById,
+    me,
+    stateLineData,
+  }
+}
+
+/**
+ * Per-gametype data hook for letterboxed (both modes share it): `gd`, built
+ * from the `game_data` blob the page was handed and who I am. No reads and no
+ * subscription: the page re-reads the blob on every move, and this is a pure
+ * function of it (plans/seat-view.md → The page is written, not assembled).
+ *
+ * A game whose builder has not written a blob yet cannot be drawn; the throw
+ * lands in `PlayAreaErrorBoundary`'s card.
+ *
+ * The cross-cutting machinery (presence, manual-pause, timer) lives on
+ * `useCommonGame` inside `GamePage` — see `src/common/game-page/useCommonGame.ts`.
+ */
+export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
+  const raw = ctx.gameData as GGameDataRaw | null
+  if (raw === null) {
+    throw new Error(
+      `letterboxed: game ${ctx.cg.id} has no game_data; run letterboxed._rebuild_data_cols_for_all()`)
+  }
+  const myId = ctx.auth.user.id
+  // Rebuilt when the page hands down a new blob, and not on every render.
+  const gd = useMemo(() => makeGameData(raw, myId), [raw, myId])
+  return { gd }
 }

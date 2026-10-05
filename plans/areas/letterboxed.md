@@ -44,7 +44,7 @@ last column is what the conversion will do, filled in as it does it.
 | `games_state` view — the game row, and `clean_words` computed on read by a join against `common.words` | neither | **dropped** (2026-10-05): `_make_json_puzzle` writes `uncleanWords` at every rebuild, still read against the live dictionary |
 | `games_select`, `players_select` — club-member reads | neither | **kept** (2026-10-05) |
 | `_write_statuses` — `game_status` {max_words}, `player_status` {words_used, letters_covered_count, player_ended_reason}, `clubpage_info` {words_used, letters_covered_count, max_words, best_letters_covered_count, winner_user_id, winner_words_count} | neither | **dropped** (2026-10-05): `_rebuild_data_cols` writes the blobs after every move |
-| the postgres-changes subscription on `games`, `players` and `events` (`useRealtimeRefetch` in `hooks/useGame.ts`), and its reads of the two views and `events` | — | |
+| the postgres-changes subscription on `games`, `players` and `events` (`useRealtimeRefetch` in `hooks/useGame.ts`), and its reads of the two views and `events` | — | **gone** (2026-10-05): `useGame` is `makeGameData` over `game_data`, with no read and no subscription; its seat rule takes over the events arm |
 
 **The status keys the page shows:** none of today's. `PlayArea.tsx` reads
 `status.leaderboard` (per-player `username`, `words_used`, `letters_covered`,
@@ -128,6 +128,11 @@ The `gd` sketch, approved 2026-10-05 (step 2), is the comment in
 - **Step 6 (2026-10-05):** letterboxed joins `CONVERTED_GAMES` in
   `src/guards/gameTypes.test.ts` once the last old shapes are gone: `Player`,
   `LetterboxedGame`, `PlayerRow` and `EventRow` with `useGame` (step 7).
+- **Step 7 (2026-10-05):** those four went with the old `useGame`; their
+  readers (`PlayArea`, `GameEventLog`, `InfoCol`, `lib/history.ts`,
+  `pdf/model.ts`) fail to compile until the component passes move them onto
+  `gd`. The club card reads `summary_data`, and its labels read as they did
+  (`npm run report:summaries`).
   `lib/answer.ts`'s `Answer` is `GAnswer`; `Node`, `ParsedSides`,
   `Suggestion` and `NoSuggestion` stopped being exported, each read only in
   its own file.

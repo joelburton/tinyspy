@@ -286,10 +286,6 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
-  // letterboxed's compete race ENDS on the first solve (the bar is "cover the
-  // twelve inside the cap"), so a win names the winner. A TIMEOUT instead
-  // resolves on the most letters covered, which is a different sentence — hence
-  // two won_compete rows. A manual stop is 'ended' in both modes.
   // setgame's status is public in BOTH modes — every claim happened face-up on
   // a shared table — so unlike wordle's or stackdown's compete blobs there is
   // nothing withheld mid-game. The interesting labels are the two endings the
@@ -339,35 +335,24 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       ['ended', { reason: 'manual', sets_found: 9 }, 'manual end'],
     ],
   },
+  // letterboxed._make_json_summary_data: `team` holds coop's chain and is null in compete; the
+  // best coverage and the winner's chain are compete's. The race ENDS on the first solve, so a
+  // win names the winner's word count; a TIMEOUT resolves on the most letters covered, which is
+  // a different sentence — hence two compete wins. The one `live` blob serves both modes, so it
+  // carries coop's team and compete's best coverage together.
   letterboxed: {
-    playing: {
-      max_words: 5,
-      words_used: 2,
-      letters_covered: 7,
-      leaderboard: [
-        { username: 'alice', letters_covered: 7, words_used: 2 },
-        { username: 'bob', letters_covered: 4, words_used: 1 },
-      ],
-    },
+    live: { team: { nWordsUsed: 2, nCoveredLetters: 7 }, maxWords: 5, band: 5,
+      nBestCoveredLetters: 7, nWinnerWords: null, nWinnerCoveredLetters: null },
     coop: [
-      ['won', { solved: true, words_used: 3, letters_covered: 12, max_words: 5 }, 'covered the board'],
-      ['lost', { solved: false, timed_out: true, letters_covered: 8 }, 'timeout'],
-      ['ended', { solved: false, stopped: true, letters_covered: 8 }, 'manual end'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: { nWordsUsed: 3, nCoveredLetters: 12 }, maxWords: 5, band: 5, nBestCoveredLetters: null, nWinnerWords: null, nWinnerCoveredLetters: null }, 'covered the board'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nWordsUsed: 4, nCoveredLetters: 8 }, maxWords: 5, band: 5, nBestCoveredLetters: null, nWinnerWords: null, nWinnerCoveredLetters: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nWordsUsed: 4, nCoveredLetters: 8 }, maxWords: 5, band: 5, nBestCoveredLetters: null, nWinnerWords: null, nWinnerCoveredLetters: null }, 'Stop'],
     ],
     compete: [
-      ['won_compete', { solved: true, words_used: 3, letters_covered: 12, ...W }, 'first to finish'],
-      [
-        'won_compete',
-        {
-          solved: false,
-          timed_out: true,
-          best_letters_covered: 9,
-          leaderboard: [{ username: 'alice', letters_covered: 9, words_used: 3 }],
-        },
-        'timeout, most letters',
-      ],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
-      ['ended', { solved: false, stopped: true }, 'manual end'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winner: 'u-alice' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 12, nWinnerWords: 3, nWinnerCoveredLetters: 12 }, 'first to finish'],
+      [{ outcome: 'won', reason: 'timeout', winner: 'u-alice' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 9, nWinnerWords: null, nWinnerCoveredLetters: 9 }, 'timeout, most letters'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 4, nWinnerWords: null, nWinnerCoveredLetters: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 4, nWinnerWords: null, nWinnerCoveredLetters: null }, 'Stop'],
     ],
   },
   // wordiply._make_json_summary_data: `team` holds coop's track, its scores null until the end,
