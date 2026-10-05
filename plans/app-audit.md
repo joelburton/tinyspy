@@ -309,27 +309,19 @@ permission to start the next one.
 
 ### A game area
 
-**Three passes, back to back:**
+**The structure is not the audit's** (Joel, 2026-10-05). Everything that puts
+a game in the shape of the audited ones — the blobs and `gd`, the component
+and hook restructuring with its stylesheet split, the answers built in
+`lib/answer.ts`, the comment and docstring passes, the cross-game names — is
+the game's conversion ([seat-view.md → How a game converts](seat-view.md#how-a-game-converts--the-steps)),
+done before any deploy. A game's area opens on a converted game, and is:
 
-1. **The restructure** — [playarea-readability.md](playarea-readability.md)
-   applied step by step, each step a commit Joel reads, **with the stylesheet
-   split**: one CSS module per component, named for it, so `PlayArea.module.css`
-   holds only what `PlayArea.tsx` itself wears. The split is by IMPORTER and
-   needs no judgment: a module two components import gets split along which
-   component reads which class; a class both read stays where both can reach it.
-   Rule bodies and `/* @@ */` markers move verbatim; only headers are rewritten.
-   The restructure goes first because the audit's prose pass would otherwise
-   polish comments the split and the comment pass then rewrite.
-2. **The audit** — React, SQL and CSS together, **including the answer
-   conversion**: the game's own answers (correct, wrong, near, already guessed,
-   and their peer lines) built in its `lib/answer.ts` as the `{ outcome, text }`
-   pair [common/feedback/doc.md](../src/common/feedback/doc.md) describes, so
-   the pill, the log bar and the peer line read one table. psychicnum's
-   `answerMessage()` / `peerAnswerMessage()` is the shape.
+1. **The read** — React, SQL and CSS together, for bugs, with findings in
+   the area file; and the folder's non-bug `todo.md` items, worked.
+2. **The vocabularies** (§5), and what is left of the game's module CSS
+   brought down to board geometry and brand color.
 3. **Tile feedback** — the board against [tile-feedback.md](tile-feedback.md).
 
-What psychicnum settled about a game's shape is
-[docs/playarea.md → The shape of a game's PlayArea.tsx](../docs/playarea.md#the-shape-of-a-games-playareatsx).
 Then the two closing steps above, and `docs/games/<game>.md` is deleted into
 `src/<game>/doc.md`.
 

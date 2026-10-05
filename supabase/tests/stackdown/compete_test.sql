@@ -61,7 +61,7 @@ select stackdown.submit_word((select id from g), pg_temp.sd_seq(4));
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(5));
 create temp table win on commit drop as
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(6)) as res;
-select is((select (res->'data'->>'terminal')::boolean from win), true,
+select is((select ended_at is not null from common.games where id = (select id from g)), true,
   'ada''s sixth word ends the game (race)');
 
 reset role;

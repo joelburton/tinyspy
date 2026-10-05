@@ -10,8 +10,8 @@ import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './Board.module.css'
 
-// Tile size is decoupled from grid spacing for readability (ported from
-// the prototype). STEP is the pixels per grid cell; tiles are two cells
+// Tile size is decoupled from grid spacing for readability. STEP is the
+// pixels per grid cell; tiles are two cells
 // apart, so a STEP above TILE/2 opens a gap between same-layer tiles and
 // shrinks the raised-tile overlap (overlap = TILE − STEP), exposing more
 // of each covered letter.
@@ -41,7 +41,9 @@ function depthColor(depth: number): string {
   return DEPTH_FILL[Math.min(depth, DEPTH_FILL.length - 1)]
 }
 
-const align = (c: number) => (c < 0 ? 'flex-start' : c > 0 ? 'flex-end' : 'center')
+function align(c: number) {
+  return c < 0 ? 'flex-start' : c > 0 ? 'flex-end' : 'center'
+}
 
 /** What the live board is marking, by tile id. */
 type BoardMarks = {
@@ -97,13 +99,16 @@ export function Board({
 
   const maxX = Math.max(0, ...tiles.map((t) => t.x))
   const maxY = Math.max(0, ...tiles.map((t) => t.y))
-  // Natural square side in the prototype's px units. Tiles are positioned
+  // Natural square side in px units. Tiles are positioned
   // as PERCENTAGES of it, so the canvas can be sized responsively (see
   // Board.module.css) and the whole stack scales with it — bigger on a
   // roomy viewport, still on-screen on a small one. The geometry is square
   // (maxX === maxY); take the max so a non-square layout would still fit.
   const natural = PAD * 2 + Math.max(maxX, maxY) * STEP + TILE
-  const pct = (px: number) => `${(px / natural) * 100}%`
+
+  function pct(px: number) {
+    return `${(px / natural) * 100}%`
+  }
 
   return (
     <div className={cls(shared.boardSeal, styles.canvas, isViewingHistory && history.historyFrame)}>

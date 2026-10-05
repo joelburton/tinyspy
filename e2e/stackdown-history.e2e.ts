@@ -62,7 +62,7 @@ test.describe('stackdown turn-history viewer', () => {
 })
 
 /**
- * "Restart" + "New game" — the terminal action row's stay-here options,
+ * "Restart" + "New game" — the ending action row's stay-here options,
  * also reachable mid-game from the menu. Replay resets THIS stack (same tiles,
  * same solution, log cleared, title back to "New game"); New game creates a
  * FRESH row from the same setup + roster and navigates to it.

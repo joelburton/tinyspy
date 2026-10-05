@@ -58,7 +58,7 @@ const STOPPED: ZTest_GameDataFacts = {
   outcome: 'neutral',
   players: [{ ...ME, outcome: 'neutral' }],
 }
-/** A solo coop game the clock beat. */
+/** A solo coop game the timer beat. */
 const SOLO_LOST: ZTest_GameDataFacts = {
   ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
   outcome: 'lost',
@@ -210,7 +210,7 @@ describe('stackdown PlayArea — hint', () => {
   it('surfaces the clue when the next word has a hint', async () => {
     const user = userEvent.setup()
     render(<PlayAreaLoader {...makeCtx()} />)
-    rpc.mockResolvedValueOnce(okEnvelope({ result: 'hint', hint: 'a fruit' }, 'warning'))
+    rpc.mockResolvedValueOnce(okEnvelope({ result: 'hint', clue: 'a fruit' }, 'warning'))
     await user.click(screen.getByRole('button', { name: 'Hint for next word' }))
     expect(rpc).toHaveBeenCalledWith('reveal_next_hint', { p_game_id: 'g1' })
     expect(await screen.findByText('Hint: a fruit')).toBeInTheDocument()
@@ -439,7 +439,7 @@ describe('stackdown PlayArea — the board keys', () => {
   })
 
   it('Enter submits five tiles, and is gray with fewer', async () => {
-    rpc.mockResolvedValue(okEnvelope({ result: 'accepted', word: 'clear' }, 'won'))
+    rpc.mockResolvedValue(okEnvelope({ result: 'accepted' }, 'won'))
     render(<WithKeys {...makeCtx(FIVE)} />)
     await typeLetters('cl')
     expect(stateOf('act-submit')).toBe('disabled')
@@ -466,7 +466,7 @@ describe('stackdown PlayArea — the board keys', () => {
   })
 
   it('an accepted word leaves the board before the next blob arrives', async () => {
-    rpc.mockResolvedValue(okEnvelope({ result: 'accepted', word: 'clear' }, 'won'))
+    rpc.mockResolvedValue(okEnvelope({ result: 'accepted' }, 'won'))
     render(<WithKeys {...makeCtx({ tiles: makeRow('CLEARM') })} />)
     await typeLetters('clear')
     await press({ key: 'Enter', code: 'Enter' })
@@ -482,7 +482,7 @@ describe('stackdown PlayArea — the board keys', () => {
     try {
       // NOT A WORD: an `ok` whose data says `invalid`, with the outcome and the
       // sentence on the envelope — no tile moved, so nothing was cleared.
-      rpc.mockResolvedValue(okEnvelope({ result: 'invalid', word: 'clear' }, 'lost', 'Not a word: CLEAR'))
+      rpc.mockResolvedValue(okEnvelope({ result: 'invalid' }, 'lost', 'Not a word: CLEAR'))
       render(<WithKeys {...makeCtx(FIVE)} />)
       await typeLetters('clear')
       await press({ key: 'Enter', code: 'Enter' })

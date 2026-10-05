@@ -15,8 +15,8 @@ import styles from './InfoCol.module.css'
 /**
  * stackdown's info column — near-zero state, just an arrangement of the shared
  * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
- * state readout → OpponentStrip → action row → help → setup disclosure → terminal
- * words reveal → GameEventLog log. Every command arrives as an action this
+ * state readout → OpponentStrip → action row → help → the six words' reveal →
+ * setup disclosure → GameEventLog log. Every command arrives as an action this
  * column places, and the log opens a past turn through `historyView`; PlayArea
  * owns the coordination. See docs/playarea.md.
  */

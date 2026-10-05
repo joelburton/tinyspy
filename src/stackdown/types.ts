@@ -88,14 +88,33 @@ export type GStateLineData = {
 }
 
 /**
- * What a turn was — the four things a `stackdown.events` row can record.
+ * Every answer stackdown gives, mine and a teammate's — the whole roster of
+ * what this game tells anybody about a move. `lib/answer.ts` says what each
+ * one reads as (docs/outcomes.md → How a game does it).
  *
- * The words are the server's own, in both the places it says them: `accepted` /
- * `invalid` are `submit_word`'s `result`, and `hint` / `spoiler` are the row's
- * `kind` column. Reusing them means the row, the envelope and the outcome table
- * (`lib/answer.ts`) never need a translation step between them.
+ * The words are the server's own: `accepted` / `invalid` are `submit_word`'s
+ * `result`, and `hint` / `spoiler` are the row's `kind` column. A keystroke the
+ * board turns away (no tile bears the letter, or more than one does) writes no
+ * row, so it is not here: the pill is its only surface.
  */
-export type GAnswer = 'accepted' | 'invalid' | 'hint' | 'spoiler'
+export type GAnswer =
+  // My word cleared its tiles. It says nothing: the slots flash the word and
+  // the tiles leave, so a line would say it twice.
+  | { answerType: 'accepted' }
+  // A coop teammate's did, off the log.
+  | { answerType: 'accepted_peer'; word: string }
+  // My five tiles spelled something that isn't the next word. Costs the turn.
+  | { answerType: 'invalid'; word: string }
+  // A coop teammate's did.
+  | { answerType: 'invalid_peer'; word: string }
+  // The next word's clue, which points at it without naming it.
+  | { answerType: 'hint'; clue: string }
+  // A teammate took one; the header names the act, not the clue.
+  | { answerType: 'hint_peer' }
+  // The next word, handed over.
+  | { answerType: 'spoiler'; word: string }
+  // A teammate took one; the header names the act, not the word.
+  | { answerType: 'spoiler_peer' }
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
  *  player and `tileIds` into tiles (`GEvent`). */
@@ -245,7 +264,8 @@ export type GEvent = Omit<GEventRaw, 'userId' | 'tileIds'> & {
 }
 
 /** A teammate's word, marked on its tiles (`hooks/useShowTeammateMoves.ts`):
- *  the tiles' ids, and the answer it got. */
+ *  the tiles' ids, and the answer it got — which says both the color the tiles
+ *  wear and whether they are held (only an accepted word took them). */
 export type GPeerWordMark = { tileIds: string[]; answer: GAnswer }
 
 /**

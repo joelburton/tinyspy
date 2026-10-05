@@ -34,17 +34,17 @@ import type { GEvent } from '../types'
 
 /** A past turn, replayed: the board as it stood when the turn was played. */
 type HistorySnapshot = {
-  /** Tiles gone from the board as of the START of this turn — every VALID
-   *  word's at a position strictly before the viewed row's. Feed straight to
-   *  `<Board offBoard>`. */
+  // Tiles gone from the board as of the START of this turn — every VALID
+  // word's at a position strictly before the viewed row's: the stack to show
+  // while the turn is open.
   offTileIds: Set<string>
-  /** Tiles to ring green: this turn's OWN word tiles, but only when the turn is a
-   *  valid word (a hint / spoiler / rejected attempt cleared nothing, so this is
-   *  empty). These tiles are still on the board — the whole point of the
-   *  strictly-before boundary. */
+  // Tiles to ring green: this turn's OWN word tiles, but only when the turn is a
+  // valid word (a hint / spoiler / rejected attempt cleared nothing, so this is
+  // empty). These tiles are still on the board — the whole point of the
+  // strictly-before boundary.
   litTileIds: Set<string>
-  /** A short, name-free label of what the turn did, keyed off its kind and
-   *  verdict. The log row already shows *who* played it, so the actor is omitted. */
+  // A short, name-free label of what the turn did, keyed off its kind and
+  // verdict. The log row already shows *who* played it, so the actor is omitted.
   label: string
 }
 

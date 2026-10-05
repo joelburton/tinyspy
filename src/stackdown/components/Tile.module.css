@@ -4,7 +4,7 @@
  * letter tucked into a free corner via inline justify/align from the
  * component. Size + position are set inline (percentages of the canvas);
  * everything here scales with the board via `cqi` so it looks the same at
- * any board size. 6cqi ≈ the prototype's 1.35rem at the natural size. */
+ * any board size. */
 /* @@ */ .tile {
   position: absolute;
   display: flex;
@@ -52,8 +52,6 @@
     var(--stackdown-tile-shadow);
 }
 
-/* Covered (disabled) tiles fade back so the clickable frontier reads as
- * the bright layer. */
 /* The letter on a tile. Positioned so it sits ABOVE the shared attention flash,
  * which is an overlay drawn inside the tile — the same lift the shared
  * `.tileWord` takes for the same reason. */
@@ -62,6 +60,8 @@
   z-index: 1;
 }
 
+/* Covered (disabled) tiles fade back so the clickable frontier reads as
+ * the bright layer. */
 /* @@ */ .tile:disabled {
   opacity: 0.92;
 }
@@ -70,11 +70,6 @@
  * plans/dark-mode.md. A stand-in for stackdown's tile-feedback pass, put here in
  * minutes so the midnight spike had a hover it could actually judge; the real tf
  * pass should treat none of it as decided.
- *
- * It was a blue border (`--button-normal-primary-color`), which is a CONTROL
- * color on a game piece — its own small bug, and worth fixing whatever happens
- * to dark mode. It also made stackdown useless for the one question being asked
- * of it: does a shadow read as hover on a dark page.
  *
  * The pair matches what the CONVERTED games do — connections and wordle wear the
  * shared `.tile` hover, which deepens the shadow AND rises. The two are one
@@ -101,9 +96,8 @@
  * DECLARED AFTER THE HOVER, and that is load-bearing rather than tidy: the two
  * selectors have identical specificity and both set `transform`, so source order
  * is the only thing deciding which one a moused press gets — and a mouse is
- * always hovering what it presses. With this rule first, hover won and the press
- * feedback was dead on every desktop click. The shared tile orders them this way
- * for the same reason. */
+ * always hovering what it presses. The shared tile orders them this way for the
+ * same reason. */
 /* @@ */ .tile:not(:disabled):active {
   transform: scale(0.94);
 }

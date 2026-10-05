@@ -11,7 +11,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { WordEntryRow } from '@/common/word-entry/WordEntryRow'
 import { exposedIds } from '../lib/board'
-import { ANSWER_OUTCOME } from '../lib/answer'
+import { answerMessage } from '../lib/answer'
 import { useWordMove } from '../hooks/useWordMove'
 import type { GGameData, GHistoryView, GPeerWordMark, GTile } from '../types'
 import { Board } from './Board'
@@ -56,16 +56,40 @@ export function BoardCol({
   // the answer's color.
   peerMark: Mark<GPeerWordMark> | null
 }) {
-  const move = useWordMove(gd, localFeedbackSlot)
+  // ─── Which board is on screen ─────────────────────────────────
+  // Live, or a past turn's (PlayArea picks); everything that would write to the
+  // board answers to it.
 
   // The board responds to me: the move is mine, on the live board (any key
   // over a past turn leaves history instead). stackdown does not draft
   // off-turn, so submitting asks what picking asks.
   const isInteractive = gd.me.onTurn && !historyView.isViewing
 
-  // ─── Send the word ────────────────────────────────────────────
-  // A word is exactly five tiles, so that's the whole submit gate. The send is
-  // this action's run, so its `pending` is the word in flight.
+  // The marks a live board wears are all empty while a past turn is open: that
+  // board is a record, and nothing is happening on it.
+  //
+  // A teammate's accepted word is HELD on the board for the length of its
+  // mark: the tiles the server has already taken stay drawn, and inert, until
+  // the answer has been read. Otherwise the news and the change are one event —
+  // the tiles you are being told about are already gone by the time you look.
+  const heldTileIds = useMemo(
+    () => (!historyView.isViewing && peerMark?.value.answer.answerType === 'accepted_peer'
+      ? new Set(peerMark.value.tileIds)
+      : NO_TILES),
+    [historyView.isViewing, peerMark],
+  )
+  // A teammate's answer, once the attention flash has handed the tiles back.
+  const boardAnswer = !historyView.isViewing && peerMark?.phase === 'answer'
+    ? { tileIds: new Set(peerMark.value.tileIds), outcome: answerMessage(peerMark.value.answer).outcome }
+    : null
+
+  // ─── The pending move ─────────────────────────────────────────
+  // The word being built and its trip to the server (`useWordMove`), and the
+  // column's three keys.
+  const move = useWordMove(gd, localFeedbackSlot)
+
+  // Send the word. A word is exactly five tiles, so that's the whole submit
+  // gate. The send is this action's run, so its `pending` is the word in flight.
   const canSubmit = isInteractive && move.currentWord.tileIds.length === 5
   const actSubmit = useBindAction('act-submit', {
     describe: () => (canSubmit ? 'active' : 'disabled'),
@@ -75,33 +99,6 @@ export function BoardCol({
   // May I pick or take back a tile right now? The board responds to me, and no
   // word is with the server.
   const canPick = isInteractive && !actSubmit.pending
-
-  // ─── The marks a live board wears ─────────────────────────────
-  // All empty while a past turn is open: that board is a record, and nothing
-  // is happening on it.
-  //
-  // A teammate's accepted word is HELD on the board for the length of its
-  // mark: the tiles the server has already taken stay drawn, and inert, until
-  // the answer has been read. Otherwise the news and the change are one event —
-  // the tiles you are being told about are already gone by the time you look.
-  const heldTileIds = useMemo(
-    () => (!historyView.isViewing && peerMark?.value.answer === 'accepted'
-      ? new Set(peerMark.value.tileIds)
-      : NO_TILES),
-    [historyView.isViewing, peerMark],
-  )
-  // The attention flash: a teammate's word before its answer shows, and my own
-  // refused tiles as they land back.
-  const attentionTileIds = useMemo(() => {
-    if (historyView.isViewing) return NO_TILES
-    const tileIds = new Set(move.returnedTileIds)
-    if (peerMark?.phase === 'attention') for (const id of peerMark.value.tileIds) tileIds.add(id)
-    return tileIds
-  }, [historyView.isViewing, move.returnedTileIds, peerMark])
-  // A teammate's answer, once the attention flash has handed the tiles back.
-  const boardAnswer = !historyView.isViewing && peerMark?.phase === 'answer'
-    ? { tileIds: new Set(peerMark.value.tileIds), outcome: ANSWER_OUTCOME[peerMark.value.answer] }
-    : null
 
   // The tiles not drawn: the stack to show's, and — live — the word being
   // built and an accepted word not yet gone from the blob, less a teammate's
@@ -125,8 +122,7 @@ export function BoardCol({
   )
   const ambiguousTileIds = ambiguousMark?.value.tileIds ?? NO_TILES
 
-  // ─── Tile click → extend the word ─────────────────────────────
-  // Filling the fifth slot deliberately does NOT submit: the word sits there
+  // A tile click extends the word. Filling the fifth slot deliberately does NOT submit: the word sits there
   // until you commit it with the Submit button or Enter, so a wrong fifth tile
   // is recoverable — the last tile is just another tile.
   function pickTile(tile: GTile) {
@@ -136,8 +132,7 @@ export function BoardCol({
     move.currentWord.appendTile(tile.id)
   }
 
-  // ─── Take a tile back ─────────────────────────────────────────
-  // The predicate also drives the button's `disabled`, so the key and the
+  // Take a tile back. The predicate also drives the button's `disabled`, so the key and the
   // button can't disagree about what's possible right now.
   const canDelete = canPick && move.currentWord.tileIds.length > 0
 
@@ -151,8 +146,7 @@ export function BoardCol({
     move.currentWord.retractTo(move.currentWord.tileIds.length - 1)
   }
 
-  // ─── The board's other two keys ───────────────────────────────
-  // Each is ONE action behind both its control and its key, as Submit is.
+  // The column's other two keys. Each is ONE action behind both its control and its key, as Submit is.
   // DISABLED rather than hidden where they don't apply: the ⌫ / Submit buttons
   // keep their slot so the region never reflows (the reserve-the-slot rule,
   // docs/ui.md). A control that stayed live over a frozen board would be lying
@@ -173,7 +167,7 @@ export function BoardCol({
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // A letter plays the matching tile — but ONLY if exactly one exposed tile
-  // bears it: the word is the selection order, so an ambiguous letter can't
+  // bears it: the word is the pick order, so an ambiguous letter can't
   // pick for you. 0 matches is an error; >1 flashes the candidates and asks you
   // to click one. A pattern action, so it is handed whichever letter fired it.
   useBindAction('act-pick-tile', {
@@ -201,10 +195,20 @@ export function BoardCol({
     },
   })
 
+  // ─── Render ───────────────────────────────────────────────────
+
+  // The attention flash: a teammate's word before its answer shows, and my own
+  // refused tiles as they land back.
+  const attentionTileIds = useMemo(() => {
+    if (historyView.isViewing) return NO_TILES
+    const tileIds = new Set(move.returnedTileIds)
+    if (peerMark?.phase === 'attention') for (const id of peerMark.value.tileIds) tileIds.add(id)
+    return tileIds
+  }, [historyView.isViewing, move.returnedTileIds, peerMark])
+
   return (
-    // Exit-on-click is intrinsic to the viewer now (useHistoryViewer's document
-    // listener + the click-through `.historyFrame`), so the board column needs no click
-    // handler — a click anywhere returns to live.
+    // No click handler: leaving a past turn on a click is the viewer's own
+    // (`useHistoryViewer`) — a click anywhere returns to live.
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <Board
         tiles={gd.puzzle.tiles}
@@ -246,7 +250,7 @@ export function BoardCol({
             active={canPick && !move.isRefused}
             onRetract={move.currentWord.retractTo}
             flash={move.flash}
-            verdict={move.isRefused ? ANSWER_OUTCOME.invalid : null}
+            verdict={move.refusedOutcome}
           />
         </WordEntryRow>
         {/* The LOCAL feedback area — reserves its own height (shared

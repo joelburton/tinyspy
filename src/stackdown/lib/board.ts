@@ -1,14 +1,13 @@
 // cs-unmet
 
 /**
- * stackdown — the board geometry + stacking logic, ported verbatim
- * from the prototype's `core.ts` / `main.tsx` (the throwaway tool that
- * pinned the rules down). Pure functions, no React, no supabase — the
- * board, the board column and the printout all lean on these.
+ * stackdown — the board geometry + stacking logic. Pure functions, no
+ * React, no supabase — the board, the board column and the printout all
+ * lean on these.
  *
  * The mental model: 30 lettered tiles sit on a fixed grid, some raised
  * onto higher layers so they overlap (and hide) the tiles below. A tile
- * is *exposed* (selectable) when nothing remaining covers it. A word is
+ * is *exposed* (pickable) when nothing remaining covers it. A word is
  * the ORDER tiles are picked, each pick only legal if exposed at that
  * moment — so the same five letters can spell different words depending
  * on the reveal order (BROAD vs BOARD). The server is the authority on
@@ -31,13 +30,11 @@ export function covers(a: GTile, b: GTile): boolean {
 }
 
 /**
- * Which tiles are OFF the board — the rule the screen, the printout and every
- * per-player print track all read.
+ * Which tiles are OFF a stack — the rule the screen, the printout and every
+ * per-player print track all read, given the tiles cleared from it.
  *
- * While playing: the tiles spent on accepted words, plus the ones currently
- * picked up into the word being built.
- *
- * Once the game has ended it turns on whether the stack came DOWN:
+ * While playing: the cleared tiles. Once the game has ended it turns on whether
+ * the stack came DOWN:
  *   - **cleared** → nothing is off. Every tile goes back, because a cleared
  *     board would otherwise be blank and the finished stack is the thing worth
  *     reviewing.
@@ -46,28 +43,20 @@ export function covers(a: GTile, b: GTile): boolean {
  *     "Lost: stack not cleared", which claims they got nowhere; where they
  *     actually stopped is the whole record of how it went.
  *
- * `currentWord` is deliberately ignored once ended: those tiles were picked up
- * but never spent, so they're still on the stack.
- *
  * Lives here, not in the PlayArea, because compete prints one board PER PLAYER
- * and each of those has to answer the same question about someone else's
- * submissions — and because it was written twice (screen and paper) before this,
- * agreeing only by hand.
+ * and each of those has to answer the same question about someone else's stack.
  */
 export function offBoardIds(
   tiles: GTile[],
   cleared: Iterable<string>,
-  currentWord: Iterable<string>,
   ended: boolean,
 ): Set<string> {
   const off = new Set<string>(cleared)
-  if (ended) return off.size >= tiles.length ? new Set<string>() : off
-  for (const id of currentWord) off.add(id)
-  return off
+  return ended && off.size >= tiles.length ? new Set<string>() : off
 }
 
 /**
- * IDs of the tiles that are exposed (selectable) given a set of
+ * IDs of the tiles that are exposed (pickable) given a set of
  * already-removed tile IDs. A tile is exposed when, among the tiles
  * that remain, none covers it. Mirrors `stackdown._is_exposed` on the
  * server — the FE uses it to gate clicks and dim un-clickable tiles.

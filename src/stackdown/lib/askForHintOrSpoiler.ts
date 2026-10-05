@@ -5,6 +5,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
+import { answerMessage } from './answer'
 import type { GGameData } from '../types'
 
 /** What the two rungs put in `data`. Each has exactly one `ok` answer today,
@@ -12,7 +13,7 @@ import type { GGameData } from '../types'
  *  merely matching `ok` (docs/envelopes.md → Choosing which `ok` branch), or a
  *  second answer added to either RPC would be drawn as this one, silently. */
 type SpoilerAnswer = { result: 'spoiler'; word: string }
-type HintAnswer = { result: 'hint'; hint: string }
+type HintAnswer = { result: 'hint'; clue: string }
 
 /**
  * The hint ladder's two rungs, asked of the server for the next word I still
@@ -35,8 +36,9 @@ export async function askForHintOrSpoiler(
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
-    } else if (res.type === 'ok' && res.data.result === 'hint' && res.outcome !== null) {
-      localFeedbackSlot.show(FeedbackMessage.hint(res.outcome, `Hint: ${res.data.hint}`))
+    } else if (res.type === 'ok' && res.data.result === 'hint') {
+      const { outcome, text } = answerMessage({ answerType: 'hint', clue: res.data.clue })
+      localFeedbackSlot.show(FeedbackMessage.hint(outcome, text))
       return
     } else {
       reportUnhandled('reveal_next_hint', res)
@@ -48,13 +50,9 @@ export async function askForHintOrSpoiler(
   if (res.type === 'not-ok') {
     localFeedbackSlot.show(FeedbackMessage.notOk(res))
     return
-  } else if (res.type === 'ok' && res.data.result === 'spoiler' && res.outcome !== null) {
-    // The server sends no sentence — the word IS the answer, and only the
-    // surface knows it belongs in a "Next word:" line. What it does send is how
-    // that reads, so the outcome is the other half of this case's promise.
-    localFeedbackSlot.show(
-      FeedbackMessage.hint(res.outcome, `Next word: ${res.data.word.toUpperCase()}`),
-    )
+  } else if (res.type === 'ok' && res.data.result === 'spoiler') {
+    const { outcome, text } = answerMessage({ answerType: 'spoiler', word: res.data.word })
+    localFeedbackSlot.show(FeedbackMessage.hint(outcome, text))
     return
   } else {
     reportUnhandled('reveal_next_word', res)

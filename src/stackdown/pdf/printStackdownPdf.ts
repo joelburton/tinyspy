@@ -152,8 +152,8 @@ function drawCleared(doc: jsPDF, x: number, y: number): number {
 }
 
 /**
- * The six words, in clearing order — the reveal, and terminal-only (the model
- * won't hand them over before then; the server won't either).
+ * The six words, in clearing order — the reveal, and only once the game has
+ * ended (the model won't hand them over before then; the blob won't either).
  */
 function drawSolution(doc: jsPDF, words: string[], x: number, y: number, colW: number): number {
   doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK)

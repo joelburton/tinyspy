@@ -10,9 +10,9 @@ import type { GSetup } from '../types'
  * stackdown's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  *
- * "Tiles: 30" and "Words to clear: 6" have gone. Both were on the old
- * info-column list, and both are game CONSTANTS rather than controls the dialog
- * offers — the setup rows are the dialog read back, nothing more. They belong in Help.
+ * No "Tiles: 30" or "Words to clear: 6": both are game CONSTANTS rather than
+ * controls the dialog offers — the setup rows are the dialog read back, nothing
+ * more. They belong in Help.
  */
 export function makeSetupRows(
   setup: GSetup,

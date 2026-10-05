@@ -5,7 +5,7 @@ import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
-import { ANSWER_OUTCOME, answerOf } from '../lib/answer'
+import { answerMessage, peerAnswerOf } from '../lib/answer'
 import type { GGameData, GPeerWordMark } from '../types'
 
 /**
@@ -35,20 +35,12 @@ export function useShowTeammateMoves(
     keyOf: (e) => String(e.id),
     messageFor: (e) => {
       if (e.by === gd.me) return null
-      if (e.kind === 'hint') return FeedbackMessage.peer(e.by, ANSWER_OUTCOME.hint, 'revealed a hint')
-      if (e.kind === 'spoiler') return FeedbackMessage.peer(e.by, ANSWER_OUTCOME.spoiler, 'took a spoiler')
-      // A word: ALSO mark its tiles on the board. Safe to fire here — the hook
+      const answer = peerAnswerOf(e)
+      // A word ALSO marks its tiles on the board. Safe to fire here — the hook
       // calls messageFor exactly once per NEW row, inside its effect.
-      const answer = answerOf(e)
-      showPeerMark({ tileIds: e.tiles.map((t) => t.id), answer }, { attention: true })
-      const word = e.word!.toUpperCase()
-      // "tried X" (not "tried X — not a word"): the header fits ~26 chars on a
-      // phone and ellipsizes silently, and the outcome already says it failed.
-      return FeedbackMessage.peer(
-        e.by,
-        ANSWER_OUTCOME[answer],
-        answer === 'accepted' ? `found ${word}` : `tried ${word}`,
-      )
+      if (e.kind === 'word') showPeerMark({ tileIds: e.tiles.map((t) => t.id), answer }, { attention: true })
+      const { outcome, text } = answerMessage(answer)
+      return FeedbackMessage.peer(e.by, outcome, text)
     },
     globalFeedbackSlot,
   })

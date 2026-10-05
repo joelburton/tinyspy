@@ -546,13 +546,13 @@ drop function if exists stackdown.submit_word(uuid, int[]);
 -- ============================================================
 -- stackdown.submit_word — the core move
 -- ============================================================
--- Submit a 5-tile ordered selection. The server validates that the tiles
--- are present and REVEAL-RESPECTING (each exposed when selected) — an FE
+-- Submit a 5-tile word, in pick order. The server validates that the tiles
+-- are present and REVEAL-RESPECTING (each exposed when picked) — an FE
 -- that submits otherwise is rejected hard — then reads the word off the
 -- order and checks it against the next solution word (no dictionary: the
 -- board only exposes the six solution words). EVERY submission is logged;
--- an invalid one is a soft reject (the FE returns the tiles + logs "invalid
--- word"), a valid one removes the tiles and advances. The sixth valid word
+-- an invalid one is an `ok` refusal whose tiles go back on the board, a valid
+-- one removes the tiles and advances. The sixth valid word
 -- ends the game `reached_goal`/'cleared': in coop the team is ranked 1, in
 -- compete the caller alone (the race ends when decided).
 --
@@ -577,7 +577,6 @@ declare
   is_word        boolean;
   new_found      int;
   team_found     int;
-  out_terminal   boolean := false;
   v_rankings     jsonb;
   v_answer       jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
@@ -594,7 +593,7 @@ begin
 
   select ended_at, mode into v_ended_at, v_mode from common.games where id = p_game_id;
   if v_ended_at is not null then
-    -- A race: a teammate ended it, or the clock ran out, while this word was
+    -- A race: a teammate ended it, or the timer ran out, while this word was
     -- in flight.
     perform common._raise_game_over();
   end if;
@@ -636,8 +635,8 @@ begin
   end if;
   if p_tile_ids && removed then
     -- A race: coop's stack is one shared object, so a teammate's word takes
-    -- your tiles between your pick and your submit. They leave by realtime, so
-    -- no local gate can see it coming.
+    -- your tiles between your pick and your submit. They leave with the next
+    -- page blob, so no local gate can see it coming.
     raise exception 'Someone cleared those tiles'
       using errcode = 'PN291', hint = 'race', column = '_',
       detail = 'a submitted tile has already been cleared';
@@ -675,12 +674,10 @@ begin
 
   if not is_word then
     -- `ok`: a game-rule refusal is the rules being applied, and nothing was
-    -- cleared. `data` carries the case; the sentence names the word, because by
-    -- the time it is read the tiles are back on the board and the word is gone
-    -- from the screen.
-    v_answer := common._ok_envelope(
-      jsonb_build_object('result', 'invalid', 'word', w, 'terminal', false),
-      'lost', format('Not a word: %s', upper(w)));
+    -- cleared. `data` carries the case and nothing else: how it reads — the
+    -- outcome and the words — is the frontend's lib/answer.ts, which reads the
+    -- log row this wrote the same way (docs/outcomes.md → How a game does it).
+    v_answer := common._ok_envelope(jsonb_build_object('result', 'invalid'));
   else
     -- ─── Accepted: remove tiles (implicitly, via the valid row), advance ──
     update stackdown.players
@@ -699,7 +696,6 @@ begin
          set title = stackdown._found_title(g_row.solution, team_found)
        where id = p_game_id;
       if team_found >= array_length(g_row.solution, 1) then
-        out_terminal := true;
         update common.game_players
            set solved_at = now()
          where game_id = p_game_id;
@@ -714,7 +710,6 @@ begin
     else
       -- Compete is a RACE: the first to clear all six wins immediately.
       if new_found >= array_length(g_row.solution, 1) then
-        out_terminal := true;
         update common.game_players
            set solved_at = now()
          where game_id = p_game_id and user_id = caller_id;
@@ -726,9 +721,8 @@ begin
       end if;
     end if;
 
-    -- No message: the tiles clearing is the answer.
-    v_answer := common._ok_envelope(
-      jsonb_build_object('result', 'accepted', 'word', w, 'terminal', out_terminal), 'won');
+    -- The case alone, as for a refusal above.
+    v_answer := common._ok_envelope(jsonb_build_object('result', 'accepted'));
   end if;
 
   perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
@@ -827,11 +821,8 @@ begin
 
   perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  -- A spoiler is RED. Its price is the whole hunt for this word — there is
-  -- nothing left to find, so it reads as a loss and not as the amber caution a
-  -- hint wears (the frontend's lib/answer.ts says the same
-  -- word for the row this wrote). No message — the word IS the answer, and the
-  -- surface shows it.
+  -- The case and the word, and nothing about how it reads: that is the
+  -- frontend's lib/answer.ts (docs/outcomes.md → How a game does it).
   --
   -- `result` names the case even though there is only one today: a call site
   -- may not take an `ok` branch by merely matching `ok` (docs/envelopes.md →
@@ -839,8 +830,7 @@ begin
   -- be rendered as this one, silently. The word is the row's own `kind`, so the
   -- envelope and the row it wrote say the same thing — and "reveal" is taken on
   -- this page by the action that shows the WHOLE solution at game over.
-  return common._ok_envelope(
-    jsonb_build_object('result', 'spoiler', 'word', next_word), 'lost');
+  return common._ok_envelope(jsonb_build_object('result', 'spoiler', 'word', next_word));
 
 exception when others then
   get stacked diagnostics
@@ -946,12 +936,10 @@ begin
 
   perform stackdown._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  -- Amber: a hint is a nudge, neither good nor bad play (the spoiler beside it
-  -- is red, because it ends the hunt rather than nudging it). No message — the
-  -- clue IS the answer. `result` names the case for the same reason as
-  -- reveal_next_word's.
-  return common._ok_envelope(
-    jsonb_build_object('result', 'hint', 'hint', hint_text), 'warning');
+  -- The case and the clue, named `clue` as the page blob's hint row names it;
+  -- how it reads is lib/answer.ts's, as for reveal_next_word. `result` names the
+  -- case for the same reason as reveal_next_word's.
+  return common._ok_envelope(jsonb_build_object('result', 'hint', 'clue', hint_text));
 
 exception when others then
   get stacked diagnostics
@@ -1153,8 +1141,8 @@ begin
   -- The row check comes BEFORE the membership gate, and the order is the whole
   -- point: `delete_game` takes this row, `common.games` and every
   -- `game_players` row together, so a caller whose game was just deleted has no
-  -- membership left either. Gate-first told them "You are not in this game",
-  -- which is both wrong and unhelpful — they WERE in it; it is gone.
+  -- membership left either, and "You are not in this game" would be both
+  -- wrong and unhelpful — they WERE in it; it is gone.
   perform common._require_game_player(p_game_id);
 
   update stackdown.players

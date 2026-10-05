@@ -29,18 +29,18 @@ export type PrintTurn = TurnRow
  * does).
  */
 export type PrintTrack = {
-  /** Column heading — "Team", or a player's name. */
+  // Column heading — "Team", or a player's name.
   who: string
-  /** The tiles still on THIS board. Empty once it's cleared. */
+  // The tiles still on THIS board. Empty once it's cleared.
   tiles: GTile[]
-  /** Words cleared on this board, as a line under it. */
+  // Words cleared on this board, as a line under it.
   result: string
   turns: PrintTurn[]
 }
 
 export type StackdownPrintModel = PrintHeader & {
   tracks: PrintTrack[]
-  /** The six words, in clearing order. Once ended only; null during play. */
+  // The six words, in clearing order. Once ended only; null during play.
   solution: string[] | null
 }
 
@@ -65,17 +65,17 @@ export function buildStackdownPrintModel(o: {
   date: string
   mode: 'coop' | 'compete'
   ended: boolean
-  /** The WHOLE stack — every tile the board started with. */
+  // The WHOLE stack — every tile the board started with.
   tiles: GTile[]
-  /** Every player, each with the stack their seat sees — null for a rival
-   *  mid-race, whose board is withheld. */
+  // Every player, each with the stack their seat sees — null for a rival
+  // mid-race, whose board is withheld.
   players: GPlayer[]
   me: GPlayer & { board: GBoard }
-  /** The turns I may see: everyone's in coop, mine alone mid-race. */
+  // The turns I may see: everyone's in coop, mine alone mid-race.
   events: GEvent[]
-  /** The six words, in clearing order, while they are on screen; else null. */
+  // The six words, in clearing order, while they are on screen; else null.
   solution: string[] | null
-  /** Words cleared — the team's in coop, mine in compete — and the six to clear. */
+  // Words cleared — the team's in coop, mine in compete — and the six to clear.
   nFoundWords: number
   nReqdWords: number
   setupRows: SetupRow[]
@@ -88,7 +88,7 @@ export function buildStackdownPrintModel(o: {
     const cleared = o.tiles.filter((t) => !onBoard.has(t.id)).map((t) => t.id)
     // The SAME rule the screen uses, applied per board: a cleared stack comes
     // back for review, an uncleared one stays where it stopped.
-    const off = offBoardIds(o.tiles, cleared, [], o.ended)
+    const off = offBoardIds(o.tiles, cleared, o.ended)
     return {
       who,
       tiles: o.tiles.filter((t) => !off.has(t.id)),

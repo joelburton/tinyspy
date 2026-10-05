@@ -9,20 +9,19 @@ import styles from './WordEntry.module.css'
 
 /**
  * The word being built, shown as five slots below the board. Each filled
- * slot is the letter of a tile that's been picked up, in selection
+ * slot is the letter of a tile that's been picked up, in pick
  * order. Clicking a filled slot returns that tile AND every tile after
  * it to the board (the word is an order — you can't pull one from the
  * middle and keep the rest), via `onRetract(index)`.
  *
- * Five empty slots when nothing's selected, so the entry row keeps its
+ * Five empty slots when nothing is picked, so the entry row keeps its
  * footprint and reads as "spell a 5-letter word here."
  *
  * When `flash` is set and no new word is in progress, its letters show
  * for a beat in the flash's outcome color — the one that answer wears
- * everywhere else — driven by the PlayArea's flash timer. The flash is
- * suppressed the
- * instant the player starts spelling (currentWord wins), so it never
- * stomps an in-progress word.
+ * everywhere else — on the move's timer (`useWordMove`). The flash is
+ * suppressed the instant the player starts spelling (currentWord wins), so
+ * it never stomps an in-progress word.
  */
 export function WordEntry({
   tiles,
@@ -37,18 +36,18 @@ export function WordEntry({
   active: boolean
   onRetract: (index: number) => void
   flash?: GWordFlash | null
-  /** An answer for the word STILL IN THE SLOTS — a refusal, whose five tiles
-   *  stay off the board until the beat ends. `flash` is the other half of the
-   *  same idea, for a word the buffer has already let go of. */
+  // An answer for the word STILL IN THE SLOTS — a refusal, whose five tiles
+  // stay off the board until the beat ends. `flash` is the other half of the
+  // same idea, for a word the buffer has already let go of.
   verdict?: Outcome | null
 }) {
-  const letterOf = (id: string) => tiles.find((t) => t.id === id)?.letter ?? '?'
+  const letterOf = (id: string) => tiles.find((t) => t.id === id)!.letter
 
   // The flash takes over the row only while nothing new is being spelled
   // (the moment a tile is picked, currentWord wins).
   const showFlash =
     currentWord.length === 0 && !!flash && flash.tileIds.length > 0
-  /** The outcome the slots wear, from whichever half of the answer is showing. */
+  // The outcome the slots wear, from whichever half of the answer is showing.
   const outcome = verdict ?? (showFlash ? flash.outcome : null)
   const answering = outcome !== null
 

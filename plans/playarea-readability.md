@@ -324,11 +324,10 @@ every PlayArea.
 
 ## 4. How a game area applies this
 
-An area's own process is [app-audit.md → §4](app-audit.md#4-the-area-process--stamps-areas-and-what-broken-means):
-list the files, read the folder's `todo.md`, the prose pass, then findings one
-at a time. This plan enters at the findings: after the prose pass, walk §3 top
-to bottom and record each as a finding with options in the area file. Two
-rules on top:
+A game's conversion applies this, not its audit (Joel, 2026-10-05;
+[seat-view.md → How a game converts](seat-view.md#how-a-game-converts--the-steps)):
+the component passes walk §3 and each open item is a proposal with options.
+Two rules on top:
 
 - **psychicnum settles the shape.** Section order (3.2), the menu order and
   whether the builder grows slots (3.3), `buildOver`'s file name (3.4), and

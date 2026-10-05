@@ -16,8 +16,8 @@ import type { Actor } from '@/common/members/member'
  *
  * The words come from the game's ending; the outcome is MINE, as the database
  * wrote it (`common.game_players.outcome`), never worked out here. Coop wins by
- * clearing the stack and loses only to the clock. Compete is a race: the first
- * to clear wins, and the clock or every racer conceding ends it with no winner.
+ * clearing the stack and loses only to a timeout. Compete is a race: the first
+ * to clear wins, and the timer or every racer conceding ends it with no winner.
  *
  * Call it only when the game HAS ended; it has no answer for a live one.
  */
@@ -28,7 +28,7 @@ export function buildGameEndingMessage({
   winner,
 }: {
   mode: 'coop' | 'compete'
-  // How the game ended: a clear (`reached_goal`), the clock (`timeout`), every
+  // How the game ended: a clear (`reached_goal`), the timer (`timeout`), every
   // racer dropping out (`conceded`), or a Stop (`neutral`).
   gameEnding: Pick<GameEnding, 'outcome' | 'reason'>
   // How I came out, written with the game's ending.

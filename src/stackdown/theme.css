@@ -11,22 +11,20 @@
      they take the same near-black ink. A game-named alias keeps the override seam. */
 /* @@ */   --stackdown-tile-ink: var(--tile-slot-ink-color);
 
-  /* ── Board chrome, named during the palette sweep ─────────────────────────
+  /* ── Board chrome ─────────────────────────────────────────────────────────
    * A stack of tiles that OVERLAP, so the edge and the drop shadow are doing
    * real work: they separate a tile from the one beneath it. Sized in `cqi` so
-   * they scale with the board. Values unchanged. */
+   * they scale with the board. */
 /* @@ */   --stackdown-tile-edge-color: rgb(0 0 0 / 20%);
 /* @@ */   --stackdown-tile-shadow:     0 0.4cqi 0.8cqi rgb(0 0 0 / 28%);
 
   /* HOVER — ⚠️ WRITTEN FAST, TO TEST DARK MODE, AND NOT CAREFULLY CONSIDERED.
      See plans/dark-mode.md.
 
-     stackdown is pre-tf, so its hover was a blue ring borrowed from the button
-     palette; that made it useless for the one question being asked of it, so it
-     was swapped for the depth cue the converted games use. This is a
-     mini-version of the tile-feedback pass, not the pass — the values here were
-     picked in minutes to get something on screen, and stackdown's real tf pass
-     should treat none of them as decided.
+     The depth cue the converted games use, as a mini-version of the
+     tile-feedback pass, not the pass — the values here were picked in minutes
+     to get something on screen, and stackdown's real tf pass should treat none
+     of them as decided.
 
      FARTHER AND SOFTER, which is what elevation is: the drop trebles, the blur
      doubles, the alpha barely moves — the same relationship the shared

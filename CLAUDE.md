@@ -156,18 +156,19 @@ describes the target. When a plan's work ships, its durable knowledge moves into
 
 **app-audit is the live sprint, and the only one.** It is an area-by-area walk
 through the whole app's React, SQL and CSS together. Its per-area records are
-`plans/areas/<area>.md`. Two plans are design targets read per area rather than
-sprints of their own: tile-feedback (the board's feedback) and
-playarea-readability (the shape of `PlayArea.tsx`). When app-audit opens a
-game's area, consult both.
+`plans/areas/<area>.md`. A game's STRUCTURE is not the audit's: the seat-view
+conversion puts each game in the audited games' shape, and nothing deploys
+until every game is through it (Joel, 2026-10-05). playarea-readability and
+component-readability are read per conversion; tile-feedback (the board's
+feedback) is read when app-audit opens a game's area.
 
 | file | the work |
 |---|---|
 | [plans/app-audit.md](plans/app-audit.md) | **The live sprint.** Start a session here: "Where to start" says what's next |
 | [plans/cross-game-consistency.md](plans/cross-game-consistency.md) | The six closed games checked against each other; worked before the ten remaining games open |
 | [plans/tile-feedback.md](plans/tile-feedback.md) | The design target for board feedback; read it per game area |
-| [plans/playarea-readability.md](plans/playarea-readability.md) | The target shape for each game's `PlayArea.tsx`; read it per game area |
-| [plans/component-readability.md](plans/component-readability.md) | What psychicnum settled for `gd`, the endings, PlayArea, Board/BoardCol and InfoCol; read it per game area, beside playarea-readability |
+| [plans/playarea-readability.md](plans/playarea-readability.md) | The target shape for each game's `PlayArea.tsx`; read it per conversion |
+| [plans/component-readability.md](plans/component-readability.md) | What psychicnum settled for `gd`, the endings, PlayArea, Board/BoardCol and InfoCol; read it per conversion, beside playarea-readability |
 | [plans/common-tables.md](plans/common-tables.md) | Where a game's facts live: `common.games`, `common.game_players`, `<game>.games`; builds cross-game-consistency's step 7, and holds the order of what is left |
 | [plans/seat-view.md](plans/seat-view.md) | **Decided, being built.** No spectating; `auth`; `gd.me` is my player; every seat fact on the player type; the page is three builder-written blobs on `common.games`. Pauses the game passes until the three converted games carry it |
 | [plans/team-facts.md](plans/team-facts.md) | **Decided, not started.** `gd.team` holds what the team shares, null when there is no team; a player's keys are their own in every mode; a loose copy of a path is spelled `group_leaf` |

@@ -36,24 +36,24 @@ select is(
 select is(
   (select stackdown.reveal_next_word((select id from g))->'data'->>'result'),
   'spoiler', 'the spoiler answer names its case, in the row''s own word');
--- A spoiler is RED and a hint is amber (asserted in the envelope below) — the
--- two halves of the hint/spoiler ruling. src/stackdown/lib/answer.ts says the
--- same two words for the rows these write, which is this test's other language.
+-- Neither request carries an outcome (the hint's envelope below asserts it
+-- too): a spoiler's red and a hint's amber are src/stackdown/lib/answer.ts's,
+-- pinned by its test.
 select is(
-  (select stackdown.reveal_next_word((select id from g))->>'outcome'),
-  'lost', 'a spoiler ends the hunt for its word → lost');
+  (select stackdown.reveal_next_word((select id from g))->'outcome'),
+  'null'::jsonb, 'a spoiler carries no outcome');
 
 -- reveal_next_hint returns the next word's HINT (not the word). Every
 -- stackdown word is in common.words' hint set, so the hint is present.
 select is(
-  (select stackdown.reveal_next_hint((select id from g))->'data'->>'hint'),
+  (select stackdown.reveal_next_hint((select id from g))->'data'->>'clue'),
   (select hint from common.words where word = 'eagle'),
   'reveal_next_hint → the next word''s hint (EAGLE''s)');
 -- A word with no hint is a FAULT, not an empty answer — so "the hint is
 -- present" is asserted as the envelope being ok, which is the same claim.
 select pg_temp.envelope_is(
   stackdown.reveal_next_hint((select id from g)),
-  '{"type":"ok","outcome":"warning","message":null,"data":{"result":"hint"}}'::jsonb,
+  '{"type":"ok","outcome":null,"message":null,"data":{"result":"hint"}}'::jsonb,
   'the hint is present (stackdown words are all in the hint set)');
 
 -- ── Requesting logs a persistent row (deduped per word) ─────────────

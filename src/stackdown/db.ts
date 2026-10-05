@@ -8,9 +8,7 @@ import { supabase } from '@/common/supabase/supabase'
  * than repeating the schema name. Same one-liner every game folder
  * exports.
  *
- * Note: the FE never reads the base `games` table for the solution —
- * that column is grant-excluded. It reads the `games_state` view,
- * which only exposes `solution` once the game is terminal (see
- * docs/games/stackdown.md → 5.1 Tables).
+ * The page reads none of this schema's tables: everything it shows arrives in
+ * the `game_data` blob. What goes through here is the RPCs.
  */
 export const db = supabase.schema('stackdown')

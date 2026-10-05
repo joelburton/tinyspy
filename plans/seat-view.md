@@ -567,6 +567,18 @@ next open (todo.md → Someday).
 What the three conversions settled, as the list the next game walks. Each
 step names where its rules live; this list does not restate them.
 
+**The conversion is the whole structural change** (Joel, 2026-10-05): every
+step that puts a game in the shape the audited games have — the blobs and
+`gd`, the component and hook restructuring, the answers, the comments a
+reader needs — is done here, not left for the game's audit. The audit keeps
+what is slow and decision-heavy: the read for bugs, the non-bug todos, tile
+feedback, the CSS vocabularies, the doc's move home and the blessing
+(plans/app-audit.md → A game area). **A bug the conversion meets** is fixed
+when the conversion broke it or it blocks the conversion, and otherwise goes
+to the game's `todo.md`. **Nothing deploys until every game is through**
+(Joel, 2026-10-05: nothing here changes what a player sees, so there is no
+reason to rush one out).
+
 **A. Read, then design, no code.**
 
 1. **Inventory the game.** Its `doc.md`, `todo.md` and area file; what its
@@ -625,11 +637,21 @@ step names where its rules live; this list does not restate them.
    under `ZTest_` names.
 
 **D. The component passes** (plans/component-readability.md: one per pass —
-propose numbered with no code, Joel answers by number, build, close read):
+propose numbered with no code, Joel answers by number, build, close read).
+Across all of them: **one CSS module per component**, named for it, so
+`PlayArea.module.css` holds only what `PlayArea.tsx` wears — the split is by
+importer (a class two components read stays where both can reach it), rule
+bodies and `/* @@ */` markers move verbatim, only headers are rewritten; **the section order** `docs/playarea.md` writes down; and **any
+type or map admitting only some outcomes** is fixed or its reason written
+(docs/outcomes.md).
 
 9. **PlayArea**: the coordinator; the two ending builders from
    `gd.me.outcome`; it picks the board to show; every `SPECTATING:` branch
-   goes.
+   goes. **The answers**: `lib/answer.ts` builds every answer the game gives
+   and its teammate line as the `{ outcome, text }` pair —
+   `answerMessage()` / `peerAnswerMessage()`, psychicnum's shape
+   (docs/outcomes.md → How a game does it) — and the pill, the log bar and
+   the teammate line all read it.
 10. **BoardCol**: owns the move; `isInteractive` computed once; hooks read
     through their names; the action's own `pending` is the one in-flight
     guard; the key-dismiss hook lives here; a leaf gets the answer; the
@@ -647,17 +669,42 @@ propose numbered with no code, Joel answers by number, build, close read):
     "out" for any player who has ended; help on my move alone; the event
     log takes `events` and `historyView`; a label asks the rule, not the
     color.
-13. **The naming pass**, if the conversion left any.
+13. **The naming pass**: what the conversion left, and the game's names
+    checked against the ones plans/cross-game-consistency.md settled.
 
 **E. Close each slice.**
 
 14. **Prose**: the game's `doc.md` (blob table, component tree, tests
     table), this plan's done line, the readability plan's "what this game
     added", the game's `todo.md` (rulings under Won't do with the date and
-    the words).
+    the words). **And the game's comments**, every file: the call-site rule
+    (a shared mechanism gets a sentence and a pointer, its explanation lives
+    in the shared thing's docstring); "how it used to work" deleted; code and
+    comments defending against a Restart deleted, since a Restart remounts
+    the surface (plans/app-audit.md → A restart REMOUNTS); and the docstring
+    marker — `/**` on a whole declaration, `//` on one member or prop
+    (plans/app-audit.md → The docstring marker).
 15. **Checks**: `tsc -b`, the game's vitests, lint, the guards after the
     last edit, the game's pgTAP; a new test verified by planting its bug;
     e2e only when Joel says. One commit per pass, on his word.
+
+## Owed to the games converted before the steps grew
+
+The conversion took on the answers, the stylesheet split, the section order,
+the comment and docstring passes and the cross-game names on 2026-10-05.
+Games converted before then carry only what their audit already did:
+
+- **psychicnum, wordle, connections, spellingbee, wordwheel** — closed
+  audits; nothing owed.
+- **boggle, wordiply, codenamesduet** — the answers are done; the stylesheet
+  split, the section order, the comment and docstring passes and the names
+  are owed (codenamesduet's audit is open, so check its area file first).
+- **waffle, letterboxed** — all of it is owed, the answers included.
+- **stackdown** — backfilled 2026-10-05 (plans/areas/stackdown.md → The
+  backfill).
+
+Each is backfilled as a slice of its own, the newest first, before the next
+game converts.
 
 ## The convenience RLS, per game
 

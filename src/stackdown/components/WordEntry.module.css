@@ -24,8 +24,8 @@
   justify-content: center;
   font-size: 1.4rem;
   font-weight: 700;
-  /* A clearly-visible dark-gray dashed outline — earlier shades read as
-   * empty whitespace and were easy to miss. */
+  /* A clearly-visible dark-gray dashed outline: a paler one reads as empty
+   * whitespace and is easy to miss. */
   border: 2px dashed var(--page-text-muted-color);
   border-radius: var(--radius-md);
   background: transparent;
@@ -36,10 +36,7 @@
  * theme defaults to the middle of the warm ramp and its paired edge. Not the
  * ramp's top: that shade means "exposed, on the board, clickable", and it is
  * pale enough that a slot wearing it reads as an empty box rather than as a
- * tile. A slot is not at a depth; it is a tile that has been picked up.
- *
- * It used to take the action button's blue, which is a control color on a game
- * piece. */
+ * tile. A slot is not at a depth; it is a tile that has been picked up. */
 /* @@ */ .filled {
   border-style: solid;
   border-color: var(--tile-slot-edge-color);

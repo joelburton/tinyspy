@@ -1,8 +1,8 @@
 /* cs-unmet */
 
-/* stackdown's submission log lives on the shared <EventLog> now (panel, scroll
- * box, table, outcome bars, #n / word / who columns all come from
- * EventLog.module.css). Only the bits unique to stackdown's rows remain here. */
+/* stackdown's turn log lives on the shared <EventLog> (panel, scroll box, table,
+ * outcome bars, #n / word / who columns all come from EventLog.module.css). Only
+ * the bits unique to stackdown's rows live here. */
 
 
 /* A turn is opened on the board viewer by clicking its "#N" handle (the shared

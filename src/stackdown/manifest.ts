@@ -20,8 +20,8 @@ import logoUrl from './logo.svg?url'
  * Two-manifest family (sibling pattern): coop and compete share the
  * `stackdown` schema and the PlayArea / SetupForm / Help; they differ on
  * gametype string, name, mode, and numberOfPlayers. The per-game setup
- * is just an optional countdown timer (the board is dealt at random),
- * ended server-side via `submitTimeout`.
+ * is the dictionary band and the timer (the board is dealt at random from
+ * the band's library); a countdown ends server-side via `submitTimeout`.
  */
 
 const helpLoader = lazy(() =>
@@ -60,7 +60,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
 /**
  * COOP's club line: the team's progress through the six words, and the
  * dictionary band — the words a stack is built from change its difficulty
- * completely. The clock is the only loss: there is no move budget, and every
+ * completely. A timeout is the only loss: there is no move budget, and every
  * board is clearable.
  */
 function makeCoopLabel(summary: GSummaryData): string {
@@ -86,7 +86,7 @@ function makeCoopLabel(summary: GSummaryData): string {
 /**
  * COMPETE's club line names no count: each racer's words are hidden from the
  * others, and the line is club-wide readable. The first to clear wins; the
- * clock, or the last racer conceding, ends it with no winner.
+ * timer, or the last racer conceding, ends it with no winner.
  */
 function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
   const dict = dictLabel(summary.band)
@@ -160,7 +160,7 @@ export const stackdownCompeteGame: GameManifest = {
 
   help: helpLoader,
 
-  // Compete needs an opposing PLAYER. Lower bound 2; the RPC enforces it.
+  // Compete needs an opposing PLAYER: lower bound 2.
   numberOfPlayers: [2, 6],
 
   draftsOffTurn: false,

@@ -8,8 +8,8 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
-import { ANSWER_OUTCOME } from '../lib/answer'
-import type { GGameData, GWordFlash } from '../types'
+import { answerMessage } from '../lib/answer'
+import type { GAnswer, GGameData, GWordFlash } from '../types'
 import { useCurrentWord } from './useCurrentWord'
 
 /** What `submit_word` puts in `data`: `result` decides whether the tiles leave
@@ -38,7 +38,7 @@ export function useWordMove(gd: GGameData, localFeedbackSlot: FeedbackSlot) {
   const currentWord = useCurrentWord(onBoardIds)
 
   const [flash, showFlash, clearFlash] = useMark<GWordFlash>(WORD_ANSWER_MS)
-  const [refusedWord, showRefusedWord] = useMark<string[]>(WORD_ANSWER_MS)
+  const [refusedWord, showRefusedWord] = useMark<GAnswer>(WORD_ANSWER_MS)
   const [returnedMark, flashReturned] = useMark<{ tileIds: string[] }>(ATTENTION_FLASH_MS)
 
   async function submitWord(tileIds: string[]): Promise<void> {
@@ -57,19 +57,20 @@ export function useWordMove(gd: GGameData, localFeedbackSlot: FeedbackSlot) {
       // The tiles clearing is the answer, so no message — and the move dismisses
       // the last result.
       localFeedbackSlot.dismiss()
-      showFlash({ tileIds, outcome: ANSWER_OUTCOME.accepted })
+      showFlash({ tileIds, outcome: answerMessage({ answerType: 'accepted' }).outcome })
       return
-    } else if (res.type === 'ok' && res.data.result === 'invalid' && res.message !== null) {
+    } else if (res.type === 'ok' && res.data.result === 'invalid') {
       // NOT A WORD — an `ok`, because the rules were applied and no tile moved.
-      // The server wrote the sentence, and named the word in it, because by the
-      // time it is read the word has left the slots.
-      showRefusedWord(tileIds, {
+      const word = tileIds.map((id) => gd.puzzle.tilesById[id]!.letter).join('')
+      const answer: GAnswer = { answerType: 'invalid', word }
+      showRefusedWord(answer, {
         onEnd: () => {
           currentWord.clearWord()
           flashReturned({ tileIds })
         },
       })
-      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, res.message))
+      const { outcome, text } = answerMessage(answer)
+      localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
       return
     } else {
       reportUnhandled('submit_word', res)
@@ -83,6 +84,8 @@ export function useWordMove(gd: GGameData, localFeedbackSlot: FeedbackSlot) {
     flash: flash?.value ?? null,
     clearFlash,
     isRefused: refusedWord !== null,
+    // The answer the slots wear while a refused word is still in them.
+    refusedOutcome: refusedWord === null ? null : answerMessage(refusedWord.value).outcome,
     returnedTileIds: returnedMark?.value.tileIds ?? [],
   }
 }

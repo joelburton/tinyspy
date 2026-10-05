@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react'
 
 /**
  * The word this player is building, tile by tile — private to them in both
- * modes: selections are never broadcast, so teammates try words independently
+ * modes: picks are never broadcast, so teammates try words independently
  * rather than taking turns on one shared word. What's shared is the result,
  * when it reaches the server.
  *
@@ -32,7 +32,11 @@ export function useCurrentWord(onBoardIds: ReadonlySet<string>): {
   clearWord: () => void
   commitWord: (tileIds: string[]) => void
 } {
+  // The tile ids picked into the word, in pick order — before `wordOn` checks
+  // they are all still on the board.
   const [picked, setPicked] = useState<string[]>([])
+  // The tile ids of my accepted words, held off the board until the blob has
+  // them gone; ids already gone drop out as they are read.
   const [held, setHeld] = useState<string[]>([])
 
   /** The word as it stands on the board now: empty once any tile has left it. */

@@ -36,10 +36,12 @@ select pg_temp.envelope_is(
 create temp table inv on commit drop as
 select stackdown.submit_word((select id from g), pg_temp.sd_invalid()) as res;
 select is((select res->'data'->>'result' from inv), 'invalid', 'a reachable non-word → invalid');
-select is((select res->'data'->>'word' from inv), 'ebatl', 'invalid submission echoes the word (lowercase)');
+select is((select res->'data' from inv), '{"result": "invalid"}'::jsonb, 'a refused word answers its result alone');
+-- How it reads is the frontend's: src/stackdown/lib/answer.test.ts pins the
+-- outcome and the words, and this pins that the envelope says neither.
 select pg_temp.envelope_is((select res from inv),
-  '{"type":"ok","outcome":"lost","message":"Not a word: EBATL"}'::jsonb,
-  'a rejected word is an ok answer that names the word');
+  '{"type":"ok","outcome":null,"message":null}'::jsonb,
+  'a refused word is an ok answer with no outcome and no sentence');
 
 reset role;
 select is(
@@ -62,13 +64,13 @@ select is(
 
 -- ── First valid word ────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
--- The outcome is asserted with it: the pill wears the word this envelope
--- carries, and the log bar wears the one src/stackdown/lib/answer.ts gives the
--- row this wrote. One rule in two languages, so each language has a test.
+-- The outcome is asserted ABSENT: the pill, the slots and the log bar all wear
+-- the one src/stackdown/lib/answer.ts gives (its test pins it), so the envelope
+-- carrying one too would be a second decision to drift.
 create temp table acc on commit drop as
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(1)) as res;
 select is((select res->'data'->>'result' from acc), 'accepted', 'EAGLE → accepted');
-select is((select res->>'outcome' from acc), 'won', 'an accepted word is won');
+select is((select res->'outcome' from acc), 'null'::jsonb, 'an accepted word carries no outcome');
 
 -- Coop surfaces the cleared word as the club-list title (ada is a club
 -- member, so she can read common.games).
@@ -83,8 +85,8 @@ select stackdown.submit_word((select id from g), pg_temp.sd_seq(4));
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(5));
 create temp table w6 on commit drop as
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(6)) as res;
-select is((select (res->'data'->>'terminal')::boolean from w6), true,
-  'the sixth accepted word is terminal');
+select is((select res->'data' from w6), '{"result": "accepted"}'::jsonb,
+  'the sixth accepted word answers its result alone');
 
 reset role;
 select is(

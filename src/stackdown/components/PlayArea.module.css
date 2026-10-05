@@ -5,7 +5,7 @@
  * (common/info-sheet/infoCol.module.css, imported as `shared`) — the same
  * .layout / .boardCol / .infoCol / .noShrinkRow the other converged games use.
  * PlayArea holds only the layout-root vars here; the board column's own styles
- * live in BoardCol.module.css and the terminal reveal in InfoCol.module.css. */
+ * live in BoardCol.module.css and the solution reveal in InfoCol.module.css. */
 
 /* Per-game layout vars the shared scaffold reads.
  *   --info-col-width: the log column (state + strip + the #n/word/who log) fits a

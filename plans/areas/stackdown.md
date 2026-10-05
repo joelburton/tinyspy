@@ -136,6 +136,42 @@ who has ended — which, since only a concede ends a stackdown player, now holds
 after the game ends too, where a conceder's count used to come back. The six
 words' capitals are drawn by CSS.
 
+## The naming pass
+
+Step 13 (2026-10-05): `submit_word` answers its `result` alone — the word and
+`terminal` went, read by nothing (the refusal's sentence still names the
+word) — and `reveal_next_hint` answers its text as `clue`, the name the blob's
+hint row carries. "terminal" left stackdown's own comments and tests; what
+remains is common's parameter names, fed at the seam. Every e2e call already
+sent `p_` names after step 9.
+
+## The backfill
+
+2026-10-05, when the conversion took on what the audit had held (Joel: "the
+conversion applies the blobs/gd/component-refactoring/hooks/answers/etc"):
+
+- **The answers.** `GAnswer` is the roster of eight answers, mine and a
+  teammate's; `lib/answer.ts` says each as `{ outcome, text }`
+  (`answerMessage`), reads a row's (`peerAnswerOf`, `eventToOutcome`), and
+  every reader asks it — the pill, the slots, a teammate's tiles, the header,
+  the log bar. `ANSWER_OUTCOME` went. `submit_word`, `reveal_next_word` and
+  `reveal_next_hint` answer `ok` with no outcome and no sentence ("Not a
+  word: X" is the frontend's now); pgTAP pins the nulls, `answer.test.ts` the
+  words. Every sentence a player sees reads as before.
+- **The stylesheet split** already held: each module is its component's
+  alone, and every class it holds is read by that component.
+- **The section order**: PlayArea gained its local-slot and narration
+  headers; BoardCol is in its three sections — which board is on screen, the
+  pending move, render.
+- **No narrower `Outcome`** anywhere.
+- **The cross-game names**: state carries its comment, "pick" not "select",
+  "timer" / "timeout" not "clock".
+- **The comment pass and the docstring marker**, every file including the
+  SQL: history ("ported from the prototype", "it used to…") went; a member's
+  or a prop's note is `//`; two comments that had gone false were fixed (the
+  manifest's setup and compete's "the RPC enforces it"); `offBoardIds` lost a
+  parameter every caller passed empty. No Restart defenses were found.
+
 ## What the PlayArea pass changed that a player can see
 
 Step 9 (2026-10-05), each a consequence of reading `gd` rather than a ruling:

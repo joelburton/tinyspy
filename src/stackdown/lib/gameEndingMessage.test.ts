@@ -22,7 +22,7 @@ function messageFor(
 }
 
 describe('stackdown buildGameEndingMessage', () => {
-  it('coop: a clear wins, the clock is the one loss, a Stop is the shared neutral', () => {
+  it('coop: a clear wins, a timeout is the one loss, a Stop is the shared neutral', () => {
     expect(messageFor('coop', 'won', 'reached_goal', 'won')).toEqual({
       pillText: 'Won: stack cleared', infoColText: 'Cleared!', outcome: 'won',
     })
@@ -43,7 +43,7 @@ describe('stackdown buildGameEndingMessage', () => {
     })
   })
 
-  it('compete with no winner: the clock, or every racer conceding', () => {
+  it('compete with no winner: the timer, or every racer conceding', () => {
     expect(messageFor('compete', 'lost', 'timeout', 'lost')).toEqual({
       pillText: 'Out of time — no winner', infoColText: 'Out of time', outcome: 'lost',
     })

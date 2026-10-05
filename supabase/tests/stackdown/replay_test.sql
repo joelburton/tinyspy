@@ -58,7 +58,7 @@ select isnt(
   (select title from common.games where id = (select id from g1)),
   'New game', 'coop: precondition — the title was rewritten to the cleared words');
 
--- Age the shared clock so the replay's clock-zeroing is observable.
+-- Age the shared timer so the replay's timer-zeroing is observable.
 update common.timers set ticks = 99 where game_id = (select id from g1);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -98,7 +98,7 @@ select is(
   2::bigint, 'coop: replay → per-player endings, results and solves cleared');
 select is(
   (select ticks from common.timers where game_id = (select id from g1)),
-  0, 'coop: replay → the shared clock is zeroed (a timed game restarts full)');
+  0, 'coop: replay → the shared timer is zeroed (a timed game restarts full)');
 
 -- ── Compete: a game ended by concessions replays clean too ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

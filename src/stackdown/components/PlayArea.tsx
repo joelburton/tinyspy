@@ -84,7 +84,8 @@ function PlayArea({
   // it happens.
   const celebration = useCelebration(gd.me.outcome === 'won')
 
-  // The below-board slot: word results, the hint ladder, the standing
+  // ─── The local slot ────────────────────────────────────
+  // Messages about ME: word results, the hint ladder, the standing
   // conditions, the ending.
   const localFeedbackSlot = useFeedbackSlot('local')
 
@@ -97,7 +98,9 @@ function PlayArea({
     playerEndingMessage,
   })
 
-  // A teammate's move, in the header slot and on their tiles (coop).
+  // ─── Narration ─────────────────────────────────────────
+  // Messages about somebody ELSE: a teammate's move, in the header slot and on
+  // their tiles (coop).
   const peerMark = useShowTeammateMoves(gd, globalFeedbackSlot)
 
   // ─── The turn-history view ─────────────────────────────
@@ -122,7 +125,7 @@ function PlayArea({
   const liveOffTileIds = useMemo(() => {
     const onBoard = new Set(gd.me.board.tiles.map((t) => t.id))
     const cleared = gd.puzzle.tiles.filter((t) => !onBoard.has(t.id)).map((t) => t.id)
-    return offBoardIds(gd.puzzle.tiles, cleared, [], gd.ended)
+    return offBoardIds(gd.puzzle.tiles, cleared, gd.ended)
   }, [gd.me.board.tiles, gd.puzzle.tiles, gd.ended])
 
   // The stack to show: a past turn's while one is open, else the live one.
