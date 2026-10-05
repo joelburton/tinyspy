@@ -246,44 +246,42 @@ export type GSummaryData = SummaryData & {
 export type GSetupValues = {
   timer: TimerMode
   dice_set: string
-  /** required-word difficulty band, 1 (universal) … 6 (expert) — the words the
-   *  board generator guarantees are findable (clean: american, no slur/crude/slang) */
+  // required-word difficulty band, 1 (universal) … 6 (expert) — the words the
+  // board generator guarantees are findable (clean: american, no slur/crude/slang)
   band: number
-  /** legal (bonus) difficulty band, `band`…6 — the ceiling for words that aren't
-   *  required but still score. Filters on difficulty ONLY (any dialect/slur/
-   *  crude/slang qualifies), so it's the wider net of "real words you might find". */
+  // legal (bonus) difficulty band, `band`…6 — the ceiling for words that aren't
+  // required but still score. Filters on difficulty ONLY (any dialect/slur/
+  // crude/slang qualifies), so it's the wider net of "real words you might find".
   legal_band: number
   min_word_length: number
   scoring_ladder: GLadderName
-  /** Win-on-target: the percent of the required-words SCORE a player (compete)
-   *  or the team (coop) must reach to win — one of 50, 55, … 100 — or `null`
-   *  for "no target" (play until Stop or the timer expires). Measured
-   *  against the score of the REQUIRED words found ONLY — bonus finds don't
-   *  count — so 100% means every required word, 50% means required finds worth
-   *  half the required total. */
+  // Win-on-target: the percent of the required-words SCORE a player (compete)
+  // or the team (coop) must reach to win — one of 50, 55, … 100 — or `null`
+  // for "no target" (play until Stop or the timer expires). Measured
+  // against the score of the REQUIRED words found ONLY — bonus finds don't
+  // count — so 100% means every required word, 50% means required finds worth
+  // half the required total.
   win_percent: number | null
   constraints?: GBoardConstraints
-  /**
-   * An OPTIONAL player-typed board — the tiles themselves, written the way the
-   * `Letters` setup row prints them (`"ABQuD EFGH IJKL MNOP"`; see `lib/customBoard.ts`).
-   * Set → the edge function solves exactly this board instead of rolling one;
-   * blank/absent → the normal roll. Either mode.
-   *
-   * Stored AS TYPED rather than as the internal face string: the field has to
-   * survive half-finished input (you can't hold a partial board in a canonical
-   * encoding), and keeping the text means what you pasted is what you see. The
-   * server re-parses — it never trusts the client's reading.
-   *
-   * Because the player chose the tiles, a custom board skips BOTH the
-   * `constraints` targets (nothing is being rejection-sampled) and the roll
-   * loop's quality bar; it need only yield ≥1 required word, or `win_percent`
-   * would compute a threshold of zero. It is NOT saved as the club's next
-   * default — a one-off, not a new baseline (see `boggle.create_game`).
-   */
+  // An OPTIONAL player-typed board — the tiles themselves, written the way the
+  // `Letters` setup row prints them (`"ABQuD EFGH IJKL MNOP"`; see `lib/customBoard.ts`).
+  // Set → the edge function solves exactly this board instead of rolling one;
+  // blank/absent → the normal roll. Either mode.
+  //
+  // Stored AS TYPED rather than as the internal face string: the field has to
+  // survive half-finished input (you can't hold a partial board in a canonical
+  // encoding), and keeping the text means what you pasted is what you see. The
+  // server re-parses — it never trusts the client's reading.
+  //
+  // Because the player chose the tiles, a custom board skips BOTH the
+  // `constraints` targets (nothing is being rejection-sampled) and the roll
+  // loop's quality bar; it need only yield ≥1 required word, or `win_percent`
+  // would compute a threshold of zero. It is NOT saved as the club's next
+  // default — a one-off, not a new baseline (see `boggle.create_game`).
   custom_board?: string
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
+  // WHO IS PLAYING — a field like any other, and the only one that is not
+  // part of the setup blob: `create_game` takes it as its own argument and
+  // writes `common.game_players` rows from it.
   player_user_ids: Set<string>
 }
 
@@ -317,13 +315,13 @@ export type GAnswer =
 
 /** Where the typed word's letters can sit, and how far the board follows it. */
 export type GTraceCells = {
-  /** Cells no route can avoid — one per letter position that has a single candidate. */
+  // Cells no route can avoid — one per letter position that has a single candidate.
   settled: number[]
-  /** Cells that carry a letter position with more than one candidate. */
+  // Cells that carry a letter position with more than one candidate.
   maybe: number[]
-  /** How many letters the board can actually spell, from the start. Equal to the
-   *  word's length while it still traces; the letters past it are the ones the
-   *  board cannot follow, and the entry box dims them. */
+  // How many letters the board can actually spell, from the start. Equal to the
+  // word's length while it still traces; the letters past it are the ones the
+  // board cannot follow, and the entry box dims them.
   reach: number
 }
 
@@ -355,13 +353,13 @@ export type GBoard = {
 
 /** A dice set (`DICE_SETS`, `lib/dice.ts`). */
 export type GDiceSet = {
-  /** registry key (also the value stored in a game's setup) */
+  // registry key (also the value stored in a game's setup)
   name: string
-  /** player-facing label */
+  // player-facing label
   desc: string
-  /** board side length; board is n × n */
+  // board side length; board is n × n
   n: number
-  /** one 6-char face string per die; length === n * n */
+  // one 6-char face string per die; length === n * n
   dice: readonly string[]
 }
 

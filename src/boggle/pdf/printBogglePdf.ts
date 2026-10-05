@@ -16,10 +16,10 @@ import type { jsPDF } from 'jspdf'
 
 /** The print payload — plain data, built by the caller from the live game state. */
 export type BogglePrintModel = PrintHeader & {
-  /** The board as a grid of display faces (`makeDisplayGrid` — 'A', 'Qu', '?', …). */
+  // The board as a grid of display faces (`makeDisplayGrid` — 'A', 'Qu', '?', …).
   board: string[][]
-  /** The word list as printed BLOCKS: one for coop, one per player for compete
-   *  (plus a trailing "Not found"). See `common/pdf/wordSections.ts`. */
+  // The word list as printed BLOCKS: one for coop, one per player for compete
+  // (plus a trailing "Not found"). See `common/pdf/wordSections.ts`.
   sections: WordSection[]
 }
 

@@ -37,10 +37,8 @@ function boundsValue(min: number | undefined, max: number | undefined): string |
  * boggle's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  *
- * The labels used to differ between the two consumers ("Board" vs "Dice",
- * "Min word length" vs "Min length", "Dictionary (required)" vs "Required
- * words") — one fact named twice by two files. These are the screen's, since
- * that's the wording players actually learned.
+ * The labels are the screen's — the wording players actually learned — and
+ * the printout uses the same ones, so one fact is never named twice.
  *
  * The `Letters` row is the documented board-identity exception (setupRows.ts →
  * BOARD_KEY): the tiles this game was actually played on, rolled or typed,
@@ -94,8 +92,7 @@ export function makeSetupRows(
     // Keyed `constraints.*` because the setup holds them in one nested object:
     // setupRows.test.ts excuses `constraints` itself from needing a row of its
     // own ONLY on the promise that its parts appear as `constraints.` rows, and
-    // it checks that promise rather than taking it (it used to take it — which
-    // is how these went missing from both surfaces in the first place).
+    // it checks that promise rather than taking it.
     //
     // They vanish wholesale for a custom board: the tiles came from the player,
     // nothing was rejection-sampled, and printing "Board words: at least 10"

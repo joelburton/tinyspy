@@ -86,8 +86,8 @@ export function parseBoard(s: string): GBoard {
 interface SolveOptions {
   minWordLength?: number
   ladder?: GLadderName
-  /** Generation fail-fast: abort the moment a board exceeds these (it'll be
-   *  rejected anyway). Defaults to no cap (full enumeration, for scoring/parity). */
+  // Generation fail-fast: abort the moment a board exceeds these (it'll be
+  // rejected anyway). Defaults to no cap (full enumeration, for scoring/parity).
   maxWords?: number
   maxScore?: number
 }
@@ -96,7 +96,7 @@ interface SolveResult {
   count: number
   longest: number
   score: number
-  /** True if a max cap tripped mid-solve (the result is partial; reject it). */
+  // True if a max cap tripped mid-solve (the result is partial; reject it).
   busted: boolean
 }
 

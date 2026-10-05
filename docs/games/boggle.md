@@ -378,7 +378,7 @@ every move and ending rewrites them.
   `common._stop`'s and everyone conceding is `common._concede`'s. The rankings
   depend on whether a TARGET was set ([win-lose.md](../win-lose.md)):
 
-  | | reached the target | clock ran out |
+  | | reached the target | timer ran out |
   |---|---|---|
   | **coop, target set** | `reached_goal`: the team ranked 1 — won | `timeout`: nobody ranked — lost |
   | **coop, no target** | — | `timeout`, no result — neutral |
@@ -409,7 +409,7 @@ every move and ending rewrites them.
   results](../ui.md#terminal-results--the-moment-vs-the-record)): restart the
   SAME board (same faces + word lists) for everyone. Clears `boggle.found_words`
   (the only working state), then `common._reset_game` clears the ending and
-  zeroes the shared clock, and the page blobs are rebuilt. Confirmed mid-game;
+  zeroes the shared timer, and the page blobs are rebuilt. Confirmed mid-game;
   unconfirmed once the game has ended. pgTAP: `replay_test.sql`.
 - **"New game"** (`act-new-game`, its `+` key, its menu row and its button
   once the game has ended, all one action; FE-only): a fresh game — new id, new board — with THIS
@@ -555,7 +555,7 @@ event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
 - **The ending** is the pill and the row's line (`lib/endingMessage.ts`), the
   inert board, and the list with its missed words. Verdicts lead with the
   outcome word: coop's `Won: 12 words, 30 points` at its target, `Lost: …` when
-  the clock beat it, `Ended: …` with no target or a Stop; a race's `Won: …`,
+  the timer beat it, `Ended: …` with no target or a Stop; a race's `Won: …`,
   `Lost: conceded`, `Lost: ran out of time`, `Lost: no words found`, and a loss
   to a named player carried as the message's `actor` — `● alice won`. A win
   celebrates once, as `gd.me.outcome` turns `won` — the team's in coop, and in a
@@ -595,7 +595,7 @@ board whose required set is six words worth nine points:
 | `gameplay_test` | the trusting commit — the row stores the word, points and `is_bonus` it was sent, with no content check; the coop and compete duplicates; the game-over and already-conceded races; `stop_game` and `submit_timeout`, a second call the game-over race; a non-player refused |
 | `win_test` | the win target: the team (coop) or the first to cross (compete) wins the moment the required score reaches it, the crosser alone ranked 1 |
 | `concede_test` | refused in coop; a conceder is out while the others race; the last one out ends the race as a collective loss |
-| `replay_test` | the found list cleared, the ending reset, the clock zeroed, the board kept; any player may, mid-game or after; a non-player may not |
+| `replay_test` | the found list cleared, the ending reset, the timer zeroed, the board kept; any player may, mid-game or after; a non-player may not |
 | `rls_test` | a member sees every row of both tables in both modes; an outsider sees none |
 
 Vitest, beside the code:

@@ -6,15 +6,15 @@
 // Golden fixture for the boggle TS solver parity test. Generated from the original wsboggle C solver (libwords.c) via boggle-c-solver/dump_fixture.c. Each case: full-enumeration solve, min word length 3, basic scoring ladder. board chars are A-Z or a digit 1-5 for a multiface tile (1=Qu 2=In 3=Th 4=Er 5=He).
 
 export interface BoggleSolverCase {
-  /** board side length (n×n) */
+  // board side length (n×n)
   n: number
-  /** row-major board; chars A–Z or a multiface digit 1–5 (1=Qu…5=He) */
+  // row-major board; chars A–Z or a multiface digit 1–5 (1=Qu…5=He)
   board: string
-  /** oracle: distinct words found (full enumeration, min length 3) */
+  // oracle: distinct words found (full enumeration, min length 3)
   count: number
-  /** oracle: longest word length */
+  // oracle: longest word length
   longest: number
-  /** oracle: total score on the basic ladder */
+  // oracle: total score on the basic ladder
   score: number
 }
 

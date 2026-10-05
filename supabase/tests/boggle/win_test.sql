@@ -159,10 +159,10 @@ reset role; select set_config('request.jwt.claims', '', true);
 select is((select ended_at from common.games where id = (select id from gn)), null,
   'no target: finding everything does not auto-end the game');
 
--- ── (5) The clock, with and without a target ─────────────────
+-- ── (5) The timer, with and without a target ─────────────────
 -- With a target, running out of time means the bar was never reached — a
 -- LOSS, the same rule spellingbee/wordwheel apply to their rank target. With
--- no target there was nothing to fail, so the clock is just the neutral end
+-- no target there was nothing to fail, so the timer is just the neutral end
 -- of an exercise.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gto on commit drop as
@@ -175,7 +175,7 @@ select boggle.submit_timeout((select id from gto));
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select game_ended_reason || '/' || game_ended_outcome
              from common.games where id = (select id from gto)), 'timeout/lost',
-  'coop + target: the clock beating the target is a loss');
+  'coop + target: the timer beating the target is a loss');
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gtn on commit drop as
@@ -187,9 +187,9 @@ select boggle.submit_timeout((select id from gtn));
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select game_ended_reason || '/' || game_ended_outcome
              from common.games where id = (select id from gtn)), 'timeout/neutral',
-  'coop, no target: the clock is a neutral end — there was nothing to fail');
+  'coop, no target: the timer is a neutral end — there was nothing to fail');
 
--- ── (6) COMPETE, no target: the clock ranks by score ─────────
+-- ── (6) COMPETE, no target: the timer ranks by score ─────────
 -- Nothing to reach, so every non-conceded scorer is ranked by score: the
 -- highest takes 1, the next is near.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -206,12 +206,12 @@ select boggle.submit_word((select id from gcs), 'cat', 1, false);      -- bea: 1
 select boggle.submit_timeout((select id from gcs));
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select game_ended_outcome from common.games where id = (select id from gcs)), 'won',
-  'compete, no target: the clock crowns the top score');
+  'compete, no target: the timer crowns the top score');
 select is((select array_agg(final_ranking || '/' || outcome order by user_id)
              from common.game_players where game_id = (select id from gcs)),
   array['1/won', '2/near'], 'compete, no target: the top scorer is ranked 1, the next near');
 
--- ── (7) COMPETE + target: the clock means NOBODY reached it ──
+-- ── (7) COMPETE + target: the timer means NOBODY reached it ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gct on commit drop as
 select (boggle.create_game(
@@ -224,7 +224,7 @@ select boggle.submit_word((select id from gct), 'traces', 3, false);   -- below 
 select boggle.submit_timeout((select id from gct));
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select game_ended_outcome from common.games where id = (select id from gct)), 'lost',
-  'compete + target: the clock beating the bar is a loss for everyone');
+  'compete + target: the timer beating the bar is a loss for everyone');
 select is((select coalesce(final_ranking::text, 'unranked') || '/' || outcome from common.game_players
              where game_id = (select id from gct)
                and user_id = 'ada11111-1111-1111-1111-111111111111'),
@@ -245,7 +245,7 @@ select (boggle.create_game(
 select boggle.submit_timeout((select id from gz));
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select game_ended_outcome from common.games where id = (select id from gz)),
-  'lost', 'compete, no target, nobody scored: the clock crowns no one');
+  'lost', 'compete, no target, nobody scored: the timer crowns no one');
 select is((select count(*)::int from common.game_players
             where game_id = (select id from gz) and final_ranking is not null),
   0, 'compete, nobody scored: no player is ranked');

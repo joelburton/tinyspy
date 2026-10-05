@@ -18,6 +18,7 @@ export function useBoardRotation(
   tiles: readonly GTile[],
   boardSideSize: number,
 ): { drawnTiles: GTile[]; actRotate: Action } {
+  // How far the board is turned, in quarter turns (0–3).
   const [quarterTurns, setQuarterTurns] = useState(0)
   const drawnTiles = useMemo(
     () => makeDrawOrder(boardSideSize, quarterTurns).map((i) => tiles[i]!),

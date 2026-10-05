@@ -4,10 +4,10 @@ import { cls } from '@/common/utils/cls'
 import styles from '@/shared/found-words/typedWord.module.css'
 
 type Props = {
-  /** The current typed word, lowercase as the data holds it; drawn in capitals. */
+  // The current typed word, lowercase as the data holds it; drawn in capitals.
   word: string
-  /** How many of its letters the board can spell, from the start
-   *  (`traceCells`). The rest render dimmed. */
+  // How many of its letters the board can spell, from the start
+  // (`traceCells`). The rest render dimmed.
   reach: number
 }
 

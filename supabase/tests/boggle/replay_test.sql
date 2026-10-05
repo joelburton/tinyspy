@@ -6,7 +6,7 @@
 -- The "Replay board" game-menu item / end-of-game RestartButton
 -- (spellingbee's twin). Clears the found-words log (the game's only
 -- working state), clears the ending (common._reset_game), rebuilds the
--- page blobs as create_game writes them, and zeroes the shared clock. The
+-- page blobs as create_game writes them, and zeroes the shared timer. The
 -- frozen board (faces + word lists) survives. Any game player may call
 -- it, mid-game or after the end; a non-player is rejected.
 
@@ -40,7 +40,7 @@ reset role;
 select isnt(
   (select ended_at from common.games where id = (select id from g1)),
   null, 'precondition — the manually stopped game has ended');
--- Age the shared clock so the replay's clock-zeroing is observable.
+-- Age the shared timer so the replay's timer-zeroing is observable.
 update common.timers set ticks = 99 where game_id = (select id from g1);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -63,7 +63,7 @@ select is(
   '0', 'replay → the team''s score in the page blob is back to 0');
 select is(
   (select ticks from common.timers where game_id = (select id from g1)),
-  0, 'replay → the shared clock is zeroed (a timed game restarts full)');
+  0, 'replay → the shared timer is zeroed (a timed game restarts full)');
 select is(
   (select board from boggle.games where game_id = (select id from g1)),
   'CATRSEXOTMPLNGDB', 'replay → the frozen board survives (same faces, run it back)');

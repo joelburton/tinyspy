@@ -36,6 +36,28 @@ a dependency listed and left. Anything durable goes to `todo.md` or
   `common._reset_game`. The conversion retires both the subscription and the
   comment, since the page will follow `game_data` on `common.games`.
 
+## The backfill
+
+2026-10-05, the conversion's grown steps applied after the fact:
+
+- **The answers** already had the shape: `lib/answer.ts` says every answer,
+  every reader asks it, and the move envelopes carry no outcome.
+- **The stylesheet split.** `PlayArea.module.css` held BoardCol's `.boardCol`
+  and `.mobileStatus`; they moved verbatim to `BoardCol.module.css`, and
+  PlayArea's keeps `.layout`.
+- **The section order**: PlayArea's local-slot and narration headers in the
+  house words; BoardCol in its three sections (no history viewer, so the board
+  on screen is always the live one).
+- **No narrower `Outcome`** anywhere.
+- **The cross-game names**: both pieces of state carry their comment; "timer"
+  / "timeout" not "clock", in the code, the SQL, the tests and the doc (the
+  generator's wall-clock budget is real time, and stays). N25's "race" is the
+  later sweep's.
+- **The comment pass and the docstring marker**: history went (the old Help,
+  the labels that "used to differ", the mobile-status height's past values, a
+  token "any more"); member notes are `//` (`types.ts`, the printer, the typed
+  word, the generator and solver options, the solver fixture).
+
 ## Predicted test breaks
 
 *(the spec names, written when the area starts changing things)*

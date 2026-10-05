@@ -99,8 +99,8 @@ function makeCoopLabel(summary: GSummaryData): string {
 
 /**
  * boggle compete. Two shapes of win: crossing the target first, and — in a
- * game with no target — holding the top score when the clock stops. A target
- * game whose clock runs out is a loss for everyone: nobody reached the bar,
+ * game with no target — holding the top score when the timer stops. A target
+ * game whose timer runs out is a loss for everyone: nobody reached the bar,
  * however high the scores got. No racer's own score reaches the listing.
  */
 function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
@@ -120,7 +120,7 @@ function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): st
         : statusLine(who, summary.topScore !== null ? `${summary.topScore} pts` : null)
     }
     // The two collective losses, told apart by the reason: the last racer
-    // dropped out, or the clock beat everyone to the target.
+    // dropped out, or the timer beat everyone to the target.
     case 'lost':
       return summary.ending.reason === 'conceded'
         ? verdict('Lost', 'all conceded')

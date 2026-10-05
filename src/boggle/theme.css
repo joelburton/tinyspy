@@ -24,7 +24,6 @@
      game (the same seam spellingbee + wordwheel use). boggle has no rank ladder,
      so its figures are just the body text color. */
 /* @@ */   --rank-text:          var(--page-text-color);
-  /* The board sizes itself to the largest square that fits via the shared HUG
-   * model (PlayArea.module.css `.boardCol --side`), so there's no board-size
-   * token here any more. */
+  /* No board-size token: the board sizes itself to the largest square that
+   * fits via the shared HUG model (BoardCol.module.css `.boardCol --side`). */
 }

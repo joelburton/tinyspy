@@ -77,9 +77,8 @@ function PlayArea({
   // in coop, mine alone in a race. It is shown only when it happens.
   const celebration = useCelebration(gd.me.outcome === 'won')
 
-  // ─── The local slot, and what stands in it ─────────────
-
-  // The slot under the board is for messages about ME.
+  // ─── The local slot ────────────────────────────────────
+  // Messages about ME: a word's answer, the standing conditions, the ending.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // The endings' messages, for the pill and the info column: the game's once
@@ -91,7 +90,8 @@ function PlayArea({
     playerEndingMessage,
   })
 
-  // ─── What a PEER did, in the header slot ───────────────
+  // ─── Narration ─────────────────────────────────────────
+  // Messages about somebody ELSE, in the header slot.
 
   // A teammate's find (coop). My own are the local slot's, so they're skipped;
   // in compete a rival's finds are withheld until the end, so there is nothing
@@ -144,7 +144,7 @@ function PlayArea({
       </InfoSheet>
 
       {/* My win's confetti — once, when it happens: a target reached, or a
-          race won on score when the clock stopped. */}
+          race won on score when the timer stopped. */}
       {celebration.isOpen && (
         <CelebrationBlockingModal
           title={gd.ending?.detail === 'target' ? 'Target reached! 🎉' : 'You win! 🎉'}

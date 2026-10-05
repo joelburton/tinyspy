@@ -36,14 +36,14 @@ export function rollBoard(set: GDiceSet, rand: () => number): string {
 }
 
 interface GeneratedBoard {
-  /** row-major raw-face string (A–Z, multiface digit, or 0 for blank) */
+  // row-major raw-face string (A–Z, multiface digit, or 0 for blank)
   board: string
   n: number
   requiredWords: GSolverWord[]
   count: number
   longest: number
   score: number
-  /** how many rolls it took (diagnostics: did the constraints make it slow?) */
+  // how many rolls it took (diagnostics: did the constraints make it slow?)
   tries: number
 }
 

@@ -6,11 +6,8 @@
  * family's play-surface scaffolding (shared/found-words/foundWordsPlayArea.module.css,
  * imported as `surface` — the layout budgets, the mobile regime and the
  * below-board slot, which boggle shares with spellingbee and wordwheel);
- * and this module, which holds what is boggle's alone — two layout numbers and
- * the SQUARE board sizing (the waffle model: boggle's board is a square tile grid
- * like waffle's). The info column's readouts use the shared `.noShrinkRow` +
- * readout classes; own-move and terminal feedback render as the shared
- * `<FeedbackPill>` in `.localFeedback`. */
+ * and this module, which holds what is boggle's alone: the two layout numbers
+ * the family reads. The board column's own rules are BoardCol.module.css's. */
 
 /* The two numbers the family's scaffolding reads off this game's layout.
  *
@@ -21,7 +18,7 @@
  * that keeps the word list wider at narrow widths; the board's own min() still
  * caps it by tile size / avail-h and it grows past 24rem on a roomy desktop.
  *
- * `--avail-h` itself is the family's now, and already nets out the below-board
+ * `--avail-h` itself is the family's, and already nets out the below-board
  * stack and the mobile status block. */
 /* @@ */ .layout {
 /* @@ */   --board-reserve: 24rem;
@@ -33,63 +30,7 @@
    * declaring it.
    *
    * 4.5rem (72px) is measured, not guessed: the compact three-line cell (label /
-   * value / percent) plus its 0.25rem lead-in comes to 69px. It was 4rem while
-   * the grid still wore its info-column rules and padding — 104px of content in
-   * a 64px `overflow: hidden` box, so the percent line was clipped away
-   * entirely; then 4.25rem while the grid ran a notch smaller than the other
-   * games'. Adopting the shared type scale added 3px, so the budget follows. */
+   * value / percent) plus its 0.25rem lead-in comes to 69px. Too small a box
+   * clips the percent line away, since the bar is `overflow: hidden`. */
 /* @@ */   --mobile-status-height: 4.5rem;
 }
-
-/* The mobile status block's content. Only ever rendered inside the mobile-only
- * `<MobileStatusBar>`.
- *
- * Sized to `--side`, the board's own edge — the same idiom the below-board input
- * row uses, so the four figures line up with the tray beneath them. It has to be
- * a definite width: `<MobileStatusBar>` centers a shrink-wrapping inner wrapper,
- * so `width: 100%` here would resolve against the grid's own max-content (~217px
- * of a 390px phone) and leave the columns packed. Four columns of "0 / 127" need
- * every pixel the phone has — at 22rem they crowded hard enough that "0 / 96"
- * and "0 / 127" read as one run of digits.
- *
- * The two knobs on the shared <Stats> grid are set here rather than there
- * because both exist for the FOUR-column shape: opt out of the 20rem cap the
- * two-column games want, and put a real floor between adjacent centered figures. */
-/* @@ */ .mobileStatus {
-  width: var(--side);
-/* @@ */   --stats-max-width: none;
-/* @@ */   --stats-col-gap: 0.75rem;
-}
-
-/* The board column. Computes `--side` — the largest square that fits — HERE
- * (rather than on the grid) so the below-board input row can match the board's
- * width from the same source. `--cols` / `--rows` are set inline (n ∈ 4/5/6).
- *
- * ─── Tile size cap — TINKER HERE ─────────────────────────────────────────────
- * boggle is a SQUARE board (like waffle), so it has ONE knob: the max tile SIZE.
- * It ships CAPPED at 6rem/tile — so the per-tile term is `--cols × 6rem +
- * gaps` (≈ 32rem for a 5×5), which is often the binding min() term on a roomy
- * desktop; otherwise the board is bounded by the width left beside the info
- * column (--avail-w) or the height above the input row (--avail-h). RAISE it
- * (or drop the term) to let the board grow; LOWER it for smaller tiles. A real
- * defined value rather than a commented-out knob + var() fallback, so the token
- * isn't "phantom" (see src/guards/cssTokens.test.ts). Relative units (rem). */
-/* @@ */ .boardCol {
-/* @@ */   --max-tile-size: 6rem; /* cap = --cols × 6rem + gaps (≈ 32rem at 5×5) */
-/* @@ */   --grid-gap: 10px;
-/* @@ */   --side: min(
-    var(--avail-w),
-    var(--avail-h),
-    calc(var(--cols) * var(--max-tile-size) + (var(--cols) - 1) * var(--grid-gap))
-  );
-  /* The name the family's `.belowBoard` reads, so one shared rule can pin its
-   * width to a square board's edge and to a hive's coordinate-unit product
-   * alike. An alias rather than a rename: `--side` is the idiom every square
-   * board in the app uses (waffle, scrabble, stackdown, letterboxed), and
-   * common/game-page/playArea.module.css documents it as the square variant. */
-/* @@ */   --board-width: var(--side);
-}
-
-/* The board's grid and its tiles are `Board.module.css` and `Tile.module.css`;
- * the below-board region is the family's —
- * shared/found-words/foundWordsPlayArea.module.css, composed as `surface`. */

@@ -15,16 +15,16 @@ import type { GPlayer } from '../types'
  *
  * **Coop:**
  *   - won     — the team reached its target → `Won: 12 words, 30 points`
- *   - lost    — the clock beat a target → `Lost: …`, "Time's up"
+ *   - lost    — the timer beat a target → `Lost: …`, "Time's up"
  *   - neutral — no target, or a Stop → `Ended: …`, "Time's up" / "Game ended"
  *
  * **Compete:**
  *   - a Stop → the shared `buildGameEndedMessageNeutral('compete')`
  *   - I conceded → `Lost: conceded`
- *   - I won — first to the target, or the top score when the clock stopped
+ *   - I won — first to the target, or the top score when the timer stopped
  *     (a tie for first wins together) → `Won: …`
  *   - somebody else won → `● alice won`, the winner as the message's `actor`
- *   - nobody won: the clock beat a target → `Lost: ran out of time`; or, with
+ *   - nobody won: the timer beat a target → `Lost: ran out of time`; or, with
  *     no target, nobody scored → `Lost: no words found`
  */
 export function buildGameEndingMessage({

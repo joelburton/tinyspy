@@ -145,7 +145,7 @@ export function capBoard(text: string, n: number): string {
  * The tiles a typed board reads as, in written form — `['A', 'Qu', 'B', '?']`.
  *
  * Split out of `parseCustomBoard` so the echo and the parse cannot disagree
- * about what a tile is; the parser now walks this instead of re-scanning the
+ * about what a tile is; the parser walks this rather than re-scanning the
  * string. It is deliberately TOLERANT — anything it can't read comes back as
  * itself, so the echo can show a bad character in place rather than vanishing,
  * and `parseCustomBoard` is left to decide that it's an error.

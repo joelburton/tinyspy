@@ -710,9 +710,10 @@ Games converted before then carry only what their audit already did:
 
 - **psychicnum, wordle, connections, spellingbee, wordwheel** — closed
   audits; nothing owed.
-- **boggle, codenamesduet** — the answers are done; the stylesheet split, the
-  section order, the comment and docstring passes and the names are owed
-  (codenamesduet's audit is open, so check its area file first).
+- **codenamesduet** — the answers are done; the stylesheet split, the section
+  order, the comment and docstring passes and the names are owed (its audit is
+  open, so check its area file first).
+- **boggle** — backfilled 2026-10-05 (plans/areas/boggle.md → The backfill).
 - **wordiply** — backfilled 2026-10-05 (plans/areas/wordiply.md → The
   backfill); N25's "race" → "player" is the later sweep's.
 - **waffle** — backfilled 2026-10-05 (plans/areas/waffle.md → The backfill).

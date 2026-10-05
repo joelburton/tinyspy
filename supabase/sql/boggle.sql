@@ -22,7 +22,7 @@
 --     band). Only required points count toward a target.
 --   - A game may have a target, a share of the required points. Reaching it
 --     wins at once (the team in coop, the crosser in compete). Without one, a
---     compete race is ranked by score when the clock stops, and a coop game
+--     compete race is ranked by score when the timer stops, and a coop game
 --     is an exercise with no result.
 --   - What a racer may see of a rival's finds mid-race is the page's rule,
 --     applied to game_data; the tables carry no mode arm.
@@ -570,7 +570,7 @@ grant execute on function boggle.create_game(text, jsonb, uuid[], text, jsonb) t
 drop function if exists boggle._finish(uuid, text, uuid);
 
 -- ============================================================
--- boggle._finish — end the game on a target or the clock
+-- boggle._finish — end the game on a target or the timer
 -- ============================================================
 -- The two endings boggle decides for itself (a Stop is common._stop's, and
 -- everyone conceding is common._concede's). `p_reason_detail` is 'target'
@@ -692,7 +692,7 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Locked like every move, so two finds, a find and a concession, or a find
-  -- and the clock serialize. A friend deleted the game while this call was in
+  -- and the timer serialize. A friend deleted the game while this call was in
   -- flight: the shared race, asked before the membership gate, which the
   -- delete took with it.
   select target_win_percent, reqd_words_score into g_win_percent, g_req_score
@@ -842,7 +842,7 @@ drop function if exists boggle.replay_board(uuid);
 -- The "Replay board" game-menu item / terminal Restart. Restarts the SAME
 -- board — same faces + word lists — for everyone: the found-words log (the
 -- game's only working state) is cleared, and common._reset_game clears the
--- ending, each player's ending and result, and zeroes the shared clock. Any
+-- ending, each player's ending and result, and zeroes the shared timer. Any
 -- game player may call it, mid-game or after the game ends (no ended check
 -- — it's a restart).
 create or replace function boggle.replay_board(p_game_id uuid)

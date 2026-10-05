@@ -11,7 +11,7 @@ import { StateLine } from './StateLine'
 import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
-import styles from './PlayArea.module.css'
+import styles from './BoardCol.module.css'
 import type { GGameData } from '../types'
 
 /**
@@ -29,12 +29,20 @@ export function BoardCol({
   // row draws it in place of the controls.
   localFeedbackSlot: FeedbackSlot
 }) {
+  // ─── Which board is on screen ─────────────────────────────────
+  // Always the live one: boggle has no turn-history viewer.
+
   // The board is mine to touch: tiles take taps, the entry takes letters, and
   // a word can be submitted. False once the game is over, or I conceded a race
   // the others play on.
   const isInteractive = gd.me.onTurn
 
+  // ─── The pending move ─────────────────────────────────────────
+  // The word being traced or typed, and its trip to the server
+  // (`useTracedWord`).
   const traced = useTracedWord({ gd, isInteractive, localFeedbackSlot })
+
+  // ─── Render ───────────────────────────────────────────────────
 
   return (
     <div

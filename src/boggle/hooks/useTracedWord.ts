@@ -49,6 +49,7 @@ export function useTracedWord({
     [gd.puzzle.traceBoard, submission.word],
   )
 
+  // The tile ids tapped so far, in trace order.
   const [pathIds, setPathIds] = useState<string[]>([])
   const spell = (ids: readonly string[]) =>
     ids.map((id) => gd.puzzle.tilesById.get(id)!.letters!).join('')

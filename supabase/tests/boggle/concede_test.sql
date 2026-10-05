@@ -4,7 +4,7 @@
 -- Test: boggle.concede(target_game)
 -- ============================================================
 -- boggle is a NON-elimination game (a player is only ever done by the
--- clock or by conceding), so concede locks its row and hands the rest to
+-- timer or by conceding), so concede locks its row and hands the rest to
 -- common._concede. Covers the boggle-specific parts: the compete-only
 -- mode guard, and that the wrapper delegates (ends the caller, continues
 -- while others race, and ends as a collective loss when the last racer

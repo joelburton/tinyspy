@@ -253,7 +253,7 @@ describe('boggle PlayArea — the celebration', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('pops for a race I won on score when the clock stopped', () => {
+  it('pops for a race I won on score when the timer stopped', () => {
     const { rerender } = render(<PlayAreaLoader {...makeCtx(race())} />)
     rerender(
       <PlayAreaLoader
