@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { canFollow, coveredLetters, layout, pathPoints, rejectReason, tailLetter } from './board'
+import { ZTest_makeTiles } from './gameData.fixture'
 
 /**
  * The FE half of the rulebook. The server re-checks every rule (pgTAP pins
@@ -93,9 +94,9 @@ describe('rejectReason', () => {
 
 describe('pathPoints', () => {
   // Top side a b c, right d e f, bottom g h i (right-to-left), left j k l.
-  const nodes = layout('abcdefghijkl')
+  const nodes = layout(ZTest_makeTiles('abcdefghijkl'))
   const at = (letter: string) => {
-    const n = nodes.find((x) => x.letter === letter)!
+    const n = nodes.find((x) => x.tile.letter === letter)!
     return `${n.x},${n.y}`
   }
 

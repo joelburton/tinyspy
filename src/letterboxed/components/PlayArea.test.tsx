@@ -410,12 +410,12 @@ describe('letterboxed PlayArea — the hint corpus when no word is clean', () =>
  * typing on is what ends it.
  */
 describe('letterboxed PlayArea — a refused word shakes its letters', () => {
-  /** The board letters currently shaking. */
+  /** The board's tiles currently shaking, by id — a tile's id is its letter. */
   const shaking = () =>
-    [...document.querySelectorAll('div[class*="verdictShake"]')].map((n) => n.textContent)
-  /** One board letter's element, so a REMOUNT can be told from a re-render. */
-  const nodeFor = (letter: string) =>
-    [...document.querySelectorAll('div[class*="node"]')].find((n) => n.textContent === letter)
+    [...document.querySelectorAll('[data-tile][class*="verdictShake"]')]
+      .map((n) => n.getAttribute('data-tile'))
+  /** One tile's element, so a REMOUNT can be told from a re-render. */
+  const tileFor = (id: string) => document.querySelector(`[data-tile="${id}"]`)
 
   /** One keystroke, AWAITED — an action's run is single-flight, so two keys
    *  fired in one tick would land one. */
@@ -440,14 +440,14 @@ describe('letterboxed PlayArea — a refused word shakes its letters', () => {
     // Refused by the word list alone — nothing left this client.
     expect(screen.getByText('Not a word')).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalledWith('submit_word', expect.anything())
-    expect(shaking().sort()).toEqual(['A', 'D', 'G'])
+    expect(shaking().sort()).toEqual(['a', 'd', 'g'])
 
     // The same word again. A CSS animation runs once per mount, so the proof
-    // that it shakes a second time is that the letter is a NEW element.
-    const before = nodeFor('A')
+    // that it shakes a second time is that the tile is a NEW element.
+    const before = tileFor('a')
     await key({ key: 'Enter', code: 'Enter' })
-    expect(shaking().sort()).toEqual(['A', 'D', 'G'])
-    expect(nodeFor('A')).not.toBe(before)
+    expect(shaking().sort()).toEqual(['a', 'd', 'g'])
+    expect(tileFor('a')).not.toBe(before)
   })
 
   it('does not come back when the draft passes through the refused word again', async () => {
@@ -458,7 +458,7 @@ describe('letterboxed PlayArea — a refused word shakes its letters', () => {
     render(<WithKeys {...makeCtx()} />)
     await typeADG()
     await key({ key: 'Enter', code: 'Enter' })
-    expect(shaking().sort()).toEqual(['A', 'D', 'G'])
+    expect(shaking().sort()).toEqual(['a', 'd', 'g'])
 
     // Type on: a different word, so nothing is being refused now.
     await key({ key: 'j' })
@@ -474,13 +474,14 @@ describe('letterboxed PlayArea — a refused word shakes its letters', () => {
     // A and B share the top side, so B cannot follow A; D, on the next side,
     // can. The board lights the word's letters, which is what is read back.
     const inWord = () =>
-      [...document.querySelectorAll('div[class*="inWord"]')].map((n) => n.textContent).sort()
+      [...document.querySelectorAll('[data-tile][class*="inWord"]')]
+        .map((n) => n.getAttribute('data-tile')).sort()
     render(<WithKeys {...makeCtx()} />)
     await key({ key: 'a' })
     await key({ key: 'b' })
-    expect(inWord()).toEqual(['A'])
+    expect(inWord()).toEqual(['a'])
     await key({ key: 'd' })
-    expect(inWord()).toEqual(['A', 'D'])
+    expect(inWord()).toEqual(['a', 'd'])
   })
 
   it('a word the board accepts goes to the server under the RPC\'s own names', async () => {

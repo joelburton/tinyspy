@@ -2,10 +2,22 @@
 
 import { useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
-import { canFollow, coveredLetters, EDGE, layout, pathPoints, SPAN } from '../lib/board'
+import { coveredLetters, EDGE, layout, pathPoints, SPAN } from '../lib/board'
+import { Tile } from './Tile'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './Board.module.css'
 import play from './PlayArea.module.css'
+import type { GTile } from '../types'
+
+/** What this screen adds to the board, beyond the tiles. */
+type BoardMarks = {
+  // Set when the typed word was just refused: its letters shake. The number
+  // is a replay nonce — the letters are keyed on it, so refusing the same word
+  // twice shakes twice (a CSS animation only restarts on a new element).
+  shakeNonce: number | null
+  // True for a beat at the moment the turn becomes mine: the frame flashes.
+  myTurnJustStarted: boolean
+}
 
 /**
  * The play surface: twelve letters on a square, the chain's covered letters
@@ -28,70 +40,61 @@ import play from './PlayArea.module.css'
  * cost is paid on every move. The server re-checks everything regardless.
  */
 export function Board({
-  sides,
-  chain,
-  word,
+  tiles,
+  words,
+  typedWord,
+  isInteractive,
+  marks,
   onPick,
-  disabled,
-  shakeNonce = null,
-  myTurnJustStarted,
 }: {
-  // Twelve letters in side order.
-  sides: string
-  // Words played so far — drives the "covered" marking.
-  chain: string[]
-  // The word being built (may be empty).
-  word: string
-  // Append this letter, or submit if it's the word's current last letter.
-  onPick: (letter: string) => void
-  // Terminal / not my turn / conceded: the board is inert.
-  disabled: boolean
-  // Set when the word on the board was just refused: its letters shake, which
-  // is what side to side means everywhere in this app. The number is a replay
-  // nonce — the letters are keyed on it, so refusing the same word twice shakes
-  // twice (a CSS animation only restarts on a new element).
-  shakeNonce?: number | null
-  // True for a beat at the moment the turn becomes mine: the frame flashes.
-  myTurnJustStarted: boolean
+  // The box's twelve tiles, in side order.
+  tiles: GTile[]
+  // The chain on show — drives the covered marking and the ghost.
+  words: string[]
+  // The word being typed; empty while a past move is on show.
+  typedWord: string
+  // The board takes moves.
+  isInteractive: boolean
+  marks: BoardMarks
+  // A tile clicked: append its letter, or submit if it is the word's last.
+  onPick: (tile: GTile) => void
 }) {
-  const nodes = useMemo(() => layout(sides), [sides])
-  const covered = useMemo(() => coveredLetters(chain), [chain])
-  const last = word[word.length - 1]
+  const placed = useMemo(() => layout(tiles), [tiles])
+  const covered = useMemo(() => coveredLetters(words), [words])
+  const lastTile = tiles.find((t) => t.letter === typedWord.at(-1))
   // The path the word in progress traces.
-  const points = useMemo(() => pathPoints(word, nodes), [word, nodes])
+  const points = useMemo(() => pathPoints(typedWord, placed), [typedWord, placed])
 
   /**
-   * The GHOST: the last submitted word's path, in gray, so everyone can see
-   * where the chain just went — in coop that's whoever played it, since the
-   * chain is shared and arrives by realtime; in compete `chain` is your own
-   * (rivals' are column-shielded), so it's your own last word and can't leak.
+   * The GHOST: the last word of the chain on show, in a quieter line, so
+   * everyone can see where the chain just went — in coop whoever played it,
+   * since the chain is shared; in compete my own last word, a rival's chain
+   * being withheld mid-race.
    *
    * It survives the word's FIRST letter, which is not a choice — it's carried
    * over from the previous word's tail — and clears on the second, the moment
-   * the player has actually decided something. `word.length < 2` is that rule.
+   * the player has actually decided something. `typedWord.length < 2` is that
+   * rule.
    *
-   * The history viewer gets this for free: it passes `word=''` and a snapshot
-   * `chain`, so stepping back through turns replays each word's path.
+   * The history viewer gets this for free: it passes no typed word and a past
+   * move's chain, so stepping back through turns replays each word's path.
    */
   const ghostPoints = useMemo(
-    () => (word.length < 2 ? pathPoints(chain[chain.length - 1] ?? '', nodes) : ''),
-    [word, chain, nodes],
+    () => (typedWord.length < 2 ? pathPoints(words.at(-1) ?? '', placed) : ''),
+    [typedWord, words, placed],
   )
 
   return (
     // The board is TWO layers in one square: an SVG carrying the box and the two
-    // chain lines, and the letters laid over it as ordinary boxes. The letters
-    // left the SVG so they could be tiles — a `<circle>` takes no box-shadow, no
-    // shared tile face and none of the shared marks, so every one of those had to
-    // be hand-translated into SVG idioms and re-scaled by hand. The two layers
-    // cannot drift: both are addressed in the same 0-100 coordinates, the SVG
-    // through its viewBox and the letters as percentages.
+    // chain lines, and the tiles laid over it. Both are addressed in the same
+    // 0-100 coordinates — the SVG through its viewBox, the tiles as percentages
+    // — so they cannot drift.
     <div
       className={cls(
         shared.boardSeal,
         styles.board,
         play.board,
-        myTurnJustStarted && shared.yourTurnFlash,
+        marks.myTurnJustStarted && shared.yourTurnFlash,
       )}
     >
       <svg className={styles.lines} viewBox="0 0 100 100" role="presentation">
@@ -104,44 +107,34 @@ export function Board({
           rx="1.5"
         />
 
-        {/* Both lines sit under the letters so a node is never obscured. The ghost
+        {/* Both lines sit under the tiles so a tile is never obscured. The ghost
             is first so a live path drawn over it wins — they only overlap while
             the carried first letter is down, which draws no segment anyway. */}
         {ghostPoints && <polyline className={styles.ghostPath} points={ghostPoints} />}
         {points && <polyline className={styles.path} points={points} />}
       </svg>
 
-      {nodes.map((n) => {
-        const isLast = n.letter === last
-        const inWord = word.includes(n.letter)
-        // Illegal as the NEXT letter: same side as the one we're sitting on.
-        // The current last letter is exempt — clicking it means submit.
-        const blocked = !isLast && !canFollow(sides, last, n.letter)
+      {placed.map(({ tile, x, y }) => {
+        const isInWord = typedWord.includes(tile.letter)
+        const isLast = tile === lastTile
+        const isShaking = isInWord && marks.shakeNonce !== null
+        // A letter may follow the word's last one only from another side; the
+        // last letter itself takes the click as a submit.
+        const canFollowLast = lastTile === undefined || isLast || tile.side !== lastTile.side
         return (
-          <div
+          <Tile
             // Keyed on the shake's nonce while this letter is in the refused
             // word, so the same refusal twice replays the movement; the letters
             // that are not in the word keep their identity.
-            key={inWord && shakeNonce !== null ? `${n.letter}#${shakeNonce}` : n.letter}
-            className={cls(
-              styles.node,
-              covered.has(n.letter) && styles.covered,
-              inWord && styles.inWord,
-              isLast && styles.last,
-              disabled && styles.disabled,
-              inWord && shakeNonce !== null && shared.verdictShake,
-            )}
-            // The node's own coordinates, as a share of the square — the same
-            // numbers the SVG above positions by. `--node-d` (its diameter) is in
-            // the stylesheet, and the margins there pull it back onto its center.
-            style={{ left: `${n.x}%`, top: `${n.y}%` }}
-            onClick={() => {
-              if (disabled || blocked) return
-              onPick(n.letter)
-            }}
-          >
-            {n.letter.toUpperCase()}
-          </div>
+            key={isShaking ? `${tile.id}#${marks.shakeNonce}` : tile.id}
+            tile={tile}
+            x={x}
+            y={y}
+            marks={{ isCovered: covered.has(tile.letter), isInWord, isLast, isShaking }}
+            isInteractive={isInteractive}
+            isPickable={isInteractive && canFollowLast}
+            onClick={onPick}
+          />
         )
       })}
     </div>

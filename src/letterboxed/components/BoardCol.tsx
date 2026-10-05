@@ -9,7 +9,6 @@ import { useTypedWord } from '../hooks/useTypedWord'
 import { Board } from './Board'
 import { ChainStrip } from './ChainStrip'
 import { TypedWord } from './TypedWord'
-import { joinSides } from '../lib/board'
 import {
   DESKTOP_ROW_BUDGET_REM,
   MOBILE_ROW_BUDGET_REM,
@@ -19,7 +18,7 @@ import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
-import type { GGameData, GHistoryView } from '../types'
+import type { GGameData, GHistoryView, GTile } from '../types'
 
 /**
  * letterboxed's board column: the chain strip, the square, and the entry — and
@@ -80,13 +79,14 @@ export function BoardCol({
   // A board letter clicked is the next move, like a keystroke. It appends —
   // unless it repeats the letter the word already ends on, which submits (see
   // Board.tsx for why that is unambiguous).
-  function pickLetter(letter: string) {
+  function pickTile(tile: GTile) {
     localFeedbackSlot.dismiss()
-    if (entry.word.length > 0 && letter === entry.word.at(-1)) {
+    // A tile's id is its letter, which is what the word is spelled in.
+    if (entry.word.length > 0 && tile.id === entry.word.at(-1)) {
       void entry.submit()
       return
     }
-    entry.appendLetter(letter)
+    entry.appendLetter(tile.id)
   }
 
   async function removeLastWord() {
@@ -132,13 +132,12 @@ export function BoardCol({
         />
 
         <Board
-          sides={joinSides(gd.puzzle.tiles)}
-          chain={shownWords}
-          word={historyView.isViewing ? '' : entry.word}
-          onPick={pickLetter}
-          disabled={!isEntryOpen}
-          shakeNonce={refusedNonce}
-          myTurnJustStarted={myTurnJustStarted}
+          tiles={gd.puzzle.tiles}
+          words={shownWords}
+          typedWord={historyView.isViewing ? '' : entry.word}
+          isInteractive={isEntryOpen}
+          marks={{ shakeNonce: refusedNonce, myTurnJustStarted }}
+          onPick={pickTile}
         />
       </div>
 

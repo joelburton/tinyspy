@@ -26,11 +26,11 @@ test.describe('letterboxed — print board', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${gametype}/${id}`)
-    await boardReady(page, page.locator('[class*="node"]').first())
+    await boardReady(page, page.locator('[data-tile]').first())
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first()).toBeVisible({
+    await expect(page.getByRole('listitem').filter({ hasText: /^adg/ }).first()).toBeVisible({
       timeout: 10000,
     })
 

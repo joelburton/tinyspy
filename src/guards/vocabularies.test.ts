@@ -202,9 +202,8 @@ const VOCABULARIES: Vocabulary[] = [
     allowed: /^([1-9]00|normal|bold|lighter|bolder|inherit|initial|unset|revert)$/,
     root: '.',
     pending: {
-      // letterboxed's two `650`s — the whole cost of the rule, and they are
-      // fixed by the `letterboxed` area's audit, not swept now.
-      'src/letterboxed/components/Board.module.css': ['650'],
+      // letterboxed's last `650` — the whole cost of the rule, fixed by the
+      // `letterboxed` area's audit, not swept now.
       'src/letterboxed/components/PlayArea.module.css': ['650'],
     },
     fix:

@@ -142,6 +142,11 @@ The `gd` sketch, approved 2026-10-05 (step 2), is the comment in
   coop gets the turn flash and bell every converted game has; and every RPC
   call sends `p_` names, broken since 2026-09-28. The frontend's unused
   `clear_chain` path went; the RPC stays.
+- **Steps 10–11 (2026-10-05), e2e not yet run:** the chain strip's words,
+  the typed word and the tiles now draw their capitals in CSS, so the text a
+  spec reads is the stored lowercase; `letterboxed.e2e.ts` and
+  `letterboxed-print.e2e.ts` expect it (`/^adg/`, `'g'`), and every board
+  locator in them and in `tap-targets.e2e.ts` is `[data-tile]`.
   `lib/answer.ts`'s `Answer` is `GAnswer`; `Node`, `ParsedSides`,
   `Suggestion` and `NoSuggestion` stopped being exported, each read only in
   its own file.

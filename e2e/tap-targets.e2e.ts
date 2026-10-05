@@ -48,7 +48,7 @@ const TAPPED_BOARDS = [
   // rule from an HTML ancestor (the wheel, the board square), so the
   // inert-child trap can't reach them.
   { name: 'wordwheel', make: createWordwheelGame, target: '[data-tile]' },
-  { name: 'letterboxed', make: createLetterboxedGame, target: '[class*="node"]' },
+  { name: 'letterboxed', make: createLetterboxedGame, target: '[data-tile]' },
   // HTML tiles: bespoke ones (strands, boggle, stackdown, scrabble) and the
   // shared `.tile` (connections, waffle).
   { name: 'strands', make: createStrandsGame, target: 'button[class*="tile"]' },

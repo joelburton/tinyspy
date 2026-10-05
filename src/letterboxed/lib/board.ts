@@ -45,11 +45,6 @@ export function sideOf(sides: string): Map<string, number> {
   return new Map([...sides].map((c, i) => [c, Math.floor(i / SIDE_SIZE)]))
 }
 
-/** The four sides, as arrays of letters, in the order the string gives them. */
-export function sideGroups(sides: string): string[][] {
-  return [0, 1, 2, 3].map((s) => [...sides.slice(s * SIDE_SIZE, (s + 1) * SIDE_SIZE)])
-}
-
 /**
  * May `next` follow `prev` in a word? Only when they are on DIFFERENT sides —
  * every step of a word crosses the box. A letter can never follow itself,
@@ -137,28 +132,29 @@ export const SPAN = 100 - EDGE * 2
 const STOPS = [0.2, 0.5, 0.8]
 export const NODE_R = 7.2
 
-/** A letter's place on the square, plus the side it belongs to. */
-type Node = { letter: string; x: number; y: number; side: number }
+/** A tile's shape as far as the geometry cares — `GTile`'s, written out
+ *  because the board-building edge function loads this file and cannot load
+ *  `types.ts`. */
+type BoxTile = { letter: string; side: number }
+
+/** A tile and the center it is drawn at, on the 0-100 square. */
+type Placed<T extends BoxTile> = { tile: T; x: number; y: number }
 
 /**
- * Lay the twelve letters out CLOCKWISE from the top-left: side 0 across the
+ * Lay the twelve tiles out CLOCKWISE from the top-left: side 0 across the
  * top, 1 down the right, 2 back along the bottom, 3 up the left. Reversing the
  * bottom and left runs is what makes it read as one loop rather than four
- * left-to-right rows.
+ * left-to-right rows. Each side's tiles keep the order they are given in.
  */
-export function layout(sides: string): Node[] {
-  const groups = sideGroups(sides)
+export function layout<T extends BoxTile>(tiles: readonly T[]): Placed<T>[] {
   const at = (f: number) => EDGE + SPAN * f
-  const out: Node[] = []
-  groups[0]?.forEach((letter, i) => out.push({ letter, x: at(STOPS[i]), y: EDGE, side: 0 }))
-  groups[1]?.forEach((letter, i) => out.push({ letter, x: 100 - EDGE, y: at(STOPS[i]), side: 1 }))
-  groups[2]?.forEach((letter, i) =>
-    out.push({ letter, x: at(STOPS[SIDE_SIZE - 1 - i]), y: 100 - EDGE, side: 2 }),
-  )
-  groups[3]?.forEach((letter, i) =>
-    out.push({ letter, x: EDGE, y: at(STOPS[SIDE_SIZE - 1 - i]), side: 3 }),
-  )
-  return out
+  const onSide = (side: number) => tiles.filter((t) => t.side === side)
+  return [
+    ...onSide(0).map((tile, i) => ({ tile, x: at(STOPS[i]), y: EDGE })),
+    ...onSide(1).map((tile, i) => ({ tile, x: 100 - EDGE, y: at(STOPS[i]) })),
+    ...onSide(2).map((tile, i) => ({ tile, x: at(STOPS[SIDE_SIZE - 1 - i]), y: 100 - EDGE })),
+    ...onSide(3).map((tile, i) => ({ tile, x: EDGE, y: at(STOPS[SIDE_SIZE - 1 - i]) })),
+  ]
 }
 
 /**
@@ -180,11 +176,11 @@ export function layout(sides: string): Node[] {
  * which is what makes a one-letter word (the carried-over first letter) draw
  * nothing without needing a special case.
  */
-export function pathPoints(word: string, nodes: Node[]): string {
-  const byLetter = new Map(nodes.map((n) => [n.letter, n]))
+export function pathPoints(word: string, placed: readonly Placed<BoxTile>[]): string {
+  const byLetter = new Map(placed.map((p) => [p.tile.letter, p]))
   return [...word]
     .map((c) => byLetter.get(c))
-    .filter((n): n is Node => n !== undefined)
-    .map((n) => `${n.x},${n.y}`)
+    .filter((p) => p !== undefined)
+    .map((p) => `${p.x},${p.y}`)
     .join(' ')
 }

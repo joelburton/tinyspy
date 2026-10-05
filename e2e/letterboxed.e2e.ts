@@ -31,8 +31,8 @@ test.describe('letterboxed', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
     // The board renders all twelve letters.
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
-    await expect(page.locator('[class*="node"]')).toHaveCount(12)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
+    await expect(page.locator('[data-tile]')).toHaveCount(12)
 
     // Nothing covered yet.
     await expect(page.getByText('No words yet')).toBeVisible()
@@ -43,7 +43,7 @@ test.describe('letterboxed', () => {
     // THE REALTIME PATH: the chain list is driven by the players postgres-changes
     // event, so the word appearing there without a reload can only come through
     // the live channel.
-    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
+    await expect(page.getByRole('listitem').filter({ hasText: /^adg/ }).first())
       .toBeVisible({ timeout: 10000 })
 
     // The accepted-word result restates the cap — there is no status bar to
@@ -57,7 +57,7 @@ test.describe('letterboxed', () => {
     // lets Backspace stop at it instead of clearing it — which makes Backspace
     // the keystroke that dismisses the result without touching the box.
     await page.keyboard.press('Backspace')
-    await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
+    await expect(page.getByTestId('entry-value')).toHaveText('g', { timeout: 10000 })
 
     await ctx.close()
   })
@@ -73,16 +73,16 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
     // Sides are `abc | def | ghi | jkl`, so B cannot follow A — they share a
     // side. The keystroke is refused rather than accepted-then-rejected.
     await page.keyboard.type('ab')
-    await expect(page.getByTestId('entry-value')).toHaveText('A')
+    await expect(page.getByTestId('entry-value')).toHaveText('a')
 
     // D is on another side, so it goes in.
     await page.keyboard.type('d')
-    await expect(page.getByTestId('entry-value')).toHaveText('AD')
+    await expect(page.getByTestId('entry-value')).toHaveText('ad')
 
     await ctx.close()
   })
@@ -96,11 +96,11 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ })).toBeVisible({
+    await expect(page.getByRole('listitem').filter({ hasText: /^adg/ })).toBeVisible({
       timeout: 10000,
     })
 
@@ -126,7 +126,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
     // The board square is the SVG the letters are laid over — `Board.module.css
     // → .lines`, the layer carrying the box and the two chain paths. The letters
@@ -154,7 +154,7 @@ test.describe('letterboxed', () => {
 
     // …and a played word fills the chain strip.
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
+    await expect(page.getByRole('listitem').filter({ hasText: /^adg/ }).first())
       .toBeVisible({ timeout: 10000 })
     expect(await boardTop()).toBeCloseTo(empty, 0)
 
@@ -171,7 +171,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
@@ -180,7 +180,7 @@ test.describe('letterboxed', () => {
     // (Backspace dismisses the accepted-word result and stops at the seed.)
     await expect(page.getByText('ADG — 1 word left')).toBeVisible({ timeout: 10000 })
     await page.keyboard.press('Backspace')
-    await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
+    await expect(page.getByTestId('entry-value')).toHaveText('g', { timeout: 10000 })
     await page.keyboard.type('jb')
     await page.keyboard.press('Enter')
 
@@ -217,7 +217,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
     // HINT describes the word without giving it: the fixture's two-word
     // solution opens with ADGJBEHK — 8 letters, so three of them (four only
@@ -249,7 +249,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
     await page.getByRole('button', { name: /stop game/i }).click()
     const confirm = page.getByRole('button', { name: /^(stop|yes|confirm)/i }).last()
@@ -274,7 +274,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
@@ -282,10 +282,10 @@ test.describe('letterboxed', () => {
     // dismisses the accepted-word result and stops at the seed.)
     await expect(page.getByText('ADG — 4 words left')).toBeVisible({ timeout: 10000 })
     await page.keyboard.press('Backspace')
-    await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
+    await expect(page.getByTestId('entry-value')).toHaveText('g', { timeout: 10000 })
     await page.keyboard.type('jb')
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('listitem').filter({ hasText: /^GJB/ }).first()).toBeVisible({
+    await expect(page.getByRole('listitem').filter({ hasText: /^gjb/ }).first()).toBeVisible({
       timeout: 10000,
     })
 
@@ -296,8 +296,8 @@ test.describe('letterboxed', () => {
     // The chain STRIP rolls back with the board — they're one snapshot, and
     // framing only the board used to leave the two showing a state that never
     // existed. After move #1 the chain was ADG alone, so GJB is gone.
-    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first()).toBeVisible()
-    await expect(page.getByRole('listitem').filter({ hasText: /^GJB/ })).toHaveCount(0)
+    await expect(page.getByRole('listitem').filter({ hasText: /^adg/ }).first()).toBeVisible()
+    await expect(page.getByRole('listitem').filter({ hasText: /^gjb/ })).toHaveCount(0)
 
     // And no × on the snapshot: you can't take a word back out of a past move.
     await expect(page.getByRole('button', { name: /Take back/i })).toHaveCount(0)
@@ -323,7 +323,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
     const pills = () =>
       page.evaluate(() =>
@@ -338,7 +338,7 @@ test.describe('letterboxed', () => {
     // Mid-game the last pill carries the ×, so ITS right padding is tight.
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first()).toBeVisible({
+    await expect(page.getByRole('listitem').filter({ hasText: /^adg/ }).first()).toBeVisible({
       timeout: 10000,
     })
     const live = await pills()
@@ -346,14 +346,14 @@ test.describe('letterboxed', () => {
     expect(live.at(-1)!.r).not.toBe(live.at(-1)!.l)
 
     // Solve it — the × goes, and the pills even up.
-    await page.getByRole('listitem').filter({ hasText: /^ADG/ }).first().getByRole('button').click()
+    await page.getByRole('listitem').filter({ hasText: /^adg/ }).first().getByRole('button').click()
     await expect(page.getByText('No words yet')).toBeVisible({ timeout: 10000 })
     await page.keyboard.type('adgjbehk')
     await page.keyboard.press('Enter')
     // Backspace dismisses the accepted-word result; then the seeded entry shows.
     await expect(page.getByText('ADGJBEHK — 4 words left')).toBeVisible({ timeout: 10000 })
     await page.keyboard.press('Backspace')
-    await expect(page.getByTestId('entry-value')).toHaveText('K', { timeout: 10000 })
+    await expect(page.getByTestId('entry-value')).toHaveText('k', { timeout: 10000 })
     await page.keyboard.type('cfil')
     await page.keyboard.press('Enter')
     await expect(page.getByText(/All twelve/)).toBeVisible({ timeout: 10000 })
@@ -377,19 +377,19 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
-    const letter = (ch: string) =>
-      page.locator('[class*="node"]').filter({ hasText: new RegExp(`^${ch}$`) })
+    // A tile's `data-tile` is its id, which is its letter.
+    const letter = (ch: string) => page.locator(`[data-tile="${ch}"]`)
 
-    await letter('A').click()
-    await letter('D').click()
-    await letter('G').click()
+    await letter('a').click()
+    await letter('d').click()
+    await letter('g').click()
     // The second click on the word's LAST letter submits — unambiguous because
     // a word can never repeat a letter back-to-back (same letter = same side).
-    await letter('G').click()
+    await letter('g').click()
 
-    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
+    await expect(page.getByRole('listitem').filter({ hasText: /^adg/ }).first())
       .toBeVisible({ timeout: 10000 })
 
     await ctx.close()
@@ -417,7 +417,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
     const ghost = page.locator('svg polyline[class*="ghostPath"]')
     const live = page.locator('svg polyline[class*="path"]:not([class*="ghostPath"])')
@@ -427,7 +427,7 @@ test.describe('letterboxed', () => {
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
+    await expect(page.getByRole('listitem').filter({ hasText: /^adg/ }).first())
       .toBeVisible({ timeout: 10000 })
 
     // The word is played: its route is on the board, in gray.
@@ -471,7 +471,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await boardReady(page, page.locator('[data-tile]').first(), 15000)
 
     // Reject a word: three board letters that don't spell anything.
     await page.keyboard.type('adl')
@@ -506,15 +506,14 @@ test.describe('letterboxed', () => {
  * Two clubs, because `is_current_view` allows one live game per club.
  */
 test.describe('letterboxed custom board', () => {
-  /** The board, read off the twelve SVG letters. They render in `sides` order
-   *  (`layout()` emits side groups 0..3 in turn), which is also the order the
-   *  setup field takes — clockwise from the top-left.
-   *
-   *  `allTextContents`, NOT `allInnerTexts`: these are SVG `<text>` nodes, and
-   *  innerText is an HTML-rendering concept — it comes back empty here, which
-   *  reads exactly like a board that failed to load. */
+  /** The board, read off the twelve tiles' ids — each tile's letter, as
+   *  stored, lowercase. They render in `sides` order (`layout()` emits sides
+   *  0..3 in turn), which is also the order the setup field takes — clockwise
+   *  from the top-left. */
   const readBoard = async (page: import('@playwright/test').Page) =>
-    (await page.locator('[class*="node"]').allTextContents()).join('')
+    (await page.locator('[data-tile]').evaluateAll(
+      (tiles) => tiles.map((t) => t.getAttribute('data-tile')),
+    )).join('')
 
   test('a rolled board can be typed back, and the Setup options list reads it in the same form', async ({
     browser,
@@ -533,10 +532,10 @@ test.describe('letterboxed custom board', () => {
     await rollPage.goto(`/c/${rollClub.handle}`)
     await startGameRow(rollPage, /SnakeBox/).click()
     await rollPage.getByRole('button', { name: 'Start' }).click()
-    await boardReady(rollPage, rollPage.locator('[class*="node"]').first(), 20000)
-    await expect(rollPage.locator('[class*="node"]')).toHaveCount(12)
+    await boardReady(rollPage, rollPage.locator('[data-tile]').first(), 20000)
+    await expect(rollPage.locator('[data-tile]')).toHaveCount(12)
     const rolled = await readBoard(rollPage)
-    expect(rolled).toMatch(/^[A-Z]{12}$/)
+    expect(rolled).toMatch(/^[a-z]{12}$/)
     await rollCtx.close()
 
     // ── The friend types it in, through the CUSTOM path ──
@@ -559,8 +558,8 @@ test.describe('letterboxed custom board', () => {
     await page.getByRole('button', { name: 'Start' }).click()
 
     // The board IS the one typed — same letters, same sides, same positions.
-    await boardReady(page, page.locator('[class*="node"]').first(), 20000)
-    await expect(page.locator('[class*="node"]')).toHaveCount(12)
+    await boardReady(page, page.locator('[data-tile]').first(), 20000)
+    await expect(page.locator('[data-tile]')).toHaveCount(12)
     expect(await readBoard(page)).toBe(rolled)
 
     // And the Setup options list prints it in the form the dialog takes back — the round

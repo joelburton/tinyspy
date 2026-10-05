@@ -1,0 +1,90 @@
+/* cs-unmet */
+
+/* One letter of letterboxed's box. Sized in `cqi` — a percent of the board's
+ * own width, the board being a size container — so the letters scale with the
+ * board as the SVG lines do. `--node-d`, the diameter, is the board's. */
+
+/* A letter is a TILE, and behaves like one: it wears the shared tile face, rests
+ * with the tile shadow, rises on hover while its shadow falls away, and presses
+ * in when clicked — the treatment every other board's pieces get
+ * (common/game-page/playArea.module.css → `.tile`). It is a box rather than an
+ * SVG circle so those can be the SHARED values: a `<circle>` takes no
+ * box-shadow. */
+/* @@ */ .tile {
+  position: absolute;
+  width: var(--node-d);
+  height: var(--node-d);
+  /* Percentage margins resolve against the container's WIDTH on both axes, and
+   * the board is square — so this pulls the box back onto the center point its
+   * `left`/`top` name, leaving `transform` free for the press and the lift. */
+  margin-left: calc(var(--node-d) / -2);
+  margin-top: calc(var(--node-d) / -2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--letterboxed-tile);
+  border: 0.7cqi solid var(--letterboxed-tile-edge);
+  box-shadow: var(--tile-shadow);
+  color: var(--letterboxed-tile-text);
+  font-size: 7cqi;
+  font-weight: 700;
+  /* The letters are stored lowercase, as the word list is; capitals are drawn. */
+  text-transform: uppercase;
+  user-select: none;
+  cursor: pointer;
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+/* The piece rises while its shadow falls away — the gap between them IS the
+ * elevation, which is why neither half works alone. */
+/* @@ */ .tile:not(.inert):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--tile-hover-shadow);
+}
+
+/* Pressed: back down, slightly smaller, slightly darker. */
+/* @@ */ .tile:not(.inert):active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: var(--tile-shadow);
+  filter: brightness(0.92);
+}
+
+/* Reduced motion: the movement goes, the shadows stay — neither was carrying a
+ * message on its own. */
+@media (prefers-reduced-motion: reduce) {
+/* @@ */   .tile:not(.inert):hover,
+/* @@ */   .tile:not(.inert):active {
+    transform: none;
+  }
+}
+
+/* Already covered by the chain — the progress readout, at a glance. The EDGE
+ * takes the accent, so a covered letter reads as part of the chain rather than
+ * as a tile that happens to be tinted. No confusion with a letter in the word
+ * being built now: that one wears the same green at twice the weight. */
+/* @@ */ .covered {
+  background: var(--letterboxed-used);
+  border-color: var(--letterboxed-accent);
+}
+
+/* In the word being built right now. */
+/* @@ */ .inWord {
+  border-color: var(--letterboxed-accent);
+  border-width: 1.4cqi;
+}
+
+/* The word's current last letter: click it again to submit. */
+/* @@ */ .last {
+  background: var(--letterboxed-accent);
+  color: var(--default-bg-color);
+}
+
+/* The board takes no move: the tile stops looking pressable. */
+/* @@ */ .inert {
+  cursor: default;
+}
