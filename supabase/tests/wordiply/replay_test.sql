@@ -7,7 +7,7 @@
 -- Clears the events log (the game's only working state), and
 -- common._reset_game undoes the ending: ended_at and the reason pair, each
 -- player's ending, ranking and outcome, the shared clock; restart_count goes
--- up. The statuses are rewritten at zero. The frozen board (base +
+-- up. The page blobs are rebuilt at zero. The frozen board (base +
 -- max_word_len + the word lists) survives. Any game player may call it,
 -- mid-game or after the end; a non-player is rejected.
 --
@@ -16,8 +16,8 @@
 -- guesses_used / base). This file is the dedicated replay suite every
 -- other replay game has, and carries what §3 doesn't reach — the COMPETE
 -- branch (a racer's ending and ranking undone), restart_count, the shared
--- clock, that the ended-only scores don't survive into the fresh
--- statuses, and the non-player gate.
+-- clock, that the ended-only scores don't survive into the rebuilt
+-- blobs, and the non-player gate.
 --
 -- All guesses are synthetic strings that satisfy the two free rules
 -- (contain 'ar', longer than it) — wordiply is trusting-commit, so
@@ -44,7 +44,7 @@ select (wordiply.create_game(
   pg_temp.wordiply_board()
 )->'data'->>'id')::uuid as id;
 
--- Two guesses (7 and 5 letters) + a Stop → event rows, non-zero statuses,
+-- Two guesses (7 and 5 letters) + a Stop → event rows, non-zero scores,
 -- and an ended game: exactly what replay undoes.
 select wordiply.submit_guess((select id from g1), 'arxxxxx');
 select wordiply.submit_guess((select id from g1), 'arxxx');
@@ -82,13 +82,13 @@ select is(
   (select count(*) from wordiply.events where game_id = (select id from g1)),
   0::bigint, 'replay → the events log is cleared');
 select is(
-  (select clubpage_info->>'guesses_used' from common.games where id = (select id from g1)),
-  '0', 'replay → clubpage_info.guesses_used reset to 0');
+  (select game_data->'team'->>'nGuessesUsed' from common.games where id = (select id from g1)),
+  '0', 'replay → game_data.team.nGuessesUsed reset to 0');
 -- The ended-only scores (length score, letter count) are written once the
--- game has ended; the rewritten statuses must not carry them forward, or a
+-- game has ended; the rebuilt blobs must not carry them forward, or a
 -- replayed board opens showing the PRIOR attempt's result.
 select is(
-  (select clubpage_info->'length_score' from common.games where id = (select id from g1)),
+  (select game_data->'team'->'lengthScore' from common.games where id = (select id from g1)),
   'null'::jsonb,
   'replay → the ended-only scores are null again, not carried forward');
 select is(
@@ -136,14 +136,13 @@ select is(
   0::bigint,
   'compete replay → every player''s ending, ranking and outcome are cleared');
 select ok(
-  (select bool_and((player_status->>'guesses_used')::int = 0
-                   and player_status->'player_ended_reason' = 'null'::jsonb)
-     from common.game_players where game_id = (select id from g2)),
-  'compete replay → every player_status is back to 0 guesses used, not ended');
+  (select bool_and((p->>'nGuessesUsed')::int = 0 and p->'ending' = 'null'::jsonb)
+     from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from g2))) p),
+  'compete replay → every game_data player is back to 0 guesses used, not ended');
 select is(
-  (select clubpage_info->'winner_user_id' from common.games where id = (select id from g2)),
+  (select summary_data->'winnerLengthScore' from common.games where id = (select id from g2)),
   'null'::jsonb,
-  'compete replay → the winner is gone from clubpage_info');
+  'compete replay → the winner''s score is gone from summary_data');
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

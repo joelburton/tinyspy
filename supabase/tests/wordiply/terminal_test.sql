@@ -8,12 +8,12 @@
 -- Covers the endings other than submit_guess's own (coop's fifth word is in
 -- gameplay_test, the race's ranking in winner_test):
 --   1. Coop stop_game → stopped/stopped, neutral, nobody ranked, ended by the
---      caller; the team's scores in the statuses. A second Stop, and a guess
+--      caller; the team's scores in summary_data. A second Stop, and a guess
 --      after the end, are the game-over race.
 --   2. Coop submit_timeout → timeout/timeout, lost, nobody ranked; a
 --      free-for-all game's timeout is ended by nobody.
---   3. replay_board wipes the events, clears the ending, rewrites the
---      statuses.
+--   3. replay_board wipes the events, clears the ending, rebuilds the
+--      page blobs.
 --   4. Concede (compete): the caller ends, conceded; the last racer's
 --      concede ends the game conceded/conceded as a collective loss. Coop
 --      refuses a concede.
@@ -26,7 +26,7 @@
 --   7. Compete stop_game: neutral for everyone but a conceder, who lost.
 --
 -- Guesses are synthetic strings containing 'ar', longer than the base
--- (trusting-commit). max_word_length 7 → length_score(7)=100.
+-- (trusting-commit). max_word_len 7 → lengthScore(7)=100.
 
 begin;
 
@@ -56,7 +56,7 @@ select (wordiply.create_game(
   pg_temp.wordiply_board()
 )->'data'->>'id')::uuid as id;
 
--- Two guesses (longest 7) so the ended statuses carry real scores.
+-- Two guesses (longest 7) so the ended summary carries real scores.
 select wordiply.submit_guess((select id from end_g), 'arxxxxx');  -- 7
 select wordiply.submit_guess((select id from end_g), 'arxx');     -- 4
 
@@ -87,21 +87,21 @@ select is(
 );
 
 select is(
-  (select (clubpage_info->>'length_score')::int from common.games where id = (select id from end_g)),
+  (select (summary_data->'team'->>'lengthScore')::int from common.games where id = (select id from end_g)),
   100,
-  'coop stop_game: clubpage_info.length_score = team longest (7) / max (7) = 100'
+  'coop stop_game: summary_data.team.lengthScore = team longest (7) / max (7) = 100'
 );
 
 select is(
-  (select (clubpage_info->>'letter_count')::int from common.games where id = (select id from end_g)),
+  (select (summary_data->'team'->>'nLetters')::int from common.games where id = (select id from end_g)),
   11,                                       -- 7 + 4
-  'coop stop_game: clubpage_info.letter_count = sum of the team''s guess lengths'
+  'coop stop_game: summary_data.team.nLetters = sum of the team''s guess lengths'
 );
 
 select is(
-  (select (clubpage_info->>'guesses_used')::int from common.games where id = (select id from end_g)),
+  (select (summary_data->'team'->>'nGuessesUsed')::int from common.games where id = (select id from end_g)),
   2,
-  'coop stop_game: clubpage_info.guesses_used = the team''s count'
+  'coop stop_game: summary_data.team.nGuessesUsed = the team''s count'
 );
 
 -- A second Stop is the game-over race (the FE swallows it).
@@ -170,7 +170,7 @@ select pg_temp.envelope_is(
 -- (3) replay_board wipes the events, clears the ending
 -- ============================================================
 -- Reuse end_g (ended, has 2 guesses). Replay must clear the events log,
--- clear the ending, and rewrite the zeroed coop statuses.
+-- clear the ending, and rebuild the zeroed coop blobs.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select wordiply.replay_board((select id from end_g));
@@ -189,9 +189,9 @@ select is(
 );
 
 select is(
-  (select (clubpage_info->>'guesses_used')::int from common.games where id = (select id from end_g)),
+  (select (summary_data->'team'->>'nGuessesUsed')::int from common.games where id = (select id from end_g)),
   0,
-  'replay_board: clubpage_info rewritten at zero (guesses_used = 0)'
+  'replay_board: summary_data rebuilt at zero (team.nGuessesUsed = 0)'
 );
 
 -- The frozen board survives (same base — run it back).
@@ -237,11 +237,11 @@ select is(
   'concede: the game continues while bea still races'
 );
 select is(
-  (select player_status->>'player_ended_reason' from common.game_players
-    where game_id = (select id from con_g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  (select p->'ending'->>'reason'
+     from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from con_g))) p
+    where p->>'id' = 'ada11111-1111-1111-1111-111111111111'),
   'conceded',
-  'concede: the conceder''s player_status says conceded'
+  'concede: the conceder''s game_data player says conceded'
 );
 
 -- A second concede by the same player is the already-conceded race.
@@ -391,10 +391,10 @@ select is(
 );
 
 select is(
-  (select clubpage_info->>'winner_user_id' || '/' || (clubpage_info->>'winner_length_score')
+  (select summary_data->'ending'->>'winner' || '/' || (summary_data->>'winnerLengthScore')
      from common.games where id = (select id from done_g)),
   'ada11111-1111-1111-1111-111111111111/100',
-  'concede-after-finish: clubpage_info names ada and her length score'
+  'concede-after-finish: summary_data names ada and her length score'
 );
 
 -- ============================================================

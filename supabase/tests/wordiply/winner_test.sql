@@ -10,7 +10,7 @@
 --   2. tie → higher letter_count  (letter_count = sum of guess lengths)
 --   3. still tied → the earlier last accepted word, timed or not
 -- Ranked 1 is `won`, ranked lower is `near`; a player left unranked lost.
--- clubpage_info names the winner and their length score.
+-- summary_data names the winner and their length score.
 --
 -- All guesses are synthetic strings containing 'ar', longer than the base
 -- (trusting-commit — no dictionary). With max_word_len 7:
@@ -81,15 +81,15 @@ select is(
 );
 
 select is(
-  (select (clubpage_info->>'winner_user_id')::uuid from common.games where id = (select id from g1)),
+  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g1)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'higher length_score: ada (longest 7) is the winner'
 );
 
 select is(
-  (select (clubpage_info->>'winner_length_score')::int from common.games where id = (select id from g1)),
+  (select (summary_data->>'winnerLengthScore')::int from common.games where id = (select id from g1)),
   100,
-  'higher length_score: clubpage_info carries the winner''s length score'
+  'higher length_score: summary_data carries the winner''s length score'
 );
 
 select is(
@@ -112,14 +112,13 @@ select is(
   'higher length_score: the runner-up is ranked 2, near'
 );
 
--- Once the game has ended, each racer's own scores show in their status.
+-- Once the game has ended, each racer's own scores show on their player.
 select is(
-  (select (player_status->>'length_score')::int || '/' || (player_status->>'letter_count')
-     from common.game_players
-    where game_id = (select id from g1)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
+  (select (p->>'lengthScore')::int || '/' || (p->>'nLetters')
+     from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from g1))) p
+    where p->>'id' = 'bea22222-2222-2222-2222-222222222222'),
   '71/19',
-  'higher length_score: bea''s player_status shows her own scores once ended'
+  'higher length_score: bea''s game_data player shows her own scores once ended'
 );
 
 -- ============================================================
@@ -156,7 +155,7 @@ select wordiply.submit_guess((select id from g2), 'are');
 
 reset role;
 select is(
-  (select (clubpage_info->>'winner_user_id')::uuid from common.games where id = (select id from g2)),
+  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g2)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'letter_count tiebreak: equal length_score → ada (more total letters) wins'
 );
@@ -208,7 +207,7 @@ select wordiply.submit_timeout((select id from g3));
 
 reset role;
 select is(
-  (select (clubpage_info->>'winner_user_id')::uuid from common.games where id = (select id from g3)),
+  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g3)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'timed tiebreak: equal length_score AND letter_count → earlier finisher (ada) wins'
 );
@@ -284,9 +283,9 @@ select is(
 );
 
 select is(
-  (select (clubpage_info->>'winner_user_id')::uuid from common.games where id = (select id from g4)),
+  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g4)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
-  'untimed tie: clubpage_info names ada'
+  'untimed tie: summary_data names ada'
 );
 
 -- ============================================================
@@ -310,7 +309,7 @@ select wordiply.submit_timeout((select id from g5));
 
 reset role;
 select is(
-  (select (clubpage_info->>'winner_user_id')::uuid from common.games where id = (select id from g5)),
+  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g5)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'submit_timeout compete: the leader on current scores (ada) wins'
 );
@@ -345,7 +344,7 @@ select is((select game_ended_reason || '/' || game_ended_outcome from common.gam
 select is((select count(*)::int from common.game_players
             where game_id = (select id from g6) and final_ranking is not null),
   0, 'nobody guessed: no player is ranked');
-select is((select clubpage_info->>'winner_user_id' from common.games where id = (select id from g6)),
+select is((select summary_data->'ending'->>'winner' from common.games where id = (select id from g6)),
   null, 'nobody guessed: no winner named');
 
 -- ============================================================
@@ -400,7 +399,7 @@ select is(
   'rejects: the game still ends on five ACCEPTED guesses each'
 );
 select is(
-  (select (clubpage_info->>'winner_user_id')::uuid from common.games where id = (select id from g7)),
+  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g7)),
   'bea22222-2222-2222-2222-222222222222'::uuid,
   'rejects: a 7-letter REJECTED word does not win ada the game'
 );

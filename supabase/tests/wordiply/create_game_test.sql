@@ -8,10 +8,10 @@
 --   1. Coop happy path: ada creates a game; common.games + wordiply.games
 --      rows materialize; mode 'coop'; gametype 'wordiply_coop'; title is
 --      just the uppercased base (no length leak); is_current_view flips on;
---      the statuses are written: game_status {}, each player_status and the
---      clubpage_info at zero words used, the scores null until the end.
---   2. Compete happy path: mode 'compete'; a player_status per player at
---      zero; clubpage_info carries no team numbers. NO target_rank.
+--      the page blobs are written: each player and the team at zero words
+--      used, the scores null until the end (game_data_test has the shapes).
+--   2. Compete happy path: mode 'compete'; a game_data player per player at
+--      zero; summary_data carries no team numbers. NO target_rank.
 --   3. Auth: dee (outsider) rejected.
 --   4. mode arg validation: invalid value;
 --      setup.target_rank rejected; compete with <2 players.
@@ -109,11 +109,12 @@ select is(
   'title is just the uppercased base (no length leak)'
 );
 
--- The statuses, written at create. The scores stay null until the game ends.
+-- The page blobs, written at create. The scores stay null until the game ends.
 select is(
-  (select game_status from common.games where id = (select id from g)),
-  '{}'::jsonb,
-  'coop game_status is {}'
+  (select game_data is not null and summary_data is not null and shell_data is not null
+     from common.games where id = (select id from g)),
+  true,
+  'coop: the page blobs are written at create'
 );
 
 select is(
@@ -123,19 +124,19 @@ select is(
 );
 
 select is(
-  (select player_status from common.game_players
-    where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  '{"guesses_used": 0, "length_score": null, "letter_count": null,
-    "player_ended_reason": null}'::jsonb,
-  'coop player_status: no words used, scores null, not ended'
+  (select p - 'id' - 'username' - 'color' - 'ai' - 'seat' - 'solvedAt' - 'solved'
+            - 'onTurn' - 'waitingForTurn' - 'board' - 'finalRanking' - 'outcome'
+     from jsonb_array_elements((select game_data -> 'players' from common.games where id = (select id from g))) p
+    where p ->> 'id' = 'ada11111-1111-1111-1111-111111111111'),
+  '{"maxGuesses": 5, "nGuessesUsed": 0, "lengthScore": null, "nLetters": null,
+    "longestWordLen": null, "ending": null, "conceded": false, "stillPlaying": true}'::jsonb,
+  'coop game_data player: no words used, scores null, not ended'
 );
 
 select is(
-  (select clubpage_info from common.games where id = (select id from g)),
-  '{"guesses_used": 0, "length_score": null, "letter_count": null,
-    "winner_user_id": null, "winner_length_score": null}'::jsonb,
-  'coop clubpage_info: the team''s words used at 0, scores null, no winner'
+  (select summary_data -> 'team' from common.games where id = (select id from g)),
+  '{"nGuessesUsed": 0, "lengthScore": null, "nLetters": null}'::jsonb,
+  'coop summary_data: the team''s words used at 0, scores null'
 );
 
 -- ============================================================
@@ -168,31 +169,28 @@ select is(
   'compete: common.games.mode = compete'
 );
 
--- Every player gets a player_status of their own, at zero.
+-- Every player is in game_data, at zero.
 select is(
-  (select count(*) from common.game_players
-    where game_id = (select id from g_compete)
-      and player_status ? 'guesses_used'),
-  3::bigint,
-  'compete: each player (ada, bea, cade) has a player_status'
+  (select jsonb_array_length(game_data -> 'players') from common.games where id = (select id from g_compete)),
+  3,
+  'compete: each player (ada, bea, cade) is in game_data'
 );
 
 select is(
   (
-    select bool_and((player_status->>'guesses_used')::int = 0)
-      from common.game_players
-     where game_id = (select id from g_compete)
+    select bool_and((p ->> 'nGuessesUsed')::int = 0)
+      from jsonb_array_elements((select game_data -> 'players' from common.games where id = (select id from g_compete))) p
   ),
   true,
-  'compete player_status: every player starts at guesses_used = 0'
+  'compete game_data: every player starts at nGuessesUsed = 0'
 );
 
 -- A race's club line shows no progress: no team numbers, no winner yet.
 select is(
-  (select clubpage_info from common.games where id = (select id from g_compete)),
-  '{"guesses_used": null, "length_score": null, "letter_count": null,
-    "winner_user_id": null, "winner_length_score": null}'::jsonb,
-  'compete clubpage_info: no team numbers and no winner at create'
+  (select jsonb_build_object('team', summary_data -> 'team', 'winnerLengthScore', summary_data -> 'winnerLengthScore')
+     from common.games where id = (select id from g_compete)),
+  '{"team": null, "winnerLengthScore": null}'::jsonb,
+  'compete summary_data: no team numbers and no winner''s score at create'
 );
 
 -- ============================================================

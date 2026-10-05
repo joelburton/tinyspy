@@ -4,8 +4,8 @@
 -- Test: wordiply baseline schema invariants
 -- ============================================================
 --
--- The migration laid down the tables,
--- grants, and view; this file exercises the schema *directly* — inserting
+-- The migration laid down the tables
+-- and grants; this file exercises the schema *directly* — inserting
 -- rows as the postgres superuser (bypassing the "no INSERT grant on
 -- authenticated" rule) to set up the state we want to assert about.
 --
@@ -13,10 +13,10 @@
 --   1. Both gametypes (wordiply_coop + wordiply_compete) are registered.
 --   2. wordiply.games + wordiply.events exist with RLS ENABLED and the
 --      authenticated SELECT grants the FE needs.
---   3. Nothing is hidden: the games_state view exposes base /
---      max_word_len / longest_words / legal_words (showing the scores
---      only once the game has ended is an FE display choice, not a server
---      gate).
+--   3. Nothing is hidden: base / max_word_len / longest_words /
+--      legal_words are all granted (showing the longest word only once the
+--      game has ended is the page's choice, not a server gate). The
+--      games_state view the frontend read before the page blobs is gone.
 --
 -- RLS membership / coop-vs-compete visibility lives in rls_test.sql.
 
@@ -24,7 +24,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(9);
+select plan(8);
 
 \ir ../_shared/setup.psql
 
@@ -129,27 +129,19 @@ select is(
   'authenticated CAN SELECT wordiply.events rows (club member, coop)'
 );
 
+select is(
+  (select max_word_len || ':' || (longest_words ->> 0)
+     from wordiply.games where game_id = (select id from common_g)),
+  '7:hangars',
+  'authenticated CAN SELECT max_word_len and longest_words during play (the page waits to show them)'
+);
+
 -- ============================================================
--- games_state view exposes everything (no ended gate)
+-- The view the frontend read before the page blobs is gone
 -- ============================================================
 
-select is(
-  (select base from wordiply.games_state where game_id = (select id from common_g)),
-  'ar',
-  'games_state.base is exposed during play'
-);
-
-select is(
-  (select max_word_len from wordiply.games_state where game_id = (select id from common_g)),
-  7,
-  'games_state.max_word_len is exposed'
-);
-
-select is(
-  (select longest_words from wordiply.games_state where game_id = (select id from common_g)),
-  '["hangars"]'::jsonb,
-  'games_state.longest_words is exposed (FE only RENDERS it once ended)'
-);
+reset role;
+select hasnt_view('wordiply', 'games_state', 'wordiply.games_state is gone: the page reads game_data');
 
 -- Realtime publication membership for wordiply.games + guesses is guarded
 -- centrally in ../common/realtime_publication_test.sql (the registry-driven

@@ -9,16 +9,16 @@
 -- gates the live game (ended / player / conceded / turn / budget), dedups by
 -- mode, then applies the two FREE rules (word longer than base; word
 -- CONTAINS base). A reject is RECORDED as an invalid row and spends NO
--- budget; an accepted word is recorded and the statuses rewritten.
+-- budget; an accepted word is recorded and the page blobs rebuilt.
 --
 -- All guesses here are synthetic strings that satisfy the two rules
 -- (contain 'ar', longer than 2) — trusting-commit means they need not be
--- real words. With max_word_length 7: length_score(L)=round(100*L/7), so
+-- real words. With max_word_len 7: lengthScore(L)=round(100*L/7), so
 -- a 7-letter guess scores 100.
 --
 -- Coverage:
---   1. Coop happy: a valid guess → accepted, one events row, the statuses
---      count it.
+--   1. Coop happy: a valid guess → accepted, one events row, game_data
+--      counts it.
 --   2. Free-rule rejections are recorded as invalid and spend NO budget:
 --      too_short ('ar'), missing_base ('zzzz'); the same break on the commit
 --      path is a fault.
@@ -27,9 +27,9 @@
 --   4. Budget: the team's 6th guess is refused (PN366).
 --   5. A conceded player cannot submit.
 --   6. Coop 5th shared guess ends the game: resource_exhausted/complete, won,
---      every player ranked 1, the scores in the statuses.
---   7. RLS: compete opponent's guesses hidden mid-game, visible once ended;
---      coop everyone sees all.
+--      every player ranked 1, the scores in game_data.
+--   7. RLS: the member gate alone — a racer reads a rival's rows mid-game
+--      (what the page shows is the hook's rule); coop everyone sees all.
 --   8. A guess into a game deleted under it is the shared race (PN485).
 
 begin;
@@ -100,18 +100,18 @@ select is(
 );
 
 select is(
-  (select (clubpage_info->>'guesses_used')::int from common.games where id = (select id from g)),
+  (select (game_data->'team'->>'nGuessesUsed')::int from common.games where id = (select id from g)),
   1,
-  'coop clubpage_info.guesses_used = 1 after the first accepted guess'
+  'coop game_data.team.nGuessesUsed = 1 after the first accepted guess'
 );
 
--- Coop player_status carries the team's track: bea's row counts ada's word.
+-- A player's count is their own, in every mode: bea has played nothing.
 select is(
-  (select (player_status->>'guesses_used')::int from common.game_players
-    where game_id = (select id from g)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  1,
-  'coop player_status.guesses_used is the team''s count, on every player'
+  (select (p->>'nGuessesUsed')::int
+     from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from g))) p
+    where p->>'id' = 'bea22222-2222-2222-2222-222222222222'),
+  0,
+  'coop: each player''s nGuessesUsed is their own — bea''s is 0'
 );
 
 -- ============================================================
@@ -179,11 +179,11 @@ select is(
   'free-guard rejections do not add to the VALID guesses'
 );
 
--- ...and neither spent budget: guesses_used is still 1.
+-- ...and neither spent budget: the team's count is still 1.
 select is(
-  (select (clubpage_info->>'guesses_used')::int from common.games where id = (select id from g)),
+  (select (game_data->'team'->>'nGuessesUsed')::int from common.games where id = (select id from g)),
   1,
-  'free-guard rejections do NOT advance guesses_used (no budget spent)'
+  'free-guard rejections do NOT advance nGuessesUsed (no budget spent)'
 );
 
 -- ============================================================
@@ -323,27 +323,27 @@ select is(
 );
 
 select is(
-  (select (clubpage_info->>'length_score')::int from common.games where id = (select id from term_g)),
+  (select (game_data->'team'->>'lengthScore')::int from common.games where id = (select id from term_g)),
   100,
-  'coop ended: clubpage_info.length_score = 100 (longest 7 / max 7)'
+  'coop ended: game_data.team.lengthScore = 100 (longest 7 / max 7)'
 );
 
 select is(
-  (select (clubpage_info->>'letter_count')::int from common.games where id = (select id from term_g)),
+  (select (game_data->'team'->>'nLetters')::int from common.games where id = (select id from term_g)),
   22,                                       -- 7 + 5 + 4 + 3 + 3
-  'coop ended: clubpage_info.letter_count = sum of all guess lengths'
+  'coop ended: game_data.team.nLetters = sum of all guess lengths'
 );
 
 select is(
-  (select (player_status->>'length_score')::int from common.game_players
-    where game_id = (select id from term_g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  100,
-  'coop ended: each player_status carries the team''s length score'
+  (select (p->>'lengthScore')::int || '/' || (p->>'nLetters')
+     from jsonb_array_elements((select game_data->'players' from common.games where id = (select id from term_g))) p
+    where p->>'id' = 'bea22222-2222-2222-2222-222222222222'),
+  '43/3',                                   -- bea's one word, 'arw'
+  'coop ended: each player''s scores are their own'
 );
 
 -- ============================================================
--- (7) RLS: compete opponent's guesses hidden mid-game, visible once ended
+-- (7) RLS: the member gate alone; the hook withholds a rival's rows
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -362,15 +362,16 @@ select wordiply.submit_guess((select id from rls_g), 'arxx');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select wordiply.submit_guess((select id from rls_g), 'arbb');
 
--- cade (no guesses) sees zero mid-game (own list empty; can't see peers).
+-- cade (no guesses) reads both rivals' rows mid-game: the policy is the
+-- member gate, and what a racer is shown is the hook's rule over game_data.
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
   (select count(*) from wordiply.events where game_id = (select id from rls_g)),
-  0::bigint,
-  'rls (compete mid-game): cade (no guesses) sees zero rows'
+  2::bigint,
+  'rls (compete mid-game): cade, a member, reads both rivals'' rows'
 );
 
--- End the game → the ended branch opens the reveal; cade sees both peers' rows.
+-- End the game; nothing about the read changes.
 reset role;
 update common.games
    set ended_at = now(), game_ended_reason = 'stopped',

@@ -1,20 +1,14 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: wordiply RLS — club gating + the compete-mode guess policy
+-- Test: wordiply RLS — club gating
 -- ============================================================
 --
--- The events_select policy is the load-bearing piece for compete, and it
--- encodes a GAME RULE, not just privacy: during a compete game a player
--- sees only their OWN guess words (the FE shows opponents' guesses as
--- lengths only). A regression here leaks the words.
---
--- Two layers of access control on wordiply.events:
---   1. Outer gate: must be a club member of the game's club.
---   2. Inner gate (three OR branches):
---         (a) common.games.mode = 'coop'   — everyone in the club sees all guesses
---         (b) user_id = auth.uid()         — you always see your own (compete board)
---         (c) common.games.ended_at is set — post-game reveal (harmless in coop)
+-- Every wordiply policy is the club-member read: a member reads every row
+-- of the club's games, in both modes, mid-game or ended. What a racer is
+-- SHOWN of a rival mid-race — not their words — is the hook's rule over
+-- game_data (src/wordiply/hooks/useGame.ts), not a policy's; nothing reads
+-- these tables from the client.
 --
 -- Direct-INSERT setup (switch to postgres, write rows) so the read policy is
 -- exercised in isolation from submit_guess.
@@ -25,7 +19,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(11);
+select plan(9);
 
 \ir ../_shared/setup.psql
 
@@ -63,14 +57,14 @@ values (
   '["hangars"]'::jsonb, '["bar","car","arc","hangars"]'::jsonb
 );
 
--- One guess per player. Branch (a) (coop) means each member sees ALL three.
+-- One guess per player; each member sees ALL three.
 insert into wordiply.events (game_id, user_id, kind, word, len, took_turn) values
   ((select id from coop_game), 'ada11111-1111-1111-1111-111111111111', 'guess', 'bar', 3, true),
   ((select id from coop_game), 'bea22222-2222-2222-2222-222222222222', 'guess', 'cars', 4, true),
   ((select id from coop_game), 'cade3333-3333-3333-3333-333333333333', 'guess', 'arcs', 4, true);
 
 -- ============================================================
--- Coop mode: everyone in the club sees everyone's guesses (branch a)
+-- Coop mode: everyone in the club sees everyone's guesses
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -88,9 +82,8 @@ select is(
 );
 
 -- ============================================================
--- Non-member sees nothing — through games, guesses, or games_state
+-- Non-member sees nothing — through games or guesses
 -- ============================================================
--- The outer gate (club membership) wins before any inner OR branch matters.
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
@@ -104,12 +97,6 @@ select is(
   (select count(*) from wordiply.events where game_id = (select id from coop_game)),
   0::bigint,
   'dee (outsider): zero rows from wordiply.events'
-);
-
-select is(
-  (select count(*) from wordiply.games_state where game_id = (select id from coop_game)),
-  0::bigint,
-  'dee (outsider): zero rows from wordiply.games_state (RLS inherits via security_invoker)'
 );
 
 -- ============================================================
@@ -142,7 +129,7 @@ select throws_ok(
 );
 
 -- ============================================================
--- Compete mode: viewer sees ONLY their own guesses while playing (branch b)
+-- Compete mode: the same member read while playing
 -- ============================================================
 
 reset role;
@@ -175,30 +162,23 @@ insert into wordiply.events (game_id, user_id, kind, word, len, took_turn) value
   ((select id from compete_game), 'bea22222-2222-2222-2222-222222222222', 'guess', 'cars', 4, true),
   ((select id from compete_game), 'cade3333-3333-3333-3333-333333333333', 'guess', 'arcs', 4, true);
 
--- Ada sees only her one row (branch b): opponents' words stay hidden.
+-- Ada reads all three rows: the policy is the member gate alone.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from wordiply.events where game_id = (select id from compete_game)),
-  1::bigint,
-  'compete mid-game / ada: sees only her own guess (branch b: user_id = auth.uid())'
+  3::bigint,
+  'compete mid-game / ada (member): reads all 3 rows — the hook withholds, not the policy'
 );
 
-select is(
-  (select user_id from wordiply.events where game_id = (select id from compete_game)),
-  'ada11111-1111-1111-1111-111111111111'::uuid,
-  'compete mid-game / ada: the row she sees IS her own'
-);
-
--- Bea symmetrically sees only her one row.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select count(*) from wordiply.events where game_id = (select id from compete_game)),
-  1::bigint,
-  'compete mid-game / bea: sees only her own guess'
+  3::bigint,
+  'compete mid-game / bea (member): reads all 3 rows'
 );
 
 -- ============================================================
--- Compete mode, ended: branch (c) opens the reveal
+-- Compete mode, ended: the same read
 -- ============================================================
 
 reset role;
@@ -211,7 +191,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select count(*) from wordiply.events where game_id = (select id from compete_game)),
   3::bigint,
-  'compete ended / ada: sees all 3 guesses (branch c: ended_at)'
+  'compete ended / ada: reads all 3 rows'
 );
 
 -- ============================================================

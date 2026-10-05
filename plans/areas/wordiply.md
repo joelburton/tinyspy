@@ -165,11 +165,10 @@ The rulings behind it (2026-10-04):
 
 ## Predicted test breaks
 
-- **Step 4 (2026-10-04), fixed at step 5:** every pgTAP assertion that reads
-  the statuses (`create_game_test`, `gameplay_test`, `replay_test`,
-  `terminal_test`, `winner_test`, `statuses_test`), `games_state`
-  (`schema_test`, `rls_test`) or the events mode arm (`rls_test`,
-  `gameplay_test` 30).
+- **Step 4 (2026-10-04), fixed at step 5:** every pgTAP assertion that read
+  the statuses now reads the blobs, `game_data_test` pins them, and
+  `statuses_test` went; `schema_test` pins `games_state` gone and `rls_test`
+  the member read.
 - **Steps 4–7:** the frontend reads `games_state` and the `events` columns
   directly, so the page is broken until `useGame` reads `game_data`.
 
