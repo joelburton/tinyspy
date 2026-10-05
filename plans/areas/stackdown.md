@@ -92,6 +92,18 @@ The `gd` sketch, approved 2026-10-05 (step 2, Joel: "i'll take your recs"):
 - **The solution waits for the end**, and `players.found_count` becomes
   `n_found_words` by a migration.
 
+## The type sweep
+
+Step 6 (2026-10-05): `types.ts` holds the `gd` sketch and every `G` type; the
+setup pair (`GSetupValues`, `GSetup`), `GAnswer` and `GWordFlash` moved in, and
+`HistorySnapshot` stopped being exported. Five exports are old shapes that go
+with their readers, so stackdown joins `CONVERTED_GAMES` once they have:
+
+- `useGame.ts`'s `PlayerRow`, `EventRow`, `StackdownGame` — step 7.
+- `lib/history.ts`'s `Submission` — when the replay folds `GEvent`s.
+- `lib/board.ts`'s `Tile` (a numeric id) — when Board, BoardCol, WordEntry and
+  the printer take `GTile`.
+
 ## Predicted test breaks
 
 - **Step 4 (2026-10-05), fixed at step 5:** every pgTAP assertion that read

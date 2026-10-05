@@ -46,7 +46,7 @@ export interface Submission {
   valid: boolean | null
 }
 
-export interface HistorySnapshot {
+interface HistorySnapshot {
   /** Tiles gone from the board as of the START of this turn — the union of
    *  `tile_ids` from every VALID word at a position strictly before the viewed
    *  row's. Feed straight to `<Board offBoard>`. */

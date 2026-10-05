@@ -9,7 +9,7 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import type { Action } from '@/common/actions/useBindAction'
 import type { SetupRow } from '@/common/setup-form/types'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import type { StackdownSetup } from '../lib/setup'
+import type { GSetup } from '../types'
 import type { PlayerRow, EventRow } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -105,7 +105,7 @@ export function InfoCol({
   actBackToClub: Action
 
   // ── Setup disclosure + terminal words reveal ──
-  setup: StackdownSetup
+  setup: GSetup
   /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
   /** The six solution words — non-null ONLY while THIS viewer is looking at

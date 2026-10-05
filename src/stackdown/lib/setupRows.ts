@@ -4,7 +4,7 @@ import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import { makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
-import type { StackdownSetup } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * stackdown's setup rows — ONE array, rendered by the info column and the PDF
@@ -15,7 +15,7 @@ import type { StackdownSetup } from './setup'
  * offers — the setup rows are the dialog read back, nothing more. They belong in Help.
  */
 export function makeSetupRows(
-  setup: StackdownSetup,
+  setup: GSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {

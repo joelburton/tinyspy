@@ -13,8 +13,9 @@ import { WordEntryRow } from '@/common/word-entry/WordEntryRow'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { exposedIds, type Tile } from '../lib/board'
 import { ANSWER_OUTCOME } from '../lib/answer'
+import type { GWordFlash } from '../types'
 import { Board } from './Board'
-import { WordEntry, type WordFlash } from './WordEntry'
+import { WordEntry } from './WordEntry'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import type { Actor } from '@/common/members/member'
 import shared from '@/common/game-page/playArea.module.css'
@@ -106,7 +107,7 @@ export function BoardCol({
   localFeedbackSlot: FeedbackSlot
 
   // ── Word-slot flash (my own accepted word — timer owned by PlayArea) ──
-  flash: WordFlash | null
+  flash: GWordFlash | null
   // Drop any lingering word flash when a new word starts.
   clearFlash: () => void
 

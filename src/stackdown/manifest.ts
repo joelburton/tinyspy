@@ -7,7 +7,8 @@ import type { SummaryData } from '@/common/manifest/summaryData'
 import { db } from './db'
 import { dictLabel, verdict, setupNum, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { DEFAULT_STACKDOWN_SETUP, type StackdownSetup } from './lib/setup'
+import { DEFAULT_STACKDOWN_SETUP } from './lib/setup'
+import type { GSetup } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -43,7 +44,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
-        setup: setup as StackdownSetup,
+        setup: setup as GSetup,
         player_user_ids: playerUserIds,
         mode,
       }),

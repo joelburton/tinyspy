@@ -1,49 +1,9 @@
 // cs-unmet
 
-import type { TimerMode } from '@/common/manifest/types'
-import type { SetupOf } from '@/common/setup-form/types'
+import type { GSetup } from '../types'
 
-/**
- * stackdown's per-game setup — collected by the start-game dialog,
- * persisted to `common.games.setup`, and validated server-side by
- * `stackdown.create_game` (the authority for what's accepted).
- *
- * Two knobs: the timer, and the word-difficulty `band`. The board is
- * claimed at random from the pre-generated library FILTERED to the chosen
- * band (create_game does the filtering + validation); the board's own
- * `band` then rides along on the game.
- *
- * Lives in `lib/` rather than `manifest.ts` so the SetupForm body can
- * import the type without dragging the manifest into its lazy chunk.
- */
-export type StackdownValues = {
-  /**
-   * Timer mode. `none` / `countup` are purely informational; a
-   * `countdown` ends the game when it expires (coop → everyone loses,
-   * compete → no winner), via the shared `stackdown.submit_timeout` RPC.
-   */
-  timer: TimerMode
-  /**
-   * Word-difficulty band — a `common.words.difficulty` level. `1` = the
-   * common everyday set; `2` = the next tier (a band-2 board is made entirely
-   * of difficulty-2 words, no band-1 mixed in). The form offers 1..2 today
-   * (that's what the board library holds); create_game accepts any 1..6 it
-   * has boards for.
-   */
-  band: number
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
-  player_user_ids: Set<string>
-}
-
-
-/** What is SENT and STORED — every value the form collects except the players
- *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupRows.ts` and `PlayArea` read back. */
-export type StackdownSetup = SetupOf<StackdownValues>
 /** Initial setup the manifest hands the dialog as `defaults`. */
-export const DEFAULT_STACKDOWN_SETUP: StackdownSetup = {
+export const DEFAULT_STACKDOWN_SETUP: GSetup = {
   timer: { kind: 'none' },
   band: 1,
 }

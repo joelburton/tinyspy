@@ -23,9 +23,9 @@ import { useCelebration } from '@/common/terminal/useCelebration'
 import { db } from '../db'
 import { historySnapshot } from '../lib/history'
 import { offBoardIds } from '../lib/board'
-import type { StackdownSetup } from '../lib/setup'
-import { ANSWER_OUTCOME, answerOf, type Answer } from '../lib/answer'
+import { ANSWER_OUTCOME, answerOf } from '../lib/answer'
 import { useGame } from '../hooks/useGame'
+import type { GAnswer, GSetup, GWordFlash } from '../types'
 import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
@@ -35,7 +35,6 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { memberById } from '@/common/members/memberList'
-import { type WordFlash } from './WordEntry'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
@@ -131,7 +130,7 @@ export function PlayArea({
     loading,
     failure,
   } = useGame(gameId)
-  const stackdownSetup = setup as unknown as StackdownSetup
+  const stackdownSetup = setup as unknown as GSetup
 
   // The setup rows, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
@@ -179,7 +178,7 @@ export function PlayArea({
   // marked on THEIR TILES instead (`markPeerWord` below), never in this entry
   // row. The state lives here and is passed down to BoardCol (which renders it
   // via WordEntry).
-  const [flash, showFlash, clearFlash] = useMark<WordFlash>(WORD_ANSWER_MS)
+  const [flash, showFlash, clearFlash] = useMark<GWordFlash>(WORD_ANSWER_MS)
   // ─── A teammate's word, marked where it happened ───────────────
   // On the BOARD, on their tiles — not in this player's entry row, which is
   // their own workspace. Two beats in the order every board uses: the attention
@@ -193,9 +192,9 @@ export function PlayArea({
   // The mark carries the ANSWER, not a color: whether the word was accepted is a
   // fact two different things downstream need — the outcome the tiles wear, and
   // whether the tiles are being held at all (only an accepted word takes them).
-  const [peerMark, showPeerMark] = useMark<{ ids: number[]; answer: Answer }>(WORD_ANSWER_MS)
+  const [peerMark, showPeerMark] = useMark<{ ids: number[]; answer: GAnswer }>(WORD_ANSWER_MS)
   const markPeerWord = useCallback(
-    (tileIds: number[], answer: Answer) => {
+    (tileIds: number[], answer: GAnswer) => {
       if (tileIds.length === 0) return
       showPeerMark({ ids: tileIds, answer }, { attention: true })
     },
@@ -417,7 +416,7 @@ export function PlayArea({
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
-        setup: setup as StackdownSetup,
+        setup: setup as GSetup,
         player_user_ids: players.map((p) => p.user_id),
         mode: gameMode,
       }),
@@ -744,7 +743,7 @@ export function PlayArea({
         actRestart={actRestart}
         actNewGame={actNewGame}
         actBackToClub={menu.actBackToClub}
-        setup={setup as unknown as StackdownSetup}
+        setup={setup as unknown as GSetup}
         solution={solutionShown ? game.solution : null}
         actReveal={actReveal}
         submissions={logWords}

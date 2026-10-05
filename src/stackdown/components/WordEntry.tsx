@@ -5,18 +5,8 @@ import shared from '@/common/game-page/playArea.module.css'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Tile } from '../lib/board'
+import type { GWordFlash } from '../types'
 import styles from './WordEntry.module.css'
-
-/** THIS player's answer, shown in the slots for a beat once the word is
- *  submitted — the outcome `lib/answer.ts` gave the submission, which is the
- *  one the log row and the pill are wearing for it too. The letters are passed
- *  rather than tile ids because an accepted word's tiles have already left the
- *  board.
- *
- *  A teammate's word is NOT shown here. The entry row is this player's
- *  workspace, and their answer is marked where it happened — on the board tiles
- *  their word used. */
-export type WordFlash = { letters: string[]; outcome: Outcome }
 
 /**
  * The word being built, shown as five slots below the board. Each filled
@@ -47,7 +37,7 @@ export function WordEntry({
   currentWord: number[]
   active: boolean
   onRetract: (index: number) => void
-  flash?: WordFlash | null
+  flash?: GWordFlash | null
   /** An answer for the word STILL IN THE SLOTS — a refusal, whose five tiles
    *  stay off the board until the beat ends. `flash` is the other half of the
    *  same idea, for a word the buffer has already let go of. */

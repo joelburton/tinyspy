@@ -6,7 +6,7 @@ import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import type { StackdownValues } from '../lib/setup'
+import type { GSetupValues } from '../types'
 
 /**
  * stackdown's setup form, rendered inside the common SetupGameModal.
@@ -19,8 +19,8 @@ import type { StackdownValues } from '../lib/setup'
 export function SetupForm({
   members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as StackdownValues
-  const set = setValue as SetupSetter<StackdownValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
 
   // Disclosure summary carries the current band so the section reads without
   // opening (the boggle/scrabble/spellingbee pattern). Singular "Dictionary" —
