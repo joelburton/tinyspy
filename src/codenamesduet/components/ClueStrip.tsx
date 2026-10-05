@@ -214,7 +214,9 @@ function ClueForm({
   // A string, not a number, so the input can start empty; the submit guard
   // rejects empty.
   const [count, setCount] = useState('')
+  // The clue word as typed.
   const [word, setWord] = useState('')
+  // A clue or a pass is with the server and has not answered.
   const [busy, setBusy] = useState(false)
   // A suggest request is in flight — the button's `disabled`. The dialog's
   // state itself is PlayArea's, through `onSuggestionChange`.

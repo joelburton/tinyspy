@@ -51,8 +51,7 @@ export function Board({
 }: {
   // The 25 tiles — the live board or a viewed turn's (PlayArea picks).
   tiles: GTile[]
-  // Guesses the server has recorded — the CAUSE the attention flash reads. A
-  // restart deletes them, so it drops rather than advances.
+  // Guesses the server has recorded — the CAUSE the attention flash reads.
   moveCount: number
   marks: BoardMarks
   // A past turn open: `tiles` is then its board, the frame rings the board,

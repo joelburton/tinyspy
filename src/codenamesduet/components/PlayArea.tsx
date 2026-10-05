@@ -101,8 +101,7 @@ function PlayArea({
     null)
   console.log('[ClueHint] PlayArea render — clueSuggestion:', clueSuggestion)
 
-  // ─── The local slot, and what stands in it ─────────────
-
+  // ─── The local slot ────────────────────────────────────
   // The below-board slot, for messages about ME. Born here because BOTH columns
   // show into it — BoardCol's guess and clue strip (a refused guess / clue /
   // pass) and InfoCol's Stop — and while it holds anything the pill takes the
@@ -118,7 +117,8 @@ function PlayArea({
     playerEndingMessage: null,
   })
 
-  // ─── What my PARTNER is doing, in the header slot ──────
+  // ─── Narration ─────────────────────────────────────────
+  // Messages about my PARTNER, in the header slot.
   useShowPartnerMessages(gd, globalFeedbackSlot)
 
   // ─── The turn-history view ─────────────────────────────

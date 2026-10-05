@@ -9,7 +9,7 @@ import type { GSetup } from '../types'
  * defaults are evaluated at module-load time, before any club
  * is known, so a real user-id can't be filled in until the body
  * mounts inside a specific club's dialog. `SetupForm` seeds it with the
- * first selected player, and again whenever the chosen one is unticked.
+ * first chosen player, and again whenever that one is unticked.
  *
  * Timer defaults to `none` — Duet's pacing already comes from
  * the turn budget; a wall-clock countdown is opt-in for

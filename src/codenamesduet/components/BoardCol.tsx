@@ -66,6 +66,9 @@ export function BoardCol({
   // Open / update / close the AI clue-suggestion dialog; its state is PlayArea's.
   onSuggestionChange: (state: GSuggestState | null) => void
 }) {
+  // ─── Which board is on screen ─────────────────────────────────
+  // Live, or a past turn's (PlayArea picks); everything that would write to the
+  // board answers to it.
   const suddenDeath = gd.team.suddenDeath
   // The move is mine: the server's pointer names me — or, in sudden death with
   // words on both sides, it names nobody and the rulebook lets either of us
@@ -92,6 +95,9 @@ export function BoardCol({
       ? gd.me.clueGiver ? 'partnerGuessing' : 'myGuess'
       : gd.me.clueGiver ? 'myClue' : 'waitingForClue'
 
+  // ─── The pending move ─────────────────────────────────────────
+  // The guess and its trip to the server (`useSubmitGuess`), the picked tile
+  // (`usePickedTile`), and the column's keys.
   const tilesById = gd.team.board.tilesById
   const guess = useSubmitGuess({
     gameId: gd.id,
@@ -121,6 +127,8 @@ export function BoardCol({
     pick.clear()
     guess.send(tile)
   }
+
+  // ─── Render ───────────────────────────────────────────────────
 
   // Whatever the slot holds on top takes the clue strip's place; an empty
   // slot hands it back.

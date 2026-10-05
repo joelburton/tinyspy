@@ -16,7 +16,7 @@ import { DEFAULT_CODENAMESDUET_SETUP } from '../lib/setup'
 import type { Member } from '@/common/members/member'
 import type { FormErrors } from '@/common/forms/formState'
 
-// Three club members, two of them selected by default: the third is who a
+// Three club members, two of them chosen by default: the third is who a
 // club-wide picker would wrongly offer.
 const MEMBERS = [
   { id: 'self', username: 'joel', color: 'red' },
@@ -69,9 +69,9 @@ describe('codenamesduet setup — what it offers', () => {
     expect(fieldNames(draw().container)).not.toContain('coop_style')
   })
 
-  it('offers only the selected players as first clue-giver, not the whole club', () => {
+  it('offers only the chosen players as first clue-giver, not the whole club', () => {
     // Read by LABEL, because <RadioRow> carries no `value` attribute — it
-    // tracks the selection through `checked` and reports it through onChange.
+    // tracks the choice through `checked` and reports it through onChange.
     const { container } = draw()
     const rows = container.querySelectorAll('[name="first_clue_giver_user_id"]')
     expect([...rows].map((r) => r.closest('label')?.textContent)).toEqual(['joel', 'moth'])
@@ -79,7 +79,7 @@ describe('codenamesduet setup — what it offers', () => {
 })
 
 describe('codenamesduet setup — seeding the first clue-giver', () => {
-  it('picks the first selected player when none is chosen', () => {
+  it('picks the first chosen player when none is', () => {
     const { set } = draw({
       values: { first_clue_giver_user_id: '', player_user_ids: new Set(['moth', 'dee']) },
     })
@@ -93,7 +93,7 @@ describe('codenamesduet setup — seeding the first clue-giver', () => {
     expect(set).toHaveBeenCalledWith('first_clue_giver_user_id', 'moth')
   })
 
-  it('leaves a chosen clue-giver who is still selected', () => {
+  it('leaves a chosen clue-giver who is still among the players', () => {
     const { set } = draw({ values: { first_clue_giver_user_id: 'moth' } })
     expect(set).not.toHaveBeenCalledWith('first_clue_giver_user_id', expect.anything())
   })

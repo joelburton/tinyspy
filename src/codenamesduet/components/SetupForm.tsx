@@ -15,12 +15,12 @@ import { SetupSection } from '@/common/setup-form/SetupSection'
  *
  *   - **Turns** — the starting turn budget, one of {9, 10, 11}. 9 is the
  *     standard game; 10 and 11 are the rulebook's easier missions.
- *   - **First clue** — which of the selected players gives it. `create_game`
+ *   - **First clue** — which of the chosen players gives it. `create_game`
  *     seats the chosen player as A, since A always opens the game, and the
  *     other as B.
  *
  * and the timer. The manifest's defaults can't carry a member id (they are
- * evaluated before any club is known), so the first selected player is seeded
+ * evaluated before any club is known), so the first chosen player is seeded
  * here as the first clue-giver, and again whenever the chosen one is
  * unticked; the radio can still be flipped before Start.
  *
@@ -34,16 +34,16 @@ export function SetupForm({
   const s = values as GSetupValues
   const set = setValue as SetupSetter<GSetupValues>
 
-  // The selected players, not the whole club: the first clue-giver must be one
+  // The chosen players, not the whole club: the first clue-giver must be one
   // of them, or `create_game` refuses the setup.
   const players = members.filter((m) => s.player_user_ids.has(m.id))
 
-  // Re-seed to the first selected player whenever the current pick isn't one:
+  // Re-seed to the first chosen player whenever the current pick isn't one:
   // the initial empty string, or a chosen player since unticked. Converges, as
   // `SetupCoopStyleSection`'s first-player seeding does.
   useEffect(function seedFirstClueGiver() {
-    const stillSelected = players.some((p) => p.id === s.first_clue_giver_user_id)
-    if (!stillSelected && players.length > 0) {
+    const stillChosen = players.some((p) => p.id === s.first_clue_giver_user_id)
+    if (!stillChosen && players.length > 0) {
       set('first_clue_giver_user_id', players[0].id)
     }
   }, [players, s.first_clue_giver_user_id, set])

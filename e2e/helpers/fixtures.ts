@@ -1214,17 +1214,18 @@ export async function createCodenamesduetGame(
   const res = await asUser(creator.session.access_token)
     .schema('codenamesduet')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: { turns: 9, first_clue_giver_user_id: firstClueGiverUserId, timer: { kind: 'none' } },
-      player_user_ids: club.members.map((m) => m.userId),
+      p_club_handle: club.handle,
+      p_setup: { turns: 9, first_clue_giver_user_id: firstClueGiverUserId, timer: { kind: 'none' } },
+      p_player_user_ids: club.members.map((m) => m.userId),
     })
   return { id: createdGameId(res, 'codenamesduet.create_game'), gametype: 'codenamesduet' }
 }
 
 /**
  * Put a fresh codenamesduet game straight into sudden death, through psql as
- * the superuser: the budget spent (9 turns, so this is turn 10), nobody holding
- * the clue. Playing nine real turns to get there would make a display spec
+ * the superuser: the turn past the budget (sudden death is `turn_number >
+ * max_turns`), nobody holding the clue, the turn re-pointed and the page blob
+ * rebuilt. Playing nine real turns to get there would make a display spec
  * about sudden death mostly about everything else.
  */
 export function putCodenamesduetInSuddenDeath(gameId: string): void {
@@ -1235,10 +1236,11 @@ export function putCodenamesduetInSuddenDeath(gameId: string): void {
       process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
       '-v', 'ON_ERROR_STOP=1', '-q',
       '-c',
-      `update common.games set play_state = 'sudden_death' where id = '${gameId}';
-       update codenamesduet.games
-          set turns_remaining = 0, turn_number = 10, current_clue_giver = null
-        where id = '${gameId}';`,
+      `update codenamesduet.games
+          set turn_number = max_turns + 1, current_clue_giver = null
+        where game_id = '${gameId}';
+       select codenamesduet._point_turn('${gameId}');
+       select codenamesduet._rebuild_data_cols('${gameId}', p_update_status_changed_at => false);`,
     ],
     { stdio: 'ignore' },
   )

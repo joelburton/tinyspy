@@ -78,14 +78,14 @@ export const codenamesduetGallery: GameGallery = {
     const clue = async (giver: E2EMember, word: string, count: number) => {
       const res = await asUser(giver.session.access_token)
         .schema('codenamesduet')
-        .rpc('submit_clue', { target_game: id, clue_word: word, clue_count: count })
+        .rpc('submit_clue', { p_game_id: id, p_clue_word: word, p_clue_count: count })
       if (res.error) throw new Error(`submit_clue: ${res.error.message}`)
     }
     /** Returns false once the game has ended, so callers can stop. */
     const pick = async (guesser: E2EMember, position: number): Promise<boolean> => {
       const res = await asUser(guesser.session.access_token)
         .schema('codenamesduet')
-        .rpc('submit_guess', { target_game: id, guess_position: position })
+        .rpc('submit_guess', { p_game_id: id, p_guess_position: position })
       // Same rot as the pass below: `/not in|guessable state/` was written
       // against prose, and `game-not-in-play|` hyphenates "not-in", so it
       // stopped matching and a guess into a just-ended game threw instead of
@@ -138,7 +138,7 @@ export const codenamesduetGallery: GameGallery = {
         if (!alive) break
         const res = await asUser(guesser.session.access_token)
           .schema('codenamesduet')
-          .rpc('pass_turn', { target_game: id })
+          .rpc('pass_turn', { p_game_id: id })
         // A pass on a finished game is refused, which just means the round
         // before it ended the game — the fifteenth agent can fall anywhere in a
         // run. Anything else really is a failure.

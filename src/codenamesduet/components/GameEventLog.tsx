@@ -58,7 +58,7 @@ type Props = {
  * its guess's. The `#N` it prints is the turn's place in what is shown, so
  * filtering renumbers it without changing which turn a handle opens.
  *
- * Presentational: the only state is the picker's selection. A turn is **two
+ * Presentational: the only state is the picker's choice. A turn is **two
  * `<tr>`s** (the row anatomy is the game's — see EventLog.tsx) so the pieces sit in real table
  * columns: row 1 is `[bar] | # | count WORD [AI mark] | clue-giver` (the bar
  * `rowSpan`s the whole turn; the AI mark only on a clue given exactly as the AI

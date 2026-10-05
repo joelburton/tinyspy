@@ -67,11 +67,12 @@ test.describe('codenamesduet event log', () => {
     // ── Turn 1: alice takes the AI's clue as it came.
     await pageAlice.getByRole('button', { name: 'AI', exact: true }).click()
     const aliceWord = pageAlice.locator('input[data-game-input]').nth(1)
-    await expect(aliceWord).toHaveValue('WAVE', { timeout: 10000 })
+    // Stored lowercase, as every clue is; the field draws the capitals.
+    await expect(aliceWord).toHaveValue('wave', { timeout: 10000 })
     await pageAlice.getByRole('button', { name: /submit/i }).click()
 
     const aiMark = (page: typeof pageAlice) => page.locator('[data-tooltip="AI clue"]')
-    await expect(pageBob.getByText('2 WAVE')).toBeVisible({ timeout: 15000 })
+    await expect(pageBob.getByText('2 wave')).toBeVisible({ timeout: 15000 })
     await expect(aiMark(pageBob)).toHaveCount(1)
 
     // Bob passes, and the clue comes to him.
@@ -80,11 +81,11 @@ test.describe('codenamesduet event log', () => {
     // ── Turn 2: bob asks the AI, then edits its word before sending.
     await pageBob.getByRole('button', { name: 'AI', exact: true }).click({ timeout: 15000 })
     const bobWord = pageBob.locator('input[data-game-input]').nth(1)
-    await expect(bobWord).toHaveValue('WAVE', { timeout: 10000 })
-    await bobWord.fill('OCEAN')
+    await expect(bobWord).toHaveValue('wave', { timeout: 10000 })
+    await bobWord.fill('ocean')
     await pageBob.getByRole('button', { name: /submit/i }).click()
 
-    await expect(pageAlice.getByText('2 OCEAN')).toBeVisible({ timeout: 15000 })
+    await expect(pageAlice.getByText('2 ocean')).toBeVisible({ timeout: 15000 })
     // Still only turn 1's clue wears the mark.
     await expect(aiMark(pageAlice)).toHaveCount(1)
 
@@ -101,19 +102,20 @@ test.describe('codenamesduet event log', () => {
     // one of bob's agents (the game goes on), then bob turns over one of alice's
     // bystanders (it ends).
     const asAlice = asUser(alice.session.access_token).schema('codenamesduet')
-    const keys = await asAlice.from('games').select('key_card_a, key_card_b').eq('id', game.id).single()
+    const keys = await asAlice.from('games').select('key_card_a, key_card_b').eq('game_id', game.id).single()
     const words = await asAlice.from('words').select('position, word').eq('game_id', game.id)
     const keyA = keys.data!.key_card_a as string[]
     const keyB = keys.data!.key_card_b as string[]
     const agentOfBob = keyB.findIndex((key, p) => key === 'G' && keyA[p] !== 'A')
     const bystanderOfAlice = keyA.findIndex((key, p) => key === 'N' && p !== agentOfBob)
-    const wordAt = (p: number) => words.data!.find((w) => w.position === p)!.word.toUpperCase()
+    // As stored, lowercase: the log draws its capitals in CSS.
+    const wordAt = (p: number) => words.data!.find((w) => w.position === p)!.word
 
     const { pageAlice, pageBob, close } = await openBoth(browser, club, game.id)
 
-    await asAlice.rpc('submit_guess', { target_game: game.id, guess_position: agentOfBob })
+    await asAlice.rpc('submit_guess', { p_game_id: game.id, p_guess_position: agentOfBob })
     await asUser(bob.session.access_token).schema('codenamesduet')
-      .rpc('submit_guess', { target_game: game.id, guess_position: bystanderOfAlice })
+      .rpc('submit_guess', { p_game_id: game.id, p_guess_position: bystanderOfAlice })
 
     // Two rows, one per guess, each naming its own guesser.
     const rows = pageAlice.getByRole('row').filter({ hasText: 'Sudden death:' })
@@ -127,7 +129,8 @@ test.describe('codenamesduet event log', () => {
     await rows.nth(0).locator('[data-history-handle]').click()
     const banner = pageAlice.locator('[data-history-banner]')
     await expect(banner).toBeVisible({ timeout: 10000 })
-    await expect(banner).toContainText(`#1: Sudden death → ${wordAt(agentOfBob)}`)
+    // The banner's label is a sentence, capitalized by hand.
+    await expect(banner).toContainText(`#1: Sudden death → ${wordAt(agentOfBob).toUpperCase()}`)
 
     await pageBob.close()
     await close()

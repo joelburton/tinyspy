@@ -319,14 +319,13 @@ export type GSetupValues = {
   // UUID of the club member who gives the first clue. The RPC seats this user
   // as A (since A always opens the game) and the other member as B.
   first_clue_giver_user_id: string
-  // Browser-side wall-clock timer mode. `none` (no clock) and `countup`
-  // (informational) are display-only; `countdown` loses the game, reason
-  // `timeout`, when the clock hits 0 (via codenamesduet.submit_timeout).
+  // The timer's mode. `none` (no timer) and `countup` (informational) are
+  // display-only; `countdown` loses the game, reason `timeout`, when the
+  // timer hits 0 (via codenamesduet.submit_timeout).
   // Validated server-side by `common._require_valid_timer`.
   //
   // Distinct from the rulebook's `turns` above — that's the in-game turn
-  // budget; this is the external wall-clock countdown players can choose to
-  // layer on top.
+  // budget; this is the countdown players can choose to layer on top.
   timer: TimerMode
   // WHO IS PLAYING — a field like any other, and the only one that is not
   // part of the setup blob: `create_game` takes it as its own argument and

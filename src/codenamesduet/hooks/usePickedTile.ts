@@ -35,6 +35,7 @@ export function usePickedTile({
   choose: (tile: GTile | null) => void
   clear: () => void
 } {
+  // The id of the tile picked and not yet guessed, or null.
   const [pickedTileId, setPickedTileId] = useState<string | null>(null)
 
   const choose = useCallback(

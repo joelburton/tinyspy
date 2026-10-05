@@ -27,8 +27,8 @@ function revealKey(t: GTile) {
  *
  * **The flash** — mine included: the answer arrives in the tile I am watching,
  * and my partner's lands anywhere. Gated on the CAUSE (`moveCount`, the
- * recorded guesses) rather than on the board differing, so a restart, the
- * history viewer and my partner's key being shown never flash. Quiet while a
+ * recorded guesses) rather than on the board differing, so the history viewer
+ * and my partner's key being shown never flash. Quiet while a
  * past turn is open. See `useMoveAttention`.
  *
  * **The shake** waits for the flash to finish rather than riding it: it is a

@@ -7,7 +7,7 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/codenamesduet/todo.md`, not here.
 
-**Status: OPEN** (2026-09-23), roster agreed and stamped.
+**Status: CLOSED 2026-09-23, blessed** (see the Closing summary at the end); converted onto the page blobs 2026-10-04, backfilled 2026-10-05.
 
 **Two passes, back to back**: the audit — React, SQL and CSS together — then
 the tile-feedback pass against [tile-feedback.md](../tile-feedback.md).
@@ -1945,6 +1945,23 @@ by the standing rule.
   row. `doc.md`'s Tests rows and e2e list match the files. `setupSummary`'s
   order matches the form. F-5's `Seat | undefined` in `phase.ts` and the print
   model stands as ruled.
+
+## The backfill
+
+2026-10-05, after the conversion (2026-10-04) rewrote much of the frontend
+that the closed audit had shaped. A check that the shape held, and the
+cross-game names:
+
+- **The answers, the stylesheet split, `Outcome`, the docstring marker**: all
+  held — the audit had done them, and the conversion kept them.
+- **The section order**: BoardCol, which predates the doc's three sections,
+  took them; PlayArea's local-slot and narration headers took the house words.
+- **The cross-game names**: "chosen", not "selected", for the setup's players
+  (a setup choice is a choice; "selected" is the cursor's); "picked" for the
+  tile class's border; "timer" for the clock in the setup type's and doc's
+  comments; three pieces of state took their comments.
+- **The comment pass**: two comments that gave a Restart as a reason lost it —
+  a Restart remounts the surface.
 
 ## Notes
 

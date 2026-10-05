@@ -129,7 +129,7 @@ The ending is `common.games`' reason, detail and outcome
 | the fifteenth agent is contacted | `reached_goal` | `solved` | `won`, both ranked 1 |
 | an assassin is hit | `fatal_move` | `assassin` | `lost` |
 | a bystander in sudden death (an assassin there is still `assassin`) | `fatal_move` | `neutral` | `lost` |
-| the wall-clock countdown ran out | `timeout` | `timeout` | `lost` |
+| the timer's countdown ran out | `timeout` | `timeout` | `lost` |
 | somebody pressed Stop — neutral, not a loss | `stopped` | `stopped` | `neutral` |
 
 Every ending is the same for both players, and only a solve is a win; it also
@@ -488,7 +488,7 @@ What is codenamesduet's own:
   the tile's `guessable`, the builder's too, which the keyboard's Space asks.
 - **The keyboard's selection cursor** (`Board`'s `useTileCursor`, the shape
   `lib/boardShape.ts`) is the guesser's alone: the clue-giver's form is real
-  text fields. Its pick wears the shared selected border and drops by itself
+  text fields. Its pick wears the shared picked border and drops by itself
   when the word stops being guessable. No cue teaches Enter — the line under
   the board has no room — so Help and the key list do (`todo.md`, Someday).
 - **The board marks are the shared ones** (`plans/tile-feedback.md`, tf2): a
