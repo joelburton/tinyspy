@@ -2,147 +2,128 @@
 
 import { useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import { getTileColor } from '@/shared/wordle-style/tileColor'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
-import { CELLS, GRID, isHole } from '../lib/waffle'
-import { BOARD_SHAPE } from '../lib/boardShape'
-import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { useBindAction } from '@/common/actions/useBindAction'
-import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
-import type { Cell } from '@/common/board-cursor/stepCell'
 import shared from '@/common/game-page/playArea.module.css'
 import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
-import tileColors from '@/shared/wordle-style/tileColors.module.css'
+import { useTileCursor } from '../hooks/useTileCursor'
+import { CELLS } from '../lib/waffle'
+import { Tile } from './Tile'
 import styles from './Board.module.css'
+import type { GHistoryView, GTile } from '../types'
 
-/** A render's board + colors + the swap it had in flight — what the next render
+/** What the board wears on and around its tiles. */
+type BoardMarks = {
+  // The ids of the two tiles of a swap that is OUT — sent, waiting on the
+  // server — or empty.
+  inFlightTileIds: ReadonlySet<string>
+  // How I came out, once I have ended — with the game, or before it while the
+  // others race on: the board takes a band in that outcome's gray (neutral for
+  // a game that was simply stopped). Null while I still play. Permanent, it
+  // says "this is a record, not a position".
+  endingOutcome: EndOutcome | null
+  // A teammate holds the move: the board-scope dim. The dim on a board says
+  // "you cannot act at all", the same verb the in-flight dim uses on a tile —
+  // the element it lands on says what is inactive.
+  isWaitingForTurn: boolean
+  // True for a beat as the turn becomes mine — the frame flashes yellow. The
+  // dim lifting is a state change; this is the event, and you are by
+  // definition looking elsewhere when it happens.
+  myTurnJustStarted: boolean
+}
+
+/** A render's tiles and the swap it had in flight — what the next render
  *  compares itself against to find what changed. */
 type BoardSnapshot = {
-  board: string
-  colors: string | null
-  pendingSwap?: readonly [number, number] | null
+  tiles: readonly GTile[]
+  inFlightTileIds: ReadonlySet<string>
 }
 
 /**
- * The cells worth flashing between two renders — see the call site for which two
- * kinds qualify and why.
+ * The tiles worth flashing between two renders — see the call site for which
+ * two kinds qualify and why.
  */
-function changedCells(before: BoardSnapshot, after: BoardSnapshot): ReadonlySet<number> {
-  const cells = new Set<number>()
-  for (let i = 0; i < after.board.length; i++) {
-    if (!isHole(i) && after.board[i] !== before.board[i]) cells.add(i)
+function findChangedTileIds(before: BoardSnapshot, after: BoardSnapshot): ReadonlySet<string> {
+  const beforeById = new Map(before.tiles.map((t) => [t.id, t]))
+  const ids = new Set<string>()
+  for (const t of after.tiles) {
+    const was = beforeById.get(t.id)!
+    if (t.letter !== was.letter) ids.add(t.id)
+    // My own swap: the letters already moved optimistically, so what just
+    // arrived is the color. If a tile that was in flight is no longer, the
+    // server has answered it.
+    else if (before.inFlightTileIds.has(t.id) && !after.inFlightTileIds.has(t.id)) ids.add(t.id)
   }
-  // My own swap: the letters already moved optimistically, so what just arrived
-  // is the color. `before.pendingSwap` is the swap that was still in flight —
-  // if its cells have a color now, the server has answered them.
-  for (const cell of before.pendingSwap ?? []) {
-    if (after.colors?.[cell] !== before.colors?.[cell]) cells.add(cell)
-  }
-  return cells
+  return ids
 }
 
-type Props = {
-  // 25-char board string, holes = '.'. Live board OR a historical snapshot.
-  board: string
-  // 25-char per-tile color codes (g/y/x/.), or null before load.
-  colors: string | null
+/**
+ * The 5×5 waffle lattice. Tap a tile to pick it up (it highlights), tap a
+ * second to swap them; tap the same tile again to cancel. From the keyboard,
+ * arrows move a selection cursor (`useTileCursor`), Space picks up to two
+ * tiles, and Enter swaps them — the second pick WAITS for Enter, where the
+ * second tap is the swap, because an arrow can land a cell off and a swap costs
+ * one from the budget. Holes render as gaps, and the cursor passes over them.
+ * A tile's color is the server's feedback — the board only draws it, never
+ * works it out (it doesn't hold the solution).
+ *
+ * Board decides which marks each `<Tile>` wears; the tile draws them. The
+ * square board lives in a `.board` wrapper, top-aligned in the shared
+ * `.boardCol` (see Board.module.css).
+ */
+export function Board({
+  tiles,
+  marks,
+  historyView,
+  isInteractive,
+  moveCount,
+  onSwap,
+}: {
+  // The board to draw, by position: the live one (with a swap in flight
+  // applied), the revealed solution, or a past swap's — the caller picks.
+  tiles: GTile[]
+  marks: BoardMarks
+  // A past swap is open: the board wears the shared viewer frame, its two
+  // moved tiles are ringed, and the attention flash stays quiet.
+  historyView: GHistoryView
   // The board is mine to work: the move is mine and the live board is on
   // screen. When false the tiles take no pick, drag or key.
   isInteractive: boolean
-  // Draw the gray-blue "viewing a past turn" frame + suppress the
-  // attention flash (the ringed cells mark what the viewed swap did instead).
-  isViewingHistory?: boolean
-  // The two tiles the viewed swap moved — ring them.
-  historyLitTiles?: ReadonlySet<number>
-  // Swap the letters of two filled cells.
-  onSwap: (a: number, b: number) => void
-  // The swap in flight, or null. Its two cells take the shared in-flight dim —
-  // "your click landed; the server is working" — and ALL swap input
-  // is ignored until it settles: a production round-trip can run a second
-  // or two, and the reflexive did-I-misclick re-tap of the same two tiles
-  // would otherwise queue the REVERSE swap.
-  pendingSwap?: readonly [number, number] | null
-  // A teammate holds the move (`gd.me.waitingForTurn`): dim the whole
-  // board, unless it is interactive. The dim on a board says "you cannot act
-  // at all", the same verb the in-flight dim above uses on a tile — the
-  // element it lands on says what is inactive.
-  isWaitingForTurn?: boolean
-  // True for a beat at the moment the turn becomes mine — flashes the board
-  // frame yellow. The dim lifting is a state change; this is the event, and
-  // you are by definition looking elsewhere when it happens.
-  myTurnJustStarted?: boolean
-  // How I came out, once I have ended — with the game, or before it while the
-  // others race on: the board takes a band in that outcome's gray (neutral for
-  // a game that was simply stopped). Null while I still play. Permanent,
-  // unlike the two transient dims above: it says "this is a record, not a
-  // position".
-  endingOutcome?: EndOutcome | null
-  // How many swaps the server has recorded for the board on show (the replay
-  // log's length — everyone's in coop, mine in compete). It is the CAUSE the
-  // attention flash reads: a board that changed while this number stood still
-  // was re-dealt or revealed, not played.
+  // How many swaps the server has recorded for the board on show. It is the
+  // CAUSE the attention flash reads: a board that changed while this number
+  // stood still was re-dealt or revealed, not played.
   moveCount: number
-}
-
-/**
- * The 5×5 waffle lattice. Tap a tile to pick it up (it highlights),
- * tap a second to swap them; tap the same tile again to cancel. From the
- * keyboard, arrows move a selection cursor, Space picks up to two tiles, and
- * Enter swaps them — the second pick WAITS for Enter, where the second tap is
- * the swap, because an arrow can land a cell off and a swap costs one from the
- * budget. Holes render as gaps, and the cursor passes over them. Tile background is the server-computed Wordle-style
- * feedback (green / yellow / gray) — the FE only renders it, never
- * recomputes it (it doesn't hold the solution).
- *
- * Tiles use the SHARED `.tile` chrome (box / radius / shadow / hover shadow) and
- * the SHARED feedback marks (`.picked`, `.dimInFlight`, `.attentionFlash`)
- * from common; waffle's own classes just re-set the `--tile-*` tokens to a
- * Wordle color. The square board lives in a `.board` wrapper, top-aligned in
- * the shared `.boardCol` (see Board.module.css).
- */
-export function Board({
-  board,
-  colors,
-  isInteractive,
-  isViewingHistory = false,
-  historyLitTiles,
-  onSwap,
-  pendingSwap = null,
-  isWaitingForTurn = false,
-  myTurnJustStarted = false,
-  endingOutcome = null,
-  moveCount,
-}: Props) {
-  // No pick, drag or key while the board is inert — a past swap on screen is
-  // one such time: any click or key there leaves history.
-  const disabled = !isInteractive
-  // The picked tiles, in pick order: one from a tap, up to two from the
-  // keyboard.
-  const [picks, setPicks] = useState<readonly number[]>([])
-  // Drag source (HTML5 drag-and-drop, the desktop alternative to tap). Drag is a
-  // MOUSE affordance: on a touch device it's off (HTML5 DnD doesn't fire on touch
-  // anyway, and a `draggable` tile there just invites a long-press drag-ghost),
-  // leaving the tap-two-tiles model — which works everywhere — as the sole input.
+  // Swap the letters of two tiles.
+  onSwap: (a: GTile, b: GTile) => void
+}) {
+  const tilesById = new Map(tiles.map((t) => [t.id, t]))
+  // The ids of the picked tiles, in pick order: one from a tap, up to two from
+  // the keyboard.
+  const [pickedTileIds, setPickedTileIds] = useState<readonly string[]>([])
+  // Drag is a MOUSE affordance: on a touch device it's off (HTML5 DnD doesn't
+  // fire on touch anyway, and a `draggable` tile there just invites a
+  // long-press drag-ghost), leaving the tap-two-tiles model as the sole input.
   const coarse = useIsCoarsePointer()
-  const dragFrom = useRef<number | null>(null)
+  // The id of the tile being dragged.
+  const dragFromTileId = useRef<string | null>(null)
 
-  // ATTENTION — the cells that just changed under the player, flashed yellow for
+  // ATTENTION — the tiles that just changed under the player, flashed yellow for
   // a beat before settling into their true state color. waffle is the case
   // plans/tile-feedback.md calls out as needing this: a swap substitutes letters
   // where they already sat and recolors them in place, so nothing about the
   // change announces itself, and in coop it lands in whatever corner a teammate
   // was working in.
   //
-  // A MOVE has to be what changed the board, which the swap log says and the
-  // board itself cannot — a restart re-deals every cell, and a terminal reveal
-  // swaps the whole solution in. Both differ from the previous board in twenty
-  // places and neither is news (`useMoveAttention`, and the reason it is
-  // shared: setgame learned it the hard way).
+  // A MOVE has to be what changed the board, which the swap count says and the
+  // board itself cannot — a restart re-deals every cell, and the reveal swaps
+  // the whole solution in. Both differ from the previous board in twenty places
+  // and neither is news (`useMoveAttention`, and the reason it is shared:
+  // setgame learned it the hard way).
   //
-  // Given a move, TWO kinds of cell qualify, which is the audience rule made
+  // Given a move, TWO kinds of tile qualify, which is the audience rule made
   // concrete:
   //
   //   - its LETTER changed — a teammate's swap arriving on my board, the classic
@@ -155,86 +136,79 @@ export function Board({
   // The flash is set DURING the render that applies the change, so both land in
   // one commit: paint the color a frame early and the eye catches it first, and
   // the flash then reads as a second, unexplained event.
-  const flashing = useMoveAttention({
-    content: { board, colors, pendingSwap },
-    contentKey: `${board}|${colors ?? ''}`,
+  const flashingTileIds = useMoveAttention({
+    content: { tiles, inFlightTileIds: marks.inFlightTileIds },
+    contentKey: `${tiles.map((t) => t.letter + t.color).join('')}|${[...marks.inFlightTileIds].join()}`,
     moveCount,
-    // Quiet while viewing a past turn — the ringed cells already mark what that
+    // Quiet while viewing a past turn — the ringed tiles already mark what that
     // swap did, and a move landing live behind the viewer is not something to
     // point at on a board they are not looking at.
-    quiet: isViewingHistory,
-    changed: changedCells,
+    quiet: historyView.isViewing,
+    changed: findChangedTileIds,
   })
 
   // While a swap is in flight, every way of making one stays quiet — tap, drag,
   // Space and Enter. The arrows still move.
-  const inFlight = pendingSwap !== null
+  const isSwapOut = marks.inFlightTileIds.size > 0
 
   // A TAP: with nothing picked it picks; on the one picked tile it cancels; on
   // another it swaps the two. Two picked is a keyboard state, and a tap there
   // starts over from the tapped tile.
-  function activate(pos: number) {
-    if (disabled || inFlight || isHole(pos)) return
-    const [first] = picks
-    if (picks.length === 1 && first === pos) {
-      setPicks([])
-    } else if (picks.length === 1 && first !== undefined) {
-      onSwap(first, pos)
-      setPicks([])
+  function tapTile(tile: GTile) {
+    if (!isInteractive || isSwapOut) return
+    const [firstId] = pickedTileIds
+    if (pickedTileIds.length === 1 && firstId === tile.id) {
+      setPickedTileIds([])
+    } else if (pickedTileIds.length === 1 && firstId !== undefined) {
+      onSwap(tilesById.get(firstId)!, tile)
+      setPickedTileIds([])
     } else {
-      setPicks([pos])
+      setPickedTileIds([tile.id])
     }
   }
 
-  function drop(pos: number) {
-    const from = dragFrom.current
-    dragFrom.current = null
-    if (from === null || from === pos || isHole(from) || isHole(pos) || disabled || inFlight) {
-      return
-    }
-    onSwap(from, pos)
-    setPicks([])
+  function dropOnTile(tile: GTile) {
+    const fromId = dragFromTileId.current
+    dragFromTileId.current = null
+    if (fromId === null || fromId === tile.id || !isInteractive || isSwapOut) return
+    onSwap(tilesById.get(fromId)!, tile)
+    setPickedTileIds([])
   }
 
   // ─── The keyboard ──────────────────────────────────────
   // Space toggles the tile under the cursor into or out of the picks. A third
   // is refused, as connections refuses a fifth: un-pick one first.
-  function toggleAt(cell: Cell) {
-    if (disabled || inFlight) return
-    const pos = positionAt(cell.x, cell.y, GRID)
-    if (picks.includes(pos)) setPicks(picks.filter((p) => p !== pos))
-    else if (picks.length < 2) setPicks([...picks, pos])
+  function togglePick(tile: GTile) {
+    if (!isInteractive || isSwapOut) return
+    if (pickedTileIds.includes(tile.id)) setPickedTileIds(pickedTileIds.filter((id) => id !== tile.id))
+    else if (pickedTileIds.length < 2) setPickedTileIds([...pickedTileIds, tile.id])
   }
 
-  const { cell: cursor, setTo: setCursorTo } = useBoardSelectionCursor({
-    shape: BOARD_SHAPE,
-    enabled: !disabled,
-    onToggle: toggleAt,
-  })
+  const cursor = useTileCursor({ tiles, isInteractive, onToggle: togglePick })
 
   // Enter swaps the two picks. Key-only — a tap is the board's own swap — so
   // the action names itself for the key list, and hides on a board I can't
   // play.
   useBindAction('act-submit', {
     describe: () => {
-      if (disabled) return 'hidden'
-      return { state: picks.length === 2 && !inFlight ? 'active' : 'disabled', label: 'Swap' }
+      if (!isInteractive) return 'hidden'
+      return { state: pickedTileIds.length === 2 && !isSwapOut ? 'active' : 'disabled', label: 'Swap' }
     },
     run: () => {
-      const [a, b] = picks
-      if (a === undefined || b === undefined || inFlight) return
-      onSwap(a, b)
-      setPicks([])
+      const [aId, bId] = pickedTileIds
+      if (aId === undefined || bId === undefined || isSwapOut) return
+      onSwap(tilesById.get(aId)!, tilesById.get(bId)!)
+      setPickedTileIds([])
     },
   })
 
   // ⌫ drops the picks.
   useBindAction('act-clear-picks', {
     describe: () => {
-      if (disabled) return 'hidden'
-      return picks.length > 0 ? 'active' : 'disabled'
+      if (!isInteractive) return 'hidden'
+      return pickedTileIds.length > 0 ? 'active' : 'disabled'
     },
-    run: () => setPicks([]),
+    run: () => setPickedTileIds([]),
   })
 
   return (
@@ -243,84 +217,52 @@ export function Board({
           "you're viewing a past turn"
           (common/event-log/historyViewer.module.css), the dim of "a
           teammate holds the move", the yellow flash of "your turn just started",
-          and the dark-gray frame of "this game is over". The turn marks can't
-          collide with the last one — a finished game has no turn to wait for and
-          none to receive — and the two frames, both outlines, take turns. */}
+          and the dark-gray frame of "I have ended". The turn marks can't
+          collide with the last one — an ended player has no turn to wait for
+          and none to receive — and the two frames, both outlines, take turns. */}
       <div
         className={cls(
           styles.grid,
-          isViewingHistory && history.historyFrame,
-          isWaitingForTurn && !isInteractive && shared.dimNotYourTurn,
-          makeEndingFrameClasses(endingOutcome, isViewingHistory),
-          myTurnJustStarted && shared.yourTurnFlash,
+          historyView.isViewing && history.historyFrame,
+          marks.isWaitingForTurn && !isInteractive && shared.dimNotYourTurn,
+          makeEndingFrameClasses(marks.endingOutcome, historyView.isViewing),
+          marks.myTurnJustStarted && shared.yourTurnFlash,
         )}
         role="grid"
         aria-label="Waffle board"
       >
         {Array.from({ length: CELLS }, (_, pos) => {
-          if (isHole(pos)) {
+          const tile = tilesById.get(String(pos))
+          // A hole — an interior cell in no word — has no tile.
+          if (tile === undefined) {
             return <span key={pos} className={styles.hole} aria-hidden="true" />
           }
-          const letter = board[pos] ?? ' '
-          const color = colors === null ? 'blank' : getTileColor(colors[pos])
-          // A judgment is the shared palette; an uncolored tile is this board's
-          // own (no colors yet, or taken back for a swap in flight) — see
-          // tileColors.module.css.
-          const colorClass = color === 'blank' ? styles.blank : tileColors[color]
           return (
-            <button
-              key={pos}
-              type="button"
-              className={cls(
-                shared.tileFace,
-                shared.tile,
-                colorClass,
-                picks.includes(pos) && shared.picked,
-                cursor !== null && positionAt(cursor.x, cursor.y, GRID) === pos && shared.selectionCursor,
-                pendingSwap?.includes(pos) && styles.inFlight,
-                pendingSwap?.includes(pos) && shared.dimInFlight,
-                flashing.has(pos) && shared.attentionFlash,
-                historyLitTiles?.has(pos) && styles.historyTile,
-              )}
-              aria-label={`${letter.toUpperCase()} (${color})`}
-              aria-pressed={picks.includes(pos)}
-              disabled={disabled}
-              draggable={!disabled && !coarse}
-              // NOT a focus target — but by BLUR rather than by the mousedown
-              // guard the other boards use, because these tiles DRAG. Native
-              // HTML5 drag needs the mousedown default: `preventDefault` there
-              // stops `dragstart` firing at all (measured — with the guard
-              // installed, dragging a tile onto another does nothing). So the
-              // click hands focus straight back instead.
-              //
-              // Why bother: a clicked-and-still-focused tile is promoted to
-              // `:focus-visible` by the very next keystroke, and the browser
-              // ring then sits on it until you click elsewhere — the rank-square
-              // trap.
-              onClick={(e) => {
-                e.currentTarget.blur()
+            <Tile
+              key={tile.id}
+              tile={tile}
+              marks={{
+                isPicked: pickedTileIds.includes(tile.id),
+                isUnderCursor: cursor.cursorTileId === tile.id,
+                isInFlight: marks.inFlightTileIds.has(tile.id),
+                isFlashing: flashingTileIds.has(tile.id),
+                isHistoryLit: historyView.litTileIds.has(tile.id),
+              }}
+              isDisabled={!isInteractive}
+              isDraggable={isInteractive && !coarse}
+              onClick={() => {
                 // The cursor follows the hand, hidden, so the keys resume here.
-                setCursorTo(cellAt(pos, GRID))
-                activate(pos)
+                cursor.moveToClicked(tile)
+                tapTile(tile)
               }}
-              onDragStart={(e) => {
-                dragFrom.current = pos
-                e.dataTransfer.effectAllowed = 'move'
+              onDragStart={() => {
+                dragFromTileId.current = tile.id
               }}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault()
-                drop(pos)
+              onDrop={() => dropOnTile(tile)}
+              onDragEnd={() => {
+                dragFromTileId.current = null
               }}
-              onDragEnd={(e) => {
-                // A completed drag fires no click, so blur here too — otherwise
-                // the dragged tile keeps focus and the next keystroke rings it.
-                e.currentTarget.blur()
-                dragFrom.current = null
-              }}
-            >
-              <span className={styles.letter}>{letter}</span>
-            </button>
+            />
           )
         })}
       </div>

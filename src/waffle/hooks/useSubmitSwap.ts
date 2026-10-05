@@ -6,6 +6,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
+import type { GTile } from '../types'
 
 /** What `waffle.submit_swap` puts in `data` for a swap it took. Only `result` is
  *  read — the rest is deliberately ignored, because the new colors must reach
@@ -42,8 +43,8 @@ type SwapAnswer = {
  *
  * **The swap still out is the one in-flight guard.** A tap and a drag swap
  * with no action behind them, so an action's `pending` cannot cover them;
- * `<Board>` takes no swap of any kind while `pendingSwap` is set, and it is set
- * from the moment of sending until the swap's row lands.
+ * `<Board>` takes no swap of any kind while `pendingSwapTileIds` is set, and
+ * it is set from the moment of sending until the swap's row lands.
  */
 export function useSubmitSwap({
   gameId,
@@ -56,20 +57,21 @@ export function useSubmitSwap({
   // Where a refused swap says why.
   localFeedbackSlot: FeedbackSlot
 }): {
-  // The two cells of the swap still out, or null.
-  pendingSwap: readonly [number, number] | null
-  // Swap the letters of two filled cells.
-  send: (a: number, b: number) => void
+  // The ids of the two tiles of the swap still out, or null.
+  pendingSwapTileIds: readonly [string, string] | null
+  // Swap the letters of two tiles.
+  send: (a: GTile, b: GTile) => void
 } {
   const [inFlight, setInFlight] = useState<{
-    cells: readonly [number, number]
+    tileIds: readonly [string, string]
     atEventId: number | null
   } | null>(null)
 
-  async function send(a: number, b: number) {
-    setInFlight({ cells: [a, b], atEventId: newestEventId })
+  async function send(a: GTile, b: GTile) {
+    setInFlight({ tileIds: [a.id, b.id], atEventId: newestEventId })
+    // A tile's id is its position, which is what the RPC takes.
     const res = await runRpc<SwapAnswer>(
-      db.rpc('submit_swap', { p_game_id: gameId, p_pos_a: a, p_pos_b: b }),
+      db.rpc('submit_swap', { p_game_id: gameId, p_pos_a: Number(a.id), p_pos_b: Number(b.id) }),
     )
     if (res.type === 'not-ok') {
       // Refused (the turn moved, the game ended, you conceded). Optimism is
@@ -92,7 +94,7 @@ export function useSubmitSwap({
     }
   }
 
-  const pendingSwap =
-    inFlight !== null && inFlight.atEventId === newestEventId ? inFlight.cells : null
-  return { pendingSwap, send }
+  const pendingSwapTileIds =
+    inFlight !== null && inFlight.atEventId === newestEventId ? inFlight.tileIds : null
+  return { pendingSwapTileIds, send }
 }

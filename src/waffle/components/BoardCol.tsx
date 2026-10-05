@@ -7,29 +7,11 @@ import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import { useSubmitSwap } from '../hooks/useSubmitSwap'
-import { makeBoardString, makeColorString, swapCells, unjudgeCells } from '../lib/waffle'
+import { swapTileLetters } from '../lib/waffle'
 import { Board } from './Board'
 import { StateLine } from './StateLine'
 import styles from './BoardCol.module.css'
 import type { GGameData, GHistoryView, GTile } from '../types'
-
-/**
- * The tiles as the two 25-char strings `Board` draws — its letters and its
- * colors — with a swap still out applied: its letters traded, its two cells
- * unjudged. Board takes the tiles itself at its own pass, and this goes.
- */
-function makeBoardStrings(
-  tiles: GTile[],
-  pendingSwap: readonly [number, number] | null,
-): { board: string; colors: string } {
-  const board = makeBoardString(tiles)
-  const colors = makeColorString(tiles)
-  if (pendingSwap === null) return { board, colors }
-  return {
-    board: swapCells(board, pendingSwap[0], pendingSwap[1]),
-    colors: unjudgeCells(colors, pendingSwap),
-  }
-}
 
 /**
  * waffle's board column — the square `Board` plus the below-board region (the
@@ -65,15 +47,19 @@ export function BoardCol({
     newestEventId: gd.events.at(-1)?.id ?? null,
     localFeedbackSlot,
   })
+
   // Any key is the player's next move → dismiss a gesture-cleared message.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // The board is mine to work: the move is mine, and the live board is the one
   // on screen — a click or key on a past one is the viewer's exit.
   const isInteractive = gd.me.onTurn && !historyView.isViewing
-  // The swap still out belongs to the live board only.
-  const pendingSwap = isLiveBoard ? submission.pendingSwap : null
-  const { board, colors } = makeBoardStrings(shownTiles, pendingSwap)
+  // The swap still out belongs to the live board only: its letters have
+  // already traded places there.
+  const pendingSwapTileIds = isLiveBoard ? submission.pendingSwapTileIds : null
+  const tiles = pendingSwapTileIds === null
+    ? shownTiles
+    : swapTileLetters(shownTiles, pendingSwapTileIds[0], pendingSwapTileIds[1])
 
   return (
     // Exit-on-click is intrinsic to the viewer (useHistoryViewer's document
@@ -89,23 +75,23 @@ export function BoardCol({
         <StateLine data={gd.stateLineData} />
       </MobileStatusBar>
       <Board
-        board={board}
-        colors={colors}
+        tiles={tiles}
+        marks={{
+          inFlightTileIds: new Set(pendingSwapTileIds ?? []),
+          // Bands the board once I have ended: with the game, or before it
+          // while the others race on — the outcome the below-board pill and
+          // the info column's line wear.
+          endingOutcome: gd.me.outcome,
+          isWaitingForTurn: gd.me.waitingForTurn,
+          myTurnJustStarted,
+        }}
+        historyView={historyView}
         isInteractive={isInteractive}
-        isViewingHistory={historyView.isViewing}
-        historyLitTiles={new Set([...historyView.litTileIds].map(Number))}
-        onSwap={submission.send}
-        pendingSwap={pendingSwap}
-        isWaitingForTurn={gd.me.waitingForTurn}
-        myTurnJustStarted={myTurnJustStarted}
-        // Bands the board once I have ended: with the game, or before it while
-        // the others race on — the outcome the below-board pill and the info
-        // column's line wear.
-        endingOutcome={gd.me.outcome}
         // The swaps behind the board on show — the team's in coop, my own in
         // compete. A Restart zeroes it, which is what tells the flash that a
         // re-dealt board was not played into existence.
         moveCount={gd.stateLineData.nSwapsUsed}
+        onSwap={submission.send}
       />
 
       <div className={styles.belowBoard}>

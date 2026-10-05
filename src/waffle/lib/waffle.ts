@@ -24,6 +24,8 @@
  * word is shared with a down word — the 9 "intersection" cells.
  */
 
+import type { GTile } from '../types'
+
 /** Side length of the square grid. */
 export const GRID = 5
 /** Total cells, holes included. */
@@ -43,38 +45,18 @@ export function isHole(pos: number): boolean {
 }
 
 /**
- * The board with the letters at `a` and `b` exchanged — the move itself, which
- * a swap always is: a pure transposition of two cells.
- *
- * The client can compute this exactly, which is why the play surface shows a
- * swap the moment you make it rather than waiting for the server to say so (a
- * board that doesn't move reads as a swap that didn't happen). What it cannot
- * compute is what the swap SCORED — that needs the solution — so the two cells
- * show no color until the server answers. See plans/tile-feedback.md.
+ * The tiles with the letters of tiles `aId` and `bId` exchanged — the move
+ * itself, which a swap always is: a pure transposition of two cells. Each tile
+ * keeps its id and its color; the color of a tile whose letter moved is no
+ * longer true, which is why the board draws a swap in flight unjudged (the
+ * `inFlightTileIds` mark) until the server answers. See
+ * plans/tile-feedback.md.
  */
-export function swapCells(board: string, a: number, b: number): string {
-  const cells = board.split('')
-  ;[cells[a], cells[b]] = [cells[b], cells[a]]
-  return cells.join('')
-}
-
-/**
- * The color string with `cells` marked UNJUDGED — the hole mark `.`, which
- * `getTileColor` reads as `blank`.
- *
- * For the two tiles of a swap in flight. Keeping their old colors would assert a
- * verdict that is no longer true — those letters have moved — and guessing new
- * ones would assert a verdict we don't have. This says the only honest thing:
- * not judged yet.
- *
- * What such a cell LOOKS like is the board's business, not this string's: it
- * takes `.inFlight` (the middle gray, under the in-flight dim) rather than the
- * pale blank a `.` would otherwise draw. See Board.module.css.
- */
-export function unjudgeCells(colors: string, cells: Iterable<number>): string {
-  const out = colors.split('')
-  for (const c of cells) out[c] = HOLE
-  return out.join('')
+export function swapTileLetters(tiles: readonly GTile[], aId: string, bId: string): GTile[] {
+  const a = tiles.find((t) => t.id === aId)!
+  const b = tiles.find((t) => t.id === bId)!
+  return tiles.map((t) =>
+    t.id === aId ? { ...t, letter: b.letter } : t.id === bId ? { ...t, letter: a.letter } : t)
 }
 
 /** True if `pos` is a filled, letter-bearing cell. */

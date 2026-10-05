@@ -6,16 +6,11 @@
  * behind, matching psychicnum/connections). Unlike those games — whose boards
  * FILL the column with `1fr` tracks and so go rectangular — waffle stays a
  * SQUARE (it's a waffle, with holes): the grid sizes to the largest square that
- * fits, and sits TOP-aligned in the column. The tile CHROME (box, radius,
- * centering, the un-faded disabled look) is the SHARED `.tile` from common
- * (imported as `shared` in Board.tsx) and the judged colors are the shared
- * `tileColors.module.css`; waffle's own are the uncolored tile, the letter, the
- * holes, and — for now, as an experiment — its two shadow tokens.
+ * fits, and sits TOP-aligned in the column. A tile is its own piece
+ * (`Tile.module.css`); this file is the board, its grid and its holes.
  *
- * The vocabulary's own marks are all shared (common PlayArea.module.css):
- * `.picked`, `.dimInFlight`, `.attentionFlash` on a tile, and
- * `.dimNotYourTurn` / `.yourTurnFlash` on the grid. What is left in this file is
- * what only waffle can say. See plans/tile-feedback.md.
+ * The board's marks are shared (common PlayArea.module.css): `.dimNotYourTurn`
+ * and `.yourTurnFlash` on the grid. See plans/tile-feedback.md.
  */
 
 /* Board wrapper: hugs the square grid (the grid carries the definite `--side`
@@ -89,72 +84,4 @@
 /* @@ */ .hole {
   width: 100%;
   height: 100%;
-}
-
-/* The letter on a tile. Sized from the grid's `--letter-size` (inherited), so it
- * scales with the board without relying on the tile being a query container. */
-/* @@ */ .letter {
-  font-size: var(--letter-size);
-  font-weight: 700;
-  line-height: 1;
-  /* The letters are stored lowercase, as the word list is; capitals are drawn. */
-  text-transform: uppercase;
-  /* Lifted into the tile's own stacking context, which the shared
-   * `.attentionFlash` requires: its overlay is absolutely positioned,
-   * and one of those sits above in-flow text by default — so without this the
-   * flash would tint the letter instead of lightening the tile under it. The
-   * in-flight dim deliberately paints above this, covering the letter too. */
-  position: relative;
-  z-index: 1;
-}
-
-/* The three JUDGED colors are the shared ones
- * (shared/wordle-style/tileColors.module.css, indexed by `getTileColor`); wordle
- * paints its guess rows from the same sheet, which is where the darker edge
- * this board's pick mark needs is explained. What is left here is what
- * only waffle says about a tile.
- *
- * Not a played state: a waffle tile always has a color once the board loads,
- * and a hole is a `.hole` span rather than a tile. `.blank` is only what a tile
- * wears before `colors` arrives (and for a watcher who is sent none), so it
- * keeps its flat edge — the darker border of the judged three is for the colors
- * that carry meaning. */
-/* @@ */ .blank {
-/* @@ */   --tile-slot-fill-color: var(--wordle-blank-fill-color);
-/* @@ */   --tile-slot-edge-color: var(--wordle-blank-fill-color);
-/* @@ */   --tile-slot-ink-color: var(--page-text-color);
-}
-
-/* The two cells of a swap IN FLIGHT. Their old color was invalidated the moment
- * the letters moved and the new one is the server's to give, so they show
- * neither — this is the middle gray, worn under the shared in-flight dim.
- *
- * The GRAY and not the light blank, which was the first attempt: the in-flight
- * signal is "these are darker than the board around them", and dimming a light
- * fill lands on a middle gray that reads as a STATE — the not-in-the-word gray —
- * rather than as a tile being held. Starting from the gray, the dim can only make
- * it darker than any color on the board, which is the one thing no state says.
- *
- * Declared after `.blank` on purpose: an in-flight cell is unjudged, so it wears
- * both classes, and same-file order settles which fill wins. */
-/* @@ */ .inFlight {
-/* @@ */   --tile-slot-fill-color: var(--wordle-gray-fill-color);
-/* @@ */   --tile-slot-edge-color: var(--wordle-gray-edge-color);
-  /* It wears the gray FILL, so it takes the gray's own ink rather than a
-     generic on-dark white, which is only right while the page is light. */
-/* @@ */   --tile-slot-ink-color: var(--wordle-gray-ink-color);
-}
-
-/* The two tiles the viewed swap moved. Ringed in the shared
- * history color — the same gray-blue as the board frame around them and the #N
- * handle in the log, so all three parts of "you are looking at this past turn"
- * are one mark rather than three. Drawn with `outline` (order-independent, and
- * the channel is free while viewing: you cannot select, and nothing can be in
- * flight); `position: relative` + a z-index lift it so the ring paints over
- * neighboring tiles rather than under. */
-/* @@ */ .historyTile {
-  outline: 3px solid var(--history-color);
-  outline-offset: 2px;
-  position: relative;
-  z-index: 1;
 }

@@ -165,6 +165,14 @@ describe('waffle PlayArea — render smoke', () => {
     expect(screen.getByRole('grid', { name: /waffle board/i })).toBeInTheDocument()
   })
 
+  it('marks each tile with its id, and draws no tile at a hole', () => {
+    render(<PlayAreaLoader {...makeCtx()} />)
+    const ids = [...document.querySelectorAll('[data-tile]')].map((el) => el.getAttribute('data-tile'))
+    expect(ids).toHaveLength(21)
+    expect(ids).toContain('0')
+    expect(ids).not.toContain('6')
+  })
+
   it('renders the board in compete play', () => {
     render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: twoMembers })} />)
     expect(screen.getByRole('grid', { name: /waffle board/i })).toBeInTheDocument()

@@ -1,0 +1,58 @@
+/* cs-unmet */
+
+/* One tile of waffle's board. The tile CHROME (box, radius, centering, the
+ * un-faded disabled look) is the SHARED `.tile` from common, the judged colors
+ * are the shared `tileColors.module.css`, and the vocabulary's marks
+ * (`.picked`, `.dimInFlight`, `.attentionFlash`, `.selectionCursor`) are all
+ * shared too. What is left here is what only waffle says about a tile. See
+ * plans/tile-feedback.md.
+ */
+
+/* The letter on a tile. Sized from the grid's `--letter-size` (inherited), so it
+ * scales with the board without relying on the tile being a query container. */
+/* @@ */ .letter {
+  font-size: var(--letter-size);
+  font-weight: 700;
+  line-height: 1;
+  /* The letters are stored lowercase, as the word list is; capitals are drawn. */
+  text-transform: uppercase;
+  /* Lifted into the tile's own stacking context, which the shared
+   * `.attentionFlash` requires: its overlay is absolutely positioned,
+   * and one of those sits above in-flow text by default — so without this the
+   * flash would tint the letter instead of lightening the tile under it. The
+   * in-flight dim deliberately paints above this, covering the letter too. */
+  position: relative;
+  z-index: 1;
+}
+
+/* The two cells of a swap IN FLIGHT. Their old color was invalidated the moment
+ * the letters moved and the new one is the server's to give, so they show
+ * neither — this is the middle gray, worn under the shared in-flight dim, in
+ * place of the tile's judged color.
+ *
+ * The GRAY and not the light blank, which was the first attempt: the in-flight
+ * signal is "these are darker than the board around them", and dimming a light
+ * fill lands on a middle gray that reads as a STATE — the not-in-the-word gray —
+ * rather than as a tile being held. Starting from the gray, the dim can only make
+ * it darker than any color on the board, which is the one thing no state says. */
+/* @@ */ .inFlight {
+/* @@ */   --tile-slot-fill-color: var(--wordle-gray-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-gray-edge-color);
+  /* It wears the gray FILL, so it takes the gray's own ink rather than a
+     generic on-dark white, which is only right while the page is light. */
+/* @@ */   --tile-slot-ink-color: var(--wordle-gray-ink-color);
+}
+
+/* The two tiles the viewed swap moved. Ringed in the shared
+ * history color — the same gray-blue as the board frame around them and the #N
+ * handle in the log, so all three parts of "you are looking at this past turn"
+ * are one mark rather than three. Drawn with `outline` (order-independent, and
+ * the channel is free while viewing: you cannot select, and nothing can be in
+ * flight); `position: relative` + a z-index lift it so the ring paints over
+ * neighboring tiles rather than under. */
+/* @@ */ .historyTile {
+  outline: 3px solid var(--history-color);
+  outline-offset: 2px;
+  position: relative;
+  z-index: 1;
+}
