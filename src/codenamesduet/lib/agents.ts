@@ -1,6 +1,6 @@
 // cs-blessed-codenamesduet
 
-import type { KeyLabel } from './labels'
+import type { GKey } from '../types'
 
 /**
  * The agents a pair has to find: fifteen on every board, the key-card table's
@@ -24,7 +24,7 @@ export const TOTAL_AGENTS = 15
  * surfaced to both players as a banner in the info column).
  */
 export function agentsAllContacted(
-  key: KeyLabel[],
+  key: GKey[],
   words: { position: number; revealed_as: string | null }[],
 ): boolean {
   const contacted = new Set(

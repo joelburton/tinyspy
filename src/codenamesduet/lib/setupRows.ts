@@ -3,7 +3,7 @@
 import type { Member } from '@/common/members/member'
 import { makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
-import type { CodenamesduetSetup } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * codenamesduet's setup rows — ONE array, rendered by the info column and the
@@ -14,7 +14,7 @@ import type { CodenamesduetSetup } from './setup'
  * row — resolved to a username here rather than printing a uuid.
  */
 export function makeSetupRows(
-  setup: CodenamesduetSetup,
+  setup: GSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {

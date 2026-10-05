@@ -2,7 +2,7 @@
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
-import type { KeyLabel } from '../lib/labels'
+import type { GKey } from '../types'
 import type { Seat } from '../lib/phase'
 import type { WordRow } from '../hooks/useBoard'
 import { isSuddenDeathTurn, type ClueEvent, type WordedGuess } from '../lib/events'
@@ -36,7 +36,7 @@ export type CodenamesduetPrintModel = PrintHeader & {
   turns: TurnRow[]
 }
 
-const ROLE_OF: Record<KeyLabel, KeyRole> = { G: 'agent', N: 'neutral', A: 'assassin' }
+const ROLE_OF: Record<GKey, KeyRole> = { G: 'agent', N: 'neutral', A: 'assassin' }
 
 /** The global reveal: 'G' contacted an agent, 'A' hit the assassin. A bystander
  *  is NOT global (it's per-seat), so it's derived from the two burn flags. */
@@ -74,11 +74,11 @@ export function buildCodenamesduetPrintModel(o: {
   date: string
   words: WordRow[]
   // The caller's key — 25 labels, indexed by board position.
-  myKey: KeyLabel[]
+  myKey: GKey[]
   // The partner's key: null until the player presses Reveal, which only a
   // finished game offers — so a print of an unrevealed game carries no peer
   // column.
-  peerKey: KeyLabel[] | null
+  peerKey: GKey[] | null
   mySeat: Seat | undefined
   isTerminal: boolean
   clues: ClueEvent[]

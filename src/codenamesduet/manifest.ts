@@ -6,7 +6,8 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { count, verdict, statusLine, tally } from '@/common/manifest/summary'
-import { DEFAULT_CODENAMESDUET_SETUP, type CodenamesduetSetup } from './lib/setup'
+import { DEFAULT_CODENAMESDUET_SETUP } from './lib/setup'
+import type { GSetup } from './types'
 import { TOTAL_AGENTS } from './lib/agents'
 import logoUrl from './logo.svg?url'
 
@@ -86,7 +87,7 @@ export const codenamesduetGame: GameManifest = {
   // assigned to s.first_clue_giver_user_id). See
   // supabase/sql/codenamesduet.sql.
   //
-  // The `unknown` → CodenamesduetSetup cast is safe because we own
+  // The `unknown` → GSetup cast is safe because we own
   // both ends of the boundary (this manifest's setupForm
   // Component is the only thing populating the wrapper's value).
   startGameInClub: async (clubHandle, setup, playerUserIds) => {
@@ -94,7 +95,7 @@ export const codenamesduetGame: GameManifest = {
     return runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
-        setup: setup as CodenamesduetSetup,
+        setup: setup as GSetup,
         player_user_ids: playerUserIds,
       }),
     )

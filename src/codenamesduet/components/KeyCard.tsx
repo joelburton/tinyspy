@@ -1,12 +1,12 @@
 // cs-blessed-codenamesduet
 
 import { cls } from '@/common/utils/cls'
-import type { KeyLabel } from '../lib/labels'
+import type { GKey } from '../types'
 import styles from './KeyCard.module.css'
 
 /** Each label's cell class — total over the three, so a fourth fails to
  *  compile until it has been given a color. */
-const CELL: Record<KeyLabel, string> = {
+const CELL: Record<GKey, string> = {
   G: styles.agent,
   N: styles.neutral,
   A: styles.assassin,
@@ -24,7 +24,7 @@ export function KeyCard({
   labels,
 }: {
   // The 25 labels in board order (`words.position`), from the caller's own key.
-  labels: ReadonlyArray<KeyLabel>
+  labels: ReadonlyArray<GKey>
 }) {
   return (
     <div className={styles.card} data-key-card>

@@ -14,7 +14,7 @@ import { db } from '../db'
 import type { WordRow } from '../hooks/useBoard'
 import type { ClueEvent } from '../lib/events'
 import type { Player } from '../lib/seats'
-import type { KeyLabel } from '../lib/labels'
+import type { GKey } from '../types'
 import { isGuessable, type Seat } from '../lib/phase'
 import { BOARD_SHAPE } from '../lib/boardShape'
 import { useBindAction } from '@/common/actions/useBindAction'
@@ -22,7 +22,8 @@ import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import { Board } from './Board'
-import { ClueStrip, type SuggestState } from './ClueStrip'
+import { ClueStrip } from './ClueStrip'
+import type { GSuggestState } from '../types'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
@@ -110,9 +111,9 @@ export function BoardCol({
   // The 25 board words — the live board OR a snapshot's reveal state (PlayArea picks).
   words: WordRow[]
   // The caller's own key view.
-  myKey: KeyLabel[]
+  myKey: GKey[]
   // The partner's key view — null until the caller chooses to see it.
-  peerKey: KeyLabel[] | null
+  peerKey: GKey[] | null
   // The caller's seat.
   mySeat: Seat
   isTerminal: boolean
@@ -150,7 +151,7 @@ export function BoardCol({
   inSuddenDeath: boolean
   peer: Player | undefined
   // Open / update / close the AI clue-suggestion dialog; its state is PlayArea's.
-  onSuggestionChange: (state: SuggestState | null) => void
+  onSuggestionChange: (state: GSuggestState | null) => void
 }) {
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
   // conventions: one prop says so, and the flag is derived, never passed).

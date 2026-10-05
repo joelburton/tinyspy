@@ -9,9 +9,10 @@
  *      nothing in sudden death or once the game is over.
  */
 import { describe, expect, it } from 'vitest'
-import { answerMessage, turnAnswer, type Answer } from './answer'
+import { answerMessage, turnAnswer } from './answer'
+import type { GAnswer } from '../types'
 
-const EVERY: Array<[Answer['answerType'], string, string]> = [
+const EVERY: Array<[GAnswer['answerType'], string, string]> = [
   ['writing_clue_peer', 'writing clue', 'neutral'],
   ['guessing_peer', 'guessing', 'neutral'],
   ['waiting_for_clue_peer', 'waiting for clue', 'neutral'],

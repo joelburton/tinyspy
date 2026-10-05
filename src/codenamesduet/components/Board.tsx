@@ -7,7 +7,7 @@ import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
 import type { WordRow } from '../hooks/useBoard'
-import type { KeyLabel } from '../lib/labels'
+import type { GKey } from '../types'
 import { isGuessable, type Seat } from '../lib/phase'
 import { BOARD_SHAPE } from '../lib/boardShape'
 import { positionAt } from '@/common/board-cursor/boardPosition'
@@ -24,13 +24,13 @@ const NO_TILES: ReadonlySet<number> = new Set()
 const revealKey = (w: WordRow) => `${w.revealed_as ?? '-'}${w.neutral_a ? 'a' : ''}${w.neutral_b ? 'b' : ''}`
 
 /**
- * KeyLabel ('G'|'N'|'A') → the keycard-square color class. The squares always
+ * GKey ('G'|'N'|'A') → the keycard-square color class. The squares always
  * use the *unrevealed* (soft) palette — they show what a key card SAYS about a
  * cell, independent of what's been guessed. Style rules live in
  * Board.module.css; this map is the one place translating the data alphabet
  * to presentation classes.
  */
-const KEY_SQUARE: Record<KeyLabel, 'keyAgent' | 'keyNeutral' | 'keyAssassin'> = {
+const KEY_SQUARE: Record<GKey, 'keyAgent' | 'keyNeutral' | 'keyAssassin'> = {
   G: 'keyAgent',
   N: 'keyNeutral',
   A: 'keyAssassin',
@@ -40,10 +40,10 @@ type Props = {
   // The 25 board word rows, with denormalized reveal state.
   words: WordRow[]
   // The caller's own key view (a 25-element array of G/N/A).
-  myKey: KeyLabel[]
+  myKey: GKey[]
   // The partner's key view — null until the caller chooses to see it, which
   // the reveal allows only once the game is over.
-  peerKey: KeyLabel[] | null
+  peerKey: GKey[] | null
   // The caller's seat. Picks which per-seat neutral flag is "mine" for the
   // triangles and the click gate.
   mySeat: Seat

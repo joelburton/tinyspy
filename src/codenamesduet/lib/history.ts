@@ -30,7 +30,7 @@ import type { WordRow } from '../hooks/useBoard'
 import type { ClueEvent, WordedGuess } from './events'
 
 /** One past turn, ready for the board and the viewer banner. */
-export interface HistorySnapshot {
+interface HistorySnapshot {
   // The 25 board words with reveal state as of the END of the viewed turn — feed
   // straight to `<Board words>`.
   words: WordRow[]

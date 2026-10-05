@@ -1,7 +1,7 @@
 // cs-blessed-codenamesduet
 
 import { Companion } from '@/common/floating-panels/Companion'
-import type { SuggestState } from './ClueStrip'
+import type { GSuggestState } from '../types'
 import styles from './CodenamesduetAISuggestCompanion.module.css'
 
 /**
@@ -20,7 +20,7 @@ export function CodenamesduetAISuggestCompanion({
   state,
   onClose,
 }: {
-  state: SuggestState
+  state: GSuggestState
   onClose: () => void
 }) {
   console.log('[ClueHint] CodenamesduetAISuggestCompanion rendering — status:', state.status)

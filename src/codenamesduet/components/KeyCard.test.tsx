@@ -8,12 +8,12 @@
  */
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { KeyLabel } from '../lib/labels'
+import type { GKey } from '../types'
 import { KeyCard } from './KeyCard'
 
 describe('KeyCard', () => {
   it('draws one cell per label, in board order, and no words', () => {
-    const labels: KeyLabel[] = Array.from({ length: 25 }, (_, i) => (i === 0 ? 'A' : i < 10 ? 'G' : 'N'))
+    const labels: GKey[] = Array.from({ length: 25 }, (_, i) => (i === 0 ? 'A' : i < 10 ? 'G' : 'N'))
     const { container } = render(<KeyCard labels={labels} />)
     const cells = Array.from(container.querySelectorAll('[data-key-label]'))
     expect(cells).toHaveLength(25)

@@ -9,9 +9,9 @@ import type { Action } from '@/common/actions/useBindAction'
 import type { SetupRow } from '@/common/setup-form/types'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { InfoDisclosure } from '@/common/info-sheet/InfoDisclosure'
-import type { CodenamesduetSetup } from '../lib/setup'
+import type { GSetup } from '../types'
 import type { ClueEvent, WordedGuess } from '../lib/events'
-import type { KeyLabel } from '../lib/labels'
+import type { GKey } from '../types'
 import type { Player } from '../lib/seats'
 import { GameEventLog } from './GameEventLog'
 import { KeyCard } from './KeyCard'
@@ -100,9 +100,9 @@ export function InfoCol({
 
   // ── Key card + setup disclosures ──
   // My key card, in board order.
-  myKey: KeyLabel[]
+  myKey: GKey[]
   // Read for its turn budget.
-  setup: CodenamesduetSetup
+  setup: GSetup
   // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
   setupRows: SetupRow[]
 

@@ -26,7 +26,7 @@ export type PhaseInputs = {
 }
 
 /** What the play surface may do right now, as `derivePhase` answers it. */
-export type PhaseDerived = {
+type PhaseDerived = {
   // "A clue exists, we're waiting for guesses."
   isGuessPhase: boolean
   // Caller is the player giving clues this turn.

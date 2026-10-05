@@ -1,7 +1,7 @@
 // cs-blessed-codenamesduet
 
 import type { Database } from '@/types/db'
-import type { KeyLabel } from './labels'
+import type { GKey } from '../types'
 import type { Seat } from './phase'
 
 /** A `codenamesduet.events` row as the generated types describe it: every
@@ -36,7 +36,7 @@ export type DuetEvent =
   // `clue_from_ai`: the clue is exactly the AI's suggestion, word and count
   // unedited.
   | (EventBase & { kind: 'clue'; clue_word: string; clue_count: number; clue_from_ai: boolean })
-  | (EventBase & { kind: 'guess'; guess_position: number; guess_result: KeyLabel })
+  | (EventBase & { kind: 'guess'; guess_position: number; guess_result: GKey })
   | (EventBase & { kind: 'pass' })
   | (EventBase & { kind: 'hint' })
 
@@ -75,7 +75,7 @@ export function toDuetEvent(row: EventsRow): DuetEvent {
       if (row.guess_position === null || row.guess_result === null) break
       return {
         ...base, kind: 'guess',
-        guess_position: row.guess_position, guess_result: row.guess_result as KeyLabel,
+        guess_position: row.guess_position, guess_result: row.guess_result as GKey,
       }
     case 'pass':
       return { ...base, kind: 'pass' }

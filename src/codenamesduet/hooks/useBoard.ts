@@ -6,7 +6,7 @@ import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { db } from '../db'
 import type { Database } from '@/types/db'
-import type { KeyLabel } from '../lib/labels'
+import type { GKey } from '../types'
 import { agentsAllContacted } from '../lib/agents'
 import { toDuetEvent, type DuetEvent } from '../lib/events'
 
@@ -58,7 +58,7 @@ export type WordRow = Pick<
 export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const [words, setWords] = useState<WordRow[]>([])
   const [events, setEvents] = useState<DuetEvent[]>([])
-  const [myKey, setMyKey] = useState<KeyLabel[] | null>(null)
+  const [myKey, setMyKey] = useState<GKey[] | null>(null)
   // "Has this seat found all its agents?" for BOTH seats — drives the
   // finished-player banners. The main load already pulls both key
   // columns (to pick the caller's), so the partner's flag is free to
@@ -71,7 +71,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   // below) is null unless the caller currently wants the peer key AND the
   // cached value matches the active game/user — so the reveal is a pure
   // derivation, with no effect clearing `peerKey` when revealPeer flips off.
-  const [fetchedPeerKey, setFetchedPeerKey] = useState<KeyLabel[] | null>(null)
+  const [fetchedPeerKey, setFetchedPeerKey] = useState<GKey[] | null>(null)
   const [fetchedFor, setFetchedFor] = useState<string | null>(null)
   const peerKey =
     revealPeer && fetchedFor === `${gameId}:${userId}` ? fetchedPeerKey : null
@@ -168,25 +168,25 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
       const myKeyJson = iAmA ? g.key_card_a : iAmB ? g.key_card_b : null
       const peerKeyJson = iAmA ? g.key_card_b : iAmB ? g.key_card_a : null
       if (myKeyJson) {
-        setMyKey(myKeyJson as unknown as KeyLabel[])
+        setMyKey(myKeyJson as unknown as GKey[])
       }
       // The load already has the partner's key column in hand, so stash
       // it here rather than firing a second games fetch at game-over.
       // It's only exposed once `revealPeer` is true (the derived
       // `peerKey` above gates on it).
       if (peerKeyJson) {
-        setFetchedPeerKey(peerKeyJson as unknown as KeyLabel[])
+        setFetchedPeerKey(peerKeyJson as unknown as GKey[])
         setFetchedFor(`${gameId}:${userId}`)
       }
       // Recomputed on every refetch (the realtime word reveals flow
       // through here), so both flags stay live as agents are found.
       setMyAgentsDone(
         !!myKeyJson &&
-          agentsAllContacted(myKeyJson as unknown as KeyLabel[], wordRows),
+          agentsAllContacted(myKeyJson as unknown as GKey[], wordRows),
       )
       setPeerAgentsDone(
         !!peerKeyJson &&
-          agentsAllContacted(peerKeyJson as unknown as KeyLabel[], wordRows),
+          agentsAllContacted(peerKeyJson as unknown as GKey[], wordRows),
       )
       setLoading(false)
     },

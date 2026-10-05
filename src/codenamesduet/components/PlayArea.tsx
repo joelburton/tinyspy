@@ -32,15 +32,15 @@ import type { WordRow } from '../hooks/useBoard'
 import { useBoard } from '../hooks/useBoard'
 import { cluesOf, guessesOf, type DuetEvent } from '../lib/events'
 import { answerMessage, turnAnswer } from '../lib/answer'
-import type { KeyLabel } from '../lib/labels'
+import type { GKey } from '../types'
 import { derivePhase, type Seat } from '../lib/phase'
 import { TOTAL_AGENTS } from '../lib/agents'
 import { seatPlayers, type Player } from '../lib/seats'
 import { historySnapshot } from '../lib/history'
 import { buildTerminalMessage } from '../lib/terminal'
-import type { CodenamesduetSetup } from '../lib/setup'
+import type { GSetup } from '../types'
 import { CodenamesduetAISuggestCompanion } from './CodenamesduetAISuggestCompanion'
-import { type SuggestState } from './ClueStrip'
+import type { GSuggestState } from '../types'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
@@ -123,7 +123,7 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
       togglePeerKey={peerKeyReveal.toggle}
       // The one place the setup blob is narrowed. `PlayAreaLoaderProps` types it
       // `Record<string, unknown>` for every game; below, it is this game's.
-      setup={ctx.setup as unknown as CodenamesduetSetup}
+      setup={ctx.setup as unknown as GSetup}
     />
   )
 }
@@ -143,8 +143,8 @@ type PlayAreaProps = Omit<PlayAreaLoaderProps, 'setup'> & {
   // Everything that has happened, in order: clues, guesses, passes, hints.
   events: DuetEvent[]
   // My key card, and my partner's — null until I choose to see it.
-  myKey: KeyLabel[]
-  peerKey: KeyLabel[] | null
+  myKey: GKey[]
+  peerKey: GKey[] | null
   // Whether each seat has contacted all its agents; drives the banners.
   myAgentsDone: boolean
   peerAgentsDone: boolean
@@ -152,7 +152,7 @@ type PlayAreaProps = Omit<PlayAreaLoaderProps, 'setup'> & {
   peerKeyShown: boolean
   togglePeerKey: () => void
   // This game's setup, narrowed once by the loader.
-  setup: CodenamesduetSetup
+  setup: GSetup
 }
 
 function PlayArea({
@@ -210,7 +210,7 @@ function PlayArea({
   // The AI clue-suggestion dialog's state — held here, not in the clue form, so
   // its panel renders at the layout's level (see the render). The form drives
   // it through `onSuggestionChange`.
-  const [clueSuggestion, setClueSuggestion] = useState<SuggestState | null>(null)
+  const [clueSuggestion, setClueSuggestion] = useState<GSuggestState | null>(null)
   console.log('[ClueHint] PlayArea render — clueSuggestion:', clueSuggestion)
 
   // ─── Derived ────────────────────────────────────────

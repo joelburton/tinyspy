@@ -17,6 +17,7 @@ import { db } from '../db'
 import type { Seat } from '../lib/phase'
 import type { ClueEvent } from '../lib/events'
 import type { Player } from '../lib/seats'
+import type { GSuggestState } from '../types'
 import styles from './ClueStrip.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -62,7 +63,7 @@ type ClueStripProps = {
   // not-ok rather than inline, so the row's height never changes.
   localFeedbackSlot: FeedbackSlot
   // Open / update / close the AI clue-suggestion dialog; its state is PlayArea's.
-  onSuggestionChange: (state: SuggestState | null) => void
+  onSuggestionChange: (state: GSuggestState | null) => void
 }
 
 /** What `codenamesduet-suggest-clue` puts in `data`. Nullable because its
@@ -187,14 +188,6 @@ function PeerWaiting({
   )
 }
 
-/** The clue-suggestion dialog's contents. It opens on click in `loading` (the
- *  edge function calls an AI and takes a few seconds), then resolves to the
- *  picked clue + reasoning (`ready`) or the API error message (`error`). */
-export type SuggestState =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; word: string; count: number; reasoning: string }
-
 /**
  * The clue-giver's clue form — count, word, Submit and AI on ONE line. A
  * refused submit shows into the local feedback slot, so the row never grows a
@@ -215,7 +208,7 @@ function ClueForm({
   gameId: string
   // The slot a refused clue submit is shown into, as a not-ok.
   localFeedbackSlot: FeedbackSlot
-  onSuggestionChange: (state: SuggestState | null) => void
+  onSuggestionChange: (state: GSuggestState | null) => void
 }) {
   // A string, not a number, so the input can start empty; the submit guard
   // rejects empty.

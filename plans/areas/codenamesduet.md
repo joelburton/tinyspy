@@ -946,6 +946,15 @@ The rulings behind it (2026-10-04):
   the tile's reveal (Joel: "we'll keep result for events and "as" for the
   tile reveal").
 
+## Owed by the conversion
+
+- **codenamesduet joins `CONVERTED_GAMES` at the end of step 12**, not step 6
+  (2026-10-04). Ten old shapes are still exported outside `types.ts` —
+  `GameRow`, `WordRow`, `EventsRow`, `DuetEvent` (step 7), `ClueEvent`,
+  `GuessEvent`, `WordedGuess`, `Seat`, `PhaseInputs`, `Player` (the component
+  passes) — and each goes in the step that replaces it, rather than being
+  renamed under a `G` only to be deleted.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it

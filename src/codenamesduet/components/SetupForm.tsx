@@ -5,10 +5,8 @@ import { PlayersSection } from '@/common/setup-form/PlayersSection'
 import { RadioRow } from '@/common/fields/RadioRow'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import {
-  TURN_OPTIONS,
-  type CodenamesduetValues,
-} from '../lib/setup'
+import { TURN_OPTIONS } from '../lib/setup'
+import type { GSetupValues } from '../types'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 
 /**
@@ -33,8 +31,8 @@ import { SetupSection } from '@/common/setup-form/SetupSection'
 export function SetupForm({
   members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as CodenamesduetValues
-  const set = setValue as SetupSetter<CodenamesduetValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
 
   // The selected players, not the whole club: the first clue-giver must be one
   // of them, or `create_game` refuses the setup.
