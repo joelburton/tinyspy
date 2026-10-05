@@ -103,14 +103,19 @@ export function wordsContaining(pos: number): readonly (readonly number[])[] {
   return WORDS.filter((w) => w.includes(pos))
 }
 
-/** Pull the letters at `cells` out of a 25-char board string. */
-export function lettersAt(board: string, cells: readonly number[]): string {
-  return cells.map((c) => board[c]).join('')
+/** The letters of `cells`, read off a board's tiles — a tile's id is its
+ *  position. */
+export function lettersAt(
+  tiles: ReadonlyArray<Pick<GTile, 'id' | 'letter'>>,
+  cells: readonly number[],
+): string {
+  const letterById = new Map(tiles.map((t) => [t.id, t.letter]))
+  return cells.map((c) => letterById.get(String(c))!).join('')
 }
 
 /** The 6 words a board currently spells, in `WORDS` order. */
-export function boardWords(board: string): string[] {
-  return WORDS.map((w) => lettersAt(board, w))
+export function boardWords(tiles: ReadonlyArray<Pick<GTile, 'id' | 'letter'>>): string[] {
+  return WORDS.map((w) => lettersAt(tiles, w))
 }
 
 /**
@@ -118,33 +123,15 @@ export function boardWords(board: string): string[] {
  * (every cell correct) on their OWN board — otherwise `null` (an em dash in the
  * UI). A fully-green word is already sitting on the player's board, so surfacing
  * it leaks nothing that isn't already on their screen; the unsolved words stay
- * hidden. This is why the reveal reads off the caller's `board` + `colors`, NOT
- * the shielded solution — so it's identical (and leak-safe) in compete, where the
- * solution isn't sent during play. Order matches `WORDS` (3 across, then 3 down).
- * `colors` is the 25-char g/y/x string; `null` (e.g. a non-player watcher) hides
- * every word.
+ * hidden. This is why the reveal reads off the player's tiles, NOT the solution —
+ * which the page doesn't hold until the game ends. Order matches `WORDS` (3
+ * across, then 3 down).
  */
-export function solvedWords(board: string, colors: string | null): (string | null)[] {
+export function solvedWords(tiles: readonly GTile[]): (string | null)[] {
+  const colorById = new Map(tiles.map((t) => [t.id, t.color]))
   return WORDS.map((cells) =>
-    colors !== null && cells.every((c) => colors[c] === 'g') ? lettersAt(board, cells) : null,
+    cells.every((c) => colorById.get(String(c)) === 'g') ? lettersAt(tiles, cells) : null,
   )
-}
-
-/**
- * A board's tiles as a 25-char board string, `.` at each hole — the shape
- * `Board`, `solvedWords` and the printer read.
- */
-export function makeBoardString(tiles: ReadonlyArray<{ id: string; letter: string }>): string {
-  const cells: string[] = Array.from({ length: CELLS }, () => HOLE)
-  for (const t of tiles) cells[Number(t.id)] = t.letter
-  return cells.join('')
-}
-
-/** A board's tile colors as a 25-char g/y/x string, `.` at each hole. */
-export function makeColorString(tiles: ReadonlyArray<{ id: string; color: string }>): string {
-  const cells: string[] = Array.from({ length: CELLS }, () => HOLE)
-  for (const t of tiles) cells[Number(t.id)] = t.color
-  return cells.join('')
 }
 
 /**

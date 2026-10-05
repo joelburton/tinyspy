@@ -10,8 +10,22 @@ import { describe, it, expect } from 'vitest'
 import { makeGameData } from '../hooks/useGame'
 import { ZTest_SOLUTION, ZTest_makeGameDataRaw, ZTest_swap } from './gameData.fixture'
 import { replaySwap } from './history'
-import { makeBoardString, makeColorString } from './waffle'
-import type { GEventRaw, GLetterTile } from '../types'
+import { CELLS, HOLE } from './waffle'
+import type { GEventRaw, GLetterTile, GTile } from '../types'
+
+/** A replayed board as 25 letters, `.` at each hole, to compare whole. */
+function makeBoardString(tiles: readonly GTile[]): string {
+  const cells = Array.from({ length: CELLS }, () => HOLE)
+  for (const t of tiles) cells[Number(t.id)] = t.letter
+  return cells.join('')
+}
+
+/** …and its 25 colors. */
+function makeColorString(tiles: readonly GTile[]): string {
+  const cells = Array.from({ length: CELLS }, () => HOLE)
+  for (const t of tiles) cells[Number(t.id)] = t.color
+  return cells.join('')
+}
 
 // The solution with cells 0↔1 and 2↔3 swapped → two swaps from solved.
 const DEALT = 'badcef.g.hijklmn.o.pqrstu'

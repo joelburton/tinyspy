@@ -164,6 +164,10 @@ The rulings behind it (2026-10-05):
   the 25-letter strings remain only where words are read off a board
   (`InfoCol`'s answer words, the printer), through `makeBoardString` /
   `makeColorString`.
+- **Step 12 (2026-10-05):** the answer words and the printer read tiles, so
+  the frontend's 25-letter strings and `lib/colors.ts` are gone. The action
+  row is one list. `docs/games/waffle.md` still names `lib/colors` and the old
+  shapes; step 14 rewrites it.
 
 ## Closing
 

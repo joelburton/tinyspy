@@ -72,8 +72,13 @@ export function useActionsAndMenu({
   // Reveal the answer — nothing is written and no peer is affected. Both faces
   // come from `describeReveal`, where the rule for every game's reveal lives.
   const actReveal = useBindAction('act-reveal', {
-    describe: () =>
-      describeReveal({ noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal: gd.ended }),
+    describe: (asker) => {
+      // No BUTTON while you can still play. The menu row keeps it all game,
+      // grayed, because it NAMES the glyph (docs/ui.md → the menu is the
+      // legend); a racer who is out sees the button inert until the race ends.
+      if (gd.me.stillPlaying && asker === 'button') return 'hidden'
+      return describeReveal({ noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal: gd.ended })
+    },
     run: toggleAnswer,
   })
 
@@ -112,7 +117,8 @@ export function useActionsAndMenu({
   // building a second board.
   const actNewGame = useBindAction('act-new-game', {
     terminal: gd.ended,
-    describe: () => 'active',
+    // Reachable all game from the menu and `+`, but a BUTTON only at the end.
+    describe: (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
@@ -155,7 +161,9 @@ export function useActionsAndMenu({
         // isn't its own, so this list is the same in coop and compete.
         exits: [actConcede, actStopGame],
         extra: [
-          { items: [actRestart, actNewGame, actReveal] },
+          // The same three the action row offers, in its order, reachable
+          // mid-game too — Reveal grayed until the game is over.
+          { items: [actReveal, actRestart, actNewGame] },
           { items: [actPrintBoard] },
         ],
       }),

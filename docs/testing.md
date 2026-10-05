@@ -585,8 +585,8 @@ Two ways a hole can lie:
 
 ## Repo-wide invariant guards
 
-Most tests here sit beside their subject — `waffle/lib/colors.test.ts` next to
-`colors.ts`. A guard has no such subject: it sweeps the whole repository, so
+Most tests here sit beside their subject — `waffle/lib/history.test.ts` next to
+`history.ts`. A guard has no such subject: it sweeps the whole repository, so
 there is nothing to co-locate with. **Those live in `src/guards/`**, and
 [its README](../src/guards/README.md) is how to write a new one.
 

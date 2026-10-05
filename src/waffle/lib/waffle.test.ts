@@ -14,6 +14,14 @@ import {
   WORDS,
   wordsContaining,
 } from './waffle'
+import type { GTile } from '../types'
+
+/** A board's tiles from its 25 letters, holes `.`, every tile `color`'s, or
+ *  each cell's own from a 25-char `colors`. */
+function makeTiles(board: string, colors: string = 'x'.repeat(CELLS)): GTile[] {
+  return [...board].flatMap((letter, i) =>
+    letter === '.' ? [] : [{ id: String(i), letter, color: colors[i] as GTile['color'] }])
+}
 
 describe('waffle geometry', () => {
   it('is a 25-cell grid with 4 holes and 21 filled cells', () => {
@@ -48,12 +56,12 @@ describe('waffle geometry', () => {
     expect(single).toEqual([1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23])
   })
 
-  it('reads words out of a board string in WORDS order', () => {
+  it('reads words out of a board\u2019s tiles in WORDS order', () => {
     // a0=abcde a2=fghij a4=klmno, downs read from the shared cells.
-    const board = 'abcde' + 'p.q.r' + 'fghij' + 's.t.u' + 'klmno'
-    expect(lettersAt(board, WORDS[0])).toBe('abcde') // a0
-    expect(lettersAt(board, WORDS[1])).toBe('fghij') // a2
-    expect(boardWords(board)).toEqual([
+    const tiles = makeTiles('abcde' + 'p.q.r' + 'fghij' + 's.t.u' + 'klmno')
+    expect(lettersAt(tiles, WORDS[0])).toBe('abcde') // a0
+    expect(lettersAt(tiles, WORDS[1])).toBe('fghij') // a2
+    expect(boardWords(tiles)).toEqual([
       'abcde', // a0
       'fghij', // a2
       'klmno', // a4
@@ -84,15 +92,11 @@ describe('solvedWords — the progressive answer reveal', () => {
     Array.from({ length: CELLS }, (_, i) => (isHole(i) ? '.' : fill)).join('')
 
   it('reveals every word when the whole board is green', () => {
-    expect(solvedWords(board, colorsOf('g'))).toEqual(boardWords(board))
+    expect(solvedWords(makeTiles(board, colorsOf('g')))).toEqual(boardWords(makeTiles(board)))
   })
 
   it('hides every word (all null) when nothing is green', () => {
-    expect(solvedWords(board, colorsOf('y'))).toEqual([null, null, null, null, null, null])
-  })
-
-  it('hides every word when colors is null (a non-player watcher)', () => {
-    expect(solvedWords(board, null)).toEqual([null, null, null, null, null, null])
+    expect(solvedWords(makeTiles(board, colorsOf('y')))).toEqual([null, null, null, null, null, null])
   })
 
   it('reveals only the fully-green word; a partly-green word stays hidden', () => {
@@ -101,6 +105,6 @@ describe('solvedWords — the progressive answer reveal', () => {
     const colors = Array.from({ length: CELLS }, (_, i) =>
       isHole(i) ? '.' : WORDS[0].includes(i) ? 'g' : 'y',
     ).join('')
-    expect(solvedWords(board, colors)).toEqual(['abcde', null, null, null, null, null])
+    expect(solvedWords(makeTiles(board, colors))).toEqual(['abcde', null, null, null, null, null])
   })
 })

@@ -1,7 +1,7 @@
 # `src/guards/` — the repo-wide invariant guards
 
-Every other test in this repo sits beside its subject: `waffle/lib/colors.test.ts`
-next to `colors.ts`, `common/pdf/frame.test.ts` next to `frame.ts`. Co-location is
+Every other test in this repo sits beside its subject: `waffle/lib/history.test.ts`
+next to `history.ts`, `common/pdf/frame.test.ts` next to `frame.ts`. Co-location is
 the convention, and it decides placement for you.
 
 These have no subject to sit beside. Each one sweeps the **whole repository** —

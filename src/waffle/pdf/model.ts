@@ -3,8 +3,8 @@
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import { getTileColor, type TileColor } from '@/shared/wordle-style/tileColor'
-import { boardWords, coord, isHole, makeBoardString, makeColorString } from '../lib/waffle'
-import type { GEvent, GLetterTile, GPlayer, GTeam } from '../types'
+import { boardWords, CELLS, coord } from '../lib/waffle'
+import type { GEvent, GLetterTile, GPlayer, GTeam, GTile } from '../types'
 
 /**
  * Build the waffle print model — the pure half, away from jsPDF.
@@ -35,15 +35,17 @@ export type WafflePrintModel = PrintHeader & {
   solutionWords: string[] | null
 }
 
-/** A board + colors string pair → printable cells. */
-function cellsOf(board: string, colors: string | null): PrintCell[] {
-  return [...board].map((ch, i) => ({
-    letter: isHole(i) ? '' : ch.toUpperCase(),
+/** A board's tiles → its 25 printable cells, row-major, holes included. */
+function cellsOf(tiles: readonly GTile[]): PrintCell[] {
+  const tileById = new Map(tiles.map((t) => [t.id, t]))
+  return Array.from({ length: CELLS }, (_, pos) => {
+    const tile = tileById.get(String(pos))
     // A hole isn't an un-guessed tile, it's not part of the puzzle — so it gets
     // the blank (borderless) state and prints as empty space.
-    state: isHole(i) || colors === null ? ('blank' as TileColor) : getTileColor(colors[i]),
-    hole: isHole(i),
-  }))
+    if (tile === undefined) return { letter: '', state: 'blank' as TileColor, hole: true }
+    // Paper takes its capitals by hand: there is no CSS to draw them.
+    return { letter: tile.letter.toUpperCase(), state: getTileColor(tile.color), hole: false }
+  })
 }
 
 /**
@@ -86,7 +88,7 @@ export function buildWafflePrintModel(o: {
     logNames: boolean,
   ): PrintTrack => ({
     who,
-    cells: p.board ? cellsOf(makeBoardString(p.board.tiles), makeColorString(p.board.tiles)) : [],
+    cells: p.board ? cellsOf(p.board.tiles) : [],
     turns: events.map((e, i) => ({
       seq: i + 1,
       // Coop's one board is worked by everyone, so its log names who moved.
@@ -131,6 +133,6 @@ export function buildWafflePrintModel(o: {
     tracks,
     // The solution is the answer, printed under the same rule the screen uses:
     // solved or revealed. Terminal alone is NOT enough.
-    solutionWords: o.answerShown && o.solution ? boardWords(makeBoardString(o.solution)) : null,
+    solutionWords: o.answerShown && o.solution ? boardWords(o.solution) : null,
   }
 }

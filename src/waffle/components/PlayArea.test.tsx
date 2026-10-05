@@ -27,6 +27,7 @@ import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '@/common/faults/faultStore'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
 import { edgeFnTransport } from '@/common/supabase/edgeFnTransport'
@@ -35,6 +36,7 @@ import {
   ZTest_DEALT,
   ZTest_DEALT_COLORS,
   ZTest_SOLVED,
+  ZTest_SOLVED_WAITING,
   ZTest_makeWaffleCtx,
   ZTest_swap,
   type ZTest_GameDataFacts,
@@ -95,6 +97,13 @@ const raceWonBy = (winner: string): Ending => ({
 /** A player who solved and was ranked first — `won`, as `_end_game` writes it. */
 const won = (p: ZTest_PlayerFacts, nSwapsUsed?: number): ZTest_PlayerFacts =>
   ({ ...p, outcome: 'won', finalRanking: 1, solvedAt: T, nSwapsUsed })
+/** A racer whose budget is spent: out of the race, `lost`, as `submit_swap`
+ *  writes it. */
+const SPENT: Pick<ZTest_PlayerFacts, 'ending' | 'outcome'> = {
+  ending: { at: T, reason: 'resource_exhausted', detail: 'exhausted' },
+  outcome: 'lost',
+}
+
 /** A player beaten or out — `lost`. */
 const lost = (p: ZTest_PlayerFacts): ZTest_PlayerFacts => ({ ...p, outcome: 'lost' })
 
@@ -381,6 +390,106 @@ describe('waffle PlayArea — icon-only action rows', () => {
     render(<PlayAreaLoader {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'New game' }))
     await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
+  })
+})
+
+/**
+ * The info column's action row: ONE row, every action listed once in one
+ * order, each answering for itself whether it shows — so no state can quietly
+ * lose a button.
+ */
+describe('waffle PlayArea — the action row', () => {
+  /** The actions the row draws, in its order. */
+  const rowActions = () =>
+    [...document.querySelectorAll<HTMLButtonElement>('[data-action]')]
+      .map((b) => b.getAttribute('data-action'))
+      .filter((id) => id !== 'act-submit' && id !== 'act-clear-picks')
+
+  it('while I play: the exit and the club, and no end-of-game buttons', () => {
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(rowActions()).toEqual(['act-stop-game', 'act-back-to-club'])
+  })
+
+  it('once the game has ended: Reveal, Restart, New game, then the club, filled', () => {
+    render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
+    expect(rowActions()).toEqual(['act-reveal', 'act-restart', 'act-new-game', 'act-back-to-club'])
+  })
+
+  it('out of a race the others still run: Reveal inert, Stop, and the club', () => {
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_SOLVED_WAITING }, MOTH] })} />)
+    expect(rowActions()).toEqual(['act-reveal', 'act-stop-game', 'act-back-to-club'])
+    expect(document.querySelector('[data-action="act-reveal"]')).toBeDisabled()
+  })
+
+  it('the menu lists Reveal, Restart and New game in the row\u2019s order', () => {
+    const ctx = makeCtx()
+    render(<PlayAreaLoader {...ctx} />)
+    const ids = menuItems(ctx).map((r) => r.id)
+    expect(ids.filter((id) => ['act-reveal', 'act-restart', 'act-new-game'].includes(id)))
+      .toEqual(['act-reveal', 'act-restart', 'act-new-game'])
+  })
+
+  it('help shows on my move alone', () => {
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: twoMembers, turnHolderId: 'u1' })} />)
+    expect(screen.getByText('Tap two tiles to swap them.')).toBeInTheDocument()
+    rerender(<PlayAreaLoader {...makeCtx({ players: twoMembers, turnHolderId: 'u2' })} />)
+    expect(screen.queryByText('Tap two tiles to swap them.')).not.toBeInTheDocument()
+  })
+})
+
+describe('waffle PlayArea — the opponent strip', () => {
+  it('a racer out of swaps reads "out"; a solver waiting shows their count with a ✓', () => {
+    render(<PlayAreaLoader {...makeCtx({
+      mode: 'compete',
+      players: [
+        { ...ME, ...ZTest_SOLVED_WAITING, nSwapsUsed: 3 },
+        { ...MOTH, ...SPENT, nSwapsUsed: 6 },
+      ],
+    })} />)
+    expect(screen.getByText('out')).toBeInTheDocument()
+    expect(screen.getByText(/^3 ✓$/)).toBeInTheDocument()
+  })
+})
+
+describe('waffle PlayArea — rivals\u2019 news (global header)', () => {
+  /** A real global slot with a spy on its one door, handed to the ctx. */
+  function narrationCtx() {
+    const globalFeedbackSlot = createFeedbackSlot('global')
+    const shown = vi.spyOn(globalFeedbackSlot, 'show')
+    const ctx = (players: ZTest_PlayerFacts[] = twoMembers) =>
+      ZTest_makeWaffleCtx({ setup: SETUP, mode: 'compete', players }, { globalFeedbackSlot })
+    return { ctx, shown }
+  }
+
+  it('announces a rival solving, once', () => {
+    const { ctx, shown } = narrationCtx()
+    const { rerender } = render(<PlayAreaLoader {...ctx()} />)
+    shown.mockClear()
+    rerender(<PlayAreaLoader {...ctx([ME, { ...MOTH, ...ZTest_SOLVED_WAITING }])} />)
+    rerender(<PlayAreaLoader {...ctx([ME, { ...MOTH, ...ZTest_SOLVED_WAITING }])} />)
+    expect(shown).toHaveBeenCalledTimes(1)
+    const msg = shown.mock.calls[0]![0]
+    expect(msg.actor?.username).toBe('moth')
+    expect(msg.text).toBe('solved it')
+    expect(msg.outcome).toBe('won')
+  })
+
+  it('announces a rival running out of swaps', () => {
+    const { ctx, shown } = narrationCtx()
+    const { rerender } = render(<PlayAreaLoader {...ctx()} />)
+    shown.mockClear()
+    rerender(<PlayAreaLoader {...ctx([ME, { ...MOTH, ...SPENT }])} />)
+    expect(shown).toHaveBeenCalledTimes(1)
+    expect(shown.mock.calls[0]![0].text).toBe('out of swaps')
+    expect(shown.mock.calls[0]![0].outcome).toBe('warning')
+  })
+
+  it('never announces my own ending, nor a rival\u2019s already there on load', () => {
+    const { ctx, shown } = narrationCtx()
+    const { rerender } = render(<PlayAreaLoader {...ctx([ME, { ...MOTH, ...SPENT }])} />)
+    shown.mockClear()
+    rerender(<PlayAreaLoader {...ctx([{ ...ME, ...ZTest_SOLVED_WAITING }, { ...MOTH, ...SPENT }])} />)
+    expect(shown).not.toHaveBeenCalled()
   })
 })
 
