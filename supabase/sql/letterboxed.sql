@@ -22,6 +22,11 @@
 --   pick_seed            a random seed pair for a board
 --   seed_for             the seed pair for a typed board's twelve letters
 --
+-- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
+-- writes the page blobs onto `common.games` after every move (plans/seat-view.md
+-- → The page is written, not assembled) — `game_data`, `summary_data`, and
+-- `shell_data` through common — and the page reads those.
+--
 -- What is particular to letterboxed (docs/games/letterboxed.md has the rest):
 --   - A player's state is a single CHAIN of words (in coop every player's row
 --     holds the same chain, kept in lock-step). Every rule below is a
@@ -32,8 +37,9 @@
 --     in coop, the first racer in compete. Undo refunds, so a player can't
 --     run out; the clock is the only other ending.
 --   - In compete a rival may see how many words you have played and how much
---     of the board you have covered, never which words — `chain` is
---     column-hidden and reaches the page through `players_state`.
+--     of the board you have covered, never which words until the game ends.
+--     That is the hook's rule (src/letterboxed/hooks/useGame.ts), not a
+--     policy's: the blob carries every chain, the hook withholds.
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -50,17 +56,17 @@ grant usage on schema letterboxed to service_role;
 -- grant. The board builder samples seeds as the caller.
 grant select on letterboxed.seeds to authenticated;
 
--- Everything on the game row is readable, including legal_words (the FE
--- needs it to run the hint search locally) and solution. Explicit column
--- list per docs/code-conventions.md → "Avoid SELECT *".
+-- Everything on the game row is readable. Nothing reads this table from the
+-- client: the page reads the board from `game_data`. Explicit column list per
+-- docs/code-conventions.md → "Avoid SELECT *".
 grant select
   (game_id, sides, legal_words, solution, max_words, legal_band)
   on letterboxed.games to authenticated;
 
 -- COLUMN-LEVEL GRANT, and `chain` is deliberately absent. In compete a
 -- rival may see how MANY words you have played, never which — so the
--- array is unreadable on the base table and reaches the FE only through
--- players_state, which masks it per mode (see _chain_for below).
+-- array stays off any client read. The page reads every chain from
+-- `game_data`, where the hook withholds a rival's mid-race.
 grant select
   (game_id, user_id, hints_used)
   on letterboxed.players to authenticated;
@@ -69,7 +75,7 @@ grant select on letterboxed.events to authenticated;
 
 -- Membership-gated read on games. Coop + compete behave identically:
 -- anyone in the club sees the board. There is nothing to hide — the
--- board's whole legal word list ships to the FE by design.
+-- board's whole legal word list ships to the page by design.
 drop policy if exists games_select on letterboxed.games;
 create policy games_select on letterboxed.games
   for select to authenticated
@@ -81,11 +87,8 @@ create policy games_select on letterboxed.games
     )
   );
 
--- players rows are visible to the whole club in both modes; it is the
--- CHAIN COLUMN that compete hides, and the column grant above does
--- that. Keeping the rows visible is what lets a compete player see a
--- rival's word count and hint count — the two numbers the race is
--- allowed to publish.
+-- Row visibility is club-member-wide; nothing reads this table from the
+-- client.
 drop policy if exists players_select on letterboxed.players;
 create policy players_select on letterboxed.players
   for select to authenticated
@@ -97,14 +100,10 @@ create policy players_select on letterboxed.players
     )
   );
 
--- events is the event log, and in compete it IS the private data (every
--- row names a word). Three OR branches inside the EXISTS, in evaluation
--- order — the same shape wordwheel.found_words_select uses:
---
---   (1) coop                 — one shared chain; everyone sees the log.
---   (2) user_id = auth.uid() — you always see your own moves.
---   (3) the game has ended   — the race is over; open it to everyone so
---                              the terminal can show how it was solved.
+-- The event log: any club member sees every row. In compete the log IS the
+-- private data (every row names a word), so who may see a rival's rows
+-- mid-race is the hook's rule (src/letterboxed/hooks/useGame.ts), applied to
+-- `game_data`; nothing reads this table from the client.
 drop policy if exists events_select on letterboxed.events;
 create policy events_select on letterboxed.events
   for select to authenticated
@@ -113,11 +112,6 @@ create policy events_select on letterboxed.events
       select 1 from common.games cg
        where cg.id = events.game_id
          and common._is_club_member(cg.club_handle)
-         and (
-               cg.mode = 'coop'
-            or events.user_id = (select auth.uid())
-            or cg.ended_at is not null
-             )
     )
   );
 
@@ -151,153 +145,14 @@ $$;
 revoke execute on function letterboxed._covered(text[]) from public;
 grant execute on function letterboxed._covered(text[]) to authenticated;
 
+-- The two views the frontend read before the page blobs, and the definers they
+-- read the hidden chain through. supabase/sql is re-applied, not diffed, so
+-- the drops stay.
 drop view if exists letterboxed.players_state;
 drop view if exists letterboxed.games_state;
 drop function if exists letterboxed._chain_for(uuid, uuid);
-
--- ============================================================
--- letterboxed._chain_for — the per-mode chain reveal
--- ============================================================
--- Runs as definer so it can read the grant-hidden `chain` column; the
--- security_invoker view calls it as the caller (so auth.uid() is real)
--- and base-table RLS gates which rows are reachable at all.
---
--- Visible when: the game is coop (one shared chain, no secret), or the
--- row is yours, or the game has ended (the reveal). Otherwise NULL —
--- which is precisely a compete rival's mid-race view.
-create or replace function letterboxed._chain_for(p_game_id uuid, p_user_id uuid)
-returns text[]
-language sql
-stable
-security definer
-set search_path = letterboxed, common, public, extensions
-as $$
-  select case
-           when cg.mode = 'coop' or lp.user_id = auth.uid() or cg.ended_at is not null
-           then lp.chain
-         end
-    from letterboxed.players lp
-    join common.games cg on cg.id = lp.game_id
-   where lp.game_id = p_game_id and lp.user_id = p_user_id
-     and common._is_club_member(cg.club_handle);
-$$;
-
-revoke execute on function letterboxed._chain_for(uuid, uuid) from public;
-grant execute on function letterboxed._chain_for(uuid, uuid) to authenticated;
-
 drop function if exists letterboxed._word_count_for(uuid, uuid);
 drop function if exists letterboxed._covered_for(uuid, uuid);
-
--- ============================================================
--- letterboxed._word_count_for / _covered_for — the public numbers
--- ============================================================
--- These exist because of how security_invoker views work: such a view
--- can only read columns the CALLER may read, and `chain` is blocked by
--- the column grant. So players_state cannot compute cardinality(chain)
--- itself — the arithmetic has to happen inside a definer function.
---
--- They return SCALARS, never the array, and that distinction is the
--- whole design: a rival is entitled to know how many words you have
--- played and how much of the board you have covered but not which words
--- got you there. A definer helper that returned the chain itself would be
--- a hole straight through _chain_for's mask, since anyone could call it
--- directly rather than through the view.
---
--- Both re-check club membership rather than leaning on the view's RLS:
--- a definer function bypasses RLS on its own tables, so a direct call
--- would otherwise answer for any game in any club.
-create or replace function letterboxed._word_count_for(p_game_id uuid, p_user_id uuid)
-returns int
-language sql
-stable
-security definer
-set search_path = letterboxed, common, public, extensions
-as $$
-  select coalesce(cardinality(lp.chain), 0)
-    from letterboxed.players lp
-    join common.games cg on cg.id = lp.game_id
-   where lp.game_id = p_game_id and lp.user_id = p_user_id
-     and common._is_club_member(cg.club_handle);
-$$;
-
-revoke execute on function letterboxed._word_count_for(uuid, uuid) from public;
-grant execute on function letterboxed._word_count_for(uuid, uuid) to authenticated;
-
-create or replace function letterboxed._covered_for(p_game_id uuid, p_user_id uuid)
-returns int
-language sql
-stable
-security definer
-set search_path = letterboxed, common, public, extensions
-as $$
-  select letterboxed._covered(lp.chain)
-    from letterboxed.players lp
-    join common.games cg on cg.id = lp.game_id
-   where lp.game_id = p_game_id and lp.user_id = p_user_id
-     and common._is_club_member(cg.club_handle);
-$$;
-
-revoke execute on function letterboxed._covered_for(uuid, uuid) from public;
-grant execute on function letterboxed._covered_for(uuid, uuid) to authenticated;
-
--- ============================================================
--- games_state view
--- ============================================================
--- The FE's read path for a letterboxed game header. `security_invoker =
--- true` so RLS on the base table evaluates as the caller.
---
--- NOTHING IS GATED, deliberately: `solution` is not held back to the end
--- even though the FE only renders it there. Gating would guard nothing —
--- legal_words ships from game start (the hint search needs it locally),
--- and any two-word solution is a breadth-first search away from that list.
--- The seeded pair is stored because it is the GETTABLE one, not because it
--- is secret.
---
--- The one COMPUTED column: `clean_words` is the must-reach SUBSET of
--- legal_words, computed on read rather than stored. legal_words is the
--- ACCEPT list (band only — see candidate_words), and the hint search must
--- not suggest out of it: a hint puts a word on screen, which is the
--- must-reach tier. Computing it here tracks the DICTIONARY: re-flag a word
--- as a slur in the editor and hints stop offering it immediately, on boards
--- built months ago, with nothing to regenerate. The cost is one indexed join
--- per game load, over the 580-6,600 words a board carries — once per game,
--- since the board header is immutable and useGame fetches it a single time.
-create view letterboxed.games_state with (security_invoker = true) as
-select
-  g.game_id,
-  g.sides,
-  g.legal_words,
-  (select coalesce(jsonb_agg(w.word), '[]'::jsonb)
-     from jsonb_array_elements_text(g.legal_words) as pw(word)
-     join common.words w on w.word = pw.word
-    where w.american and w.british
-      and w.crude = 0 and w.slur = 0 and not w.slang) as clean_words,
-  g.solution,
-  g.max_words,
-  g.legal_band
-  from letterboxed.games g;
-
-grant select on letterboxed.games_state to authenticated;
-
--- ============================================================
--- players_state view
--- ============================================================
--- Per-player readouts. `word_count` and `letters_covered` are computed
--- from the chain rather than exposing it, so they are safe to publish
--- in compete: they say how you are DOING without saying anything about
--- which words you found. `chain` itself comes through _chain_for and is
--- NULL for a rival mid-race.
-create view letterboxed.players_state with (security_invoker = true) as
-select
-  p.game_id,
-  p.user_id,
-  p.hints_used,
-  letterboxed._chain_for(p.game_id, p.user_id)      as chain,
-  letterboxed._word_count_for(p.game_id, p.user_id) as word_count,
-  letterboxed._covered_for(p.game_id, p.user_id)    as letters_covered
-  from letterboxed.players p;
-
-grant select on letterboxed.players_state to authenticated;
 
 drop function if exists letterboxed.candidate_words(bigint, int);
 
@@ -475,90 +330,9 @@ drop function if exists letterboxed._leaderboard(uuid);
 drop function if exists letterboxed._sync_status(uuid);
 drop function if exists letterboxed._end_game(uuid, text, jsonb, jsonb);
 
--- ============================================================
--- letterboxed._write_statuses — the page's copies of the game
--- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from letterboxed's own tables, assigning
--- each whole (plans/common-tables.md → The statuses). Every key is always
--- present, null when it has no value:
---
---   game_status    { max_words } — the chain's cap
---   player_status  { words_used, letters_covered_count, player_ended_reason }
---                  — that player's chain as the strip shows it: how many
---                  words, how many of the twelve (in coop every row holds
---                  the shared chain)
---   clubpage_info  { words_used, letters_covered_count, max_words,
---                    best_letters_covered_count, winner_user_id,
---                    winner_words_count }
---                  — coop's shared chain (null in compete); compete's best
---                  coverage so far (null in coop); a sole winner and the
---                  length of their chain, once there is one
---
--- `p_update_status_changed_at` is true from create, Restart and every move,
--- false from a rebuild (the pass over every game, a repair by hand), so a
--- rebuild never re-dates a game.
-create or replace function letterboxed._write_statuses(
-  p_game_id uuid,
-  p_update_status_changed_at boolean
-)
-returns void
-language plpgsql
-security definer
-set search_path = letterboxed, common, public, extensions
-as $$
-declare
-  g letterboxed.games%rowtype;
-  v_mode text;
-  v_any_chain text[];
-  v_winner uuid;
-begin
-  select * into g from letterboxed.games where game_id = p_game_id;
-  select mode into v_mode from common.games where id = p_game_id;
-
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'words_used', coalesce(cardinality(p.chain), 0),
-           'letters_covered_count', letterboxed._covered(p.chain),
-           'player_ended_reason', gp.player_ended_reason)
-    from letterboxed.players p
-   where gp.game_id = p_game_id
-     and p.game_id = gp.game_id
-     and p.user_id = gp.user_id;
-
-  -- Every coop row carries the same chain, so any one of them answers.
-  if v_mode = 'coop' then
-    select p.chain into v_any_chain
-      from letterboxed.players p where p.game_id = p_game_id limit 1;
-  end if;
-
-  select min(user_id::text)::uuid into v_winner
-    from common.game_players
-   where game_id = p_game_id and final_ranking = 1
-  having count(*) = 1;
-
-  update common.games
-     set game_status = jsonb_build_object('max_words', g.max_words),
-         clubpage_info = jsonb_build_object(
-           'words_used', case when v_mode = 'coop'
-                              then coalesce(cardinality(v_any_chain), 0) end,
-           'letters_covered_count', case when v_mode = 'coop'
-                                         then letterboxed._covered(v_any_chain) end,
-           'max_words', g.max_words,
-           'best_letters_covered_count', case when v_mode = 'compete' then (
-             select max(letterboxed._covered(p.chain)) from letterboxed.players p
-              where p.game_id = p_game_id) end,
-           'winner_user_id', case when v_mode = 'compete' then v_winner end,
-           'winner_words_count', case when v_mode = 'compete' and v_winner is not null then (
-             select coalesce(cardinality(p.chain), 0) from letterboxed.players p
-              where p.game_id = p_game_id and p.user_id = v_winner) end),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
-   where id = p_game_id;
-end;
-$$;
-
-revoke execute on function letterboxed._write_statuses(uuid, boolean) from public;
+-- The statuses' writer, from before the page blobs; supabase/sql is
+-- re-applied, not diffed, so the drop stays.
+drop function if exists letterboxed._write_statuses(uuid, boolean);
 
 -- ============================================================
 -- The page blobs — what the page shows, written by this game's builder
@@ -683,7 +457,7 @@ as $$
            'userId',          e.user_id,
            'kind',            e.kind,
            'word',            e.word,
-           'nCoveredLetters', e.letters_covered,
+           'nCoveredLetters', e.n_covered_letters,
            'tookTurn',        e.took_turn,
            'at',              e.created_at) order by e.id), '[]'::jsonb)
     from letterboxed.events e
@@ -1126,7 +900,6 @@ begin
   insert into letterboxed.players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) uid;
 
-  perform letterboxed._write_statuses(new_id, p_update_status_changed_at => true);
   perform letterboxed._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
@@ -1302,7 +1075,7 @@ begin
   v_chain := v_chain || v_word;
   v_covered := letterboxed._covered(v_chain);
 
-  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered, took_turn)
+  insert into letterboxed.events (game_id, user_id, kind, word, n_covered_letters, took_turn)
   values (p_game_id, caller_id, 'word', v_word, v_covered, true);
 
   -- ─── Did that finish it? ─────────────────────────────────
@@ -1324,8 +1097,7 @@ begin
       p_is_no_result => false,
       p_final_rankings => v_rankings
     );
-    perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
-  perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
+    perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
     -- `result` NAMES the ending; `accepted`, `letters_covered` and `solved`
     -- are the fields the frontend reads.
@@ -1337,7 +1109,6 @@ begin
 
   -- Still going: hand the turn on (no-op in a free-for-all game).
   perform common._advance_turn(p_game_id);
-  perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
@@ -1425,11 +1196,10 @@ begin
   v_covered := letterboxed._covered(v_chain);
   -- An undo spends a go, which is exactly what stops it being a free reroll —
   -- and why turn-by-turn coop can offer it at all.
-  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered, took_turn)
+  insert into letterboxed.events (game_id, user_id, kind, word, n_covered_letters, took_turn)
   values (p_game_id, caller_id, 'undo', v_popped, v_covered, true);
 
   perform common._advance_turn(p_game_id);
-  perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
@@ -1491,10 +1261,9 @@ begin
      and ((select mode from common.games where id = p_game_id) = 'coop'
           or user_id = caller_id);
 
-  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered, took_turn)
+  insert into letterboxed.events (game_id, user_id, kind, word, n_covered_letters, took_turn)
   values (p_game_id, caller_id, 'clear', null, 0, true);
 
-  perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
@@ -1568,9 +1337,9 @@ begin
   end if;
 
   -- Per-PLAYER, even in coop where the chain is shared: this counts who
-  -- took a rung, not what the team's position is. Nothing RENDERS it —
-  -- the event log is what players read — but it stays as the cheap
-  -- per-player tally the log would otherwise have to be folded to get.
+  -- took a rung, not what the team's position is. It counts hints and
+  -- spoilers together, and nothing reads it: the page blobs count the two
+  -- apart, off the log (`_make_json_players`).
   update letterboxed.players
      set hints_used = hints_used + 1
    where game_id = p_game_id and user_id = caller_id;
@@ -1580,11 +1349,10 @@ begin
    where p.game_id = p_game_id and p.user_id = caller_id;
 
   -- Neither rung takes a turn: both are coop-only asks rather than moves.
-  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered, took_turn)
+  insert into letterboxed.events (game_id, user_id, kind, word, n_covered_letters, took_turn)
   values (p_game_id, caller_id, p_kind, lower(trim(p_word_shown)),
           letterboxed._covered(v_chain), false);
 
-  perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(jsonb_build_object(
@@ -1675,7 +1443,6 @@ begin
     p_final_rankings => v_rankings
   );
 
-  perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -1724,7 +1491,6 @@ begin
 
   perform common._stop(p_game_id);
 
-  perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -1771,7 +1537,6 @@ begin
 
   perform common._concede(p_game_id);
 
-  perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
@@ -1834,7 +1599,6 @@ begin
 
   perform common._reset_game(p_game_id);
 
-  perform letterboxed._write_statuses(p_game_id, p_update_status_changed_at => true);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 

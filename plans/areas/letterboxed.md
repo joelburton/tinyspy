@@ -38,12 +38,12 @@ last column is what the conversion will do, filled in as it does it.
 
 | what | mentioned | taken over or dropped |
 |---|---|---|
-| `events_select`'s mode arm — coop shows every member every row, a racer always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | |
-| `players_state` view, with `_chain_for` — each player's chain, null for a compete rival mid-race | `auth.uid()`, `ended_at` | |
-| `_word_count_for`, `_covered_for` — the definer scalars `players_state` reads, so a rival's two counts show while the chain is hidden | neither | |
-| `games_state` view — the game row, and `clean_words` computed on read by a join against `common.words` | neither | |
-| `games_select`, `players_select` — club-member reads | neither | |
-| `_write_statuses` — `game_status` {max_words}, `player_status` {words_used, letters_covered_count, player_ended_reason}, `clubpage_info` {words_used, letters_covered_count, max_words, best_letters_covered_count, winner_user_id, winner_words_count} | neither | |
+| `events_select`'s mode arm — coop shows every member every row, a racer always sees their own, an ended game opens everybody's | `auth.uid()`, `ended_at` | the arm is **dropped** (2026-10-05) and the policy keeps the member gate alone; to be **taken over** by `makeGameData`'s seat rule at step 7 |
+| `players_state` view, with `_chain_for` — each player's chain, null for a compete rival mid-race | `auth.uid()`, `ended_at` | **dropped** (2026-10-05): the blob carries every chain, the seat rule to withhold a rival's mid-race; the column grant on `chain` stays |
+| `_word_count_for`, `_covered_for` — the definer scalars `players_state` reads, so a rival's two counts show while the chain is hidden | neither | **dropped** (2026-10-05) with the view: `_make_json_players` writes a racer's two counts |
+| `games_state` view — the game row, and `clean_words` computed on read by a join against `common.words` | neither | **dropped** (2026-10-05): `_make_json_puzzle` writes `uncleanWords` at every rebuild, still read against the live dictionary |
+| `games_select`, `players_select` — club-member reads | neither | **kept** (2026-10-05) |
+| `_write_statuses` — `game_status` {max_words}, `player_status` {words_used, letters_covered_count, player_ended_reason}, `clubpage_info` {words_used, letters_covered_count, max_words, best_letters_covered_count, winner_user_id, winner_words_count} | neither | **dropped** (2026-10-05): `_rebuild_data_cols` writes the blobs after every move |
 | the postgres-changes subscription on `games`, `players` and `events` (`useRealtimeRefetch` in `hooks/useGame.ts`), and its reads of the two views and `events` | — | |
 
 **The status keys the page shows:** none of today's. `PlayArea.tsx` reads
@@ -76,9 +76,12 @@ unless noted):
 - **The board key and the column disagree:** the edge function sends
   `p_board.playable_words`, stored as `legal_words`.
 - **`todo.md`'s "a compete timeout nobody made progress in crowns
-  everyone"** is half done: `submit_timeout` ranks nobody when no chain covers
-  a letter, but the reason pair is still `timeout` / `timeout`, not
-  `timeout-no-winner`.
+  everyone"** is done: `submit_timeout` ranks nobody when no chain covers a
+  letter. `timeout-no-winner` is that outcome's name (docs/win-lose.md), not
+  a reason, so the reason pair stays `timeout` / `timeout`, as wordiply's.
+- **`hints_used` keeps its name**: it counts hints and spoilers together, so
+  `n_hints_used` would say less than it holds, and nothing reads it now that
+  the blobs count the two apart off the log.
 - **`todo.md`'s "no ending of its own writes a `reason`"** is stale:
   `submit_word` ends `reached_goal` / `solved`, `submit_timeout` `timeout`.
 - **`todo.md`'s `LeaderRow` item** goes with the leaderboard reads; its
@@ -165,6 +168,16 @@ summary_data:
 ```
 
 ## Predicted test breaks
+
+- **Step 4 (2026-10-05), to be fixed at step 5:** every pgTAP assertion that
+  reads the statuses or `players_state` — `compete_test`, `gameplay_test`,
+  `rls_test`, `turn_order_test`, `concede_timeout_test`, `replay_test`,
+  `timeout_test` — and the whole of `statuses_test`, which goes.
+  `events.letters_covered` is `n_covered_letters` (20261005000001);
+  `gameplay_test`'s one read of it follows.
+- **Steps 4–9:** the frontend reads the views and the old common shapes
+  until the PlayArea pass moves every reader onto `gd`; it could not load
+  before this began.
 
 *(the spec names, written when the area starts changing things)*
 

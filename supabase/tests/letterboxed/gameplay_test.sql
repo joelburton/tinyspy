@@ -114,7 +114,7 @@ select ok(
 );
 
 select is(
-  (select kind || ':' || word || ':' || letters_covered::text
+  (select kind || ':' || word || ':' || n_covered_letters::text
      from letterboxed.events where game_id = (select id from g)),
   'word:adg:3',
   'the move is logged with its coverage'
