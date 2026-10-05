@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import { useBindAction } from '@/common/actions/useBindAction'
+import { useBindAction, type ActionState } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type {
@@ -61,19 +61,21 @@ export function useActionsAndMenu({
   // The hint ladder's two rungs. COOP ONLY: in a race "first past the bar
   // wins" would make either one a win button, and the server refuses them
   // there too. Hidden rather than disabled — a control that named a glyph the
-  // surface never shows would teach a lie. Both go inert once the game has
-  // ended: there is no word left to find.
+  // surface never shows would teach a lie. Hidden once the game has ended
+  // too: there is no word left to find.
+  /** Whether a rung of the ladder can be taken now. */
+  function describeRung(): ActionState {
+    if (gd.compete || gd.ended) return 'hidden'
+    return gd.me.stillPlaying ? 'active' : 'disabled'
+  }
   const actHint = useBindAction('act-hint', {
-    describe: () => {
-      if (gd.compete) return 'hidden'
-      return gd.ended ? 'disabled' : 'active'
-    },
+    describe: describeRung,
     run: () => askForHintOrSpoiler(gd, localFeedbackSlot, 'hint'),
   })
   const actSpoiler = useBindAction('act-spoiler', {
     describe: () => {
-      if (gd.compete) return 'hidden'
-      return { state: gd.ended ? 'disabled' : 'active', label: 'Show the word' }
+      const state = describeRung()
+      return state === 'hidden' ? state : { state, label: 'Show the word' }
     },
     run: () => askForHintOrSpoiler(gd, localFeedbackSlot, 'spoiler'),
   })
@@ -86,7 +88,13 @@ export function useActionsAndMenu({
   // can't spoil a live race.
   const { revealed: solutionShown, toggle: toggleSolution } = useSolutionReveal()
   const actReveal = useBindAction('act-reveal', {
-    describe: () => describeReveal({ noun: 'solution', revealed: solutionShown, isTerminal: gd.ended }),
+    describe: (asker) => {
+      // No BUTTON while you can still play. The menu row keeps it all game,
+      // grayed, because it NAMES the glyph (docs/ui.md → the menu is the
+      // legend).
+      if (gd.me.stillPlaying && asker === 'button') return 'hidden'
+      return describeReveal({ noun: 'solution', revealed: solutionShown, isTerminal: gd.ended })
+    },
     run: toggleSolution,
   })
 
@@ -123,7 +131,8 @@ export function useActionsAndMenu({
   // board.
   const actNewGame = useBindAction('act-new-game', {
     terminal: gd.ended,
-    describe: () => 'active',
+    // Reachable all game from the menu and `+`, but a BUTTON only at the end.
+    describe: (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
@@ -166,7 +175,8 @@ export function useActionsAndMenu({
         exits: [actConcede, actStopGame],
         extra: [
           { items: [actHint, actSpoiler] },
-          { items: [actRestart, actNewGame, actReveal] },
+          // The same three the action row offers after its bar, in its order.
+          { items: [actReveal, actRestart, actNewGame] },
           { items: [actPrintBoard] },
         ],
       }),

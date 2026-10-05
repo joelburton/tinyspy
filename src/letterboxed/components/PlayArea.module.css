@@ -127,7 +127,7 @@
 }
 /* @@ */ .statValue {
   font-size: 1.5rem;
-  font-weight: 650;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
@@ -243,6 +243,8 @@
 
 /* @@ */ .solution {
   font-weight: 600;
+  /* The words are stored lowercase; the capitals are drawn. */
+  text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 

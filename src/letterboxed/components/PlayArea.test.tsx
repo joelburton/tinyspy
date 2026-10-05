@@ -134,6 +134,29 @@ describe('letterboxed PlayArea — a conceder keeps the one flag', () => {
   })
 })
 
+describe('letterboxed PlayArea — one action row, each action answering for itself', () => {
+  /** The actions the info column's row draws, by id. */
+  const rowButtons = () =>
+    [...document.querySelectorAll('button[data-action]')].map((b) => b.getAttribute('data-action'))
+
+  it('mid-game: the hint ladder and the exits, none of the end\'s buttons', () => {
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(rowButtons()).toEqual(
+      expect.arrayContaining(['act-hint', 'act-spoiler', 'act-stop-game', 'act-back-to-club']))
+    expect(rowButtons()).not.toContain('act-reveal')
+    expect(rowButtons()).not.toContain('act-restart')
+    expect(rowButtons()).not.toContain('act-new-game')
+  })
+
+  it('at the end: the end\'s buttons, and no hint left to take', () => {
+    render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
+    expect(rowButtons()).toEqual(
+      expect.arrayContaining(['act-reveal', 'act-restart', 'act-new-game', 'act-back-to-club']))
+    expect(rowButtons()).not.toContain('act-hint')
+    expect(rowButtons()).not.toContain('act-spoiler')
+  })
+})
+
 describe('letterboxed PlayArea — the game menu is the icon legend', () => {
   it('coop names both rungs of the hint ladder, each with its glyph', () => {
     const ctx = makeCtx()

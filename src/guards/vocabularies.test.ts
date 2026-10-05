@@ -201,11 +201,7 @@ const VOCABULARIES: Vocabulary[] = [
     // which is the opposite of writing a literal.
     allowed: /^([1-9]00|normal|bold|lighter|bolder|inherit|initial|unset|revert)$/,
     root: '.',
-    pending: {
-      // letterboxed's last `650` — the whole cost of the rule, fixed by the
-      // `letterboxed` area's audit, not swept now.
-      'src/letterboxed/components/PlayArea.module.css': ['650'],
-    },
+    pending: {},
     fix:
       'A font-weight is a multiple of 100 — that is the scale CSS itself ' +
       'defines, and we add nothing to it. A value between two steps is tuned ' +

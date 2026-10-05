@@ -4,7 +4,7 @@ import { cls } from '@/common/utils/cls'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
+import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -43,23 +43,21 @@ export function InfoCol({
   // The seeded pair while I have it revealed, else null.
   solution: string[] | null
 }) {
-  const isOutOfRace = !gd.ended && !gd.me.stillPlaying
+  const actionRowMessage: InfoActionsMessage | undefined = endingMessage
+    ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
+    : undefined
 
   /** A racer's cell in the strip: the two numbers a race may publish, never
-   *  the words. */
+   *  the words — or "out", once they have ended. */
   function getCoveredOrOut(player: GPlayer) {
-    if (player.conceded) return 'out'
+    if (player.ending !== null) return 'out'
     return `${player.nCoveredLetters}/${BOARD_SIZE} · ${player.nWordsUsed}w`
   }
 
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        <StateLine
-          lettersCovered={gd.stateLineData.nCoveredLetters}
-          wordsUsed={gd.stateLineData.nWordsUsed}
-          maxWords={gd.stateLineData.maxWords}
-        />
+        <StateLine data={gd.stateLineData} />
 
         {/* Whose-turn line — only in a turn-order game. Rendering it in a
             free-for-all game would print "Waiting for someone…" forever,
@@ -86,42 +84,32 @@ export function InfoCol({
           />
         )}
 
-        {/* Action row — ICON-ONLY. ENDED: outcome line + Restart / New game
-            / Club. CONCEDED (others race on): the ending's look + Stop.
-            PLAYING: Stop (coop) / Concede (compete) + back-to-club. */}
-        {gd.ended && endingMessage ? (
-          <InfoActionsRow message={{ text: endingMessage.infoColText, outcome: endingMessage.outcome }}>
-            <ActionButton action={actions.actRestart} show="icon" />
-            <ActionButton action={actions.actReveal} show="icon" />
-            <ActionButton action={actions.actNewGame} show="icon" />
-            <ActionButton action={actions.actBackToClub} show="icon" weight="primary" />
-          </InfoActionsRow>
-        ) : isOutOfRace && endingMessage ? (
-          <InfoActionsRow message={{ text: endingMessage.infoColText, outcome: endingMessage.outcome }}>
-            {/* Both exits are placed and each says whether it applies: out of
-                the race, Concede hides and Stop comes out in its place — one
-                flag, since anyone in a game may stop it for all. */}
-            <ActionButton action={actions.actConcede} show="icon" />
-            <ActionButton action={actions.actStopGame} show="icon" />
-          </InfoActionsRow>
-        ) : (
-          <InfoActionsRow>
-            {/* The two rungs of the hint ladder, icon-only like everything else
-                in this row. Each hides itself in compete, so this row places
-                them and asks nothing. */}
-            <ActionButton action={actions.actHint} show="icon" />
-            <ActionButton action={actions.actSpoiler} show="icon" />
-            {/* Both exits are placed; each hides itself in the mode that isn't
-                its own. */}
-            <ActionButton action={actions.actConcede} show="icon" />
-            <ActionButton action={actions.actStopGame} show="icon" />
-            <ActionButton action={actions.actBackToClub} show="icon" />
-          </InfoActionsRow>
-        )}
+        {/* One row, one order, every action listed once, in the game menu's
+            order (docs/playarea.md). Each action answers whether it shows.
+            ICON-ONLY; the menu is the glyphs' legend. */}
+        <InfoActionsRow message={actionRowMessage}>
+          <ActionButton action={actions.actHint} show="icon" />
+          <ActionButton action={actions.actSpoiler} show="icon" />
+          {/* Right of the bar is about the END of the game rather than
+              playing it; the bar hides itself when nothing is left of it. */}
+          <span className={shared.actionsDivider} />
+          <ActionButton action={actions.actReveal} show="icon" />
+          <ActionButton action={actions.actRestart} show="icon" />
+          <ActionButton action={actions.actNewGame} show="icon" />
+          <ActionButton action={actions.actConcede} show="icon" />
+          <ActionButton action={actions.actStopGame} show="icon" />
+          {/* Filled once the game has ended: the weight is the placement's
+              choice, not the action's (docs/ui.md → What a `<button>` is). */}
+          <ActionButton
+            action={actions.actBackToClub}
+            show="icon"
+            weight={gd.ended ? 'primary' : 'secondary'}
+          />
+        </InfoActionsRow>
 
-        {/* Help — the interface in one line, and only while the player can act
-            on it (never silently swapped for something else). */}
-        {!gd.ended && gd.me.stillPlaying && (
+        {/* Only on my move: while I wait the board is inert, and the prompt
+            would misdirect. */}
+        {gd.me.onTurn && (
           <p className={shared.infoHelp}>
             Click letters or type; click the last one again (or press{' '}
             <kbd>Enter</kbd>) to submit. Every word starts where the last one
