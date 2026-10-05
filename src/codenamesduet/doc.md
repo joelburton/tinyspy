@@ -9,9 +9,9 @@ Brand **TinySpy**.
 
 ## Intro to area
 
-The server decides every guess. Both key cards are columns on the game row, so
-the frontend could read the partner's, but it never draws it during play and
-never judges a guess: a tile click sends a position, and `submit_guess` reads
+The server decides every guess. Both key cards are columns on the game row,
+and the page blob carries both, but the page's seat rule withholds the
+partner's during play, and the frontend never judges a guess: a tile click sends a position, and `submit_guess` reads
 the clue-giver's key, turns the word over, and says what it was. That is the
 opposite of spellingbee and connections, which judge a move in the browser and
 send it already decided. The one piece of the answer the frontend does hold on
@@ -34,8 +34,8 @@ the one player with words left. So the page reads the turn and rings the bell
 for this game as for any other. The one moment one pointer cannot say is
 sudden death with words on both sides, where either may guess; the pointer
 names nobody, and the game supplies the turn itself. The header says what
-the partner is doing, and the board and clue strip are drawn from the seat on
-the game row and the turn's clue.
+the partner is doing, and the board and clue strip are drawn from the clue
+seat and the turn's clue in the page blob.
 
 Everything a player does — a clue, a guess, a pass, asking the AI — is one row
 of `codenamesduet.events`, the log every game keeps. Only the log's drawing is
@@ -145,8 +145,8 @@ Four tables, in `supabase/migrations/20260615000001_codenamesduet.sql` and
 
 | | |
 |---|---|
-| `codenamesduet.games` | one row per game: the two seats (`player_a_user_id`, `player_b_user_id`), both key cards (`key_card_a`, `key_card_b`, each 25 labels indexed by board position), the budget (`max_turns`) and the turn state (`turn_number`, `current_clue_giver`). The ending is on `common.games` |
-| `codenamesduet.word_pool` | the word list a board is drawn from, seeded by the migration. No policy and no grant: only `create_game` reads it |
+| `codenamesduet.games` | one row per game: the two seats (`player_a_user_id`, `player_b_user_id`), both key cards (`key_card_a`, `key_card_b`, each 25 keys indexed by board position), the budget (`max_turns`) and the turn state (`turn_number`, `current_clue_giver`). The ending is on `common.games` |
+| `codenamesduet.word_pool` | the word list a board is drawn from, seeded by the migration, lowercase as every game's words are. No policy and no grant: only `create_game` reads it |
 | `codenamesduet.words` | the board, 25 rows per game: the word, and what has happened to it — `revealed_as` (`G` or `A`, the same for both players) and `neutral_a` / `neutral_b` (a bystander hit by that seat) |
 | `codenamesduet.events` | the log ([supabase.md → Every game's log](../../docs/supabase.md#every-games-log-is-gameevents)): one row per `clue`, `guess`, `pass` and `hint`, `order by id`. Beside the skeleton, `turn_number`, `seat`, and payload columns named for the kind that owns them — `clue_word` / `clue_count` / `clue_from_ai`, `guess_position` / `guess_result` — with a CHECK tying each kind to its own. A partial unique index allows one clue per turn. `took_turn` is true where the turn number moves on: a bystander in ordinary play, a pass, and an agent in sudden death |
 
@@ -155,10 +155,15 @@ which seat each holds, and what that seat's key card says, is game state and
 lives on the game row, so one read returns the whole game.
 
 **Both key cards are readable by either player.** Every table's select policy
-is club membership, and the grant covers both columns. The frontend reads its
-own card for play and the partner's only once the game is over and the player
-asks; nothing stronger is owed between friends (CLAUDE.md → Trust model).
-There are no insert, update or delete policies: every write is an RPC.
+is club membership, and the grant covers both columns; the page blob carries
+both too. What hides my partner's card until the game ends is the page's seat
+rule (`makeGameData`), and nothing stronger is owed between friends (CLAUDE.md
+→ Trust model). There are no insert, update or delete policies: every write is
+an RPC.
+
+**Words and clues are stored lowercase**, as every game's words are, and the
+capitals are drawn: CSS on the screen, by hand in the PDF and the history
+banner.
 
 **The board is `words`, and the log is `events`.** A word can be guessed twice,
 once from each side, so the log cannot be the board. The board's three columns
@@ -170,29 +175,29 @@ did; `clue_from_ai` is how that clue came about. A second clue kind would have
 to be named by every "is there a clue this turn" check. The clues logged
 before the column existed are all `false`, since nothing recorded it.
 
-**The statuses** are written by `codenamesduet._write_statuses` at create, at
-Restart and at the end of every move — a hint included, which is how the
-partner hears of it — each assigned whole with every key present:
+**The page blobs** are written by `codenamesduet._rebuild_data_cols` at
+create, at Restart and at the end of every move — a hint included, which is
+how the partner hears of it — each assigned whole ([plans/seat-view.md](../../plans/seat-view.md)
+→ The page is written, not assembled): `shell_data` through
+`common._make_json_shell_data`, and on top of the common part of every
+`game_data` (`common._make_json_game_data`) this game's own:
 
-| status | keys |
+| blob | codenamesduet's part |
 |---|---|
-| `game_status` | `found_agents_count`, `turn_number`, `turns_remaining`, `max_turns` |
-| each `player_status` | none — both players share everything, and there is no strip |
-| `clubpage_info` | `found_agents_count`, `turns_remaining` |
+| `game_data` | `puzzle: {tiles}`, the deal, which never changes: the 25 words by position, each with both players' keys, `{[userId]: G / N / A}`; `team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}`, what the pair shares, `nTurnsUsed` counting the turn the game ended on when anything was played in it, and `board: {tiles}` the table as it stands — each tile's `revealed: {as, arrows}` (what it shows, the same for both, and who to point a bystander's arrow at; null until anyone guesses it) and `guessableBy`, the players who may still guess it; `turns: {holder, num, currClue}`, the common turn with its number and its clue; `events`, every clue, guess, pass and hint in order, each with `suddenDeath` when its turn was past the budget; on each player `clueGiver` and `allAgentsFound` |
+| `summary_data` | `team`, the same group without its board |
 
-The agents found and the turns are table-facts, not team-facts — the board's and
-the game's, the same whoever is looking — so they sit in `game_status`.
-`turns_remaining` is worked out from `max_turns` and `turn_number`, as is the
-same key in the answers below.
+What a tile shows, who it points at and who may still guess it are the
+builder's, from the rules; the page draws them and decides none.
 
-**The club-list title** is the board's first three words in board order,
-`PAGE-CHAIN-EGG`. A duet board never moves, so the top-left three cells always
+**The club-list title** is the board's first three words in board order, in
+capitals, `PAGE-CHAIN-EGG`. A duet board never moves, so the top-left three cells always
 match the title, and the words are on every player's screen, so the title
 gives nothing away.
 
-**Realtime** is two rooms per client: the game row, and the board and the log
-together. `stop_game` clears the clue seat on the way out, so a client watching
-the game row wakes into the finished game.
+**The client reads nothing from these tables.** The page is handed the blobs
+off `common.games` and re-reads them as the shell delivers each rewrite, and
+every move and ending rewrites them.
 
 ## RPCs
 
@@ -213,7 +218,7 @@ first clue-giver as A and the other player as B — on the common turn order
 too, A first, with the pointer on A — and deals the two key cards
 from the rulebook's fixed joint distribution, shuffled: each card has nine
 agents, three assassins and thirteen bystanders, and three words are agents on
-both. The statuses start at turn 1 with the whole budget and no agents
+both. The page blobs start at turn 1 with the whole budget and no agents
 found. The setup is saved as the club's next default without the first
 clue-giver, which is a choice about this round rather than about the club.
 
@@ -251,12 +256,14 @@ suggestion. It does not judge the clue: the word is whatever was typed — a
 board word included — and the count any whole number from zero up. The players
 police their own clues, as they would at a table.
 
-**Passed:** `{ "p_game_id": "88ae6f5a…", "p_clue_word": "WORD", "p_clue_count": 2, "p_clue_from_ai": false }` — `p_clue_from_ai` defaults to `false`.
+The clue is stored lowercase.
+
+**Passed:** `{ "p_game_id": "88ae6f5a…", "p_clue_word": "word", "p_clue_count": 2, "p_clue_from_ai": false }` — `p_clue_from_ai` defaults to `false`.
 
 **Returned** — one answer, the clue as it was stored:
 
 ```json
-{ "result": "clued", "clue_word": "WORD", "clue_count": 2, "clue_from_ai": false, "turn_number": 1, "seat": "A" }
+{ "result": "clued", "clue_word": "word", "clue_count": 2, "clue_from_ai": false, "turn_number": 1, "seat": "A" }
 ```
 
 ### `codenamesduet.submit_guess(p_game_id, p_guess_position)`
@@ -304,7 +311,7 @@ used (`max_turns` minus the turns left):
 - `{ "result": "lost", "reason": "assassin" | "neutral", "revealed": "A" | "N", "found_agents_count": …, "turns_used": … }`
 
 The frontend says nothing about any of the four: each is a reveal, and the
-board shows it when the words row arrives.
+board shows it when the next blob arrives.
 
 ### `codenamesduet.pass_turn(p_game_id)`
 
@@ -371,17 +378,17 @@ tile click sends a position. Every sentence a player reads about their own move
 is the server's.
 
 **A clue** is typed into the strip under the board — a count, then a word,
-uppercased as it is typed — and sent with Submit or Enter. `clued` clears the form; the
-strip swaps to the guess view when the clue row arrives by realtime. **A
+kept lowercase and drawn in capitals — and sent with Submit or Enter. `clued`
+clears the form; the strip swaps to the guess view when the next blob arrives. **A
 guess** is a tile click — or, from the keyboard, arrows to a word, Space to pick
 it, and Enter (`act-submit`, called "Guess") to send it; the second key is the
 confirmation a click's aim gives, since an arrow can land a cell off and the
 word can be the assassin. The tile shows it is committing, and all five `ok`s
 leave the frontend silent, because the tile's color arriving IS the answer.
 **A pass** is the guesser's Pass & End Turn button; `passed` says nothing
-either, since the new turn arrives on the game row. A terminal is not answered
+either, since the new turn arrives in the next blob. An ending is not answered
 at the call site: the verdict is a standing condition of the local slot, built
-in `PlayArea` from the play state.
+in `PlayArea` from `gd`'s ending.
 
 **A refusal is the only thing any of the three shows**, in the local slot
 under the board, in the server's words; the clue form keeps what was typed,
@@ -430,11 +437,14 @@ describes: a loader that gates on the three ways a game can fail to load, then
 `PlayArea` in the eight sections.
 
 ```
-<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame, useBoard, the events; the three gates
+<PlayAreaLoader {...PlayAreaLoaderProps}>        useGame
   └── PlayArea                           the coordinator: draws no board, no control
-        ├── BoardCol                     the board column, and submit_guess
+        ├── BoardCol                     the board column; the guess (useSubmitGuess), the pick
+        │     │                          (usePickedTile), Enter and ⌫ (useBoardColActions)
         │     ├── MobileStatusBar ←      phone only: StateLine, above the board
-        │     ├── Board                  the 5×5 tiles and their marks
+        │     ├── Board                  the 5×5; the cursor (useTileCursor), the flash and the
+        │     │     │                    shake (useDecidedTileMarks); decides each tile's marks
+        │     │     └── Tile             one tile: its fill, key squares and arrows
         │     └── below the board        one of: HistoryBanner ←, the local slot's
         │                                FeedbackPill ←, or ClueStrip — the clue form,
         │                                the clue and Pass, or who we're waiting for
@@ -456,8 +466,12 @@ describes: a loader that gates on the three ways a game can fail to load, then
 the play state, pause, chat — and unmounts this surface on pause. `Help` and
 `SetupForm` are the shell's to mount, from the menu and the start-game dialog.
 `useGame` builds `gd` from the `game_data` blob the page was handed
-(`makeGameData`); it reads nothing and subscribes to nothing, and my
-partner's key is not in it until the game ends.
+(`makeGameData`): the players with `gd.me` and `gd.partner`, every board tile
+linked to its puzzle tile, a reveal's arrows as players, `guessable` for me,
+and the seat rule — my partner's key is null until the game ends. It reads
+nothing and subscribes to nothing. `PlayArea`'s hooks hold the rest:
+`useActionsAndMenu` (and whether I asked to see my partner's key),
+`useGetGameEndingMessage`, `useHistoryView` and `useShowPartnerMessages`.
 
 What is codenamesduet's own:
 
@@ -472,7 +486,7 @@ What is codenamesduet's own:
   hit it: my partner's above the word, mine below — the tile's `arrows`, which
   the builder decides. A word I hit as a bystander stays locked to me alone —
   the tile's `guessable`, the builder's too, which the keyboard's Space asks.
-- **The keyboard's selection cursor** (`useBoardSelectionCursor`, the shape
+- **The keyboard's selection cursor** (`Board`'s `useTileCursor`, the shape
   `lib/boardShape.ts`) is the guesser's alone: the clue-giver's form is real
   text fields. Its pick wears the shared selected border and drops by itself
   when the word stops being guessable. No cue teaches Enter — the line under
@@ -492,8 +506,8 @@ What is codenamesduet's own:
   notice. The clue form keeps Tab on its two inputs.
 - **The AI button** is on the clue form. It opens the suggestion in a floating
   panel and fills the form with it; the player still presses Submit.
-- **The partner in the header.** `PlayArea` holds a line saying what the
-  partner is doing, in `lib/answer.ts`'s words — richer than the shell's
+- **The partner in the header.** `useShowPartnerMessages` holds a line saying
+  what the partner is doing, in `lib/answer.ts`'s words — richer than the shell's
   whose-turn line, which this game does not draw.
 - **Who may move, and on what** is `BoardCol`'s `isInteractive`: my turn on the
   shared pointer, or in sudden death with words on both sides either of us; the board takes
@@ -512,10 +526,11 @@ What is codenamesduet's own:
   (`lib/history.ts`). The picker filters by who gave the clue.
 - **The ending** is the pill and the row's line (`lib/endingMessage.ts`). Reveal
   uncovers the partner's card for this player alone, and Hide covers it again.
-- **The club label** (`manifest.ts`) is the play state, the agents found and,
-  mid-game, the turns left.
+- **The club label** (`manifest.ts`) reads `summary_data`: the verdict and a
+  loss's cause, the agents found and, mid-game, the turns left — or sudden
+  death in their place.
 - **The printer** (`pdf/`) is the board with both players' marks drawn — mine
-  always, my partner's only at terminal — above the clue log, with a legend,
+  always, my partner's only once the game has ended and I asked — above the clue log, with a legend,
   since a printout has nothing else to explain the marks.
 
 ## Tests
@@ -527,7 +542,7 @@ test finds a position by its key), `pg_temp.codenamesduet_setup()` and
 
 | file | pins |
 |---|---|
-| `create_game_test` | the refusals — no sign-in, an outsider, a roster that is not two, a bad turn budget, a bad timer — the rows written, the statuses seeded at turn 1, and the key card's joint table exactly |
+| `create_game_test` | the refusals — no sign-in, an outsider, a roster that is not two, a bad turn budget, a bad timer — the rows written, the page at turn 1, the title in capitals, and the key card's joint table exactly |
 | `game_loop_test` | who may clue, guess and pass in which phase; an agent goes on and the club-list agent count with it, a bystander ends the turn and hands the clue over, a pass spends a turn; the assassin ends the game; no answer carries an outcome; a clue, a guess and a pass into a deleted game are the shared race |
 | `clue_giver_handoff_test` | a finished player gives no more clues, from either seat, and two live seats still alternate |
 | `cross_direction_test` | a bystander locks the guesser's side only; the partner can still contact the word; the two locks answer in different words |
@@ -539,7 +554,7 @@ test finds a position by its key), `pg_temp.codenamesduet_setup()` and
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
 | `events_test` | what each move writes to the log, `took_turn` included, a hint under the seat that asked; the one-clue index and the payload CHECK |
 | `clue_context_test` | `get_clue_context`'s gate, every agent, bystander and assassin in its answer, the whole board and the clues given so far; a deleted game is the shared race through it and `log_hint` |
-| `statuses_test` | each status's exact key set at the start, mid-game and at the end; the values the page reads; a hint rewrites them; a rebuild leaves `status_changed_at` alone and drops a stale key |
+| `game_data_test` | the page blobs: a fresh game's deal and untouched table; mid-game the turn's clue, an agent shown to both, a bystander pointing at its guesser and still open to the partner; a hint re-dating the page; both bystanders closing a tile; the turn the game ended on counted; sudden death and its events; a Restart; a rebuild of every game without re-dating it |
 | `rls_test` | an outsider sees no row of any table and cannot move; a direct insert is refused |
 
 The edge function has no tests; `deno check` is its only net.
@@ -548,14 +563,13 @@ Vitest, beside the code:
 
 | file | pins |
 |---|---|
-| `lib/phase.test` · `lib/agents.test` | every branch of the phase; when a seat's agents are all found |
-| `lib/turnOutcome.test` · `lib/terminal.test` · `lib/answer.test` | a turn's outcome, sudden death's included; every ending's words; the header's words about the partner |
-| `lib/events.test` · `lib/history.test` | the log's rows typed by kind; a past turn's board, its bystanders per side and its own tiles ringed |
-| `hooks/useGame.test` · `hooks/useBoard.test` | the game row, a vanished row dropped rather than drawn on, a failed read kept and later cleared; the board's reads, the partner's card only when asked for, a gone game clearing my key (the no-such-game page), and a failed read kept as a failure rather than an empty board |
-| `components/PlayArea.test` | a second guess while one is in flight sends nothing, and a guess stays in flight from its reply until its reveal lands; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the finished-player banners; that no bell is rung here, and the sudden-death board of the player with no words; the board's turn dim and flash, and a guess's flash through the log; the keys, New game's players and setup included |
-| `components/Board.test` · `components/StateLine.test` | the per-seat bystander lock, my key card hidden while I guess, the partner's only at the end and when asked, and the two triangles, above and below the word; the board marks — the in-flight dim, the turn dim and flash, the game-over frame, attention on the move log and the shake; the readout's turns spent and sudden death |
+| `lib/turnOutcome.test` · `lib/endingMessage.test` · `lib/answer.test` | a turn's outcome, sudden death's included; every ending's words; the header's words about the partner |
+| `lib/events.test` · `lib/history.test` | the clues and the guesses out of the log; a past turn's board, its bystanders pointing at their guessers and its own tiles ringed |
+| `hooks/useGame.test` | `gd` from the blob, on the fixture (`lib/gameData.fixture.ts`): the links to players and tiles, `guessable` for me, the turn and its clue, the state line, and the seat rule — my partner's key withheld until the end |
+| `components/PlayArea.test` | a second guess while one is in flight sends nothing, and a guess stays in flight from its reply until its reveal lands; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the finished-player banners; the help line on my move; that no bell is rung here, and the sudden-death board of the player with no words; the board's turn dim and flash, and a guess's flash through the log; the keys, New game's players and setup included |
+| `components/Board.test` · `components/StateLine.test` | the bystander lock, my key card hidden while I guess, the partner's only at the end and when asked, and the two triangles, above and below the word; the board marks — the in-flight dim, the turn dim and flash, the game-over frame, attention on the move log and the shake; the readout's turns used and sudden death |
 | `components/GameEventLog.test` · `components/ClueStrip.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows and history link; the clue inputs' tag, the one-digit count, when a clue counts as the AI's, the form clearing when the clue lands, and the sudden-death notice; the key card's grid; the setup form's fields |
-| `pdf/model.test` | the partner's card never printed mid-game; each cell's mark and triangles; the clue log |
+| `pdf/model.test` | the partner's card never printed mid-game; each tile's mark and triangles; the clue log; the summary's turns used |
 
 Playwright, in `e2e/`: `codenamesduet` (the board holds its height through
 every below-board state, the AI panel lands on screen, New game),

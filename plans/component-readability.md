@@ -337,6 +337,28 @@ boggle converted alone (2026-10-04) and settled, beyond the games above:
   needs is deleted. A test reaches the writer players actually read
   (`makeSetupRows`) rather than a copy kept for the test.
 
+## What codenamesduet added
+
+codenamesduet converted alone (2026-10-04) and settled, beyond the games above:
+
+- **The builder decides what a tile shows and who may guess it.** A tile's
+  `revealed: {as, arrows}` is what the board draws — one shown state for both
+  players, and the players to point an arrow at — and `guessableBy` is who may
+  still guess it. Neither is worked out on the page, so a new rule (arrows on a
+  contacted agent, say) is a builder change that `gd` and the frontend never
+  see; the reveal is for appearance, not for guessing.
+- **The puzzle is the deal; the team's board is what happened to it.** A board
+  tile links to its puzzle tile, so the word lives once, and the keys are the
+  puzzle's, by player — there is no key card on the player.
+- **A fixed team's facts are the team's**, and a flag every reader would work
+  out the same way is the builder's: each event's `suddenDeath`.
+- **`gd.partner`** beside `gd.me`, for a game of exactly two.
+- **A leaf gets one decided value where it would otherwise get the question**:
+  the clue strip's `GClueStrip`, decided in `BoardCol` beside `isInteractive`.
+  Passing `gd` below the columns stays unexpected rather than forbidden: where
+  selecting would only copy fields, pass `gd`.
+- **A game's own words keep the data's case**: lowercase stored, capitals drawn.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

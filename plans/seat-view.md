@@ -490,6 +490,17 @@ next open (todo.md → Someday).
   the setup pair and `Answer` into `types.ts` under `G` names, and made the
   geometry modules `lib/board.ts`. `wordsByWord` stays in `useSubmitWord` by
   ruling.
+- **codenamesduet — done 2026-10-04**, coop only, with a fixed team of two:
+  the puzzle is the deal (each tile's word and both players' keys), and
+  `team.board` the table as it stands — each tile's `revealed: {as, arrows}`
+  and `guessableBy`, written by the builder from the rules, so the page draws
+  a reveal and decides nothing. `turns` adds `num` and `currClue` to the common
+  holder; every event says whether it was `suddenDeath`; `nTurnsUsed` counts
+  the turn the game ended on (`todo.md`'s turn-count bug). `gd.partner` is the
+  other player, and the seat rule withholds the partner's key until the end.
+  `_write_statuses`, `useBoard` and the phase and seat helpers went; the
+  words and clues are stored lowercase (20261004000003); every RPC call sends
+  `p_` names.
 - **boggle — done 2026-10-04**, the bee games' way without their shared
   folder: `boggle._make_json_found_counts` writes the six counts for the team
   and each player, and `_rebuild_data_cols` the puzzle (tiles `{id, letters}`,
