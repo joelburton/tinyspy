@@ -111,9 +111,9 @@ select pg_temp.envelope_is(
 
 -- The club list's agent count moves with it.
 select is(
-  (select (clubpage_info->>'found_agents_count')::int from common.games where id = (select id from g1)),
+  (select (summary_data->'team'->>'nFoundAgents')::int from common.games where id = (select id from g1)),
   1,
-  'a green guess mid-game updates the club line''s found_agents_count'
+  'a green guess mid-game updates the club line''s nFoundAgents'
 );
 
 -- Green keeps the turn alive: no turn spent, clue-giver unchanged.

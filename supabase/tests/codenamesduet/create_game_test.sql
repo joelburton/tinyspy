@@ -338,16 +338,17 @@ select is(
   'create_game: new game starts being played (no lobby)'
 );
 
--- The info column reads this before any move: turn 1, the whole budget (11
--- here), no agents yet.
+-- The page reads this before any move: turn 1, the whole budget (11 here),
+-- no agents yet.
 select is(
   (select jsonb_build_object(
-            'turn_number', game_status->'turn_number',
-            'turns_remaining', game_status->'turns_remaining',
-            'found_agents_count', game_status->'found_agents_count')
+            'num', game_data->'turns'->'num',
+            'nTurnsUsed', game_data->'team'->'nTurnsUsed',
+            'maxTurns', game_data->'team'->'maxTurns',
+            'nFoundAgents', game_data->'team'->'nFoundAgents')
      from common.games where id = (select id from created)),
-  '{"turn_number": 1, "turns_remaining": 11, "found_agents_count": 0}'::jsonb,
-  'create_game: seeds the game status at turn 1, the whole budget, no agents'
+  '{"num": 1, "nTurnsUsed": 0, "maxTurns": 11, "nFoundAgents": 0}'::jsonb,
+  'create_game: writes the page at turn 1, the whole budget, no agents'
 );
 
 select is(

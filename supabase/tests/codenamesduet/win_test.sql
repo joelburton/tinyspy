@@ -169,7 +169,7 @@ select is(
 -- (5) …and the club line records that 15th agent: the builder runs after the
 -- ending, from the words, so the final count is the full fifteen.
 select is(
-  (select (clubpage_info->>'found_agents_count')::int from common.games where id = (select id from g)),
+  (select (summary_data->'team'->>'nFoundAgents')::int from common.games where id = (select id from g)),
   15,
   'the winning reveal records the 15th agent on the club line'
 );
