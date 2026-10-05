@@ -26,22 +26,22 @@ import type { GEvent, GPlayer } from '../types'
 /** One player's page-column: their board marking, their chain, their moves. */
 export type PrintTrack = {
   who: string
-  /** The words they played, in order. */
+  // The words they played, in order.
   chain: string[]
-  /** Board letters this player has covered — drives the board marking. */
+  // Board letters this player has covered — drives the board marking.
   covered: string[]
   turns: TurnRow[]
-  /** Their own one-line standing ("7/12 letters · 2 words"). */
+  // Their own one-line standing ("7/12 letters · 2 words").
   result: string
 }
 
 export type LetterboxedPrintModel = PrintHeader & {
-  /** Twelve letters in side order — positions 0-2 are one side, and so on. */
+  // Twelve letters in side order — positions 0-2 are one side, and so on.
   sides: string
-  /** One track per board. Coop is a single shared track (one chain); compete is
-   *  one per player. */
+  // One track per board. Coop is a single shared track (one chain); compete is
+  // one per player.
   tracks: PrintTrack[]
-  /** The seeded pair — null unless the players have revealed it. */
+  // The seeded pair — null unless the players have revealed it.
   solution: string[] | null
 }
 
@@ -68,15 +68,15 @@ export function buildLetterboxedPrintModel(o: {
   date: string
   sides: string
   mode: 'coop' | 'compete'
-  /** The seeded pair; null until the game ends. */
+  // The seeded pair; null until the game ends.
   solution: string[] | null
-  /** The reveal flag — the ONLY thing that lets the solution print. */
+  // The reveal flag — the ONLY thing that lets the solution print.
   solutionRevealed: boolean
-  /** Every player, each with the chain this seat may see (null for a rival
-   *  mid-race). */
+  // Every player, each with the chain this seat may see (null for a rival
+  // mid-race).
   players: GPlayer[]
   events: GEvent[]
-  /** The on-screen status line, repeated under the title. */
+  // The on-screen status line, repeated under the title.
   summary: string
   setupRows: SetupRow[]
 }): LetterboxedPrintModel {

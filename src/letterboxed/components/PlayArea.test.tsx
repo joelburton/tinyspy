@@ -426,7 +426,7 @@ describe('letterboxed PlayArea — the hint corpus when no word is clean', () =>
 
 /**
  * The board's answer to a word it refuses: the letters that word used shake.
- * It has NO clock — nothing arrives to take it down, and the thing that ends
+ * It has NO timer — nothing arrives to take it down, and the thing that ends
  * it is the player's next edit, which is the lifetime `NO_TIMER` names. Two
  * things make it awkward and both are pinned here: refusing the same word
  * twice has to shake twice, and the mark is about the word AS SUBMITTED, so

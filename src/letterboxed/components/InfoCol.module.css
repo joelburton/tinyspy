@@ -1,0 +1,29 @@
+/* cs-unmet */
+
+/* letterboxed's info column: the titled block the revealed solution sits in.
+ * Everything else in the column is the shared scaffold's. */
+
+/* A titled block in the info column — today only the revealed solution wears
+ * it (the chain lives above the board, the move log is the shared EventLog). */
+/* @@ */ .chainBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 0;
+}
+/* Same reasoning as .statLabel — a block's title is what tells you what you
+ * are looking at. */
+/* @@ */ .blockTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--page-text-color);
+}
+
+/* @@ */ .solution {
+  font-weight: 600;
+  /* The words are stored lowercase; the capitals are drawn. */
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}

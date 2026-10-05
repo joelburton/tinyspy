@@ -1,0 +1,16 @@
+/* cs-unmet */
+
+/* letterboxed's event log. Rows compose the shared <EventLog> table; only the
+ * move text is ours.
+ *
+ * BOTH kinds render at full --page-text-color: real values keep full text
+ * color, and a taken-back word is a real move (in turn-by-turn co-op it costs
+ * the undoer their go), and the log's whole job is to be readable. Italics
+ * carry the distinction instead. */
+/* @@ */ .logWord {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+/* @@ */ .logRetreat {
+  font-style: oblique;
+}

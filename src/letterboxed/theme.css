@@ -7,7 +7,7 @@
  * path it takes is the picture. So the accent is the snake's own green, and it
  * belongs to the line rather than to the letters.
  *
- *   --letterboxed-accent      The chain line + the currently-selected letter.
+ *   --letterboxed-accent      The chain line + the word's last letter.
  *                             The one "brand" color.
  *   --letterboxed-used        A letter already covered by the chain. Reads as
  *                             "done" without competing with the live path.

@@ -8,6 +8,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
+import { answerMessage } from '../lib/answer'
 import { BOARD_SIZE, joinSides, rejectReason } from '../lib/board'
 import type { GGameData } from '../types'
 
@@ -51,9 +52,10 @@ export function useChainMove(gd: GGameData, localFeedbackSlot: FeedbackSlot): {
   const chain = gd.me.board.words
   const maxWords = gd.me.maxWords
   const playable = useMemo(() => new Set(gd.puzzle.words.map((w) => w.word)), [gd.puzzle.words])
+  // A word or an undo is with the server and has not answered.
   const [inFlight, setInFlight] = useState(false)
 
-  // `NO_TIMER`, because nothing on a clock ends a refusal: it stands until the
+  // `NO_TIMER`, because nothing on a timer ends a refusal: it stands until the
   // next edit. The mark's `nonce` is what the board keys its letters on —
   // refusing the same word twice has to shake twice, and a CSS animation only
   // restarts on a new element. It is about the word AS SUBMITTED, so the next
@@ -77,24 +79,15 @@ export function useChainMove(gd: GGameData, localFeedbackSlot: FeedbackSlot): {
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return false
-    } else if (res.type === 'ok' && res.data.result === 'accepted' && res.outcome !== null) {
+    } else if (res.type === 'ok' && res.data.result === 'accepted') {
       clearRefused()
-      // The accepted word restates the cap: with no mobile status bar, "how
-      // many words are left" has no ambient home on a phone, so every accepted
-      // word says it. A cap-filling word says nothing: the chain-full note is
-      // what the player needs to read then. The words-left count is this
-      // surface's; the outcome is the server's.
-      const wordsLeft = maxWords - (chain.length + 1)
-      if (wordsLeft > 0) {
-        localFeedbackSlot.show(
-          FeedbackMessage.result(
-            res.outcome,
-            `${word.toUpperCase()} — ${wordsLeft} ${wordsLeft === 1 ? 'word' : 'words'} left`,
-          ),
-        )
-      } else {
-        localFeedbackSlot.dismiss()
-      }
+      const { outcome, text } = answerMessage({
+        answerType: 'accepted',
+        word,
+        nWordsLeft: maxWords - (chain.length + 1),
+      })
+      if (text === '') localFeedbackSlot.dismiss()
+      else localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
       return true
     } else if (res.type === 'ok' && res.data.result === 'solved') {
       // The ending's message is about to arrive with the blob, so this says

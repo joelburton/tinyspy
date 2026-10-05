@@ -35,7 +35,7 @@
 --     covers.
 --   - Covering all twelve letters within `max_words` wins at once: the team
 --     in coop, the first racer in compete. Undo refunds, so a player can't
---     run out; the clock is the only other ending.
+--     run out; a timeout is the only other ending.
 --   - In compete a rival may see how many words you have played and how much
 --     of the board you have covered, never which words until the game ends.
 --     That is the hook's rule (src/letterboxed/hooks/useGame.ts), not a
@@ -953,7 +953,7 @@ begin
   caller_id := common._require_game_player(p_game_id);
 
   if (select ended_at from common.games where id = p_game_id) is not null then
-    -- A race: a teammate solved it or ended it, or the clock ran out, while
+    -- A race: a teammate solved it or ended it, or the timer ran out, while
     -- this move was in flight.
     perform common._raise_game_over();
   end if;
@@ -1103,15 +1103,17 @@ begin
     perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
     -- `result` NAMES the ending, and is all the answer carries: what the
-    -- word did, the page reads from the blobs.
-    return common._ok_envelope(jsonb_build_object('result', 'solved'), 'won');
+    -- word did, the page reads from the blobs, and how it reads — the outcome
+    -- and the words — is the frontend's lib/answer.ts (docs/outcomes.md → How
+    -- a game does it).
+    return common._ok_envelope(jsonb_build_object('result', 'solved'));
   end if;
 
   -- Still going: hand the turn on (no-op in a free-for-all game).
   perform common._advance_turn(p_game_id);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  return common._ok_envelope(jsonb_build_object('result', 'accepted'), 'won');
+  return common._ok_envelope(jsonb_build_object('result', 'accepted'));
 
 exception when others then
   get stacked diagnostics
@@ -1138,7 +1140,7 @@ drop function if exists letterboxed.undo_word(uuid);
 -- It REFUNDS against max_words. That is what makes the cap a shape
 -- constraint on the solution — "your chain may be at most N words" —
 -- rather than a budget you can exhaust. You cannot lose here; you can
--- only be beaten, or run out the clock.
+-- only be beaten, or run out the timer.
 --
 -- IN TURN-BY-TURN COOP THE UNDO COSTS YOUR TURN (the _advance_turn at
 -- the end fires for undo exactly as it does for a played word). A free
@@ -1146,11 +1148,7 @@ drop function if exists letterboxed.undo_word(uuid);
 -- best dynamic: undoing doesn't help YOU — you retreat and the NEXT
 -- player inherits the better position, so it reads as a sacrifice.
 --
--- `noted`: a turn that counts and that nothing adjudicates — taking a word
--- back is neither good nor bad play. It is NEWS, which is the blue word, not
--- the gray one: the chain is shorter than it was and the player who did it
--- is telling the table so. The frontend's lib/answer.ts says the same word
--- for the row this writes.
+-- How an undo reads — news, not a verdict — is the frontend's lib/answer.ts.
 create or replace function letterboxed.undo_word(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1199,7 +1197,8 @@ begin
   perform common._advance_turn(p_game_id);
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  return common._ok_envelope(jsonb_build_object('result', 'undone'), 'noted');
+  -- The case alone, as submit_word's: how it reads is lib/answer.ts's.
+  return common._ok_envelope(jsonb_build_object('result', 'undone'));
 
 exception when others then
   get stacked diagnostics
@@ -1226,8 +1225,8 @@ drop function if exists letterboxed.clear_chain(uuid);
 -- empty chain there, one turn at a time — which is the right speed, if
 -- a group genuinely needs to start over they should feel it.
 --
--- `noted` for the same reason undo is: emptying the chain is news about the
--- chain rather than a move anything adjudicates.
+-- How a clear reads — news about the chain, not a verdict — is the frontend's
+-- lib/answer.ts.
 create or replace function letterboxed.clear_chain(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1260,7 +1259,8 @@ begin
 
   perform letterboxed._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  return common._ok_envelope(jsonb_build_object('result', 'cleared'), 'noted');
+  -- The case alone, as submit_word's: how it reads is lib/answer.ts's.
+  return common._ok_envelope(jsonb_build_object('result', 'cleared'));
 
 exception when others then
   get stacked diagnostics
@@ -1369,7 +1369,7 @@ grant execute on function letterboxed.log_hint_or_spoiler(uuid, text, text) to a
 drop function if exists letterboxed.submit_timeout(uuid);
 
 -- ============================================================
--- letterboxed.submit_timeout — the clock ran out
+-- letterboxed.submit_timeout — the timer ran out
 -- ============================================================
 -- Fired by every connected client when a countdown hits 0; the first ends
 -- the game, the rest find it ended and answer the game-over race.
@@ -1461,7 +1461,7 @@ drop function if exists letterboxed.end_game(uuid);
 -- ============================================================
 -- Any player stops the game for the whole table, in either mode, with no
 -- result (docs/common-schema.md → Stop). That is the difference from
--- submit_timeout: the clock running out on a race is a RESULT (compete
+-- submit_timeout: the timer running out on a race is a RESULT (compete
 -- ranks on coverage), but a group agreeing to stop is a group agreeing not
 -- to have one. Calling that a loss would tell them their own decision beat
 -- them.

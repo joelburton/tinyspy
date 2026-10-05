@@ -3,10 +3,10 @@
 import { describe, expect, it } from 'vitest'
 import { historyChainAt, historyLabelAt } from './history'
 import { ZTest_event } from './gameData.fixture'
-import type { GAnswer } from '../types'
+import type { GEventRaw } from '../types'
 
 let n = 0
-const ev = (kind: GAnswer, word: string | null) => ZTest_event(++n, 'u', kind, word, 0)
+const ev = (kind: GEventRaw['kind'], word: string | null) => ZTest_event(++n, 'u', kind, word, 0)
 
 describe('historyChainAt', () => {
   it('replays plays in order, inclusive of the viewed move', () => {

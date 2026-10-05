@@ -1,0 +1,87 @@
+/* cs-unmet */
+
+/* The chain strip, ABOVE the board.
+ *
+ * The slot reserves TWO LINES from the start: chain words run long (a 9-letter
+ * word plus its ×), so a second row appears on an ordinary game, and the board
+ * must not jump down when it does (docs/ui.md → layout stability). */
+/* @@ */ .chain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  /* CENTERED in the reservation, not top-aligned: with one line of chain a
+   * top-aligned strip leaves a band of space between it and the board, and the
+   * two stop reading as one unit. Centering keeps the chain near the board
+   * whatever it currently occupies. */
+  align-content: center;
+  gap: 0.4rem;
+  /* Reserved rows + gaps, so the board never moves when the chain wraps
+   * (docs/ui.md → layout stability). The row count comes from BoardCol's
+   * estimate (base 2; a long chain can raise it, and .boardCol's --avail-h
+   * takes the extra out of the board rather than the page). */
+/* @@ */   --rows: var(--chain-rows-desktop, 2);
+  min-height: calc(var(--rows) * 2.4rem + (var(--rows) - 1) * 0.4rem);
+  width: 100%;
+}
+
+/* A phone's board column is much narrower, so the same chain wraps sooner —
+ * the base is three rows, reserved up front for the same reason. */
+@media (--mobile) {
+/* @@ */   .chain {
+/* @@ */     --rows: var(--chain-rows-mobile, 3);
+  }
+}
+
+/* Outlined pills, not filled: the chain sits directly above the board, and a
+ * row of solid blocks there competes with the board's own filled letter nodes
+ * for the eye. The outline reads as "a thing you played" without shouting. */
+/* @@ */ .chainWord {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  /* 2px of the same green the CURRENT letter is filled with (Board's `.last`),
+   * so a played word and the live one read as one vocabulary. At 1px the
+   * outline grayed out at a glance. */
+  border: 2px solid var(--letterboxed-accent);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  /* The words are stored lowercase; the capitals are drawn. */
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.35;
+}
+
+/* The last word is the only one that can be taken back, so it makes room for
+ * the × rather than every pill carrying the padding for one. */
+/* @@ */ .chainLast {
+  padding-right: 0.25rem;
+}
+
+/* A real touch target. This is the ONLY undo affordance in the game and the
+ * site is used on phones, so it gets the ~2.2rem box a thumb needs — not the
+ * bare glyph it started as. */
+/* @@ */ .chainRemove {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  margin: -0.35rem 0;
+  border-radius: 999px;
+  color: var(--page-text-color);
+}
+.chainRemove:hover,
+/* @@ */ .chainRemove:focus-visible {
+  background: var(--field-fill-color);
+}
+/* @@ */ .chainEmpty {
+  color: var(--page-text-muted-color);
+  align-self: center;
+}

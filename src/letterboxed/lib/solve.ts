@@ -25,25 +25,25 @@ import { BOARD_SIZE, tailLetter } from './board'
 
 /** What the hint found. */
 type Suggestion = {
-  /** A word to play next, on a shortest path to finishing. */
+  // A word to play next, on a shortest path to finishing.
   word: string
-  /** How many of the twelve letters it newly covers. */
+  // How many of the twelve letters it newly covers.
   newLetters: number
-  /** Words still needed AFTER this one, this word included. So 1 means this
-   *  word finishes the board. */
+  // Words still needed AFTER this one, this word included. So 1 means this
+  // word finishes the board.
   wordsToFinish: number
 }
 
 /** Why no suggestion could be made — the three are very different situations. */
 type NoSuggestion =
-  /** Nothing at all can follow the current letter: the chain has dead-ended
-   *  and the only move is taking a word back. */
+  // Nothing at all can follow the current letter: the chain has dead-ended
+  // and the only move is taking a word back.
   | { kind: 'stuck' }
-  /** Words exist, but no sequence of them covers the board from here. */
+  // Words exist, but no sequence of them covers the board from here.
   | { kind: 'unreachable' }
-  /** Off par: the board is still finishable, but the shortest finish needs
-   *  more words than the chain has room for. A hint that suggested the first
-   *  of those words would be leading the player into the cap. */
+  // Off par: the board is still finishable, but the shortest finish needs
+  // more words than the chain has room for. A hint that suggested the first
+  // of those words would be leading the player into the cap.
   | { kind: 'offPar'; wordsToFinish: number }
 
 type Indexed = { word: string; mask: number; first: number; last: number }

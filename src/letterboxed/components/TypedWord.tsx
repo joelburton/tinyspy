@@ -1,6 +1,6 @@
 // cs-unmet
 
-import styles from './PlayArea.module.css'
+import styles from './TypedWord.module.css'
 
 /**
  * The in-progress word as the value INSIDE the shared `<WordEntryInput>` (passed as

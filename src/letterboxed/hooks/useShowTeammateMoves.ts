@@ -3,9 +3,7 @@
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
-import { ANSWER_OUTCOME } from '../lib/answer'
-import { BOARD_SIZE } from '../lib/board'
-import { hintOrSpoilerPillText } from '../lib/hintOrSpoiler'
+import { answerMessage, peerAnswerOf } from '../lib/answer'
 import type { GGameData } from '../types'
 
 /**
@@ -32,26 +30,13 @@ export function useShowTeammateMoves(
     messageFor: (e) => {
       if (e.by === gd.me) return null
       if (e.kind === 'hint' || e.kind === 'spoiler') {
-        // Every hint and spoiler row names the word it showed.
-        localFeedbackSlot.show(
-          FeedbackMessage.hint(ANSWER_OUTCOME[e.kind], hintOrSpoilerPillText(e.kind, e.word!)),
-        )
-        return FeedbackMessage.peer(
-          e.by,
-          ANSWER_OUTCOME[e.kind],
-          e.kind === 'hint' ? 'got a hint' : 'revealed a word',
-        )
+        // The content, the same pill the asker saw. Every hint and spoiler row
+        // names the word it showed.
+        const content = answerMessage({ answerType: e.kind, word: e.word! })
+        localFeedbackSlot.show(FeedbackMessage.hint(content.outcome, content.text))
       }
-      return FeedbackMessage.peer(e.by, ANSWER_OUTCOME[e.kind], makeMoveText())
-
-      /** What the move did, in the header's few words. */
-      function makeMoveText(): string {
-        if (e.kind === 'word') return `${e.word!.toUpperCase()} (${e.nCoveredLetters}/${BOARD_SIZE})`
-        // Named, not "the last word": the team's board just lost it, so say
-        // WHICH word came off (the log's "took back GJB" agrees).
-        if (e.kind === 'undo') return `undid ${e.word!.toUpperCase()}`
-        return 'cleared the chain'
-      }
+      const { outcome, text } = answerMessage(peerAnswerOf(e))
+      return FeedbackMessage.peer(e.by, outcome, text)
     },
     globalFeedbackSlot,
   })

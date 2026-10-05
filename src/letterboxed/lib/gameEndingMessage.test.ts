@@ -22,7 +22,7 @@ function messageFor(
 }
 
 describe('letterboxed buildGameEndingMessage', () => {
-  it('coop: a win counts the words, the clock is the one loss, a Stop is the shared neutral', () => {
+  it('coop: a win counts the words, a timeout is the one loss, a Stop is the shared neutral', () => {
     expect(messageFor('coop', 'won', 'reached_goal', 'won')).toEqual({
       pillText: 'Won: all twelve in 3 words', infoColText: 'All letters used!', outcome: 'won',
     })

@@ -34,7 +34,7 @@ select (letterboxed.create_game(
   pg_temp.lb_board()
 )->'data'->>'id')::uuid as id;
 
--- Three letters covered when the clock runs out.
+-- Three letters covered when the timer runs out.
 select letterboxed.submit_word((select id from g), 'adg');
 select letterboxed.submit_timeout((select id from g));
 
@@ -53,12 +53,12 @@ select is(
 select is(
   (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g)),
   'timeout/timeout',
-  'the ending names the clock as the cause'
+  'the ending names the timeout as the cause'
 );
 select is(
   (select summary_data->'team'->>'nCoveredLetters' from common.games where id = (select id from g)),
   '3',
-  'the summary restates the coverage the clock froze'
+  'the summary restates the coverage the timeout froze'
 );
 select is(
   (select count(*)::int from common.game_players

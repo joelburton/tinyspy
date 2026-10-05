@@ -7,18 +7,10 @@ import type { suggest } from './solve'
 type NoSuggestion = Exclude<ReturnType<typeof suggest>, { word: string }>
 
 /**
- * ONE definition of what each rung SHOWS, because three surfaces must agree
- * word-for-word: the requester's own pill (`askForHintOrSpoiler`), the
- * teammates' echoed pill (the peer-events narration), and the event log's
- * lasting record. Drift between them would make the same hint read as
- * different information to different players.
- *
- * What each rung is WORTH is `lib/answer.ts`'s to say.
- */
-
-/**
  * The hint's opening letters: 3 normally, 4 for a long word (> 8) — enough to
  * find the word's start on the board without handing the whole thing over.
+ * The hint's pill (`lib/answer.ts`) and the event log's row both read it, so
+ * the same hint reads as the same information to everyone.
  */
 export function hintPrefix(word: string): string {
   return word.slice(0, word.length > 8 ? 4 : 3).toUpperCase()
@@ -62,11 +54,4 @@ export function makeNoSuggestionText(
     return `Best solution needs ${r.wordsToFinish} ${r.wordsToFinish === 1 ? 'word' : 'words'}`
   }
   return 'No winning path from here'
-}
-
-/** The pill text for a rung: the hint DESCRIBES the word, the spoiler IS it. */
-export function hintOrSpoilerPillText(kind: 'hint' | 'spoiler', word: string): string {
-  return kind === 'hint'
-    ? `${word.length} letters starting with ${hintPrefix(word)}`
-    : word.toUpperCase()
 }

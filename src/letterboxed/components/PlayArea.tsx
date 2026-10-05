@@ -93,7 +93,8 @@ function PlayArea({
   // mine (turn-order coop; never in a free-for-all, where it always is).
   const turnFlash = useTurnStartFlash(gd.me.onTurn)
 
-  // The below-board slot: word results, the hint ladder, the standing
+  // ─── The local slot ────────────────────────────────────
+  // Messages about ME: word results, the hint ladder, the standing
   // conditions, the ending.
   const localFeedbackSlot = useFeedbackSlot('local')
 
@@ -113,7 +114,9 @@ function PlayArea({
     holder: gd.turns?.holder ?? null,
   })
 
-  // A teammate's move, in the header slot (coop).
+  // ─── Narration ─────────────────────────────────────────
+  // Messages about somebody ELSE: a teammate's move, in the header slot, and a
+  // hint or spoiler's content in mine (coop).
   useShowTeammateMoves(gd, globalFeedbackSlot, localFeedbackSlot)
 
   // ─── The turn-history view ─────────────────────────────

@@ -88,7 +88,7 @@ as $$
   select jsonb_build_object(
     'extra_words', 3,
     'legal_band',  5,
-    -- Required by common._require_valid_timer even when there is no clock;
+    -- Required by common._require_valid_timer even when there is no timer;
     -- kind 'none' is how a game says "untimed".
     'timer',      jsonb_build_object('kind', 'none')
   );

@@ -16,7 +16,7 @@ import { BOARD_SIZE } from './board'
  *
  * The words come from the game's ending; the outcome is MINE, as the database
  * wrote it (`common.game_players.outcome`), never worked out here. Coop wins by
- * covering all twelve inside the cap, and loses only to the clock. Compete's
+ * covering all twelve inside the cap, and loses only to a timeout. Compete's
  * win is FIRST past that same bar, so the race ends on a solve; a timed-out
  * race resolves on the most letters covered, ties sharing the win.
  *
@@ -31,7 +31,7 @@ export function buildGameEndingMessage({
   winnerNames,
 }: {
   mode: 'coop' | 'compete'
-  // How the game ended: a solve (`reached_goal`), the clock (`timeout`), every
+  // How the game ended: a solve (`reached_goal`), the timer (`timeout`), every
   // racer dropping out (`conceded`), or a Stop (`neutral`).
   gameEnding: Pick<GameEnding, 'outcome' | 'reason'>
   // How I came out, written with the game's ending.

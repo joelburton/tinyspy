@@ -1,0 +1,39 @@
+/* cs-unmet */
+
+/* The two fractions the game reduces to — letters covered, words spent — as a
+ * 2-cell stat grid (the shape spellingbee/wordwheel's shared <Stats> uses —
+ * theirs hardcodes Score/Words labels, so this is the same look rather than
+ * the same component). */
+/* @@ */ .stats {
+  /* auto-flow column so a future extra cell needs no grid re-declaration. */
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.5rem;
+}
+/* @@ */ .statCell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+/* Full text color at 600, not muted at 400: these NAME the numbers beside
+ * them, so they are structure rather than decoration, and the repo's standing
+ * rule is that light unbolded text is for things that don't matter. */
+/* @@ */ .statLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--page-text-color);
+}
+/* @@ */ .statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+/* @@ */ .statOf {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--page-text-muted-color);
+}

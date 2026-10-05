@@ -7,7 +7,7 @@ import {
   type ZTest_PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
-import type { GAnswer, GEventRaw, GGameDataRaw, GPlayerRaw, GSetup, GTile } from '../types'
+import type { GEventRaw, GGameDataRaw, GPlayerRaw, GSetup, GTile } from '../types'
 
 /** setup.psql's board: four sides of three, in alphabetical order. */
 export const ZTest_SIDES = 'abcdefghijkl'
@@ -88,7 +88,7 @@ export function ZTest_makeTiles(sides: string = ZTest_SIDES): GTile[] {
 export function ZTest_event(
   id: number,
   userId: string,
-  kind: GAnswer,
+  kind: GEventRaw['kind'],
   word: string | null,
   nCoveredLetters: number,
 ): GEventRaw {
@@ -130,7 +130,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const ended = ending !== null
   const coop = mode === 'coop'
   const turnBased = turnHolderId !== undefined
-  const countOf = (p: ZTest_PlayerFacts, kind: GAnswer) =>
+  const countOf = (p: ZTest_PlayerFacts, kind: GEventRaw['kind']) =>
     events.filter((e) => e.userId === p.id && e.kind === kind).length
 
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {

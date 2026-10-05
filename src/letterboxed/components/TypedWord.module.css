@@ -1,0 +1,11 @@
+/* cs-unmet */
+
+/* The carried-over first letter in the entry box. It is the one character
+ * Backspace won't remove, so it must not look like the ones it will.
+ *
+ * A DARKER green than the board's accent: the accent is the right idea, but a
+ * filled circle carries a color that a few thin glyph strokes don't, so at
+ * text weight it read as a light green rather than as a deliberate mark. */
+/* @@ */ .seedLetter {
+  color: var(--letterboxed-seed);
+}

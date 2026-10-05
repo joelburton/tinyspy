@@ -37,7 +37,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('SnakeBox pages', array['ada', 'bea']) as handle;
 
--- Three games: one per mode, and a second race that the clock ends.
+-- Three games: one per mode, and a second race that the timer ends.
 create temp table g on commit drop as
 select name, (letterboxed.create_game(
   (select handle from club),
@@ -215,7 +215,7 @@ select is(
 
 -- ─── (4) The endings ───
 -- Coop: ada takes ADG back, then plays the seeded pair. Compete: the same, and
--- the solve ends the race. Timed: ada plays ADG and the clock runs out.
+-- the solve ends the race. Timed: ada plays ADG and the timer runs out.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select letterboxed.undo_word(pg_temp.game('coop'));
 select letterboxed.submit_word(pg_temp.game('coop'), 'adgjbehk');

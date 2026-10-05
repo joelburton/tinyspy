@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { BOARD_SIZE } from '../lib/board'
-import styles from './PlayArea.module.css'
+import styles from './StateLine.module.css'
 import type { GStateLineData } from '../types'
 
 /**

@@ -46,6 +46,8 @@ export function useTypedWord({
   // Back to the bare seed, after the chain moved.
   clear: () => void
 } {
+  // What I have typed after the seed letter the chain hands me — the part of
+  // the word that is mine to edit.
   const [draft, setDraft] = useState('')
   const seed = tailLetter(gd.me.board.words) ?? ''
   const word = seed + draft

@@ -1,0 +1,76 @@
+/* cs-unmet */
+
+/* letterboxed's board column: the column itself, the box the chain strip and
+ * the board share, and the entry slot's width. */
+
+/* The board column hugs the square. A max-width keeps a big desktop from
+ * inflating a 12-letter board into a wall. */
+/* @@ */ .boardCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  /* The board is SQUARE, so it is bounded on BOTH axes — the width left
+   * beside the info column, the height above the entry row, and a cap so a
+   * big desktop doesn't inflate twelve letters into a wall. The boggle idiom
+   * (docs/playarea.md → Board sizing); without a definite size here `.boardCol` is
+   * `flex: 0 0 auto` and hugs the SVG's intrinsic size, which renders the
+   * board as a postage stamp in a wide column. */
+  /* --avail-h is a PER-GAME token (boggle / stackdown / waffle each define
+   * their own), not a shared one: only the game knows what sits below its
+   * board. Ours is the entry row plus the Undo/Clear row plus the gaps —
+   * about 8rem. Referencing it without defining it makes the whole min()
+   * invalid, which silently drops the board back to its intrinsic size. */
+  /* The chain-rows term: when a long chain outgrows the BASE reservation
+   * (2 rows here, 3 on a phone), the extra rows come out of the board's
+   * height budget so the board SHRINKS once instead of the page scrolling —
+   * never-scroll outranks never-move, and the shift is rare by design
+   * (lib/chainRows.ts). BoardCol sets the two --chain-rows-* vars inline;
+   * the fallbacks keep the calc valid before React hydrates a value. */
+/* @@ */   --avail-h: calc(
+    100svh - var(--game-chrome-height) - 8rem -
+      (var(--chain-rows-desktop, 2) - 2) * 2.8rem
+  );
+/* @@ */   --side: min(var(--avail-w), var(--avail-h), 34rem);
+  width: var(--side);
+}
+
+/* MOBILE: deliberately NO <MobileStatusBar> (docs/mobile.md's adoption rule —
+ * the board itself is the letters readout and the chain strip the words
+ * readout, and the accepted-word pill restates the cap). All the phone needs
+ * is the narrower chain-rows base: 3 reserved rows instead of 2. */
+@media (--mobile) {
+/* @@ */   .boardCol {
+/* @@ */     --avail-h: calc(
+      100svh - var(--game-chrome-height) - 8rem -
+        (var(--chain-rows-mobile, 3) - 3) * 2.8rem
+    );
+  }
+}
+
+/* The chain strip + the board, as one unit — what the turn-history viewer
+ * frames (BoardCol explains why they're a pair). Purely a grouping box: it
+ * exists so ONE viewing outline can wrap both, and it must be invisible to the
+ * layout otherwise.
+ *
+ * `gap: inherit` rather than a repeated `0.75rem`: the value belongs to the
+ * shared `.boardCol`, and this box's whole job is to sit inside that column
+ * without changing its rhythm — the strip↔board gap is this one, the
+ * wrapper↔entry gap is still the column's own. Taking the parent's computed
+ * value means the two can never drift apart.
+ *
+ * No width: the column already sets `width: var(--side)` on ITSELF, and a flex
+ * child stretches, so the board still sizes from the column exactly as before. */
+/* @@ */ .historyFramed {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  min-width: 0;
+}
+
+/* The reserved height lives on the shared `.moveAreaOrLocalFeedback` this
+ * composes with; all that's left here is pinning the WIDTH to the board so a
+ * long typed word can't widen the column and shift the centered board. */
+/* @@ */ .entrySlot {
+  width: 100%;
+}

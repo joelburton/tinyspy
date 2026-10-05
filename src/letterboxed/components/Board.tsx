@@ -6,7 +6,6 @@ import { coveredLetters, EDGE, layout, pathPoints, SPAN } from '../lib/board'
 import { Tile } from './Tile'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './Board.module.css'
-import play from './PlayArea.module.css'
 import type { GTile } from '../types'
 
 /** What this screen adds to the board, beyond the tiles. */
@@ -33,9 +32,8 @@ type BoardMarks = {
  * it could have.
  *
  * Letters that can't legally follow the current one are inert — clicking one
- * does nothing — but they are NOT dimmed. An earlier version faded them, which
- * looked helpful and played badly: you plan a whole word before you commit to
- * it, and a board where a third of the letters are unreadable at any moment is
+ * does nothing — but they are NOT dimmed. Fading them looks helpful and plays
+ * badly: you plan a whole word before you commit to it, and a board where a third of the letters are unreadable at any moment is
  * a board you can't plan on. The rule is learned in one move; the legibility
  * cost is paid on every move. The server re-checks everything regardless.
  */
@@ -65,20 +63,18 @@ export function Board({
   // The path the word in progress traces.
   const points = useMemo(() => pathPoints(typedWord, placed), [typedWord, placed])
 
-  /**
-   * The GHOST: the last word of the chain on show, in a quieter line, so
-   * everyone can see where the chain just went — in coop whoever played it,
-   * since the chain is shared; in compete my own last word, a rival's chain
-   * being withheld mid-race.
-   *
-   * It survives the word's FIRST letter, which is not a choice — it's carried
-   * over from the previous word's tail — and clears on the second, the moment
-   * the player has actually decided something. `typedWord.length < 2` is that
-   * rule.
-   *
-   * The history viewer gets this for free: it passes no typed word and a past
-   * move's chain, so stepping back through turns replays each word's path.
-   */
+  // The GHOST: the last word of the chain on show, in a quieter line, so
+  // everyone can see where the chain just went — in coop whoever played it,
+  // since the chain is shared; in compete my own last word, a rival's chain
+  // being withheld mid-race.
+  //
+  // It survives the word's FIRST letter, which is not a choice — it's carried
+  // over from the previous word's tail — and clears on the second, the moment
+  // the player has actually decided something. `typedWord.length < 2` is that
+  // rule.
+  //
+  // The history viewer gets this for free: it passes no typed word and a past
+  // move's chain, so stepping back through turns replays each word's path.
   const ghostPoints = useMemo(
     () => (typedWord.length < 2 ? pathPoints(words.at(-1) ?? '', placed) : ''),
     [typedWord, words, placed],
@@ -93,7 +89,6 @@ export function Board({
       className={cls(
         shared.boardSeal,
         styles.board,
-        play.board,
         marks.myTurnJustStarted && shared.yourTurnFlash,
       )}
     >

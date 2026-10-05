@@ -5,9 +5,9 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
-import { ANSWER_OUTCOME } from './answer'
+import { answerMessage } from './answer'
 import { joinSides } from './board'
-import { hintOrSpoilerPillText, makeNoSuggestionText } from './hintOrSpoiler'
+import { makeNoSuggestionText } from './hintOrSpoiler'
 import { isSuggestion, suggest } from './solve'
 import type { GGameData } from '../types'
 
@@ -74,9 +74,8 @@ export async function askForHintOrSpoiler(
   // Nothing is lost by that: the answers are one race that only fires once
   // the game is over (a hint has nothing left to be for) and faults that mean
   // a broken client (Joel, 2026-09-01).
-  localFeedbackSlot.show(
-    FeedbackMessage.hint(ANSWER_OUTCOME[kind], hintOrSpoilerPillText(kind, r.word)),
-  )
+  const { outcome, text } = answerMessage({ answerType: kind, word: r.word })
+  localFeedbackSlot.show(FeedbackMessage.hint(outcome, text))
   const res = await runRpc<RungAnswer>(
     db.rpc('log_hint_or_spoiler', { p_game_id: gd.id, p_word_shown: r.word, p_kind: kind }),
   )

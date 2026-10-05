@@ -96,16 +96,35 @@ export type GStateLineData = {
 }
 
 /**
- * What a turn was — the five things a `letterboxed.events` row can record, and
- * the row's own `kind` column is already the key, so nothing translates.
- * `lib/answer.ts` gives each its outcome.
+ * Every answer letterboxed gives, mine and a teammate's — the whole roster of
+ * what this game tells anybody about a move. `lib/answer.ts` says what each
+ * one reads as (docs/outcomes.md → How a game does it). The words are the
+ * move RPCs' `result`s, and the row's `kind` for a hint and a spoiler.
  *
- * The frontend's own refusal is deliberately absent. `rejectReason` turns a word
- * away before the RPC is called, nothing is written down, and the pill is its
- * only outcome surface (the board mark beside it is a shake, which carries no
- * word).
+ * The frontend's own refusals are deliberately absent. `rejectReason` turns a
+ * word away before the RPC is called and the hint ladder can find no word to
+ * offer: nothing is written down, and the pill is the only surface.
  */
-export type GAnswer = 'word' | 'undo' | 'clear' | 'hint' | 'spoiler'
+export type GAnswer =
+  // My word joined the chain. It restates how many words are left under the
+  // cap, since a phone has nowhere else to show it; a cap-filling word says
+  // nothing (`nWordsLeft` 0), as the chain-full note is what to read then.
+  | { answerType: 'accepted'; word: string; nWordsLeft: number }
+  // A coop teammate's did, with how much of the board the chain now covers.
+  | { answerType: 'accepted_peer'; word: string; nCoveredLetters: number }
+  // My word covered the twelve. It says nothing: the ending's message does.
+  | { answerType: 'solved' }
+  // I took my last word back. It says nothing: the chain strip shows it.
+  | { answerType: 'undone' }
+  // A teammate took theirs back — named, since the team's board just lost it.
+  | { answerType: 'undone_peer'; word: string }
+  // A teammate emptied the chain.
+  | { answerType: 'cleared_peer' }
+  // The hint ladder's rungs: a hint describes the next word, a spoiler is it.
+  | { answerType: 'hint'; word: string }
+  | { answerType: 'hint_peer' }
+  | { answerType: 'spoiler'; word: string }
+  | { answerType: 'spoiler_peer' }
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
  *  player (`GEvent`). */
@@ -113,7 +132,7 @@ export type GEventRaw = {
   // The row's own id, and the order of play.
   id: number
   userId: string
-  kind: GAnswer
+  kind: 'word' | 'undo' | 'clear' | 'hint' | 'spoiler'
   // The word played, taken back, hinted or spoiled; null for a clear, which
   // is about the whole chain.
   word: string | null

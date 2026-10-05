@@ -1,16 +1,16 @@
 // cs-fixed-outcome-fix
 
+import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { GAnswer } from '../types'
+import { BOARD_SIZE } from './board'
+import { hintPrefix } from './hintOrSpoiler'
+import type { GAnswer, GEvent } from '../types'
 
 /**
- * The outcome of every answer, in one place.
- *
- * **The log bar, a teammate's line and the hint/spoiler pill all read THIS**,
- * and every RPC that writes one of these rows says the same word in its
- * envelope. They are views of one turn, and deriving the outcome per view is
- * exactly how they drift: a hint is one event, and the log and the pill
- * choosing its color separately are two chances to disagree about it.
+ * How an answer reads — **the one place this game decides that.** The pill, a
+ * teammate's header line, the content echoed into my slot and the event log's
+ * bar all read it. An empty `text` means nothing is shown: the answer's only
+ * job there is its outcome.
  *
  * The readings, which are this game's rather than the vocabulary's:
  *
@@ -29,10 +29,71 @@ import type { GAnswer } from '../types'
  *     something to find: `warning`, as a hint is in every game.
  *   - a spoiler IS the word. There is nothing left to find, so it is red.
  */
-export const ANSWER_OUTCOME: Record<GAnswer, Outcome> = {
-  word: 'won',
-  undo: 'noted',
-  clear: 'noted',
-  hint: 'warning',
-  spoiler: 'lost',
+export function answerMessage(answer: GAnswer): AnswerMessage {
+  switch (answer.answerType) {
+    case 'accepted': {
+      const n = answer.nWordsLeft
+      return {
+        outcome: 'won',
+        text: n === 0 ? '' : `${answer.word.toUpperCase()} — ${n} ${n === 1 ? 'word' : 'words'} left`,
+      }
+    }
+    case 'accepted_peer':
+      return {
+        outcome: 'won',
+        text: `${answer.word.toUpperCase()} (${answer.nCoveredLetters}/${BOARD_SIZE})`,
+      }
+    case 'solved':
+      return { outcome: 'won', text: '' }
+
+    case 'undone':
+      return { outcome: 'noted', text: '' }
+    // Named, not "the last word": the team's board just lost it, so say WHICH
+    // word came off (the log's "took back GJB" agrees).
+    case 'undone_peer':
+      return { outcome: 'noted', text: `undid ${answer.word.toUpperCase()}` }
+    case 'cleared_peer':
+      return { outcome: 'noted', text: 'cleared the chain' }
+
+    // The hint DESCRIBES the word, the spoiler IS it.
+    case 'hint':
+      return {
+        outcome: 'warning',
+        text: `${answer.word.length} letters starting with ${hintPrefix(answer.word)}`,
+      }
+    case 'hint_peer':
+      return { outcome: 'warning', text: 'got a hint' }
+    case 'spoiler':
+      return { outcome: 'lost', text: answer.word.toUpperCase() }
+    case 'spoiler_peer':
+      return { outcome: 'lost', text: 'revealed a word' }
+  }
+}
+
+/** The columns of a log row that say what it WAS. */
+type LoggedEvent = Pick<GEvent, 'kind' | 'word' | 'nCoveredLetters'>
+
+/** What COLOR a logged row is — for the event log, which writes its own words. */
+export function eventToOutcome(row: LoggedEvent): Outcome {
+  return answerMessage(peerAnswerOf(row)).outcome
+}
+
+/**
+ * Which answer a logged row is when it is a TEAMMATE's — the caller has
+ * already established that it is not the viewer's own. Every word, undo, hint
+ * and spoiler row names its word.
+ */
+export function peerAnswerOf(row: LoggedEvent): GAnswer {
+  switch (row.kind) {
+    case 'word':
+      return { answerType: 'accepted_peer', word: row.word!, nCoveredLetters: row.nCoveredLetters }
+    case 'undo':
+      return { answerType: 'undone_peer', word: row.word! }
+    case 'clear':
+      return { answerType: 'cleared_peer' }
+    case 'hint':
+      return { answerType: 'hint_peer' }
+    case 'spoiler':
+      return { answerType: 'spoiler_peer' }
+  }
 }

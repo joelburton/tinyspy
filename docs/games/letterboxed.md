@@ -180,9 +180,9 @@ The ending is `common.games`' reason, detail and outcome
 | mode | when | reason / detail | ranked |
 |---|---|---|---|
 | coop | all twelve covered | `reached_goal` / `solved` | everyone 1, won |
-| coop | the clock | `timeout` | nobody — a loss |
+| coop | the timer | `timeout` | nobody — a loss |
 | compete | the first to cover all twelve | `reached_goal` / `solved` | the solver alone; the race ends when decided |
-| compete | the clock | `timeout` | by progress: each racer who didn't concede and covered anything, by letters covered then the shorter chain, ties sharing a rank |
+| compete | the timer | `timeout` | by progress: each racer who didn't concede and covered anything, by letters covered then the shorter chain, ties sharing a rank |
 | compete | every racer conceded | `conceded` | nobody — a loss |
 | either | somebody pressed Stop | `stopped` | nobody — neutral |
 
@@ -261,32 +261,42 @@ is the remedy in every case and therefore worth no characters: the pill is
 characters and truncated mid-word on DESKTOP. The undo × is on the chain strip
 either way.
 
-### The one outcome decision (`lib/answer.ts`)
+### The answers (`lib/answer.ts`)
 
-Every turn letterboxed can produce is one of five answers — `word`, `undo`,
-`clear`, `hint`, `spoiler` — and the `events` row's own `kind` column is
-already the key, so nothing translates. `lib/answer.ts` says what each is
-worth: `won` · `noted` · `noted` · `warning` · `lost`.
+Every answer letterboxed gives, mine and a teammate's, is one of ten (`GAnswer`),
+named in the move RPCs' own words, and `answerMessage(answer)` says how each
+reads — its outcome and its words — and is the only place that does:
 
-**An undo and a clear are `noted`, not `neutral`.** They are news: the chain is
-shorter than it was, and the player who did it is telling the table so. Blue is
-the vocabulary's word for that. A hint leaves you something to find, so it is
-amber; a spoiler IS the word, so it is red.
+| answer | outcome | words |
+|---|---|---|
+| `accepted` | won | "ADG — 3 words left", restating the cap; a cap-filling word says nothing, since the chain-full note is what to read then |
+| `accepted_peer` | won | "GJB (5/12)" — the word and the board covered |
+| `solved` | won | none: the ending's message says it |
+| `undone` | noted | none: the chain strip shows it |
+| `undone_peer` | noted | "undid GJB", named, since the team's board just lost it |
+| `cleared_peer` | noted | "cleared the chain" |
+| `hint` | warning | "8 letters starting with DEM" |
+| `hint_peer` | warning | "got a hint" |
+| `spoiler` | lost | "DEMOTIC" — the word |
+| `spoiler_peer` | lost | "revealed a word" |
 
-The log bar, a teammate's line and the rung's own pill index the table. The
-played-word pill reads `submit_word`'s envelope, and `undo_word` /
-`clear_chain` say `noted` in theirs — the same rule in SQL, pinned in
-`gameplay_test.sql` against `lib/answer.test.ts`. `log_hint_or_spoiler`
-deliberately carries no outcome: the frontend computed the suggestion and
-pilled it before the row was ever written, so the table is the only authority
-for those two.
+**A played word is `won`**: landing a legal word on this board is the
+achievement. **An undo and a clear are `noted`, not `neutral`**: they are news —
+the chain is shorter than it was, and the player who did it is telling the
+table so. A hint leaves you something to find, so it is amber; a spoiler IS the
+word, so it is red.
 
-The frontend's own refusal is not in it: `rejectReason` turns a word away
-before any RPC, nothing is written down, and the pill is its only outcome
-surface (the board mark beside it is a shake, which carries no word).
+Everything holding a log ROW asks the same file: `peerAnswerOf(row)` reads a
+row's answer off its `kind`, and `eventToOutcome(row)` colors the log's bar.
+The move RPCs' envelopes carry no outcome and no sentence — the frontend's
+words are the only words — and both halves are tested: `lib/answer.test.ts`
+pins every answer, `gameplay_test.sql` the nulls ([outcomes.md → How a game
+does it](../outcomes.md#how-a-game-does-it)).
 
-The rule this follows is [outcomes.md → One event, one
-outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
+The frontend's own refusals are not answers: `rejectReason` turns a word away
+before any RPC, and the hint ladder can find no word to offer — nothing is
+written down, and the pill is the only surface (the board mark beside a refused
+word is a shake, which carries no word).
 
 Two rungs, the shared hint ladder ([ui.md → button
 iconography](../ui.md#button-iconography)):
@@ -312,10 +322,9 @@ Both call `log_hint_or_spoiler`, which writes an `events` row (and bumps
 holding the hint itself when the answer arrives, so the not-ok shows over it —
 and nothing is lost by that, because `log_hint_or_spoiler` can only refuse in
 ways that make the hint moot: one race that fires once the game is over, and
-three faults that mean a broken client. The reasoning that used to justify
-swallowing it — "the event log keeps the content, so the pill is a convenience
-copy" — is true only when the write SUCCEEDS; a failed write is precisely the
-case where the log has nothing.
+three faults that mean a broken client. "The event log keeps the content, so
+the pill is a convenience copy" is true only when the write SUCCEEDS; a failed
+write is precisely the case where the log has nothing.
 
 The content reaches **every coop player, on three surfaces** (Joel's spec,
 2026-08-05): the requester's own pill; the teammates' pills — a header line
@@ -323,8 +332,8 @@ naming the act ("● joel got a hint" / "● joel revealed a word") plus the sam
 content pill the requester saw, because a hint one player asks for is a hint the
 whole team has; and the event log's lasting record ("Hint: 8 letters: DEM" /
 "Reveal: DEMOTIC" — the pills are transient, the log is what's given away on the
-record). All three read from `lib/hintOrSpoiler.ts`'s
-`hintOrSpoilerPillText`/`hintPrefix` so they can't drift. Two event kinds, not
+record). The pills read `lib/answer.ts` and the log reads `hintPrefix` beside
+it, so they can't drift. Two event kinds, not
 one, because "I was told it starts with DEM" and "I was told the word" are
 different admissions. **Nothing renders a count of either.** The blob carries
 each player's `nHintsUsed` and `nSpoilersUsed`, counted apart off the log, but
@@ -856,10 +865,10 @@ registrations by `clubs_gametypes_test.sql`.
 | file | pins |
 |---|---|
 | `hooks/useGame.test` | `gd` from the blob — the links become players, the setup rows with the board, the words flagged clean or not, `tilesById`, coop's counts on the team and a racer's on the player, hints and spoilers per player, the state line's pick, the solution at the end; the seat rule mid-race and at its end; the memo on the blob |
-| `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every ending's words and my outcome — coop's win, timeout and Stop; a race solved, lost, won or tied on the clock, all conceded, or nobody covering anything; a conceder |
+| `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every ending's words and my outcome — coop's win, timeout and Stop; a race solved, lost, won or tied on a timeout, all conceded, or nobody covering anything; a conceder |
 | `lib/solve.test` | the hint BFS — shortest path, the greedy tie-break, stuck vs unreachable vs off par |
 | `lib/history.test` | the fold and the inclusive boundary |
-| `lib/board.test` · `lib/customBoard.test` · `lib/chainRows.test` · `lib/answer.test` · `lib/setup.test` | the side rule, `rejectReason`, `layout` and `pathPoints`; the typed-board reader (`formatSides` / `parseSides` round trip); the strip's rows; each answer's outcome; the setup's bounds |
+| `lib/board.test` · `lib/customBoard.test` · `lib/chainRows.test` · `lib/answer.test` · `lib/setup.test` | the side rule, `rejectReason`, `layout` and `pathPoints`; the typed-board reader (`formatSides` / `parseSides` round trip); the strip's rows; every answer's outcome and words; the setup's bounds |
 | `components/PlayArea.test` | the surface on the fixture: a conceder's row; the one action row mid-game and at the end; the menu as the icon legend; Reveal as a local toggle; the hint's three refusals and the two tiers; a refused undo's words; a refused word shaking, and the side rule at the keyboard; the RPCs' `p_` names; the keys, New game, Stop, Concede and Restart |
 | `components/SetupForm.test` | the form's settings |
 | `pdf/model.test` | the print model from `gd`: coop's one track, compete's by player, a withheld rival omitted, the reveal gate |

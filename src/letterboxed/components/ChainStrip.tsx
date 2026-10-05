@@ -2,7 +2,7 @@
 
 import { cls } from '@/common/utils/cls'
 import { IconRemove } from '@/common/icons/icons'
-import styles from './PlayArea.module.css'
+import styles from './ChainStrip.module.css'
 
 /**
  * The chain so far, shown ABOVE the board.

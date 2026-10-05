@@ -5,11 +5,11 @@ import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPic
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
 import { BOARD_SIZE } from '../lib/board'
-import { ANSWER_OUTCOME } from '../lib/answer'
+import { eventToOutcome } from '../lib/answer'
 import { hintPrefix } from '../lib/hintOrSpoiler'
 import type { GEvent, GHistoryView } from '../types'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
-import styles from './PlayArea.module.css'
+import styles from './GameEventLog.module.css'
 
 /**
  * letterboxed's event log — one `<tr>` per move in the shared `<EventLog>` table,
@@ -68,7 +68,7 @@ export function GameEventLog({
     <EventLog heading="Moves" picker={eventLogPicker} shown={shown}>
       {shown.map((e, i) => (
         <tr key={e.id} className={gameEventLog.divider}>
-          <EventLogOutcomeBar outcome={ANSWER_OUTCOME[e.kind]} />
+          <EventLogOutcomeBar outcome={eventToOutcome(e)} />
           {/* The number counts the rows on show; the handle is the row's own
               id, so a click replays that row's author's chain rather than
               somebody else's onto your board. */}

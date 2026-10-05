@@ -17,7 +17,7 @@ import {
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
-import styles from './PlayArea.module.css'
+import styles from './BoardCol.module.css'
 import type { GGameData, GHistoryView, GTile } from '../types'
 
 /**
@@ -61,6 +61,17 @@ export function BoardCol({
   // flashes. Always false in a free-for-all game.
   myTurnJustStarted: boolean
 }) {
+  // ─── Which board is on screen ─────────────────────────────────
+  // Live, or a past move's chain (PlayArea picks); everything that would write
+  // to the board answers to it.
+
+  // The board responds to me: the move is mine, on the live board. That is the
+  // ×'s gate.
+  const isInteractive = gd.me.onTurn && !historyView.isViewing
+
+  // ─── The pending move ─────────────────────────────────────────
+  // The word being typed (`useTypedWord`) and its trips to the server
+  // (`useChainMove`).
   const move = useChainMove(gd, localFeedbackSlot)
   const entry = useTypedWord({
     gd,
@@ -68,11 +79,8 @@ export function BoardCol({
     onEdit: move.clearRefused,
   })
 
-  // The board responds to me: the move is mine, on the live board. That is the
-  // ×'s gate. A full chain also freezes the entry — there is no word to
-  // compose — but must leave the × live, since taking a word back is then the
-  // only move left.
-  const isInteractive = gd.me.onTurn && !historyView.isViewing
+  // A full chain freezes the entry — there is no word to compose — but must
+  // leave the × live, since taking a word back is then the only move left.
   const isEntryOpen = isInteractive && !move.isChainFull
 
   // The word just refused, while it is still what is in the box: the board
@@ -98,6 +106,8 @@ export function BoardCol({
   async function removeLastWord() {
     if (await move.removeLast()) entry.clear()
   }
+
+  // ─── Render ───────────────────────────────────────────────────
 
   // The chain strip's reserved rows, per breakpoint (which one applies is
   // pure CSS — both vars ride along and the media query picks). Sized from the

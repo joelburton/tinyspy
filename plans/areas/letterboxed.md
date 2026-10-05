@@ -76,6 +76,36 @@ conversion's rulings).
 - **`hints_used` keeps its name**: it counts hints and spoilers together, so
   `n_hints_used` would say less than it holds, and nothing reads it.
 
+## The backfill
+
+2026-10-05, the conversion's grown steps applied after the fact:
+
+- **The answers.** `GAnswer` is the roster of ten answers, mine and a
+  teammate's, in the move RPCs' words; `lib/answer.ts` says each as
+  `{ outcome, text }` (`answerMessage`) and reads a row's (`peerAnswerOf`,
+  `eventToOutcome`), and the pill, a teammate's header line, the content echoed
+  into my slot and the log bar all ask it. `ANSWER_OUTCOME` went, and the rung
+  pill texts moved in from `lib/hintOrSpoiler.ts` (`hintPrefix` stays there,
+  read by the log too). `submit_word`, `undo_word` and `clear_chain` answer `ok`
+  with no outcome; pgTAP pins the nulls, `answer.test.ts` the words. Every
+  sentence a player sees reads as before. `GEventRaw.kind` is its own union.
+- **The stylesheet split.** `PlayArea.module.css` held eight components'
+  rules; each class had exactly one reader, so each moved verbatim to its
+  reader's module — `BoardCol`, `Board` (the sizing `.board` beside the look
+  one), `StateLine`, `InfoCol`, `ChainStrip`, `TypedWord`, `GameEventLog` — and
+  `PlayArea.module.css` keeps `.layout` alone.
+- **The section order**: PlayArea gained its local-slot and narration
+  headers; BoardCol is in its three sections.
+- **No narrower `Outcome`** anywhere.
+- **The cross-game names**: each piece of state carries its comment; "timer"
+  / "timeout" not "clock", in the TypeScript, the SQL and the tests (the
+  browser's clock, and "clockwise", stay).
+- **The comment pass and the docstring marker**: history went ("an earlier
+  version…", "the reasoning that used to…"); a member's note is `//`, in
+  `pdf/model.ts`, `lib/solve.ts` and Board's ghost; the SQL stops saying how
+  an undo or a clear reads. No Restart defenses were found.
+- **The doc**: its answers section is the table of ten.
+
 ## Predicted test breaks
 
 - **The summary's winner on a tied timeout:** the statuses named no sole

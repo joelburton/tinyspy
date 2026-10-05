@@ -12,7 +12,7 @@ import { BOARD_SIZE } from '../lib/board'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
-import styles from './PlayArea.module.css'
+import styles from './InfoCol.module.css'
 import type { GActions, GGameData, GHistoryView, GPlayer } from '../types'
 
 /**

@@ -100,8 +100,8 @@ function makeCoopLabel(summary: GSummaryData): string {
   switch (outcome) {
     case 'won':
       return statusLine(verdict('Won'), count(team.nWordsUsed, 'word'))
-    // The clock and the group calling it are the two coop endings without a
-    // win; only the clock's is a loss.
+    // A timeout and the group calling it are the two coop endings without a
+    // win; only the timeout is a loss.
     case 'lost':
       return statusLine(verdict('Lost', summary.ending.reason === 'timeout' ? 'out of time' : null), progress)
     // A Stop.

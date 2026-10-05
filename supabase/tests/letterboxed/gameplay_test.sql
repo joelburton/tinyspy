@@ -90,11 +90,11 @@ select ok(
 -- ── 2. A word appends ───────────────────────────────────────
 select pg_temp.envelope_is(
   letterboxed.submit_word((select id from g), 'adg'),
-  '{"type":"ok","outcome":"won","data":{"result":"accepted"}}'::jsonb,
-  'submit_word answers that the word landed'
+  '{"type":"ok","outcome":null,"message":null,"data":{"result":"accepted"}}'::jsonb,
+  'submit_word answers that the word landed, with no outcome and no sentence'
 );
--- The `won` above is the half of the rule SQL owns; src/letterboxed/lib/answer.ts
--- gives the row this wrote the same word, and the log bar wears that.
+-- How it reads is the frontend's: src/letterboxed/lib/answer.test.ts pins the
+-- outcome and the words, and this pins that the envelope says neither.
 
 select is(
   pg_temp.lb_chain((select id from g), 'ada11111-1111-1111-1111-111111111111'),
@@ -179,13 +179,11 @@ select is(
 );
 
 -- ── 5. clear_chain ──────────────────────────────────────────
--- `noted` for the same reason undo is, and pinned for the same reason: this is
--- the half of the rule SQL owns, and src/letterboxed/lib/answer.ts owns the
--- other.
+-- No outcome, for the same reason as submit_word's.
 select pg_temp.envelope_is(
   letterboxed.clear_chain((select id from g)),
-  '{"type":"ok","outcome":"noted","data":{"result":"cleared"}}'::jsonb,
-  'a clear is news about the chain, not a verdict'
+  '{"type":"ok","outcome":null,"message":null,"data":{"result":"cleared"}}'::jsonb,
+  'a clear answers its result alone'
 );
 
 select ok(
@@ -213,15 +211,14 @@ select is(
 -- ── 6. Covering all twelve wins it ──────────────────────────
 select letterboxed.submit_word((select id from g), 'adgjbehk');
 
--- Captured once and asserted twice: the SOLVING word is a second `won`
--- envelope, and its answer is its result alone — what the word did, the page
--- reads from the blobs.
+-- Captured once and asserted twice: the SOLVING word's answer is its result
+-- alone — what the word did, the page reads from the blobs — with no outcome.
 create temp table solve_res on commit drop as
 select letterboxed.submit_word((select id from g), 'kcfil') as res;
 select is((select res->'data' from solve_res), '{"result": "solved"}'::jsonb,
   'covering all twelve letters answers solved, and nothing more');
-select is((select res->>'outcome' from solve_res), 'won',
-  'the solving word is won, like every accepted word');
+select is((select res->'outcome' from solve_res), 'null'::jsonb,
+  'the solving word carries no outcome, like every accepted word');
 
 select is(
   (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
@@ -323,13 +320,11 @@ select pg_temp.envelope_is(
 -- Undo NAMES the word it popped, which is the fact that makes the next line
 -- meaningful rather than coincidental.
 --
--- `noted`, the blue word: an undo is NEWS about the chain, not a move anything
--- adjudicates. src/letterboxed/lib/answer.ts says the same for the row this
--- wrote — one rule, two languages, a test in each.
+-- No outcome, for the same reason as submit_word's.
 select pg_temp.envelope_is(
   letterboxed.undo_word((select id from gt)),
-  '{"type":"ok","outcome":"noted","data":{"result":"undone"}}'::jsonb,
-  'undo answers that the word came off, as news'
+  '{"type":"ok","outcome":null,"message":null,"data":{"result":"undone"}}'::jsonb,
+  'undo answers that the word came off, with no outcome'
 );
 select pg_temp.envelope_is(
   letterboxed.submit_word((select id from gt), 'gjb'),
