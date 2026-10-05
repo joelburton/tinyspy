@@ -31,7 +31,7 @@ import {
   type ZTest_GameDataFacts,
 } from '../lib/gameData.fixture'
 import type { GEventRaw, GKey } from '../types'
-import boardStyles from './Board.module.css'
+import tileStyles from './Tile.module.css'
 import { PlayAreaLoader } from './PlayArea'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
@@ -317,7 +317,7 @@ describe('codenamesduet PlayArea — the finished-player banner', () => {
  * included, and the ask is LOCAL — it opens only on my screen.
  */
 describe('codenamesduet PlayArea — the partner-key reveal', () => {
-  const partnerSquares = () => document.querySelectorAll(`.${boardStyles.keyPeer}`).length
+  const partnerSquares = () => document.querySelectorAll(`.${tileStyles.keyPeer}`).length
 
   it('keeps the card covered once the game is over until I ask — a win included', () => {
     render(<PlayAreaLoader {...makeCtx(WON)} />)

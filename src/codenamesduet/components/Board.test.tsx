@@ -13,12 +13,13 @@ import { act, render, screen } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Board } from './Board'
-import styles from './Board.module.css'
+import styles from './Tile.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import { makeGameData } from '../hooks/useGame'
 import { ZTest_clue, ZTest_guess, ZTest_makeGameDataRaw, type ZTest_GameDataFacts } from '../lib/gameData.fixture'
-import type { GEventRaw, GKey } from '../types'
+import type { EndOutcome } from '@/common/terminal/gameEnding'
+import type { GEventRaw, GKey, GPlayer, GTile } from '../types'
 
 const WORDS = Array.from({ length: 25 }, (_, i) => (i === 0 ? 'apple' : i === 1 ? 'berry' : `word${i}`))
 // Tiles 0 and 1 are bystanders on both keys, so each guess there is one.
@@ -39,26 +40,49 @@ function gdOf(viewer = 'u1', over: ZTest_GameDataFacts = {}) {
   )
 }
 
+/** What a test sets on the board, flat; `props` groups it as `Board` takes it. */
+type Over = Partial<{
+  tiles: GTile[]
+  moveCount: number
+  isInteractive: boolean
+  showsPartnerKey: boolean
+  isViewingHistory: boolean
+  pickedTile: GTile | null
+  inFlightTile: GTile | null
+  endingOutcome: EndOutcome | null
+  isWaitingForTurn: boolean
+  myTurnJustStarted: boolean
+}>
+
 /** Board props for a game seen by `viewer`; my guess turn, mid-game. */
-function props(over: Partial<ComponentProps<typeof Board>> = {}, viewer = 'u1', facts: ZTest_GameDataFacts = {}) {
+function props(over: Over = {}, viewer = 'u1', facts: ZTest_GameDataFacts = {}): ComponentProps<typeof Board> {
   const gd = gdOf(viewer, facts)
+  const o = { isViewingHistory: false, ...over }
   return {
-    tiles: gd.team.board.tiles,
+    tiles: o.tiles ?? gd.team.board.tiles,
+    moveCount: o.moveCount ?? 2,
+    marks: {
+      pickedTile: o.pickedTile ?? null,
+      inFlightTile: o.inFlightTile ?? null,
+      endingOutcome: o.endingOutcome ?? null,
+      isWaitingForTurn: o.isWaitingForTurn ?? false,
+      myTurnJustStarted: o.myTurnJustStarted ?? false,
+    },
+    historyView: {
+      isViewing: o.isViewingHistory,
+      viewedEventId: null,
+      show: vi.fn(),
+      exit: vi.fn(),
+      tiles: null,
+      litTileIds: new Set<string>(),
+      label: null,
+    },
     me: gd.me,
     partner: gd.partner,
-    showsPartnerKey: false,
-    isInteractive: true,
-    inFlightTile: null,
+    showsPartnerKey: o.showsPartnerKey ?? false,
+    isInteractive: o.isInteractive ?? true,
+    onPick: vi.fn(),
     onGuess: vi.fn(),
-    cursor: null,
-    pickedTile: null,
-    isViewingHistory: false,
-    litTileIds: new Set<string>(),
-    isWaitingForTurn: false,
-    myTurnJustStarted: false,
-    moveCount: 2,
-    endingOutcome: null,
-    ...over,
   }
 }
 
@@ -67,7 +91,7 @@ function draw(viewer: string) {
 }
 
 /** The board with every prop settable; me, mid-game, my guess turn. */
-function drawWith(over: Partial<ComponentProps<typeof Board>> = {}) {
+function drawWith(over: Over = {}) {
   return render(<Board {...props(over)} />).container
 }
 
@@ -104,7 +128,7 @@ describe('codenamesduet Board — my partner’s key card', () => {
     ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
     outcome: 'neutral',
   }
-  const keySquares = (over: Partial<ComponentProps<typeof Board>>, facts: ZTest_GameDataFacts) =>
+  const keySquares = (over: Over, facts: ZTest_GameDataFacts) =>
     render(<Board {...props(over, 'u1', facts)} />).container.querySelectorAll(`.${styles.keyPeer}`)
 
   it('is shown once the game is over and I have asked to see it', () => {
@@ -158,7 +182,7 @@ describe('codenamesduet Board — the board marks', () => {
   const grid = (c: HTMLElement) => c.querySelector('[data-board] > div') as HTMLElement
 
   it('dims the tile whose guess is in flight, and no other', () => {
-    const c = drawWith({ inFlightTile: props().tiles[3]! })
+    const c = drawWith({ inFlightTile: gdOf().team.board.tiles[3]! })
     const dimmed = [...c.querySelectorAll('button')].filter((b) => b.classList.contains(shared.dimInFlight))
     expect(dimmed.map((b) => b.textContent)).toEqual(['word3'])
   })
@@ -185,37 +209,38 @@ describe('codenamesduet Board — the board marks', () => {
 })
 
 describe('codenamesduet Board — attention and the shake', () => {
-  const base = props()
+  const live = gdOf()
   // The board with tile `p` showing `as` — a reveal landing.
-  const turned = (tiles: typeof base.tiles, p: number, as: GKey) =>
-    tiles.map((t) => (Number(t.id) === p ? { ...t, revealed: { as, arrows: new Set<typeof base.me>() } } : t))
+  const turned = (tiles: GTile[], p: number, as: GKey) =>
+    tiles.map((t) => (Number(t.id) === p ? { ...t, revealed: { as, arrows: new Set<GPlayer>() } } : t))
+  const at = (over: Over) => <Board {...props({ tiles: live.team.board.tiles, ...over })} />
   const flashingWords = (c: HTMLElement) =>
     [...c.querySelectorAll('button')].filter((b) => b.classList.contains(shared.attentionFlash)).map((b) => b.textContent)
 
   afterEach(() => vi.useRealTimers())
 
   it('flashes the tile a guess turned over, on the move and not otherwise', () => {
-    const { container, rerender } = render(<Board {...base} />)
-    rerender(<Board {...base} tiles={turned(base.tiles, 5, 'G')} moveCount={3} />)
+    const { container, rerender } = render(at({}))
+    rerender(at({ tiles: turned(live.team.board.tiles, 5, 'G'), moveCount: 3 }))
     expect(flashingWords(container)).toEqual(['word5'])
   })
 
   it('does not flash a board that changed with no guess behind it', () => {
-    const { container, rerender } = render(<Board {...base} />)
-    rerender(<Board {...base} tiles={turned(base.tiles, 5, 'G')} />)
+    const { container, rerender } = render(at({}))
+    rerender(at({ tiles: turned(live.team.board.tiles, 5, 'G') }))
     expect(flashingWords(container)).toEqual([])
   })
 
   it('stays quiet while a past turn is open', () => {
-    const { container, rerender } = render(<Board {...base} isViewingHistory />)
-    rerender(<Board {...base} isViewingHistory tiles={turned(base.tiles, 5, 'G')} moveCount={3} />)
+    const { container, rerender } = render(at({ isViewingHistory: true }))
+    rerender(at({ isViewingHistory: true, tiles: turned(live.team.board.tiles, 5, 'G'), moveCount: 3 }))
     expect(flashingWords(container)).toEqual([])
   })
 
   it('shakes an assassin or a bystander once the flash is done, never an agent', () => {
     vi.useFakeTimers()
-    const { container, rerender } = render(<Board {...base} />)
-    rerender(<Board {...base} tiles={turned(turned(base.tiles, 5, 'G'), 6, 'A')} moveCount={4} />)
+    const { container, rerender } = render(at({}))
+    rerender(at({ tiles: turned(turned(live.team.board.tiles, 5, 'G'), 6, 'A'), moveCount: 4 }))
     const shaking = () =>
       [...container.querySelectorAll('button')].filter((b) => b.classList.contains(shared.verdictShake)).map((b) => b.textContent)
     act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS - 1))

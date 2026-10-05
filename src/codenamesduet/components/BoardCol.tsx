@@ -8,13 +8,9 @@ import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalF
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
-import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
-import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
-import type { Cell } from '@/common/board-cursor/stepCell'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
-import { BOARD_SHAPE } from '../lib/boardShape'
 import { useSubmitGuess } from '../hooks/useSubmitGuess'
 import { usePickedTile } from '../hooks/usePickedTile'
 import { useBoardColActions } from '../hooks/useBoardColActions'
@@ -30,7 +26,7 @@ import type { GClueStrip, GGameData, GHistoryView, GSuggestState, GTile } from '
  * (a not-ok, the ending's verdict), with the turn viewer's banner over either.
  *
  * A two-input game: a guess is a tile click — or the keyboard's pick and Enter
- * (`useBoardSelectionCursor`) — and this column owns the guess
+ * (the board's cursor) — and this column owns the guess
  * (`useSubmitGuess`); a clue is the `ClueStrip` form, which owns
  * `submit_clue`, `pass_turn` and the AI suggestion. Neither owns game state —
  * the reveal arrives in the next blob, and PlayArea hands this column the board
@@ -109,32 +105,10 @@ export function BoardCol({
   // `useDismissLocalFeedbackOnKey`).
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  // ─── The keyboard ──────────────────────────────────────
-  // The selection cursor: arrows move it over the words, Space PICKS the word
-  // under it, and Enter guesses the pick. A click still guesses at once — the
-  // pointer's aim is its confirmation — but an arrow can land a cell off, and a
-  // guess can be the assassin, so the keyboard confirms with a second key.
-
-  // Space toggles, so a second press un-picks and a press elsewhere moves the
-  // pick. A word the click couldn't guess can't be picked either.
-  function togglePickAt(cell: Cell) {
-    const tile = tilesById.get(String(positionAt(cell.x, cell.y, BOARD_SHAPE.numCols)))!
-    if (!tile.guessable) return
-    pick.choose(pick.tile === tile ? null : tile)
-  }
-
-  const { cell: cursor, setTo: setCursorTo } = useBoardSelectionCursor({
-    shape: BOARD_SHAPE,
-    enabled: canGuess,
-    onToggle: togglePickAt,
-  })
-
-  // A tile click: the cursor moves there, hidden, any pick goes, and the
-  // click is the guess — unless one is still out, since you shouldn't guess
-  // again until its reveal lands.
-  function guessClickedTile(tile: GTile) {
+  // A tile click guesses at once — unless a guess is still out, since you
+  // shouldn't guess again until its reveal lands — and any pick goes.
+  function guessTile(tile: GTile) {
     if (guess.inFlightTile !== null) return
-    setCursorTo(cellAt(Number(tile.id), BOARD_SHAPE.numCols))
     pick.clear()
     guess.send(tile)
   }
@@ -151,20 +125,21 @@ export function BoardCol({
       </MobileStatusBar>
       <Board
         tiles={tiles}
+        moveCount={moveCount}
+        marks={{
+          pickedTile: pick.tile,
+          inFlightTile: guess.inFlightTile,
+          endingOutcome,
+          isWaitingForTurn,
+          myTurnJustStarted,
+        }}
+        historyView={historyView}
         me={gd.me}
         partner={gd.partner}
         showsPartnerKey={gd.ended && partnerKeyShown}
         isInteractive={isInteractive}
-        inFlightTile={guess.inFlightTile}
-        onGuess={guessClickedTile}
-        cursor={cursor}
-        pickedTile={pick.tile}
-        isViewingHistory={historyView.isViewing}
-        litTileIds={historyView.litTileIds}
-        isWaitingForTurn={isWaitingForTurn}
-        myTurnJustStarted={myTurnJustStarted}
-        moveCount={moveCount}
-        endingOutcome={endingOutcome}
+        onPick={pick.choose}
+        onGuess={guessTile}
       />
       {/* The below-board slot (docs/playarea.md → Board sizing). Two states in
           one fixed-height slot, so the board above never shifts as they swap:

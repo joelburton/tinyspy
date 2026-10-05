@@ -1,0 +1,129 @@
+/* cs-unmet */
+
+/* One tile on the codenamesduet board.
+ *
+ * A tile's fill is what HAPPENED to it: untouched, or turned over as an agent,
+ * a bystander or the assassin. What a key card SAYS about a cell is a corner
+ * square, and a bystander guessed from one side is a triangle — overlays on the
+ * tile, not its fill. The tile CHROME is the shared `.tile`/`.tileWord`.
+ */
+
+/* codenamesduet tiles carry corner OVERLAYS (keycard squares, neutral
+ * triangles) that absolutely-position against the tile, so the tile must
+ * be a positioning context. The shared `.tile` doesn't set `position: relative`,
+ * so it is added here as a per-game composition —
+ * `cls(shared.tile, styles.overlayTile)`. (The shared `.tile` already sets
+ * `container-type: inline-size`, which the cqi-sized overlays below rely on.) */
+/* @@ */ .overlayTile {
+  position: relative;
+}
+
+/* Tile FILL = what HAPPENED on this cell, set by re-defining the shared tile's
+ * --tile-* tokens (so the fill wins regardless of stylesheet order — the same
+ * pattern psychicnum's .correct/.incorrect use). The keycard squares (below)
+ * carry the "what does a key SAY" signal; the fill carries "what happened":
+ *   white  — no one has guessed it (the lightest tile shade, not the shared
+ *            resting beige, which reads too close to the bystander tan)
+ *   tan    — someone guessed it as a neutral (which player → triangles)
+ *   green  — we contacted an agent (global)
+ *   red    — the assassin was hit (global)
+ * The shared `.tile` supplies the hover ring (a box-shadow, NOT a recolor — so
+ * codenamesduet's "never recolor on hover" rule still holds) and the un-faded
+ * disabled look, so no per-game cursor/hover/disabled rules are needed here. */
+/* @@ */ .bgWhite {
+  /* Never-guessed tile: the shared "attention" shade 1 (the lightest of the warm
+     tile family) — lighter than the normal tile (shade 3), so it doesn't read like
+     the darker revealed-neutral. */
+/* @@ */   --tile-slot-fill-color: var(--tile-1-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--tile-1-edge-color);
+}
+/* @@ */ .bgNeutral {
+/* @@ */   --tile-slot-fill-color: var(--codenamesduet-neutral);
+/* @@ */   --tile-slot-edge-color: var(--codenamesduet-neutral);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
+}
+/* @@ */ .bgAgent {
+/* @@ */   --tile-slot-fill-color: var(--codenamesduet-agent);
+/* @@ */   --tile-slot-edge-color: var(--codenamesduet-agent);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
+}
+/* @@ */ .bgAssassin {
+  /* Real Duet uses black for the assassin; we use red because "red = wrong
+   * pick" reads more obviously on screen than "black = ominous." */
+/* @@ */   --tile-slot-fill-color: var(--codenamesduet-assassin);
+/* @@ */   --tile-slot-edge-color: var(--codenamesduet-assassin);
+/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
+}
+
+/* A tile the VIEWED past turn decided — the shared history blue, the same
+ * signal the board frame + the viewed turn's #N handle wear, in the shared
+ * ring's geometry (`--history-tile-ring-*`, base.css). Pairs with the
+ * board-level `.historyFrame`. */
+/* @@ */ .historyTile {
+  outline: var(--history-tile-ring-width) solid var(--history-color);
+  outline-offset: var(--history-tile-ring-offset);
+}
+
+
+/* Keycard squares — small corner chips showing what a key card SAYS about the
+ * cell, always in the soft/unrevealed palette (independent of what's been
+ * guessed). My own is bottom-left, shown except while I am the one guessing
+ * (it's how I read which cells to clue for, and it says nothing about my
+ * partner's clue); the partner's is top-right and shown only once the game is
+ * over and I have chosen to reveal it. Bottom/top placement mirrors a tabletop: my
+ * card near me, my partner's across the table. */
+/* @@ */ .keySquare {
+  position: absolute;
+  /* Scale with the tile (cqi = % of the tile's width, via the shared tile's
+   * container-type) so the square shrinks on small tiles instead of crowding the
+   * word; the low floor keeps it clear of long words on a small-laptop board. */
+  width: clamp(12px, 13cqi, 28px);
+  height: clamp(12px, 13cqi, 28px);
+  border-radius: 4px;
+  border: 1px solid var(--codenamesduet-tile-rule-color);
+  /* Above the attention flash, which sits at 0 so it can lighten the tile
+   * under its word — a flashing tile shouldn't swallow its key squares. */
+  z-index: 1;
+}
+/* @@ */ .keyMine {
+  bottom: 5px;
+  left: 5px;
+}
+/* @@ */ .keyPeer {
+  top: 5px;
+  right: 5px;
+}
+/* @@ */ .keyAgent {
+  background: var(--codenamesduet-agent-key);
+}
+/* @@ */ .keyNeutral {
+  background: var(--codenamesduet-neutral-key);
+}
+/* @@ */ .keyAssassin {
+  background: var(--codenamesduet-assassin-key);
+}
+
+/* Neutral-guessed triangles — above/below the word, one per player who guessed
+ * this cell as a neutral, pointing toward where they sit (peer above pointing
+ * up, me below pointing down). White: it reads cleanly on the saturated tile
+ * backgrounds, where black (and profile colors) get lost. Shown only while the
+ * cell is unrevealed — a contacted agent / hit assassin drops the markers. */
+/* @@ */ .triangle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: clamp(6px, 6cqi, 10px) solid transparent;
+  border-right: clamp(6px, 6cqi, 10px) solid transparent;
+  /* Above the attention flash, as the key squares are. */
+  z-index: 1;
+}
+/* @@ */ .triPeer {
+  top: 4px;
+  border-bottom: clamp(8px, 8cqi, 13px) solid var(--default-bg-color); /* points up */
+}
+/* @@ */ .triMine {
+  bottom: 4px;
+  border-top: clamp(8px, 8cqi, 13px) solid var(--default-bg-color); /* points down */
+}

@@ -3,8 +3,8 @@
 -- ============================================================
 -- codenamesduet: words and clues are stored lowercase
 -- ============================================================
--- Every other word game keeps its words lowercase and draws the capitals
--- (docs/code-conventions.md → one case, the data's); codenamesduet stored its
+-- Every other word game keeps its words lowercase and draws the capitals;
+-- codenamesduet stored its
 -- word pool, each game's dealt words and every clue in capitals. This brings
 -- the stored data to lowercase. A game's title keeps its capitals: it is drawn
 -- text, written once at create.
