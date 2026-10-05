@@ -136,7 +136,7 @@ naming rule for a loose copy). A row field is all lowercase (`team_score`); a
 path copy has a camelCase leaf.
 
 **A few words may be abbreviated, and a count may be `nFoo`.** `msg`, `err`,
-`cats`, `fn`, `btn`, `idx`, `curr`, `num` read instantly to anyone, so new code may use them
+`cats`, `fn`, `btn`, `idx`, `curr`, `num`, `len` read instantly to anyone, so new code may use them
 in a key, a local, a parameter, a file name or a name built on the idea
 (`GMatchedCat`, `matchedCatRank`, `getUnmatchedCats.ts`); the long form stays
 legal, and a file need not agree with itself (`FooMessage` beside `fooMsg` is

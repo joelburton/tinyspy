@@ -378,6 +378,282 @@ $$;
 
 revoke execute on function wordiply._write_statuses(uuid, boolean) from public;
 
+-- ============================================================
+-- The page blobs — what the page shows, written by this game's builder
+-- ============================================================
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- wordiply's own, each builder bearing its column's name. `game_data` is the
+-- common part (supabase/sql/common.sql → The page blobs' common parts) with
+-- wordiply's facts on top; the pieces below build each part, so `select
+-- game_data from common.games` shows the page what it gets.
+--
+--   game_data, wordiply's part:
+--     puzzle: {base, maxWordLen, longestWords, legalWords}
+--                                          frozen at create; the page waits for the
+--                                          end to show the longest
+--     team: {nGuessesUsed, lengthScore, nLetters, longestWordLen}
+--                                          the team's words, summed; null in compete,
+--                                          where there is no team (plans/team-facts.md);
+--                                          the three scores null until the game ends
+--     events: [{id, userId, word, valid, reason, tookTurn, at}, …]
+--                                          every submission, rejects included, every
+--                                          player's; what a racer may see of a rival
+--                                          mid-race is the hook's rule
+--     players: [player, …]                 the common player, plus:
+--       maxGuesses                         5, the same on every player
+--       nGuessesUsed                       this player's own, in every mode
+--       lengthScore                        this player's own; null until the game ends
+--       nLetters                           this player's own; null until the game ends
+--       longestWordLen                     this player's own; null until the game ends
+--       board: {words}                     what this seat sees: the team's accepted
+--                                          words in coop, the racer's own in compete
+--
+--   summary_data, wordiply's part (the common part names and dates the game and
+--   carries its ending; the winner is `ending.winner`):
+--     team: {nGuessesUsed, lengthScore, nLetters}
+--                                          the same group, less the longest word's
+--                                          length; null in compete
+--     maxGuesses
+--     winnerLengthScore                    compete's, once the race is won; null in coop
+
+-- The board as built: the base, and the words the builder found for it.
+create or replace function wordiply._make_json_puzzle(g wordiply.games)
+returns jsonb
+language sql
+immutable
+set search_path = wordiply, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'base',         g.base,
+    'maxWordLen',   g.max_word_length,
+    'longestWords', g.longest_words,
+    'legalWords',   g.legal_words);
+$$;
+
+revoke execute on function wordiply._make_json_puzzle(wordiply.games) from public;
+
+-- The log: every submission, rejects included, in the order of play.
+create or replace function wordiply._make_json_events(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = wordiply, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',       e.id,
+           'userId',   e.user_id,
+           'word',     e.word,
+           'valid',    e.valid,
+           'reason',   e.reason,
+           'tookTurn', e.took_turn,
+           'at',       e.created_at) order by e.id), '[]'::jsonb)
+    from wordiply.events e
+   where e.game_id = p_game_id;
+$$;
+
+revoke execute on function wordiply._make_json_events(uuid) from public;
+
+-- One track's numbers: the accepted words of one player, or of the whole team
+-- when `p_user_id` is null. The three scores wait for the end of the game.
+create or replace function wordiply._make_json_track(
+  p_game_id uuid,
+  p_user_id uuid,
+  p_ended boolean
+)
+returns jsonb
+language sql
+stable
+set search_path = wordiply, common, public, extensions
+as $$
+  select jsonb_build_object(
+           'nGuessesUsed',   count(e.id),
+           'lengthScore',    case when p_ended then
+                               wordiply._length_score(coalesce(max(e.length), 0), g.max_word_length)
+                             end,
+           'nLetters',       case when p_ended then coalesce(sum(e.length), 0) end,
+           'longestWordLen', case when p_ended then coalesce(max(e.length), 0) end)
+    from wordiply.games g
+    left join wordiply.events e
+      on e.game_id = g.game_id
+     and e.valid
+     and (p_user_id is null or e.user_id = p_user_id)
+   where g.game_id = p_game_id
+   group by g.max_word_length;
+$$;
+
+revoke execute on function wordiply._make_json_track(uuid, uuid, boolean) from public;
+
+-- What one seat sees on the board: the accepted words, in the order of play.
+-- In coop every seat sees the team's; in compete, the racer's own.
+create or replace function wordiply._make_json_board(p_game_id uuid, p_user_id uuid, p_mode text)
+returns jsonb
+language sql
+stable
+set search_path = wordiply, common, public, extensions
+as $$
+  select jsonb_build_object(
+    'words', coalesce(jsonb_agg(e.word order by e.id), '[]'::jsonb))
+    from wordiply.events e
+   where e.game_id = p_game_id
+     and e.valid
+     and (p_mode = 'coop' or e.user_id = p_user_id);
+$$;
+
+revoke execute on function wordiply._make_json_board(uuid, uuid, text) from public;
+
+-- What the team shares: the whole team's track. Null in compete, where there
+-- is no team (plans/team-facts.md).
+create or replace function wordiply._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = wordiply, common, public, extensions
+as $$
+  select case when cg.mode = 'coop' then
+           wordiply._make_json_track(p_game_id, null, cg.ended_at is not null)
+         end
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function wordiply._make_json_team(uuid) from public;
+
+-- Every player as wordiply's game_data shows them: the common player, with the
+-- budget, their own track and this seat's board.
+create or replace function wordiply._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = wordiply, common, public, extensions
+as $$
+  select jsonb_agg(
+           cp.player
+             -- submit_guess's budget.
+             || jsonb_build_object('maxGuesses', 5)
+             || wordiply._make_json_track(p_game_id, cp.id, cg.ended_at is not null)
+             || jsonb_build_object('board', wordiply._make_json_board(p_game_id, cp.id, cg.mode))
+           order by cp.ord)
+    from common._make_json_players(p_game_id) cp
+    join common.games cg on cg.id = p_game_id;
+$$;
+
+revoke execute on function wordiply._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with wordiply's puzzle, team, log
+-- and players on top.
+create or replace function wordiply._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = wordiply, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'puzzle',  wordiply._make_json_puzzle(g),
+           'team',    wordiply._make_json_team(p_game_id),
+           'events',  wordiply._make_json_events(p_game_id),
+           'players', wordiply._make_json_players(p_game_id))
+    from wordiply.games g
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function wordiply._make_json_game_data(uuid) from public;
+
+-- The game summed up: the numbers a list of games shows for this one.
+create or replace function wordiply._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = wordiply, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+    'team',              wordiply._make_json_team(p_game_id) - 'longestWordLen',
+    'maxGuesses',        5,
+    'winnerLengthScore', case when cg.mode = 'compete' then
+                           (select wordiply._make_json_track(p_game_id, gp.user_id, true)->'lengthScore'
+                              from common.game_players gp
+                             where gp.game_id = p_game_id and gp.final_ranking = 1
+                             limit 1)
+                         end)
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function wordiply._make_json_summary_data(uuid, timestamptz) from public;
+
+-- ============================================================
+-- wordiply._rebuild_data_cols — one game's data columns, rebuilt
+-- ============================================================
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from wordiply's own tables, assigning
+-- each whole. Every RPC calls it after a move, a recorded reject included;
+-- it is also the repair for one game by hand. Every key is always present,
+-- null when it has no value; the shapes are drawn above.
+--
+-- `p_update_status_changed_at` is true from create, Restart and every move,
+-- false from a rebuild (the pass over every game, a repair by hand), so a
+-- rebuild never re-dates a game.
+create or replace function wordiply._rebuild_data_cols(
+  p_game_id uuid,
+  p_update_status_changed_at boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = wordiply, common, public, extensions
+as $$
+declare
+  v_status_changed_at timestamptz;
+begin
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
+
+  update common.games
+     set game_data = wordiply._make_json_game_data(p_game_id),
+         summary_data = wordiply._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
+   where id = p_game_id;
+end;
+$$;
+
+revoke execute on function wordiply._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- wordiply._rebuild_data_cols_for_all — every wordiply game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every wordiply game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function wordiply._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = wordiply, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('wordiply_coop', 'wordiply_compete')
+  loop
+    perform wordiply._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function wordiply._rebuild_data_cols_for_all() from public;
+
 drop function if exists wordiply.create_game(text, jsonb, uuid[], text, jsonb);
 
 -- ============================================================
@@ -528,6 +804,7 @@ begin
   values (new_id, b_base, b_max_word_length, p_board->'longest_words', p_board->'legal_words');
 
   perform wordiply._write_statuses(new_id, p_update_status_changed_at => true);
+  perform wordiply._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The edge function
   -- relays this envelope untouched.
@@ -794,7 +1071,9 @@ begin
     if reject_reason in ('too_short', 'missing_base') then
       perform common._advance_turn(p_game_id);
     end if;
-    -- No status write: nothing a reject changes is in a status.
+    -- No status write: nothing a reject changes is in a status. The log is
+    -- in game_data, so the blobs are rebuilt.
+    perform wordiply._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
     -- An `ok`, not a raise: the row above is the point of the call, and a
     -- raise would take the savepoint down with it.
     return common._ok_envelope(jsonb_build_object('result', 'rejected', 'reason', reject_reason));
@@ -827,6 +1106,7 @@ begin
   end if;
 
   perform wordiply._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform wordiply._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   -- The caller's track totals (coop: the team's; compete: their own).
   select * into v_mine
@@ -911,6 +1191,7 @@ begin
   end if;
 
   perform wordiply._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform wordiply._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -954,6 +1235,7 @@ begin
   perform common._stop(p_game_id);
 
   perform wordiply._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform wordiply._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1003,6 +1285,7 @@ begin
   perform common._reset_game(p_game_id);
 
   perform wordiply._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform wordiply._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -1052,6 +1335,7 @@ begin
   perform wordiply._maybe_finish_compete(p_game_id, 'conceded', 'conceded', caller_id);
 
   perform wordiply._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform wordiply._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
