@@ -121,6 +121,9 @@ with their readers, so stackdown joins `CONVERTED_GAMES` once they have:
   refetch — dropping the optimistic hold on tiles the server has confirmed,
   and emptying a word a teammate's clear has taken a tile from — are owed to
   the PlayArea pass, where the hook will be handed the cleared tiles.
+- **Step 8 (2026-10-05):** `lib/gameData.fixture.ts` builds the blob from
+  facts on setup.psql's stack, as the builder would; `hooks/useGame.test.ts`
+  pins the links, the counts, the stacks and the seat rule.
 - **Steps 4–9:** the frontend reads `games_state` and the old common shapes
   until the PlayArea pass moves every reader onto `gd`; it could not load
   before this began.
