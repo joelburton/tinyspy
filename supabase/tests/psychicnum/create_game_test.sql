@@ -24,7 +24,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(37);
+select plan(38);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -470,6 +470,13 @@ select is(
     where (p ->> 'nFoundSecrets')::int = 0 and (p ->> 'nGuessesUsed')::int = 0),
   2,
   'every player''s counts are written into game_data at create');
+select is(
+  (select static_game_data -> 'puzzle' -> 'words' = to_jsonb(pg.words)
+          and static_game_data -> 'setup' ->> 'max_guesses' = '7'
+     from common.games cg join psychicnum.games pg on pg.game_id = cg.id
+    where cg.id = (select id from seeded_coop)),
+  true,
+  'create writes static_game_data: the setup, and the dealt words');
 
 -- ── PN049: an unseeded dictionary ──
 -- Emptying the pool is the only way to reach this raise, so it goes LAST —

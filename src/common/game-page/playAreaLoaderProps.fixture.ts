@@ -25,6 +25,8 @@ export type ZTest_PlayAreaFacts = {
   players?: ShellPlayer[]
   // The game's `game_data` blob, as its builder would write it.
   gameData?: unknown
+  // The game's `static_game_data` blob, as its create_game would write it.
+  staticGameData?: unknown
   globalFeedbackSlot?: FeedbackSlot
   menu?: MenuApi
   goToFollowUpGame?: (gameId: string) => void
@@ -58,6 +60,7 @@ export function ZTest_makePlayAreaLoaderProps(facts: ZTest_PlayAreaFacts = {}): 
     ended = false,
     players = [ZTest_shellPlayer('u1', 'me', 'red')],
     gameData = null,
+    staticGameData = null,
     globalFeedbackSlot = createFeedbackSlot('global'),
     menu = {
       setGameSections: vi.fn(),
@@ -89,6 +92,7 @@ export function ZTest_makePlayAreaLoaderProps(facts: ZTest_PlayAreaFacts = {}): 
       me,
     },
     gameData,
+    staticGameData,
     auth,
     globalFeedbackSlot,
     menu,

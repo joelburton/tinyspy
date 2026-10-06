@@ -21,7 +21,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(14);
+select plan(15);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -62,9 +62,16 @@ select is((select count(*) from psychicnum.events where game_id = (select id fro
 
 update common.timers set ticks = 99 where game_id = (select id from g1);
 
+create temp table static_before_replay on commit drop as
+  select static_game_data from common.games where id = (select id from g1);
+
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.replay_board((select id from g1));
 reset role;
+
+select is((select static_game_data from common.games where id = (select id from g1)),
+  (select static_game_data from static_before_replay),
+  'coop: replay leaves static_game_data as create wrote it');
 
 select is((select ended_at from common.games where id = (select id from g1)),
   null, 'coop: replay → being played again');

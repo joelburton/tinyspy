@@ -60,6 +60,7 @@ export function GamePage({
   manifest,
   cg,
   gameData,
+  staticGameData,
   pause,
   timer,
   sendSuspend,
@@ -148,6 +149,7 @@ export function GamePage({
                 key={cg.restartCount}
                 cg={cg}
                 gameData={gameData}
+                staticGameData={staticGameData}
                 auth={auth}
                 globalFeedbackSlot={globalFeedbackSlot}
                 menu={menu}

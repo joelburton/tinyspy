@@ -250,9 +250,9 @@ export const OUR_BUG_TO_CODE_AND_TEXT = {
     code: 'PN491',
     text: 'BUG: signed in with no profile row',
   },
-  // A game whose `common.games.shell_data` is null: its status builder has not
-  // written the page (plans/seat-view.md → The page is written, not
-  // assembled). A game created before its builder learned the blobs and not
+  // A game whose `common.games.shell_data` or `static_game_data` is null: its
+  // builders have not written the page (plans/seat-view.md → The page is
+  // written, not assembled). A game created before its builder learned the blobs and not
   // rebuilt since, or a gametype not yet converted. The page cannot be drawn
   // from nothing, and "no such game" would be the confident wrong answer.
   noShell: {

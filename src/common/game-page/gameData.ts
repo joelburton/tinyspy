@@ -1,21 +1,17 @@
 // cs-unmet
 
 import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '../terminal/gameEnding.ts'
+import type { TimerMode } from '../manifest/types.ts'
 import type { Player } from '../members/member.ts'
 
 /**
- * The common part of every game's `game_data`, as `common._make_json_game_data`
- * writes it (supabase/sql/common.sql → The page blobs' common parts): the game
- * facts every game shares, and each player with where they stand. A game's own
- * `GGameDataRaw` extends it with the game's fields and its own player; a game's
- * builder writes the two together, so a game reads one blob. Bare names, since
- * these are common's; a game's wear the `G` (docs/code-conventions.md → A
- * game's types).
- *
- * Links are ids here (`turns.holder`, `ending.by`, `ending.winner`); a game's
- * `useGame` turns them into its players.
+ * The common part of every game's `static_game_data`, as
+ * `common._make_json_static_game_data` writes it (supabase/sql/common.sql →
+ * The page blobs' common parts): what nothing after create changes. The page
+ * reads it once and takes the timer from `setup`; the game's `useGame` merges
+ * the whole blob into `game_data` (plans/static-game-data.md).
  */
-export type GameDataRaw = {
+export type StaticGameDataRaw = {
   id: string
   gametype: string
   // The gametype's user-facing name.
@@ -27,9 +23,25 @@ export type GameDataRaw = {
   // The game has one board that every player's moves land on; false, each
   // player plays their own copy.
   oneBoard: boolean
+  // The setup form's record, frozen at create. A game reads it as its own type;
+  // every game's carries the timer.
+  setup: Record<string, unknown> & { timer: TimerMode }
+}
+
+/**
+ * The common part of what a game reads: its `game_data`, as
+ * `common._make_json_game_data` writes it (supabase/sql/common.sql → The page
+ * blobs' common parts), with its `static_game_data` merged in by its `useGame`
+ * — the game facts every game shares, and each player with where they stand. A
+ * game's own `GGameDataRaw` extends it with the game's fields and its own
+ * player. Bare names, since these are common's; a game's wear the `G`
+ * (docs/code-conventions.md → A game's types).
+ *
+ * Links are ids here (`turns.holder`, `ending.by`, `ending.winner`); a game's
+ * `useGame` turns them into its players.
+ */
+export type GameDataRaw = StaticGameDataRaw & {
   title: string
-  // The setup form's record, frozen at create. A game reads it as its own type.
-  setup: Record<string, unknown>
   // Null: no turn order. In a turn game the pointer is set at create and only
   // ever advanced or rewound, so it always names a player.
   turns: { holder: string } | null

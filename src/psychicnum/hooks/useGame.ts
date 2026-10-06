@@ -85,10 +85,24 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 }
 
 /**
+ * Put the page's two blobs back together as `GGameDataRaw`, each key in its
+ * place (plans/static-game-data.md): `static_game_data` holds what create
+ * fixed, `game_data` the rest. The puzzle is split across both — its words are
+ * static, its secrets arrive in `game_data` once the game has ended.
+ */
+function mergeStaticGameData(gameData: unknown, staticGameData: unknown): GGameDataRaw {
+  // Each blob holds some of GGameDataRaw's keys; typed whole for the spread.
+  const changing = gameData as GGameDataRaw
+  const fixed = staticGameData as GGameDataRaw
+  return { ...changing, ...fixed, puzzle: { ...fixed.puzzle, ...changing.puzzle } }
+}
+
+/**
  * Per-gametype data hook for psychicnum (both modes share it): `gd`, built
- * from the `game_data` blob the page was handed and who I am. No reads and no
- * subscription: the page re-reads the blob on every move, and this is a pure
- * function of it (plans/seat-view.md → The page is written, not assembled).
+ * from the `game_data` and `static_game_data` blobs the page was handed and
+ * who I am. No reads and no subscription: the page re-reads `game_data` on
+ * every move, and this is a pure function of the two (plans/seat-view.md →
+ * The page is written, not assembled).
  *
  * A game whose builder has not written a blob yet cannot be drawn; the throw
  * lands in `PlayAreaErrorBoundary`'s card.
@@ -97,12 +111,14 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
  * `useCommonGame` inside `GamePage` — see `src/common/game-page/useCommonGame.ts`.
  */
 export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
-  const raw = ctx.gameData as GGameDataRaw | null
-  if (raw === null) {
+  if (ctx.gameData === null) {
     throw new Error(`psychicnum: game ${ctx.cg.id} has no game_data; run psychicnum._rebuild_data_cols_for_all()`)
   }
   const myId = ctx.auth.user.id
   // Rebuilt when the page hands down a new blob, and not on every render.
-  const gd = useMemo(() => makeGameData(raw, myId), [raw, myId])
+  const gd = useMemo(
+    () => makeGameData(mergeStaticGameData(ctx.gameData, ctx.staticGameData), myId),
+    [ctx.gameData, ctx.staticGameData, myId],
+  )
   return { gd }
 }

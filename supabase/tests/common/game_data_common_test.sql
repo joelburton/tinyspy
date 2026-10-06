@@ -1,16 +1,20 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: the common part of game_data — common._make_json_game_data
+-- Test: the common parts of game_data and static_game_data —
+-- common._make_json_game_data, common._make_json_static_game_data
 -- ============================================================
 -- Every game's game_data starts from common._make_json_game_data: the game
--- facts every game shares, and each player with the standing terms of
--- docs/win-lose.md → Where a player stands (supabase/sql/common.sql → The page
--- blobs' common parts). A game's builder adds its own fields on top; this
--- file pins the part it starts from, through a game's life:
+-- facts every game shares that a move can change, and each player with the
+-- standing terms of docs/win-lose.md → Where a player stands; its
+-- static_game_data starts from common._make_json_static_game_data: the facts
+-- nothing after create changes (supabase/sql/common.sql → The page blobs'
+-- common parts). A game's builder adds its own fields on top; this file pins
+-- the parts it starts from, through a game's life:
 --
---   1. A fresh free-for-all game, as a whole: the gametype's brand and
---      one_board, no turns, nobody ended, every player on turn
+--   1. A fresh free-for-all game, as a whole: the static part with the
+--      gametype's brand and one_board; no turns, nobody ended, every player
+--      on turn
 --   2. A turn-order game: seat order, the holder, who waits; the turn advances
 --   3. A player who ended while the game plays on, and one who conceded
 --   4. The game's ending: reason, by, winner; every player's outcome
@@ -24,7 +28,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(22);
+select plan(23);
 
 \ir ../_shared/setup.psql
 
@@ -69,6 +73,8 @@ create function pg_temp.turns() returns uuid language sql as
   $$ select current_setting('test.turns')::uuid $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select common._make_json_game_data(game) $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select common._make_json_static_game_data(game) $$;
 create function pg_temp.player(game uuid, uid uuid) returns jsonb language sql as
   $$ select p from jsonb_array_elements(common._make_json_game_data(game) -> 'players') p
       where p ->> 'id' = uid::text $$;
@@ -94,7 +100,7 @@ $$;
 
 -- ─── (1) A fresh free-for-all game, as a whole ───
 select is(
-  pg_temp.game_data(pg_temp.race()),
+  pg_temp.static_game_data(pg_temp.race()),
   jsonb_build_object(
     'id',       pg_temp.race(),
     'gametype', 'spellingbee_compete',
@@ -104,8 +110,13 @@ select is(
     'coop',     false,
     'compete',  true,
     'oneBoard', false,
+    'setup',    '{"timer": {"kind": "none"}}'::jsonb),
+  'the whole static common part: the game facts, the gametype''s brand and one_board, the setup'
+);
+select is(
+  pg_temp.game_data(pg_temp.race()),
+  jsonb_build_object(
     'title',    'test-title',
-    'setup',    '{"timer": {"kind": "none"}}'::jsonb,
     'turns',    null,
     'ending',   null,
     'ended',    false,
@@ -113,7 +124,7 @@ select is(
     'players',  jsonb_build_array(
       pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada', null),
       pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea', null))),
-  'the whole common part of a fresh game: no turns, no ending, both players on turn, by username'
+  'the whole game_data common part of a fresh game: no turns, no ending, both players on turn, by username'
 );
 
 -- ─── (2) A turn-order game ───
@@ -141,9 +152,9 @@ select is(
   'the other player: seat 1, still playing, waiting for the turn'
 );
 select is(
-  (pg_temp.game_data(pg_temp.turns()) ->> 'coop')::boolean
-    and (pg_temp.game_data(pg_temp.turns()) ->> 'oneBoard')::boolean
-    and pg_temp.game_data(pg_temp.turns()) ->> 'brand' = 'PsychicNum',
+  (pg_temp.static_game_data(pg_temp.turns()) ->> 'coop')::boolean
+    and (pg_temp.static_game_data(pg_temp.turns()) ->> 'oneBoard')::boolean
+    and pg_temp.static_game_data(pg_temp.turns()) ->> 'brand' = 'PsychicNum',
   true,
   'coop, one board and the brand come off the gametype'
 );

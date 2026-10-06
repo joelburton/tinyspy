@@ -152,6 +152,7 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
     // Ada's seat is her entry, as the hook finds it.
     cg: shell === null ? null : { ...shell, me: shell.players[0]! },
     gameData: null,
+    staticGameData: null,
     pause: {
       paused,
       presentUserIds: new Set(players.map((p) => p.id)),

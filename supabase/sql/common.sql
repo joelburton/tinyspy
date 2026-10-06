@@ -36,6 +36,9 @@
 --   _set_player_ended          ends one player while the game plays on
 --   _make_json_shell_data      the page's shell_data, for _create_game and
 --                              each game's builder to write
+--   _make_json_static_game_data
+--                              the common part of a game's static_game_data,
+--                              for its builder to add its puzzle to
 --   _make_json_game_data       the common part of a game's game_data, for
 --                              its builder to add its fields to
 --   _make_json_summary_data    the common part of a game's summary_data, for
@@ -1242,8 +1245,9 @@ begin
   -- Seed the additive game clock at zero. last_tick = now() so the
   -- first tick_timer call doesn't immediately jump (it needs a full
   -- real second to elapse before the first +1). The kind and the
-  -- countdown's length are the game's to read from here on, never
-  -- `setup` (_require_valid_timer has checked the shape).
+  -- countdown's length are copied from `setup.timer`, which is where the
+  -- page reads them (static_game_data); _require_valid_timer has checked
+  -- the shape.
   insert into common.timers (game_id, kind, countdown_seconds_at_setup)
   values (
     new_id,
@@ -1871,33 +1875,46 @@ $$;
 revoke execute on function common._set_player_ended(uuid, uuid, text, text, text) from public;
 
 -- ============================================================
--- The page blobs' common parts — shell_data, and what every game_data shares
+-- The page blobs' common parts — shell_data, and what every game's blobs share
 -- ============================================================
 -- The page is written, not assembled (plans/seat-view.md → The page is
 -- written, not assembled): each blob on `common.games` is everything one reader
--- shows, in that reader's own names, and each is named for what it holds. Two
--- of them have a common part, built here; each builder bears its column's name.
+-- shows, in that reader's own names, and each is named for what it holds. The
+-- parts every game shares are built here; each builder bears its column's name.
 --
---   shell_data  Everything GamePage reads, the same shape for every gametype,
---               and nothing more: the page never sees a seat or an outcome.
---               `_make_json_shell_data` builds it whole; `_create_game` and
---               each game's status builder write it, so `select shell_data
---               from common.games` shows the page what it gets.
+--   shell_data        Everything GamePage reads, the same shape for every
+--                     gametype, and nothing more: the page never sees a seat or
+--                     an outcome. `_make_json_shell_data` builds it whole;
+--                     `_create_game` and each game's status builder write it,
+--                     so `select shell_data from common.games` shows the page
+--                     what it gets.
 --
---   game_data   The game's own blob, whose game facts and player facts every
---               game shares — the mode, the turn, the ending, each player's
---               standing (docs/win-lose.md → Where a player stands, formula for
---               formula). `_make_json_game_data` builds that common part; the
---               game's builder adds its own fields and its players on top
---               (`_make_json_players` joined to the game's rows), so the shared
---               fields cannot drift between games.
+--   static_game_data  What `create_game` fixes and nothing after it changes:
+--                     the setup, the game facts every game shares, and the
+--                     game's puzzle less what it shows only once the game has
+--                     ended (plans/static-game-data.md). The page reads it
+--                     once, takes the timer from `setup`, and hands it to the
+--                     game; the game's `useGame` merges it into `game_data`,
+--                     each key back in its place. `_make_json_static_game_data`
+--                     builds the common part; the game's builder adds its
+--                     puzzle on top.
+--
+--   game_data         The game's own blob, whose game facts and player facts
+--                     every game shares — the turn, the ending, each player's
+--                     standing (docs/win-lose.md → Where a player stands,
+--                     formula for formula). `_make_json_game_data` builds that
+--                     common part; the game's builder adds its own fields and
+--                     its players on top (`_make_json_players` joined to the
+--                     game's rows), so the shared fields cannot drift between
+--                     games.
 --
 -- Three verbs, one noun. `_make_json_<column>` builds a blob from the tables
 -- and writes nothing. A game's `_rebuild_data_cols(game_id,
--- p_update_status_changed_at)` assigns every `*_data` column of one game,
--- whole, and is what every RPC calls after a move. Its
--- `_rebuild_data_cols_for_all()` runs that over every game of the gametype, by
--- hand, for a shape change.
+-- p_update_status_changed_at)` assigns every `*_data` column of one game but
+-- `static_game_data`, whole, and is what every RPC calls after a move; its
+-- `_write_static_game_data(game_id)` writes that one, and only `create_game`
+-- calls it. Its `_rebuild_data_cols_for_all()` runs both over every game of the
+-- gametype, by hand, for a shape change.
 --
 -- A JSON null means "no value right now"; every key is always present. A
 -- group that may not apply is null as a whole: `turns` in a free-for-all game,
@@ -1910,10 +1927,13 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --     title, restartCount, ended
 --     players: [{id, username, color, ai, stillPlaying}, …]   seat order
 --
---   game_data, the common part:
+--   static_game_data, the common part:
 --     id, gametype, brand, club: {handle}
 --     mode, coop, compete, oneBoard
---     title, setup
+--     setup                                as create_game was handed it; setup.timer is the clock
+--
+--   game_data, the common part:
+--     title
 --     turns: {holder}                      null: no turn order; in a turn game the holder is always a player
 --     ending: {reason, detail, by, winner} null while playing; winner: the player ranked 1
 --     ended, outcome                       outcome null until the game ends
@@ -2045,17 +2065,13 @@ revoke execute on function common._make_json_ending(common.games) from public;
 -- supabase/sql is re-applied, not diffed.
 drop function if exists common._make_json_playarea(uuid);
 
--- The common part of a game's game_data blob: the game facts every game
--- shares, and its players as `_make_json_players` shows them. A game's status
--- builder puts its own fields on top, and replaces `players` with the same
--- objects extended by its rows:
+-- The common part of a game's static_game_data blob: the game facts every
+-- game shares that nothing after `_create_game` changes, and the setup. A
+-- game's builder puts its puzzle on top:
 --
---   game_data = common._make_json_game_data(p_game_id) || jsonb_build_object(
---     'puzzle', …,
---     'players', (select jsonb_agg(cp.player || jsonb_build_object(…) order by cp.ord)
---                   from common._make_json_players(p_game_id) cp
---                   join <game>.players pp on pp.user_id = cp.id))
-create or replace function common._make_json_game_data(p_game_id uuid)
+--   static_game_data = common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+--     'puzzle', …)
+create or replace function common._make_json_static_game_data(p_game_id uuid)
 returns jsonb
 language plpgsql
 stable
@@ -2081,8 +2097,39 @@ begin
     'coop',     g.mode = 'coop',
     'compete',  g.mode = 'compete',
     'oneBoard', gt.one_board,
+    'setup',    g.setup);
+end;
+$$;
+
+revoke execute on function common._make_json_static_game_data(uuid) from public;
+
+-- The common part of a game's game_data blob: the game facts every game
+-- shares that a move can change, and its players as `_make_json_players`
+-- shows them. A game's status builder puts its own fields on top, and replaces
+-- `players` with the same objects extended by its rows:
+--
+--   game_data = common._make_json_game_data(p_game_id) || jsonb_build_object(
+--     'puzzle', …,
+--     'players', (select jsonb_agg(cp.player || jsonb_build_object(…) order by cp.ord)
+--                   from common._make_json_players(p_game_id) cp
+--                   join <game>.players pp on pp.user_id = cp.id))
+create or replace function common._make_json_game_data(p_game_id uuid)
+returns jsonb
+language plpgsql
+stable
+set search_path = common, public, extensions
+as $$
+declare
+  g  common.games%rowtype;
+begin
+  select * into g from common.games where id = p_game_id;
+  if not found then
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for p_game_id';
+  end if;
+
+  return jsonb_build_object(
     'title',    g.title,
-    'setup',    g.setup,
     'turns',    case when common._is_turn_based(p_game_id)
                   then jsonb_build_object('holder', g.current_turn_user_id) end,
     'ending',   common._make_json_ending(g),

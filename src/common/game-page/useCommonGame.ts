@@ -6,9 +6,10 @@
  * useCommonGame(gameId, auth):
  *   cg                                    # the shell, plus me; null while loading, after a failed read, or when the game is gone
  *   gameData                              # the game's game_data blob, opaque here; null until the game's builder has written it
+ *   staticGameData                        # the game's static_game_data blob, read once; null while loading
  *   pause: {paused, presentUserIds, stillPlayingHumanPlayers, manuallyPausedBy, sendManualPause, sendManualUnpause}
  *   timer:
- *     mode: {kind, seconds}               # seconds only for a countdown
+ *     mode: {kind, seconds}               # seconds only for a countdown; static_game_data's setup.timer
  *     displaySeconds
  *     expired
  *   sendSuspend
@@ -48,7 +49,8 @@ import { useManualPause, type ManualPauseEvent } from '../pause-suspend/useManua
 import type { SuspendEvent } from '../pause-suspend/sendSuspendBeforeDelete'
 import type { TimerMode } from '../manifest/types'
 import { useGameTimer } from '../timer/useGameTimer'
-import { reportUnhandled } from '../supabase/dbEnvelope'
+import { faultEnvelope, OUR_BUG_TO_CODE_AND_TEXT, reportUnhandled } from '../supabase/dbEnvelope'
+import type { StaticGameDataRaw } from './gameData'
 import { noShellEnvelope, type CommonGame, type Shell } from './shell'
 
 /**
@@ -58,10 +60,12 @@ import { noShellEnvelope, type CommonGame, type Shell } from './shell'
  *
  * The page is written, not assembled (plans/seat-view.md → The page is written,
  * not assembled): one read of `common.games` brings the `shell_data` and
- * `game_data` blobs each game's status builder wrote, and the hook reads no
- * other column of that table. `shell_data` is what the page shows; `game_data`
- * is the game's, handed down opaque. A game's `useGame` is a pure function of
- * it.
+ * `game_data` blobs each game's status builder wrote, and the first brings
+ * `static_game_data` too, which nothing after create changes, so later reads
+ * skip it (plans/static-game-data.md). The hook reads no other column of that
+ * table. `shell_data` is what the page shows, and the timer comes from the
+ * static blob's `setup`; `game_data` and `static_game_data` are the game's,
+ * handed down opaque. A game's `useGame` is a pure function of the two.
  *
  * The room is a Realtime channel named `game:${gameId}` — stable, because
  * presence and broadcast only reach peers sharing a channel NAME, and because
@@ -85,6 +89,9 @@ export function useCommonGame(
   // The game's `game_data` blob, as its builder wrote it. Opaque to the page;
   // null until the game's builder has written one.
   gameData: unknown
+  // The game's `static_game_data` blob, as `create_game` wrote it. Opaque to
+  // the page but for `setup.timer`; null while loading.
+  staticGameData: unknown
   // Whether the game is paused, who it waits for, and the controls.
   pause: GamePause
   // The game clock: its kind (and a countdown's length), the seconds to show,
@@ -125,6 +132,11 @@ export function useCommonGame(
     // of order; only the newest may commit, so a slow one can't roll the game
     // back. Same fix as useRealtimeRefetch's.
     let generation = 0
+    // The static blob, once a load that carried it has been applied. Until
+    // then every load asks for it: a load that carried it can still be dropped
+    // for a newer one below, and if only the first asked, the static blob
+    // would never arrive.
+    let heldStaticGameData: StaticGameDataRaw | null = null
 
     // `cause` is diagnostics-only, as useRealtimeRefetch's: it pairs each read
     // in the console with what provoked it.
@@ -133,10 +145,11 @@ export function useCommonGame(
       // awaiting it, so an event can still call this just after unmount.
       if (!mounted) return
       const myGen = ++generation
-      const read = await readCommonGame(gameId)
+      const read = await readCommonGame(gameId, heldStaticGameData)
       if (!mounted || myGen !== generation) return
 
       if (read.kind === 'loaded') {
+        heldStaticGameData = read.staticGameData
         // What this load saw — the moment a lost event shows up as "the last
         // refetch saw a game still in progress".
         rtLog(
@@ -258,11 +271,13 @@ export function useCommonGame(
     ended,
   })
 
+  const timerMode: TimerMode = loaded?.staticGameData.setup.timer ?? { kind: 'none' }
+
   // Idle until the game loads, and stopped once it ends.
   const timer = useGameTimer({
     gameId,
     paused: pauseState.paused,
-    mode: loaded?.timerMode ?? { kind: 'none' },
+    mode: timerMode,
     running: shell !== null && !ended,
   })
 
@@ -277,8 +292,9 @@ export function useCommonGame(
   return {
     cg,
     gameData: loaded?.gameData ?? null,
+    staticGameData: loaded?.staticGameData ?? null,
     pause: { ...pauseState, presentUserIds, sendManualPause, sendManualUnpause },
-    timer: { mode: loaded?.timerMode ?? { kind: 'none' }, ...timer },
+    timer: { mode: timerMode, ...timer },
     sendSuspend,
     loading: lastRead === null,
     failure: lastRead?.kind === 'failed' ? lastRead.failure : null,
@@ -373,7 +389,8 @@ type CommonGameRead =
       kind: 'loaded'
       shell: Shell
       gameData: unknown
-      timerMode: TimerMode
+      // This read's own copy, or the one held from an earlier read.
+      staticGameData: StaticGameDataRaw
     }
   // Zero rows. Only a read that WORKED can say this, which is why
   // `GamePageLoader` may read it as the game being gone.
@@ -383,48 +400,53 @@ type CommonGameRead =
   | { kind: 'failed'; failure: NotOkEnvelope }
 
 /**
- * Read the game: its two page blobs off `common.games`, and its timer. A game
- * whose builder has not written its shell_data yet fails the read, saying so.
+ * Read the game: its page blobs off `common.games`. `static_game_data` is
+ * asked for only while `heldStaticGameData` is null, since nothing after
+ * create changes it; otherwise the held one is handed back with the rest. A
+ * game whose builders have not written its shell_data or its static_game_data
+ * yet fails the read, saying so.
  */
-async function readCommonGame(gameId: string): Promise<CommonGameRead> {
-  const [gameRes, timerRes] = await Promise.all([
-    // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK, so
-    // this is 0 or 1 of them.
-    readRows(commonDb.from('games').select('shell_data, game_data').eq('id', gameId)),
-    readRows(
-      commonDb
-        .from('timers')
-        .select('kind, countdown_seconds_at_setup')
-        .eq('game_id', gameId),
-    ),
-  ])
-  // One check each rather than one combined test: WHICH read failed is the one
-  // thing the player's sentence cannot say, and the envelope can.
+async function readCommonGame(
+  gameId: string,
+  heldStaticGameData: StaticGameDataRaw | null,
+): Promise<CommonGameRead> {
+  // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK, so
+  // this is 0 or 1 of them.
+  const gameRes = heldStaticGameData === null
+    ? await readRows(
+      commonDb.from('games').select('shell_data, game_data, static_game_data').eq('id', gameId),
+    )
+    : await readRows(commonDb.from('games').select('shell_data, game_data').eq('id', gameId))
   if (gameRes.type === 'not-ok') return { kind: 'failed', failure: gameRes }
-  if (timerRes.type === 'not-ok') return { kind: 'failed', failure: timerRes }
 
   const row = gameRes.data[0]
   if (!row) return { kind: 'gone' }
   if (row.shell_data === null) return { kind: 'failed', failure: noShellEnvelope(gameId) }
 
+  const staticGameData = heldStaticGameData
+    ?? ('static_game_data' in row ? row.static_game_data as StaticGameDataRaw | null : null)
+  if (staticGameData === null) {
+    return { kind: 'failed', failure: noStaticGameDataEnvelope(gameId) }
+  }
+
   return {
     kind: 'loaded',
     shell: row.shell_data as Shell,
     gameData: row.game_data,
-    timerMode: timerModeOf(timerRes.data[0]),
+    staticGameData,
   }
 }
 
 /**
- * A game's timer off its `common.timers` row: the kind, and a countdown's
- * length. A missing row reads as no timer.
+ * The failure a read reports for a game whose static_game_data is null: its
+ * builder has not written it, so there is no page to draw. The same bug as a
+ * null shell_data, so it wears that one's code and text; the detail says which.
  */
-function timerModeOf(
-  row: { kind: string; countdown_seconds_at_setup: number | null } | undefined,
-): TimerMode {
-  if (row?.kind === 'countdown') {
-    return { kind: 'countdown', seconds: row.countdown_seconds_at_setup ?? 0 }
-  }
-  if (row?.kind === 'countup') return { kind: 'countup' }
-  return { kind: 'none' }
+function noStaticGameDataEnvelope(gameId: string): NotOkEnvelope {
+  return faultEnvelope(
+    null,
+    OUR_BUG_TO_CODE_AND_TEXT.noShell.text,
+    `common.games.static_game_data is null for ${gameId}: its create_game has not written it`,
+    OUR_BUG_TO_CODE_AND_TEXT.noShell.code,
+  )
 }

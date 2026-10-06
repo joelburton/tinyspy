@@ -6,13 +6,16 @@
  * useCommonGame is the linchpin of the GamePage layer — it owns the shared
  * Realtime room for one game across all peers (presence, manual-pause
  * broadcast, suspend broadcast, the `changed` nudge), the read of the
- * two page blobs and the timer, and the unified `paused` flag every consumer
- * reads.
+ * page blobs, and the unified `paused` flag every consumer reads.
  *
  * **What's covered here:**
  *   - Initial load populates `cg` from shell_data, `me` as my entry in it,
- *     hands game_data through opaque, and clears `loading`.
- *   - A game whose builder has not written a shell is a failure, named.
+ *     hands game_data and static_game_data through opaque, takes the timer
+ *     from static_game_data's setup, and clears `loading`.
+ *   - static_game_data is asked for until a read carrying it has been
+ *     applied, and never after.
+ *   - A game whose builders have not written a shell or a static blob is a
+ *     failure, named.
  *   - `paused` correctly unifies presence-pause + manual-pause (via the
  *     broadcast handler) and short-circuits to false once the shell says the
  *     game ended.
@@ -164,21 +167,34 @@ const ENDED_SHELL: Shell = {
   players: PLAYERS.map((p) => ({ ...p, stillPlaying: false })),
 }
 
-const GAME_DATA = { gametype: 'codenamesduet', puzzle: { words: ['a'] } }
+const GAME_DATA = { title: 'Game One', ended: false }
 
-const GAME_ROW = { shell_data: SHELL, game_data: GAME_DATA }
+const STATIC_GAME_DATA = {
+  gametype: 'codenamesduet',
+  setup: { timer: { kind: 'none' } },
+  puzzle: { words: ['a'] },
+}
 
-const TIMER_ROWS = [{ kind: 'none', countdown_seconds_at_setup: null }]
+const GAME_ROW = { shell_data: SHELL, game_data: GAME_DATA, static_game_data: STATIC_GAME_DATA }
 
-/** Answer the reads with these rows instead of the defaults. */
-function serve(gameRows: unknown[], timerRows: unknown[] = TIMER_ROWS) {
+/** The columns each read of `common.games` asked for, in order. */
+let gamesSelects: string[] = []
+
+/** Answer the reads with these rows instead of the defaults. The row is
+ *  answered whole whatever the read selects; `gamesSelects` says what it
+ *  asked for. */
+function serve(gameRows: unknown[]) {
   mockSchemaFrom.mockImplementation((table: string) => {
     // Rows, not a single row: `readRows` dropped `.maybeSingle()`, which
     // treated a game this club cannot see as indistinguishable from a broken
     // connection.
-    const rows = table === 'games' ? gameRows : table === 'timers' ? timerRows : null
-    if (rows === null) throw new Error(`unexpected table: ${table}`)
-    return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
+    if (table !== 'games') throw new Error(`unexpected table: ${table}`)
+    return {
+      select: (columns: string) => {
+        gamesSelects.push(columns)
+        return { eq: () => Promise.resolve({ data: gameRows, error: null, status: 200 }) }
+      },
+    }
   })
 }
 
@@ -201,6 +217,7 @@ beforeEach(() => {
   mockNavigate.mockClear()
 
   mockSchemaFrom.mockReset()
+  gamesSelects = []
   serve([GAME_ROW])
 })
 
@@ -244,16 +261,69 @@ describe('useCommonGame — initial load', () => {
   })
 
   it('a null game_data passes through as null — the game\'s builder has not written one', async () => {
-    serve([{ shell_data: SHELL, game_data: null }])
+    serve([{ ...GAME_ROW, game_data: null }])
     const result = await load()
     expect(result.current.cg).not.toBeNull()
     expect(result.current.gameData).toBeNull()
   })
 
-  it('reads the timer off common.timers', async () => {
-    serve([GAME_ROW], [{ kind: 'countdown', countdown_seconds_at_setup: 90 }])
+  it('hands static_game_data through untouched', async () => {
+    const result = await load()
+    expect(result.current.staticGameData).toEqual(STATIC_GAME_DATA)
+  })
+
+  it('takes the timer from static_game_data\'s setup, and reads no other table', async () => {
+    serve([{
+      ...GAME_ROW,
+      static_game_data: { ...STATIC_GAME_DATA, setup: { timer: { kind: 'countdown', seconds: 90 } } },
+    }])
     const result = await load()
     expect(result.current.timer.mode).toEqual({ kind: 'countdown', seconds: 90 })
+    expect(mockSchemaFrom.mock.calls.every((c) => c[0] === 'games')).toBe(true)
+  })
+})
+
+describe('useCommonGame — static_game_data is read once', () => {
+  it('stops asking for it once a read carrying it has been applied', async () => {
+    const result = await load()
+    expect(gamesSelects[0]).toContain('static_game_data')
+
+    const before = gamesSelects.length
+    act(() => {
+      handlers['broadcast:changed']?.({ payload: {} })
+    })
+    await waitFor(() => expect(gamesSelects.length).toBe(before + 1))
+    expect(gamesSelects.at(-1)).not.toContain('static_game_data')
+    // The held blob is still handed down.
+    expect(result.current.staticGameData).toEqual(STATIC_GAME_DATA)
+  })
+
+  it('keeps asking while the read that carried it is overtaken by a newer one', async () => {
+    // The first read hangs; a nudge starts a second while nothing has been
+    // applied. The second is the newer, so it is the one applied, and it must
+    // have asked for the static blob too, or the page would never get it.
+    let answerFirst!: () => void
+    mockSchemaFrom.mockImplementation(() => ({
+      select: (columns: string) => {
+        gamesSelects.push(columns)
+        const answer = { data: [GAME_ROW], error: null, status: 200 }
+        if (gamesSelects.length === 1) {
+          return { eq: () => new Promise((resolve) => { answerFirst = () => resolve(answer) }) }
+        }
+        return { eq: () => Promise.resolve(answer) }
+      },
+    }))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    act(() => {
+      handlers['broadcast:changed']?.({ payload: {} })
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(gamesSelects[1]).toContain('static_game_data')
+    expect(result.current.staticGameData).toEqual(STATIC_GAME_DATA)
+
+    // The overtaken read lands late and is dropped.
+    await act(async () => answerFirst())
+    expect(result.current.staticGameData).toEqual(STATIC_GAME_DATA)
   })
 })
 
@@ -290,7 +360,7 @@ describe('useCommonGame — a dead read is not an absent game', () => {
   // otherwise a deleted game would show an error page instead of the sentence
   // written for it.
   it('leaves failure null when the read worked and found nothing', async () => {
-    serve([], [])
+    serve([])
     const result = await load()
     expect(result.current.failure).toBeNull()
     expect(result.current.cg).toBeNull()
@@ -300,10 +370,19 @@ describe('useCommonGame — a dead read is not an absent game', () => {
     // An unconverted game's row, or one not yet rebuilt: the builder has not
     // written the page. Saying "no such game" would be the confident wrong
     // answer; the error page names the real one.
-    serve([{ shell_data: null, game_data: null }])
+    serve([{ shell_data: null, game_data: null, static_game_data: null }])
     const result = await load()
     expect(result.current.failure).toMatchObject({ type: 'not-ok', severity: 'fault' })
     expect(result.current.failure!.detail).toContain('g1')
+    expect(result.current.cg).toBeNull()
+  })
+
+  it('a game with no static_game_data yet is a failure that says so', async () => {
+    // A game created before the blob, not yet rebuilt: there is no page to draw.
+    serve([{ ...GAME_ROW, static_game_data: null }])
+    const result = await load()
+    expect(result.current.failure).toMatchObject({ type: 'not-ok', severity: 'fault' })
+    expect(result.current.failure!.detail).toContain('static_game_data')
     expect(result.current.cg).toBeNull()
   })
 })
@@ -415,20 +494,15 @@ describe('useCommonGame — paused unification', () => {
     // First load returns a game in play; then the room hears `changed` and
     // shell_data comes back ended.
     let firstCall = true
-    mockSchemaFrom.mockImplementation((table: string) => {
-      if (table === 'games') {
-        return {
-          select: () => ({
-            eq: async () => {
-              const row = firstCall ? GAME_ROW : { ...GAME_ROW, shell_data: ENDED_SHELL }
-              firstCall = false
-              return { data: [row], error: null, status: 200 }
-            },
-          }),
-        }
-      }
-      return { select: () => ({ eq: () => Promise.resolve({ data: TIMER_ROWS, error: null, status: 200 }) }) }
-    })
+    mockSchemaFrom.mockImplementation(() => ({
+      select: () => ({
+        eq: async () => {
+          const row = firstCall ? GAME_ROW : { ...GAME_ROW, shell_data: ENDED_SHELL }
+          firstCall = false
+          return { data: [row], error: null, status: 200 }
+        },
+      }),
+    }))
 
     const result = await load()
 

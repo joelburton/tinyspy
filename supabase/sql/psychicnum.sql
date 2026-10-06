@@ -19,7 +19,8 @@
 -- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
--- `shell_data` through common — and the page reads those.
+-- `shell_data` through common — and `create_game` writes `static_game_data`
+-- once (plans/static-game-data.md); the page reads those.
 --
 -- What is particular to psychicnum (src/psychicnum/doc.md has the rest):
 --   - The secrets are hidden by a column grant, not a policy: no client can
@@ -110,8 +111,15 @@ drop function if exists psychicnum._secrets_for(uuid);
 -- psychicnum's facts on top; the pieces below build each part, so `select
 -- game_data from common.games` shows the page what it gets.
 --
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+--
+--   static_game_data, psychicnum's part:
+--     puzzle: {words}                      the dealt words, in the puzzle's order
+--
 --   game_data, psychicnum's part:
---     puzzle: {words, secrets}             secrets null until the game ends
+--     puzzle: {secrets}                    null until the game ends
 --     team: {nFoundSecrets, nGuessesUsed}
 --                                          what the team shares, summed over the rows;
 --                                          null in compete, where there is no team
@@ -141,7 +149,8 @@ drop function if exists psychicnum._secrets_for(uuid);
 -- written: nothing reads psychicnum's any more. The columns stay until a
 -- migration retires them for every game.
 
--- The board's words, and the three secrets once the game has ended.
+-- The puzzle's part of game_data: the three secrets, once the game has ended.
+-- The words are static (`_make_json_static_game_data`).
 create or replace function psychicnum._make_json_puzzle(pg psychicnum.games, p_ended boolean)
 returns jsonb
 language sql
@@ -149,7 +158,6 @@ immutable
 set search_path = psychicnum, common, public, extensions
 as $$
   select jsonb_build_object(
-    'words',   to_jsonb(pg.words),
     'secrets', case when p_ended then to_jsonb(pg.secrets) end);
 $$;
 
@@ -286,6 +294,22 @@ $$;
 
 revoke execute on function psychicnum._make_json_game_data(uuid) from public;
 
+-- The whole static_game_data blob: the common part, with the puzzle's words on
+-- top. Nothing in it changes after create_game.
+create or replace function psychicnum._make_json_static_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = psychicnum, common, public, extensions
+as $$
+  select common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+           'puzzle', jsonb_build_object('words', to_jsonb(pg.words)))
+    from psychicnum.games pg
+   where pg.game_id = p_game_id;
+$$;
+
+revoke execute on function psychicnum._make_json_static_game_data(uuid) from public;
+
 -- The game summed up: the numbers a list of games shows for this one.
 -- The shape this had before the common part joined it; supabase/sql is
 -- re-applied, not diffed.
@@ -359,12 +383,32 @@ drop function if exists psychicnum.rebuild_pages();
 drop function if exists psychicnum._rebuild_pages();
 
 -- ============================================================
+-- psychicnum._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change.
+create or replace function psychicnum._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = psychicnum, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = psychicnum._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function psychicnum._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- psychicnum._rebuild_data_cols_for_all — every psychicnum game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every psychicnum game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every psychicnum
+-- game without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function psychicnum._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -378,6 +422,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('psychicnum_coop', 'psychicnum_compete')
   loop
+    perform psychicnum._write_static_game_data(v_game_id);
     perform psychicnum._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -597,6 +642,7 @@ begin
   select new_id, uid
     from unnest(p_player_user_ids) as uid;
 
+  perform psychicnum._write_static_game_data(new_id);
   perform psychicnum._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a

@@ -30,6 +30,10 @@ export type PlayAreaLoaderProps = {
   // `useGame` reads it as its own `GGameDataRaw`; null until the builder has
   // written one.
   gameData: unknown
+  // The game's `static_game_data` blob: what nothing after create changes,
+  // read once (plans/static-game-data.md). The game's `useGame` merges it into
+  // `gameData`, each key in its place, before reading either.
+  staticGameData: unknown
   // The signed-in user: `auth.user.id`. Their player is `cg.me`.
   auth: Session
   // The GLOBAL feedback slot — the header's `<PageHeaderStatusSlot>`, where

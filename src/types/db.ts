@@ -503,13 +503,13 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "club_handle": string,"clubpage_info": NonNullable<Json>,"created_by": string | null,"current_turn_user_id": string | null,"ended_at": string | null,"game_data": Json | null,"game_ended_by_user_id": string | null,"game_ended_outcome": string | null,"game_ended_reason": string | null,"game_ended_reason_detail": string | null,"game_status": NonNullable<Json>,"gametype": string,"id": string,"is_current_view": boolean,"mode": string,"restart_count": number,"setup": NonNullable<Json>,"shell_data": Json | null,"started_at": string,"status_changed_at": string,"summary_data": Json | null,"title": string,"updated_at": string,"_make_json_ending": Json | null
+                    "club_handle": string,"clubpage_info": NonNullable<Json>,"created_by": string | null,"current_turn_user_id": string | null,"ended_at": string | null,"game_data": Json | null,"game_ended_by_user_id": string | null,"game_ended_outcome": string | null,"game_ended_reason": string | null,"game_ended_reason_detail": string | null,"game_status": NonNullable<Json>,"gametype": string,"id": string,"is_current_view": boolean,"mode": string,"restart_count": number,"setup": NonNullable<Json>,"shell_data": Json | null,"started_at": string,"static_game_data": Json | null,"status_changed_at": string,"summary_data": Json | null,"title": string,"updated_at": string,"_make_json_ending": Json | null
                   }
                   Insert: {
-                    "club_handle": string,"clubpage_info"?: NonNullable<Json>,"created_by"?: string | null,"current_turn_user_id"?: string | null,"ended_at"?: string | null,"game_data"?: Json | null,"game_ended_by_user_id"?: string | null,"game_ended_outcome"?: string | null,"game_ended_reason"?: string | null,"game_ended_reason_detail"?: string | null,"game_status"?: NonNullable<Json>,"gametype": string,"id"?: string,"is_current_view"?: boolean,"mode": string,"restart_count"?: number,"setup": NonNullable<Json>,"shell_data"?: Json | null,"started_at"?: string,"status_changed_at"?: string,"summary_data"?: Json | null,"title": string,"updated_at"?: string
+                    "club_handle": string,"clubpage_info"?: NonNullable<Json>,"created_by"?: string | null,"current_turn_user_id"?: string | null,"ended_at"?: string | null,"game_data"?: Json | null,"game_ended_by_user_id"?: string | null,"game_ended_outcome"?: string | null,"game_ended_reason"?: string | null,"game_ended_reason_detail"?: string | null,"game_status"?: NonNullable<Json>,"gametype": string,"id"?: string,"is_current_view"?: boolean,"mode": string,"restart_count"?: number,"setup": NonNullable<Json>,"shell_data"?: Json | null,"started_at"?: string,"static_game_data"?: Json | null,"status_changed_at"?: string,"summary_data"?: Json | null,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "club_handle"?: string,"clubpage_info"?: NonNullable<Json>,"created_by"?: string | null,"current_turn_user_id"?: string | null,"ended_at"?: string | null,"game_data"?: Json | null,"game_ended_by_user_id"?: string | null,"game_ended_outcome"?: string | null,"game_ended_reason"?: string | null,"game_ended_reason_detail"?: string | null,"game_status"?: NonNullable<Json>,"gametype"?: string,"id"?: string,"is_current_view"?: boolean,"mode"?: string,"restart_count"?: number,"setup"?: NonNullable<Json>,"shell_data"?: Json | null,"started_at"?: string,"status_changed_at"?: string,"summary_data"?: Json | null,"title"?: string,"updated_at"?: string
+                    "club_handle"?: string,"clubpage_info"?: NonNullable<Json>,"created_by"?: string | null,"current_turn_user_id"?: string | null,"ended_at"?: string | null,"game_data"?: Json | null,"game_ended_by_user_id"?: string | null,"game_ended_outcome"?: string | null,"game_ended_reason"?: string | null,"game_ended_reason_detail"?: string | null,"game_status"?: NonNullable<Json>,"gametype"?: string,"id"?: string,"is_current_view"?: boolean,"mode"?: string,"restart_count"?: number,"setup"?: NonNullable<Json>,"shell_data"?: Json | null,"started_at"?: string,"static_game_data"?: Json | null,"status_changed_at"?: string,"summary_data"?: Json | null,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -697,6 +697,9 @@ isOneToOne: true
                            },
 "_make_json_shell_player":
 { Args: { "player": Json }; Returns: Json
+                           },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
@@ -1397,6 +1400,9 @@ isOneToOne: false
 "_make_json_puzzle":
 { Args: { "p_ended": boolean,"pg": Database["psychicnum"]['Tables']["games"]['Row'] }; Returns: Json
                            },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
@@ -1414,6 +1420,9 @@ isOneToOne: false
                            },
 "_unfound_secret":
 { Args: { "p_game_id": string,"p_user_id": string }; Returns: string
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json

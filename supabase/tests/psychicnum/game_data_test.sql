@@ -1,15 +1,16 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: psychicnum's page blobs — game_data, summary_data, and shell_data beside them
+-- Test: psychicnum's page blobs — static_game_data, game_data, summary_data, and shell_data beside them
 -- ============================================================
 -- `psychicnum._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/psychicnum.sql → The page
--- blobs). This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/psychicnum.sql → The page blobs). This
+-- file pins what the page gets:
 --
---   1. A fresh coop game's game_data, as a whole: the common part, the puzzle
---      with its secrets withheld, no log, and every player fresh with an
---      empty board
+--   1. A fresh coop game's static_game_data and game_data, as a whole: the
+--      common parts, the words in the static blob and the secrets withheld in
+--      game_data, no log, and every player fresh with an empty board
 --   2. Mid-game coop: the log, the team's counts on every player, one board
 --      on every seat
 --   3. Mid-game compete: each racer's own counts and own board; the log
@@ -17,7 +18,8 @@
 --   4. The endings: the secrets arrive, the winner is named, the summary_data
 --      line, and shell_data is rewritten beside them
 --   5. A Restart empties it all again
---   6. `_rebuild_data_cols_for_all` rewrites every psychicnum game without re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every psychicnum game, its static
+--      blob included, without re-dating it
 --
 -- The board words and the secrets are pinned with a postgres-role UPDATE
 -- after create_game, as gameplay_test.sql does.
@@ -26,7 +28,7 @@
 begin;
 set search_path = psychicnum, common, public, extensions;
 
-select plan(36);
+select plan(38);
 
 \ir ../_shared/setup.psql
 
@@ -50,6 +52,7 @@ update psychicnum.games
  where game_id in (select id from g);
 -- The blobs were written at create, from the sampled board; rewrite them from
 -- the pinned one.
+select psychicnum._write_static_game_data(id) from g;
 select psychicnum._rebuild_data_cols(id, p_update_status_changed_at => false) from g;
 
 -- Shorthands: each game's id and blobs, and one player inside the game_data.
@@ -59,6 +62,8 @@ create function pg_temp.compete() returns uuid language sql as
   $$ select id from g where mode = 'compete' $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select static_game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
 -- The common part of a game's summary_data, as written: psychicnum's keys sit beside it.
@@ -113,7 +118,7 @@ $$;
 
 -- ─── (1) A fresh coop game, as a whole ───
 select is(
-  pg_temp.game_data(pg_temp.coop()),
+  pg_temp.static_game_data(pg_temp.coop()),
   jsonb_build_object(
     'id',       pg_temp.coop(),
     'gametype', 'psychicnum_coop',
@@ -123,21 +128,26 @@ select is(
     'coop',     true,
     'compete',  false,
     'oneBoard', true,
-    'title',    (select title from common.games where id = pg_temp.coop()),
     'setup',    '{"max_guesses": 5, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
+    'puzzle',   jsonb_build_object(
+      'words', '["zalpha","zbravo","zcharlie","zdelta","zecho","zfoxtrot","zgolf","zhotel"]'::jsonb)),
+  'the whole static_game_data of a fresh coop game: the common part, and the puzzle''s words'
+);
+select is(
+  pg_temp.game_data(pg_temp.coop()),
+  jsonb_build_object(
+    'title',    (select title from common.games where id = pg_temp.coop()),
     'turns',    null,
     'ending',   null,
     'ended',    false,
     'outcome',  null,
-    'puzzle',   jsonb_build_object(
-      'words',   '["zalpha","zbravo","zcharlie","zdelta","zecho","zfoxtrot","zgolf","zhotel"]'::jsonb,
-      'secrets', null),
+    'puzzle',   jsonb_build_object('secrets', null),
     'team',     '{"nFoundSecrets": 0, "nGuessesUsed": 0}'::jsonb,
     'events',   '[]'::jsonb,
     'players',  jsonb_build_array(
       pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada'),
       pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea'))),
-  'the whole game_data of a fresh coop game: the common part, the puzzle with its secrets withheld, a team with nothing yet, no log, fresh players with empty boards'
+  'the whole game_data of a fresh coop game: the common part, the secrets withheld, a team with nothing yet, no log, fresh players with empty boards'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
@@ -357,14 +367,23 @@ select is(
 );
 
 -- ─── (6) _rebuild_data_cols_for_all ───
-update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
+update common.games
+   set static_game_data = null, game_data = null, summary_data = null, shell_data = null,
+       status_changed_at = '2026-01-01'
  where id in (select id from g);
 select is(psychicnum._rebuild_data_cols_for_all() >= 2, true, '_rebuild_data_cols_for_all rewrites every psychicnum game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null),
+    where id in (select id from g)
+      and static_game_data is not null and game_data is not null
+      and summary_data is not null and shell_data is not null),
   2,
   '… every blob is back'
+);
+select is(
+  pg_temp.static_game_data(pg_temp.coop()) -> 'puzzle' -> 'words',
+  '["zalpha","zbravo","zcharlie","zdelta","zecho","zfoxtrot","zgolf","zhotel"]'::jsonb,
+  '… the static blob from the game''s own row'
 );
 select is(
   (select count(*)::int from common.games
