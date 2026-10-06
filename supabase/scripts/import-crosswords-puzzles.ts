@@ -62,14 +62,14 @@ async function main() {
   // Convert each file to its storable pieces. A parse failure on one file
   // is reported and skipped, not fatal — one bad puzzle shouldn't block the
   // rest of a library import.
-  const rows: Array<{ content_hash: string; source: 'library'; meta: unknown; solution: unknown }> = []
+  const rows: Array<{ content_hash: string; source: 'library'; puzzle_content: unknown; solution: unknown }> = []
   for (const file of files) {
     try {
       const { template, solution, contentHash } = convertPuzzleFile(
         join(dir, file),
         readFileSync(join(dir, file)),
       )
-      rows.push({ content_hash: contentHash, source: 'library', meta: template, solution })
+      rows.push({ content_hash: contentHash, source: 'library', puzzle_content: template, solution })
     } catch (err) {
       const why = err instanceof IpuzUnsupportedError ? err.message : String(err)
       console.error(`  ✗ ${file}: ${why}`)

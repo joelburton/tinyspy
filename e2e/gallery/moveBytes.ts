@@ -290,10 +290,15 @@ async function measure(browser: Browser, g: GameGallery): Promise<Result> {
   const recs: Recording[] = []
   const built = g.build(club, { mode: 'coop', phase: 'mid' })
   // Raced against a deadline inside the try, so a stuck game still runs the
-  // finally that clears its gate.
-  const deadline = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error(`no answer in ${GAME_TIMEOUT_MS / 1000}s`)), GAME_TIMEOUT_MS),
-  )
+  // finally that clears its gate. The finally clears the timer too: a pending
+  // one keeps the process alive until it fires.
+  let deadlineTimer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<never>((_, reject) => {
+    deadlineTimer = setTimeout(
+      () => reject(new Error(`no answer in ${GAME_TIMEOUT_MS / 1000}s`)),
+      GAME_TIMEOUT_MS,
+    )
+  })
   const run = async (): Promise<Result> => {
     await Promise.race([
       reachedP,
@@ -341,6 +346,7 @@ async function measure(browser: Browser, g: GameGallery): Promise<Result> {
   try {
     return await Promise.race([run(), deadline])
   } finally {
+    clearTimeout(deadlineTimer)
     gate = null
     release()
     after()
