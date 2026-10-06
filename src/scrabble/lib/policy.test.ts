@@ -4,13 +4,12 @@
 import { describe, expect, it } from 'vitest'
 import { buildTrie } from '@/shared/dict-trie/trie'
 import { mulberry32 } from '@/common/utils/mulberry32'
-import type { Cell } from './board'
-import type { Bands } from './suggest'
-import { choosePlay, playSelfGame, LEVELS, type StrengthKnobs } from './policy'
+import { makeEmptyBoard } from './board'
+import { choosePlay, playSelfGame, LEVELS } from './policy'
+import type { GBands, GStrengthKnobs } from '../types'
 
-const N = 15
-const emptyBoard = (): Cell[] => new Array<Cell>(N * N).fill(null)
-const FULL_BANDS: Bands = { dict2: 6, dict3plus: 6 }
+const emptyBoard = makeEmptyBoard
+const FULL_BANDS: GBands = { dict2: 6, dict3plus: 6 }
 
 // A tiny rated dictionary for the targeted choosePlay tests, and a broader one
 // (below) rich enough that a self-played game actually progresses.
@@ -21,15 +20,15 @@ describe('choosePlay', () => {
   it('asks to exchange the whole rack when nothing is playable', () => {
     // 'zz' isn't in the dict and the board is empty, so no opening word exists.
     const trie = trieOf([['at', 1], ['cat', 1]])
-    const choice = choosePlay(emptyBoard(), ['Z', 'Z', 'Z'], trie, FULL_BANDS, LEVELS.best, mulberry32(1))
+    const choice = choosePlay(emptyBoard(), ['z', 'z', 'z'], trie, FULL_BANDS, LEVELS.best, mulberry32(1))
     expect(choice.kind).toBe('exchange')
-    if (choice.kind === 'exchange') expect(choice.tiles).toEqual(['Z', 'Z', 'Z'])
+    if (choice.kind === 'exchange') expect(choice.tiles).toEqual(['z', 'z', 'z'])
   })
 
   it('is deterministic given the same rng seed (even with noise)', () => {
     const trie = trieOf([['at', 1], ['cat', 1], ['cats', 1], ['act', 1]])
-    const rack = ['C', 'A', 'T', 'S']
-    const noisy: StrengthKnobs = { useLeave: true, bingoMissProb: 0, equityNoise: 20 }
+    const rack = ['c', 'a', 't', 's']
+    const noisy: GStrengthKnobs = { useLeave: true, bingoMissProb: 0, equityNoise: 20 }
     const a = choosePlay(emptyBoard(), rack, trie, FULL_BANDS, noisy, mulberry32(42))
     const b = choosePlay(emptyBoard(), rack, trie, FULL_BANDS, noisy, mulberry32(42))
     expect(a).toEqual(b)
@@ -38,13 +37,13 @@ describe('choosePlay', () => {
   it('vocabCap keeps the AI off words above its band', () => {
     // CAT scores more than AT, but sits in band 5; a cap of 4 forces AT.
     const trie = trieOf([['at', 1], ['cat', 5]])
-    const rack = ['C', 'A', 'T']
+    const rack = ['c', 'a', 't']
     const capped = choosePlay(emptyBoard(), rack, trie, FULL_BANDS,
       { vocabCap: 4, useLeave: true, bingoMissProb: 0, equityNoise: 0 }, mulberry32(1))
     const full = choosePlay(emptyBoard(), rack, trie, FULL_BANDS,
       { useLeave: true, bingoMissProb: 0, equityNoise: 0 }, mulberry32(1))
-    expect(capped.kind === 'word' && capped.words.map((w) => w.word)).toEqual(['AT'])
-    expect(full.kind === 'word' && full.words.map((w) => w.word)).toEqual(['CAT'])
+    expect(capped.kind === 'word' && capped.words.map((w) => w.word)).toEqual(['at'])
+    expect(full.kind === 'word' && full.words.map((w) => w.word)).toEqual(['cat'])
   })
 
   it('bingoMissProb makes the AI pass over an otherwise-best bingo', () => {
@@ -53,7 +52,7 @@ describe('choosePlay', () => {
     const trie = trieOf([
       ['at', 1], ['cat', 1], ['oat', 1], ['coats', 2], ['coaster', 3], ['coat', 1], ['taco', 2],
     ])
-    const rack = ['C', 'O', 'A', 'S', 'T', 'E', 'R']
+    const rack = ['c', 'o', 'a', 's', 't', 'e', 'r']
     const plays = choosePlay(emptyBoard(), rack, trie, FULL_BANDS,
       { useLeave: true, bingoMissProb: 0, equityNoise: 0 }, mulberry32(1))
     const misses = choosePlay(emptyBoard(), rack, trie, FULL_BANDS,

@@ -8,27 +8,14 @@ import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { Action } from '@/common/actions/useBindAction'
-import type { ScrabbleSetup } from '../lib/setup'
 import type { SetupRow } from '@/common/setup-form/types'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import type { RankedMove } from '../lib/rank'
 import type { PlayerRow, EventRow } from '../hooks/useGame'
+import type { GRankedMove, GSetup, GSuggestState } from '../types'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './InfoCol.module.css'
-
-/** The AI suggest-a-move box's state (owned by PlayArea, rendered here).
- *  `idle` renders NOTHING — the box claims
- *  no space until there's something to show (a deliberate exception to the
- *  pre-claim-space rule; see the render site). `ready` remembers the board
- *  `version` the moves were computed against, so PlayArea can derive
- *  staleness at render (a teammate may have played). */
-export type SuggestState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'ready'; moves: RankedMove[]; version: number }
-  | { status: 'error'; message: string }
 
 /** "15" / "-3" / "19.5" — the rating, bare (no "+"; the score beside it keeps
  *  its plus), decimals only when the leave's half-point weights put them there. */
@@ -124,15 +111,15 @@ export function InfoCol({
   // ── Suggest-a-move (docs/games/scrabble.md §11) ──
   /** The suggest box's state, or null to not render it at all (compete — the
    *  mode never changes mid-game, so its absence is not a reflow). */
-  suggest: SuggestState | null
+  suggest: GSuggestState | null
   /** Ask the AI for a move — it grays itself while a request is out and where
    *  the ask isn't available; the box below collapses entirely when idle. */
   actSuggestMove: Action
   /** Stage a suggested move's tiles on the board (BoardCol applies it). */
-  onApplySuggestion: (move: RankedMove) => void
+  onApplySuggestion: (move: GRankedMove) => void
 
   // ── Setup disclosure ──
-  setup: ScrabbleSetup
+  setup: GSetup
   /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
 

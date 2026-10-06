@@ -3,28 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { supabase } from '@/common/supabase/supabase'
 import { channelLeaving, releaseChannel } from '@/common/realtime/channelTeardown'
-import type { Placement } from '../lib/play'
-
-/**
- * The payload of a coop "show a move" broadcast — a snapshot of the sharer's
- * in-progress (staged) tiles, so a teammate can preview it read-only. The
- * committed board is already shared across the team, so we send only the
- * tentative placements; the receiver overlays them on its own live board.
- */
-export type SharedMovePayload = {
-  /** The sharer's staged tiles (not yet committed). */
-  placements: Placement[]
-  /** Who is showing the move — the receiver resolves the name + identity disc. */
-  sharerId: string
-  /** The sharer's board `version` when they shared. The receiver drops the
-   *  broadcast if its own board has since moved on (a real move landed in
-   *  between), so a stale move never renders over a changed board. */
-  baseVersion: number
-  /** The play's words + score, for the banner ("moth showing: +18 BERRY") — sent
-   *  so the receiver needn't recompute (empty/0 for a not-yet-legal arrangement). */
-  words: string[]
-  score: number
-}
+import type { GSharedMovePayload } from '../types'
 
 /**
  * scrabble's coop "show a move" transport — a **stable-name** Broadcast channel
@@ -50,8 +29,8 @@ export function useSharedMove({
   gameId: string
   /** undefined while the game loads; the channel opens once it resolves to coop. */
   mode: 'coop' | 'compete' | undefined
-  onReceive: (payload: SharedMovePayload) => void
-}): { shareMove: (payload: SharedMovePayload) => void } {
+  onReceive: (payload: GSharedMovePayload) => void
+}): { shareMove: (payload: GSharedMovePayload) => void } {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const onReceiveRef = useRef(onReceive)
   useEffect(() => {
@@ -69,7 +48,7 @@ export function useSharedMove({
       if (canceled) return
       const ch = supabase.channel(room)
       ch.on('broadcast', { event: 'show-move' }, ({ payload }) =>
-        onReceiveRef.current(payload as SharedMovePayload),
+        onReceiveRef.current(payload as GSharedMovePayload),
       )
       ch.subscribe()
       channelRef.current = ch
@@ -89,7 +68,7 @@ export function useSharedMove({
     }
   }, [gameId, mode])
 
-  const shareMove = useCallback((payload: SharedMovePayload) => {
+  const shareMove = useCallback((payload: GSharedMovePayload) => {
     channelRef.current?.send({ type: 'broadcast', event: 'show-move', payload })
   }, [])
 

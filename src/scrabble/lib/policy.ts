@@ -10,7 +10,7 @@
  * module is that brain, kept deliberately separate from (and on top of) the
  * suggester engine:
  *
- *   - `choosePlay` — given a board + rack + a `StrengthKnobs` config, pick ONE
+ *   - `choosePlay` — given a board + rack + a `GStrengthKnobs` config, pick ONE
  *     move (or an exchange). This is the reusable AI-player decision; the
  *     eventual server/edge opponent calls exactly this. It is PURE and
  *     deterministic given its `rng`.
@@ -28,10 +28,13 @@
  * whose whole transitive import graph needs explicit extensions.
  */
 
-import { BOARD_SIZE, RACK_SIZE, cellIndex, fullBag, type Cell } from './board.ts'
-import { tilesUsed, type FormedWord, type Placement } from './play.ts'
-import { generateMoves, type Bands } from './suggest.ts'
-import { leaveValue, rankMoves, type RankedMove } from './rank.ts'
+import { RACK_SIZE, cellIndex, fullBag, makeCellId, makeEmptyBoard } from './board.ts'
+import { tilesUsed } from './play.ts'
+import { generateMoves } from './suggest.ts'
+import { leaveValue, rankMoves } from './rank.ts'
+import type {
+  GAiLevel, GBands, GCell, GFormedWord, GGameResult, GPlacement, GRankedMove, GStrengthKnobs,
+} from '../types.ts'
 // Relative, not `@/`: this module is on the Deno import graph
 // (scrabble-ai-move → here) and Deno cannot resolve the alias.
 import { walkWord, type Trie } from '../../shared/dict-trie/trie.ts'
@@ -39,48 +42,15 @@ import { mulberry32 } from '../../common/utils/mulberry32.ts'
 
 // ── The strength knobs ──────────────────────────────────────────────────────
 
-/**
- * The levers that make the AI play worse. Each is independent; a level is a
- * specific combination (see `LEVELS`). Three reuse the ranking levers already
- * plumbed through `rankMoves`; two (`bingoMissProb`, `equityNoise`) model human
- * *fallibility* — not seeing the best move — which the deterministic levers
- * can't.
- */
-export type StrengthKnobs = {
-  /** The AI only PLAYS words whose difficulty ≤ cap (1..6); `undefined` = full
-   *  vocabulary. The most human-feeling nerf — a weaker player simply knows
-   *  fewer words. Applied as `rankMoves`' `vocabCap` filter, so the *game's*
-   *  legal dictionary (the generation bands) stays constant across levels —
-   *  only the AI's willingness to play a word changes. */
-  vocabCap?: number
-  /** Aim the pick at this fraction of the best equity instead of the max
-   *  (`rankMoves`' re-aim lever); `undefined` = take the best. */
-  scoreFraction?: number
-  /** Include the leave heuristic when ranking (kept-rack quality). Off → a pure
-   *  greedy scorer whose rack slowly degrades — the effect only shows up over a
-   *  whole game, which is why the harness measures games, not turns. */
-  useLeave: boolean
-  /** Probability of "not seeing" an otherwise-chosen bingo and falling back to
-   *  the best non-bingo. 0 = always plays its bingos; ~0.9 = a beginner who
-   *  lands maybe 1–2 in 10 games. Anagramming a full rack is genuinely hard, so
-   *  a probability reads more human than a hard "never bingo" ban. */
-  bingoMissProb: number
-  /** Std-dev of Gaussian noise added to each move's equity before the final
-   *  argmax — models a player who doesn't reliably *find* the best move. 0 =
-   *  deterministic (picks the true best). */
-  equityNoise: number
-}
-
 /** The five shipped levels, weakest → strongest. `best` is the current
  *  full-strength suggester behavior (all knobs off). Tuned by the self-play
  *  sweep (docs/games/scrabble.md) to an evenly-spaced mean-score ladder
  *  — ≈455 / 580 / 715 / 840 / 912 points per coop game (N=40). Retuning means
  *  re-running the sweep, deliberately. */
-export type LevelName = 'beginner' | 'casual' | 'intermediate' | 'strong' | 'best'
-export const LEVEL_NAMES: readonly LevelName[] = [
+export const LEVEL_NAMES: readonly GAiLevel[] = [
   'beginner', 'casual', 'intermediate', 'strong', 'best',
 ]
-export const LEVELS: Record<LevelName, StrengthKnobs> = {
+export const LEVELS: Record<GAiLevel, GStrengthKnobs> = {
   beginner:     { vocabCap: 1, useLeave: false, bingoMissProb: 0.9, equityNoise: 30 },
   casual:       { vocabCap: 2, useLeave: false, bingoMissProb: 0.4, equityNoise: 10 },
   intermediate: { vocabCap: 4, useLeave: true,  bingoMissProb: 0.3, equityNoise: 10 },
@@ -93,8 +63,8 @@ export const LEVELS: Record<LevelName, StrengthKnobs> = {
 /** What the policy decides to do on a turn. `exchange` carries the tiles to
  *  dump (currently the whole rack — see the "no strategic exchange" note in
  *  docs/games/scrabble.md); the caller checks bag feasibility. */
-export type PlayChoice =
-  | { kind: 'word'; placements: Placement[]; words: FormedWord[]; score: number; bingo: boolean }
+type PlayChoice =
+  | { kind: 'word'; placements: GPlacement[]; words: GFormedWord[]; score: number; bingo: boolean }
   | { kind: 'exchange'; tiles: string[] }
 
 /** Word-difficulty lookup over the rated trie (a word missing from the trie —
@@ -115,7 +85,7 @@ function gaussian(rng: () => number): number {
 }
 
 /** A play is a bingo when it lays a full rack (the +50 condition in play.ts). */
-const isBingo = (m: RankedMove) => m.placements.length === RACK_SIZE
+const isBingo = (m: GRankedMove) => m.placements.length === RACK_SIZE
 
 /**
  * Pick one move for the given strength level. Pure + deterministic given `rng`.
@@ -127,11 +97,11 @@ const isBingo = (m: RankedMove) => m.placements.length === RACK_SIZE
  * ask to exchange the whole rack.
  */
 export function choosePlay(
-  board: Cell[],
+  board: GCell[],
   rack: readonly string[],
   trie: Trie,
-  bands: Bands,
-  knobs: StrengthKnobs,
+  bands: GBands,
+  knobs: GStrengthKnobs,
   rng: () => number,
 ): PlayChoice {
   const moves = generateMoves(board, rack, trie, bands)
@@ -157,23 +127,6 @@ export function choosePlay(
 }
 
 // ── Playing a whole coop game ────────────────────────────────────────────────
-
-/** One self-played coop game's outcome — the final score plus the diagnostics
- *  the measurement plan reads (docs/games/scrabble.md). */
-export type GameResult = {
-  /** Accumulated word score — the primary metric (no leftover penalty; §decision 1). */
-  score: number
-  turns: number
-  bingos: number
-  exchanges: number
-  /** Tiles never played (rack + bag at the end). */
-  tilesLeft: number
-  /** Per-word-play score, in order — the turn-score profile. */
-  turnScores: number[]
-  /** `leaveValue` of the rack kept after each non-terminal turn — the
-   *  rack-quality trajectory that exposes the no-leave degradation mechanism. */
-  leaveTrajectory: number[]
-}
 
 /** Exchange needs at least a full rack left in the bag (standard rule). */
 const EXCHANGE_MIN_BAG = RACK_SIZE
@@ -209,10 +162,10 @@ function shuffle<T>(arr: readonly T[], rng: () => number): T[] {
  * returns the rack to the back and draws fresh. Deterministic and reproducible
  * (not a physical re-shuffle, but a faithful enough model — exchanges are rare).
  */
-export function playSelfGame(trie: Trie, bands: Bands, knobs: StrengthKnobs, bagSeed: number): GameResult {
+export function playSelfGame(trie: Trie, bands: GBands, knobs: GStrengthKnobs, bagSeed: number): GGameResult {
   const bag = shuffle(fullBag(), mulberry32(bagSeed))
   let rack = bag.splice(0, RACK_SIZE)
-  const board: Cell[] = new Array<Cell>(BOARD_SIZE * BOARD_SIZE).fill(null)
+  const board = makeEmptyBoard()
 
   let score = 0
   let turns = 0
@@ -228,7 +181,10 @@ export function playSelfGame(trie: Trie, bands: Bands, knobs: StrengthKnobs, bag
     const choice = choosePlay(board, rack, trie, bands, knobs, turnRng)
 
     if (choice.kind === 'word') {
-      for (const p of choice.placements) board[cellIndex(p.x, p.y)] = { l: p.letter, b: p.blank }
+      for (const p of choice.placements) {
+        const id = makeCellId(p.x, p.y)
+        board[cellIndex(p.x, p.y)] = { id, tile: { id, letter: p.letter, blank: p.blank } }
+      }
       score += choice.score
       turnScores.push(choice.score)
       if (choice.bingo) bingos++

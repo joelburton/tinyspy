@@ -6,7 +6,7 @@ import styles from './Rack.module.css'
 
 /** One rack slot. `rackIdx` is its stable index in the acting rack;
  *  `used` slots are already staged on the board. */
-export type RackTile = { glyph: string; rackIdx: number }
+type RackTile = { glyph: string; rackIdx: number }
 
 /**
  * The player's tile rack. Press-and-drag a tile onto the board to place it

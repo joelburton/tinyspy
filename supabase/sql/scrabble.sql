@@ -142,7 +142,9 @@ revoke execute on function scrabble._remove_tiles(text[], text[]) from public;
 
 -- The columns a club member may read. The page reads the blobs on
 -- common.games and nothing from here; the bag's order and the dictionary
--- bands stay out of the grant.
+-- bands stay out of the grant. Revoke first: grants are additive, so a column
+-- an earlier grant named (the bag) stays readable until it is revoked.
+revoke select on scrabble.games from authenticated;
 grant select
   (game_id, board, version, team_rack, consecutive_passes)
   on scrabble.games to authenticated;
@@ -1760,8 +1762,9 @@ drop function if exists scrabble.get_suggest_context(uuid);
 --
 -- One SELECT returns an atomic, mutually consistent snapshot: a teammate's
 -- concurrent play can't tear board from rack, and `version` rides along so
--- the FE can detect a suggestion that went stale in flight. Unwrapped by the
--- edge function, not relayed.
+-- the FE can detect a suggestion that went stale in flight. The board is the
+-- page's own string (`_make_json_board`), decoded by the same `lib/board.ts`.
+-- Unwrapped by the edge function, not relayed.
 create or replace function scrabble.get_suggest_context(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1802,7 +1805,7 @@ begin
 
   return common._ok_envelope(jsonb_build_object(
     'result', 'context',
-    'board', g.board,
+    'board', scrabble._make_json_board(g.board),
     'rack', to_jsonb(g.team_rack),
     'dict_2', g.dict_2,
     'dict_3plus', g.dict_3plus,
@@ -1877,7 +1880,7 @@ begin
   return common._ok_envelope(jsonb_build_object(
     'result', 'context',
     'user_id', pl.user_id,
-    'board', g.board,
+    'board', scrabble._make_json_board(g.board),
     'rack', to_jsonb(pl.rack),
     'dict_2', g.dict_2,
     'dict_3plus', g.dict_3plus,

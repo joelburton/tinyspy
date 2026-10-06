@@ -9,7 +9,8 @@ import { SelectField } from '@/common/fields/SelectField'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL, type AiLevel, type ScrabbleValues } from '../lib/setup'
+import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL } from '../lib/setup'
+import type { GAiLevel, GSetupValues } from '../types'
 
 /**
  * scrabble's setup form. Shared by both modes:
@@ -29,8 +30,8 @@ import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL, type AiLevel, type ScrabbleValues }
 export function SetupForm({
   mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as ScrabbleValues
-  const set = setValue as SetupSetter<ScrabbleValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
   const players = members.filter((m) => s.player_user_ids.has(m.user_id))
@@ -126,7 +127,7 @@ export function SetupForm({
               error={errors.ai_level}
               label="Skill"
               value={s.ai_level}
-              onChange={(v) => set('ai_level', v as AiLevel)}
+              onChange={(v) => set('ai_level', v as GAiLevel)}
             >
               {AI_LEVELS.map((lv) => (
                 <option key={lv} value={lv}>

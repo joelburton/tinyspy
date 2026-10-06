@@ -1441,36 +1441,30 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "events_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 },"games": {
                   Row: {
-                    "bag": (string)[],"board": NonNullable<Json>,"consecutive_passes": number,"coop_rack": (string)[] | null,"coop_score": number | null,"dict_2": number,"dict_3plus": number,"game_id": string,"version": number
+                    "bag": (string)[],"board": NonNullable<Json>,"consecutive_passes": number,"dict_2": number,"dict_3plus": number,"game_id": string,"team_rack": (string)[] | null,"version": number
                   }
                   Insert: {
-                    "bag": (string)[],"board": NonNullable<Json>,"consecutive_passes"?: number,"coop_rack"?: (string)[] | null,"coop_score"?: number | null,"dict_2": number,"dict_3plus": number,"game_id": string,"version"?: number
+                    "bag": (string)[],"board": NonNullable<Json>,"consecutive_passes"?: number,"dict_2": number,"dict_3plus": number,"game_id": string,"team_rack"?: (string)[] | null,"version"?: number
                   }
                   Update: {
-                    "bag"?: (string)[],"board"?: NonNullable<Json>,"consecutive_passes"?: number,"coop_rack"?: (string)[] | null,"coop_score"?: number | null,"dict_2"?: number,"dict_3plus"?: number,"game_id"?: string,"version"?: number
+                    "bag"?: (string)[],"board"?: NonNullable<Json>,"consecutive_passes"?: number,"dict_2"?: number,"dict_3plus"?: number,"game_id"?: string,"team_rack"?: (string)[] | null,"version"?: number
                   }
                   Relationships: [
                     
                   ]
                 },"players": {
                   Row: {
-                    "ai_level": string | null,"game_id": string,"rack": (string)[] | null,"score": number | null,"user_id": string
+                    "ai_level": string | null,"game_id": string,"rack": (string)[] | null,"score": number,"user_id": string
                   }
                   Insert: {
-                    "ai_level"?: string | null,"game_id": string,"rack"?: (string)[] | null,"score"?: number | null,"user_id": string
+                    "ai_level"?: string | null,"game_id": string,"rack"?: (string)[] | null,"score"?: number,"user_id": string
                   }
                   Update: {
-                    "ai_level"?: string | null,"game_id"?: string,"rack"?: (string)[] | null,"score"?: number | null,"user_id"?: string
+                    "ai_level"?: string | null,"game_id"?: string,"rack"?: (string)[] | null,"score"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1479,56 +1473,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 }
           }
           Views: {
-            "games_state": {
-                  Row: {
-                    "bag": (string)[] | null,"board": Json | null,"consecutive_passes": number | null,"coop_rack": (string)[] | null,"coop_score": number | null,"game_id": string | null,"version": number | null
-                  }
-                  Insert: {
-                           "bag"?: (string)[] | null,"board"?: Json | null,"consecutive_passes"?: number | null,"coop_rack"?: (string)[] | null,"coop_score"?: number | null,"game_id"?: string | null,"version"?: number | null
-                         }
-                        Update: {
-                           "bag"?: (string)[] | null,"board"?: Json | null,"consecutive_passes"?: number | null,"coop_rack"?: (string)[] | null,"coop_score"?: number | null,"game_id"?: string | null,"version"?: number | null
-                         }
-                        Relationships: [
-                    
-                  ]
-                },"players_state": {
-                  Row: {
-                    "ai_level": string | null,"game_id": string | null,"rack": (string)[] | null,"rack_count": number | null,"score": number | null,"user_id": string | null
-                  }
-                  Insert: {
-                           "ai_level"?: string | null,"game_id"?: string | null,"rack"?: never,"rack_count"?: never,"score"?: number | null,"user_id"?: string | null
-                         }
-                        Update: {
-                           "ai_level"?: string | null,"game_id"?: string | null,"rack"?: never,"rack_count"?: never,"score"?: number | null,"user_id"?: string | null
-                         }
-                        Relationships: [
-                    {
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games"
-      referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
-    }
-                  ]
-                }
+            [_ in never]: never
           }
           Functions: {
             "_commit_exchange":
@@ -1543,17 +1493,38 @@ isOneToOne: false
 "_finish":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_going_out_user_id": string,"p_reason": string,"p_reason_detail": string }; Returns: undefined
                            },
+"_make_json_board":
+{ Args: { "p_board": Json }; Returns: Json
+                           },
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_placements":
+{ Args: { "p_placements": Json }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_maybe_finish_compete":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string }; Returns: boolean
                            },
 "_new_bag":
 { Args: Record<PropertyKey, never>; Returns: (string)[]
                            },
-"_rack_count_for":
-{ Args: { "p_game_id": string,"p_user_id": string }; Returns: number
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
                            },
-"_rack_for":
-{ Args: { "p_game_id": string,"p_user_id": string }; Returns: (string)[]
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "_remove_tiles":
 { Args: { "p_rack": (string)[],"p_remove": (string)[] }; Returns: (string)[]
@@ -1566,11 +1537,10 @@ isOneToOne: false
               "bag": (string)[],
 "board": NonNullable<Json>,
 "consecutive_passes": number,
-"coop_rack": (string)[] | null,
-"coop_score": number | null,
 "dict_2": number,
 "dict_3plus": number,
 "game_id": string,
+"team_rack": (string)[] | null,
 "version": number
             }
                           SetofOptions: {
@@ -1583,16 +1553,16 @@ isOneToOne: false
 { Args: { "p_code": string,"p_game_id": string }; Returns: string
                            },
 "_score_leftovers":
-{ Args: { "p_game_id": string,"p_going_out_user_id": string }; Returns: undefined
+{ Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_going_out_user_id": string }; Returns: undefined
+                           },
+"_team_score":
+{ Args: { "p_game_id": string }; Returns: number
                            },
 "_tile_value":
 { Args: { "p_tile": string }; Returns: number
                            },
 "_title_for":
 { Args: { "p_game_id": string }; Returns: string
-                           },
-"_write_statuses":
-{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
                            },
 "ai_exchange_tiles":
 { Args: { "p_base_version": number,"p_game_id": string,"p_rack_tiles": (string)[],"p_user_id": string }; Returns: Json

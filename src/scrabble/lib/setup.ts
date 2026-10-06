@@ -1,61 +1,27 @@
 // cs-unmet
 
-import type { TimerMode } from '@/common/manifest/types'
-import type { SetupOf } from '@/common/setup-form/types'
 import type { FormErrors } from '@/common/forms/formState'
-import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
+import type { GAiLevel, GSetup } from '../types'
 
 /**
- * scrabble's per-game setup — collected by the start-game dialog, persisted
- * to `common.games.setup`, validated server-side by `scrabble.create_game`
- * (the authority). Coop and compete share the shape; mode is locked at the
- * gametype level, not chosen here.
+ * scrabble's setup defaults and checks. The setup is collected by the
+ * start-game dialog, persisted to `common.games.setup`, validated server-side
+ * by `scrabble.create_game` (the authority). Coop and compete share the shape;
+ * mode is locked at the gametype level, not chosen here.
  *
  * Lives in `lib/` rather than `manifest.ts` so the SetupForm body can import
- * the type without pulling the manifest into its lazy chunk. Deliberately does
- * NOT import policy.ts (the AI engine) — the level→band map below is a tiny
- * mirror of policy's `LEVELS` vocabCaps, kept local so the setup chunk stays
- * light; the server re-derives it in create_game and remains the authority.
+ * it without pulling the manifest into its lazy chunk. Deliberately does
+ * NOT import policy.ts (the AI's move choice) — the level→band map below is a
+ * tiny mirror of policy's `LEVELS` vocabCaps, kept local so the setup chunk
+ * stays light; the server re-derives it in create_game and remains the
+ * authority.
  */
-export type ScrabbleValues = CoopTurnSetup & {
-  /**
-   * The dictionary bands that gate word acceptance, by word length (both
-   * 1..6, `common.words.difficulty`). 2-letter words are a thin, separate
-   * vocabulary, so they get their own band (`dict_2`) from the longer words
-   * (`dict_3plus`) — the same split bananagrams uses. Unlike most games these
-   * ARE the acceptance bar: a lower band genuinely makes a stricter game. The
-   * server bounds them. See docs/games/scrabble.md §3.3.
-   */
-  dict_2: number
-  dict_3plus: number
-  /**
-   * Timer mode. `none` / `countup` are informational; a `countdown` ends the
-   * game on expiry via `scrabble.submit_timeout`.
-   */
-  timer: TimerMode
-  /**
-   * AI opponents (compete only; docs/games/scrabble.md). `ai_count`
-   * (0..3) seats that many AI players, all at `ai_level`. Ignored in coop.
-   */
-  ai_count: number
-  ai_level: AiLevel
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
-  player_user_ids: Set<string>
-}
 
-
-/** What is SENT and STORED — every value the form collects except the players
- *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupRows.ts` and `PlayArea` read back. */
-export type ScrabbleSetup = SetupOf<ScrabbleValues>
 /** The five AI strength levels (policy.ts `LEVELS`), weakest → strongest. */
-export const AI_LEVELS = ['beginner', 'casual', 'intermediate', 'strong', 'best'] as const
-export type AiLevel = (typeof AI_LEVELS)[number]
+export const AI_LEVELS: readonly GAiLevel[] = ['beginner', 'casual', 'intermediate', 'strong', 'best']
 
-export const AI_LEVEL_LABEL: Record<AiLevel, string> = {
+export const AI_LEVEL_LABEL: Record<GAiLevel, string> = {
   beginner: 'Beginner',
   casual: 'Casual',
   intermediate: 'Intermediate',
@@ -66,7 +32,7 @@ export const AI_LEVEL_LABEL: Record<AiLevel, string> = {
 /** The dictionary band each level needs (its `vocabCap` — beginner 1 … strong/
  *  best 6). The game's bands must be ≥ this whenever an AI is present, or the AI
  *  can't play at its tuned strength (docs/games/scrabble.md band rule). */
-export const AI_BAND: Record<AiLevel, number> = {
+export const AI_BAND: Record<GAiLevel, number> = {
   beginner: 1,
   casual: 2,
   intermediate: 4,
@@ -75,7 +41,7 @@ export const AI_BAND: Record<AiLevel, number> = {
 }
 
 /** Initial setup the manifest hands the dialog. Band 3 = "Familiar"; no AI. */
-export const DEFAULT_SCRABBLE_SETUP: ScrabbleSetup = {
+export const DEFAULT_SCRABBLE_SETUP: GSetup = {
   dict_2: 3,
   dict_3plus: 3,
   timer: { kind: 'none' },
@@ -96,7 +62,7 @@ export const DEFAULT_SCRABBLE_SETUP: ScrabbleSetup = {
  *     player to raise it themselves (Joel's call).
  */
 export function validateScrabbleSetup(setup: unknown, playerCount: number): FormErrors {
-  const s = setup as ScrabbleSetup
+  const s = setup as GSetup
   const ai = s.ai_count ?? 0
   if (ai === 0) return {}
   const total = playerCount + ai

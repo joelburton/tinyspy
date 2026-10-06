@@ -1,10 +1,9 @@
 // cs-blessed-setup-form
 
-import type { CoopStyle, CoopTurnSetup } from './SetupCoopStyleSection'
+import type { CoopStyle, CoopTurnSetup, SetupRow } from './types'
 import type { TimerMode } from '../manifest/types'
 import type { Member } from '../members/member'
 import { timerLabel } from '../timer/timerLabel'
-import type { SetupRow } from './types'
 
 /**
  * The setup rows — **one array per game, for the info column and the PDF to

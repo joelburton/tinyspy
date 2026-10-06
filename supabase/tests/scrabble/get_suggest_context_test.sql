@@ -93,8 +93,8 @@ select is((select (c->>'dict_3plus')::int from ctx), 5,
   'dict_3plus is the grant-hidden band from setup');
 select is((select (c->>'version')::int from ctx), 0,
   'version is the current optimistic-concurrency counter');
-select is((select jsonb_array_length(c->'board') from ctx), 225,
-  'board is the flat 225-cell array');
+select is((select length(c->'board'->>'letters') from ctx), 225,
+  'board is the page''s 225-character string');
 select is((select c->'rack' from ctx), '["a","b","c","d","e","f","?"]'::jsonb,
   'rack is the shared coop rack, blanks included');
 

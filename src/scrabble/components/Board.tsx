@@ -7,20 +7,17 @@ import {
   cellIndex,
   cellValue,
   premiumAt,
-  type Cell,
-  type PremiumType,
 } from '../lib/board'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import gridCursor from '@/common/board-cursor/gridCursor.module.css'
 import type { GridCursor } from '@/common/board-cursor/gridCursor'
+import type { GCell, GPremiumType, GTentative } from '../types'
 import styles from './Board.module.css'
 
-/** A tile a player has placed this turn but not yet committed. */
-export type Tentative = { letter: string; blank: boolean }
 type XY = { x: number; y: number }
 
-const PREMIUM_LABEL: Record<PremiumType, string> = {
+const PREMIUM_LABEL: Record<GPremiumType, string> = {
   TW: 'TW',
   DW: 'DW',
   TL: 'TL',
@@ -50,8 +47,8 @@ export function Board({
   historyLitCells,
   onCellPointerDown,
 }: {
-  board: Cell[]
-  tentative: Map<number, Tentative>
+  board: GCell[]
+  tentative: Map<number, GTentative>
   cursor: GridCursor
   hover: XY | null
   // Cell indices to outline green for a beat (a just-accepted word).
@@ -72,7 +69,7 @@ export function Board({
   for (let y = 0; y < BOARD_SIZE; y++) {
     for (let x = 0; x < BOARD_SIZE; x++) {
       const idx = cellIndex(x, y)
-      const committed = board[idx]
+      const committed = board[idx].tile
       const tent = tentative.get(idx)
       const premium = premiumAt(x, y)
       const lifting = !!dragSource && dragSource.x === x && dragSource.y === y
@@ -98,13 +95,13 @@ export function Board({
         >
           {(committed || tent) &&
             (() => {
-              const glyph = committed ? committed.l : tent!.letter
-              const isBlank = committed ? committed.b : tent!.blank
+              const glyph = committed ? committed.letter : tent!.letter
+              const isBlank = committed ? committed.blank : tent!.blank
               const val = committed
                 ? cellValue(committed)
                 : tent!.blank
                   ? 0
-                  : cellValue({ l: tent!.letter, b: false })
+                  : cellValue({ letter: tent!.letter, blank: false })
               return (
                 <span
                   className={cls(

@@ -7,9 +7,8 @@ import {
   cellIndex,
   LETTER_VALUES,
   premiumAt,
-  type Cell,
-  type PremiumType,
 } from '../lib/board'
+import type { GCell, GPremiumType } from '../types'
 import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '@/common/pdf/frame'
 import { drawEventLog, twoColGeom, type TurnRow } from '@/common/pdf/eventLog'
 
@@ -27,8 +26,8 @@ import { drawEventLog, twoColGeom, type TurnRow } from '@/common/pdf/eventLog'
 /** The print payload — plain data, built by the caller from the live game state, so
  *  this module knows nothing about the game hooks. */
 export type ScrabblePrintModel = PrintHeader & {
-  /** The 225-cell board (same array the FE renders). */
-  board: Cell[]
+  /** The 225 cells (the same cells the FE renders). */
+  board: GCell[]
   /** One row per play, already formatted (# / who / what). */
   moves: TurnRow[]
   /** The tiles to show ('?' = a blank). */
@@ -39,7 +38,7 @@ export type ScrabblePrintModel = PrintHeader & {
 
 /** Premium square → its label + print fill (RGB). Light pastel tones — the meaningful
  *  board-color exception in common/pdf/doc.md, kept faint so the ink reads clean. */
-const PREMIUM_STYLE: Record<PremiumType, { label: string; fill: [number, number, number] }> = {
+const PREMIUM_STYLE: Record<GPremiumType, { label: string; fill: [number, number, number] }> = {
   TW: { label: 'TW', fill: [240, 188, 180] }, // triple word — light red
   DW: { label: 'DW', fill: [249, 219, 216] }, // double word — light pink
   TL: { label: 'TL', fill: [188, 213, 235] }, // triple letter — light blue
@@ -84,19 +83,19 @@ export function printScrabblePdf(m: ScrabblePrintModel): void {
 }
 
 /** Draw the 15×15 board at (x0, y0) with the given cell size. */
-function drawBoard(doc: jsPDF, board: Cell[], x0: number, y0: number, cell: number): void {
+function drawBoard(doc: jsPDF, board: GCell[], x0: number, y0: number, cell: number): void {
   for (let y = 0; y < BOARD_SIZE; y++) {
     for (let x = 0; x < BOARD_SIZE; x++) {
       const px = x0 + x * cell
       const py = y0 + y * cell
       const idx = cellIndex(x, y)
-      const placed = board[idx]
+      const { tile } = board[idx]
       // Border weight is set per cell (a mark can bump the line width). A placed tile
       // gets a thicker frame (TILE_BORDER_W) so it stands out from the empty cells.
       doc.setDrawColor(DARK_GRAY)
-      if (placed) {
+      if (tile !== null) {
         doc.setLineWidth(TILE_BORDER_W).setFillColor(...TILE_FILL).rect(px, py, cell, cell, 'FD')
-        drawTileGlyph(doc, placed.l, LETTER_VALUES[placed.l] ?? 0, px, py, cell, placed.b)
+        drawTileGlyph(doc, tile.letter, LETTER_VALUES[tile.letter]!, px, py, cell, tile.blank)
       } else {
         doc.setLineWidth(BORDER_W)
         const prem = premiumAt(x, y)
@@ -129,7 +128,7 @@ function drawRack(doc: jsPDF, rack: string[], x0: number, y0: number): number {
       doc.setFont('helvetica', 'bold').setFontSize(rt * LETTER_RATIO).setTextColor(DARK_GRAY)
       doc.text('?', px + rt / 2, y0 + rt / 2 + rt * LETTER_RATIO * 0.35, { align: 'center' })
     } else {
-      drawTileGlyph(doc, letter, LETTER_VALUES[letter] ?? 0, px, y0, rt)
+      drawTileGlyph(doc, letter, LETTER_VALUES[letter]!, px, y0, rt)
     }
   })
   return y0 + rt
@@ -154,7 +153,8 @@ function drawTileGlyph(
   const cx = px + size * 0.47
   const cy = py + size * 0.44
   doc.setFont('helvetica', 'bold').setFontSize(letterSize).setTextColor(BLACK)
-  doc.text(letter, cx, cy + letterSize * 0.35, { align: 'center' })
+  // The data is lowercase; a tile shows its capital.
+  doc.text(letter.toUpperCase(), cx, cy + letterSize * 0.35, { align: 'center' })
   if (blank) {
     // Ring the letter (≈1.25em, like the on-screen `.tile.blank`); no score.
     const lw = doc.getLineWidth()

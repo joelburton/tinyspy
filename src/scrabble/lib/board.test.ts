@@ -6,9 +6,14 @@ import {
   CENTER,
   PREMIUMS,
   TILE_DISTRIBUTION,
+  cellIndex,
   cellValue,
+  decodeBoard,
+  decodePlacement,
   fullBag,
+  makeCellId,
   premiumAt,
+  readCellXY,
 } from './board'
 
 describe('tile distribution', () => {
@@ -61,12 +66,39 @@ describe('premium layout', () => {
 
 describe('cellValue', () => {
   it('scores letters by face value', () => {
-    expect(cellValue({ l: 'A', b: false })).toBe(1)
-    expect(cellValue({ l: 'Q', b: false })).toBe(10)
-    expect(cellValue({ l: 'D', b: false })).toBe(2)
+    expect(cellValue({ letter: 'a', blank: false })).toBe(1)
+    expect(cellValue({ letter: 'q', blank: false })).toBe(10)
+    expect(cellValue({ letter: 'd', blank: false })).toBe(2)
   })
 
   it('scores a blank as 0 even though it reads as a letter', () => {
-    expect(cellValue({ l: 'Q', b: true })).toBe(0)
+    expect(cellValue({ letter: 'q', blank: true })).toBe(0)
+  })
+})
+
+describe('the board string', () => {
+  // "c" a C tile at (6,7), "A" a blank played as A at (7,7), "t" at (8,7).
+  const letters = '.'.repeat(cellIndex(6, 7)) + 'cAt' + '.'.repeat(225 - cellIndex(9, 7))
+
+  it('decodes to 225 cells, row by row, each id its place', () => {
+    const cells = decodeBoard(letters)
+    expect(cells).toHaveLength(225)
+    expect(cells[cellIndex(3, 11)].id).toBe('3,11')
+  })
+
+  it('reads "." as an empty cell, lowercase as a tile, uppercase as a blank', () => {
+    const cells = decodeBoard(letters)
+    expect(cells[cellIndex(0, 0)]).toEqual({ id: '0,0', tile: null })
+    expect(cells[cellIndex(6, 7)]).toEqual({ id: '6,7', tile: { id: '6,7', letter: 'c', blank: false } })
+    expect(cells[cellIndex(7, 7)]).toEqual({ id: '7,7', tile: { id: '7,7', letter: 'a', blank: true } })
+  })
+
+  it('decodes a placement under the same case rule', () => {
+    expect(decodePlacement('7,7:c')).toEqual({ id: '7,7', letter: 'c', blank: false })
+    expect(decodePlacement('10,3:Q')).toEqual({ id: '10,3', letter: 'q', blank: true })
+  })
+
+  it('round-trips a cell between its id and its x and y', () => {
+    expect(readCellXY(makeCellId(12, 4))).toEqual({ x: 12, y: 4 })
   })
 })

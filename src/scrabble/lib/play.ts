@@ -28,37 +28,25 @@ import {
   cellIndex,
   cellValue,
   inBounds,
+  makeEmptyBoard,
   premiumAt,
   RACK_SIZE,
-  type Cell,
+  readCellXY,
   // `.ts` extension: this module is on the Deno import graph (the
   // scrabble-suggest-move edge function imports it), and Deno requires
   // explicit extensions on the whole transitive graph.
 } from './board.ts'
+import type { GCell, GFormedWord, GPlacement, GTile, GWordCell } from '../types.ts'
 
-/**
- * One new tile a player is placing. `letter` is the uppercase letter it plays
- * as — for a blank that's the *declared* letter (permanent once committed, per
- * the Scrabble rule); `blank` flags that it came from a blank tile and so
- * scores 0. The rack tile it consumes is `?` when `blank`, else `letter`.
- */
-export type Placement = { x: number; y: number; letter: string; blank: boolean }
-
-/** A cell as it appears in a formed word, with whether this play placed it. */
-type WordCell = { x: number; y: number; l: string; b: boolean; isNew: boolean }
-
-/** A word formed by the play: the run's cells, its string, and its score. */
-export type FormedWord = { word: string; score: number; cells: WordCell[] }
-
-export type PlayEvaluation =
+type PlayEvaluation =
   | { valid: false; error: string }
-  | { valid: true; words: FormedWord[]; score: number; bingo: boolean }
+  | { valid: true; words: GFormedWord[]; score: number; bingo: boolean }
 
-const isEmpty = (board: Cell[], x: number, y: number) =>
-  board[cellIndex(x, y)] == null
+const isEmpty = (board: GCell[], x: number, y: number) =>
+  board[cellIndex(x, y)].tile === null
 
 /** The tiles a play consumes from the rack: `?` per blank, else the letter. */
-export const tilesUsed = (placements: Placement[]): string[] =>
+export const tilesUsed = (placements: GPlacement[]): string[] =>
   placements.map((p) => (p.blank ? BLANK : p.letter))
 
 /**
@@ -67,7 +55,7 @@ export const tilesUsed = (placements: Placement[]): string[] =>
  * sole authority on a legal *shape*: the server does NOT re-run these checks —
  * it trusts the committed play (see the module header).
  */
-function geometryError(board: Cell[], placements: Placement[]): string | null {
+function geometryError(board: GCell[], placements: GPlacement[]): string | null {
   if (placements.length === 0) return 'Place at least one tile.'
 
   // Every placed cell must be on the board, empty, and distinct.
@@ -86,7 +74,7 @@ function geometryError(board: Cell[], placements: Placement[]): string | null {
   if (!sameRow && !sameCol)
     return 'Tiles must line up in a single row or column.'
 
-  const boardEmpty = board.every((c) => c == null)
+  const boardEmpty = board.every((c) => c.tile === null)
   if (boardEmpty) {
     // Opening play: must cover the center star and be a real (≥2) word.
     if (!seen.has(CENTER)) return 'The first word must cover the center star.'
@@ -136,17 +124,19 @@ function geometryError(board: Cell[], placements: Placement[]): string | null {
  * — rather than anagramming the tiles — is what makes the main word and its
  * cross-words fall out uniformly.
  */
-function formedWords(board: Cell[], placements: Placement[]): FormedWord[] {
-  const placed = new Map<number, { l: string; b: boolean }>()
+function formedWords(board: GCell[], placements: GPlacement[]): GFormedWord[] {
+  const placed = new Map<number, { letter: string; blank: boolean }>()
   for (const p of placements)
-    placed.set(cellIndex(p.x, p.y), { l: p.letter, b: p.blank })
+    placed.set(cellIndex(p.x, p.y), { letter: p.letter, blank: p.blank })
 
-  const at = (x: number, y: number): { l: string; b: boolean } | null => {
+  // The tile on a cell, the play's own over the board's; null when empty or
+  // off the board.
+  const at = (x: number, y: number): { letter: string; blank: boolean } | null => {
     if (!inBounds(x, y)) return null
-    return placed.get(cellIndex(x, y)) ?? board[cellIndex(x, y)]
+    return placed.get(cellIndex(x, y)) ?? board[cellIndex(x, y)].tile
   }
 
-  const runFrom = (x: number, y: number, dx: number, dy: number): WordCell[] => {
+  const runFrom = (x: number, y: number, dx: number, dy: number): GWordCell[] => {
     // Back up to the start of the run, then walk forward collecting cells.
     let sx = x
     let sy = y
@@ -154,15 +144,15 @@ function formedWords(board: Cell[], placements: Placement[]): FormedWord[] {
       sx -= dx
       sy -= dy
     }
-    const cells: WordCell[] = []
+    const cells: GWordCell[] = []
     for (let cx = sx, cy = sy; at(cx, cy); cx += dx, cy += dy) {
       const c = at(cx, cy)!
-      cells.push({ x: cx, y: cy, l: c.l, b: c.b, isNew: placed.has(cellIndex(cx, cy)) })
+      cells.push({ x: cx, y: cy, letter: c.letter, blank: c.blank, isNew: placed.has(cellIndex(cx, cy)) })
     }
     return cells
   }
 
-  const byStart = new Map<string, WordCell[]>()
+  const byStart = new Map<string, GWordCell[]>()
   for (const p of placements) {
     for (const [dx, dy] of [
       [1, 0],
@@ -177,13 +167,13 @@ function formedWords(board: Cell[], placements: Placement[]): FormedWord[] {
 
   return [...byStart.values()].map((cells) => ({
     cells,
-    word: cells.map((c) => c.l).join(''),
+    word: cells.map((c) => c.letter).join(''),
     score: scoreRun(cells),
   }))
 }
 
 /** Score one word: letter values (×letter premiums on new tiles) × word premiums. */
-function scoreRun(cells: WordCell[]): number {
+function scoreRun(cells: GWordCell[]): number {
   let letters = 0
   let wordMult = 1
   for (const c of cells) {
@@ -206,7 +196,7 @@ function scoreRun(cells: WordCell[]): number {
  * `play_word` does NOT recompute any of this — it trusts the submitted `words`
  * + `score` and only checks each `word` against the dictionary before accepting.
  */
-export function evaluatePlay(board: Cell[], placements: Placement[]): PlayEvaluation {
+export function evaluatePlay(board: GCell[], placements: GPlacement[]): PlayEvaluation {
   const error = geometryError(board, placements)
   if (error) return { valid: false, error }
 
@@ -222,23 +212,26 @@ export function evaluatePlay(board: Cell[], placements: Placement[]): PlayEvalua
 }
 
 /**
- * Replay the board as it stood **after a given turn** — fold every WORD play's
- * placements with `id ≤ target` onto an empty grid (exchange / pass / leftovers
- * place no tiles). Used by the turn-viewer: the board is *defined* as the
- * accumulation of placements (the server builds it the same way), so this is a
- * pure FE replay — no per-turn board snapshot to store. Blanks survive (the
- * placement carries its declared `letter` + `blank` flag). `plays` need not be
- * sorted (we filter, not slice): every row written at or before `id` counts,
- * and the database hands ids out in the order rows were written.
+ * Replay the board as it stood **after a given turn** — lay every WORD play's
+ * tiles with `id ≤ target` on an empty board (the other kinds place no tiles).
+ * Used by the turn-viewer: the board is *defined* as the accumulation of
+ * placements (the server builds it the same way), so this is a pure FE replay
+ * — no per-turn board snapshot to store. A placement is the tile itself, so
+ * a blank stays a blank. `events` need not be sorted (we filter, not slice):
+ * every row written at or before `id` counts, and the database hands ids out in
+ * the order rows were written.
  */
 export function historyBoard(
-  plays: ReadonlyArray<{ id: number; kind: string; placements: Placement[] | null }>,
+  events: ReadonlyArray<{ id: number; kind: string; placements: GTile[] | null }>,
   id: number,
-): Cell[] {
-  const cells: Cell[] = new Array(BOARD_SIZE * BOARD_SIZE).fill(null)
-  for (const p of plays) {
-    if (p.id > id || p.kind !== 'word' || !p.placements) continue
-    for (const pl of p.placements) cells[cellIndex(pl.x, pl.y)] = { l: pl.letter, b: pl.blank }
+): GCell[] {
+  const cells = makeEmptyBoard()
+  for (const e of events) {
+    if (e.id > id || e.kind !== 'word' || !e.placements) continue
+    for (const tile of e.placements) {
+      const { x, y } = readCellXY(tile.id)
+      cells[cellIndex(x, y)] = { id: tile.id, tile }
+    }
   }
   return cells
 }

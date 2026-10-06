@@ -3,11 +3,13 @@
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
-import type { SummaryData } from '@/common/manifest/summaryData'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
 import { db } from './db'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { DEFAULT_SCRABBLE_SETUP, validateScrabbleSetup, type ScrabbleSetup } from './lib/setup'
+import { DEFAULT_SCRABBLE_SETUP, validateScrabbleSetup } from './lib/setup'
+import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -38,10 +40,10 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: setup as ScrabbleSetup,
-        player_user_ids: playerUserIds,
-        mode,
+        p_club_handle: clubHandle,
+        p_setup: setup as GSetup,
+        p_player_user_ids: playerUserIds,
+        p_mode: mode,
       }),
     )
 }
@@ -51,49 +53,58 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-/** Pure one-line label for the ClubPage games list. Mid-game shows the tiles
- *  left in the bag (+ the team score in coop); terminal shows the result —
- *  "ended" for a manual stop, the winner's name or "tie" in compete, the final
- *  team score in coop. (All values come off `row.status`, written by the RPCs;
- *  the title separately carries the first words played.) */
 /**
- * scrabble's summary.
- *
- * Coop has NO win state (see scrabble._finish): one shared rack, no opponent,
- * so playing the bag out and stopping early are both just `ended` — the score
- * is the point, not a verdict. Only the clock loses. `status.reason` still
- * carries HOW it ended, but no coop ending is worth naming: 'complete' (bag
- * played out) and 'manual' are both the ordinary way a coop table finishes,
- * and 'blocked' is compete-only (it counts passes; coop has no turns to pass).
+ * COOP's club line: the team's score, and how much bag is left while it plays.
+ * The bag played out is a `won` outcome — every teammate ranked first — but
+ * the line says "Ended": the score is the point, not a verdict. Only the clock
+ * loses.
  */
-function summaryFor(mode: 'coop' | 'compete') {
-  return (row: SummaryData): string => {
-    const s = (row.status ?? {}) as {
-      team_score?: number; bag_count?: number
-      winner_username?: string | null; winner_score?: number; reason?: string
+function makeCoopLabel(summary: GSummaryData): string {
+  // Coop always has a team.
+  const score = `${summary.team!.score} pts`
+  if (summary.ending === null) {
+    return statusLine(verdict('Playing'), score, count(summary.nBagTiles, 'tile left', 'tiles left'))
+  }
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    // The bag played out, and a Stop.
+    case 'won':
+    case 'neutral':
+      return statusLine(verdict('Ended'), score)
+    case 'lost':
+      return statusLine(verdict('Lost', 'out of time'), score)
+    default:
+      return outcome
+  }
+}
+
+/**
+ * COMPETE's label. A win names the players with the highest score and the
+ * score they share; a tie names every one of them.
+ */
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
+  if (summary.ending === null) {
+    return statusLine(verdict('Playing'), count(summary.nBagTiles, 'tile left', 'tiles left'))
+  }
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won': {
+      // A won race has its winners and the score they share.
+      const names = summary.winnerIds!.map((id) => memberById(members, id)?.username ?? 'someone')
+      const score = `${summary.winnerScore!} pts`
+      return names.length > 1
+        ? statusLine(verdict('Won', 'tied'), names.join(' & '), score)
+        : statusLine(wonBy(names[0]), score)
     }
-    const score = s.team_score != null ? `${s.team_score} pts` : null
-    switch (row.play_state) {
-      case 'playing':
-        return statusLine(
-          verdict('Playing'), mode === 'coop' ? score : null,
-          count(s.bag_count, 'tile left', 'tiles left'))
-      case 'won_compete':
-        return statusLine(wonBy(s.winner_username),
-                          s.winner_score != null ? `${s.winner_score} pts` : null)
-      case 'lost':
-        // Coop's clock — the one way a coop table loses.
-        return statusLine(verdict('Lost', 'out of time'), score)
-      case 'lost_compete':
-        // Everyone conceded: final scoring ran, but nobody was eligible to win.
-        return verdict('Lost', 'all conceded')
-      case 'ended':
-        // Every coop finish, and compete's whole-table stop. Coop shows the
-        // team score (the score IS the point in coop).
-        return mode === 'coop' ? statusLine(verdict('Ended'), score) : verdict('Ended')
-      default:
-        return row.play_state
-    }
+    case 'lost':
+      return verdict('Lost', summary.ending.reason === 'conceded' ? 'all conceded' : null)
+    // A Stop.
+    case 'neutral':
+      return verdict('Ended')
+    default:
+      return outcome
   }
 }
 
@@ -124,7 +135,7 @@ export const scrabbleCoopGame: GameManifest = {
       'Build words on the board from your rack of tiles. A word is accepted if it\'s in the dictionary at the difficulty you pick for its length.',
   },
   startGameInClub: startGameInClubFactory('coop'),
-  summaryFor: summaryFor('coop'),
+  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
   submitTimeout,
   stopGame,
 }
@@ -159,7 +170,7 @@ export const scrabbleCompeteGame: GameManifest = {
       'Build words on the board from your rack of tiles. A word is accepted if it\'s in the dictionary at the difficulty you pick for its length.',
   },
   startGameInClub: startGameInClubFactory('compete'),
-  summaryFor: summaryFor('compete'),
+  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
   submitTimeout,
   stopGame,
 }

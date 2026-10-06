@@ -23,14 +23,12 @@ import { ANSWER_OUTCOME } from '../lib/answer'
 import { makeSetupRows } from '../lib/setupRows'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { db } from '../db'
-import type { ScrabbleSetup } from '../lib/setup'
-import type { Placement } from '../lib/play'
-import type { RankedMove } from '../lib/rank'
 import { useGame, type EventRow } from '../hooks/useGame'
-import { useSharedMove, type SharedMovePayload } from '../hooks/useSharedMove'
+import { useSharedMove } from '../hooks/useSharedMove'
 import { printScrabblePdf } from '../pdf/printScrabblePdf'
-import { BoardCol, type HistoryTarget } from './BoardCol'
-import { InfoCol, type SuggestState } from './InfoCol'
+import { BoardCol } from './BoardCol'
+import { InfoCol } from './InfoCol'
+import type { GHistoryTarget, GPlacement, GRankedMove, GSetup, GSharedMovePayload, GSuggestState } from '../types'
 import { StateLine } from './StateLine'
 import shared from '@/common/game-page/playArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
@@ -42,7 +40,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 /**
  * scrabble's play surface (coop + compete). PlayArea is the **coordinator**: it holds
  * the game data (`useGame`), the board-viewer coordination (`useHistoryViewer`, whose
- * `HistoryTarget` here carries BOTH a past turn AND a coop teammate's shared move), the
+ * `GHistoryTarget` here carries BOTH a past turn AND a coop teammate's shared move), the
  * coop "show a move" Broadcast transport (`useSharedMove`), the below-board feedback
  * slot (born here because InfoCol's Stop/Concede show into it too), and the
  * terminal message; it wires two columns:
@@ -88,7 +86,7 @@ export function PlayArea({
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
   const setupRows = useMemo(
-    () => makeSetupRows(setup as unknown as ScrabbleSetup, game?.mode ?? 'coop', players),
+    () => makeSetupRows(setup as unknown as GSetup, game?.mode ?? 'coop', players),
     [setup, game, players],
   )
 
@@ -128,7 +126,7 @@ export function PlayArea({
   )
 
   // Board-viewer coordination (shared hook): which read-only overlay is open — a
-  // past turn OR a teammate's shared move (the `HistoryTarget` union). Cross-column:
+  // past turn OR a teammate's shared move (the `GHistoryTarget` union). Cross-column:
   // BoardCol renders it, InfoCol's Moves log selects a turn, a broadcast opens a
   // shared move. A new committed move (the version effect in BoardCol) exits either.
   const {
@@ -137,7 +135,7 @@ export function PlayArea({
     historyIdRef: historyTargetRef,
     showHistory,
     exitHistory,
-  } = useHistoryViewer<HistoryTarget>()
+  } = useHistoryViewer<GHistoryTarget>()
   // Only a TURN is highlighted in the Moves log (`#N`) — a shared move has no row.
   const historyId = historyTarget?.kind === 'turn' ? historyTarget.id : null
 
@@ -149,7 +147,7 @@ export function PlayArea({
     gameId,
     mode: game?.mode,
     onReceive: useCallback(
-      (p: SharedMovePayload) => {
+      (p: GSharedMovePayload) => {
         if (!game || p.baseVersion !== game.version) return
         // No `#N`: a shared move arrives over Broadcast, not from a log row, and
         // its banner names the sharer instead of a number.
@@ -274,10 +272,10 @@ export function PlayArea({
   // A `ready` result remembers the board `version` it was computed against;
   // staleness is DERIVED at render (below), not cleared by an effect — coop
   // has no turns, so a teammate playing while the list is open is a real race.
-  const [suggest, setSuggest] = useState<SuggestState>({ status: 'idle' })
-  const suggestionApplierRef = useRef<((placements: Placement[]) => void) | null>(null)
+  const [suggest, setSuggest] = useState<GSuggestState>({ status: 'idle' })
+  const suggestionApplierRef = useRef<((placements: GPlacement[]) => void) | null>(null)
   const registerSuggestionApplier = useCallback(
-    (fn: ((placements: Placement[]) => void) | null) => {
+    (fn: ((placements: GPlacement[]) => void) | null) => {
       suggestionApplierRef.current = fn
     },
     [],
@@ -287,7 +285,7 @@ export function PlayArea({
  *  tiles?", which is advice and only right when the generator actually
  *  searched. `version` rides on both: the staleness rule applies either way. */
 type Suggested =
-  | { result: 'suggested'; moves: RankedMove[]; version: number }
+  | { result: 'suggested'; moves: GRankedMove[]; version: number }
   | { result: 'no-legal-moves'; version: number }
   | null
 
@@ -322,7 +320,7 @@ type Suggested =
     }
   }, [gameId])
 
-  const handleApplySuggestion = useCallback((move: RankedMove) => {
+  const handleApplySuggestion = useCallback((move: GRankedMove) => {
     suggestionApplierRef.current?.(move.placements)
   }, [])
 
@@ -382,7 +380,7 @@ type Suggested =
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
-        setup: setup as unknown as ScrabbleSetup,
+        setup: setup as unknown as GSetup,
         // HUMANS only. The bots are seated by `setup.ai_count`, which is what
         // the setup form asks for and what create_game resolves to profiles —
         // passing their ids here too would seat each one twice.
@@ -541,7 +539,7 @@ type Suggested =
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <p className={styles.loading}>Game not found.</p>
 
-  const scrabbleSetup = setup as unknown as ScrabbleSetup
+  const scrabbleSetup = setup as unknown as GSetup
 
   // A ready list quietly clears the moment the board moves past it — most
   // commonly because the player just COMMITTED the suggested move, where a
@@ -550,7 +548,7 @@ type Suggested =
   // alone would leave zombie "stage these tiles" rows on the terminal
   // screen). Derived each render, no clearing effect (the no-setState-in-
   // effects rule) — this is the single staleness authority for the hints.
-  const suggestView: SuggestState =
+  const suggestView: GSuggestState =
     suggest.status === 'ready' && (isTerminal || suggest.version !== game.version)
       ? { status: 'idle' }
       : suggest

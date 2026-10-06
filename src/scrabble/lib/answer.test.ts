@@ -12,9 +12,10 @@ import { ANSWER_OUTCOME } from './answer'
  * `exchange_pass_test.sql` that an exchange answers `neutral`. One rule in two
  * languages, so a word changed in either fails the other's test.
  *
- * `leftovers` has no SQL half to pin. It is the row `stop_game` writes when a coop
- * table stops with tiles in hand, and that RPC's envelope is about the GAME
- * ending rather than about the row — so this table is the only authority for it.
+ * `leftovers` and `went_out` have no SQL half to pin. They are the rows every
+ * ending writes for the racks, and the envelope that ends a game is about the
+ * GAME ending rather than about the rows — so this table is the only authority
+ * for them.
  */
 describe('ANSWER_OUTCOME', () => {
   it('gives each answer its ruled word', () => {
@@ -23,6 +24,7 @@ describe('ANSWER_OUTCOME', () => {
       exchange: 'neutral',
       pass: 'neutral',
       leftovers: 'neutral',
+      went_out: 'neutral',
     })
   })
 })

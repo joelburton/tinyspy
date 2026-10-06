@@ -50,16 +50,18 @@ discussion before any code:
   RPC's working state behind the version gate, which both edge functions read
   as the engine's own shape. The builder reshapes on the way out.
 - **The board in the blob is one 225-character string**, row-major, `.` for an
-  empty square, a lowercase letter for a tile, an UPPERCASE letter for a blank
+  empty cell, a lowercase letter for a tile, an UPPERCASE letter for a blank
   played as that letter. A deliberate exception to the one-case rule: case
   carries a fact, and `makeGameData` is its only reader, decoding each
   character into the letter and the blank flag once. An event's placements
   take the same convention, `"x,y:c"`. (Joel: the square objects "puff up the
   json with so many repeated key names".)
-- **The square is the `GTile`**, id `"x,y"` (x the column, y the row, as the
-  engine's placements already say), `letter` and `blank` null on an empty
-  square. No `cells`: the engine is taught the tile list rather than handed a
-  second array (Joel: "wouldn't the tiles-list be enough?").
+- **A cell is the board's spot, a tile the piece placed on it**
+  (docs/naming.md → `cell` vs `tile`; Joel, 2026-10-05, correcting "the square
+  is the `GTile`"): `GCell` is `{id "x,y", tile}` (x the column, y the row, as
+  the placements already say), `tile` null while empty; `GTile` is `{id,
+  letter, blank}`, its id its cell's. `gd.board` is `{cells, cellsById}`, and
+  `lib/` takes the cell list — the one array, no second copy of the board.
 - **The rack I play from is picked in `BoardCol`** (`gd.team?.rack ??
   gd.me.rack`); no `gd.my…` key, so that rule stays unwritten.
 - **The row size is accepted.** A blob at the bag's end measures about 10 KB
@@ -81,7 +83,7 @@ gd:
   setupRows
   version                                  # the move counter every move sends back
   nBagTiles
-  board: {tiles, tilesById}                # the one board, shared in both modes; 225 squares
+  board: {cells, cellsById}                # the one board, shared in both modes; 225 cells
   team: {rack, score, nRackTiles}          # null in compete
   events: [event, …]
   stateLineData: {score, nBagTiles}        # the team's score in coop; null in compete
@@ -93,10 +95,14 @@ player:
   rack                                     # compete: own; a rival's null mid-race; coop: null
   nRackTiles                               # compete; null in coop
 
-tile:                                      # GTile: the square
+cell:                                      # GCell: a spot a tile is placed onto
   id                                       # "x,y"
-  letter                                   # null on an empty square
-  blank                                    # null on an empty square
+  tile                                     # null while the cell is empty
+
+tile:                                      # GTile: a tile placed on a cell
+  id                                       # its cell's
+  letter
+  blank
 
 event:
   id, by, kind                             # word / exchange / pass / leftovers / went_out

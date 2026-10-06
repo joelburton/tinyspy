@@ -18,8 +18,7 @@ import type { Action } from '@/common/actions/useBindAction'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
-import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
-import type { SetupOf, SetupRow } from '@/common/setup-form/types'
+import type { CoopTurnSetup, SetupOf, SetupRow } from '@/common/setup-form/types'
 
 /**
  * One cell of a board: its position as the tile's id ('0'…'24', the four holes

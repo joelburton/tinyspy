@@ -60,7 +60,6 @@ const KNOWN: string[] = [
   'e2e/gallery/index.ts › renderViewer',
   // → scrabble
   'src/scrabble/components/BoardCol.tsx › PlayAnswer',
-  'src/scrabble/manifest.ts › summaryFor',
   // → src/guards
   'src/guards/callSiteShape.test.ts › it',
   'src/guards/cssTokens.test.ts › describe',

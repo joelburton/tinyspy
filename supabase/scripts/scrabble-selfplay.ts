@@ -27,10 +27,8 @@
 
 import { execFileSync } from 'node:child_process'
 import { buildTrie, type Trie } from '../../src/shared/dict-trie/trie.ts'
-import type { Bands } from '../../src/scrabble/lib/suggest.ts'
-import {
-  playSelfGame, LEVELS, LEVEL_NAMES, type GameResult, type LevelName,
-} from '../../src/scrabble/lib/policy.ts'
+import type { GAiLevel, GBands, GGameResult } from '../../src/scrabble/types.ts'
+import { playSelfGame, LEVELS, LEVEL_NAMES } from '../../src/scrabble/lib/policy.ts'
 
 const DB_URL =
   process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -38,7 +36,7 @@ const DB_URL =
 // The game's legal dictionary is the FULL word set (bands 6/6). Strength comes
 // from the per-level `vocabCap` knob, not from changing the game's rules, so
 // every level plays the same board legality.
-const FULL_BANDS: Bands = { dict2: 6, dict3plus: 6 }
+const FULL_BANDS: GBands = { dict2: 6, dict3plus: 6 }
 
 // ── Dictionary ───────────────────────────────────────────────────────────────
 
@@ -81,8 +79,8 @@ const stddev = (xs: number[]) => {
 }
 
 type LevelStats = {
-  level: LevelName
-  results: GameResult[]
+  level: GAiLevel
+  results: GGameResult[]
   scoreMean: number
   scoreMedian: number
   scoreSd: number
@@ -92,7 +90,7 @@ type LevelStats = {
   tilesLeftPerGame: number
 }
 
-function summarize(level: LevelName, results: GameResult[]): LevelStats {
+function summarize(level: GAiLevel, results: GGameResult[]): LevelStats {
   const scores = results.map((r) => r.score)
   return {
     level,
@@ -108,8 +106,8 @@ function summarize(level: LevelName, results: GameResult[]): LevelStats {
 }
 
 /** Play `games` seeds (offset + 1 .. offset + games) at one level. */
-function runLevel(trie: Trie, level: LevelName, games: number, offset: number): GameResult[] {
-  const out: GameResult[] = []
+function runLevel(trie: Trie, level: GAiLevel, games: number, offset: number): GGameResult[] {
+  const out: GGameResult[] = []
   for (let i = 1; i <= games; i++) out.push(playSelfGame(trie, FULL_BANDS, LEVELS[level], offset + i))
   return out
 }
@@ -164,7 +162,7 @@ function main() {
   const games = Number(opt('--games', '50'))
   const offset = Number(opt('--offset', '0'))
   const sweep = flag('--sweep')
-  const level = opt('--level', 'best') as LevelName
+  const level = opt('--level', 'best') as GAiLevel
 
   if (!sweep && !LEVEL_NAMES.includes(level)) {
     console.error(`unknown level "${level}" — one of: ${LEVEL_NAMES.join(', ')} (or --sweep)`)

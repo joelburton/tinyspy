@@ -264,17 +264,21 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nReqdWords: 6, band: 3 }, 'Stop'],
     ],
   },
+  // scrabble._make_json_summary_data: `team` holds coop's score and is null in compete; the
+  // winners and the score they share are compete's. The bag played out is coop's `won` — every
+  // teammate ranked first — and still reads "Ended"; a compete tie shares rank 1.
   scrabble: {
-    playing: { team_score: 152, bag_count: 7 },
-    shared: [['ended', { reason: 'manual', team_score: 152 }, 'manual end']],
+    live: { team: { score: 152 }, nBagTiles: 47, winnerIds: null, winnerScore: null },
     coop: [
-      // No coop win state: every finish is `ended`, only the clock loses.
-      ['ended', { reason: 'complete', team_score: 152 }, 'bag empty'],
-      ['lost', { reason: 'timeout', team_score: 152 }, 'timeout'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete' }, { team: { score: 312 }, nBagTiles: 0, winnerIds: null, winnerScore: null }, 'bag played out'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { score: 152 }, nBagTiles: 47, winnerIds: null, winnerScore: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { score: 152 }, nBagTiles: 47, winnerIds: null, winnerScore: null }, 'Stop'],
     ],
     compete: [
-      ['won_compete', { winner_score: 312, ...W }, 'highest score'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete', winner: 'u-alice' }, { team: null, nBagTiles: 0, winnerIds: ['u-alice'], winnerScore: 312 }, 'highest score'],
+      [{ outcome: 'won', reason: 'all_passed', detail: 'blocked', winner: 'u-alice' }, { team: null, nBagTiles: 0, winnerIds: ['u-alice', 'u-bob'], winnerScore: 280 }, 'tied — co-winners'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, nBagTiles: 30, winnerIds: null, winnerScore: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nBagTiles: 30, winnerIds: null, winnerScore: null }, 'Stop'],
     ],
   },
   crosswords: {

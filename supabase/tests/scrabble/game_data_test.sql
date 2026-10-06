@@ -30,7 +30,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(27);
+select plan(26);
 
 -- One player's scrabble keys off game_data, as "score/nRackTiles/rack".
 create function pg_temp.sc_player(gid uuid, uid uuid) returns text

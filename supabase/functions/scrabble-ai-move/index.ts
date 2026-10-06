@@ -30,9 +30,9 @@ import { crash, fault, ok } from '../_shared/envelope.ts'
 import { runRpc } from '../_shared/dbResult.ts'
 import type { Envelope } from '../../../src/common/supabase/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
-import type { Cell } from '../../../src/scrabble/lib/board.ts'
-import type { Bands } from '../../../src/scrabble/lib/suggest.ts'
-import { choosePlay, LEVELS, type LevelName } from '../../../src/scrabble/lib/policy.ts'
+import type { GAiLevel, GBands } from '../../../src/scrabble/types.ts'
+import { decodeBoard } from '../../../src/scrabble/lib/board.ts'
+import { choosePlay, LEVELS } from '../../../src/scrabble/lib/policy.ts'
 import { mulberry32 } from '../../../src/common/utils/mulberry32.ts'
 import { ratedTrie } from '../scrabble-suggest-move/dict.ts'
 
@@ -47,11 +47,12 @@ type AiContext =
   | {
       result: 'context'
       user_id: string
-      board: Cell[]
+      // The board as the page gets it: one string, decoded by lib/board.ts.
+      board: { letters: string }
       rack: string[]
       dict_2: number
       dict_3plus: number
-      ai_level: LevelName
+      ai_level: GAiLevel
       version: number
       bag_count: number
     }
@@ -118,12 +119,12 @@ serve(async (req: Request): Promise<Response> => {
       const ctx = ctxRes.data
 
       const knobs = LEVELS[ctx.ai_level] ?? LEVELS.best
-      const bands: Bands = { dict2: ctx.dict_2, dict3plus: ctx.dict_3plus }
+      const bands: GBands = { dict2: ctx.dict_2, dict3plus: ctx.dict_3plus }
       // Deterministic per board state — one player moves at each version — so
       // it is reproducible, and two concurrent drivers compute the same move,
       // which makes a duplicate harmless.
       const rng = mulberry32(((ctx.version >>> 0) ^ 0x9e3779b9) >>> 0)
-      const choice = choosePlay(ctx.board, ctx.rack, trie, bands, knobs, rng)
+      const choice = choosePlay(decodeBoard(ctx.board.letters), ctx.rack, trie, bands, knobs, rng)
 
       let res: Envelope<MoveAnswer>
       if (choice.kind === 'word') {

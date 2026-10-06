@@ -13,8 +13,13 @@
  * of the rules; `play.ts` builds the geometry + scoring on top of it. Both are
  * pure (no React, no Supabase) so they're cheap to unit-test and safe to share.
  *
+ * Letters are lowercase, the data's case, everywhere here; the capitals go on
+ * where a tile is drawn.
+ *
  * See docs/games/scrabble.md §3 for the model.
  */
+
+import type { GCell, GPremiumType, GTile } from '../types.ts'
 
 export const BOARD_SIZE = 15
 export const RACK_SIZE = 7
@@ -29,16 +34,39 @@ export const cellIndex = (x: number, y: number) => y * BOARD_SIZE + x
 export const inBounds = (x: number, y: number) =>
   x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE
 
-/**
- * A placed board square: a letter glyph (uppercase A–Z) plus whether it came
- * from a blank tile (which scores 0 but still reads as `l` for word-building).
- * The board is a flat length-225 array of `Cell | null` (null = empty square),
- * stored verbatim as the `scrabble.games.board` jsonb. `b` / `l` are kept short
- * because they ride on the wire in every board cell.
- */
-export type Cell = { l: string; b: boolean } | null
+/** A cell's id, `"x,y"`. */
+export const makeCellId = (x: number, y: number) => `${x},${y}`
 
-export type PremiumType = 'none' | 'DL' | 'TL' | 'DW' | 'TW'
+/** The cell an id names. */
+export function readCellXY(id: string): { x: number; y: number } {
+  const [x, y] = id.split(',').map(Number)
+  return { x, y }
+}
+
+/** The tile one character of the board string draws on cell `id`: "c" a C
+ *  tile, "C" a blank played as C. */
+function decodeTile(id: string, ch: string): GTile {
+  const letter = ch.toLowerCase()
+  return { id, letter, blank: letter !== ch }
+}
+
+/** The board's 225 cells, row by row, from the blob's `board.letters`: "." an
+ *  empty cell, a letter the tile on it. */
+export function decodeBoard(letters: string): GCell[] {
+  return [...letters].map((ch, i) => {
+    const id = makeCellId(i % BOARD_SIZE, Math.floor(i / BOARD_SIZE))
+    return { id, tile: ch === '.' ? null : decodeTile(id, ch) }
+  })
+}
+
+/** One of a word's placements in the log, `"x,y:c"`, as its tile. */
+export function decodePlacement(placement: string): GTile {
+  const [id, ch] = placement.split(':')
+  return decodeTile(id, ch)
+}
+
+/** A board with no tile on it. */
+export const makeEmptyBoard = (): GCell[] => decodeBoard('.'.repeat(BOARD_SIZE * BOARD_SIZE))
 
 /**
  * The standard 15×15 premium layout, drawn as 15 rows so it reads like the
@@ -67,7 +95,7 @@ const LAYOUT = [
   'T..d...T...d..T',
 ] as const
 
-const PREMIUM_OF: Record<string, PremiumType> = {
+const PREMIUM_OF: Record<string, GPremiumType> = {
   T: 'TW',
   D: 'DW',
   '*': 'DW', // the center star is a double-word square
@@ -77,11 +105,11 @@ const PREMIUM_OF: Record<string, PremiumType> = {
 }
 
 /** Flat length-225 premium grid, parsed once from {@link LAYOUT}. */
-export const PREMIUMS: PremiumType[] = LAYOUT.join('')
+export const PREMIUMS: GPremiumType[] = LAYOUT.join('')
   .split('')
   .map((ch) => PREMIUM_OF[ch])
 
-export const premiumAt = (x: number, y: number): PremiumType =>
+export const premiumAt = (x: number, y: number): GPremiumType =>
   PREMIUMS[cellIndex(x, y)]
 
 /**
@@ -90,18 +118,18 @@ export const premiumAt = (x: number, y: number): PremiumType =>
  * the face values of the lettered tiles.
  */
 export const LETTER_VALUES: Record<string, number> = {
-  A: 1, E: 1, I: 1, O: 1, U: 1, L: 1, N: 1, S: 1, T: 1, R: 1,
-  D: 2, G: 2,
-  B: 3, C: 3, M: 3, P: 3,
-  F: 4, H: 4, V: 4, W: 4, Y: 4,
-  K: 5,
-  J: 8, X: 8,
-  Q: 10, Z: 10,
+  a: 1, e: 1, i: 1, o: 1, u: 1, l: 1, n: 1, s: 1, t: 1, r: 1,
+  d: 2, g: 2,
+  b: 3, c: 3, m: 3, p: 3,
+  f: 4, h: 4, v: 4, w: 4, y: 4,
+  k: 5,
+  j: 8, x: 8,
+  q: 10, z: 10,
 }
 
-/** Face value of a placed cell — 0 for a blank, the letter's value otherwise. */
-export const cellValue = (cell: { l: string; b: boolean }): number =>
-  cell.b ? 0 : (LETTER_VALUES[cell.l] ?? 0)
+/** Face value of a placed tile — 0 for a blank, the letter's value otherwise. */
+export const cellValue = (tile: { letter: string; blank: boolean }): number =>
+  tile.blank ? 0 : LETTER_VALUES[tile.letter]!
 
 /**
  * The standard 100-tile bag: tile glyph → count. `?` is the blank (×2). The
@@ -111,13 +139,13 @@ export const cellValue = (cell: { l: string; b: boolean }): number =>
  */
 export const TILE_DISTRIBUTION: Record<string, number> = {
   [BLANK]: 2,
-  E: 12, A: 9, I: 9, O: 8, N: 6, R: 6, T: 6, L: 4, S: 4, U: 4,
-  D: 4, G: 3,
-  B: 2, C: 2, M: 2, P: 2,
-  F: 2, H: 2, V: 2, W: 2, Y: 2,
-  K: 1,
-  J: 1, X: 1,
-  Q: 1, Z: 1,
+  e: 12, a: 9, i: 9, o: 8, n: 6, r: 6, t: 6, l: 4, s: 4, u: 4,
+  d: 4, g: 3,
+  b: 2, c: 2, m: 2, p: 2,
+  f: 2, h: 2, v: 2, w: 2, y: 2,
+  k: 1,
+  j: 1, x: 1,
+  q: 1, z: 1,
 }
 
 /** The full 100-tile bag as a flat array (unshuffled), for tests / reference. */

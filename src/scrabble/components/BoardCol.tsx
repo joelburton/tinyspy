@@ -19,10 +19,10 @@ import { cellAtPoint, useDragGesture, type DragGesture } from '@/shared/grid-and
 import { moveCursor, planBackspace, type GridCursor } from '@/common/board-cursor/gridCursor'
 import { db } from '../db'
 import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
-import { historyBoard, evaluatePlay, type Placement } from '../lib/play'
-import type { SharedMovePayload } from '../hooks/useSharedMove'
+import { historyBoard, evaluatePlay } from '../lib/play'
 import type { ScrabbleGame, PlayerRow, EventRow } from '../hooks/useGame'
-import { Board, type Tentative } from './Board'
+import type { GHistoryTarget, GPlacement, GSharedMovePayload, GTentative } from '../types'
+import { Board } from './Board'
 import { Rack } from './Rack'
 import { Controls } from './Controls'
 import { ScrabbleBlankPickerBlockingModal } from './ScrabbleBlankPickerBlockingModal'
@@ -44,23 +44,9 @@ const PASS_CONFIRM: ConfirmOptions = {
 }
 
 /** A tile staged on the board this turn, tied to its rack slot. */
-type Staged = Placement & { rackIdx: number }
+type Staged = GPlacement & { rackIdx: number }
 type XY = { x: number; y: number }
 type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number; y: number }
-
-/**
- * What read-only overlay is open on the board — the shared history viewer's id,
- * widened for scrabble to carry BOTH kinds of read-only board it can show:
- *   - **`turn`** — a past turn's committed board (the history viewer).
- *   - **`peerPreview`** — a coop teammate's in-progress move (their staged tiles
- *     laid on the live board), received over Broadcast (see useSharedMove).
- * Both wear the same viewer chrome (frame + banner + frozen input) and the same
- * exits (click / keystroke / ✕ / a new move) — so they ride one `useHistoryViewer`
- * as `useHistoryViewer<HistoryTarget>`, and this switches on `kind` to render.
- */
-export type HistoryTarget =
-  | { kind: 'turn'; id: number }
-  | { kind: 'peerPreview'; placements: Placement[]; sharerId: string; words: string[]; score: number }
 
 function overRackAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="rack"]')
@@ -69,7 +55,7 @@ function overRackAtPoint(x: number, y: number): boolean {
 // Stable empties for the turn-viewer (the live board's overlays are suppressed),
 // so the Board doesn't get a fresh Set/Map each render.
 const NO_CELLS: Set<number> = new Set()
-const NO_TENT: Map<number, Tentative> = new Map()
+const NO_TENT: Map<number, GTentative> = new Map()
 
 /** The history banner's label for one play — terse so it fits even with a couple of
  *  long words: "#1 moth: +10 APPLE, BERRY" for a word, or the action ("#5 moth
@@ -231,13 +217,13 @@ export function BoardCol({
   plays: EventRow[]
   // The read-only overlay open on the board (a past turn OR a teammate's shared
   // move), or null when live.
-  historyTarget: HistoryTarget | null
+  historyTarget: GHistoryTarget | null
   // The `#N` the Moves log was printing on the row that opened this, so the
   // banner shows the number the reader clicked. Null for a shared move, which
   // arrives over Broadcast and has no log row.
   historyN: number | null
   // A ref to historyTarget, read by the once-registered board-drag pointerdown.
-  historyTargetRef: RefObject<HistoryTarget | null>
+  historyTargetRef: RefObject<GHistoryTarget | null>
   // Return to the live board (a board interaction / a keystroke / a new move).
   onExitHistory: () => void
   // Username for a user id — for the viewer banners.
@@ -249,7 +235,7 @@ export function BoardCol({
   // Coop with ≥2 players — gates the Share button (there's a teammate to show).
   canShare: boolean
   // Broadcast my staged tiles to teammates for a read-only preview.
-  shareMove: (payload: SharedMovePayload) => void
+  shareMove: (payload: GSharedMovePayload) => void
   // My user id — stamped on a broadcast as its `sharerId`.
   myId: string
 
@@ -258,7 +244,7 @@ export function BoardCol({
   // applier with PlayArea, which calls it from the InfoCol list's click —
   // staging lives here, the suggest state there (the menu.setGameSections
   // register shape).
-  registerSuggestionApplier: (fn: ((placements: Placement[]) => void) | null) => void
+  registerSuggestionApplier: (fn: ((placements: GPlacement[]) => void) | null) => void
 }) {
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
   // conventions: one prop says so, and the flag is derived, never passed).
@@ -271,7 +257,7 @@ export function BoardCol({
   const [submitting, setSubmitting] = useState(false)
   // Just-played tiles, rendered as committed until the realtime refetch brings
   // them in for real — so an accepted word never blinks off the board.
-  const [optimistic, setOptimistic] = useState<Placement[]>([])
+  const [optimistic, setOptimistic] = useState<GPlacement[]>([])
   // Three brief outlines, each on the beat the vocabulary gives its KIND
   // (feedbackTiming): the rack slots just drawn are news arriving in place that
   // the player did not choose, so they take the attention beat; the cells just
@@ -307,7 +293,7 @@ export function BoardCol({
 
   const usedRackIdx = useMemo(() => new Set(staged.map((s) => s.rackIdx)), [staged])
   const tentativeMap = useMemo(() => {
-    const m = new Map<number, Tentative>()
+    const m = new Map<number, GTentative>()
     for (const s of staged) m.set(cellIndex(s.x, s.y), { letter: s.letter, blank: s.blank })
     return m
   }, [staged])
@@ -415,7 +401,7 @@ export function BoardCol({
   // the InfoCol list's click handler — PlayArea holds it via the register
   // prop (an external-registry effect, like menu.setGameSections).
   const applySuggestedMove = useCallback(
-    (placements: Placement[]) => {
+    (placements: GPlacement[]) => {
       if (!canPlaceRef.current) return
       onExitHistory() // staging happens on the live board, never under a viewer overlay
       const used = new Set<number>()
@@ -623,7 +609,7 @@ export function BoardCol({
 
   // ─── Server moves ─────────────────────────────────────────────
   const submit = useCallback(async () => {
-    const placements: Placement[] = staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
+    const placements: GPlacement[] = staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
     const ev = evaluatePlay(board, placements)
     // Submit is allowed for any placed tiles (it doesn't gate on legal geometry).
     // An illegal shape never reaches the server; surface the reason as an
@@ -767,7 +753,7 @@ export function BoardCol({
   // who misses it simply doesn't see it (see useSharedMove).
   const shareCurrentMove = useCallback(() => {
     if (staged.length === 0) return
-    const placements: Placement[] = staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
+    const placements: GPlacement[] = staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
     const ev = evaluatePlay(board, placements)
     shareMove({
       placements,
@@ -882,7 +868,7 @@ export function BoardCol({
   // when nothing is previewed, like NO_TENT, so the Board doesn't churn).
   const peerPreviewTent = useMemo(() => {
     if (!peerPreview) return NO_TENT
-    const m = new Map<number, Tentative>()
+    const m = new Map<number, GTentative>()
     for (const p of peerPreview.placements) m.set(cellIndex(p.x, p.y), { letter: p.letter, blank: p.blank })
     return m
   }, [peerPreview])

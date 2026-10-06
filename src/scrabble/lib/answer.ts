@@ -1,18 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { EventRow } from '../hooks/useGame'
-
-/**
- * What a turn was — the four things a `scrabble.events` row can record, and the
- * row's own `kind` column is already the key.
- *
- * The DICTIONARY REFUSAL is deliberately absent, and it is the one absence worth
- * explaining: `_commit_word` answers `invalid` with `lost` and writes NO row, so
- * a refused word never reaches the log or the board history. The pill and the
- * red tile flash are its only surfaces, and both read that envelope.
- */
-export type Answer = EventRow['kind']
+import type { GAnswer } from '../types'
 
 /**
  * The outcome of every answer, in one place.
@@ -28,17 +17,21 @@ export type Answer = EventRow['kind']
  *     is a turn that counted and that nothing adjudicates. Calling it `won`
  *     would make trading tiles read like scoring.
  *   - a **pass** is the same shape with nothing bought.
- *   - **leftovers** is the row `stop_game` writes when a coop table stops with
- *     tiles still in hand, carrying their value as a negative score. It is
- *     `neutral` too: the table decided to stop, which is not a defeat, and the
- *     negative number in the row already says what it cost.
+ *   - **leftovers** is the row every ending writes for a rack still holding
+ *     tiles, carrying their value as a negative score. It is `neutral` too:
+ *     the game ended, which is not a defeat, and the negative number in the
+ *     row already says what it cost.
+ *   - **went_out** is the row for the player who emptied their rack, carrying
+ *     the others' leftovers as a bonus. `neutral` for the same reason: the
+ *     positive number says what it earned.
  *
- * Three of four being `neutral` is the honest shape: scrabble adjudicates the
+ * Four of five being `neutral` is the honest shape: scrabble adjudicates the
  * PLAY and lets the score carry everything else.
  */
-export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
+export const ANSWER_OUTCOME: Record<GAnswer, Outcome> = {
   word: 'won',
   exchange: 'neutral',
   pass: 'neutral',
   leftovers: 'neutral',
+  went_out: 'neutral',
 }

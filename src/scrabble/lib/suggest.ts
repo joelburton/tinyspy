@@ -17,19 +17,12 @@
  * boggle-solver-style micro-optimization — plain recursion, allocate freely.
  */
 
-import { BLANK, BOARD_SIZE, CENTER, cellIndex, inBounds, type Cell } from './board.ts'
-import type { Placement } from './play.ts'
+import { BLANK, BOARD_SIZE, CENTER, cellIndex, inBounds } from './board.ts'
+import type { GBands, GCell, GPlacement } from '../types.ts'
 // Relative, not `@/`: this module is on the Deno import graph
 // (scrabble-suggest-move / scrabble-ai-move → here) and Deno cannot resolve
 // the alias.
 import type { Trie } from '../../shared/dict-trie/trie.ts'
-
-/** The game's two dictionary difficulty bands, straight off `scrabble.games`
- *  (`dict_2` / `dict_3plus` — server-only columns, fetched through the
- *  `get_suggest_context` definer RPC). 2-letter words get their own, usually
- *  stricter, band because the 2-letter list is where the weird scrabble-ese
- *  lives (AA, XI, QI…). */
-export type Bands = { dict2: number; dict3plus: number }
 
 /**
  * The legality predicate the whole suggester hangs on: is the word ending at
@@ -49,7 +42,7 @@ export type Bands = { dict2: number; dict3plus: number }
  * cross-words alike. Cross-words are routinely 2 letters — that's why the
  * per-length band split matters here, not just for main words.
  */
-export function isLegal(trie: Trie, bands: Bands, node: number, len: number): boolean {
+export function isLegal(trie: Trie, bands: GBands, node: number, len: number): boolean {
   const d = trie.eow[node]
   return d !== 0 && d <= (len === 2 ? bands.dict2 : bands.dict3plus)
 }
@@ -60,10 +53,12 @@ const ALL_LETTERS = (1 << 26) - 1
 /** Index of the blank in the rack-multiset counts array (letters are 0..25). */
 const BLANK_IDX = 26
 
-/** Letter → 0..25, tolerant of case (`| 0x20` lower-cases an ASCII letter).
- *  Board cells and placements carry uppercase; the trie is lowercase. */
-const letterIdx = (letter: string): number => (letter.charCodeAt(0) | 0x20) - 97
-const letterGlyph = (c: number): string => String.fromCharCode(65 + c)
+/** Letter → 0..25, and back. */
+const letterIdx = (letter: string): number => letter.charCodeAt(0) - 97
+const letterGlyph = (c: number): string => String.fromCharCode(97 + c)
+
+/** The letter on a cell, or null when it is empty or off the board. */
+type LetterAt = (x: number, y: number) => string | null
 
 /**
  * Every legal move on the board with this rack, as placement sets.
@@ -79,32 +74,37 @@ const letterGlyph = (c: number): string => String.fromCharCode(65 + c)
  * a down word is found by both passes with identical placements, so moves are
  * collapsed through a canonical-key map before returning.
  *
- * `rack` is glyphs `'A'..'Z'` / `'?'`; emitted `Placement.letter` is the
- * uppercase played letter (a blank's *declared* letter, with `blank: true`).
+ * `rack` is glyphs `'a'..'z'` / `'?'`; emitted `GPlacement.letter` is the
+ * played letter (a blank's *declared* letter, with `blank: true`).
  * A natural tile and a blank playing the same letter are both emitted —
  * different scores, both legal; ranking sorts them out.
  */
 export function generateMoves(
-  board: Cell[], rack: readonly string[], trie: Trie, bands: Bands,
-): Placement[][] {
+  board: GCell[], rack: readonly string[], trie: Trie, bands: GBands,
+): GPlacement[][] {
   // The rack as a multiset — decrement/increment around recursion. This makes
   // dedup of repeated tiles automatic: two E's can't generate a move twice.
   const counts = new Int32Array(27)
   for (const glyph of rack) counts[glyph === BLANK ? BLANK_IDX : letterIdx(glyph)]++
 
-  const byKey = new Map<string, Placement[]>()
-  const record = (ps: Placement[]) => {
+  const byKey = new Map<string, GPlacement[]>()
+  const record = (ps: GPlacement[]) => {
     const sorted = [...ps].sort((p, q) => p.y - q.y || p.x - q.x)
     const key = sorted.map((p) => `${p.x},${p.y},${p.letter},${p.blank ? 1 : 0}`).join('|')
     if (!byKey.has(key)) byKey.set(key, sorted)
   }
 
-  acrossPass(board, counts, trie, bands, record)
+  const boardEmpty = board.every((c) => c.tile === null)
+  const letterAt: LetterAt = (x, y) => {
+    if (!inBounds(x, y)) return null
+    const { tile } = board[cellIndex(x, y)]
+    return tile === null ? null : tile.letter
+  }
+  acrossPass(letterAt, boardEmpty, counts, trie, bands, record)
 
-  const transposed: Cell[] = new Array<Cell>(N * N).fill(null)
-  for (let y = 0; y < N; y++)
-    for (let x = 0; x < N; x++) transposed[cellIndex(y, x)] = board[cellIndex(x, y)]
-  acrossPass(transposed, counts, trie, bands, (ps) =>
+  // The down moves: the same pass over the board read with x and y swapped.
+  const transposedAt: LetterAt = (x, y) => letterAt(y, x)
+  acrossPass(transposedAt, boardEmpty, counts, trie, bands, (ps) =>
     record(ps.map((p) => ({ x: p.y, y: p.x, letter: p.letter, blank: p.blank }))),
   )
 
@@ -117,17 +117,15 @@ export function generateMoves(
  * means perpendicular-to-the-play, whichever real direction that is.
  */
 function acrossPass(
-  board: Cell[],
+  letterAt: LetterAt,
+  boardEmpty: boolean,
   counts: Int32Array,
   trie: Trie,
-  bands: Bands,
-  emit: (placements: Placement[]) => void,
+  bands: GBands,
+  emit: (placements: GPlacement[]) => void,
 ): void {
   const { children } = trie
-  const cellAt = (x: number, y: number): Cell => (inBounds(x, y) ? board[cellIndex(x, y)] : null)
-  const occupied = (x: number, y: number): boolean => cellAt(x, y) != null
-
-  const boardEmpty = board.every((c) => c == null)
+  const occupied = (x: number, y: number): boolean => letterAt(x, y) !== null
 
   // ANCHORS: the empty squares a move can hang off — orthogonally adjacent to
   // ≥1 existing tile (any of the 4 directions: a square with only a *vertical*
@@ -153,7 +151,7 @@ function acrossPass(
   // run below (suffix); the letter is allowed iff the word it completes
   // passes the band predicate. Cross-words are routinely length 2, so the
   // dict2 band applies HERE, not just to main words. Board blanks participate
-  // as their declared letter (`Cell.l`) — exactly as `formedWords` reads them.
+  // as their declared letter — exactly as `formedWords` reads them.
   const mask = new Int32Array(N * N).fill(ALL_LETTERS)
   for (let y = 0; y < N; y++)
     for (let x = 0; x < N; x++) {
@@ -167,7 +165,7 @@ function acrossPass(
 
       let prefixNode = 0
       for (let yy = top; yy < y && prefixNode >= 0; yy++) {
-        prefixNode = children[prefixNode * 26 + letterIdx(cellAt(x, yy)!.l)] || -1
+        prefixNode = children[prefixNode * 26 + letterIdx(letterAt(x, yy)!)] || -1
       }
       let m = 0
       // A dead prefix (the existing tiles above don't spell a trie prefix)
@@ -176,7 +174,7 @@ function acrossPass(
         for (let c = 0; c < 26; c++) {
           let node = children[prefixNode * 26 + c]
           for (let yy = y + 1; yy <= bottom && node !== 0; yy++) {
-            node = children[node * 26 + letterIdx(cellAt(x, yy)!.l)]
+            node = children[node * 26 + letterIdx(letterAt(x, yy)!)]
           }
           if (node !== 0 && isLegal(trie, bands, node, len)) m |= 1 << c
         }
@@ -188,7 +186,7 @@ function acrossPass(
   for (let row = 0; row < N; row++)
     for (let anchorCol = 0; anchorCol < N; anchorCol++) {
       if (!anchor[cellIndex(anchorCol, row)]) continue
-      const placements: Placement[] = []
+      const placements: GPlacement[] = []
 
       /**
        * Extend rightward from `col`, having matched the word so far down to
@@ -208,12 +206,12 @@ function acrossPass(
        * 1-letter strings aren't in the trie.
        */
       const extendRight = (col: number, node: number, wordStartCol: number): void => {
-        const cell = col < N ? cellAt(col, row) : null
-        if (cell != null) {
+        const letter = col < N ? letterAt(col, row) : null
+        if (letter !== null) {
           // Standing on an existing tile: follow its letter through the trie
           // (dead node → no word continues through here). No rack use, no
           // cross-check, no emit while standing on it.
-          const next = children[node * 26 + letterIdx(cell.l)]
+          const next = children[node * 26 + letterIdx(letter)]
           if (next !== 0) extendRight(col + 1, next, wordStartCol)
           return
         }
@@ -254,7 +252,7 @@ function acrossPass(
         while (occupied(start - 1, row)) start--
         let node = 0
         for (let x = start; x < anchorCol && node >= 0; x++) {
-          node = children[node * 26 + letterIdx(cellAt(x, row)!.l)] || -1
+          node = children[node * 26 + letterIdx(letterAt(x, row)!)] || -1
         }
         if (node >= 0) extendRight(anchorCol, node, start)
       } else {

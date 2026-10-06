@@ -4,7 +4,8 @@ import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
-import { AI_LEVEL_LABEL, type ScrabbleSetup } from './setup'
+import type { GSetup } from '../types'
+import { AI_LEVEL_LABEL } from './setup'
 
 /**
  * scrabble's setup rows — ONE array, rendered by the info column and the PDF
@@ -14,7 +15,7 @@ import { AI_LEVEL_LABEL, type ScrabbleSetup } from './setup'
  * a control that didn't apply produces no row.
  */
 export function makeSetupRows(
-  setup: ScrabbleSetup,
+  setup: GSetup,
   mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {

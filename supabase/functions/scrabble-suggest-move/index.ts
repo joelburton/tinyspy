@@ -18,7 +18,7 @@
  *      board + rack + bands + version together. A rejection forwards as 403.
  *   3. Await the cached rated trie, then generate + rank SYNCHRONOUSLY —
  *      the boggle lesson: awaits before and after the compute, never inside.
- *   4. Return { moves: RankedMove[] (top 5), version }. Placements ride
+ *   4. Return { moves: GRankedMove[] (top 5), version }. Placements ride
  *      along so the FE can stage/preview them; `words` + `score` feed the
  *      text display; `version` lets the FE detect a suggestion that went
  *      stale while in flight (coop has no turns — a teammate may have
@@ -38,8 +38,9 @@ import { crash, fault, ok } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import { runRpc } from '../_shared/dbResult.ts'
 import { walkWord } from '../../../src/shared/dict-trie/trie.ts'
-import type { Cell } from '../../../src/scrabble/lib/board.ts'
-import { generateMoves, type Bands } from '../../../src/scrabble/lib/suggest.ts'
+import type { GBands } from '../../../src/scrabble/types.ts'
+import { decodeBoard } from '../../../src/scrabble/lib/board.ts'
+import { generateMoves } from '../../../src/scrabble/lib/suggest.ts'
 import { rankMoves } from '../../../src/scrabble/lib/rank.ts'
 import { ratedTrie } from './dict.ts'
 
@@ -47,7 +48,8 @@ type SuggestContext = {
   /** Names the answer. One `ok` today; asserted so a second cannot be read as
    *  this one. */
   result: 'context'
-  board: Cell[]
+  // The board as the page gets it: one string, decoded by lib/board.ts.
+  board: { letters: string }
   rack: string[]
   dict_2: number
   dict_3plus: number
@@ -90,8 +92,9 @@ serve(async (req: Request): Promise<Response> => {
 
     // ─── Generate + rank (cached trie; the compute itself is synchronous) ──
     const trie = await ratedTrie()
-    const bands: Bands = { dict2: ctx.dict_2, dict3plus: ctx.dict_3plus }
-    const moves = generateMoves(ctx.board, ctx.rack, trie, bands)
+    const bands: GBands = { dict2: ctx.dict_2, dict3plus: ctx.dict_3plus }
+    const board = decodeBoard(ctx.board.letters)
+    const moves = generateMoves(board, ctx.rack, trie, bands)
     // Trie lookup for the vocabCap lever; a word missing from the trie (can't
     // happen for generated moves) reads as harder than any cap.
     const wordDifficulty = (word: string) => {
@@ -100,7 +103,7 @@ serve(async (req: Request): Promise<Response> => {
     }
     // Max strength (all levers at their defaults) — the strength slider is a
     // designed-but-deferred extension (docs/games/scrabble.md).
-    const ranked = rankMoves(ctx.board, moves, ctx.rack, wordDifficulty)
+    const ranked = rankMoves(board, moves, ctx.rack, wordDifficulty)
 
     // KEEP — the full ranked output, inspectable in the functions terminal.
     console.log(
