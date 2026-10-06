@@ -1,12 +1,13 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: bananagrams' page blobs — game_data and summary_data
+-- Test: bananagrams' page blobs — static_game_data, game_data and summary_data
 -- ============================================================
 -- `bananagrams._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move and every board save
+-- `common.games` after every move and every board save, and
+-- `_write_static_game_data` what nothing after create changes
 -- (supabase/sql/bananagrams.sql → The page blobs). This file pins what the
--- page gets:
+-- page gets — the static blob the common part alone:
 --
 --   1. A fresh game: the two piles counted and never listed, no team, an
 --      empty log, every player's tiles (lowercase), both counts and an empty
@@ -18,8 +19,8 @@
 --   5. Every seat's tiles and board are in the blob — the page's useGame is
 --      what withholds a rival's
 --   6. A Restart empties it all again
---   7. `_rebuild_data_cols_for_all` rewrites every bananagrams game without
---      re-dating it
+--   7. `_rebuild_data_cols_for_all` rewrites every bananagrams game, its
+--      static blob included, without re-dating it
 --
 -- Two players of 21 from a bunch of 43 leaves 1 tile in the bunch: too few to
 -- refill the table, so the first peel goes out and wins. The deal is random,
@@ -30,7 +31,7 @@ begin;
 set search_path = bananagrams, common, public, extensions;
 \ir ../_shared/setup.psql
 
-select plan(24);
+select plan(25);
 
 -- One player's bananagrams keys off game_data, as "nTiles/nUnplacedTiles".
 create function pg_temp.bg_counts(gid uuid, uid uuid) returns text
@@ -87,6 +88,10 @@ select ok(
   (select not (game_data ? 'bunch') and not (game_data ? 'bag') and not (game_data ? 'bunch_at_setup')
      from common.games where id = (select id from g)),
   'the piles'' order is not in the blob');
+select is(
+  (select static_game_data from common.games where id = (select id from g)),
+  common._make_json_static_game_data((select id from g)),
+  'static_game_data is the common part alone: bananagrams adds nothing to it');
 select is(
   array[pg_temp.bg_counts((select id from g), 'ada11111-1111-1111-1111-111111111111'),
         pg_temp.bg_counts((select id from g), 'bea22222-2222-2222-2222-222222222222')],
@@ -230,14 +235,15 @@ select is(
 -- ─── (7) _rebuild_data_cols_for_all ───
 create temp table dated on commit drop as
 select status_changed_at from common.games where id = (select id from g);
-update common.games set game_data = '{}'::jsonb where id = (select id from g);
+update common.games set game_data = '{}'::jsonb, static_game_data = null where id = (select id from g);
 select is(bananagrams._rebuild_data_cols_for_all() >= 1, true,
   '_rebuild_data_cols_for_all rewrites every bananagrams game');
 select is(
-  (select jsonb_build_object('rebuilt', game_data ? 'nBunchTiles', 'dated', status_changed_at)
+  (select jsonb_build_object('rebuilt', game_data ? 'nBunchTiles', 'static', static_game_data ? 'setup',
+                             'dated', status_changed_at)
      from common.games where id = (select id from g)),
-  jsonb_build_object('rebuilt', true, 'dated', (select status_changed_at from dated)),
-  'the blob is back, and the game is not re-dated');
+  jsonb_build_object('rebuilt', true, 'static', true, 'dated', (select status_changed_at from dated)),
+  'both blobs are back, and the game is not re-dated');
 
 select * from finish();
 rollback;

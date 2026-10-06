@@ -178,6 +178,12 @@ drop function if exists bananagrams._write_statuses(uuid, boolean);
 -- is bananagrams' part. Every key is always present, null when it has no
 -- value.
 --
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+-- bananagrams' is the common part alone: it has no puzzle, and every tile and
+-- board is in play.
+--
 --   game_data, bananagrams' part:
 --     nBunchTiles                          the draw pile's count; its order never
 --                                          leaves the server
@@ -326,12 +332,32 @@ $$;
 revoke execute on function bananagrams._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- bananagrams._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change. bananagrams adds nothing to the common part.
+create or replace function bananagrams._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = bananagrams, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = common._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function bananagrams._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- bananagrams._rebuild_data_cols_for_all — every bananagrams game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every bananagrams game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every bananagrams
+-- game without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function bananagrams._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -345,6 +371,7 @@ begin
   for v_game_id in
     select id from common.games where gametype = 'bananagrams'
   loop
+    perform bananagrams._write_static_game_data(v_game_id);
     perform bananagrams._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -569,6 +596,7 @@ begin
   from (select uid, row_number() over (order by uid) as pi
           from unnest(p_player_user_ids) as uid) pu;
 
+  perform bananagrams._write_static_game_data(new_id);
   perform bananagrams._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The name is here even
