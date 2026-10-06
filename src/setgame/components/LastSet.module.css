@@ -1,6 +1,6 @@
 /* cs-unmet */
 
-/* The last-set panel. Its height is FIXED by construction — three mini-cards
+/* The last-set panel. Its height is FIXED by construction — three mini-tiles
  * plus a label — so the first claim of a game doesn't push the info column
  * around (docs/ui.md → Layout stability). */
 
@@ -25,28 +25,28 @@
   text-overflow: ellipsis;
 }
 
-/* @@ */ .cards {
+/* @@ */ .tiles {
   display: flex;
   gap: 0.4rem;
-  /* The mini-card size — as big as three plus their gaps fit in the info
+  /* The mini-tile size — as big as three plus their gaps fit in the info
    * column. Reading the four attributes IS the panel's job, and at the first
    * (much smaller) size an open or striped symbol was a few hairlines, which
    * read as washed out rather than as small. */
-/* @@ */   --card-w: 5.4rem;
+/* @@ */   --tile-w: 5.4rem;
 }
 
-/* The mini cards are inert — <Card readOnly> draws them as plain boxes rather
+/* The mini tiles are inert — <Tile readOnly> draws them as plain boxes rather
  * than as disabled buttons, which is what keeps them at FULL color strength
- * (a disabled button inherits the global 50% opacity, and washing out a card's
- * color changes what the card says). */
+ * (a disabled button inherits the global 50% opacity, and washing out a tile's
+ * color changes what the tile says). */
 /* @@ */ .mini {
   pointer-events: none;
 }
 
 /* @@ */ .placeholder {
-  width: var(--card-w);
+  width: var(--tile-w);
   aspect-ratio: 100 / 94;
-  border: 1px dashed var(--setgame-card-border);
+  border: 1px dashed var(--setgame-tile-border);
   border-radius: var(--radius-md);
 }
 

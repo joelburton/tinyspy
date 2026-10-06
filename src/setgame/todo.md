@@ -139,8 +139,6 @@
   `readLeaderboard<LeaderRow>(…)` from `common/game-page/`, so the
   hand-written cast is gone and the field being present but not an array is
   caught. Only the row is open.
-- `Card.tsx` exports two components (`Card`, `CardDefs`), so "the filename
-  is the component" is false here. Split or justify.
 ## Someday
 
 ## Maybe

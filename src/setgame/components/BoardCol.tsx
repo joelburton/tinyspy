@@ -115,6 +115,8 @@ export function BoardCol({
           isWaitingForTurn: gd.me.waitingForTurn,
         }}
         canPick={actions.canPick}
+        isViewingHistory={historyView.isViewing}
+        lastClaim={gd.events.findLast((e) => e.kind === 'claim') ?? null}
         onPick={actions.pickTile}
       />
       {/* `bannerHost` only WHILE VIEWING — the banner is `position: absolute;

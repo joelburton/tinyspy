@@ -1,0 +1,9 @@
+/* cs-unmet */
+
+/* What `TileDefs.tsx` wears: the shared <pattern> host, present in the DOM,
+ * occupying nothing. */
+/* @@ */ .defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}

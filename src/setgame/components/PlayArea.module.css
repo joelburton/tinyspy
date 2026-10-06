@@ -3,7 +3,7 @@
 /* setgame's play-surface specifics. The two-column shell itself is the shared
  * common/game-page/playArea.module.css.
  *
- * Card sizing lives in Board.module.css, next to the grid it sizes — it needs
+ * Tile sizing lives in Board.module.css, next to the grid it sizes — it needs
  * the column count, which is a render-time value, so it can't be resolved here.
  */
 
@@ -11,11 +11,11 @@
   /* A FIXED info column, like strands / wordle / connections. setgame does NOT
    * compose the shared `.responsiveInfoCol` — that one is for the word-list
    * games, whose multi-column list genuinely wants 22–53rem; this column holds
-   * three counts, a three-card panel and the actions.
+   * three counts, a three-tile panel and the actions.
    *
    * DECLARING THIS IS MANDATORY. The scaffold has no default on purpose, and
    * leaving it out makes `--avail-w` invalid at computed-value time, which
-   * silently invalidates the whole `min()` in Board.module.css — the cards then
+   * silently invalidates the whole `min()` in Board.module.css — the tiles then
    * fall back to their intrinsic size, come out enormous, and the page scrolls
    * in both directions. (Which is exactly what the first render did.)
    *

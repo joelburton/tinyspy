@@ -94,7 +94,7 @@ export function GameEventLog({
               isOpenInHistory={historyId === event.id}
               onShowHistory={() => onShowHistory(event.id, i + 1)}
             />
-            <td className={styles.cards}>
+            <td className={styles.tiles}>
               {event.kind === 'hint' && <span className={styles.hintTag}>Hint:</span>}
               <span className={styles.mini}>
                 {event.cards.map((card) => (

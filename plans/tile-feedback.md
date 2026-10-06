@@ -752,9 +752,10 @@ color**, and both channels we have already exist:
 proposes as the answer to attention-versus-state, and it has been in the theme
 since scrabble needed it. The mechanism was solved before the vocabulary was.
 
-**So the work is reach, not convention.** setgame invented
-`--setgame-arriving-bg`, `--setgame-leaving-bg` and `--setgame-held-veil` locally
-rather than using or extending the shared ones. As each game is converted, marks
+**So the work is reach, not convention.** setgame invented its own claim
+colors locally rather than using or extending the shared ones (they have since
+gone, for the shared attention flash, in-flight dim and won color). As each game
+is converted, marks
 that are universal — attention, history, busy, verdict, hint — move into the
 shared `--color-*` / `--tile-*` families, and only genuinely game-specific values
 stay game-scoped.
@@ -853,12 +854,12 @@ document had not named:
 | **4 · pieces leave** | pieces are consumed and the board closes up behind them | partly — you see that something went, never what or why | stackdown · strands · letterboxed · scrabble (the rack) |
 
 **3 and 4 are one mechanism, not two.** Both are pieces LEAVING; setgame also
-has pieces arriving, which is the only difference. So the `leaving` mark
-setgame already owns is the general answer for shape 4 — but the *hold* it
-pairs with is not. setgame holds the departing cards for `DEPART_MS` because
-the hold is what stops the claimer seeing their replacements early, which is a
-fairness constraint no other game has. A shape-4 game with nothing arriving
-should not buy the delay.
+has pieces arriving, which is the only difference. So setgame's mark on what
+left — the found set held in a won ring — is the general answer for shape 4,
+but the *hold* it pairs with is not. setgame holds the found set for
+`WORD_ANSWER_MS` because the hold is what stops the claimer seeing their
+replacements early, which is a fairness constraint no other game has. A
+shape-4 game with nothing arriving should not buy the delay.
 
 **For shape 4 there is usually a better mark than the departure.** The question
 a player actually has after pieces leave is not "which ones went" but "what can
@@ -1073,26 +1074,29 @@ server adjudicates. Two seats alternating means nothing races.
 
 ### setgame · shape 3
 
-**Today.** The richest set of marks anywhere, and the only shape-3 board. A
-claim substitutes three cards in place, so every claim is marked: the departing
-three are held on screen for `DEPART_MS` and lit, the replacements light as they
-land for `ARRIVE_MS`, and **the claimer sees their own three dimmed instead** —
-they know what they picked, and the dim doubles as "I heard you, the server
-hasn't answered yet". Both clear at the same instant, deliberately, so the
-claimer cannot see their replacements early. `Not a set` lands in the pill; a
-peer pill says someone found a set. **Compete is contended** — one table,
-everyone claiming — so this is the one board whose marks matter more in compete
-than in coop.
+**Today.** A claim substitutes three tiles in place, so every claim is marked,
+for everyone at the table, at the shared lengths: the found set is held on
+screen in a won-color RING for `WORD_ANSWER_MS`, then the live table shows and
+the tiles the claim DEALT wear the shared attention flash. A tile a short table
+moves from its end into the holes was already on it, and does not flash. The
+claimer's three wear the shared in-flight dim from the click until the claim
+lands, then the same ring. Everyone holds for the same beat, so the claimer
+cannot see their replacements early. `Not a set` lands in the pill; a
+teammate's claim is narrated in the header. **Compete is contended** — one
+table, everyone claiming — so this is the one board whose marks matter more in
+compete than in coop.
 
 **Trust + race.** No solution to hide; the server validates each claim. Two
-players can claim overlapping cards, and one of them loses.
+players can claim overlapping tiles, and one of them loses.
 
-**What we want** (proposals):
-- Its three `--setgame-*` colors fold into the shared `--mark-attention-*`
-  vocabulary, and its selection becomes a border rather than a `box-shadow`
-  ring — both its own tf pass.
-- Keep the choreography exactly as it is. The hold is a fairness constraint,
-  not a flourish.
+**Settled** (Joel, 2026-10-05): a RING for the found set, not a fill — a fill
+hides the colored symbols — and the standard yellow for new tiles, both at the
+normal lengths. The old choreography (a filled green departure, a filled yellow
+arrival for `ARRIVE_MS`, the claimer's own black veil) and its three
+`--setgame-*` colors are gone.
+
+**Still wanted:** its selection becomes a border rather than a `box-shadow`
+ring — its own tf pass.
 
 ### stackdown · shape 4
 
@@ -1355,7 +1359,7 @@ the background. Pick the next one up from the "forces" column.
 | **psychicnum** | **tf2** | 2026-09-19 | **Passed 2026-09-19 as pass 3 of its app-audit area**, every mark checked against this doc: all conform, the identity dot's colors are the shared member palette, and the stylesheet is 7 rules / 33 declarations (the two are the font work's `wdth` knobs). One defect: a selection made just before the game ended, or before the player conceded, kept its border on a board nobody could act on — the game-over check by name; `selected` is drawn only while still playing. And the decided fill's second copy of hit→won / miss→lost is gone: `Board.tsx` asks `lib/answer.ts` what a decided row IS and wears `.decidedWon` / `.decidedLost`, named for outcomes. Round 1: the **identity dot**, and reveal-as-state (which retired the answer-key channel). **Self-attention is ON** — the guesser sees the flash like everyone else, which is what the code has always done; the round-1 note here claimed the opposite and was never true. Ruled 2026-09-15 as the app-wide default (see "Yellow means LOOK HERE"). **Marked tf2 on 2026-08-20 and reset to tf1 the same day**: the pass fixed a real thing but stopped short of a re-conversion once css-system was chosen to go first, so it is owed a proper tf2 after its CSS pass. What that day settled stands. The ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
 | **connections** | **tf2** | 2026-08-17 | **Passed 2026-09-19 as pass 3 of its app-audit area**, and the lightest re-pass yet: the audit before it had already done most of the board work, so the pass confirmed rather than converted. Every channel it wears is shared — selection, the identity ring (shared boards only, correctly absent in compete), the in-flight dim, the verdict fill in its pill's outcome, attention THEN the shake on every verdict (mine and a peer's), band attention driven by the server's move marker rather than the diff, the game-over frame, the history frame and tints. **Four proposals ruled, three of them NO** (Joel): no dashed hint mark on the board — this game's hint is an info-column fact; no dim on a teammate's in-flight guess for the rest of the table (it would need a second broadcast event, and a coop player can still pull a tile out of a guess that is with the server — accepted); no arrival animation for a band, so `todo.md`'s rise-and-fade item is closed; and the strike meter's silent tick was WITHDRAWN by the reviewer — the mistake is already marked twice (the peer's four tiles fill and shake, and a peer pill names them), so marking its counter too is the same news again. **The rank palette stands** beside the outcome palette: two vocabularies, not a collision. **Restart verified structurally** — `GamePage` keys the surface on `commonGame.restarts`, so every mark goes with the remount, and `useMoveAttention` needs the move marker to ADVANCE, which a replay drops. What the pass CHANGED is colors, not channels: the shared `.verdictFill` now carries `--verdict-edge` (a verdict-filled tile wore a beige border around a saturated face), and connections' two local outcome→class maps became common's `OUTCOME_TO_VERDICT_CLASS` — one of them keyed on the three-value wire word, which is the narrowing that map exists to prevent. Its stylesheet went 296 → 250 lines |
 | **codenamesduet** | **tf2** | 2026-09-23 | **Passed 2026-09-23 as pass 3 of its app-audit area**, from tf0 — it had no shared board mark at all. Now: **both turn marks**, on the value its bell reads (the board dims while the partner writes the clue or guesses from mine, NOT while I write the clue, since the clue is written from the board; the frame flashes as a clue becomes mine to give or to guess from; neither in sudden death, which has no turn); **the in-flight dim** in place of its pending ring in the action button's blue and a monospace "…" (the chrome borrow is settled by deletion); **attention** on the tiles a guess turned over, gated on the guess log, self-attention on; **the shake** on a bystander or an assassin after the flash (Joel: *"yes, shake bystander and assassin"*), never an agent; **the game-over frame** in the ending's outcome. The history ring moved OUTSIDE the tile, and its geometry became two shared tokens (`--history-tile-ring-*`, base.css) read by psychicnum, connections and this game. The bystander tan's white ink is BLESSED (the floor table). The keycard tokens stay separate from the outcome ones they share hexes with, said in `theme.css`. The `.triPeer` / `.triMine` triangles are the keycard, not attribution |
-| setgame | tf0 | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
+| setgame | tf0 | — | a claim marks with the shared pieces: the in-flight dim, a won ring held on the found set, the attention flash on the tiles dealt. Selection is a `box-shadow` ring and must become a border |
 | stackdown | tf0 | — | **Worked 2026-09-15, short of a full tf2 pass.** An answer is now the same two colors wherever you are sitting: the entry slots became tiles (the shared `--tile-slot-*` trio at the ramp's middle, which also retired the filled slot's button-blue borrow), so a verdict there is a fill and white ink rather than a ring of its own — `won` joined the shared tones for it. Your own refused word answers in the SLOTS and shakes, its five tiles coming back marked when the beat ends; a teammate's word is marked on THEIR tiles instead of squatting in your entry row, attention flash then the answer, with an accepted word's tiles held on the board and inert while it is read. The letter was drawn as a bare text node and the attention flash painted straight over it; it is lifted now. The asymmetry recorded here — a teammate's rejection marked while your own got the pill alone — is closed: both are marked. The ambiguous-letter mark now takes the **error** red (see the UI-problem section: `error` never means a judgment, and a judgment is a fill where this is a ring) and its lifetime is the shared `AMBIGUOUS_PICK_FLASH_MS`. **Still owed:** the board's own `.tile` is bespoke rather than the shared face, its hover/press stand-in was written fast for the dark-mode spike, and the tile border's button-blue borrow is unsettled |
 | strands | tf0 | — | the same ambiguous-letter treatment (see stackdown), the earned hint economy (the **hint** channel's first real user), the move-end state mark, and a history-viewer ring still drawn in gold from when the viewer was yellow — it takes the shared blue like every other game's. Plus: **the hint button should almost certainly become filled always.** It is outline-when-unusable and filled-when-ready today, which was a real decision made when `disabled` meant a 0.5 fade — too faint to tell apart without changing the treatment as well, so the two states were made to differ in KIND. Disabled is 0.75 now and reads on its own, so the special case has outlived its reason; trust the ordinary disabled look and let the button be one thing |
 | letterboxed | tf0 | — | a board whose primary mark is a LINE between cells, not a tile fill |
@@ -1432,7 +1436,7 @@ rule splits down the middle.
 | **codenamesduet** | the clearest *do not collapse*: `--codenamesduet-agent` is byte-identical to `--outcome-won-ink-color` and `-agent-key` to the fill. They are the KEYCARD vocabulary, not outcomes, and the identical hex is what makes collapsing tempting and wrong. Confirm and say so in the token |
 | **crosswords** | the biggest register — header/row grays, a cursor a hair off the old active border, clue-num and pencil grays that are control grays. Plus `--crosswords-wrong`, marked in the token: brand, or the shared outcome red? |
 | **scrabble** | the premium-square palette is brand and stays. `--scrabble-tile-selected` `#ffd24d` sits near the attention yellow — is a selected rack tile *attention*, or its own thing? |
-| **setgame** | `-leaving-bg` / `-arriving-bg` / `-held-veil` are the pre-vocabulary ancestors of attention and the in-flight dim. They fold in here, not before |
+| **setgame** | its claim colors folded into the shared attention flash, in-flight dim and won color at the seat-view conversion (2026-10-05) |
 | **strands** | `--strands-missed` and `--strands-hint-ring` are UI grays wearing brand names — they would not change if strands' purple changed. Candidates for common; its purples are genuinely brand |
 | **bananagrams** | its tile palette sits *near* the warm ramp without being it. `--bananagrams-error` is marked in the token, and the drop-target greens are the prospective-verdict colors this vocabulary will want |
 | **spellingbee + wordwheel** | **Ruled 2026-09-23 at spellingbee's tf2 (Joel): BRAND tokens, both games.** spellingbee's accent is byte-identical to a shared rank fill; the center letter is each game's identity, and a rank bar borrowing its yellow is kinship, not one meaning. Nothing folds into the shared tiers. **wordwheel's center moved off red the same day (Joel)**: red is the `lost` outcome, and once a refused word's tiles took that fill a red center read as a verdict. It is a dusty purple now, `#7e6aa3` — 24% saturation where the red was 63%, clear of the vivid member purple and strands' theme purple, white on it 4.7:1 |
@@ -1730,8 +1734,8 @@ On this kind of work the diff is not evidence; the computed value is.
   intensity can be low because the area is the whole board; a whole-surface
   change is noticeable at a strength a single tile would not be.
 - **Does the in-flight dim read as "working" rather than "dead"?** A blink says
-  activity, a static veil says held. It worked in setgame, where the veiled
-  cards were leaving; waffle's two tiles are staying and swapping.
+  activity, a static veil says held. A static veil worked in setgame, where the
+  veiled tiles were leaving; waffle's two tiles are staying and swapping.
 - **Exact values** for every overlay, and the paired values for the compounding
   case above.
 

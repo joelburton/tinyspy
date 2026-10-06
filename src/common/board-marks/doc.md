@@ -74,10 +74,11 @@ something unmarked is made.
 | `useTurnArrival` | `useTurnStartFlash` | the turn becoming mine, as a count |
 
 setgame is on `useChangeCause` underneath as well, keyed on the last claim's id.
-Its mark is not a flash for a beat — a claim substitutes cards in place, so the
-departing cards are held on screen before the swap, the claimer sees dim where
-everyone else sees lit, and the two halves have lifetimes chosen against each
-other (`setgame/lib/flash.ts`). That choreography is its own and stays its own.
+A claim substitutes tiles in place, so its found set is held on screen in a won
+ring for its beat before the live table shows, and only then do the tiles it
+dealt take the attention flash; everyone holds for the same beat
+(`setgame/hooks/useClaimMarks.ts`). The hold is its own; the marks are the
+shared ones.
 
 **A mark that holds a SET is derived once, beside the hook** — a board reads
 `mark?.value.ids ?? NO_TILES` against a module-level empty constant and hands

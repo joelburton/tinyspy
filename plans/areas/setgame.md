@@ -120,6 +120,21 @@ The letter key's action is `act-pick-by-letter` (Joel, 2026-10-05): "pick"
 is the shared verb for putting a tile in the move, and "by letter" tells it
 from the cursor's Space (`act-toggle-tile`) and a click (`pickClicked`).
 
+## The Board pass (step 11)
+
+`Card.tsx` → `Tile.tsx` (one tile, its `TileMarks` decided by the board), and
+the stripe patterns their own `TileDefs.tsx` (the todo's "two components in
+one file" closed). The claim's marks are `hooks/useClaimMarks.ts`, called by
+Board: the found set held in a won ring (`shared.verdictWon` + `.found`) for
+`WORD_ANSWER_MS` on the table from before the claim, then the dealt tiles in
+the shared attention flash — only tiles new to the table; the claimer's
+three wear the shared in-flight dim. `lib/flash.ts` and its three theme colors
+are gone; the ruling moved into plans/tile-feedback.md and docs/games/setgame.md
+(whose three settled Deferred items went). setgame's CSS says "tile"
+(`--tile-w`, `--setgame-tile-*`). `e2e/setgame-flash.e2e.ts` asserts the new
+marks; its helper calls are step 15's. Not yet seen on screen: the page needs
+the InfoCol pass to render.
+
 ## The inventory (step 1)
 
 - **The loader** (`hooks/useGame.ts`) reads `setgame.games_state` (`id,

@@ -6,7 +6,7 @@
  * The three color tokens are named for Set's own vocabulary — red, green,
  * purple — but they name SLOTS, not pigments. `--setgame-red` means "whatever
  * the first color value is painted with in this game", and which hue that is
- * depends on `setup.palette`. Nothing outside this file needs to know: the card
+ * depends on `setup.palette`. Nothing outside this file needs to know: the tile
  * renders `var(--setgame-red)` either way.
  *
  * TRADITIONAL (the default) is Set's own red / green / purple.
@@ -35,77 +35,48 @@
 /* @@ */   --setgame-green: #12922f;
 /* @@ */   --setgame-purple: #7b2d8e;
 
-  /* The card face. Plain white on the warm page, like a real card on a table —
+  /* The tile face. Plain white on the warm page, like a real card on a table —
    * NOT the warm tile ramp the letter games use, whose whole job is to make a
    * tile read as a game piece. A playing card reads as one already. */
-/* @@ */   --setgame-card-bg: #ffffff;
-  /* Hover: the card GRAYS, rather than growing a ring. A ring on hover competes
+/* @@ */   --setgame-tile-bg: #ffffff;
+  /* Hover: the tile GRAYS, rather than growing a ring. A ring on hover competes
    * with the thick edge that means "picked" — the one mark on this board that
    * has to be unmistakable — and a border that thickens under the pointer also
-   * nudges the eye toward the edges of a card whose content is its middle. */
-/* @@ */   --setgame-card-hover-bg: #ededed;
-  /* A plain mid-gray, dark enough to actually draw the card's edge. Two
+   * nudges the eye toward the edges of a tile whose content is its middle. */
+/* @@ */   --setgame-tile-hover-bg: #ededed;
+  /* A plain mid-gray, dark enough to actually draw the tile's edge. Two
    * earlier values were too light to see: the page's divider gray, and then a
    * warm tone that still disappeared once the board lost its frame. A white
-   * card on a warm ground needs a real edge or it reads as a floating symbol
-   * rather than as a card. */
-/* @@ */   --setgame-card-border: rgb(128 128 128);
+   * tile on a warm ground needs a real edge or it reads as a floating symbol
+   * rather than as a tile. */
+/* @@ */   --setgame-tile-border: rgb(128 128 128);
 
-  /* The card's depth: a hairline at rest, and a deeper one under a card that
-   * is lifted (Card.module.css `.picked`). Here rather than in the
-   * colorblind block below because depth is not one of the card's four
+  /* The tile's depth: a hairline at rest, and a deeper one under a tile that
+   * is lifted (Tile.module.css `.picked`). Here rather than in the
+   * colorblind block below because depth is not one of the tile's four
    * attributes — and because a token defined only in that block is UNDEFINED
    * on the default palette, where a `var()` that resolves to nothing voids the
    * entire declaration reading it rather than just its own term. */
-/* @@ */   --setgame-card-shadow:      0 1px 2px rgb(0 0 0 / 10%);
-/* @@ */   --setgame-card-lift-shadow: 0 2px 6px rgb(0 0 0 / 18%);
+/* @@ */   --setgame-tile-shadow:      0 1px 2px rgb(0 0 0 / 10%);
+/* @@ */   --setgame-tile-lift-shadow: 0 2px 6px rgb(0 0 0 / 18%);
 
-  /* The keyboard address under each card (Board.module.css `.letter`). True
+  /* The keyboard address under each tile (Board.module.css `.letter`). True
    * black, and palette-independent for the same reason as the shadows. */
 /* @@ */   --setgame-symbol-outline-color: #000000;
 
   /* A live hint's ring: saturated green, and thick. It started neutral gray on
    * the theory that a hint is not an outcome — but a hint you have to hunt for
-   * is not a hint, and a thin gray dash on a white card next to eleven other
-   * white cards was genuinely easy to miss. It stays DASHED, which is what
-   * keeps it distinct from the solid edge of a picked card. */
+   * is not a hint, and a thin gray dash on a white tile next to eleven other
+   * white tiles was genuinely easy to miss. It stays DASHED, which is what
+   * keeps it distinct from the solid edge of a picked tile. */
 /* @@ */   --setgame-hint-ring: #16a34a;
 
-  /* ── The claim flash (lib/flash.ts) ─────────────────────────────────────
-   * FILLS, not rings. A border change is the worst possible mark for something
-   * you are not looking at: these exist precisely for the player whose eye is
-   * in another corner of the board when it changes under them.
-   *
-   * Both are LIGHT tints of a saturated hue rather than the hue itself, because
-   * a card's symbols are drawn ON them — and two of the three symbol colors in
-   * the traditional palette are red and green. The symbols are dark and
-   * saturated, so a light saturated ground keeps them perfectly legible while
-   * still reading as loud from across the table.
-   *
-   * Green for the departing set because it IS the outcome — a set was found.
-   * (Red was the first suggestion and would have been the wrong word: red means
-   * "rejected" everywhere else in this app, and a successful claim flashing red
-   * reads as a refusal, worst of all to the claimer.) Yellow for arrivals, which
-   * are news rather than an achievement — and yellow is the one hue that is not
-   * a symbol color in EITHER palette.
-   *
-   * The hovered variants exist so the pointer still says "this one" on a lit
-   * card; they are the same tints grayed slightly, in the same direction the
-   * ordinary hover grays a white card. */
-/* @@ */   --setgame-leaving-bg: #c6f0ce;
-/* @@ */   --setgame-leaving-hover-bg: #b4debc;
-/* @@ */   --setgame-arriving-bg: #ffefac;
-/* @@ */   --setgame-arriving-hover-bg: #eddd9a;
-  /* The claimer's own three, from the click until the hold ends. A BLACK veil,
-   * where the not-your-turn dim is a white one — held vs disabled are different
-   * states and must not be confusable. */
-/* @@ */   --setgame-held-veil: rgb(0 0 0 / 26%);
 
 }
 
 /* Colorblind-safe: the same three slots, repainted. Set on the play surface's
  * root by PlayArea when `setup.palette` says so, so it reaches the board, the
- * last-set panel and anything else drawing a card. */
+ * last-set panel and anything else drawing a tile. */
 /* @@ */ .setgamePaletteColorblind {
 /* @@ */   --setgame-red: #0072b2;      /* blue */
 /* @@ */   --setgame-green: #e69f00;    /* orange */

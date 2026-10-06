@@ -1,0 +1,141 @@
+/* cs-unmet */
+
+/* What `Tile.tsx` wears: one tile face.
+ *
+ * The tile is a <button> so a click is a click and a disabled board is
+ * genuinely inert, but it carries none of the shared `.tile` styling, which is
+ * a warm game piece with a letter on it; this one is white, like a playing
+ * card. Borrowed are the SELECTED vocabulary — the thick black edge — so "I
+ * picked this" reads the same as it does everywhere else, and the shared
+ * marks: the in-flight dim, the attention flash, the won color. */
+
+/* @@ */ .tile {
+  /* Sized entirely by the board's --tile-w. The ratio matches TILE_BOX in
+   * lib/shapes.ts — that is the SVG's viewBox, so at this ratio the face maps
+   * onto the tile exactly, with no crop and no letterbox. */
+  width: var(--tile-w);
+  aspect-ratio: var(--setgame-tile-ratio, 100 / 94);
+  /* Load-bearing whenever the ratio above is SHORTER than the face's viewBox
+   * (i.e. on mobile). A tile is a flex item, so it gets `min-height: auto` —
+   * an automatic minimum equal to its content's size — and its content is an
+   * <svg> whose viewBox gives it an intrinsic 100:94. That floor silently beat
+   * `aspect-ratio` and the tile stayed 94 tall while every calc around it had
+   * moved to 86. Zeroing the floor lets the declared ratio win. */
+  min-height: 0;
+  /* The shared overlays (the in-flight dim, the attention flash) reach out
+   * over the piece's border by this much. */
+  --tile-edge-width: 1px;
+  padding: 0;
+  border: 1px solid var(--setgame-tile-border);
+  border-radius: var(--radius-md);
+  background: var(--setgame-tile-bg);
+  box-shadow: var(--setgame-tile-shadow);
+  cursor: pointer;
+  display: block;
+  /* Only the fill, the ring and the lift animate. Nothing here may animate SIZE
+   * or POSITION: tiles must not move under a player mid-scan. */
+  transition: background 0.08s ease, box-shadow 0.08s ease, transform 0.08s ease;
+}
+
+/* @@ */ .face {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Above the attention flash, which sits at 0: the flash lightens the tile
+   * under the symbols rather than tinting them. */
+  position: relative;
+  z-index: 1;
+}
+
+/* Scoped to the <button> form: a readOnly tile is a div and must not react to
+ * the pointer at all. */
+/* @@ */ button.tile:hover:not(:disabled) {
+  background: var(--setgame-tile-hover-bg);
+}
+
+/* @@ */ .tile:disabled {
+  cursor: default;
+  /* Override the global disabled fade (`--chrome-disabled-opacity`). A tile's
+   * COLORS are one of its four attributes, so dimming them doesn't read as
+   * "you can't press this", it reads as a different tile. The board is
+   * disabled at every terminal, which is exactly when people are studying it. */
+  opacity: 1;
+}
+
+/* A readout tile: same face, no interaction at all. */
+/* @@ */ .readOnly {
+  cursor: default;
+}
+
+/* Picked: the tile's EDGE thickens and goes black, which is the shared
+ * "this piece is part of the move I'm building" mark — the same two tokens
+ * `.tile.picked` sets in common/game-page/playArea.module.css, restated here
+ * because this piece does not wear the shared `.tile`. Never a fill: a fill
+ * would bury the symbols,
+ * and the symbols are the entire content of the tile. Universal
+ * `box-sizing: border-box` means the thicker edge eats INWARD, so the tile does
+ * not grow and the board does not move.
+ *
+ * A border rather than an outline, and that is load-bearing: a tile can be
+ * picked and hinted at once, the hint owns `outline` (below), and an element
+ * gets exactly one of those.
+ *
+ * The small lift is inside the tile's own box (transform, not layout), so it
+ * cannot nudge a neighbor. */
+/* @@ */ .picked {
+  border-width: var(--tile-picked-edge-width);
+  border-color: var(--tile-picked-edge-color);
+  transform: translateY(-2px);
+  box-shadow: var(--setgame-tile-lift-shadow);
+}
+
+/* The ring, worn by TWO things: a live coop hint, and the tiles a viewed past
+ * turn touched (BoardCol feeds this one mark from either). Dashed and neutral so
+ * it reads as "look here", not as an outcome — the hint never says which set,
+ * only that one runs through this tile. Drawn OUTSIDE the tile's edge, where
+ * the pick is the edge itself, so a tile can wear both at once and each stays
+ * a distinct kind of mark.
+ *
+ * Note it is the HINT's color in both cases, where every other game rings a
+ * viewed turn in the shared `--history-color` — see todo.md. */
+/* @@ */ .ringed {
+  outline: 4px dashed var(--setgame-hint-ring);
+  outline-offset: 3px;
+}
+
+/* The set a claim just found, held on screen for its beat: a ring in the won
+ * color, outside the edge like the hint's. A ring and not a fill: a fill would
+ * hide the colored symbols. Solid where the hint's is dashed, so the two never
+ * read as one mark; placed after it, so a hinted tile that is found wears the
+ * found ring. `--verdict-line` is the shared `.verdictWon`'s. */
+/* @@ */ .found {
+  outline: 4px solid var(--verdict-line);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+/* @@ */   .tile {
+    transition: none;
+  }
+}
+
+/* ── Phones and portrait tablets ──────────────────────────────────────────
+ * A SHORTER tile: 100/86 rather than 100/94.
+ *
+ * The board is height-bound on a phone, so a shorter tile is a WIDER one — and
+ * the mobile status bar above the board (BoardCol) had just taken 9px of tile
+ * width to pay for itself. This buys it back out of the tile's own top/bottom
+ * whitespace, which is the cheapest place on the page to find it: the symbols
+ * are 0.63 of the tile's height, so trimming the margin from ~18 units to ~14
+ * touches no art at all. The face is drawn with `preserveAspectRatio="slice"`
+ * (Tile.tsx), so what the shorter box does is CROP that margin rather than
+ * shrink the symbols.
+ *
+ * Kept as a variable rather than a second `aspect-ratio` declaration so the
+ * empty-slot placeholder (Board.module.css) and the board's height-bound
+ * tile-size term read the same number instead of restating it. */
+@media (--mobile) {
+/* @@ */   .tile {
+/* @@ */     --setgame-tile-ratio: 100 / 86;
+  }
+}

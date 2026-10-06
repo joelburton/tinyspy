@@ -51,7 +51,7 @@ export function LastSet({
         <span>Last set{claim ? ':' : ''}</span>
         {claim && <DotActor actor={finder} fallback="Someone" show="both" />}
       </div>
-      <div className={styles.cards}>
+      <div className={styles.tiles}>
         {claim
           ? claim.cards.map((card) => (
               <div key={card} className={styles.mini}>

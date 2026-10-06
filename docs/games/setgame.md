@@ -307,59 +307,31 @@ The alternative (close up, deal three at the end) was rejected: it reflows the
 table on every claim, which in compete happens *to* you several times a minute
 while you are mid-thought, and it re-letters every card after the hole.
 
-### The claim flash
+### The claim's marks
 
-A claim substitutes cards **in place**: three leave and three arrive in the same
-slots. Locally that lands in one beat and reads fine — over a real connection
-the board simply *differs* a moment later, and if your eye was in another corner
-of it, nothing said so. Worst in coop, where the claim was someone else's and
-you had no reason to be watching those three at all.
+A claim substitutes tiles **in place**: three leave and three arrive in the same
+slots. Over a real connection the board simply *differs* a moment later, and if
+your eye was in another corner of it, nothing said so. So every claim is marked,
+for everyone at the table, with the shared marks at their shared lengths
+(`hooks/useClaimMarks.ts`; Joel, 2026-10-05):
 
-So every claim is marked, and `lib/flash.ts` owns the whole design:
-
-| who | mark | why |
+| beat | mark | why |
 |---|---|---|
-| the claimer | their three cards take a **black veil**, from the click | they know what they did; color would drag their eye back to a decision already made. Its LENGTH is the only thing they can't know — the lag |
-| everyone else | those same cards fill **light green** | a set was found: that's the outcome |
-| everyone | the replacements fill **light yellow** | arriving is news, not an achievement |
+| the click, until the claim lands | the claimer's three wear the shared **in-flight dim** | "I heard you, the server hasn't answered" — its length is the lag |
+| `WORD_ANSWER_MS` | the found set, on the table as it was, wears a **won-color ring** | a set was found, and where. A ring, not a fill: a fill hides the colored symbols |
+| `ATTENTION_FLASH_MS` | the tiles the claim DEALT wear the shared **attention flash** | news, in a corner you may not be watching |
 
-Three properties are load-bearing:
-
-- **Fills, not rings.** The first version drew a ring, and a ring is the one
-  mark that can't do this job: thin, at the edge of a card, invisible to
-  peripheral vision — exactly where the board is when someone else claims.
-- **Light tints of a saturated hue.** The symbols are drawn *on* these, and two
-  of the three traditional symbol colors are red and green. Dark saturated
-  symbols on a light saturated ground stay perfectly legible. (Red was the first
-  suggestion for the departing set and would have been the wrong word: red means
-  *rejected* everywhere else, so a successful claim flashing red reads as a
-  refusal — worst of all to the claimer.)
-- **Both clear at the same instant**, and that symmetry is fairness, not
-  tidiness: if the claimer's board updated while everyone else still held
-  ghosts, they'd see their replacements early — a real edge in compete.
-
-**There is no slow deal.** An earlier version emptied the claimed slots and
-landed the replacements one at a time (300ms apart), on the theory that motion
-draws the eye. It doesn't, if the moving thing is a thin ring — and it made the
-board partly unplayable for the length of the deal, since a card that hasn't
-arrived can't be clicked. A player who can think fast should be able to act
-fast. The only time anything now costs is the 600ms hold, and that one is
-deliberate.
-
-**Keyed to a CLAIM, and nothing else.** A new game and a restart just appear,
-unmarked. Working out which had happened took three wrong answers, all of them
-inferring the cause from the board's shape — how many slots differed, whether
-the deck moved, whether the score dropped. Each had a case that broke it and two
-of them shipped: a restart one claim in leaves a board differing in only three
-slots, so it flashed them as freshly dealt; and a claim on a fifteen-card table
-compacts to twelve without drawing from the deck at all. The answer is that the
-cause is already *recorded* — a claim writes an event, and `replay_board`
-deletes every event — so `PlayArea` reads the log instead of measuring the
-wreckage. Safe because the board and the events arrive in one fetch. The third
-condition is "there was a previous board at all": on first load an ended game's
-history is full of claims, and without it, opening a finished game lit the whole
-table up.
-
+- **Only tiles new to the table flash.** A claim on fifteen tiles compacts to
+  twelve by moving the last three into the holes; those were already on the
+  table and do not flash.
+- **Everyone holds for the same beat** after the claim lands, the claimer too —
+  that symmetry is fairness: otherwise the claimer would see their replacements
+  early, a real edge in compete.
+- **Keyed to a CLAIM, and nothing else.** The cause is read off the log
+  (`useChangeCause`, keyed on the newest claim's id) rather than inferred from
+  the board's shape: a claim writes an event, and `replay_board` deletes every
+  event, so a new game and a Restart just appear, unmarked. Quiet while a past
+  turn is open.
 
 ## 6. Contention — the one genuinely new mechanic
 
@@ -733,10 +705,9 @@ only the deal size differs (9, ceiling 12).
 - **`lib/letters.test.ts`** — the letters never move when the board grows, plus
   the rejected scheme spelled out concretely so the assertion has something to
   discriminate against.
-- **`lib/flash.test.ts`** — the slot-by-slot diff behind the claim flash: a
-  claim that grows the board, one that shrinks it, and the tail-compaction case
-  where a card MOVES into a hole (a set-difference finds nothing new there, and
-  those three used to land unmarked).
+- **`hooks/useClaimMarks.test.ts`** — the claim's marks: the found set held,
+  then the dealt tiles flashing; the tail-compaction case, where the moved
+  tiles do not flash; a Restart unmarked; quiet over a past turn.
 - **`lib/hint.test.ts`** — the ladder grows one card of the SAME set per press,
   and returns `null` once the ring is complete (the rapid-press regression).
 - **`lib/picks.test.ts`** — the toggle, the fourth-card refusal, and the
@@ -772,54 +743,8 @@ would file a bug report for.
 
 ## Deferred
 
-- **`useGame.ts:163` loses an `undefined` into a slot typed `| null`.** The
-  latest-event row comes from `eventsRes.data[0]`, which is `EventRow |
-  undefined` when the read found nothing — but the state it feeds is
-  `EventRow | null`, so the two ways of saying "no row" are being conflated.
-  Found while measuring `noUncheckedIndexedAccess` during the envelope sprint
-  (2026-08-29): with that flag on, this is the **only** error across all nine
-  files that consume `readRows`, so every other zero-rows check in the app is
-  already right. The flag itself is not the fix — it costs 930 errors repo-wide,
-  almost all of them safe grid indexing in the solvers and PDF models. One line,
-  here, when setgame is next open.
-
-- **Rename `card` → `tile` throughout** (Joel, 2026-08-21). The app has one word
-  for the main game piece — **tile** — regardless of what the physical game
-  uses. codenamesduet deals in real-world cards too and calls them tiles;
-  setgame is the holdout, and it makes `.card` mean a fourth thing app-wide (the
-  others are a bordered surface panel, a popover, and a list row).
-
-  Not small, and it is why this is deferred rather than done: **765 mentions in
-  `src/setgame/`, 141 in SQL, 128 in this doc.** The SQL half is the part that
-  costs — `cards` is a column and appears in `smallint` declarations, loop
-  variables and function bodies across `supabase/sql/setgame.sql`, so this is
-  the rare deferral that needs a **forward migration** for the column rename on
-  top of the in-place edit to `supabase/sql/setgame.sql` (CLAUDE.md → "Write a
-  NEW migration; never edit an applied one"). The FE half includes
-  `components/Card.tsx`, `lib/tiles.ts` and their tests.
-
-  Worth doing when setgame's CSS/tile-feedback pass comes up, so the rename
-  rides along with a pass that is already opening every one of these files.
-
 - **`target_sets` for coop** — an opt-in finish line, spellingbee's machinery.
   Only bites in a timed game. Nobody has asked for it.
-
-- **A claim on a 15-card board flashes more than three cards** (seen in play,
-  2026-08-17). Not a diffing accident — it is
-  [`lib/flash.ts`](../../src/setgame/lib/flash.ts)'s documented choice working
-  as designed: the transition is compared **slot by slot, never as a set
-  difference**, because a claim on fifteen compacts back to twelve and *moves*
-  cards from the end into the holes. Those cards aren't new to the game, so
-  "which cards are new?" finds nothing for them and they would land silently —
-  which the comment argues is the one case you most need to be told about.
-
-  What's now in question is whether that is the right trade at the table: five
-  or six cards lighting up for a three-card claim over-reports what happened,
-  and the mark is deliberately loud. Worth discussing rather than fixing blind —
-  the options are roughly (a) leave it, (b) mark a moved-but-not-new card
-  differently from a genuine arrival, or (c) don't compact, and let the holes
-  stay until the next deal. Each says something different about what a slot
-  *means*.
 
 - **An 18-card board doesn't fit at full card size on desktop** (a 16" MacBook,
   2026-08-17) — and the code agrees: `Board.module.css` says `--max-card-w:
