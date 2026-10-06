@@ -62,8 +62,8 @@
 --
 -- and the rest: `_is_club_member` for the security rules,
 -- `_default_gametypes_for_club`, `_slugify_club_name` and `_color_for_username`
--- for making clubs and profiles, and two triggers, `_stamp_games_updated_at`
--- and `_bump_scratchpad_version`.
+-- for making clubs and profiles, and three triggers, `_stamp_games_updated_at`,
+-- `_nudge_game_page` and `_bump_scratchpad_version`.
 --
 -- What is particular to common: it may never name a game. Everything a game
 -- shares — the game row and its players, turn order, conceding, stopping,
@@ -315,6 +315,42 @@ create trigger games_stamp_updated_at
   before update on common.games
   for each row
   execute function common._stamp_games_updated_at();
+
+-- The trigger that tells the game page its game changed: one Broadcast,
+-- `changed`, on the page's room `game:<id>`, and the page re-reads the row. It
+-- fires on the first write of a transaction and no other, because
+-- `_stamp_games_updated_at` stamps `now()`, the transaction's start time, so
+-- only the first write changes `updated_at`. `realtime.send` is delivered at
+-- the commit, after every write of the move, and never for a rollback; it
+-- catches its own errors, so a failed send never fails the move. A delete
+-- nudges too, and the page's re-read finds no game.
+create or replace function common._nudge_game_page()
+returns trigger
+language plpgsql
+as $$
+begin
+  if tg_op = 'DELETE' then
+    perform realtime.send('{}'::jsonb, 'changed', 'game:' || old.id, false);
+    return old;
+  end if;
+  perform realtime.send('{}'::jsonb, 'changed', 'game:' || new.id, false);
+  return new;
+end;
+$$;
+revoke execute on function common._nudge_game_page() from public;
+
+drop trigger if exists games_nudge_game_page_on_update on common.games;
+create trigger games_nudge_game_page_on_update
+  after update on common.games
+  for each row
+  when (old.updated_at is distinct from new.updated_at)
+  execute function common._nudge_game_page();
+
+drop trigger if exists games_nudge_game_page_on_delete on common.games;
+create trigger games_nudge_game_page_on_delete
+  after delete on common.games
+  for each row
+  execute function common._nudge_game_page();
 
 -- Read-only to members (the FE seeds its initial display from
 -- `ticks`); writes go exclusively through common.tick_timer. RLS
