@@ -13,10 +13,6 @@
 
 ## Soon
 
-- **`ClueStrip.tsx` binds its actions itself.** `act-suggest-clue` and
-  `act-end-turn` are `useBindAction` calls inside the component; every other
-  converted game binds its actions in a hook. Joel, 2026-10-05: "a hook".
-
 ## Someday
 
 - **Teach Enter on screen.** A click guesses at once, so nothing on the board

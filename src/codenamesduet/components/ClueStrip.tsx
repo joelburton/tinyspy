@@ -3,19 +3,20 @@
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useRef, useState, type SubmitEvent } from 'react'
-import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
+import { runRpc } from '@/common/supabase/dbResult'
 import { cls } from '@/common/utils/cls'
 import { DotActor, ActorDot } from '@/common/members/ActorMention'
 import { FormSubmitButton } from '@/common/buttons/FormSubmitButton'
 import { IconSubmit } from '@/common/icons/icons'
 import { ActionButton } from '@/common/actions/ActionButton'
-import { useBindAction } from '@/common/actions/useBindAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import {
   useOfferComponentKeyGroups,
 } from '@/common/keyboard/offeredComponentKeyGroupsStore'
 import { db } from '../db'
+import { useSuggestClue } from '../hooks/useSuggestClue'
+import { usePassTurn } from '../hooks/usePassTurn'
 import type { GClueStrip, GPlayer, GSuggestState, GTurns } from '../types'
 
 /** A seat at the table, as the RPCs answer it. Seat A gives the first clue. */
@@ -38,19 +39,6 @@ type ClueAnswer = {
   seat: Seat
 }
 
-/** What `pass_turn` answers: one `ok`, carrying the turn state the pass
- *  produced. `play_state` is where sudden death shows up — spending the last
- *  turn is a state the board renders off the games row, not a second answer to
- *  "did my pass go through". */
-type PassAnswer = {
-  result: 'passed'
-  turn_number: number
-  turns_remaining: number
-  // Null once the pass drops the game into sudden death: nobody clues there.
-  clue_giver: Seat | null
-  play_state: 'playing' | 'sudden_death'
-}
-
 type ClueStripProps = {
   gameId: string
   // What the strip shows (BoardCol decides).
@@ -65,14 +53,6 @@ type ClueStripProps = {
   // Open / update / close the AI clue-suggestion dialog; its state is PlayArea's.
   onSuggestionChange: (state: GSuggestState | null) => void
 }
-
-/** What `codenamesduet-suggest-clue` puts in `data`. Nullable because its
- *  not-ok arms carry none — including `get_clue_context`'s own refusals, which
- *  the function relays untouched rather than re-wording. */
-type SuggestedClue = {
-  result: 'suggested'
-  suggestion: { clue: string; count: number; reasoning: string }
-} | null
 
 /**
  * The codenamesduet clue UI, rendered in BoardCol's below-board slot. One line
@@ -218,9 +198,6 @@ function ClueForm({
   const [word, setWord] = useState('')
   // A clue or a pass is with the server and has not answered.
   const [busy, setBusy] = useState(false)
-  // A suggest request is in flight — the button's `disabled`. The dialog's
-  // state itself is PlayArea's, through `onSuggestionChange`.
-  const [suggesting, setSuggesting] = useState(false)
   // The last clue the AI filled in, as filled in. A clue submitted exactly as
   // this — word and count unedited — is logged as the AI's; editing either makes
   // it the giver's own.
@@ -276,63 +253,21 @@ function ClueForm({
     }
   }
 
-  // Calls the `codenamesduet-suggest-clue` edge function, which checks that I am
-  // the clue-giver in a running game and then asks Claude — a few seconds. The
-  // dialog opens at once in `loading`, then resolves to the suggestion (which
-  // also fills the inputs) or to the sentence for a refusal. The button is
-  // disabled while in flight, so there is no double request to guard against.
-  async function onSuggest() {
-    console.log('[ClueHint] button clicked → open dialog (loading)')
-    setSuggesting(true)
-    onSuggestionChange({ status: 'loading' })
-    const res = await runEdgeFn<SuggestedClue>('codenamesduet-suggest-clue',
-      { gameId })
-    setSuggesting(false)
-
-    if (res.type === 'not-ok' && res.severity === 'fault') {
-      // The dialog CLOSES. `runEdgeFn` has already raised the modal, and a
-      // fault leaves nothing to put in the dialog — holding it open on a stale
-      // "loading" is worse than dismissing it (docs/ui.md → Faults).
-      console.log('[ClueHint] response = fault')
-      onSuggestionChange(null)
-    } else if (res.type === 'not-ok') {
-      // The dialog STAYS, carrying the sentence. PN319 and PN320 are Claude
-      // declining or being cut off — it ran, it just did not produce a clue —
-      // and `get_clue_context`'s own refusals arrive here relayed untouched.
-      console.log('[ClueHint] response = refused:', res.message)
-      onSuggestionChange({ status: 'error', message: res.message })
-    } else if (res.type === 'ok' && res.data?.result === 'suggested') {
-      const s = res.data.suggestion
-      const suggested = s.clue.toLowerCase()
-      setWord(suggested)
-      setCount(String(s.count))
-      setAiClue({ word: suggested.trim(), count: s.count })
-      console.log('[ClueHint] response = ready:', suggested, s.count)
-      onSuggestionChange({
-        status: 'ready',
-        word: suggested,
-        count: s.count,
-        reasoning: s.reasoning,
-      })
-    } else {
-      reportUnhandled('codenamesduet-suggest-clue', res)
-      onSuggestionChange(null)
-    }
-  }
+  // The AI button (`useSuggestClue`); its suggestion fills the inputs and
+  // counts as the AI's clue until either is edited.
+  const suggestion = useSuggestClue({
+    gameId,
+    isSubmitting: busy,
+    onSuggestionChange,
+    fillClue: (suggestedWord, suggestedCount) => {
+      setWord(suggestedWord)
+      setCount(String(suggestedCount))
+      setAiClue({ word: suggestedWord.trim(), count: suggestedCount })
+    },
+  })
 
   const submittable = count !== '' && word.trim().length > 0
-  const eitherBusy = busy || suggesting
-
-  // Ask Claude for a clue. A COMMAND the page offers, so it's an action —
-  // unlike the Submit beside it, which is this form's own submit button and
-  // whose Enter belongs to the focused field rather than to the key dispatcher.
-  const actSuggestClue = useBindAction('act-suggest-clue', {
-    describe: () => ({
-      state: eitherBusy ? 'disabled' : 'active',
-      label: suggesting ? 'Thinking…' : 'AI',
-    }),
-    run: onSuggest,
-  })
+  const eitherBusy = busy || suggestion.suggesting
 
   return (
     <form className={styles.clueForm} onSubmit={onSubmit}>
@@ -383,7 +318,7 @@ function ClueForm({
         {/* The AI clue suggestion; its "Thinking…" while the edge function
             runs is the action's `describe`. */}
         <ActionButton
-          action={actSuggestClue}
+          action={suggestion.actSuggestClue}
           show={isPhone ? 'icon' : 'both'}
           className={styles.aiBtn}
         />
@@ -405,27 +340,10 @@ function PassButton({
   localFeedbackSlot: FeedbackSlot
 }) {
   // Icon-only on a phone, where the below-board row is tight; the label rides
-  // in the tooltip either way. No `busy` flag of its own: the action's run is
-  // single-flight, so a second press while the first is out is dropped.
+  // in the tooltip either way.
   const isPhone = useIsPhone()
-  const actEndTurn = useBindAction('act-end-turn', {
-    describe: () => ({ state: 'active', label: 'Pass & End Turn' }),
-    run: async () => {
-      const res = await runRpc<PassAnswer>(db.rpc('pass_turn',
-        { p_game_id: gameId }))
-      if (res.type === 'not-ok') {
-        localFeedbackSlot.show(FeedbackMessage.notOk(res))
-        return
-      } else if (res.type === 'ok' && res.data.result === 'passed') {
-        // Nothing to do: the new turn — and sudden death, if that was the last
-        // one — arrives on the games row, which is what redraws this panel.
-        return
-      } else {
-        reportUnhandled('pass_turn', res)
-        return
-      }
-    },
-  })
+  const actEndTurn = usePassTurn({ gameId, localFeedbackSlot })
   return <ActionButton action={actEndTurn} show={isPhone ? 'icon' : 'both'}
                        weight="primary"/>
 }
+

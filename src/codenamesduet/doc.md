@@ -447,7 +447,8 @@ describes: a loader that gates on the three ways a game can fail to load, then
         │     │     └── Tile             one tile: its fill, key squares and arrows
         │     └── below the board        one of: HistoryBanner ←, the local slot's
         │                                FeedbackPill ←, or ClueStrip — the clue form,
-        │                                the clue and Pass, or who we're waiting for
+        │                                the clue and Pass, or who we're waiting for; the
+        │                                AI button (useSuggestClue), Pass (usePassTurn)
         ├── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
         │     └── InfoCol                the readouts and the action row
         │           ├── StateLine        agents found, turns spent or sudden death
