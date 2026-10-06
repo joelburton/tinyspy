@@ -181,8 +181,8 @@ export function BoardCol({
       </div>
 
       <HintBar
-        hintPoints={gd.hintBarData.hintPoints}
-        hintCost={gd.hintBarData.hintCost}
+        hintPoints={gd.me.hintPoints}
+        hintCost={gd.setup.hint_cost}
         showing={gd.me.board.hintTiles !== null}
         actHint={actions.actHint}
       />

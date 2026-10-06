@@ -185,29 +185,30 @@ drop function if exists strands._write_statuses(uuid, boolean);
 --     puzzle: {puzzleWords}                the puzzle words, each {word, tileIds,
 --                                          spangram}, spangram first, null until
 --                                          the game ends
---     team: {nFoundPuzzleWords, nHintsUsed, hintPoints}
---                                          what the team shares: the puzzle words
+--     team: {nFoundPuzzleWords, nHintsUsed, hintPoints, board}
+--                                          the team's facts, once: the puzzle words
 --                                          found, the players' hints summed, the
---                                          one hint bar; null in compete
---                                          (plans/team-facts.md)
+--                                          one hint bar, the one board; null in
+--                                          compete (plans/team-facts.md)
 --     events: [{id, userId, kind, word, result, tileIds, tookTurn, at}, …]
 --                                          every row, every player's; a guess's
 --                                          trace, or a hint's ringed word; what a
 --                                          racer may see of a rival mid-race is
 --                                          the hook's rule
---     players: [player, …]                 the common player, plus:
---       nFoundPuzzleWords, nHintsUsed      this player's own, in every mode
+--     players: [player, …]                 the common player, plus this player's own facts:
+--       nFoundPuzzleWords, nHintsUsed
 --       hintPoints                         a racer's hint bar; null in coop,
 --                                          where the bar is the team's
 --       board: {foundPuzzleWords, hintTileIds}
---                                          this seat's found puzzle words, in the
---                                          order found, and its ringed hint (null
---                                          when none shows): the shared ones in
---                                          coop, each racer's own in compete
+--                                          a racer's found puzzle words, in the
+--                                          order found, and their ringed hint
+--                                          (null when none shows); null in coop,
+--                                          whose one board is `team`'s
 --
 --   summary_data, strands' part (the common part names and dates the game
 --   and carries its ending; the winner is `ending.winner`):
---     team                                 the same group; null in compete
+--     team: {nFoundPuzzleWords, nHintsUsed, hintPoints}
+--                                          the team's counts and bar; null in compete
 --     nWinnerHints                         the hints the race was won on; null
 --                                          in coop, or with no winner
 
@@ -307,8 +308,8 @@ $$;
 
 revoke execute on function strands._make_json_events(uuid) from public;
 
--- The words a seat has found, in the order found: everyone's in coop, where
--- the board is shared; the player's own in compete.
+-- The words a side has found, in the order found: every player's for a null
+-- `p_user_id` — the coop team's one board; else that racer's own.
 create or replace function strands._make_json_found_puzzle_words(p_game_id uuid, p_user_id uuid)
 returns jsonb
 language sql
@@ -320,13 +321,34 @@ as $$
            'tileIds',  strands._make_json_tile_ids(e.path),
            'spangram', e.result = 'spangram') order by e.id), '[]'::jsonb)
     from strands.events e
-    join common.games cg on cg.id = e.game_id
    where e.game_id = p_game_id
      and e.result in ('theme', 'spangram')
-     and (cg.mode = 'coop' or e.user_id = p_user_id);
+     and (p_user_id is null or e.user_id = p_user_id);
 $$;
 
 revoke execute on function strands._make_json_found_puzzle_words(uuid, uuid) from public;
+
+-- A side's board: its found puzzle words and its ringed hint (null when none
+-- shows). A null `p_user_id` is the coop team's one board, whose ring every
+-- coop row carries alike; else that racer's own.
+create or replace function strands._make_json_board(p_game_id uuid, p_user_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = strands, common, public, extensions
+as $$
+  select jsonb_build_object(
+           'foundPuzzleWords', strands._make_json_found_puzzle_words(p_game_id, p_user_id),
+           'hintTileIds', case when sp.active_hint_coords is not null
+                               then strands._make_json_tile_ids(sp.active_hint_coords) end)
+    from strands.players sp
+   where sp.game_id = p_game_id
+     and (p_user_id is null or sp.user_id = p_user_id)
+   order by sp.user_id
+   limit 1;
+$$;
+
+revoke execute on function strands._make_json_board(uuid, uuid) from public;
 
 -- The puzzle words found: one player's own, or every player's when `p_user_id`
 -- is null — the team's.
@@ -345,10 +367,10 @@ $$;
 
 revoke execute on function strands._count_found_puzzle_words(uuid, uuid) from public;
 
--- What the team shares: the words found, the hints the players cashed, and
--- the one hint bar, which every coop row carries alike. Null in compete,
--- where there is no team (plans/team-facts.md).
-create or replace function strands._make_json_team(p_game_id uuid)
+-- The team's counts: the words found, the hints the players cashed, and the
+-- one hint bar, which every coop row carries alike. Null in compete, where
+-- there is no team.
+create or replace function strands._make_json_team_counts(p_game_id uuid)
 returns jsonb
 language sql
 stable
@@ -364,10 +386,27 @@ as $$
    where cg.id = p_game_id;
 $$;
 
+revoke execute on function strands._make_json_team_counts(uuid) from public;
+
+-- The team's facts, sent once: its counts and bar, and the one board. Null in
+-- compete, where there is no team (plans/team-facts.md).
+create or replace function strands._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = strands, common, public, extensions
+as $$
+  select strands._make_json_team_counts(p_game_id)
+           || jsonb_build_object('board', strands._make_json_board(p_game_id, null))
+    from common.games cg
+   where cg.id = p_game_id
+     and cg.mode = 'coop';
+$$;
+
 revoke execute on function strands._make_json_team(uuid) from public;
 
 -- Every player as strands' game_data shows them: the common player, with their
--- own counts, a racer's hint bar, and this seat's board.
+-- own facts — their counts, and in compete their hint bar and board.
 create or replace function strands._make_json_players(p_game_id uuid)
 returns jsonb
 language sql
@@ -378,11 +417,10 @@ as $$
            cp.player || jsonb_build_object(
              'nFoundPuzzleWords', strands._count_found_puzzle_words(p_game_id, cp.id),
              'nHintsUsed',  sp.n_hints_used,
+             -- Coop's one bar and one board are sent once, in `team`.
              'hintPoints',  case when cg.mode = 'compete' then sp.hint_points end,
-             'board',       jsonb_build_object(
-               'foundPuzzleWords', strands._make_json_found_puzzle_words(p_game_id, cp.id),
-               'hintTileIds', case when sp.active_hint_coords is not null
-                                   then strands._make_json_tile_ids(sp.active_hint_coords) end))
+             'board',       case when cg.mode = 'compete'
+                              then strands._make_json_board(p_game_id, cp.id) end)
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
     join strands.players sp on sp.game_id = p_game_id and sp.user_id = cp.id
@@ -441,7 +479,7 @@ stable
 set search_path = strands, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
-    'team',         strands._make_json_team(p_game_id),
+    'team',         strands._make_json_team_counts(p_game_id),
     'nWinnerHints', (select min(sp.n_hints_used)
                        from strands.players sp
                        join common.game_players gp

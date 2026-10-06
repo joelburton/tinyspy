@@ -99,12 +99,11 @@ select pg_temp.envelope_is(
 );
 
 select is(
-  (select count(distinct p->'board'->'hintTileIds')::int || '/'
-          || max(jsonb_array_length(p->'board'->'hintTileIds'))
-     from common.games cg, jsonb_array_elements(cg.game_data->'players') p
+  (select jsonb_array_length(cg.game_data->'team'->'board'->'hintTileIds')
+     from common.games cg
     where cg.id = (select id from game)),
-  '1/6',
-  'the ringed word lands on every coop seat''s board, as one word''s tile ids'
+  6,
+  'the ringed word lands on the coop team''s one board, as one word''s tile ids'
 );
 
 -- The pool is SHARED, so the choice has to be persisted where every client

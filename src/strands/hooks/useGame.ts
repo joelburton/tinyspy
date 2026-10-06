@@ -8,10 +8,9 @@ import type {
   GBoardRaw,
   GEvent,
   GGameData,
+  GFacts,
   GGameDataRaw,
-  GHintBarData,
   GPlayer,
-  GStateLineData,
   GTile,
   GPuzzleWord,
   GPuzzleWordRaw,
@@ -47,14 +46,31 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     hintTiles: board.hintTileIds === null ? null : tilesOf(board.hintTileIds),
   })
 
-  const players: GPlayer[] = raw.players.map((p) => {
+  // `team` goes onto the players; `gd` has none.
+  const { team, turns, ending, ...rest } = raw
+  // Coop's one board, made once and the same object on every player.
+  const teamBoard = team === null ? null : boardOf(team.board)
+
+  // Each player carries the facts twice (plans/team-facts.md): spread on, the
+  // side's — the team's in coop, their own in compete; under `own`, their own.
+  // A coop bar and board are the team's alone, so they are every player's own
+  // too. A racer always carries their bar and board.
+  const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const mayShow = seeRival || isMine(p.id)
-    return {
-      ...p,
-      nFoundPuzzleWords: mayShow ? p.nFoundPuzzleWords : null,
-      hintPoints: mayShow ? p.hintPoints : null,
-      board: mayShow ? boardOf(p.board) : null,
-    }
+    const own: GFacts = team === null
+      ? {
+        nFoundPuzzleWords: mayShow ? p.nFoundPuzzleWords : null,
+        nHintsUsed: p.nHintsUsed,
+        hintPoints: mayShow ? p.hintPoints! : null,
+        board: mayShow ? boardOf(p.board!) : null,
+      }
+      : {
+        nFoundPuzzleWords: p.nFoundPuzzleWords,
+        nHintsUsed: p.nHintsUsed,
+        hintPoints: team.hintPoints,
+        board: teamBoard,
+      }
+    return { ...p, ...(team === null ? own : { ...team, board: teamBoard }), own }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
@@ -77,18 +93,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // The gate has checked that I am seated, and my own board and count are
   // never withheld.
   const me = playersById[myId] as GGameData['me']
-  // What the state line and the hint bar show: the team's where the game has a
-  // team, else my own (plans/team-facts.md).
-  const stateLineData: GStateLineData = raw.team === null
-    ? { nFoundPuzzleWords: me.nFoundPuzzleWords, nHintsUsed: me.nHintsUsed }
-    : { nFoundPuzzleWords: raw.team.nFoundPuzzleWords, nHintsUsed: raw.team.nHintsUsed }
-  const hintBarData: GHintBarData = {
-    // A racer's bar is their own; coop's is the team's.
-    hintPoints: raw.team === null ? me.hintPoints! : raw.team.hintPoints,
-    hintCost: raw.setup.hint_cost,
-  }
 
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
     puzzle: {
@@ -111,8 +116,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players,
     playersById,
     me,
-    stateLineData,
-    hintBarData,
   }
 }
 

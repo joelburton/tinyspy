@@ -16,7 +16,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { CoopTurnSetup, SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -75,40 +75,38 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     // The puzzle words, spangram first. Null until the game ends.
     puzzleWords: GPuzzleWordRaw[] | null
   }
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's facts, sent once: the words found, the hints the players
+  // cashed, summed, the one hint bar and the one board. Null in compete, where
+  // there is no team.
+  team: GFactsRaw | null
   // The log: every row, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
 }
 
 /**
- * What the team shares in coop (plans/team-facts.md): the words found, the
- * hints the players cashed, summed, and the one hint bar.
+ * strands' facts (plans/team-facts.md): the puzzle words found, the hints
+ * cashed, the hint bar, and the board. A player carries them twice — spread
+ * on, their side's (the team's in coop, their own in compete); under `own`,
+ * their own. A coop bar and board are the team's alone, so a coop player's
+ * `own` holds the team's; their finds and hints are theirs.
  */
-export type GTeam = {
+export type GFacts = {
+  // Null for a rival mid-race.
+  nFoundPuzzleWords: number | null
+  nHintsUsed: number
+  // The hint bar's points; null for a rival mid-race.
+  hintPoints: number | null
+  // The finds and the ringed hint; null for a rival mid-race.
+  board: GBoard | null
+}
+
+/** `GFacts` as the builders write them: nothing is withheld yet. */
+export type GFactsRaw = {
   nFoundPuzzleWords: number
   nHintsUsed: number
   hintPoints: number
-}
-
-/**
- * What the state line shows — "3 words · 1 hint used": the team's counts in
- * coop, my own in compete. Decided once, in `makeGameData`, so the line draws
- * it and picks nothing. Never the word total: that is part of the answer.
- */
-export type GStateLineData = {
-  nFoundPuzzleWords: number
-  nHintsUsed: number
-}
-
-/**
- * What the hint bar shows: the team's bar in coop, my own in compete, and the
- * setup's cost of a hint. Decided once, in `makeGameData`.
- */
-export type GHintBarData = {
-  hintPoints: number
-  hintCost: number
+  board: GBoardRaw
 }
 
 /** A traced word's verdict — `submit_path`'s `result`, and a guess row's. */
@@ -169,16 +167,12 @@ export type GBoardRaw = {
 }
 
 /** A player as strands' game_data shows them: the common player, with their
- *  own counts, a racer's bar, and this seat's board. */
-export type GPlayerRaw = PlayerRaw & {
-  // This player's own, in every mode; the team's are `team`'s.
-  nFoundPuzzleWords: number
-  nHintsUsed: number
-  // A racer's hint bar; null in coop, where the bar is the team's.
+ *  own facts. */
+export type GPlayerRaw = PlayerRaw & Pick<GFactsRaw, 'nFoundPuzzleWords' | 'nHintsUsed'> & {
+  // A racer's own bar and board; null in coop, whose one bar and board are
+  // `team`'s.
   hintPoints: number | null
-  // What this seat sees: the shared board in coop, each racer's own in
-  // compete.
-  board: GBoardRaw
+  board: GBoardRaw | null
 }
 
 /*
@@ -201,7 +195,6 @@ export type GPlayerRaw = PlayerRaw & {
  *     tiles: [tile, …]                       # all 48, row by row
  *     tilesById
  *     puzzleWords: [puzzleWord, …]           # spangram first; null until the game ends
- *   team: {nFoundPuzzleWords, nHintsUsed, hintPoints}   # null in compete
  *   turns: {holder}                          # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
  *   ended
@@ -210,15 +203,15 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                     # seat order
  *   playersById
  *   me                                       # same object as playersById[auth.user.id]
- *   stateLineData: {nFoundPuzzleWords, nHintsUsed}      # the team's in coop, mine in compete
- *   hintBarData: {hintPoints, hintCost}           # the team's in coop, mine in compete
  *
  * player:
  *   the common player
- *   nFoundPuzzleWords                              # own; null for a rival mid-race
- *   nHintsUsed                               # own: the hints this player cashed
- *   hintPoints                               # a racer's bar; null in coop, and for a rival mid-race
- *   board: {foundPuzzleWords, hintTiles}     # this seat's finds and ringed hint, the shared ones in coop; null for a rival mid-race
+ *   nFoundPuzzleWords                        # the side's: the team's in coop, their own in compete; null for a rival mid-race
+ *   nHintsUsed
+ *   hintPoints                               # null for a rival mid-race
+ *   board: {foundPuzzleWords, hintTiles}     # coop's one board on every player; null for a rival mid-race
+ *   own: {nFoundPuzzleWords, nHintsUsed, hintPoints, board}
+ *                                            # this player's own; in coop the bar and board are the team's
  *
  * tile:                                      # GTile
  *   id                                       # "r,c"
@@ -249,7 +242,7 @@ export type GPlayerRaw = PlayerRaw & {
  * rows built, and the seat rule applied: what I may not see yet is not here.
  * Read-only: `useGame` builds it and nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'events' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   puzzle: {
     title: string
     tiles: GTile[]
@@ -273,20 +266,19 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'even
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>
-  // My entry in `playersById`: the same object. My own board and count are
-  // always mine to see.
-  me: GPlayer & { board: GBoard; nFoundPuzzleWords: number }
-  // What the state line shows: the team's counts in coop, my own in compete.
-  stateLineData: GStateLineData
-  // What the hint bar shows: the team's bar in coop, my own in compete.
-  hintBarData: GHintBarData
+  // My entry in `playersById`: the same object. My own board, count and bar
+  // are always mine to see.
+  me: GPlayer & { board: GBoard; nFoundPuzzleWords: number; hintPoints: number }
 }
 
-/** One player of this game, as `gd` holds them: the blob's player, with their
- *  found-word count, bar and board withheld — null — for a rival mid-race. */
-export type GPlayer = Omit<GPlayerRaw, 'nFoundPuzzleWords' | 'board'> & {
-  nFoundPuzzleWords: number | null
-  board: GBoard | null
+/**
+ * One player of this game, as `gd` holds them: the common player with
+ * strands' facts twice — spread on, their side's; under `own`, their own
+ * (plans/team-facts.md). A rival's found-word count, bar and board are null
+ * mid-race.
+ */
+export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /** What one seat sees: its found words, in the order found, and its ringed
@@ -438,11 +430,11 @@ export type GPuzzleAnswer = {
  * Every key is always present, null when it has no value, so no key here is
  * optional. The summary (`manifest.ts`'s `summaryFor`) reads it as written.
  *
- * `team` is the same group `game_data` carries, null in compete, whose summary
+ * `team` is the team's counts and bar in coop, null in compete, whose summary
  * shows no progress mid-race; `nWinnerHints` is the hints a race was won on,
  * null in coop and with no winner.
  */
 export type GSummaryData = SummaryData & {
-  team: GTeam | null
+  team: Omit<GFactsRaw, 'board'> | null
   nWinnerHints: number | null
 }

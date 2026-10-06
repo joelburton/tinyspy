@@ -127,29 +127,27 @@ describe('strands makeGameData — coop: one board, one bar', () => {
     'u1',
   )
 
-  it('each player\'s counts are their own, and the team sums them', () => {
+  it('every player carries the team\'s counts, and their own under `own`', () => {
     const gd = coop()
-    expect([gd.me.nFoundPuzzleWords, gd.me.nHintsUsed]).toEqual([1, 0])
     const moth = gd.playersById.u2!
-    expect([moth.nFoundPuzzleWords, moth.nHintsUsed]).toEqual([0, 1])
-    expect(gd.team).toEqual({ nFoundPuzzleWords: 1, nHintsUsed: 1, hintPoints: 1 })
+    expect([gd.me.nFoundPuzzleWords, gd.me.nHintsUsed]).toEqual([1, 1])
+    expect([moth.nFoundPuzzleWords, moth.nHintsUsed]).toEqual([1, 1])
+    expect([gd.me.own.nFoundPuzzleWords, gd.me.own.nHintsUsed]).toEqual([1, 0])
+    expect([moth.own.nFoundPuzzleWords, moth.own.nHintsUsed]).toEqual([0, 1])
+    expect(gd).not.toHaveProperty('team')
   })
 
-  it('the bar is the team\'s: no player carries one', () => {
+  it('the bar is the team\'s, on every player and under `own`', () => {
     const gd = coop()
-    expect(gd.me.hintPoints).toBeNull()
-    expect(gd.hintBarData).toEqual({ hintPoints: 1, hintCost: 3 })
+    expect([gd.me.hintPoints, gd.me.own.hintPoints, gd.playersById.u2!.hintPoints]).toEqual([1, 1, 1])
   })
 
-  it('the state line shows the team\'s counts', () => {
-    expect(coop().stateLineData).toEqual({ nFoundPuzzleWords: 1, nHintsUsed: 1 })
-  })
-
-  it('one board — the finds and the ring — on every seat', () => {
+  it('one board — the finds and the ring — the same object on every player', () => {
     const gd = coop()
     expect(gd.me.board.foundPuzzleWords.map((w) => w.word)).toEqual(['zzqabc'])
     expect(gd.me.board.hintTiles?.map((t) => t.id)).toEqual(ZTest_rowIds(2))
-    expect(gd.playersById.u2!.board).toEqual(gd.me.board)
+    expect(gd.playersById.u2!.board).toBe(gd.me.board)
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 })
 
@@ -187,7 +185,7 @@ describe('strands makeGameData — the seat rule', () => {
     expect(gd.me.board.foundPuzzleWords.map((w) => w.word)).toEqual(['zzqabc'])
     expect(gd.me.board.hintTiles).toBeNull()
     expect(gd.me.nFoundPuzzleWords).toBe(1)
-    expect(gd.hintBarData).toEqual({ hintPoints: 1, hintCost: 3 })
+    expect(gd.me.hintPoints).toBe(1)
   })
 
   it('the race\'s end opens everything', () => {
@@ -199,10 +197,10 @@ describe('strands makeGameData — the seat rule', () => {
     expect([moth.nFoundPuzzleWords, moth.hintPoints]).toEqual([2, 2])
   })
 
-  it('a race has no team, so the state line shows my own counts', () => {
+  it('a racer\'s side is themselves, so both copies are their own', () => {
     const gd = makeGameData(race(), 'u1')
-    expect(gd.team).toBeNull()
-    expect(gd.stateLineData).toEqual({ nFoundPuzzleWords: 1, nHintsUsed: 0 })
+    expect([gd.me.nFoundPuzzleWords, gd.me.own.nFoundPuzzleWords]).toEqual([1, 1])
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 
   it('a conceder is still a player, with their ending', () => {

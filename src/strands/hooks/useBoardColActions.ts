@@ -119,7 +119,8 @@ export function useBoardColActions({
   const isHintShowing = gd.me.board.hintTiles !== null
   const actHint = useBindAction('act-hint', {
     describe: () => {
-      const { hintPoints, hintCost } = gd.hintBarData
+      const hintPoints = gd.me.hintPoints
+      const hintCost = gd.setup.hint_cost
       if (!gd.me.stillPlaying || actSubmit.pending || isViewingHistory || isHintShowing) {
         return { state: 'disabled', tooltip: isHintShowing ? 'A hint is already showing' : undefined }
       }

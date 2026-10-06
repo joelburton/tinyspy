@@ -156,7 +156,7 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
           body={
             gd.compete
               ? `Solved on ${gd.me.nHintsUsed} hint${gd.me.nHintsUsed === 1 ? '' : 's'}.`
-              : `Every word on the board — ${gd.stateLineData.nFoundPuzzleWords} of them.`
+              : `Every word on the board — ${gd.me.nFoundPuzzleWords} of them.`
           }
           onClose={celebration.close}
         />

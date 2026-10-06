@@ -26,7 +26,7 @@ export function useSpendHint({
   localFeedbackSlot: FeedbackSlot
 }): () => Promise<void> {
   return async function spendHint() {
-    const short = gd.hintBarData.hintCost - gd.hintBarData.hintPoints
+    const short = gd.setup.hint_cost - gd.me.hintPoints
     if (short > 0) {
       localFeedbackSlot.show(FeedbackMessage.result('warning', hintShortfallText(short)))
       return

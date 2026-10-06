@@ -37,8 +37,8 @@ function print(facts: ZTest_GameDataFacts, solutionShown = false) {
     players: gd.players,
     me: gd.me,
     events: gd.events,
-    nFoundPuzzleWords: gd.stateLineData.nFoundPuzzleWords,
-    nHintsUsed: gd.stateLineData.nHintsUsed,
+    nFoundPuzzleWords: gd.me.nFoundPuzzleWords,
+    nHintsUsed: gd.me.nHintsUsed,
     puzzleWords: solutionShown ? gd.puzzle.puzzleWords : null,
   })
 }

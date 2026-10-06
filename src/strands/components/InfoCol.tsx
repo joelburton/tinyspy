@@ -70,7 +70,7 @@ export function InfoCol({
             it reads as a heading the app wrote. */}
         <p className={styles.title}>“{gd.puzzle.title}”</p>
         <p className={shared.infoState}>
-          <StateLine data={gd.stateLineData} />
+          <StateLine facts={gd.me} />
         </p>
 
         {/* Opponent strip (compete). The metric is HINTS USED and nothing else:

@@ -69,7 +69,7 @@ export type ZTest_GameDataFacts = {
   // The whole log — every player's rows, as the blob carries it.
   events?: GEventRaw[]
   players?: ZTest_PlayerFacts[]
-  // Coop's one bar and ringed hint, on the team and every seat's board.
+  // Coop's one bar and ringed hint, on the team's board.
   hintPoints?: number
   hintTileIds?: string[] | null
   // Who holds the turn in a turn-order game; `undefined` is a free-for-all.
@@ -124,10 +124,10 @@ export function ZTest_hint(id: number, userId: string, tileIds: string[]): GEven
 
 /**
  * Build the `game_data` blob `strands._rebuild_data_cols` would write from
- * these facts: each seat's board — the shared one in coop, each racer's own in
- * compete — with the words found on it; each player's own counts off their
- * rows in the log, and coop's on the team with the one bar; the words once
- * ended; and where every player stands derived.
+ * these facts: each player's own counts off their rows in the log; the team's
+ * facts in coop (the counts summed, the one bar and the one board), a racer's
+ * own bar and board in compete, each board with the words found on it; the
+ * words once ended; and where every player stands derived.
  */
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
@@ -175,11 +175,11 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       waitingForTurn: stillPlaying && !onTurn,
       nFoundPuzzleWords: rows.filter(isFind).length,
       nHintsUsed: rows.filter((e) => e.kind === 'hint').length,
+      // Coop's one bar and board are the team's.
       hintPoints: coop ? null : (p.hintPoints ?? 0),
-      board: {
-        foundPuzzleWords: makeFoundPuzzleWords(coop ? events : rows),
-        hintTileIds: coop ? hintTileIds : (p.hintTileIds ?? null),
-      },
+      board: coop
+        ? null
+        : { foundPuzzleWords: makeFoundPuzzleWords(rows), hintTileIds: p.hintTileIds ?? null },
     }
   })
 
@@ -207,6 +207,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
         nFoundPuzzleWords: events.filter(isFind).length,
         nHintsUsed: players.reduce((n, p) => n + p.nHintsUsed, 0),
         hintPoints,
+        board: { foundPuzzleWords: makeFoundPuzzleWords(events), hintTileIds },
       }
       : null,
     events,

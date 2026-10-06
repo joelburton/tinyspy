@@ -196,8 +196,15 @@ it into `game_data`, each key in its place.
 | blob | strands' part |
 |---|---|
 | `static_game_data` | `puzzle: {title, tiles}` — the theme prompt; all 48 `{id, letter, row, col}` tiles row by row, the id the tile's place `"r,c"` |
-| `game_data` | `puzzle: {puzzleWords}` — the puzzle words `{word, tileIds, spangram}`, spangram first, null until the game ends. `team: {nFoundPuzzleWords, nHintsUsed, hintPoints}` — coop's words found, the players' hints summed, and the one bar; null in compete. `events`, every row `{id, userId, kind, word, result, tileIds, tookTurn, at}` — a guess's trace or a hint's ringed word as tile ids. On each player their own `nFoundPuzzleWords` and `nHintsUsed`, a racer's `hintPoints` (null in coop), and `board: {foundPuzzleWords, hintTileIds}` — the shared board on every seat in coop |
-| `summary_data` | `team`, as above; `nWinnerHints`, the hints a race was won on |
+| `game_data` | `puzzle: {puzzleWords}` — the puzzle words `{word, tileIds, spangram}`, spangram first, null until the game ends. `team`, the team's facts sent once — coop's words found, the players' hints summed, the one bar and the one board; null in compete. `events`, every row `{id, userId, kind, word, result, tileIds, tookTurn, at}` — a guess's trace or a hint's ringed word as tile ids. On each player their own facts: `nFoundPuzzleWords`, `nHintsUsed`, and a racer's `hintPoints` and `board: {foundPuzzleWords, hintTileIds}`, the two null on a coop player |
+| `summary_data` | `team: {nFoundPuzzleWords, nHintsUsed, hintPoints}`, the team's counts and bar, null in compete; `nWinnerHints`, the hints a race was won on |
+
+strands' facts (`GFacts`) are `nFoundPuzzleWords`, `nHintsUsed`, `hintPoints`
+and `board`. `useGame` puts the side's on every player — the team's in coop,
+their own in compete — and their own under `own`
+([plans/team-facts.md](../../plans/team-facts.md)); a coop bar and board are
+nobody's in particular, so a coop player's `own` holds the team's. The state
+line and the hint bar read `gd.me`, the bar's cost `gd.setup.hint_cost`.
 
 **Never the TOTAL** before the end. "This board holds six words" is real
 information about a puzzle whose entire content is shielded, so the readouts

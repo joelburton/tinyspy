@@ -53,7 +53,7 @@ export function useSubmitTrace({
       const word = tiles.map((t) => t.letter).join('')
       const { result } = res.data
       const answer: GAnswer = result === 'hint_word'
-        ? { answerType: result, word, filledBar: res.data.hint_points >= gd.hintBarData.hintCost }
+        ? { answerType: result, word, filledBar: res.data.hint_points >= gd.setup.hint_cost }
         : { answerType: result, word }
       const message = answerMessage(answer)
       localFeedbackSlot.show(FeedbackMessage.result(message.outcome, message.text))

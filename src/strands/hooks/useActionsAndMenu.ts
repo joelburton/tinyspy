@@ -159,7 +159,7 @@ export function useActionsAndMenu({
   const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
-      const { nFoundPuzzleWords } = gd.stateLineData
+      const nFoundPuzzleWords = gd.me.nFoundPuzzleWords
       printStrandsPdf(
         buildStrandsPrintModel({
           header: {
@@ -179,7 +179,7 @@ export function useActionsAndMenu({
           me: gd.me,
           events: gd.events,
           nFoundPuzzleWords,
-          nHintsUsed: gd.stateLineData.nHintsUsed,
+          nHintsUsed: gd.me.nHintsUsed,
           puzzleWords: solutionShown ? gd.puzzle.puzzleWords : null,
         }),
       )
