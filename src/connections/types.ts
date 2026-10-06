@@ -17,7 +17,7 @@
 import type { Action } from '@/common/actions/useBindAction'
 import type { Mark } from '@/common/board-marks/useMark'
 import type { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { Outcome } from '@/common/outcomes/outcomes'
@@ -36,8 +36,9 @@ import type { SetupRow } from '@/common/setup-form/types'
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: GSetup
   puzzle: GPuzzleRaw
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's facts, sent once: the counts summed over every player's own,
+  // and the one board. Null in compete, where there is no team.
+  team: GFactsRaw | null
   // The log: every recorded guess, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
@@ -93,26 +94,23 @@ export type GMatchedCat = GCategory & {
 }
 
 /**
- * What the team shares in coop (plans/team-facts.md): the two counts summed
- * over every player's own. The budget they count against is `maxMistakes`,
- * on every player.
+ * connections' facts (plans/team-facts.md): the categories matched, the
+ * mistakes against the budget, and the grid they are played on. A player
+ * carries them twice — spread on, their side's (the team's in coop, their own
+ * in compete); under `own`, their own.
  */
-export type GTeam = {
+export type GFacts = {
   nMatchedCats: number
   nMistakes: number
+  // The mistake budget: the team's in coop, each racer's own in compete.
+  maxMistakes: number
+  // The bands matched and the tiles still loose; null for a rival mid-race.
+  board: GBoard | null
 }
 
-/**
- * What the info column's state line shows — "2/4 categories found · 1/4
- * mistakes": the team's counts in coop, my own in compete, against the budget.
- * Decided once, in `makeGameData`, so the line draws it and picks nothing.
- * Named for its reader: this is what to SHOW there, not a fact other
- * components read.
- */
-export type GStateLineData = {
-  nMatchedCats: number
-  nMistakes: number
-  maxMistakes: number
+/** `GFacts` as the builders write them: the board is always there. */
+export type GFactsRaw = Omit<GFacts, 'board'> & {
+  board: GBoard
 }
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
@@ -163,19 +161,10 @@ export type GEvaluation =
   | { result: 'wrong' }
 
 /** A player as connections' game_data shows them: the common player, with
- *  their own two counts, the budget and this seat's board. */
-export type GPlayerRaw = PlayerRaw & {
-  // Categories matched: this player's own, in every mode; the team's is
-  // `team`'s.
-  nMatchedCats: number
-  // Mistakes made: this player's own, in every mode; the team's is `team`'s.
-  nMistakes: number
-  // The mistake budget: the team's in coop, each racer's own in compete. The
-  // same on every player.
-  maxMistakes: number
-  // What this seat's grid shows. One board in coop, each racer's own in
-  // compete.
-  board: GBoard
+ *  their own facts. */
+export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
+  // A racer's own grid; null in coop, whose one board is `team`'s.
+  board: GBoard | null
 }
 
 /*
@@ -194,7 +183,6 @@ export type GPlayerRaw = PlayerRaw & {
  *   setup
  *   setupRows
  *   puzzle: {date, cats, tiles, tilesById}  # frozen at create_game; public in both modes; a tile is {id, word}
- *   team: {nMatchedCats, nMistakes}       # what the team shares; null in compete
  *   turns: {holder}                       # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
  *   ended
@@ -203,7 +191,6 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                  # seat order
  *   playersById
  *   me                                    # same object as playersById[auth.user.id]
- *   stateLineData: {nMatchedCats, nMistakes, maxMistakes}  # what the state line shows: the team's in coop, my own in compete
  *
  * player:
  *   id
@@ -220,10 +207,11 @@ export type GPlayerRaw = PlayerRaw & {
  *   stillPlaying
  *   onTurn
  *   waitingForTurn
- *   nMatchedCats                          # own, in every mode
- *   nMistakes                             # own, in every mode
- *   maxMistakes                           # the same on every player
- *   board: {matchedCats, tilesLeft}       # what this seat's grid shows; null for a rival mid-race
+ *   nMatchedCats                          # the side's: the team's in coop, their own in compete
+ *   nMistakes
+ *   maxMistakes
+ *   board: {matchedCats, tilesLeft}       # coop's one board on every player; null for a rival mid-race
+ *   own: {nMatchedCats, nMistakes, maxMistakes, board}   # this player's own
  */
 
 /**
@@ -235,7 +223,7 @@ export type GPlayerRaw = PlayerRaw & {
  * it. The picks are not in it — they are live Broadcast state, which
  * `useGame` hands back beside it.
  */
-export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'events' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   puzzle: GPuzzle
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
@@ -256,14 +244,15 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'even
   // My entry in `playersById`: the same object. My own board is always mine
   // to see.
   me: GPlayer & { board: GBoard }
-  // What the state line shows: the team's counts in coop, my own in compete.
-  stateLineData: GStateLineData
 }
 
-/** One player of this game, as `gd` holds them: the blob's player, with the
- *  board withheld — null — for a rival mid-race. */
-export type GPlayer = Omit<GPlayerRaw, 'board'> & {
-  board: GBoard | null
+/**
+ * One player of this game, as `gd` holds them: the blob's player with
+ * connections' facts twice — spread on, their side's; under `own`, their own
+ * (plans/team-facts.md). A rival's board is null mid-race.
+ */
+export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /**
@@ -512,11 +501,10 @@ export type GAnswer =
  * as written, so there is no polished pair and no `Raw`; the play surface
  * reads `game_data` instead (`GGameDataRaw`).
  *
- * `team` is the same group `game_data` carries: the team's counts in coop,
- * null in compete, whose summary shows no progress (the winner is the common
- * `ending.winner`).
+ * `team` is the team's counts in coop, null in compete, whose summary shows
+ * no progress (the winner is the common `ending.winner`).
  */
 export type GSummaryData = SummaryData & {
-  team: GTeam | null
+  team: Pick<GFacts, 'nMatchedCats' | 'nMistakes'> | null
   maxMistakes: number
 }

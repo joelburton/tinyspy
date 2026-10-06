@@ -66,12 +66,12 @@ chosen one, finished or not.
 | **rank** | a category's difficulty index 0..3, and its color. "Rank" rather than "level", which means too many other things; nothing to do with spellingbee's `rank` |
 | **tile** | one of the sixteen words. Not "member", which is a person in a club |
 | **matched** | what a category is once a correct guess names it; `matched_cat_rank` on the row, `board.matchedCats` on a player; `nMatchedCats` is how many |
-| **nMistakes** | the number of wrong and one-away guesses; a count, since the list of them is the log. Each player's own in both modes; the team's is `team.nMistakes` |
+| **nMistakes** | the number of wrong and one-away guesses; a count, since the list of them is the log. On a player, their side's — the team's in coop; their own is `own.nMistakes` |
 
 ### Coop
 
 One board, one budget: each player's misses are their own, and the budget is
-spent by their sum (`team.nMistakes`); every guess is everyone's. The four tiles of a guess are picked together —
+spent by their sum (every player's `nMistakes`); every guess is everyone's. The four tiles of a guess are picked together —
 each pick is broadcast as it happens, and the board shows whose it was in
 their color. The click rule is on the **union** of everyone's picks
 (`lib/picks.ts`): a tile already in it comes out, whoever put it in; an
@@ -165,15 +165,17 @@ the hook merges it into `game_data`, each key in its place:
 | blob | connections' part |
 |---|---|
 | `static_game_data` | `puzzle: {date, cats, tiles}`, as `create_game` froze it, a tile being `{id, word}` with the word as its id, and a category's `tiles` four of them |
-| `game_data` | `team: {nMatchedCats, nMistakes}`, what the team shares, null in compete; `events`, every player's rows; on each player their own `nMatchedCats` and `nMistakes`, `maxMistakes`, and `board: {matchedCats, tilesLeft}`, this seat's grid |
-| `summary_data` | `team`, the same group; `maxMistakes` |
+| `game_data` | `team`, the team's facts sent once, null in compete; `events`, every player's rows; on each player their own facts |
+| `summary_data` | `team: {nMatchedCats, nMistakes}`, the team's counts, null in compete; `maxMistakes` |
 
-Each player's two counts are their own, on `connections.players` and on their
-player in the blob, in both modes; `team` is their sum, and is null in a race,
-which has no team ([plans/team-facts.md](../../plans/team-facts.md)).
-`gd.stateLineData` is what the info column's state line shows — the team's
-counts where there is one, else my own, against the budget — decided once in
-`useGame`. Compete's summary carries no team, where a live count would leak
+connections' facts (`GFacts`) are `nMatchedCats`, `nMistakes`, `maxMistakes`
+and `board: {matchedCats, tilesLeft}`, the grid. Each player's two counts are
+their own, on `connections.players` and on their player in the blob, in both
+modes; `team`'s are their sum, with the one coop board, which no coop player
+carries. `useGame` puts the side's facts on every player — the team's in coop,
+their own in compete — and their own under `own`
+([plans/team-facts.md](../../plans/team-facts.md)), so the state line reads
+`gd.me`. Compete's summary carries no team, where a live count would leak
 how close a racer is; the winner is the common `ending.winner`.
 `connections._rebuild_data_cols_for_all()` rewrites every connections game's
 blobs without re-dating them, for a shape change.
@@ -408,7 +410,7 @@ eight sections.
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
 the ending, pause, chat — and unmounts this whole surface on pause. `StateLine`
-draws "2/4 categories found · 1/4 mistakes" from `gd.stateLineData` inside the
+draws "2/4 categories found · 1/4 mistakes" from `gd.me` inside the
 info column's state paragraph.
 
 **`gd`, the game data.** `useGame` hands the surface one object, `gd`: the
@@ -488,7 +490,7 @@ fixture puzzle whose date and source id are alien to the real archive:
 | `concede_test` | a conceder counts as out; the last one out ends the race, everyone conceding as `conceded`; the builder runs after an ending concession |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, a fresh guess advances, a race does not |
 | `stop_game_test` · `replay_test` · `rls_test` | the neutral Stop, the stopper recorded as who ended it; Restart un-matches by deleting the log; an outsider sees nothing and can change nothing |
-| `game_data_test` | the whole `game_data` of a fresh game; the log, each player's own counts, the team's summed, and each seat's board mid-game in both modes; the winner, the summary and `shell_data` at the end; a Restart empties it all; `_rebuild_data_cols_for_all` rewrites every game without re-dating it |
+| `game_data_test` | the whole `game_data` of a fresh game; the log, each player's own counts, the team's facts with the one board, and each racer's board mid-game; the winner, the summary and `shell_data` at the end; a Restart empties it all; `_rebuild_data_cols_for_all` rewrites every game without re-dating it |
 | `rebuild_data_cols_test` | only a call that says so moves `status_changed_at`; a rebuild assigns the whole column and drops a stale key; the statuses keep their column defaults |
 | `next_puzzle_test` | the queue is per player and across clubs; a spent archive and an empty date are not-oks naming `puzzle_id`; the override filters nothing |
 

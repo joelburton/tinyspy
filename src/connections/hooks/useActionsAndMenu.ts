@@ -192,8 +192,8 @@ export function useActionsAndMenu({
           myId: gd.me.id,
           mode: gd.mode,
           isGameEnded: gd.ended,
-          nMistakes: gd.stateLineData.nMistakes,
-          maxMistakes: gd.stateLineData.maxMistakes,
+          nMistakes: gd.me.nMistakes,
+          maxMistakes: gd.me.maxMistakes,
           setupRows: gd.setupRows,
         }),
       )

@@ -168,8 +168,8 @@ export function BoardCol({
               <div className={styles.mistakesInline}>
                 {isPhone ? 'Mistakes' : 'Mistakes (lose at 4)'}{' '}
                 <StrikeMarks
-                  used={gd.stateLineData.nMistakes}
-                  total={gd.stateLineData.maxMistakes}
+                  used={gd.me.nMistakes}
+                  total={gd.me.maxMistakes}
                 />
               </div>
               <ActionButton

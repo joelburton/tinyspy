@@ -112,9 +112,9 @@ export function ZTest_matchOf(cat: GCategory, userId = 'u1'): GEventRaw {
 
 /**
  * Build the `game_data` blob `connections._rebuild_data_cols` would write from
- * these facts: each player's own counts off their rows, the team's summed
- * from them in coop, each seat's board folded from the log in the mode's
- * scope, and where every player stands derived.
+ * these facts: each player's own counts off their rows, the team's facts in
+ * coop (the counts summed, the one board), a racer's own board in compete —
+ * each board folded from the log — and where every player stands derived.
  */
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
@@ -138,23 +138,24 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const ownRows = (p: ZTest_PlayerFacts) => events.filter((e) => e.userId === p.id)
   const nMatchedOf = (p: ZTest_PlayerFacts) => ownRows(p).filter((e) => e.result === 'correct').length
   const nMistakesOf = (p: ZTest_PlayerFacts) => ownRows(p).filter((e) => e.result !== 'correct').length
-  const team = coop
-    ? {
-        nMatchedCats: playerFacts.reduce((sum, p) => sum + nMatchedOf(p), 0),
-        nMistakes: playerFacts.reduce((sum, p) => sum + nMistakesOf(p), 0),
-      }
-    : null
-
-  // The board a seat shows: the bands of the rows in the mode's scope, in
-  // the order they were matched, and the tiles left in the puzzle's order.
-  function boardOf(p: ZTest_PlayerFacts) {
-    const shown = events.filter((e) => coop || e.userId === p.id)
-    const matchedCats: GMatchedCat[] = shown
+  // A board from its rows: the bands, in the order they were matched, and the
+  // tiles left in the puzzle's order.
+  function makeBoard(rows: GEventRaw[]) {
+    const matchedCats: GMatchedCat[] = rows
       .filter((e) => e.result === 'correct')
       .map((e) => ({ ...catByRank.get(e.matchedCatRank!)!, matchedAt: e.at }))
     const banded = new Set(matchedCats.flatMap((c) => c.tiles.map((t) => t.id)))
     return { matchedCats, tilesLeft: puzzle.tiles.filter((t) => !banded.has(t.id)) }
   }
+
+  const team = coop
+    ? {
+        nMatchedCats: playerFacts.reduce((sum, p) => sum + nMatchedOf(p), 0),
+        nMistakes: playerFacts.reduce((sum, p) => sum + nMistakesOf(p), 0),
+        maxMistakes: 4,
+        board: makeBoard(events),
+      }
+    : null
 
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
@@ -177,7 +178,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       nMatchedCats: nMatchedOf(p),
       nMistakes: nMistakesOf(p),
       maxMistakes: 4,
-      board: boardOf(p),
+      // Coop's one board is the team's.
+      board: coop ? null : makeBoard(ownRows(p)),
     }
   })
 

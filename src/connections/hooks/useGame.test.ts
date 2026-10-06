@@ -101,9 +101,10 @@ describe('connections makeGameData — the links become players', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.puzzle).toBe(ZTest_PUZZLE.cats === gd.puzzle.cats ? gd.puzzle : gd.puzzle)
     expect(gd.puzzle.cats).toHaveLength(4)
-    // My own counts; the team's summed.
-    expect([gd.me.nMatchedCats, gd.me.nMistakes, gd.me.maxMistakes]).toEqual([1, 1, 4])
-    expect(gd.team).toEqual({ nMatchedCats: 2, nMistakes: 1 })
+    // The team's counts on every player; my own under `own`.
+    expect([gd.me.nMatchedCats, gd.me.nMistakes, gd.me.maxMistakes]).toEqual([2, 1, 4])
+    expect([gd.me.own.nMatchedCats, gd.me.own.nMistakes]).toEqual([1, 1])
+    expect(gd).not.toHaveProperty('team')
     // Coop: the team's two bands, in the order they were matched, and eight
     // tiles left in the puzzle's order.
     expect(gd.me.board.matchedCats.map((c) => c.name)).toEqual(['RED', 'GREEN'])
@@ -113,10 +114,6 @@ describe('connections makeGameData — the links become players', () => {
     expect(gd.brand).toBe('WordKnit')
   })
 
-  it('the state line shows the team\'s counts in coop', () => {
-    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
-    expect(gd.stateLineData).toEqual({ nMatchedCats: 2, nMistakes: 1, maxMistakes: 4 })
-  })
 })
 
 describe('connections makeGameData — the seat rule', () => {
@@ -144,7 +141,9 @@ describe('connections makeGameData — the seat rule', () => {
   it('coop withholds nothing: one board, one team', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.events).toHaveLength(3)
-    expect(gd.playersById.u2!.board).toEqual(gd.me.board)
+    // The one board, the same object on every player and under `own`.
+    expect(gd.playersById.u2!.board).toBe(gd.me.board)
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 
   it('a rival\'s counts stay visible mid-race — the strip shows them', () => {
@@ -152,10 +151,11 @@ describe('connections makeGameData — the seat rule', () => {
     expect(gd.playersById.u2!.nMatchedCats).toBe(1)
   })
 
-  it('a race has no team, so the state line shows my own counts', () => {
+  it('a racer\'s side is themselves, so both copies are their own', () => {
     const gd = makeGameData(race(), 'u1')
-    expect(gd.team).toBeNull()
-    expect(gd.stateLineData).toEqual({ nMatchedCats: 1, nMistakes: 1, maxMistakes: 4 })
+    expect([gd.me.nMatchedCats, gd.me.nMistakes]).toEqual([1, 1])
+    expect([gd.me.own.nMatchedCats, gd.me.own.nMistakes]).toEqual([1, 1])
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 
   it('a conceder and a racer out on mistakes are still players, with their endings', () => {

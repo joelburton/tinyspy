@@ -328,27 +328,27 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 --                                           a category's `tiles` are four of them
 --
 --   game_data, connections' part:
---     team: {nMatchedCats, nMistakes}       what the team shares, summed over the
---                                           rows; null in compete, where there is no
---                                           team (plans/team-facts.md)
+--     team: {nMatchedCats, nMistakes, maxMistakes, board}
+--                                           the team's facts, once: the counts summed
+--                                           over the rows, the one board; null in
+--                                           compete, where there is no team
+--                                           (plans/team-facts.md)
 --     events: [{id, userId, tiles, result, matchedCatRank, at}, …]
 --                                           every player's, `tiles` their four ids;
 --                                           what a racer may see of a rival mid-race
 --                                           is the hook's rule
---     players: [player, …]                  the common player, plus:
---       nMatchedCats                        this player's own, in every mode
---       nMistakes                           this player's own, in every mode
+--     players: [player, …]                  the common player, plus this player's own facts:
+--       nMatchedCats, nMistakes
 --       maxMistakes                         the budget, the same on every player
---       board: {matchedCats, tilesLeft}     what this seat's grid shows: the bands,
---                                           each a category with its `matchedAt`, in
---                                           the order they were matched, and the
---                                           tiles still loose, in the puzzle's order;
---                                           one board in coop, each racer's own in
---                                           compete
+--       board: {matchedCats, tilesLeft}     a racer's own grid: the bands, each a
+--                                           category with its `matchedAt`, in the order
+--                                           they were matched, and the tiles still
+--                                           loose, in the puzzle's order; null in
+--                                           coop, whose one board is `team`'s
 --
 --   summary_data, connections' part (the common part names and dates the
 --   game and carries its ending; the winner is `ending.winner`):
---     team: {nMatchedCats, nMistakes}       the same group; null in compete, whose
+--     team: {nMatchedCats, nMistakes}       the team's counts; null in compete, whose
 --                                           summary shows no progress
 --     maxMistakes
 --
@@ -439,12 +439,17 @@ $$;
 
 revoke execute on function connections._make_json_events(uuid) from public;
 
--- What one seat's grid shows. A matched category IS a `result = 'correct'`
--- row joined to the puzzle's category by rank, so the bands are those rows in
--- the order they were written — the team's in coop, the seat's own in compete
--- — each category carrying when it was matched; the loose tiles are
--- `tileOrder` with the bands' tiles taken out, in the same order.
-create or replace function connections._make_json_board(p_game_id uuid, p_user_id uuid, p_mode text)
+-- The shape this had while every coop seat carried its own copy of the board;
+-- supabase/sql is re-applied, not diffed.
+drop function if exists connections._make_json_board(uuid, uuid, text);
+
+-- What a side's grid shows. A matched category IS a `result = 'correct'` row
+-- joined to the puzzle's category by rank, so the bands are those rows in the
+-- order they were written — every player's for a null `p_user_id`, the coop
+-- team's one board; else that racer's own — each category carrying when it
+-- was matched; the loose tiles are `tileOrder` with the bands' tiles taken
+-- out, in the same order.
+create or replace function connections._make_json_board(p_game_id uuid, p_user_id uuid)
 returns jsonb
 language sql
 stable
@@ -460,7 +465,7 @@ as $$
         on (cat ->> 'rank')::int = e.matched_cat_rank
      where e.game_id = p_game_id
        and e.result = 'correct'
-       and (p_mode = 'coop' or e.user_id = p_user_id)
+       and (p_user_id is null or e.user_id = p_user_id)
   ),
   banded as (
     select jsonb_array_elements_text(stored_cat -> 'tiles') as tile from matched
@@ -474,12 +479,12 @@ as $$
                        and t.tile not in (select tile from banded)));
 $$;
 
-revoke execute on function connections._make_json_board(uuid, uuid, text) from public;
+revoke execute on function connections._make_json_board(uuid, uuid) from public;
 
--- What the team shares: the two counts summed over every row. Each row holds
--- its player's own, so the sum counts every match and every miss once. Null
--- in compete, where there is no team (plans/team-facts.md).
-create or replace function connections._make_json_team(p_game_id uuid)
+-- The team's counts: the two summed over every row. Each row holds its
+-- player's own, so the sum counts every match and every miss once. Null in
+-- compete, where there is no team.
+create or replace function connections._make_json_team_counts(p_game_id uuid)
 returns jsonb
 language sql
 stable
@@ -496,11 +501,30 @@ as $$
    where cg.id = p_game_id;
 $$;
 
+revoke execute on function connections._make_json_team_counts(uuid) from public;
+
+-- The team's facts, sent once: its counts, the budget, and the one board.
+-- Null in compete, where there is no team (plans/team-facts.md).
+create or replace function connections._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = connections, common, public, extensions
+as $$
+  select connections._make_json_team_counts(p_game_id) || jsonb_build_object(
+           'maxMistakes', 4,
+           'board',       connections._make_json_board(p_game_id, null))
+    from common.games cg
+   where cg.id = p_game_id
+     and cg.mode = 'coop';
+$$;
+
 revoke execute on function connections._make_json_team(uuid) from public;
 
 -- Every player as connections' game_data shows them: the common player, with
--- their own two counts, the budget and this seat's board. The budget is the
--- game's constant, four, the same `MISTAKE_BUDGET` the frontend holds.
+-- their own facts — the two counts, the budget, and in compete their board.
+-- The budget is the game's constant, four, the same `MISTAKE_BUDGET` the
+-- frontend holds.
 create or replace function connections._make_json_players(p_game_id uuid)
 returns jsonb
 language sql
@@ -512,7 +536,9 @@ as $$
              'nMatchedCats', p.n_matched_cats,
              'nMistakes',    p.n_mistakes,
              'maxMistakes',  4,
-             'board',        connections._make_json_board(p_game_id, cp.id, cg.mode))
+             -- Coop's one board is sent once, in `team`.
+             'board',        case when cg.mode = 'compete'
+                               then connections._make_json_board(p_game_id, cp.id) end)
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
     join connections.players p on p.game_id = p_game_id and p.user_id = cp.id
@@ -564,7 +590,7 @@ stable
 set search_path = connections, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
-    'team',        connections._make_json_team(p_game_id),
+    'team',        connections._make_json_team_counts(p_game_id),
     'maxMistakes', 4);
 $$;
 

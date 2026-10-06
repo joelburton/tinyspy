@@ -11,8 +11,8 @@
 --   1. A fresh coop game's static_game_data and game_data, as a whole: the
 --      common parts, the puzzle as create_game froze it in the static blob,
 --      no log, and every player fresh with every tile loose
---   2. Mid-game coop: the log, each player's own counts, the team's summed,
---      one board on every seat with the band and the tiles left in order
+--   2. Mid-game coop: the log, each player's own counts, the team's facts
+--      sent once — the counts summed, the one board with the band and the tiles left
 --   3. Mid-game compete: each racer's own counts and own board; the log
 --      carries every racer's rows (the hook withholds, not the builder)
 --   4. The endings: the winner is named, the summary_data line, and
@@ -100,8 +100,25 @@ create function pg_temp.tiles_without(game uuid, rank int) returns jsonb languag
       where g.game_id = game
         and not (pg_temp.stored_cat(game, rank) -> 'tiles') ? t.tile $$;
 
+-- A board nobody has matched on: every tile still loose.
+create function pg_temp.fresh_board(game uuid) returns jsonb language sql as $$
+  select jsonb_build_object(
+    'matchedCats', '[]'::jsonb,
+    'tilesLeft',   pg_temp.tiles((select board -> 'tileOrder' from connections.games where game_id = game)))
+$$;
+
+-- A coop team that has not moved: the counts, the budget and the one board.
+create function pg_temp.fresh_team(game uuid) returns jsonb language sql as $$
+  select jsonb_build_object(
+    'nMatchedCats', 0,
+    'nMistakes',    0,
+    'maxMistakes',  4,
+    'board',        pg_temp.fresh_board(game))
+$$;
+
 -- A player who has not moved, in a free-for-all game: the common fields, and
--- connections' on top, with every tile still loose.
+-- connections' on top. A racer's board has every tile still loose; a coop
+-- player carries none (`board` null), the one board being the team's.
 create function pg_temp.fresh_player(game uuid, uid uuid, name text) returns jsonb language sql as $$
   select jsonb_build_object(
     'id',             uid,
@@ -121,9 +138,8 @@ create function pg_temp.fresh_player(game uuid, uid uuid, name text) returns jso
     'nMatchedCats',   0,
     'nMistakes',      0,
     'maxMistakes',    4,
-    'board',          jsonb_build_object(
-                        'matchedCats', '[]'::jsonb,
-                        'tilesLeft',   pg_temp.tiles((select board -> 'tileOrder' from connections.games where game_id = game))))
+    'board',          case when (select mode from common.games where id = game) = 'compete'
+                        then pg_temp.fresh_board(game) end)
 $$;
 
 -- ─── (1) A fresh coop game, as a whole ───
@@ -149,12 +165,12 @@ select is(
     'ending',   null,
     'ended',    false,
     'outcome',  null,
-    'team',     '{"nMatchedCats": 0, "nMistakes": 0}'::jsonb,
+    'team',     pg_temp.fresh_team(pg_temp.coop()),
     'events',   '[]'::jsonb,
     'players',  jsonb_build_array(
       pg_temp.fresh_player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111', 'ada'),
       pg_temp.fresh_player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222', 'bea'))),
-  'the whole game_data of a fresh coop game: the common part, a team with nothing counted, no log, fresh players with every tile loose'
+  'the whole game_data of a fresh coop game: the common part, a team with nothing counted and every tile loose, no log, fresh players carrying no board'
 );
 select is(
   jsonb_array_length(pg_temp.static_game_data(pg_temp.coop()) -> 'puzzle' -> 'tiles'),
@@ -210,26 +226,26 @@ select is(
   'coop: each player''s own counts — ada matched, bea missed'
 );
 select is(
-  pg_temp.game_data(pg_temp.coop()) -> 'team',
-  '{"nMatchedCats": 1, "nMistakes": 1}'::jsonb,
-  'coop: the team''s counts, summed over the rows, in game_data.team'
+  (pg_temp.game_data(pg_temp.coop()) -> 'team') - 'board',
+  '{"nMatchedCats": 1, "nMistakes": 1, "maxMistakes": 4}'::jsonb,
+  'coop: the team''s counts, summed over the rows, with the budget, in game_data.team'
 );
 select is(
-  pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board' -> 'matchedCats',
+  pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'board' -> 'matchedCats',
   jsonb_build_array(
     pg_temp.cat(pg_temp.coop(), 0)
       || jsonb_build_object('matchedAt', (select e -> 'at' from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'events') e limit 1))),
-  'coop: every seat''s board shows the team''s band — the category, with when it was matched'
+  'coop: the team''s one board shows its band — the category, with when it was matched'
 );
 select is(
-  pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board' -> 'tilesLeft',
+  pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'board' -> 'tilesLeft',
   pg_temp.tiles_without(pg_temp.coop(), 0),
   '… and the twelve tiles left, in the puzzle''s order'
 );
 select is(
-  pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111') -> 'board',
-  pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board',
-  '… the same board on both seats'
+  (select jsonb_agg(p -> 'board') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
+  '[null, null]'::jsonb,
+  '… and is sent once: no coop player carries a board'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
